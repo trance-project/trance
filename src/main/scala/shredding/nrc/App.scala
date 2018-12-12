@@ -100,17 +100,53 @@ object NRCExprTest extends App {
           (List((2, List((4, 5), (5,7)))), 6)
       ))
 
+      type Item2 = TTuple2[Int, Int]
+      val r2 = Relation[Item2]('R2,
+        List[Item2]((1,2),(1,3),(1,4),(2,2),(2,3),(2,4))
+      )
+
       val q = r.ForeachUnion(x => 
                 x.Project1.ForeachUnion(y => 
                   Singleton(TupleStruct2(y.Project1, y.Project2.ForeachUnion(z => 
                     Singleton(TupleStruct1(z.Project1)))))))
-      println(Printer.quote(q))
-      println(Evaluator.eval(q))
-      println(Evaluator.eval((Shredder.shred(q))))
+      
+      // this has the incorrect multiplicity issue
+      val q2 = r2.ForeachUnion(x =>
+                Singleton(TupleStruct2(x.Project1, r2.ForeachUnion(y => 
+                  IfThenElse(y.Project1.Equals(x.Project1), 
+                    Singleton(TupleStruct1(y.Project2)),
+                    EmptySet)))))
+
+      // this has the incorrect multiplicity issue
+      val q3 = r2.ForeachUnion(x =>
+                Singleton(TupleStruct2(x.Project1, r2.ForeachUnion(y => 
+                  Singleton(TupleStruct1(y.Project2))))))
+
+      //println(Printer.quote(q))
+      //println(Evaluator.eval(q))
+      //println(Evaluator.eval((Shredder.shred(q))))
+
+      //println(Printer.quote(q2))
+      //println(Evaluator.eval(q2))
+      //println(Printer.quote(Shredder.shred(q2)))
+      
+      //println(Printer.quote(q3))
+      //println(Evaluator.eval(q3))
+      //println(Printer.quote(Shredder.shred(q3)))
+  
+      type Variant = TTuple3[String, Int, TBag[TTuple2[String, Int]]]
+      type Clinical = TTuple2[String, Double]
+      val v = Relation[Variant]('V, 
+        List[Variant](("1", 100, List(("one", 0), ("two", 1), ("three", 2), ("four", 0))),
+          ("1", 101, List(("one", 1), ("two", 2), ("three", 2), ("four", 0))))) 
+      val c = Relation[Clinical]('C,
+        List[Clinical](("one", 1.0), ("two", 1.0), ("three", 0.0), ("four", 0.0)))
+      
+      
     }
   }
 
-  Example.run()
-  //Example3.run()
+  //Example.run()
+  Example3.run()
   //Example2.run()
 }

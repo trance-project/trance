@@ -30,7 +30,8 @@ trait NRCTransforms extends NRCExprs {
       case Sym(x, id) => x.name + id
       case Label(l, e1) => s"${quote(l)} where ${quote(l)} -> ${quote(e1)}"
       case Eq(e1, e2) => s"${quote(e1)} = ${quote(e2)}"
-      case IfThenElse(e1, e2, e3) => s"if ${quote(e1)} then ${quote(e2)} else ${quote(e3)}"
+      case IfThenElse(e1, e2, e3) => s"if ${quote(e1)} then ${quote(e2)} then ${quote(e3)}"
+      case EmptySet => s"sng()"
       case _ => "<unknown>"
     }
   }
@@ -58,6 +59,7 @@ trait NRCTransforms extends NRCExprs {
         if (eval(e1).asInstanceOf[Boolean]) 
           eval(e2).asInstanceOf[A] 
         else eval(e3).asInstanceOf[A]
+      case EmptySet => List()
       case Relation(_, c) => c
       case Const(c) => c
       case s @ Sym(_, _) => ctx(s).asInstanceOf[A]
@@ -86,6 +88,10 @@ trait NRCTransforms extends NRCExprs {
         TupleStruct3(shred(e1), shred(e2), shred(e3))
       case Project(e1, pos) =>
         Project(shred(e1), pos)
+      case Eq(e1, e2) => Eq(shred(e1), shred(e2))
+      case IfThenElse(e1, e2, e3) => 
+        IfThenElse(shred(e1), shred(e2), shred(e3))
+      case EmptySet => EmptySet
       case r @ Relation(_, _) => shredRelation(r)
       case Const(_) | Sym(_, _) => e
       case _ => sys.error("not supported")
@@ -116,9 +122,10 @@ trait NRCTransforms extends NRCExprs {
     def isShreddable[A: TypeTag](e: Expr[A]): Boolean =
       e.containsRelation    // shred or not
 
+    // shredding of input relations
     def shredRelation[A](r: Relation[A]) = {
-      // TODO: shredding of input relations
+      //TODO
       r
-    }
+   }
   }
 }

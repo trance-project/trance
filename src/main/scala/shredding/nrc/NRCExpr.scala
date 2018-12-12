@@ -38,8 +38,9 @@ trait NRCExprs {
 
   case class Eq[A,B](e1: Expr[A], e2: Expr[B]) extends Expr[Boolean]
 
-  // this may be too strict
   case class IfThenElse[A,B,C](e1: Expr[A], e2: Expr[B], e3: Expr[C]) extends Expr[TBag[B]]
+  
+  case object EmptySet extends Expr[TBag[Nothing]]
   
   case class Singleton[A](e: Expr[A]) extends Expr[TBag[A]]
 
