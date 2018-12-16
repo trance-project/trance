@@ -1,6 +1,7 @@
 package shredding.nrc
 
 import reflect.runtime.universe.{ Symbol => _, _ }
+import scala.collection.mutable.Map
 
 /**
   * Grammar for NRC 
@@ -12,6 +13,7 @@ trait NRCExprs {
   type TTuple2[A, B] = Tuple2[A, B]
   type TTuple3[A, B, C] = Tuple3[A, B, C]
   type TBag[A] = List[A]
+  type TMap[A,B] = Map[A,B]
 
   /**
     * Expr[A] is the type of expressions that evaluate to a value of type A
@@ -34,15 +36,21 @@ trait NRCExprs {
     */
   case class ForeachUnion[A, B](x: Sym[A], e1: Expr[TBag[A]], e2: Expr[TBag[B]]) extends Expr[TBag[B]]
 
+  case class ForeachMapunion[A,B](x: Sym[A], e1: Expr[TBag[A]], e2: Expr[TMap[Label[B], TBag[B]]]) extends Expr[TMap[Label[B], TBag[B]]]
+
   case class Union[A](e1: Expr[TBag[A]], e2: Expr[TBag[A]]) extends Expr[TBag[A]]
+
+  case class Mapunion[A](e1: Expr[TMap[Label[A], TBag[A]]], e2: Expr[TMap[Label[A], TBag[A]]]) extends Expr[TMap[Label[A], TBag[A]]]
+
+  case class And(e1: Expr[Boolean], e2: Expr[Boolean]) extends Expr[Boolean]
 
   case class Eq[A,B](e1: Expr[A], e2: Expr[B]) extends Expr[Boolean]
 
-  case class IfThenElse[A,B,C](e1: Expr[A], e2: Expr[B], e3: Expr[C]) extends Expr[TBag[B]]
-  
-  case object EmptySet extends Expr[TBag[Nothing]]
-  
+  case class IfThenElse[A](e1: Expr[Boolean], e2: Expr[A], e3: Expr[A]) extends Expr[A]
+       
   case class Singleton[A](e: Expr[A]) extends Expr[TBag[A]]
+
+  case class MapStruct[A](l: Label[A], e: Expr[TBag[A]]) extends Expr[TMap[Label[A], TBag[A]]]
 
   case class TupleStruct1[A](e1: Expr[A]) extends Expr[TTuple1[A]]
 
@@ -54,7 +62,11 @@ trait NRCExprs {
 
   case class Relation[A](r: Sym[A], b: TBag[A]) extends Expr[TBag[A]]
 
+  case class ShredRelation[A](r: Sym[A], b: TMap[ShredLabel[A], A]) extends Expr[TMap[ShredLabel[A], A]]
+
   case class Label[A](l: Sym[A], e: Expr[A]) extends Expr[A]
+
+  case class ShredLabel[A](l: Sym[A], e: A) extends Expr[A]
 
   /**
     * Extension methods for NRC expressions
@@ -88,6 +100,17 @@ trait NRCExprs {
         case ForeachUnion(x, e1, e2) => x :: e1.vars ++ e2.vars
         case Relation(n, _) => List(n)
       }
+
+    def boundvars: List[Sym[_]] = 
+      collect {
+        case ForeachUnion(x, e1, e2) => e2 match {
+          case ForeachUnion(y, e3, e4) => x :: y :: e1.boundvars ++ e4.boundvars
+          case _ => x :: e2.boundvars
+        }
+      }
+
+    def freevars: List[Sym[_]] = e.vars.filterNot(boundvars.toSet)
+
   }
 }
 

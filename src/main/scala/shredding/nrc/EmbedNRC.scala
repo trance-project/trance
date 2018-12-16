@@ -34,6 +34,16 @@ trait EmbedNRC extends NRCExprs {
     def Union(rhs: Expr[TBag[A]]): Expr[TBag[A]] =
       new Union(self, rhs)
 
+    def ForeachMapunion[B](f: Expr[A] => Expr[TMap[Label[B], TBag[B]]]): Expr[TMap[Label[B], TBag[B]]] = {
+      val x = Sym[A]('x)
+      new ForeachMapunion(x, self, f(x))
+    }
+
+  }
+
+  implicit def mapOps[A](self: Expr[TMap[Label[A], TBag[A]]]) = new { 
+    def Mapunion(rhs: Expr[TMap[Label[A], TBag[A]]]): Expr[TMap[Label[A], TBag[A]]] = 
+      new Mapunion(self, rhs)
   }
 
   implicit def flattenOp[A](self: Expr[TBag[TBag[A]]]) = new {
