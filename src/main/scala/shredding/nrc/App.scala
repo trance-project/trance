@@ -139,16 +139,6 @@ object NRCExprTest extends App {
       println(vf)
       println(vd)
       
-      //InputDict_Vf(L_0)
-      // Example of what a shredded query should be 
-      // this required extended the grammar 
-      val q1 = Relation('Vf2, vf.b(vf.b.keys.toList(0))).ForeachMapunion(x => 
-          MapStruct(Label(Sym('l), x),
-            Singleton(TupleStruct3(x.Project1, x.Project2, Label(Sym('l), x.Project3)))))
-
-      println("Q1")
-      println(Printer.quote(q1))
-      
       val c = Relation[Clinical]('C,
         List[Clinical](("one", 1.0), ("two", 1.0), ("three", 0.0), ("four", 0.0)))
      
@@ -161,30 +151,38 @@ object NRCExprTest extends App {
                         Singleton(TupleStruct1(z.Project2)), Singleton(TupleStruct1(Const(-1))))))))))))
 
       // even more simple query that does not join clinical data
-      val t = v.ForeachUnion(x =>
-                Singleton(TupleStruct3(x.Project1, x.Project2, x.Project3.ForeachUnion(z =>
-                    Singleton(TupleStruct2(z.Project1, z.Project2))))))
+      val t = v.ForeachUnion(x => // Q1
+                Singleton(TupleStruct3(x._1, x._2, x._3.ForeachUnion(z => // Q2
+                    Singleton(TupleStruct2(z._1, z._2))))))
+  
+      //InputDict_Vf(L_0)
+      // Example of what a shredded query should be 
+      // this required extended the grammar 
+      // step1: For x in shred(v) Mapunion shredQueryBag(q2)
+      val v2 = Relation('Vf2, vf.b(vf.b.keys.toList(0)))
+     // val q1 = v2.ForeachMapunion(x => 
+     //     MapStruct(Label(Sym('l), v2),
+     //       Singleton(TupleStruct3(x._1, x._2, Label(Sym('l), x._3)))))
 
+      //println("Q1")
+      //println(Printer.quote(q1))
       
       // queries that represent shredded types
       val v_flatq = v.ForeachUnion(x =>
-                    Singleton(TupleStruct3(
-                      x.Project1, x.Project2, Label(Sym('l), TupleStruct2(x.Project1, x.Project2)))))
+                      Singleton(TupleStruct3(
+                        x.Project1, x.Project2, ShredLabel(Sym('l), TupleStruct2(x.Project1, x.Project2)))))
       val v_dictq = v.ForeachUnion(x => 
-                    Singleton(TupleStruct2(Label(Sym('l), TupleStruct2(x.Project1, x.Project2)), x.Project3)))
+                      Singleton(TupleStruct2(ShredLabel(Sym('l), TupleStruct2(x.Project1, x.Project2)), x.Project3)))
 
-      println("Simple example")
-      println(Printer.quote(t))
-      println(Printer.quote(Shredder.shredQueryBag(t)))
-      Shredder.ctx.foreach(i => println(Printer.quote(i._2)))     
-
-      println("Example with a join")
-      Shredder.reset
-      println(Printer.quote(ac))
-      println(Printer.quote(Shredder.shredQueryBag(ac)))
-      Shredder.ctx.foreach(i => println(Printer.quote(i._2)))     
-
-
+      /**println(Printer.quote(v_flatq))
+      val rvf = Relation(Sym('s), Evaluator.eval(v_flatq))
+      val rvd = Relation(Sym('s), Evaluator.eval(v_dictq))
+      println(rvf)
+      println(rvd) **/
+      println("Simple example")     
+      Shredder.reset 
+      val queries = Shredder.generateShredQueries(ac)
+      Evaluator.evalQueries(queries)
     }
   }
 

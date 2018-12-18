@@ -38,6 +38,9 @@ trait NRCExprs {
 
   case class ForeachMapunion[A,B](x: Sym[A], e1: Expr[TBag[A]], e2: Expr[TMap[Label[B], TBag[B]]]) extends Expr[TMap[Label[B], TBag[B]]]
 
+  // For x in Map union sng(x._n) 
+  case class ForeachDomain[A,B](x: Sym[A], e1: Expr[TMap[Label[A], TBag[A]]], e2: Expr[TBag[B]]) extends Expr[TBag[B]]
+  
   case class Union[A](e1: Expr[TBag[A]], e2: Expr[TBag[A]]) extends Expr[TBag[A]]
 
   case class Mapunion[A](e1: Expr[TMap[Label[A], TBag[A]]], e2: Expr[TMap[Label[A], TBag[A]]]) extends Expr[TMap[Label[A], TBag[A]]]
@@ -62,11 +65,13 @@ trait NRCExprs {
 
   case class Relation[A](r: Sym[A], b: TBag[A]) extends Expr[TBag[A]]
 
+  // A needs to be TBag
   case class ShredRelation[A](r: Sym[A], b: TMap[ShredLabel[A], A]) extends Expr[TMap[ShredLabel[A], A]]
 
-  case class Label[A](l: Sym[A], e: Expr[A]) extends Expr[A]
+  case class Label[A](l: Sym[A], e: List[Expr[_]]) extends Expr[A]
 
   case class ShredLabel[A](l: Sym[A], e: A) extends Expr[A]
+
 
   /**
     * Extension methods for NRC expressions
@@ -95,13 +100,16 @@ trait NRCExprs {
         typeOf[A] <:< typeOf[TTuple2[_, _]] ||
         typeOf[A] <:< typeOf[TTuple3[_, _, _]]
 
-    def vars: List[Sym[_]] =
+    // need to handle projected variables
+    def vars: List[Expr[_]] = {
       collect {
         case ForeachUnion(x, e1, e2) => x :: e1.vars ++ e2.vars
+        case Project(s, _) => List(s)
         case Relation(n, _) => List(n)
       }
+    }
 
-    def boundvars: List[Sym[_]] = 
+    def boundvars: List[Expr[_]] = 
       collect {
         case ForeachUnion(x, e1, e2) => e2 match {
           case ForeachUnion(y, e3, e4) => x :: y :: e1.boundvars ++ e4.boundvars
@@ -109,7 +117,7 @@ trait NRCExprs {
         }
       }
 
-    def freevars: List[Sym[_]] = e.vars.filterNot(boundvars.toSet)
+    def freevars: List[Expr[_]] = e.vars.filterNot(boundvars.toSet)
 
   }
 }

@@ -44,6 +44,11 @@ trait EmbedNRC extends NRCExprs {
   implicit def mapOps[A](self: Expr[TMap[Label[A], TBag[A]]]) = new { 
     def Mapunion(rhs: Expr[TMap[Label[A], TBag[A]]]): Expr[TMap[Label[A], TBag[A]]] = 
       new Mapunion(self, rhs)
+
+    def ForeachDomain[B](f: Expr[A] => Expr[TBag[B]]): Expr[TBag[B]] = {
+      val w = Sym[A]('w)
+      new ForeachDomain(w, self, f(w))
+    }
   }
 
   implicit def flattenOp[A](self: Expr[TBag[TBag[A]]]) = new {
@@ -52,17 +57,23 @@ trait EmbedNRC extends NRCExprs {
 
   implicit def projectOps1[A](self: Expr[TTuple1[A]]) = new {
     def Project1: Expr[A] = Project(self, 1)
+    def _1: Expr[A] = Project(self, 1)
   }
 
   implicit def projectOps2[A, B](self: Expr[TTuple2[A, B]]) = new {
     def Project1: Expr[A] = Project(self, 1)
     def Project2: Expr[B] = Project(self, 2)
+    def _1: Expr[A] = Project(self, 1)
+    def _2: Expr[B] = Project(self, 2)
   }
 
   implicit def projectOps3[A, B, C](self: Expr[TTuple3[A, B, C]]) = new {
     def Project1: Expr[A] = Project(self, 1)
     def Project2: Expr[B] = Project(self, 2)
     def Project3: Expr[C] = Project(self, 3)
+    def _1: Expr[A] = Project(self, 1)
+    def _2: Expr[B] = Project(self, 2)
+    def _3: Expr[C] = Project(self, 3)
   }
 
   implicit def eqOp[A,B](self: Expr[A]) = new {
