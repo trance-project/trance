@@ -1,6 +1,6 @@
 package shredding.nrc
 
-import shredding.Utils.ind
+import shredding.Utils._
 import reflect.runtime.universe.{ Symbol => _, _ }
 
 /**
@@ -37,7 +37,7 @@ trait NRCTransforms extends NRCExprs with EmbedNRC {
       case Const(s: String) => "\""+ s +"\""
       case Const(c) => c.toString
       case Sym(x, id) => x.name + id
-      case Label(l, e1) => s"${quote(l)} where ${quote(l)} -> ${e1.map{e => quote(e)}.mkString(",")}"
+      case Label(l, e1) => s"${quote(l)} where (${quote(l)} -> ${e1.map{e => quote(e)}.mkString(",")})"
       case Eq(e1, e2) => s"${quote(e1)} = ${quote(e2)}"
       case And(e1, e2) => s"${quote(e1)} and ${quote(e2)}"
       case IfThenElse(e1, e2, e3) => s"if ${quote(e1)} then ${quote(e2)} else ${quote(e3)}"
@@ -52,6 +52,7 @@ trait NRCTransforms extends NRCExprs with EmbedNRC {
   object Evaluator {
     val ctx = collection.mutable.HashMap[Sym[_], Any]()
 
+    val reset = ctx.clear
     /**
       * Evaluate all the queries in the query set
       * Note that input relations still are not shredded 
@@ -62,6 +63,7 @@ trait NRCTransforms extends NRCExprs with EmbedNRC {
         println(q._1+" "+Printer.quote(q._2))
         println(eval(q._2))
       })
+      reset
     }
 
     /**
@@ -76,10 +78,18 @@ trait NRCTransforms extends NRCExprs with EmbedNRC {
           //ctx.remove(x)
           r
         case ForeachMapunion(x, e1, e2) =>
-          val r = eval(e1).flatMap { x1 => ctx(x) = x1; eval(e2) }.asInstanceOf[A]
+          val r = collection.mutable.Map[Any,Any]()
+          eval(e1).foreach { 
+            x1 => ctx(x) = x1; 
+            merge(r, eval(e2))
+          }          
           //ctx.remove(x)
-          r
-        case Mapunion(e1, e2) => eval(e1) ++ eval(e2)
+          r.asInstanceOf[A]
+        case Mapunion(e1, e2) => {
+          val m = eval(e1).asInstanceOf[collection.mutable.Map[Any,Any]]
+          merge(m, eval(e2))
+          m.asInstanceOf[A]
+        }
         case MapStruct(e1, e2) => e1 match {
           case Label(s,v) => { // maintain label
             //ctx(s) = v.map{v2 => eval(v2)}
@@ -232,7 +242,7 @@ trait NRCTransforms extends NRCExprs with EmbedNRC {
       e match {
         case ForeachUnion(x, e1, e2) => isShreddable(e2)
         case Singleton(e1) => true
-        case IfThenElse(e1,e2,e3) => true
+        case IfThenElse(e1,e2,e3) => isShreddable(e2)
         case Union(e1,e2) => true
         case Relation(r,b) => true
         case _ => false 
