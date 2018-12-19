@@ -68,7 +68,7 @@ trait NRCExprs {
   // A needs to be TBag
   case class ShredRelation[A](r: Sym[A], b: TMap[ShredLabel[A], A]) extends Expr[TMap[ShredLabel[A], A]]
 
-  case class Label[A](l: Sym[A], e: List[Expr[_]]) extends Expr[A]
+  case class Label[A](l: Sym[A], e: List[_]) extends Expr[A]
 
   case class ShredLabel[A](l: Sym[A], e: A) extends Expr[A]
 
@@ -81,8 +81,11 @@ trait NRCExprs {
     def collect[B](f: PartialFunction[Expr[_], List[B]]): List[B] =
       f.applyOrElse(e, (ex: Expr[_]) => ex match {
         case ForeachUnion(_, e1, e2) => e1.collect(f) ++ e2.collect(f)
+        case ForeachMapunion(_, e1, e2) => e1.collect(f) ++ e2.collect(f)
         case Union(e1, e2) => e1.collect(f) ++ e2.collect(f)
+        case Mapunion(e1, e2) => e1.collect(f) ++ e2.collect(f)
         case Singleton(e1) => e1.collect(f)
+        case MapStruct(_, e2) => e2.collect(f)
         case TupleStruct1(e1) => e1.collect(f)
         case TupleStruct2(e1, e2) => e1.collect(f) ++ e2.collect(f)
         case TupleStruct3(e1, e2, e3) => e1.collect(f) ++ e2.collect(f) ++ e3.collect(f)
@@ -118,6 +121,12 @@ trait NRCExprs {
       }
 
     def freevars: List[Expr[_]] = e.vars.filterNot(boundvars.toSet)
+
+    def domain: List[Sym[_]] = 
+      collect {
+        case MapStruct(k,v) => v.domain
+        case Label(s,v) => List(s)
+      }
 
   }
 }

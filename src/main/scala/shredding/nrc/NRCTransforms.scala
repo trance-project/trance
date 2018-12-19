@@ -37,7 +37,7 @@ trait NRCTransforms extends NRCExprs with EmbedNRC {
       case Const(s: String) => "\""+ s +"\""
       case Const(c) => c.toString
       case Sym(x, id) => x.name + id
-      case Label(l, e1) => s"${quote(l)} where (${quote(l)} -> ${e1.map{e => quote(e)}.mkString(",")})"
+      case Label(l, e1) => s"${quote(l)}"// where (${quote(l)} -> ${e1.mkString(",")})"
       case Eq(e1, e2) => s"${quote(e1)} = ${quote(e2)}"
       case And(e1, e2) => s"${quote(e1)} and ${quote(e2)}"
       case IfThenElse(e1, e2, e3) => s"if ${quote(e1)} then ${quote(e2)} else ${quote(e3)}"
@@ -61,6 +61,7 @@ trait NRCTransforms extends NRCExprs with EmbedNRC {
     def evalQueries(qs: collection.mutable.ListMap[Sym[_], Expr[_]]) = {
       qs.foreach(q => {
         println(q._1+" "+Printer.quote(q._2))
+        println(q._2.domain)
         println(eval(q._2))
       })
       reset
@@ -91,8 +92,7 @@ trait NRCTransforms extends NRCExprs with EmbedNRC {
           m.asInstanceOf[A]
         }
         case MapStruct(e1, e2) => e1 match {
-          case Label(s,v) => { // maintain label
-            //ctx(s) = v.map{v2 => eval(v2)}
+          case Label(s,v) => {
             collection.mutable.Map(e1 -> eval(e2))     
           } 
         }
@@ -109,9 +109,12 @@ trait NRCTransforms extends NRCExprs with EmbedNRC {
           if (eval(e1)) eval(e2) else eval(e3)
         case Relation(r, c) => ctx(r) = c; c
         case Const(c) => c
-        case l @ Label(s,v) => // create a new label based on the actual values of this label
+        case l @ Label(s,v) => {// create a new label based on the actual values of this label
           val nl = Sym[Any]('s)
-          ctx(nl) = v.map{v2 => eval(v2)}; ctx(s) = ctx(nl); ShredLabel(nl, ctx(nl)).asInstanceOf[A]
+          ctx(nl) = v.map{v2 => eval(v2.asInstanceOf[Expr[A]])}; 
+          ctx.remove(s); 
+          Label(nl, ctx(nl).asInstanceOf[List[_]]).asInstanceOf[A]
+        }
         case l @ ShredLabel(s,v) => s.asInstanceOf[A]
         case s @ Sym(_, _) => ctx.getOrElse(s, s).asInstanceOf[A]
         case _ => sys.error("not implemented")
