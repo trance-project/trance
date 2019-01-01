@@ -3,45 +3,63 @@ package shredding.nrc
 import shredding.Utils._
 import reflect.runtime.universe.{ Symbol => _, _ }
 
+import scala.collection.mutable.SortedMap
+import collection.mutable.HashMap
+
 /**
-  * Transformations for NRC expressions 
-  * printing, evaluation, and shredding
+  * Transformations for NRC Expressions
   */
 
-trait NRCTransforms extends NRCExprs with EmbedNRC {
+trait NRCTransforms extends EmbedNRC {
 
   /**
     * Pretty printer
     */
   object Printer {
     def quote[A](e: Expr[A]): String = e match {
+      case ForeachUnion(x, e1 @ Sym(_,_), e2 @ ForeachUnion(y, e3, e4)) =>
+        val sub = s"""For ${quote(y)} in extractFromLabel_${quote(e3)}(${quote(x)}) Union 
+                      |${ind(quote(e4))}""".stripMargin
+        s"""|For ${quote(x)} in ${quote(e1)} Union
+            |${ind(sub)}""".stripMargin
       case ForeachUnion(x, e1, e2) =>
         s"""|For ${quote(x)} in ${quote(e1)} Union
             |${ind(quote(e2))}""".stripMargin
-      case ForeachMapunion(x, e1, e2) =>
-        s"""|For ${quote(x)} in ${quote(e1)} Mapunion 
-            |${ind(quote(e2))}""".stripMargin
-      case ForeachDomain(x, e1, e2) =>
-        s"""|For ${quote(x)} in ${quote(e1)} Union
-            |${ind(quote(e2))}""".stripMargin
       case Union(e1, e2) => s"(${quote(e1)}) Union (${quote(e2)})"
-      case Mapunion(e1, e2) => s"(${quote(e1)}) Mapunion (${quote(e2)})"
       case Singleton(e1) => "sng(" + quote(e1) + ")"
-      case MapStruct(k, v) => s"${quote(k)} -> ${quote(v)}"
+      case EmptySet() => "sng()"
       case TupleStruct1(e1) => quote(e1)
       case TupleStruct2(e1, e2) => s"( ${quote(e1)}, ${quote(e2)} )"
       case TupleStruct3(e1, e2, e3) => s"( ${quote(e1)}, ${quote(e2)}, ${quote(e3)} )"
       case Project(e1, pos) => quote(e1) + "._" + pos
-      case Relation(n, _) => quote(n)
-      case ShredRelation(n, _) => quote(n)
+      case Relation(n, s) => quote(n)//s"${quote(n)} ${s}"
       case Const(s: String) => "\""+ s +"\""
       case Const(c) => c.toString
       case Sym(x, id) => x.name + id
-      case Label(l, e1) => s"${quote(l)}"// where (${quote(l)} -> ${e1.mkString(",")})"
+      case Label(l, e1) => s"${quote(l)} where (${quote(l)} -> ${e1.mkString(",")})"
       case Eq(e1, e2) => s"${quote(e1)} = ${quote(e2)}"
       case And(e1, e2) => s"${quote(e1)} and ${quote(e2)}"
       case IfThenElse(e1, e2, e3) => s"if ${quote(e1)} then ${quote(e2)} else ${quote(e3)}"
       case _ => "<unknown>"
+    }
+
+
+    /**
+      * Print helper functions for writing out shredded queries, and 
+      * evaluation of shredded queries.
+      */ 
+
+    def printQueries(qs: scala.collection.mutable.SortedMap[Sym[_],Expr[_]]) = {
+      qs.foreach(q => {
+        println(q._1+": "+quote(q._2))
+      })
+    }
+
+    def printOutputs(qs: collection.mutable.HashMap[Sym[_],Any]) = {
+      qs.foreach(q => {
+        println(q._1+":")
+        q._2.asInstanceOf[List[Any]].foreach(println)
+      })
     }
 
   }
@@ -50,54 +68,74 @@ trait NRCTransforms extends NRCExprs with EmbedNRC {
     * Simple Scala evaluator
     */
   object Evaluator {
-    val ctx = collection.mutable.HashMap[Sym[_], Any]()
 
+    val ctx = HashMap[Sym[_], Any]()
     val reset = ctx.clear
+
     /**
-      * Evaluate all the queries in the query set
-      * Note that input relations still are not shredded 
-      * so this is really only evaluating the top query
+      * Initial implementation of extractFromLabel_e1(label) 
+      * given an expression and a label, extract the value associated
+      * with the the expression in the label. Note that for now a label
+      * holds a list of key-value pairs 
       */
-    def evalQueries(qs: collection.mutable.ListMap[Sym[_], Expr[_]]) = {
-      qs.foreach(q => {
-        println(q._1+" "+Printer.quote(q._2))
-        println(q._2.domain)
-        println(eval(q._2))
-      })
-      reset
+    def extractFromLabel(e1: Expr[_], label: Label[_]) = { 
+      label.e.toMap.getOrElse(e1,None).asInstanceOf[List[Any]]
+    }
+
+    def extractFromLabelAll(l: Label[_]) = {
+      l.e.map{ case (v2, empty) =>  
+        val v3 = eval(v2.asInstanceOf[Expr[_]])
+          v3 match {
+             case l2 @ Label(s1,v1) => (v2, v1)
+             case _ => (v2, v3)
+           }}
     }
 
     /**
-      * Evaluation of a query. Since label handling still needs some work, 
-      * this is only working correctly on the top-level query. 
-      * Bug in IfThenElse
+      * Evaluate all the queries in the set of shredded queries (output of Shredder.generateShredQueries)
+      */
+    def evalQueries(qs: SortedMap[Sym[_],Expr[_]]): HashMap[Sym[_],Any] = {
+      val shredded_outputs = HashMap[Sym[_], Any]()
+      qs.foreach({ i => 
+        shredded_outputs += (i._1 -> eval(i._2))
+        reset       
+      })
+      shredded_outputs
+    }
+
+    /**
+      * Evaluation of a query. In the current shredding process, labels hold the values of the nested 
+      * elements, so no extraction from a shredded dict is necessary. This will change when shredRelation
+      * does the full shredding process (see Shredder.shredRelation).
+      *
+      * There are currently two cases for ForeachUnion:
+      *    i) iterating elements of the flat shred relation (top level records)
+      *    ii) iterating labels from the domain of a parent expression, and extracting
+      *        a free-variable from the label. 
       */
     def eval[A](e: Expr[A]): A = {
       e match {
-        case ForeachUnion(x, e1, e2) =>
-          val r = eval(e1).flatMap { x1 => ctx(x) = x1; eval(e2) }.asInstanceOf[A]
-          //ctx.remove(x)
+        // for we in domain union
+        //   for y in extractFromLabel_fv(we)
+        case ForeachUnion(x, e1 @ Sym(_,_), e2 @ ForeachUnion(y, e3, e4)) =>
+          val domain = eval(e1).map{ s => eval(s.asInstanceOf[Sym[A]]) }
+          val r = flatten(domain).flatMap{ we =>
+            ctx(x) = we
+            extractFromLabel(e3, we.asInstanceOf[Label[_]]).map{ y1 =>
+              ctx(y) = y1
+              eval(e4)
+            }
+          }.asInstanceOf[A]
           r
-        case ForeachMapunion(x, e1, e2) =>
-          val r = collection.mutable.Map[Any,Any]()
-          eval(e1).foreach { 
-            x1 => ctx(x) = x1; 
-            merge(r, eval(e2))
-          }          
-          //ctx.remove(x)
-          r.asInstanceOf[A]
-        case Mapunion(e1, e2) => {
-          val m = eval(e1).asInstanceOf[collection.mutable.Map[Any,Any]]
-          merge(m, eval(e2))
-          m.asInstanceOf[A]
-        }
-        case MapStruct(e1, e2) => e1 match {
-          case Label(s,v) => {
-            collection.mutable.Map(e1 -> eval(e2))     
-          } 
-        }
+        case ForeachUnion(x, e1, e2) => 
+          val r = eval(e1).flatMap{ x1 => 
+            ctx(x) = x1;
+            eval(e2) 
+          }.asInstanceOf[A]
+          r
         case Union(e1, e2) => eval(e1) ++ eval(e2)
         case Singleton(e1) => List(eval(e1))
+        case EmptySet() => List()
         case TupleStruct1(e1) => Tuple1(eval(e1))
         case TupleStruct2(e1, e2) => Tuple2(eval(e1), eval(e2))
         case TupleStruct3(e1, e2, e3) => Tuple3(eval(e1), eval(e2), eval(e3))
@@ -107,16 +145,22 @@ trait NRCTransforms extends NRCExprs with EmbedNRC {
         case And(e1, e2) => eval(e1) && eval(e2)
         case IfThenElse(e1, e2, e3) => 
           if (eval(e1)) eval(e2) else eval(e3)
-        case Relation(r, c) => ctx(r) = c; c
+        case Relation(r, c) => 
+          ctx(r) = c; c
         case Const(c) => c
-        case l @ Label(s,v) => {// create a new label based on the actual values of this label
-          val nl = Sym[Any]('s)
-          ctx(nl) = v.map{v2 => eval(v2.asInstanceOf[Expr[A]])}; 
-          ctx.remove(s); 
-          Label(nl, ctx(nl).asInstanceOf[List[_]]).asInstanceOf[A]
+        case l @ Label(s,v) => {// create a new label based on evaluated values
+          val nl = Label(Sym('s), extractFromLabelAll(l))
+          ctx(nl.l) = nl.e
+          // update domain
+          try { 
+            ctx(s) = ctx(s).asInstanceOf[List[(Any,Any)]] ++ List(nl) 
+          } catch { 
+            case e:Exception => ctx(s) = List(nl)
+          }
+          nl.asInstanceOf[A]
         }
-        case l @ ShredLabel(s,v) => s.asInstanceOf[A]
-        case s @ Sym(_, _) => ctx.getOrElse(s, s).asInstanceOf[A]
+        case s @ Sym(_, _) => // return symbol if no value has been associated
+          ctx.getOrElse(s,s).asInstanceOf[A]
         case _ => sys.error("not implemented")
       }
     }
@@ -126,50 +170,83 @@ trait NRCTransforms extends NRCExprs with EmbedNRC {
   /**
     * Shredding transformation:
     * implementation of TransformQueryBag and TransformQueryBagAux
-    * there is still no shredding of input relations
     */
   object Shredder {
-    
-    // set of queries with FIFO access 
-    // either want to pass a simliar object through to each of the functions 
-    // or change shredder to a class so that this is not shared for all Shredder calls
-    val queries = collection.mutable.ListMap[Sym[_], Expr[_]]()
 
-    def reset = queries.clear
+    // the query stack holds the next (non-same level) subexpression to be 
+    // evaluated by the shredding procedure
+    var exprs = scala.collection.mutable.Stack[Expr[_]]()
+    implicit val ord = Sym.orderingById
     
     /**
-      * generateShredQueries wraps shredQueryBag in order to properly update
-      * the query collection (queries). Shredding expression (E) produces query
-      * (Q) through a recursive shredding process of subexpressions (E_n).
+      * generateShredQueries class shredQueryBag on subexpressions in the stack until there
+      * are no more subexpressions to shred.
       */
-    def generateShredQueries[A](e: Expr[TBag[A]]): collection.mutable.ListMap[Sym[_], Expr[_]] = {
-      queries(Sym('q)) = shredQueryBag(e)
-      queries
+    def generateShredQueries[A](e: Expr[A]): scala.collection.mutable.SortedMap[Sym[_],Expr[_]] = {
+      
+      var shredset = scala.collection.mutable.SortedMap[Sym[_], Expr[_]]()
+      
+      exprs.push(e)      
+      
+      var qsym = Sym[Any]('Q)
+      var dsym = Sym[Any]('D)
+      
+      while (!exprs.isEmpty) {
+        var shredq = shredQueryBag(exprs.pop, dsym)
+        shredset += (qsym -> shredq)
+        
+        // produce domain query if necessary
+        dsym = Sym[Any]('D)
+        var domain = shredq.asInstanceOf[Expr[Any]].domain
+        if (!domain.isEmpty){
+          // relaxing singleton tuple requirement here for cleaner evaluation
+          var d = Relation(dsym, domain).ForeachUnion(l => Singleton(l))
+          shredset += (dsym -> d)
+          qsym = Sym[Any]('Q)
+        }
+      }
+      shredset
     }
     
     /**
       * shredQueryBag (ie. TransformQueryBag from shredalg)
-      * input a expression of bag type and tracked free variables for 
-      * each of the levels and produce the shredded representation of the 
-      * query. Singleton marks the final "same level expression" of the input expression.
+      * input expression of bag type, a set of labels from previous query (domain),
+      * and a set of free variables (tracked from previous same-level expression)
+      * Singleton marks the final "same level expression" of the input expression.
       * A key-value pair is produced based on the tracked freevars (key), 
       * and shredSingleton (TransformQuerySingleton(Aux)) (value)
+      * Currently, key-value pairs are of type Tuple2[Label, Expr], can move
+      * to a map later.
       */ 
-    def shredQueryBag[A,B](e: Expr[TBag[A]], fs: List[Expr[_]] = List()): Expr[TMap[Label[A], TBag[A]]] = {
-      val freevars = fs ++ e.asInstanceOf[Expr[Any]].freevars
+    def shredQueryBag[A](e: Expr[A], domain: Sym[_], fs: List[Expr[_]] = List()): Expr[A] = {
+      
+      val fvars = fs ++ e.asInstanceOf[Expr[Any]].freevars
+      
+      // this needs fixed - the first case should work with the top level query only
+      // and any of the subqueries will need to iterate through a domain 
+      // and extract the respective expressions from the labels
+      // this change will also mean that the boundvars function needs to support more cases 
       e match {
-        // e1 is a bag so shredQueryBag(e1) should actually happen 
-        // but no shredding of input relations yet so holding off on that
-        // this also would not support For x in (For y in R Union sng(y._1)) Union sng(x._1)
+        // for x in shred(relation) union e2
+        case ForeachUnion(x, e1 @ Relation(_,_), e2) =>
+          val r = shredQueryBag(e1, domain)
+          ForeachUnion(x, r, shredQueryBag(e2, domain, fs ++ r.freevars))
+        // for we in domain
+        //    for y in extract(e1, we) shred(e2)
         case ForeachUnion(x, e1, e2) => 
-          ForeachMapunion(x, shredQueryElement(e1), shredQueryBag(e2, freevars))
+          val we = Sym[Any]('we)
+          ForeachUnion(we, domain.asInstanceOf[Expr[TBag[Any]]], 
+            ForeachUnion(x, e1, shredQueryBag(e2, domain, List(we))))
         case Union(e1, e2) => 
-          Mapunion(shredQueryBag(e1, freevars), shredQueryBag(e2, freevars))
-        case Singleton(e1) => 
+          Union(shredQueryBag(e1, domain, fvars), shredQueryBag(e2, domain, fvars))
+        case r @ Relation(_, _) => shredRelation(r)
+        case Singleton(e1) =>
           val frees = fs.filterNot(e.asInstanceOf[Expr[Any]].freevars.toSet)
-          MapStruct(Label(Sym('s), frees.distinct), Singleton(shredSingleton(e1)))
+          Singleton(TupleStruct2(Label(Sym('s), fs.map{v => (v, None)}), 
+            Singleton(shredSingleton(e1))))
+        case EmptySet() => EmptySet()
         case IfThenElse(e1,e2,e3) => 
-          IfThenElse(shredQueryElement(e1), shredQueryBag(e2, freevars), shredQueryBag(e3, freevars))
+          IfThenElse(shredQueryElement(e1), shredQueryBag(e2, domain, fvars), shredQueryBag(e3, domain, fvars))
         case _ => sys.error("not supported")
       }
     }
@@ -189,7 +266,6 @@ trait NRCTransforms extends NRCExprs with EmbedNRC {
         Project(shredQueryElement(e1), pos)
       case Eq(e1, e2) => Eq(shredQueryElement(e1), shredQueryElement(e2))
       case And(e1, e2) => And(shredQueryElement(e1), shredQueryElement(e2))
-      case r @ Relation(_, _) => shredRelation(r)
       case Const(_) | Sym(_, _) => e
       case _ => sys.error("not supported")
     }
@@ -227,11 +303,8 @@ trait NRCTransforms extends NRCExprs with EmbedNRC {
       */
     def wrapNewLabel[A: TypeTag](e: Expr[A]): Expr[A] = { 
       if (isShreddable(e)) {
-        val s = Sym[A]('l)
-        // for we in domain of previous query
-        val sq = shredQueryBag(e.asInstanceOf[Expr[TBag[A]]])
-        queries(s) = sq
-        Label(s, e.freevars.distinct)         
+        exprs.push(e)
+        Label(Sym[A]('q), e.freevars.distinct.map{v => (v, None)})         
       }else{
          shredQueryElement(e)
       }
@@ -243,19 +316,34 @@ trait NRCTransforms extends NRCExprs with EmbedNRC {
       */
     def isShreddable[A: TypeTag](e: Expr[A]): Boolean = {
       e match {
-        case ForeachUnion(x, e1, e2) => isShreddable(e2)
+        case ForeachUnion(x, e1, e2) => true
         case Singleton(e1) => true
-        case IfThenElse(e1,e2,e3) => isShreddable(e2)
+        case EmptySet() => true
+        case IfThenElse(e1,e2,e3) => isShreddable(e2) && isShreddable(e3)
         case Union(e1,e2) => true
         case Relation(r,b) => true
         case _ => false 
       }
     }
 
-    // shredding of input relations
+    def createLabel[A](v: A) = v match {
+      case head :: tail =>
+        Label(Sym('l), v.asInstanceOf[List[(Any, Any)]])
+      case _ => v
+    }
+
+    /**
+      * For now, this shreds the top relation, and stores the 
+      * nested element in the label, which is then accessed during evaluation
+      */
     def shredRelation[A](r: Relation[A]) = {
-      // TODO
-      r 
+      val rflat = r.b.map{ r2 => r2 match {
+          case Tuple3(e1,e2,e3) => Tuple3(createLabel(e1), createLabel(e2), createLabel(e3))
+          case Tuple2(e1,e2) => Tuple2(createLabel(e1), createLabel(e2))
+          case Tuple1(e1) => Tuple1(createLabel(e1))
+        }}
+      Relation('Rf, rflat)
     }
   }
+
 }

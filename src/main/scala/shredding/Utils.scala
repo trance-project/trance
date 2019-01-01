@@ -11,6 +11,7 @@ object Utils {
   }
 
   // if element to add in map is there, then append to value
+  // deprecated 
   def merge(m: Map[Any, Any], m2: Map[_, _]) = {
     m2.foreach(kv => {
       m.get(kv._1.asInstanceOf[Any]) match {
@@ -18,6 +19,12 @@ object Utils {
         case None => m += kv
       }
     })
+  }
+
+  // list[Any].flatten
+  def flatten(ls: List[Any]): List[Any] = ls flatMap {
+    case i: List[_] => flatten(i)
+    case i => List(i)
   }
 
 }
