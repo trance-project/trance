@@ -42,7 +42,7 @@ trait NRCExprs {
 
   case class Union[A](e1: Expr[TBag[A]], e2: Expr[TBag[A]]) extends Expr[TBag[A]]
 
-  case class IfThenElse[A](e1: Expr[Boolean], e2: Expr[A], e3: Expr[A]) extends Expr[A]
+  case class IfThenElse[A](e1: Expr[Boolean], e2: Expr[TBag[A]], e3: Expr[TBag[A]]) extends Expr[TBag[A]]
        
   case class Singleton[A](e: Expr[A]) extends Expr[TBag[A]]
 
@@ -105,10 +105,12 @@ trait NRCExprs {
         typeOf[A] <:< typeOf[TTuple2[_, _]] ||
         typeOf[A] <:< typeOf[TTuple3[_, _, _]]
 
-    // need to handle projected variables
     def vars: List[Expr[_]] = {
       collect {
         case ForeachUnion(x, e1, e2) => x :: e1.vars ++ e2.vars
+        case IfThenElse(e1, e2, e3) => e1.vars ++ e2.vars ++ e3.vars
+        case And(e1, e2) => e1.vars ++ e2.vars
+        case Eq(e1, e2) => e1.vars ++ e2.vars
         case p @ Project(s, _) => List(p)
         case Relation(n, _) => List(n)
       }
@@ -124,7 +126,10 @@ trait NRCExprs {
         case p @ Project(_,_) => List(p)
       }
 
-    def freevars: List[Expr[_]] = e.vars.filterNot(boundvars.toSet)
+    def freevars: List[Expr[_]] = e.vars.filter{
+      case s @ Sym(_,_) => !boundvars.contains(s)
+      case p @ Project(s,_) => !boundvars.contains(s)
+    }
 
     def domain: List[Sym[_]] = 
       collect {

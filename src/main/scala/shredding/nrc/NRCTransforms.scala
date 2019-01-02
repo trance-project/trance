@@ -233,7 +233,7 @@ trait NRCTransforms extends EmbedNRC {
           ForeachUnion(x, r, shredQueryBag(e2, domain, fs ++ r.freevars))
         // for we in domain
         //    for y in extract(e1, we) shred(e2)
-        case ForeachUnion(x, e1, e2) => 
+        case ForeachUnion(x, e1, e2) =>
           val we = Sym[Any]('we)
           ForeachUnion(we, domain.asInstanceOf[Expr[TBag[Any]]], 
             ForeachUnion(x, e1, shredQueryBag(e2, domain, List(we))))
@@ -241,7 +241,6 @@ trait NRCTransforms extends EmbedNRC {
           Union(shredQueryBag(e1, domain, fvars), shredQueryBag(e2, domain, fvars))
         case r @ Relation(_, _) => shredRelation(r)
         case Singleton(e1) =>
-          val frees = fs.filterNot(e.asInstanceOf[Expr[Any]].freevars.toSet)
           Singleton(TupleStruct2(Label(Sym('s), fs.map{v => (v, None)}), 
             Singleton(shredSingleton(e1))))
         case EmptySet() => EmptySet()
