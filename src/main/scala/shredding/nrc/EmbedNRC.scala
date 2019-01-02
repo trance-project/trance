@@ -66,6 +66,14 @@ trait EmbedNRC extends NRCExprs {
     def equals(l: Label[B]): Boolean = self.e == l.e
   }
 
+  implicit def symOp[A,B](self: Sym[A]) = new {
+    def equals(s: Sym[B]): Boolean = self.x == s.x && self.id == s.id
+  }
+
+  implicit def projectOp[A,B](self: Project[A,B]) = new {
+    def equals(p: Project[A,B]): Boolean = self.target == p.target && self.pos == p.pos
+  }
+
   implicit def eqOp[A,B](self: Expr[A]) = new {
     def Equals(e: Expr[B]): Expr[Boolean] = Eq(self, e)
   }

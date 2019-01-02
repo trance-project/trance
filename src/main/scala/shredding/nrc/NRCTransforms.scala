@@ -3,8 +3,7 @@ package shredding.nrc
 import shredding.Utils._
 import reflect.runtime.universe.{ Symbol => _, _ }
 
-import scala.collection.mutable.SortedMap
-import collection.mutable.HashMap
+import scala.collection.mutable.{HashMap,Map,SortedMap}
 
 /**
   * Transformations for NRC Expressions
@@ -182,9 +181,9 @@ trait NRCTransforms extends EmbedNRC {
       * generateShredQueries class shredQueryBag on subexpressions in the stack until there
       * are no more subexpressions to shred.
       */
-    def generateShredQueries[A](e: Expr[A]): scala.collection.mutable.SortedMap[Sym[_],Expr[_]] = {
+    def generateShredQueries[A](e: Expr[A]): SortedMap[Sym[_],Expr[_]] = {
       
-      var shredset = scala.collection.mutable.SortedMap[Sym[_], Expr[_]]()
+      val shredset = SortedMap[Sym[_], Expr[_]]()
       
       exprs.push(e)      
       
@@ -220,12 +219,7 @@ trait NRCTransforms extends EmbedNRC {
       */ 
     def shredQueryBag[A](e: Expr[A], domain: Sym[_], fs: List[Expr[_]] = List()): Expr[A] = {
       
-      val fvars = fs ++ e.asInstanceOf[Expr[Any]].freevars
-      
-      // this needs fixed - the first case should work with the top level query only
-      // and any of the subqueries will need to iterate through a domain 
-      // and extract the respective expressions from the labels
-      // this change will also mean that the boundvars function needs to support more cases 
+      //val fvars = fs ++ e.asInstanceOf[Expr[Any]].freevars
       e match {
         // for x in shred(relation) union e2
         case ForeachUnion(x, e1 @ Relation(_,_), e2) =>
@@ -235,17 +229,18 @@ trait NRCTransforms extends EmbedNRC {
         //    for y in extract(e1, we) shred(e2)
         case ForeachUnion(x, e1, e2) =>
           val we = Sym[Any]('we)
-          ForeachUnion(we, domain.asInstanceOf[Expr[TBag[Any]]], 
-            ForeachUnion(x, e1, shredQueryBag(e2, domain, List(we))))
+          ForeachUnion(we, domain.asInstanceOf[Expr[TBag[Any]]],
+            // we passed to freevars should be an extract from all  
+            ForeachUnion(x, e1, shredQueryBag(e2, domain, List(domain, we))))
         case Union(e1, e2) => 
-          Union(shredQueryBag(e1, domain, fvars), shredQueryBag(e2, domain, fvars))
+          Union(shredQueryBag(e1, domain, fs), shredQueryBag(e2, domain, fs))
         case r @ Relation(_, _) => shredRelation(r)
         case Singleton(e1) =>
           Singleton(TupleStruct2(Label(Sym('s), fs.map{v => (v, None)}), 
             Singleton(shredSingleton(e1))))
         case EmptySet() => EmptySet()
         case IfThenElse(e1,e2,e3) => 
-          IfThenElse(shredQueryElement(e1), shredQueryBag(e2, domain, fvars), shredQueryBag(e3, domain, fvars))
+          IfThenElse(shredQueryElement(e1), shredQueryBag(e2, domain, fs), shredQueryBag(e3, domain, fs))
         case _ => sys.error("not supported")
       }
     }
@@ -325,9 +320,11 @@ trait NRCTransforms extends EmbedNRC {
       }
     }
 
-    def createLabel[A](v: A) = v match {
+    def createLabel[A](v: A, rdict: Map[Label[_], Any]) = v match {
       case head :: tail =>
-        Label(Sym('l), v.asInstanceOf[List[(Any, Any)]])
+        val l = Label(Sym('l), v.asInstanceOf[List[(Any, Any)]])
+        rdict += (l -> v.asInstanceOf[List[(Any,Any)]])
+        l
       case _ => v
     }
 
@@ -336,11 +333,14 @@ trait NRCTransforms extends EmbedNRC {
       * nested element in the label, which is then accessed during evaluation
       */
     def shredRelation[A](r: Relation[A]) = {
+      val rdict = Map[Label[_], Any]()
       val rflat = r.b.map{ r2 => r2 match {
-          case Tuple3(e1,e2,e3) => Tuple3(createLabel(e1), createLabel(e2), createLabel(e3))
-          case Tuple2(e1,e2) => Tuple2(createLabel(e1), createLabel(e2))
-          case Tuple1(e1) => Tuple1(createLabel(e1))
+          case Tuple3(e1,e2,e3) => Tuple3(createLabel(e1, rdict), createLabel(e2, rdict), createLabel(e3, rdict))
+          case Tuple2(e1,e2) => Tuple2(createLabel(e1, rdict), createLabel(e2, rdict))
+          case Tuple1(e1) => Tuple1(createLabel(e1, rdict))
         }}
+      println(rdict)
+      println(rflat)
       Relation('Rf, rflat)
     }
   }

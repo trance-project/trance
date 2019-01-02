@@ -108,6 +108,8 @@ trait NRCExprs {
     def vars: List[Expr[_]] = {
       collect {
         case ForeachUnion(x, e1, e2) => x :: e1.vars ++ e2.vars
+        case Singleton(e1) => e1.vars
+        case Union(e1, e2) => e1.vars ++ e2.vars
         case IfThenElse(e1, e2, e3) => e1.vars ++ e2.vars ++ e3.vars
         case And(e1, e2) => e1.vars ++ e2.vars
         case Eq(e1, e2) => e1.vars ++ e2.vars
@@ -116,19 +118,18 @@ trait NRCExprs {
       }
     }
 
-    def boundvars: List[Expr[_]] = 
+    def boundvars: List[Sym[_]] = 
       collect {
         case ForeachUnion(x, e1, e2) => e2 match {
           case ForeachUnion(y, e3, e4) => x :: y :: e4.boundvars
           case _ => x :: e2.boundvars
         }
         case s @ Sym(_,_) => List(s)
-        case p @ Project(_,_) => List(p)
       }
 
     def freevars: List[Expr[_]] = e.vars.filter{
       case s @ Sym(_,_) => !boundvars.contains(s)
-      case p @ Project(s,_) => !boundvars.contains(s)
+      case p @ Project(s @ Sym(_,_),_) => !boundvars.contains(s)
     }
 
     def domain: List[Sym[_]] = 
