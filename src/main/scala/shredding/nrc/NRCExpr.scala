@@ -76,6 +76,8 @@ trait NRCExprs {
 
   case class And(e1: Expr[Boolean], e2: Expr[Boolean]) extends Expr[Boolean]
 
+  case class Mult[A,B](e1: Expr[A], e2: Expr[B]) extends Expr[Const[Int]]
+
   case class Extract[A](r: Expr[_], l: Sym[A]) extends Expr[TBag[A]]
 
   /**

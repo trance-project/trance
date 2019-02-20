@@ -9,18 +9,13 @@ import scala.collection.mutable.{HashMap,Map,SortedMap}
   * Transformations for NRC Expressions
   */
 
-trait NRCTransforms extends EmbedNRC {
+trait NRCTransforms extends EmbedNRC with CompCalc {
 
   /**
     * Pretty printer
     */
   object Printer {
     def quote[A](e: Expr[A]): String = e match {
-      case ForeachUnion(x, e1 @ Sym(_,_), e2 @ ForeachUnion(y, e3, e4)) =>
-        val sub = s"""For ${quote(y)} in extractFromLabel_${quote(e3)}(${quote(x)}) Union 
-                      |${ind(quote(e4))}""".stripMargin
-        s"""|For ${quote(x)} in ${quote(e1)} Union
-            |${ind(sub)}""".stripMargin
       case ForeachUnion(x, e1, e2) =>
         s"""|For ${quote(x)} in ${quote(e1)} Union
             |${ind(quote(e2))}""".stripMargin
@@ -38,10 +33,30 @@ trait NRCTransforms extends EmbedNRC {
       case Label(l, e1) => s"${quote(l)} where (${quote(l)} -> ${e1.mkString(",")})"
       case Eq(e1, e2) => s"${quote(e1)} = ${quote(e2)}"
       case And(e1, e2) => s"${quote(e1)} and ${quote(e2)}"
+      case Mult(x, y) => s"Mult(${quote(x)}, ${quote(y)})"
       case IfThenElse(e1, e2, e3) => s"if ${quote(e1)} then ${quote(e2)} else ${quote(e3)}"
       case _ => "<unknown>"
     }
 
+    def cquote[A](e: Calc[A]): String = e match {
+      case Comprehension(x, c@_*) => s"{ ${cquote(x)} | ${c.map(cquote(_)).mkString(",")} }"
+      case Generator(x, v) => s"${cquote(x)} <- ${cquote(v)}"
+      case Pred(op) => s"${cquote(op)}"
+      case OpEq(e1, e2) => s"${cquote(e1)} = ${cquote(e2)}"
+      case OpLeq(e1, e2) => s"${cquote(e1)} <= ${cquote(e2)}"
+      case OpLt(e1, e2) => s"${cquote(e1)} < ${cquote(e2)}"
+      case r @ Record(e@_*) => s"(${r.e.map(cquote(_)).mkString(",")})"
+      case Sng(e1) => s"{${cquote(e1)}}"
+      case RProject(e1, pos) => s"${cquote(e1)}._${pos}"
+      case Constant(c) => c.toString()
+      case Bind(x, v) => s"${cquote(x)} := ${cquote(v)}"
+      case Symb(x,id) => x.name + id
+      case InputR(s,b) => cquote(s)
+      case Zero() => "{}"
+      case IfStmt(e1, e2, e3) => s"if ${cquote(e1)} then ${cquote(e2)} else ${cquote(e3)}"
+      case Null() => "null"
+      case _ => "<unknown>"
+    }
 
     /**
       * Print helper functions for writing out shredded queries, and 
@@ -122,7 +137,7 @@ trait NRCTransforms extends EmbedNRC {
             ctx(x) = we
             extractFromLabel(e3, we.asInstanceOf[Label[_]]).map{ y1 =>
               ctx(y) = y1
-              eval(e4)
+              (we, eval(e4))
             }
           }.asInstanceOf[A]
           r
@@ -160,6 +175,7 @@ trait NRCTransforms extends EmbedNRC {
         }
         case s @ Sym(_, _) => // return symbol if no value has been associated
           ctx.getOrElse(s,s).asInstanceOf[A]
+        case Mult(x,y) => eval(y).asInstanceOf[List[Any]].filter{ _ == eval(x) }.size.asInstanceOf[A]
         case _ => sys.error("not implemented")
       }
     }
@@ -187,24 +203,35 @@ trait NRCTransforms extends EmbedNRC {
       
       exprs.push(e)      
       
+      var toplevel = true
       var qsym = Sym[Any]('Q)
       var dsym = Sym[Any]('D)
-      
+    
       while (!exprs.isEmpty) {
-        var shredq = shredQueryBag(exprs.pop, dsym)
+        var fs = List[Expr[_]]()
+        if (toplevel){ toplevel = false }else{ fs = List(dsym) }
+        var shredq = shred(exprs.pop, fs)
         shredset += (qsym -> shredq)
-        
+
         // produce domain query if necessary
         dsym = Sym[Any]('D)
         var domain = shredq.asInstanceOf[Expr[Any]].domain
         if (!domain.isEmpty){
           // relaxing singleton tuple requirement here for cleaner evaluation
-          var d = Relation(dsym, domain).ForeachUnion(l => Singleton(l))
+          var d = Relation(qsym, domain).ForeachUnion(l => Singleton(l))
           shredset += (dsym -> d)
           qsym = Sym[Any]('Q)
         }
       }
       shredset
+    }
+
+    def checkDomainNested[A](e: Expr[A]): Boolean = {
+      try{
+        if (e.asInstanceOf[Sym[Any]].x == 'D) true else false
+      }catch{
+        case e:Exception => false
+      }
     }
     
     /**
@@ -217,77 +244,35 @@ trait NRCTransforms extends EmbedNRC {
       * Currently, key-value pairs are of type Tuple2[Label, Expr], can move
       * to a map later.
       */ 
-    def shredQueryBag[A](e: Expr[A], domain: Sym[_], fs: List[Expr[_]] = List()): Expr[A] = {
-      
-      //val fvars = fs ++ e.asInstanceOf[Expr[Any]].freevars
+    def shred[A](e: Expr[A], fs: List[Expr[_]] = List()): Expr[A] = {
       e match {
-        // for x in shred(relation) union e2
-        case ForeachUnion(x, e1 @ Relation(_,_), e2) =>
-          val r = shredQueryBag(e1, domain)
-          ForeachUnion(x, r, shredQueryBag(e2, domain, fs ++ r.freevars))
-        // for we in domain
-        //    for y in extract(e1, we) shred(e2)
-        case ForeachUnion(x, e1, e2) =>
-          val we = Sym[Any]('we)
-          ForeachUnion(we, domain.asInstanceOf[Expr[TBag[Any]]],
-            // we passed to freevars should be an extract from all  
-            ForeachUnion(x, e1, shredQueryBag(e2, domain, List(domain, we))))
-        case Union(e1, e2) => 
-          Union(shredQueryBag(e1, domain, fs), shredQueryBag(e2, domain, fs))
+        case ForeachUnion(x, e1, e2) => fs match {
+          case y if fs.isEmpty => 
+            val se = shred(e1)
+            ForeachUnion(x, se, shred(e2, se.freevars))
+          case y if checkDomainNested(fs.head) =>
+              val we = Sym[Any]('we)
+              ForeachUnion(we, fs.head.asInstanceOf[Expr[TBag[Any]]], 
+                ForeachUnion(x, e1, shred(e2, fs.tail :+ e1)))
+          case y if !checkDomainNested(fs.head) =>
+            ForeachUnion(x, e1, shred(e2, e1.freevars))
+        }
+        case Union(e1, e2) => Union(shred(e1, fs), shred(e2, fs))
         case r @ Relation(_, _) => shredRelation(r)
-        case Singleton(e1) =>
-          Singleton(TupleStruct2(Label(Sym('s), fs.map{v => (v, None)}), 
-            Singleton(shredSingleton(e1))))
+        case Singleton(e1) => Singleton(wrapNewLabel(e1))
         case EmptySet() => EmptySet()
-        case IfThenElse(e1,e2,e3) => 
-          IfThenElse(shredQueryElement(e1), shredQueryBag(e2, domain, fs), shredQueryBag(e3, domain, fs))
+        case IfThenElse(e1,e2,e3) => IfThenElse(shred(e1, fs), shred(e2, fs), shred(e3, fs))
+        case TupleStruct1(e1) => TupleStruct1(wrapNewLabel(e1))
+        case TupleStruct2(e1, e2) => TupleStruct2(wrapNewLabel(e1), wrapNewLabel(e2))
+        case TupleStruct3(e1, e2, e3) => 
+          TupleStruct3(wrapNewLabel(e1), wrapNewLabel(e2), wrapNewLabel(e3))
+        case Project(e1, pos) => Project(shred(e1), pos)
+        case Eq(e1, e2) => Eq(shred(e1), shred(e2))
+        case And(e1, e2) => And(shred(e1), shred(e2))
+        case Mult(e1, e2) => Mult(shred(e1), e2)
+        case Const(_) | Sym(_, _) => e
         case _ => sys.error("not supported")
       }
-    }
-
-    /**
-      * shredQueryElement (ie. TransformQueryTuple, TransformQueryElement, etc)
-      * Note that a tuple with a bag will be handled by wrapNewLabel in shredSingleton
-      */
-    def shredQueryElement[A](e: Expr[A]): Expr[A] = e match {
-      case TupleStruct1(e1) =>
-        TupleStruct1(shredQueryElement(e1))
-      case TupleStruct2(e1, e2) =>
-        TupleStruct2(shredQueryElement(e1), shredQueryElement(e2))
-      case TupleStruct3(e1, e2, e3) =>
-        TupleStruct3(shredQueryElement(e1), shredQueryElement(e2), shredQueryElement(e3))
-      case Project(e1, pos) => 
-        Project(shredQueryElement(e1), pos)
-      case Eq(e1, e2) => Eq(shredQueryElement(e1), shredQueryElement(e2))
-      case And(e1, e2) => And(shredQueryElement(e1), shredQueryElement(e2))
-      case Const(_) | Sym(_, _) => e
-      case _ => sys.error("not supported")
-    }
-
-    /** 
-      * Shredding of a singleton is the final same-level expression
-      * in the current expression. Expressions inside of a singleton
-      * are only of tuple type. wrapNewLabel is called on each element
-      * to either produce a label or return a const, sym, etc.
-      */
-    def shredSingleton[A](e: Expr[A]): Expr[A] = e match {
-      case TupleStruct1(e1) =>
-        TupleStruct1(
-          wrapNewLabel(e1)
-        )
-      case TupleStruct2(e1, e2) =>
-        TupleStruct2(
-          wrapNewLabel(e1),
-          wrapNewLabel(e2)
-        )
-      case TupleStruct3(e1, e2, e3) =>
-        TupleStruct3(
-          wrapNewLabel(e1),
-          wrapNewLabel(e2),
-          wrapNewLabel(e3)
-        )
-      // bags should only be made up of tuples
-      case _ => sys.error("not supported")
     }
 
     /**
@@ -295,13 +280,12 @@ trait NRCTransforms extends EmbedNRC {
       * subexpressions that are not same level are shredded
       * and added to the query set
       */
-    def wrapNewLabel[A: TypeTag](e: Expr[A]): Expr[A] = { 
-      if (isShreddable(e)) {
+    def wrapNewLabel[A: TypeTag](e: Expr[A]): Expr[A] = isShreddable(e) match { 
+      case true => {
         exprs.push(e)
         Label(Sym[A]('q), e.freevars.distinct.map{v => (v, None)})         
-      }else{
-         shredQueryElement(e)
       }
+      case _ => shred(e)
     }
 
     /**
@@ -343,6 +327,61 @@ trait NRCTransforms extends EmbedNRC {
       println(rflat)
       Relation('Rf, rflat)
     }
+  }
+
+  object Calculus {
+    
+    def translate[A](e: Expr[A]): Calc[A] = e match {
+      // U { e | x <- S, q }
+      case ForeachUnion(x, e1, e2) => e1 match {
+          case ForeachUnion(y, e3, e4) => // N8
+            Comprehension(translate(e2), 
+              Seq(Generator(translate(y), translate(e3)), Bind(translate(x), translate(e4))):_*)
+          case EmptySet() => Zero() //N5
+          case _ => Comprehension(translate(e2), Seq(Generator(translate(x), translate(e1))):_*)
+      }
+      case Union(e1, e2) => Merge(translate(e1), translate(e2))
+      // U { e | pred, q }
+      case IfThenElse(e1, e2, e3 @ EmptySet()) => 
+        Comprehension(translate(e2), Seq(Pred(translate(e1).asInstanceOf[Calc[Boolean]])):_*)
+      case EmptySet() => Zero()
+      // pred
+      case Eq(e1, e2) => OpEq(translate(e1), translate(e2))
+      case Leq(e1, e2) => OpLeq(translate(e1), translate(e2))
+      case Lt(e1, e2) => OpLt(translate(e1), translate(e2))
+      // U { e | }
+      case TupleStruct1(e1) => Record(Seq(translate(e1)):_*)
+      case TupleStruct2(e1, e2) => Record(Seq(translate(e1), translate(e2)):_*)
+      case TupleStruct3(e1, e2, e3) => Record(Seq(translate(e1), translate(e2), translate(e3)):_*)
+      case Singleton(e1) => Sng(translate(e1))//Comprehension(translate(e1), Seq(Zero()):_*)
+      case Project(e1, pos) => RProject(translate(e1), pos)
+      case Const(e) => Constant(e)
+      case Sym(s, id) => Symb(s,id)
+      case Relation(s, b) => InputR(translate(s), b) 
+      case _ => sys.error("not implemented") 
+    }
+
+    def normalize[A](e: Calc[A], env: List[Calc[_]] = List()): Calc[A] = e match {
+      case Generator(x, e2 @ Zero()) => Zero() //N5
+      case Generator(x, e1 @ Sng(e2)) => Bind(normalize(x), normalize(e2)).asInstanceOf[Calc[A]] //N6
+      case Comprehension(e1, q@_*) => //base case
+        val qs = q.map(normalize(_))
+        qs match {
+          case y if qs.contains(Zero()) => Zero()
+          case _ => Comprehension(normalize(e1), qs:_*)
+        }
+      case RProject(e1 @ Record(_), pos) => e1.productElement(pos).asInstanceOf[Calc[A]] //N3
+      case Bind(x,y) => Bind(normalize(x), normalize(y))
+      case Sng(Record(e1@_*)) => e1.size match {
+        case 1 => normalize(e1.head.asInstanceOf[Calc[A]])
+        case _ => Record(e1.map(normalize(_)):_*)
+      }
+      case Sng(RProject(e1, pos)) => RProject(normalize(e1), pos)
+      case Sng(Symb(x,id)) => Symb(x,id)
+      case _ => e
+    }
+
+
   }
 
 }
