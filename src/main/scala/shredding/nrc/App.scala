@@ -189,7 +189,6 @@ object NRCExprTest extends App {
       val q = S.ForeachUnion(x => IfThenElse(Lt(x, 4), Singleton(x), EmptySet()))
       val cq = Calculus.translate(q)
       println(Printer.cquote(cq))
-      println(Calculus.normalize(cq))
       println("")
 
 
@@ -199,47 +198,51 @@ object NRCExprTest extends App {
                   IfThenElse(Eq(x, y), Singleton(TupleStruct2(x,y)), EmptySet())))
       val cq1 = Calculus.translate(q1)
       println(Printer.cquote(cq1))
-      println(Printer.cquote(Calculus.normalize(cq1)))
       println("")
 
       val q2 = S.ForeachUnion(x => Singleton(x))
       val cq2 = Calculus.translate(q2)
       println(Printer.cquote(cq2))
-      println(Printer.cquote(Calculus.normalize(cq2)))
       println("")
 
       val q3 = S.ForeachUnion(x => IfThenElse(Lt(x,4), 
                                     S.ForeachUnion(y => Singleton(TupleStruct2(x,y))), EmptySet()))
       val cq3 = Calculus.translate(q3)
+      println(cq3)
       println(Printer.cquote(cq3))
-      println(Printer.cquote(Calculus.normalize(cq3)))
       println("")
 
       val q4 = R.ForeachUnion(x => Singleton(TupleStruct2(x._1, x._2.ForeachUnion(
                 y => Singleton(TupleStruct1(y._1))))))
       val cq4 = Calculus.translate(q4)
       println(Printer.cquote(cq4))
-      println(Printer.cquote(Calculus.normalize(cq4)))
       println("")
 
       val q5 = Singleton(TupleStruct2(Const(1), Const(2))).ForeachUnion(x => Singleton(x._1))
       val cq5 = Calculus.translate(q5)
       println(Printer.cquote(cq5))
-      println(Printer.cquote(Calculus.normalize(cq5)))
       println("")
 
       val q6 = EmptySet[Int]().ForeachUnion(x => Singleton(TupleStruct1(x)))
       val cq6 = Calculus.translate(q6)
       println(cq6)
       println(Printer.cquote(cq6))
-      println(Printer.cquote(Calculus.normalize(cq6)))
+      println("")
 
       val q7 = S.ForeachUnion(x => 
-                Singleton(TupleStruct1(x))).ForeachUnion(s => Singleton(TupleStruct2(s,s)))
+                Singleton(TupleStruct1(x))).ForeachUnion(s => R.ForeachUnion(x => 
+                  x._2.ForeachUnion( y => Singleton(TupleStruct2(s,y)._1))))
       val cq7 = Calculus.translate(q7)
       println(cq7)
       println(Printer.cquote(cq7))
-      println(Printer.cquote(Calculus.normalize(cq7)))
+      println("")
+
+      val q8 = S.ForeachUnion(x => EmptySet[Int]().ForeachUnion(y => Singleton(TupleStruct1(y))))
+      val cq8 = Calculus.translate(q8)
+      println(cq8)
+      println(Printer.cquote(cq8))
+      println("")
+
     }
   }
 

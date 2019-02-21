@@ -50,7 +50,7 @@ trait NRCTransforms extends EmbedNRC with CompCalc {
       case RProject(e1, pos) => s"${cquote(e1)}._${pos}"
       case Constant(c) => c.toString()
       case Bind(x, v) => s"${cquote(x)} := ${cquote(v)}"
-      case Symb(x,id) => x.name + id
+      case Symb(x,id) => " " + x.name + id +" "
       case InputR(s,b) => cquote(s)
       case Zero() => "{}"
       case IfStmt(e1, e2, e3) => s"if ${cquote(e1)} then ${cquote(e2)} else ${cquote(e3)}"
@@ -330,20 +330,33 @@ trait NRCTransforms extends EmbedNRC with CompCalc {
   }
 
   object Calculus {
+
+    /**
+      * Create a list of qualifiers for a comprehension
+      */ 
+    def qualifiers[A](c: Calc[A], qs: Calc[_]*): Calc[A] = c match {
+      case Comprehension(e1, q@_*) => qualifiers(e1.asInstanceOf[Calc[A]], (qs ++ q):_*) 
+      case Sng(e1) => Comprehension(e1, qs:_*)
+      case Zero() => Zero()
+      case _ => Comprehension(c, qs:_*).asInstanceOf[Calc[A]] 
+    }
     
+    /**
+      * Translate into comprehension syntax and simultaneously normalize
+      */
     def translate[A](e: Expr[A]): Calc[A] = e match {
       // U { e | x <- S, q }
-      case ForeachUnion(x, e1, e2) => e1 match {
-          case ForeachUnion(y, e3, e4) => // N8
-            Comprehension(translate(e2), 
-              Seq(Generator(translate(y), translate(e3)), Bind(translate(x), translate(e4))):_*)
-          case EmptySet() => Zero() //N5
-          case _ => Comprehension(translate(e2), Seq(Generator(translate(x), translate(e1))):_*)
-      }
+      case ForeachUnion(x, e1 @ EmptySet(), e2) => Zero() // N5
+      case ForeachUnion(x, e1 @ Singleton(s), e2) => 
+        qualifiers(translate(e2), Seq(Bind(translate(x), translate(e1))):_*) //N6
+      case ForeachUnion(x, e1 @ ForeachUnion(y, e3, e4), e2) => // N8
+        qualifiers(translate(e2), Seq(Generator(translate(y), translate(e3)), Bind(translate(x), translate(e4))):_*)
+      case ForeachUnion(x, e1, e2) => qualifiers(translate(e2), Seq(Generator(translate(x), translate(e1))):_*)
       case Union(e1, e2) => Merge(translate(e1), translate(e2))
       // U { e | pred, q }
-      case IfThenElse(e1, e2, e3 @ EmptySet()) => 
-        Comprehension(translate(e2), Seq(Pred(translate(e1).asInstanceOf[Calc[Boolean]])):_*)
+      case IfThenElse(pred, e1, e2 @ EmptySet()) => 
+        Comprehension(translate(e1), Seq(Pred(translate(pred).asInstanceOf[Calc[Boolean]])):_*)
+      case IfThenElse(e1, e2, e3) => IfStmt(translate(e1), translate(e2), translate(e3))
       case EmptySet() => Zero()
       // pred
       case Eq(e1, e2) => OpEq(translate(e1), translate(e2))
@@ -353,34 +366,14 @@ trait NRCTransforms extends EmbedNRC with CompCalc {
       case TupleStruct1(e1) => Record(Seq(translate(e1)):_*)
       case TupleStruct2(e1, e2) => Record(Seq(translate(e1), translate(e2)):_*)
       case TupleStruct3(e1, e2, e3) => Record(Seq(translate(e1), translate(e2), translate(e3)):_*)
-      case Singleton(e1) => Sng(translate(e1))//Comprehension(translate(e1), Seq(Zero()):_*)
-      case Project(e1, pos) => RProject(translate(e1), pos)
+      case Singleton(e1) => translate(e1).asInstanceOf[Calc[A]] // N6 
+      case Project(e1 @ Sym(_,_), pos) => RProject(translate(e1), pos)
+      case Project(e1, pos) => translate(e1).asInstanceOf[Record[A]].productElement(pos-1).asInstanceOf[Calc[A]] // N3
       case Const(e) => Constant(e)
       case Sym(s, id) => Symb(s,id)
       case Relation(s, b) => InputR(translate(s), b) 
       case _ => sys.error("not implemented") 
     }
-
-    def normalize[A](e: Calc[A], env: List[Calc[_]] = List()): Calc[A] = e match {
-      case Generator(x, e2 @ Zero()) => Zero() //N5
-      case Generator(x, e1 @ Sng(e2)) => Bind(normalize(x), normalize(e2)).asInstanceOf[Calc[A]] //N6
-      case Comprehension(e1, q@_*) => //base case
-        val qs = q.map(normalize(_))
-        qs match {
-          case y if qs.contains(Zero()) => Zero()
-          case _ => Comprehension(normalize(e1), qs:_*)
-        }
-      case RProject(e1 @ Record(_), pos) => e1.productElement(pos).asInstanceOf[Calc[A]] //N3
-      case Bind(x,y) => Bind(normalize(x), normalize(y))
-      case Sng(Record(e1@_*)) => e1.size match {
-        case 1 => normalize(e1.head.asInstanceOf[Calc[A]])
-        case _ => Record(e1.map(normalize(_)):_*)
-      }
-      case Sng(RProject(e1, pos)) => RProject(normalize(e1), pos)
-      case Sng(Symb(x,id)) => Symb(x,id)
-      case _ => e
-    }
-
 
   }
 
