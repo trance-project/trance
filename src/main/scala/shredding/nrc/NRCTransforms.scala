@@ -54,6 +54,7 @@ trait NRCTransforms extends EmbedNRC with CompCalc {
       case InputR(s,b) => cquote(s)
       case Zero() => "{}"
       case IfStmt(e1, e2, e3) => s"if ${cquote(e1)} then ${cquote(e2)} else ${cquote(e3)}"
+      case Unnest(e1,e2) => s"(${cquote(e1)}(${cquote(e2)}))"
       case Null() => "null"
       case _ => "<unknown>"
     }
@@ -369,10 +370,45 @@ trait NRCTransforms extends EmbedNRC with CompCalc {
       case Singleton(e1) => translate(e1).asInstanceOf[Calc[A]] // N6 
       case Project(e1 @ Sym(_,_), pos) => RProject(translate(e1), pos)
       case Project(e1, pos) => translate(e1).asInstanceOf[Record[A]].productElement(pos-1).asInstanceOf[Calc[A]] // N3
+      // add case for label when integrating shredding 
       case Const(e) => Constant(e)
       case Sym(s, id) => Symb(s,id)
       case Relation(s, b) => InputR(translate(s), b) 
       case _ => sys.error("not implemented") 
+    }
+  }
+
+  object Unnester {
+    
+    // p[v]
+    def filterPredicate(x: Symb[_], c: Calc[_]): Boolean = c match {
+      case Pred(op) => op match {
+        case OpEq(e1 @ Symb(_,_), e2 @ Constant(c1)) => e1 == x
+        case OpEq(e1 @ Constant(c1), e2 @ Symb(_,_)) => e2 == x
+        case OpLeq(e1 @ Symb(_,_), e2 @ Constant(c1)) => e1 == x
+        case OpLeq(e1 @ Constant(c1), e2 @ Symb(_,_)) => e2 == x
+        case OpLt(e1 @ Symb(_,_), e2 @ Constant(c1)) => e1 == x
+        case OpLt(e1 @ Constant(c1), e2 @ Symb(_,_))  => e2 == x
+        case OpAnd(e1, e2) => filterPredicate(x, e1) && filterPredicate(x, e2)
+        case _ => false
+      }
+      case _ => false
+    }
+
+    def unnest[A,B](e1: Calc[A], e2: Calc[A] = Null()): Calc[A] = e1 match {
+      // selection
+      case Comprehension(v, qs@_*) => 
+        val qlst = qs.toList
+        qlst.head match {
+          case Generator(x @ Symb(_,_), e1) => 
+            val nqs = qs.tail.filter{ case y  => filterPredicate(x, y) }
+            val nqs2 = qlst.tail.filterNot(nqs.toSet)
+            nqs2.isEmpty match {
+              case true => Comprehension(x, (qlst.head +: nqs):_*)
+              case _ => Unnest(Comprehension(v, nqs2:_*), Comprehension(x, (qlst.head +: nqs):_*)) 
+            }
+          case _ => sys.error("not supported") 
+        }
     }
 
   }

@@ -39,5 +39,11 @@ trait CompCalc {
   case class OpLeq[A,B](e1: Calc[A], e2: Calc[B]) extends Calc[Boolean]
   case class OpLt[A,B](e1: Calc[A], e2: Calc[B]) extends Calc[Boolean]
   case class OpAnd(e1: Calc[Boolean], e2: Calc[Boolean]) extends Calc[Boolean]  
+  
+  case class Unnest[A](e1: Calc[A], e2: Calc[A]) extends Calc[A]
+
+  implicit def symbOp[A,B](self: Symb[A]) = new {
+    def equals(s: Symb[B]): Boolean = self.x == s.x && self.id == s.id
+  }
 
 }

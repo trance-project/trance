@@ -189,6 +189,8 @@ object NRCExprTest extends App {
       val q = S.ForeachUnion(x => IfThenElse(Lt(x, 4), Singleton(x), EmptySet()))
       val cq = Calculus.translate(q)
       println(Printer.cquote(cq))
+      val ncq = Unnester.unnest(cq)
+      println(Printer.cquote(ncq))
       println("")
 
 
@@ -198,6 +200,8 @@ object NRCExprTest extends App {
                   IfThenElse(Eq(x, y), Singleton(TupleStruct2(x,y)), EmptySet())))
       val cq1 = Calculus.translate(q1)
       println(Printer.cquote(cq1))
+      val ncq1 = Unnester.unnest(cq1)
+      println(Printer.cquote(ncq1))
       println("")
 
       val q2 = S.ForeachUnion(x => Singleton(x))
@@ -242,7 +246,6 @@ object NRCExprTest extends App {
       println(cq8)
       println(Printer.cquote(cq8))
       println("")
-
     }
   }
 
