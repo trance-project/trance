@@ -40,7 +40,8 @@ trait CompCalc {
   case class OpLt[A,B](e1: Calc[A], e2: Calc[B]) extends Calc[Boolean]
   case class OpAnd(e1: Calc[Boolean], e2: Calc[Boolean]) extends Calc[Boolean]  
   
-  case class Unnest[A](e1: Calc[A], e2: Calc[A]) extends Calc[A]
+  // "terms are tree like data structures that represent both calculus and algebraic terms)
+  case class Term[A](e1: Calc[A], e2: Calc[A]) extends Calc[A]
 
   implicit def symbOp[A,B](self: Symb[A]) = new {
     def equals(s: Symb[B]): Boolean = self.x == s.x && self.id == s.id

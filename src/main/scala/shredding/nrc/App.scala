@@ -193,8 +193,13 @@ object NRCExprTest extends App {
       println(Printer.cquote(ncq))
       println("")
 
-
-      
+      val q11 = S.ForeachUnion(x => Singleton(TupleStruct1(x)))
+      val cq11 = Calculus.translate(q11)
+      println(Printer.cquote(cq11))
+      val ncq11 = Unnester.unnest(cq11)
+      println(Printer.cquote(ncq11))
+      println("")
+ 
       val q1 = S.ForeachUnion(x => 
                 S.ForeachUnion(y => 
                   IfThenElse(Eq(x, y), Singleton(TupleStruct2(x,y)), EmptySet())))
@@ -204,6 +209,15 @@ object NRCExprTest extends App {
       println(Printer.cquote(ncq1))
       println("")
 
+      val q22 = R.ForeachUnion(x =>
+                  x._2.ForeachUnion(y => Singleton(TupleStruct2(x._1, y._1))))
+      val cq22 = Calculus.translate(q22)
+      println(Printer.cquote(cq22))
+      val ncq22 = Unnester.unnest(cq22)
+      println(Printer.cquote(ncq22))
+      println("")
+
+
       val q2 = S.ForeachUnion(x => Singleton(x))
       val cq2 = Calculus.translate(q2)
       println(Printer.cquote(cq2))
@@ -212,14 +226,17 @@ object NRCExprTest extends App {
       val q3 = S.ForeachUnion(x => IfThenElse(Lt(x,4), 
                                     S.ForeachUnion(y => Singleton(TupleStruct2(x,y))), EmptySet()))
       val cq3 = Calculus.translate(q3)
-      println(cq3)
       println(Printer.cquote(cq3))
+      val ncq3 = Unnester.unnest(cq3)
+      println(Printer.cquote(ncq3))
       println("")
 
       val q4 = R.ForeachUnion(x => Singleton(TupleStruct2(x._1, x._2.ForeachUnion(
                 y => Singleton(TupleStruct1(y._1))))))
       val cq4 = Calculus.translate(q4)
       println(Printer.cquote(cq4))
+      val ncq4 = Unnester.unnest(cq4)
+      println(Printer.cquote(ncq4))
       println("")
 
       val q5 = Singleton(TupleStruct2(Const(1), Const(2))).ForeachUnion(x => Singleton(x._1))
@@ -239,6 +256,8 @@ object NRCExprTest extends App {
       val cq7 = Calculus.translate(q7)
       println(cq7)
       println(Printer.cquote(cq7))
+      //val ncq7 = Unnester.unnest(cq7)
+      //println(Printer.cquote(ncq7))
       println("")
 
       val q8 = S.ForeachUnion(x => EmptySet[Int]().ForeachUnion(y => Singleton(TupleStruct1(y))))

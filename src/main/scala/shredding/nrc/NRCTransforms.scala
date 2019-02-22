@@ -54,7 +54,7 @@ trait NRCTransforms extends EmbedNRC with CompCalc {
       case InputR(s,b) => cquote(s)
       case Zero() => "{}"
       case IfStmt(e1, e2, e3) => s"if ${cquote(e1)} then ${cquote(e2)} else ${cquote(e3)}"
-      case Unnest(e1,e2) => s"(${cquote(e1)}(${cquote(e2)}))"
+      case Term(e1,e2) => s"(${cquote(e1)}(${cquote(e2)}))"
       case Null() => "null"
       case _ => "<unknown>"
     }
@@ -355,14 +355,19 @@ trait NRCTransforms extends EmbedNRC with CompCalc {
       case ForeachUnion(x, e1, e2) => qualifiers(translate(e2), Seq(Generator(translate(x), translate(e1))):_*)
       case Union(e1, e2) => Merge(translate(e1), translate(e2))
       // U { e | pred, q }
-      case IfThenElse(pred, e1, e2 @ EmptySet()) => 
-        Comprehension(translate(e1), Seq(Pred(translate(pred).asInstanceOf[Calc[Boolean]])):_*)
+      case IfThenElse(pred, e1, e2 @ EmptySet()) => pred match {
+          case And(e3, e4) => 
+            Comprehension(translate(e1), Seq(Pred(translate(e3).asInstanceOf[Calc[Boolean]]), 
+              Pred(translate(e4).asInstanceOf[Calc[Boolean]])):_*)
+          case _ => Comprehension(translate(e1), Seq(Pred(translate(pred).asInstanceOf[Calc[Boolean]])):_*)
+      }
       case IfThenElse(e1, e2, e3) => IfStmt(translate(e1), translate(e2), translate(e3))
       case EmptySet() => Zero()
       // pred
       case Eq(e1, e2) => OpEq(translate(e1), translate(e2))
       case Leq(e1, e2) => OpLeq(translate(e1), translate(e2))
       case Lt(e1, e2) => OpLt(translate(e1), translate(e2))
+      case And(e1, e2) => OpAnd(translate(e1), translate(e2))
       // U { e | }
       case TupleStruct1(e1) => Record(Seq(translate(e1)):_*)
       case TupleStruct2(e1, e2) => Record(Seq(translate(e1), translate(e2)):_*)
@@ -380,8 +385,8 @@ trait NRCTransforms extends EmbedNRC with CompCalc {
 
   object Unnester {
     
-    // p[v]
-    def filterPredicate(x: Symb[_], c: Calc[_]): Boolean = c match {
+    //p[v]
+    def pred1(x: Symb[_], c: Calc[_]): Boolean = c match {
       case Pred(op) => op match {
         case OpEq(e1 @ Symb(_,_), e2 @ Constant(c1)) => e1 == x
         case OpEq(e1 @ Constant(c1), e2 @ Symb(_,_)) => e2 == x
@@ -389,27 +394,66 @@ trait NRCTransforms extends EmbedNRC with CompCalc {
         case OpLeq(e1 @ Constant(c1), e2 @ Symb(_,_)) => e2 == x
         case OpLt(e1 @ Symb(_,_), e2 @ Constant(c1)) => e1 == x
         case OpLt(e1 @ Constant(c1), e2 @ Symb(_,_))  => e2 == x
-        case OpAnd(e1, e2) => filterPredicate(x, e1) && filterPredicate(x, e2)
+        case OpAnd(e1, e2) => pred1(x, e1) && pred1(x, e2)
         case _ => false
       }
       case _ => false
     }
 
-    def unnest[A,B](e1: Calc[A], e2: Calc[A] = Null()): Calc[A] = e1 match {
-      // selection
-      case Comprehension(v, qs@_*) => 
-        val qlst = qs.toList
-        qlst.head match {
-          case Generator(x @ Symb(_,_), e1) => 
-            val nqs = qs.tail.filter{ case y  => filterPredicate(x, y) }
-            val nqs2 = qlst.tail.filterNot(nqs.toSet)
-            nqs2.isEmpty match {
-              case true => Comprehension(x, (qlst.head +: nqs):_*)
-              case _ => Unnest(Comprehension(v, nqs2:_*), Comprehension(x, (qlst.head +: nqs):_*)) 
-            }
-          case _ => sys.error("not supported") 
-        }
+    //p[(w,v)]
+    def pred2(x: Symb[_], y: Symb[_], c: Calc[_]): Boolean = c match {
+      case Pred(op) => op match {
+        case OpEq(e1, e2) => (e1 == x && e2 == y) || (e1 == y && e2 == x)
+        case OpLeq(e1, e2) => (e1 == x && e2 == y) || (e1 == y && e2 == x)
+        case OpLt(e1, e2) => (e1 == x && e2 == y) || (e1 == y && e2 == x)
+        case OpAnd(e1, e2) => pred2(x, y, e1) && pred2(x, y, e2)
+        case _ => false
+      }
+      case _ => false
     }
+
+    def unnest[A](e1: Calc[A], w: List[Symb[_]] = List(), u: List[Symb[_]] = List(), e2: Calc[A] = Null()): Calc[A] = { 
+      //println("starting here")
+      //println(e1)
+      //println(Printer.cquote(e2))
+      //println(Printer.cquote(e1))
+      (e1, u, w) match {
+        // selection, u = (), w = ()
+        case (Comprehension(v, qs@_*), Nil, Nil) =>
+          qs.toList match {
+            case Nil => Term(e1, e2) // e1 should be a projection
+            case tail :: Nil => tail match {
+              case Generator(x @ Symb(_,_), e3) => // e1 should be a projection
+                unnest(Comprehension(v, Nil:_*), w :+ x, u, Comprehension(x, qs:_*))
+              }
+            case head :: tail => head match {
+                case Generator(x @ Symb(_,_), e3) =>
+                  val nqs = tail.filter{ case y => pred1(x,y) }
+                  unnest(Comprehension(v, tail.filterNot(nqs.toSet):_*), w :+ x, u, Comprehension(x, (head +: nqs):_*))
+              }
+           } 
+          // unnest, join, u = ()
+          case (Comprehension(v, qs@_*), Nil, w) => qs.toList match {
+            case Nil => Term(e1, e2) // e1 should be a projection
+            case tail :: Nil => tail match { 
+               case Generator(x @ Symb(_,_), e3) => 
+                unnest(Comprehension(v, Nil:_*), x +: w, u, 
+                  Term(Comprehension(Record(Seq(w.head, x):_*), qs:_*), e2))
+            } 
+            case head :: tail => head match {
+              case Generator(x @ Symb(_,_), e3 @ InputR(_,_)) => 
+                val nqs = tail.filter{ case y => pred2(x, w.head, y) } 
+                unnest(Comprehension(v, tail.filterNot(nqs.toSet):_*), x +: w, u, 
+                  Term(Comprehension(Record(Seq(w.head, x):_*), (head +: nqs):_*), e2))
+              case Generator(x @ Symb(_,_), e3 @ RProject(_,_)) => 
+                val nqs = tail.filter{ case y => pred1(x,y) } ++ tail.filter{ case y => pred2(x, w.head, y) }
+                unnest(Comprehension(v, tail.filterNot(nqs.toSet):_*), x +: w, u, 
+                  Term(Comprehension(Record(Seq(w.head,x):_*), (head +: nqs):_*), e2))
+            }
+
+          }
+        }
+     }
 
   }
 
