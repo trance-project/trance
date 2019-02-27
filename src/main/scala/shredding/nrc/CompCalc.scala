@@ -31,6 +31,7 @@ trait CompCalc {
   case class Pred[A](op: Calc[Boolean]) extends Calc[Boolean]
   // qualifier is a tuple of generator or predicate types
   case class Comprehension[A](e: Calc[A], q: Calc[_]*) extends Calc[CBag[A]]
+  case class AndComprehension[A](e: Calc[A], q: Calc[_]*) extends Calc[Boolean]
   case class InputR[A](e: Calc[A], b:CBag[A]) extends Calc[CBag[A]]
   case class CLabel[A](l: Calc[A], e: List[(Any,Any)]) extends Calc[A]
   
@@ -39,7 +40,7 @@ trait CompCalc {
   case class OpLeq[A,B](e1: Calc[A], e2: Calc[B]) extends Calc[Boolean]
   case class OpLt[A,B](e1: Calc[A], e2: Calc[B]) extends Calc[Boolean]
   case class OpAnd(e1: Calc[Boolean], e2: Calc[Boolean]) extends Calc[Boolean]  
-  
+  case class OpNot(e1: Calc[Boolean]) extends Calc[Boolean] 
   // "terms are tree like data structures that represent both calculus and algebraic terms)
   case class Term[A](e1: Calc[A], e2: Calc[A]) extends Calc[A]
 

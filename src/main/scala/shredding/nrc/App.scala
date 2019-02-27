@@ -231,13 +231,30 @@ object NRCExprTest extends App {
       println(Printer.cquote(ncq3))
       println("")
 
+      val q41 = R.ForeachUnion(x => x._2.ForeachUnion(
+                y => Singleton(TupleStruct2(x._1, y._1))))
+      val cq41 = Calculus.translate(q41)
+      println(Printer.cquote(cq41))
+      val ncq41 = Unnester.unnest(cq41)
+      println(Printer.cquote(ncq41))
+      println("")
+
       val q4 = R.ForeachUnion(x => Singleton(TupleStruct2(x._1, x._2.ForeachUnion(
                 y => Singleton(TupleStruct1(y._1))))))
       val cq4 = Calculus.translate(q4)
       println(Printer.cquote(cq4))
-      val ncq4 = Unnester.unnest(cq4)
+      val ncq4 = Unnester.unnest2(cq4)
       println(Printer.cquote(ncq4))
       println("")
+
+      val q42 = R.ForeachUnion(x => x._2.ForeachUnion(
+                  y => Singleton(TupleStruct2(y._1, y._2))))
+      val cq42 = Calculus.translate(q42)
+      println(Printer.cquote(cq42))
+      val ncq42 = Unnester.unnest2(cq42)
+      println(Printer.cquote(ncq42))
+      println("")
+
 
       val q5 = Singleton(TupleStruct2(Const(1), Const(2))).ForeachUnion(x => Singleton(x._1))
       val cq5 = Calculus.translate(q5)

@@ -40,11 +40,14 @@ trait NRCTransforms extends EmbedNRC with CompCalc {
 
     def cquote[A](e: Calc[A]): String = e match {
       case Comprehension(x, c@_*) => s"{ ${cquote(x)} | ${c.map(cquote(_)).mkString(",")} }"
+      case AndComprehension(x, c@_*) => s"^{ ${cquote(x)} | ${c.map(cquote(_)).mkString(",")} }"
       case Generator(x, v) => s"${cquote(x)} <- ${cquote(v)}"
       case Pred(op) => s"${cquote(op)}"
-      case OpEq(e1, e2) => s"${cquote(e1)} = ${cquote(e2)}"
-      case OpLeq(e1, e2) => s"${cquote(e1)} <= ${cquote(e2)}"
-      case OpLt(e1, e2) => s"${cquote(e1)} < ${cquote(e2)}"
+      case OpEq(e1, e2) => s"(${cquote(e1)} = ${cquote(e2)})"
+      case OpLeq(e1, e2) => s"(${cquote(e1)} <= ${cquote(e2)})"
+      case OpLt(e1, e2) => s"(${cquote(e1)} < ${cquote(e2)})"
+      case OpAnd(e1, e2) => s"${cquote(e1)} and ${cquote(e2)}"
+      case OpNot(e1) => s"~${cquote(e1)}"
       case r @ Record(e@_*) => s"(${r.e.map(cquote(_)).mkString(",")})"
       case Sng(e1) => s"{${cquote(e1)}}"
       case RProject(e1, pos) => s"${cquote(e1)}._${pos}"
@@ -412,49 +415,112 @@ trait NRCTransforms extends EmbedNRC with CompCalc {
       case _ => false
     }
 
+    def isOutermost[A](e1: Calc[A]) = e1 match {
+      case Comprehension(_,_) => true
+      case _ => false
+    }
+
+    def substitute(e1: Calc[_], e2: Calc[_], v: Symb[_]): Calc[_] = e1 match {
+      case y if e1 == e2 => v
+      case Record(rs@_*) => Record(rs.map{ case y => substitute(y, e2, v) }:_*)
+      case RProject(s, pos) => RProject(substitute(s, e2, v), pos)
+      case _ => e1
+    } 
+
+    def hasGenerator[A](e1: Seq[Calc[_]]): Boolean = e1.toList match {
+      case Nil => false
+      case t @ Generator(_,_) :: Nil => true
+      case t @ Generator(_,_) :: tail => true
+      case head :: tail => hasGenerator(tail)
+    }
+
+    def unnest2[A](e1: Calc[A], w: List[Symb[_]] = List(), u: List[Symb[_]] = List(), e2: Calc[A] = Null()): Calc[A] = {
+      println("")
+      println("E: "+Printer.cquote(e2))
+      println("e1: "+Printer.cquote(e1))
+      println("u "+u.toString())
+      println("w "+w.toString())
+      e1 match { 
+      case Comprehension(v1, qs@_*) => hasGenerator(qs) match {
+        // if e = { e1 | v <- X, r, p }
+        case true => unnest(e1, w, u, e2) 
+        // if e = { e1 | p }
+        case _ => v1 match {
+          case Comprehension(v2, qs2) =>
+            // will fix this when I integrate 
+            val v = Symb('v, 100)
+            unnest2(Comprehension(v, qs:_*), u, w :+ v, unnest2(v1.asInstanceOf[Calc[A]], w, w, e2))
+          case Record(rs@_*) => 
+            val eprime = rs.toList.filter{ case r => isOutermost(r) } 
+            eprime match {
+              case Nil => println("or should be here?"); Term(e1, e2) //??
+              case _ => 
+                val v = Symb('w, 100)
+                unnest2(Comprehension(substitute(v1, eprime.head, v), qs:_*), 
+                  u, w :+ v, unnest2(eprime.head.asInstanceOf[Calc[A]], w, w, e2))
+            } 
+          case _ => u match {
+            case Nil => println("should be here"); Term(e1, e2) // this is projection for now
+            case _ => Term(e1, e2) // this is reduce for now
+          }
+        }
+      }
+      case _ => Term(e1,e2)
+    }}
+
     def unnest[A](e1: Calc[A], w: List[Symb[_]] = List(), u: List[Symb[_]] = List(), e2: Calc[A] = Null()): Calc[A] = { 
-      //println("starting here")
-      //println(e1)
-      //println(Printer.cquote(e2))
-      //println(Printer.cquote(e1))
+      println("")
+      println("E: "+Printer.cquote(e2))
+      println("e1: "+Printer.cquote(e1))
+      println("u "+u.toString())
+      println("w "+w.toString())
       (e1, u, w) match {
         // selection, u = (), w = ()
         case (Comprehension(v, qs@_*), Nil, Nil) =>
           qs.toList match {
             case Nil => Term(e1, e2) // e1 should be a projection
-            case tail :: Nil => tail match {
-              case Generator(x @ Symb(_,_), e3) => // e1 should be a projection
-                unnest(Comprehension(v, Nil:_*), w :+ x, u, Comprehension(x, qs:_*))
-              }
             case head :: tail => head match {
                 case Generator(x @ Symb(_,_), e3) =>
                   val nqs = tail.filter{ case y => pred1(x,y) }
-                  unnest(Comprehension(v, tail.filterNot(nqs.toSet):_*), w :+ x, u, Comprehension(x, (head +: nqs):_*))
+                  unnest2(Comprehension(v, tail.filterNot(nqs.toSet):_*), w :+ x, u, Comprehension(x, (head +: nqs):_*))
               }
            } 
           // unnest, join, u = ()
-          case (Comprehension(v, qs@_*), Nil, w) => qs.toList match {
-            case Nil => Term(e1, e2) // e1 should be a projection
-            case tail :: Nil => tail match { 
-               case Generator(x @ Symb(_,_), e3) => 
-                unnest(Comprehension(v, Nil:_*), x +: w, u, 
-                  Term(Comprehension(Record(Seq(w.head, x):_*), qs:_*), e2))
-            } 
+          case (Comprehension(v, qs@_*), Nil, w1) => qs.toList match {
+            case Nil => Term(e1, e2) // e1 should be a projection and we should terminate
             case head :: tail => head match {
-              case Generator(x @ Symb(_,_), e3 @ InputR(_,_)) => 
+              case Generator(x @ Symb(_,_), e3 @ InputR(_,_)) => // join
                 val nqs = tail.filter{ case y => pred2(x, w.head, y) } 
-                unnest(Comprehension(v, tail.filterNot(nqs.toSet):_*), x +: w, u, 
+                unnest2(Comprehension(v, tail.filterNot(nqs.toSet):_*), x +: w, u, 
                   Term(Comprehension(Record(Seq(w.head, x):_*), (head +: nqs):_*), e2))
-              case Generator(x @ Symb(_,_), e3 @ RProject(_,_)) => 
+              case Generator(x @ Symb(_,_), e3 @ RProject(_,_)) => // unnest
                 val nqs = tail.filter{ case y => pred1(x,y) } ++ tail.filter{ case y => pred2(x, w.head, y) }
-                unnest(Comprehension(v, tail.filterNot(nqs.toSet):_*), x +: w, u, 
+                unnest2(Comprehension(v, tail.filterNot(nqs.toSet):_*), x +: w, u, 
                   Term(Comprehension(Record(Seq(w.head,x):_*), (head +: nqs):_*), e2))
             }
-
+          }
+          case (Comprehension(v, qs@_*), u1, w1) => qs.toList match {
+            case Nil => Term(e1, e2) // e1 should be a projection and we should terminate
+            case head :: tail => head match {
+               case Generator(x @ Symb(_,_), e3) => // outer-unnest, outer-join
+                val nv = Symb('w, 100)
+                val nqs = tail.filter{ case y => pred2(x, w.head, y) }
+                // AND{ not p(v,w') | v != null, w' <- Y }
+                // == AND { (v,w') | v != null, w' <- Y, not( p(v, w')) }
+                val p = AndComprehension(Record(Seq(w.head, nv):_*), 
+                          (Seq(OpNot(OpEq(w.head, Null())), head) ++ nqs.map{ case y => OpNot(y.asInstanceOf[Calc[Boolean]])}):_*)
+                // then [NULL]
+                val t = Sng(Null()) 
+                // else { w' | w' <- path(v) }
+                val el = Comprehension(x, (head +: nqs):_*) 
+                unnest2(Comprehension(substitute(v, x, nv), tail.filterNot(nqs.toSet):_*), w :+ nv, u,
+                  Term(Comprehension(Record(Seq(w.head, nv):_*), Generator(nv, IfStmt(p,t,el))), e2))
+            } 
+           
           }
         }
-     }
-
+      }
+       
   }
 
 }
