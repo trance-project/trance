@@ -196,8 +196,8 @@ object NRCExprTest extends App {
       val q11 = S.ForeachUnion(x => Singleton(TupleStruct1(x)))
       val cq11 = Calculus.translate(q11)
       println(Printer.cquote(cq11))
-      val ncq11 = Unnester.unnest(cq11)
-      println(Printer.cquote(ncq11))
+      //val ncq11 = Unnester.unnest(cq11)
+      //println(Printer.cquote(ncq11))
       println("")
  
       val q1 = S.ForeachUnion(x => 
@@ -205,16 +205,16 @@ object NRCExprTest extends App {
                   IfThenElse(Eq(x, y), Singleton(TupleStruct2(x,y)), EmptySet())))
       val cq1 = Calculus.translate(q1)
       println(Printer.cquote(cq1))
-      val ncq1 = Unnester.unnest(cq1)
-      println(Printer.cquote(ncq1))
+      //val ncq1 = Unnester.unnest(cq1)
+      //println(Printer.cquote(ncq1))
       println("")
 
       val q22 = R.ForeachUnion(x =>
                   x._2.ForeachUnion(y => Singleton(TupleStruct2(x._1, y._1))))
       val cq22 = Calculus.translate(q22)
       println(Printer.cquote(cq22))
-      val ncq22 = Unnester.unnest(cq22)
-      println(Printer.cquote(ncq22))
+      //val ncq22 = Unnester.unnest(cq22)
+      //println(Printer.cquote(ncq22))
       println("")
 
 
@@ -227,32 +227,32 @@ object NRCExprTest extends App {
                                     S.ForeachUnion(y => Singleton(TupleStruct2(x,y))), EmptySet()))
       val cq3 = Calculus.translate(q3)
       println(Printer.cquote(cq3))
-      val ncq3 = Unnester.unnest(cq3)
-      println(Printer.cquote(ncq3))
+      //val ncq3 = Unnester.unnest(cq3)
+      //println(Printer.cquote(ncq3))
       println("")
 
       val q41 = R.ForeachUnion(x => x._2.ForeachUnion(
                 y => Singleton(TupleStruct2(x._1, y._1))))
       val cq41 = Calculus.translate(q41)
       println(Printer.cquote(cq41))
-      val ncq41 = Unnester.unnest(cq41)
-      println(Printer.cquote(ncq41))
+      //val ncq41 = Unnester.unnest(cq41)
+      //println(Printer.cquote(ncq41))
       println("")
 
       val q4 = R.ForeachUnion(x => Singleton(TupleStruct2(x._1, x._2.ForeachUnion(
                 y => Singleton(TupleStruct1(y._1))))))
       val cq4 = Calculus.translate(q4)
       println(Printer.cquote(cq4))
-      val ncq4 = Unnester.unnest2(cq4)
-      println(Printer.cquote(ncq4))
+      //val ncq4 = Unnester.unnest2(cq4)
+      //println(Printer.cquote(ncq4))
       println("")
 
       val q42 = R.ForeachUnion(x => x._2.ForeachUnion(
                   y => Singleton(TupleStruct2(y._1, y._2))))
       val cq42 = Calculus.translate(q42)
       println(Printer.cquote(cq42))
-      val ncq42 = Unnester.unnest2(cq42)
-      println(Printer.cquote(ncq42))
+      //val ncq42 = Unnester.unnest2(cq42)
+      //println(Printer.cquote(ncq42))
       println("")
 
 
