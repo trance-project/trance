@@ -4,14 +4,26 @@ package shredding.nrc2
   * NRC type system
   */
 sealed trait Type
-trait AttributeType extends Type
-trait PrimitiveType extends AttributeType
+
+trait TupleAttributeType extends Type
+
+trait LabelAttributeType extends TupleAttributeType
+
+trait PrimitiveType extends LabelAttributeType
 
 case object IntType extends PrimitiveType
-case object StringType extends PrimitiveType
-case class BagType(tp: TupleType) extends AttributeType
-case class TupleType(tps: Map[String, AttributeType]) extends Type
 
+case object StringType extends PrimitiveType
+
+case object LabelType extends LabelAttributeType
+
+case class BagType(tp: TupleType) extends TupleAttributeType
+
+case class TupleType(attrs: Map[String, TupleAttributeType]) extends Type
+
+/**
+  * Helper object for creating tupled types
+  */
 object TupleType {
-  def apply(tps: (String, AttributeType)*): TupleType = TupleType(Map(tps: _*))
+  def apply(attrs: (String, TupleAttributeType)*): TupleType = TupleType(Map(attrs: _*))
 }
