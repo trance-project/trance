@@ -6,34 +6,10 @@ package shredding.nrc2
 
 object Translator{
 
-  def qualifiers(e: Calc, qs: List[Calc]): Calc = e match {
-    case BagComp(e1, q) => qualifiers(e1, qs ++ q)
-    case Sng(e1) => BagComp(e1, qs)
-    case Zero() => Zero()
-    case _ => BagComp(e.asInstanceOf[TupleCalc], qs)
-  }
-
-  def translate(e: VarDef) = e match {
-    case PrimitiveVarDef(n, tp) => PrimitiveVar(n, None, tp) 
-    case BagVarDef(n, tp) => BagVar(n, None, tp)
-    case TupleVarDef(n, tp) => TupleVar(n, None, tp)
-  }
-
-  //def translate(e: VarRef) = e.field match {
-  //  case Some(f) => e.n
-  //}
-
-  def translateBag(e: Expr): BagCalc = translate(e).asInstanceOf[BagCalc]
-  def translateTuple(e: Expr): TupleCalc = translate(e).asInstanceOf[TupleCalc]
-  def translateAttr(e: Expr): AttributeCalc = translate(e).asInstanceOf[AttributeCalc]
-  def translateCond(e: Cond): Conditional = Conditional(e.op, translateAttr(e.e1), translateAttr(e.e2)) 
-
-  //  case v: VarRef => v.field match {
-  //    case Some(f) => ctx(v.n).asInstanceOf[Map[String, _]](f)
-  //    case None => ctx(v.n)
-  //  }
-
-
+  /**
+    * Translate an NRC Expression into comprehension calculus
+    * this simultaneously transforms and normalizes
+    */
   def translate(e: Expr): Calc = e match {
     case ForeachUnion(x, e1 @ Singleton(Tuple(ts)), e2) => ts.isEmpty match { 
       case true => Zero() // N5 
@@ -50,6 +26,7 @@ object Translator{
       case None => qualifiers(translate(e1), cond.map{ case c => Pred(translateCond(c))})
     }
     case Singleton(e1) => translate(e1) // N6
+    // project on a tuple that isn't a tuplevar?
     case Tuple(fs) => Tup(fs.map(x => x._1 -> translateAttr(x._2)))
     case Const(v, tp) => Constant(v, tp)
     case PrimitiveVarRef(n, o, t) => PrimitiveVar(n, o, t)
@@ -58,5 +35,23 @@ object Translator{
     case Relation(n, b) => InputR(n, b)
     case _ => sys.error("not supported")
   }
+
+  def qualifiers(e: Calc, qs: List[Calc]): Calc = e match {
+    case BagComp(e1, q) => qualifiers(e1, qs ++ q)
+    case Sng(e1) => BagComp(e1, qs)
+    case Zero() => Zero()
+    case _ => BagComp(e.asInstanceOf[TupleCalc], qs)
+  }
+
+  def translate(e: VarDef) = e match {
+    case PrimitiveVarDef(n, tp) => PrimitiveVar(n, None, tp) 
+    case BagVarDef(n, tp) => BagVar(n, None, tp)
+    case TupleVarDef(n, tp) => TupleVar(n, None, tp)
+  }
+
+  def translateBag(e: Expr): BagCalc = translate(e).asInstanceOf[BagCalc]
+  def translateTuple(e: Expr): TupleCalc = translate(e).asInstanceOf[TupleCalc]
+  def translateAttr(e: Expr): AttributeCalc = translate(e).asInstanceOf[AttributeCalc]
+  def translateCond(e: Cond): Conditional = Conditional(e.op, translateAttr(e.e1), translateAttr(e.e2)) 
 
 }

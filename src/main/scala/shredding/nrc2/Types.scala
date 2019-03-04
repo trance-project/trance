@@ -7,6 +7,7 @@ sealed trait Type
 trait AttributeType extends Type
 trait PrimitiveType extends AttributeType
 
+case object NullType extends PrimitiveType
 case object IntType extends PrimitiveType
 case object StringType extends PrimitiveType
 case object BoolType extends PrimitiveType

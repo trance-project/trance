@@ -43,6 +43,7 @@ object Var {
     }
     case _ => throw new IllegalArgumentException(s"cannot create Var(${d.n}, $f)")
   }
+
 }
 
 // x <- e
@@ -94,18 +95,12 @@ case class IfStmt(cond: List[Conditional], e1: BagCalc, e2: Option[BagCalc] = No
   val tp: BagType = e1.tp
 }
 
-// consider making core and bag types not Expr or Calc to avoiding this
-//case class PhysBag(tp: BagType, values: List[TupleCalc]) extends BagCalc
-
-//object PhysBag {
-//  def apply(itemTp: TupleType, values: TupleCalc*): PhysBag =
-//    PhysBag(BagType(itemTp), List(values: _*))
-//}
-
 case class InputR(n: String, b: PhysicalBag) extends BagCalc{
   val tp: BagType = b.tp
 }
 case class CLabel(vars: List[Var], flat: BagCalc) extends BagCalc{
   val tp: BagType = flat.tp
 }
-//case class Term[A](e1: Calc[A], e2: Calc[A]) extends Calc[A]
+case class Term(e1: Calc, e2: Calc) extends Calc{
+  val tp: BagType = e1.asInstanceOf[BagCalc].tp
+}

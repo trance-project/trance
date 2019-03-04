@@ -40,8 +40,9 @@ object Printer {
   }
 
   def quote(v: VarDef): String = v.n
+  def quote(v: TupleVarDef): String = v.n
   def quote(c: Cond): String = s"(${quote(c.e1)} ${c.op} ${quote(c.e2)})" 
-  def quote(c: Conditional): String = s"(${quote(c.e1)} ${c.op} ${quote(c.e2)})" 
+  def quote(c: Conditional): String = s" ${quote(c.e1)} ${c.op} ${quote(c.e2)} " 
 
   def quote(e: Calc): String = e match {
     case Constant(v, StringType) => "\""+ v +"\""
@@ -65,7 +66,28 @@ object Printer {
     case Bind(x, v) => s"${quote(x)} := ${quote(v)}"
     case Generator(x, v) => s" ${quote(x)} <- ${quote(v)} "
     case InputR(n, _) => n
+    case Term(e1, e2) => s"(${quote(e1)}(${quote(e2)}))"
     case _ => throw new IllegalArgumentException("unknown type")
   }
+
+  def quote(e: AlgOp): String = e match {
+    case Select(x, v, p @ Nil) => s"Select[${quote(v)}](${quote(x)})"
+    case Select(x, v, p) => s"Select[${quote(v)}, ${p.map(quote(_))}](${quote(x)})"
+    case Reduce(e1, v, e2 @ Nil) => s"Reduce[${quote(e1)}(${quote(v)})]"
+    case Reduce(e1, v, e2) => s"Reduce[${quote(e1)}(${quote(v)}), ${e2.map(quote(_))}]"
+    case Unnest(e1, p @ Nil) => s"Unnest[${quote(e1)}]"
+    case Unnest(e1, p) => s"Unnest[${quote(e1)}, ${p.map(quote(_))}]"
+    case OuterUnnest(e1, p @ Nil) => s"OuterUnnest[${quote(e1)}]"
+    case OuterUnnest(e1, p) => s"OuterUnnest[${quote(e1)}, ${p.map(quote(_))}]"
+    case Join(e1, p @ Nil) => s"Join[${quote(e1)}]"
+    case Join(e1, p) => s"Join[${quote(e1)}, ${p.map(quote(_))}]"
+    case OuterJoin(e1, p @ Nil) => s"OuterJoin[${quote(e1)}]"
+    case OuterJoin(e1, p) => s"OuterJoin[${quote(e1)}, ${p.map(quote(_))}]"
+    case Term2(e1, e2 @ Init()) => s"< ${quote(e1)} >"
+    case Term2(e1, e2) => s"< ${quote(e1)}< ${quote(e2)} >>"
+    case Init() => ""
+    case _ => throw new IllegalArgumentException("unknown type")
+  }
+
 
 }
