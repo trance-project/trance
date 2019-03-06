@@ -1,4 +1,4 @@
-package shredding.nrc2
+package shredding.nrc
 
 object TestApp extends App {
 
@@ -19,6 +19,7 @@ object TestApp extends App {
 
       println(Printer.quote(q1))
       val cq1 = Translator.translate(q1)
+      println(cq1)
       println(Printer.quote(cq1))
       println(Evaluator.eval(q1))
       //val ncq1 = Unnester.unnest(cq1)
@@ -297,7 +298,7 @@ object TestApp extends App {
     }
   }
 
-  //Example1.run()
+  Example1.run()
   Example2.run()
   Example3.run()
 }
