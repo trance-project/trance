@@ -31,7 +31,7 @@ object Shredder {
       val ivars: List[VarRef] = Nil
       val l1 = shred(e1).asInstanceOf[Label]
       val l2 = shred(e2).asInstanceOf[Label]
-      val sx = TupleVarDef(x.n, l1.flat.tp.tp)
+      val sx = VarDef(x.n, l1.flat.tp.tp)
       Label(ivars, ForeachUnion(sx, l1.flat, l2.flat))
 
     case Union(e1, e2) =>

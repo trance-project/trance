@@ -44,9 +44,9 @@ object Translator{
   }
 
   def translate(e: VarDef) = e match {
-    case PrimitiveVarDef(n, tp) => PrimitiveVar(n, None, tp) 
-    case BagVarDef(n, tp) => BagVar(n, None, tp)
-    case TupleVarDef(n, tp) => TupleVar(n, None, tp)
+    case t:PrimitiveVarDef => PrimitiveVar(t.n, None, t.tp) 
+    case t:BagVarDef => BagVar(t.n, None, t.tp)
+    case t:TupleVarDef => TupleVar(t.n, None, t.tp)
   }
 
   def translateBag(e: Expr): BagCalc = translate(e).asInstanceOf[BagCalc]

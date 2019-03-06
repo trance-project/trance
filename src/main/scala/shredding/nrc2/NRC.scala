@@ -1,18 +1,37 @@
 package shredding.nrc2
 
-sealed trait VarDef { def n: String; def tp: Type }
-case class PrimitiveVarDef(n: String, tp: PrimitiveType) extends VarDef
-case class BagVarDef(n: String, tp: BagType) extends VarDef
-case class TupleVarDef(n: String, tp: TupleType) extends VarDef
+
+object VarCnt{
+  var currId = 0
+}
+
+sealed trait VarDef { 
+  def id: String 
+  def tp: Type
+  def nid: Int
+  def n: String
+}
+
+private case class PrimitiveVarDef(id: String, tp: PrimitiveType, nid: Int) extends VarDef{
+  def n: String = id+nid
+}
+
+private case class BagVarDef(id: String, tp: BagType, nid: Int) extends VarDef{
+   def n: String = id+nid
+} 
+
+private case class TupleVarDef(id: String, tp: TupleType, nid: Int) extends VarDef{ 
+  def n: String = id+nid
+}
 
 object VarDef {
-  def apply(n: String, tp: Type): VarDef = tp match {
-    case IntType => PrimitiveVarDef(n, IntType)
-    case StringType => PrimitiveVarDef(n, StringType)
-    case t: BagType => BagVarDef(n, t)
-    case t: TupleType => TupleVarDef(n, t)
-    case _ => throw new IllegalArgumentException("cannot create VarDef")
-  }
+  def apply(n: String, tp: Type, nid: Int = { VarCnt.currId += 1; VarCnt.currId; }): VarDef = tp match {
+      case IntType => PrimitiveVarDef(n, IntType, nid)
+      case StringType => PrimitiveVarDef(n, StringType, nid)
+      case t: BagType => BagVarDef(n, t, nid)
+      case t: TupleType => TupleVarDef(n, t, nid)
+      case _ => throw new IllegalArgumentException("cannot create VarDef")
+   }
 }
 
 sealed trait Expr { def tp: Type }
@@ -55,7 +74,7 @@ object VarRef {
   }
 }
 
-case class ForeachUnion(x: TupleVarDef, e1: BagExpr, e2: BagExpr) extends BagExpr {
+case class ForeachUnion(x: VarDef, e1: BagExpr, e2: BagExpr) extends BagExpr {
   assert(x.tp == e1.tp.tp)
 
   val tp: BagType = e2.tp

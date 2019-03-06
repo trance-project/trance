@@ -41,6 +41,7 @@ object Printer {
 
   def quote(v: VarDef): String = v.n
   def quote(v: TupleVarDef): String = v.n
+  def quote(v: BagVarDef): String = v.n
   def quote(c: Cond): String = s"(${quote(c.e1)} ${c.op} ${quote(c.e2)})" 
   def quote(c: Conditional): String = s" ${quote(c.e1)} ${c.op} ${quote(c.e2)} " 
 
@@ -66,25 +67,37 @@ object Printer {
     case Bind(x, v) => s"${quote(x)} := ${quote(v)}"
     case Generator(x, v) => s" ${quote(x)} <- ${quote(v)} "
     case InputR(n, _) => n
-    case Term(e1, e2) => s"(${quote(e1)}(${quote(e2)}))"
     case _ => throw new IllegalArgumentException("unknown type")
   }
 
   def quote(e: AlgOp): String = e match {
-    case Select(x, v, p @ Nil) => s"Select[${quote(v)}](${quote(x)})"
-    case Select(x, v, p) => s"Select[${quote(v)}, ${p.map(quote(_))}](${quote(x)})"
-    case Reduce(e1, v, e2 @ Nil) => s"Reduce[${quote(e1)}(${quote(v)})]"
-    case Reduce(e1, v, e2) => s"Reduce[${quote(e1)}(${quote(v)}), ${e2.map(quote(_))}]"
-    case Unnest(e1, p @ Nil) => s"Unnest[${quote(e1)}]"
-    case Unnest(e1, p) => s"Unnest[${quote(e1)}, ${p.map(quote(_))}]"
-    case OuterUnnest(e1, p @ Nil) => s"OuterUnnest[${quote(e1)}]"
-    case OuterUnnest(e1, p) => s"OuterUnnest[${quote(e1)}, ${p.map(quote(_))}]"
-    case Join(e1, p @ Nil) => s"Join[${quote(e1)}]"
-    case Join(e1, p) => s"Join[${quote(e1)}, ${p.map(quote(_))}]"
-    case OuterJoin(e1, p @ Nil) => s"OuterJoin[${quote(e1)}]"
-    case OuterJoin(e1, p) => s"OuterJoin[${quote(e1)}, ${p.map(quote(_))}]"
-    case Term2(e1, e2 @ Init()) => s"< ${quote(e1)} >"
-    case Term2(e1, e2) => s"< ${quote(e1)}< ${quote(e2)} >>"
+    case Select(x, v, p @ Nil) => s"Select[lambda(${quote(v)}).true](${quote(x)})"
+    case Select(x, v, p) => s"Select[lambda(${quote(v)}).${p.map(quote(_)).mkString(",")}](${quote(x)})"
+    case Reduce(e1, v, e2 @ Nil) =>
+      s"Reduce[ U / lambda(${v.map(quote(_)).mkString(",")}).${quote(e1)}, lambda(${v.map(quote(_)).mkString(",")}).true]"
+    case Reduce(e1, v, e2) => 
+      s"Reduce[ U / lambda(${v.map(quote(_)).mkString(",")}).${quote(e1)}, lambda(${v.map(quote(_)).mkString(",")}).${e2.map(quote(_)).mkString(",")}]"
+    case Unnest(e1, e2, p @ Nil) => s"Unnest[lambda(${quote(e1)}).${quote(e2)}, lambda(${quote(e1)}).true]"
+    case Unnest(e1, e2, p) => s"Unnest[lambda(${quote(e1)}).${quote(e2)}, lambda(${quote(e1)}).${p.map(quote(_)).mkString(",")}]"
+    case OuterUnnest(e1, e2, p @ Nil) => s"OuterUnnest[lambda(${quote(e1)}.${quote(e2)}, lambda(${quote(e1)}).true]"
+    case OuterUnnest(e1, e2, p) => s"OuterUnnest[lambda(${quote(e1)}).${quote(e2)}, lambda(${quote(e1)}).${p.map(quote(_)).mkString(",")}]"
+    case Join(e1, e2, p @ Nil) => s"Join[lambda(${quote(e1)},${quote(e2)}).true]"
+    case Join(e1, e2, p) => s"Join[lambda(${quote(e1)},${quote(e2)}).${p.map(quote(_)).mkString(",")}]"
+    case OuterJoin(e1, e2, p @ Nil) => s"OuterJoin[lambda(${quote(e1)}, ${quote(e2)}).true]"
+    case OuterJoin(e1, e2, p) => s"OuterJoin[lambda(${quote(e1)}, ${quote(e2)}).${p.map(quote(_)).mkString(",")}]"
+    case Nest(e1, v, e2, p @ Nil, g) => 
+      val w = v.map(quote(_)).mkString(",")
+      val u = e2.map(quote(_)).mkString(",")
+      val g2 = g.map(quote(_)).mkString(",")
+      s"Nest[ U / lambda(${w}).${quote(e1)} / lambda(${w}).${u}, lambda(${w}).true / lambda(${w}).${g2}]" 
+    case Nest(e1, v, e2, p, g) => 
+      val w = v.map(quote(_)).mkString(",")
+      val u = e2.map(quote(_)).mkString(",")
+      val g2 = g.map(quote(_)).mkString(",")
+      s"Nest[ U / lambda(${w}).${quote(e1)} / lambda(${w}).${u}, lambda(${w}).${p.map(quote(_)).mkString(",")} / lambda(${w}).${g2}]" 
+    case Term(e1, e2 @ Init()) => s"${quote(e1)}"
+    case Term(e1, e2) => s""" |${quote(e1)} 
+                              |${ind(quote(e2))}""".stripMargin
     case Init() => ""
     case _ => throw new IllegalArgumentException("unknown type")
   }

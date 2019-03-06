@@ -28,9 +28,9 @@ case class TupleVar(n: String, field: Option[String], tp: TupleType) extends Tup
 
 object Var {
   def apply(d: VarDef): Var = d match {
-    case v: PrimitiveVar => PrimitiveVar(v.n, None, v.tp)
-    case v: BagVar => BagVar(v.n, None, v.tp)
-    case v: TupleVar => TupleVar(v.n, None, v.tp)
+    case v: PrimitiveVarDef => PrimitiveVar(v.n, None, v.tp)
+    case v: BagVarDef => BagVar(v.n, None, v.tp)
+    case v: TupleVarDef => TupleVar(v.n, None, v.tp)
     case _ => throw new IllegalArgumentException(s"cannot create Var(${d.n})")
   }
 
@@ -47,13 +47,13 @@ object Var {
 }
 
 // x <- e
-case class Generator(x: TupleVarDef, e: BagCalc) extends BagCalc {
+case class Generator(x: VarDef, e: BagCalc) extends BagCalc {
   assert(x.tp == e.tp.tp)
   val tp: BagType = e.tp
 }
 // v <- {e} => v bind e (N6)
 // { e1 | ..., v <- {e | r }, .. } => {e1 | ..., r, v bind e, ... } (N8)
-case class Bind(x: TupleVarDef, v: TupleCalc) extends TupleCalc{
+case class Bind(x: VarDef, v: TupleCalc) extends TupleCalc{
   val tp: TupleType = v.tp
 }
 // e1 op e2 
@@ -100,7 +100,4 @@ case class InputR(n: String, b: PhysicalBag) extends BagCalc{
 }
 case class CLabel(vars: List[Var], flat: BagCalc) extends BagCalc{
   val tp: BagType = flat.tp
-}
-case class Term(e1: Calc, e2: Calc) extends Calc{
-  val tp: BagType = e1.asInstanceOf[BagCalc].tp
 }

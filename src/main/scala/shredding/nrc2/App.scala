@@ -7,8 +7,8 @@ object TestApp extends App {
     def run(): Unit = {
 
       val itemTp = TupleType("a" -> IntType, "b" -> StringType)
-      val x = TupleVarDef("x", itemTp)
-      val x2 = TupleVarDef("y2", itemTp)
+      val x = VarDef("x", itemTp)
+      val x2 = VarDef("y2", itemTp)
       val relationR = Relation("R", PhysicalBag(itemTp,
         Tuple("a" -> Const("42", IntType), "b" -> Const("Milos", StringType)),
         Tuple("a" -> Const("69", IntType), "b" -> Const("Michael", StringType)),
@@ -38,7 +38,7 @@ object TestApp extends App {
       println(" -------------------------------------")
       println("working on transformation")
       
-      val x4 = PrimitiveVarDef("x4", IntType)
+      val x4 = VarDef("x", IntType)
       val q11 = ForeachUnion(x, Singleton(Tuple("a" -> Const("42", IntType), "b" -> Const("Milos", StringType))), 
                 Singleton(Tuple("w" -> VarRef(x, "a"))))
       println(Printer.quote(q11))
@@ -85,7 +85,7 @@ object TestApp extends App {
       println(Printer.quote(cq8)) 
       println("")
 
-      val x3 = TupleVarDef("x3", TupleType())
+      val x3 = VarDef("x", TupleType())
       val q7 = ForeachUnion(x3, Singleton(Tuple()), Singleton(Tuple()))
       println(Printer.quote(q7))
       val cq7 = Translator.translate(q7)
@@ -94,7 +94,7 @@ object TestApp extends App {
 
       println("--------------------------------------")
 
-      val y = TupleVarDef("y", itemTp)
+      val y = VarDef("y", itemTp)
       val q2 = ForeachUnion(x, relationR,
         Singleton(Tuple(
           "grp" -> VarRef(x, "a"),
@@ -183,8 +183,8 @@ object TestApp extends App {
         )
       ))
 
-      val x = TupleVarDef("x", itemTp)
-      val w = TupleVarDef("w", nestedItemTp)
+      val x = VarDef("x", itemTp)
+      val w = VarDef("w", nestedItemTp)
 
       val q1 = ForeachUnion(x, relationR,
         Singleton(Tuple(
@@ -216,9 +216,10 @@ object TestApp extends App {
       /** input relation **/ 
       val itemTp2 = TupleType("c" -> IntType)
       val itemTp = TupleType("a" -> IntType, "b" -> StringType, "c" -> BagType(itemTp2))
-      val x = TupleVarDef("x", itemTp)
-      val y = TupleVarDef("y", itemTp2)
-      val x2 = TupleVarDef("y2", itemTp)
+      val x = VarDef("x", itemTp)
+      println(x)
+      val y = VarDef("y", itemTp2)
+      val x2 = VarDef("y", itemTp)
       val relationR = Relation("R", PhysicalBag(itemTp,
         Tuple("a" -> Const("42", IntType), "b" -> Const("Milos", StringType), "c" -> PhysicalBag(itemTp2,
           Tuple("c" -> Const("42", IntType)), Tuple("c" -> Const("42", IntType)), Tuple("c" -> Const("30", IntType)))),
@@ -235,6 +236,7 @@ object TestApp extends App {
      
       // For x in R Union
       //   sng(( w := x.b ))
+      println("")
       val q1 = ForeachUnion(x, relationR, Singleton(Tuple("w" -> VarRef(x, "b"))))
       println(Printer.quote(q1))
        
@@ -253,10 +255,8 @@ object TestApp extends App {
       val q2 = ForeachUnion(x, relationR, IfThenElse(List(Cond(OpGt, VarRef(x, "a"), Const("35", IntType))), 
                 Singleton(Tuple("w1" -> VarRef(x, "b"))), None)) 
       println(Printer.quote(q2))
-
       val cq2 = Translator.translate(q2)
       println(Printer.quote(cq2))
-      
       val ncq2 = Unnester.unnest(cq2)
       println(Printer.quote(ncq2))
       println("")
@@ -270,9 +270,9 @@ object TestApp extends App {
       println(Printer.quote(q3))
       val cq3 = Translator.translate(q3)
       println(Printer.quote(cq3))
-
       val ncq3 = Unnester.unnest(cq3)
       println(Printer.quote(ncq3))
+      println("")
 
       val q4 = ForeachUnion(x, relationR, 
                 ForeachUnion(x2, relationR,
@@ -280,10 +280,19 @@ object TestApp extends App {
       println(Printer.quote(q4))
       val cq4 = Translator.translate(q4)
       println(Printer.quote(cq4))
-
       val ncq4 = Unnester.unnest(cq4)
       println(Printer.quote(ncq4))
+      println("")
 
+      val q5 = ForeachUnion(x, relationR, 
+                Singleton(Tuple("w1" -> VarRef(x, "a"), "w2" -> ForeachUnion(y, VarRef(x, "c").asInstanceOf[BagExpr],
+                  Singleton(Tuple("a1" -> VarRef(x, "b"), "a2" -> VarRef(y, "c")))))))
+      println(Printer.quote(q5))
+      val cq5 = Translator.translate(q5)
+      println(Printer.quote(cq5))
+      val ncq5 = Unnester.unnest(cq5)
+      println(Printer.quote(ncq5))
+      println("")
 
     }
   }
