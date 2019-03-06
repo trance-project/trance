@@ -2,6 +2,7 @@ package shredding.nrc2
 
 /**
   * Comprehension calculus
+  *
   */
 
 sealed trait Calc { def tp: Type }
@@ -13,9 +14,10 @@ trait TupleCalc extends Calc { def tp: TupleType }
 /**
   * Comprehension calculus constructs
   */
-    
-case class Constant(x: String, tp: PrimitiveType) extends PrimitiveCalc
 
+/**
+  * Variable wrappers
+  */    
 trait Var extends Calc {
   def n: String
   def field: Option[String]
@@ -46,42 +48,62 @@ object Var {
 
 }
 
-// x <- e
+/**
+  * Any of the base types (int, string, ...)
+  */
+case class Constant(x: String, tp: PrimitiveType) extends PrimitiveCalc
+
+/**
+  * Binding of a source to a variable denotate an iteration: v <- X 
+  */
 case class Generator(x: VarDef, e: BagCalc) extends BagCalc {
   assert(x.tp == e.tp.tp)
   val tp: BagType = e.tp
 }
-// v <- {e} => v bind e (N6)
-// { e1 | ..., v <- {e | r }, .. } => {e1 | ..., r, v bind e, ... } (N8)
+
+/**
+  * Binding of a variable to an expression 
+  * v <- {e} => v bind e (N6)
+  * { e1 | ..., v <- {e | r }, .. } => {e1 | ..., r, v bind e, ... } (N8)
+  */
 case class Bind(x: VarDef, v: TupleCalc) extends TupleCalc{
   val tp: TupleType = v.tp
 }
-// e1 op e2 
+
+/**
+  * Conditionals are of the form e1 op e2, and are considered predicates
+  * when inside a comprehension 
+  */
 case class Conditional(op: OpCmp, e1: AttributeCalc, e2: AttributeCalc)
 case class Pred(cond: Conditional) extends PrimitiveCalc { val tp: PrimitiveType = BoolType }
-// necessary for defining outer operators
-// ^{ not(p(v,w)) | v != null, w <- Y }
-case class AndComp(e: PrimitiveVar, qs: List[AttributeCalc]) extends PrimitiveCalc{
-  val tp: PrimitiveType = BoolType
-}
-// { e | qs ... }
+
+/**
+  * Bag comprehension representing union over a bag: { e | qs ... }
+  */
 case class BagComp(e: TupleCalc, qs: List[Calc]) extends BagCalc{
   val tp: BagType = BagType(e.tp)
 }
-// e1 U e2
+
+/**
+  * Merge is union (e1 U e2)
+  * Used in N8 of normalization
+  */
 case class Merge(e1: BagCalc, e2: BagCalc) extends BagCalc {
-  // in the future cast based on weaker/stronger types
   assert(e1.tp == e2.tp)
   val tp: BagType = e1.tp
 }
-// { e }
+
+/**
+  * Singleton construct and zero type
+  */
 case class Sng(e: TupleCalc) extends BagCalc { val tp: BagType = BagType(e.tp) }
-// { }
 case class Zero() extends BagCalc{
   val tp: BagType = BagType(TupleType())
 }
 
-// (A1 = e1, ..., An = en)
+/**
+  * (A1 = e1, ..., An = en)
+  */
 case class Tup(fields: Map[String, AttributeCalc]) extends TupleCalc {
   val tp: TupleType = TupleType(fields.map(f => f._1 -> f._2.tp))
 }
@@ -89,15 +111,24 @@ object Tup{
   def apply(fs: (String, AttributeCalc)*): Tup = Tup(Map(fs:_*))
 }
 
-// if pred then { e1 | qs1 ... } else { e2 | qs2 ... }
+/**
+  * if pred then { e1 | qs1 ... } else { e2 | qs2 ... }
+  */
 case class IfStmt(cond: List[Conditional], e1: BagCalc, e2: Option[BagCalc] = None) extends BagCalc {
   assert(e2.isEmpty || e1.tp == e2.get.tp) 
   val tp: BagType = e1.tp
 }
 
+/**
+  * Represents an input relation
+  */
 case class InputR(n: String, b: PhysicalBag) extends BagCalc{
   val tp: BagType = b.tp
 }
+
+/**
+  * Labels? to be used with shredding
+  */
 case class CLabel(vars: List[Var], flat: BagCalc) extends BagCalc{
   val tp: BagType = flat.tp
 }

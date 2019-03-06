@@ -65,11 +65,11 @@ object Unnester{
         }else{
           val nqs = tail.filter{ case y => pred2(v, w.head, y) }
           val term = (x,u) match {
-            case (BagVar(n, f, t), Nil) => Unnest(w.head, x, nqs.asInstanceOf[List[Pred]]) // unnest
-            case (BagVar(n, f, t), _) => OuterUnnest(w.head, x, nqs.asInstanceOf[List[Pred]]) // outer-unnest
-            case (_, Nil) => Term(Join(w.head, v, nqs.asInstanceOf[List[Pred]]), 
+            case (BagVar(n, f, t), Nil) => Unnest(v +: w, x, nqs.asInstanceOf[List[Pred]]) // unnest
+            case (BagVar(n, f, t), _) => OuterUnnest(v +: w, x, nqs.asInstanceOf[List[Pred]]) // outer-unnest
+            case (_, Nil) => Term(Join(v +: w, nqs.asInstanceOf[List[Pred]]), 
                                    Select(x, v, tail.filter{ case y => pred1(v,y) }.asInstanceOf[List[Pred]])) // join
-            case (_, _) => Term(OuterJoin(w.head, v, nqs.asInstanceOf[List[Pred]]), 
+            case (_, _) => Term(OuterJoin(v +: w, nqs.asInstanceOf[List[Pred]]), 
                                    Select(x, v, tail.filter{ case y => pred1(v,y) }.asInstanceOf[List[Pred]])) // outer-join
           }
           unnest(BagComp(e, tail.filterNot(nqs.toSet)), u, v +: w, Term(term, e2))

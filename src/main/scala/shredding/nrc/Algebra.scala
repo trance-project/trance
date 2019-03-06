@@ -1,16 +1,18 @@
 package shredding.nrc2
 
+/**
+  * Algebra.scala defines the algebraic operators
+  * that are produced when a comprehension calculus expression
+  * is normalized and unnested.
+  *  
+  */
+
 sealed trait AlgOp { def tp: Type }
 
-// these are the possible output types of the algebra
 trait PrimitiveOutput extends AlgOp { def tp: PrimitiveType }
 trait BagOutput extends AlgOp { def tp: BagType }
 trait TupleOutput extends AlgOp { def tp: TupleType }
 
-//sealed trait Accumulator { def tp: Type }
-//trait BagUnion extends Accumulator { def tp: BagType }
-
-// this should be an input relation
 case class Init() extends BagOutput{
   def tp: BagType = BagType(TupleType())
 }
@@ -76,7 +78,7 @@ case class Nest(e: Calc, v: List[VarDef], f: List[VarDef], p: List[Pred], g: Lis
   *    p(w,v) is the lambda expression in the subscript of the unnest operator 
   */
   // maybe v should be a list like reduce
-case class Unnest(v: VarDef, w: BagCalc, p: List[Pred]) extends BagOutput{
+case class Unnest(v: List[VarDef], w: BagCalc, p: List[Pred]) extends BagOutput{
   def tp: BagType = w.tp
 }
 
@@ -91,8 +93,9 @@ case class Unnest(v: VarDef, w: BagCalc, p: List[Pred]) extends BagOutput{
   *   accept that input stream. 
   *
   */
-case class Join(v: VarDef, w: VarDef, p: List[Pred]) extends BagOutput{
-  def tp: BagType = BagType(w.tp.asInstanceOf[TupleType]) // this should be the join type
+case class Join(v: List[VarDef],  p: List[Pred]) extends BagOutput{
+  def tp: BagType = 
+    BagType(TupleType(v.head.tp.asInstanceOf[TupleType].tps ++ v.tail.head.tp.asInstanceOf[TupleType].tps))
 }
 
 /**
@@ -103,7 +106,7 @@ case class Join(v: VarDef, w: VarDef, p: List[Pred]) extends BagOutput{
   * p: list of predicates associated to the variable from the input stream (v) and w
   *    p(w,v) is the lambda expression in the subscript of the outer-unnest operator 
   */
-case class OuterUnnest(v: VarDef, w: BagCalc, p: List[Pred]) extends BagOutput{
+case class OuterUnnest(v: List[VarDef], w: BagCalc, p: List[Pred]) extends BagOutput{
   def tp: BagType = w.tp
 }
 
@@ -119,15 +122,15 @@ case class OuterUnnest(v: VarDef, w: BagCalc, p: List[Pred]) extends BagOutput{
   *   accept that input stream. 
   *
   */
-case class OuterJoin(v: VarDef, w: VarDef, p: List[Pred]) extends BagOutput{
-  def tp: BagType = BagType(w.tp.asInstanceOf[TupleType]) // this should be the join type
+case class OuterJoin(v: List[VarDef], p: List[Pred]) extends BagOutput{
+  def tp: BagType = 
+    BagType(TupleType(v.head.tp.asInstanceOf[TupleType].tps ++ v.tail.head.tp.asInstanceOf[TupleType].tps))
 }
 
-
+/**
+  * A term holds the expressions that are built up from the unnesting algorithm
+  */
 case class Term(e1: AlgOp, e2: AlgOp) extends AlgOp{
   def tp = e1.tp
 }
 
-//case class Join(x, y, ps) extends AlgOp
-//case class Nest(x, path, ps) extends AlgOp
-//case class Reduce(e, x, ps) extends AlgOp

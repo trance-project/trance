@@ -77,14 +77,18 @@ object Printer {
       s"Reduce[ U / lambda(${v.map(quote(_)).mkString(",")}).${quote(e1)}, lambda(${v.map(quote(_)).mkString(",")}).true]"
     case Reduce(e1, v, e2) => 
       s"Reduce[ U / lambda(${v.map(quote(_)).mkString(",")}).${quote(e1)}, lambda(${v.map(quote(_)).mkString(",")}).${e2.map(quote(_)).mkString(",")}]"
-    case Unnest(e1, e2, p @ Nil) => s"Unnest[lambda(${quote(e1)}).${quote(e2)}, lambda(${quote(e1)}).true]"
-    case Unnest(e1, e2, p) => s"Unnest[lambda(${quote(e1)}).${quote(e2)}, lambda(${quote(e1)}).${p.map(quote(_)).mkString(",")}]"
-    case OuterUnnest(e1, e2, p @ Nil) => s"OuterUnnest[lambda(${quote(e1)}.${quote(e2)}, lambda(${quote(e1)}).true]"
-    case OuterUnnest(e1, e2, p) => s"OuterUnnest[lambda(${quote(e1)}).${quote(e2)}, lambda(${quote(e1)}).${p.map(quote(_)).mkString(",")}]"
-    case Join(e1, e2, p @ Nil) => s"Join[lambda(${quote(e1)},${quote(e2)}).true]"
-    case Join(e1, e2, p) => s"Join[lambda(${quote(e1)},${quote(e2)}).${p.map(quote(_)).mkString(",")}]"
-    case OuterJoin(e1, e2, p @ Nil) => s"OuterJoin[lambda(${quote(e1)}, ${quote(e2)}).true]"
-    case OuterJoin(e1, e2, p) => s"OuterJoin[lambda(${quote(e1)}, ${quote(e2)}).${p.map(quote(_)).mkString(",")}]"
+    case Unnest(e1, e2, p @ Nil) => 
+      s"Unnest[lambda(${e1.map(quote(_)).mkString(",")}).${quote(e2)}, lambda(${e1.map(quote(_)).mkString(",")}).true]"
+    case Unnest(e1, e2, p) => 
+      s"Unnest[lambda(${e1.map(quote(_)).mkString(",")}).${quote(e2)}, lambda(${e1.map(quote(_)).mkString(",")}).${p.map(quote(_)).mkString(",")}]"
+    case OuterUnnest(e1, e2, p @ Nil) => 
+      s"OuterUnnest[lambda(${e1.map(quote(_)).mkString(",")}).${quote(e2)}, lambda(${e1.map(quote(_)).mkString(",")}).true]"
+    case OuterUnnest(e1, e2, p) => 
+      s"OuterUnnest[lambda(${e1.map(quote(_)).mkString(",")}).${quote(e2)}, lambda(${e1.map(quote(_)).mkString(",")}).${p.map(quote(_)).mkString(",")}]"
+    case Join(e1, p @ Nil) => s"Join[lambda(${e1.map(quote(_)).mkString(",")}).true]"
+    case Join(e1, p) => s"Join[lambda(${e1.map(quote(_)).mkString(",")}).${p.map(quote(_)).mkString(",")}]"
+    case OuterJoin(e1, p @ Nil) => s"OuterJoin[lambda(${e1.map(quote(_)).mkString(",")}).true]"
+    case OuterJoin(e1, p) => s"OuterJoin[lambda(${e1.map(quote(_)).mkString(",")}).${p.map(quote(_)).mkString(",")}]"
     case Nest(e1, v, e2, p @ Nil, g) => 
       val w = v.map(quote(_)).mkString(",")
       val u = e2.map(quote(_)).mkString(",")
