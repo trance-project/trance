@@ -4,6 +4,17 @@ import org.scalatest.FunSuite
 
 class CalcTest extends FunSuite{
    
+   val itemTp = TupleType("a" -> IntType, "b" -> StringType)
+   val relationR = Relation("R", PhysicalBag(itemTp,
+                    Tuple("a" -> Const("42", IntType), "b" -> Const("Milos", StringType)),
+                    Tuple("a" -> Const("69", IntType), "b" -> Const("Michael", StringType)),
+                    Tuple("a" -> Const("34", IntType), "b" -> Const("Jaclyn", StringType)),
+                    Tuple("a" -> Const("42", IntType), "b" -> Const("Thomas", StringType))
+                  ))
+
+  
+  
+  
   test("Calc.Constant"){
     assert(Constant("one", StringType).x == "one")
     assert(Constant("1", IntType).x == "1")
@@ -39,6 +50,52 @@ class CalcTest extends FunSuite{
   test("Calc.Bind"){
     val bnd = Bind(VarDef("x", TupleType("a"-> StringType)), Tup(Map("a" -> Constant("one", StringType))))
     assert(bnd.tp == TupleType("a"-> StringType))
+  }
+
+  test("Calc.normalize"){
+    val x = VarDef("x", TupleType("a" -> StringType))
+    val y = VarDef("y", itemTp)
+    val z = VarDef("z", TupleType())
+    val gen1 = Generator(x, Sng(Tup(Map("a" -> Constant("one", StringType)))))
+    val gen2 = Generator(y, InputR(relationR.n, relationR.b))
+    val gen3 = Generator(z, Zero())
+    val pred1 = Pred(Conditional(OpEq, Var(Var(x), "a"), Constant("one", StringType)))
+    val bind1 = Bind(x, Tup(Map("a" -> Constant("one", StringType))))
+   
+    // N6
+    // { ( w := x.a ) | x <- { ( a := "one" ) } }
+    // { ( w := x.a ) | x := ( a: = "one" ) } } 
+    val cq1 = BagComp(Tup("w" -> Var(Var(x), "a")), List(gen1))
+    assert(cq1.normalize == BagComp(Tup("w" -> Var(Var(x), "a")), List(bind1)))
+
+    // N6, preserves predicate
+    // { ( w := x.a ) | x <- { ( a := "one" ) }, x.a = "one" }
+    // { ( w := x.a ) | x := ( a: = "one" ), x.a = "one" }
+    val cq2 = BagComp(Tup("w" -> Var(Var(x), "a")), List(gen1, pred1))
+    assert(cq2.normalize == BagComp(Tup("w" -> Var(Var(x), "a")), List(bind1, pred1)))
+
+    // N6, preserves qualifiers before and after
+    // { ( w := x.a ) | y <- R, x <- { ( a := "one" ) }, x.a = "one" }
+    // { ( w := x.a ) | y <- R, x := ( a: = "one" ), x.a = "one" }
+    val cq3 = BagComp(Tup("w" -> Var(Var(x), "a")), List(gen2, gen1, pred1))
+    assert(cq3.normalize == BagComp(Tup("w" -> Var(Var(x), "a")), List(gen2, bind1, pred1)))
+
+    // N5
+    // { ( w := x.a ) | x <- { } } 
+    // { }
+    val cq4 = BagComp(Tup("w" -> Var(Var(x), "a")), List(gen3))
+    assert(cq4.normalize == Zero())
+
+    // N5, zero regardless of qualifiers in the comprehension
+    val cq5 = BagComp(Tup("w" -> Var(Var(x), "a")), List(gen1, gen2, gen3, pred1))
+    assert(cq5.normalize == Zero())
+
+    //val gen4 = Generator(x, BagComp(Tup("w1" -> StringType), gen1))
+    // N8
+    // { }
+    //val cq6 = BagComp(Tup("w" -> Var(Var(x), "a")), List(gen4))
+    //assert(cq6.normalize == BagComp(Tup("w" -> Var(Var(x))), List(gen1, Bind(x, Tup("w1"-> StringType))))) 
+
   }
 
 }

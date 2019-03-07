@@ -74,9 +74,11 @@ object Unnester{
                 unnest(BagComp(e.substitute(eprime.head._2.asInstanceOf[AttributeCalc], nv).asInstanceOf[TupleCalc], qs), 
                         u, nv +: w, unnest(eprime.head._2, w, w, e2))
               case _ => if (u.isEmpty) {
-                          // any new variable is coming from the input stream 
+                          // any new variable is coming from the input stream
+                          // REDUCE: rule C5, u is empty so nothing to group by
                           Term(Reduce(e, w, qs.asInstanceOf[List[Pred]]), e2)
                         }else{
+                          // NEST: rule C8, u is not empty so there is grouping
                           Term(Nest(e, w, u, qs.asInstanceOf[List[Pred]], w.filterNot(u.toSet)), e2)
                         }
             }

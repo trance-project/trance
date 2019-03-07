@@ -32,6 +32,7 @@ object TestApp extends App {
                     IfThenElse(List(Cond(OpEq, VarRef(x, "b"), VarRef(x2, "b"))), Singleton(Tuple("w1" -> VarRef(x, "a"))))))
       println(Printer.quote(q10))
       val cq10 = Translator.translate(q10)
+      println(cq10)
       println(Printer.quote(cq10))
       //val ncq10 = Unnester.unnest(cq10)
       //println(Printer.quote(ncq10)) 
@@ -45,6 +46,7 @@ object TestApp extends App {
       println(Printer.quote(q11))
       println(q11)
       val cq11 = Translator.translate(q11)
+      println(cq11)
       println(Printer.quote(cq11))
 
       val q3 = ForeachUnion(x, Singleton(Tuple("a" -> Const("42", IntType), "b" -> Const("Milos", StringType))),
@@ -381,7 +383,7 @@ object TestApp extends App {
     }
   }
 
-  //Example1.run()
-  Example2.run()
-  Example3.run()
+  Example1.run()
+  //Example2.run()
+  //Example3.run()
 }

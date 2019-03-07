@@ -25,6 +25,30 @@ sealed trait Calc { self =>
     case t:Generator => true
     case _ => false
   }
+
+  def isEmptyGenerator: Boolean = self match {
+    case Generator(x, z @ Zero()) => true
+    case _ => false
+  }
+
+  def hasGenerator: Boolean = self match {
+    case BagComp(e, qs) => qs.map(_.isGenerator).contains(true)
+    case _ => false
+  }
+
+  def hasEmptyGenerator: Boolean = self match {
+    case BagComp(e, qs) => qs.map(_.isEmptyGenerator).contains(true) 
+    case _ => false
+  }
+
+  def normalize: Calc = self
+  
+  def qualifiers: List[Calc] = self match {
+    case Generator(x, v @ Sng(e)) => List(Bind(x, e))
+    case Generator(x, v @ BagComp(e, qs)) => qs :+ Bind(x, e)
+    case _ => List(self)
+  }
+
 }
 
 trait AttributeCalc extends Calc { self =>
@@ -63,6 +87,13 @@ trait BagCalc extends AttributeCalc { self =>
     case Merge(e1, e3) => Merge(e1.substitute(e2, v), e3.substitute(e2, v))
     case BagComp(e1, qs) => BagComp(e1.substitute(e2, v), qs.map(_.substitute(e2, v)))
     case _ => self 
+  }
+
+  override def normalize: BagCalc = self match {
+    case BagComp(e, qs) => 
+      if (self.hasEmptyGenerator) Zero()
+      else BagComp(e, qs.map(_.qualifiers).flatten)
+    case _ => self
   }
 }
 
@@ -162,10 +193,7 @@ case class Pred(cond: Conditional) extends PrimitiveCalc { val tp: PrimitiveType
   * Bag comprehension representing union over a bag: { e | qs ... }
   */
 case class BagComp(e: TupleCalc, qs: List[Calc]) extends BagCalc{
-  
-  val tp: BagType = BagType(e.tp)
-  
-  def hasGenerator: Boolean = qs.map(_.isGenerator).contains(true) 
+  val tp: BagType = BagType(e.tp)  
 }
 
 /**
