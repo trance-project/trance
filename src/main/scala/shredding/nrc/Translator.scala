@@ -25,6 +25,10 @@ object Translator{
       case Some(e3) => IfStmt(cond.map(translateCond(_)), translateBag(e1), Some(translateBag(e3)))
       case None => qualifiers(translate(e1), cond.map{ case c => Pred(translateCond(c))})
     }
+    case Let(x, e1, e2) => e2.tp match {
+      case t:BagType => qualifiers(translate(e2), List(Bind(x, translate(e1))))
+      case _ => translate(e2).substitute(translate(e1), x)
+    }
     case Singleton(e1) => translate(e1) // N6
     // project on a tuple that isn't a tuplevar?
     case Tuple(fs) => Tup(fs.map(x => x._1 -> translateAttr(x._2)))

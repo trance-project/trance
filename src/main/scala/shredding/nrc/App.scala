@@ -210,6 +210,11 @@ object TestApp extends App {
     }
   }
 
+  /**
+    * Example 3 are examples that take source NRC, translate into normalized comprehension calculus,
+    * and then unnest the expression into algebra operators.
+    */
+  
   object Example3 {
 
     def run(): Unit = {
@@ -232,26 +237,46 @@ object TestApp extends App {
           Tuple("c" -> Const("50", IntType)), Tuple("c" -> Const("32", IntType)), Tuple("c" -> Const("42", IntType))))
       ))
       
-      // Example 1
-      // C4, C5 where p = ()
-     
-      // For x in R Union
-      //   sng(( w := x.b ))
+      /** 
+        * Example 1
+        *
+        * NRC Input:
+        * For x3 in R Union
+        *   sng(( w := x3.b ))
+        *
+        * Translated into comprehension calc:
+        * { ( w := x3.b ) |  x3 <- R  }
+        *
+        * Unnested into algebra:
+        * Reduce[ U / lambda(x3).( w := x3.b ), lambda(x3).true]
+        *   Select[lambda(x3).true](R)
+        */
       println("")
       val q1 = ForeachUnion(x, relationR, Singleton(Tuple("w" -> VarRef(x, "b"))))
       println(Printer.quote(q1))
        
-      // { ( w := x.b ) |  x <- R  }
       val cq1 = Translator.translate(q1)
       println(Printer.quote(cq1))
 
-      // (Reduce[x.b](Select[x])(R))
       val ncq1 = Unnester.unnest(cq1)
       println(Printer.quote(ncq1))
       println("")
 
-      // Example 2 
-      // C4, C5 where p != ()
+      /** 
+        * Example 2
+        *
+        * NRC Input:
+        * For x3 in R Union
+        *   If ((x3.a > 35))
+        *   Then sng(( w1 := x3.b ))
+        *
+        * Translated into comprehension calc:
+        * { ( w1 := x3.b ) |  x3 <- R ,  x3.a > 35  }
+        *
+        * Unnested into algebra:
+        * Reduce[ U / lambda(x3).( w1 := x3.b ), lambda(x3).true]
+        *   Select[lambda(x3). x3.a > 35 ](R)
+        */
 
       val q2 = ForeachUnion(x, relationR, IfThenElse(List(Cond(OpGt, VarRef(x, "a"), Const("35", IntType))), 
                 Singleton(Tuple("w1" -> VarRef(x, "b"))), None)) 
@@ -262,8 +287,22 @@ object TestApp extends App {
       println(Printer.quote(ncq2))
       println("")
 
-      // Example 3
-      // 
+      /** 
+        * Example 3
+        *
+        * NRC Input:
+        * For x3 in R Union
+        *   For y4 in x3.c Union
+        *     sng(( w1 := x3.a, w2 := y4.c ))
+        *
+        * Translated into comprehension calc:
+        * { ( w1 := x3.a, w2 := y4.c ) |  x3 <- R ,  y4 <- x3.c  }
+        *
+        * Unnested into algebra:
+        * Reduce[ U / lambda(y4,x3).( w1 := x3.a, w2 := y4.c ), lambda(y4,x3).true]
+        *   Unnest[lambda(y4,x3).x3.c, lambda(y4,x3).true]
+        *     Select[lambda(x3).true](R)
+        */
 
       val q3 = ForeachUnion(x, relationR, 
                 ForeachUnion(y, VarRef(x, "c").asInstanceOf[BagExpr],
@@ -275,6 +314,25 @@ object TestApp extends App {
       println(Printer.quote(ncq3))
       println("")
 
+      /** 
+        * Example 4
+        *
+        * NRC Input:
+        * For x3 in R Union
+        *   For y5 in R Union
+        *     sng(( w1 := x3.a, w2 := y5.b ))
+        *
+        * Translated into comprehension calc:
+        * { ( w1 := x3.a, w2 := y5.b ) |  x3 <- R ,  y5 <- R  }
+        *
+        * Unnested into algebra:
+        * Reduce[ U / lambda(y5,x3).( w1 := x3.a, w2 := y5.b ), lambda(y5,x3).true]
+        *   Join[lambda(y5,x3).true]
+        *     Select[lambda(y5).true](R)
+        *     Select[lambda(x3).true](R)
+        */
+
+
       val q4 = ForeachUnion(x, relationR, 
                 ForeachUnion(x2, relationR,
                   Singleton(Tuple("w1" -> VarRef(x, "a"), "w2" -> VarRef(x2, "b")))))
@@ -285,6 +343,24 @@ object TestApp extends App {
       println(Printer.quote(ncq4))
       println("")
 
+      /** 
+        * Example 5
+        *
+        * NRC Input:
+        * For x3 in R Union
+        *   sng(( w1 := x3.a, w2 := For y4 in x3.c Union
+        *     sng(( a1 := x3.b, a2 := y4.c )) ))
+        *
+        * Translated into comprehension calc:
+        * { ( w1 := x3.a, w2 := { ( a1 := x3.b, a2 := y4.c ) |  y4 <- x3.c  } ) |  x3 <- R  }
+        *
+        * Unnested into algebra:
+        * Reduce[ U / lambda(v6,x3).( w1 := x3.a, w2 := v6 ), lambda(v6,x3).true]
+        *   Nest[ U / lambda(y4,x3).( a1 := x3.b, a2 := y4.c ) / lambda(y4,x3).x3, lambda(y4,x3).true / lambda(y4,x3).y4]
+        *     OuterUnnest[lambda(y4,x3).x3.c, lambda(y4,x3).true]
+        *       Select[lambda(x3).true](R)
+        */
+
       val q5 = ForeachUnion(x, relationR, 
                 Singleton(Tuple("w1" -> VarRef(x, "a"), "w2" -> ForeachUnion(y, VarRef(x, "c").asInstanceOf[BagExpr],
                   Singleton(Tuple("a1" -> VarRef(x, "b"), "a2" -> VarRef(y, "c")))))))
@@ -294,11 +370,18 @@ object TestApp extends App {
       val ncq5 = Unnester.unnest(cq5)
       println(Printer.quote(ncq5))
       println("")
+      
+      val x3 = VarDef("x", TupleType("a" -> StringType))
+      val q6 = Let(x3, Tuple("a" -> Const("one", StringType)), VarRef(x3, "a"))
+      println(q6)
+      println(Printer.quote(q6))
+      val cq6 = Translator.translate(q6)
+      println(Printer.quote(cq6))
 
     }
   }
 
-  Example1.run()
+  //Example1.run()
   Example2.run()
   Example3.run()
 }

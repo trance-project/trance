@@ -37,7 +37,8 @@ class CalcTest extends FunSuite{
   }
 
   test("Calc.Bind"){
-    
+    val bnd = Bind(VarDef("x", TupleType("a"-> StringType)), Tup(Map("a" -> Constant("one", StringType))))
+    assert(bnd.tp == TupleType("a"-> StringType))
   }
 
 }

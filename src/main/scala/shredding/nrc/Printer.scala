@@ -64,7 +64,8 @@ object Printer {
     }
     case Pred(c) => s"${quote(c)}"
     case Merge(e1, e2) => s"{ ${quote(e1)} U ${quote(e2)} }"
-    case Bind(x, v) => s"${quote(x)} := ${quote(v)}"
+    case BindPrimitive(x, v) => s"${quote(x)} := ${quote(v)}"
+    case BindTuple(x, v) => s"${quote(x)} := ${quote(v)}"
     case Generator(x, v) => s" ${quote(x)} <- ${quote(v)} "
     case InputR(n, _) => n
     case _ => throw new IllegalArgumentException("unknown type")

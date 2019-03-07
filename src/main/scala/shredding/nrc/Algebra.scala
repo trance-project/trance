@@ -13,6 +13,11 @@ trait PrimitiveOutput extends AlgOp { def tp: PrimitiveType }
 trait BagOutput extends AlgOp { def tp: BagType }
 trait TupleOutput extends AlgOp { def tp: TupleType }
 
+/**
+  * Initial expression that will represent null input stream 
+  * at the start of the unnesting algorithm 
+  * ie. in unnesting rule C4: [{ e | v <- X, r, p }] {()}
+  */
 case class Init() extends BagOutput{
   def tp: BagType = BagType(TupleType())
 }

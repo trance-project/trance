@@ -5,11 +5,75 @@ package shredding.nrc
   *
   */
 
-sealed trait Calc { def tp: Type }
-trait AttributeCalc extends Calc { def tp: AttributeType }
-trait PrimitiveCalc extends AttributeCalc{ def tp: PrimitiveType }
-trait BagCalc extends AttributeCalc { def tp: BagType }
-trait TupleCalc extends Calc { def tp: TupleType }
+sealed trait Calc { self =>
+  def tp: Type 
+  
+  def substitute(e2: Calc, v: VarDef): Calc = self match {
+    case y if self == e2 => Var(v)
+    case t:Tup => Tup(t.fields.map(f => f._1 -> f._2.substitute(e2, v).asInstanceOf[AttributeCalc]))
+    case Pred(e3) => Pred(e3.substitute(e2, v))  
+    case _ => self
+  }
+
+  // gets an outermost expression in the body (C12)
+  def isOutermost: Boolean = self match {
+    case t:BagComp => true
+    case _ => false
+  }
+
+  def isGenerator: Boolean = self match {
+    case t:Generator => true
+    case _ => false
+  }
+}
+
+trait AttributeCalc extends Calc { self =>
+  def tp: AttributeType 
+  override def substitute(e2: Calc, v: VarDef): AttributeCalc = self.tp match {
+    case y if self == e2 => Var(v).asInstanceOf[AttributeCalc]
+    case t:BagType => self.asInstanceOf[BagCalc].substitute(e2, v)
+    case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].substitute(e2, v)
+    case _ => self
+  }
+}
+
+trait PrimitiveCalc extends AttributeCalc{ self =>
+  
+  def tp: PrimitiveType 
+  
+  override def substitute(e2: Calc, v: VarDef): PrimitiveCalc = self match {
+    case y if self == e2 => Var(v).asInstanceOf[PrimitiveCalc]
+    case Pred(e1) => Pred(e1.substitute(e2, v))
+    case _ => self
+  }
+
+}
+
+trait BagCalc extends AttributeCalc { self =>
+  
+  def tp: BagType 
+  
+  override def substitute(e2: Calc, v: VarDef): BagCalc = self match {
+    case y if self == e2 => Var(v).asInstanceOf[BagCalc]
+    case IfStmt(cond, e3, e4) => e4 match {
+      case Some(s) => IfStmt(cond.map(_.substitute(e2, v)), e3.substitute(e2, v), Option(s.substitute(e2, v)))
+      case None => IfStmt(cond.map(_.substitute(e2, v)), e3.substitute(e2, v), None)
+    }
+    case Sng(e1) => Sng(e1.substitute(e2, v))
+    case Merge(e1, e3) => Merge(e1.substitute(e2, v), e3.substitute(e2, v))
+    case BagComp(e1, qs) => BagComp(e1.substitute(e2, v), qs.map(_.substitute(e2, v)))
+    case _ => self 
+  }
+}
+
+trait TupleCalc extends Calc { self => 
+  def tp: TupleType 
+  override def substitute(e2: Calc, v: VarDef): TupleCalc = self match {
+    case y if self == e2 => Var(v).asInstanceOf[TupleCalc]
+    case t:Tup => Tup(t.fields.map(f => f._1 -> f._2.substitute(e2, v)))
+    case _ => self 
+  }  
+}
 
 /**
   * Comprehension calculus constructs
@@ -53,35 +117,55 @@ object Var {
   */
 case class Constant(x: String, tp: PrimitiveType) extends PrimitiveCalc
 
-/**
-  * Binding of a source to a variable denotate an iteration: v <- X 
-  */
-case class Generator(x: VarDef, e: BagCalc) extends BagCalc {
-  assert(x.tp == e.tp.tp)
-  val tp: BagType = e.tp
-}
 
 /**
   * Binding of a variable to an expression 
   * v <- {e} => v bind e (N6)
   * { e1 | ..., v <- {e | r }, .. } => {e1 | ..., r, v bind e, ... } (N8)
   */
-case class Bind(x: VarDef, v: TupleCalc) extends TupleCalc{
-  val tp: TupleType = v.tp
+trait Bind extends Calc
+/**
+  * Binding of a source to a variable denotate an iteration: v <- X 
+  */
+case class Generator(x: VarDef, e: BagCalc) extends BagCalc with Bind{
+  assert(x.tp == e.tp.tp)
+  val tp: BagType = e.tp
+}
+case class BindPrimitive(x: VarDef, e: PrimitiveCalc) extends PrimitiveCalc with Bind{ 
+  assert(x.tp == e.tp) 
+  val tp: PrimitiveType = e.tp
+}
+case class BindTuple(x: VarDef, e: TupleCalc) extends TupleCalc with Bind{ 
+  assert(x.tp == e.tp)
+  val tp: TupleType = e.tp 
+}
+
+object Bind{
+  def apply(x: VarDef, v: Calc): Bind = v.tp match {
+    case t: TupleType => BindTuple(x, v.asInstanceOf[TupleCalc])
+    case t: PrimitiveType => BindPrimitive(x, v.asInstanceOf[PrimitiveCalc])
+    case t: BagType => Generator(x, v.asInstanceOf[BagCalc])
+    case _ => throw new IllegalArgumentException(s"cannot bind VarDef(${x.n})")
+  }
 }
 
 /**
   * Conditionals are of the form e1 op e2, and are considered predicates
   * when inside a comprehension 
   */
-case class Conditional(op: OpCmp, e1: AttributeCalc, e2: AttributeCalc)
+case class Conditional(op: OpCmp, e1: AttributeCalc, e2: AttributeCalc){ self =>
+  def substitute(e3: Calc, v: VarDef): Conditional = Conditional(op, e1.substitute(e2, v), e2.substitute(e3, v))
+}
 case class Pred(cond: Conditional) extends PrimitiveCalc { val tp: PrimitiveType = BoolType }
 
 /**
   * Bag comprehension representing union over a bag: { e | qs ... }
   */
 case class BagComp(e: TupleCalc, qs: List[Calc]) extends BagCalc{
+  
   val tp: BagType = BagType(e.tp)
+  
+  def hasGenerator: Boolean = qs.map(_.isGenerator).contains(true) 
 }
 
 /**
@@ -132,3 +216,4 @@ case class InputR(n: String, b: PhysicalBag) extends BagCalc{
 case class CLabel(vars: List[Var], flat: BagCalc) extends BagCalc{
   val tp: BagType = flat.tp
 }
+
