@@ -385,5 +385,5 @@ object TestApp extends App {
 
   Example1.run()
   //Example2.run()
-  //Example3.run()
+  Example3.run()
 }

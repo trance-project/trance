@@ -12,9 +12,6 @@ class CalcTest extends FunSuite{
                     Tuple("a" -> Const("42", IntType), "b" -> Const("Thomas", StringType))
                   ))
 
-  
-  
-  
   test("Calc.Constant"){
     assert(Constant("one", StringType).x == "one")
     assert(Constant("1", IntType).x == "1")
@@ -22,14 +19,14 @@ class CalcTest extends FunSuite{
 
   test("Calc.Var"){
 
-    assert(Var(VarDef("x", IntType)) == PrimitiveVar("x3", None, IntType))
-    assert(Var(VarDef("x", StringType)) == PrimitiveVar("x4", None, StringType))
+    assert(Var(VarDef("x", IntType)) == PrimitiveVar("x5", None, IntType))
+    assert(Var(VarDef("x", StringType)) == PrimitiveVar("x6", None, StringType))
    
     assert(Var(VarDef("x", TupleType("a" -> IntType, "b" -> StringType))) == 
-            TupleVar("x5", None, TupleType("a" -> IntType, "b" -> StringType)))
+            TupleVar("x7", None, TupleType("a" -> IntType, "b" -> StringType)))
     
     assert(Var(VarDef("x", BagType(TupleType("a" -> IntType, "b" -> StringType)))) == 
-            BagVar("x6", None, BagType(TupleType("a" -> IntType, "b" -> StringType))))
+            BagVar("x8", None, BagType(TupleType("a" -> IntType, "b" -> StringType))))
   }
 
   test("Calc.Generator"){
@@ -44,7 +41,7 @@ class CalcTest extends FunSuite{
       Generator(VarDef("x", TupleType("a" -> IntType)), Sng(Tup(Map("a" -> Constant("one", StringType))))))
     
     // test printing
-    assert(Printer.quote(gen).replace(" ", "") == "x7<-{(a:=\"one\")}")
+    assert(Printer.quote(gen).replace(" ", "") == "x9<-{(a:=\"one\")}")
   }
 
   test("Calc.Bind"){
@@ -52,6 +49,10 @@ class CalcTest extends FunSuite{
     assert(bnd.tp == TupleType("a"-> StringType))
   }
 
+  /**
+    * Tests the Calc => Calc normalization 
+    *
+    */
   test("Calc.normalize"){
     val x = VarDef("x", TupleType("a" -> StringType))
     val y = VarDef("y", itemTp)
@@ -90,12 +91,23 @@ class CalcTest extends FunSuite{
     val cq5 = BagComp(Tup("w" -> Var(Var(x), "a")), List(gen1, gen2, gen3, pred1))
     assert(cq5.normalize == Zero())
 
-    //val gen4 = Generator(x, BagComp(Tup("w1" -> StringType), gen1))
+    val x2 = VarDef("x",  TupleType("a" -> StringType))
+    val gen4 = Generator(x2, BagComp(Tup("a" -> Var(Var(x),"a")), List(gen1)))
     // N8
-    // { }
-    //val cq6 = BagComp(Tup("w" -> Var(Var(x), "a")), List(gen4))
-    //assert(cq6.normalize == BagComp(Tup("w" -> Var(Var(x))), List(gen1, Bind(x, Tup("w1"-> StringType))))) 
+    // { ( w := x13.a ) |  x13 <- { ( a := x10.a ) |  x10 <- {( a := "one" )}  }  }
+    // { ( w := x13.a ) | x10 := ( a := "one" ), x13 := ( a := x10.a ) }
+    val cq6 = BagComp(Tup("w" -> Var(Var(x2), "a")), List(gen4))
+    assert(cq6.normalize == BagComp(Tup("w" -> Var(Var(x2), "a")), List(bind1, Bind(x2, Tup("a" -> Var(Var(x),"a")))))) 
 
+    // N8, a more complex expression and preserves qualifiers
+    // { ( w := x13.a ) |  x13 <- { ( a := y11.b ) |  y11 <- R  } ,  x13.a = "one"  }
+    // { ( w := x13.a ) |  y11 <- R , x13 := ( a := y11.b ),  x13.a = "one"  }
+    val gen5 = Generator(x2, BagComp(Tup("a" -> Var(Var(y), "b")), List(gen2)))
+    val pred2 = Pred(Conditional(OpEq, Var(Var(x2), "a"), Constant("one", StringType)))
+    val cq7 = BagComp(Tup("w"-> Var(Var(x2), "a")), List(gen5, pred2))
+    println(Printer.quote(BagComp(Tup("w"-> Var(Var(x2), "a")), List(gen2, Bind(x2, Tup("a" -> Var(Var(y), "b"))), pred2))))
+    assert(cq7.normalize == BagComp(Tup("w"-> Var(Var(x2), "a")), List(gen2, Bind(x2, Tup("a" -> Var(Var(y), "b"))), pred2)))
+     
   }
 
 }

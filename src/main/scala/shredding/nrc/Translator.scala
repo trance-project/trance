@@ -18,8 +18,7 @@ object Translator{
     case ForeachUnion(x, e1 @ ForeachUnion(y, e3, e4), e2) => // N8 
       qualifiers(translate(e2), List(Generator(y, translateBag(e3)), 
                                      Bind(x, translateTuple(e4))))
-    case ForeachUnion(x, e1, e2) => 
-      qualifiers(translate(e2), List(Generator(x, translateBag(e1))))
+    case ForeachUnion(x, e1, e2) => qualifiers(translate(e2), List(Generator(x, translateBag(e1))))
     case Union(e1, e2) => Merge(translateBag(e1), translateBag(e2))
     case IfThenElse(cond, e1, e2) => e2 match {
       case Some(e3) => IfStmt(cond.map(translateCond(_)), translateBag(e1), Some(translateBag(e3)))

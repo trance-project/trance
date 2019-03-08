@@ -45,7 +45,7 @@ sealed trait Calc { self =>
   
   def qualifiers: List[Calc] = self match {
     case Generator(x, v @ Sng(e)) => List(Bind(x, e))
-    case Generator(x, v @ BagComp(e, qs)) => qs :+ Bind(x, e)
+    case Generator(x, v @ BagComp(e, qs)) => qs.map(_.qualifiers).flatten :+ Bind(x, e)
     case _ => List(self)
   }
 
@@ -59,6 +59,9 @@ trait AttributeCalc extends Calc { self =>
     case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].substitute(e2, v)
     case _ => self
   }
+
+  override def normalize: AttributeCalc = self
+
 }
 
 trait PrimitiveCalc extends AttributeCalc{ self =>
@@ -70,6 +73,8 @@ trait PrimitiveCalc extends AttributeCalc{ self =>
     case Pred(e1) => Pred(e1.substitute(e2, v))
     case _ => self
   }
+
+  override def normalize: PrimitiveCalc = self
 
 }
 
@@ -104,6 +109,9 @@ trait TupleCalc extends Calc { self =>
     case t:Tup => Tup(t.fields.map(f => f._1 -> f._2.substitute(e2, v)))
     case _ => self 
   }  
+
+  override def normalize: TupleCalc = self
+
 }
 
 /**
@@ -185,6 +193,7 @@ object Bind{
   * when inside a comprehension 
   */
 case class Conditional(op: OpCmp, e1: AttributeCalc, e2: AttributeCalc){ self =>
+  def normalize = Conditional(op, e1.normalize, e2.normalize)
   def substitute(e3: Calc, v: VarDef): Conditional = Conditional(op, e1.substitute(e2, v), e2.substitute(e3, v))
 }
 case class Pred(cond: Conditional) extends PrimitiveCalc { val tp: PrimitiveType = BoolType }
