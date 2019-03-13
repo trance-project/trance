@@ -29,7 +29,7 @@ object TestApp extends App {
 
       val q10 = ForeachUnion(x, relationR, 
                   ForeachUnion(x2, relationR, 
-                    IfThenElse(List(Cond(OpEq, VarRef(x, "b"), VarRef(x2, "b"))), Singleton(Tuple("w1" -> VarRef(x, "a"))))))
+                    IfThenElse(Cond(OpEq, VarRef(x, "b"), VarRef(x2, "b")), Singleton(Tuple("w1" -> VarRef(x, "a"))))))
       println(Printer.quote(q10))
       val cq10 = Translator.translate(q10)
       println(cq10)
@@ -71,7 +71,7 @@ object TestApp extends App {
       println(Printer.quote(cq5))
       println("")
 
-      val q6 = ForeachUnion(x, relationR, IfThenElse(List(Cond(OpGt, VarRef(x, "a"), Const("35", IntType))), 
+      val q6 = ForeachUnion(x, relationR, IfThenElse(Cond(OpGt, VarRef(x, "a"), Const("35", IntType)), 
                 Singleton(Tuple("w1" -> VarRef(x, "b"))), None)) 
       println(Printer.quote(q6))
       val cq6 = Translator.translate(q6)
@@ -80,9 +80,9 @@ object TestApp extends App {
       println(Printer.quote(ncq6))
       println("")
 
-      val q8 = ForeachUnion(x, relationR, IfThenElse(List(Cond(OpGt, VarRef(x, "a"), Const("35", IntType)),
-                                                     Cond(OpGt, Const("45", IntType), VarRef(x, "a"))), 
-                            Singleton(Tuple("w1" -> VarRef(x, "b"))), None))
+      val q8 = ForeachUnion(x, relationR, IfThenElse(Cond(OpGt, VarRef(x, "a"), Const("35", IntType)),
+                                            IfThenElse(Cond(OpGt, Const("45", IntType), VarRef(x, "a")), 
+                                              Singleton(Tuple("w1" -> VarRef(x, "b"))), None), None))
       println(Printer.quote(q8))
       val cq8 = Translator.translate(q8)
       println(Printer.quote(cq8)) 
@@ -102,11 +102,9 @@ object TestApp extends App {
         Singleton(Tuple(
           "grp" -> VarRef(x, "a"),
           "bag" -> ForeachUnion(y, relationR,
-            IfThenElse(
-              List(Cond(OpEq, VarRef(x, "a"), VarRef(y, "a"))),
-              Singleton(Tuple("q" -> VarRef(y, "b")))
-            ))
-        )))
+            IfThenElse(Cond(OpEq, VarRef(x, "a"), VarRef(y, "a")),
+              Singleton(Tuple("q" -> VarRef(y, "b"))))
+            ))))
 
       println(Printer.quote(q2))
       println(Evaluator.eval(q2))
@@ -280,8 +278,8 @@ object TestApp extends App {
         *   Select[lambda(x3). x3.a > 35 ](R)
         */
 
-      val q2 = ForeachUnion(x, relationR, IfThenElse(List(Cond(OpGt, VarRef(x, "a"), Const("35", IntType))), 
-                Singleton(Tuple("w1" -> VarRef(x, "b"))), None)) 
+      val q2 = ForeachUnion(x, relationR, IfThenElse(Cond(OpGt, VarRef(x, "a"), Const("35", IntType)), 
+                Singleton(Tuple("w1" -> VarRef(x, "b")))))
       println(Printer.quote(q2))
       val cq2 = Translator.translate(q2)
       println(Printer.quote(cq2))
@@ -379,6 +377,16 @@ object TestApp extends App {
       println(Printer.quote(q6))
       val cq6 = Translator.translate(q6)
       println(Printer.quote(cq6))
+
+      val y4 = VarDef("y", TupleType("a" -> StringType, "b" -> StringType))
+      val q7 = Let(x3, Tuple("a" -> Const("one", StringType)), 
+                ForeachUnion(y4, Singleton(Tuple("a" -> VarRef(x3, "a"), "b" -> VarRef(x3, "a"))), 
+                  Singleton(Tuple("a" -> VarRef(y4, "a")))))
+      println(q7)
+      println(Printer.quote(q7))
+      val cq7 = Translator.translate(q7)
+      println(Printer.quote(cq7))
+
 
     }
   }

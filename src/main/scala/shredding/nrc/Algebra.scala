@@ -35,7 +35,7 @@ case class Init() extends BagOutput{
   *   Select is always the first operator, u is always empty, and w is set
   *   to be equal to v
   */
-case class Select(x: BagCalc, v: VarDef, p: List[Pred]) extends BagOutput{
+case class Select(x: BagCalc, v: VarDef, p: List[PrimitiveCalc]) extends BagOutput{
   def tp: BagType = BagType(v.tp.asInstanceOf[TupleType])
 }
 
@@ -52,7 +52,7 @@ case class Select(x: BagCalc, v: VarDef, p: List[Pred]) extends BagOutput{
   *   Reduce (project) is the last operator, u is always empty, and there should be
   *   no generators in the head of the comprehension.
   */
-case class Reduce(e: Calc, v: List[VarDef], p: List[Pred]) extends AlgOp{
+case class Reduce(e: Calc, v: List[VarDef], p: List[PrimitiveCalc]) extends AlgOp{
   def tp = e.tp
 }
 
@@ -71,7 +71,7 @@ case class Reduce(e: Calc, v: List[VarDef], p: List[Pred]) extends AlgOp{
   *   u and w are never empty if this condition is reached.
   *
   */
-case class Nest(e: Calc, v: List[VarDef], f: List[VarDef], p: List[Pred], g: List[VarDef]) extends AlgOp{
+case class Nest(e: Calc, v: List[VarDef], f: List[VarDef], p: List[PrimitiveCalc], g: List[VarDef]) extends AlgOp{
   def tp = e.tp
 }
 
@@ -83,7 +83,7 @@ case class Nest(e: Calc, v: List[VarDef], f: List[VarDef], p: List[Pred], g: Lis
   *    p(w,v) is the lambda expression in the subscript of the unnest operator 
   */
   // maybe v should be a list like reduce
-case class Unnest(v: List[VarDef], w: BagCalc, p: List[Pred]) extends BagOutput{
+case class Unnest(v: List[VarDef], w: BagCalc, p: List[PrimitiveCalc]) extends BagOutput{
   def tp: BagType = w.tp
 }
 
@@ -98,7 +98,7 @@ case class Unnest(v: List[VarDef], w: BagCalc, p: List[Pred]) extends BagOutput{
   *   accept that input stream. 
   *
   */
-case class Join(v: List[VarDef],  p: List[Pred]) extends BagOutput{
+case class Join(v: List[VarDef],  p: List[PrimitiveCalc]) extends BagOutput{
   def tp: BagType = 
     BagType(TupleType(v.head.tp.asInstanceOf[TupleType].tps ++ v.tail.head.tp.asInstanceOf[TupleType].tps))
 }
@@ -111,7 +111,7 @@ case class Join(v: List[VarDef],  p: List[Pred]) extends BagOutput{
   * p: list of predicates associated to the variable from the input stream (v) and w
   *    p(w,v) is the lambda expression in the subscript of the outer-unnest operator 
   */
-case class OuterUnnest(v: List[VarDef], w: BagCalc, p: List[Pred]) extends BagOutput{
+case class OuterUnnest(v: List[VarDef], w: BagCalc, p: List[PrimitiveCalc]) extends BagOutput{
   def tp: BagType = w.tp
 }
 
@@ -127,7 +127,7 @@ case class OuterUnnest(v: List[VarDef], w: BagCalc, p: List[Pred]) extends BagOu
   *   accept that input stream. 
   *
   */
-case class OuterJoin(v: List[VarDef], p: List[Pred]) extends BagOutput{
+case class OuterJoin(v: List[VarDef], p: List[PrimitiveCalc]) extends BagOutput{
   def tp: BagType = 
     BagType(TupleType(v.head.tp.asInstanceOf[TupleType].tps ++ v.tail.head.tp.asInstanceOf[TupleType].tps))
 }

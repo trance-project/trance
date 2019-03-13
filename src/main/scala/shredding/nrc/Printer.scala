@@ -21,14 +21,15 @@ object Printer {
     case Tuple(fields) =>
       s"( ${fields.map(f => f._1 + " := " + quote(f._2)).mkString(", ")} )"
     case Let(x, e1, e2) =>
-      s"""|Let ${x.n} = ${quote(e1)} In
+      s"""|Let ${x.n} = ${quote(e1)}
+          |IN 
           |${ind(quote(e2))}""".stripMargin
     case Mult(e1, e2) =>
       s"Mult(${quote(e1)}, ${quote(e2)})"
     case IfThenElse(cond, e1, e2) => e2 match {
-      case None => s"""|If (${cond.map(quote(_)).mkString(" & ")})
+      case None => s"""|If (${quote(cond)})
           |Then ${quote(e1)}""".stripMargin
-      case Some(e3) => s"""|If (${cond.map(quote(_)).mkString(" & ")})
+      case Some(e3) => s"""|If (${quote(cond)})
           |Then ${quote(e1)}
           |Else ${quote(e3)}""".stripMargin
     }
@@ -43,7 +44,6 @@ object Printer {
   def quote(v: TupleVarDef): String = v.n
   def quote(v: BagVarDef): String = v.n
   def quote(c: Cond): String = s"(${quote(c.e1)} ${c.op} ${quote(c.e2)})" 
-  def quote(c: Conditional): String = s" ${quote(c.e1)} ${c.op} ${quote(c.e2)} " 
 
   def quote(e: Calc): String = e match {
     case Constant(v, StringType) => "\""+ v +"\""
@@ -56,13 +56,16 @@ object Printer {
       s"( ${fields.map(f => f._1 + " := " + quote(f._2)).mkString(", ")} )"
     case BagComp(e1, qs) => s"{ ${quote(e1)} | ${qs.map(quote(_)).mkString(", ")} }"
     case IfStmt(c, e1, e2) => e2 match {
-      case Some(e3) => s"""|If (${c.map(quote(_)).mkString(" & ")})
+      case Some(e3) => s"""|If (${quote(c)})
           |Then ${quote(e1)}
           |Else ${quote(e3)}""".stripMargin
-      case None => s"""|If (${c.map(quote(_)).mkString(" & ")})
+      case None => s"""|If (${quote(c)})
           |Then ${quote(e1)}""".stripMargin
     }
-    case Pred(c) => s"${quote(c)}"
+    case Conditional(op, e1, e2) => s" ${quote(e1)} ${op} ${quote(e2)} "
+    case NotCondition(e1) => s" not(${quote(e1)}) "
+    case AndCondition(e1, e2) => s" ${quote(e1)} and ${quote(e2)} "
+    case OrCondition(e1, e2) => s" ${quote(e1)} or ${quote(e2)} "
     case Merge(e1, e2) => s"{ ${quote(e1)} U ${quote(e2)} }"
     case BindPrimitive(x, v) => s"${quote(x)} := ${quote(v)}"
     case BindTuple(x, v) => s"${quote(x)} := ${quote(v)}"

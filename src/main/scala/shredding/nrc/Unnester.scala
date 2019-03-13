@@ -11,13 +11,21 @@ object Unnester{
 
   // p[v]
   def pred1(v: VarDef, c: Calc): Boolean = c match {
-    case Pred(Conditional(op, e1, e2)) => eq(e1, v) || eq(e2, v) 
+    case AndCondition(e1, e2) => pred1(v, e1) && pred1(v, e2)
+    case OrCondition(e1, e2) => pred1(v, e1) && pred1(v, e2)
+    case NotCondition(e1) => pred1(v, e1) 
+    case Conditional(op, e1, e2:Constant) => eq(e1, v)
+    case Conditional(op, e1:Constant, e2) => eq(e2, v)
+    case Conditional(op, e1, e2) => (e1 == e2) && (eq(e1, v) || eq(e2, v))
     case _ => false
   }
 
   // p[(w,v)]
   def pred2(v: VarDef, w: List[VarDef], c: Calc): Boolean = c match {
-    case Pred(Conditional(op, e1, e2)) => 
+    case NotCondition(e1) => pred2(v, w, e1)
+    case OrCondition(e1, e2) => pred2(v, w, e1) && pred2(v, w, e2)
+    case AndCondition(e1, e2) => pred2(v, w, e1) && pred2(v, w, e2)
+    case Conditional(op, e1, e2) => 
       (eq(e1,v) && w.map(eq(e2,_)).contains(true)) || (eq(e2,v) && w.map(eq(e1,_)).contains(true))
     case _ => false
   }
@@ -48,11 +56,11 @@ object Unnester{
         if (u.isEmpty && w.isEmpty){
           val nqs = tail.filter{ case y => pred1(v,y) }
           unnest(BagComp(e, tail.filterNot(nqs.toSet)), u, v +: w, 
-                  Term(Select(x, v, nqs.asInstanceOf[List[Pred]]), e2))
+                  Select(x, v, nqs.asInstanceOf[List[PrimitiveCalc]]))
         // JOIN and NEST - if outer depends on u value (C6, C7, C9, or C10)
         }else{
-          val p1 = tail.filter{ case y => pred1(v, y) }.asInstanceOf[List[Pred]]
-          val p2 = tail.filter{ case y => pred2(v, w, y) }.asInstanceOf[List[Pred]]
+          val p1 = tail.filter{ case y => pred1(v, y) }.asInstanceOf[List[PrimitiveCalc]]
+          val p2 = tail.filter{ case y => pred2(v, w, y) }.asInstanceOf[List[PrimitiveCalc]]
           val term = (x,u) match {
             case (BagVar(n, f, t), Nil) => Unnest(v +: w, x, p1 ++ p2) // UNNEST
             case (BagVar(n, f, t), _) => OuterUnnest(v +: w, x, p1 ++ p2) // OUTER-UNNEST
@@ -76,12 +84,21 @@ object Unnester{
               case _ => if (u.isEmpty) {
                           // any new variable is coming from the input stream
                           // REDUCE: rule C5, u is empty so nothing to group by
-                          Term(Reduce(e, w, qs.asInstanceOf[List[Pred]]), e2)
+                          Term(Reduce(e, w, qs.asInstanceOf[List[PrimitiveCalc]]), e2)
                         }else{
                           // NEST: rule C8, u is not empty so there is grouping
-                          Term(Nest(e, w, u, qs.asInstanceOf[List[Pred]], w.filterNot(u.toSet)), e2)
+                          Term(Nest(e, w, u, qs.asInstanceOf[List[PrimitiveCalc]], w.filterNot(u.toSet)), e2)
                         }
             }
+            // creat another function for this because it is messy
+            case t:TupleVar => if (u.isEmpty) {
+                          // any new variable is coming from the input stream
+                          // REDUCE: rule C5, u is empty so nothing to group by
+                          Term(Reduce(e, w, qs.asInstanceOf[List[PrimitiveCalc]]), e2)
+                        }else{
+                          // NEST: rule C8, u is not empty so there is grouping
+                          Term(Nest(e, w, u, qs.asInstanceOf[List[PrimitiveCalc]], w.filterNot(u.toSet)), e2)
+                        }
           case _ => sys.error("not supported")
         }
 

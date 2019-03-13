@@ -82,7 +82,7 @@ case class Mult(e1: TupleExpr, e2: BagExpr) extends PrimitiveExpr {
 
 case class Cond(op: OpCmp, e1: AttributeExpr, e2: AttributeExpr)
 
-case class IfThenElse(cond: List[Cond], e1: BagExpr, e2: Option[BagExpr] = None) extends BagExpr {
+case class IfThenElse(cond: Cond, e1: BagExpr, e2: Option[BagExpr] = None) extends BagExpr {
   assert(e2.isEmpty || e1.tp == e2.get.tp)
 
   val tp: BagType = e1.tp

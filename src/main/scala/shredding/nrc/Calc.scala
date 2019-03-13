@@ -8,12 +8,28 @@ package shredding.nrc
 sealed trait Calc { self =>
   def tp: Type 
   
-  def substitute(e2: Calc, v: VarDef): Calc = self match {
+  /**
+    * Sends call to proper substitution function
+    */
+  def substitute(e2: Calc, v: VarDef): Calc = self.tp match {
     case y if self == e2 => Var(v)
-    case t:Tup => Tup(t.fields.map(f => f._1 -> f._2.substitute(e2, v).asInstanceOf[AttributeCalc]))
-    case Pred(e3) => Pred(e3.substitute(e2, v))  
-    case _ => self
+    case t:BagType => self.asInstanceOf[BagCalc].substitute(e2, v)
+    case t:TupleType => self.asInstanceOf[TupleCalc].substitute(e2, v)
+    case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].substitute(e2, v)
+    case t:AttributeType => self.asInstanceOf[AttributeCalc].substitute(e2, v)
+    case _ => throw new IllegalArgumentException(s"cannot substitute ${self}")
   }
+
+  /**
+    * Sends call to proper normalization function
+    */
+  def normalize: Calc = self.tp match {
+    case t:BagType => self.asInstanceOf[BagCalc].normalize
+    case t:TupleType => self.asInstanceOf[TupleCalc].normalize
+    case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].normalize
+    case t:AttributeType => self.asInstanceOf[AttributeCalc].normalize
+    case _ => throw new IllegalArgumentException(s"cannot normalize ${self}")
+  } 
 
   // gets an outermost expression in the body (C12)
   def isOutermost: Boolean = self match {
@@ -28,6 +44,17 @@ sealed trait Calc { self =>
 
   def isEmptyGenerator: Boolean = self match {
     case Generator(x, z @ Zero()) => true
+    case Generator(x, z @ Sng(Tup(e))) => e.isEmpty
+    case _ => false
+  }
+
+  def isMergeGenerator: Boolean = self match {
+    case Generator(x, z @ Merge(e1, e2)) => true
+    case _ => false
+  }
+
+  def isIfGenerator: Boolean = self match {
+    case Generator(x, z @ IfStmt(c, e1, e2)) => true
     case _ => false
   }
 
@@ -41,8 +68,16 @@ sealed trait Calc { self =>
     case _ => false
   }
 
-  def normalize: Calc = self
-  
+  def hasMergeGenerator: Boolean = self match {
+    case BagComp(e, qs) => qs.map(_.isMergeGenerator).contains(true)
+    case _ => false
+  }
+
+  def hasIfGenerator: Boolean = self match {
+    case BagComp(e, qs) => qs.map(_.isIfGenerator).contains(true)
+    case _ => false
+  }
+
   def qualifiers: List[Calc] = self match {
     case Generator(x, v @ Sng(e)) => List(Bind(x, e))
     case Generator(x, v @ BagComp(e, qs)) => qs.map(_.qualifiers).flatten :+ Bind(x, e)
@@ -51,16 +86,24 @@ sealed trait Calc { self =>
 
 }
 
+
+/**
+  * AttributeCalc is a trait that is associated to an element of a tuple
+  */
 trait AttributeCalc extends Calc { self =>
   def tp: AttributeType 
   override def substitute(e2: Calc, v: VarDef): AttributeCalc = self.tp match {
-    case y if self == e2 => Var(v).asInstanceOf[AttributeCalc]
-    case t:BagType => self.asInstanceOf[BagCalc].substitute(e2, v)
-    case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].substitute(e2, v)
-    case _ => self
+      case y if self == e2 => Var(v).asInstanceOf[AttributeCalc]
+      case t:BagType => self.asInstanceOf[BagCalc].substitute(e2, v)
+      case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].substitute(e2, v)
+      case _ => throw new IllegalArgumentException(s"cannot normalize ${self}")
   }
 
-  override def normalize: AttributeCalc = self
+  override def normalize: AttributeCalc = self.tp match {
+    case t:BagType => self.asInstanceOf[BagCalc].normalize
+    case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].normalize
+    case _ => self
+  }
 
 }
 
@@ -70,7 +113,16 @@ trait PrimitiveCalc extends AttributeCalc{ self =>
   
   override def substitute(e2: Calc, v: VarDef): PrimitiveCalc = self match {
     case y if self == e2 => Var(v).asInstanceOf[PrimitiveCalc]
-    case Pred(e1) => Pred(e1.substitute(e2, v))
+    case Conditional(o, e1, e3) => Conditional(o, e1.substitute(e2, v), e3.substitute(e2, v)) 
+    case NotCondition(e1) => NotCondition(e1.substitute(e2, v))
+    case AndCondition(e1, e3) => AndCondition(e1.substitute(e2, v), e3.substitute(e2, v))
+    case OrCondition(e1, e3) => OrCondition(e1.substitute(e2, v), e3.substitute(e2, v))
+    case BindPrimitive(x,y) => BindPrimitive(x, y.substitute(e2, v))
+    // tuple normalization rule handled in the context of a let
+    case PrimitiveVar(x, p @ Some(a), tp) => (v.n == x, e2) match {
+      case (true, Tup(fs)) => fs.get(a).get.asInstanceOf[PrimitiveCalc]
+      case _ => self
+    }
     case _ => self
   }
 
@@ -85,8 +137,13 @@ trait BagCalc extends AttributeCalc { self =>
   override def substitute(e2: Calc, v: VarDef): BagCalc = self match {
     case y if self == e2 => Var(v).asInstanceOf[BagCalc]
     case IfStmt(cond, e3, e4) => e4 match {
-      case Some(s) => IfStmt(cond.map(_.substitute(e2, v)), e3.substitute(e2, v), Option(s.substitute(e2, v)))
-      case None => IfStmt(cond.map(_.substitute(e2, v)), e3.substitute(e2, v), None)
+      case Some(s) => IfStmt(cond.substitute(e2, v), e3.substitute(e2, v), Option(s.substitute(e2, v)))
+      case None => IfStmt(cond.substitute(e2, v), e3.substitute(e2, v), None)
+    }
+    case Generator(x, y) => Generator(x, y.substitute(e2, v))
+    case BagVar(x, p @ Some(a), tp) => (v.n == x, e2) match {
+      case (true, Tup(fs)) => fs.get(a).get.asInstanceOf[BagCalc]
+      case _ => self
     }
     case Sng(e1) => Sng(e1.substitute(e2, v))
     case Merge(e1, e3) => Merge(e1.substitute(e2, v), e3.substitute(e2, v))
@@ -96,8 +153,34 @@ trait BagCalc extends AttributeCalc { self =>
 
   override def normalize: BagCalc = self match {
     case BagComp(e, qs) => 
-      if (self.hasEmptyGenerator) Zero()
-      else BagComp(e, qs.map(_.qualifiers).flatten)
+      val b = BagComp(e, qs.map(_.qualifiers).flatten) // N6, N8
+      if (b.hasEmptyGenerator) Zero() // N5
+      else if (self.hasMergeGenerator) {
+        val mg = qs.filter(_.isMergeGenerator)
+        val qsn = qs.filterNot(mg.toSet)
+        mg.head match {
+          case Generator(x, Merge(e1, e2)) => // N7 
+            Merge(BagComp(e, Generator(x, e1) +: qsn), BagComp(e, Generator(x, e2) +: qsn)).normalize
+          case _ => self
+        }
+      }
+      else if (self.hasIfGenerator){
+        val ifs = qs.filter(_.isIfGenerator)
+        val qsn = qs.filterNot(ifs.toSet)
+        ifs.head match {
+          case Generator(x, IfStmt(ps, e1, e2 @ Some(a))) => // N4
+            Merge(BagComp(e, List(ps, Generator(x, e1)) ++ qsn), 
+                  BagComp(e, List(NotCondition(ps), Generator(x, a)) ++ qsn)).normalize
+          case _ => self
+        }
+      }
+      else b
+    case Sng(Tup(e)) => 
+      if (e.isEmpty) Zero()
+      else self 
+    case Merge(e1, e2) => Merge(e1.normalize, e2.normalize)
+    case IfStmt(e1, e2, e3 @ Some(a)) => IfStmt(e1, e2.normalize, Some(a.normalize))
+    case IfStmt(e1, e2, e3 @ None) => IfStmt(e1, e2.normalize, None)
     case _ => self
   }
 }
@@ -106,10 +189,16 @@ trait TupleCalc extends Calc { self =>
   def tp: TupleType 
   override def substitute(e2: Calc, v: VarDef): TupleCalc = self match {
     case y if self == e2 => Var(v).asInstanceOf[TupleCalc]
+    case BindTuple(x,y) => BindTuple(x, y.substitute(e2, v))
     case t:Tup => Tup(t.fields.map(f => f._1 -> f._2.substitute(e2, v)))
     case _ => self 
-  }  
+  }
 
+  // note tuple projection normalization is
+  // handled in the transformation since 
+  // projection handles on a tuple bound to a variable
+  // only currently (i think this is changed in the
+  // updated grammar)
   override def normalize: TupleCalc = self
 
 }
@@ -188,15 +277,24 @@ object Bind{
   }
 }
 
-/**
-  * Conditionals are of the form e1 op e2, and are considered predicates
-  * when inside a comprehension 
-  */
-case class Conditional(op: OpCmp, e1: AttributeCalc, e2: AttributeCalc){ self =>
-  def normalize = Conditional(op, e1.normalize, e2.normalize)
-  def substitute(e3: Calc, v: VarDef): Conditional = Conditional(op, e1.substitute(e2, v), e2.substitute(e3, v))
+case class Conditional(op: OpCmp, e1: AttributeCalc, e2: AttributeCalc) extends PrimitiveCalc{ 
+  val tp: PrimitiveType = BoolType
 }
-case class Pred(cond: Conditional) extends PrimitiveCalc { val tp: PrimitiveType = BoolType }
+case class NotCondition(e1: PrimitiveCalc) extends PrimitiveCalc { 
+  assert(e1.tp == BoolType)
+  val tp: PrimitiveType = BoolType 
+}
+case class AndCondition(e1: PrimitiveCalc, e2: PrimitiveCalc) extends PrimitiveCalc { 
+  assert(e1.tp == e2.tp)
+  assert(e1.tp == BoolType)
+  val tp: PrimitiveType = BoolType
+}
+case class OrCondition(e1: PrimitiveCalc, e2: PrimitiveCalc) extends PrimitiveCalc {
+  assert(e1.tp == e2.tp)
+  assert(e1.tp == BoolType)
+  val tp: PrimitiveType = BoolType
+}
+//case class Pred(cond: Conditional) extends PrimitiveCalc { val tp: PrimitiveType = BoolType }
 
 /**
   * Bag comprehension representing union over a bag: { e | qs ... }
@@ -235,10 +333,12 @@ object Tup{
 /**
   * if pred then { e1 | qs1 ... } else { e2 | qs2 ... }
   */
-case class IfStmt(cond: List[Conditional], e1: BagCalc, e2: Option[BagCalc] = None) extends BagCalc {
+case class IfStmt(cond: PrimitiveCalc, e1: BagCalc, e2: Option[BagCalc] = None) extends BagCalc {
+  assert(cond.tp == BoolType)
   assert(e2.isEmpty || e1.tp == e2.get.tp) 
   val tp: BagType = e1.tp
 }
+
 
 /**
   * Represents an input relation

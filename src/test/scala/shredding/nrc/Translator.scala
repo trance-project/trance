@@ -4,6 +4,9 @@ import org.scalatest.FunSuite
 
 class TranslatorTest extends FunSuite{
    
+ 
+   def vari(x: String) = x+(VarCnt.currId) 
+
    /**
      * Flat relation tests
      */
@@ -34,8 +37,6 @@ class TranslatorTest extends FunSuite{
     val cq1 = BagComp(Tup("w" -> Var(Var(x), "b")), List(Generator(x, InputR("R", relationR.b))))
 
     assert(Translator.translate(q1) === cq1)
-    // validate normalization
-    assert(Translator.translate(q1) === cq1.normalize)
    }
 
    test("Translator.translate.2"){
@@ -45,16 +46,15 @@ class TranslatorTest extends FunSuite{
     //    Then sng(( w1 := x1.a ))
     val q10 = ForeachUnion(x, relationR,
                 ForeachUnion(x2, relationR,
-                  IfThenElse(List(Cond(OpEq, VarRef(x, "b"), VarRef(x2, "b"))), 
+                  IfThenElse(Cond(OpEq, VarRef(x, "b"), VarRef(x2, "b")), 
                              Singleton(Tuple("w1" -> VarRef(x, "a"))))))
     
     // { ( w1 := x1.a ) |  x1 <- R ,  y22 <- R ,  x1.b = y22.b  }
     val cq10 = BagComp(Tup("w1" -> Var(Var(x), "a")), List(Generator(x, InputR("R", relationR.b)), 
-                Generator(x2, InputR("R", relationR.b)), Pred(Conditional(OpEq, 
-                  Var(Var(x), "b"), Var(Var(x2), "b")))))
+                Generator(x2, InputR("R", relationR.b)), Conditional(OpEq, 
+                  Var(Var(x), "b"), Var(Var(x2), "b"))))
     
     assert(Translator.translate(q10) == cq10)
-    assert(Translator.translate(q10) == cq10.normalize)
 
    }
 
@@ -89,18 +89,52 @@ class TranslatorTest extends FunSuite{
                   Singleton(Tuple("w1" -> VarRef(x1, "a"), "w2" -> VarRef(y1, "c")))))
       
       // { ( w1 := x3.a, w2 := y4.c ) |  x3 <- R ,  y4 <- x3.c  }
-      println(x1.tp)
-      println(relationS.tp)
-      println(y1.tp)
-      println(relationS.tp)
       val cq3 = BagComp(Tup("w1" -> Var(Var(x1), "a"), "w2" -> Var(Var(y1), "c")), 
                   List(Generator(x1, InputR("S", relationS.b)), 
                         Generator(y1, Var(Var(x1), "c").asInstanceOf[BagCalc])))
 
       assert(Translator.translate(q3) === cq3)
-      assert(Translator.translate(q3) === cq3.normalize)
       
     }
   
+    // test let's
+    // this does tuple normalization
+    test("Translator.translate.4"){
+      val x3 = VarDef("x", TupleType("a" -> StringType))
+      val y4 = VarDef("y", TupleType("a" -> StringType, "b" -> StringType))
+      
+      // let x3 := ("a" -> "one") in 
+      // foreach y4 in sng(("a" -> x3.a, "b" -> x3.a)) union 
+      //    sng(("a" -> y4.a))
+      // { ( a : = y4.a ) | x3 := (a := "one"), y4 <- { ( a := x3.a, b := x3.a ) } }
+      // { ( a := "one" ) | x3 ::= (a := "one"), y4 := ( a := "one", b := "one") }
+      
+      val q4 = Let(x3, Tuple("a" -> Const("one", StringType)),
+                ForeachUnion(y4, Singleton(Tuple("a" -> VarRef(x3, "a"), "b" -> VarRef(x3, "a"))),
+                  Singleton(Tuple("a" -> VarRef(y4, "a")))))
+      // note here, binds that happen during normalization are not 
+      assert(Translator.translate(q4) == BagComp(Tup("a" -> Var(Var(y4), "a")), List(
+                                          Bind(x3, Tup("a" -> Constant("one", StringType))),
+                                          Bind(y4, Tup("a" -> Constant("one", StringType), "b" -> Constant("one", StringType))))))
+      // let x3 := (a := "one") in x3.a
+      // "one"
+      val q5 = Let(x3, Tuple("a" -> Const("one", StringType)), VarRef(x3, "a"))
+      assert(Translator.translate(q5).tp == StringType)
 
+      // let x3 := ( a := "Jaclyn") in 
+      // For x1 in S Union
+      //  For y1 in x1.c Union
+      //    if ( x3.a = x1.a ) 
+      //    then sng(( w1 := x1.a, w2 := y1.c ))
+      val q6 = Let(x3, Tuple("a" -> Const("Jaclyn", StringType)), 
+                ForeachUnion(x1, relationS,
+                  ForeachUnion(y1, VarRef(x1, "c").asInstanceOf[BagExpr],
+                    IfThenElse(Cond(OpEq, VarRef(x1, "a"), VarRef(x3, "a")), 
+                             Singleton(Tuple("w1" -> VarRef(x1, "a"), "w2" -> VarRef(y1, "c")))))))
+      assert(Translator.translate(q6) == BagComp(Tup("w1" -> Var(Var(x1), "a"), "w2" -> Var(Var(y1), "c")),
+                                          List(Bind(x3, Tup("a" -> Constant("Jaclyn", StringType))),
+                                            Generator(x1, InputR(relationS.n, relationS.b)), 
+                                            Generator(y1, Var(Var(x1), "c").asInstanceOf[BagCalc]),
+                                            Conditional(OpEq, Var(Var(x1), "a"), Constant("Jaclyn", StringType)))))
+    }
 }

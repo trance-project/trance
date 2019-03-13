@@ -43,8 +43,8 @@ object Evaluator {
       val ev1 = eval(e1)
       eval(e2).asInstanceOf[List[_]].count(_ == ev1)
     case IfThenElse(cond, e1, e2) => e2 match {
-      case Some(e3) => if (!cond.map{eval(_)}.contains(false)) eval(e1) else eval(e3)
-      case None => if (!cond.map{eval(_)}.contains(false)) eval(e1) else Nil
+      case Some(e3) => if (eval(cond)) eval(e1) else eval(e3)
+      case None => if (eval(cond)) eval(e1) else Nil
     }
     case PhysicalBag(_, v) => v.map(eval)
     case Relation(_, b) => eval(b)
