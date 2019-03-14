@@ -78,8 +78,31 @@ trait NRC extends BaseExpr with Dictionary {
     override val tp: TupleType = super.tp.asInstanceOf[TupleType]
   }
 
-  case class Project(tuple: TupleExpr, field: String) extends TupleAttributeExpr {
-    val tp: TupleAttributeType = tuple.tp.attrs(field)
+  trait Project extends Expr {
+    def tuple: TupleExpr
+
+    def field: String
+  }
+
+  case object Project {
+    def apply(tuple: TupleExpr, field: String): TupleAttributeExpr = tuple.tp.attrs(field) match {
+      case _: PrimitiveType => ProjectToPrimitive(tuple, field)
+      case _: BagType => ProjectToBag(tuple, field)
+      case _: LabelType => ProjectToLabel(tuple, field)
+      case t => sys.error("Unknown type in Project.apply: " + t)
+    }
+  }
+
+  case class ProjectToPrimitive(tuple: TupleExpr, field: String) extends PrimitiveExpr with Project {
+    val tp: PrimitiveType = tuple.tp.attrs(field).asInstanceOf[PrimitiveType]
+  }
+
+  case class ProjectToBag(tuple: TupleExpr, field: String) extends BagExpr with Project {
+    val tp: BagType = tuple.tp.attrs(field).asInstanceOf[BagType]
+  }
+
+  case class ProjectToLabel(tuple: TupleExpr, field: String) extends LabelExpr with Project {
+    val tp: LabelType = tuple.tp.attrs(field).asInstanceOf[LabelType]
   }
 
   case class ForeachUnion(x: VarDef, e1: BagExpr, e2: BagExpr) extends BagExpr {
@@ -126,73 +149,44 @@ trait NRC extends BaseExpr with Dictionary {
     val tp: BagType = e1.tp
   }
 
+  case class Relation(n: String, tuples: List[Any], tp: BagType) extends BagExpr
+
   /**
     * Shredding NRC extension
     */
   case class NewLabel(free: Map[String, VarRef]) extends LabelExpr {
     val tp: LabelType = LabelType(free.map(f => f._1 -> f._2.tp.asInstanceOf[LabelAttributeType]))
-
-//    def resolve(dict: BagDict): BagExpr = dict.flat
   }
 
   case class Lookup(lbl: LabelExpr, dict: BagDict) extends BagExpr {
-    def tp: BagType = dict.tp
+    def tp: BagType = dict.flatBagTp
   }
-
 
   /**
-    * Runtime extensions
+    * Runtime labels appearing in shredded input relations
     */
-  trait RuntimeExpr extends Expr
-
-//  case class RValue(v: Any, tp: PrimitiveType) extends PrimitiveExpr with RuntimeExpr
-
-  case class RBag(values: List[Any], tp: BagType) extends BagExpr with RuntimeExpr
-
-//  case class RTuple(tp: TupleType, values: Map[String, Any]) extends TupleExpr with RuntimeExpr
-
-//  case class RLabel(values: Map[String, Any], tp: LabelType) extends LabelExpr with RuntimeExpr
-
-  object RLabelId {
+  object LabelId {
     private var currId = 0
 
-    implicit def orderingById: Ordering[RLabelId] = Ordering.by(e => e.id)
+    implicit def orderingById: Ordering[LabelId] = Ordering.by(e => e.id)
   }
 
-  case class RLabelId(tp: BagType) extends BagExpr with RuntimeExpr {
-    val id: Int = { RLabelId.currId += 1; RLabelId.currId }
+  case class LabelId() extends LabelExpr {
+    val id: Int = {
+      LabelId.currId += 1; LabelId.currId
+    }
+
+    def tp: LabelType = LabelType("id" -> IntType)
 
     override def equals(that: Any): Boolean = that match {
-      case that: RLabelId => this.id == that.id
+      case that: LabelId => this.id == that.id
       case _ => false
     }
 
     override def hashCode: Int = id.hashCode()
 
-    override def toString: String = "RLabelId(" + id + ")"
+    override def toString: String = s"LabelId($id)"
   }
-
-
-
-
-  case class Relation(n: String, tp: BagType, b: List[Any]) extends BagExpr with RuntimeExpr
-
-
-
-
-
-
-  //  case class PhysicalBag(tp: BagType, values: List[TupleExpr]) extends BagExpr
-  //
-  //  object PhysicalBag {
-  //    def apply(itemTp: TupleType, values: TupleExpr*): PhysicalBag =
-  //      PhysicalBag(BagType(itemTp), List(values: _*))
-  //  }
-
-
-  implicit def liftString(x: String): PrimitiveExpr = Const(x, StringType)
-
-  implicit def liftInt(x: Int): PrimitiveExpr = Const(x, IntType)
 
 }
 
@@ -232,10 +226,10 @@ trait ShreddingTransform {
         val l = v.asInstanceOf[List[_]]
         val sl = l.map(shredValue(_, tp2))
         val flatBag = sl.map(_.flat)
+        val flatBagTp = BagType(flatTp(tp2).asInstanceOf[TupleType])
         val tupleDict = sl.map(_.dict).reduce(_.union(_)).asInstanceOf[TupleDict]
-        // Create a runtime label
-        val lbl = RLabelId(BagType(flatTp(tp2).asInstanceOf[TupleType]))
-        val matDict = MaterializedDict(Map(lbl -> flatBag), tupleDict, lbl.tp)
+        val lbl = LabelId()
+        val matDict = InputBagDict(Map(lbl -> flatBag), flatBagTp, tupleDict)
         ShredValue(lbl, flatTp(tp), matDict)
 
       case TupleType(as) =>
@@ -248,13 +242,15 @@ trait ShreddingTransform {
       case _ => sys.error("shredValue with unknown type of " + tp)
     }
 
+    def unshredValue(s: ShredValue): Any = unshredValue(s.flat, s.flatTp, s.dict)
+
     def unshredValue(flat: Any, flatTp: Type, dict: Dict): Any = flatTp match {
       case _: PrimitiveType => flat
 
       case _: LabelType =>
-        val lbl = flat.asInstanceOf[RLabelId]
-        val matDict = dict.asInstanceOf[MaterializedDict]
-        matDict.f(lbl).map(t => unshredValue(t, lbl.tp.tp, matDict.dict))
+        val lbl = flat.asInstanceOf[LabelId]
+        val matDict = dict.asInstanceOf[InputBagDict]
+        matDict.f(lbl).map(t => unshredValue(t, matDict.flatBagTp.tp, matDict.tupleDict))
 
       case TupleType(as) =>
         val tuple = flat.asInstanceOf[Map[String, Any]]
@@ -263,11 +259,6 @@ trait ShreddingTransform {
 
       case _ => sys.error("unshredValue with unknown type of " + flatTp)
     }
-
-    def unshredValue(s: ShredValue): Any = unshredValue(s.flat, s.flatTp, s.dict)
-
-
-
 
     def apply(e: Expr): ShredExpr = shred(e, Map.empty)
 
@@ -278,30 +269,32 @@ trait ShreddingTransform {
     private def shred(e: Expr, ctx: Map[String, ShredExpr]): ShredExpr = e match {
       case Const(_, _) => ShredExpr(e, EmptyDict)
 
-      case Project(t, f) =>
-        val ShredExpr(flat: TupleExpr, dict: TupleDict) = shred(t, ctx)
-        ShredExpr(Project(flat, f), dict.fields(f))
+      case p: Project =>
+        val ShredExpr(flat: TupleExpr, dict: TupleDict) = shred(p.tuple, ctx)
+        ShredExpr(Project(flat, p.field), dict.fields(p.field))
 
       case v: VarRef => ctx(v.name)
 
       case ForeachUnion(x, e1, e2) =>
-        val ShredExpr(_: LabelExpr, dict1: BagDict) = shred(e1, ctx)
-        val xdef = VarDef(x.name, dict1.flat.tp.tp)
-        val ShredExpr(_: LabelExpr, dict2: BagDict) =
-          shred(e2, ctx + (x.name -> ShredExpr(VarRef(xdef), dict1.dict)))
-        val lbl = NewLabel(ivars(e))
-        ShredExpr(lbl, BagDict(lbl, ForeachUnion(xdef, dict1.flat, dict2.flat), dict2.dict))
+        val ShredExpr(l1: LabelExpr, dict1: BagDict) = shred(e1, ctx)
+        val xdef = VarDef(x.name, dict1.flatBagTp.tp)
+        val ShredExpr(l2: LabelExpr, dict2: BagDict) =
+          shred(e2, ctx + (x.name -> ShredExpr(VarRef(xdef), dict1.tupleDict)))
+//        val lbl = NewLabel(ivars(e))
+        val lbl = LabelId()
+        ShredExpr(lbl, OutputBagDict(lbl, ForeachUnion(xdef, dict1.flatBag(l1), dict2.flatBag(l2)), dict2.tupleDict))
 
       case Union(e1, e2) =>
-        val ShredExpr(_: LabelExpr, dict1: BagDict) = shred(e1, ctx)
-        val ShredExpr(_: LabelExpr, dict2: BagDict) = shred(e2, ctx)
-        val dict = dict1.union(dict2)
-        ShredExpr(dict.lbl, dict)
+        val ShredExpr(l1: LabelExpr, dict1: BagDict) = shred(e1, ctx)
+        val ShredExpr(l2: LabelExpr, dict2: BagDict) = shred(e2, ctx)
+        val dict = dict1.union(dict2).asInstanceOf[BagDict]
+        val lbl = LabelId()
+        ShredExpr(lbl, OutputBagDict(lbl, Union(dict1.flatBag(l1), dict2.flatBag(l2)), dict.tupleDict))
 
       case Singleton(e1) =>
         val ShredExpr(flat: TupleExpr, dict: TupleDict) = shred(e1, ctx)
         val lbl = NewLabel(ivars(e1))
-        ShredExpr(lbl, BagDict(lbl, Singleton(flat), dict))
+        ShredExpr(lbl, OutputBagDict(lbl, Singleton(flat), dict))
 
       case Tuple(fs) =>
         val sfs = fs.map(f => f._1 -> shred(f._2, ctx))
@@ -318,35 +311,23 @@ trait ShreddingTransform {
 
       case Mult(e1, e2) =>
         val ShredExpr(flat1: TupleExpr, _: Dict) = shred(e1, ctx)    // dict1 is empty
-        val ShredExpr(_: LabelExpr, dict2: BagDict) = shred(e2, ctx)
-        ShredExpr(Mult(flat1, dict2.flat), EmptyDict)
+        val ShredExpr(l2: LabelExpr, dict2: BagDict) = shred(e2, ctx)
+        ShredExpr(Mult(flat1, dict2.flatBag(l2)), EmptyDict)
 
       case IfThenElse(c, e1, None) =>
-        val ShredExpr(_: LabelExpr, dict1: BagDict) = shred(e1, ctx)
+        val ShredExpr(l1: LabelExpr, dict1: BagDict) = shred(e1, ctx)
         val lbl = NewLabel(ivars(e1))
-        ShredExpr(lbl, BagDict(lbl, IfThenElse(c, dict1.flat, None), dict1.dict))
+        ShredExpr(lbl, OutputBagDict(lbl, IfThenElse(c, dict1.flatBag(l1), None), dict1.tupleDict))
 
       case IfThenElse(c, e1, Some(e2)) =>
         sys.error("TODO")
 
-//      case PhysicalBag(tp, vs) =>
-//        // TODO: shredding input relations
-////        val svs = vs.map(v => shred(v, ctx))
-////        val dict = svs.map(_.dict).reduce(_ union _)
-////        ShredExpr(PhysicalBag(tp, svs.map(_.flat.asInstanceOf[TupleExpr])), dict)
-//
-//        ShredExpr(e, TupleDict(tp.tp.attrs.map(f => f._1 -> PrimitiveDict)))
-
-      case r: Relation =>
-        // TODO: shredding input relations
-        val lbl = NewLabel(Map.empty)
-        val dict = TupleDict(r.tp.tp.attrs.map(a => a._1 -> EmptyDict))
-        ShredExpr(lbl, BagDict(lbl, r, dict))
+      case Relation(_, ts, tp) =>
+        val ShredValue(flat: LabelId, _: LabelType, dict: InputBagDict) = shredValue(ts, tp)
+        ShredExpr(flat, dict)
 
       case _ => sys.error("not implemented")
-
     }
-
   }
 
 }
@@ -361,19 +342,12 @@ object TestApp extends App {
     def run(): Unit = {
 
       val itemTp = TupleType("a" -> IntType, "b" -> StringType)
-      val relationR = Relation("R", BagType(itemTp),
-        List(
+      val relationR = Relation("R", List(
           Map("a" -> 42, "b" -> "Milos"),
           Map("a" -> 69, "b" -> "Michael"),
           Map("a" -> 34, "b" -> "Jaclyn"),
           Map("a" -> 42, "b" -> "Thomas")
-        ))
-//      val relationR = Relation("R", PhysicalBag(itemTp,
-//        Tuple("a" -> Const("42", IntType), "b" -> Const("Milos", StringType)),
-//        Tuple("a" -> Const("69", IntType), "b" -> Const("Michael", StringType)),
-//        Tuple("a" -> Const("34", IntType), "b" -> Const("Jaclyn", StringType)),
-//        Tuple("a" -> Const("42", IntType), "b" -> Const("Thomas", StringType))
-//      ))
+        ), BagType(itemTp))
 
       val xdef = VarDef("x", itemTp)
       val xref = TupleVarRef(xdef)
@@ -402,103 +376,104 @@ object TestApp extends App {
     }
   }
 
-//  object Example2 extends NRCTransforms {
-//
-//    def run(): Unit = {
-//
-//      val nested2ItemTp =
-//        TupleType(Map("n" -> IntType))
-//
-//      val nestedItemTp = TupleType(Map(
-//        "m" -> StringType,
-//        "n" -> IntType,
-//        "k" -> BagType(nested2ItemTp)
-//      ))
-//
-//      val itemTp = TupleType(Map(
-//        "h" -> IntType,
-//        "j" -> BagType(nestedItemTp)
-//      ))
-//
-//      val relationR = Relation("R", PhysicalBag(itemTp,
-//        Tuple(
-//          "h" -> Const("42", IntType),
-//          "j" -> PhysicalBag(nestedItemTp,
-//            Tuple(
-//              "m" -> Const("Milos", StringType),
-//              "n" -> Const("123", IntType),
-//              "k" -> PhysicalBag(nested2ItemTp,
-//                Tuple("n" -> Const("123", IntType)),
-//                Tuple("n" -> Const("456", IntType)),
-//                Tuple("n" -> Const("789", IntType)),
-//                Tuple("n" -> Const("123", IntType))
-//              )
-//            ),
-//            Tuple(
-//              "m" -> Const("Michael", StringType),
-//              "n" -> Const("7", IntType),
-//              "k" -> PhysicalBag(nested2ItemTp,
-//                Tuple("n" -> Const("2", IntType)),
-//                Tuple("n" -> Const("9", IntType)),
-//                Tuple("n" -> Const("1", IntType))
-//              )
-//            ),
-//            Tuple(
-//              "m" -> Const("Jaclyn", StringType),
-//              "n" -> Const("12", IntType),
-//              "k" -> PhysicalBag(nested2ItemTp,
-//                Tuple("n" -> Const("14", IntType)),
-//                Tuple("n" -> Const("12", IntType))
-//              )
-//            )
-//          )
-//        ),
-//        Tuple(
-//          "h" -> Const("69", IntType),
-//          "j" -> PhysicalBag(nestedItemTp,
-//            Tuple(
-//              "m" -> Const("Thomas", StringType),
-//              "n" -> Const("987", IntType),
-//              "k" -> PhysicalBag(nested2ItemTp,
-//                Tuple("n" -> Const("987", IntType)),
-//                Tuple("n" -> Const("654", IntType)),
-//                Tuple("n" -> Const("987", IntType)),
-//                Tuple("n" -> Const("654", IntType)),
-//                Tuple("n" -> Const("987", IntType)),
-//                Tuple("n" -> Const("987", IntType))
-//              )
-//            )
-//          )
-//        )
-//      ))
-//
-//      val x = VarDef("x", itemTp)
-//      val w = VarDef("w", nestedItemTp)
-//
-//      val q1 = ForeachUnion(x, relationR,
-//        Singleton(Tuple(
-//          "o5" -> Project(x, "h"),
-//          "o6" ->
-//            ForeachUnion(w, Project(x, "j").asInstanceOf[BagExpr],
-//              Singleton(Tuple(
-//                "o7" -> Project(w, "m"),
-//                "o8" -> Mult(
-//                  Tuple("n" -> Project(w, "n")),
-//                  Project(w, "k").asInstanceOf[BagExpr]
-//                )
-//              ))
-//            )
-//        )))
-//
-//      println(Printer.quote(q1))
-//      println(Evaluator.eval(q1))
-//
-////      println(Printer.quote(Shredder.shred(q1)))
-//
-//    }
-//  }
-//
-  object Example3 {
+  object Example2 {
+
+    def run(): Unit = {
+
+      val nested2ItemTp =
+        TupleType(Map("n" -> IntType))
+
+      val nestedItemTp = TupleType(Map(
+        "m" -> StringType,
+        "n" -> IntType,
+        "k" -> BagType(nested2ItemTp)
+      ))
+
+      val itemTp = TupleType(Map(
+        "h" -> IntType,
+        "j" -> BagType(nestedItemTp)
+      ))
+
+      val relationR = Relation("R", List(
+        Map(
+          "h" -> 42,
+          "j" -> List(
+            Map(
+              "m" -> "Milos",
+              "n" -> 123,
+              "k" -> List(
+                Map("n" -> 123),
+                Map("n" -> 456),
+                Map("n" -> 789),
+                Map("n" -> 123)
+              )
+            ),
+            Map(
+              "m" -> "Michael",
+              "n" -> 7,
+              "k" -> List(
+                Map("n" -> 2),
+                Map("n" -> 9),
+                Map("n" -> 1)
+              )
+            ),
+            Map(
+              "m" -> "Jaclyn",
+              "n" -> 12,
+              "k" -> List(
+                Map("n" -> 14),
+                Map("n" -> 12)
+              )
+            )
+          )
+        ),
+        Map(
+          "h" -> 69,
+          "j" -> List(
+            Map(
+              "m" -> "Thomas",
+              "n" -> 987,
+              "k" -> List(
+                Map("n" -> 987),
+                Map("n" -> 654),
+                Map("n" -> 987),
+                Map("n" -> 654),
+                Map("n" -> 987),
+                Map("n" -> 987)
+              )
+            )
+          )
+        )
+      ), BagType(itemTp))
+
+      val xdef = VarDef("x", itemTp)
+      val xref = TupleVarRef(xdef)
+
+      val wdef = VarDef("w", nestedItemTp)
+      val wref = TupleVarRef(wdef)
+
+      val q1 = ForeachUnion(xdef, relationR,
+        Singleton(Tuple(
+          "o5" -> Project(xref, "h"),
+          "o6" ->
+            ForeachUnion(wdef, Project(xref, "j").asInstanceOf[BagExpr],
+              Singleton(Tuple(
+                "o7" -> Project(wref, "m"),
+                "o8" -> Mult(
+                  Tuple("n" -> Project(wref, "n")),
+                  Project(wref, "k").asInstanceOf[BagExpr]
+                )
+              ))
+            )
+        )))
+
+      println("Q1: " + q1.quote)
+      println("Q1 eval: " + q1.eval)
+      println("Shredded Q1: " + q1.shred.quote)
+    }
+  }
+
+  object ExampleShredValue {
 
     def run(): Unit = {
       val nested2ItemTp =
@@ -611,8 +586,8 @@ object TestApp extends App {
     }
   }
 
-//  Example1.run()
-//  Example2.run()
+  Example1.run()
+  Example2.run()
 
-  Example3.run()
+  ExampleShredValue.run()
 }

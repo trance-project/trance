@@ -14,7 +14,7 @@ trait NRCTransforms {
       case Const(v, StringType) => "\"" + v + "\""
       case Const(v, _) => v.toString
       case v: VarRef => v.name
-      case Project(v, f) => quote(v) + "." + f
+      case p: Project => quote(p.tuple) + "." + p.field
       case ForeachUnion(x, e1, e2) =>
         s"""|For ${x.name} in ${quote(e1)} Union
             |${ind(quote(e2))}""".stripMargin
@@ -34,19 +34,20 @@ trait NRCTransforms {
             |Then ${quote(e1)}
             |Else ${quote(e2)}""".stripMargin
       case Relation(n, _, _) => n
+      case l: LabelId => s"LabelId(${l.id})"
       case NewLabel(vs) =>
         s"Label({${vs.map(v => v._1 + " := " + Printer.quote(v._2)).mkString(", ")}})"
       case Lookup(lbl, dict) => s"Lookup(${quote(dict)})(${quote(lbl)})"
-      case _ => throw new IllegalArgumentException("unknown type")
+      case _ => throw new IllegalArgumentException("unknown type " + e)
     }
 
     def quote(d: Dict): String = d match {
       case EmptyDict => "Nil"
-      case BagDict(lbl, flat, dict) =>
+      case OutputBagDict(lbl, flat, dict) =>
         s"""|( ${quote(lbl)} --> ${quote(flat)},
             |${ind(quote(dict))}
             |""".stripMargin
-      case MaterializedDict(f, dict, _) =>
+      case InputBagDict(f, _, dict) =>
         s"""|( $f,
             |${ind(quote(dict))}
             |""".stripMargin
@@ -84,10 +85,10 @@ trait NRCTransforms {
 
     def eval(e: Expr): Any = e match {
       case Const(v, _) => v
-      case Project(TupleVarRef(v), f) =>
-        ctx(v.name).asInstanceOf[Map[String, _]](f)
-      case Project(e1, f) =>
-        eval(e1).asInstanceOf[Map[String, _]](f)
+      case p: Project => p.tuple match {
+        case TupleVarRef(v) => ctx(v.name).asInstanceOf[Map[String, _]](p.field)
+        case e1 => eval(e1).asInstanceOf[Map[String, _]](p.field)
+      }
       case v: VarRef => ctx(v.name)
       case ForeachUnion(x, e1, e2) =>
         val v1 = eval(e1).asInstanceOf[List[_]]
@@ -119,7 +120,7 @@ trait NRCTransforms {
           case OpEq => if (vl == vr) eval(e1) else eval(e2)
           case OpNe => if (vl != vr) eval(e1) else eval(e2)
         }
-      case Relation(_, _, b) => b
+      case Relation(_, b, _) => b
       case _ => throw new IllegalArgumentException("unknown type")
     }
   }
