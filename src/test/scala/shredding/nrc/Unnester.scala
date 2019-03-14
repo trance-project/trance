@@ -12,7 +12,7 @@ class UnnesterTest extends FunSuite{
       * Starts with input NRC, translates to comprehension calculus
       * and unnests into algebraic form
       */
-    test("Unnester.unnest.1"){
+    test("Unnester.unnest.F&M.BasicExample"){
 
       val ctype = TupleType("name" -> StringType)
       val etype = TupleType("name" -> StringType, "children" -> BagType(ctype))
@@ -61,7 +61,7 @@ class UnnesterTest extends FunSuite{
     /**
       * Query A unnesting example from F & M (7.1)
       */
-    test("Unnester.unnest.2"){
+    test("Unnester.unnest.F&M.QueryA"){
 
       val dtype = TupleType("dno" -> IntType)
       val etype = TupleType("dno" -> IntType)
@@ -89,7 +89,6 @@ class UnnesterTest extends FunSuite{
                                                        Conditional(OpEq, Var(Var(e), "dno"), Var(Var(d), "dno"))))),
                 List(Generator(d, InputR(departments.n, departments.b))))
      
-      println(Printer.quote(cq))
       assert(Translator.translate(q) == cq)
 
       // Reduce U / (D = d.dno, E = m ) 

@@ -151,6 +151,9 @@ trait BagCalc extends AttributeCalc { self =>
     case _ => self 
   }
 
+  /**
+    * Normalization of comprehension types
+    */
   override def normalize: BagCalc = self match {
     case BagComp(e, qs) => 
       val b = BagComp(e, qs.map(_.qualifiers).flatten) // N6, N8
@@ -277,6 +280,9 @@ object Bind{
   }
 }
 
+/**
+  * Condition types
+  */
 case class Conditional(op: OpCmp, e1: AttributeCalc, e2: AttributeCalc) extends PrimitiveCalc{ 
   val tp: PrimitiveType = BoolType
 }
@@ -294,7 +300,6 @@ case class OrCondition(e1: PrimitiveCalc, e2: PrimitiveCalc) extends PrimitiveCa
   assert(e1.tp == BoolType)
   val tp: PrimitiveType = BoolType
 }
-//case class Pred(cond: Conditional) extends PrimitiveCalc { val tp: PrimitiveType = BoolType }
 
 /**
   * Bag comprehension representing union over a bag: { e | qs ... }
@@ -339,6 +344,12 @@ case class IfStmt(cond: PrimitiveCalc, e1: BagCalc, e2: Option[BagCalc] = None) 
   val tp: BagType = e1.tp
 }
 
+/**
+  * Primitive monoid - count
+  */
+case class CountComp(e: TupleCalc, qs: List[Calc]) extends PrimitiveCalc{
+  val tp: PrimitiveType = IntType 
+}
 
 /**
   * Represents an input relation
