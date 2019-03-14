@@ -12,15 +12,16 @@ trait NRCTransforms {
 
     def quote(e: Expr): String = e match {
       case Const(v, StringType) => "\"" + v + "\""
-      case Const(v, _) => v
-      case VarRef(v) => v.name
-      case Project(v, f) => v.name + "." + f
+      case Const(v, _) => v.toString
+      case v: VarRef => v.name
+      case Project(v, f) => quote(v) + "." + f
       case ForeachUnion(x, e1, e2) =>
         s"""|For ${x.name} in ${quote(e1)} Union
             |${ind(quote(e2))}""".stripMargin
       case Union(e1, e2) => s"(${quote(e1)}) Union (${quote(e2)})"
       case Singleton(e1) => "sng(" + quote(e1) + ")"
-      case Tuple(fs) => s"( ${fs.map(f => f._1 + " := " + quote(f._2)).mkString(", ")} )"
+      case Tuple(fs) =>
+        s"( ${fs.map(f => f._1 + " := " + quote(f._2)).mkString(", ")} )"
       case Let(x, e1, e2) =>
         s"""|Let ${x.name} = ${quote(e1)} In
             |${ind(quote(e2))}""".stripMargin
@@ -33,19 +34,42 @@ trait NRCTransforms {
             |Then ${quote(e1)}
             |Else ${quote(e2)}""".stripMargin
       case Relation(n, _, _) => n
-      case NewLabel(vs) => s"Label(vars := ${vs.map(Printer.quote).mkString(", ")})"
-      case Lookup(lbl, dict) => s"pi_1(${quote(dict)})($lbl)"
+      case NewLabel(vs) =>
+        s"Label({${vs.map(v => v._1 + " := " + Printer.quote(v._2)).mkString(", ")}})"
+      case Lookup(lbl, dict) => s"Lookup(${quote(dict)})(${quote(lbl)})"
       case _ => throw new IllegalArgumentException("unknown type")
     }
 
     def quote(d: Dict): String = d match {
-      case EmptyDict => "Empty dictionary"
+      case EmptyDict => "Nil"
       case BagDict(lbl, flat, dict) =>
         s"""|( ${quote(lbl)} --> ${quote(flat)},
             |${ind(quote(dict))}
             |""".stripMargin
+      case MaterializedDict(f, dict, _) =>
+        s"""|( $f,
+            |${ind(quote(dict))}
+            |""".stripMargin
       case TupleDict(fs) => s"(${fs.map(f => f._1 + " := " + quote(f._2)).mkString(", ")})"
       case _ => throw new IllegalArgumentException("Illegal dictionary")
+    }
+
+    def quote(v: Any, tp: Type): String = tp match {
+      case IntType => v.toString
+      case StringType => "\"" + v.toString + "\""
+      case BagType(tp2) =>
+        val l = v.asInstanceOf[List[Any]]
+        val s = l.map(quote(_, tp2)).mkString(",\n")
+        s"""|[
+            |${ind(s)}
+            |]""".stripMargin
+      case TupleType(as) =>
+        val m = v.asInstanceOf[Map[String, Any]]
+        s"( ${m.map { case (n, a) => n + " := " + quote(a, as(n)) }.mkString(", ")} )"
+      case LabelType(as) =>
+        val m = v.asInstanceOf[Map[String, Any]]
+        s"Label( ${m.map { case (n, a) => n + " := " + quote(a, as(n)) }.mkString(", ")} )"
+      case _ => sys.error("Unknown type in quote")
     }
   }
 
@@ -59,10 +83,12 @@ trait NRCTransforms {
     val ctx: HMap[String, Any] = HMap[String, Any]()
 
     def eval(e: Expr): Any = e match {
-      case Const(v, IntType) => v.toInt
-      case Const(v, StringType) => v
-      case VarRef(v) => ctx(v.name)
-      case Project(v, f) => ctx(v.name).asInstanceOf[Map[String, _]](f)
+      case Const(v, _) => v
+      case Project(TupleVarRef(v), f) =>
+        ctx(v.name).asInstanceOf[Map[String, _]](f)
+      case Project(e1, f) =>
+        eval(e1).asInstanceOf[Map[String, _]](f)
+      case v: VarRef => ctx(v.name)
       case ForeachUnion(x, e1, e2) =>
         val v1 = eval(e1).asInstanceOf[List[_]]
         val v = v1.flatMap { xv => ctx(x.name) = xv; eval(e2).asInstanceOf[List[_]] }

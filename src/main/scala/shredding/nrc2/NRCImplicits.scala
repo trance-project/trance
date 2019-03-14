@@ -1,6 +1,6 @@
 package shredding.nrc2
 
-object NRCImplicits extends NRC with NRCTransforms {
+object NRCImplicits extends NRC with NRCTransforms with ShreddingTransform {
 
   /**
     * Extension methods for NRC expressions
@@ -10,6 +10,8 @@ object NRCImplicits extends NRC with NRCTransforms {
     def quote: String = Printer.quote(e)
 
     def eval: Any = new Evaluator().eval(e)
+
+    def shred: ShredExpr = Shredder(e)
 
     //    def collect[A](f: PartialFunction[Expr, List[A]]): List[A] =
     //      f.applyOrElse(e, (ex: Expr) => ex match {
@@ -40,4 +42,14 @@ object NRCImplicits extends NRC with NRCTransforms {
     //      }
   }
 
+//  implicit class TypeOps(tp: Type) {
+//
+//    def flatTp: Type = tp match {
+//      case t: PrimitiveType => t
+//      case _: BagType => LabelType
+//      case TupleType(as) =>
+//        TupleType(as.map(a => a._1 -> a._2.flatTp.asInstanceOf[TupleAttributeType]))
+//      case _ => sys.error("unknown flat type for " + tp)
+//    }
+//  }
 }

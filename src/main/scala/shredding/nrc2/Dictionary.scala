@@ -20,35 +20,49 @@ trait Dictionary {
   case object EmptyDict extends AttributeDict {
     def union(that: Dict): AttributeDict = that match {
       case EmptyDict => EmptyDict
-      case _ => throw new IllegalArgumentException("Illegal dictionary union")
+      case _ => sys.error("Illegal dictionary union")
     }
   }
 
-  case class BagDict(lbl: NewLabel, flat: BagExpr, dict: TupleDict) extends AttributeDict {
+  case class BagDict(lbl: LabelExpr, flat: BagExpr, dict: TupleDict) extends AttributeDict {
     def union(that: Dict): BagDict = that match {
+
       case BagDict(lbl2, flat2, dict2) if flat.tp == flat2.tp =>
-        val free = (lbl.free ++ lbl2.free).distinct
-        BagDict(NewLabel(free), Union(flat, flat2), dict.union(dict2))
-      case _ => throw new IllegalArgumentException("Illegal dictionary union")
+        (lbl, lbl2) match {
+          case (NewLabel(free1), NewLabel(free2)) =>
+            val free = free1 ++ free2
+            BagDict(NewLabel(free), Union(flat, flat2), dict.union(dict2))
+//          case (RLabelId(tp1), RLabelId(tp2)) if tp1 == tp2 =>
+//            BagDict(RLabelId(tp1), )
+
+          case _ => sys.error("Illegal dictionary union - unknown label type")
+        }
+      case _ => sys.error("Illegal dictionary union")
     }
 
     def lookup(l: NewLabel): BagExpr = { assert(lbl == l); flat }
+
+    def tp: BagType = flat.tp
   }
 
-//  case class EagerBagDict(f: Map[NewLabel, BagExpr], dict: TupleDict) extends BagDict {
-//    def union(that: Dict): BagDict = that match {
-//      case EagerBagDict(f2, dict2) => EagerBagDict(f ++ f2, dict.union(dict2))
-//      case _ => throw new IllegalArgumentException("Illegal dictionary union")
-//    }
-//
-//    def lookup(l: NewLabel): BagExpr = Lookup(l, this)
-//  }
+  case class MaterializedDict(f: Map[RLabelId, List[Any]], dict: TupleDict, tp: BagType) extends AttributeDict {
+    def union(that: Dict): MaterializedDict = that match {
+      case MaterializedDict(f2, dict2, tp2) if tp == tp2 =>
+        val keys = f.keySet ++ f2.keySet
+        val merge = keys.map(k => (k, f.getOrElse(k, Nil) ++ f2.getOrElse(k, Nil))).toMap
+        MaterializedDict(merge, dict.union(dict2), tp)
+      case _ => sys.error("Illegal dictionary union")
+    }
+
+    // TODO: fix this
+    def lookup(l: LabelExpr): BagExpr = Lookup(l, null)
+  }
 
   case class TupleDict(fields: Map[String, AttributeDict]) extends Dict {
     def union(that: Dict): TupleDict = that match {
       case TupleDict(fields2) if fields.keySet == fields2.keySet =>
-        TupleDict(fields.map { case (k, v) => k -> v.union(fields(k)) })
-      case _ => throw new IllegalArgumentException("Illegal dictionary union")
+        TupleDict(fields.map { case (k, v) => k -> v.union(fields2(k)) })
+      case _ => sys.error("Illegal dictionary union")
     }
   }
 
