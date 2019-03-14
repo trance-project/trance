@@ -42,6 +42,12 @@ object Translator{
       case BagVarRef(n, o, t) => BagVar(n, o, t)
       case TupleVarRef(n, o, t) => TupleVar(n, o, t)
       case Relation(n, b) => InputR(n, b)
+      case TotalMult(e1) => 
+        val qtc = translateBag(e1)
+        qtc match {
+          case BagComp(e, qs) => CountComp(Constant("1", IntType), qs)
+          case _ => CountComp(Constant("1", IntType), List(qtc))
+        }
       case _ => sys.error("not supported")
     }
     

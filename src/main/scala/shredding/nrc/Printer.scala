@@ -37,6 +37,7 @@ object Printer {
     case Relation(n, _) => n
     case Label(vs, fe) =>
       "Label(vars := " + vs.map(quote).mkString(", ") + ", flat := " + quote(fe) + ")"
+    case TotalMult(e1) => s"TotalMult(${quote(e1)})"
     case _ => throw new IllegalArgumentException("unknown type")
   }
 
@@ -71,6 +72,7 @@ object Printer {
     case BindTuple(x, v) => s"${quote(x)} := ${quote(v)}"
     case Generator(x, v) => s" ${quote(x)} <- ${quote(v)} "
     case InputR(n, _) => n
+    case CountComp(e1, qs) => s" + { ${quote(e1)} | ${qs.map(quote(_)).mkString(",")} }" 
     case _ => throw new IllegalArgumentException("unknown type")
   }
 

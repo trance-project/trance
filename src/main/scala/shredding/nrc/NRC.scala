@@ -74,6 +74,10 @@ case class Let(x: VarDef, e1: Expr, e2: Expr) extends Expr {
   val tp: Type = e2.tp
 }
 
+case class TotalMult(e1: BagExpr) extends PrimitiveExpr{
+  val tp: PrimitiveType = IntType
+}
+
 case class Mult(e1: TupleExpr, e2: BagExpr) extends PrimitiveExpr {
   assert(e1.tp == e2.tp.tp)
 

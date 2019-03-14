@@ -113,4 +113,68 @@ class UnnesterTest extends FunSuite{
                             Select(InputR(departments.n, departments.b), d, nopreds)))))
     }
 
+    /**
+      * QueryC from F & M 
+      * 
+      * U { ( E := e.name, M := + { 1 | c <- e.children, 
+      *                                 & { c.age > d.age | d <- e.manager.children } }) 
+      *   | e <- Employees } 
+      *
+      * Source NRC: use TotalMult and 0's and 1's to replicate AND accumulator
+      * For e in Employees union
+      *   sng( E := e.name, M := TotalMult( For c in e.children union 
+      *                                       if TotalMult( For d <- e.manager.children union 
+      *                                                       if c.age <= d.age then sng(c)) == 0 
+      *                                       then sng(c) )
+      *
+      * WMCC:
+      * { ( E := e27.name, M :=  + { 1 |  c28 <- e27.children ,   
+      *                                         + { 1 |  m30 <- e27.manager ,  
+      *                                                  d29 <- m30.children ,  d29.age >= c28.age  } = 0  } ) 
+      *      |  e27 <- Employees  }
+      */
+    test("Unnester.unnest.F&M.QueryC"){
+      val ctype = TupleType("name" -> StringType, "age" -> IntType)
+      val dtype = TupleType("name" -> StringType, "children" -> BagType(ctype), "age" -> IntType)
+      val etype = TupleType("name" -> StringType, "children" -> BagType(ctype), "manager" -> BagType(dtype))
+      val e = VarDef("e", etype)
+      val c = VarDef("c", ctype)
+      val d = VarDef("d", ctype)
+      val m = VarDef("m", dtype)
+      val employees = Relation("Employees", PhysicalBag(etype,
+                      Tuple("name" -> Const("one", StringType), 
+                            "children" -> PhysicalBag(ctype,
+                              Tuple("name" -> Const("child1", StringType), "age" -> Const("1", IntType)), 
+                              Tuple("name" -> Const("child2", StringType), "age" -> Const("2", IntType))),
+                            "manager" -> PhysicalBag(dtype, 
+                              Tuple("name" -> Const("mone", StringType), "age" -> Const("40", IntType), 
+                                    "children" -> PhysicalBag(ctype,
+                                      Tuple("name" -> Const("child3", StringType), "age" -> Const("10", IntType)), 
+                                      Tuple("name" -> Const("child4", StringType), "age" -> Const("12", IntType))))))))
+
+       // Source NRC
+       val q = ForeachUnion(e, employees, 
+                Singleton(Tuple("E" -> VarRef(e, "name"), 
+                  "M" -> TotalMult(ForeachUnion(c, VarRef(e, "children").asInstanceOf[BagExpr], 
+                    IfThenElse(Cond(OpEq, TotalMult(ForeachUnion(m, VarRef(e, "manager").asInstanceOf[BagExpr],
+                      ForeachUnion(d, VarRef(m, "children").asInstanceOf[BagExpr], 
+                        IfThenElse(Cond(OpGe, VarRef(d, "age"), VarRef(c, "age")),
+                          Singleton(VarRef(c).asInstanceOf[TupleExpr]))))), Const("0", IntType)), 
+                      Singleton(VarRef(c).asInstanceOf[TupleExpr])))))))
+       
+       // WMCC (comprehension calculus)
+       val cq = BagComp(Tup("E" -> Var(Var(e), "name"), "M" -> CountComp(Constant("1", IntType), 
+                  List(Generator(c, Var(Var(e), "children").asInstanceOf[BagCalc]), 
+                       Conditional(OpEq, CountComp(Constant("1", IntType), 
+                                          List(Generator(m, Var(Var(e), "manager").asInstanceOf[BagCalc]), 
+                                               Generator(d, Var(Var(m), "children").asInstanceOf[BagCalc]),
+                                               Conditional(OpGe, Var(Var(d), "age"), Var(Var(c), "age")))), Constant("0", IntType))))), 
+                List(Generator(e, InputR(employees.n, employees.b))))
+
+       // validate source to wmcc translation
+       assert(Translator.translate(q) == cq)
+    
+       val ncq = Unnester.unnest(cq)
+    }
+
 }

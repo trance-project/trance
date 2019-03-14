@@ -126,7 +126,14 @@ trait PrimitiveCalc extends AttributeCalc{ self =>
     case _ => self
   }
 
-  override def normalize: PrimitiveCalc = self
+  // this should handle N10 +{ +{ e | r } | s } => +{ e | s, r }
+  override def normalize: PrimitiveCalc = self /**match {
+    case CountComp(e1, e2) => e1 match {
+      case CountComp(e3, e4) => CountComp(e3.normalize, e2.map(_.normalize) ++ e4.map(_.normalize))
+      case _ => CountComp(e1.normalize, e2.map(_.normalize)) 
+    } 
+    case _ => self
+  }**/
 
 }
 
@@ -347,7 +354,8 @@ case class IfStmt(cond: PrimitiveCalc, e1: BagCalc, e2: Option[BagCalc] = None) 
 /**
   * Primitive monoid - count
   */
-case class CountComp(e: TupleCalc, qs: List[Calc]) extends PrimitiveCalc{
+case class CountComp(e: PrimitiveCalc, qs: List[Calc]) extends PrimitiveCalc{
+  // enforce e to not be a bag type
   val tp: PrimitiveType = IntType 
 }
 

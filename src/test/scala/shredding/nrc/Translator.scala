@@ -108,6 +108,25 @@ class TranslatorTest extends FunSuite{
     assert(Translator.translate(q10) == Merge(cq10a, cq10b))
    }
 
+   /**
+     * Tests total multiplicity calculation of
+     * a simple input query 
+     * 
+     * For x8 in R Union
+     *  sng(( w := x8.b ))
+     * 
+     * +{ ( w := x8.b ) | x8 <- R }
+     */
+   test("Translator.translate.TotalMultForeach") {
+
+    val q1 = TotalMult(ForeachUnion(x, relationR, Singleton(Tuple("w" -> VarRef(x, "b")))))
+    
+    val cq1 = CountComp(Constant("1", IntType), List(Generator(x, InputR("R", relationR.b))))
+    println(Printer.quote(q1))
+    println(Printer.quote(cq1))
+    assert(Translator.translate(q1) === cq1)
+
+   }
 
    /**
      * Nested relation tests 
