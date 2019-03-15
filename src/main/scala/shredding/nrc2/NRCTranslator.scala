@@ -1,12 +1,16 @@
-package shredding.nrc
+package shredding.nrc2
+
+import shredding.core._
+import shredding.calc._
 
 /**
-  * Translate NRC Expression into Comprehension Calculus
+  * Translation functions for NRC
   * 
   */
+trait NRCTranslator extends Calc{
+  this: NRC =>
 
-object Translator{
-
+  object Translator{
   var normalize = true
   /**
     * Translate an NRC Expression into comprehension calculus.
@@ -17,14 +21,14 @@ object Translator{
     * normalization and translation, if needed.
     * 
     */
-  def translate(e: Expr): Calc = { 
+  def translate(e: Expr): CompCalc = { 
     val calc = e match {
       case ForeachUnion(x, e1, e2) => 
         qualifiers(translate(e2), List(Generator(x, translateBag(e1))))
       case Union(e1, e2) => Merge(translateBag(e1), translateBag(e2))
       case IfThenElse(cond, e1, e2) => 
         IfStmt(translateCond(cond), translateBag(e1), translateOption(e2))
-      case Let(x, e1, e2) => e2.tp match {
+      /**case Let(x, e1, e2) => e2.tp match {
         case t:BagType => // { e3 | x := e1, ... }
           val replaced = translate(e2).substitute(translate(e1), x)
           qualifiers(replaced, List(Bind(x, translate(e1))))
@@ -34,24 +38,23 @@ object Translator{
           // and creates a new variable for the newly created value
           val replaced = translate(e2).substitute(translate(e1), x)
           Bind(VarDef("v", replaced.tp), replaced)
-      }
+      }**/
       case Singleton(e1) => Sng(translateTuple(e1))
       case Tuple(fs) => Tup(fs.map(x => x._1 -> translateAttr(x._2)))
+      case p:Project => Proj(translateTuple(p.tuple), p.field)
       case Const(v, tp) => Constant(v, tp)
-      case PrimitiveVarRef(n, o, t) => PrimitiveVar(n, o, t)
-      case BagVarRef(n, o, t) => BagVar(n, o, t)
-      case TupleVarRef(n, o, t) => TupleVar(n, o, t)
-      case Relation(n, b) => InputR(n, b)
-      case TotalMult(e1) => 
+      case v:VarRef => Var(v.varDef)
+      case Relation(n, b, t) => InputR(n, b, t)
+      /*case TotalMult(e1) => 
         val qtc = translateBag(e1)
         qtc match {
           case BagComp(e, qs) => CountComp(Constant("1", IntType), qs)
           case _ => CountComp(Constant("1", IntType), List(qtc))
-        }
+        }**/
       case _ => sys.error("not supported")
     }
-    
-    if (normalize) calc.normalize else calc
+    calc
+    //if (normalize) calc.normalize else calc
     
   }
 
@@ -72,7 +75,7 @@ object Translator{
     * 
     * @returns BagCalc bag comprehension with appropriately ordered qualifiers in the body (or Zero)
     */
-  def qualifiers(e: Calc, qs: List[Calc]): BagCalc = e match {
+  def qualifiers(e: CompCalc, qs: List[CompCalc]): BagCalc = e match {
     case BagComp(e1, q) => qualifiers(e1, qs ++ q)
     case Sng(e1) => BagComp(e1, qs)
     case Zero() => Zero()
@@ -89,10 +92,11 @@ object Translator{
     case _ => BagComp(e.asInstanceOf[TupleCalc], qs)
   }
 
-  def translate(e: VarDef) = e match {
-    case t:PrimitiveVarDef => PrimitiveVar(t.n, None, t.tp) 
-    case t:BagVarDef => BagVar(t.n, None, t.tp)
-    case t:TupleVarDef => TupleVar(t.n, None, t.tp)
+  def translate(e: VarDef) = e.tp match {
+    case t:PrimitiveType => PrimitiveVar(e) 
+    case t:BagType => BagVar(e)
+    case t:TupleType => TupleVar(e)
+    case t:LabelType => TupleVar(e)
   }
 
   // options are only used in if statements for now
@@ -102,8 +106,8 @@ object Translator{
   }
   def translateBag(e: Expr): BagCalc = translate(e).asInstanceOf[BagCalc]
   def translateTuple(e: Expr): TupleCalc = translate(e).asInstanceOf[TupleCalc]
-  def translateAttr(e: Expr): AttributeCalc = translate(e).asInstanceOf[AttributeCalc]
+  def translateAttr(e: Expr): TupleAttributeCalc = translate(e).asInstanceOf[TupleAttributeCalc]
   def translateCond(e: Cond): Conditional = 
     Conditional(e.op, translateAttr(e.e1), translateAttr(e.e2)) 
-
+  }
 }

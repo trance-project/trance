@@ -1,9 +1,10 @@
-package shredding.nrc
+package shredding.core
 
 /**
   * Comparison operators
   */
-sealed trait OpCmp
+
+trait OpCmp
 case object OpEq extends OpCmp { override def toString = "=" }
 case object OpNe extends OpCmp { override def toString = "!=" }
 case object OpGt extends OpCmp { override def toString = ">" }
