@@ -70,7 +70,7 @@ trait Algebra extends BaseAlg with Calc{
     *   Reduce (project) is the last operator, u is always empty, and there should be
     *   no generators in the head of the comprehension.
     */
-  case class Reduce(e: TupleAttributeCalc, v: List[VarDef], p: List[PrimitiveCalc]) extends AlgOp{
+  case class Reduce(e: TupleCalc, v: List[VarDef], p: List[PrimitiveCalc]) extends AlgOp{
     def tp = e.tp
   }
 
@@ -89,7 +89,7 @@ trait Algebra extends BaseAlg with Calc{
     *   u and w are never empty if this condition is reached.
     *
     */
-  case class Nest(e: TupleAttributeCalc, v: List[VarDef], f: List[VarDef], p: List[PrimitiveCalc], g: List[VarDef]) extends AlgOp{
+  case class Nest(e: TupleCalc, v: List[VarDef], f: List[VarDef], p: List[PrimitiveCalc], g: List[VarDef]) extends AlgOp{
     def tp = e.tp
   }
 
