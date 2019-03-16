@@ -11,7 +11,6 @@ trait NRCTranslator extends Calc{
   this: NRC =>
 
   object Translator{
-  var normalize = true
   /**
     * Translate an NRC Expression into comprehension calculus.
     * Translation does some of the normalization rules 
@@ -21,24 +20,23 @@ trait NRCTranslator extends Calc{
     * normalization and translation, if needed.
     * 
     */
-  def translate(e: Expr): CompCalc = { 
-    val calc = e match {
+  def translate(e: Expr): CompCalc = e match {
       case ForeachUnion(x, e1, e2) => 
         qualifiers(translate(e2), List(Generator(x, translateBag(e1))))
       case Union(e1, e2) => Merge(translateBag(e1), translateBag(e2))
       case IfThenElse(cond, e1, e2) => 
         IfStmt(translateCond(cond), translateBag(e1), translateOption(e2))
-      /**case Let(x, e1, e2) => e2.tp match {
+      case Let(x, e1, e2) => e2.tp match {
         case t:BagType => // { e3 | x := e1, ... }
-          val replaced = translate(e2).substitute(translate(e1), x)
-          qualifiers(replaced, List(Bind(x, translate(e1))))
+            val replaced = translate(e2).substitute(translate(e1), x)
+            qualifiers(replaced, List(Bind(x, translate(e1))))
         case _ => 
           // substitutes all x for e1 values
           // does tuple normalization (projection)
           // and creates a new variable for the newly created value
           val replaced = translate(e2).substitute(translate(e1), x)
           Bind(VarDef("v", replaced.tp), replaced)
-      }**/
+      }
       case Singleton(e1) => Sng(translateTuple(e1))
       case Tuple(fs) => Tup(fs.map(x => x._1 -> translateAttr(x._2)))
       case p:Project => Proj(translateTuple(p.tuple), p.field)
@@ -52,10 +50,6 @@ trait NRCTranslator extends Calc{
           case _ => CountComp(Constant("1", IntType), List(qtc))
         }**/
       case _ => sys.error("not supported")
-    }
-    calc
-    //if (normalize) calc.normalize else calc
-    
   }
 
   /**
