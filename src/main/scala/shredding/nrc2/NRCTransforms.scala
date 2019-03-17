@@ -13,6 +13,7 @@ trait NRCTransforms {
     def quote(e: Expr): String = e match {
       case Const(v, StringType) => "\"" + v + "\""
       case Const(v, _) => v.toString
+      case BagConst(v, _) => "[ " + v.mkString(", ") + " ]"
       case v: VarRef => v.name
       case p: Project => quote(p.tuple) + "." + p.field
       case ForeachUnion(x, e1, e2) =>
@@ -35,8 +36,8 @@ trait NRCTransforms {
             |Else ${quote(e2)}""".stripMargin
       case Relation(n, _, _) => n
       case l: LabelId => s"LabelId(${l.id})"
-      case NewLabel(vs) =>
-        s"Label({${vs.map(v => v._1 + " := " + Printer.quote(v._2)).mkString(", ")}})"
+//      case NewLabel(vs) =>
+//        s"Label({${vs.map(v => v._1 + " := " + Printer.quote(v._2)).mkString(", ")}})"
       case Lookup(lbl, dict) => s"Lookup(${quote(dict)})(${quote(lbl)})"
       case _ => throw new IllegalArgumentException("unknown type " + e)
     }
@@ -46,11 +47,11 @@ trait NRCTransforms {
       case OutputBagDict(lbl, flat, dict) =>
         s"""|( ${quote(lbl)} --> ${quote(flat)},
             |${ind(quote(dict))}
-            |""".stripMargin
+            |)""".stripMargin
       case InputBagDict(f, _, dict) =>
         s"""|( $f,
             |${ind(quote(dict))}
-            |""".stripMargin
+            |)""".stripMargin
       case TupleDict(fs) => s"(${fs.map(f => f._1 + " := " + quote(f._2)).mkString(", ")})"
       case _ => throw new IllegalArgumentException("Illegal dictionary")
     }
@@ -85,10 +86,8 @@ trait NRCTransforms {
 
     def eval(e: Expr): Any = e match {
       case Const(v, _) => v
-      case p: Project => p.tuple match {
-        case TupleVarRef(v) => ctx(v.name).asInstanceOf[Map[String, _]](p.field)
-        case e1 => eval(e1).asInstanceOf[Map[String, _]](p.field)
-      }
+      case BagConst(v, _) => v
+      case p: Project =>  eval(p.tuple).asInstanceOf[Map[String, _]](p.field)
       case v: VarRef => ctx(v.name)
       case ForeachUnion(x, e1, e2) =>
         val v1 = eval(e1).asInstanceOf[List[_]]
