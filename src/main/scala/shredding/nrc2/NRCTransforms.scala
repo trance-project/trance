@@ -35,6 +35,7 @@ trait NRCTransforms {
             |Then ${quote(e1)}
             |Else ${quote(e2)}""".stripMargin
       case Relation(n, _, _) => n
+      case NamedBag(n, e1) => s"$n := ${quote(e1)}"
       case l: LabelId => s"LabelId(${l.id})"
 //      case NewLabel(vs) =>
 //        s"Label({${vs.map(v => v._1 + " := " + Printer.quote(v._2)).mkString(", ")}})"

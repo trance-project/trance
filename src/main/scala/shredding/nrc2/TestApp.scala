@@ -1,8 +1,6 @@
 package shredding.nrc2
 
-object TestApp extends App {
-
-  import NRCImplicits._
+object TestApp extends App with NRC with NRCTransforms with ShreddingTransform with Linearization with NRCImplicits {
 
   object Example1 {
 
@@ -29,6 +27,10 @@ object TestApp extends App {
       println("Unshredded shredded Q1: " + Shredder.unshred(q1shred).quote)
       println("Same as original Q1: " + Shredder.unshred(q1shred).equals(q1))
 
+      println("Linearized Q1")
+      val q1lin = Linearize(q1shred)
+      q1lin.foreach(e => println(e.quote))
+
       val ydef = VarDef("y", itemTp)
       val yref = TupleVarRef(ydef)
       val q2 = ForeachUnion(xdef, relationR,
@@ -48,6 +50,10 @@ object TestApp extends App {
       println("Shredded Q2: " + q2shred.quote)
       println("Unshredded shredded Q2: " + Shredder.unshred(q2shred).quote)
       println("Same as original Q2: " + Shredder.unshred(q2shred).equals(q2))
+
+      println("Linearized Q2")
+      val q2lin = Linearize(q2shred)
+      q2lin.foreach(e => println(e.quote))
     }
   }
 
@@ -149,6 +155,11 @@ object TestApp extends App {
       println("Shredded Q1: " + q1shred.quote)
       println("Unshredded shredded Q1: " + Shredder.unshred(q1shred).quote)
       println("Same as original Q1: " + Shredder.unshred(q1shred).equals(q1))
+
+      println("Linearized Q1")
+      val q1lin = Linearize(q1shred)
+      q1lin.foreach(e => println(e.quote))
+
     }
   }
 
@@ -268,5 +279,5 @@ object TestApp extends App {
   Example1.run()
   Example2.run()
 
-  ExampleShredValue.run()
+//  ExampleShredValue.run()
 }

@@ -155,6 +155,10 @@ trait NRC extends BaseExpr with Dictionary {
 
   case class Relation(n: String, tuples: List[Any], tp: BagType) extends BagExpr
 
+  case class NamedBag(n: String, e: BagExpr) extends BagExpr {
+    val tp: BagType = e.tp
+  }
+
   /**
     * Shredding NRC extension
     */
@@ -197,4 +201,6 @@ trait NRC extends BaseExpr with Dictionary {
   //  case class NewLabel(free: Map[String, VarRef]) extends LabelExpr {
   //    val tp: LabelType = LabelType(free.map(f => f._1 -> f._2.tp.asInstanceOf[LabelAttributeType]))
   //  }
+
+
 }
