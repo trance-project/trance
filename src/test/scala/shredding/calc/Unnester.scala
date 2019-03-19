@@ -4,11 +4,9 @@ import org.scalatest.FunSuite
 import shredding.core._
 import shredding.nrc2._
 
-class UnnesterTest extends FunSuite with CalcTranslator with Calc with Algebra with NRCTranslator with NRC{
+class UnnesterTest extends FunSuite with CalcTranslator with CalcImplicits with NRCTranslator with NRC{
 
-    // get the new variable before it is created
-    def vari(x: String) = x+(VarCnt.currId+1)
-
+    def print(e: CompCalc) = println(calc.quote(e.asInstanceOf[calc.CompCalc]))
     /**
       * Unit test for the example on page 486 of F & M 
       * Starts with input NRC, translates to comprehension calculus
@@ -32,13 +30,15 @@ class UnnesterTest extends FunSuite with CalcTranslator with Calc with Algebra w
       val q = ForeachUnion(e, employees, 
                 ForeachUnion(c, Project(TupleVarRef(e), "children").asInstanceOf[BagExpr],
                   Singleton(Tuple("E" -> Project(TupleVarRef(e), "name"), "C" -> Project(TupleVarRef(c), "name")))))
-      
+      val tq = Translator.translate(q)
+      print(tq)
+      print(tq.normalize)
       // { ( E = e.name, C = c.name ) | e <- Employees, c <- e.children }
       val cq = BagComp(Tup("E" -> Proj(TupleVar(e), "name"), "C" -> Proj(TupleVar(c), "name")), 
               List(Generator(e, InputR(employees.n, employees.tuples, employees.tp)), 
                    Generator(c, Proj(TupleVar(e), "children").asInstanceOf[BagCalc])))
-
-      assert(Translator.translate(q) == cq)
+      print(cq)
+      assert(tq.normalize == cq)
       // Reduce U / ( E = e.name, C = c.name )
       //  | 
       //  c

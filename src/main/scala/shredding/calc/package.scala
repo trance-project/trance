@@ -4,7 +4,7 @@ import shredding.Utils.ind
 import shredding.core._
 
 package object calc extends Calc with Algebra { 
-  
+
     def quote(e: CompCalc): String = e match {
       case Constant(v, _) => "\""+ v +"\""
       case v: Var => v.name

@@ -4,17 +4,14 @@ import org.scalatest.FunSuite
 import shredding.core._
 import shredding.calc._
 
-class TranslatorTest extends FunSuite with NRCTranslator with NRC{
-   
- 
-   def vari(x: String) = x+(VarCnt.currId+1)
+class TranslatorTest extends FunSuite with NRCTranslator with NRC with NRCTransforms{
+
+   def print(e: CompCalc) = println(calc.quote(e.asInstanceOf[calc.CompCalc]))
 
    /**
      * Flat relation tests
      */
    val itemTp = TupleType("a" -> IntType, "b" -> StringType)
-   val x = VarDef("x", itemTp)
-   val x2 = VarDef("y", itemTp)
    // flat relation
    val relationR = Relation("R", List(
                     Map("a" -> "42", "b" -> "Milos"),
@@ -30,7 +27,6 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC{
      * {(w := "one")} U {(w := "one")}
      */
    test("Translator.translate.Union"){
-
      val q = Union(Singleton(Tuple("w" -> Const("one", StringType))), 
               Singleton(Tuple("w" -> Const("two", StringType))))
 
@@ -50,12 +46,16 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC{
      * { ( w := x8.b ) | x8 <- R }
      */
    test("Translator.translate.ForeachUnion") {
-
+    val x = VarDef("x", itemTp)
     val q1 = ForeachUnion(x, relationR, Singleton(Tuple("w" -> Project(TupleVarRef(x), "b"))))
-    
-    val cq1 = BagComp(Tup("w" -> Proj(TupleVar(x), "b")), List(Generator(x, InputR("R", relationR.tuples, relationR.tp))))
+    val tq1 = Translator.translate(q1)
 
-    assert(Translator.translate(q1) === cq1)
+    assert(tq1.tp == BagType(TupleType("w" -> StringType)))
+
+    val cq1 = BagComp(Tup("w" -> Proj(TupleVar(x), "b")), List(
+                Generator(x, InputR("R", relationR.tuples, relationR.tp))))
+
+    assert(tq1 === cq1)
 
    }
 
@@ -65,20 +65,25 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC{
      *    If ((x1.b = y22.b))
      *    Then sng(( w1 := x1.a ))
      *
-     * { ( w1 := x1.a ) |  x1 <- R ,  y22 <- R ,  x1.b = y22.b  }
+     * { v1 | x <- R, v1 <- { ( w1 := x1.a ) | x2 <- R, x1.b = x2.b } }
      */
    test("Translator.translate.ForeachUnionPred"){
-    
+    val x = VarDef("x", itemTp)
+    val x2 = VarDef("y", itemTp)
+
     val q10 = ForeachUnion(x, relationR,
                 ForeachUnion(x2, relationR,
                   IfThenElse(Cond(OpEq, Project(TupleVarRef(x), "b"), Project(TupleVarRef(x2), "b")), 
                              Singleton(Tuple("w1" -> Project(TupleVarRef(x), "a"))))))
-    
-    val cq10 = BagComp(Tup("w1" ->Proj(TupleVar(x), "a")), List(Generator(x, InputR("R", relationR.tuples, relationR.tp)), 
-                Generator(x2, InputR("R", relationR.tuples, relationR.tp)), Conditional(OpEq, 
-                  Proj(TupleVar(x), "b"), Proj(TupleVar(x2), "b"))))
-    
-    assert(Translator.translate(q10) == cq10)
+    val tq10 = Translator.translate(q10)
+    assert(tq10.tp == BagType(TupleType("w1" -> IntType)))
+
+    val v1 = VarDef("v", TupleType("w1" -> IntType), VarCnt.currId)
+    val cq10 = BagComp(TupleVar(v1), List(Generator(x, InputR("R", relationR.tuples, relationR.tp)), 
+                Generator(v1, BagComp(Tup("w1" ->Proj(TupleVar(x), "a")), 
+                  List(Generator(x2, InputR("R", relationR.tuples, relationR.tp)), 
+                    Conditional(OpEq, Proj(TupleVar(x), "b"), Proj(TupleVar(x2), "b")))))))
+    assert(tq10 == cq10)
 
    }
 
@@ -90,24 +95,34 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC{
      *    Then sng(( w1 := x1.a ))
      *    Else sng(( w1 := -1 ))
      *
-     * { ( w1 := x1.a ) |  x1 <- R ,  y22 <- R ,  x1.b = y22.b  } U
-     * { ( w1 := -1 ) | x1 <- R, y22 <- R, x1.b != y22.b }
+     * { v0 |  x1 <- R ,  v0 <- { v1 | y22 <- R,  v1 <- if (x1.b = y22.b) then (w1 := x1.a) else (w1 := -1) } }
      */
    test("Translator.translate.ForeachUnionIfStmtMerge"){
-    val q10 = ForeachUnion(x, relationR,
+    
+    val x = VarDef("x", itemTp)
+    val x2 = VarDef("y", itemTp)
+    
+    val q11 = ForeachUnion(x, relationR,
                 ForeachUnion(x2, relationR,
                   IfThenElse(Cond(OpEq, Project(TupleVarRef(x), "b"), Project(TupleVarRef(x2), "b")), 
                              Singleton(Tuple("w1" -> Project(TupleVarRef(x), "a"))),
                              Option(Singleton(Tuple("w1" -> Const("-1", IntType)))))))
     
-    val cq10a = BagComp(Tup("w1" -> Proj(TupleVar(x), "a")), List(Generator(x, InputR("R", relationR.tuples, relationR.tp)), 
-                Generator(x2, InputR("R", relationR.tuples, relationR.tp)), Conditional(OpEq, 
-                  Proj(TupleVar(x), "b"), Proj(TupleVar(x2), "b"))))
-    val cq10b = BagComp(Tup("w1" -> Constant("-1", IntType)), List(Generator(x, InputR("R", relationR.tuples, relationR.tp)), 
-                Generator(x2, InputR("R", relationR.tuples, relationR.tp)), NotCondition(Conditional(OpEq, 
-                  Proj(TupleVar(x), "b"), Proj(TupleVar(x2), "b")))))
+    val tq11 = Translator.translate(q11).asInstanceOf[BagComp]
+    assert(tq11.tp == BagType(TupleType("w1" -> IntType)))
 
-    assert(Translator.translate(q10) == Merge(cq10a, cq10b))
+    val v0 = VarDef("v", TupleType("w1" -> IntType), VarCnt.currId)
+    val v1 = VarDef("v", TupleType("w1" -> IntType), VarCnt.currId-1)
+    
+    val cq11 = BagComp(TupleVar(v0), List(Generator(x, InputR("R", relationR.tuples, relationR.tp)), 
+                  Generator(v0, BagComp(TupleVar(v1), List(Generator(x2, InputR("R", relationR.tuples, relationR.tp)), 
+                    Generator(v1, IfStmt(Conditional(OpEq, Proj(TupleVar(x), "b"), Proj(TupleVar(x2), "b")), 
+                      Sng(Tup("w1" -> Proj(TupleVar(x), "a"))), Some(Sng(Tup("w1" -> Constant(-1, IntType)))))))))))
+    
+    assert(tq11.e == cq11.e)
+    assert(tq11.qs(0).asInstanceOf[Generator].x == cq11.qs(0).asInstanceOf[Generator].x)
+    assert(tq11.qs(0).asInstanceOf[Generator].e == cq11.qs(0).asInstanceOf[Generator].e)
+
    }
 
    /**
@@ -131,21 +146,14 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC{
 
    /**
      * Nested relation tests 
+     */
    val nstype = TupleType("c" -> IntType)
    val stype = TupleType("a" -> IntType, "b" -> StringType, "c" -> BagType(nstype))
-   val x1 = VarDef("x", stype)
-   val y1 = VarDef("y", nstype)
-   val relationS = Relation("S", PhysicalBag(stype,
-                    Tuple("a" -> Const("42", IntType), "b" -> Const("Milos", StringType), "c" -> PhysicalBag(nstype,
-                      Tuple("c" -> Const("42", IntType)), Tuple("c" -> Const("42", IntType)), Tuple("c" -> Const("30", IntType)))),
-                    Tuple("a" -> Const("69", IntType), "b" -> Const("Michael", StringType), "c" -> PhysicalBag(nstype,
-                      Tuple("c" -> Const("100", IntType)), Tuple("c" -> Const("69", IntType)), Tuple("c" -> Const("42", IntType)))),
-                    Tuple("a" -> Const("34", IntType), "b" -> Const("Jaclyn", StringType), "c" -> PhysicalBag(nstype,
-                      Tuple("c" -> Const("34", IntType)), Tuple("c" -> Const("100", IntType)), Tuple("c" -> Const("12", IntType)))),
-                    Tuple("a" -> Const("42", IntType), "b" -> Const("Thomas", StringType), "c" -> PhysicalBag(nstype,
-                      Tuple("c" -> Const("50", IntType)), Tuple("c" -> Const("32", IntType)), Tuple("c" -> Const("42", IntType))))
-                  ))
-      */
+   val relationS = Relation("S", List(
+                    Map("a" -> 42, "b" -> "Milos", "c" -> List(Map("c" -> 42), Map("c" -> 42), Map("c" -> 30))),
+                    Map("a" -> 69, "b" -> "Michael", "c" -> List(Map("c" -> 100), Map("c" -> 69), Map("c" -> 42))),
+                    Map("a" -> 34, "b" -> "Jaclyn", "c" -> List(Map("c" -> 34), Map("c" -> 100), Map("c" -> 12))),
+                    Map("a" -> 42, "b" -> "Thomas", "c" -> List(Map("c" -> 50), Map("c" -> 32), Map("c" -> 30)))), BagType(stype))
    
     /**
       * Tests a simple loop through a nested relation
@@ -154,66 +162,93 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC{
       *  For y4 in x3.c Union
       *    sng(( w1 := x3.a, w2 := y4.c ))
       *
-      * { ( w1 := x3.a, w2 := y4.c ) |  x3 <- R ,  y4 <- x3.c  }
+      * { v0 | x3 <- R, v0 <- { ( w1 := x3.a, w2 := y4.c ) | y4 <- x3.c } 
+      */
      test("Translator.translate.ForeachUnionForeach"){
-      
-      val q3 = ForeachUnion(x1, relationS,
-                ForeachUnion(y1, VarRef(x1, "c").asInstanceOf[BagExpr],
-                  Singleton(Tuple("w1" -> VarRef(x1, "a"), "w2" -> VarRef(y1, "c")))))
-      
-      val cq3 = BagComp(Tup("w1" -> Var(Var(x1), "a"), "w2" -> Var(Var(y1), "c")), 
-                  List(Generator(x1, InputR("S", relationS.b)), 
-                        Generator(y1, Var(Var(x1), "c").asInstanceOf[BagCalc])))
+       val x1 = VarDef("x", stype)
+       val y1 = VarDef("y", nstype)
+     
+       val q3 = ForeachUnion(x1, relationS,
+                ForeachUnion(y1, Project(TupleVarRef(x1), "c").asInstanceOf[BagExpr],
+                  Singleton(Tuple("w1" -> Project(TupleVarRef(x1), "a"), "w2" -> Project(TupleVarRef(y1), "c")))))
+      val tq3 = Translator.translate(q3)
 
-      assert(Translator.translate(q3) === cq3)
+      val v = VarDef("v", TupleType("w1" -> IntType, "w2" -> IntType), VarCnt.currId) 
+      val cq3 = BagComp(TupleVar(v), List(Generator(x1, InputR("S", relationS.tuples, relationS.tp)), 
+                        Generator(v, BagComp(Tup("w1" -> Proj(TupleVar(x1), "a"), "w2" -> Proj(TupleVar(y1), "c")), 
+                          List(Generator(y1, Proj(TupleVar(x1), "c").asInstanceOf[BagCalc]))))))
+
+      assert(tq3 === cq3)
       
     }
-       */
+
+    /**
+      * Tests a simple loop through a nested relation
+      *
+      * For x3 in R Union
+      *  sng( w1 := x3.a, w2 := For y4 in x3.c Union
+      *                           sng (( w2 := y4.c ))
+      *
+      * { ( w1 := x0.a, w2 := { (w2 := y0.c) | y0 <- x0.c ) } ) | x0 <- S } 
+      */
+     test("Translator.translate.ForeachUnionSingletonForeach"){
+       val x1 = VarDef("x", stype)
+       val y1 = VarDef("y", nstype)
+     
+       val q3 = ForeachUnion(x1, relationS,
+                  Singleton(Tuple("w1" -> Project(TupleVarRef(x1), "a"), "w2" -> 
+                    ForeachUnion(y1, Project(TupleVarRef(x1), "c").asInstanceOf[BagExpr],
+                      Singleton(Tuple("w2" -> Project(TupleVarRef(y1), "c")))))))
+      val tq3 = Translator.translate(q3)
+
+      val v = VarDef("v", TupleType("w1" -> IntType, "w2" -> IntType), VarCnt.currId)
+      val cq3 = BagComp(Tup("w1" -> Proj(TupleVar(x1), "a"), "w2" -> 
+                  BagComp(Tup("w2" -> Proj(TupleVar(y1), "c")), 
+                    List(Generator(y1, Proj(TupleVar(x1), "c").asInstanceOf[BagCalc])))), 
+                      List(Generator(x1, InputR("S", relationS.tuples, relationS.tp))))
+      assert(tq3 === cq3)
+      
+    }
 
     /**
       * let x3 := ("a" -> "one") in 
       * foreach y4 in sng(("a" -> x3.a, "b" -> x3.a)) union 
       *    sng(("a" -> y4.a))
       *
-      * before normalization:
-      * { ( a : = y4.a ) | x3 := (a := "one"), y4 <- { ( a := x3.a, b := x3.a ) } }
-      *
-      * after normalization:
-      * { ( a := y4.a ) | x3 ::= (a := "one"), y4 := ( a := "one", b := "one") }
       * 
-      test("Translator.translate.LetInForeach"){
+      */
+    test("Translator.translate.LetInForeach"){
       val x3 = VarDef("x", TupleType("a" -> StringType))
       val y4 = VarDef("y", TupleType("a" -> StringType, "b" -> StringType))
       
       val q4 = Let(x3, Tuple("a" -> Const("one", StringType)),
-                ForeachUnion(y4, Singleton(Tuple("a" -> VarRef(x3, "a"), "b" -> VarRef(x3, "a"))),
-                  Singleton(Tuple("a" -> VarRef(y4, "a")))))
-      
-      Translator.normalize = false
-      assert(Translator.translate(q4) == BagComp(Tup("a" -> Var(Var(y4), "a")), List(
-                                          Bind(x3, Tup("a" -> Constant("one", StringType))),
-                                          Generator(y4, Sng(Tup("a" -> Constant("one", StringType), "b" -> Constant("one", StringType)))))))
-      Translator.normalize = true
-      assert(Translator.translate(q4) == BagComp(Tup("a" -> Var(Var(y4), "a")), List(
-                                          Bind(x3, Tup("a" -> Constant("one", StringType))),
-                                          Bind(y4, Tup("a" -> Constant("one", StringType), "b" -> Constant("one", StringType))))))
+                ForeachUnion(y4, Singleton(Tuple("a" -> Project(TupleVarRef(x3), "a"), "b" -> Project(TupleVarRef(x3), "a"))),
+                  Singleton(Tuple("a" -> Project(TupleVarRef(y4), "a")))))
+      val tq4 = Translator.translate(q4) 
+
+      val v = VarDef("v", TupleType("a" -> StringType), VarCnt.currId)
+      val cq4 = BagComp(TupleVar(v), List(Bind(x3, Tup("a" -> Constant("one", StringType))),
+                  Generator(v, BagComp(Tup("a" -> Proj(TupleVar(y4), "a")), 
+                    List(Generator(y4, Sng(Tup("a" -> Proj(TupleVar(x3), "a"), "b" -> Proj(TupleVar(x3), "a")))))))))
+      assert(tq4 == cq4)
     }
-    */
 
     /**
       * This tests tuple projection normalization rule
       * let x3 := (a := "one") in x3.a 
       *
-      * v := "one"
+      * { v7 | x0 := ( a := "one" ),  v7 <- {( a := x0.a )}  }
+      */
     test("Translator.translate.LetInTupleProjection"){
       val x3 = VarDef("x", TupleType("a" -> StringType))
-      val v = vari("v")
-      val q5 = Let(x3, Tuple("a" -> Const("one", StringType)), VarRef(x3, "a"))
-      assert(Translator.translate(q5) == Bind(VarDef("v", StringType, v.replace("v", "").toInt), Constant("one", StringType))) 
-      assert(Translator.translate(q5).tp == StringType)
+      val q5 = Let(x3, Tuple("a" -> Const("one", StringType)), Singleton(Tuple("a" -> Project(TupleVarRef(x3), "a"))))
+      val tq5 = Translator.translate(q5)
+      val v = VarDef("v", TupleType("a" -> StringType), VarCnt.currId)
+      val cq5 = BagComp(TupleVar(v), List(Bind(x3, Tup("a" -> Constant("one", StringType))), 
+                  Generator(v, Sng(Tup("a" -> Proj(TupleVar(x3), "a"))))))
+      assert(tq5 == cq5)
 
     }
-      */
 
     /** 
       * Tests substitution in a complex expression
@@ -224,21 +259,28 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC{
       *    if ( x3.a = x1.a ) 
       *    then sng(( w1 := x1.a, w2 := y1.c ))
       *
-      * { ( w1 := x1.a, w2 := y1.c ) | x1 <- S, y1 <- x1.c, "Jaclyn" = x1.a }
+      * { v0 | x3 := (a := "Jaclyn"), v0 <- { v1 | x1 <- S, 
+      *                                 v1 <- { ( w1 := x1.a, w2 := y1.c ) | y1 <- x1.c, x3.a = x1.a } }
+      */
     test("Translator.translate.LetInForeachPred"){
+      val x1 = VarDef("x", stype)
+      val y1 = VarDef("y", nstype)
       val x3 = VarDef("x", TupleType("a" -> StringType))
       val q6 = Let(x3, Tuple("a" -> Const("Jaclyn", StringType)), 
                 ForeachUnion(x1, relationS,
-                  ForeachUnion(y1, VarRef(x1, "c").asInstanceOf[BagExpr],
-                    IfThenElse(Cond(OpEq, VarRef(x1, "a"), VarRef(x3, "a")), 
-                             Singleton(Tuple("w1" -> VarRef(x1, "a"), "w2" -> VarRef(y1, "c")))))))
+                  ForeachUnion(y1, Project(TupleVarRef(x1), "c").asInstanceOf[BagExpr],
+                    IfThenElse(Cond(OpEq, Project(TupleVarRef(x1), "a"), Project(TupleVarRef(x3), "a")), 
+                             Singleton(Tuple("w1" -> Project(TupleVarRef(x1), "a"), "w2" -> Project(TupleVarRef(y1), "c")))))))
       
-      assert(Translator.translate(q6) == BagComp(Tup("w1" -> Var(Var(x1), "a"), "w2" -> Var(Var(y1), "c")),
-                                          List(Bind(x3, Tup("a" -> Constant("Jaclyn", StringType))),
-                                            Generator(x1, InputR(relationS.n, relationS.b)), 
-                                            Generator(y1, Var(Var(x1), "c").asInstanceOf[BagCalc]),
-                                            Conditional(OpEq, Var(Var(x1), "a"), Constant("Jaclyn", StringType)))))
+      val tq6 = Translator.translate(q6)
+      val v0 = VarDef("v", TupleType("w1" -> IntType, "w2" -> IntType), VarCnt.currId)
+      val v1 = VarDef("v", TupleType("w1" -> IntType, "w2" -> IntType), VarCnt.currId-1)
+      val cq6 = BagComp(TupleVar(v0), List(Bind(x3, Tup("a" -> Constant("Jaclyn", StringType))),
+                  Generator(v0, BagComp(TupleVar(v1), List(Generator(x1, InputR(relationS.n, relationS.tuples, relationS.tp)), 
+                    Generator(v1, BagComp(Tup("w1" -> Proj(TupleVar(x1), "a"), "w2" -> Proj(TupleVar(y1), "c")), 
+                      List(Generator(y1, Proj(TupleVar(x1), "c").asInstanceOf[BagCalc]),
+                        Conditional(OpEq, Proj(TupleVar(x1), "a"), Proj(TupleVar(x3), "a"))))))))))
+      assert(tq6 == cq6)
     }
-      */
 
 }

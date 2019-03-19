@@ -10,24 +10,25 @@ trait BaseCalc {
   sealed trait CompCalc { self =>
     
     def tp: Type
-    
-    def substitute(e2: CompCalc, v: VarDef): CompCalc = self
-    def normalize: CompCalc = self
+   
     def isOutermost: Boolean = false
     def isGenerator: Boolean = false
+    def isBind: Boolean = false
     def isEmptyGenerator: Boolean = false
     def isMergeGenerator: Boolean = false
     def isIfGenerator: Boolean = false 
+    def isBagCompGenerator: Boolean = false
     def hasGenerator: Boolean = false 
+    def hasBind: Boolean = false
     def hasEmptyGenerator: Boolean = false 
     def hasMergeGenerator: Boolean = false 
     def hasIfGenerator: Boolean = false
-    def qualifiers: List[CompCalc] = List(self)
+    def hasBagCompGenerator: Boolean = false
 
   }
 
   trait TupleAttributeCalc extends CompCalc {
-    def tp: TupleAttributeType 
+    def tp: TupleAttributeType
   }
 
   trait LabelAttributeCalc extends TupleAttributeCalc {
@@ -132,9 +133,11 @@ trait Calc extends BaseCalc {
     val tp: BagType = BagType(e.tp)
     override def isOutermost = true  
     override def hasGenerator = qs.map(_.isGenerator).contains(true)
+    override def hasBind = qs.map(_.isBind).contains(true)
     override def hasEmptyGenerator = qs.map(_.isEmptyGenerator).contains(true)
     override def hasMergeGenerator = qs.map(_.isMergeGenerator).contains(true)
     override def hasIfGenerator = qs.map(_.isIfGenerator).contains(true)
+    override def hasBagCompGenerator = qs.map(_.isBagCompGenerator).contains(true)
   }
 
   /**
@@ -212,25 +215,28 @@ trait Calc extends BaseCalc {
       case z @ IfStmt(c, e1, e2) => true
       case _ => false
     }
-    override def qualifiers = e match {
-      case v @ Sng(e1) => List(Bind(x, e1))
-      case v @ BagComp(e1, qs) => qs.map(_.qualifiers).flatten :+ Bind(x, e1)
-      case _ => List(Generator(x,e))
+
+    override def isBagCompGenerator = e match {
+      case z @ BagComp(e1, qs1) => true
+      case _ => false
     }
+
   }
 
   case class BindPrimitive(x: VarDef, e: PrimitiveCalc) extends PrimitiveCalc with Bind{ 
     assert(x.tp == e.tp) 
     val tp: PrimitiveType = e.tp
+    override def isBind = true
   }
 
   case class BindTuple(x: VarDef, e: TupleCalc) extends TupleCalc with Bind{ 
     assert(x.tp == e.tp)
     val tp: TupleType = e.tp 
+    override def isBind = true
   }
 
   object Bind{
-    def apply(x: VarDef, v: CompCalc): Bind = x.tp match {
+    def apply(x: VarDef, v: CompCalc): Bind = v.tp match {
       case t: TupleType => BindTuple(x, v.asInstanceOf[TupleCalc])
       case t: PrimitiveType => BindPrimitive(x, v.asInstanceOf[PrimitiveCalc])
       case t: BagType => Generator(x, v.asInstanceOf[BagCalc])
@@ -241,22 +247,22 @@ trait Calc extends BaseCalc {
   /**
     * Condition types
     */
-  case class Conditional(op: OpCmp, e1: TupleAttributeCalc, e2: TupleAttributeCalc) extends PrimitiveCalc{ 
+  case class Conditional(op: OpCmp, e1: CompCalc, e2: CompCalc) extends PrimitiveCalc{ 
     val tp: PrimitiveType = BoolType
   }
 
-  case class NotCondition(e1: PrimitiveCalc) extends PrimitiveCalc { 
+  case class NotCondition(e1: CompCalc) extends PrimitiveCalc { 
     assert(e1.tp == BoolType)
     val tp: PrimitiveType = BoolType 
   }
 
-  case class AndCondition(e1: PrimitiveCalc, e2: PrimitiveCalc) extends PrimitiveCalc { 
+  case class AndCondition(e1: CompCalc, e2: CompCalc) extends PrimitiveCalc { 
     assert(e1.tp == e2.tp)
     assert(e1.tp == BoolType)
     val tp: PrimitiveType = BoolType
   }
 
-  case class OrCondition(e1: PrimitiveCalc, e2: PrimitiveCalc) extends PrimitiveCalc {
+  case class OrCondition(e1: CompCalc, e2: CompCalc) extends PrimitiveCalc {
     assert(e1.tp == e2.tp)
     assert(e1.tp == BoolType)
     val tp: PrimitiveType = BoolType
