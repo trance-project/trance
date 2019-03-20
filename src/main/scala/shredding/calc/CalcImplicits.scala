@@ -114,6 +114,7 @@ trait CalcImplicits extends Calc {
   implicit class PrimitiveCalcOps(self: PrimitiveCalc) {
     
     def equalsVar(v: VarDef): Boolean = self match {
+      case ProjToPrimitive(vd:TupleVar, field) => vd.varDef == v
       case PrimitiveVar(vd) => vd == v
       case _ => false
     }
@@ -132,9 +133,9 @@ trait CalcImplicits extends Calc {
       case NotCondition(e1) => e1.pred2(v, w)
       case OrCondition(e1, e2) => e1.pred2(v, w) && e2.pred2(v, w)
       case AndCondition(e1, e2) => e1.pred2(v, w) && e2.pred2(v, w)
-      case Conditional(op, e1, e2) =>
+      case Conditional(op, e1, e2) => 
         (e1.equalsVar(v) && w.filter{e2.equalsVar(_)}.nonEmpty) || 
-          (e2.equalsVar(v) && w.filter{e2.equalsVar(_)}.nonEmpty)
+          (e2.equalsVar(v) && w.filter{e1.equalsVar(_)}.nonEmpty)
       case _ => false
     }
 
@@ -148,9 +149,9 @@ trait CalcImplicits extends Calc {
     }
 
     def bind(e2: CompCalc, v: VarDef): CompCalc = self match {
+      case ProjToPrimitive(t, fs) => Proj(t.bind(e2, v).asInstanceOf[TupleCalc], fs)
       case y if self.equalsVar(v) => e2
       case BindPrimitive(x, e1) => BindPrimitive(x, e1.bind(e2, v).asInstanceOf[PrimitiveCalc])
-      case ProjToPrimitive(t, fs) => Proj(t.bind(e2, v).asInstanceOf[TupleCalc], fs)
       case Conditional(o, e1, e3) => Conditional(o, e1.bind(e2, v), e3.bind(e2, v))
       case NotCondition(e1) => NotCondition(e1.bind(e2, v))
       case AndCondition(e1, e3) => AndCondition(e1.bind(e2, v), e3.bind(e2, v))
@@ -173,6 +174,7 @@ trait CalcImplicits extends Calc {
   implicit class BagCalcOps(self: BagCalc) {
     
     def equalsVar(v: VarDef): Boolean = self match {
+      case ProjToBag(vd:TupleVar, field) => vd.varDef == v
       case BagVar(vd) => vd == v
       case _ => false
     }
@@ -242,8 +244,8 @@ trait CalcImplicits extends Calc {
     }
 
     def bind(e2: CompCalc, v: VarDef): CompCalc = self match {
-      case y if self.equalsVar(v) => e2
       case ProjToBag(t, fs) => Proj(t.bind(e2, v).asInstanceOf[TupleCalc], fs)
+      case y if self.equalsVar(v) => e2
       case IfStmt(cond, e3, e4 @ Some(a)) => 
         IfStmt(cond.bind(e2, v).asInstanceOf[PrimitiveCalc], 
           e3.bind(e2, v).asInstanceOf[BagCalc], Option(a.bind(e2, v).asInstanceOf[BagCalc]))
