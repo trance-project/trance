@@ -31,14 +31,11 @@ class UnnesterTest extends FunSuite with CalcTranslator with CalcImplicits with 
                 ForeachUnion(c, Project(TupleVarRef(e), "children").asInstanceOf[BagExpr],
                   Singleton(Tuple("E" -> Project(TupleVarRef(e), "name"), "C" -> Project(TupleVarRef(c), "name")))))
       val tq = Translator.translate(q)
-      print(tq)
-      print(tq.normalize)
-      // { ( E = e.name, C = c.name ) | e <- Employees, c <- e.children }
+       // { ( E = e.name, C = c.name ) | e <- Employees, c <- e.children }
       val cq = BagComp(Tup("E" -> Proj(TupleVar(e), "name"), "C" -> Proj(TupleVar(c), "name")), 
               List(Generator(e, InputR(employees.n, employees.tuples, employees.tp)), 
                    Generator(c, Proj(TupleVar(e), "children").asInstanceOf[BagCalc])))
-      print(cq)
-      assert(tq.normalize == cq)
+       assert(tq.normalize == cq)
       // Reduce U / ( E = e.name, C = c.name )
       //  | 
       //  c
@@ -50,44 +47,43 @@ class UnnesterTest extends FunSuite with CalcTranslator with CalcImplicits with 
       // Employees
       val nopreds = List[PrimitiveCalc]()
       val ncq = Unnester.unnest(cq) 
-      //assert(ncq == Term(
-      //              Reduce(Tup("E" -> Proj(TupleVar(e), "name"), "C" -> Proj(TupleVar(c), "name")), List(c,e), nopreds),
-      //                Term(Unnest(List(c, e), Proj(TupleVar(e), "children").asInstanceOf[BagCalc], nopreds), 
-      //                  Select(InputR(employees.n, employees.tuples, employees.tp), e, nopreds))))
-    
+      val unq = Term(Reduce(Tup("E" -> Proj(TupleVar(e), "name"), "C" -> Proj(TupleVar(c), "name")), List(c,e), nopreds),
+                      Term(Unnest(List(c, e), Proj(TupleVar(e), "children").asInstanceOf[BagCalc], nopreds), 
+                        Select(InputR(employees.n, employees.tuples, employees.tp), e, nopreds)))
+      assert(ncq == unq) 
       
     }
 
     /**
       * Query A unnesting example from F & M (7.1)
+      */
     test("Unnester.unnest.F&M.QueryA"){
 
       val dtype = TupleType("dno" -> IntType)
       val etype = TupleType("dno" -> IntType)
       val e = VarDef("e", etype)
       val d = VarDef("d", dtype)
-      val employees = Relation("Employees", PhysicalBag(etype,
-                    Tuple("dno" -> Const("1", IntType)), Tuple("dno" -> Const("2", IntType)), 
-                    Tuple("dno" -> Const("3", IntType)), Tuple("dno" -> Const("4", IntType))))
-      val departments = Relation("Departments", PhysicalBag(dtype,
-                    Tuple("dno" -> Const("1", IntType)), Tuple("dno" -> Const("2", IntType)), 
-                    Tuple("dno" -> Const("3", IntType)), Tuple("dno" -> Const("4", IntType))))
+      val employees = Relation("Employees", List(
+                        Map("dno" -> 1), Map("dno" -> 2), Map("dno" -> 3), Map("dno" -> 4)), BagType(etype))
+      val departments = Relation("Departments", List(
+                          Map("dno" -> 1), Map("dno" -> 2), Map("dno" -> 3), Map("dno" -> 4)), BagType(dtype))
 
       // For d in Departments Union 
       //  sng( D := d.dno, E := For e in Employees Union 
       //                          If (e.dno = d.dno)
       //                          Then sng(e)
       val q = ForeachUnion(d, departments, 
-                Singleton(Tuple("D" -> VarRef(d, "dno"), "E" -> ForeachUnion(e, employees, 
-                                                      IfThenElse(Cond(OpEq, VarRef(e, "dno"), VarRef(d, "dno")), 
-                                                                 Singleton(VarRef(e).asInstanceOf[TupleExpr]))))))
+                Singleton(Tuple("D" -> Project(TupleVarRef(d), "dno"), "E" -> ForeachUnion(e, employees, 
+                                                      IfThenElse(
+                                                        Cond(OpEq, Project(TupleVarRef(e), "dno"), Project(TupleVarRef(d), "dno")), 
+                                                                 Singleton(TupleVarRef(e)))))))
 
       // { ( D = d.dno, E = { e | e <- Employees, e.dno = d.dno } | d <- Departments }
-      val cq = BagComp(Tup("D" -> Var(Var(d), "dno"), "E" -> BagComp(Var(e).asInstanceOf[TupleCalc], 
-                                                  List(Generator(e, InputR(employees.n, employees.b)),
-                                                       Conditional(OpEq, Var(Var(e), "dno"), Var(Var(d), "dno"))))),
-                List(Generator(d, InputR(departments.n, departments.b))))
-     
+      val cq = BagComp(Tup("D" -> Proj(TupleVar(d), "dno"), "E" -> BagComp(TupleVar(e), 
+                                                  List(Generator(e, InputR(employees.n, employees.tuples, employees.tp)),
+                                                       Conditional(OpEq, Proj(TupleVar(e), "dno"), Proj(TupleVar(d), "dno"))))),
+                List(Generator(d, InputR(departments.n, departments.tuples, departments.tp))))
+      assert(cq == cq.normalize)
       assert(Translator.translate(q) == cq)
 
       // Reduce U / (D = d.dno, E = m ) 
@@ -101,17 +97,16 @@ class UnnesterTest extends FunSuite with CalcTranslator with CalcImplicits with 
       //     d           e
       //    /             \
       // Departments    Employees
-      val v = vari("v")
-      val nq = Unnester.unnest(cq)
+      val v = VarDef("v", BagType(etype), VarCnt.currId+1)
+      val nq = Unnester.unnest(cq.normalize)
       val nopreds = List[PrimitiveCalc]()
-      assert(nq == Term(Reduce(Tup("D" -> Var(Var(d), "dno"), "E" -> BagVar(v, None, BagType(etype))), 
-                          List(VarDef("v", BagType(etype), v.replace("v", "").toInt), d), nopreds),                    
-                      Term(Nest(Var(e), List(e, d), List(d), nopreds, List(e)),
-                        Term(Term(OuterJoin(List(e,d), List(Conditional(OpEq, Var(Var(e), "dno"), Var(Var(d), "dno")))), 
-                          Select(InputR(employees.n, employees.b), e, nopreds)), 
-                            Select(InputR(departments.n, departments.b), d, nopreds)))))
+      val unq = Term(Reduce(Tup("D" -> Proj(TupleVar(d), "dno"), "E" -> BagVar(v)), List(v, d), nopreds),                    
+                      Term(Nest(TupleVar(e), List(e, d), List(d), nopreds, List(e)),
+                        Term(Term(OuterJoin(List(e,d), List(Conditional(OpEq, Proj(TupleVar(e), "dno"), Proj(TupleVar(d), "dno")))), 
+                          Select(InputR(employees.n, employees.tuples, employees.tp), e, nopreds)), 
+                            Select(InputR(departments.n, departments.tuples, employees.tp), d, nopreds))))
+      assert(nq == unq)
     }
-      */
 
     /**
       * QueryC from F & M 
@@ -175,5 +170,6 @@ class UnnesterTest extends FunSuite with CalcTranslator with CalcImplicits with 
     
        val ncq = Unnester.unnest(cq)
     }
-    */
+       */
+ 
 }
