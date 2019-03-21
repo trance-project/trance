@@ -42,13 +42,13 @@ trait CalcTranslator extends Algebra{
             println(x+" "+u)
             val term = (x,u) match {
               // if x is a path
-              case (ProjToBag(vd, field), Nil) => Unnest(v +: w, x, p1 ++ p2) // UNNEST
-              case (ProjToBag(vd, field), _) => OuterUnnest(v +: w, x, p1 ++ p2) // OUTER-UNNEST
+              case (ProjToBag(vd, field), Nil) => Term(Unnest(v +: w, x, p1 ++ p2), e2) // UNNEST
+              case (ProjToBag(vd, field), _) => Term(OuterUnnest(v +: w, x, p1 ++ p2), e2) // OUTER-UNNEST
               // if x is a variable
-              case (_, Nil) => Term(Join(v +: w, p2), Select(x, v, p1)) // JOIN
-              case (_, _) => Term(OuterJoin(v +: w, p2), Select(x, v, p1)) // OUTER-JOIN
+              case (_, Nil) => Term(Join(v +: w, p2), Term(Select(x, v, p1), e2)) // JOIN
+              case (_, _) => Term(OuterJoin(v +: w, p2), Term(Select(x, v, p1), e2)) // OUTER-JOIN
             }
-            unnest(BagComp(e, tail.filterNot((p1++p2).toSet)), u, v +: w, Term(term, e2))
+            unnest(BagComp(e, tail.filterNot((p1++p2).toSet)), u, v +: w, term)
           }
         // { e | p } (ie. has no generators): rules C5, C8, and C12
         case y if !b.hasGenerator => e match { // { f ( e' ) | p }

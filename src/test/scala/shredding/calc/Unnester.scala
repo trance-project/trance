@@ -102,9 +102,9 @@ class UnnesterTest extends FunSuite with CalcTranslator with CalcImplicits with 
       val nopreds = List[PrimitiveCalc]()
       val unq = Term(Reduce(Tup("D" -> Proj(TupleVar(d), "dno"), "E" -> BagVar(v)), List(v, d), nopreds),                    
                       Term(Nest(TupleVar(e), List(e, d), List(d), nopreds, List(e)),
-                        Term(Term(OuterJoin(List(e,d), List(Conditional(OpEq, Proj(TupleVar(e), "dno"), Proj(TupleVar(d), "dno")))), 
-                          Select(InputR(employees.n, employees.tuples, employees.tp), e, nopreds)), 
-                            Select(InputR(departments.n, departments.tuples, employees.tp), d, nopreds))))
+                        Term(OuterJoin(List(e,d), List(Conditional(OpEq, Proj(TupleVar(e), "dno"), Proj(TupleVar(d), "dno")))), 
+                          Term(Select(InputR(employees.n, employees.tuples, employees.tp), e, nopreds), 
+                            Select(InputR(departments.n, departments.tuples, employees.tp), d, nopreds)))))
       assert(nq == unq)
     }
 
