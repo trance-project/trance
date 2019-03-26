@@ -46,6 +46,9 @@ trait NRCTranslator extends Calc{
       case Const(v, tp) => Constant(v, tp)
       case v:VarRef => Var(v.varDef)
       case Relation(n, b, t) => InputR(n, b, t)
+      case NamedBag(n, b) => NamedCBag(n, translateBag(b))
+      case Lookup(lbl, dict) => CLookup(translateLabel(lbl), dict.asInstanceOf[InputBagDict])
+      case LabelRef(ld) => CLabelRef(ld) 
       case _ => sys.error("not supported")
     }
 
@@ -53,7 +56,7 @@ trait NRCTranslator extends Calc{
       case t:PrimitiveType => PrimitiveVar(e) 
       case t:BagType => BagVar(e)
       case t:TupleType => TupleVar(e)
-      case t:LabelType => TupleVar(e)
+      case t:LabelType => LabelVar(e)
     }
 
     // options are only used in if statements for now
@@ -63,6 +66,7 @@ trait NRCTranslator extends Calc{
     }
     def translateBag(e: Expr): BagCalc = translate(e).asInstanceOf[BagCalc]
     def translateTuple(e: Expr): TupleCalc = translate(e).asInstanceOf[TupleCalc]
+    def translateLabel(e: Expr): LabelCalc = translate(e).asInstanceOf[LabelCalc]
     def translateAttr(e: Expr): TupleAttributeCalc = translate(e).asInstanceOf[TupleAttributeCalc]
     def translateCond(e: Cond): Conditional = 
       Conditional(e.op, translateAttr(e.e1), translateAttr(e.e2)) 

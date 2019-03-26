@@ -248,8 +248,6 @@ class CalcTest extends FunSuite with CalcImplicits{
     // { ( w := x0.a ) |  x0 <- { ( a := x0.a ) |  x0 <- {( a := "one" )}  }  }
     // { 
     val cq6 = BagComp(Tup("w" -> Proj(TupleVar(x3), "a")), List(gen4))
-    //println(calc.quote(cq6.asInstanceOf[calc.CompCalc]))
-    //println(calc.quote(cq6.normalize.asInstanceOf[calc.CompCalc]))
 
     //assert(cq6.normalize == BagComp(Tup("w" -> Proj(TupleVar(x2), "a")), 
     //                          List(bind1, Bind(x2, Tup("a" -> Proj(TupleVar(x),"a")))))) 
@@ -260,8 +258,6 @@ class CalcTest extends FunSuite with CalcImplicits{
     val gen5 = Generator(x2, BagComp(Tup("a" -> Proj(TupleVar(y), "b")), List(gen2)))
     val pred2 = Conditional(OpEq, Proj(TupleVar(x2), "a"), Constant("one", StringType))
     val cq7 = BagComp(Tup("w"-> Proj(TupleVar(x2), "a")), List(gen5, pred2))
-    print(cq7)
-    print(cq7.normalize)
     //assert(cq7.normalize == BagComp(Tup("w"-> Proj(TupleVar(x2), "a")), 
     //                          List(gen2, Bind(x2, Tup("a" -> Proj(TupleVar(y), "b"))), pred2)))
 

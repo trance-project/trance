@@ -24,7 +24,7 @@ trait NRCImplicits {
           Project(rt, p.field)
         case ForeachUnion(x, e1, e2) =>
           val r1 = e1.replace(f).asInstanceOf[BagExpr]
-          val xd = VarDef(x.name, r1.tp.tp)
+          val xd = VarDef(x.n, r1.tp.tp, x.nid)
           val r2 = e2.replace(f).asInstanceOf[BagExpr]
           ForeachUnion(xd, r1, r2)
         case Union(e1, e2) =>
@@ -39,7 +39,7 @@ trait NRCImplicits {
           Tuple(rfs)
         case Let(x, e1, e2) =>
           val r1 = e1.replace(f)
-          val xd = VarDef(x.name, r1.tp)
+          val xd = VarDef(x.n, r1.tp, x.nid)
           val r2 = e2.replace(f)
           Let(xd, r1, r2)
         case Mult(e1, e2) =>

@@ -2,7 +2,7 @@ package shredding.nrc2
 
 import shredding.core._
 
-object TestApp extends App with NRC with NRCTransforms with ShreddingTransform with Linearization with NRCImplicits {
+object TestApp extends App with NRC with NRCTransforms with ShreddingTransform with Linearization with NRCImplicits with Dictionary {
 
   object Example1 {
 

@@ -267,12 +267,17 @@ trait Calc extends BaseCalc {
     assert(e1.tp == BoolType)
     val tp: PrimitiveType = BoolType
   }
+  
+  case class CLabelRef(labelDef: LabelDef) extends LabelCalc{
+    val tp: LabelType = labelDef.tp
+  }
 
-  /**
-    * Labels? to be used with shredding
-    */
-  case class CLabel(vars: List[Var], flat: BagCalc) extends BagCalc{
-    val tp: BagType = flat.tp
+  case class CLookup(lbl: LabelCalc, dict: InputBagDict) extends BagCalc{
+    def tp: BagType = dict.flatBagTp
+  }
+  
+  case class NamedCBag(n: String, e: BagCalc) extends BagCalc {
+    val tp: BagType = e.tp
   }
 
 }

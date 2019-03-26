@@ -38,26 +38,26 @@ trait NRCTransforms {
             |Else ${quote(e2)}""".stripMargin
       case Relation(n, _, _) => n
       case NamedBag(n, e1) => s"$n := ${quote(e1)}"
-      case l: LabelId => s"LabelId(${l.id})"
+      case LabelRef(ld) => ld.toString
 //      case NewLabel(vs) =>
 //        s"Label({${vs.map(v => v._1 + " := " + Printer.quote(v._2)).mkString(", ")}})"
       case Lookup(lbl, dict) => s"Lookup(${quote(dict)})(${quote(lbl)})"
       case _ => throw new IllegalArgumentException("unknown type " + e)
     }
 
-    def quote(d: Dict): String = d match {
+    def quote(d: Dict): String = d.toString/** match {
       case EmptyDict => "Nil"
+      case InputBagDict(f, _, dict) =>
+          s"""|( $f,
+              |${ind(quote(dict))}
+              |)""".stripMargin
+      case TupleDict(fs) => s"(${fs.map(f => f._1 + " := " + quote(f._2)).mkString(", ")})"
       case OutputBagDict(lbl, flat, dict) =>
         s"""|( ${quote(lbl)} --> ${quote(flat)},
             |${ind(quote(dict))}
             |)""".stripMargin
-      case InputBagDict(f, _, dict) =>
-        s"""|( $f,
-            |${ind(quote(dict))}
-            |)""".stripMargin
-      case TupleDict(fs) => s"(${fs.map(f => f._1 + " := " + quote(f._2)).mkString(", ")})"
       case _ => throw new IllegalArgumentException("Illegal dictionary")
-    }
+    }**/
 
     def quote(v: Any, tp: Type): String = tp match {
       case IntType => v.toString
