@@ -32,6 +32,9 @@ package object calc extends Calc with Algebra {
       case Generator(x, v) => s" ${core.quote(x)} <- ${quote(v)} "
       case InputR(n, _, _) => n
       case CountComp(e1, qs) => s" + { ${quote(e1)} | ${qs.map(quote(_)).mkString(",")} }"
+      case NamedCBag(n, b) => n+s" := ${quote(b)} "
+      case CLabelRef(ld) => ld.toString
+      case CLookup(lbl, dict) => s"Lookup(${dict.toString})(${quote(lbl)})"
       case _ => throw new IllegalArgumentException("unknown type")
     }
 
@@ -67,6 +70,7 @@ package object calc extends Calc with Algebra {
       case Term(e1, e2 @ Init()) => s"${quote(e1)}"
       case Term(e1, e2) => s""" |${quote(e1)}
                               |${ind(quote(e2))}""".stripMargin
+      case NamedTerm(n, t) => n+s" := ${quote(t)}"
       case Init() => ""
       case _ => throw new IllegalArgumentException("unknown type")
     }

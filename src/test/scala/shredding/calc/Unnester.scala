@@ -6,7 +6,8 @@ import shredding.nrc2._
 
 class UnnesterTest extends FunSuite with CalcTranslator with CalcImplicits with NRCTranslator with NRC{
 
-    def print(e: CompCalc) = println(calc.quote(e.asInstanceOf[calc.CompCalc]))
+    def print(e: CompCalc) = println(calc.quote(e.asInstanceOf[calc.CompCalc]))    
+    
     /**
       * Unit test for the example on page 486 of F & M 
       * Starts with input NRC, translates to comprehension calculus
@@ -84,7 +85,8 @@ class UnnesterTest extends FunSuite with CalcTranslator with CalcImplicits with 
                                                        Conditional(OpEq, Proj(TupleVar(e), "dno"), Proj(TupleVar(d), "dno"))))),
                 List(Generator(d, InputR(departments.n, departments.tuples, departments.tp))))
       assert(cq == cq.normalize)
-      assert(Translator.translate(q) == cq)
+      val tcq = Translator.translate(q)
+      assert(tcq == cq)
 
       // Reduce U / (D = d.dno, E = m ) 
       //          |
@@ -99,6 +101,7 @@ class UnnesterTest extends FunSuite with CalcTranslator with CalcImplicits with 
       // Departments    Employees
       val v = VarDef("v", BagType(etype), VarCnt.currId+1)
       val nq = Unnester.unnest(cq.normalize)
+      assert(nq.tp == BagType(TupleType("D" -> IntType, "E" -> BagType(TupleType("dno" -> IntType)))))
       val nopreds = List[PrimitiveCalc]()
       val unq = Term(Reduce(Tup("D" -> Proj(TupleVar(d), "dno"), "E" -> BagVar(v)), List(v, d), nopreds),                    
                       Term(Nest(TupleVar(e), List(e, d), List(d), nopreds, List(e)),

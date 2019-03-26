@@ -4,7 +4,11 @@ import org.scalatest.FunSuite
 import shredding.core._
 import shredding.calc._
 
-class TranslatorTest extends FunSuite with NRCTranslator with NRC with NRCTransforms{
+/**
+  * Similar tests to what Translator.scala does, 
+  * but operates on the linearized shredding queries.
+  */
+class TranslatorShredTest extends FunSuite with NRCTranslator with NRC with NRCTransforms with ShreddingTransform with Linearization with NRCImplicits with Dictionary{
 
    def print(e: CompCalc) = println(calc.quote(e.asInstanceOf[calc.CompCalc]))
 
@@ -26,14 +30,23 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC with NRCTransf
      * translates to:
      * {(w := "one")} U {(w := "one")}
      */
-   test("Translator.translate.Union"){
+   test("TranslatorShred.translate.Union"){
      val q = Union(Singleton(Tuple("w" -> Const("one", StringType))), 
               Singleton(Tuple("w" -> Const("two", StringType))))
-
-     val cq = Merge(Sng(Tup("w" -> Constant("one", StringType))),
-                Sng(Tup("w" -> Constant("two", StringType))))
-
-     assert(Translator.translate(q) == cq)
+     
+     val sq = q.shred
+     /**val lsq = Linearize(sq)
+     val cqs = lsq.map(e => Translator.translate(e))
+      
+     // ask about this
+     val (mflat, l,ctx) = cqs.head match {
+        case NamedCBag(n, b @ BagComp(head, Generator(x, d) :: tail)) => (n, x, d)
+        case _ => sys.error("issue grabbing variable")
+     }
+     val cq = List(NamedCBag(mflat, BagComp(Tup("k" -> Proj(TupleVar(l), "lbl"), "v" -> 
+                Merge(Sng(Tup("w" -> Constant("one", StringType))), 
+                  Sng(Tup("w" -> Constant("two", StringType))))), List(Generator(l,ctx))))) 
+     assert(cqs == cq)**/
 
    }
 
@@ -45,7 +58,7 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC with NRCTransf
      * 
      * { ( w := x8.b ) | x8 <- R }
      */
-   test("Translator.translate.ForeachUnion") {
+   test("TranslatorShred.translate.ForeachUnion") {
     val x = VarDef("x", itemTp)
     val q1 = ForeachUnion(x, relationR, Singleton(Tuple("w" -> Project(TupleVarRef(x), "b"))))
     val tq1 = Translator.translate(q1)
@@ -67,7 +80,7 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC with NRCTransf
      *
      * { v1 | x <- R, v1 <- { ( w1 := x1.a ) | x2 <- R, x1.b = x2.b } }
      */
-   test("Translator.translate.ForeachUnionPred"){
+   test("TranslatorShred.translate.ForeachUnionPred"){
     val x = VarDef("x", itemTp)
     val x2 = VarDef("y", itemTp)
 
@@ -97,7 +110,7 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC with NRCTransf
      *
      * { v0 |  x1 <- R ,  v0 <- { v1 | y22 <- R,  v1 <- if (x1.b = y22.b) then (w1 := x1.a) else (w1 := -1) } }
      */
-   test("Translator.translate.ForeachUnionIfStmtMerge"){
+   test("TranslatorShred.translate.ForeachUnionIfStmtMerge"){
     
     val x = VarDef("x", itemTp)
     val x2 = VarDef("y", itemTp)
@@ -138,6 +151,8 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC with NRCTransf
     val q1 = TotalMult(ForeachUnion(x, relationR, Singleton(Tuple("w" -> VarRef(x, "b")))))
     
     val cq1 = CountComp(Constant("1", IntType), List(Generator(x, InputR("R", relationR.b))))
+    println(Printer.quote(q1))
+    println(Printer.quote(cq1))
     assert(Translator.translate(q1) === cq1)
 
    }*/
@@ -153,6 +168,7 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC with NRCTransf
                     Map("a" -> 34, "b" -> "Jaclyn", "c" -> List(Map("c" -> 34), Map("c" -> 100), Map("c" -> 12))),
                     Map("a" -> 42, "b" -> "Thomas", "c" -> List(Map("c" -> 50), Map("c" -> 32), Map("c" -> 30)))), BagType(stype))
    
+
     /**
       * Tests a simple loop through a nested relation on a shredded object
       *
@@ -162,16 +178,15 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC with NRCTransf
       *
       * { v0 | x3 <- R, v0 <- { ( w1 := x3.a, w2 := y4.c ) | y4 <- x3.c } 
       */
-     test("Translator.translate.ForeachUnionForeach"){
+     test("TranslatorShred.translate.ForeachUnionForeach"){
        val x1 = VarDef("x", stype)
        val y1 = VarDef("y", nstype)
      
        val q3 = ForeachUnion(x1, relationS,
                 ForeachUnion(y1, Project(TupleVarRef(x1), "c").asInstanceOf[BagExpr],
                   Singleton(Tuple("w1" -> Project(TupleVarRef(x1), "a"), "w2" -> Project(TupleVarRef(y1), "c")))))
-      
       val tq3 = Translator.translate(q3)
-
+      assert(tq3.tp == BagType(TupleType("w1"-> IntType, "w2" -> IntType)))
       val v = VarDef("v", TupleType("w1" -> IntType, "w2" -> IntType), VarCnt.currId) 
       val cq3 = BagComp(TupleVar(v), List(Generator(x1, InputR("S", relationS.tuples, relationS.tp)), 
                         Generator(v, BagComp(Tup("w1" -> Proj(TupleVar(x1), "a"), "w2" -> Proj(TupleVar(y1), "c")), 
@@ -190,7 +205,7 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC with NRCTransf
       *
       * { ( w1 := x0.a, w2 := { (w2 := y0.c) | y0 <- x0.c ) } ) | x0 <- S } 
       */
-     test("Translator.translate.ForeachUnionSingletonForeach"){
+     test("TranslatorShred.translate.ForeachUnionSingletonForeach"){
        val x1 = VarDef("x", stype)
        val y1 = VarDef("y", nstype)
      
@@ -216,7 +231,7 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC with NRCTransf
       *
       * 
       */
-    test("Translator.translate.LetInForeach"){
+    test("TranslatorShred.translate.LetInForeach"){
       val x3 = VarDef("x", TupleType("a" -> StringType))
       val y4 = VarDef("y", TupleType("a" -> StringType, "b" -> StringType))
       
@@ -224,7 +239,7 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC with NRCTransf
                 ForeachUnion(y4, Singleton(Tuple("a" -> Project(TupleVarRef(x3), "a"), "b" -> Project(TupleVarRef(x3), "a"))),
                   Singleton(Tuple("a" -> Project(TupleVarRef(y4), "a")))))
       val tq4 = Translator.translate(q4) 
-      assert(tq4.tp == BagType(TupleType("a" -> StringType)))
+
       val v = VarDef("v", TupleType("a" -> StringType), VarCnt.currId)
       val cq4 = BagComp(TupleVar(v), List(Bind(x3, Tup("a" -> Constant("one", StringType))),
                   Generator(v, BagComp(Tup("a" -> Proj(TupleVar(y4), "a")), 
@@ -238,7 +253,7 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC with NRCTransf
       *
       * { v7 | x0 := ( a := "one" ),  v7 <- {( a := x0.a )}  }
       */
-    test("Translator.translate.LetInTupleProjection"){
+    test("TranslatorShred.translate.LetInTupleProjection"){
       val x3 = VarDef("x", TupleType("a" -> StringType))
       val q5 = Let(x3, Tuple("a" -> Const("one", StringType)), Singleton(Tuple("a" -> Project(TupleVarRef(x3), "a"))))
       val tq5 = Translator.translate(q5)
@@ -261,7 +276,7 @@ class TranslatorTest extends FunSuite with NRCTranslator with NRC with NRCTransf
       * { v0 | x3 := (a := "Jaclyn"), v0 <- { v1 | x1 <- S, 
       *                                 v1 <- { ( w1 := x1.a, w2 := y1.c ) | y1 <- x1.c, x3.a = x1.a } }
       */
-    test("Translator.translate.LetInForeachPred"){
+    test("TranslatorShred.translate.LetInForeachPred"){
       val x1 = VarDef("x", stype)
       val y1 = VarDef("y", nstype)
       val x3 = VarDef("x", TupleType("a" -> StringType))

@@ -39,7 +39,6 @@ trait CalcTranslator extends Algebra{
           }else{
             val p1 = tail.filter{_.pred1(v)}.asInstanceOf[List[PrimitiveCalc]]
             val p2 = tail.filter{_.pred2(v, w)}.asInstanceOf[List[PrimitiveCalc]]
-            println(x+" "+u)
             val term = (x,u) match {
               // if x is a path
               case (ProjToBag(vd, field), Nil) => Unnest(v +: w, x, p1 ++ p2) // UNNEST

@@ -71,7 +71,7 @@ trait Algebra extends BaseAlg with Calc{
     *   no generators in the head of the comprehension.
     */
   case class Reduce(e: TupleCalc, v: List[VarDef], p: List[PrimitiveCalc]) extends AlgOp{
-    def tp = e.tp
+    def tp = BagType(e.tp) // check this
   }
 
   /**
@@ -155,5 +155,10 @@ trait Algebra extends BaseAlg with Calc{
     */
   case class Term(e1: AlgOp, e2: AlgOp) extends AlgOp{
     def tp = e1.tp
+  }
+
+  // this is only temporary, the terms should be linked
+  case class NamedTerm(n: String, t: AlgOp) extends AlgOp{
+    def tp = t.tp
   }
 }

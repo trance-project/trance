@@ -40,7 +40,7 @@ trait BaseExpr {
 /**
   * NRC constructs
   */
-trait NRC extends BaseExpr with Dictionary {
+trait NRC extends BaseExpr {
 
   case class Const(v: Any, tp: PrimitiveType) extends PrimitiveExpr
 
@@ -172,30 +172,8 @@ trait NRC extends BaseExpr with Dictionary {
 //    }
   }
 
-  /**
-    * Runtime labels appearing in shredded input relations
-    */
-  object LabelId {
-    private var currId = 0
-
-    implicit def orderingById: Ordering[LabelId] = Ordering.by(e => e.id)
-  }
-
-  case class LabelId() extends LabelExpr {
-    val id: Int = {
-      LabelId.currId += 1; LabelId.currId
-    }
-
-    def tp: LabelType = LabelType("id" -> IntType)
-
-    override def equals(that: Any): Boolean = that match {
-      case that: LabelId => this.id == that.id
-      case _ => false
-    }
-
-    override def hashCode: Int = id.hashCode()
-
-    override def toString: String = s"LabelId($id)"
+  case class LabelRef(labelDef: LabelDef) extends LabelExpr {
+    def tp: LabelType = labelDef.tp
   }
 
   //  case class NewLabel(free: Map[String, VarRef]) extends LabelExpr {

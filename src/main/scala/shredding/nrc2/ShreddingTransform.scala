@@ -3,7 +3,7 @@ package shredding.nrc2
 import shredding.core._
 
 trait ShreddingTransform {
-  this: NRC with NRCTransforms =>
+  this: NRC with NRCTransforms with Dictionary =>
 
   case class ShredValue(flat: Any, flatTp: Type, dict: Dict) {
     def quote: String =
@@ -55,7 +55,7 @@ trait ShreddingTransform {
         val flatBag = sl.map(_.flat)
         val flatBagTp = BagType(flatTp(tp2).asInstanceOf[TupleType])
         val tupleDict = sl.map(_.dict).reduce(_.union(_)).asInstanceOf[TupleDict]
-        val lbl = LabelId()
+        val lbl = LabelDef()
         val matDict = InputBagDict(Map(lbl -> flatBag), flatBagTp, tupleDict)
         ShredValue(lbl, flatTp(tp), matDict)
 
@@ -75,7 +75,7 @@ trait ShreddingTransform {
       case _: PrimitiveType => flat
 
       case _: LabelType =>
-        val lbl = flat.asInstanceOf[LabelId]
+        val lbl = flat.asInstanceOf[Label]
         val matDict = dict.asInstanceOf[InputBagDict]
         matDict.f(lbl).map(t => unshredValue(t, matDict.flatBagTp.tp, matDict.tupleDict))
 
@@ -101,8 +101,8 @@ trait ShreddingTransform {
       case Const(_, _) => ShredExpr(e, EmptyDict)
 
       case BagConst(v, tp) =>
-        val ShredValue(lbl: LabelId, _: LabelType, dict: InputBagDict) = shredValue(v, tp)
-        ShredExpr(lbl, OutputBagDict(lbl, BagConst(dict.f(lbl), dict.flatBagTp), dict.tupleDict))
+        val ShredValue(lbl: LabelRef, _: LabelType, dict: InputBagDict) = shredValue(v, tp)
+        ShredExpr(lbl, OutputBagDict(lbl, BagConst(dict.f(lbl.labelDef), dict.flatBagTp), dict.tupleDict))
 
       case p: Project =>
         val ShredExpr(flat: TupleExpr, dict: TupleDict) = shred(p.tuple, ctx)
@@ -112,22 +112,22 @@ trait ShreddingTransform {
 
       case ForeachUnion(x, e1, e2) =>
         val ShredExpr(l1: LabelExpr, dict1: BagDict) = shred(e1, ctx)
-        val xdef = VarDef(x.name, dict1.flatBagTp.tp)
+        val xdef = VarDef(x.n, dict1.flatBagTp.tp, x.nid)
         val ShredExpr(l2: LabelExpr, dict2: BagDict) =
           shred(e2, ctx + (x.name -> ShredExpr(VarRef(xdef), dict1.tupleDict)))
-        val lbl = LabelId()
+        val lbl = LabelRef(LabelDef())
         ShredExpr(lbl, OutputBagDict(lbl, ForeachUnion(xdef, Lookup(l1, dict1), Lookup(l2, dict2)), dict2.tupleDict))
 
       case Union(e1, e2) =>
         val ShredExpr(l1: LabelExpr, dict1: BagDict) = shred(e1, ctx)
         val ShredExpr(l2: LabelExpr, dict2: BagDict) = shred(e2, ctx)
         val dict = dict1.union(dict2).asInstanceOf[BagDict]
-        val lbl = LabelId()
+        val lbl = LabelRef(LabelDef())
         ShredExpr(lbl, OutputBagDict(lbl, Union(Lookup(l1, dict1), Lookup(l2, dict2)), dict.tupleDict))
 
       case Singleton(e1) =>
         val ShredExpr(flat: TupleExpr, dict: TupleDict) = shred(e1, ctx)
-        val lbl = LabelId()
+        val lbl = LabelRef(LabelDef())
         ShredExpr(lbl, OutputBagDict(lbl, Singleton(flat), dict))
 
       case Tuple(fs) =>
@@ -138,7 +138,7 @@ trait ShreddingTransform {
 
       case Let(x, e1, e2) =>
         val se1 = shred(e1, ctx)
-        val x1 = VarDef(x.name, se1.flat.tp)
+        val x1 = VarDef(x.n, se1.flat.tp, x.nid)
         val se2 = shred(e2, ctx + (x.name -> ShredExpr(VarRef(x1), se1.dict)))
         ShredExpr(Let(x1, se1.flat, se2.flat), se2.dict)
 
@@ -149,15 +149,15 @@ trait ShreddingTransform {
 
       case IfThenElse(c, e1, None) =>
         val ShredExpr(l1: LabelExpr, dict1: BagDict) = shred(e1, ctx)
-        val lbl = LabelId()
+        val lbl = LabelRef(LabelDef())
         ShredExpr(lbl, OutputBagDict(lbl, IfThenElse(c, Lookup(l1, dict1), None), dict1.tupleDict))
 
       case IfThenElse(c, e1, Some(e2)) =>
         sys.error("TODO")
 
       case Relation(n, ts, tp) =>
-        val ShredValue(lbl: LabelId, _: LabelType, dict: InputBagDict) = shredValue(ts, tp)
-        ShredExpr(lbl, OutputBagDict(lbl, Relation(n, dict.f(lbl), dict.flatBagTp), dict.tupleDict))
+        val ShredValue(lbl: LabelDef, _: LabelType, dict: InputBagDict) = shredValue(ts, tp)
+        ShredExpr(LabelRef(lbl), OutputBagDict(LabelRef(lbl), Relation(n, dict.f(lbl), dict.flatBagTp), dict.tupleDict))
 
       case _ => sys.error("not implemented")
     }
@@ -179,7 +179,7 @@ trait ShreddingTransform {
 
       case ForeachUnion(x, l1: Lookup, l2: Lookup) =>
         val ue1 = unshred(l1.lbl, l1.dict, ctx).asInstanceOf[BagExpr]
-        val xdef = VarDef(x.name, ue1.tp.tp)
+        val xdef = VarDef(x.n, ue1.tp.tp, x.nid)
         val ue2 = unshred(l2.lbl, l2.dict, ctx + (x.name -> VarRef(xdef))).asInstanceOf[BagExpr]
         ForeachUnion(xdef, ue1, ue2)
 
@@ -199,7 +199,7 @@ trait ShreddingTransform {
 
       case Let(x, l1: Lookup, e2) =>
         val ue1 = unshred(l1.lbl, l1.dict, ctx)
-        val xdef = VarDef(x.name, ue1.tp)
+        val xdef = VarDef(x.n, ue1.tp, x.nid)
         val ue2 = unshred(e2, dict, ctx + (x.name -> VarRef(xdef)))
         Let(xdef, ue1, ue2)
 
@@ -216,7 +216,7 @@ trait ShreddingTransform {
       case IfThenElse(c, e1, Some(e2)) =>
         sys.error("TODO")
 
-      case _: LabelId => dict match {
+      case _: LabelRef => dict match {
 //        case d: InputBagDict => BagConst(d.f(l), d.flatBagTp)
         case d: OutputBagDict => unshred(d.flat, d.tupleDict, ctx)
         case _ => sys.error("Unknown dictionary type: " + dict)
