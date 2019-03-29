@@ -20,7 +20,7 @@ trait ShreddingTransform {
   /**
     * Shredding transformation
     */
-  object Shredder {
+  object Shredder extends Serializable{
 
     def flatTp(tp: Type): Type = tp match {
       case _: PrimitiveType => tp

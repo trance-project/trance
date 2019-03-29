@@ -5,7 +5,7 @@ import shredding.core._
 trait Linearization {
   this: NRC with ShreddingTransform with NRCImplicits with NRCTransforms with Dictionary =>
 
-  object Linearize {
+  object Linearize extends Serializable{
 
    private var currId = 0
 
@@ -13,10 +13,11 @@ trait Linearization {
 
     def apply(e: ShredExpr): List[Expr] = e.dict match {
       case d: OutputBagDict =>
-        val emptyCtx = NamedBag("EmptyCtx"+getId, BagConst(Nil, BagType(TupleType("lbl" -> LabelType()))))
+        val emptyCtx = NamedBag("EmptyCtx"+getId, Singleton(Tuple("lbl" -> e.flat.asInstanceOf[TupleAttributeExpr])))
+          //BagConst(Nil, BagType(TupleType("lbl" -> LabelType()))))
         val emptyCtxDef = VarDef("EmptyCtx", emptyCtx.tp, currId)
         val emptyCtxRef = BagVarRef(emptyCtxDef)
-        linearize(d, emptyCtxRef)
+        List(emptyCtx) ++ linearize(d, emptyCtxRef)
 
       case _ => sys.error("Cannot linearize dict type " + e.dict)
     }

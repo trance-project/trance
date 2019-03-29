@@ -3,7 +3,7 @@ package shredding.core
 /**
   * Runtime labels appearing in shredded input relations
   */
-trait Label
+trait Label extends Serializable
 
 object LabelDef {
   private var currId = 0
@@ -11,7 +11,7 @@ object LabelDef {
   implicit def orderingById: Ordering[LabelDef] = Ordering.by(e => e.id)
 }
 
-case class LabelDef() extends Label{
+case class LabelDef() extends Label {
   val id: Int = {
     LabelDef.currId += 1; LabelDef.currId
   }

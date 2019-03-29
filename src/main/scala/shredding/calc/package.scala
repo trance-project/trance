@@ -39,34 +39,20 @@ package object calc extends Calc with Algebra {
     }
 
     def quote(e: AlgOp): String = e match {
-      case Select(x, v, p @ Nil) => s"Select[lambda(${core.quote(v)}).true](${quote(x)})"
-      case Select(x, v, p) => s"Select[lambda(${core.quote(v)}).${p.map(quote(_)).mkString(",")}](${quote(x)})"
-      case Reduce(e1, v, e2 @ Nil) =>
-        s"Reduce[ U / lambda(${v.map(core.quote(_)).mkString(",")}).${quote(e1)}, lambda(${v.map(core.quote(_)).mkString(",")}).true]"
-      case Reduce(e1, v, e2) =>
-        s"Reduce[ U / lambda(${v.map(core.quote(_)).mkString(",")}).${quote(e1)}, lambda(${v.map(core.quote(_)).mkString(",")}).${e2.map(quote(_)).mkString(",")}]"
-      case Unnest(e1, e2, p @ Nil) =>
-        s"Unnest[lambda(${e1.map(core.quote(_)).mkString(",")}).${quote(e2)}, lambda(${e1.map(core.quote(_)).mkString(",")}).true]"
+      case Select(x, v, p) => s"Select[lambda(${core.quote(v)}).${quote(p)}](${quote(x)})"
+      case Reduce(e1, v, p) =>
+        s"Reduce[ U / lambda(${v.map(core.quote(_)).mkString(",")}).${quote(e1)}, lambda(${v.map(core.quote(_)).mkString(",")}).${quote(p)}]"
       case Unnest(e1, e2, p) =>
-        s"Unnest[lambda(${e1.map(core.quote(_)).mkString(",")}).${quote(e2)}, lambda(${e1.map(core.quote(_)).mkString(",")}).${p.map(quote(_)).mkString(",")}]"
-        case OuterUnnest(e1, e2, p @ Nil) =>
-        s"OuterUnnest[lambda(${e1.map(core.quote(_)).mkString(",")}).${quote(e2)}, lambda(${e1.map(core.quote(_)).mkString(",")}).true]"
+        s"Unnest[lambda(${e1.map(core.quote(_)).mkString(",")}).${quote(e2)}, lambda(${e1.map(core.quote(_)).mkString(",")}).${quote(p)}]"
       case OuterUnnest(e1, e2, p) =>
-        s"OuterUnnest[lambda(${e1.map(core.quote(_)).mkString(",")}).${quote(e2)}, lambda(${e1.map(core.quote(_)).mkString(",")}).${p.map(quote(_)).mkString(",")}]"
-      case Join(e1, p @ Nil) => s"Join[lambda(${e1.map(core.quote(_)).mkString(",")}).true]"
-      case Join(e1, p) => s"Join[lambda(${e1.map(core.quote(_)).mkString(",")}).${p.map(quote(_)).mkString(",")}]"
-      case OuterJoin(e1, p @ Nil) => s"OuterJoin[lambda(${e1.map(core.quote(_)).mkString(",")}).true]"
-      case OuterJoin(e1, p) => s"OuterJoin[lambda(${e1.map(core.quote(_)).mkString(",")}).${p.map(quote(_)).mkString(",")}]"
-      case Nest(e1, v, e2, p @ Nil, g) =>
-        val w = v.map(core.quote(_)).mkString(",")
-        val u = e2.map(core.quote(_)).mkString(",")
-        val g2 = g.map(core.quote(_)).mkString(",")
-        s"Nest[ U / lambda(${w}).${quote(e1)} / lambda(${w}).${u}, lambda(${w}).true / lambda(${w}).${g2}]"
+        s"OuterUnnest[lambda(${e1.map(core.quote(_)).mkString(",")}).${quote(e2)}, lambda(${e1.map(core.quote(_)).mkString(",")}).${quote(p)}]"
+      case Join(e1, p) => s"Join[lambda(${e1.map(core.quote(_)).mkString(",")}).${quote(p)}]"
+      case OuterJoin(e1, p) => s"OuterJoin[lambda(${e1.map(core.quote(_)).mkString(",")}).${quote(p)}]"
       case Nest(e1, v, e2, p, g) =>
         val w = v.map(core.quote(_)).mkString(",")
         val u = e2.map(core.quote(_)).mkString(",")
         val g2 = g.map(core.quote(_)).mkString(",")
-        s"Nest[ U / lambda(${w}).${quote(e1)} / lambda(${w}).${u}, lambda(${w}).${p.map(quote(_)).mkString(",")} / lambda(${w}).${g2}]"
+        s"Nest[ U / lambda(${w}).${quote(e1)} / lambda(${w}).${u}, lambda(${w}).${quote(p)} / lambda(${w}).${g2}]"
       case Term(e1, e2 @ Init()) => s"${quote(e1)}"
       case Term(e1, e2) => s""" |${quote(e1)}
                               |${ind(quote(e2))}""".stripMargin

@@ -6,8 +6,14 @@ trait CalcTranslator extends Algebra{
   this: CalcImplicits =>
   
 
-  object Unnester{
-    
+  object Unnester extends Serializable{
+
+    def andPreds(e: List[CompCalc]): PrimitiveCalc = e match {
+      case Nil => Constant(true, BoolType)
+      case tail :: Nil => tail.asInstanceOf[PrimitiveCalc] 
+      case head :: tail => AndCondition(head, andPreds(tail))
+    }
+
     /**
       * The unnest algorithm from Fegaras and Maier 2000, which translates 
       * comprehension calculus expressions into a series of alebraic operators. 
@@ -33,19 +39,18 @@ trait CalcTranslator extends Algebra{
           // SELECTION: rule C4
           if (u.isEmpty && w.isEmpty){
             val nqs = tail.filter{_.pred1(v)}
-            unnest(BagComp(e, tail.filterNot(nqs.toSet)), u, v +: w, 
-                  Select(x, v, nqs.asInstanceOf[List[PrimitiveCalc]]))
+            unnest(BagComp(e, tail.filterNot(nqs.toSet)), u, v +: w, Select(x, v, andPreds(nqs)))
           // JOIN and NEST - if outer depends on u value (C6, C7, C9, or C10)
           }else{
-            val p1 = tail.filter{_.pred1(v)}.asInstanceOf[List[PrimitiveCalc]]
-            val p2 = tail.filter{_.pred2(v, w)}.asInstanceOf[List[PrimitiveCalc]]
+            val p1 = tail.filter{_.pred1(v)}
+            val p2 = tail.filter{_.pred2(v, w)}
             val term = (x,u) match {
               // if x is a path
-              case (ProjToBag(vd, field), Nil) => Term(Unnest(v +: w, x, p1 ++ p2), e2) // UNNEST
-              case (ProjToBag(vd, field), _) => Term(OuterUnnest(v +: w, x, p1 ++ p2), e2) // OUTER-UNNEST
+              case (ProjToBag(vd, field), Nil) => Term(Unnest(v +: w, x, andPreds(p1 ++ p2)), e2) // UNNEST
+              case (ProjToBag(vd, field), _) => Term(OuterUnnest(v +: w, x, andPreds(p1 ++ p2)), e2) // OUTER-UNNEST
               // if x is a variable
-              case (_, Nil) => Term(Join(v +: w, p2), Term(Select(x, v, p1), e2)) // JOIN
-              case (_, _) => Term(OuterJoin(v +: w, p2), Term(Select(x, v, p1), e2)) // OUTER-JOIN
+              case (_, Nil) => Term(Join(v +: w, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2)) // JOIN
+              case (_, _) => Term(OuterJoin(v +: w, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2)) // OUTER-JOIN
             }
             unnest(BagComp(e, tail.filterNot((p1++p2).toSet)), u, v +: w, term)
           }
@@ -64,27 +69,28 @@ trait CalcTranslator extends Algebra{
                 case _ => if (u.isEmpty) {
                             // any new variable is coming from the input stream
                            // REDUCE: rule C5, u is empty so nothing to group by
-                            Term(Reduce(e, w, qs.asInstanceOf[List[PrimitiveCalc]]), e2)
+                            Term(Reduce(e, w, andPreds(qs)), e2)
                           }else{
                            // NEST: rule C8, u is not empty so there is grouping
-                           Term(Nest(e, w, u, qs.asInstanceOf[List[PrimitiveCalc]], w.filterNot(u.toSet)), e2)
+                           Term(Nest(e, w, u, andPreds(qs), w.filterNot(u.toSet)), e2)
                          }
               }
-              // creat another function for this because it is messy
+              // create another function for this because it is messy
               case t:TupleVar => if (u.isEmpty) {
                            // any new variable is coming from the input stream
                             // REDUCE: rule C5, u is empty so nothing to group by
-                            Term(Reduce(e, w, qs.asInstanceOf[List[PrimitiveCalc]]), e2)
+                            Term(Reduce(e, w, andPreds(qs)), e2)
                          }else{
                             // NEST: rule C8, u is not empty so there is grouping
-                            Term(Nest(e, w, u, qs.asInstanceOf[List[PrimitiveCalc]], w.filterNot(u.toSet)), e2)
+                            Term(Nest(e, w, u, andPreds(qs), w.filterNot(u.toSet)), e2)
                           }
             case _ => sys.error("not supported")
           }
   
         case _ => sys.error("not supported")
       }
-      case _ => sys.error("not supported")
+      case Sng(t @ Tup(_)) => Select(e1.asInstanceOf[BagCalc], VarDef("v", t.tp, VarCnt.inc), Constant(true, BoolType))
+      case _ => println(e1); println("that is not supported"); sys.error("not supported")
     }
 
   }

@@ -7,7 +7,7 @@ import shredding.core._
   */
 trait BaseCalc {
 
-  sealed trait CompCalc { self =>
+  sealed trait CompCalc extends Serializable { self =>
     
     def tp: Type
    
@@ -24,7 +24,6 @@ trait BaseCalc {
     def hasMergeGenerator: Boolean = false 
     def hasIfGenerator: Boolean = false
     def hasBagCompGenerator: Boolean = false
-
   }
 
   trait TupleAttributeCalc extends CompCalc {
@@ -160,6 +159,7 @@ trait Calc extends BaseCalc {
   /**
     * (A1 = e1, ..., An = en)
     */
+  // change this to attrs
   case class Tup(fields: Map[String, TupleAttributeCalc]) extends TupleCalc {
     val tp: TupleType = TupleType(fields.map(f => f._1 -> f._2.tp))
   }

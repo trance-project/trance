@@ -10,7 +10,7 @@ import shredding.calc._
 trait NRCTranslator extends Calc{
   this: NRC =>
 
-  object Translator{
+  object Translator extends Serializable{
     /**
       * Translate an NRC Expression into comprehension calculus.
       * Translation does some of the normalization rules 

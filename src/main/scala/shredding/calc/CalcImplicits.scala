@@ -34,7 +34,7 @@ trait CalcImplicits extends Calc {
       case t:TupleType => self.asInstanceOf[TupleCalc].equalsVar(v)
       case _ => false
     }
-
+    
     def pred1(v: VarDef): Boolean = self.tp match {
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].pred1(v)
       case _ => false

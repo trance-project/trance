@@ -53,7 +53,7 @@ trait Algebra extends BaseAlg with Calc{
     *   Select is always the first operator, u is always empty, and w is set
     *   to be equal to v
     */
-  case class Select(x: BagCalc, v: VarDef, p: List[PrimitiveCalc]) extends BagOutput{
+  case class Select(x: BagCalc, v: VarDef, p: PrimitiveCalc) extends BagOutput{
     def tp: BagType = BagType(v.tp.asInstanceOf[TupleType])
   }
 
@@ -70,7 +70,7 @@ trait Algebra extends BaseAlg with Calc{
     *   Reduce (project) is the last operator, u is always empty, and there should be
     *   no generators in the head of the comprehension.
     */
-  case class Reduce(e: TupleCalc, v: List[VarDef], p: List[PrimitiveCalc]) extends AlgOp{
+  case class Reduce(e: TupleCalc, v: List[VarDef], p: PrimitiveCalc) extends AlgOp{
     def tp = BagType(e.tp) // check this
   }
 
@@ -89,7 +89,7 @@ trait Algebra extends BaseAlg with Calc{
     *   u and w are never empty if this condition is reached.
     *
     */
-  case class Nest(e: TupleCalc, v: List[VarDef], f: List[VarDef], p: List[PrimitiveCalc], g: List[VarDef]) extends AlgOp{
+  case class Nest(e: TupleCalc, v: List[VarDef], f: List[VarDef], p: PrimitiveCalc, g: List[VarDef]) extends AlgOp{
     def tp = e.tp
   }
 
@@ -101,7 +101,7 @@ trait Algebra extends BaseAlg with Calc{
     *    p(w,v) is the lambda expression in the subscript of the unnest operator 
     */
     // maybe v should be a list like reduce
-  case class Unnest(v: List[VarDef], w: BagCalc, p: List[PrimitiveCalc]) extends BagOutput{
+  case class Unnest(v: List[VarDef], w: BagCalc, p: PrimitiveCalc) extends BagOutput{
     def tp: BagType = w.tp
   }
 
@@ -116,7 +116,7 @@ trait Algebra extends BaseAlg with Calc{
     *   accept that input stream. 
     *
     */
-  case class Join(v: List[VarDef],  p: List[PrimitiveCalc]) extends BagOutput{
+  case class Join(v: List[VarDef],  p: PrimitiveCalc) extends BagOutput{
     def tp: BagType = 
       BagType(TupleType(v.head.tp.asInstanceOf[TupleType].attrs ++ v.tail.head.tp.asInstanceOf[TupleType].attrs))
   }
@@ -129,7 +129,7 @@ trait Algebra extends BaseAlg with Calc{
     * p: list of predicates associated to the variable from the input stream (v) and w
     *    p(w,v) is the lambda expression in the subscript of the outer-unnest operator 
     */
-  case class OuterUnnest(v: List[VarDef], w: BagCalc, p: List[PrimitiveCalc]) extends BagOutput{
+  case class OuterUnnest(v: List[VarDef], w: BagCalc, p: PrimitiveCalc) extends BagOutput{
     def tp: BagType = w.tp
   }
 
@@ -145,7 +145,7 @@ trait Algebra extends BaseAlg with Calc{
     *   accept that input stream. 
     *
     */
-  case class OuterJoin(v: List[VarDef], p: List[PrimitiveCalc]) extends BagOutput{
+  case class OuterJoin(v: List[VarDef], p: PrimitiveCalc) extends BagOutput{
     def tp: BagType = 
       BagType(TupleType(v.head.tp.asInstanceOf[TupleType].attrs ++ v.tail.head.tp.asInstanceOf[TupleType].attrs))
   } 

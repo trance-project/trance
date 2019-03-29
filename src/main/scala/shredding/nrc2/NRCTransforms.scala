@@ -8,7 +8,7 @@ trait NRCTransforms {
   /**
     * Pretty printer
     */
-  object Printer {
+  object Printer extends Serializable{
 
     import shredding.Utils.ind
 
