@@ -38,6 +38,7 @@ trait AlgTranslator {
         case _ => value.asInstanceOf[Product].productElement(getIndex(v))
       }}
       case Constant(a, t) => a
+      case TupleVar(vd) => value // return the full value?
       case _ => value.asInstanceOf[Product].productElement(getIndex(e))
     }
 
@@ -80,6 +81,28 @@ trait AlgTranslator {
       case Constant(true, _) => r
       case _ => r.filter(filterCondition(p)(_))
     }
+ 
+    /**
+      * Tuples a list of vardefs into (K,V) structure
+      */ 
+    def tuple2(f: List[_]): (_, VarDef) = f match {
+      case head :: tail :: Nil => (head, tail.asInstanceOf[VarDef])
+      case head :: tail => tuple2((head, tail.head) +: tail.tail)
+    }
+
+    def groups(vars: (_,_), grps: List[_]): Tuple2[_,_] => List[_] = vars match {
+      case (b @ (_,_), c) =>
+        val f = groups(b, grps)
+        if (grps.contains(c)) { (a: (_,_)) => f(a) :+ a._2 } else { f }
+      case (b, c) => (grps.contains(b), grps.contains(c)) match {
+        case (true, true) => (a:(_,_)) =>
+          List(a._1.asInstanceOf[Product].productElement(0), a._1.asInstanceOf[Product].productElement(1))
+        case (true, false) => (a:(_,_)) =>
+          List(a._1.asInstanceOf[Product].productElement(0))
+        case (false, true) => (a:(_,_)) => List(a._2.asInstanceOf[Product].productElement(1))
+        case _ => (a:(_,_)) => Nil
+      }
+    }
    
     /**
       * Linearization will produce 3 types of queries:
@@ -117,19 +140,20 @@ trait AlgTranslator {
         val output = e2 match {
           case Term(Unnest(_,_,_), _) => 
             evaluate(e2).asInstanceOf[RDD[(_, Iterable[_])]].flatMap{
-              case (k,v) => v.map(matchPattern(e1, _))
+              case (k,v) => v.map{ case (k1, v1) => matchPattern(e1, v1) }
             }
           case _ => evaluate(e2)
         }
         filterRDD(output, pred)
       case Term(Nest(e1, vars, grps, preds, zeros), e2) => 
-        val i = vars.indexOf(grps.head)
-        evaluate(e2).map{ case (k,v) => 
-          if (i == 1) { (k, matchPattern(e1, v)) } else (v, matchPattern(e1, k)) }
-        .groupByKey().filter(!_._2.isEmpty)
+        val groupFun = groups(tuple2(vars), grps)
+        // this should map data to proper key, value structure 
+        evaluate(e2).map{ case (k,v) => (k, matchPattern(e1,v)) }.groupBy(groupFun)//.filter(!_._2.isEmpty)
       case Term(OuterJoin(v, p), Term(e1, e2)) => p match {
-        case Constant(true, _) => evaluate(e2).cartesian(evaluate(e1))
-        case _ => evaluate(e2).map{ case (k,v) => (k, v) }
+        case Constant(true, _) => 
+        evaluate(e2).cartesian(evaluate(e1))
+        case _ => 
+          evaluate(e2).map{ case (k,v) => (k, v) }
           .leftOuterJoin(evaluate(e1).map{ case (k,v) => (k, v) })
       }
       case Term(Join(v, p), Term(e1, e2)) => p match {

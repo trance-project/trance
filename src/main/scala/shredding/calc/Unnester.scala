@@ -8,10 +8,23 @@ trait CalcTranslator extends Algebra{
 
   object Unnester extends Serializable{
 
+    /**
+      * Turn a list of predicates into an and condition
+      */
     def andPreds(e: List[CompCalc]): PrimitiveCalc = e match {
       case Nil => Constant(true, BoolType)
       case tail :: Nil => tail.asInstanceOf[PrimitiveCalc] 
       case head :: tail => AndCondition(head, andPreds(tail))
+    }
+
+    /**
+      * Captures C12: { f({ e | r }) | p } to support 
+      * unnesting when there are no generators left 
+      * in the body
+      */
+    def unnestHead(e: CompCalc) = e match {
+      case t:Tup => t.fields.filter(field => field._2.isOutermost)
+      case _ => Nil
     }
 
     /**
@@ -39,58 +52,39 @@ trait CalcTranslator extends Algebra{
           // SELECTION: rule C4
           if (u.isEmpty && w.isEmpty){
             val nqs = tail.filter{_.pred1(v)}
-            unnest(BagComp(e, tail.filterNot(nqs.toSet)), u, v +: w, Select(x, v, andPreds(nqs)))
+            unnest(BagComp(e, tail.filterNot(nqs.toSet)), u, w :+ v, Select(x, v, andPreds(nqs)))
           // JOIN and NEST - if outer depends on u value (C6, C7, C9, or C10)
           }else{
             val p1 = tail.filter{_.pred1(v)}
             val p2 = tail.filter{_.pred2(v, w)}
             val term = (x,u) match {
               // if x is a path
-              case (ProjToBag(vd, field), Nil) => Term(Unnest(v +: w, x, andPreds(p1 ++ p2)), e2) // UNNEST
-              case (ProjToBag(vd, field), _) => Term(OuterUnnest(v +: w, x, andPreds(p1 ++ p2)), e2) // OUTER-UNNEST
+              case (ProjToBag(vd, field), Nil) => Term(Unnest(w :+ v, x, andPreds(p1 ++ p2)), e2) // UNNEST
+              case (ProjToBag(vd, field), _) => Term(OuterUnnest(w :+ v, x, andPreds(p1 ++ p2)), e2) // OUTER-UNNEST
               // if x is a variable
-              case (_, Nil) => Term(Join(v +: w, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2)) // JOIN
-              case (_, _) => Term(OuterJoin(v +: w, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2)) // OUTER-JOIN
+              case (_, Nil) => Term(Join(w :+ v, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2)) // JOIN
+              case (_, _) => Term(OuterJoin(w :+ v, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2)) // OUTER-JOIN
             }
-            unnest(BagComp(e, tail.filterNot((p1++p2).toSet)), u, v +: w, term)
+            unnest(BagComp(e, tail.filterNot((p1++p2).toSet)), u, w :+ v, term)
           }
         // { e | p } (ie. has no generators): rules C5, C8, and C12
-        case y if !b.hasGenerator => e match { // { f ( e' ) | p }
-            case t: Tup => // f ( e' )
-              // find outermost term e' = { e2 | r }
-              val eprime = t.fields.filter(field => field._2.isOutermost)
-              eprime match {
-                // outermost term found in f ( { e2 | r } )
-                case z if !eprime.isEmpty =>
-                  // C12 [{ f(v) | p }] ( [{ e2 | r }] E )
-                  val nv = VarDef("v", eprime.head._2.asInstanceOf[BagComp].tp, VarCnt.inc)
-                  unnest(BagComp(e.substitute(eprime.head._2, nv).asInstanceOf[TupleCalc], qs), 
-                        u, nv +: w, unnest(eprime.head._2, w, w, e2))
-                case _ => if (u.isEmpty) {
-                            // any new variable is coming from the input stream
-                           // REDUCE: rule C5, u is empty so nothing to group by
-                            Term(Reduce(e, w, andPreds(qs)), e2)
-                          }else{
-                           // NEST: rule C8, u is not empty so there is grouping
-                           Term(Nest(e, w, u, andPreds(qs), w.filterNot(u.toSet)), e2)
-                         }
+        case y if !b.hasGenerator => 
+          val eprime = unnestHead(e)
+          eprime match {
+            case z if eprime.nonEmpty => 
+              val nv = VarDef("v", eprime.head._2.asInstanceOf[BagComp].tp, VarCnt.inc)
+              unnest(BagComp(e.substitute(eprime.head._2, nv).asInstanceOf[TupleCalc], qs), 
+                u, nv +: w, unnest(eprime.head._2, w, w, e2))
+            case _ => if (u.isEmpty) { 
+                Term(Reduce(e, w, andPreds(qs)), e2) 
+              }else{
+                Term(Nest(e, w, u, andPreds(qs), w.filterNot(u.toSet)), e2)
               }
-              // create another function for this because it is messy
-              case t:TupleVar => if (u.isEmpty) {
-                           // any new variable is coming from the input stream
-                            // REDUCE: rule C5, u is empty so nothing to group by
-                            Term(Reduce(e, w, andPreds(qs)), e2)
-                         }else{
-                            // NEST: rule C8, u is not empty so there is grouping
-                            Term(Nest(e, w, u, andPreds(qs), w.filterNot(u.toSet)), e2)
-                          }
-            case _ => sys.error("not supported")
           }
-  
         case _ => sys.error("not supported")
       }
       case Sng(t @ Tup(_)) => Select(e1.asInstanceOf[BagCalc], VarDef("v", t.tp, VarCnt.inc), Constant(true, BoolType))
-      case _ => println(e1); println("that is not supported"); sys.error("not supported")
+      case _ => sys.error("not supported")
     }
 
   }
