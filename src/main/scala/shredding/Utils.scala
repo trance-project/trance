@@ -1,7 +1,5 @@
 package shredding
 
-import collection.mutable.Map
-
 object Utils {
 
   // Indent text by n*2 spaces (and trim trailing space)
@@ -10,21 +8,18 @@ object Utils {
     i + s.replaceAll("\n? *$", "").replaceAll("\n", "\n" + i)
   }
 
-  // if element to add in map is there, then append to value
-  // deprecated 
-  def merge(m: Map[Any, Any], m2: Map[_, _]) = {
-    m2.foreach(kv => {
-      m.get(kv._1.asInstanceOf[Any]) match {
-        case Some(e) => m(kv._1) = m(kv._1.asInstanceOf[Any]).asInstanceOf[List[Any]] :+ kv._2
-        case None => m += kv
-      }
-    })
-  }
+  object Symbol {
+    // Fresh variables name provider
+    private val counter = scala.collection.mutable.HashMap[String, Int]()
 
-  // list[Any].flatten
-  def flatten(ls: List[Any]): List[Any] = ls flatMap {
-    case i: List[_] => flatten(i)
-    case i => List(i)
+    def fresh(name: String = "x"): String = {
+      val c = counter.getOrElse(name, 0) + 1
+      counter.put(name, c)
+      name + c
+    }
+
+    def freshClear(): Unit = counter.clear
+
   }
 
 }

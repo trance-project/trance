@@ -1,68 +1,52 @@
 package shredding.nrc2
 
-trait Linearization {
-  this: NRC with ShreddingTransform with NRCImplicits =>
+import shredding.Utils.Symbol
 
-  object Linearize {
+trait Linearization extends Optimizer {
+  this: ShreddedNRC with Shredding =>
 
-    private var currId = 0
+  def linearize(e: ShredExpr): Sequence = e.dict match {
+    case d: OutputBagDict =>
+      Symbol.freshClear()
+      val emptyCtx = InputBag(
+        Symbol.fresh("emptyCtx"),
+        List(Map("lbl" -> Map.empty[String, Any])),
+        BagType(TupleType("lbl" -> LabelType()))
+      )
+      val emptyCtxNamed = Named(emptyCtx.n, emptyCtx)
+      val emptyCtxRef = BagVarRef(VarDef(emptyCtx.n, emptyCtx.tp))
+      Sequence(emptyCtxNamed :: linearize(d, emptyCtxRef))
+    case _ => sys.error("Cannot linearize dict type " + e.dict)
+  }
 
-    def getId: Int = { currId += 1; currId }
+  private def linearize(dict: OutputBagDict, ctx: BagVarRef): List[Expr] = {
+    // 1. Iterate over ctx (bag of labels) and produce key-value pairs
+    //    consisting of labels from ctx and flat bags from dict
+    val ldef = VarDef(Symbol.fresh("l"), ctx.tp.tp)
+    val kvpair = Tuple(
+      "k" -> Project(TupleVarRef(ldef), "lbl"),
+      "v" -> betaReduce(dict.flatBag).asInstanceOf[BagExpr])
+    val mFlat = ForeachUnion(ldef, ctx, Singleton(kvpair))
+    val mFlatNamed = Named(Symbol.fresh("M_flat"), mFlat)
+    val mFlatRef = BagVarRef(VarDef(mFlatNamed.n, mFlat.tp))
 
-    def apply(e: ShredExpr): List[Expr] = e.dict match {
-      case d: OutputBagDict =>
-        val emptyCtx = NamedBag("EmptyCtx", BagConst(Nil, BagType(TupleType("lbl" -> LabelType()))))
-        val emptyCtxDef = VarDef(emptyCtx.n, emptyCtx.tp)
-        val emptyCtxRef = BagVarRef(emptyCtxDef)
-        linearize(d, emptyCtxRef)
+    // 2. For each label type in dict.flatBagTp.tp,
+    //    create the context (bag of labels) and recur
+    val labelTps = dict.flatBagTp.tp.attrs.filter(_._2.isInstanceOf[LabelType]).toList
 
-      case _ => sys.error("Cannot linearize dict type " + e.dict)
-    }
+    mFlatNamed ::
+      labelTps.flatMap { case (n, _) =>
+        val kvDef = VarDef(Symbol.fresh("kv"), mFlat.tp.tp)
+        val xDef = VarDef(Symbol.fresh("xF"), dict.flatBagTp.tp)
+        val mCtx =
+          ForeachUnion(kvDef, mFlatRef,
+            ForeachUnion(xDef, BagProject(TupleVarRef(kvDef), "v"),
+              Singleton(Tuple("lbl" -> Project(TupleVarRef(xDef), n)))))
+        val mCtxNamed = Named(Symbol.fresh("M_ctx"), mCtx)
+        val mCtxRef = BagVarRef(VarDef(mCtxNamed.n, mCtx.tp))
+        val bagDict = dict.tupleDict.fields(n).asInstanceOf[OutputBagDict]
 
-    def betaReduce(e: Expr): Expr = e.replace {
-      case Lookup(l1, OutputBagDict(l2, flatBag, _)) if l1 == l2 =>
-        betaReduce(flatBag)
-    }
-
-    def linearize(dict: OutputBagDict, ctx: BagVarRef): List[Expr] = {
-      val ldef = VarDef("l" + getId, ctx.tp.tp)
-      val lref = TupleVarRef(ldef)
-
-      val mFlat =
-        ForeachUnion(
-          ldef,
-          ctx,
-          Singleton(
-            Tuple("k" -> Project(lref, "lbl"), "v" -> betaReduce(dict.flat).asInstanceOf[BagExpr]))
-        )
-      val mFlatNamed = NamedBag("M_flat" + getId, mFlat)
-      val mFlatDef = VarDef(mFlatNamed.n, mFlat.tp)
-      val mFlatRef = BagVarRef(mFlatDef)
-
-      val labelTps = dict.flatBagTp.tp.attrs.filter(_._2.isInstanceOf[LabelType]).toList
-
-      mFlatNamed ::
-        labelTps.flatMap { case (n, _) =>
-          val pairDef = VarDef("kv" + getId, mFlat.tp.tp)
-          val pairRef = TupleVarRef(pairDef)
-          val xDef = VarDef("xF" + getId, dict.flatBagTp.tp)
-          val xRef = TupleVarRef(xDef)
-
-          val mCtx =
-            ForeachUnion(pairDef, mFlatRef,
-              ForeachUnion(
-                xDef,
-                BagProject(pairRef, "v"),
-                Singleton(Tuple("lbl" -> Project(xRef, n)))
-              )
-            )
-          val mCtxNamed = NamedBag("M_ctx" + getId, mCtx)
-          val mCtxDef = VarDef(mCtxNamed.n, mCtx.tp)
-          val mCtxRef = BagVarRef(mCtxDef)
-
-          mCtxNamed ::
-            linearize(dict.tupleDict.fields(n).asInstanceOf[OutputBagDict], mCtxRef)
-        }
-    }
+        mCtxNamed :: linearize(bagDict, mCtxRef)
+      }
   }
 }

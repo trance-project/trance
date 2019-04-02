@@ -1,13 +1,13 @@
 package shredding.nrc2
 
 trait Dictionary {
-  this: NRC =>
+  this: ShreddedNRC =>
 
   sealed trait Dict {
     def union(that: Dict): Dict
   }
 
-  trait AttributeDict extends Dict {
+  sealed trait AttributeDict extends Dict {
     def union(that: Dict): AttributeDict
   }
 
@@ -18,40 +18,31 @@ trait Dictionary {
     }
   }
 
-  trait BagDict extends AttributeDict {
+  sealed trait BagDict extends AttributeDict {
     def flatBagTp: BagType
 
     def tupleDict: TupleDict
   }
 
-  case class OutputBagDict(lbl: LabelExpr, flat: BagExpr, tupleDict: TupleDict) extends BagDict {
-    def union(that: Dict): OutputBagDict = that match {
-      case OutputBagDict(lbl2, flat2, tupleDict2) if flat.tp == flat2.tp =>
-        (lbl, lbl2) match {
-          //          case (NewLabel(free1), NewLabel(free2)) =>
-          //            val free = free1 ++ free2
-          //            OutputBagDict(NewLabel(free), Union(flat, flat2), tupleDict.union(dict2))
-
-          case (LabelId(), LabelId()) =>
-            val lbl = LabelId()
-            OutputBagDict(lbl, Union(flat, flat2), tupleDict.union(tupleDict2))
-
-          case _ => sys.error("Illegal dictionary union - unknown label type")
-        }
-      case _ => sys.error("Illegal dictionary union")
-    }
-
-    def flatBagTp: BagType = flat.tp
-  }
-
-  case class InputBagDict(f: Map[LabelId, List[Any]], flatBagTp: BagType, tupleDict: TupleDict) extends BagDict {
+  case class InputBagDict(f: Map[Label, List[Any]], flatBagTp: BagType, tupleDict: TupleDict) extends BagDict {
     def union(that: Dict): InputBagDict = that match {
-      case InputBagDict(f2, flatTp2, dict2) if flatBagTp == flatTp2 =>
+      case InputBagDict(f2, flatBagTp2, tupleDict2) if flatBagTp == flatBagTp2 =>
         val keys = f.keySet ++ f2.keySet
         val merge = keys.map(k => (k, f.getOrElse(k, Nil) ++ f2.getOrElse(k, Nil))).toMap
-        InputBagDict(merge, flatBagTp, tupleDict.union(dict2))
+        InputBagDict(merge, flatBagTp, tupleDict.union(tupleDict2))
       case _ => sys.error("Illegal dictionary union")
     }
+  }
+
+  case class OutputBagDict(lbl: Label, flatBag: BagExpr, tupleDict: TupleDict) extends BagDict {
+    def union(that: Dict): OutputBagDict = that match {
+      case OutputBagDict(lbl2, flatBag2, tupleDict2) if flatBag.tp == flatBag2.tp =>
+        val l = Label(lbl.vars ++ lbl2.vars)
+        OutputBagDict(l, Union(flatBag, flatBag2), tupleDict.union(tupleDict2))
+      case _ => sys.error("Illegal dictionary union")
+    }
+
+    def flatBagTp: BagType = flatBag.tp
   }
 
   case class TupleDict(fields: Map[String, AttributeDict]) extends Dict {
