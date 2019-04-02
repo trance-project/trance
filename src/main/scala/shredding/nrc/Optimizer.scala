@@ -1,4 +1,4 @@
-package shredding.nrc2
+package shredding.nrc
 
 trait Optimizer extends NRCImplicits {
   this: ShreddedNRC =>
