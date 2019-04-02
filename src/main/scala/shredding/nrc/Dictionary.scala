@@ -1,10 +1,14 @@
 package shredding.nrc
 
+import shredding.core._
+
 trait Dictionary {
   this: ShreddedNRC =>
 
   sealed trait Dict {
     def union(that: Dict): Dict
+
+    def isPrimitiveDict: Boolean
   }
 
   sealed trait AttributeDict extends Dict {
@@ -16,9 +20,13 @@ trait Dictionary {
       case EmptyDict => EmptyDict
       case _ => sys.error("Illegal dictionary union")
     }
+
+    def isPrimitiveDict: Boolean = true
   }
 
   sealed trait BagDict extends AttributeDict {
+    def isPrimitiveDict: Boolean = false
+
     def flatBagTp: BagType
 
     def tupleDict: TupleDict
@@ -51,6 +59,8 @@ trait Dictionary {
         TupleDict(fields.map { case (k, v) => k -> v.union(fields2(k)) })
       case _ => sys.error("Illegal dictionary union")
     }
+
+    def isPrimitiveDict: Boolean = fields.forall(_._2.isPrimitiveDict)
   }
 
 }

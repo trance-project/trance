@@ -1,4 +1,4 @@
-package shredding.nrc
+package shredding.core
 
 /**
   * Variable definition

@@ -1,7 +1,11 @@
 package shredding.nrc
 
 import shredding.Utils.Symbol
+import shredding.core._
 
+/**
+  * Linearization of nested output queries
+  */
 trait Linearization extends Optimizer {
   this: ShreddedNRC with Shredding =>
 

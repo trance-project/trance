@@ -1,5 +1,7 @@
 package shredding.nrc
 
+import shredding.core._
+
 /**
   * Base NRC expressions
   */
@@ -129,7 +131,7 @@ trait NRC extends BaseExpr {
     def apply(fs: (String, TupleAttributeExpr)*): Tuple = Tuple(Map(fs: _*))
   }
 
-  case class Let(x: VarDef, e1: BagExpr, e2: Expr) extends Expr {
+  case class Let(x: VarDef, e1: Expr, e2: Expr) extends Expr {
     assert(x.tp == e1.tp)
 
     val tp: Type = e2.tp

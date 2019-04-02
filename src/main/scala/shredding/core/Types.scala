@@ -1,4 +1,4 @@
-package shredding.nrc
+package shredding.core
 
 /**
   * NRC type system
@@ -10,6 +10,8 @@ sealed trait TupleAttributeType extends Type
 sealed trait LabelAttributeType extends Type
 
 sealed trait PrimitiveType extends TupleAttributeType with LabelAttributeType
+
+case object BoolType extends PrimitiveType
 
 case object IntType extends PrimitiveType
 

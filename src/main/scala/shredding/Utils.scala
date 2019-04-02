@@ -8,8 +8,8 @@ object Utils {
     i + s.replaceAll("\n? *$", "").replaceAll("\n", "\n" + i)
   }
 
+  // Fresh variable name provider
   object Symbol {
-    // Fresh variables name provider
     private val counter = scala.collection.mutable.HashMap[String, Int]()
 
     def fresh(name: String = "x"): String = {
@@ -20,6 +20,6 @@ object Utils {
 
     def freshClear(): Unit = counter.clear
 
+    def getId(name: String): Int = counter.getOrElse(name, 0)
   }
-
 }

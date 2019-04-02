@@ -1,5 +1,7 @@
 package shredding.nrc
 
+import shredding.core._
+
 /**
   * Simple Scala evaluator
   */
@@ -53,7 +55,7 @@ trait Evaluator {
     case Singleton(e1) => List(evalTuple(e1, ctx))
     case Tuple(fs) => fs.map(x => x._1 -> eval(x._2, ctx))
     case Let(x, e1, e2) =>
-      ctx.add(x.name, evalBag(e1, ctx), e1.tp)
+      ctx.add(x.name, eval(e1, ctx), e1.tp)
       val v = eval(e2, ctx)
       ctx.remove(x.name, e1.tp)
       v
@@ -68,6 +70,7 @@ trait Evaluator {
         case OpNe =>
           if (vl != vr) evalBag(e1, ctx)
           else e2.map(evalBag(_, ctx)).getOrElse(Nil)
+        case _ => sys.error("Unsupported comparison operator: " + op)
       }
     case InputBag(_, b, _) => b
     case Named(n, e1) =>

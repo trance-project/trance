@@ -1,5 +1,7 @@
 package shredding.nrc
 
+import shredding.core._
+
 object TestApp extends App
   with Shredding
   with ShreddedNRC

@@ -1,5 +1,7 @@
 package shredding.nrc
 
+import shredding.core.VarDef
+
 /**
   * Extension methods for NRC expressions
   */
@@ -46,7 +48,7 @@ trait NRCImplicits {
           val rfs = fs.map(x => x._1 -> x._2.replace(f).asInstanceOf[TupleAttributeExpr])
           Tuple(rfs)
         case Let(x, e1, e2) =>
-          val r1 = e1.replace(f).asInstanceOf[BagExpr]
+          val r1 = e1.replace(f)
           val xd = VarDef(x.name, r1.tp)
           val r2 = e2.replace(f)
           Let(xd, r1, r2)

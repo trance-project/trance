@@ -1,5 +1,7 @@
 package shredding.nrc
 
+import shredding.core._
+
 trait Printer {
   this: NRC =>
 
@@ -35,8 +37,8 @@ trait Printer {
   }
 
   def quote(v: Any, tp: Type): String = tp match {
-    case IntType => v.toString
     case StringType => "\"" + v.toString + "\""
+    case _: PrimitiveType => v.toString
     case BagType(tp2) =>
       val l = v.asInstanceOf[List[Any]]
       s"""|[
