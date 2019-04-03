@@ -74,7 +74,7 @@ trait CalcTranslator extends Algebra{
             case z if eprime.nonEmpty => 
               val nv = VarDef("v", eprime.head._2.asInstanceOf[BagComp].tp, VarCnt.inc)
               unnest(BagComp(e.substitute(eprime.head._2, nv).asInstanceOf[TupleCalc], qs), 
-                u, nv +: w, unnest(eprime.head._2, w, w, e2))
+                u, w :+ nv, unnest(eprime.head._2, w, w, e2))
             case _ => if (u.isEmpty) { 
                 Term(Reduce(e, w, andPreds(qs)), e2) 
               }else{
