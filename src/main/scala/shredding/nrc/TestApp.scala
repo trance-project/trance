@@ -167,6 +167,60 @@ object TestApp extends App
     }
   }
 
+  object Example3 {
+
+    def run(): Unit = {
+
+      val depTp = TupleType("dno" -> IntType, "dname" -> StringType)
+      val departments = InputBag("Departments",
+        List(
+          Map("dno" -> 1, "dname" -> "dept_one"),
+          Map("dno" -> 2, "dname" -> "dept_two"),
+          Map("dno" -> 3, "dname" -> "dept_three"),
+          Map("dno" -> 4, "dname" -> "dept_four")
+        ), BagType(depTp))
+
+      val empTp = TupleType("dno" -> IntType, "ename" -> StringType)
+      val employees = InputBag("Employees",
+        List(
+          Map("dno" -> 1, "ename" -> "emp_one"),
+          Map("dno" -> 2, "ename" -> "emp_two"),
+          Map("dno" -> 3, "ename" -> "emp_three"),
+          Map("dno" -> 1, "ename" -> "emp_four"),
+          Map("dno" -> 4, "ename" -> "emp_five")
+        ), BagType(empTp))
+
+      val d = VarDef("d", depTp)
+      val e = VarDef("e", empTp)
+      val q1 =
+        ForeachUnion(d, departments,
+          Singleton(Tuple(
+            "D" -> Project(TupleVarRef(d), "dno"),
+            "E" -> ForeachUnion(e, employees,
+              IfThenElse(
+                Cond(
+                  OpEq,
+                  Project(TupleVarRef(e), "dno"),
+                  Project(TupleVarRef(d), "dno")),
+                Singleton(TupleVarRef(e))
+          )))))
+
+      println("Q1: " + quote(q1))
+      println("Q1 eval: " + eval(q1))
+
+      val q1shred = shred(q1)
+      println("Shredded Q1: " + q1shred.quote)
+      val q1trans = unshred(q1shred)
+      println("Unshredded shredded Q1: " + quote(q1trans))
+      println("Same as original Q1: " + q1trans.equals(q1))
+
+      val q1lin = linearize(q1shred)
+      println("Linearized Q1: " + quote(q1lin))
+      println("Linearized Q1 eval: " + eval(q1lin).asInstanceOf[List[Any]].mkString("\n"))
+
+    }
+  }
+
   object ExampleShredValue {
 
     def run(): Unit = {
@@ -280,7 +334,8 @@ object TestApp extends App
     }
   }
 
-  Example1.run()
-  Example2.run()
-  ExampleShredValue.run()
+//  Example1.run()
+//  Example2.run()
+  Example3.run()
+//  ExampleShredValue.run()
 }

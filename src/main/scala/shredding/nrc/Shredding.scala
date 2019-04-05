@@ -156,6 +156,7 @@ trait Shredding extends Dictionary with ShreddedPrinter with NRCImplicits {
         ShredExpr(Total(Lookup(lbl, dict2)), EmptyDict)
 
       case IfThenElse(c, e1, None) =>
+        // TODO: fix this
         val ShredExpr(l1: LabelExpr, dict1: BagDict) = shred(e1, ctx)
         val flat = IfThenElse(c, Lookup(l1, dict1), None)
         val lbl = Label(e.inputVars)
