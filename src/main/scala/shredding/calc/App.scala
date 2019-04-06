@@ -33,8 +33,49 @@ object App extends AlgTranslator with Algebra with Calc with CalcImplicits with 
         Map("a" -> 42, "b" -> "Thomas")
       ), BagType(itemTp))
 
-    println("--------------------- Query 1 ---------------------")
-    val xdef = VarDef("x", itemTp)
+    println("-------- Recursive query testing ------------")
+    val x0def = VarDef("x", itemTp, VarCnt.inc)
+    val x1def = VarDef("x", itemTp, VarCnt.inc)
+    val rq1 = ForeachUnion(x0def, relationR, 
+                ForeachUnion(x1def, relationR, 
+                  Singleton(Tuple("w1" -> Singleton(TupleVarRef(x0def)), "w2" -> Singleton(TupleVarRef(x1def))))))
+    println(rq1.quote)
+    println("")
+    val rq1shred = rq1.shred
+    println(rq1.eval)
+    println("")
+    val rq1lin = Linearize(rq1shred)
+    println("Linearized set: ")
+    rq1lin.foreach(e => println(e.quote))
+    val crqs = rq1lin.map(e => Translator.translate(e))
+    println("")
+    println("Comprehension calculus: ")
+    crqs.foreach(e => println(calc.quote(e.asInstanceOf[calc.CompCalc])))
+    /**println("")
+    println("WITHOUT NORMALIZATION")
+    val nrqs = crqs.map(e => e match { case NamedCBag(n,b) => NamedTerm(n, Unnester.unnest(b)) })  
+    nrqs.foreach(e => {
+      println("")
+      println("Unnested to Algebra: ")
+      println(calc.quote(e.asInstanceOf[calc.AlgOp]))
+      println("")
+      println("Evaluation: ")
+      sparke.evaluate(e).take(100).foreach(println(_))
+    })**/
+    
+    println("WITH NORMALIZATION")
+    val nnrqs = crqs.map(e => e match { case NamedCBag(n,b) => NamedTerm(n, Unnester.unnest(b.normalize)) })  
+    nnrqs.foreach(e => {
+      println("")
+      println("Unnested to Algebra: ")
+      println(calc.quote(e.asInstanceOf[calc.AlgOp]))
+      println("")
+      println("Evaluation: ")
+      sparke.evaluate(e).take(100).foreach(println(_))
+    })
+
+    
+    /**println("--------------------- Query 1 ---------------------")
     val q1 = ForeachUnion(xdef, relationR, Singleton(Tuple("w" -> Project(TupleVarRef(xdef), "b"))))
     println(q1.quote)
     println("")
@@ -84,8 +125,16 @@ object App extends AlgTranslator with Algebra with Calc with CalcImplicits with 
     println("")
     println("Comprehension calculus: ")
     val cqs2 = q2lin.map(e => Translator.translate(e))
-    cqs2.foreach(e => println(calc.quote(e.asInstanceOf[calc.CompCalc])))
+    cqs2.foreach(e => { println(calc.quote(e.asInstanceOf[calc.CompCalc]))})
     val nqs2 = cqs2.map(e => e match { case NamedCBag(n,b) => NamedTerm(n, Unnester.unnest(b.normalize)) })
+    println("")
+    println("normalized plans")
+    nqs2.foreach(e => println(calc.quote(e.asInstanceOf[calc.AlgOp])))
+    println("")
+    println("plans without normalization")
+    val nqs2a = cqs2.map(e => e match { case NamedCBag(n,b) => NamedTerm(n, Unnester.unnest(b)) })
+    nqs2a.foreach(e => println(calc.quote(e.asInstanceOf[calc.AlgOp])))
+
     sparke.reset 
     nqs2.foreach(e => {
       println("")
@@ -153,7 +202,7 @@ object App extends AlgTranslator with Algebra with Calc with CalcImplicits with 
       val nrdd4 = sparke.evaluate(e)
       nrdd4.take(100).foreach(println(_))
     })
-    /**println("")
+    println("")
     println("Normalized: ")
     val ncqs4 = cqs4.map(e => e.asInstanceOf[CompCalc].normalize)
     ncqs4.foreach(e => println(calc.quote(e.asInstanceOf[calc.CompCalc])))

@@ -57,15 +57,19 @@ trait CalcTranslator extends Algebra{
           }else{
             val p1 = tail.filter{_.pred1(v)}
             val p2 = tail.filter{_.pred2(v, w)}
-            val term = (x,u) match {
+            val nb = BagComp(e, tail.filterNot((p1++p2).toSet))
+            (x,u) match {
+              case (b2 @ BagComp(be2, _), _) => 
+                //val nv = VarDef("v", BagType(v.tp.asInstanceOf[TupleType]), VarCnt.inc)
+                // this should be identified as a bag variable
+                unnest(BagComp(e, tail), u, w :+ v, unnest(b2, w, w, e2))
               // if x is a path
-              case (ProjToBag(vd, field), Nil) => Term(Unnest(w :+ v, x, andPreds(p1 ++ p2)), e2) // UNNEST
-              case (ProjToBag(vd, field), _) => Term(OuterUnnest(w :+ v, x, andPreds(p1 ++ p2)), e2) // OUTER-UNNEST
+              case (ProjToBag(vd, field), Nil) => unnest(nb, u, w :+v, Term(Unnest(w :+ v, x, andPreds(p1 ++ p2)), e2)) // UNNEST
+              case (ProjToBag(vd, field), _) => unnest(nb, u, w :+v, Term(OuterUnnest(w :+ v, x, andPreds(p1 ++ p2)), e2)) // OUTER-UNNEST
               // if x is a variable
-              case (_, Nil) => Term(Join(w :+ v, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2)) // JOIN
-              case (_, _) => Term(OuterJoin(w :+ v, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2)) // OUTER-JOIN
+              case (_, Nil) => unnest(nb, u, w :+v, Term(Join(w :+ v, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2))) // JOIN
+              case (_, _) => unnest(nb, u, w :+v, Term(OuterJoin(w :+ v, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2))) // OUTER-JOIN
             }
-            unnest(BagComp(e, tail.filterNot((p1++p2).toSet)), u, w :+ v, term)
           }
         // { e | p } (ie. has no generators): rules C5, C8, and C12
         case y if !b.hasGenerator => 
@@ -73,11 +77,12 @@ trait CalcTranslator extends Algebra{
           eprime match {
             case z if eprime.nonEmpty => 
               val nv = VarDef("v", eprime.head._2.asInstanceOf[BagComp].tp, VarCnt.inc)
-              unnest(BagComp(e.substitute(eprime.head._2, nv).asInstanceOf[TupleCalc], qs), 
+              unnest(BagComp(e, qs).substitute(eprime.head._2, nv), 
                 u, w :+ nv, unnest(eprime.head._2, w, w, e2))
             case _ => if (u.isEmpty) { 
                 Term(Reduce(e, w, andPreds(qs)), e2) 
               }else{
+                // the last variable in the set is now the blocking variable
                 Term(Nest(e, w, u, andPreds(qs), w.filterNot(u.toSet)), e2)
               }
           }
@@ -85,7 +90,7 @@ trait CalcTranslator extends Algebra{
       }
       case Sng(t @ Tup(_)) => Select(e1.asInstanceOf[BagCalc], VarDef("v", t.tp, VarCnt.inc), Constant(true, BoolType))
       case _ => sys.error("not supported")
-    }
+   }
 
   }
 
