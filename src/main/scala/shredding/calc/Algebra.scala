@@ -29,7 +29,7 @@ trait BaseAlg {
 
 }
 
-trait Algebra extends BaseAlg with Calc{
+trait Algebra extends BaseAlg with ShreddedCalc{
 
   /**
     * Initial expression that will represent null input stream 
@@ -160,5 +160,9 @@ trait Algebra extends BaseAlg with Calc{
   // this is only temporary, the terms should be linked
   case class NamedTerm(n: String, t: AlgOp) extends AlgOp{
     def tp = t.tp
+  }
+
+  case class PlanSet(plans: List[AlgOp]) extends AlgOp{
+    def tp:TupleType = TupleType()
   }
 }

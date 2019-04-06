@@ -1,14 +1,15 @@
-package shredding.nrc2
+package shredding.calc
 
+import shredding.Utils.Symbol
 import shredding.core._
-import shredding.calc._
+import shredding.nrc.ShreddedNRC
 
 /**
   * Translation functions for NRC
   * 
   */
-trait NRCTranslator extends Calc{
-  this: NRC =>
+trait NRCTranslator extends ShreddedCalc {
+  this: ShreddedNRC =>
 
   object Translator extends Serializable{
     /**
@@ -22,11 +23,12 @@ trait NRCTranslator extends Calc{
       */
 
     def translate(e: Expr): CompCalc = e match {
+      case Sequence(es) => CSequence(es.map(translate(_)))
       case ForeachUnion(x, e1, e2) => translateBag(e2) match {
         case IfStmt(c, e3 @ Sng(t), e4 @ None) => BagComp(t, List(Generator(x, translateBag(e1)), c))
         case Sng(t) => BagComp(t, List(Generator(x, translateBag(e1))))
         case t =>
-            val v = VarDef("v", t.tp.tp, VarCnt.inc)
+            val v = VarDef(Symbol.fresh("v"), t.tp.tp)
             BagComp(TupleVar(v), List(Generator(x, translateBag(e1)), Generator(v, t))) 
         }
       case Union(e1, e2) => 
@@ -36,7 +38,7 @@ trait NRCTranslator extends Calc{
       case Let(x, e1, e2) => e2.tp match {
         case t:BagType => 
           val te2 = translateBag(e2) 
-          val v = VarDef("v", te2.tp.tp, VarCnt.inc) 
+          val v = VarDef(Symbol.fresh("v"), te2.tp.tp)
           BagComp(TupleVar(v), List(Bind(x, translate(e1)), Generator(v, te2)))
         case _ => sys.error("not supported")
       }
@@ -45,10 +47,10 @@ trait NRCTranslator extends Calc{
       case p:Project => Proj(translateTuple(p.tuple), p.field)
       case Const(v, tp) => Constant(v, tp)
       case v:VarRef => Var(v.varDef)
-      case Relation(n, b, t) => InputR(n, b, t)
-      case NamedBag(n, b) => NamedCBag(n, translateBag(b))
+      case Named(n, e) => CNamed(n, translate(e))
+      case InputBag(n, b, t) => InputR(n, b, t)
       case Lookup(lbl, dict) => CLookup(translateLabel(lbl), dict.asInstanceOf[InputBagDict])
-      case LabelRef(ld) => CLabelRef(ld) 
+      case l @ Label(vs) => CLabel(vs.map(translateVar(_)).toSet, l.id) 
       case _ => sys.error("not supported")
     }
 
@@ -67,6 +69,7 @@ trait NRCTranslator extends Calc{
     def translateBag(e: Expr): BagCalc = translate(e).asInstanceOf[BagCalc]
     def translateTuple(e: Expr): TupleCalc = translate(e).asInstanceOf[TupleCalc]
     def translateLabel(e: Expr): LabelCalc = translate(e).asInstanceOf[LabelCalc]
+    def translateVar(e: Expr): Var = translate(e).asInstanceOf[Var]
     def translateAttr(e: Expr): TupleAttributeCalc = translate(e).asInstanceOf[TupleAttributeCalc]
     def translateCond(e: Cond): Conditional = 
       Conditional(e.op, translateAttr(e.e1), translateAttr(e.e2)) 

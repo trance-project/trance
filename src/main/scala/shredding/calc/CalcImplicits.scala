@@ -2,7 +2,8 @@ package shredding.calc
 
 import shredding.core._
 
-trait CalcImplicits extends Calc {
+trait CalcImplicits {
+  this: Calc =>
 
   implicit class CompCalcOps(self: CompCalc) {
 
@@ -180,15 +181,8 @@ trait CalcImplicits extends Calc {
     }
 
     def normalize: CompCalc = self match {
-      case NamedCBag(n,b) => 
-        val nb = b.normalize
-        nb.tp match {
-          case t:BagType => NamedCBag(n, nb.asInstanceOf[BagCalc])
-          case _ => nb
-        }
       case ProjToBag(t @ Tup(fs), f) => fs.get(f).get
       case Generator(x, b) => b.normalize match {
-        case NamedCBag(n, b2 @ Sng(e)) => Bind(x,e) 
         case Sng(e) => Bind(x, e)
         case e => Bind(x, e)
       }

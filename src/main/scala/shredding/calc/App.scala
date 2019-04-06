@@ -1,13 +1,18 @@
 package shredding.calc
 
+import shredding.Utils.Symbol
 import shredding.core._
-import shredding.nrc2._
+import shredding.nrc._
 import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.Dataset
 
-object App extends AlgTranslator with Algebra with Calc with CalcImplicits with NRC with NRCTranslator with NRCTransforms with NRCImplicits with Dictionary with Linearization with CalcTranslator with ShreddingTransform with Serializable{
+object App extends 
+  AlgTranslator with Algebra 
+  with Calc with CalcImplicits with NRCTranslator 
+  with Shredding with ShreddedNRC with ShreddedPrinter with ShreddedEvaluator with Linearization
+  with CalcTranslator with Serializable{
 
   def main(args: Array[String]){
     val conf = new SparkConf().setMaster("local[*]").setAppName("SparkTest")
@@ -17,16 +22,16 @@ object App extends AlgTranslator with Algebra with Calc with CalcImplicits with 
     val etype = TupleType("dno" -> IntType, "ename" -> StringType)
     val e = VarDef("e", etype)
     val d = VarDef("d", dtype)
-    val employees = Relation("Employees", 
+    val employees = InputBag("Employees", 
                       List(Map("dno" -> 1, "ename" -> "one"),Map("dno" -> 2, "ename"-> "two"),
                             Map("dno" -> 3, "ename" -> "three"),Map("dno" -> 4, "ename" -> "four")), BagType(etype))
-    val departments = Relation("Departments", 
+    val departments = InputBag("Departments", 
                         List(Map("dno" -> 1, "dname" -> "five"),Map("dno" -> 2, "dname" -> "six"),
                               Map("dno" -> 3, "dname" -> "seven"),Map("dno" -> 4, "dname" -> "eight")), BagType(dtype))
     val sparke = SparkEvaluator(spark.sparkContext)
 
     val itemTp = TupleType("a" -> IntType, "b" -> StringType)
-    val relationR = Relation("R", List(
+    val relationR = InputBag("R", List(
         Map("a" -> 42, "b" -> "Milos"),
         Map("a" -> 69, "b" -> "Michael"),
         Map("a" -> 34, "b" -> "Jaclyn"),
@@ -34,47 +39,32 @@ object App extends AlgTranslator with Algebra with Calc with CalcImplicits with 
       ), BagType(itemTp))
 
     println("-------- Recursive query testing ------------")
-    val x0def = VarDef("x", itemTp, VarCnt.inc)
-    val x1def = VarDef("x", itemTp, VarCnt.inc)
+    val x0def = VarDef(Symbol.fresh("x"), itemTp)
+    val x1def = VarDef(Symbol.fresh("x"), itemTp)
     val rq1 = ForeachUnion(x0def, relationR, 
                 ForeachUnion(x1def, relationR, 
                   Singleton(Tuple("w1" -> Singleton(TupleVarRef(x0def)), "w2" -> Singleton(TupleVarRef(x1def))))))
-    println(rq1.quote)
+    println(quote(rq1))
     println("")
-    val rq1shred = rq1.shred
-    println(rq1.eval)
+    val rq1shred = shred(rq1)
+    println(eval(rq1))
     println("")
-    val rq1lin = Linearize(rq1shred)
+    val rq1lin = linearize(rq1shred)
     println("Linearized set: ")
-    rq1lin.foreach(e => println(e.quote))
-    val crqs = rq1lin.map(e => Translator.translate(e))
+    println(quote(rq1lin))
+    val crqs = Translator.translate(rq1lin)
     println("")
     println("Comprehension calculus: ")
-    crqs.foreach(e => println(calc.quote(e.asInstanceOf[calc.CompCalc])))
-    /**println("")
-    println("WITHOUT NORMALIZATION")
-    val nrqs = crqs.map(e => e match { case NamedCBag(n,b) => NamedTerm(n, Unnester.unnest(b)) })  
-    nrqs.foreach(e => {
-      println("")
-      println("Unnested to Algebra: ")
-      println(calc.quote(e.asInstanceOf[calc.AlgOp]))
-      println("")
-      println("Evaluation: ")
-      sparke.evaluate(e).take(100).foreach(println(_))
-    })**/
-    
-    println("WITH NORMALIZATION")
-    val nnrqs = crqs.map(e => e match { case NamedCBag(n,b) => NamedTerm(n, Unnester.unnest(b.normalize)) })  
-    nnrqs.foreach(e => {
-      println("")
-      println("Unnested to Algebra: ")
-      println(calc.quote(e.asInstanceOf[calc.AlgOp]))
-      println("")
-      println("Evaluation: ")
-      sparke.evaluate(e).take(100).foreach(println(_))
-    })
+    crqs.asInstanceOf[calc.CSequence].exprs.foreach(e => println(calc.quote(e)))
+    println("\nNormalized: ")
+    val nrqs = Unnester.unnest(crqs).asInstanceOf[PlanSet]
+    sparke.execute(nrqs)
 
-    
+    println("\nNot Normalized: ")
+    Unnester.normalize = false
+    val nnrqs = Unnester.unnest(crqs).asInstanceOf[PlanSet]
+    sparke.execute(nnrqs)
+
     /**println("--------------------- Query 1 ---------------------")
     val q1 = ForeachUnion(xdef, relationR, Singleton(Tuple("w" -> Project(TupleVarRef(xdef), "b"))))
     println(q1.quote)

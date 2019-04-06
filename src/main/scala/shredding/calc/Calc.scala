@@ -1,6 +1,7 @@
 package shredding.calc
 
 import shredding.core._
+import shredding.nrc.{Dictionary, ShreddedNRC}
 
 /**
   * Base NRC expressions
@@ -30,11 +31,11 @@ trait BaseCalc {
     def tp: TupleAttributeType
   }
 
-  trait LabelAttributeCalc extends TupleAttributeCalc {
+  trait LabelAttributeCalc extends CompCalc {
     def tp: LabelAttributeType
   }
 
-  trait PrimitiveCalc extends TupleAttributeCalc {
+  trait PrimitiveCalc extends TupleAttributeCalc with LabelAttributeCalc {
     def tp: PrimitiveType 
   }
 
@@ -42,12 +43,12 @@ trait BaseCalc {
     def tp: BagType   
   }
 
-  trait TupleCalc extends CompCalc {
+  trait TupleCalc extends CompCalc with LabelAttributeCalc {
     def tp: TupleType 
   }
 
-  trait LabelCalc extends LabelAttributeCalc {
-    def tp: LabelAttributeType
+  trait LabelCalc extends TupleAttributeCalc with LabelAttributeCalc {
+    def tp: LabelType
   }
 
 }
@@ -240,7 +241,7 @@ trait Calc extends BaseCalc {
       case t: TupleType => BindTuple(x, v.asInstanceOf[TupleCalc])
       case t: PrimitiveType => BindPrimitive(x, v.asInstanceOf[PrimitiveCalc])
       case t: BagType => Generator(x, v.asInstanceOf[BagCalc])
-      case _ => throw new IllegalArgumentException(s"cannot bind VarDef(${x.n})")
+      case _ => throw new IllegalArgumentException(s"cannot bind VarDef(${x.name})")
     }
   }
 
@@ -267,18 +268,33 @@ trait Calc extends BaseCalc {
     assert(e1.tp == BoolType)
     val tp: PrimitiveType = BoolType
   }
-  
-  case class CLabelRef(labelDef: LabelDef) extends LabelCalc{
-    val tp: LabelType = labelDef.tp
-  }
 
-  case class CLookup(lbl: LabelCalc, dict: InputBagDict) extends BagCalc{
-    def tp: BagType = dict.flatBagTp
-  }
+  case class CNamed(n: String, e: CompCalc) extends CompCalc {
+    val tp: Type = e.tp 
+  }  
   
-  case class NamedCBag(n: String, e: BagCalc) extends BagCalc {
-    val tp: BagType = e.tp
+  case class CSequence(exprs: List[CompCalc]) extends CompCalc {
+    val tp: TupleType = TupleType()
   }
 
 }
 
+trait ShreddedCalc extends Calc 
+  with Dictionary with ShreddedNRC {
+
+  case class CLabel(vars: Set[Var] = Set.empty, id: Int) extends LabelCalc {
+    val tp: LabelType = LabelType(vars.map(r => r.name -> r.tp.asInstanceOf[LabelAttributeType]).toMap)
+    
+    override def equals(that: Any): Boolean = that match {
+      case that: CLabel => this.id == that.id
+      case _ => false
+    }
+
+    override def hashCode: Int = id.hashCode()
+
+  }
+
+  case class CLookup(lbl: LabelCalc, dict: BagDict) extends BagCalc{
+    def tp: BagType = dict.flatBagTp
+  }
+}

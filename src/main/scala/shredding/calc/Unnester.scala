@@ -1,12 +1,15 @@
 package shredding.calc
 
 import shredding.core._
+import shredding.Utils.Symbol
 
-trait CalcTranslator extends Algebra{
+trait CalcTranslator extends Algebra {
   this: CalcImplicits =>
   
 
   object Unnester extends Serializable{
+
+    var normalize = true
 
     /**
       * Turn a list of predicates into an and condition
@@ -60,7 +63,6 @@ trait CalcTranslator extends Algebra{
             val nb = BagComp(e, tail.filterNot((p1++p2).toSet))
             (x,u) match {
               case (b2 @ BagComp(be2, _), _) => 
-                //val nv = VarDef("v", BagType(v.tp.asInstanceOf[TupleType]), VarCnt.inc)
                 // this should be identified as a bag variable
                 unnest(BagComp(e, tail), u, w :+ v, unnest(b2, w, w, e2))
               // if x is a path
@@ -76,7 +78,7 @@ trait CalcTranslator extends Algebra{
           val eprime = unnestHead(e)
           eprime match {
             case z if eprime.nonEmpty => 
-              val nv = VarDef("v", eprime.head._2.asInstanceOf[BagComp].tp, VarCnt.inc)
+              val nv = VarDef(Symbol.fresh("v"), eprime.head._2.asInstanceOf[BagComp].tp)
               unnest(BagComp(e, qs).substitute(eprime.head._2, nv), 
                 u, w :+ nv, unnest(eprime.head._2, w, w, e2))
             case _ => if (u.isEmpty) { 
@@ -88,8 +90,12 @@ trait CalcTranslator extends Algebra{
           }
         case _ => sys.error("not supported")
       }
-      case Sng(t @ Tup(_)) => Select(e1.asInstanceOf[BagCalc], VarDef("v", t.tp, VarCnt.inc), Constant(true, BoolType))
-      case _ => sys.error("not supported")
+      case Sng(t @ Tup(_)) => Select(e1.asInstanceOf[BagCalc], VarDef(Symbol.fresh("v"), t.tp), Constant(true, BoolType))
+      case InputR(n, b, t) => Select(e1.asInstanceOf[BagCalc], VarDef(Symbol.fresh("v"), t.tp), Constant(true, BoolType))
+      case CNamed(n, b) => 
+        NamedTerm(n, unnest(if (normalize) { b.normalize } else { b }))
+      case CSequence(cs) => PlanSet(cs.map(unnest(_)))
+      case _ => sys.error("not supported "+e1)
    }
 
   }

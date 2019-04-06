@@ -2,9 +2,10 @@ package shredding.calc
 
 import org.scalatest.FunSuite
 import shredding.core._
-import shredding.nrc2._
+import shredding.nrc.NRC
+import shredding.Utils.Symbol
 
-class UnnesterTest extends FunSuite with CalcTranslator with CalcImplicits with NRCTranslator with NRC{
+class UnnesterTest extends FunSuite with CalcTranslator with CalcImplicits with NRCTranslator with NRC {
 
     def print(e: CompCalc) = println(calc.quote(e.asInstanceOf[calc.CompCalc]))    
     
@@ -19,7 +20,7 @@ class UnnesterTest extends FunSuite with CalcTranslator with CalcImplicits with 
       val etype = TupleType("name" -> StringType, "children" -> BagType(ctype))
       val e = VarDef("e", etype)
       val c = VarDef("c", ctype)
-      val employees = Relation("Employees", List(
+      val employees = InputBag("Employees", List(
                         Map("name" -> "one", "children" -> List(Map("name" -> "child1"), Map("name" -> "child2"))),
                         Map("name" -> "two", "children" -> List(Map("name" -> "child3"), Map("name" -> "child4"))),
                         Map("name" -> "three", "children" -> List(Map("name" -> "child1"), Map("name" -> "child3"))),
@@ -64,9 +65,9 @@ class UnnesterTest extends FunSuite with CalcTranslator with CalcImplicits with 
       val etype = TupleType("dno" -> IntType)
       val e = VarDef("e", etype)
       val d = VarDef("d", dtype)
-      val employees = Relation("Employees", List(
+      val employees = InputBag("Employees", List(
                         Map("dno" -> 1), Map("dno" -> 2), Map("dno" -> 3), Map("dno" -> 4)), BagType(etype))
-      val departments = Relation("Departments", List(
+      val departments = InputBag("Departments", List(
                           Map("dno" -> 1), Map("dno" -> 2), Map("dno" -> 3), Map("dno" -> 4)), BagType(dtype))
 
       // For d in Departments Union 
@@ -99,7 +100,7 @@ class UnnesterTest extends FunSuite with CalcTranslator with CalcImplicits with 
       //     d           e
       //    /             \
       // Departments    Employees
-      val v = VarDef("v", BagType(etype), VarCnt.currId+1)
+      val v = VarDef(Symbol.fresh("v"), BagType(etype))
       val nq = Unnester.unnest(cq.normalize)
       assert(nq.tp == BagType(TupleType("D" -> IntType, "E" -> BagType(TupleType("dno" -> IntType)))))
       val nopreds = List[PrimitiveCalc]()

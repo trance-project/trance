@@ -1,4 +1,4 @@
-package shredding.nrc2
+package shredding.nrc
 
 import shredding.core._
 
@@ -11,28 +11,28 @@ trait BaseExpr {
     def tp: Type
   }
 
-  trait TupleAttributeExpr extends Expr {
+  sealed trait TupleAttributeExpr extends Expr {
     def tp: TupleAttributeType
   }
 
-  trait LabelAttributeExpr extends TupleAttributeExpr {
+  sealed trait LabelAttributeExpr extends Expr {
     def tp: LabelAttributeType
   }
 
-  trait PrimitiveExpr extends LabelAttributeExpr {
+  sealed trait PrimitiveExpr extends TupleAttributeExpr with LabelAttributeExpr {
     def tp: PrimitiveType
   }
 
-  trait BagExpr extends TupleAttributeExpr {
+  sealed trait BagExpr extends TupleAttributeExpr {
     def tp: BagType
   }
 
-  trait TupleExpr extends Expr {
+  sealed trait TupleExpr extends Expr with LabelAttributeExpr {
     def tp: TupleType
   }
 
-  trait LabelExpr extends LabelAttributeExpr {
-    def tp: LabelAttributeType
+  sealed trait LabelExpr extends TupleAttributeExpr with LabelAttributeExpr {
+    def tp: LabelType
   }
 
 }
@@ -44,9 +44,7 @@ trait NRC extends BaseExpr {
 
   case class Const(v: Any, tp: PrimitiveType) extends PrimitiveExpr
 
-  case class BagConst(v: List[Any], tp: BagType) extends BagExpr
-
-  trait VarRef extends Expr {
+  sealed trait VarRef extends Expr {
     def varDef: VarDef
 
     def name: String = varDef.name
@@ -68,16 +66,16 @@ trait NRC extends BaseExpr {
     override def tp: PrimitiveType = super.tp.asInstanceOf[PrimitiveType]
   }
 
-  case class LabelVarRef(varDef: VarDef) extends LabelExpr with VarRef {
-    override def tp: LabelType = super.tp.asInstanceOf[LabelType]
-  }
-
   case class BagVarRef(varDef: VarDef) extends BagExpr with VarRef {
     override def tp: BagType = super.tp.asInstanceOf[BagType]
   }
 
   case class TupleVarRef(varDef: VarDef) extends TupleExpr with VarRef {
     override def tp: TupleType = super.tp.asInstanceOf[TupleType]
+  }
+
+  case class LabelVarRef(varDef: VarDef) extends LabelExpr with VarRef {
+    override def tp: LabelType = super.tp.asInstanceOf[LabelType]
   }
 
   trait Project extends Expr {
@@ -91,8 +89,8 @@ trait NRC extends BaseExpr {
   case object Project {
     def apply(tuple: TupleExpr, field: String): TupleAttributeExpr = tuple.tp.attrs(field) match {
       case _: PrimitiveType => PrimitiveProject(tuple, field)
-      case _: LabelType => LabelProject(tuple, field)
       case _: BagType => BagProject(tuple, field)
+      case _: LabelType => LabelProject(tuple, field)
       case t => sys.error("Cannot create Project for type " + t)
     }
   }
@@ -101,12 +99,12 @@ trait NRC extends BaseExpr {
     override def tp: PrimitiveType = super.tp.asInstanceOf[PrimitiveType]
   }
 
-  case class LabelProject(tuple: TupleExpr, field: String) extends LabelExpr with Project {
-    override def tp: LabelType = super.tp.asInstanceOf[LabelType]
-  }
-
   case class BagProject(tuple: TupleExpr, field: String) extends BagExpr with Project {
     override def tp: BagType = super.tp.asInstanceOf[BagType]
+  }
+
+  case class LabelProject(tuple: TupleExpr, field: String) extends LabelExpr with Project {
+    override def tp: LabelType = super.tp.asInstanceOf[LabelType]
   }
 
   case class ForeachUnion(x: VarDef, e1: BagExpr, e2: BagExpr) extends BagExpr {
@@ -139,9 +137,7 @@ trait NRC extends BaseExpr {
     val tp: Type = e2.tp
   }
 
-  case class Mult(e1: TupleExpr, e2: BagExpr) extends PrimitiveExpr {
-    assert(e1.tp == e2.tp.tp)
-
+  case class Total(e: BagExpr) extends PrimitiveExpr {
     val tp: PrimitiveType = IntType
   }
 
@@ -153,32 +149,56 @@ trait NRC extends BaseExpr {
     val tp: BagType = e1.tp
   }
 
-  case class Relation(n: String, tuples: List[Any], tp: BagType) extends BagExpr
+  case class InputBag(n: String, tuples: List[Any], tp: BagType) extends BagExpr
 
-  case class NamedBag(n: String, e: BagExpr) extends BagExpr {
-    val tp: BagType = e.tp
+
+  case class Named(n: String, e: Expr) extends Expr {
+    val tp: Type = TupleType()    // unit type
+  }
+
+  case class Sequence(exprs: List[Expr]) extends Expr {
+    val tp: Type = TupleType()    // unit type
+  }
+
+}
+
+/**
+  * Shredding NRC extension
+  */
+trait ShreddedNRC extends NRC with Dictionary {
+
+  case class Lookup(lbl: LabelExpr, dict: BagDict) extends BagExpr {
+    def tp: BagType = dict.flatBagTp
   }
 
   /**
-    * Shredding NRC extension
+    * Runtime labels appearing in shredded input relations
     */
-  case class Lookup(lbl: LabelExpr, dict: BagDict) extends BagExpr {
-    def tp: BagType = dict.flatBagTp
+  object Label {
+    private var currId = 0
 
-//    def resolve: BagExpr = dict match {
-//      case d: OutputBagDict if lbl == d.lbl => d.flat
-//      case d: InputBagDict => BagConst(d.f(lbl.asInstanceOf[LabelId]), d.flatBagTp)
-//      case d => sys.error("Cannot resolve dictionary lookup " + d)
-//    }
+    def getNextId: Int = {
+      currId += 1
+      currId
+    }
+
+    implicit def orderingById: Ordering[Label] = Ordering.by(e => e.id)
   }
 
-  case class LabelRef(labelDef: LabelDef) extends LabelExpr {
-    def tp: LabelType = labelDef.tp
+  case class Label(vars: Set[VarRef] = Set.empty) extends LabelExpr {
+    val id: Int = Label.getNextId
+
+    val tp: LabelType = LabelType(vars.map(r => r.name -> r.tp.asInstanceOf[LabelAttributeType]).toMap)
+
+    override def equals(that: Any): Boolean = that match {
+      case that: Label => this.id == that.id
+      case _ => false
+    }
+
+    override def hashCode: Int = id.hashCode()
+
+    override def toString: String =
+      s"Label(${(id :: vars.map(_.toString).toList).mkString(", ")}"
   }
-
-  //  case class NewLabel(free: Map[String, VarRef]) extends LabelExpr {
-  //    val tp: LabelType = LabelType(free.map(f => f._1 -> f._2.tp.asInstanceOf[LabelAttributeType]))
-  //  }
-
 
 }

@@ -3,7 +3,7 @@ package shredding.calc
 import shredding.Utils.ind
 import shredding.core._
 
-package object calc extends Calc with Algebra { 
+package object calc extends ShreddedCalc with Algebra { 
 
     def quote(e: CompCalc): String = e match {
       case Constant(v, _) => "\""+ v +"\""
@@ -30,10 +30,10 @@ package object calc extends Calc with Algebra {
       case BindPrimitive(x, v) => s"${core.quote(x)} := ${quote(v)}"
       case BindTuple(x, v) => s"${core.quote(x)} := ${quote(v)}"
       case Generator(x, v) => s" ${core.quote(x)} <- ${quote(v)} "
+      case CNamed(n, b) => n+" := "+quote(b)
       case InputR(n, _, _) => n
       case CountComp(e1, qs) => s" + { ${quote(e1)} | ${qs.map(quote(_)).mkString(",")} }"
-      case NamedCBag(n, b) => n+s" := ${quote(b)} "
-      case CLabelRef(ld) => ld.toString
+      case CLabel(vs, id) => s"Label${id}(${vs.map(quote(_)).mkString(",")})"
       case CLookup(lbl, dict) => s"Lookup(${dict.toString})(${quote(lbl)})"
       case _ => throw new IllegalArgumentException("unknown type")
     }

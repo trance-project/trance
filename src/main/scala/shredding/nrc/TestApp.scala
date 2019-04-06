@@ -1,15 +1,20 @@
-package shredding.nrc2
+package shredding.nrc
 
 import shredding.core._
 
-object TestApp extends App with NRC with NRCTransforms with ShreddingTransform with Linearization with NRCImplicits with Dictionary {
+object TestApp extends App
+  with Shredding
+  with ShreddedNRC
+  with ShreddedPrinter
+  with ShreddedEvaluator
+  with Linearization {
 
   object Example1 {
 
     def run(): Unit = {
 
       val itemTp = TupleType("a" -> IntType, "b" -> StringType)
-      val relationR = Relation("R", List(
+      val relationR = InputBag("R", List(
         Map("a" -> 42, "b" -> "Milos"),
         Map("a" -> 69, "b" -> "Michael"),
         Map("a" -> 34, "b" -> "Jaclyn"),
@@ -18,20 +23,20 @@ object TestApp extends App with NRC with NRCTransforms with ShreddingTransform w
 
       val xdef = VarDef("x", itemTp)
       val xref = TupleVarRef(xdef)
-
       val q1 = ForeachUnion(xdef, relationR, Singleton(Tuple("w" -> Project(xref, "b"))))
 
-      println("Q1: " + q1.quote)
-      println("Q1 eval: " + q1.eval)
+      println("Q1: " + quote(q1))
+      println("Q1 eval: " + eval(q1))
 
-      val q1shred = q1.shred
+      val q1shred = shred(q1)
       println("Shredded Q1: " + q1shred.quote)
-      println("Unshredded shredded Q1: " + Shredder.unshred(q1shred).quote)
-      println("Same as original Q1: " + Shredder.unshred(q1shred).equals(q1))
+      val q1trans = unshred(q1shred)
+      println("Unshredded shredded Q1: " + quote(q1trans))
+      println("Same as original Q1: " + q1trans.equals(q1))
 
-      println("Linearized Q1")
-      val q1lin = Linearize(q1shred)
-      q1lin.foreach(e => println(e.quote))
+      val q1lin = linearize(q1shred)
+      println("Linearized Q1: " + quote(q1lin))
+      println("Linearized Q1 eval: " + eval(q1lin).asInstanceOf[List[Any]].mkString("\n"))
 
       val ydef = VarDef("y", itemTp)
       val yref = TupleVarRef(ydef)
@@ -45,17 +50,18 @@ object TestApp extends App with NRC with NRCTransforms with ShreddingTransform w
             ))
         )))
 
-      println("Q2: " + q2.quote)
-      println("Q2 eval: " + q2.eval)
+      println("Q2: " + quote(q2))
+      println("Q2 eval: " + eval(q2))
 
-      val q2shred = q2.shred
+      val q2shred = shred(q2)
       println("Shredded Q2: " + q2shred.quote)
-      println("Unshredded shredded Q2: " + Shredder.unshred(q2shred).quote)
-      println("Same as original Q2: " + Shredder.unshred(q2shred).equals(q2))
+      val q2trans = unshred(q2shred)
+      println("Unshredded shredded Q2: " + quote(q2trans))
+      println("Same as original Q2: " + q2trans.equals(q2))
 
-      println("Linearized Q2")
-      val q2lin = Linearize(q2shred)
-      q2lin.foreach(e => println(e.quote))
+      val q2lin = linearize(q2shred)
+      println("Linearized Q2: " + quote(q2lin))
+      println("Linearized Q2 eval: " + eval(q2lin).asInstanceOf[List[Any]].mkString("\n"))
     }
   }
 
@@ -77,7 +83,7 @@ object TestApp extends App with NRC with NRCTransforms with ShreddingTransform w
         "j" -> BagType(nestedItemTp)
       ))
 
-      val relationR = Relation("R", List(
+      val relationR = InputBag("R", List(
         Map(
           "h" -> 42,
           "j" -> List(
@@ -131,7 +137,6 @@ object TestApp extends App with NRC with NRCTransforms with ShreddingTransform w
 
       val xdef = VarDef("x", itemTp)
       val xref = TupleVarRef(xdef)
-
       val wdef = VarDef("w", nestedItemTp)
       val wref = TupleVarRef(wdef)
 
@@ -139,28 +144,79 @@ object TestApp extends App with NRC with NRCTransforms with ShreddingTransform w
         Singleton(Tuple(
           "o5" -> Project(xref, "h"),
           "o6" ->
-            ForeachUnion(wdef, Project(xref, "j").asInstanceOf[BagExpr],
+            ForeachUnion(wdef, BagProject(xref, "j"),
               Singleton(Tuple(
                 "o7" -> Project(wref, "m"),
-                "o8" -> Mult(
-                  Tuple("n" -> Project(wref, "n")),
-                  Project(wref, "k").asInstanceOf[BagExpr]
-                )
+                "o8" -> Total(BagProject(wref, "k"))
               ))
             )
         )))
 
-      println("Q1: " + q1.quote)
-      println("Q1 eval: " + q1.eval)
+      println("Q1: " + quote(q1))
+      println("Q1 eval: " + eval(q1))
 
-      val q1shred = q1.shred
+      val q1shred = shred(q1)
       println("Shredded Q1: " + q1shred.quote)
-      println("Unshredded shredded Q1: " + Shredder.unshred(q1shred).quote)
-      println("Same as original Q1: " + Shredder.unshred(q1shred).equals(q1))
+      val q1trans = unshred(q1shred)
+      println("Unshredded shredded Q1: " + quote(q1trans))
+      println("Same as original Q1: " + q1trans.equals(q1))
 
-      println("Linearized Q1")
-      val q1lin = Linearize(q1shred)
-      q1lin.foreach(e => println(e.quote))
+      val q1lin = linearize(q1shred)
+      println("Linearized Q1: " + quote(q1lin))
+      println("Linearized Q1 eval: " + eval(q1lin).asInstanceOf[List[Any]].mkString("\n"))
+    }
+  }
+
+  object Example3 {
+
+    def run(): Unit = {
+
+      val depTp = TupleType("dno" -> IntType, "dname" -> StringType)
+      val departments = InputBag("Departments",
+        List(
+          Map("dno" -> 1, "dname" -> "dept_one"),
+          Map("dno" -> 2, "dname" -> "dept_two"),
+          Map("dno" -> 3, "dname" -> "dept_three"),
+          Map("dno" -> 4, "dname" -> "dept_four")
+        ), BagType(depTp))
+
+      val empTp = TupleType("dno" -> IntType, "ename" -> StringType)
+      val employees = InputBag("Employees",
+        List(
+          Map("dno" -> 1, "ename" -> "emp_one"),
+          Map("dno" -> 2, "ename" -> "emp_two"),
+          Map("dno" -> 3, "ename" -> "emp_three"),
+          Map("dno" -> 1, "ename" -> "emp_four"),
+          Map("dno" -> 4, "ename" -> "emp_five")
+        ), BagType(empTp))
+
+      val d = VarDef("d", depTp)
+      val e = VarDef("e", empTp)
+      val q1 =
+        ForeachUnion(d, departments,
+          Singleton(Tuple(
+            "D" -> Project(TupleVarRef(d), "dno"),
+            "E" -> ForeachUnion(e, employees,
+              IfThenElse(
+                Cond(
+                  OpEq,
+                  Project(TupleVarRef(e), "dno"),
+                  Project(TupleVarRef(d), "dno")),
+                Singleton(TupleVarRef(e))
+          )))))
+
+      println("Q1: " + quote(q1))
+      println("Q1 eval: " + eval(q1))
+
+      val q1shred = shred(q1)
+      println("Shredded Q1: " + q1shred.quote)
+      val q1trans = unshred(q1shred)
+      println("Unshredded shredded Q1: " + quote(q1trans))
+      println("Same as original Q1: " + q1trans.equals(q1))
+
+      val q1lin = linearize(q1shred)
+      println("Linearized Q1: " + quote(q1lin))
+      println("Linearized Q1 eval: " + eval(q1lin).asInstanceOf[List[Any]].mkString("\n"))
 
     }
   }
@@ -266,20 +322,20 @@ object TestApp extends App with NRC with NRCTransforms with ShreddingTransform w
         )
       )
 
-      val shredR = Shredder.shredValue(relationR, BagType(itemTp))
+      val shredR = shred(relationR, BagType(itemTp))
 
-      println(Printer.quote(relationR, BagType(itemTp)))
+      println(quote(relationR, BagType(itemTp)))
       println(shredR.quote)
 
-      val unshredR = Shredder.unshredValue(shredR)
-      println(Printer.quote(unshredR, BagType(itemTp)))
+      val unshredR = unshred(shredR)
+      println(quote(unshredR, BagType(itemTp)))
 
       println("Same as original: " + relationR.equals(unshredR))
     }
   }
 
-  Example1.run()
-  Example2.run()
-
+//  Example1.run()
+//  Example2.run()
+  Example3.run()
 //  ExampleShredValue.run()
 }

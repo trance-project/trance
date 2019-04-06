@@ -3,13 +3,13 @@ package shredding.core
 /**
   * NRC type system
   */
-trait Type
+sealed trait Type
 
-trait TupleAttributeType extends Type
+sealed trait TupleAttributeType extends Type
 
-trait LabelAttributeType extends TupleAttributeType
+sealed trait LabelAttributeType extends Type
 
-trait PrimitiveType extends LabelAttributeType
+sealed trait PrimitiveType extends TupleAttributeType with LabelAttributeType
 
 case object BoolType extends PrimitiveType
 
@@ -17,11 +17,11 @@ case object IntType extends PrimitiveType
 
 case object StringType extends PrimitiveType
 
-case class LabelType(attrs: Map[String, LabelAttributeType]) extends LabelAttributeType
-
 case class BagType(tp: TupleType) extends TupleAttributeType
 
-case class TupleType(attrs: Map[String, TupleAttributeType]) extends Type
+case class TupleType(attrs: Map[String, TupleAttributeType]) extends Type with LabelAttributeType
+
+case class LabelType(attrs: Map[String, LabelAttributeType]) extends TupleAttributeType with LabelAttributeType
 
 /**
   * Helper objects for creating tupled types
@@ -33,4 +33,3 @@ object TupleType {
 object LabelType {
   def apply(attrs: (String, LabelAttributeType)*): LabelType = LabelType(Map(attrs: _*))
 }
-

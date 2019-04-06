@@ -10,7 +10,7 @@ import org.apache.spark.rdd.RDD
   */
 
 trait AlgTranslator {
-  this: Algebra with Calc =>
+  this: Algebra with ShreddedCalc =>
   
   class SparkEvaluator(@transient val sc: SparkContext) extends Serializable{
     
@@ -18,6 +18,15 @@ trait AlgTranslator {
     
     val ctx: HMap[String, RDD[_]] = HMap[String, RDD[_]]()
     def reset = ctx.clear 
+   
+    def execute(p: PlanSet) = {
+      reset
+      p.plans.foreach(e =>{
+        println("\nUnnested: "+calc.quote(e.asInstanceOf[calc.AlgOp]))
+        println("\nEvaluated: ")
+        evaluate(e).take(100).foreach(println(_))
+      })
+    }
     
     /**
       * Gets the index of a projection label
@@ -48,10 +57,10 @@ trait AlgTranslator {
       case _ => value
     }
 
-    def flatten(xs: List[Any]): List[Any] = xs match {
-      case Nil => Nil
-      case (head: List[_]) :: Nil => flatten(head)
-      case head :: tail => xs
+    def flatten(xs: Any, i:Int): Any = xs match {
+      case s:List[Set[_]] => s(i)
+      case l:Iterable[_] => l.map(flatten(_, i))
+      case l => l.asInstanceOf[Product].productElement(i)
     }
 
     /**
@@ -60,35 +69,26 @@ trait AlgTranslator {
     def matchPattern(vars: Any, e:CompCalc, value: Any): Any = {
       e match {
       case Tup(fs) => fs.map{ case (k,v) => v match {
-        case l @ CLabelRef(_) => l
+        case CLabel(vs,_) => vs.map( vd => extractVar(vd.varDef, vars, value))
         case _ => matchPattern(vars, v, value)
       }}
       case p:Proj => p.tuple match {
-        case TupleVar(vd) => {
-          extractVar(vd, vars, value) match {
-            case ev:Iterable[_] => ev.map(_.asInstanceOf[Product].productElement(getIndex(e)))
-            case ev => ev.asInstanceOf[Product].productElement(getIndex(e))
+        case TupleVar(vd) => flatten(extractVar(vd, vars, value), getIndex(e))
+        /** match {
+            case ev:Iterable[_] => 
+              println("extracted this var "+ev); 
+              ev.map(_.asInstanceOf[Product].productElement(getIndex(e)))
+            case ev => 
+              println("extracted a base type "+ev); 
+              ev.asInstanceOf[Product].productElement(getIndex(e))
           }
-        }
+        }**/
       }
       case Sng(e1) => matchPattern(vars, e1, value)
       case Constant(a, t) => a
       case v:Var => extractVar(v.varDef, vars, value)
       case _ => value.asInstanceOf[Product].productElement(getIndex(e))
     }}
-
-    /**
-      * Matches a tuple pattern 
-      */
-    def matchPattern(e: CompCalc, value: Any) = e match {
-      case Tup(fs) => fs.map{ case (k,v) => v match {
-        case l @ CLabelRef(_) => l
-        case _ => value.asInstanceOf[Product].productElement(getIndex(v))
-      }}
-      case Constant(a, t) => a
-      case TupleVar(vd) => value // return the full value?
-      case _ => value.asInstanceOf[Product].productElement(getIndex(e))
-    }
 
     /**
       * maps terms in a condition to constant type to avoid comparision
@@ -106,28 +106,28 @@ trait AlgTranslator {
       * only tested with one variable for now
       *
       */
-    def filterCondition(e: CompCalc): Any => Boolean = e match {
+    def filterCondition(vars: Any, e: CompCalc): Any => Boolean = e match {
       case Conditional(op, e1, e2) => op match {
         case OpGt => (a: Any) => 
-          matchPattern(e1, a).asInstanceOf[Int] > matchPattern(e2, a).asInstanceOf[Int]
+          matchPattern(vars, e1, a).asInstanceOf[Int] > matchPattern(vars, e2, a).asInstanceOf[Int]
         case OpGe => (a: Any) => 
-          matchPattern(e1, a).asInstanceOf[Int] >= matchPattern(e2, a).asInstanceOf[Int]
+          matchPattern(vars, e1, a).asInstanceOf[Int] >= matchPattern(vars, e2, a).asInstanceOf[Int]
         case OpNe => (a: Any) => 
           toConstant(e1, a) != toConstant(e2, a)
         case OpEq => (a: Any) => 
           toConstant(e1, a) == toConstant(e2, a)
       }
-      case NotCondition(e1) => (a: Any) => !filterCondition(e)(a)
-      case AndCondition(e1, e2) => (a: Any) => filterCondition(e1)(a) && filterCondition(e2)(a)
-      case OrCondition(e1, e2) => (a: Any) => filterCondition(e1)(a) || filterCondition(e2)(a)
+      case NotCondition(e1) => (a: Any) => !filterCondition(vars, e)(a)
+      case AndCondition(e1, e2) => (a: Any) => filterCondition(vars, e1)(a) && filterCondition(vars, e2)(a)
+      case OrCondition(e1, e2) => (a: Any) => filterCondition(vars, e1)(a) || filterCondition(vars, e2)(a)
     }
 
     /**
       * Passes the filter conditions, if necessary
       */
-    def filterRDD(r: RDD[_], p: PrimitiveCalc) = p match {
+    def filterRDD(r: RDD[_], p: PrimitiveCalc, vars: Any) = p match {
       case Constant(true, _) => r
-      case _ => r.filter(filterCondition(p)(_))
+      case _ => r.filter(filterCondition(vars, p)(_))
     }
  
     /**
@@ -178,10 +178,11 @@ trait AlgTranslator {
           case head :: tail => tuple2(v)
         }
         val output = evaluate(e2).map(matchPattern(structure, e1, _))
-        filterRDD(output, pred)
+        filterRDD(output, pred, structure)
       case Term(Nest(e1, vars, grps, preds, zeros), e2) =>
-        val mapFun = keyBy(tuple2(vars), grps)
-        val newstruct = mapFun(tuple2(vars))
+        val vars2 = tuple2(vars)
+        val mapFun = keyBy(vars2, grps)
+        val newstruct = mapFun(vars2)
         evaluate(e2).map{
           case (k,v) => mapFun((k,v))
         }.map{
@@ -205,25 +206,22 @@ trait AlgTranslator {
         val i = getIndex(proj)
         val output = evaluate(vterm).flatMap{
           case v => v.asInstanceOf[Product].productElement(i).asInstanceOf[Iterable[_]].map{
-          case v2 => v2 match {
-            //case l:Iterable[_] => l.map(v3 => ((v),v3)) // captures a nested compact buffer
-            case _ => ((v),v2)
+            v2 => ((v),v2)
           }
-        }}
-        filterRDD(output, pred)
+        }
+        filterRDD(output, pred, tuple2(vars))
       // same as unnest 
       case Term(OuterUnnest(vars, proj, pred), vterm) =>
         val i = getIndex(proj)
         val output = evaluate(vterm).flatMap{
-          case v => v.asInstanceOf[Product].productElement(i).asInstanceOf[Iterable[_]].map{
-          case v2 => v2 match {
-            case l:Iterable[_] => l.map(v3 => ((v),v3)) // captures a nested compact buffer
-            case _ => ((v),v2)
+          case v => v.asInstanceOf[Product].productElement(i).asInstanceOf[Iterable[_]] match {
+            case Nil => List(((v), None))
+            case v1 => v1.map{ v2 => ((v), v2) }
           }
-        }}
-        filterRDD(output, pred)
+        }
+        filterRDD(output, pred, tuple2(vars))
       // v <- X
-      case Select(x, v, pred) => filterRDD(evaluateBag(x), pred)
+      case Select(x, v, pred) => filterRDD(evaluateBag(x), pred, v)
       case NamedTerm(n, t) => ctx.getOrElseUpdate(n, evaluate(t))
       case _ => sys.error("unsupported evaluation for "+e)
     }
@@ -235,11 +233,10 @@ trait AlgTranslator {
     def evaluateBag(e: BagCalc): RDD[_] = {
       e match {
       case BagVar(vd) => ctx(vd.name)
-      case NamedCBag(n, b) => ctx.getOrElseUpdate(n, evaluateBag(b))
       case Sng(t @ Tup(_)) => 
         sc.parallelize(Seq(t.fields.map{ case (k,v) => v }))
-      case InputR(n, d:List[Map[String,Any]], t) => 
-        val data = d.map(m => m.map{ case (k,v) => v })
+      case InputR(n, d, t) => 
+        val data = d.asInstanceOf[List[Map[String,Any]]].map(m => m.map{ case (k,v) => v })
         ctx.getOrElseUpdate(n, sc.parallelize(data))
       case _ => sys.error("unsupported evaluation for "+e)
     }}
