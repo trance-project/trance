@@ -44,7 +44,8 @@ object App extends
     val rq1 = ForeachUnion(x0def, relationR, 
                 ForeachUnion(x1def, relationR, 
                   Singleton(Tuple("w1" -> Singleton(TupleVarRef(x0def)), "w2" -> Singleton(TupleVarRef(x1def))))))
-    println(quote(rq1))
+
+    /**println(quote(rq1))
     println("")
     val rq1shred = shred(rq1)
     println(eval(rq1))
@@ -63,7 +64,56 @@ object App extends
     println("\nNot Normalized: ")
     Unnester.normalize = false
     val nnrqs = Unnester.unnest(crqs).asInstanceOf[PlanSet]
-    sparke.execute(nnrqs)
+    sparke.execute(nnrqs)**/
+
+    val x2def = VarDef(Symbol.fresh("x"), itemTp)
+    val x3def = VarDef(Symbol.fresh("x"), TupleType("w1" -> BagType(itemTp), "w2" -> BagType(itemTp)))
+    val rq2 = ForeachUnion(x3def, rq1, ForeachUnion(x2def, relationR,
+                Singleton(Tuple("w1" -> Singleton(TupleVarRef(x3def)), "w2" -> Singleton(TupleVarRef(x2def))))))
+
+    /**val rq = ForeachUnion(x2def, relationR, Singleton(Tuple("w1" -> Singleton(TupleVarRef(x2def)))))
+    println(quote(rq))
+    println("")
+    val rqshred = shred(rq)
+    println(eval(rq))
+    println("")
+    val rqlin = linearize(rqshred)
+    println("Linearized set: ")
+    println(quote(rqlin))
+    val crqs1 = Translator.translate(rqlin)
+    println("")
+    println("Comprehension calculus: ")
+    crqs1.asInstanceOf[calc.CSequence].exprs.foreach(e => println(calc.quote(e)))
+    println("\nNormalized: ")
+    val nrqs1 = Unnester.unnest(crqs1).asInstanceOf[PlanSet]
+    sparke.execute(nrqs1)
+
+    println("\nNot Normalized: ")
+    Unnester.normalize = false
+    val nnrqs1 = Unnester.unnest(crqs1).asInstanceOf[PlanSet]
+    sparke.execute(nnrqs1)**/
+
+
+    println(quote(rq2))
+    println("")
+    val rq2shred = shred(rq2)
+    println(eval(rq2))
+    println("")
+    val rq2lin = linearize(rq2shred)
+    println("Linearized set: ")
+    println(quote(rq2lin))
+    val crqs2 = Translator.translate(rq2lin)
+    println("")
+    println("Comprehension calculus: ")
+    crqs2.asInstanceOf[calc.CSequence].exprs.foreach(e => println(calc.quote(e)))
+    println("\nNormalized: ")
+    val nrqs2 = Unnester.unnest(crqs2).asInstanceOf[PlanSet]
+    sparke.execute(nrqs2)
+
+    println("\nNot Normalized: ")
+    Unnester.normalize = false
+    val nnrqs2 = Unnester.unnest(crqs2).asInstanceOf[PlanSet]
+    sparke.execute(nnrqs2)
 
     /**println("--------------------- Query 1 ---------------------")
     val q1 = ForeachUnion(xdef, relationR, Singleton(Tuple("w" -> Project(TupleVarRef(xdef), "b"))))

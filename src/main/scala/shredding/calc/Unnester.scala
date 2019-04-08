@@ -66,8 +66,8 @@ trait CalcTranslator extends Algebra {
                 // this should be identified as a bag variable
                 unnest(BagComp(e, tail), u, w :+ v, unnest(b2, w, w, e2))
               // if x is a path
-              case (ProjToBag(vd, field), Nil) => unnest(nb, u, w :+v, Term(Unnest(w :+ v, x, andPreds(p1 ++ p2)), e2)) // UNNEST
-              case (ProjToBag(vd, field), _) => unnest(nb, u, w :+v, Term(OuterUnnest(w :+ v, x, andPreds(p1 ++ p2)), e2)) // OUTER-UNNEST
+              case (ProjToBag(vd, field), Nil) => unnest(nb, u, w :+v, Term(Unnest(w, x, andPreds(p1 ++ p2)), e2)) // UNNEST
+              case (ProjToBag(vd, field), _) => unnest(nb, u, w :+v, Term(OuterUnnest(w, x, andPreds(p1 ++ p2)), e2)) // OUTER-UNNEST
               // if x is a variable
               case (_, Nil) => unnest(nb, u, w :+v, Term(Join(w :+ v, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2))) // JOIN
               case (_, _) => unnest(nb, u, w :+v, Term(OuterJoin(w :+ v, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2))) // OUTER-JOIN

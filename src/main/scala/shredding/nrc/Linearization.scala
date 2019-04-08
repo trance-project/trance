@@ -14,7 +14,7 @@ trait Linearization extends Optimizer {
       Symbol.freshClear()
       val emptyCtx = InputBag(
         Symbol.fresh("emptyCtx"),
-        List(Map("lbl" -> e.flat)),//Map.empty[String, Any])),
+        List(Map("lbl" -> Map.empty[String, Any])),
         BagType(TupleType("lbl" -> LabelType()))
       )
       val emptyCtxNamed = Named(emptyCtx.n, emptyCtx)
