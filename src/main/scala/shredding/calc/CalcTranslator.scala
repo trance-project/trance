@@ -68,17 +68,17 @@ trait AlgTranslator {
     def flatten(xs: Any, i:Int): Any = {
     xs match {
       case s:List[_] => 
-      if (s.head.isInstanceOf[SLabel]) {
+      /**if (s.head.isInstanceOf[SLabel]) {
         s(i)
       }else if (s.head.isInstanceOf[scala.runtime.BoxedUnit]) {
         s(i)
-      }else if (s.head.isInstanceOf[List[List[_]]]){ 
-        try{
-          s(i)
-        }catch{
-          case e: Exception => s.map(flatten(_, i))
-        }
+      }else**/
+      if (s.head.isInstanceOf[List[List[_]]]){ 
+        s.map(flatten(_, i))
+      }else{
+        try{ s(i) } catch { case e:Exception => s }
       }
+      case l:SLabel => l
       case p:Product => try{//println("this is p "+p); 
         p.productElement(i)
       }catch{
