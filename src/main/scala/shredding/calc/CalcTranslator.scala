@@ -48,16 +48,26 @@ trait AlgTranslator {
     def extractVar(v: VarDef, vars: Any, value: Any): Any = vars match {
       case (a:VarDef, b:VarDef) => 
         if (a == v) { flatten(value, 0) }
-        else {
+        else if (b == v){
           flatten(value, 1)
+        }else{
+          // extract from label
+          //println("extract from label? ")
+          value
         }
-      case (a, b:VarDef) => if (b == v) { flatten(value, 1) } 
-        else { 
-          extractVar(v, a, value.asInstanceOf[Product].productElement(0)) }
+      case (a, b:VarDef) => 
+        if (b == v) { 
+          flatten(value, 1) 
+        } else { 
+          extractVar(v, a, value.asInstanceOf[Product].productElement(0)) 
+        }
       case (a: VarDef, b) => 
-        if (a == v) { flatten(value,0) }
-        else { extractVar(v, b, value.asInstanceOf[Product].productElement(1)) }
-      case _ => value
+        if (a == v) { 
+          flatten(value,0) 
+        } else { 
+          extractVar(v, b, value.asInstanceOf[Product].productElement(1)) 
+        }
+      case _ => value // single var 
     }
 
     
@@ -65,33 +75,18 @@ trait AlgTranslator {
       * This is here mainly for the arbitrary nesting that results from
       * the several group bys when output is unnormalized
       */
-    def flatten(xs: Any, i:Int): Any = {
-    xs match {
+    def flatten(xs: Any, i:Int): Any = xs match {
       case s:List[_] => 
-      /**if (s.head.isInstanceOf[SLabel]) {
-        s(i)
-      }else if (s.head.isInstanceOf[scala.runtime.BoxedUnit]) {
-        s(i)
-      }else**/
       if (s.head.isInstanceOf[List[List[_]]]){ 
         s.map(flatten(_, i))
       }else{
         try{ s(i) } catch { case e:Exception => s }
       }
       case l:SLabel => l
-      case p:Product => try{//println("this is p "+p); 
-        p.productElement(i)
-      }catch{
-        case e:Exception => p // already flattened from extractVar
-      }
+      case p:Product => try { p.productElement(i) } catch { case e:Exception => p }
       case l:Iterable[_] => l.map(flatten(_, i))
-      case l => try {
-        l.asInstanceOf[Product].productElement(i)
-      }catch{
-        // catch unit type
-        case e:Exception => l
-      }
-    }}
+      case l => try { l.asInstanceOf[Product].productElement(i) }catch{ case e:Exception => l }
+    }
 
     /**
       * Matches the pattern based on the structure of the the input vars
