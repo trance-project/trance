@@ -52,7 +52,11 @@ package object calc extends ShreddedCalc with Algebra {
         val w = v.map(core.quote(_)).mkString(",")
         val u = e2.map(core.quote(_)).mkString(",")
         val g2 = g.map(core.quote(_)).mkString(",")
-        s"Nest[ U / lambda(${w}).${quote(e1)} / lambda(${w}).${u}, lambda(${w}).${quote(p)} / lambda(${w}).${g2}]"
+        val acc = e1.tp match {
+          case t:PrimitiveType => "+"
+          case _ => "U"
+        }
+        s"Nest[ ${acc} / lambda(${w}).${quote(e1)} / lambda(${w}).${u}, lambda(${w}).${quote(p)} / lambda(${w}).${g2}]"
       case Term(e1, e2 @ Init()) => s"${quote(e1)}"
       case Term(e1, e2) => s""" |${quote(e1)}
                               |${ind(quote(e2))}""".stripMargin

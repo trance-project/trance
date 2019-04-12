@@ -147,7 +147,7 @@ object TestApp extends App
             ForeachUnion(wdef, BagProject(xref, "j"),
               Singleton(Tuple(
                 "o7" -> Project(wref, "m"),
-                "o8" -> Total(BagProject(wref, "k"))
+                "o8" -> BagProject(wref, "k").asInstanceOf[BagExpr]//Total(BagProject(wref, "k"))
               ))
             )
         )))
@@ -335,7 +335,7 @@ object TestApp extends App
   }
 
 //  Example1.run()
-//  Example2.run()
-  Example3.run()
+  Example2.run()
+  //Example3.run()
 //  ExampleShredValue.run()
 }

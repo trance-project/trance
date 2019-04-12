@@ -126,11 +126,9 @@ trait Calc extends BaseCalc {
     val tp: LabelType = tuple.tp.attrs(field).asInstanceOf[LabelType]
   }
 
-  /**
-    * Bag comprehension representing union over a bag: { e | qs ... }
-    */
-  case class BagComp(e: TupleCalc, qs: List[CompCalc]) extends BagCalc{
-    val tp: BagType = BagType(e.tp)
+  trait Comprehension extends CompCalc{
+    def e: CompCalc
+    def qs: List[CompCalc]
     override def isOutermost = true  
     override def hasGenerator = qs.map(_.isGenerator).contains(true)
     override def hasBind = qs.map(_.isBind).contains(true)
@@ -138,6 +136,21 @@ trait Calc extends BaseCalc {
     override def hasMergeGenerator = qs.map(_.isMergeGenerator).contains(true)
     override def hasIfGenerator = qs.map(_.isIfGenerator).contains(true)
     override def hasBagCompGenerator = qs.map(_.isBagCompGenerator).contains(true)
+  }
+
+  case object Comprehension{
+    def apply(e: CompCalc, qs: List[CompCalc]): Comprehension = e.tp match {
+      case t:PrimitiveType => CountComp(e.asInstanceOf[PrimitiveCalc], qs)
+      case t:TupleType => BagComp(e.asInstanceOf[TupleCalc], qs)
+      case _ => sys.error("Unsupported type in a monoid")
+    }
+  }
+
+  /**
+    * Bag comprehension representing union over a bag: { e | qs ... }
+    */
+  case class BagComp(e: TupleCalc, qs: List[CompCalc]) extends BagCalc with Comprehension{
+    val tp: BagType = BagType(e.tp)
   }
 
   /**
@@ -180,7 +193,7 @@ trait Calc extends BaseCalc {
   /**
     * Primitive monoid - count
     */
-  case class CountComp(e: PrimitiveCalc, qs: List[CompCalc]) extends PrimitiveCalc{
+  case class CountComp(e: PrimitiveCalc, qs: List[CompCalc]) extends PrimitiveCalc with Comprehension{
     // enforce e to not be a bag type
     val tp: PrimitiveType = IntType 
   }

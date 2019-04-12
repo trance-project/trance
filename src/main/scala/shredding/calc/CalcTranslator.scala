@@ -1,6 +1,7 @@
 package shredding.calc
 
 import shredding.core._
+import shredding.Utils.Symbol
 import reflect.ClassTag
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
@@ -12,7 +13,15 @@ import org.apache.spark.rdd.RDD
 trait AlgTranslator {
   this: Algebra with ShreddedCalc =>
   
-  case class SLabel(vals: List[Any])
+  case class SLabel(vals: Map[String, Any]){
+    def extract(v:String): Any = vals.get(v) match {
+      case Some(a) => a
+      case None => None
+    }
+  }
+  object SLabel{
+    def apply(vals: (String, Any)*): SLabel = SLabel(Map(vals: _*))
+  }
 
   class SparkEvaluator(@transient val sc: SparkContext) extends Serializable{
     
@@ -29,15 +38,20 @@ trait AlgTranslator {
         evaluate(e).take(100).foreach(println(_))
       })
     }
-    
+ 
+    def getIndex(t: Type, f: String): Int = t match {
+      case TupleType(attrs) => attrs.keys.toList.indexOf(f)
+      case LabelType(attrs) => attrs.keys.toList.indexOf(f)
+    }
+   
     /**
       * Gets the index of a projection label
       * // TODO make implicit
       */
     def getIndex(e: CompCalc): Int = e match { 
-      case ProjToLabel(t, f) => t.tp.attrs.keys.toList.indexOf(f)
-      case ProjToBag(t, f) => t.tp.attrs.keys.toList.indexOf(f)
-      case ProjToPrimitive(t,f) => t.tp.attrs.keys.toList.indexOf(f)
+      case ProjToLabel(t, f) => getIndex(t.tp, f)
+      case ProjToBag(t, f) => getIndex(t.tp, f)
+      case ProjToPrimitive(t,f) => getIndex(t.tp, f)
     }
 
 
@@ -47,45 +61,38 @@ trait AlgTranslator {
       */
     def extractVar(v: VarDef, vars: Any, value: Any): Any = vars match {
       case (a:VarDef, b:VarDef) => 
-        if (a == v) { flatten(value, 0) }
+        if (a == v) { accessElement(value, 0) }
         else if (b == v){
-          flatten(value, 1)
+          accessElement(value, 1)
         }else{
-          // extract from label
-          //println("extract from label? ")
-          value
+          value//.asInstanceOf[SLabel].extract(v.name)
         }
       case (a, b:VarDef) => 
         if (b == v) { 
-          flatten(value, 1) 
+          accessElement(value, 1) 
         } else { 
           extractVar(v, a, value.asInstanceOf[Product].productElement(0)) 
         }
       case (a: VarDef, b) => 
         if (a == v) { 
-          flatten(value,0) 
+          accessElement(value,0) 
         } else { 
           extractVar(v, b, value.asInstanceOf[Product].productElement(1)) 
         }
       case _ => value // single var 
     }
 
-    
+
     /**
-      * This is here mainly for the arbitrary nesting that results from
-      * the several group bys when output is unnormalized
+      * Access an element from a list or prouct type (ie. a tuple), 
+      * if Iterable is recognized, this is a compact buffer produced from 
+      * a groupBy() operation, so the values should be mapped over
       */
-    def flatten(xs: Any, i:Int): Any = xs match {
-      case s:List[_] => 
-      if (s.head.isInstanceOf[List[List[_]]]){ 
-        s.map(flatten(_, i))
-      }else{
-        try{ s(i) } catch { case e:Exception => s }
-      }
-      case l:SLabel => l
-      case p:Product => try { p.productElement(i) } catch { case e:Exception => p }
-      case l:Iterable[_] => l.map(flatten(_, i))
-      case l => try { l.asInstanceOf[Product].productElement(i) }catch{ case e:Exception => l }
+    def accessElement(xs: Any, i: Int): Any = xs match {
+      case l:List[_] => l(i)
+      case l:Iterable[_] => l.map(accessElement(_, i))
+      case l:Product => l.productElement(i)
+      case l => l
     }
 
     /**
@@ -95,15 +102,15 @@ trait AlgTranslator {
       e match {
       case Tup(fs) => fs.map{ case (k,v) => v match {
         case CLabel(vs,_) => 
-          SLabel(vs.toList.map( vd => matchPattern(vars, vd, value)))
+          SLabel(vs.toList.map( vd => (vd.varDef.name, matchPattern(vars, vd, value))):_*)
         case _ => matchPattern(vars, v, value)
       }}
       case p:Proj => 
-        flatten(matchPattern(vars, p.tuple, value), getIndex(e))
+         accessElement(matchPattern(vars, p.tuple, value), getIndex(e))
       case Sng(e1) => matchPattern(vars, e1, value)
       case Constant(a, t) => a
       case v:Var => extractVar(v.varDef, vars, value)
-      case _ => flatten(value, getIndex(e))
+      case _ => accessElement(value, getIndex(e))
     }}
 
     /**
@@ -112,9 +119,8 @@ trait AlgTranslator {
       */
     def toConstant(e: CompCalc, value: Any): CompCalc = e match {
       case c:Constant => e
-      case _ => 
-        Constant(value.asInstanceOf[Product].productElement(getIndex(e)), 
-          e.tp.asInstanceOf[PrimitiveType])
+      case _ => Constant(value.asInstanceOf[Product].productElement(getIndex(e)), 
+                  e.tp.asInstanceOf[PrimitiveType])
     }
 
     /**
@@ -180,7 +186,57 @@ trait AlgTranslator {
         case (true, false) => (a:(_,_)) => (a._1, a._2)
         case (false, true) => (a:(_,_)) => (a._2, a._1)
         case (false, false) => (a:(_,_)) => (None, None)
-      }
+      } 
+    }
+
+    def getVar(e: CompCalc): VarDef = e match {
+      case p:Proj => getVar(p.tuple)
+      case TupleVar(vd) => vd 
+    }
+    
+    /**
+      * Returns value within a tuple
+      * if a label is found, first extract the value from the tuple
+      */
+    def getValue(a: List[_], i: Int, v: VarDef) = getIndex(v.tp, "lbl") match {
+      case -1 => a(i)
+      case l => a(l)
+    } 
+
+    def getPred(e: PrimitiveCalc, v:VarDef, a: List[_]) = e match {
+      case Conditional(OpEq, e1, e2) =>
+        if (v == getVar(e1)) {
+          // return the value associated to the project in e1
+          getValue(a, getIndex(e1), v)
+        }else if (v == getVar(e2)){
+            getValue(a, getIndex(e2), v)
+        }else{
+          getValue(a, -1, v) match {
+            case f:SLabel => f.extract(getVar(e1).name) match {
+            case None => 
+              getValue(f.extract(getVar(e2).name).asInstanceOf[List[_]], getIndex(e2), getVar(e2))
+            case l => 
+            getValue(l.asInstanceOf[List[_]], getIndex(e1), getVar(e1)) 
+          }
+          case _ => None 
+        }
+    }}
+
+    /**
+      * Produces an anonymous function to map across an RDD[List[_]] to key appropriately
+      * for a join
+      */
+    def joinKey(vars: Any, pred: PrimitiveCalc): Any => Tuple2[_,_] = vars match {
+      case v:VarDef => 
+        (a: Any) => (List(getPred(pred, v, a.asInstanceOf[List[_]])), (a))
+      case (b:VarDef, c:VarDef) => 
+        (a: Any) => 
+          val a1 = getPred(pred, c, a.asInstanceOf[Tuple2[_,_]]._2.asInstanceOf[List[_]])
+          val a2 = getPred(pred, b, a.asInstanceOf[Tuple2[_,_]]._2.asInstanceOf[List[_]])
+          (List(a1, a2).filter{_ != None}, (a))
+      //case (b @ (_,_), c:VarDef) => 
+      //  (a: Any) => (getPred(pred, v, a.asInstanceOf[List[_]]), (a))
+      //case (b,c) => 
     }
 
     /**
@@ -192,14 +248,9 @@ trait AlgTranslator {
       case Term(Reduce(e1, v, pred), e2) => 
         val structure = tuple2(v)
         val output = evaluate(e2).map(v1 => matchPattern(structure, e1, v1)) 
-        // temporary hack to get around the unnormalized nesting issue
-        val output2 = output.first match {
-          case o:Product => output
-          case o:Iterable[_] => output.asInstanceOf[RDD[Iterable[_]]].flatMap(v1 => v1)
-          case _ => output
-        }
-        filterRDD(output2, pred, structure)
+        filterRDD(output, pred, structure)
       case Term(Nest(e1, vars, grps, preds, zeros), e2) =>
+        // reformat variable context
         val vars2 = tuple2(vars)
         val mapFun = keyBy(vars2, grps)
         val newstruct = mapFun(vars2.asInstanceOf[Tuple2[_,_]])
@@ -207,38 +258,54 @@ trait AlgTranslator {
           case (k,v) => mapFun((k,v))
         }.map{
           case (k,v) => (k, matchPattern(newstruct, e1, (k,v)))
-        }.groupByKey() 
-        output
+        }
+        e1.tp match {
+          case t:PrimitiveType => output.reduceByKey(_.asInstanceOf[Int] + _.asInstanceOf[Int])
+          case t => output.groupByKey() 
+        }
       case Term(OuterJoin(v, p), Term(e1, e2)) => 
       val output = p match {
         case Constant(true, _) => 
-        evaluate(e2).cartesian(evaluate(e1))
-        case _ => 
-          evaluate(e2).map{ case (k,v) => (k, v) }
-          .leftOuterJoin(evaluate(e1).map{ case (k,v) => (k, v) })
+          val out = evaluate(e2).cartesian(evaluate(e1))
+          out
+        case _ =>
+          val vars2 = tuple2(v).asInstanceOf[Tuple2[_,_]]
+          val mapFun_e2 = joinKey(vars2._1, p)
+          val mapFun_e1 = joinKey(vars2._2, p)
+          // not doing outer join
+          val out1 = evaluate(e2).map(mapFun_e2(_))
+          val out2 = evaluate(e1).map(mapFun_e1(_))
+          val out = out1.join(out2).map{ case (k,v) => v }
+          out
       }
       output
       case Term(Join(v, p), Term(e1, e2)) => p match {
         case Constant(true, _) => evaluate(e2).cartesian(evaluate(e1))
-        case _ => evaluate(e2).map{ case (k,v) => (k, v) }
-                   .join(evaluate(e1).map{ case (k,v) => (k, v) })
+        case _ =>
+          val vars2 = tuple2(v).asInstanceOf[Tuple2[_,_]]
+          val mapFun_e2 = joinKey(vars2._1, p)
+          val mapFun_e1 = joinKey(vars2._2, p)
+          val out1 = evaluate(e2).map(mapFun_e2(_))
+          val out2 = evaluate(e1).map(mapFun_e1(_))
+          out1.join(out2).map{ case (k,v) => v }
       }
       // { (v, w) | v <- X, w <- v.path }
-      // should w be removed if u is null?
       case Term(Unnest(vars, proj, pred), vterm) =>
         val i = getIndex(proj)
         val tuples = tuple2(vars)
         val output = evaluate(vterm).flatMap{
-            v => flatten(v, i).asInstanceOf[Iterable[_]].map{v1 => ((v), v1)}
+            v => accessElement(v, i).asInstanceOf[Iterable[_]].map{ 
+                  v1 => ((v.asInstanceOf[List[_]].take(i) ++ v.asInstanceOf[List[_]].drop(i+1)), v1) }
           }
+        output.collect.foreach(println(_))
         filterRDD(output, pred, tuple2(vars))
       // same as unnest 
       case Term(OuterUnnest(vars, proj, pred), vterm) =>
         val i = getIndex(proj)
         val output = evaluate(vterm).flatMap{
-            v => flatten(v, i).asInstanceOf[Iterable[_]] match {
-              case Nil => List((v), None)
-              case v2 => v2.map{v1 => ((v), v1)}
+            v => accessElement(v, i).asInstanceOf[Iterable[_]] match {
+              case Nil => List(((v.asInstanceOf[List[_]].take(i) ++ v.asInstanceOf[List[_]].drop(i+1)),None))
+              case v2 => v2.map{ v1 => ((v.asInstanceOf[List[_]].take(i) ++ v.asInstanceOf[List[_]].drop(i+1)), v1) }
             }
           }
         filterRDD(output, pred, tuple2(vars))
@@ -259,15 +326,27 @@ trait AlgTranslator {
       case BagVar(vd) => ctx(vd.name)
       case Sng(t @ Tup(_)) => 
         sc.parallelize(Seq(t.fields.map{ case (k,v) => v }))
-      case InputR(n, d, t) => 
-        val data = d.asInstanceOf[List[Map[String,Any]]].map(m => m.map{ case (k,v) => v })
+      case InputR(n, d, t) => // flat input?
+        val data = d.asInstanceOf[List[Map[String,Any]]].map(m => m.values.toList)
         ctx.getOrElseUpdate(n, sc.parallelize(data))
+      case CLookup(lbl, dict) => dict match {
+        // lbl is also projected here, it's the label in the first position
+        // will need to use that when the data isn't coming in shredded
+        case InputBagDict(d, ftp, tdict) =>
+          val data = d.toList.flatMap{
+            case (l, v) => v.asInstanceOf[List[Map[String,Any]]].map{
+              v2 => (l, v2.values.toList)}
+          }
+          ctx.getOrElseUpdate(lbl.toString, sc.parallelize(data)) 
+        case _ => sys.error("unsupported evaluation for "+e)
+      }
       case _ => sys.error("unsupported evaluation for "+e)
     }}
 
-  } 
-
+  }
+  
   object SparkEvaluator{
     def apply(sc: SparkContext) = new SparkEvaluator(sc)
   }
+
 }

@@ -70,14 +70,18 @@ trait Algebra extends BaseAlg with ShreddedCalc{
     *   Reduce (project) is the last operator, u is always empty, and there should be
     *   no generators in the head of the comprehension.
     */
-  case class Reduce(e: TupleCalc, v: List[VarDef], p: PrimitiveCalc) extends AlgOp{
-    def tp = BagType(e.tp) // check this
+  case class Reduce(e: CompCalc, v: List[VarDef], p: PrimitiveCalc) extends AlgOp{
+    def tp = e.tp match {
+      case t:PrimitiveType => t
+      case t:TupleType => BagType(t) 
+      case _ => sys.error("unsupported type in reduce")
+    }
   }
 
   /**
     * Nest operator NEST_p/g^{acc/e/f}(X) = see fig 7
     * v: variables assigned to the tuple values from the input stream
-    * e: lambda expression that should take v as input 
+    * e: lambda expression that should take v as input, type of e determines the accumulator 
     * f: group by function, if two values are dot equal images under e are
     *    grouped together, then this group is reduced by the accumulator
     * p: list of predicates associated to v only (no complex expressions)
@@ -89,8 +93,10 @@ trait Algebra extends BaseAlg with ShreddedCalc{
     *   u and w are never empty if this condition is reached.
     *
     */
-  case class Nest(e: TupleCalc, v: List[VarDef], f: List[VarDef], p: PrimitiveCalc, g: List[VarDef]) extends AlgOp{
+  case class Nest(e: CompCalc, v: List[VarDef], f: List[VarDef], p: PrimitiveCalc, g: List[VarDef]) extends AlgOp{
     def tp = e.tp
+    // if tp == PrimitiveType then accumulator = sum (+)
+    // if tp == TupleType then accumulate = bag union (U)
   }
 
   /**

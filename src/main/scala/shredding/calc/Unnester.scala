@@ -49,22 +49,24 @@ trait CalcTranslator extends Algebra {
       * @returns The final AlgOp Term with the unnested, comprehension-calculus expressions as operator
       */
     def unnest(e1: CompCalc, u: List[VarDef] = List(), w: List[VarDef] = List(), e2: AlgOp = Init()): AlgOp = e1 match {
-      case b @ BagComp(e, qs) => qs match {
+      //case b @ BagComp(e, qs) => qs match {
+      case b:Comprehension => b.qs match {
         // { e | v <- X, tail }
         case head @ Generator(v: VarDef, x) :: tail => 
           // SELECTION: rule C4
           if (u.isEmpty && w.isEmpty){
             val nqs = tail.filter{_.pred1(v)}
-            unnest(BagComp(e, tail.filterNot(nqs.toSet)), u, w :+ v, Select(x, v, andPreds(nqs)))
+            unnest(Comprehension(b.e, tail.filterNot(nqs.toSet)), u, w :+ v, Select(x, v, andPreds(nqs)))
           // JOIN and NEST - if outer depends on u value (C6, C7, C9, or C10)
           }else{
             val p1 = tail.filter{_.pred1(v)}
             val p2 = tail.filter{_.pred2(v, w)}
-            val nb = BagComp(e, tail.filterNot((p1++p2).toSet))
+            val nb = Comprehension(b.e, tail.filterNot((p1++p2).toSet))
             (x,u) match {
-              case (b2 @ BagComp(be2, _), _) => 
+              //case (b2 @ BagComp(be2, _), _) => 
+              case (b2:Comprehension, _) =>
                 // this should be identified as a bag variable
-                unnest(BagComp(e, tail), u, w :+ v, unnest(b2, w, w, e2))
+                unnest(Comprehension(b.e, tail), u, w :+ v, unnest(b2, w, w, e2))
               // if x is a path
               case (ProjToBag(vd, field), Nil) => unnest(nb, u, w :+v, Term(Unnest(w, x, andPreds(p1 ++ p2)), e2)) // UNNEST
               case (ProjToBag(vd, field), _) => unnest(nb, u, w :+v, Term(OuterUnnest(w, x, andPreds(p1 ++ p2)), e2)) // OUTER-UNNEST
@@ -75,25 +77,24 @@ trait CalcTranslator extends Algebra {
           }
         // { e | p } (ie. has no generators): rules C5, C8, and C12
         case y if !b.hasGenerator => 
-          val eprime = unnestHead(e)
+          val eprime = unnestHead(b.e)
           eprime match {
-            case z if eprime.nonEmpty => 
-              val nv = VarDef(Symbol.fresh("v"), eprime.head._2.asInstanceOf[BagComp].tp)
-              unnest(BagComp(e, qs).substitute(eprime.head._2, nv), 
+            case z if eprime.nonEmpty =>
+              println("this is eprime "+eprime) 
+              val nv = VarDef(Symbol.fresh("v"), eprime.head._2.tp)
+              unnest(Comprehension(b.e, b.qs).substitute(eprime.head._2, nv), 
                 u, w :+ nv, unnest(eprime.head._2, w, w, e2))
             case _ => if (u.isEmpty) { 
-                Term(Reduce(e, w, andPreds(qs)), e2) 
+                Term(Reduce(b.e, w, andPreds(b.qs)), e2) 
               }else{
                 // the last variable in the set is now the blocking variable
-                Term(Nest(e, w, u, andPreds(qs), w.filterNot(u.toSet)), e2)
+                Term(Nest(b.e, w, u, andPreds(b.qs), w.filterNot(u.toSet)), e2)
               }
           }
         case _ => sys.error("not supported")
       }
-      case Sng(t @ Tup(_)) => Select(e1.asInstanceOf[BagCalc], VarDef(Symbol.fresh("v"), t.tp), Constant(true, BoolType))
-      case InputR(n, b, t) => Select(e1.asInstanceOf[BagCalc], VarDef(Symbol.fresh("v"), t.tp), Constant(true, BoolType))
-      case CNamed(n, b) => 
-        NamedTerm(n, unnest(if (normalize) { b.normalize } else { b }))
+      case b:BagCalc => Select(b, VarDef(Symbol.fresh("v"), b.tp.tp), Constant(true, BoolType))
+      case CNamed(n, b) => NamedTerm(n, unnest(if (normalize) { b.normalize } else { b }))
       case CSequence(cs) => PlanSet(cs.map(unnest(_)))
       case _ => sys.error("not supported "+e1)
    }

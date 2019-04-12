@@ -29,6 +29,18 @@ trait CalcImplicits {
       case _ => sys.error("cannot cast type")
     }
 
+    def checkLabel(v: VarDef): Boolean = self match {
+      case p:Proj => p.tuple.checkLabel(v)
+      case TupleVar(vd) => 
+        if (v.tp.isLabel){
+          v.tp.asInstanceOf[TupleType].attrs.get("lbl") match {
+            case Some(label) => label.asInstanceOf[LabelType].attrs.contains(vd.name)
+            case None => false
+          }
+        }else{ false }
+      case _ => false
+    }
+
     def equalsVar(v: VarDef): Boolean = self.tp match {
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].equalsVar(v)
       case t:BagType => self.asInstanceOf[BagCalc].equalsVar(v)
@@ -78,6 +90,7 @@ trait CalcImplicits {
     def equalsVar(v: VarDef): Boolean = self.tp match {
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].equalsVar(v)
       case t:BagType => self.asInstanceOf[BagCalc].equalsVar(v)
+      case t:TupleType => self.asInstanceOf[TupleCalc].equalsVar(v)
       case _ => false 
     }
 
@@ -130,13 +143,23 @@ trait CalcImplicits {
       case _ => false
     }
 
+    
     def pred2(v: VarDef, w: List[VarDef]): Boolean = self match {
       case NotCondition(e1) => e1.pred2(v, w)
       case OrCondition(e1, e2) => e1.pred2(v, w) && e2.pred2(v, w)
       case AndCondition(e1, e2) => e1.pred2(v, w) && e2.pred2(v, w)
-      case Conditional(op, e1, e2) => 
-        (e1.equalsVar(v) && w.filter{e2.equalsVar(_)}.nonEmpty) || 
-          (e2.equalsVar(v) && w.filter{e1.equalsVar(_)}.nonEmpty)
+      case Conditional(op, e1, e2) => op match {
+        case OpEq => // equals is a join condition
+          (e1.equalsVar(v)  && w.filter{ 
+              v1 => (e2.equalsVar(v1) || e2.checkLabel(v1)) }.nonEmpty) ||
+            (e2.equalsVar(v) && w.filter{ 
+                v1 => (e1.equalsVar(v1) || e1.checkLabel(v1)) }.nonEmpty)
+        case _ => // any other operation is a filter later (pushed to the nest)  
+          (e1.equalsVar(v) && w.filter{ 
+              v1 => e2.equalsVar(v1) || e2.checkLabel(v1) }.nonEmpty) ||
+            (e2.equalsVar(v) && w.filter{ 
+                v1 => e1.equalsVar(v1) || e1.checkLabel(v1) }.nonEmpty)
+        }
       case _ => false
     }
 
@@ -146,6 +169,8 @@ trait CalcImplicits {
       case NotCondition(e1) => NotCondition(e1.normalize)
       case AndCondition(e1, e2) => AndCondition(e1.normalize, e2.normalize)
       case OrCondition(e1, e2) => OrCondition(e1.normalize, e2.normalize)
+      case CountComp(e, qs) => 
+        CountComp(e.normalize.asInstanceOf[PrimitiveCalc], qs.map(_.normalize))
       case _ => self
     }
 
@@ -157,6 +182,8 @@ trait CalcImplicits {
       case NotCondition(e1) => NotCondition(e1.bind(e2, v))
       case AndCondition(e1, e3) => AndCondition(e1.bind(e2, v), e3.bind(e2, v))
       case OrCondition(e1, e3) => OrCondition(e1.bind(e2, v), e3.bind(e2, v))
+      case CountComp(e, s) => 
+        CountComp(e.bind(e2, v).asInstanceOf[PrimitiveCalc], s.map(_.bind(e2,v)))
       case _ => self
     } 
 
@@ -167,6 +194,7 @@ trait CalcImplicits {
       case AndCondition(e1, e3) => AndCondition(e1.substitute(e2, v), e3.substitute(e2, v))
       case OrCondition(e1, e3) => OrCondition(e1.substitute(e2, v), e3.substitute(e2, v))
       case BindPrimitive(x,y) => BindPrimitive(x, y.substitute(e2, v))
+      case CountComp(e, s) => CountComp(e.substitute(e2, v), s.map(_.bind(e2, v)))
       case _ => self
     }
 

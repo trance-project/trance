@@ -30,7 +30,7 @@ trait Printer {
       s"""|If (${quote(l)} $op ${quote(r)})
           |Then ${quote(e1)}
           |Else ${quote(e2)}""".stripMargin
-    case InputBag(n, _, _) => n
+    case InputBag(n, tps, _) => n
     case Named(n, e1) => s"$n := ${quote(e1)}"
     case Sequence(ee) => ee.map(quote).mkString("\n")
     case _ => sys.error("Cannot print unknown expression " + e)

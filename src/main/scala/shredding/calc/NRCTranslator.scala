@@ -47,6 +47,9 @@ trait NRCTranslator extends ShreddedCalc {
       case p:Project => Proj(translateTuple(p.tuple), p.field)
       case Const(v, tp) => Constant(v, tp)
       case v:VarRef => Var(v.varDef)
+      case Total(e) => 
+        val v = VarDef(Symbol.fresh("v"), e.tp.tp)
+        CountComp(Constant(1, IntType), List(Generator(v, translateBag(e))))
       case Named(n, e) => CNamed(n, translate(e))
       case InputBag(n, b, t) => InputR(n, b, t)
       case Lookup(lbl, dict) => CLookup(translateLabel(lbl), dict.asInstanceOf[InputBagDict])
