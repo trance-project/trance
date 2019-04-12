@@ -80,7 +80,6 @@ trait CalcTranslator extends Algebra {
           val eprime = unnestHead(b.e)
           eprime match {
             case z if eprime.nonEmpty =>
-              println("this is eprime "+eprime) 
               val nv = VarDef(Symbol.fresh("v"), eprime.head._2.tp)
               unnest(Comprehension(b.e, b.qs).substitute(eprime.head._2, nv), 
                 u, w :+ nv, unnest(eprime.head._2, w, w, e2))

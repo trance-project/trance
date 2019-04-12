@@ -65,7 +65,7 @@ trait AlgTranslator {
         else if (b == v){
           accessElement(value, 1)
         }else{
-          value//.asInstanceOf[SLabel].extract(v.name)
+          value.asInstanceOf[SLabel].extract(v.name)
         }
       case (a, b:VarDef) => 
         if (b == v) { 
@@ -297,7 +297,6 @@ trait AlgTranslator {
             v => accessElement(v, i).asInstanceOf[Iterable[_]].map{ 
                   v1 => ((v.asInstanceOf[List[_]].take(i) ++ v.asInstanceOf[List[_]].drop(i+1)), v1) }
           }
-        output.collect.foreach(println(_))
         filterRDD(output, pred, tuple2(vars))
       // same as unnest 
       case Term(OuterUnnest(vars, proj, pred), vterm) =>
