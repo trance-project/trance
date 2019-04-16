@@ -19,6 +19,7 @@ trait AlgTranslator {
       case None => None
     }
   }
+
   object SLabel{
     def apply(vals: (String, Any)*): SLabel = SLabel(Map(vals: _*))
   }
@@ -61,20 +62,23 @@ trait AlgTranslator {
       */
     def extractVar(v: VarDef, vars: Any, value: Any): Any = vars match {
       case (a:VarDef, b:VarDef) => 
-        if (a == v) { accessElement(value, 0) }
-        else if (b == v){
+        if (a.name == v.name) { accessElement(value, 0) }
+        else if (b.name == v.name){
           accessElement(value, 1)
         }else{
+          println("in here with this value "+value)
+          println(v)
+          println(vars)
           value.asInstanceOf[SLabel].extract(v.name)
         }
       case (a, b:VarDef) => 
-        if (b == v) { 
+        if (b.name == v.name) { 
           accessElement(value, 1) 
         } else { 
           extractVar(v, a, value.asInstanceOf[Product].productElement(0)) 
         }
       case (a: VarDef, b) => 
-        if (a == v) { 
+        if (a.name == v.name) { 
           accessElement(value,0) 
         } else { 
           extractVar(v, b, value.asInstanceOf[Product].productElement(1)) 
@@ -109,7 +113,8 @@ trait AlgTranslator {
          accessElement(matchPattern(vars, p.tuple, value), getIndex(e))
       case Sng(e1) => matchPattern(vars, e1, value)
       case Constant(a, t) => a
-      case v:Var => extractVar(v.varDef, vars, value)
+      case v:Var => 
+        extractVar(v.varDef, vars, value)
       case _ => accessElement(value, getIndex(e))
     }}
 
@@ -228,7 +233,10 @@ trait AlgTranslator {
       */
     def joinKey(vars: Any, pred: PrimitiveCalc): Any => Tuple2[_,_] = vars match {
       case v:VarDef => 
-        (a: Any) => (List(getPred(pred, v, a.asInstanceOf[List[_]])), (a))
+        (a: Any) =>  a match {
+          case t:Tuple2[_,_] => t // from input dictionary, need to handle this from the condition
+          case _ => (List(getPred(pred, v, a.asInstanceOf[List[_]])), (a))
+        }
       case (b:VarDef, c:VarDef) => 
         (a: Any) => 
           val a1 = getPred(pred, c, a.asInstanceOf[Tuple2[_,_]]._2.asInstanceOf[List[_]])
@@ -256,17 +264,22 @@ trait AlgTranslator {
         val newstruct = mapFun(vars2.asInstanceOf[Tuple2[_,_]])
         val output = evaluate(e2).map{
           case (k,v) => mapFun((k,v))
-        }.map{
-          case (k,v) => (k, matchPattern(newstruct, e1, (k,v)))
         }
-        e1.tp match {
-          case t:PrimitiveType => output.reduceByKey(_.asInstanceOf[Int] + _.asInstanceOf[Int])
-          case t => output.groupByKey() 
+        val out = e1.tp match {
+          case t:PrimitiveType => output.map{
+            case (k,v) => (k, 1)
+          }.reduceByKey(_+_)
+          case t => output.map{
+            case (k,v) => (k, matchPattern(newstruct, e1, (k,v)))
+          }.groupByKey() 
         }
+        out
       case Term(OuterJoin(v, p), Term(e1, e2)) => 
       val output = p match {
         case Constant(true, _) => 
-          val out = evaluate(e2).cartesian(evaluate(e1))
+          val out1 = evaluate(e2)
+          val out2 = evaluate(e1)
+          val out = out1.cartesian(out2)
           out
         case _ =>
           val vars2 = tuple2(v).asInstanceOf[Tuple2[_,_]]
@@ -287,7 +300,8 @@ trait AlgTranslator {
           val mapFun_e1 = joinKey(vars2._2, p)
           val out1 = evaluate(e2).map(mapFun_e2(_))
           val out2 = evaluate(e1).map(mapFun_e1(_))
-          out1.join(out2).map{ case (k,v) => v }
+          val out = out1.join(out2).map{ case (k,v) => v }
+          out
       }
       // { (v, w) | v <- X, w <- v.path }
       case Term(Unnest(vars, proj, pred), vterm) =>
@@ -334,7 +348,7 @@ trait AlgTranslator {
         case InputBagDict(d, ftp, tdict) =>
           val data = d.toList.flatMap{
             case (l, v) => v.asInstanceOf[List[Map[String,Any]]].map{
-              v2 => (l, v2.values.toList)}
+              v2 => (List(l), v2.values.toList)}
           }
           ctx.getOrElseUpdate(lbl.toString, sc.parallelize(data)) 
         case _ => sys.error("unsupported evaluation for "+e)

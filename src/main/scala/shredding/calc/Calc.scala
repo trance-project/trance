@@ -1,7 +1,7 @@
 package shredding.calc
 
 import shredding.core._
-import shredding.nrc.{Dictionary, ShreddedNRC}
+import shredding.nrc.{ShreddedNRC, Dictionary}
 
 /**
   * Base NRC expressions
@@ -35,7 +35,7 @@ trait BaseCalc {
     def tp: LabelAttributeType
   }
 
-  trait PrimitiveCalc extends TupleAttributeCalc with LabelAttributeCalc {
+ trait PrimitiveCalc extends TupleAttributeCalc with LabelAttributeCalc {
     def tp: PrimitiveType 
   }
 
@@ -249,11 +249,18 @@ trait Calc extends BaseCalc {
     override def isBind = true
   }
 
+  case class BindLabel(x: VarDef, e: LabelCalc) extends LabelCalc with Bind{ 
+    assert(x.tp == e.tp)
+    val tp: LabelType = e.tp 
+    override def isBind = true
+  }
+
   object Bind{
     def apply(x: VarDef, v: CompCalc): Bind = v.tp match {
       case t: TupleType => BindTuple(x, v.asInstanceOf[TupleCalc])
       case t: PrimitiveType => BindPrimitive(x, v.asInstanceOf[PrimitiveCalc])
       case t: BagType => Generator(x, v.asInstanceOf[BagCalc])
+      case t: LabelType => BindLabel(x, v.asInstanceOf[LabelCalc])
       case _ => throw new IllegalArgumentException(s"cannot bind VarDef(${x.name})")
     }
   }
@@ -309,5 +316,18 @@ trait ShreddedCalc extends Calc
 
   case class CLookup(lbl: LabelCalc, dict: BagDict) extends BagCalc{
     def tp: BagType = dict.flatBagTp
+    
+   /** override def isOutputDict: Boolean = dict match {
+      case t:OutputBagDict => true
+      case _ => false
+    }**/
+
+    /**def unshred: Expr = (lbl, dict) match {
+      case (CLabel(vars, id), odict @ OutputBagDict(lbl2, flat, tdict)) =>
+        val ctx = Map[String, Expr](lbl.asInstanceOf[CLabel].vars.map(v2 =>
+                        v2.varDef.name -> VarRef(v2.varDef)).toList:_*) 
+        ExprShredder.unshred(flat, tdict, ctx)
+      case _ => sys.error("not supported")
+    }**/
   }
 }

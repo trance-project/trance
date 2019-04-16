@@ -1,15 +1,28 @@
 package shredding.calc
 
 import shredding.core._
+import shredding.nrc.Shredding
 
 trait CalcImplicits {
-  this: Calc =>
+  this: ShreddedCalc with NRCTranslator with Shredding =>
 
   implicit class CompCalcOps(self: CompCalc) {
 
     def toTupleAttributeCalc: TupleAttributeCalc = self.tp match {
       case t:BagType => self.asInstanceOf[TupleAttributeCalc]
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc]
+      case t:LabelType => self.asInstanceOf[LabelCalc]
+      case _ => sys.error("cannot cast type")
+    }
+
+    def toLabelAttributeCalc: LabelAttributeCalc = self.tp match {
+      case t:PrimitiveCalc => self.asInstanceOf[LabelAttributeCalc]
+      case t:TupleType => self.asInstanceOf[LabelAttributeCalc]
+      case t:LabelType => self.asInstanceOf[LabelAttributeCalc]
+      case _ => sys.error("cannot case type")
+    }
+
+    def toLabelCalc: LabelCalc = self.tp match {
       case t:LabelType => self.asInstanceOf[LabelCalc]
       case _ => sys.error("cannot cast type")
     }
@@ -47,6 +60,16 @@ trait CalcImplicits {
       case t:TupleType => self.asInstanceOf[TupleCalc].equalsVar(v)
       case _ => false
     }
+
+    def isOutputDict: Boolean = self.tp match {
+      case t:BagType => self.asInstanceOf[BagCalc].isOutputDict
+      case _ => false
+    }
+
+    def hasOutputDict: Boolean = self.tp match {
+      case t:BagType => self.asInstanceOf[BagCalc].hasOutputDict
+      case _ => false
+    }
     
     def pred1(v: VarDef): Boolean = self.tp match {
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].pred1(v)
@@ -63,7 +86,9 @@ trait CalcImplicits {
       case t:TupleType => self.asInstanceOf[TupleCalc].normalize
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].normalize
       case t:TupleAttributeType => self.asInstanceOf[TupleAttributeCalc].normalize
-      case _ => self //throw new IllegalArgumentException(s"cannot normalize ${self}")
+      case t:LabelAttributeType => self.asInstanceOf[LabelAttributeCalc].normalize
+      case t:LabelType => self.asInstanceOf[LabelCalc].normalize
+      case _ => throw new IllegalArgumentException(s"cannot normalize ${self}")
     }
 
     def bind(e2: CompCalc, v: VarDef): CompCalc = self.tp match {
@@ -71,7 +96,9 @@ trait CalcImplicits {
       case t:TupleType => self.asInstanceOf[TupleCalc].bind(e2, v)
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].bind(e2, v)
       case t:TupleAttributeType => self.asInstanceOf[TupleAttributeCalc].bind(e2, v)
-      case _ => self //throw new IllegalArgumentException(s"cannot substitute ${self}")
+      case t:LabelAttributeType => self.asInstanceOf[LabelAttributeCalc].bind(e2, v)
+      case t:LabelType => self.asInstanceOf[LabelCalc].bind(e2, v)
+      case _ => throw new IllegalArgumentException(s"cannot substitute ${self}")
     }
 
     def substitute(e2: CompCalc, v: VarDef): CompCalc = self.tp match {
@@ -80,7 +107,9 @@ trait CalcImplicits {
       case t:TupleType => self.asInstanceOf[TupleCalc].substitute(e2, v)
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].substitute(e2, v)
       case t:TupleAttributeType => self.asInstanceOf[TupleAttributeCalc].substitute(e2, v)
-      case _ => self //throw new IllegalArgumentException(s"cannot substitute ${self}")
+      case t:LabelAttributeType => self.asInstanceOf[LabelAttributeCalc].substitute(e2, v)
+      case t:LabelType => self.asInstanceOf[LabelCalc].substitute(e2, v)
+      case _ => throw new IllegalArgumentException(s"cannot substitute ${self}")
     }
 
   }
@@ -91,6 +120,7 @@ trait CalcImplicits {
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].equalsVar(v)
       case t:BagType => self.asInstanceOf[BagCalc].equalsVar(v)
       case t:TupleType => self.asInstanceOf[TupleCalc].equalsVar(v)
+      case t:LabelType => self.asInstanceOf[LabelCalc].equalsVar(v)
       case _ => false 
     }
 
@@ -107,20 +137,66 @@ trait CalcImplicits {
     def normalize: CompCalc = self.tp match {
       case t:BagType => self.asInstanceOf[BagCalc].normalize
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].normalize
+      case t:LabelType => self.asInstanceOf[LabelCalc].normalize
       case _ => self
     }
 
     def bind(e2: CompCalc, v: VarDef): CompCalc = self.tp match {
       case t:BagType => self.asInstanceOf[BagCalc].bind(e2, v)
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].bind(e2, v)
-      case _ => self//throw new IllegalArgumentException(s"cannot normalize ${self}")
+      case t:LabelType => self.asInstanceOf[LabelCalc].bind(e2, v)
+      case _ => throw new IllegalArgumentException(s"cannot normalize ${self}")
     }
 
     def substitute(e2: CompCalc, v: VarDef): TupleAttributeCalc = self.tp match {
       case y if self == e2 => Var(v).asInstanceOf[TupleAttributeCalc]
       case t:BagType => self.asInstanceOf[BagCalc].substitute(e2, v)
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].substitute(e2, v)
-      case _ => self//throw new IllegalArgumentException(s"cannot normalize ${self}")
+      case t:LabelType => self.asInstanceOf[LabelCalc].substitute(e2, v)
+      case _ => throw new IllegalArgumentException(s"cannot normalize ${self}")
+    }
+
+  }
+
+  implicit class LabelAttributeCalcOps(self: LabelAttributeCalc) {
+    
+    def equalsVar(v: VarDef): Boolean = self.tp match {
+      case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].equalsVar(v)
+      case t:TupleType => self.asInstanceOf[TupleCalc].equalsVar(v)
+      case t:LabelType => self.asInstanceOf[LabelCalc].equalsVar(v)
+      case _ => false 
+    }
+
+    def pred1(v: VarDef): Boolean = self.tp match {
+      case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].pred1(v)
+      case _ => false
+    }
+
+    def pred2(v: VarDef, w: List[VarDef]): Boolean = self.tp match {
+      case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].pred2(v, w)
+      case _ => false
+    }
+
+    def normalize: CompCalc = self.tp match {
+      case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].normalize
+      case t:TupleType => self.asInstanceOf[TupleCalc].normalize
+      case t:LabelType => self.asInstanceOf[LabelCalc].normalize
+      case _ => self
+    }
+
+    def bind(e2: CompCalc, v: VarDef): CompCalc = self.tp match {
+      case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].bind(e2, v)
+      case t:TupleType => self.asInstanceOf[TupleCalc].bind(e2, v)
+      case t:LabelType => self.asInstanceOf[LabelCalc].bind(e2, v)
+      case _ => throw new IllegalArgumentException(s"cannot normalize ${self}")
+    }
+
+    def substitute(e2: CompCalc, v: VarDef): LabelAttributeCalc = self.tp match {
+      case y if self == e2 => Var(v).asInstanceOf[LabelAttributeCalc]
+      case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].substitute(e2, v)
+      case t:TupleType => self.asInstanceOf[TupleCalc].substitute(e2, v)
+      case t:LabelType => self.asInstanceOf[LabelCalc].substitute(e2, v)
+      case _ => throw new IllegalArgumentException(s"cannot normalize ${self}")
     }
 
   }
@@ -201,7 +277,20 @@ trait CalcImplicits {
   }
 
   implicit class BagCalcOps(self: BagCalc) {
-    
+       
+    def isOutputDict: Boolean = self match {
+      case Generator(x, v @ CLookup(lbl, dict)) => dict match {
+        case t:OutputBagDict => true
+        case _ => false
+      }
+      case _ => false
+    }
+
+    def hasOutputDict: Boolean = self match {
+      case BagComp(e, qs) => qs.map(_.isOutputDict).contains(true)
+      case _ => false
+    }
+       
     def equalsVar(v: VarDef): Boolean = self match {
       case ProjToBag(vd:TupleVar, field) => vd.varDef == v
       case BagVar(vd) => vd == v
@@ -217,6 +306,8 @@ trait CalcImplicits {
       case BagComp(e, Nil) => Sng(e).normalize
       case BagComp(e, quals) =>
         val b = BagComp(e.normalize.asInstanceOf[TupleCalc], quals.map(_.normalize))
+        //println("normalization "+b)
+        //println(b.hasOutputDict)
         if (b.qs.filter(_.isEmptyGenerator).nonEmpty) Zero()
         else if (b.hasIfGenerator){
           val ifs = b.qs.filter(_.isIfGenerator)
@@ -247,6 +338,18 @@ trait CalcImplicits {
             case _ => self
           }
         }
+        /**else if (b.hasOutputDict){
+          val bg = b.qs.filter(_.isOutputDict) 
+          bg.head match {
+            case Generator(x, l @ CLookup(lbl, dict)) =>
+              println("found an output dict generator "+b)
+              val lqsn = b.qs.slice(0, b.qs.indexOf(bg.head))
+              val rqsn = b.qs.slice(b.qs.indexOf(bg.head)+1, b.qs.size)
+              val nc = l.unshred
+              BagComp(b.e.asInstanceOf[TupleCalc], (lqsn :+ Generator(x, nc)) ++ rqsn).normalize
+            case _ => self
+          }
+        }**/
         else if (b.hasBind){
           val getbind = b.qs.filter(_.isBind)
           val qsn = b.qs.filterNot(Set(getbind.head))
@@ -269,6 +372,7 @@ trait CalcImplicits {
                 e2.normalize.asInstanceOf[BagCalc], Some(a.normalize.asInstanceOf[BagCalc]))
       case IfStmt(e1, e2, e3 @ None) =>
         IfStmt(e1.normalize.asInstanceOf[PrimitiveCalc], e2.normalize.asInstanceOf[BagCalc], None)
+      case CLookup(lbl, dict) => CLookup(lbl.normalize.asInstanceOf[LabelCalc], dict)
       case _ => self
     }
 
@@ -284,10 +388,13 @@ trait CalcImplicits {
       case Sng(e1) => Sng(e1.bind(e2, v).asInstanceOf[TupleCalc])
       case Merge(e1, e3) => Merge(e1.bind(e2, v).asInstanceOf[BagCalc], e3.bind(e2, v).asInstanceOf[BagCalc])
       case BagComp(e1, qs) => BagComp(e1.bind(e2, v).asInstanceOf[TupleCalc], qs.map(_.bind(e2, v)))
+      case CLookup(lbl, dict) => CLookup(lbl.bind(e2, v).asInstanceOf[LabelCalc], dict)
       case _ => self
     }
 
     def substitute(e2: CompCalc, v: VarDef): BagCalc = self match {
+      case ProjToBag(t, fs) => 
+        Proj(t.substitute(e2, v).asInstanceOf[TupleCalc], fs).asInstanceOf[BagCalc]
       case y if self == e2 => Var(v).asInstanceOf[BagCalc]
       case IfStmt(cond, e3, e4 @ Some(a)) => 
         IfStmt(cond.substitute(e2, v), e3.substitute(e2, v), Option(a.substitute(e2, v)))
@@ -297,6 +404,7 @@ trait CalcImplicits {
       case Sng(e1) => Sng(e1.substitute(e2, v))
       case Merge(e1, e3) => Merge(e1.substitute(e2, v), e3.substitute(e2, v))
       case BagComp(e1, qs) => BagComp(e1.substitute(e2, v), qs.map(_.substitute(e2, v)))
+      case CLookup(lbl, dict) => CLookup(lbl.substitute(e2, v), dict)
       case _ => self
     }
 
@@ -328,6 +436,33 @@ trait CalcImplicits {
       case _ => self
     }
 
+  }
+
+  implicit class LabelCalcOps(self: LabelCalc) {
+    def equalsVar(v: VarDef): Boolean = self match {
+      case LabelVar(vd) => vd == v
+      case _ => false
+    }
+    
+    def normalize: CompCalc = self match {
+      case ProjToLabel(t @ Tup(fs), f) => fs.get(f).get
+      case CLabel(vars, id) => CLabel(vars.map(f => f.normalize.asInstanceOf[Var]), id)
+      case _ => self
+    }
+
+    def bind(e2: CompCalc, v: VarDef): CompCalc = self match {
+      case ProjToLabel(t, fs) => Proj(t.bind(e2, v).asInstanceOf[TupleCalc], fs)
+      case BindLabel(x,e1) => BindLabel(x, e1.bind(e2, v).asInstanceOf[LabelCalc])
+      case CLabel(vars, id) => CLabel(vars.map(f => f.bind(e2, v).asInstanceOf[Var]), id)
+      case _ => self
+    }
+
+    def substitute(e2: CompCalc, v: VarDef): LabelCalc = self match {
+      case y if self == e2 => Var(v).asInstanceOf[LabelCalc]
+      case BindLabel(x,y) => BindLabel(x,y.substitute(e2, v))
+      case CLabel(vars, id) => CLabel(vars.map(f => f.substitute(e2, v).asInstanceOf[Var]), id)
+      case _ => self
+    }
   }
 
 

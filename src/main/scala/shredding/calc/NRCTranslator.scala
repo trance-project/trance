@@ -1,15 +1,16 @@
 package shredding.calc
 
+import scala.collection.mutable.Map
 import shredding.Utils.Symbol
 import shredding.core._
-import shredding.nrc.ShreddedNRC
+import shredding.nrc.Shredding//ShreddedNRC
 
 /**
   * Translation functions for NRC
   * 
   */
 trait NRCTranslator extends ShreddedCalc {
-  this: ShreddedNRC =>
+  this: Shredding =>//ShreddedNRC =>
 
   object Translator extends Serializable{
     /**
@@ -22,14 +23,20 @@ trait NRCTranslator extends ShreddedCalc {
       * 
       */
 
+    //def translateOutputDict(t2: OutputBagDict): CompCalc = {
+    //
+    //}
+    val ctx: Map[String, Expr] = Map[String, Expr]()
+
     def translate(e: Expr): CompCalc = e match {
       case Sequence(es) => CSequence(es.map(translate(_)))
-      case ForeachUnion(x, e1, e2) => translateBag(e2) match {
+      case ForeachUnion(x, e1, e2) => 
+      translateBag(e2) match {
         case IfStmt(c, e3 @ Sng(t), e4 @ None) => BagComp(t, List(Generator(x, translateBag(e1)), c))
         case Sng(t) => BagComp(t, List(Generator(x, translateBag(e1))))
-        case t =>
-            val v = VarDef(Symbol.fresh("v"), t.tp.tp)
-            BagComp(TupleVar(v), List(Generator(x, translateBag(e1)), Generator(v, t))) 
+        case t => 
+          val v = VarDef(Symbol.fresh("v"), t.tp.tp)
+          BagComp(TupleVar(v), List(Generator(x, translateBag(e1)), Generator(v, t))) 
         }
       case Union(e1, e2) => 
         Merge(translateBag(e1), translateBag(e2))
@@ -52,7 +59,20 @@ trait NRCTranslator extends ShreddedCalc {
         CountComp(Constant(1, IntType), List(Generator(v, translateBag(e))))
       case Named(n, e) => CNamed(n, translate(e))
       case InputBag(n, b, t) => InputR(n, b, t)
-      case Lookup(lbl, dict) => CLookup(translateLabel(lbl), dict.asInstanceOf[InputBagDict])
+      case Lookup(lbl, dict) => dict match {
+        case t:InputBagDict => CLookup(translateLabel(lbl), dict)
+        case t:OutputBagDict => 
+          /**println(lbl)
+          lbl match {
+            case p @ LabelProject(t @ TupleVarRef(vd), f) => ctx(vd.name) = VarRef(vd)
+            case p => p.asInstanceOf[Label].vars.foreach(v2 => ctx(v2.name) = v2)
+          }
+          println(ctx)
+          val unshredded = ExprShredder.unshred(t.flatBag, t.tupleDict, ctx.toMap)
+          println(quote(unshredded))**/
+          CLookup(translateLabel(lbl), dict)
+        case _ => sys.error("unsupported dict type")
+      }
       case l @ Label(vs) => CLabel(vs.map(translateVar(_)).toSet, l.id) 
       case _ => sys.error("not supported")
     }

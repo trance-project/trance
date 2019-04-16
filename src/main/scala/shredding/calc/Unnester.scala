@@ -1,10 +1,11 @@
 package shredding.calc
 
 import shredding.core._
+import shredding.nrc.Shredding
 import shredding.Utils.Symbol
 
 trait CalcTranslator extends Algebra {
-  this: CalcImplicits =>
+  this: CalcImplicits with Shredding with NRCTranslator =>
   
 
   object Unnester extends Serializable{
@@ -67,12 +68,25 @@ trait CalcTranslator extends Algebra {
               case (b2:Comprehension, _) =>
                 // this should be identified as a bag variable
                 unnest(Comprehension(b.e, tail), u, w :+ v, unnest(b2, w, w, e2))
+              case (b2 @ CLookup(lbl, dict:OutputBagDict), _) =>
+                unnest(Comprehension(b.e, tail), u, w :+ v, selectBag(b2, andPreds(Nil), v, w, e2))
               // if x is a path
               case (ProjToBag(vd, field), Nil) => unnest(nb, u, w :+v, Term(Unnest(w, x, andPreds(p1 ++ p2)), e2)) // UNNEST
               case (ProjToBag(vd, field), _) => unnest(nb, u, w :+v, Term(OuterUnnest(w, x, andPreds(p1 ++ p2)), e2)) // OUTER-UNNEST
               // if x is a variable
-              case (_, Nil) => unnest(nb, u, w :+v, Term(Join(w :+ v, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2))) // JOIN
-              case (_, _) => unnest(nb, u, w :+v, Term(OuterJoin(w :+ v, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2))) // OUTER-JOIN
+              case (_, Nil) => 
+                unnest(nb, u, w :+v, Term(Join(w :+ v, andPreds(p2)), selectBag(x, andPreds(p1), v, w, e2))) // JOIN
+              case (_, _) => 
+                val joinPreds = x match {
+                  case CLookup(lbl, dict) => 
+                    if (andPreds(p2) == Constant(true, BoolType)){
+                      Conditional(OpEq, lbl, TupleVar(v))
+                    }else{
+                      andPreds(Conditional(OpEq, lbl, lbl) +: p2)
+                    }
+                  case _ => andPreds(p2)
+                }
+                unnest(nb, u, w :+v, Term(OuterJoin(w :+ v, joinPreds), selectBag(x, andPreds(p1), v, w, e2))) // OUTER-JOIN
             }
           }
         // { e | p } (ie. has no generators): rules C5, C8, and C12
@@ -92,10 +106,30 @@ trait CalcTranslator extends Algebra {
           }
         case _ => sys.error("not supported")
       }
-      case b:BagCalc => Select(b, VarDef(Symbol.fresh("v"), b.tp.tp), Constant(true, BoolType))
+      case b:BagCalc => selectBag(b, Constant(true, BoolType), VarDef(Symbol.fresh("v"), b.tp.tp), w, e2)
       case CNamed(n, b) => NamedTerm(n, unnest(if (normalize) { b.normalize } else { b }))
       case CSequence(cs) => PlanSet(cs.map(unnest(_)))
       case _ => sys.error("not supported "+e1)
+   }
+
+   def selectBag(e:BagCalc, p:PrimitiveCalc, v: VarDef, w: List[VarDef], e2: AlgOp): AlgOp = e match {
+     case b @ CLookup(lbl, dict @ OutputBagDict(lbl2, flat, tdict)) =>
+      println("label "+lbl)
+      println("w "+w)
+      val ctxs = Map(w.map(v2 => v2.tp.asInstanceOf[TupleType].attrs.get("lbl") match {
+        case Some(a) => a.asInstanceOf[LabelType].attrs.map(v3 => v3._1 -> VarRef(VarDef(v3._1, v3._2)))
+        case None => (v2.name -> VarRef(v2))
+      }).filter{ _ != Map() }.asInstanceOf[List[(String, Expr)]]:_*)
+      println(ctxs)
+      val unshredded = ExprShredder.unshred(flat, dict, ctxs)//Map(lbl.asInstanceOf[CLabel].vars.map(v2 => v2.varDef.name -> VarRef(v2.varDef)).toList:_*))
+      val calcunshred = Translator.translate(unshredded)
+      println(calc.quote(calcunshred.asInstanceOf[calc.CompCalc]))
+      //Select(b, v, p) 
+      unnest(if (normalize) { calcunshred.normalize } else { calcunshred }, w, w, e2)
+     case _ => e2 match {
+       case Init() => Select(e, v, p)
+       case _ => Term(Select(e, v, p), e2)
+     }
    }
 
   }
