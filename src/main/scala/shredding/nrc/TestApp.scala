@@ -470,10 +470,153 @@ object TestApp extends App
     }
   }
 
-  Example1.run()
-  Example2.run()
-  Example3.run()
-  ExampleShredValue.run()
-  Example4.run()
-  Example5.run()
+  object Example6 {
+
+    import shredding.Utils.Symbol
+
+    def run(): Unit = {
+
+      val itemTp = TupleType("a" -> IntType, "b" -> IntType)
+      val relationR = InputBag("R",
+        List(
+          Map("a" -> 7, "b" -> 1234)
+        ),
+        BagType(itemTp)
+      )
+
+      //  Q1: For x4 in For x1 in R Union
+      //    Sng((w0 := x1.b, w1 := For x2 in R Union
+      //    Sng((w2 := x1.a, w3 := For x3 in R Union
+      //    Sng((w4 := x3.b)))))) Union
+      //    For x5 in x4.w1 Union
+      //    Sng((w4 := x5.w2, w5 := For x6 in x5.w3 Union
+      //      Sng((w6 := x6.w4))))
+
+      val x1def = VarDef(Symbol.fresh(), itemTp)
+      val x2def = VarDef(Symbol.fresh(), itemTp)
+      val x3def = VarDef(Symbol.fresh(), itemTp)
+
+      val sq1 = ForeachUnion(x3def, relationR,
+        Singleton(Tuple("w4" -> Project(TupleVarRef(x3def), "b"))))
+
+      val sq2 = ForeachUnion(x2def, relationR,
+        Singleton(Tuple(
+          "w2" -> Project(TupleVarRef(x1def), "a"),
+          "w3" -> sq1
+        )))
+
+      val sq3 = ForeachUnion(x1def, relationR,
+        Singleton(Tuple(
+          "w0" -> Project(TupleVarRef(x1def), "b"),
+          "w1" -> sq2
+        )))
+
+      val x6def = VarDef(Symbol.fresh(), sq3.tp.tp)
+      val x7def = VarDef(Symbol.fresh(), sq2.tp.tp)
+      val x4def = VarDef(Symbol.fresh(), sq1.tp.tp)
+
+      val q1 =
+        ForeachUnion(x6def, sq3,
+          ForeachUnion(x7def, BagProject(TupleVarRef(x6def), "w1"),
+            Singleton(Tuple(
+              "w4" -> Project(TupleVarRef(x7def), "w2"),
+              "w5" -> ForeachUnion(x4def, BagProject(TupleVarRef(x7def), "w3"),
+                Singleton(Tuple("w6" -> Project(TupleVarRef(x4def), "w4"))))
+            ))
+          ))
+
+      println("Q1: " + quote(q1))
+      println("Q1 eval: " + eval(q1))
+
+      val q1shred = shred(q1)
+      println("Shredded Q1: " + q1shred.quote)
+      val q1trans = unshred(q1shred)
+      println("Unshredded shredded Q1: " + quote(q1trans))
+      println("Same as original Q1: " + q1trans.equals(q1))
+
+      val q1lin = linearize(q1shred)
+      println("Linearized Q1: " + quote(q1lin))
+      println("Linearized Q1 eval: " + eval(q1lin).asInstanceOf[List[Any]].mkString("\n"))
+
+    }
+  }
+
+  object Example7 {
+
+    import shredding.Utils.Symbol
+
+    def run(): Unit = {
+
+      val itemTp = TupleType("a" -> IntType, "b" -> IntType)
+      val relationR = InputBag("R",
+        List(
+          Map("a" -> 7, "b" -> 1234)
+        ),
+        BagType(itemTp)
+      )
+
+      //  Q1: For x4 in For x1 in R Union
+      //    Sng((w0 := x1.b, w1 := For x2 in R Union
+      //    Sng((w2 := x1.a, w3 := For x3 in R Union
+      //    Sng((w4 := x3.b)))))) Union
+      //    For x5 in x4.w1 Union
+      //    Sng((w4 := x5.w2, w5 := For x6 in x5.w3 Union
+      //      Sng((w6 := x6.w4))))
+
+      val x1def = VarDef(Symbol.fresh(), itemTp)
+      val x2def = VarDef(Symbol.fresh(), itemTp)
+      val x3def = VarDef(Symbol.fresh(), itemTp)
+
+      val sq1 = ForeachUnion(x3def, relationR,
+        Singleton(Tuple("w4" -> Project(TupleVarRef(x3def), "b"))))
+
+      val sq2 = ForeachUnion(x2def, relationR,
+        Singleton(Tuple(
+          "w2" -> Project(TupleVarRef(x1def), "a"),
+          "w3" -> sq1
+        )))
+
+      val sq3 = ForeachUnion(x1def, relationR,
+        Singleton(Tuple(
+          "w0" -> Project(TupleVarRef(x1def), "b"),
+          "w1" -> sq2
+        )))
+
+      val x6def = VarDef(Symbol.fresh(), sq3.tp.tp)
+      val x7def = VarDef(Symbol.fresh(), sq2.tp.tp)
+      val x4def = VarDef(Symbol.fresh(), sq1.tp.tp)
+
+      val q1 =
+        ForeachUnion(x6def, sq3,
+          ForeachUnion(x7def, BagProject(TupleVarRef(x6def), "w1"),
+            ForeachUnion(x4def, BagProject(TupleVarRef(x7def), "w3"),
+              Singleton(Tuple(
+                "w6" -> Project(TupleVarRef(x4def), "w4")
+              ))
+            )))
+
+      println("Q1: " + quote(q1))
+      println("Q1 eval: " + eval(q1))
+
+      val q1shred = shred(q1)
+      println("Shredded Q1: " + q1shred.quote)
+      val q1trans = unshred(q1shred)
+      println("Unshredded shredded Q1: " + quote(q1trans))
+      println("Same as original Q1: " + q1trans.equals(q1))
+
+      val q1lin = linearize(q1shred)
+      println("Linearized Q1: " + quote(q1lin))
+      println("Linearized Q1 eval: " + eval(q1lin).asInstanceOf[List[Any]].mkString("\n"))
+
+    }
+  }
+
+//  Example1.run()
+//  Example2.run()
+//  Example3.run()
+//  ExampleShredValue.run()
+//  Example4.run()
+//  Example5.run()
+//  Example6.run()
+  Example7.run()
 }
