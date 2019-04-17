@@ -164,6 +164,32 @@ object TestApp extends App
       val q1lin = linearize(q1shred)
       println("Linearized Q1: " + quote(q1lin))
       println("Linearized Q1 eval: " + eval(q1lin).asInstanceOf[List[Any]].mkString("\n"))
+
+      // Buggy query reported by Jaclyn
+      val q2 = ForeachUnion(xdef, relationR,
+        Singleton(Tuple(
+          "o5" -> Project(xref, "h"),
+          "o6" ->
+            ForeachUnion(wdef, BagProject(xref, "j"),
+              Singleton(Tuple(
+                "o7" -> Project(wref, "m"),
+                "o8" -> BagProject(wref, "k")
+              ))
+            )
+        )))
+
+      println("Q2: " + quote(q2))
+      println("Q2 eval: " + eval(q2))
+
+      val q2shred = shred(q2)
+      println("Shredded Q2: " + q2shred.quote)
+      val q2trans = unshred(q2shred)
+      println("Unshredded shredded Q2: " + quote(q2trans))
+      println("Same as original Q2: " + q2trans.equals(q2))
+
+      val q2lin = linearize(q2shred)
+      println("Linearized Q2: " + quote(q2lin))
+      println("Linearized Q2 eval: " + eval(q2lin).asInstanceOf[List[Any]].mkString("\n"))
     }
   }
 
@@ -335,7 +361,7 @@ object TestApp extends App
   }
 
 //  Example1.run()
-//  Example2.run()
-  Example3.run()
+  Example2.run()
+//  Example3.run()
 //  ExampleShredValue.run()
 }
