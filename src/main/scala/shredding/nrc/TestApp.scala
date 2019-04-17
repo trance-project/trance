@@ -360,8 +360,64 @@ object TestApp extends App
     }
   }
 
-//  Example1.run()
-  Example2.run()
-//  Example3.run()
-//  ExampleShredValue.run()
+  object Example4 {
+
+    import shredding.Utils.Symbol
+
+    def run(): Unit = {
+
+      val itemTp = TupleType("id" -> IntType, "name" -> StringType)
+      val relationR = InputBag("R",
+        List(
+          Map("id" -> 42, "name" -> "Milos")
+        ),
+        BagType(itemTp)
+      )
+
+      val x0def = VarDef(Symbol.fresh(), itemTp)
+      val x1def = VarDef(Symbol.fresh(), itemTp)
+
+      val rq1 =
+        ForeachUnion(x0def, relationR,
+          ForeachUnion(x1def, relationR,
+            Singleton(Tuple(
+              "w1" -> Singleton(TupleVarRef(x0def)),
+              "w2" -> Singleton(TupleVarRef(x1def)))
+            )))
+
+      val x2def = VarDef(Symbol.fresh(), itemTp)
+      val x3def = VarDef(Symbol.fresh(), TupleType("w1" -> BagType(itemTp), "w2" -> BagType(itemTp)))
+      val x4def = VarDef(Symbol.fresh(), BagType(TupleType("w1" -> BagType(itemTp), "w2" -> BagType(itemTp))))
+
+      val q1 =
+        Let(x4def, rq1,
+          ForeachUnion(x3def, BagVarRef(x4def),
+            ForeachUnion(x2def, relationR,
+              Singleton(Tuple(
+                "w1" -> Singleton(TupleVarRef(x3def)),
+                "w2" -> Singleton(TupleVarRef(x2def)))
+              ))))
+
+      println("Q1: " + quote(q1))
+      println("Q1 eval: " + eval(q1))
+
+      val q1shred = shred(q1)
+      println("Shredded Q1: " + q1shred.quote)
+//      val q1trans = unshred(q1shred)
+//      println("Unshredded shredded Q1: " + quote(q1trans))
+//      println("Same as original Q1: " + q1trans.equals(q1))
+
+      val q1lin = linearize(q1shred)
+      println("Linearized Q1: " + quote(q1lin))
+//      println("Linearized Q1 eval: " + eval(q1lin).asInstanceOf[List[Any]].mkString("\n"))
+
+    }
+  }
+
+
+//    Example1.run()
+//    Example2.run()
+//    Example3.run()
+//    ExampleShredValue.run()
+    Example4.run()
 }

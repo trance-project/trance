@@ -89,3 +89,36 @@ trait NRCImplicits {
   }
 
 }
+
+trait ShreddedNRCImplicits extends NRCImplicits {
+  this: ShreddedNRC with Dictionary =>
+
+  def inputVars(e: Expr): Set[VarRef] =
+    inputVars(e, Map[String, VarDef]()).toSet
+
+  def inputVars(e: Expr, scope: Map[String, VarDef]): List[VarRef] = e.collect {
+    case v: VarRef =>
+      if (!scope.contains(v.name)) List(v)
+      else {
+        assert(v.tp == scope(v.name).tp); Nil
+      }
+    case ForeachUnion(x, e1, e2) =>
+      inputVars(e1, scope) ++ inputVars(e2, scope + (x.name -> x))
+    case Let(x, e1, e2) =>
+      inputVars(e1, scope) ++ inputVars(e2, scope + (x.name -> x))
+    case Lookup(l1, _) => inputVars(l1, scope)
+    case Label(vs) => vs.flatMap(inputVars(_, scope)).toList
+  }
+
+  implicit class DictionaryOps(d: Dict) {
+
+    def inputVars(scope: Map[String, VarDef]): List[VarRef] = d match {
+      case EmptyDict => Nil
+      case _: InputBagDict => Nil
+      case o: OutputBagDict => o.flatBag.inputVars(scope)
+      case TupleDict(fs) => fs.values.flatMap(_.inputVars(scope)).toList
+    }
+  }
+
+}
+

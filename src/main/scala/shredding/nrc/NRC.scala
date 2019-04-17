@@ -188,7 +188,8 @@ trait ShreddedNRC extends NRC with Dictionary {
   case class Label(vars: Set[VarRef] = Set.empty) extends LabelExpr {
     val id: Int = Label.getNextId
 
-    val tp: LabelType = LabelType(vars.map(r => r.name -> r.tp.asInstanceOf[LabelAttributeType]).toMap)
+    val tp: LabelType =
+      LabelType(vars.map(r => r.name -> r.tp.asInstanceOf[LabelAttributeType]).toMap)
 
     override def equals(that: Any): Boolean = that match {
       case that: Label => this.id == that.id
