@@ -54,10 +54,10 @@ trait Evaluator {
     case Union(e1, e2) => evalBag(e1, ctx) ++ evalBag(e2, ctx)
     case Singleton(e1) => List(evalTuple(e1, ctx))
     case Tuple(fs) => fs.map(x => x._1 -> eval(x._2, ctx))
-    case Let(x, e1, e2) =>
-      ctx.add(x.name, eval(e1, ctx), e1.tp)
-      val v = eval(e2, ctx)
-      ctx.remove(x.name, e1.tp)
+    case l: Let =>
+      ctx.add(l.x.name, eval(l.e1, ctx), l.e1.tp)
+      val v = eval(l.e2, ctx)
+      ctx.remove(l.x.name, l.e1.tp)
       v
     case Total(e1) => evalBag(e1, ctx).size
     case IfThenElse(Cond(op, l, r), e1, e2) =>

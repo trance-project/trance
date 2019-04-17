@@ -19,9 +19,9 @@ trait Printer {
     case Singleton(e1) => s"Sng(${quote(e1)})"
     case Tuple(fs) =>
       s"(${fs.map { case (k, v) => k + " := " + quote(v) }.mkString(", ")})"
-    case Let(x, e1, e2) =>
-      s"""|Let ${x.name} = ${quote(e1)} In
-          |${ind(quote(e2))}""".stripMargin
+    case l: Let =>
+      s"""|Let ${l.x.name} = ${quote(l.e1)} In
+          |${ind(quote(l.e2))}""".stripMargin
     case Total(e1) => s"Total(${quote(e1)})"
     case IfThenElse(Cond(op, l, r), e1, None) =>
       s"""|If (${quote(l)} $op ${quote(r)})

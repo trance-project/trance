@@ -34,11 +34,11 @@ trait NRCTranslator extends Calc {
         Merge(translateBag(e1), translateBag(e2))
       case IfThenElse(cond, e1, e2) =>
         IfStmt(translateCond(cond), translateBag(e1), translateOption(e2))
-      case Let(x, e1, e2) => e2.tp match {
+      case l: Let => l.e2.tp match {
         case t:BagType => 
-          val te2 = translateBag(e2) 
+          val te2 = translateBag(l.e2)
           val v = VarDef(Symbol.fresh("v"), te2.tp.tp)
-          BagComp(TupleVar(v), List(Bind(x, translate(e1)), Generator(v, te2)))
+          BagComp(TupleVar(v), List(Bind(l.x, translate(l.e1)), Generator(v, te2)))
         case _ => sys.error("not supported")
       }
       case Singleton(e1) => Sng(translateTuple(e1))

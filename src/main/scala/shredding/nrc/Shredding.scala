@@ -150,11 +150,11 @@ trait Shredding extends Dictionary with ShreddedPrinter with ShreddedNRCImplicit
 //        val se2 = shred(e2, ctx + (x.name -> ShredExpr(VarRef(x1), dict1)))
 //        ShredExpr(Let(x1, Lookup(l1, dict1), se2.flat), se2.dict)
 
-      case Let(x, e1, e2) =>
-        val se1 = shred(e1, ctx)
+      case l: Let =>
+        val se1 = shred(l.e1, ctx)
 //        assert(se1.dict.isPrimitiveDict, "Cannot shred Let with non-primitive dictionaries")
-        val x1 = VarDef(x.name, se1.flat.tp)
-        val se2 = shred(e2, ctx + (x.name -> ShredExpr(VarRef(x1), se1.dict)))
+        val x1 = VarDef(l.x.name, se1.flat.tp)
+        val se2 = shred(l.e2, ctx + (l.x.name -> ShredExpr(VarRef(x1), se1.dict)))
         ShredExpr(Let(x1, se1.flat, se2.flat), se2.dict)
 
       case Total(e1) =>
@@ -207,17 +207,17 @@ trait Shredding extends Dictionary with ShreddedPrinter with ShreddedNRCImplicit
         val ufs = fs.map { case (n, v) => n -> unshred(v, d.fields(n), ctx).asInstanceOf[TupleAttributeExpr] }
         Tuple(ufs)
 
-      case Let(x, l1: Lookup, e2) =>
-        val ue1 = unshred(l1.lbl, l1.dict, ctx).asInstanceOf[BagExpr]
-        val xdef = VarDef(x.name, ue1.tp)
-        val ue2 = unshred(e2, dict, ctx + (x.name -> VarRef(xdef)))
-        Let(xdef, ue1, ue2)
+//      case Let(x, l1: Lookup, e2) =>
+//        val ue1 = unshred(l1.lbl, l1.dict, ctx).asInstanceOf[BagExpr]
+//        val xdef = VarDef(x.name, ue1.tp)
+//        val ue2 = unshred(e2, dict, ctx + (x.name -> VarRef(xdef)))
+//        Let(xdef, ue1, ue2)
 
-      case Let(x, e1, e2) =>
+      case l: Let =>
         // TODO: e1 could be a label with a non-null dictionary
-        val ue1 = unshred(e1, null, ctx)    // Dictionary must be EmptyDict or a tuple of EmptyDict
-        val xdef = VarDef(x.name, ue1.tp)
-        val ue2 = unshred(e2, dict, ctx + (x.name -> VarRef(xdef)))
+        val ue1 = unshred(l.e1, null, ctx)    // Dictionary must be EmptyDict or a tuple of EmptyDict
+        val xdef = VarDef(l.x.name, ue1.tp)
+        val ue2 = unshred(l.e2, dict, ctx + (l.x.name -> VarRef(xdef)))
         Let(xdef, ue1, ue2)
 
       case Total(e1: Lookup) =>
