@@ -197,35 +197,41 @@ trait AlgTranslator {
     def getVar(e: CompCalc): VarDef = e match {
       case p:Proj => getVar(p.tuple)
       case TupleVar(vd) => vd 
+      case Extract(lbl, vd) => vd.varDef
     }
     
     /**
       * Returns value within a tuple
       * if a label is found, first extract the value from the tuple
       */
-    def getValue(a: List[_], i: Int, v: VarDef) = getIndex(v.tp, "lbl") match {
-      case -1 => a(i)
-      case l => a(l)
+    def getValue(a: Any, e: CompCalc) = e match {
+      case Extract(lbl, v) => lbl match {
+        case ProjToLabel(t @ TupleVar(vd), f) =>
+          val baseLabel = a.asInstanceOf[Product].productElement(getIndex(v.varDef.tp, "lbl")).asInstanceOf[SLabel]
+          baseLabel.extract(vd.name).asInstanceOf[Product].productElement(getIndex(lbl))
+        case CLabel(vars, id) => 
+          a.asInstanceOf[Product].productElement(getIndex(v.varDef.tp, "lbl")).asInstanceOf[SLabel].extract(v.name)
+        case _ => sys.error("not supported")
+      }
+      case _ => a match {
+        case t:Tuple2[_,_] => 
+          // coming from a join, need to fix this
+          t._1.asInstanceOf[Product].productElement(getIndex(e)-1)
+        case _ => a.asInstanceOf[Product].productElement(getIndex(e))
+      }
     } 
 
-    def getPred(e: PrimitiveCalc, v:VarDef, a: List[_]) = e match {
+    def getPred(e: PrimitiveCalc, v:VarDef, a: Any) = e match {
       case Conditional(OpEq, e1, e2) =>
-        if (v == getVar(e1)) {
-          // return the value associated to the project in e1
-          getValue(a, getIndex(e1), v)
-        }else if (v == getVar(e2)){
-            getValue(a, getIndex(e2), v)
-        }else{
-          getValue(a, -1, v) match {
-            case f:SLabel => f.extract(getVar(e1).name) match {
-            case None => 
-              getValue(f.extract(getVar(e2).name).asInstanceOf[List[_]], getIndex(e2), getVar(e2))
-            case l => 
-            getValue(l.asInstanceOf[List[_]], getIndex(e1), getVar(e1)) 
-          }
-          case _ => None 
+        if (v == getVar(e1)) { 
+          getValue(a, e1) 
+        } else if (v == getVar(e2)) { 
+          getValue(a, e2) 
+        } else {
+          None
         }
-    }}
+      case _ => sys.error("unsupported join condition")
+    }
 
     /**
       * Produces an anonymous function to map across an RDD[List[_]] to key appropriately
@@ -233,18 +239,28 @@ trait AlgTranslator {
       */
     def joinKey(vars: Any, pred: PrimitiveCalc): Any => Tuple2[_,_] = vars match {
       case v:VarDef => 
-        (a: Any) =>  a match {
-          case t:Tuple2[_,_] => t // from input dictionary, need to handle this from the condition
-          case _ => (List(getPred(pred, v, a.asInstanceOf[List[_]])), (a))
-        }
-      case (b:VarDef, c:VarDef) => 
         (a: Any) => 
-          val a1 = getPred(pred, c, a.asInstanceOf[Tuple2[_,_]]._2.asInstanceOf[List[_]])
-          val a2 = getPred(pred, b, a.asInstanceOf[Tuple2[_,_]]._2.asInstanceOf[List[_]])
-          (List(a1, a2).filter{_ != None}, (a))
-      //case (b @ (_,_), c:VarDef) => 
-      //  (a: Any) => (getPred(pred, v, a.asInstanceOf[List[_]]), (a))
-      //case (b,c) => 
+          val item = getPred(pred, v, a) match {
+            case tail :: Nil => tail
+            case tail => tail 
+          }
+          (item, (a))
+      case (b:VarDef, c:VarDef) => 
+        (a: Any) =>
+          println("in two vars ")
+          println(a)
+          val a1 = getPred(pred, b, a.asInstanceOf[Tuple2[_,_]]._1)
+          val a2 = getPred(pred, c, a.asInstanceOf[Tuple2[_,_]]._2)
+          ((a1, a2), (a))
+      case (b @ (_,_), c:VarDef) => 
+        (a: Any) => 
+          val f = joinKey(b, pred)(a.asInstanceOf[Tuple2[_,_]]._1)
+          ((f, getPred(pred, c, a.asInstanceOf[Tuple2[_,_]]._2)), (a))
+      case (b,c) => 
+        (a: Any) =>
+          val f1 = joinKey(b, pred)(a)
+          val f2 = joinKey(c, pred)(a)
+          ((f1,f2),(a))
     }
 
     /**
@@ -277,17 +293,18 @@ trait AlgTranslator {
       case Term(OuterJoin(v, p), Term(e1, e2)) => 
       val output = p match {
         case Constant(true, _) => 
-          val out1 = evaluate(e2)
-          val out2 = evaluate(e1)
-          val out = out1.cartesian(out2)
-          out
+          evaluate(e2).cartesian(evaluate(e1))
         case _ =>
           val vars2 = tuple2(v).asInstanceOf[Tuple2[_,_]]
           val mapFun_e2 = joinKey(vars2._1, p)
           val mapFun_e1 = joinKey(vars2._2, p)
           // not doing outer join
           val out1 = evaluate(e2).map(mapFun_e2(_))
+          println("out1")
+          out1.collect.foreach(println(_))
+          println("out2")
           val out2 = evaluate(e1).map(mapFun_e1(_))
+          out2.collect.foreach(println(_))
           val out = out1.join(out2).map{ case (k,v) => v }
           out
       }
@@ -348,7 +365,7 @@ trait AlgTranslator {
         case InputBagDict(d, ftp, tdict) =>
           val data = d.toList.flatMap{
             case (l, v) => v.asInstanceOf[List[Map[String,Any]]].map{
-              v2 => (List(l), v2.values.toList)}
+              v2 => l +: v2.values.toList}
           }
           ctx.getOrElseUpdate(lbl.toString, sc.parallelize(data)) 
         case _ => sys.error("unsupported evaluation for "+e)

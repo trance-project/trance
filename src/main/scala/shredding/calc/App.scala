@@ -537,7 +537,7 @@ object App extends
               "k" -> List(
                 Map("n" -> 2),
                 Map("n" -> 9),
-                Map("n" -> 1)
+               Map("n" -> 1)
               )
             ),
             Map(
@@ -590,6 +590,7 @@ object App extends
     println(quote(q4))
     println("")
     val sq4 = shred(q4)
+    println(sq4.quote)
     println(eval(q4))
     println("")
     val sq4lin = linearize(sq4)
@@ -600,7 +601,9 @@ object App extends
     val cqs4 = Translator.translate(sq4lin)
     //cqs4.asInstanceOf[calc.CSequence].exprs.foreach(e => println(calc.quote(e)))
     cqs4.asInstanceOf[calc.CSequence].exprs.foreach(e => e match {
-      case calc.CNamed(n, b) => println(calc.quote(calc.CNamed(n, b.asInstanceOf[CompCalc].normalize.asInstanceOf[calc.CompCalc])))
+      case calc.CNamed(n, b) => 
+        println(b.asInstanceOf[CompCalc].normalize.asInstanceOf[calc.CompCalc])
+        println(calc.quote(calc.CNamed(n, b.asInstanceOf[CompCalc].normalize.asInstanceOf[calc.CompCalc])))
     })
     println("\nNormalized: ")
     val nrqs = Unnester.unnest(cqs4).asInstanceOf[PlanSet]
@@ -613,11 +616,11 @@ object App extends
     //run3()
     //run5()
     //run6()
-    //run7()
+    run7()
      
     // recursive tests
     //runR1()
-    runR2()
+    //runR2()
     //runR3()
     //runR4a()
     //runR4b()

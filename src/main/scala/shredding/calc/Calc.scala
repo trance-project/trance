@@ -314,20 +314,11 @@ trait ShreddedCalc extends Calc
 
   }
 
+  case class Extract(lbl: LabelCalc, v: Var) extends LabelAttributeCalc {
+    val tp = v.tp.asInstanceOf[LabelAttributeType] 
+  } 
+  
   case class CLookup(lbl: LabelCalc, dict: BagDict) extends BagCalc{
     def tp: BagType = dict.flatBagTp
-    
-   /** override def isOutputDict: Boolean = dict match {
-      case t:OutputBagDict => true
-      case _ => false
-    }**/
-
-    /**def unshred: Expr = (lbl, dict) match {
-      case (CLabel(vars, id), odict @ OutputBagDict(lbl2, flat, tdict)) =>
-        val ctx = Map[String, Expr](lbl.asInstanceOf[CLabel].vars.map(v2 =>
-                        v2.varDef.name -> VarRef(v2.varDef)).toList:_*) 
-        ExprShredder.unshred(flat, tdict, ctx)
-      case _ => sys.error("not supported")
-    }**/
   }
 }
