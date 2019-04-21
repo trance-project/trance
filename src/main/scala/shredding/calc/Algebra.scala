@@ -124,7 +124,8 @@ trait Algebra extends BaseAlg with ShreddedCalc{
     */
   case class Join(v: List[VarDef],  p: PrimitiveCalc) extends BagOutput{
     def tp: BagType = 
-      BagType(TupleType(v.head.tp.asInstanceOf[TupleType].attrs ++ v.tail.head.tp.asInstanceOf[TupleType].attrs))
+      BagType(TupleType(v.head.tp.asInstanceOf[TupleType].attrs ++ v.tail.head.tp.asInstanceOf[TupleType].attrs))    
+  
   }
 
   /**

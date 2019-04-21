@@ -31,32 +31,13 @@ trait CalcTranslator extends Algebra {
       case _ => Nil
     }
 
-    def variableInContext(v: VarDef, w: List[VarDef]): Boolean = {
-      w.map(v2 => v2.name == v.name).contains(true)
-    }
-
-    def getVariableFromContext(v: VarDef, w:List[VarDef]): VarDef = {
-      w.filter{ v2 => v2.name == v.name }.head.asInstanceOf[VarDef]
-    }
-
-    def formatLabelVar(e: CompCalc, v: VarDef, w: List[VarDef]): (VarDef, PrimitiveCalc) = e match {
-      case b @ CLookup(lbl, dict @ InputBagDict(data, flat, tdict)) =>
-        lbl match {
-          case ProjToLabel(t @ TupleVar(vd),f) =>
-            val nv = VarDef(v.name, TupleType(Map(f ->
-              vd.tp.asInstanceOf[TupleType].attrs.get(f).get.asInstanceOf[TupleAttributeType]) ++ v.tp.asInstanceOf[TupleType].attrs))
-             if (!variableInContext(vd, w)){
-                (nv, Conditional(OpEq, Extract(lbl, Var(w.head)), ProjToLabel(TupleVar(nv), f)))
-              }else{
-                val vfc = getVariableFromContext(vd, w)
-                (nv, Conditional(OpEq, ProjToLabel(TupleVar(getVariableFromContext(vd, w)), f), ProjToLabel(TupleVar(nv), f)))
-              }
-          case CLabel(vars, id) =>
-            // this needs tested
-            val nv = VarDef(v.name, TupleType(Map(v.name -> lbl.tp) ++ v.tp.asInstanceOf[TupleType].attrs))
-            (nv, Conditional(OpEq, Extract(lbl, Var(w.head)), TupleVar(nv))) 
-          }
-      case _ => (v, Constant(true, BoolType))
+    def getJoinPred(andpred2: PrimitiveCalc, x: CompCalc): PrimitiveCalc = x match {
+      case CLookup(lbl, ibd) => ibd match {
+          case dict:InputBagDict if (andpred2 == Constant(true, BoolType)) => Conditional(OpEq, lbl, lbl)
+          case dict:InputBagDict => AndCondition(Conditional(OpEq, lbl, lbl), andpred2)
+          case _ => sys.error("Unsupported dictionary type in body")
+        }
+      case _ => andpred2
     }
 
     /**
@@ -96,18 +77,16 @@ trait CalcTranslator extends Algebra {
               case (b2:Comprehension, _) =>
                 // this should be identified as a bag variable
                 unnest(Comprehension(b.e, tail), u, w :+ v, unnest(b2, w, w, e2))
-              case (b2 @ CLookup(lbl, dict:OutputBagDict), _) =>
-                unnest(Comprehension(b.e, tail), u, w :+ v, selectBag(b2, andPreds(Nil), v, w, e2))
               // if x is a path
               case (ProjToBag(vd, field), Nil) => unnest(nb, u, w :+v, Term(Unnest(w, x, andPreds(p1 ++ p2)), e2)) // UNNEST
               case (ProjToBag(vd, field), _) => unnest(nb, u, w :+v, Term(OuterUnnest(w, x, andPreds(p1 ++ p2)), e2)) // OUTER-UNNEST
               // if x is a variable
               case (_, Nil) => 
-                val (nv, joinPreds) = formatLabelVar(x, v, w)
-                unnest(nb, u, w :+nv, Term(Join(w :+ nv, andPreds(joinPreds +: p2)), selectBag(x, andPreds(p1), nv, w, e2))) // JOIN
+                val joinPreds = getJoinPred(andPreds(p2), x)
+                unnest(nb, u, w :+v, Term(Join(w :+ v, joinPreds), Term(Select(x, v, andPreds(p1)), e2))) // JOIN
               case (_, _) => 
-                val (nv, joinPreds) = formatLabelVar(x, v, w)
-                unnest(nb, u, w :+nv, Term(OuterJoin(w :+ nv, andPreds(joinPreds +: p2)), selectBag(x, andPreds(p1), nv, w, e2))) // OUTER-JOIN
+                val joinPreds= getJoinPred(andPreds(p2), x)
+                unnest(nb, u, w :+v, Term(OuterJoin(w :+ v, joinPreds), Term(Select(x, v, andPreds(p1)), e2))) // OUTER-JOIN
             }
           }
         // { e | p } (ie. has no generators): rules C5, C8, and C12
@@ -127,28 +106,10 @@ trait CalcTranslator extends Algebra {
           }
         case _ => sys.error("not supported")
       }
-      case b:BagCalc => selectBag(b, Constant(true, BoolType), VarDef(Symbol.fresh("v"), b.tp.tp), w, e2)
+      case b:BagCalc => Select(b, VarDef(Symbol.fresh("v"), b.tp.tp), Constant(true, BoolType))
       case CNamed(n, b) => NamedTerm(n, unnest(if (normalize) { b.normalize } else { b }))
       case CSequence(cs) => PlanSet(cs.map(unnest(_)))
       case _ => sys.error("not supported "+e1)
-   }
-
-   def selectBag(e:BagCalc, p:PrimitiveCalc, v: VarDef, w: List[VarDef], e2: AlgOp): AlgOp = e match {
-     case b @ CLookup(lbl, dict @ OutputBagDict(lbl2, flat, tdict)) =>
-      val ctxs = Map(w.map(v2 => v2.tp.asInstanceOf[TupleType].attrs.get("lbl") match {
-        case Some(a) => a.asInstanceOf[LabelType].attrs.map(v3 => v3._1 -> VarRef(VarDef(v3._1, v3._2)))
-        case None => (v2.name -> VarRef(v2))
-      }).filter{ _ != Map() }.asInstanceOf[List[(String, Expr)]]:_*)
-      println(ctxs)
-      val unshredded = ExprShredder.unshred(flat, dict, ctxs)//Map(lbl.asInstanceOf[CLabel].vars.map(v2 => v2.varDef.name -> VarRef(v2.varDef)).toList:_*))
-      val calcunshred = Translator.translate(unshredded)
-      println(calc.quote(calcunshred.asInstanceOf[calc.CompCalc]))
-      //Select(b, v, p) 
-      unnest(if (normalize) { calcunshred.normalize } else { calcunshred }, w, w, e2)
-     case _ => e2 match {
-       case Init() => Select(e, v, p)
-       case _ => Term(Select(e, v, p), e2)
-     }
    }
 
   }

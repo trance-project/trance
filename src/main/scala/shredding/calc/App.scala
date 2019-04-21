@@ -37,7 +37,7 @@ object App extends
     println("")
     val q1lin = linearize(q1shred)
     println("Linearized set: ")
-    quote(q1lin)
+    println(quote(q1lin))
     val cqs = Translator.translate(q1lin)
     println("")
     println("Comprehension calculus: ")
@@ -81,10 +81,10 @@ object App extends
     val nrqs1 = Unnester.unnest(crqs1).asInstanceOf[PlanSet]
     sparke.execute(nrqs1)
 
-    println("\nNot Normalized: ")
+    /**println("\nNot Normalized: ")
     Unnester.normalize = false
     val nnrqs1 = Unnester.unnest(crqs1).asInstanceOf[PlanSet]
-    sparke.execute(nnrqs1)
+    sparke.execute(nnrqs1)**/
   }
   
   def runR2(){
@@ -118,17 +118,26 @@ object App extends
                 Singleton(Tuple("w0" -> Project(TupleVarRef(x0def), "b"), "w1" -> ForeachUnion(x1def, relationR, 
                   Singleton(Tuple("w2" -> Project(TupleVarRef(x0def), "a"), "w3" -> ForeachUnion(x1adef, relationR, 
                     Singleton(Tuple("w4" -> Project(TupleVarRef(x1adef), "b"))))))))))
-
+    
     // (3)
     val rq1 = ForeachUnion(x2adef, rqa, ForeachUnion(x3adef, Project(TupleVarRef(x2adef), "w1").asInstanceOf[BagExpr],
-                /**Singleton(Tuple("w4" -> Project(TupleVarRef(x3adef), "w2"), "w5" ->**/ 
+                Singleton(Tuple("w4" -> Project(TupleVarRef(x3adef), "w2"), "w5" -> 
                   ForeachUnion(x11def, Project(TupleVarRef(x3adef), "w3").asInstanceOf[BagExpr], 
-                    Singleton(Tuple("w6" -> Project(TupleVarRef(x11def), "w4"))))))//))    
-    //(1)
+                    Singleton(Tuple("w6" -> Project(TupleVarRef(x11def), "w4"))))))))
+
+    // (5)
+    /*val rq1 = ForeachUnion(x2adef, rqa, ForeachUnion(x3adef, Project(TupleVarRef(x2adef), "w1").asInstanceOf[BagExpr],
+                  ForeachUnion(x11def, Project(TupleVarRef(x3adef), "w3").asInstanceOf[BagExpr], 
+                    Singleton(Tuple("w6" -> Project(TupleVarRef(x11def), "w4"))))))*/
+    //(2)
     //val rq1 = ForeachUnion(x2def, rq, ForeachUnion(x3def, Project(TupleVarRef(x2def), "w1").asInstanceOf[BagExpr],
     //            Singleton(Tuple("w4" -> Project(TupleVarRef(x3def), "w2")))))
     
-    //(2)
+    //(2a)
+    //val rq1 = ForeachUnion(x2def, rq, ForeachUnion(x3def, Project(TupleVarRef(x2def), "w1").asInstanceOf[BagExpr],
+    //            Singleton(Tuple("w4" -> Project(TupleVarRef(x3def), "w2"), "w5" -> Project(TupleVarRef(x3def), "w3")))))
+   
+    //(1)
     //val rq1 = ForeachUnion(x2def, rq, Singleton(Tuple("w4" -> Project(TupleVarRef(x2def), "w1")))) 
     println(quote(rq1))
     println("")
@@ -141,13 +150,13 @@ object App extends
     val crqs = Translator.translate(rq1lin)
     println("")
     println("Comprehension calculus: ")
+    crqs.asInstanceOf[calc.CSequence].exprs.foreach(e => println(calc.quote(e)))
     crqs.asInstanceOf[calc.CSequence].exprs.foreach(e => e match {
       case calc.CNamed(n, b) => println(calc.quote(calc.CNamed(n, b.asInstanceOf[CompCalc].normalize.asInstanceOf[calc.CompCalc])))})
-    crqs.asInstanceOf[calc.CSequence].exprs.foreach(e => println(calc.quote(e)))
     println("\nNormalized: ")
     val nrqs = Unnester.unnest(crqs).asInstanceOf[PlanSet]
-    nrqs.plans.foreach(e => calc.quote(e.asInstanceOf[calc.AlgOp]))
-    //sparke.execute(nrqs)
+    nrqs.plans.foreach(e => println(calc.quote(e.asInstanceOf[calc.AlgOp])))
+    sparke.execute(nrqs)
 
     /**println("\nNot Normalized: ")
     Unnester.normalize = false
@@ -573,6 +582,7 @@ object App extends
       val xref = TupleVarRef(xdef)
       val wdef = VarDef("w", nestedItemTp)
       val wref = TupleVarRef(wdef)
+      val ndef = VarDef("y", TupleType("n" -> IntType))
 
       val q4 = ForeachUnion(xdef, relationR,
         Singleton(Tuple(
@@ -585,7 +595,18 @@ object App extends
               ))
             )
         )))
-
+    /**val q4 = ForeachUnion(xdef, relationR, 
+              Singleton(Tuple(
+                "o1" -> Project(TupleVarRef(xdef), "h"),
+                "o2" -> ForeachUnion(wdef, BagProject(TupleVarRef(xdef), "j"), 
+                          Singleton(Tuple(
+                            "o3" -> Project(TupleVarRef(xdef), "h"), 
+                            "o4" -> Project(TupleVarRef(wdef), "m"),
+                            "o5" -> ForeachUnion(ndef, BagProject(TupleVarRef(wdef), "k"), 
+                                      Singleton(Tuple(
+                                        "o6" -> Project(TupleVarRef(xdef), "h"),
+                                        "o7" -> Project(TupleVarRef(wdef), "n"),
+                                        "o8" -> Project(TupleVarRef(ndef), "n"))))))))))**/
 
     println(quote(q4))
     println("")
@@ -602,7 +623,7 @@ object App extends
     //cqs4.asInstanceOf[calc.CSequence].exprs.foreach(e => println(calc.quote(e)))
     cqs4.asInstanceOf[calc.CSequence].exprs.foreach(e => e match {
       case calc.CNamed(n, b) => 
-        println(b.asInstanceOf[CompCalc].normalize.asInstanceOf[calc.CompCalc])
+        //println(b.asInstanceOf[CompCalc].normalize.asInstanceOf[calc.CompCalc])
         println(calc.quote(calc.CNamed(n, b.asInstanceOf[CompCalc].normalize.asInstanceOf[calc.CompCalc])))
     })
     println("\nNormalized: ")
@@ -614,9 +635,9 @@ object App extends
   def main(args: Array[String]){
     //run1()
     //run3()
-    //run5()
+    run5()
     //run6()
-    run7()
+    //run7()
      
     // recursive tests
     //runR1()

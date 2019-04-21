@@ -5,7 +5,7 @@ import shredding.core._
 /**
   * Shredding transformation
   */
-trait Shredding extends Dictionary with ShreddedPrinter with NRCImplicits {
+trait Shredding extends Dictionary with ShreddedPrinter with ShreddedNRCImplicits {
   this: ShreddedNRC =>
 
   case class ShredValue(flat: Any, flatTp: Type, dict: Dict) {
@@ -112,24 +112,29 @@ trait Shredding extends Dictionary with ShreddedPrinter with NRCImplicits {
         ShredExpr(Project(flat, p.field), dict.fields(p.field))
 
       case ForeachUnion(x, e1, e2) =>
+//        System.err.println("MILOS e1 = " + e1)
+//        System.err.println("MILOS shred(e1, ctx) = " + shred(e1, ctx))
+//        System.err.println("MILOS ctx = " + ctx)
+
         val ShredExpr(l1: LabelExpr, dict1: BagDict) = shred(e1, ctx)
         val xdef = VarDef(x.name, dict1.flatBagTp.tp)
         val ShredExpr(l2: LabelExpr, dict2: BagDict) =
           shred(e2, ctx + (x.name -> ShredExpr(VarRef(xdef), dict1.tupleDict)))
         val flat = ForeachUnion(xdef, Lookup(l1, dict1), Lookup(l2, dict2))
-        val lbl = Label(e.inputVars)
+        val lbl = Label(inputVars(flat))
         ShredExpr(lbl, OutputBagDict(lbl, flat, dict2.tupleDict))
 
       case Union(e1, e2) =>
         val ShredExpr(l1: LabelExpr, dict1: BagDict) = shred(e1, ctx)
         val ShredExpr(l2: LabelExpr, dict2: BagDict) = shred(e2, ctx)
         val dict = dict1.union(dict2).asInstanceOf[BagDict]
-        val lbl = Label(e.inputVars)
-        ShredExpr(lbl, OutputBagDict(lbl, Union(Lookup(l1, dict1), Lookup(l2, dict2)), dict.tupleDict))
+        val flat = Union(Lookup(l1, dict1), Lookup(l2, dict2))
+        val lbl = Label(inputVars(flat))
+        ShredExpr(lbl, OutputBagDict(lbl, flat, dict.tupleDict))
 
       case Singleton(e1) =>
         val ShredExpr(flat: TupleExpr, dict: TupleDict) = shred(e1, ctx)
-        val lbl = Label(e.inputVars)
+        val lbl = Label(inputVars(flat))
         ShredExpr(lbl, OutputBagDict(lbl, Singleton(flat), dict))
 
       case Tuple(fs) =>
@@ -138,17 +143,18 @@ trait Shredding extends Dictionary with ShreddedPrinter with NRCImplicits {
         val attrTps = sfs.map(f => f._1 -> f._2.dict.asInstanceOf[AttributeDict])
         ShredExpr(Tuple(attrs), TupleDict(attrTps))
 
-      case Let(x, e1: BagExpr, e2) =>
-        val ShredExpr(l1: LabelExpr, dict1: BagDict) = shred(e1, ctx)
-        val x1 = VarDef(x.name, dict1.flatBagTp)
-        val se2 = shred(e2, ctx + (x.name -> ShredExpr(VarRef(x1), dict1)))
-        ShredExpr(Let(x1, Lookup(l1, dict1), se2.flat), se2.dict)
+//      case Let(x, e1: BagExpr, e2) =>
+//        val ShredExpr(l1: LabelExpr, dict1: BagDict) = shred(e1, ctx)
+////        val x1 = VarDef(x.name, dict1.flatBagTp)
+//        val x1 = VarDef(x.name, l1.tp)
+//        val se2 = shred(e2, ctx + (x.name -> ShredExpr(VarRef(x1), dict1)))
+//        ShredExpr(Let(x1, Lookup(l1, dict1), se2.flat), se2.dict)
 
-      case Let(x, e1, e2) =>
-        val se1 = shred(e1, ctx)
-        assert(se1.dict.isPrimitiveDict, "Cannot shred Let with non-primitive dictionaries")
-        val x1 = VarDef(x.name, se1.flat.tp)
-        val se2 = shred(e2, ctx + (x.name -> ShredExpr(VarRef(x1), se1.dict)))
+      case l: Let =>
+        val se1 = shred(l.e1, ctx)
+//        assert(se1.dict.isPrimitiveDict, "Cannot shred Let with non-primitive dictionaries")
+        val x1 = VarDef(l.x.name, se1.flat.tp)
+        val se2 = shred(l.e2, ctx + (l.x.name -> ShredExpr(VarRef(x1), se1.dict)))
         ShredExpr(Let(x1, se1.flat, se2.flat), se2.dict)
 
       case Total(e1) =>
@@ -159,7 +165,7 @@ trait Shredding extends Dictionary with ShreddedPrinter with NRCImplicits {
         // TODO: fix this
         val ShredExpr(l1: LabelExpr, dict1: BagDict) = shred(e1, ctx)
         val flat = IfThenElse(c, Lookup(l1, dict1), None)
-        val lbl = Label(e.inputVars)
+        val lbl = Label(inputVars(flat))
         ShredExpr(lbl, OutputBagDict(lbl, flat, dict1.tupleDict))
 
       case IfThenElse(c, e1, Some(e2)) =>
@@ -201,16 +207,17 @@ trait Shredding extends Dictionary with ShreddedPrinter with NRCImplicits {
         val ufs = fs.map { case (n, v) => n -> unshred(v, d.fields(n), ctx).asInstanceOf[TupleAttributeExpr] }
         Tuple(ufs)
 
-      case Let(x, l1: Lookup, e2) =>
-        val ue1 = unshred(l1.lbl, l1.dict, ctx).asInstanceOf[BagExpr]
-        val xdef = VarDef(x.name, ue1.tp)
-        val ue2 = unshred(e2, dict, ctx + (x.name -> VarRef(xdef)))
-        Let(xdef, ue1, ue2)
+//      case Let(x, l1: Lookup, e2) =>
+//        val ue1 = unshred(l1.lbl, l1.dict, ctx).asInstanceOf[BagExpr]
+//        val xdef = VarDef(x.name, ue1.tp)
+//        val ue2 = unshred(e2, dict, ctx + (x.name -> VarRef(xdef)))
+//        Let(xdef, ue1, ue2)
 
-      case Let(x, e1, e2) =>
-        val ue1 = unshred(e1, null, ctx)    // Dictionary must be EmptyDict or a tuple of EmptyDict
-        val xdef = VarDef(x.name, ue1.tp)
-        val ue2 = unshred(e2, dict, ctx + (x.name -> VarRef(xdef)))
+      case l: Let =>
+        // TODO: e1 could be a label with a non-null dictionary
+        val ue1 = unshred(l.e1, null, ctx)    // Dictionary must be EmptyDict or a tuple of EmptyDict
+        val xdef = VarDef(l.x.name, ue1.tp)
+        val ue2 = unshred(l.e2, dict, ctx + (l.x.name -> VarRef(xdef)))
         Let(xdef, ue1, ue2)
 
       case Total(e1: Lookup) =>

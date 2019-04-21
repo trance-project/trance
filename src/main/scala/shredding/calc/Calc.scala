@@ -302,9 +302,9 @@ trait Calc extends BaseCalc {
 trait ShreddedCalc extends Calc 
   with Dictionary with ShreddedNRC {
 
-  case class CLabel(vars: Set[Var] = Set.empty, id: Int) extends LabelCalc {
-    val tp: LabelType = LabelType(vars.map(r => r.name -> r.tp.asInstanceOf[LabelAttributeType]).toMap)
-    
+  case class CLabel(id: Int, vars: Map[String, LabelAttributeCalc]) extends LabelCalc {
+    val tp: LabelType = LabelType(vars.map(f => f._1 -> f._2.tp))
+
     override def equals(that: Any): Boolean = that match {
       case that: CLabel => this.id == that.id
       case _ => false
@@ -314,9 +314,35 @@ trait ShreddedCalc extends Calc
 
   }
 
-  case class Extract(lbl: LabelCalc, v: Var) extends LabelAttributeCalc {
-    val tp = v.tp.asInstanceOf[LabelAttributeType] 
-  } 
+  object CLabel{
+    def apply(id: Int, vars: (String, LabelAttributeCalc)*): CLabel = CLabel(id, Map(vars:_*))
+  }
+
+  trait Extract extends CompCalc{
+    def lbl: LabelCalc
+    def field: String
+  }
+
+  case object Extract{
+    def apply(lbl: LabelCalc, field: String): LabelAttributeCalc = lbl.tp.attrs(field) match {
+      case t:PrimitiveType => ExtractToPrimitive(lbl, field)
+      case t:LabelType => ExtractToLabel(lbl, field)
+      case t:TupleType => ExtractToTuple(lbl, field)
+      case t => sys.error("Unknown type in Extract.apply: " + t)
+    }
+  }
+
+  case class ExtractToPrimitive(lbl: LabelCalc, field: String) extends PrimitiveCalc with Extract {
+    val tp: PrimitiveType = lbl.tp.attrs(field).asInstanceOf[PrimitiveType]
+  }
+
+  case class ExtractToTuple(lbl: LabelCalc, field: String) extends TupleCalc with Extract {
+    val tp: TupleType = lbl.tp.attrs(field).asInstanceOf[TupleType]
+  }
+
+  case class ExtractToLabel(lbl: LabelCalc, field: String) extends LabelCalc with Extract {
+    val tp: LabelType = lbl.tp.attrs(field).asInstanceOf[LabelType]
+  }
   
   case class CLookup(lbl: LabelCalc, dict: BagDict) extends BagCalc{
     def tp: BagType = dict.flatBagTp

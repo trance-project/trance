@@ -48,9 +48,13 @@ trait Linearization extends Optimizer {
               Singleton(Tuple("lbl" -> Project(TupleVarRef(xDef), n)))))
         val mCtxNamed = Named(Symbol.fresh("M_ctx"), mCtx)
         val mCtxRef = BagVarRef(VarDef(mCtxNamed.n, mCtx.tp))
-        val bagDict = dict.tupleDict.fields(n).asInstanceOf[OutputBagDict]
+        val bagDict = dict.tupleDict.fields(n)
 
-        mCtxNamed :: linearize(bagDict, mCtxRef)
+        bagDict match {
+          case b: OutputBagDict => mCtxNamed :: linearize(b, mCtxRef)
+          case _: InputBagDict => Nil
+          case _ => sys.error("Unknown dictionary")
+        }
       }
   }
 }

@@ -446,21 +446,24 @@ trait CalcImplicits {
     
     def normalize: CompCalc = self match {
       case ProjToLabel(t @ Tup(fs), f) => fs.get(f).get
-      case CLabel(vars, id) => CLabel(vars.map(f => f.normalize.asInstanceOf[Var]), id)
+      case CLabel(id, vars) => CLabel(id, vars.map(f => f._1 -> f._2.normalize.asInstanceOf[LabelAttributeCalc]))
       case _ => self
     }
 
     def bind(e2: CompCalc, v: VarDef): CompCalc = self match {
       case ProjToLabel(t, fs) => Proj(t.bind(e2, v).asInstanceOf[TupleCalc], fs)
       case BindLabel(x,e1) => BindLabel(x, e1.bind(e2, v).asInstanceOf[LabelCalc])
-      case CLabel(vars, id) => CLabel(vars.map(f => f.bind(e2, v).asInstanceOf[Var]), id)
+      case CLabel(id, vars) =>
+        // substitute a tuple into a label? 
+        CLabel(id, vars.map(f => f._1 -> f._2.bind(e2, v).asInstanceOf[LabelAttributeCalc]))
       case _ => self
     }
 
     def substitute(e2: CompCalc, v: VarDef): LabelCalc = self match {
       case y if self == e2 => Var(v).asInstanceOf[LabelCalc]
       case BindLabel(x,y) => BindLabel(x,y.substitute(e2, v))
-      case CLabel(vars, id) => CLabel(vars.map(f => f.substitute(e2, v).asInstanceOf[Var]), id)
+      case CLabel(id, vars) => 
+        CLabel(id, vars.map(f => f._1 -> f._2.substitute(e2, v).asInstanceOf[LabelAttributeCalc])) 
       case _ => self
     }
   }

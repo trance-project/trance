@@ -33,8 +33,8 @@ package object calc extends ShreddedCalc with Algebra {
       case CNamed(n, b) => n+" := "+quote(b)
       case InputR(n, _, _) => n
       case CountComp(e1, qs) => s" + { ${quote(e1)} | ${qs.map(quote(_)).mkString(",")} }"
-      case CLabel(vs, id) => s"Label${id}(${vs.map(quote(_)).mkString(",")})"
-      case Extract(lbl, v) => s"Extract(${quote(lbl)})(${quote(v)})"
+      case CLabel(id, vs) => s"Label${id}(${vs.map(v2 => v2._1+" -> "+quote(v2._2)).mkString(",")})"
+      case t:Extract => s"Extract(${quote(t.lbl)})(${t.field})"
       case CLookup(lbl, dict) => s"Lookup(${dict.toString})(${quote(lbl)})"
       case _ => throw new IllegalArgumentException("unknown type")
     }

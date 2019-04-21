@@ -7,7 +7,7 @@ import shredding.core._
   */
 trait BaseExpr {
 
-  sealed trait Expr {
+  sealed trait Expr extends Serializable {
     def tp: Type
   }
 
@@ -131,10 +131,45 @@ trait NRC extends BaseExpr {
     def apply(fs: (String, TupleAttributeExpr)*): Tuple = Tuple(Map(fs: _*))
   }
 
-  case class Let(x: VarDef, e1: Expr, e2: Expr) extends Expr {
+  object Let {
+    def apply(x: VarDef, e1: Expr, e2: Expr): Let = e2.tp match {
+      case _: PrimitiveType => PrimitiveLet(x, e1, e2.asInstanceOf[PrimitiveExpr])
+      case _: TupleType => TupleLet(x, e1, e2.asInstanceOf[TupleExpr])
+      case _: BagType => BagLet(x, e1, e2.asInstanceOf[BagExpr])
+      case _: LabelType => LabelLet(x, e1, e2.asInstanceOf[LabelExpr])
+    }
+  }
+
+  trait Let extends Expr {
+    def x: VarDef
+
+    def e1: Expr
+
+    def e2: Expr
+  }
+
+  case class PrimitiveLet(x: VarDef, e1: Expr, e2: PrimitiveExpr) extends PrimitiveExpr with Let {
     assert(x.tp == e1.tp)
 
-    val tp: Type = e2.tp
+    val tp: PrimitiveType = e2.tp
+  }
+
+  case class TupleLet(x: VarDef, e1: Expr, e2: TupleExpr) extends TupleExpr with Let {
+    assert(x.tp == e1.tp)
+
+    val tp: TupleType = e2.tp
+  }
+
+  case class BagLet(x: VarDef, e1: Expr, e2: BagExpr) extends BagExpr with Let {
+    assert(x.tp == e1.tp)
+
+    val tp: BagType = e2.tp
+  }
+
+  case class LabelLet(x: VarDef, e1: Expr, e2: LabelExpr) extends LabelExpr with Let {
+    assert(x.tp == e1.tp)
+
+    val tp: LabelType = e2.tp
   }
 
   case class Total(e: BagExpr) extends PrimitiveExpr {
@@ -188,7 +223,8 @@ trait ShreddedNRC extends NRC with Dictionary {
   case class Label(vars: Set[VarRef] = Set.empty) extends LabelExpr {
     val id: Int = Label.getNextId
 
-    val tp: LabelType = LabelType(vars.map(r => r.name -> r.tp.asInstanceOf[LabelAttributeType]).toMap)
+    val tp: LabelType =
+      LabelType(vars.map(r => r.name -> r.tp.asInstanceOf[LabelAttributeType]).toMap)
 
     override def equals(that: Any): Boolean = that match {
       case that: Label => this.id == that.id

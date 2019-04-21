@@ -42,11 +42,11 @@ trait NRCTranslator extends ShreddedCalc {
         Merge(translateBag(e1), translateBag(e2))
       case IfThenElse(cond, e1, e2) =>
         IfStmt(translateCond(cond), translateBag(e1), translateOption(e2))
-      case Let(x, e1, e2) => e2.tp match {
+      case l: Let => l.e2.tp match {
         case t:BagType => 
-          val te2 = translateBag(e2) 
+          val te2 = translateBag(l.e2)
           val v = VarDef(Symbol.fresh("v"), te2.tp.tp)
-          BagComp(TupleVar(v), List(Bind(x, translate(e1)), Generator(v, te2)))
+          BagComp(TupleVar(v), List(Bind(l.x, translate(l.e1)), Generator(v, te2)))
         case _ => sys.error("not supported")
       }
       case Singleton(e1) => Sng(translateTuple(e1))
@@ -61,19 +61,10 @@ trait NRCTranslator extends ShreddedCalc {
       case InputBag(n, b, t) => InputR(n, b, t)
       case Lookup(lbl, dict) => dict match {
         case t:InputBagDict => CLookup(translateLabel(lbl), dict)
-        case t:OutputBagDict => 
-          /**println(lbl)
-          lbl match {
-            case p @ LabelProject(t @ TupleVarRef(vd), f) => ctx(vd.name) = VarRef(vd)
-            case p => p.asInstanceOf[Label].vars.foreach(v2 => ctx(v2.name) = v2)
-          }
-          println(ctx)
-          val unshredded = ExprShredder.unshred(t.flatBag, t.tupleDict, ctx.toMap)
-          println(quote(unshredded))**/
-          CLookup(translateLabel(lbl), dict)
-        case _ => sys.error("unsupported dict type")
+        case _ => sys.error("unsupported bag dict")
       }
-      case l @ Label(vs) => CLabel(vs.map(translateVar(_)).toSet, l.id) 
+      case l @ Label(vs) => 
+        CLabel(l.id, vs.map( f => f.name -> translateLabelAttr(f)).toList:_*) 
       case _ => sys.error("not supported")
     }
 
@@ -94,6 +85,7 @@ trait NRCTranslator extends ShreddedCalc {
     def translateLabel(e: Expr): LabelCalc = translate(e).asInstanceOf[LabelCalc]
     def translateVar(e: Expr): Var = translate(e).asInstanceOf[Var]
     def translateAttr(e: Expr): TupleAttributeCalc = translate(e).asInstanceOf[TupleAttributeCalc]
+    def translateLabelAttr(e: Expr): LabelAttributeCalc = translate(e).asInstanceOf[LabelAttributeCalc]
     def translateCond(e: Cond): Conditional = 
       Conditional(e.op, translateAttr(e.e1), translateAttr(e.e2)) 
   }
