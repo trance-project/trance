@@ -112,10 +112,6 @@ trait Shredding extends Dictionary with ShreddedPrinter with ShreddedNRCImplicit
         ShredExpr(Project(flat, p.field), dict.fields(p.field))
 
       case ForeachUnion(x, e1, e2) =>
-//        System.err.println("MILOS e1 = " + e1)
-//        System.err.println("MILOS shred(e1, ctx) = " + shred(e1, ctx))
-//        System.err.println("MILOS ctx = " + ctx)
-
         val ShredExpr(l1: LabelExpr, dict1: BagDict) = shred(e1, ctx)
         val xdef = VarDef(x.name, dict1.flatBagTp.tp)
         val ShredExpr(l2: LabelExpr, dict2: BagDict) =
