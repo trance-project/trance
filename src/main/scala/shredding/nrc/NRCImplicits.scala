@@ -19,10 +19,9 @@ trait NRCImplicits {
         case Tuple(fs) => fs.flatMap(_._2.collect(f)).toList
         case l: Let => l.e1.collect(f) ++ l.e2.collect(f)
         case Total(e1) => e1.collect(f)
-        case IfThenElse(Cond(_, e1, e2), e3, None) =>
-          e1.collect(f) ++ e2.collect(f) ++ e3.collect(f)
-        case IfThenElse(Cond(_, e1, e2), e3, Some(e4)) =>
-          e1.collect(f) ++ e2.collect(f) ++ e3.collect(f) ++ e4.collect(f)
+        case i: IfThenElse =>
+          i.cond.e1.collect(f) ++ i.cond.e2.collect(f) ++
+            i.e1.collect(f) ++ i.e2.map(_.collect(f)).getOrElse(Nil)
         case Named(_, e1) => e1.collect(f)
         case Sequence(ee) => ee.flatMap(_.collect(f))
         case _ => List()
@@ -54,17 +53,14 @@ trait NRCImplicits {
           Let(xd, r1, r2)
         case Total(e1) =>
           Total(e1.replace(f).asInstanceOf[BagExpr])
-        case IfThenElse(Cond(c, e1, e2), e3, None) =>
-          val r1 = e1.replace(f).asInstanceOf[TupleAttributeExpr]
-          val r2 = e2.replace(f).asInstanceOf[TupleAttributeExpr]
-          val r3 = e3.replace(f).asInstanceOf[BagExpr]
-          IfThenElse(Cond(c, r1, r2), r3, None)
-        case IfThenElse(Cond(c, e1, e2), e3, Some(e4)) =>
-          val r1 = e1.replace(f).asInstanceOf[TupleAttributeExpr]
-          val r2 = e2.replace(f).asInstanceOf[TupleAttributeExpr]
-          val r3 = e3.replace(f).asInstanceOf[BagExpr]
-          val r4 = e4.replace(f).asInstanceOf[BagExpr]
-          IfThenElse(Cond(c, r1, r2), r3, Some(r4))
+        case i: IfThenElse =>
+          val c1 = i.cond.e1.replace(f).asInstanceOf[TupleAttributeExpr]
+          val c2 = i.cond.e2.replace(f).asInstanceOf[TupleAttributeExpr]
+          val r1 = i.e1.replace(f)
+          if (i.e2.isDefined)
+            IfThenElse(Cond(i.cond.op, c1, c2), r1, i.e2.get.replace(f))
+          else
+            IfThenElse(Cond(i.cond.op, c1, c2), r1)
         case Named(n, e1) =>
           Named(n, e1.replace(f))
         case Sequence(ee) =>

@@ -611,12 +611,12 @@ object TestApp extends App
     }
   }
 
-//  Example1.run()
-//  Example2.run()
-//  Example3.run()
-//  ExampleShredValue.run()
-//  Example4.run()
-//  Example5.run()
-//  Example6.run()
+  Example1.run()
+  Example2.run()
+  Example3.run()
+  ExampleShredValue.run()
+  Example4.run()
+  Example5.run()
+  Example6.run()
   Example7.run()
 }

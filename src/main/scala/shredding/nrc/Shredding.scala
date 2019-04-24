@@ -157,16 +157,16 @@ trait Shredding extends Dictionary with ShreddedPrinter with ShreddedNRCImplicit
         val ShredExpr(lbl: LabelExpr, dict2: BagDict) = shred(e1, ctx)
         ShredExpr(Total(Lookup(lbl, dict2)), EmptyDict)
 
-      case IfThenElse(c, e1, None) =>
+      case i: IfThenElse =>
         // TODO: fix this
-        val ShredExpr(l1: LabelExpr, dict1: BagDict) = shred(e1, ctx)
-        val flat = IfThenElse(c, Lookup(l1, dict1), None)
+        val ShredExpr(l1: LabelExpr, dict1: BagDict) = shred(i.e1, ctx)
+        val flat = IfThenElse(i.cond, Lookup(l1, dict1))
         val lbl = Label(inputVars(flat))
         ShredExpr(lbl, OutputBagDict(lbl, flat, dict1.tupleDict))
 
-      case IfThenElse(c, e1, Some(e2)) =>
-        // TODO: Propagate if-then-else through dictionaries
-        sys.error("TODO: Propagate if-then-else through dictionaries")
+//      case IfThenElse(c, e1, Some(e2)) =>
+//        // TODO: Propagate if-then-else through dictionaries
+//        sys.error("TODO: Propagate if-then-else through dictionaries")
 
       case InputBag(n, ts, tp) =>
         val ShredValue(lbl: Label, _: LabelType, dict: InputBagDict) = ValueShredder.shred(ts, tp)
@@ -220,12 +220,12 @@ trait Shredding extends Dictionary with ShreddedPrinter with ShreddedNRCImplicit
         val ue1 = unshred(e1.lbl, e1.dict, ctx).asInstanceOf[BagExpr]
         Total(ue1)
 
-      case IfThenElse(c, e1, None) =>
-        IfThenElse(c, unshred(e1, dict, ctx).asInstanceOf[BagExpr], None)
-
-      case IfThenElse(c, e1, Some(e2)) =>
-        // TODO: Propagate if-then-else through dictionaries
-        sys.error("TODO: Propagate if-then-else through dictionaries")
+      case i: IfThenElse =>
+        if (i.e2.isDefined)
+          // TODO: Propagate if-then-else through dictionaries
+          sys.error("TODO: Propagate if-then-else through dictionaries")
+        else
+          IfThenElse(i.cond, unshred(i.e1, dict, ctx))
 
       case InputBag(n, v, tp) =>
         val uv = ValueShredder.unshred(v, tp, dict).asInstanceOf[List[Any]]

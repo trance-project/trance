@@ -178,11 +178,62 @@ trait NRC extends BaseExpr {
 
   case class Cond(op: OpCmp, e1: TupleAttributeExpr, e2: TupleAttributeExpr)
 
-  case class IfThenElse(cond: Cond, e1: BagExpr, e2: Option[BagExpr] = None) extends BagExpr {
+  trait IfThenElse extends Expr {
+    def cond: Cond
+
+    def e1: Expr
+
+    def e2: Option[Expr]
+  }
+
+  object IfThenElse {
+    def apply(c: Cond, e1: Expr, e2: Expr): IfThenElse = e1.tp match {
+      case _: PrimitiveType =>
+        PrimitiveIfThenElse(c, e1.asInstanceOf[PrimitiveExpr], Some(e2.asInstanceOf[PrimitiveExpr]))
+      case _: TupleType =>
+        TupleIfThenElse(c, e1.asInstanceOf[TupleExpr], Some(e2.asInstanceOf[TupleExpr]))
+      case _: BagType =>
+        BagIfThenElse(c, e1.asInstanceOf[BagExpr], Some(e2.asInstanceOf[BagExpr]))
+      case _: LabelType =>
+        LabelIfThenElse(c, e1.asInstanceOf[LabelExpr], Some(e2.asInstanceOf[LabelExpr]))
+      case t => sys.error("Cannot create IfThenElse for type " + t)
+    }
+
+    def apply(c: Cond, e1: Expr): IfThenElse = e1.tp match {
+      case _: BagType => BagIfThenElse(c, e1.asInstanceOf[BagExpr], None)
+      case _: LabelType => LabelIfThenElse(c, e1.asInstanceOf[LabelExpr], None)
+      case t => sys.error("Cannot create IfThen for type " + t)
+    }
+
+    def apply(c: Cond, e1: BagExpr): BagIfThenElse = BagIfThenElse(c, e1, None)
+
+    def apply(c: Cond, e1: LabelExpr): LabelIfThenElse = LabelIfThenElse(c, e1, None)
+  }
+
+  case class PrimitiveIfThenElse(cond: Cond, e1: PrimitiveExpr, e2: Option[PrimitiveExpr]) extends PrimitiveExpr with IfThenElse {
+    assert(e2.isDefined && e1.tp == e2.get.tp)
+
+    val tp: PrimitiveType = e1.tp
+  }
+
+  case class TupleIfThenElse(cond: Cond, e1: TupleExpr, e2: Option[TupleExpr]) extends TupleExpr with IfThenElse {
+    assert(e2.isDefined && e1.tp == e2.get.tp)
+
+    val tp: TupleType = e1.tp
+  }
+
+  case class BagIfThenElse(cond: Cond, e1: BagExpr, e2: Option[BagExpr]) extends BagExpr with IfThenElse {
     assert(e2.isEmpty || e1.tp == e2.get.tp)
 
     val tp: BagType = e1.tp
   }
+
+  case class LabelIfThenElse(cond: Cond, e1: LabelExpr, e2: Option[LabelExpr]) extends LabelExpr with IfThenElse {
+    assert(e2.isEmpty || e1.tp == e2.get.tp)
+
+    val tp: LabelType = e1.tp
+  }
+
 
   case class InputBag(n: String, tuples: List[Any], tp: BagType) extends BagExpr
 

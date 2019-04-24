@@ -105,9 +105,9 @@ class TranslatorTest extends FunSuite with NRC with NRCTranslator {
     
     val q11 = ForeachUnion(x, relationR,
                 ForeachUnion(x2, relationR,
-                  IfThenElse(Cond(OpEq, Project(TupleVarRef(x), "b"), Project(TupleVarRef(x2), "b")), 
-                             Singleton(Tuple("w1" -> Project(TupleVarRef(x), "a"))),
-                             Option(Singleton(Tuple("w1" -> Const("-1", IntType)))))))
+                  BagIfThenElse(Cond(OpEq, Project(TupleVarRef(x), "b"), Project(TupleVarRef(x2), "b")),
+                                Singleton(Tuple("w1" -> Project(TupleVarRef(x), "a"))),
+                                Some(Singleton(Tuple("w1" -> Const("-1", IntType)))))))
     
     val tq11 = Translator.translate(q11).asInstanceOf[BagComp]
     assert(tq11.tp == BagType(TupleType("w1" -> IntType)))

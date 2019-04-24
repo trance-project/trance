@@ -23,13 +23,14 @@ trait Printer {
       s"""|Let ${l.x.name} = ${quote(l.e1)} In
           |${ind(quote(l.e2))}""".stripMargin
     case Total(e1) => s"Total(${quote(e1)})"
-    case IfThenElse(Cond(op, l, r), e1, None) =>
-      s"""|If (${quote(l)} $op ${quote(r)})
-          |Then ${quote(e1)}""".stripMargin
-    case IfThenElse(Cond(op, l, r), e1, Some(e2)) =>
-      s"""|If (${quote(l)} $op ${quote(r)})
-          |Then ${quote(e1)}
-          |Else ${quote(e2)}""".stripMargin
+    case i: IfThenElse =>
+      if (i.e2.isDefined)
+        s"""|If (${quote(i.cond.e1)} ${i.cond.op} ${quote(i.cond.e2)})
+            |Then ${quote(i.e1)}
+            |Else ${quote(i.e2.get)}""".stripMargin
+      else
+        s"""|If (${quote(i.cond.e1)} ${i.cond.op} ${quote(i.cond.e2)})
+            |Then ${quote(i.e1)}""".stripMargin
     case InputBag(n, _, _) => n
     case Named(n, e1) => s"$n := ${quote(e1)}"
     case Sequence(ee) => ee.map(quote).mkString("\n")

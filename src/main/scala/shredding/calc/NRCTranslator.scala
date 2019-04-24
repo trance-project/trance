@@ -32,8 +32,8 @@ trait NRCTranslator extends Calc {
         }
       case Union(e1, e2) => 
         Merge(translateBag(e1), translateBag(e2))
-      case IfThenElse(cond, e1, e2) =>
-        IfStmt(translateCond(cond), translateBag(e1), translateOption(e2))
+      case i: IfThenElse =>
+        IfStmt(translateCond(i.cond), translateBag(i.e1), translateOption(i.e2))
       case l: Let => l.e2.tp match {
         case t:BagType => 
           val te2 = translateBag(l.e2)

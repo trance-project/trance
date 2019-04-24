@@ -60,17 +60,17 @@ trait Evaluator {
       ctx.remove(l.x.name, l.e1.tp)
       v
     case Total(e1) => evalBag(e1, ctx).size
-    case IfThenElse(Cond(op, l, r), e1, e2) =>
-      val vl = eval(l, ctx)
-      val vr = eval(r, ctx)
-      op match {
+    case i: IfThenElse =>
+      val vl = eval(i.cond.e1, ctx)
+      val vr = eval(i.cond.e2, ctx)
+      i.cond.op match {
         case OpEq =>
-          if (vl == vr) evalBag(e1, ctx)
-          else e2.map(evalBag(_, ctx)).getOrElse(Nil)
+          if (vl == vr) evalBag(i.e1, ctx)
+          else i.e2.map(evalBag(_, ctx)).getOrElse(Nil)
         case OpNe =>
-          if (vl != vr) evalBag(e1, ctx)
-          else e2.map(evalBag(_, ctx)).getOrElse(Nil)
-        case _ => sys.error("Unsupported comparison operator: " + op)
+          if (vl != vr) evalBag(i.e1, ctx)
+          else i.e2.map(evalBag(_, ctx)).getOrElse(Nil)
+        case op => sys.error("Unsupported comparison operator: " + op)
       }
     case InputBag(_, b, _) => b
     case Named(n, e1) =>
