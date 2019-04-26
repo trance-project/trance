@@ -118,7 +118,7 @@ trait Algebra extends BaseAlg with Calc{
     */
   case class Join(v: List[VarDef],  p: List[PrimitiveCalc]) extends BagOutput{
     def tp: BagType = 
-      BagType(TupleType(v.head.tp.asInstanceOf[TupleType].attrs ++ v.tail.head.tp.asInstanceOf[TupleType].attrs))
+      BagType(TupleType(v.head.tp.asInstanceOf[TupleType].attrTps ++ v.tail.head.tp.asInstanceOf[TupleType].attrTps))
   }
 
   /**
@@ -147,7 +147,7 @@ trait Algebra extends BaseAlg with Calc{
     */
   case class OuterJoin(v: List[VarDef], p: List[PrimitiveCalc]) extends BagOutput{
     def tp: BagType = 
-      BagType(TupleType(v.head.tp.asInstanceOf[TupleType].attrs ++ v.tail.head.tp.asInstanceOf[TupleType].attrs))
+      BagType(TupleType(v.head.tp.asInstanceOf[TupleType].attrTps ++ v.tail.head.tp.asInstanceOf[TupleType].attrTps))
   } 
 
   /**

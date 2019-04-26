@@ -106,7 +106,7 @@ trait Calc extends BaseCalc {
   }
 
   case object Proj{
-    def apply(tuple: TupleCalc, field: String): TupleAttributeCalc = tuple.tp.attrs(field) match {
+    def apply(tuple: TupleCalc, field: String): TupleAttributeCalc = tuple.tp.attrTps(field) match {
       case t:PrimitiveType => ProjToPrimitive(tuple, field)
       case t:BagType => ProjToBag(tuple, field)
       case t:LabelType => ProjToLabel(tuple, field)
@@ -115,15 +115,15 @@ trait Calc extends BaseCalc {
   }
 
   case class ProjToPrimitive(tuple: TupleCalc, field: String) extends PrimitiveCalc with Proj {
-    val tp: PrimitiveType = tuple.tp.attrs(field).asInstanceOf[PrimitiveType]
+    val tp: PrimitiveType = tuple.tp.attrTps(field).asInstanceOf[PrimitiveType]
   }
 
   case class ProjToBag(tuple: TupleCalc, field: String) extends BagCalc with Proj {
-    val tp: BagType = tuple.tp.attrs(field).asInstanceOf[BagType]
+    val tp: BagType = tuple.tp.attrTps(field).asInstanceOf[BagType]
   }
 
   case class ProjToLabel(tuple: TupleCalc, field: String) extends LabelCalc with Proj {
-    val tp: LabelType = tuple.tp.attrs(field).asInstanceOf[LabelType]
+    val tp: LabelType = tuple.tp.attrTps(field).asInstanceOf[LabelType]
   }
 
   /**
@@ -183,11 +183,6 @@ trait Calc extends BaseCalc {
     // enforce e to not be a bag type
     val tp: PrimitiveType = IntType 
   }
-
-  /**
-    * Represents an input relation
-    */
-  case class InputR(n: String, tuples: List[Any], tp: BagType) extends BagCalc
 
   /**
     * Binding of a variable to an expression 

@@ -31,7 +31,6 @@ trait Printer {
       else
         s"""|If (${quote(i.cond.e1)} ${i.cond.op} ${quote(i.cond.e2)})
             |Then ${quote(i.e1)}""".stripMargin
-    case InputBag(n, _, _) => n
     case Named(n, e1) => s"$n := ${quote(e1)}"
     case Sequence(ee) => ee.map(quote).mkString("\n")
     case _ => sys.error("Cannot print unknown expression " + e)
@@ -51,6 +50,7 @@ trait Printer {
     case LabelType(as) =>
       val m = v.asInstanceOf[Map[String, Any]]
       s"Label(${m.map { case (n, a) => n + " := " + quote(a, as(n)) }.mkString(", ")})"
+    case _ => sys.error("Cannot print value of unknown type " + tp)
   }
 }
 
@@ -67,19 +67,23 @@ trait ShreddedPrinter extends Printer {
     case _ => super.quote(e)
   }
 
-  def quote(d: Dict): String = d match {
+  def quote(d: DictExpr): String = d match {
     case EmptyDict => "Nil"
-    case InputBagDict(f, _, dict) =>
+    case BagDict(flat, dict) =>
       s"""|(
-          |${ind(f.toString)},
-          |${ind(quote(dict))}
-          |)""".stripMargin
-    case OutputBagDict(lbl, flat, dict) =>
-      s"""|(
-          |${ind(quote(lbl) + " --> " + quote(flat))},
+          |${ind(quote(flat))},
           |${ind(quote(dict))}
           |)""".stripMargin
     case TupleDict(fs) =>
       s"(${fs.map { case (k, v) => k + " := " + quote(v) }.mkString(", ")})"
+    case v: VarRef => v.name
+    case BagDictProject(v, f) => quote(v) + "." + f
+    case DictProjectInBagDict(v) => quote(v) + ".tupleDict"
+    case DictUnion(d1, d2) => s"(${quote(d1)}) DictUnion (${quote(d2)})"
+    case _ => sys.error("Cannot print unknown dict expression " + d)
   }
+
+  def quote(e: ShredExpr): String =
+    s"""|Flat: ${quote(e.flat)}
+        |Dict: ${quote(e.dict)}""".stripMargin
 }

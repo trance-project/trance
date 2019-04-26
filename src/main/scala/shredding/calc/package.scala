@@ -30,7 +30,6 @@ package object calc extends Calc with Algebra {
       case BindPrimitive(x, v) => s"${core.quote(x)} := ${quote(v)}"
       case BindTuple(x, v) => s"${core.quote(x)} := ${quote(v)}"
       case Generator(x, v) => s" ${core.quote(x)} <- ${quote(v)} "
-      case InputR(n, _, _) => n
       case CountComp(e1, qs) => s" + { ${quote(e1)} | ${qs.map(quote(_)).mkString(",")} }"
       case _ => throw new IllegalArgumentException("unknown type")
     }

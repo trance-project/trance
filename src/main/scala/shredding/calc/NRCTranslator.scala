@@ -46,7 +46,6 @@ trait NRCTranslator extends Calc {
       case p:Project => Proj(translateTuple(p.tuple), p.field)
       case Const(v, tp) => Constant(v, tp)
       case v:VarRef => Var(v.varDef)
-      case InputBag(n, b, t) => InputR(n, b, t)
       case _ => sys.error("not supported")
     }
 
