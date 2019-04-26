@@ -11,12 +11,13 @@ class CalcTest extends FunSuite with CalcImplicits{
    val stype = TupleType("a" -> IntType, "b" -> StringType, "c" -> BagType(nstype))
    val x1 = VarDef("x", stype)
    val y1 = VarDef("y", nstype)
-   val relationS = InputR("S", List(
-                    Map("a" -> "42", "b" -> "Milos", "c" -> List(Map("c" -> "42"), Map("c" -> "42"), Map("c" -> "30"))),
-                    Map("a" -> "69", "b" -> "Michael", "c" -> List(Map("c" -> "30"), Map("c" -> "69"), Map("c" -> "50"))),
-                    Map("a" -> "34", "b" -> "Jaclyn", "c" -> List(Map("c" -> "42"), Map("c" -> "34"), Map("c" -> "30"))),
-                    Map("a" -> "42", "b" -> "Thomas", "c" -> List(Map("c" -> "42"), Map("c" -> "34"), Map("c" -> "69"))),
-                  ), BagType(stype))
+   val relationS = BagVar(VarDef("S", BagType(stype)))
+//        InputR("S", List(
+//                    Map("a" -> "42", "b" -> "Milos", "c" -> List(Map("c" -> "42"), Map("c" -> "42"), Map("c" -> "30"))),
+//                    Map("a" -> "69", "b" -> "Michael", "c" -> List(Map("c" -> "30"), Map("c" -> "69"), Map("c" -> "50"))),
+//                    Map("a" -> "34", "b" -> "Jaclyn", "c" -> List(Map("c" -> "42"), Map("c" -> "34"), Map("c" -> "30"))),
+//                    Map("a" -> "42", "b" -> "Thomas", "c" -> List(Map("c" -> "42"), Map("c" -> "34"), Map("c" -> "69"))),
+//                  ), BagType(stype))
 
   test("Calc.Constant"){
     assert(Constant("one", StringType).x == "one")

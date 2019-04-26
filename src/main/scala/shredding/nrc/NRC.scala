@@ -182,7 +182,10 @@ trait NRC extends BaseExpr {
       case t => sys.error("Cannot create IfThenElse for type " + t)
     }
 
-    def apply(c: Cond, e1: BagExpr): BagIfThenElse = BagIfThenElse(c, e1, None)
+    def apply(c: Cond, e1: Expr): BagIfThenElse = e1.tp match {
+      case _: BagType => BagIfThenElse(c, e1.asInstanceOf[BagExpr], None)
+      case t => sys.error("Cannot create IfThen for type " + t)
+    }
   }
 
   case class PrimitiveIfThenElse(cond: Cond, e1: PrimitiveExpr, e2: Option[PrimitiveExpr]) extends PrimitiveExpr with IfThenElse {
@@ -343,12 +346,27 @@ trait ShreddedNRC extends NRC {
     val tp: DictType = e2.tp
   }
 
-  case class DictIfThenElse(cond: Cond, e1: DictExpr, e2: Option[DictExpr]) extends DictExpr with IfThenElse {
-    assert(e2.isEmpty || e1.tp == e2.get.tp)
-
-    val tp: DictType = e1.tp
+  case object DictIfThenElse {
+    def apply(cond: Cond, e1: DictExpr, e2: DictExpr): DictExpr = e1.tp match {
+      case EmptyDictType => EmptyDict
+      case _: TupleDictType =>
+        TupleDictIfThenElse(cond, e1.asInstanceOf[TupleDictExpr], Some(e2.asInstanceOf[TupleDictExpr]))
+      case _: BagDictType =>
+        BagDictIfThenElse(cond, e1.asInstanceOf[BagDictExpr], Some(e2.asInstanceOf[BagDictExpr]))
+    }
   }
 
+  case class TupleDictIfThenElse(cond: Cond, e1: TupleDictExpr, e2: Option[TupleDictExpr]) extends TupleDictExpr with IfThenElse {
+    assert(e2.nonEmpty && e1.tp == e2.get.tp)
+
+    val tp: TupleDictType = e1.tp
+  }
+
+  case class BagDictIfThenElse(cond: Cond, e1: BagDictExpr, e2: Option[BagDictExpr]) extends BagDictExpr with IfThenElse {
+    assert(e2.nonEmpty && e1.tp == e2.get.tp)
+
+    val tp: BagDictType = e1.tp
+  }
 
   case class Lookup(lbl: LabelExpr, dict: BagDictExpr) extends BagExpr {
     def tp: BagType = dict.tp.flatTp
@@ -411,16 +429,13 @@ trait ShreddedNRC extends NRC {
     def apply(c: Cond, e1: Expr, e2: Expr): IfThenElse = e1.tp match {
       case _: LabelType =>
         LabelIfThenElse(c, e1.asInstanceOf[LabelExpr], Some(e2.asInstanceOf[LabelExpr]))
-      case _: DictType =>
-        DictIfThenElse(c, e1.asInstanceOf[DictExpr], Some(e2.asInstanceOf[DictExpr]))
       case _ => IfThenElse(c, e1, e2)
     }
 
-    def apply(c: Cond, e1: BagExpr): BagIfThenElse = BagIfThenElse(c, e1, None)
-
-    def apply(c: Cond, e1: LabelExpr): LabelIfThenElse = LabelIfThenElse(c, e1, None)
-
-    def apply(c: Cond, e1: DictExpr): DictIfThenElse = DictIfThenElse(c, e1, None)
+    def apply(c: Cond, e1: Expr): IfThenElse = e1.tp match {
+      case _: LabelType => LabelIfThenElse(c, e1.asInstanceOf[LabelExpr], None)
+      case _ => IfThenElse(c, e1)
+    }
   }
 
 }

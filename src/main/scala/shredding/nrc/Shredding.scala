@@ -98,14 +98,15 @@ trait Shredding extends ShreddedNRCImplicits {
 
       case i: IfThenElse =>
         if (i.e2.isDefined) {
-          // TODO: Propagate if-then-else through dictionaries
-          sys.error("TODO: Propagate if-then-else through dictionaries")
+          val se1 = shred(i.e1, ctx)
+          val se2 = shred(i.e2.get, ctx)
+          ShredExpr(
+            ShredIfThenElse(i.cond, se1.flat, se2.flat),
+            DictIfThenElse(i.cond, se1.dict, se2.dict))
         }
         else {
-          val ShredExpr(l1: LabelExpr, dict1: BagDictExpr) = shred(i.e1, ctx)
-          val flat = ShredIfThenElse(i.cond, dict1.lookup(l1))
-          val lbl = Label(inputVars(flat))
-          ShredExpr(lbl, BagDict(flat, dict1.tupleDict))
+          val se1 = shred(i.e1, ctx)
+          ShredExpr(ShredIfThenElse(i.cond, se1.flat), se1.dict)
         }
 
       case _ => sys.error("Cannot shred expr " + e)
