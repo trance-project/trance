@@ -54,6 +54,7 @@ trait NRCTranslator extends Calc {
       case t:BagType => BagVar(e)
       case t:TupleType => TupleVar(e)
       case t:LabelType => TupleVar(e)
+      case _ => sys.error("Cannot translate due to unknown type " + e.tp)
     }
 
     // options are only used in if statements for now

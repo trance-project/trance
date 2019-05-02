@@ -22,8 +22,6 @@ trait NRCImplicits {
         case i: IfThenElse =>
           i.cond.e1.collect(f) ++ i.cond.e2.collect(f) ++
             i.e1.collect(f) ++ i.e2.map(_.collect(f)).getOrElse(Nil)
-        case Named(_, e1) => e1.collect(f)
-        case Sequence(ee) => ee.flatMap(_.collect(f))
         case _ => List()
       })
 
@@ -60,37 +58,43 @@ trait NRCImplicits {
           if (i.e2.isDefined)
             IfThenElse(Cond(i.cond.op, c1, c2), r1, i.e2.get.replace(f))
           else
-            IfThenElse(Cond(i.cond.op, c1, c2), r1.asInstanceOf[BagExpr])
-        case Named(n, e1) =>
-          Named(n, e1.replace(f))
-        case Sequence(ee) =>
-          Sequence(ee.map(_.replace(f)))
+            IfThenElse(Cond(i.cond.op, c1, c2), r1)
         case _ => ex
       })
   }
 
 }
 
-trait ShreddedNRCImplicits extends NRCImplicits {
-  this: ShreddedNRC =>
+trait ShredNRCImplicits extends NRCImplicits {
+  this: ShredNRC =>
 
-  def inputVars(e: Expr): Set[VarRef] =
-    inputVars(e, Map[String, VarDef]()).toSet
+  implicit class ExprOps(e: Expr) {
+    def inputVars: Set[VarRef] =
+      inputVars(e, Map[String, VarDef]()).toSet
 
-  def inputVars(e: Expr, scope: Map[String, VarDef]): List[VarRef] = e.collect {
-    case v: VarRef =>
+    private def inputVars(e: Expr, scope: Map[String, VarDef]): List[VarRef] = e.collect {
+      case v: VarRef => inputVarRef(v, scope)
+      case ForeachUnion(x, e1, e2) =>
+        inputVars(e1, scope) ++ inputVars(e2, scope + (x.name -> x))
+      case l: Let =>
+        inputVars(l.e1, scope) ++ inputVars(l.e2, scope + (l.x.name -> l.x))
+      case Label(vs) => vs.flatMap(inputVarRef(_, scope)).toList
+      case BagDict(lbl, flat, dict) =>
+        inputVars(lbl, scope) ++ inputVars(flat, scope) ++ inputVars(dict, scope)
+      case TupleDict(fs) => fs.flatMap(f => inputVars(f._2, scope)).toList
+      case BagDictProject(d, _) => inputVars(d, scope)
+      case TupleDictProject(d) => inputVars(d, scope)
+      case DictUnion(d1, d2) => inputVars(d1, scope) ++ inputVars(d2, scope)
+      case Lookup(l1, d1) => inputVars(l1, scope) ++ inputVars(d1, scope)
+    }
+
+    private def inputVarRef(v: VarRef, scope: Map[String, VarDef]): List[VarRef] =
       if (!scope.contains(v.name)) List(v)
       else {
-        assert(v.tp == scope(v.name).tp)
+        assert(v.tp == scope(v.name).tp,
+          "Types differ: " + v.tp + " and " + scope(v.name).tp)
         Nil
       }
-    case ForeachUnion(x, e1, e2) =>
-      inputVars(e1, scope) ++ inputVars(e2, scope + (x.name -> x))
-    case l: Let =>
-      inputVars(l.e1, scope) ++ inputVars(l.e2, scope + (l.x.name -> l.x))
-    case Lookup(l1, d1) => inputVars(l1, scope) ++ inputVars(d1, scope)
-    case Label(vs) => vs.flatMap(inputVars(_, scope)).toList
+
   }
-
 }
-

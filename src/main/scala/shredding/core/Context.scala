@@ -1,7 +1,6 @@
-package shredding.nrc
+package shredding.core
 
-import shredding.core._
-import collection.mutable.{ HashMap => HMap }
+import scala.collection.mutable.{HashMap => HMap}
 
 class Context {
   val ctx: HMap[String, Any] = HMap(EmptyCtx.name -> EmptyCtx.value)

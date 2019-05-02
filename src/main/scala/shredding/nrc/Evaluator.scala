@@ -5,7 +5,7 @@ import shredding.core._
 /**
   * Simple Scala evaluator
   */
-trait Evaluator {
+trait NRCEvaluator {
   this: NRC =>
 
   def eval(e: Expr, ctx: Context): Any = e match {
@@ -38,11 +38,6 @@ trait Evaluator {
           else i.e2.map(evalBag(_, ctx)).getOrElse(Nil)
         case op => sys.error("Unsupported comparison operator: " + op)
       }
-    case Named(n, e1) =>
-      val v = evalBag(e1, ctx)
-      ctx.add(n, v, e1.tp)
-      v
-    case Sequence(ee) => ee.map(eval(_, ctx))
     case _ => sys.error("Cannot evaluate unknown expression " + e)
   }
 
@@ -68,3 +63,16 @@ trait Evaluator {
 //    case _ => super.eval(e, ctx)
 //  }
 //}
+
+trait LinearizedNRCEvaluator extends NRCEvaluator {
+  this: LinearizedNRC =>
+
+  override def eval(e: Expr, ctx: Context): Any = e match {
+    case Named(n, e1) =>
+      val v = evalBag(e1, ctx)
+      ctx.add(n, v, e1.tp)
+      v
+    case Sequence(ee) => ee.map(eval(_, ctx))
+    case _ => super.eval(e, ctx)
+  }
+}

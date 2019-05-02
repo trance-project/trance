@@ -2,7 +2,7 @@ package shredding.nrc
 
 import shredding.core._
 
-trait Printer {
+trait NRCPrinter {
   this: NRC =>
 
   import shredding.Utils.ind
@@ -21,7 +21,7 @@ trait Printer {
       s"(${fs.map { case (k, v) => k + " := " + quote(v) }.mkString(", ")})"
     case l: Let =>
       s"""|Let ${l.x.name} = ${quote(l.e1)} In
-          |${ind(quote(l.e2))}""".stripMargin
+          |${quote(l.e2)}""".stripMargin
     case Total(e1) => s"Total(${quote(e1)})"
     case i: IfThenElse =>
       if (i.e2.isDefined)
@@ -31,8 +31,6 @@ trait Printer {
       else
         s"""|If (${quote(i.cond.e1)} ${i.cond.op} ${quote(i.cond.e2)})
             |Then ${quote(i.e1)}""".stripMargin
-    case Named(n, e1) => s"$n := ${quote(e1)}"
-    case Sequence(ee) => ee.map(quote).mkString("\n")
     case _ => sys.error("Cannot print unknown expression " + e)
   }
 
@@ -54,36 +52,46 @@ trait Printer {
   }
 }
 
-trait ShreddedPrinter extends Printer {
-  this: ShreddedNRC =>
+trait ShredNRCPrinter extends NRCPrinter {
+  this: ShredNRC =>
 
   import shredding.Utils.ind
 
   override def quote(e: Expr): String = e match {
+    // Label cases
     case l: Label =>
-      s"Label(${(l.id :: l.vars.toList.map(quote)).mkString(", ")})"
+      s"Label(${(l.id :: l.vars.toList.map(_.name)).mkString(", ")})"
     case Lookup(lbl, dict) =>
-      s"Lookup(${quote(dict)})(${quote(lbl)})"
-    case _ => super.quote(e)
-  }
-
-  def quote(d: DictExpr): String = d match {
+      s"Lookup(lbl := ${quote(lbl)}, dict := ${quote(dict)})"
+    // Dictionary cases
     case EmptyDict => "Nil"
-    case BagDict(flat, dict) =>
-      s"""|(
-          |${ind(quote(flat))},
-          |${ind(quote(dict))}
+    case BagDict(lbl, flat, dict) =>
+      s"""|(${quote(lbl)} ->
+          |  flat :=
+          |${ind(quote(flat), 2)},
+          |  tupleDict :=
+          |${ind(quote(dict), 2)}
           |)""".stripMargin
     case TupleDict(fs) =>
       s"(${fs.map { case (k, v) => k + " := " + quote(v) }.mkString(", ")})"
-    case v: VarRef => v.name
     case BagDictProject(v, f) => quote(v) + "." + f
-    case DictProjectInBagDict(v) => quote(v) + ".tupleDict"
+    case TupleDictProject(v) => quote(v) + ".tupleDict"
     case DictUnion(d1, d2) => s"(${quote(d1)}) DictUnion (${quote(d2)})"
-    case _ => sys.error("Cannot print unknown dict expression " + d)
+    case _ => super.quote(e)
   }
 
   def quote(e: ShredExpr): String =
     s"""|Flat: ${quote(e.flat)}
         |Dict: ${quote(e.dict)}""".stripMargin
+}
+
+trait LinearizedNRCPrinter extends ShredNRCPrinter {
+  this: LinearizedNRC =>
+
+  override def quote(e: Expr): String = e match {
+    case Named(n, e1) => s"$n := ${quote(e1)}"
+    case Sequence(ee) => ee.map(quote).mkString("\n")
+    case _ => super.quote(e)
+  }
+
 }

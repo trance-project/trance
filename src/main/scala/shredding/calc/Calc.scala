@@ -31,11 +31,7 @@ trait BaseCalc {
     def tp: TupleAttributeType
   }
 
-  trait LabelAttributeCalc extends CompCalc {
-    def tp: LabelAttributeType
-  }
-
-  trait PrimitiveCalc extends TupleAttributeCalc with LabelAttributeCalc {
+  trait PrimitiveCalc extends TupleAttributeCalc {
     def tp: PrimitiveType 
   }
 
@@ -43,11 +39,11 @@ trait BaseCalc {
     def tp: BagType   
   }
 
-  trait TupleCalc extends CompCalc with LabelAttributeCalc {
+  trait TupleCalc extends CompCalc {
     def tp: TupleType 
   }
 
-  trait LabelCalc extends TupleAttributeCalc with LabelAttributeCalc {
+  trait LabelCalc extends TupleAttributeCalc {
     def tp: LabelType
   }
 
