@@ -32,7 +32,7 @@ trait Label {
     val tp: LabelType = e1.tp
   }
 
-  object Label {
+  object NewLabel {
     private var currId = 0
 
     def getNextId: Int = {
@@ -40,16 +40,16 @@ trait Label {
       currId
     }
 
-    implicit def orderingById: Ordering[Label] = Ordering.by(e => e.id)
+    implicit def orderingById: Ordering[NewLabel] = Ordering.by(e => e.id)
   }
 
-  case class Label(vars: Set[VarRef] = Set.empty) extends LabelExpr {
-    val id: Int = Label.getNextId
+  case class NewLabel(vars: Set[VarRef] = Set.empty) extends LabelExpr {
+    val id: Int = NewLabel.getNextId
 
     val tp: LabelType = LabelType(vars.map(v => v.name -> v.tp).toMap)
 
     override def equals(that: Any): Boolean = that match {
-      case that: Label => this.id == that.id
+      case that: NewLabel => this.id == that.id
       case _ => false
     }
 

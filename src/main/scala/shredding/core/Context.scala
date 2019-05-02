@@ -3,7 +3,7 @@ package shredding.core
 import scala.collection.mutable.{HashMap => HMap}
 
 class Context {
-  val ctx: HMap[String, Any] = HMap(EmptyCtx.name -> EmptyCtx.value)
+  val ctx: HMap[String, Any] = HMap()
 
   def apply(n: String): Any = ctx(n)
 
@@ -25,12 +25,4 @@ class Context {
   }
 
   override def toString: String = ctx.toString
-}
-
-object EmptyCtx {
-  val name = "emptyCtx"
-
-  val tp = BagType(TupleType("lbl" -> LabelType()))
-
-  val value = List(Map("lbl" -> Map.empty[String, Any]))
 }

@@ -59,7 +59,7 @@ trait ShredNRCPrinter extends NRCPrinter {
 
   override def quote(e: Expr): String = e match {
     // Label cases
-    case l: Label =>
+    case l: NewLabel =>
       s"Label(${(l.id :: l.vars.toList.map(_.name)).mkString(", ")})"
     case Lookup(lbl, dict) =>
       s"Lookup(lbl := ${quote(lbl)}, dict := ${quote(dict)})"

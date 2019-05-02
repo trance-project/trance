@@ -134,7 +134,7 @@ trait Dictionary extends ShredNRCImplicits {
       case (EmptyDict, EmptyDict) =>
         EmptyDict
       case (BagDict(l1, f1, d1), BagDict(l2, f2, d2)) =>
-        val lbl = Label(l1.inputVars ++ l2.inputVars)
+        val lbl = NewLabel(l1.inputVars ++ l2.inputVars)
         BagDict(lbl, Union(f1, f2), d1.union(d2).asInstanceOf[TupleDictExpr])
       case (d1: BagDictExpr, d2: BagDictExpr) =>
         DictUnion(d1, d2)

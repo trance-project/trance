@@ -60,7 +60,7 @@ trait Shredding extends NRCImplicits {
         val flat =
           BagLet(xDict, dict1.tupleDict,
             ForeachUnion(xFlat, resolved1, resolved2))
-        val lbl = Label(flat.inputVars)
+        val lbl = NewLabel(flat.inputVars)
         ShredExpr(lbl, BagDict(lbl, flat, dict2.tupleDict))
 
       case Union(e1, e2) =>
@@ -68,12 +68,12 @@ trait Shredding extends NRCImplicits {
         val ShredExpr(l2: LabelExpr, dict2: BagDictExpr) = shred(e2, ctx)
         val dict = dict1.union(dict2).asInstanceOf[BagDictExpr]
         val flat = Union(dict1.lookup(l1), dict2.lookup(l2))
-        val lbl = Label(flat.inputVars)
+        val lbl = NewLabel(flat.inputVars)
         ShredExpr(lbl, BagDict(lbl, flat, dict.tupleDict))
 
       case Singleton(e1) =>
         val ShredExpr(flat: TupleExpr, dict: TupleDictExpr) = shred(e1, ctx)
-        val lbl = Label(flat.inputVars)
+        val lbl = NewLabel(flat.inputVars)
         ShredExpr(lbl, BagDict(lbl, Singleton(flat), dict))
 
       case Tuple(fs) =>

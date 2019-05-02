@@ -78,7 +78,7 @@ trait ShredNRCImplicits extends NRCImplicits {
         inputVars(e1, scope) ++ inputVars(e2, scope + (x.name -> x))
       case l: Let =>
         inputVars(l.e1, scope) ++ inputVars(l.e2, scope + (l.x.name -> l.x))
-      case Label(vs) => vs.flatMap(inputVarRef(_, scope)).toList
+      case NewLabel(vs) => vs.flatMap(inputVarRef(_, scope)).toList
       case BagDict(lbl, flat, dict) =>
         inputVars(lbl, scope) ++ inputVars(flat, scope) ++ inputVars(dict, scope)
       case TupleDict(fs) => fs.flatMap(f => inputVars(f._2, scope)).toList
