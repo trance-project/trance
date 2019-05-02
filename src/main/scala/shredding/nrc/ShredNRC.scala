@@ -17,9 +17,13 @@ trait ShredNRC extends NRC with Label with Dictionary {
   }
 
   implicit class LookupOps(d: BagDictExpr) {
-    def lookup(lbl: LabelExpr): BagExpr = d match {
-      case b: BagDict if b.lbl == lbl => b.flat
-      case _ => Lookup(lbl, d)
+    def lookup(lbl: LabelExpr): BagExpr = lbl match {
+      case LabelIfThenElse(c, l1, l2) =>
+        BagIfThenElse(c, d.lookup(l1), l2.map(d.lookup))
+      case _ => d match {
+        case b: BagDict if b.lbl.tp == lbl.tp => b.flat
+        case _ => Lookup(lbl, d)
+      }
     }
   }
 

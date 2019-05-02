@@ -517,6 +517,74 @@ object TestApp extends App
     }
   }
 
+  object Example8 {
+
+    import shredding.Utils.Symbol
+
+    def run(): Unit = {
+
+      val itemTp = TupleType("a" -> IntType, "b" -> IntType, "c" -> IntType)
+      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+
+      // Q:
+      // For x In R Union
+      //   Sng((m1 := x.a, n1 :=
+      //     For y In R Union If y.a == x.a Then
+      //       Sng((m2 := y.b, n2 :=
+      //         For z In R Union If z.a == x.a && z.b == y.b Then
+      //           Sng((m3 := z.c))
+      //       ))
+      //   ))
+
+      val xdef = VarDef(Symbol.fresh("x"), itemTp)
+      val xref = TupleVarRef(xdef)
+      val ydef = VarDef(Symbol.fresh("y"), itemTp)
+      val yref = TupleVarRef(ydef)
+      val zdef = VarDef(Symbol.fresh("z"), itemTp)
+      val zref = TupleVarRef(zdef)
+
+      val q1 =
+        ForeachUnion(xdef, relationR, Singleton(Tuple(
+          "m1" -> xref("a"),
+          "n1" ->
+            ForeachUnion(ydef, relationR,
+              IfThenElse(
+                Cond(OpEq, yref("a"), xref("a")),
+                Singleton(Tuple(
+                  "m2" -> yref("b"),
+                  "n2" ->
+                    ForeachUnion(zdef, relationR,
+                      IfThenElse(
+                        Cond(OpEq, zref("a"), xref("a")),
+                        Singleton(Tuple("m3" -> zref("c")))
+                      )
+                    )
+                ))
+              )
+            )
+        )))
+
+      println("[Ex8] Q1: " + quote(q1))
+
+      val ctx = new Context()
+      ctx.add(relationR.name, List(Map("a" -> 7, "b" -> 1234, "c" -> -321)), relationR.tp)
+
+      println("[Ex8] Q1 eval: " + eval(q1, ctx))
+
+      val q1shred = shred(q1)
+      println("[Ex8] Shredded Q1: " + quote(q1shred))
+
+      //      val q1trans = unshred(q1shred)
+      //      println("[Ex8] Unshredded shredded Q1: " + quote(q1trans))
+      //      println("[Ex8] Same as original Q1: " + q1trans.equals(q1))
+
+      val q1lin = linearize(q1shred)
+      println("[Ex8] Linearized Q1: " + quote(q1lin))
+      //      println("[Ex8] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+
+    }
+  }
+
   object ExampleShredValue {
 
     def run(): Unit = {
@@ -630,13 +698,15 @@ object TestApp extends App
     }
   }
 
-  Example1.run()
-  Example2.run()
-  Example3.run()
-  Example4.run()
-  Example5.run()
-  Example6.run()
-  Example7.run()
+//  Example1.run()
+//  Example2.run()
+//  Example3.run()
+//  Example4.run()
+//  Example5.run()
+//  Example6.run()
+//  Example7.run()
+
+  Example8.run()
 
   //  ExampleShredValue.run()
 }
