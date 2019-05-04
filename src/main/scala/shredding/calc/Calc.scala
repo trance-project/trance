@@ -1,14 +1,13 @@
 package shredding.calc
 
 import shredding.core._
-import shredding.nrc.{ShreddedNRC, Dictionary}
 
 /**
   * Base NRC expressions
   */
 trait BaseCalc {
 
-  sealed trait CompCalc extends Serializable { self =>
+  trait CompCalc { self =>
     
     def tp: Type
    
@@ -31,11 +30,7 @@ trait BaseCalc {
     def tp: TupleAttributeType
   }
 
-  trait LabelAttributeCalc extends CompCalc {
-    def tp: LabelAttributeType
-  }
-
- trait PrimitiveCalc extends TupleAttributeCalc with LabelAttributeCalc {
+  trait PrimitiveCalc extends TupleAttributeCalc {
     def tp: PrimitiveType 
   }
 
@@ -43,12 +38,8 @@ trait BaseCalc {
     def tp: BagType   
   }
 
-  trait TupleCalc extends CompCalc with LabelAttributeCalc {
+  trait TupleCalc extends CompCalc {
     def tp: TupleType 
-  }
-
-  trait LabelCalc extends TupleAttributeCalc with LabelAttributeCalc {
-    def tp: LabelType
   }
 
 }
@@ -79,17 +70,12 @@ trait Calc extends BaseCalc {
       case t:PrimitiveType => PrimitiveVar(d)
       case t:BagType => BagVar(d)
       case t:TupleType => TupleVar(d)
-      case t:LabelType => LabelVar(d) 
       case _ => throw new IllegalArgumentException(s"cannot create Var with type ${d.tp}")
     }
   }
 
   case class PrimitiveVar(varDef: VarDef) extends PrimitiveCalc with Var {
     override val tp: PrimitiveType = super.tp.asInstanceOf[PrimitiveType]
-  }
-
-  case class LabelVar(varDef: VarDef) extends LabelCalc with Var {
-    override val tp: LabelType = super.tp.asInstanceOf[LabelType]
   }
 
   case class BagVar(varDef: VarDef) extends BagCalc with Var {
@@ -106,24 +92,19 @@ trait Calc extends BaseCalc {
   }
 
   case object Proj{
-    def apply(tuple: TupleCalc, field: String): TupleAttributeCalc = tuple.tp.attrs(field) match {
+    def apply(tuple: TupleCalc, field: String): TupleAttributeCalc = tuple.tp.attrTps(field) match {
       case t:PrimitiveType => ProjToPrimitive(tuple, field)
       case t:BagType => ProjToBag(tuple, field)
-      case t:LabelType => ProjToLabel(tuple, field)
       case t => sys.error("Unknown type in Proj.apply: " + t)
     }
   }
 
   case class ProjToPrimitive(tuple: TupleCalc, field: String) extends PrimitiveCalc with Proj {
-    val tp: PrimitiveType = tuple.tp.attrs(field).asInstanceOf[PrimitiveType]
+    val tp: PrimitiveType = tuple.tp.attrTps(field).asInstanceOf[PrimitiveType]
   }
 
   case class ProjToBag(tuple: TupleCalc, field: String) extends BagCalc with Proj {
-    val tp: BagType = tuple.tp.attrs(field).asInstanceOf[BagType]
-  }
-
-  case class ProjToLabel(tuple: TupleCalc, field: String) extends LabelCalc with Proj {
-    val tp: LabelType = tuple.tp.attrs(field).asInstanceOf[LabelType]
+    val tp: BagType = tuple.tp.attrTps(field).asInstanceOf[BagType]
   }
 
   trait Comprehension extends CompCalc{
@@ -199,11 +180,6 @@ trait Calc extends BaseCalc {
   }
 
   /**
-    * Represents an input relation
-    */
-  case class InputR(n: String, tuples: List[Any], tp: BagType) extends BagCalc
-
-  /**
     * Binding of a variable to an expression 
     * v <- {e} => v bind e (N6)
     * { e1 | ..., v <- {e | r }, .. } => {e1 | ..., r, v bind e, ... } (N8)
@@ -249,18 +225,11 @@ trait Calc extends BaseCalc {
     override def isBind = true
   }
 
-  case class BindLabel(x: VarDef, e: LabelCalc) extends LabelCalc with Bind{ 
-    assert(x.tp == e.tp)
-    val tp: LabelType = e.tp 
-    override def isBind = true
-  }
-
   object Bind{
     def apply(x: VarDef, v: CompCalc): Bind = v.tp match {
       case t: TupleType => BindTuple(x, v.asInstanceOf[TupleCalc])
       case t: PrimitiveType => BindPrimitive(x, v.asInstanceOf[PrimitiveCalc])
       case t: BagType => Generator(x, v.asInstanceOf[BagCalc])
-      case t: LabelType => BindLabel(x, v.asInstanceOf[LabelCalc])
       case _ => throw new IllegalArgumentException(s"cannot bind VarDef(${x.name})")
     }
   }
@@ -297,54 +266,4 @@ trait Calc extends BaseCalc {
     val tp: TupleType = TupleType()
   }
 
-}
-
-trait ShreddedCalc extends Calc 
-  with Dictionary with ShreddedNRC {
-
-  case class CLabel(id: Int, vars: Map[String, LabelAttributeCalc]) extends LabelCalc {
-    val tp: LabelType = LabelType(vars.map(f => f._1 -> f._2.tp))
-
-    override def equals(that: Any): Boolean = that match {
-      case that: CLabel => this.id == that.id
-      case _ => false
-    }
-
-    override def hashCode: Int = id.hashCode()
-
-  }
-
-  object CLabel{
-    def apply(id: Int, vars: (String, LabelAttributeCalc)*): CLabel = CLabel(id, Map(vars:_*))
-  }
-
-  trait Extract extends CompCalc{
-    def lbl: LabelCalc
-    def field: String
-  }
-
-  case object Extract{
-    def apply(lbl: LabelCalc, field: String): LabelAttributeCalc = lbl.tp.attrs(field) match {
-      case t:PrimitiveType => ExtractToPrimitive(lbl, field)
-      case t:LabelType => ExtractToLabel(lbl, field)
-      case t:TupleType => ExtractToTuple(lbl, field)
-      case t => sys.error("Unknown type in Extract.apply: " + t)
-    }
-  }
-
-  case class ExtractToPrimitive(lbl: LabelCalc, field: String) extends PrimitiveCalc with Extract {
-    val tp: PrimitiveType = lbl.tp.attrs(field).asInstanceOf[PrimitiveType]
-  }
-
-  case class ExtractToTuple(lbl: LabelCalc, field: String) extends TupleCalc with Extract {
-    val tp: TupleType = lbl.tp.attrs(field).asInstanceOf[TupleType]
-  }
-
-  case class ExtractToLabel(lbl: LabelCalc, field: String) extends LabelCalc with Extract {
-    val tp: LabelType = lbl.tp.attrs(field).asInstanceOf[LabelType]
-  }
-  
-  case class CLookup(lbl: LabelCalc, dict: BagDict) extends BagCalc{
-    def tp: BagType = dict.flatBagTp
-  }
 }

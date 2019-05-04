@@ -1,7 +1,7 @@
 package shredding.core
 
 /**
-  * NRC type system
+  * NRC type system: primitive types, bag type, tuple type
   */
 sealed trait Type{
   def isLabel: Boolean = false
@@ -9,9 +9,7 @@ sealed trait Type{
 
 sealed trait TupleAttributeType extends Type
 
-sealed trait LabelAttributeType extends Type
-
-sealed trait PrimitiveType extends TupleAttributeType with LabelAttributeType
+sealed trait PrimitiveType extends TupleAttributeType
 
 case object BoolType extends PrimitiveType
 
@@ -21,21 +19,38 @@ case object StringType extends PrimitiveType
 
 case class BagType(tp: TupleType) extends TupleAttributeType
 
-case class TupleType(attrs: Map[String, TupleAttributeType]) extends Type with LabelAttributeType{
-  override def isLabel: Boolean = attrs.filter{ case (k,v) => v.isLabel}.nonEmpty
+case class TupleType(attrTps: Map[String, TupleAttributeType]) extends Type {
+  def apply(n: String): TupleAttributeType = attrTps(n)
 }
 
-case class LabelType(attrs: Map[String, LabelAttributeType]) extends TupleAttributeType with LabelAttributeType{
-  override def isLabel: Boolean = true
-}
-
-/**
-  * Helper objects for creating tupled types
-  */
 object TupleType {
-  def apply(attrs: (String, TupleAttributeType)*): TupleType = TupleType(Map(attrs: _*))
+  def apply(attrTps: (String, TupleAttributeType)*): TupleType = TupleType(Map(attrTps: _*))
+}
+
+/***
+  * Shredding type extensions: label type and dictionary type
+  *
+  */
+case class LabelType(attrTps: Map[String, Type]) extends TupleAttributeType {
+  def apply(n: String): Type = attrTps(n)
 }
 
 object LabelType {
-  def apply(attrs: (String, LabelAttributeType)*): LabelType = LabelType(Map(attrs: _*))
+  def apply(attrTps: (String, Type)*): LabelType = LabelType(Map(attrTps: _*))
+}
+
+sealed trait DictType extends Type
+
+sealed trait TupleDictAttributeType extends DictType
+
+case object EmptyDictType extends TupleDictAttributeType
+
+case class BagDictType(flatTp: BagType, dictTp: TupleDictType) extends TupleDictAttributeType
+
+case class TupleDictType(attrTps: Map[String, TupleDictAttributeType]) extends DictType {
+  def apply(n: String): TupleDictAttributeType = attrTps(n)
+}
+
+object TupleDictType {
+  def apply(attrTps: (String, TupleDictAttributeType)*): TupleDictType = TupleDictType(Map(attrTps: _*))
 }

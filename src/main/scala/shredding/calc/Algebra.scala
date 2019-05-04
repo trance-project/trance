@@ -29,7 +29,7 @@ trait BaseAlg {
 
 }
 
-trait Algebra extends BaseAlg with ShreddedCalc{
+trait Algebra extends BaseAlg with CalcImplicits {
 
   /**
     * Initial expression that will represent null input stream 
@@ -124,8 +124,7 @@ trait Algebra extends BaseAlg with ShreddedCalc{
     */
   case class Join(v: List[VarDef],  p: PrimitiveCalc) extends BagOutput{
     def tp: BagType = 
-      BagType(TupleType(v.head.tp.asInstanceOf[TupleType].attrs ++ v.tail.head.tp.asInstanceOf[TupleType].attrs))    
-  
+      BagType(TupleType(v.head.tp.asInstanceOf[TupleType].attrTps ++ v.tail.head.tp.asInstanceOf[TupleType].attrTps))
   }
 
   /**
@@ -154,7 +153,7 @@ trait Algebra extends BaseAlg with ShreddedCalc{
     */
   case class OuterJoin(v: List[VarDef], p: PrimitiveCalc) extends BagOutput{
     def tp: BagType = 
-      BagType(TupleType(v.head.tp.asInstanceOf[TupleType].attrs ++ v.tail.head.tp.asInstanceOf[TupleType].attrs))
+      BagType(TupleType(v.head.tp.asInstanceOf[TupleType].attrTps ++ v.tail.head.tp.asInstanceOf[TupleType].attrTps))
   } 
 
   /**

@@ -1,13 +1,11 @@
 package shredding.calc
 
 import shredding.core._
-import shredding.nrc.Shredding
 import shredding.Utils.Symbol
 
 trait CalcTranslator extends Algebra {
-  this: CalcImplicits with Shredding with NRCTranslator =>
+  this: CalcImplicits  =>
   
-
   object Unnester extends Serializable{
 
     var normalize = true
@@ -29,15 +27,6 @@ trait CalcTranslator extends Algebra {
     def unnestHead(e: CompCalc) = e match {
       case t:Tup => t.fields.filter(field => field._2.isOutermost)
       case _ => Nil
-    }
-
-    def getJoinPred(andpred2: PrimitiveCalc, x: CompCalc): PrimitiveCalc = x match {
-      case CLookup(lbl, ibd) => ibd match {
-          case dict:InputBagDict if (andpred2 == Constant(true, BoolType)) => Conditional(OpEq, lbl, lbl)
-          case dict:InputBagDict => AndCondition(Conditional(OpEq, lbl, lbl), andpred2)
-          case _ => sys.error("Unsupported dictionary type in body")
-        }
-      case _ => andpred2
     }
 
     /**
@@ -82,11 +71,9 @@ trait CalcTranslator extends Algebra {
               case (ProjToBag(vd, field), _) => unnest(nb, u, w :+v, Term(OuterUnnest(w, x, andPreds(p1 ++ p2)), e2)) // OUTER-UNNEST
               // if x is a variable
               case (_, Nil) => 
-                val joinPreds = getJoinPred(andPreds(p2), x)
-                unnest(nb, u, w :+v, Term(Join(w :+ v, joinPreds), Term(Select(x, v, andPreds(p1)), e2))) // JOIN
+                unnest(nb, u, w :+v, Term(Join(w :+ v, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2))) // JOIN
               case (_, _) => 
-                val joinPreds= getJoinPred(andPreds(p2), x)
-                unnest(nb, u, w :+v, Term(OuterJoin(w :+ v, joinPreds), Term(Select(x, v, andPreds(p1)), e2))) // OUTER-JOIN
+                unnest(nb, u, w :+v, Term(OuterJoin(w :+ v, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2))) // OUTER-JOIN
             }
           }
         // { e | p } (ie. has no generators): rules C5, C8, and C12
@@ -108,7 +95,6 @@ trait CalcTranslator extends Algebra {
       }
       case b:BagCalc => Select(b, VarDef(Symbol.fresh("v"), b.tp.tp), Constant(true, BoolType))
       case CNamed(n, b) => NamedTerm(n, unnest(if (normalize) { b.normalize } else { b }))
-      case CSequence(cs) => PlanSet(cs.map(unnest(_)))
       case _ => sys.error("not supported "+e1)
    }
 

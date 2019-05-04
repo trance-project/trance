@@ -10,10 +10,9 @@ import org.apache.spark.rdd.RDD
   * Translate Algebra term trees into Spark and execute
   */
 
-trait AlgTranslator {
-  this: Algebra with ShreddedCalc =>
+trait AlgEvaluator extends AlgebraImplicits {
   
-  case class SLabel(vals: Map[String, Any]){
+  /**case class SLabel(vals: Map[String, Any]){
     
     def extract(v:String): Any = vals.get(v) match {
       case Some(a) => a
@@ -26,19 +25,13 @@ trait AlgTranslator {
 
   object SLabel{
     def apply(vals: (String, Any)*): SLabel = SLabel(Map(vals: _*))
-  }
+  }**/
 
-  class SparkEvaluator(@transient val sc: SparkContext) extends Serializable{
+  class SparkEvaluator(@transient val sc: SparkContext, ctx: Context[RDD[_]]) extends Serializable{
     
-    import collection.mutable.{HashMap => HMap}
-    
-    val ctx: HMap[String, RDD[_]] = HMap[String, RDD[_]]()
-    def reset = ctx.clear 
-   
     def execute(p: PlanSet) = {
-      reset
       p.plans.foreach(e =>{
-        println("\nUnnested: "+calc.quote(e.asInstanceOf[calc.AlgOp]))
+        println("\nUnnested: "+e.quote)
         println("\nEvaluated: ")
         evaluate(e).take(100).foreach(println(_))
       })
@@ -54,7 +47,7 @@ trait AlgTranslator {
       * // TODO make implicit
       */
     def getIndex(e: CompCalc): Int = e match { 
-      case ProjToLabel(t, f) => getIndex(t.tp, f)
+      //case ProjToLabel(t, f) => getIndex(t.tp, f)
       case ProjToBag(t, f) => getIndex(t.tp, f)
       case ProjToPrimitive(t,f) => getIndex(t.tp, f)
     }
@@ -95,9 +88,9 @@ trait AlgTranslator {
       * a groupBy() operation, so the values should be mapped over
       */
     def accessElement(xs: Any, i: Int): Any = xs match {
-      case l:Tuple2[_,_] if l._1.isInstanceOf[Label]=> 
+      //case l:Tuple2[_,_] if l._1.isInstanceOf[shredding.nrc.Label]=> 
         // coming from input bag
-        accessElement(l._2, i)
+      //  accessElement(l._2, i)
       case l:List[_] => l(i)
       case l:Iterable[_] => l.map(accessElement(_, i))
       case l:Product => l.productElement(i)
@@ -109,8 +102,8 @@ trait AlgTranslator {
       * a label
       */
     def accessLabel(xs: Any, vname: String): Any = xs match {
-      case l:List[_] if (l.head.isInstanceOf[SLabel] && l.size == 1) => accessLabel(l.head, vname)
-      case lbl:SLabel => lbl.extract(vname)
+      //case l:List[_] if (l.head.isInstanceOf[SLabel] && l.size == 1) => accessLabel(l.head, vname)
+      //case lbl:SLabel => lbl.extract(vname)
       case l => l
     }
 
@@ -119,8 +112,8 @@ trait AlgTranslator {
       */
     def matchPattern(vars: Any, e:CompCalc, value: Any): Any = e match {
       case Tup(fs) => fs.map{ case (k,v) => v match {
-        case CLabel(id, vs) => 
-          SLabel(vs.map( vd => (vd._1, matchPattern(vars, vd._2, value))).toList:_*)
+        //case CLabel(id, vs) => 
+        //  SLabel(vs.map( vd => (vd._1, matchPattern(vars, vd._2, value))).toList:_*)
         case _ => matchPattern(vars, v, value)
       }}
       case p:Proj => accessElement(matchPattern(vars, p.tuple, value), getIndex(e))
@@ -207,7 +200,7 @@ trait AlgTranslator {
     }
     
     def handleInputBag(vars: Any, e: CompCalc, a: Any) = a match {
-      case t:Tuple2[_,_] if t._1.isInstanceOf[Label] => t._1 // coming from input bag dict
+      //case t:Tuple2[_,_] if t._1.isInstanceOf[shredding.nrc.Label] => t._1 // coming from input bag dict
       case _ => matchPattern(vars, e, a) 
     } 
 
@@ -285,43 +278,17 @@ trait AlgTranslator {
           }
         filterRDD(output, pred, tuple(vars))
       // v <- X
-      case Select(x, v, pred) => 
-        val output = filterRDD(evaluateBag(x), pred, v)
+      case Select(x @ BagVar(vd), v, pred) => 
+        val output = filterRDD(ctx(vd.name), pred, v)
         output
-      case NamedTerm(n, t) => ctx.getOrElseUpdate(n, evaluate(t))
+      case NamedTerm(n, t) => ctx(n)
       case _ => sys.error("unsupported evaluation for "+e)
     }
-
-    /**
-      * Strips keys out of the tuple-maps, values are 
-      * referenced by position based on the type later
-      */
-    def evaluateBag(e: BagCalc): RDD[_] = {
-      e match {
-      case BagVar(vd) => ctx(vd.name)
-      case Sng(t @ Tup(_)) => 
-        sc.parallelize(Seq(t.fields.map{ case (k,v) => v }))
-      case InputR(n, d, t) => // flat input?
-        val data = d.asInstanceOf[List[Map[String,Any]]].map(m => m.values.toList)
-        ctx.getOrElseUpdate(n, sc.parallelize(data))
-      case CLookup(lbl, dict) => dict match {
-        // lbl is also projected here, it's the label in the first position
-        // will need to use that when the data isn't coming in shredded
-        case InputBagDict(d, ftp, tdict) =>
-          val data = d.toList.flatMap{
-            case (l, v) => v.asInstanceOf[List[Map[String,Any]]].map{
-              v2 => (l, v2.values.toList)}
-          }
-          ctx.getOrElseUpdate(lbl.toString, sc.parallelize(data)) 
-        case _ => sys.error("unsupported evaluation for "+e)
-      }
-      case _ => sys.error("unsupported evaluation for "+e)
-    }}
 
   }
   
   object SparkEvaluator{
-    def apply(sc: SparkContext) = new SparkEvaluator(sc)
+    def apply(sc: SparkContext, ctx: Context[RDD[_]]) = new SparkEvaluator(sc, ctx)
   }
 
 }
