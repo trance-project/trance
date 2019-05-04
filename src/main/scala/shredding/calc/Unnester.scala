@@ -3,8 +3,7 @@ package shredding.calc
 import shredding.core._
 import shredding.Utils.Symbol
 
-trait CalcTranslator extends Algebra {
-  this: CalcImplicits  =>
+trait CalcTranslator extends AlgebraImplicits {
   
   object Unnester extends Serializable{
 
@@ -94,7 +93,7 @@ trait CalcTranslator extends Algebra {
         case _ => sys.error("not supported")
       }
       case b:BagCalc => Select(b, VarDef(Symbol.fresh("v"), b.tp.tp), Constant(true, BoolType))
-      case CNamed(n, b) => NamedTerm(n, unnest(if (normalize) { b.normalize } else { b }))
+      case CNamed(v, b) => NamedTerm(v, unnest(if (normalize) { b.normalize } else { b }))
       case _ => sys.error("not supported "+e1)
    }
 

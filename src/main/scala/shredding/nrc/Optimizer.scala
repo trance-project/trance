@@ -1,20 +1,40 @@
 package shredding.nrc
 
-import shredding.core.{TupleType, VarDef}
+import shredding.core.{VarDef, TupleType}
+import shredding.Utils.Symbol
 
-trait Optimizer extends NRCImplicits {
+/**
+  * Simple optimization:
+  *   - dead code elimination
+  *   - beta reduction
+  */
+trait Optimizer extends Extensions {
   this: ShredNRC =>
 
-  import shredding.Utils.Symbol
+  def optimize(e: ShredExpr): ShredExpr =
+    ShredExpr(optimize(e.flat), optimize(e.dict).asInstanceOf[DictExpr])
 
-  def betaReduce(e: Expr, fullRecursion: Boolean = true): Expr = e.replace {
-    case Lookup(l1, BagDict(l2, flatBag, _)) if l1 == l2 =>
-      if (fullRecursion) betaReduce(flatBag) else flatBag
+  def optimize(e: Expr): Expr = deadCodeElimination(betaReduce(e))
 
-    case Lookup(l1, BagDict(l2, flatBag, _)) /* if l1 != l2 */ =>
-      Let(
+  def deadCodeElimination(e: Expr): Expr = replace(e, {
+    case l: Let =>
+      val ivars = inputVars(l.e2).map(v => v.name -> v.tp).toMap
+      if (ivars.contains(l.x.name)) {
+        // Sanity check
+        assert(ivars(l.x.name) == l.x.tp)
+        l
+      }
+      else deadCodeElimination(l.e2)
+  })
+
+  def betaReduce(e: Expr): Expr = replace(e, {
+    case Lookup(l1, BagDict(l2, flatBag, _)) if l1.tp == l2.tp =>
+      betaReduce(flatBag)
+
+    case Lookup(l1, BagDict(_, flatBag, _)) /* if l1 != l2 */ =>
+      BagLet(
         VarDef(Symbol.fresh("l"), TupleType("lbl" -> l1.tp)), Tuple("lbl" -> l1),
-        if (fullRecursion) betaReduce(flatBag) else flatBag
-      )
-  }
+        betaReduce(flatBag).asInstanceOf[BagExpr])
+  })
+
 }

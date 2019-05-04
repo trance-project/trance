@@ -7,7 +7,7 @@ import shredding.core._
   */
 trait BaseCalc {
 
-  trait CompCalc { self =>
+  trait CompCalc extends Serializable { self =>
     
     def tp: Type
    
@@ -258,7 +258,7 @@ trait Calc extends BaseCalc {
     val tp: PrimitiveType = BoolType
   }
 
-  case class CNamed(n: String, e: CompCalc) extends CompCalc {
+  case class CNamed(v: VarDef, e: CompCalc) extends CompCalc {
     val tp: Type = e.tp 
   }  
   

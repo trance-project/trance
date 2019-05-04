@@ -49,6 +49,7 @@ trait ShredNRC extends NRC with Label with Dictionary {
   case object ShredLet {
     def apply(x: VarDef, e1: Expr, e2: Expr): Expr = e2.tp match {
       case _: LabelType => LabelLet(x, e1, e2.asInstanceOf[LabelExpr])
+      case _: DictType => DictLet(x, e1, e2.asInstanceOf[DictExpr])
       case _ => Let(x, e1, e2)
     }
   }

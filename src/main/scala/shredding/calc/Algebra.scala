@@ -163,8 +163,7 @@ trait Algebra extends BaseAlg with CalcImplicits {
     def tp = e1.tp
   }
 
-  // this is only temporary, the terms should be linked
-  case class NamedTerm(n: String, t: AlgOp) extends AlgOp{
+  case class NamedTerm(v: VarDef, t: AlgOp) extends AlgOp{
     def tp = t.tp
   }
 

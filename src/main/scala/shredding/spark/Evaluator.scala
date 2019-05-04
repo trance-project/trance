@@ -1,6 +1,7 @@
-package shredding.calc
+package shredding.spark
 
 import shredding.core._
+import shredding.calc._
 import shredding.Utils.Symbol
 import reflect.ClassTag
 import org.apache.spark.SparkContext
@@ -9,32 +10,19 @@ import org.apache.spark.rdd.RDD
 /**
   * Translate Algebra term trees into Spark and execute
   */
-
-trait AlgEvaluator extends AlgebraImplicits {
+trait SparkEvaluator extends AlgebraImplicits {
   
-  /**case class SLabel(vals: Map[String, Any]){
+  class Evaluator(ctx: Context) extends Serializable{
     
-    def extract(v:String): Any = vals.get(v) match {
-      case Some(a) => a
-      case None => None
-    }
-
-    def extract(i: Int): Any = extract(vals.keys.toList(i).toString)
-
-  }
-
-  object SLabel{
-    def apply(vals: (String, Any)*): SLabel = SLabel(Map(vals: _*))
-  }**/
-
-  class SparkEvaluator(@transient val sc: SparkContext, ctx: Context[RDD[_]]) extends Serializable{
-    
-    def execute(p: PlanSet) = {
-      p.plans.foreach(e =>{
-        println("\nUnnested: "+e.quote)
+    def execute(p: AlgOp) = p match {
+      case PlanSet(plans) => 
+        plans.foreach(e =>{
+          println("\nEvaluated: ")
+          evaluate(e).take(100).foreach(println(_))
+        })
+      case _ => 
         println("\nEvaluated: ")
-        evaluate(e).take(100).foreach(println(_))
-      })
+        evaluate(p).take(100).foreach(println(_))
     }
  
     def getIndex(t: Type, f: String): Int = t match {
@@ -279,16 +267,11 @@ trait AlgEvaluator extends AlgebraImplicits {
         filterRDD(output, pred, tuple(vars))
       // v <- X
       case Select(x @ BagVar(vd), v, pred) => 
-        val output = filterRDD(ctx(vd.name), pred, v)
+        val output = filterRDD(ctx(vd), pred, v)
         output
-      case NamedTerm(n, t) => ctx(n)
+      case NamedTerm(vd, t) => ctx(vd)
       case _ => sys.error("unsupported evaluation for "+e)
     }
 
   }
-  
-  object SparkEvaluator{
-    def apply(sc: SparkContext, ctx: Context[RDD[_]]) = new SparkEvaluator(sc, ctx)
-  }
-
 }

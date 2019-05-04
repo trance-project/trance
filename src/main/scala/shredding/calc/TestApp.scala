@@ -2,10 +2,11 @@ package shredding.calc
 
 import shredding.Utils.Symbol
 import shredding.core._
+import shredding.runtime.Context
 import shredding.nrc._
 
 object TestApp extends App with 
-  NRCTranslator with CalcTranslator with AlgEvaluator {
+  NRCTranslator with CalcTranslator {
   
   override def main(args: Array[String]){
     run1()
@@ -22,13 +23,15 @@ object TestApp extends App with
     
     val itemTp = TupleType("a" -> IntType, "b" -> StringType)
     val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
-    val ctx = new Context[Any]()
-    ctx.add("R", List(
+    val relationRValue = List(
         Map("a" -> 42, "b" -> "Milos"),
         Map("a" -> 69, "b" -> "Michael"),
         Map("a" -> 34, "b" -> "Jaclyn"),
         Map("a" -> 42, "b" -> "Thomas")
-    ), relationR.tp)
+    )
+
+    val ctx = new Context()
+    ctx.add(relationR.varDef, relationRValue) 
 
     val xdef = VarDef(Symbol.fresh("x"), itemTp)
     val q = ForeachUnion(xdef, relationR, Singleton(Tuple("w" -> TupleVarRef(xdef)("b"))))
@@ -43,13 +46,15 @@ object TestApp extends App with
   def run2(){
     val itemTp = TupleType("a" -> IntType, "b" -> StringType)
     val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
-    val ctx = new Context[Any]()
-    ctx.add("R", List(
+    val relationRValue = List(
         Map("a" -> 42, "b" -> "Milos"),
         Map("a" -> 69, "b" -> "Michael"),
         Map("a" -> 34, "b" -> "Jaclyn"),
         Map("a" -> 42, "b" -> "Thomas")
-    ), relationR.tp)
+    )
+
+    val ctx = new Context()
+    ctx.add(relationR.varDef, relationRValue) 
     val x0def = VarDef(Symbol.fresh("x"), itemTp)
     val x1def = VarDef(Symbol.fresh("x"), itemTp)
     val rq1 = ForeachUnion(x0def, relationR,
@@ -79,15 +84,13 @@ object TestApp extends App with
     val departments = BagVarRef(VarDef("Departments", BagType(dtype)))
     val e = VarDef(Symbol.fresh("e"), etype)
     val d = VarDef(Symbol.fresh("d"), dtype)
-    val ctx = new Context[Any]()
-    ctx.add("Employees",
-                      List(Map("dno" -> 1, "ename" -> "one"),Map("dno" -> 2, "ename"-> "two"),
-                            Map("dno" -> 3, "ename" -> "three"),Map("dno" -> 4, "ename" -> "four")), employees.tp)
-    ctx.add("Departments",
-                        List(Map("dno" -> 1, "dname" -> "five"),Map("dno" -> 2, "dname" -> "six"),
-                              Map("dno" -> 3, "dname" -> "seven"),Map("dno" -> 4, "dname" -> "eight")), departments.tp)
-
-
+    val employeesValue = List(Map("dno" -> 1, "ename" -> "one"),Map("dno" -> 2, "ename"-> "two"),
+                            Map("dno" -> 3, "ename" -> "three"),Map("dno" -> 4, "ename" -> "four"))
+    val departmentsValue = List(Map("dno" -> 1, "dname" -> "five"),Map("dno" -> 2, "dname" -> "six"),
+                              Map("dno" -> 3, "dname" -> "seven"),Map("dno" -> 4, "dname" -> "eight"))
+    val ctx = new Context()
+    ctx.add(employees.varDef, employeesValue)
+    ctx.add(departments.varDef, departmentsValue)
     val q4 = ForeachUnion(d, departments,
               ForeachUnion(e, employees,
                 IfThenElse(Cond(OpEq, TupleVarRef(d)("dno"), TupleVarRef(e)("dno")),
@@ -113,9 +116,7 @@ object TestApp extends App with
         "j" -> BagType(nestedItemTp)
       ))
       val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
-      val ctx = new Context[Any]()
-      ctx.add("R", List(
-        Map(
+      val relationRValues = List(Map(
           "h" -> 42,
           "j" -> List(
             Map(
@@ -164,7 +165,9 @@ object TestApp extends App with
             )
           )
         )
-      ), relationR.tp)
+      )
+      val ctx = new Context()
+      ctx.add(relationR.varDef, relationRValues)
 
       val xdef = VarDef("x", itemTp)
       val xref = TupleVarRef(xdef)

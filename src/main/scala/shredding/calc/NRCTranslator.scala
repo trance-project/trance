@@ -48,6 +48,9 @@ trait NRCTranslator extends NRC with Calc {
       case Tuple(fs) => Tup(fs.map(x => x._1 -> translateAttr(x._2)))
       case p:Project => Proj(translateTuple(p.tuple), p.field)
       case Const(v, tp) => Constant(v, tp)
+      case Total(b) => 
+        val v = VarDef(Symbol.fresh("v"), b.tp.tp)
+        CountComp(Constant(1, IntType), List(Generator(v, translateBag(b))))
       case v:VarRef => Var(v.varDef)
       case _ => sys.error("not supported")
     }
