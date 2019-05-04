@@ -2,8 +2,10 @@ package shredding.nrc
 
 import shredding.core._
 
-trait NRCPrinter {
-  this: NRC =>
+/**
+  * Print of NRC expressions
+  */
+trait Printer extends LinearizedNRC {
 
   import shredding.Utils.ind
 
@@ -31,33 +33,7 @@ trait NRCPrinter {
       else
         s"""|If (${quote(i.cond.e1)} ${i.cond.op} ${quote(i.cond.e2)})
             |Then ${quote(i.e1)}""".stripMargin
-    case _ => sys.error("Cannot print unknown expression " + e)
-  }
 
-  def quote(v: Any, tp: Type): String = tp match {
-    case StringType => "\"" + v.toString + "\""
-    case _: PrimitiveType => v.toString
-    case BagType(tp2) =>
-      val l = v.asInstanceOf[List[Any]]
-      s"""|[
-          |${ind(l.map(quote(_, tp2)).mkString(",\n"))}
-          |]""".stripMargin
-    case TupleType(as) =>
-      val m = v.asInstanceOf[Map[String, Any]]
-      s"(${m.map { case (n, a) => n + " := " + quote(a, as(n)) }.mkString(", ")})"
-    case LabelType(as) =>
-      val m = v.asInstanceOf[Map[String, Any]]
-      s"Label(${m.map { case (n, a) => n + " := " + quote(a, as(n)) }.mkString(", ")})"
-    case _ => sys.error("Cannot print value of unknown type " + tp)
-  }
-}
-
-trait ShredNRCPrinter extends NRCPrinter {
-  this: ShredNRC =>
-
-  import shredding.Utils.ind
-
-  override def quote(e: Expr): String = e match {
     // Label cases
     case l: NewLabel =>
       s"NewLabel(${(l.id :: l.vars.toList.map(_.name)).mkString(", ")})"
@@ -77,21 +53,15 @@ trait ShredNRCPrinter extends NRCPrinter {
     case BagDictProject(v, f) => quote(v) + "." + f
     case TupleDictProject(v) => quote(v) + ".tupleDict"
     case DictUnion(d1, d2) => s"(${quote(d1)}) DictUnion (${quote(d2)})"
-    case _ => super.quote(e)
+
+    case Named(v, e1) => s"${v.name} := ${quote(e1)}"
+    case Sequence(ee) => ee.map(quote).mkString("\n")
+
+    case _ => sys.error("Cannot print unknown expression " + e)
   }
 
   def quote(e: ShredExpr): String =
     s"""|Flat: ${quote(e.flat)}
         |Dict: ${quote(e.dict)}""".stripMargin
-}
-
-trait LinearizedNRCPrinter extends ShredNRCPrinter {
-  this: LinearizedNRC =>
-
-  override def quote(e: Expr): String = e match {
-    case Named(n, e1) => s"$n := ${quote(e1)}"
-    case Sequence(ee) => ee.map(quote).mkString("\n")
-    case _ => super.quote(e)
-  }
 
 }

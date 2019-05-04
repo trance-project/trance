@@ -5,7 +5,7 @@ import shredding.core._
 /**
   * Dictionary extensions
   */
-trait Dictionary extends ShredNRCImplicits {
+trait Dictionary {
   this: ShredNRC =>
 
   sealed trait DictExpr extends Expr {
@@ -80,26 +80,26 @@ trait Dictionary extends ShredNRCImplicits {
     val tp: TupleDictType = dict.tp.dictTp
   }
 
-//  case object DictLet {
-//    def apply(x: VarDef, e1: Expr, e2: DictExpr): DictExpr = e2.tp match {
-//      case EmptyDictType => EmptyDict
-//      case _: BagDictType => BagDictLet(x, e1, e2.asInstanceOf[BagDictExpr])
-//      case _: TupleDictType => TupleDictLet(x, e1, e2.asInstanceOf[TupleDictExpr])
-//      case t => sys.error("Cannot create DictLet for type " + t)
-//    }
-//  }
-//
-//  case class BagDictLet(x: VarDef, e1: Expr, e2: BagDictExpr) extends BagDictExpr with Let {
-//    assert(x.tp == e1.tp)
-//
-//    val tp: BagDictType = e2.tp
-//  }
-//
-//  case class TupleDictLet(x: VarDef, e1: Expr, e2: TupleDictExpr) extends TupleDictExpr with Let {
-//    assert(x.tp == e1.tp)
-//
-//    val tp: TupleDictType = e2.tp
-//  }
+  case object DictLet {
+    def apply(x: VarDef, e1: Expr, e2: DictExpr): DictExpr = e2.tp match {
+      case EmptyDictType => EmptyDict
+      case _: BagDictType => BagDictLet(x, e1, e2.asInstanceOf[BagDictExpr])
+      case _: TupleDictType => TupleDictLet(x, e1, e2.asInstanceOf[TupleDictExpr])
+      case t => sys.error("Cannot create DictLet for type " + t)
+    }
+  }
+
+  case class BagDictLet(x: VarDef, e1: Expr, e2: BagDictExpr) extends BagDictExpr with Let {
+    assert(x.tp == e1.tp)
+
+    val tp: BagDictType = e2.tp
+  }
+
+  case class TupleDictLet(x: VarDef, e1: Expr, e2: TupleDictExpr) extends TupleDictExpr with Let {
+    assert(x.tp == e1.tp)
+
+    val tp: TupleDictType = e2.tp
+  }
 
   case object DictIfThenElse {
     def apply(cond: Cond, e1: DictExpr, e2: DictExpr): DictExpr = e1.tp match {
@@ -134,7 +134,9 @@ trait Dictionary extends ShredNRCImplicits {
       case (EmptyDict, EmptyDict) =>
         EmptyDict
       case (BagDict(l1, f1, d1), BagDict(l2, f2, d2)) =>
-        val lbl = NewLabel(l1.inputVars ++ l2.inputVars)
+        val attrTps = l1.tp.attrTps ++ l2.tp.attrTps
+        val vars = attrTps.map { case (n, t) => ShredVarRef(VarDef(n, t)).asInstanceOf[VarRef] }.toSet
+        val lbl = NewLabel(vars)
         BagDict(lbl, Union(f1, f2), d1.union(d2).asInstanceOf[TupleDictExpr])
       case (d1: BagDictExpr, d2: BagDictExpr) =>
         DictUnion(d1, d2)

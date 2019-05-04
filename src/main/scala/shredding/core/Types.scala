@@ -5,9 +5,9 @@ package shredding.core
   */
 sealed trait Type
 
-sealed trait TupleAttributeType extends Type
+trait TupleAttributeType extends Type
 
-sealed trait PrimitiveType extends TupleAttributeType
+trait PrimitiveType extends TupleAttributeType
 
 case object BoolType extends PrimitiveType
 
@@ -31,15 +31,21 @@ object TupleType {
   */
 case class LabelType(attrTps: Map[String, Type]) extends TupleAttributeType {
   def apply(n: String): Type = attrTps(n)
+
+  override def equals(that: Any): Boolean = that match {
+    case that: LabelType => this.attrTps == that.attrTps
+    case _ => false
+  }
+
 }
 
 object LabelType {
   def apply(attrTps: (String, Type)*): LabelType = LabelType(Map(attrTps: _*))
 }
 
-sealed trait DictType extends Type
+trait DictType extends Type
 
-sealed trait TupleDictAttributeType extends DictType
+trait TupleDictAttributeType extends DictType
 
 case object EmptyDictType extends TupleDictAttributeType
 

@@ -18,12 +18,12 @@ trait Linearization {
       // Construct variable reference to the initial context
       // that represents a bag containing a single label.
       // The label encapsulate the input variables.
-      val ivars = e.flat.inputVars
+      val ivars = inputVars(e.flat)
       val labelTp = LabelType(ivars.map(v => v.name -> v.tp).toMap)
       val initCtxTp = BagType(TupleType("lbl" -> labelTp))
       val initVarRef = BagVarRef(VarDef(initCtxName, initCtxTp))
-      val initCtxNamed = Named(Symbol.fresh("M_ctx"), initVarRef)
-      val initCtxRef = BagVarRef(VarDef(initCtxNamed.n, initVarRef.tp))
+      val initCtxNamed = Named(VarDef(Symbol.fresh("M_ctx"), initCtxTp), initVarRef)
+      val initCtxRef = BagVarRef(initCtxNamed.v)
 
       // Let's roll
       Sequence(initCtxNamed :: linearize(d, initCtxRef))
@@ -38,8 +38,8 @@ trait Linearization {
     val lbl = LabelProject(TupleVarRef(ldef), "lbl")
     val kvpair = Tuple("k" -> lbl, "v" -> dict.lookup(lbl))
     val mFlat = ForeachUnion(ldef, ctx, Singleton(kvpair))
-    val mFlatNamed = Named(Symbol.fresh("M_flat"), mFlat)
-    val mFlatRef = BagVarRef(VarDef(mFlatNamed.n, mFlat.tp))
+    val mFlatNamed = Named(VarDef(Symbol.fresh("M_flat"), mFlat.tp), mFlat)
+    val mFlatRef = BagVarRef(mFlatNamed.v)
 
     // 2. For each label type in dict.flatBagTp.tp,
     //    create the context (bag of labels) and recur
@@ -53,8 +53,8 @@ trait Linearization {
           ForeachUnion(kvDef, mFlatRef,
             ForeachUnion(xDef, BagProject(TupleVarRef(kvDef), "v"),
               Singleton(Tuple("lbl" -> LabelProject(TupleVarRef(xDef), n)))))
-        val mCtxNamed = Named(Symbol.fresh("M_ctx"), mCtx)
-        val mCtxRef = BagVarRef(VarDef(mCtxNamed.n, mCtx.tp))
+        val mCtxNamed = Named(VarDef(Symbol.fresh("M_ctx"), mCtx.tp), mCtx)
+        val mCtxRef = BagVarRef(mCtxNamed.v)
         val bagDict = dict.tupleDict(n)
 
         bagDict match {
