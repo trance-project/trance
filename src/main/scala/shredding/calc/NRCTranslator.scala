@@ -3,76 +3,87 @@ package shredding.calc
 import scala.collection.mutable.Map
 import shredding.Utils.Symbol
 import shredding.core._
-import shredding.nrc.NRC
+import shredding.nrc.LinearizedNRC
 
 /**
   * Translation functions for NRC
   * 
   */
-trait NRCTranslator extends NRC with Calc {
+trait NRCTranslator extends ShredCalc with LinearizedNRC {
 
-  object Translator extends Serializable{
-    /**
-      * Translate an NRC Expression into comprehension calculus.
-      * Translation does some of the normalization rules 
-      * simultaneously; however normalization is called 
-      * at the end to ensure that all expressions are 
-      * normalized. This makes it a bit easier to debug 
-      * normalization and translation, if needed.
-      * 
-      */
+  implicit class NRCCondTranslators(e: Cond){
+    def translate: Conditional = 
+      Conditional(e.op, e.e1.translate.asInstanceOf[TupleAttributeCalc], 
+        e.e2.translate.asInstanceOf[TupleAttributeCalc]) 
+  }
 
-    val ctx: Map[String, Expr] = Map[String, Expr]()
+  implicit class NRCTranslators(self: Expr){
 
-    def translate(e: Expr): CompCalc = e match {
+    def translate: CompCalc = self match {
       case ForeachUnion(x, e1, e2) => 
-      translateBag(e2) match {
-        case IfStmt(c, e3 @ Sng(t), e4 @ None) => BagComp(t, List(Generator(x, translateBag(e1)), c))
-        case Sng(t) => BagComp(t, List(Generator(x, translateBag(e1))))
-        case t => 
-          val v = VarDef(Symbol.fresh("v"), t.tp.tp)
-          BagComp(TupleVar(v), List(Generator(x, translateBag(e1)), Generator(v, t))) 
-        }
+        e2.translate.asInstanceOf[BagCalc] match {
+          case IfStmt(c, e3 @ Sng(t), e4 @ None) => BagComp(t, List(Generator(x, e1.translate.asInstanceOf[BagCalc]), c))
+          case Sng(t) => BagComp(t, List(Generator(x, e1.translate.asInstanceOf[BagCalc])))
+          case t => 
+            val v = VarDef(Symbol.fresh("v"), t.tp.tp)
+            BagComp(TupleVar(v), List(Generator(x, e1.translate.asInstanceOf[BagCalc]), Generator(v, t))) 
+          }
       case Union(e1, e2) => 
-        Merge(translateBag(e1), translateBag(e2))
+        Merge(e1.translate.asInstanceOf[BagCalc], e2.translate.asInstanceOf[BagCalc])
       case i: IfThenElse =>
-        IfStmt(translateCond(i.cond), translateBag(i.e1), translateOption(i.e2))
+        val e2 = i.e2 match {
+          case Some(b) => Option(b.translate.asInstanceOf[BagCalc])
+          case None => None
+        }
+        IfStmt(i.cond.translate, i.e1.translate.asInstanceOf[BagCalc], e2)
       case l: Let => l.e2.tp match {
         case t:BagType => 
-          val te2 = translateBag(l.e2)
+          val te2 = l.e2.translate.asInstanceOf[BagCalc]
           val v = VarDef(Symbol.fresh("v"), te2.tp.tp)
-          BagComp(TupleVar(v), List(Bind(l.x, translate(l.e1)), Generator(v, te2)))
-        case _ => sys.error("not supported")
+          val qs = l.e1.tp match {
+            case t:DictType => 
+              List(BindDict(l.x, l.e1.translate.asInstanceOf[DictCalc]), Generator(v, te2))
+            case _ => List(Bind(l.x, l.e1.translate), Generator(v, te2))
+          }
+          BagComp(TupleVar(v), qs)
+        case _ => sys.error("todo need to support other lets")
       }
-      case Singleton(e1) => Sng(translateTuple(e1))
-      case Tuple(fs) => Tup(fs.map(x => x._1 -> translateAttr(x._2)))
-      case p:Project => Proj(translateTuple(p.tuple), p.field)
+      case Singleton(e1) => Sng(e1.translate.asInstanceOf[TupleCalc])
+      case Tuple(fs) => Tup(fs.map(x => x._1 -> x._2.translate.asInstanceOf[TupleAttributeCalc]))
+      case p:Project => p.tp match {
+        case t:LabelType => LabelProj(p.tuple.translate.asInstanceOf[TupleCalc], p.field)
+        case _ => Proj(p.tuple.translate.asInstanceOf[TupleCalc], p.field)
+      }
       case Const(v, tp) => Constant(v, tp)
       case Total(b) => 
         val v = VarDef(Symbol.fresh("v"), b.tp.tp)
-        CountComp(Constant(1, IntType), List(Generator(v, translateBag(b))))
-      case v:VarRef => Var(v.varDef)
-      case _ => sys.error("not supported")
+        CountComp(Constant(1, IntType), List(Generator(v, b.translate.asInstanceOf[BagCalc])))
+      case v:VarRef => v.tp match {
+        case t:LabelType => LabelVar(v.varDef)
+        case t:DictType => DictVar(v.varDef)
+        case _ => Var(v.varDef)
+      }
+      case l @ NewLabel(vs) => CLabel(l.id, vs.map{ case v:VarRef =>
+        v.varDef.name -> v.asInstanceOf[Expr].translate}.toList:_*)
+      case Lookup(lbl, dict) => CLookup(lbl.translate.asInstanceOf[LabelCalc], 
+        dict.translate.asInstanceOf[BagDictCalc])
+      // dict union 
+      case DictUnion(d1, d2) => 
+        DictCUnion(d1.translate.asInstanceOf[DictCalc], d2.translate.asInstanceOf[DictCalc])
+      case TupleDictProject(dict) => TupleDictProj(dict.translate.asInstanceOf[BagDictCalc])
+      case BagDictProject(dict, field) => BagDictProj(dict.translate.asInstanceOf[TupleDictCalc], field)
+      case TupleDict(fs) => 
+        TupleCDict(fs.map(f => f._1 -> f._2.translate.asInstanceOf[TupleDictAttributeCalc]))
+      case BagDict(lbl, flat, dict) =>
+        BagCDict(lbl.translate.asInstanceOf[LabelCalc], flat.translate.asInstanceOf[BagCalc], 
+          dict.translate.asInstanceOf[TupleDictCalc])
+      case EmptyDict => EmptyCDict
+      case Sequence(exprs) => CSequence(exprs.map(_.translate))
+      case Named(v, e) => CNamed(v, e.translate)
+      case _ => sys.error("not supported "+self)
     }
 
-    def translate(e: VarDef) = e.tp match {
-      case t:PrimitiveType => PrimitiveVar(e) 
-      case t:BagType => BagVar(e)
-      case t:TupleType => TupleVar(e)
-      case _ => sys.error("Cannot translate due to unknown type " + e.tp)
-    }
-
-    // options are only used in if statements for now
-    def translateOption(e: Option[Expr]): Option[BagCalc] = e match {
-      case Some(e1) => Some(translateBag(e1))
-      case _ => None
-    }
-    def translateBag(e: Expr): BagCalc = translate(e).asInstanceOf[BagCalc]
-    def translateTuple(e: Expr): TupleCalc = translate(e).asInstanceOf[TupleCalc]
-    def translateVar(e: Expr): Var = translate(e).asInstanceOf[Var]
-    def translateAttr(e: Expr): TupleAttributeCalc = translate(e).asInstanceOf[TupleAttributeCalc]
-    def translateCond(e: Cond): Conditional = 
-      Conditional(e.op, translateAttr(e.e1), translateAttr(e.e2)) 
   }
+
 
 }

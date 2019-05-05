@@ -184,7 +184,10 @@ trait Calc extends BaseCalc {
     * v <- {e} => v bind e (N6)
     * { e1 | ..., v <- {e | r }, .. } => {e1 | ..., r, v bind e, ... } (N8)
     */
-  trait Bind extends CompCalc
+  trait Bind extends CompCalc{
+    val x: VarDef
+    val e: CompCalc
+  }
   /**
     * Binding of a source to a variable denotate an iteration: v <- X 
     */
@@ -226,10 +229,10 @@ trait Calc extends BaseCalc {
   }
 
   object Bind{
-    def apply(x: VarDef, v: CompCalc): Bind = v.tp match {
-      case t: TupleType => BindTuple(x, v.asInstanceOf[TupleCalc])
-      case t: PrimitiveType => BindPrimitive(x, v.asInstanceOf[PrimitiveCalc])
-      case t: BagType => Generator(x, v.asInstanceOf[BagCalc])
+    def apply(x: VarDef, e: CompCalc): Bind = e.tp match {
+      case t: TupleType => BindTuple(x, e.asInstanceOf[TupleCalc])
+      case t: PrimitiveType => BindPrimitive(x, e.asInstanceOf[PrimitiveCalc])
+      case t: BagType => Generator(x, e.asInstanceOf[BagCalc])
       case _ => throw new IllegalArgumentException(s"cannot bind VarDef(${x.name})")
     }
   }

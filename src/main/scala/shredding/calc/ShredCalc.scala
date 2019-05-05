@@ -15,7 +15,7 @@ trait ShredCalc extends Calc {
     override def tp: LabelType = varDef.tp.asInstanceOf[LabelType]
   }
 
-  case class LabelProject(tuple: TupleCalc, field: String) extends LabelCalc with Proj {
+  case class LabelProj(tuple: TupleCalc, field: String) extends LabelCalc with Proj {
     override def tp: LabelType = tuple.tp.attrTps(field).asInstanceOf[LabelType]
   }
 
@@ -64,7 +64,13 @@ trait ShredCalc extends Calc {
     def tp: TupleDictType
   }
 
-  case object DictVar {
+  trait DictVar extends DictCalc{
+    def varDef: VarDef
+    def name: String = varDef.name
+    def tp: DictType = varDef.tp.asInstanceOf[DictType] 
+  } 
+
+  object DictVar {
     def apply(varDef: VarDef): DictCalc = varDef.tp match {
       case EmptyDictType => EmptyCDict
       case _:BagDictType => BagDictVar(varDef)
@@ -87,8 +93,28 @@ trait ShredCalc extends Calc {
     val tp: BagDictType = BagDictType(flat.tp, dict.tp)
   }
 
+  case class BindBagDict(x: VarDef, e: BagDictCalc) extends BagDictCalc with Bind {
+    val tp: BagDictType = e.tp
+    override def isBind = true
+  }
+
   case class TupleCDict(fields: Map[String, TupleDictAttributeCalc]) extends TupleDictCalc {
     val tp: TupleDictType = TupleDictType(fields.map(f => f._1 -> f._2.tp))
+  }
+
+  case class BindTupleDict(x: VarDef, e: TupleDictCalc) extends TupleDictCalc with Bind {
+    val tp: TupleDictType = e.tp
+    override def isBind = true
+  }
+
+  trait BindDict extends Bind with DictCalc
+  
+  object BindDict {
+    def apply(x: VarDef, e: DictCalc): DictCalc = e.tp match {
+      case _:BagDictType => BindBagDict(x, e.asInstanceOf[BagDictCalc])
+      case _:TupleDictType => BindTupleDict(x, e.asInstanceOf[TupleDictCalc])
+      case t => sys.error("Cannot bind dictionary of type "+t)
+    }
   }
 
   case class BagDictProj(dict: TupleDictCalc, field: String) extends BagDictCalc {
@@ -104,8 +130,8 @@ trait ShredCalc extends Calc {
     val tp: DictType = dict1.tp
   }
 
-  case class CLookup(lbl: LabelCalc, dict: BagCDict) extends BagCalc{
-    def tp: BagType = dict.flat.tp
+  case class CLookup(lbl: LabelCalc, dict: BagDictCalc) extends BagCalc{
+    def tp: BagType = dict.tp.flatTp
   }
 
 }

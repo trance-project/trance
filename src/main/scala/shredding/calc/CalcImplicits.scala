@@ -3,7 +3,7 @@ package shredding.calc
 import shredding.Utils.ind
 import shredding.core._
 
-trait CalcImplicits extends Calc {
+trait CalcImplicits extends ShredCalc {
 
   implicit class CompCalcOps(self: CompCalc) {
 
@@ -31,30 +31,28 @@ trait CalcImplicits extends Calc {
       case Merge(e1, e2) => s"{ ${e1.quote} U ${e2.quote} }"
       case BindPrimitive(x, v) => s"${core.quote(x)} := ${v.quote}"
       case BindTuple(x, v) => s"${core.quote(x)} := ${v.quote}"
+      case BindLabel(x, v) => s"${core.quote(x)} := ${v.quote}"
       case Generator(x, v) => s" ${core.quote(x)} <- ${v.quote} "
       case CountComp(e1, qs) => s" + { ${e1.quote} | ${qs.map(_.quote).mkString(",")} }"
-      case _ => throw new IllegalArgumentException("unknown type")
-    }
-
-    def toTupleAttributeCalc: TupleAttributeCalc = self.tp match {
-      case t:BagType => self.asInstanceOf[TupleAttributeCalc]
-      case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc]
-      case _ => sys.error("cannot cast type")
-    }
-
-    def toPrimitiveCalc: PrimitiveCalc = self.tp match {
-      case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc]
-      case _ => sys.error("cannot cast type")
-    }
-
-    def toBagCalc: BagCalc = self.tp match {
-      case t:BagType => self.asInstanceOf[BagCalc]
-      case _ => sys.error("cannot cast type")
-    }
-
-    def toTupleCalc: TupleCalc = self.tp match {
-      case t:TupleType => self.asInstanceOf[TupleCalc]
-      case _ => sys.error("cannot cast type")
+      case CNamed(v, e1) => v+" := "+e1.quote
+      case CSequence(exprs) => exprs.map(_.quote).mkString("\n")
+      case CLabel(i, vars) => s"Label${i}(${vars.map(v => v._1 -> v._2.quote).toString})"
+      case EmptyCDict => "Nil"
+      case BagCDict(lbl, flat, dict) => 
+            s"""|(${lbl.quote} ->
+          |  flat :=
+          |${ind(flat.quote, 2)},
+          |  tupleDict :=
+          |${ind(dict.quote, 2)}
+          |)""".stripMargin
+      case TupleCDict(fs) => s"(${fs.map { case (k, v) => k + " := " + v.quote }.mkString(", ")})"
+      case BagDictProj(dict, field) => dict.quote+"."+field
+      case TupleDictProj(dict) => dict.quote+".tupleDict"
+      case DictCUnion(d1, d2) => s"(${d1.quote}) DictUnion (${d2.quote})"
+      case BindTupleDict(x, d) => x+" := "+d.quote
+      case BindBagDict(x, d) => x+" := "+d.quote
+      case CLookup(l, d) => s"Lookup(${l.quote}, ${d.quote})"
+      case _ => self+"" //throw new IllegalArgumentException("unknown type")
     }
 
     // todo override equals
@@ -62,6 +60,9 @@ trait CalcImplicits extends Calc {
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].equalsVar(v)
       case t:BagType => self.asInstanceOf[BagCalc].equalsVar(v)
       case t:TupleType => self.asInstanceOf[TupleCalc].equalsVar(v)
+      case t:TupleAttributeType => self.asInstanceOf[TupleAttributeCalc].equalsVar(v)
+      case t:LabelType => self.asInstanceOf[LabelType].equals(v)
+      case t:DictType => self.asInstanceOf[DictType].equals(v)
       case _ => false
     }
     
@@ -76,27 +77,51 @@ trait CalcImplicits extends Calc {
     }
    
     def normalize: CompCalc = self.tp match {
-      case t:BagType => self.asInstanceOf[BagCalc].normalize
-      case t:TupleType => self.asInstanceOf[TupleCalc].normalize
+      case t:BagType => self match {
+        case CNamed(v, e) => CNamed(v, e.normalize)
+        case _ => self.asInstanceOf[BagCalc].normalize
+      }
+      case t:TupleType => self match {
+        case CSequence(exprs) => CSequence(exprs.map(_.normalize))
+        case _ => self.asInstanceOf[TupleCalc].normalize
+      }
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].normalize
+      case t:LabelType => self.asInstanceOf[LabelCalc].normalize
       case t:TupleAttributeType => self.asInstanceOf[TupleAttributeCalc].normalize
+      case t:DictType => self.asInstanceOf[DictCalc].normalize
       case _ => throw new IllegalArgumentException(s"cannot normalize ${self}")
     }
 
     def bind(e2: CompCalc, v: VarDef): CompCalc = self.tp match {
-      case t:BagType => self.asInstanceOf[BagCalc].bind(e2, v)
-      case t:TupleType => self.asInstanceOf[TupleCalc].bind(e2, v)
+      case t:BagType => self match {
+        case CNamed(v2, e) => CNamed(v2, e.bind(e2, v))
+        case _ => self.asInstanceOf[BagCalc].bind(e2, v)
+      }
+      case t:TupleType => self match {
+        case CSequence(exprs) => CSequence(exprs.map(_.bind(e2, v)))
+        case _ => self.asInstanceOf[TupleCalc].bind(e2, v)
+      }
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].bind(e2, v)
       case t:TupleAttributeType => self.asInstanceOf[TupleAttributeCalc].bind(e2, v)
+      case t:LabelType => self.asInstanceOf[LabelCalc].bind(e2, v)
+      case t:DictType => self.asInstanceOf[DictCalc].bind(e2, v)
       case _ => throw new IllegalArgumentException(s"cannot substitute ${self}")
     }
 
     def substitute(e2: CompCalc, v: VarDef): CompCalc = self.tp match {
       case y if self == e2 => Var(v)
-      case t:BagType => self.asInstanceOf[BagCalc].substitute(e2, v)
-      case t:TupleType => self.asInstanceOf[TupleCalc].substitute(e2, v)
+      case t:BagType => self match {
+        case CNamed(v2, e) => CNamed(v2, e.substitute(e2, v)) 
+        case _ => self.asInstanceOf[BagCalc].substitute(e2, v)
+      }
+      case t:TupleType => self match {
+        case CSequence(exprs) => CSequence(exprs.map(_.substitute(e2, v)))
+        case _ => self.asInstanceOf[TupleCalc].substitute(e2, v)
+      }
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].substitute(e2, v)
       case t:TupleAttributeType => self.asInstanceOf[TupleAttributeCalc].substitute(e2, v)
+      case t:LabelType => self.asInstanceOf[LabelCalc].substitute(e2, v)
+      case t:DictType => self.asInstanceOf[DictCalc].substitute(e2, v)
       case _ => throw new IllegalArgumentException(s"cannot substitute ${self}")
     }
 
@@ -107,7 +132,7 @@ trait CalcImplicits extends Calc {
     def equalsVar(v: VarDef): Boolean = self.tp match {
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].equalsVar(v)
       case t:BagType => self.asInstanceOf[BagCalc].equalsVar(v)
-      case t:TupleType => self.asInstanceOf[TupleCalc].equalsVar(v)
+      case t:LabelType => self.asInstanceOf[LabelCalc].equalsVar(v)
       case _ => false 
     }
 
@@ -124,20 +149,23 @@ trait CalcImplicits extends Calc {
     def normalize: CompCalc = self.tp match {
       case t:BagType => self.asInstanceOf[BagCalc].normalize
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].normalize
+      case t:LabelType => self.asInstanceOf[LabelCalc].normalize
       case _ => self
     }
 
     def bind(e2: CompCalc, v: VarDef): CompCalc = self.tp match {
       case t:BagType => self.asInstanceOf[BagCalc].bind(e2, v)
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].bind(e2, v)
-      case _ => throw new IllegalArgumentException(s"cannot normalize ${self}")
+      case t:LabelType => self.asInstanceOf[LabelCalc].bind(e2, v)
+      case _ => throw new IllegalArgumentException(s"cannot bind ${self}")
     }
 
     def substitute(e2: CompCalc, v: VarDef): TupleAttributeCalc = self.tp match {
       case y if self == e2 => Var(v).asInstanceOf[TupleAttributeCalc]
       case t:BagType => self.asInstanceOf[BagCalc].substitute(e2, v)
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].substitute(e2, v)
-      case _ => throw new IllegalArgumentException(s"cannot normalize ${self}")
+      case t:LabelType => self.asInstanceOf[LabelCalc].substitute(e2, v)
+      case _ => throw new IllegalArgumentException(s"cannot substitute ${self}")
     }
 
   }
@@ -219,6 +247,7 @@ trait CalcImplicits extends Calc {
     def equalsVar(v: VarDef): Boolean = self match {
       case ProjToBag(vd:TupleVar, field) => vd.varDef == v
       case BagVar(vd) => vd == v
+      case CLookup(l, d @ BagDictVar(vd)) => vd == v 
       case _ => false
     }
 
@@ -264,13 +293,19 @@ trait CalcImplicits extends Calc {
         else if (b.hasBind){
           val getbind = b.qs.filter(_.isBind)
           val qsn = b.qs.filterNot(Set(getbind.head))
-          getbind.head match {
+          getbind match {
+            case Nil => self
+            case _ => 
+              val head = getbind.head.asInstanceOf[Bind]
+              BagComp(b.e.asInstanceOf[TupleCalc], qsn).bind(head.e, head.x).normalize
+          }
+          /**getbind.head match {
             case BindPrimitive(x, e1) => 
               BagComp(b.e.asInstanceOf[TupleCalc], qsn).bind(e1, x).normalize
             case BindTuple(x, e1) => 
               BagComp(b.e.asInstanceOf[TupleCalc], qsn).bind(e1, x).normalize
             case _ => self
-          }
+          }**/
         }
         else b
       case s @ Sng(t @ Tup(e)) => 
@@ -283,6 +318,7 @@ trait CalcImplicits extends Calc {
                 e2.normalize.asInstanceOf[BagCalc], Some(a.normalize.asInstanceOf[BagCalc]))
       case IfStmt(e1, e2, e3 @ None) =>
         IfStmt(e1.normalize.asInstanceOf[PrimitiveCalc], e2.normalize.asInstanceOf[BagCalc], None)
+      case CLookup(l, d) => CLookup(l.normalize.asInstanceOf[LabelCalc], d)
       case _ => self
     }
 
@@ -298,6 +334,7 @@ trait CalcImplicits extends Calc {
       case Sng(e1) => Sng(e1.bind(e2, v).asInstanceOf[TupleCalc])
       case Merge(e1, e3) => Merge(e1.bind(e2, v).asInstanceOf[BagCalc], e3.bind(e2, v).asInstanceOf[BagCalc])
       case BagComp(e1, qs) => BagComp(e1.bind(e2, v).asInstanceOf[TupleCalc], qs.map(_.bind(e2, v)))
+      case CLookup(l, d) => CLookup(l.bind(e2, v).asInstanceOf[LabelCalc], d)
       case _ => self
     }
 
@@ -313,6 +350,7 @@ trait CalcImplicits extends Calc {
       case Sng(e1) => Sng(e1.substitute(e2, v))
       case Merge(e1, e3) => Merge(e1.substitute(e2, v), e3.substitute(e2, v))
       case BagComp(e1, qs) => BagComp(e1.substitute(e2, v), qs.map(_.substitute(e2, v)))
+      case CLookup(l, d) => CLookup(l.substitute(e2, v).asInstanceOf[LabelCalc], d)
       case _ => self
     }
 
@@ -344,7 +382,72 @@ trait CalcImplicits extends Calc {
       case _ => self
     }
 
-  }
+   }
 
+   implicit class LabelCalcOps(self: LabelCalc){
+      
+      def equalsVar(v: VarDef): Boolean = self match {
+        case LabelVar(vd) => vd == v
+        case CLabel(i, vars) => vars.map(v2 => v2._2.equalsVar(v)).toList.contains(true)
+        case _ => false
+      }
+
+      def normalize: CompCalc = self match {
+        case LabelProj(t @ Tup(fs), f) => fs.get(f).get
+        case CLabel(id, vars) => CLabel(id, vars.map(v => v._1 -> v._2.normalize))
+        case _ => self
+      }
+
+      def bind(e2: CompCalc, v: VarDef): CompCalc = self match {
+        case y if self.equalsVar(v) => e2
+        case BindLabel(x,e) => BindLabel(x, e.bind(e2, v).asInstanceOf[LabelCalc])
+        case LabelProj(t, f) => LabelProj(t.bind(e2, v).asInstanceOf[TupleCalc], f)
+        case CLabel(id, vars) => CLabel(id, vars.map(v2 => v2._1 -> v2._2.bind(e2, v)))
+        case _ => self
+      }
+
+      def substitute(e2: CompCalc, v: VarDef): LabelCalc = self match {
+        case y if self == e2 => LabelVar(v)
+        case BindLabel(x,e) => BindLabel(x, e.substitute(e2, v).asInstanceOf[LabelCalc])
+        case LabelProj(t, f) => LabelProj(t.substitute(e2, v).asInstanceOf[TupleCalc], f)
+        case CLabel(id, vars) => CLabel(id, vars.map(v2 => v2._1 -> v2._2.substitute(e2, v)))
+        case _ => self
+      }
+
+    }
+
+  implicit class DictCalcOps(self: DictCalc){
+    
+    def equalsVar(v: VarDef): Boolean = self match {
+      case d:DictVar => d.varDef == v
+      case _ => false
+    }
+
+    // these are also optimizations in shredding
+    def normalize: CompCalc = self match {
+      case BagDictProj(dict @ TupleCDict(fs), field) => fs.get(field).get
+      case TupleDictProj(dict @ BagCDict(l, f, d)) => d
+      case _ => self
+    }
+
+    def bind(e2: CompCalc, v: VarDef): CompCalc = self match {
+      case y if self.equalsVar(v) => e2
+      case BindBagDict(x, d) => BindDict(x, d.bind(e2, v).asInstanceOf[DictCalc])
+      case BindTupleDict(x, d) => BindDict(x, d.bind(e2, v).asInstanceOf[DictCalc])
+      case BagDictProj(dict, field) => BagDictProj(dict.bind(e2, v).asInstanceOf[TupleDictCalc], field)
+      case TupleDictProj(dict) => TupleDictProj(dict.bind(e2, v).asInstanceOf[BagDictCalc])
+      case _ => self
+    }
+
+    def substitute(e2: CompCalc, v: VarDef): DictCalc = self match {
+      case y if self == e2 => DictVar(v)
+      case BindBagDict(x, d) => BindDict(x, d.substitute(e2, v))
+      case BindTupleDict(x, d) => BindDict(x, d.substitute(e2, v))
+      case BagDictProj(dict, field) => BagDictProj(dict.substitute(e2, v).asInstanceOf[TupleDictCalc], field)
+      case TupleDictProj(dict) => TupleDictProj(dict.substitute(e2, v).asInstanceOf[BagDictCalc])
+      case _ => self
+    }
+
+  }
 
 }

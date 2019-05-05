@@ -6,18 +6,18 @@ import shredding.runtime.Context
 import shredding.nrc._
 
 object TestApp extends App with 
-  NRCTranslator with CalcTranslator {
+  ShredPipelineRunner with CalcTranslator {
   
   override def main(args: Array[String]){
     run1()
-    println("")
+    run1shred()
+    /**println("")
     run2() 
     println("")
     run3()
     println("")
-    run4()
+    run4()**/
   } 
-
  
   def run1() {
     
@@ -35,12 +35,26 @@ object TestApp extends App with
 
     val xdef = VarDef(Symbol.fresh("x"), itemTp)
     val q = ForeachUnion(xdef, relationR, Singleton(Tuple("w" -> TupleVarRef(xdef)("b"))))
-    val cq = Translator.translate(q)
-    val ncq = cq.normalize
-    println(cq.quote)
-    println(ncq.quote)
-    val ucq = Unnester.unnest(cq)
-    println(ucq.quote)
+    val ucq = Pipeline.run(q)
+  }
+
+  def run1shred() {
+    
+    val itemTp = TupleType("a" -> IntType, "b" -> StringType)
+    val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+    val relationRValue = List(
+        Map("a" -> 42, "b" -> "Milos"),
+        Map("a" -> 69, "b" -> "Michael"),
+        Map("a" -> 34, "b" -> "Jaclyn"),
+        Map("a" -> 42, "b" -> "Thomas")
+    )
+
+    val ctx = new Context()
+    ctx.add(relationR.varDef, relationRValue) 
+
+    val xdef = VarDef(Symbol.fresh("x"), itemTp)
+    val q = ForeachUnion(xdef, relationR, Singleton(Tuple("w" -> TupleVarRef(xdef)("b"))))
+    val ucq = ShredPipeline.run(q)
   }
 
   def run2(){
@@ -69,7 +83,7 @@ object TestApp extends App with
     val x4def = VarDef(Symbol.fresh("x"), TupleType("w1" -> BagType(itemTp2), "w2" -> BagType(itemTp)))
     val rq3 = ForeachUnion(x4def, rq2, ForeachUnion(x2def, relationR,
                 Singleton(Tuple("w1" -> Singleton(TupleVarRef(x4def)), "w2" -> Singleton(TupleVarRef(x2def))))))
-    val cq3 = Translator.translate(rq3)
+    val cq3 = rq3.translate
     println(cq3.quote)
     println(cq3.normalize.quote)
     val ucq3 = Unnester.unnest(cq3)
@@ -95,7 +109,7 @@ object TestApp extends App with
               ForeachUnion(e, employees,
                 IfThenElse(Cond(OpEq, TupleVarRef(d)("dno"), TupleVarRef(e)("dno")),
                   Singleton(Tuple("D" -> TupleVarRef(d)("dno"), "E" -> Singleton(TupleVarRef(e)))))))
-    val cq4 = Translator.translate(q4)
+    val cq4 = q4.translate
     println(cq4.quote)
     println(cq4.normalize.quote)
     val ucq4 = Unnester.unnest(cq4)
@@ -187,7 +201,7 @@ object TestApp extends App with
             )
         )))
 
-        val cq4 = Translator.translate(q4)
+        val cq4 = q4.translate
         println(cq4.quote)
         println(cq4.normalize.quote)
         val ucq4 = Unnester.unnest(cq4)

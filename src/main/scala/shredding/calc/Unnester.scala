@@ -90,10 +90,11 @@ trait CalcTranslator extends AlgebraImplicits {
                 Term(Nest(b.e, w, u, andPreds(b.qs), w.filterNot(u.toSet)), e2)
               }
           }
-        case _ => sys.error("not supported")
+        case _ => sys.error("not supported "+e1.quote+" "+e1)
       }
       case b:BagCalc => Select(b, VarDef(Symbol.fresh("v"), b.tp.tp), Constant(true, BoolType))
       case CNamed(v, b) => NamedTerm(v, unnest(if (normalize) { b.normalize } else { b }))
+      case CSequence(exprs) => PlanSet(exprs.map(unnest(_)))
       case _ => sys.error("not supported "+e1)
    }
 

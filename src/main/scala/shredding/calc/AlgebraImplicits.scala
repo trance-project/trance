@@ -33,6 +33,7 @@ trait AlgebraImplicits extends Algebra {
       case Term(e1, e2) => s""" |${e1.quote}
                               |${ind(e2.quote)}""".stripMargin
       case NamedTerm(v, t) => v.name+s" := ${t.quote}"
+      case PlanSet(plans) => plans.map(_.quote).mkString("\n\n")
       case Init() => ""
       case _ => throw new IllegalArgumentException("unknown type")
     }
