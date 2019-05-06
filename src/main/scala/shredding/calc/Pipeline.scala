@@ -36,9 +36,43 @@ trait ShredPipelineRunner extends PipelineRunner
   
   object ShredPipeline extends Serializable {
     
+    def runShred(query: Expr): Expr = {
+      println("\nQuery:\n")
+      println(quote(query))
+      val sq = shred(query)
+      println("\nShredded:\n")
+      println(quote(sq))
+      val lsq = linearize(sq)
+      println("\nLinearized:\n")
+      println(quote(lsq))
+      lsq
+    }
+
     def run(query: Expr): AlgOp = {
       val sq = shred(query)
       println("\nShredded:\n")
+      println(quote(sq))
+      val lsq = linearize(sq)
+      println("\nLinearized:\n")
+      println(quote(lsq))
+      println(lsq)
+      val cqs = lsq.translate
+      println("\nComprehension Calculus:\n")
+      println(cqs.quote)
+      println("\nNormalized:\n")
+      println(cqs.normalize.quote)
+      val ucqs = Unnester.unnest(cqs)
+      println("\nAlgebra Plans:\n")
+      println(ucqs.quote)
+      ucqs
+    }
+ 
+   def runOptimized(query: Expr): AlgOp = {
+      val sq1 = shred(query)
+      println("\nShredded:\n")
+      println(quote(sq1))
+      val sq = optimize(sq1)
+      println("\nShred Optimized:\n")
       println(quote(sq))
       val lsq = linearize(sq)
       println("\nLinearized:\n")
@@ -53,7 +87,7 @@ trait ShredPipelineRunner extends PipelineRunner
       println(ucqs.quote)
       ucqs
     }
-  
+ 
   }
 
 }

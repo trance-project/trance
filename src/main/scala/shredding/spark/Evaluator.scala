@@ -35,7 +35,7 @@ trait SparkEvaluator extends AlgebraImplicits {
       * // TODO make implicit
       */
     def getIndex(e: CompCalc): Int = e match { 
-      //case ProjToLabel(t, f) => getIndex(t.tp, f)
+      case LabelProj(t, f) => getIndex(t.tp, f)
       case ProjToBag(t, f) => getIndex(t.tp, f)
       case ProjToPrimitive(t,f) => getIndex(t.tp, f)
     }
@@ -251,17 +251,16 @@ trait SparkEvaluator extends AlgebraImplicits {
       case Term(Unnest(vars, proj, pred), vterm) =>
         val i = getIndex(proj)
         val output = evaluate(vterm).flatMap{
-            v => accessElement(v, i).asInstanceOf[Iterable[_]].map{ 
-                  v1 => ((v.asInstanceOf[List[_]].take(i) ++ v.asInstanceOf[List[_]].drop(i+1)), v1) }
+            v => matchPattern(tuple(vars), proj, v).asInstanceOf[Iterable[_]].map{ v1 => ((v), v1) }
           }
         filterRDD(output, pred, tuple(vars))
       // same as unnest 
       case Term(OuterUnnest(vars, proj, pred), vterm) =>
         val i = getIndex(proj)
         val output = evaluate(vterm).flatMap{
-            v => accessElement(v, i).asInstanceOf[Iterable[_]] match {
-              case Nil => List(((v.asInstanceOf[List[_]].take(i) ++ v.asInstanceOf[List[_]].drop(i+1)),None))
-              case v2 => v2.map{ v1 => ((v.asInstanceOf[List[_]].take(i) ++ v.asInstanceOf[List[_]].drop(i+1)), v1) }
+            v => matchPattern(tuple(vars), proj, v).asInstanceOf[Iterable[_]] match { 
+              case Nil => List(((v), None))
+              case v2 => v2.map{ v1 => ((v), v1) }
             }
           }
         filterRDD(output, pred, tuple(vars))
@@ -269,7 +268,16 @@ trait SparkEvaluator extends AlgebraImplicits {
       case Select(x @ BagVar(vd), v, pred) => 
         val output = filterRDD(ctx(vd), pred, v)
         output
-      case NamedTerm(vd, t) => ctx(vd)
+      // probbaly should turn a lookup into a join operation in the plan
+      case Select(x @ CLookup(lbl @ LabelVar(lvd), dict @ BagDictVar(dvd)), v, pred) =>
+        // join with label should happen
+        // though there is an optimization here that we have previously discussed
+        val output = filterRDD(ctx(dvd), pred, v)
+        output
+      case NamedTerm(vd, t) => 
+        val te = evaluate(t)
+        ctx.add(vd, te)
+        te
       case _ => sys.error("unsupported evaluation for "+e)
     }
 

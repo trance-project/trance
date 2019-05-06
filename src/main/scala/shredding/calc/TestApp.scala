@@ -2,23 +2,86 @@ package shredding.calc
 
 import shredding.Utils.Symbol
 import shredding.core._
-import shredding.runtime.Context
+import shredding.runtime.{Context, Evaluator, ScalaShredding}
 import shredding.nrc._
 
 object TestApp extends App with 
-  ShredPipelineRunner with CalcTranslator {
+  ShredPipelineRunner with CalcTranslator with Evaluator with ScalaShredding {
   
   override def main(args: Array[String]){
-    run1()
-    run1shred()
-    /**println("")
-    run2() 
-    println("")
-    run3()
-    println("")
-    run4()**/
+    //runM1()
+    //runM2()
+    //runM3()
+    //runM4()
+    //run1()
+    //run2()
+    //run3()
+    run4()
   } 
  
+  def runM1(){
+    val btp = TupleType("t" -> IntType)
+    val xtp = TupleType("a" -> BagType(btp), "b" -> IntType)
+    val xdef = VarDef("x", xtp)
+    val xvalue = Map("a" -> List(Map("t" -> 1), Map("t" -> 2)), "b" -> 3)
+    
+    val q = TupleVarRef(xdef)("a")
+    val sq = ShredPipeline.runShred(q)
+
+    val ctx = new Context()
+    ctx.add(xdef, xvalue)
+    
+    println(eval(q, ctx))
+
+    val shredX = shred(xvalue, xtp)
+    println("xF := ")
+    println(shredX.flat)
+    println("xD := ")
+    println(shredX.dict)
+    val xd = VarDef(dictName(xdef.name), shredX.dict.tp)
+    val xf = VarDef(flatName(xdef.name), shredX.flatTp) 
+    val labelTp = LabelType(flatName(xdef.name) -> shredX.flatTp)//, dictName(xdef.name) -> shredX.dict.tp)
+    val initCtx = VarDef(initCtxName, BagType(TupleType("lbl" -> LabelType(Map(xf.name -> shredX.flatTp)))))
+    ctx.add(xf, shredX.flat)
+    ctx.add(xd, shredX.dict)
+    ctx.add(initCtx, List(Map("lbl" -> ROutLabel(Map(xf -> shredX.flat)))))
+    println(sq)
+    //println(eval(sq, ctx).asInstanceOf[List[Any]].mkString(""))
+
+  }
+
+  def runM2(){
+    val btp = TupleType("t" -> IntType)
+    val rtp = TupleType("a" -> BagType(btp), "b" -> IntType)
+    val relationR = BagVarRef(VarDef("R", BagType(rtp)))
+    val xdef = VarDef("x", rtp)
+    val q = ForeachUnion(xdef, relationR, 
+              BagProject(TupleVarRef(xdef), ("a")))
+    ShredPipeline.runShred(q)
+  }
+
+  def runM3(){
+    val btp = TupleType("t" -> IntType)
+    val xtp = TupleType("a" -> BagType(btp), "b" -> IntType)
+    val xdef = VarDef("x", xtp)
+    val q = Singleton(Tuple("a'" -> TupleVarRef(xdef)("a")))
+    ShredPipeline.runShred(q)
+  }
+
+  def runM4(){
+    val ctp = TupleType("t" -> IntType)
+    val xtp = TupleType("c" -> IntType)
+    val ytp = TupleType("a" -> BagType(ctp), "c" -> IntType)
+    val relationR = BagVarRef(VarDef("R", BagType(ytp)))
+    val xdef = VarDef("x", xtp)
+    val ydef = VarDef("y", ytp)
+    val f = ForeachUnion(ydef, relationR, 
+              IfThenElse(Cond(OpEq, TupleVarRef(ydef)("c"), TupleVarRef(xdef)("c")),
+                BagProject(TupleVarRef(ydef), "a")))
+    val q = Singleton(Tuple("a'" -> TupleVarRef(xdef)("c"), "b'" -> f))
+    ShredPipeline.runShred(q)
+  }
+
   def run1() {
     
     val itemTp = TupleType("a" -> IntType, "b" -> StringType)
@@ -54,7 +117,8 @@ object TestApp extends App with
 
     val xdef = VarDef(Symbol.fresh("x"), itemTp)
     val q = ForeachUnion(xdef, relationR, Singleton(Tuple("w" -> TupleVarRef(xdef)("b"))))
-    val ucq = ShredPipeline.run(q)
+    val ucq1 = ShredPipeline.run(q)
+    val ucq2 = ShredPipeline.runOptimized(q)
   }
 
   def run2(){
@@ -83,12 +147,9 @@ object TestApp extends App with
     val x4def = VarDef(Symbol.fresh("x"), TupleType("w1" -> BagType(itemTp2), "w2" -> BagType(itemTp)))
     val rq3 = ForeachUnion(x4def, rq2, ForeachUnion(x2def, relationR,
                 Singleton(Tuple("w1" -> Singleton(TupleVarRef(x4def)), "w2" -> Singleton(TupleVarRef(x2def))))))
-    val cq3 = rq3.translate
-    println(cq3.quote)
-    println(cq3.normalize.quote)
-    val ucq3 = Unnester.unnest(cq3)
-    println(ucq3.quote)
-  
+    //val ucq1 = ShredPipeline.run(rq3)
+    val ucq2 = ShredPipeline.runOptimized(rq3)
+
   }
 
   def run3(){
@@ -109,12 +170,8 @@ object TestApp extends App with
               ForeachUnion(e, employees,
                 IfThenElse(Cond(OpEq, TupleVarRef(d)("dno"), TupleVarRef(e)("dno")),
                   Singleton(Tuple("D" -> TupleVarRef(d)("dno"), "E" -> Singleton(TupleVarRef(e)))))))
-    val cq4 = q4.translate
-    println(cq4.quote)
-    println(cq4.normalize.quote)
-    val ucq4 = Unnester.unnest(cq4)
-    println(ucq4.quote)
-
+    //val ucq1 = ShredPipeline.run(q4)
+    val ucq2 = ShredPipeline.runOptimized(q4)
   }
 
   def run4(){
@@ -201,11 +258,7 @@ object TestApp extends App with
             )
         )))
 
-        val cq4 = q4.translate
-        println(cq4.quote)
-        println(cq4.normalize.quote)
-        val ucq4 = Unnester.unnest(cq4)
-        println(ucq4.quote)
-  }
+      val ucq = ShredPipeline.runOptimized(q4)
+     }
 
 }

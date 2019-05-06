@@ -46,7 +46,7 @@ trait NRCTranslator extends ShredCalc with LinearizedNRC {
             case _ => List(Bind(l.x, l.e1.translate), Generator(v, te2))
           }
           BagComp(TupleVar(v), qs)
-        case _ => sys.error("todo need to support other lets")
+        case _ => sys.error("todo need to support other lets "+self+" "+l.e2.tp)
       }
       case Singleton(e1) => Sng(e1.translate.asInstanceOf[TupleCalc])
       case Tuple(fs) => Tup(fs.map(x => x._1 -> x._2.translate.asInstanceOf[TupleAttributeCalc]))

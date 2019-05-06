@@ -11,7 +11,6 @@ case class VarDef(name: String, tp: Type) { self =>
   }
 
   override def hashCode: Int = (name, tp).hashCode()
-  override def toString: String = name
-  def quote: String = self.toString
+  def quote: String = self.name
 }
 

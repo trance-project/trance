@@ -15,6 +15,7 @@ trait ShredCalc extends Calc {
     override def tp: LabelType = varDef.tp.asInstanceOf[LabelType]
   }
 
+  // change this to match the other names
   case class LabelProj(tuple: TupleCalc, field: String) extends LabelCalc with Proj {
     override def tp: LabelType = tuple.tp.attrTps(field).asInstanceOf[LabelType]
   }

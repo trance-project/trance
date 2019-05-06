@@ -34,7 +34,7 @@ trait CalcImplicits extends ShredCalc {
       case BindLabel(x, v) => s"${core.quote(x)} := ${v.quote}"
       case Generator(x, v) => s" ${core.quote(x)} <- ${v.quote} "
       case CountComp(e1, qs) => s" + { ${e1.quote} | ${qs.map(_.quote).mkString(",")} }"
-      case CNamed(v, e1) => v+" := "+e1.quote
+      case CNamed(v, e1) => v.name+" := "+e1.quote
       case CSequence(exprs) => exprs.map(_.quote).mkString("\n")
       case CLabel(i, vars) => s"Label${i}(${vars.map(v => v._1 -> v._2.quote).toString})"
       case EmptyCDict => "Nil"
@@ -49,8 +49,8 @@ trait CalcImplicits extends ShredCalc {
       case BagDictProj(dict, field) => dict.quote+"."+field
       case TupleDictProj(dict) => dict.quote+".tupleDict"
       case DictCUnion(d1, d2) => s"(${d1.quote}) DictUnion (${d2.quote})"
-      case BindTupleDict(x, d) => x+" := "+d.quote
-      case BindBagDict(x, d) => x+" := "+d.quote
+      case BindTupleDict(x, d) => x.name+" := "+d.quote
+      case BindBagDict(x, d) => x.name+" := "+d.quote
       case CLookup(l, d) => s"Lookup(${l.quote}, ${d.quote})"
       case _ => self+"" //throw new IllegalArgumentException("unknown type")
     }
@@ -66,6 +66,12 @@ trait CalcImplicits extends ShredCalc {
       case _ => false
     }
     
+    def checkLabel(v: VarDef): Boolean = self match {
+      case v:Var => self.equalsVar(v.varDef)
+      case CLabel(i, vars) => vars.map(v2 => v2._2.equalsVar(v)).toList.contains(true)
+      case _ => false
+    }
+
     def pred1(v: VarDef): Boolean = self.tp match {
       case t:PrimitiveType => self.asInstanceOf[PrimitiveCalc].pred1(v)
       case _ => false
@@ -196,11 +202,11 @@ trait CalcImplicits extends ShredCalc {
       case AndCondition(e1, e2) => e1.pred2(v, w) && e2.pred2(v, w)
       case Conditional(op, e1, e2) => op match {
         case OpEq => // equals is a join condition
-          (e1.equalsVar(v)  && w.filter{ v1 => e2.equalsVar(v1) }.nonEmpty) ||
-            (e2.equalsVar(v) && w.filter{ v1 => e1.equalsVar(v1) }.nonEmpty)
+          (e1.equalsVar(v)  && w.filter{ v1 => e2.checkLabel(v1) }.nonEmpty) ||
+            (e2.equalsVar(v) && w.filter{ v1 => e1.checkLabel(v1) }.nonEmpty)
         case _ => // any other operation is a filter later (pushed to the nest)  
-          (e1.equalsVar(v) && w.filter{ v1 => e2.equalsVar(v1) }.nonEmpty) ||
-            (e2.equalsVar(v) && w.filter{ v1 => e1.equalsVar(v1) }.nonEmpty)
+          (e1.equalsVar(v) && w.filter{ v1 => e2.checkLabel(v1) }.nonEmpty) ||
+            (e2.equalsVar(v) && w.filter{ v1 => e1.checkLabel(v1) }.nonEmpty)
         }
       case _ => false
     }
@@ -388,7 +394,6 @@ trait CalcImplicits extends ShredCalc {
       
       def equalsVar(v: VarDef): Boolean = self match {
         case LabelVar(vd) => vd == v
-        case CLabel(i, vars) => vars.map(v2 => v2._2.equalsVar(v)).toList.contains(true)
         case _ => false
       }
 

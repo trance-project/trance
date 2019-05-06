@@ -48,9 +48,9 @@ object TestApp extends App
 //      val q1trans = unshred(q1shred)
 //      println("[Ex1] Unshredded shredded Q1: " + quote(q1trans))
 //      println("[Ex1] Same as original Q1: " + q1trans.equals(q1))
-
+      
       val shredR = shred(relationRValue, relationR.tp)
-
+      
       val rlbl = ROutLabel(Map(
         VarDef(flatName(relationR.name), shredR.flatTp) -> shredR.flat,
         VarDef(dictName(relationR.name), shredR.dict.tp) -> shredR.dict
