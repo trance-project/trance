@@ -22,7 +22,7 @@ trait ShredCalc extends Calc {
 
   case class BindLabel(x: VarDef, e: LabelCalc) extends LabelCalc with Bind{ 
     assert(x.tp == e.tp)
-    val tp: LabelType = e.tp 
+    val tp: LabelType = e.tp
     override def isBind = true
   }
   
@@ -105,7 +105,7 @@ trait ShredCalc extends Calc {
 
   case class BindTupleDict(x: VarDef, e: TupleDictCalc) extends TupleDictCalc with Bind {
     val tp: TupleDictType = e.tp
-    override def isBind = true
+    override def isBind = false
   }
 
   trait BindDict extends Bind with DictCalc

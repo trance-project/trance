@@ -10,7 +10,7 @@ import org.apache.spark.rdd.RDD
 /**
   * Translate Algebra term trees into Spark and execute
   */
-trait SparkEvaluator extends AlgebraImplicits {
+trait SparkEvaluator extends AlgebraImplicits with SparkRuntime {
   
   class Evaluator(ctx: Context) extends Serializable{
     
@@ -91,7 +91,7 @@ trait SparkEvaluator extends AlgebraImplicits {
       */
     def accessLabel(xs: Any, vname: String): Any = xs match {
       //case l:List[_] if (l.head.isInstanceOf[SLabel] && l.size == 1) => accessLabel(l.head, vname)
-      //case lbl:SLabel => lbl.extract(vname)
+      case lbl:SOutLabel => lbl.extract(vname)
       case l => l
     }
 
@@ -100,8 +100,8 @@ trait SparkEvaluator extends AlgebraImplicits {
       */
     def matchPattern(vars: Any, e:CompCalc, value: Any): Any = e match {
       case Tup(fs) => fs.map{ case (k,v) => v match {
-        //case CLabel(id, vs) => 
-        //  SLabel(vs.map( vd => (vd._1, matchPattern(vars, vd._2, value))).toList:_*)
+        case CLabel(id, vs) => 
+          SOutLabel(vs.map( vd => (vd._1, matchPattern(vars, vd._2, value))).toList:_*)
         case _ => matchPattern(vars, v, value)
       }}
       case p:Proj => accessElement(matchPattern(vars, p.tuple, value), getIndex(e))
@@ -217,13 +217,23 @@ trait SparkEvaluator extends AlgebraImplicits {
         val output = evaluate(e2).map{
           case (k,v) => mapFun((k,v))
         }
+        println(vars2)
+        println(grps)
+        println("output before the nest")
+        output.collect.foreach(println(_))
         val out = e1.tp match {
           case t:PrimitiveType => output.map{
             case (k,v) => (k, 1)
           }.reduceByKey(_+_)
-          case t => output.map{
+          case t => 
+          val output2 = output.map{
             case (k,v) => (k, matchPattern(newstruct, e1, (k,v)))
-          }.groupByKey() 
+          }
+          println("with this pattern to match ")
+          println(e1)
+          println("")
+          output2.collect.foreach(println(_))
+          output2.groupByKey() 
         }
         out
       case Term(OuterJoin(v, p), Term(e1, e2)) => 

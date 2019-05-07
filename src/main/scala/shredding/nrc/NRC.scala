@@ -7,7 +7,7 @@ import shredding.core._
   */
 trait BaseExpr {
 
-  trait Expr {
+  trait Expr extends Serializable {
     def tp: Type
   }
 
@@ -118,7 +118,7 @@ trait NRC extends BaseExpr {
     def apply(fs: (String, TupleAttributeExpr)*): Tuple = Tuple(Map(fs: _*))
   }
 
-  trait Let {
+  trait Let extends Expr {
     def x: VarDef
 
     def e1: Expr

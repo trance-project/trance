@@ -305,13 +305,6 @@ trait CalcImplicits extends ShredCalc {
               val head = getbind.head.asInstanceOf[Bind]
               BagComp(b.e.asInstanceOf[TupleCalc], qsn).bind(head.e, head.x).normalize
           }
-          /**getbind.head match {
-            case BindPrimitive(x, e1) => 
-              BagComp(b.e.asInstanceOf[TupleCalc], qsn).bind(e1, x).normalize
-            case BindTuple(x, e1) => 
-              BagComp(b.e.asInstanceOf[TupleCalc], qsn).bind(e1, x).normalize
-            case _ => self
-          }**/
         }
         else b
       case s @ Sng(t @ Tup(e)) => 

@@ -72,7 +72,14 @@ trait CalcTranslator extends AlgebraImplicits {
               case (_, Nil) => 
                 unnest(nb, u, w :+v, Term(Join(w :+ v, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2))) // JOIN
               case (_, _) => 
-                unnest(nb, u, w :+v, Term(OuterJoin(w :+ v, andPreds(p2)), Term(Select(x, v, andPreds(p1)), e2))) // OUTER-JOIN
+                val select = x match {
+                  /**case CLookup(lbl, dict @ BagDictVar(vd)) => 
+                    val xD = VarDef(Symbol.fresh("vD"), vd.dictTp)
+                    val xf = Select(x, v, andPreds(p1)) 
+                    val xd = Select(TupleDictProj(vd, xD, */ 
+                  case _ => Select(x, v, andPreds(p1))
+                }
+                unnest(nb, u, w :+v, Term(OuterJoin(w :+ v, andPreds(p2)), Term(select, e2))) // OUTER-JOIN
             }
           }
         // { e | p } (ie. has no generators): rules C5, C8, and C12

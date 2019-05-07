@@ -14,8 +14,8 @@ import org.apache.spark.sql.SparkSession
 object App extends ShredPipelineRunner with SparkEvaluator with SparkRuntime with Serializable{
   
   def main(args: Array[String]){
-    run1()
-    //run2()
+    //run1()
+    run2()
   }
 
   /**
@@ -73,14 +73,41 @@ object App extends ShredPipelineRunner with SparkEvaluator with SparkRuntime wit
         "j" -> BagType(nestedItemTp)
       ))
       val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
-      val relationRValue = spark.sparkContext.parallelize(
-                            List((42, List(("Milos", 123, List(123,456,789,123)),
-                                           ("Michael", 7, List(2,9,1)),
-                                           ("Jaclyn", 12, List(14,12)))),
-                                  (69, List(("Thomas", 987, List(987,654,987,654,987,987))))))
+      val rValue = List((42, List(("Milos", 123, List(123,456,789,123)),
+                                  ("Michael", 7, List(2,9,1)),
+                                  ("Jaclyn", 12, List(14,12)))),
+                         (69, List(("Thomas", 987, List(987,654,987,654,987,987)))))
+      val relationRValue = spark.sparkContext.parallelize(rValue)
       val ctx = new Context()
       ctx.add(relationR.varDef, relationRValue)
       val sparke = new Evaluator(ctx)
+  
+      val rflat = spark.sparkContext.parallelize(List(SInLabel()))
+      val ftp = LabelType(Map[String, Type]())
+      val fdef = VarDef("R^F", ftp)
+      val dtp = BagDictType(BagType(TupleType(Map("h" -> IntType, "j" -> LabelType(Map[String,Type]())))),
+                          TupleDictType(Map("h" -> EmptyDictType, "j" ->
+                            BagDictType(BagType(TupleType(Map("m" -> StringType, "n" -> IntType, "k" -> LabelType(Map[String,Type]())))),
+                              TupleDictType(Map("m" -> EmptyDictType, "n" -> EmptyDictType, "k" -> BagDictType(
+                                BagType(TupleType(Map("n" -> IntType))),
+                                  TupleDictType(Map("n" -> EmptyDictType)))))))))
+      /**val ddef = VarDef("R^D", dtp)
+      val rdict = relationRValue.map{ case (h, j) => 
+                    val sl1 = SInLabel(); 
+                      //{(h -> int, j -> label)}, (h -> empty, j ->
+                     ((h, sl1), (None, (sl1, j.map{ case (m, n, k) => 
+                        val sl2 = SInLabel(); 
+                        // {(m -> String, n -> Int, k -> label)}, (m -> None, n -> None, k ->  
+                        ((m, n, sl2), (None, None, k.map{
+                          // {(n -> Int)}, (n -> None)
+                          case n => (n, None) })) })))}
+      val rdict1 = relationRValue.map{ case (h,j) =>
+      rdict.collect.foreach(println(_))
+      val rdict1 = rdict.map{ case (d1, d2) => d1 }
+      val rdict2 = rdict.map{ case (d1, d2) => d2 }
+      val initCtxTp = BagType(TupleType(Map("lbl" -> LabelType(Map("R^D" -> dtp, "R^F" -> ftp))))) 
+      val initCtx = VarDef("initCtx", initCtxTp)
+      val initCtxValue = spark.sparkContext.parallelize(List(SOutLabel("R^F" -> rflat, "R^D" -> rdict)))
       
       val xdef = VarDef("x", itemTp)
       val wdef = VarDef("w", nestedItemTp)
@@ -99,7 +126,13 @@ object App extends ShredPipelineRunner with SparkEvaluator with SparkRuntime wit
         )))
 
       val ucq = Pipeline.run(q)
+      val ucqs = ShredPipeline.runOptimized(q)
       sparke.execute(ucq)
+      ctx.reset
+      ctx.add(fdef, rflat)
+      ctx.add(ddef, rdict)
+      ctx.add(initCtx, initCtxValue)
+      sparke.execute(ucqs)*/
   }
 
 }
