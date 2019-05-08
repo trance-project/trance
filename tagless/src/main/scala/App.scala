@@ -1,6 +1,6 @@
 package shredding.algebra
 
-object App extends BaseCompiler with Expr {
+object App {
 
   def main(args: Array[String]){
 
@@ -24,9 +24,10 @@ object App extends BaseCompiler with Expr {
     //val exp = Plan(Reduce(pmat, identity), Select(data, ffun))
     val exp = Reduce(Project(Select(data, ffun), 1), identity)
 
-    //val inter = new BaseScalaInterp{}
-    val interc = new BaseCompiler{}
-    val finalizer = new Finalizer(interc)
+    val inter = new BaseScalaInterp{}
+    val finalizer = new Finalizer(inter)
+    // val interc = new BaseCompiler{}
+    // val finalizer = new Finalizer(interc)
     println(finalizer.finalize(exp))
 
   }
