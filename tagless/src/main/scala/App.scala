@@ -25,8 +25,7 @@ object App {
       val data = input(List((42, "Milos"), (49, "Michael"), (34, "Jaclyn"), (42, "Thomas")))
       val ffun = (i: Rep) => gt(project(i,0), input(40))
       val pmat = (i: Rep) => project(i, 1)
-      //val exp = Plan(Reduce(pmat, identity), Select(data, ffun))
-      reduce(project(select(data, ffun), 1), identity)
+      reduce(select(data, ffun), pmat, x => input(true))
     }
 
     val inter = new BaseScalaInterp{}
