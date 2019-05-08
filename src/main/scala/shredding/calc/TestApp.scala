@@ -13,10 +13,10 @@ object TestApp extends App with
     //runM2()
     //runM3()
     //runM4()
-    //run1()
+    run1()
     //run2()
     //run3()
-    run4()
+    //run4()
   } 
  
   def runM1(){
@@ -97,7 +97,9 @@ object TestApp extends App with
     ctx.add(relationR.varDef, relationRValue) 
 
     val xdef = VarDef(Symbol.fresh("x"), itemTp)
-    val q = ForeachUnion(xdef, relationR, Singleton(Tuple("w" -> TupleVarRef(xdef)("b"))))
+    val q = ForeachUnion(xdef, relationR, 
+              IfThenElse(Cond(OpGt, TupleVarRef(xdef)("a"), Const(40, IntType)), 
+                Singleton(Tuple("w" -> TupleVarRef(xdef)("b")))))
     val ucq = Pipeline.run(q)
   }
 

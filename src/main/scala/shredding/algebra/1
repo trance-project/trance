@@ -1,0 +1,46 @@
+package shredding.algebra
+
+trait Rep
+trait Expr
+
+case class Input(data: Any) extends Expr
+case class Equals(e1: Expr, e2: Expr) extends Expr
+case class Lt(e1: Expr, e2: Expr) extends Expr
+case class Select(x: Expr, p: Expr => Expr) extends Expr
+
+trait Base {
+  type Rep
+  def input(x: Any): Rep 
+  def equals(e1: Rep, e2: Rep): Rep
+  def lt(e1: Rep, e2: Rep): Rep
+  def select(x: Rep, p: Rep => Rep): Rep
+}
+
+trait BaseScalaInterp extends Base{
+  type Rep = Any
+  def input(x: Rep): Rep = x
+  def equals(e1: Rep, e2: Rep): Rep = input(e1) == input(e2)
+  def lt(e1: Rep, e2: Rep) = input(e1).asInstanceOf[Int] < input(e2).asInstanceOf[Int]
+  def select(x: Rep, p: Rep => Rep): Rep = input(x).asInstanceOf[List[_]].filter(p.asInstanceOf[Rep => Boolean])
+}
+
+trait BaseSparkInterp extends Base{
+
+}
+
+trait BaseCompiler extends Base{
+  type Rep = Expr
+  def input(x: Rep): Expr = Input(x)
+  def equals(e1: Expr, e2: Expr): Expr = Equals(e1, e2)
+  def lt(e1: Expr, e2: Expr): Expr = Lt(e1, e2)
+  def select(x: Expr, p: Expr => Expr): Expr = Select(Input(x), p) 
+}
+
+class Finalizer(val target: Base){
+  def finalize(e: Expr): target.Rep = e match {
+    case Input(x) => target.input(x)
+    case Equals(e1, e2) => target.equals(finalize(e1), finalize(e2))
+    case Lt(e1, e2) => target.lt(finalize(e1), finalize(e2))
+    case Select(x, p) => target.select(finalize(x), (i: target.Rep) => finalize(p(_:Expr)))
+  }
+}
