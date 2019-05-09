@@ -22,10 +22,13 @@ object App {
         *  Select[lambda(x1). x1.a > 40](R)
         */
       
-      val data = input(List((42, "Milos"), (49, "Michael"), (34, "Jaclyn"), (42, "Thomas")))
-      val ffun = (i: Rep) => gt(project(i,0), input(40))
-      val pmat = (i: Rep) => project(i, 1)
-      reduce(select(data, ffun), pmat, x => input(true))
+      val data = input(List(tuple(Map("a" -> const(42), "b" -> const("Milos"))), 
+                            tuple(Map("a" -> const(49), "b" -> const("Michael"))), 
+                            tuple(Map("a" -> const(34), "b" -> const("Jaclyn"))), 
+                            tuple(Map("a" -> const(42), "b" -> const("Thomas")))))
+      val ffun = (i: Rep) => gt(project(i,"a"), const(40))
+      val pmat = (i: Rep) => tuple(Map("w" -> project(i, "b")))
+      reduce(select(data, ffun), pmat, x => const(true))
     }
 
     val inter = new BaseScalaInterp{}

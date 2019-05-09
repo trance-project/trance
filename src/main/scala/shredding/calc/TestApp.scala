@@ -9,26 +9,32 @@ object TestApp extends App with
   ShredPipelineRunner with CalcTranslator with Evaluator with ScalaShredding {
   
   override def main(args: Array[String]){
-    //runM1()
-    //runM2()
-    //runM3()
+    runM1()
+    runM2()
+    // error
+    //runM2a()
+    runM2b()
+    runM3()
     //runM4()
-    run1()
+    //run1()
     //run2()
     //run3()
     //run4()
   } 
  
   def runM1(){
+    println(" ----------------------- Query 1 -------------------------- ")
     val btp = TupleType("t" -> IntType)
     val xtp = TupleType("a" -> BagType(btp), "b" -> IntType)
     val xdef = VarDef("x", xtp)
     val xvalue = Map("a" -> List(Map("t" -> 1), Map("t" -> 2)), "b" -> 3)
     
     val q = TupleVarRef(xdef)("a")
-    val sq = ShredPipeline.runShred(q)
+    val p = Pipeline.run(q)
+    //val sp = ShredPipeline.run(q)
+    val sp2 = ShredPipeline.runOptimized(q)
 
-    val ctx = new Context()
+    /**val ctx = new Context()
     ctx.add(xdef, xvalue)
     
     println(eval(q, ctx))
@@ -47,28 +53,61 @@ object TestApp extends App with
     ctx.add(initCtx, List(Map("lbl" -> ROutLabel(Map(xf -> shredX.flat)))))
     println(sq)
     //println(eval(sq, ctx).asInstanceOf[List[Any]].mkString(""))
-
+    */
   }
 
   def runM2(){
+    println(" ----------------------- Query 2 -------------------------- ")
     val btp = TupleType("t" -> IntType)
     val rtp = TupleType("a" -> BagType(btp), "b" -> IntType)
     val relationR = BagVarRef(VarDef("R", BagType(rtp)))
     val xdef = VarDef("x", rtp)
     val q = ForeachUnion(xdef, relationR, 
               BagProject(TupleVarRef(xdef), ("a")))
-    ShredPipeline.runShred(q)
+    val p = Pipeline.run(q)
+    //val sp = ShredPipeline.run(q)
+    val sp2 = ShredPipeline.runOptimized(q)
+  }
+
+  def runM2a(){
+    println(" ----------------------- Query 2 -------------------------- ")
+    val btp = TupleType("t" -> BagType(TupleType("c" -> IntType)))
+    val rtp = TupleType("a" -> BagType(btp), "b" -> IntType)
+    val relationR = BagVarRef(VarDef("R", BagType(rtp)))
+    val xdef = VarDef("x", rtp)
+    val q = ForeachUnion(xdef, relationR, 
+              BagProject(TupleVarRef(xdef), ("a")))
+    val p = Pipeline.run(q)
+    //val sp = ShredPipeline.run(q)
+    val sp2 = ShredPipeline.runOptimized(q)
+  }
+
+  def runM2b(){
+    println(" ----------------------- Query 2 -------------------------- ")
+    val btp = TupleType("t" -> IntType)
+    val rtp = TupleType("a" -> BagType(btp), "b" -> IntType)
+    val relationR = BagVarRef(VarDef("R", BagType(rtp)))
+    val xdef = VarDef("x", rtp)
+    val q = ForeachUnion(xdef, relationR, 
+              Singleton(Tuple("b" -> TupleVarRef(xdef)("b"), "count" -> Total(BagProject(TupleVarRef(xdef), ("a"))))))
+    val p = Pipeline.run(q)
+    //val sp = ShredPipeline.run(q)
+    val sp2 = ShredPipeline.runOptimized(q)
   }
 
   def runM3(){
+    println(" ----------------------- Query 3 -------------------------- ")
     val btp = TupleType("t" -> IntType)
     val xtp = TupleType("a" -> BagType(btp), "b" -> IntType)
     val xdef = VarDef("x", xtp)
     val q = Singleton(Tuple("a'" -> TupleVarRef(xdef)("a")))
-    ShredPipeline.runShred(q)
+    val p = Pipeline.run(q)
+    //val sp = ShredPipeline.run(q)
+    val sp2 = ShredPipeline.runOptimized(q)
   }
 
   def runM4(){
+    println(" ----------------------- Query 4 -------------------------- ")
     val ctp = TupleType("t" -> IntType)
     val xtp = TupleType("c" -> IntType)
     val ytp = TupleType("a" -> BagType(ctp), "c" -> IntType)
@@ -79,7 +118,9 @@ object TestApp extends App with
               IfThenElse(Cond(OpEq, TupleVarRef(ydef)("c"), TupleVarRef(xdef)("c")),
                 BagProject(TupleVarRef(ydef), "a")))
     val q = Singleton(Tuple("a'" -> TupleVarRef(xdef)("c"), "b'" -> f))
-    ShredPipeline.runShred(q)
+    val p = Pipeline.run(q)
+    //val sp = ShredPipeline.run(q)
+    val sp2 = ShredPipeline.runOptimized(q)
   }
 
   def run1() {

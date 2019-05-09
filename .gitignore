@@ -1,4 +1,4 @@
 project/
 target/
 .history
-.swp
+*.swp

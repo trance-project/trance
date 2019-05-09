@@ -105,7 +105,7 @@ trait ShredCalc extends Calc {
 
   case class BindTupleDict(x: VarDef, e: TupleDictCalc) extends TupleDictCalc with Bind {
     val tp: TupleDictType = e.tp
-    override def isBind = false
+    override def isBind = true
   }
 
   trait BindDict extends Bind with DictCalc

@@ -55,7 +55,6 @@ trait ShredPipelineRunner extends PipelineRunner
       val lsq = linearize(sq)
       println("\nLinearized:\n")
       println(quote(lsq))
-      println(lsq)
       val cqs = lsq.translate
       println("\nComprehension Calculus:\n")
       println(cqs.quote)
@@ -76,7 +75,6 @@ trait ShredPipelineRunner extends PipelineRunner
       println(quote(sq))
       val lsq = linearize(sq)
       println("\nLinearized:\n")
-      println(lsq)
       println(quote(lsq))
       val cqs = lsq.translate
       println("\nComprehension Calculus:\n")
