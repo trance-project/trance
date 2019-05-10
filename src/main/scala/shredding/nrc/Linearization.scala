@@ -16,13 +16,9 @@ trait Linearization {
       Symbol.freshClear()
 
       // Construct variable reference to the initial context
-      // that represents a bag containing a single label.
-      // The label encapsulate the input variables.
-      val ivars = inputVars(e.flat)
-      val labelTp = LabelType(ivars.map(v => v.name -> v.tp).toMap)
-      val initCtxTp = BagType(TupleType("lbl" -> labelTp))
-      val initVarRef = BagVarRef(VarDef(initCtxName, initCtxTp))
-      val initCtxNamed = Named(VarDef(Symbol.fresh("M_ctx"), initCtxTp), initVarRef)
+      // that represents a bag containing e.flat.
+      val bagFlat = Singleton(Tuple("lbl" -> e.flat.asInstanceOf[TupleAttributeExpr]))
+      val initCtxNamed = Named(VarDef(Symbol.fresh("M_ctx"), bagFlat.tp), bagFlat)
       val initCtxRef = BagVarRef(initCtxNamed.v)
 
       // Let's roll

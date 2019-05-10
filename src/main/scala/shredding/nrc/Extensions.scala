@@ -97,7 +97,10 @@ trait Extensions extends LinearizedNRC {
     case ForeachUnion(x, e1, e2) => inputVars(e1, scope) ++ inputVars(e2, scope + (x.name -> x))
     case l: Let => inputVars(l.e1, scope) ++ inputVars(l.e2, scope + (l.x.name -> l.x))
     case NewLabel(vs) => vs.flatMap(inputVarRef(_, scope)).toList
-    case _: BagDict => Nil    // bag dictionary has no free variables
+    case BagDict(l, f, d) =>
+      val lblVars = inputVars(l, Map.empty)
+      val lblScope = scope ++ lblVars.map(v => v.name -> v.varDef).toMap
+      inputVars(f, lblScope) ++ inputVars(d, scope)
     case Named(v, e1) => inputVars(e1, scope + (v.name -> v))
   })
 
