@@ -9,17 +9,42 @@ object TestApp extends App with
   ShredPipelineRunner with CalcTranslator with Evaluator with ScalaShredding {
   
   override def main(args: Array[String]){
-    runM1()
-    runM2()
+    //runM1()
+    //runM2()
     // error
     //runM2a()
-    runM2b()
-    runM3()
+    //runM2b()
+    //runM3()
     //runM4()
     //run1()
     //run2()
     //run3()
     //run4()
+    run5()
+  }
+  
+  /**
+    * Input object R is (as in the other examples) of type Bag(a: int: s: Bag(b:int, c:int) )
+    *
+    * E= For x in R Union {<a'= x.a, s'=For y in x.s Union if y.c<5 then {y}>}
+    */
+  def run5(){
+    
+    val ytp = TupleType("b" -> IntType, "c" -> IntType)
+    val xtp = TupleType("a" -> IntType, "s" -> BagType(ytp))
+    val xdef = VarDef("x", xtp)
+    val ydef = VarDef("y", ytp)
+    
+    val r = BagVarRef(VarDef("R", BagType(xtp)))
+    val q = ForeachUnion(xdef, r, 
+              Singleton(Tuple("a'" -> TupleVarRef(xdef)("a"), "s'" -> 
+                ForeachUnion(ydef, BagProject(TupleVarRef(xdef), "s"), 
+                  IfThenElse(Cond(OpGt, Const(5, IntType), TupleVarRef(ydef)("c")), Singleton(TupleVarRef(ydef)))))))
+    val p = Pipeline.run(q)
+    val sp = ShredPipeline.runOptimized(q)
+
+
+
   } 
  
   def runM1(){
@@ -300,7 +325,7 @@ object TestApp extends App with
               ))
             )
         )))
-
+      val ucq1 = Pipeline.run(q4)
       val ucq = ShredPipeline.runOptimized(q4)
      }
 
