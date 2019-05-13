@@ -50,18 +50,11 @@ object TestApp extends App
 //      println("[Ex1] Same as original Q1: " + q1trans.equals(q1))
       
       val shredR = shred(relationRValue, relationR.tp)
-      
-      val rlbl = ROutLabel(Map(
-        VarDef(flatName(relationR.name), shredR.flatTp) -> shredR.flat,
-        VarDef(dictName(relationR.name), shredR.dict.tp) -> shredR.dict
-      ))
-      val labelTp = LabelType(
-        flatName(relationR.name) -> shredR.flatTp,
-        dictName(relationR.name) -> shredR.dict.tp
-      )
-      ctx.add(VarDef(initCtxName, BagType(TupleType("lbl" -> labelTp))), List(Map("lbl" -> rlbl)))
 
-      val q1lin = linearize(q1shred)
+      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
+      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
+
+       val q1lin = linearize(q1shred)
       println("[Ex1] Linearized Q1: " + quote(q1lin))
       println("[Ex1] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
 
@@ -87,7 +80,7 @@ object TestApp extends App
       println("[Ex1] Shredded Q2 Optimized: " + quote(q2shred))
 
 
-      //      val q2trans = unshred(q2shred)
+//      val q2trans = unshred(q2shred)
 //      println("[Ex1] Unshredded shredded Q2: " + quote(q2trans))
 //      println("[Ex1] Same as original Q2: " + q2trans.equals(q2))
 
@@ -198,20 +191,14 @@ object TestApp extends App
       val q1shred = optimize(q1shredraw)
       println("[Ex2] Shredded Q2 Optimized: " + quote(q1shred))
 
-      //      val q1trans = unshred(q1shred)
+//      val q1trans = unshred(q1shred)
 //      println("[Ex2] Unshredded shredded Q1: " + quote(q1trans))
 //      println("[Ex2] Same as original Q1: " + q1trans.equals(q1))
 
       val shredR = shred(relationRValue, relationR.tp)
-      val rlbl = ROutLabel(Map(
-        VarDef(flatName(relationR.name), shredR.flatTp) -> shredR.flat,
-        VarDef(dictName(relationR.name), shredR.dict.tp) -> shredR.dict
-      ))
-      val labelTp = LabelType(
-        flatName(relationR.name) -> shredR.flatTp,
-        dictName(relationR.name) -> shredR.dict.tp
-      )
-      ctx.add(VarDef(initCtxName, BagType(TupleType("lbl" -> labelTp))), List(Map("lbl" -> rlbl)))
+
+      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
+      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
 
       val q1lin = linearize(q1shred)
       println("[Ex2] Linearized Q1: " + quote(q1lin))
@@ -239,8 +226,7 @@ object TestApp extends App
       val q2shred = optimize(q2shredraw)
       println("[Ex2] Shredded Q2 Optimized: " + quote(q2shred))
 
-
-      //      val q2trans = unshred(q2shred)
+//      val q2trans = unshred(q2shred)
 //      println("[Ex2] Unshredded shredded Q2: " + quote(q2trans))
 //      println("[Ex2] Same as original Q2: " + q2trans.equals(q2))
 
@@ -309,19 +295,11 @@ object TestApp extends App
 
       val shredDepartments = shred(departmentsValue, departments.tp)
       val shredEmployees = shred(employeesValue, employees.tp)
-      val rlbl = ROutLabel(Map(
-        VarDef(flatName(departments.name), shredDepartments.flatTp) -> shredDepartments.flat,
-        VarDef(dictName(departments.name), shredDepartments.dict.tp) -> shredDepartments.dict,
-        VarDef(flatName(employees.name), shredEmployees.flatTp) -> shredEmployees.flat,
-        VarDef(dictName(employees.name), shredEmployees.dict.tp) -> shredEmployees.dict
-      ))
-      val labelTp = LabelType(
-        flatName(departments.name) -> shredDepartments.flatTp,
-        dictName(departments.name) -> shredDepartments.dict.tp,
-        flatName(employees.name) -> shredEmployees.flatTp,
-        dictName(employees.name) -> shredEmployees.dict.tp
-      )
-      ctx.add(VarDef(initCtxName, BagType(TupleType("lbl" -> labelTp))), List(Map("lbl" -> rlbl)))
+
+      ctx.add(VarDef(flatName(departments.name), shredDepartments.flatTp), shredDepartments.flat)
+      ctx.add(VarDef(dictName(departments.name), shredDepartments.dict.tp), shredDepartments.dict)
+      ctx.add(VarDef(flatName(employees.name), shredEmployees.flatTp), shredEmployees.flat)
+      ctx.add(VarDef(dictName(employees.name), shredEmployees.dict.tp), shredEmployees.dict)
 
       val q1lin = linearize(q1shred)
       println("[Ex3] Linearized Q1: " + quote(q1lin))
@@ -383,15 +361,9 @@ object TestApp extends App
 //      println("[Ex4] Same as original Q1: " + q1trans.equals(q1))
 
       val shredR = shred(relationRValue, relationR.tp)
-      val rlbl = ROutLabel(Map(
-        VarDef(flatName(relationR.name), shredR.flatTp) -> shredR.flat,
-        VarDef(dictName(relationR.name), shredR.dict.tp) -> shredR.dict
-      ))
-      val labelTp = LabelType(
-        flatName(relationR.name) -> shredR.flatTp,
-        dictName(relationR.name) -> shredR.dict.tp
-      )
-      ctx.add(VarDef(initCtxName, BagType(TupleType("lbl" -> labelTp))), List(Map("lbl" -> rlbl)))
+
+      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
+      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
 
       val q1lin = linearize(q1shred)
       println("[Ex4] Linearized Q1: " + quote(q1lin))
@@ -455,15 +427,9 @@ object TestApp extends App
 //      println("[Ex5] Same as original Q1: " + q1trans.equals(q1))
 
       val shredR = shred(relationRValue, relationR.tp)
-      val rlbl = ROutLabel(Map(
-        VarDef(flatName(relationR.name), shredR.flatTp) -> shredR.flat,
-        VarDef(dictName(relationR.name), shredR.dict.tp) -> shredR.dict
-      ))
-      val labelTp = LabelType(
-        flatName(relationR.name) -> shredR.flatTp,
-        dictName(relationR.name) -> shredR.dict.tp
-      )
-      ctx.add(VarDef(initCtxName, BagType(TupleType("lbl" -> labelTp))), List(Map("lbl" -> rlbl)))
+
+      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
+      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
 
       val q1lin = linearize(q1shred)
       println("[Ex5] Linearized Q1: " + quote(q1lin))
@@ -542,15 +508,9 @@ object TestApp extends App
 //      println("[Ex6] Same as original Q1: " + q1trans.equals(q1))
 
       val shredR = shred(relationRValue, relationR.tp)
-      val rlbl = ROutLabel(Map(
-        VarDef(flatName(relationR.name), shredR.flatTp) -> shredR.flat,
-        VarDef(dictName(relationR.name), shredR.dict.tp) -> shredR.dict
-      ))
-      val labelTp = LabelType(
-        flatName(relationR.name) -> shredR.flatTp,
-        dictName(relationR.name) -> shredR.dict.tp
-      )
-      ctx.add(VarDef(initCtxName, BagType(TupleType("lbl" -> labelTp))), List(Map("lbl" -> rlbl)))
+
+      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
+      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
 
       val q1lin = linearize(q1shred)
       println("[Ex6] Linearized Q1: " + quote(q1lin))
@@ -628,15 +588,9 @@ object TestApp extends App
 //      println("[Ex7] Same as original Q1: " + q1trans.equals(q1))
 
       val shredR = shred(relationRValue, relationR.tp)
-      val rlbl = ROutLabel(Map(
-        VarDef(flatName(relationR.name), shredR.flatTp) -> shredR.flat,
-        VarDef(dictName(relationR.name), shredR.dict.tp) -> shredR.dict
-      ))
-      val labelTp = LabelType(
-        flatName(relationR.name) -> shredR.flatTp,
-        dictName(relationR.name) -> shredR.dict.tp
-      )
-      ctx.add(VarDef(initCtxName, BagType(TupleType("lbl" -> labelTp))), List(Map("lbl" -> rlbl)))
+
+      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
+      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
 
       val q1lin = linearize(q1shred)
       println("[Ex7] Linearized Q1: " + quote(q1lin))
@@ -712,19 +666,79 @@ object TestApp extends App
       //      println("[Ex8] Same as original Q1: " + q1trans.equals(q1))
 
       val shredR = shred(relationRValue, relationR.tp)
-      val rlbl = ROutLabel(Map(
-        VarDef(flatName(relationR.name), shredR.flatTp) -> shredR.flat,
-        VarDef(dictName(relationR.name), shredR.dict.tp) -> shredR.dict
-      ))
-      val labelTp = LabelType(
-        flatName(relationR.name) -> shredR.flatTp,
-        dictName(relationR.name) -> shredR.dict.tp
-      )
-      ctx.add(VarDef(initCtxName, BagType(TupleType("lbl" -> labelTp))), List(Map("lbl" -> rlbl)))
+
+      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
+      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
 
       val q1lin = linearize(q1shred)
       println("[Ex8] Linearized Q1: " + quote(q1lin))
       println("[Ex8] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+    }
+  }
+
+  object Example9 {
+
+    import shredding.Utils.Symbol
+
+    def run(): Unit = {
+
+      val nestedItemTp = TupleType("b" -> IntType, "c" -> IntType)
+      val itemTp = TupleType("a" -> IntType, "s" -> BagType(nestedItemTp))
+      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+
+      // Q = For x in R Union {<a'= x.a, s'=For y in x.s Union if y.c<5 then {y}>}
+
+      val xdef = VarDef(Symbol.fresh("x"), itemTp)
+      val xref = TupleVarRef(xdef)
+      val ydef = VarDef(Symbol.fresh("y"), nestedItemTp)
+      val yref = TupleVarRef(ydef)
+
+      val q1 =
+        ForeachUnion(xdef, relationR, Singleton(Tuple(
+          "a1" -> xref("a"),
+          "s1" -> ForeachUnion(ydef, BagProject(xref, "s"),
+            IfThenElse(Cond(OpEq, yref("c"), Const(5, IntType)), Singleton(yref))
+          )
+        )))
+
+      println("[Ex9] Q1: " + quote(q1))
+
+      val relationRValue = List(
+        Map("a" -> 10, "s" ->
+          List(
+            Map("b" -> 123, "c" -> -321),
+            Map("b" -> 456, "c" -> 5),
+            Map("b" -> 789, "c" -> 12),
+          )
+        ),
+        Map("a" -> 20, "s" ->
+          List(Map("b" -> 654, "c" -> 555))
+        )
+      )
+
+      val ctx = new Context()
+      ctx.add(relationR.varDef, relationRValue)
+
+      println("[Ex9] Q1 eval: " + eval(q1, ctx))
+
+      val q1shredraw = shred(q1)
+      println("[Ex9] Shredded Q1: " + quote(q1shredraw))
+
+      val q1shred = optimize(q1shredraw)
+      println("[Ex9] Shredded Q1 Optimized: " + quote(q1shred))
+
+//      val q1trans = unshred(q1shred)
+//      println("[Ex9] Unshredded shredded Q1: " + quote(q1trans))
+//      println("[Ex9] Same as original Q1: " + q1trans.equals(q1))
+
+      val shredR = shred(relationRValue, relationR.tp)
+
+      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
+      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
+
+      val q1lin = linearize(q1shred)
+      println("[Ex9] Linearized Q1: " + quote(q1lin))
+      println("[Ex9] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
     }
   }
 
@@ -841,14 +855,17 @@ object TestApp extends App
     }
   }
 
-/**  Example1.run()
-  Example2.run()
-  Example3.run()
+//  Example1.run()
+//  Example2.run()
+//  Example3.run()
 //  Example4.run()
-  Example5.run()
-  Example6.run()
-  Example7.run()
-  Example8.run()**/
+//  Example5.run()
+//  Example6.run()
+//  Example7.run()
+//  Example8.run()
 
-  ExampleShredValue.run()
+  Example9.run()
+
+//  ExampleShredValue.run()
 }
+

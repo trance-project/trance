@@ -3,9 +3,7 @@ package shredding.core
 /**
   * NRC type system: primitive types, bag type, tuple type
   */
-sealed trait Type{
-  def isLabel: Boolean = false
-}
+sealed trait Type
 
 trait TupleAttributeType extends Type
 
@@ -17,9 +15,11 @@ case object IntType extends PrimitiveType
 
 case object StringType extends PrimitiveType
 
-case class BagType(tp: TupleType) extends TupleAttributeType
+trait TTuple extends Type
 
-case class TupleType(attrTps: Map[String, TupleAttributeType]) extends Type {
+case class BagType(tp: TTuple) extends TupleAttributeType
+
+case class TupleType(attrTps: Map[String, TupleAttributeType]) extends TTuple {
   def apply(n: String): TupleAttributeType = attrTps(n)
 }
 
@@ -60,3 +60,8 @@ case class TupleDictType(attrTps: Map[String, TupleDictAttributeType]) extends D
 object TupleDictType {
   def apply(attrTps: (String, TupleDictAttributeType)*): TupleDictType = TupleDictType(Map(attrTps: _*))
 }
+
+/**
+  * Algebra Types
+  */
+case class KVTupleType(e1: Type, e2: Type) extends TTuple

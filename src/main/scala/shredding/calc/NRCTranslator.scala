@@ -9,7 +9,7 @@ import shredding.nrc.LinearizedNRC
   * Translation functions for NRC
   * 
   */
-trait NRCTranslator extends ShredCalc with LinearizedNRC {
+trait NRCTranslator extends CalcImplicits with LinearizedNRC {
 
   implicit class NRCCondTranslators(e: Cond){
     def translate: Conditional = 
@@ -78,7 +78,9 @@ trait NRCTranslator extends ShredCalc with LinearizedNRC {
         BagCDict(lbl.translate.asInstanceOf[LabelCalc], flat.translate.asInstanceOf[BagCalc], 
           dict.translate.asInstanceOf[TupleDictCalc])
       case EmptyDict => EmptyCDict
-      case Sequence(exprs) => CSequence(exprs.map(_.translate))
+      case Sequence(exprs) => 
+        exprs.foreach(expr => println(expr.translate.quote))
+        CSequence(exprs.map(_.translate))
       case Named(v, e) => CNamed(v, e.translate)
       case _ => sys.error("not supported "+self)
     }
