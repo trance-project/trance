@@ -1,5 +1,7 @@
 package shredding.algebra
 
+import shredding.types._
+
 trait Base {
   type Rep
   def input(x: List[Rep]): Rep
@@ -60,6 +62,10 @@ trait BaseScalaInterp extends Base{
     }
     grpd.filter(p.asInstanceOf[Rep => Boolean])
   }
+}
+
+trait BaseUnnester extends Base{
+
 }
 
 trait BaseStringify extends Base{

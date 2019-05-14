@@ -1,5 +1,7 @@
 package shredding.algebra
 
+import shredding.types._
+
 sealed trait Expr {
   def tp: Type
 }
