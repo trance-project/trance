@@ -50,6 +50,30 @@ case class Comprehension(e1: Expr, v: VarDef, p: Expr, e: Expr) extends Expr {
   }
 }
 
+case class Select(x: Expr, v: VarDef, p: Expr) extends Expr {
+  def tp: Type = x.tp
+}
+case class Reduce(e1: Expr, v: VarDef, e2: Expr, p: Expr) extends Expr {
+  def tp: Type = e2.tp match {
+    case t:TupleType => BagType(t)
+    case t => t
+  }
+}
+
+// { (v1, v2) | v1 <- e1, v2 <- e2(v1), p((v1, v2)) } 
+case class Unnest(e1: Expr, v1: VarDef, e2: Expr, v2: VarDef, p: Expr) extends Expr {
+  def tp: Type = BagType(KVTupleType(v1.tp, e2.tp.asInstanceOf[BagType].tp))
+}
+
+
+case class Nest(e1: Expr, v1: VarDef, f: Expr, e: Expr, v2: VarDef, p: Expr) extends Expr {
+  def tp: Type = BagType(KVTupleType(f.tp, e.tp))
+}
+
+case class Join(e1: Expr, e2: Expr, v1: VarDef, p1: Expr, v2: VarDef, p2: Expr) extends Expr {
+  def tp: Type = e1.tp
+}
+
 case class VarDef(name: String, override val tp: Type) extends Expr { self =>
   override def equals(that: Any): Boolean = that match {
     case that: VarDef => this.name == that.name && this.tp == that.tp

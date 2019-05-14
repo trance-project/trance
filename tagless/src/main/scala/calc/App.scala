@@ -25,8 +25,9 @@ object App {
       //comprehension(data, ffun, pmat)
       // { (x, y) | x <- R, y <- R }
       // { { (x,y) | y <- R } | x <- R }
-      comprehension(data, x => const(true), (x: Rep) => 
-        comprehension(data, x => const(true), (y: Rep) => tuple(Map("x" -> x, "y" -> y)))) 
+      comprehension(data, x => const(true), (z: Rep) => 
+        comprehension(data, x => const(true), (x: Rep) => 
+          comprehension(data, x => const(true), (y: Rep) => tuple(Map("x" -> x, "y" -> y)))))
     }
 
     /**
@@ -98,7 +99,7 @@ object App {
     val finalizeru = new Finalizer(interu)
     println(finalizers.finalize(exp1))
     println("")
-    println(finalizeru.finalize(exp1))
+    println(finalizers.finalize(finalizeru.finalize(exp1).asInstanceOf[Expr]))
     println("")
     //println(finalizer.finalize(exp1))
 
