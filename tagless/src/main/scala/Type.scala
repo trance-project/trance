@@ -1,4 +1,4 @@
-package shredding.types
+package shredding.calc
 
 sealed trait Type{
   def isLabel: Boolean = false

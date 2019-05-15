@@ -1,44 +1,40 @@
-package shredding.algebra
-
-import shredding.types._
+package shredding.calc
 
 sealed trait Expr {
   def tp: Type
 }
 
 case class Input(data: List[Expr]) extends Expr{
-  def tp: Type = data match {
-    case Nil => BagType(TupleType(Map[String, Type]()))
-    case _ => BagType(data.head.tp.asInstanceOf[TupleType]) 
+  def tp: BagType = data match {
+    case Nil => BagType(TupleType(Map[String, TupleAttributeType]()))
+    case _ => BagType(data.head.tp.asInstanceOf[TupleType])
   }
 }
 case class Const(data: Any) extends Expr{
-  def tp: Type = data match {
+  def tp: PrimitiveType = data match {
     case _:Int => IntType
     case _:String => StringType
     case _:Boolean => BoolType
   }
 }
 case class Sng(e1: Expr) extends Expr {
-  def tp: Type = BagType(e1.tp.asInstanceOf[TupleType])
+  def tp: BagType = BagType(e1.tp.asInstanceOf[TupleType])
 }
 
-case class Tuple(fields: Map[String, Expr]) extends Expr{
-  def tp: Type = TupleType(fields.map(f => f._1 -> f._2.tp))
-}
-
-case class KVTuple(e1: Expr, e2: Expr) extends Expr{
-  def tp: Type = KVTupleType(e1.tp, e2.tp)
+case class Tuple(fields: Map[String, Expr]) extends Expr {
+  def tp: TupleType = TupleType(fields.map(f => f._1 -> f._2.tp.asInstanceOf[TupleAttributeType]))
 }
 
 case class Equals(e1: Expr, e2: Expr) extends Expr {
-  def tp: Type = BoolType
+  def tp: PrimitiveType = BoolType
 }
+
 case class Lt(e1: Expr, e2: Expr) extends Expr {
-  def tp: Type = BoolType
+  def tp: PrimitiveType = BoolType
 }
+
 case class Gt(e1: Expr, e2: Expr) extends Expr {
-  def tp: Type = BoolType
+  def tp: PrimitiveType = BoolType
 }
 
 case class Project(e1: Expr, field: String) extends Expr { self =>
@@ -49,6 +45,13 @@ case class Project(e1: Expr, field: String) extends Expr { self =>
       case "value" => t.e2
     }
     case _ => sys.error("unsupported projection index "+self)
+  }
+}
+
+case class Comprehension(e1: Expr, v: VarDef, p: Expr, e: Expr) extends Expr {
+  def tp: Type = e.tp match {
+    case t:TupleType => BagType(t)
+    case t => t
   }
 }
 

@@ -72,7 +72,7 @@ object App {
       val unnest1filt = (i: Rep) => gt(project(project(i, "value"), "n"), const(40))
       val unnest2filt = (i: Rep) => gt(project(project(i, "value"), "n"), const(700))
       
-      /**val s1 = select(data, x => const(true))
+      val s1 = select(data, x => const(true))
       // x 
       val s2 = unnest(s1, (i: Rep) => project(i,"j"), x => const(true))
       // (x, w)
@@ -84,7 +84,7 @@ object App {
       val s5 = nest(s4, (i: Rep) => project(project(i, "key"), "key"), 
                 (i: Rep) => tuple(Map("o7" -> project(project(project(i, "key"), "value"), "m"), 
                   "o8" -> project(i, "value"))), x => const(true))
-      s5*/
+      s5
       // (x,v2) 
       //val s6 = reduce(s5, (i: Rep) => tuple(Map("o5" -> project(project(i, "key"), "h"), 
       //        "o6" -> project(i, "value"))), x => const(true))
@@ -93,14 +93,14 @@ object App {
 
     val inters = new BaseStringify{}
     val interu = new BaseUnnester{}
-    //val inter = new BaseScalaInterp{}
-    //val finalizer = new Finalizer(inter)
+    val inter = new BaseScalaInterp{}
+    val finalizer = new Finalizer(inter)
     val finalizers = new Finalizer(inters)
     val finalizeru = new Finalizer(interu)
-    println(finalizers.finalize(exp1))
+    println(finalizer.finalize(exp2))
     println("")
     println(finalizers.finalize(finalizeru.finalize(exp1).asInstanceOf[Expr]))
-    println("")
+    //println("")
     //println(finalizer.finalize(exp1))
 
   }

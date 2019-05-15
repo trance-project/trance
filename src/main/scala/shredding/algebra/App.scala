@@ -3,9 +3,14 @@ package shredding.algebra
 object App {
 
   def main(args: Array[String]){
+    //run1()
+    run2()
+  }
+
+  def run1(){
 
     val compiler = new BaseCompiler {}
-
+  
     val exp1 = {
       import compiler._
 
@@ -16,15 +21,19 @@ object App {
         *  Select[lambda(x1). x1.a > 40](R)
         */
       
-      val data = input(List(tuple(Map("a" -> const(42), "b" -> const("Milos"))), 
-                            tuple(Map("a" -> const(49), "b" -> const("Michael"))), 
-                            tuple(Map("a" -> const(34), "b" -> const("Jaclyn"))), 
-                            tuple(Map("a" -> const(42), "b" -> const("Thomas")))))
-      val ffun = (i: Rep) => gt(project(i,"a"), const(40))
-      val pmat = (i: Rep) => tuple(Map("w" -> project(i, "b")))
-      //reduce(select(data, ffun), pmat, x => const(true))
-      // cartesian
-      join(select(data, ffun), select(data, x => const(true)), x => const(true), x => const(true))
+      val data = input(List(tuple(Map("a" -> constant(42), "b" -> constant("Milos"))), 
+                            tuple(Map("a" -> constant(49), "b" -> constant("Michael"))), 
+                            tuple(Map("a" -> constant(34), "b" -> constant("Jaclyn"))), 
+                            tuple(Map("a" -> constant(42), "b" -> constant("Thomas")))))
+      //val ffun = (i: Rep) => gt(project(i,"a"), const(40))
+      //val pmat = (i: Rep) => tuple(Map("w" -> project(i, "b")))
+      //comprehension(data, ffun, pmat)
+      // { (x, y) | x <- R, y <- R }
+      // { { (x,y) | y <- R } | x <- R }
+      /**comprehension(data, x => const(true), (z: Rep) => 
+        comprehension(data, x => const(true), (x: Rep) => 
+          comprehension(data, x => const(true), (y: Rep) => tuple(Map("x" -> x, "y" -> y)))))**/
+      bind(data, (i: Rep) => comprehension(i, x => constant(true), (x: Rep) => tuple(Map("x" -> project(x, "a")))))
     }
 
     /**
@@ -44,58 +53,115 @@ object App {
       */
     val exp2 = {
       import compiler._
-      val data = input(List(tuple(Map("h" -> const(42), "j" -> 
-                  input(List(tuple(Map("m" -> const("Milos"), "n" -> const(123), "k" -> 
-                    input(List(tuple(Map("n" -> const(123))), 
-                               tuple(Map("n" -> const(456))), 
-                               tuple(Map("n" -> const(789))), 
-                               tuple(Map("n" -> const(123))))))),
-                      tuple(Map("m" -> const("Michael"), "n" -> const(7), "k" -> 
-                    input(List(tuple(Map("n" -> const(2))), 
-                               tuple(Map("n" -> const(9))), 
-                               tuple(Map("n" -> const(1))))))),
-                      tuple(Map("m" -> const("Jaclyn"), "n" -> const(7), "k" -> 
-                    input(List(tuple(Map("n"-> const(14))), 
-                               tuple(Map("n" -> const(12))))))))))),
-                  tuple(Map("h" -> const(69), "j" ->
-                    input(List(tuple(Map("m" -> const("Thomas"), "n" -> const(987), "k" -> 
-                      input(List(tuple(Map("n" -> const(987))),
-                                 tuple(Map("n" -> const(654))),
-                                 tuple(Map("n" -> const(987))),
-                                 tuple(Map("n" -> const(654))),
-                                 tuple(Map("n" -> const(987))), 
-                                 tuple(Map("n" -> const(987)))))))))))))
+      val data = input(List(tuple(Map("h" -> constant(42), "j" -> 
+                  input(List(tuple(Map("m" -> constant("Milos"), "n" -> constant(123), "k" -> 
+                    input(List(tuple(Map("n" -> constant(123))), 
+                               tuple(Map("n" -> constant(456))), 
+                               tuple(Map("n" -> constant(789))), 
+                               tuple(Map("n" -> constant(123))))))),
+                      tuple(Map("m" -> constant("Michael"), "n" -> constant(7), "k" -> 
+                    input(List(tuple(Map("n" -> constant(2))), 
+                               tuple(Map("n" -> constant(9))), 
+                               tuple(Map("n" -> constant(1))))))),
+                      tuple(Map("m" -> constant("Jaclyn"), "n" -> constant(7), "k" -> 
+                    input(List(tuple(Map("n"-> constant(14))), 
+                               tuple(Map("n" -> constant(12))))))))))),
+                  tuple(Map("h" -> constant(69), "j" ->
+                    input(List(tuple(Map("m" -> constant("Thomas"), "n" -> constant(987), "k" -> 
+                      input(List(tuple(Map("n" -> constant(987))),
+                                 tuple(Map("n" -> constant(654))),
+                                 tuple(Map("n" -> constant(987))),
+                                 tuple(Map("n" -> constant(654))),
+                                 tuple(Map("n" -> constant(987))), 
+                                 tuple(Map("n" -> constant(987)))))))))))))
     
-      val unnest1filt = (i: Rep) => gt(project(project(i, "value"), "n"), const(40))
-      val unnest2filt = (i: Rep) => gt(project(project(i, "value"), "n"), const(700))
+      val unnest1filt = (i: Rep) => gt(project(project(i, "value"), "n"), constant(40))
+      val unnest2filt = (i: Rep) => gt(project(project(i, "value"), "n"), constant(700))
       
-      val s1 = select(data, x => const(true))
+      val s1 = select(data, x => constant(true))
       // x 
-      val s2 = unnest(s1, (i: Rep) => project(i,"j"), x => const(true))
+      val s2 = unnest(s1, (i: Rep) => project(i,"j"), x => constant(true))
       // (x, w)
-      val s3 = unnest(s2, (i: Rep) => project(project(i, "value"), "k"), x => const(true))
+      val s3 = unnest(s2, (i: Rep) => project(project(i, "value"), "k"), x => constant(true))
       // ((x, w), v1) => ((x,w), 1)
-      val s4 = nest(s3, (i: Rep) => project(i, "key"), (i: Rep) => const(1), x => const(true))
+      val s4 = nest(s3, (i: Rep) => project(i, "key"), (i: Rep) => constant(1), x => constant(true))
       // ((x, w), v3) => (o7 := w.m, o8 := v3)
       // don't think this is working properly
       val s5 = nest(s4, (i: Rep) => project(project(i, "key"), "key"), 
                 (i: Rep) => tuple(Map("o7" -> project(project(project(i, "key"), "value"), "m"), 
-                  "o8" -> project(i, "value"))), x => const(true))
+                  "o8" -> project(i, "value"))), x => constant(true))
       s5
       // (x,v2) 
-      /**val s6 = reduce(s5, (i: Rep) => tuple(Map("o5" -> project(project(i, "key"), "h"), 
-              "o6" -> project(i, "value"))), x => const(true))
-      s6**/
-    }
+      //val s6 = reduce(s5, (i: Rep) => tuple(Map("o5" -> project(project(i, "key"), "h"), 
+      //        "o6" -> project(i, "value"))), x => const(true))
+      //s6
+     }
 
     val inters = new BaseStringify{}
+    val interu = new BaseUnnester{}
     val inter = new BaseScalaInterp{}
     val finalizer = new Finalizer(inter)
     val finalizers = new Finalizer(inters)
+    val finalizeru = new Finalizer(interu)
     println(finalizers.finalize(exp1))
-    println("")
     println(finalizer.finalize(exp1))
+    println("")
+    //println(finalizers.finalize(finalizeru.finalize(exp1).asInstanceOf[Expr]))
+    //println("")
+    //println(finalizer.finalize(exp1))
+  }
 
+  /**def run2(){
+    val compiler = new BaseNRCTranslator{}
+
+    val exp1 = {
+      import compiler._
+      import shredding.core._
+
+      val btp = TupleType("t" -> IntType)
+      val rtp = TupleType("a" -> BagType(btp), "b" -> IntType)
+      val r = VarDef("R", BagType(rtp))
+      val relationR = compiler.nrc.BagVarRef(r)
+      val xdef = VarDef("x", rtp)
+      val ydef = VarDef("y", BagType(rtp))
+      //compiler.nrc.Let(ydef, relationR, 
+        compiler.nrc.ForeachUnion(xdef, relationR, 
+          compiler.nrc.Singleton(compiler.nrc.Tuple("a" -> 
+            compiler.nrc.PrimitiveProject(compiler.nrc.TupleVarRef(xdef), "b"))))
+          //compiler.nrc.BagProject(compiler.nrc.TupleVarRef(xdef), ("a")))//)
+    }
+
+    val inters = new BaseStringify{}
+    val fins = new Finalizer(inters)
+    val exp2 = compiler.translate(exp1)
+    val printer = new shredding.nrc.Printer{}
+    
+    println(printer.quote(exp1.asInstanceOf[printer.Expr]))
+    println(exp2)
+    
+    println(fins.finalize(exp2))
+
+  }**/
+
+  def run2(){
+    val translator = new NRCTranslator{}
+    val exp1 = {
+      import translator._
+      import shredding.core._
+      val itemTp = TupleType("a" -> IntType, "b" -> StringType)
+      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+      val xdef = VarDef("x", itemTp)
+      val q = ForeachUnion(xdef, relationR,
+                IfThenElse(Cond(OpGt, TupleVarRef(xdef)("a"), Const(40, IntType)),
+                  Singleton(Tuple("w" -> TupleVarRef(xdef)("b")))))
+      val printer = new shredding.nrc.Printer{}
+      println(printer.quote(q.asInstanceOf[printer.Expr]))
+      translate(q)   
+    }
+
+    val inters = new BaseStringify{}
+    val fins = new Finalizer(inters)
+    println(fins.finalize(exp1)) 
   }
 
 }
