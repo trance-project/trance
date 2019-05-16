@@ -6,6 +6,7 @@ sealed trait CExpr {
   def tp: Type
 }
 
+case class InputRef(data: String, tp: Type) extends CExpr
 case class Input(data: List[CExpr]) extends CExpr{
   def tp: BagType = data match {
     case Nil => BagType(TupleType(Map[String, TupleAttributeType]()))
@@ -129,9 +130,16 @@ case class Unnest(e1: CExpr, v1: Variable, e2: CExpr, v2: Variable, p: CExpr) ex
   def tp: Type = BagType(KVTupleType(v1.tp, e2.tp.asInstanceOf[BagType].tp))
 }
 
+case class OuterUnnest(e1: CExpr, v1: Variable, e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
+  def tp: Type = BagType(KVTupleType(v1.tp, e2.tp.asInstanceOf[BagType].tp))
+}
 
 case class Nest(e1: CExpr, v1: Variable, f: CExpr, e: CExpr, v2: Variable, p: CExpr) extends CExpr {
   def tp: Type = BagType(KVTupleType(f.tp, e.tp))
+}
+
+case class OuterJoin(e1: CExpr, e2: CExpr, v1: Variable, p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
+  def tp: BagType = BagType(KVTupleType(e1.tp, e2.tp))
 }
 
 case class Join(e1: CExpr, e2: CExpr, v1: Variable, p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {

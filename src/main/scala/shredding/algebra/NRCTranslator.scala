@@ -33,8 +33,11 @@ trait NRCTranslator extends LinearizedNRC {
       case _ => ifthen(translate(ift.cond), translate(ift.e1))
     }
     case Union(e1, e2) => merge(translate(e1), translate(e2))
-    case ForeachUnion(x, e1, e2) => 
-      Comprehension(translate(e1), Variable(x.name, x.tp), constant(true), translate(e2))
+    case ForeachUnion(x, e1, e2) => translate(e2) match { 
+      case If(cond, e3 @ Sng(t), e4 @ None) => Comprehension(translate(e1), Variable(x.name, x.tp), cond, t)
+      case Sng(t) => Comprehension(translate(e1), Variable(x.name, x.tp), constant(true), t)
+      case te2 => Comprehension(translate(e1), Variable(x.name, x.tp), constant(true), te2)
+    }
     case l:Let =>  Bind(Variable(l.x.name, l.x.tp), translate(l.e1), translate(l.e2))
     case Total(e) => comprehension(translate(e), x => constant(true), (i: Rep) => constant(1))
   }

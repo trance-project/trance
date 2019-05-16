@@ -1,10 +1,13 @@
 package shredding.algebra
 
+import shredding.core._
+
 object App {
 
   def main(args: Array[String]){
     //run1()
-    run2()
+    //run2()
+    run3()
   }
 
   def run1(){
@@ -106,52 +109,21 @@ object App {
     println(finalizers.finalize(exp1))
     println(finalizer.finalize(exp1))
     println("")
-    //println(finalizers.finalize(finalizeru.finalize(exp1).asInstanceOf[Expr]))
-    //println("")
-    //println(finalizer.finalize(exp1))
   }
 
-  /**def run2(){
-    val compiler = new BaseNRCTranslator{}
-
-    val exp1 = {
-      import compiler._
-      import shredding.core._
-
-      val btp = TupleType("t" -> IntType)
-      val rtp = TupleType("a" -> BagType(btp), "b" -> IntType)
-      val r = VarDef("R", BagType(rtp))
-      val relationR = compiler.nrc.BagVarRef(r)
-      val xdef = VarDef("x", rtp)
-      val ydef = VarDef("y", BagType(rtp))
-      //compiler.nrc.Let(ydef, relationR, 
-        compiler.nrc.ForeachUnion(xdef, relationR, 
-          compiler.nrc.Singleton(compiler.nrc.Tuple("a" -> 
-            compiler.nrc.PrimitiveProject(compiler.nrc.TupleVarRef(xdef), "b"))))
-          //compiler.nrc.BagProject(compiler.nrc.TupleVarRef(xdef), ("a")))//)
-    }
-
-    val inters = new BaseStringify{}
-    val fins = new Finalizer(inters)
-    val exp2 = compiler.translate(exp1)
-    val printer = new shredding.nrc.Printer{}
-    
-    println(printer.quote(exp1.asInstanceOf[printer.Expr]))
-    println(exp2)
-    
-    println(fins.finalize(exp2))
-
-  }**/
 
   def run2(){
     val translator = new NRCTranslator{}
     val exp1 = {
       import translator._
-      import shredding.core._
       val itemTp = TupleType("a" -> IntType, "b" -> StringType)
       val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
       val xdef = VarDef("x", itemTp)
-      val q = ForeachUnion(xdef, relationR,
+      val r = Union(Singleton(Tuple("a" -> Const(42, IntType), "b" -> Const("Milos", StringType))),
+                Union(Singleton(Tuple("a" -> Const(49, IntType), "b" -> Const("Michael", StringType))), 
+                  Union(Singleton(Tuple("a" -> Const(34, IntType), "b" -> Const("Jaclyn", StringType))),
+                    Singleton(Tuple("a" -> Const(42, IntType), "b" -> Const("Thomas", StringType)))))) 
+      val q = ForeachUnion(xdef, r,//relationR,
                 IfThenElse(Cond(OpGt, TupleVarRef(xdef)("a"), Const(40, IntType)),
                   Singleton(Tuple("w" -> TupleVarRef(xdef)("b")))))
       val printer = new shredding.nrc.Printer{}
@@ -160,8 +132,205 @@ object App {
     }
 
     val inters = new BaseStringify{}
-    val fins = new Finalizer(inters)
-    println(fins.finalize(exp1)) 
+    val fins = new Finalizer(inters) 
+    val ctx = Map(Variable("R",BagType(TupleType("a" -> IntType, "b" -> StringType))) -> "R")
+    println(fins.finalize(exp1))
+    
+    val intere = new BaseScalaInterp{}
+    intere.ctx("R") = List(Map("a" -> 42, "b" -> "Milos"), Map("a" -> 49, "b" -> "Michael"), 
+                           Map("a" -> 34, "b" -> "Jaclyn"), Map("a" -> 42, "b" -> "Thomas"))
+    val finse = new Finalizer(intere)
+    println(finse.finalize(exp1)) 
+  
+    val interu = new BaseUnnester{}
+    val finsu = new Finalizer(interu)
+    println(fins.finalize(finsu.finalize(exp1).asInstanceOf[CExpr]))
+
+    val exp2 = {
+      import translator._
+      val itemTp = TupleType("a" -> IntType, "b" -> StringType)
+      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+      val xdef = VarDef("x", itemTp)
+      val r1 = Union(Singleton(Tuple("a" -> Const(42, IntType), "b" -> Const("Milos", StringType))),
+                Union(Singleton(Tuple("a" -> Const(49, IntType), "b" -> Const("Michael", StringType))), 
+                  Union(Singleton(Tuple("a" -> Const(34, IntType), "b" -> Const("Jaclyn", StringType))),
+                    Singleton(Tuple("a" -> Const(42, IntType), "b" -> Const("Thomas", StringType)))))) 
+  
+      val r2 = Singleton(Tuple("a" -> Const(42, IntType), "b" -> Const("SINGLETON", StringType)))
+  
+      val r = Singleton(Tuple(Map[String,TupleAttributeExpr]()))
+  
+      val v = VarDef("v", TupleType(Map[String,TupleAttributeType]()))
+  
+      val q2 = ForeachUnion(v, r, Singleton(TupleVarRef(v)))
+  
+      val q0 = ForeachUnion(xdef, r2,
+                ForeachUnion(v, r,
+                IfThenElse(Cond(OpGt, TupleVarRef(xdef)("a"), Const(40, IntType)),
+                  Singleton(Tuple("w" -> TupleVarRef(xdef)("b"))))))
+  
+      val xvd = VarDef("x", TupleType("a" -> IntType))
+  
+      val q1 = Let(xvd, Tuple("a" -> Const(42, IntType)), TupleVarRef(xvd)("a"))
+  
+      val ydef = VarDef("y", itemTp)
+      val q = ForeachUnion(xdef, relationR,
+                Singleton(Tuple("w1" -> TupleVarRef(xdef)("a"), 
+                  "w2" -> Total(ForeachUnion(ydef, relationR, 
+                    Singleton(Tuple("w3" -> TupleVarRef(ydef)("b"))))))))
+  
+      val q3 = Total(ForeachUnion(xdef, relationR, Singleton(Tuple("w3" -> TupleVarRef(xdef)("b")))))
+      val printer = new shredding.nrc.Printer{}
+  
+      println(printer.quote(q.asInstanceOf[printer.Expr]))
+      translate(q)   
+    }
+
+    println("")
+    println("calculus: ")
+    println(fins.finalize(exp2))
+    println(finse.finalize(exp2))
+    println("")
+    val intern = new BaseNormalized{}
+    val finsn = new Finalizer(intern)
+    val normalized = finsn.finalize(exp2).asInstanceOf[CExpr]
+    println("normalized: ")
+    println(fins.finalize(normalized))
+    println(finse.finalize(normalized))
+  }
+
+  def run3(){
+      val relationRValues = List(Map(
+          "h" -> 42,
+          "j" -> List(
+            Map(
+              "m" -> "Milos",
+              "n" -> 123,
+              "k" -> List(
+                Map("n" -> 123),
+                Map("n" -> 456),
+                Map("n" -> 789),
+                Map("n" -> 123)
+              )
+            ),
+            Map(
+              "m" -> "Michael",
+              "n" -> 7,
+              "k" -> List(
+                Map("n" -> 2),
+                Map("n" -> 9),
+               Map("n" -> 1)
+              )
+            ),
+            Map(
+              "m" -> "Jaclyn",
+              "n" -> 12,
+              "k" -> List(
+                Map("n" -> 14),
+                Map("n" -> 12)
+              )
+            )
+          )
+        ),
+        Map(
+          "h" -> 69,
+          "j" -> List(
+            Map(
+              "m" -> "Thomas",
+              "n" -> 987,
+              "k" -> List(
+                Map("n" -> 987),
+                Map("n" -> 654),
+                Map("n" -> 987),
+                Map("n" -> 654),
+                Map("n" -> 987),
+                Map("n" -> 987)
+              )
+            )
+          )
+        )
+      )
+    
+    val translator = new NRCTranslator{}
+    
+    val nested2ItemTp = TupleType(Map("n" -> IntType))
+
+    val nestedItemTp = TupleType(Map(
+        "m" -> StringType,
+        "n" -> IntType,
+        "k" -> BagType(nested2ItemTp)
+    ))
+    val itemTp = TupleType(Map(
+        "h" -> IntType,
+        "j" -> BagType(nestedItemTp)
+    ))
+    val rtype = BagType(itemTp)
+    
+    val exp1  = {
+      import translator._ 
+
+      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+      
+      val xdef = VarDef("x", itemTp)
+      val xref = TupleVarRef(xdef)
+      val wdef = VarDef("w", nestedItemTp)
+      val wref = TupleVarRef(wdef)
+      val ndef = VarDef("y", TupleType("n" -> IntType))
+
+      val q4 = ForeachUnion(xdef, relationR,
+        Singleton(Tuple(
+          "o5" -> xref("h"),
+          "o6" ->
+            ForeachUnion(wdef, BagProject(xref, "j"),
+              Singleton(Tuple(
+                "o7" -> wref("m"),
+                "o8" -> Total(BagProject(wref, "k"))
+              ))
+            )
+        ))) 
+      translate(q4) 
+   }
+    
+   val inters = new BaseStringify{}
+   val fins = new Finalizer(inters) 
+   println(fins.finalize(exp1))
+    
+   val intere = new BaseScalaInterp{}
+   intere.ctx("R") = relationRValues
+   
+    val finse = new Finalizer(intere)
+  
+    println("")
+    println("calculus: ")
+    println(fins.finalize(exp1))
+    println("")
+    println(finse.finalize(exp1))
+    println("")
+    val intern = new BaseNormalized{}
+    val finsn = new Finalizer(intern)
+    val normalized = finsn.finalize(exp1).asInstanceOf[CExpr]
+    
+    println("normalized: ")
+    println(fins.finalize(normalized))
+    println("")
+    println(finse.finalize(normalized))
+    println("")
+     
+    /** { ( o5 := x.h, o6 := { ( o7 := w.m, o8 :=  + { "1" |  v1 <- w.k  } ) |  w <- x.j  } ) |  x <- R  }
+      *
+      * Reduce[ U / lambda(x,v2).( o5 := x.h, o6 := v2 ), lambda(x,v2)."true"]
+      * Nest[ U / lambda(x,w,v3).( o7 := w.m, o8 := v3 ) / lambda(x,w,v3).x,
+      *       lambda(x,w,v3)."true" / lambda(x,w,v3).w,v3]
+      *   Nest[ + / lambda(x,w,v1)."1" / lambda(x,w,v1).x,w, lambda(x,w,v1)."true" / lambda(x,w,v1).v1]
+      *     OuterUnnest[lambda(x,w).w.k, lambda(x,w)."true"]
+      *        OuterUnnest[lambda(x).x.j, lambda(x)."true"]
+      *          Select[lambda(x)."true"](R)
+      */
+       
+    val interu = new BaseUnnester{}
+    val finsu = new Finalizer(interu)
+    println("plan:")
+    println(fins.finalize(finsu.finalize(normalized).asInstanceOf[CExpr]))
   }
 
 }
