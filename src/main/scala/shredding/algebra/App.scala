@@ -345,8 +345,11 @@ object App {
        
     val interu = new BaseUnnester{}
     val finsu = new Finalizer(interu)
+    val plan = finsu.finalize(normalized)
+    println(plan)
+    println("")
     println("plan:")
-    println(fins.finalize(finsu.finalize(normalized).asInstanceOf[CExpr]))
+    println(fins.finalize(plan.asInstanceOf[CExpr]))
   }
 
 }

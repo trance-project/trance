@@ -78,7 +78,7 @@ trait BaseStringify extends Base{
     s""" | UNNEST[ ${f(v1.quote)} / ${p(v.quote)} ](${x})""".stripMargin
   }
   def nest(x: Rep, f: Rep => Rep, e: Rep => Rep, p: Rep => Rep): Rep = {
-    val v1 = Variable.fresh(StringType) // todo P
+    val v1 = Variable.fresh(StringType) 
     val v2 = Variable.fresh(StringType)
     val acc = e(v1.quote) match { case "1" => "+"; case _ => "U" }
     s""" | NEST[ ${acc} / ${e(v1.quote)} / ${f(v2.quote)}, ${p(v2.quote)} ](${x})""".stripMargin
@@ -105,21 +105,17 @@ trait BaseStringify extends Base{
 trait BaseUnnester extends BaseCompiler {
   override def tuple(fs: Map[String, Rep]): Rep = {
     Tuple(fs.map(f => f._2 match {
-      case Reduce(d1, v1, e1, p1) =>  
+      case Reduce(d1, v1, e1, p1) =>  // Reduce (o7 := w.m, o8 := Reduce(w.k, v0, 1, true)) group by v1 and 
         d1 match {
           case Project(e, field) => 
-            val v2 = Variable.fresh(d1.tp.asInstanceOf[BagType].tp) 
-            val v3 = Variable.fresh(KVTupleType(v1.tp, v2.tp))
-                    // unnest d1, produce v3 tuples, group by original v1, match e1, output v3 and filter p1
-            f._1 -> Nest(OuterUnnest(e, v1, d1, v2, constant(true)), v3, v1, e1, v3, p1)
+            val v2 = Variable.fresh(KVTupleType(v1.tp, d1.tp.asInstanceOf[BagType].tp))
+            val v3 = Variable.fresh(KVTupleType(v2.tp, e1.tp))
+            f._1 -> Nest(OuterUnnest(e, v1, d1, v2, constant(true)), v2, v2, e1, v3, p1)
           case _ => 
             val v2 = Variable.fresh(KVTupleType(v1.tp, e1.tp))
-                    // v1 values come from d1, data is grouped by v1 and matched against e1, 
-                    // producing v2 values  
             f._1 -> Nest(d1, v1, v1, e1, v2, p1)   
         }
-      case f2 => 
-        f._1 -> f2
+      case f2 => f._1 -> f2
     }))
   }
   override def comprehension(d1: Rep, p1: Rep => Rep, e1: Rep => Rep): Rep = {
