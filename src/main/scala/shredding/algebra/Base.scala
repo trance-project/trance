@@ -205,7 +205,7 @@ trait BaseNormalized extends BaseCompiler {
   // N3 (a := e1, b: = e2).a = e1
   override def project(e1: Rep, f: String): Rep = e1 match {
     case Tuple(fs) => fs.get(f).get
-    case _ => Project(e1, f)
+    case _ => super.project(e1, f)
   }
 
   // N1, N2
@@ -215,7 +215,7 @@ trait BaseNormalized extends BaseCompiler {
   // could look into other cases as well
   override def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = cond match {
     case Constant(true) => e1
-    case _ => If(cond, e1, e2)
+    case _ => super.ifthen(cond, e1, e2)
   }
 
   override def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
@@ -223,11 +223,14 @@ trait BaseNormalized extends BaseCompiler {
       case Sng(t @ Tuple(fs)) =>
         if (fs.isEmpty) e1 // N5
         else bind(t, (i: Rep) => comprehension(i, (j: Rep) => p(i), (j: Rep) => e(i))) //N6
+        // else comprehension(t, (j: Rep) => p(t), (j: Rep) => e(t)) // N6
+        // else ifthen(p(t), e(t))
+        // else ifthen(p(i), Sng(e(i))) // FIXME think about this one :)
       case Merge(e1, e2) => Merge(comprehension(e1, p, e), comprehension(e2, p, e))  //N7
       case If(cond, e3, e4 @ Some(a)) => //N4
         Merge(comprehension(e3, (i: Rep) => And(p(i), cond), e), 
           comprehension(a, (i: Rep) => And(p(i), Not(cond)), e))
-      case Tuple(fs) => bind(e1, (i: Rep) => ifthen(p(i), e(i)))
+      // case Tuple(fs) => bind(e1, (i: Rep) => ifthen(p(i), e(i))) // wrong
       case Comprehension(e2, v2, p2, e3) =>
         val v = Variable.fresh(e3.tp)
         bind(e3, (i: Rep) => Comprehension(e2, v2, p2, e(v2)))
@@ -268,7 +271,7 @@ trait BaseScalaInterp extends Base{
   }
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = e2 match {
     case Some(a) => if (cond.asInstanceOf[Boolean]) { e1 } else { a }
-    case _ => if (cond.asInstanceOf[Boolean]) { e1 } 
+    case _ => if (cond.asInstanceOf[Boolean]) { e1 } // FIXME
   } 
   def merge(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[List[_]] ++ e2.asInstanceOf[List[_]]
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
@@ -372,11 +375,7 @@ class Finalizer(val target: Base){
     case OuterJoin(e1, e2, v1, p1, v2, p2) =>
       target.outerjoin(finalize(e1), finalize(e2), (r: target.Rep) => withMap(v1 -> r)(finalize(p1)),
         (r: target.Rep) => withMap(v2 -> r)(finalize(p2)))
-    case v @ Variable(_, _) => try { 
-                                currentMap(v) 
-                               } catch { 
-                                 case e:Exception => target.inputref(v.name, v.tp) 
-                               }
+    case v @ Variable(_, _) => currentMap.getOrElse(v, target.inputref(v.name, v.tp) )
 
   }
 }
