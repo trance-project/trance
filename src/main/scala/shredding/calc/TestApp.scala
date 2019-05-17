@@ -19,10 +19,37 @@ object TestApp extends App with
     //run1()
     //run2()
     //run3()
-    //run4()
-    run5()
+    run4()
+    //run6()
   }
-  
+ 
+   /**
+    * Bag(a: int: s1: Bag(b:int, c:int)  s2: Bag(b: int , c: int)
+    *
+    * E= For x in R Union {<a'= x.a, s1'= 
+    *     For y in x.s1 Union if y.c<5 then {y} s2' = 
+    *        For y in x.s2 Union y.c> 6 then {y} >}
+    *
+    */
+  def run6(){
+    
+    val ytp = TupleType("b" -> IntType, "c" -> IntType)
+    val xtp = TupleType("a" -> IntType, "s1" -> BagType(ytp), "s2" -> BagType(ytp))
+    val xdef = VarDef("x", xtp)
+    val ydef = VarDef("y", ytp)
+    
+    val r = BagVarRef(VarDef("R", BagType(xtp)))
+    val q = ForeachUnion(xdef, r, 
+              Singleton(Tuple("a'" -> TupleVarRef(xdef)("a"), 
+                "s1'" -> ForeachUnion(ydef, BagProject(TupleVarRef(xdef), "s1"), 
+                          IfThenElse(Cond(OpGt, Const(5, IntType), TupleVarRef(ydef)("c")), Singleton(TupleVarRef(ydef)))), 
+                "s2'" -> ForeachUnion(ydef, BagProject(TupleVarRef(xdef), "s2"),
+                          IfThenElse(Cond(OpGt, TupleVarRef(ydef)("c"), Const(6, IntType)), 
+                            Singleton(TupleVarRef(ydef)))))))
+    //val p = Pipeline.run(q)
+    val sp = ShredPipeline.runOptimized(q)
+  } 
+ 
   /**
     * Input object R is (as in the other examples) of type Bag(a: int: s: Bag(b:int, c:int) )
     *
@@ -313,6 +340,23 @@ object TestApp extends App with
       val wdef = VarDef("w", nestedItemTp)
       val wref = TupleVarRef(wdef)
       val ndef = VarDef("y", TupleType("n" -> IntType))
+      // { (w := x.j) | x <- R, x.h > 60 }
+      // Reduce (w := x1.j) <--- x1 --- Select (x1.h < 60)(R)
+      val q0 = ForeachUnion(xdef, relationR,
+                IfThenElse(Cond(OpGt, TupleVarRef(xdef)("h"), Const(60, IntType)),
+                  Singleton(Tuple("w" -> TupleVarRef(xdef)("j")))))
+
+      // { ( w := { 1 | x1 <- x.j }) | x0 <- R, x0 > 60 }
+      // Reduce (w := v0) <-- v0 -- Nest(1, x1) <-- x1 -- Outerunnest(x0.j) <-- x0 -- Select (x0 > 60 )(R)
+      val q1 = ForeachUnion(xdef, relationR,
+                IfThenElse(Cond(OpGt, TupleVarRef(xdef)("h"), Const(60, IntType)),
+                  Singleton(Tuple("w" -> Total(TupleVarRef(xdef)("j").asInstanceOf[BagExpr])))))
+
+      val x2def = VarDef("x2", itemTp)
+      val q2 = ForeachUnion(xdef, relationR,
+                ForeachUnion(x2def, relationR,
+                  IfThenElse(Cond(OpEq, TupleVarRef(xdef)("h"), TupleVarRef(x2def)("h")),
+                    Singleton(Tuple("x" -> TupleVarRef(xdef)("j"), "x2" -> TupleVarRef(x2def)("j"))))))
 
       val q4 = ForeachUnion(xdef, relationR,
         Singleton(Tuple(
@@ -325,8 +369,10 @@ object TestApp extends App with
               ))
             )
         )))
-      val ucq1 = Pipeline.run(q4)
-      val ucq = ShredPipeline.runOptimized(q4)
+      val ucq1 = Pipeline.run(q1)
+      val ucq2 = Pipeline.run(q2)
+      val ucq4 = Pipeline.run(q4)
+      //val ucq = ShredPipeline.runOptimized(q4)
      }
 
 }

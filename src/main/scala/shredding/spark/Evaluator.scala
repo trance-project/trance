@@ -1,4 +1,4 @@
-package shredding.spark
+/**package shredding.spark
 
 import shredding.core._
 import shredding.calc._
@@ -7,9 +7,6 @@ import reflect.ClassTag
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 
-/**
-  * Translate Algebra term trees into Spark and execute
-  */
 trait SparkEvaluator extends AlgebraImplicits with SparkRuntime {
   
   class Evaluator(ctx: Context) extends Serializable{
@@ -30,10 +27,8 @@ trait SparkEvaluator extends AlgebraImplicits with SparkRuntime {
       case LabelType(attrs) => attrs.keys.toList.indexOf(f)
     }
    
-    /**
-      * Gets the index of a projection label
-      * // TODO make implicit
-      */
+    // Gets the index of a projection label
+    // TODO make implicit
     def getIndex(e: CompCalc): Int = e match { 
       case LabelProj(t, f) => getIndex(t.tp, f)
       case ProjToBag(t, f) => getIndex(t.tp, f)
@@ -41,10 +36,8 @@ trait SparkEvaluator extends AlgebraImplicits with SparkRuntime {
     }
 
 
-    /**
-      * Matches the variable to the actual value based on the structure defined in
-      * the tuple pattern represented by vars (use Any since could be a base type)
-      */
+    // Matches the variable to the actual value based on the structure defined in
+    // the tuple pattern represented by vars (use Any since could be a base type)
     def extractVar(v: VarDef, vars: Any, value: Any): Any = vars match {
       case (a:VarDef, b:VarDef) => 
         if (a.name == v.name){
@@ -70,11 +63,9 @@ trait SparkEvaluator extends AlgebraImplicits with SparkRuntime {
       case _ => accessLabel(value, v.name) // single var not in context
     }
 
-    /**
-      * Access an element from a list or prouct type (ie. a tuple), 
-      * if Iterable is recognized, this is a compact buffer produced from 
-      * a groupBy() operation, so the values should be mapped over
-      */
+    // Access an element from a list or prouct type (ie. a tuple), 
+    // if Iterable is recognized, this is a compact buffer produced from 
+    // a groupBy() operation, so the values should be mapped over
     def accessElement(xs: Any, i: Int): Any = xs match {
       //case l:Tuple2[_,_] if l._1.isInstanceOf[shredding.nrc.Label]=> 
         // coming from input bag
@@ -85,10 +76,8 @@ trait SparkEvaluator extends AlgebraImplicits with SparkRuntime {
       case l => l
     }
 
-    /**
-      * Called when a variable is not in context to extract the relevant variable from 
-      * a label
-      */
+    // Called when a variable is not in context to extract the relevant variable from 
+    // a label
     def accessLabel(xs: Any, vname: String): Any = xs match {
       //case l:List[_] if (l.head.isInstanceOf[SLabel] && l.size == 1) => accessLabel(l.head, vname)
       case lbl:SOutLabel => lbl.extract(vname)
@@ -111,21 +100,16 @@ trait SparkEvaluator extends AlgebraImplicits with SparkRuntime {
       case _ => sys.error("unsupported expression in match pattern "+e)
     }
 
-    /**
-      * maps terms in a condition to constant type to avoid comparision
-      * issues with Any type
-      */
+    // maps terms in a condition to constant type to avoid comparision
+    // issues with Any type
     def toConstant(e: CompCalc, value: Any): CompCalc = e match {
       case c:Constant => e
       case _ => Constant(value.asInstanceOf[Product].productElement(getIndex(e)), 
                   e.tp.asInstanceOf[PrimitiveType])
     }
 
-    /**
-      * Casts to constant for equals and not equals, otherwise int 
-      * only tested with one variable for now
-      *
-      */
+    // Casts to constant for equals and not equals, otherwise int 
+    // only tested with one variable for now
     def filterCondition(vars: Any, e: CompCalc): Any => Boolean = e match {
       case Conditional(op, e1, e2) => op match {
         case OpGt => (a: Any) => 
@@ -142,26 +126,20 @@ trait SparkEvaluator extends AlgebraImplicits with SparkRuntime {
       case OrCondition(e1, e2) => (a: Any) => filterCondition(vars, e1)(a) || filterCondition(vars, e2)(a)
     }
 
-    /**
-      * Passes the filter conditions, if necessary
-      */
+    // Passes the filter conditions, if necessary
     def filterRDD(r: RDD[_], p: PrimitiveCalc, vars: Any) = p match {
       case Constant(true, _) => r
       case _ => r.filter(filterCondition(vars, p)(_))
     }
  
-    /**
-      * Tuples a list of vardefs into (K,V) structure
-      */ 
+    // Tuples a list of vardefs into (K,V) structure
     def tuple(f: List[_]): Any = f match {
       case tail :: Nil => tail
       case head :: tail :: Nil => (head, tail.asInstanceOf[VarDef])
       case head :: tail => tuple((head, tail.head) +: tail.tail)
     }
 
-    /**
-      * Produces an anonymous function to map across an RDD[(K,V)] to key appropriately
-      */
+    // Produces an anonymous function to map across an RDD[(K,V)] to key appropriately
     def keyBy(vars: Any, grps: List[VarDef]): Tuple2[_,_] => Tuple2[_,_] = vars match {
       case (b @ (_,_), c) =>
         val f = keyBy(b.asInstanceOf[Tuple2[_, _]], grps)
@@ -199,11 +177,6 @@ trait SparkEvaluator extends AlgebraImplicits with SparkRuntime {
       case _ => sys.error("unsupported join condition")
     }
 
-    /**
-      * Initial implementation of Spark mappings and evaluation
-      * // todo: reduce and unnest should read from pattern matching
-      *
-      */
     def evaluate(e: AlgOp): RDD[_] = e match {
       case Term(Reduce(e1, v, pred), e2) => 
         val structure = tuple(v)
@@ -292,4 +265,4 @@ trait SparkEvaluator extends AlgebraImplicits with SparkRuntime {
     }
 
   }
-}
+}**/

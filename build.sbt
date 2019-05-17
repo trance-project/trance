@@ -13,14 +13,14 @@ val sparkVersion = "2.4.0"
 
 libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
 
-libraryDependencies += "org.apache.spark" %% "spark-core" % sparkVersion
+//libraryDependencies += "org.apache.spark" %% "spark-core" % sparkVersion
 
-libraryDependencies += "org.apache.spark" %% "spark-sql" % sparkVersion
+//libraryDependencies += "org.apache.spark" %% "spark-sql" % sparkVersion
 
-libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.4"
+//libraryDependencies += "org.scalactic" %% "scalactic" % "3.0.4"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.4" % "test"
+//libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.4" % "test"
 
-libraryDependencies ++= Seq("org.glassfish.hk2" % "hk2-utils" % "2.2.0-b27",
-  "org.glassfish.hk2" % "hk2-locator" % "2.2.0-b27",
-  "javax.validation" % "validation-api" % "1.1.0.Final")
+//libraryDependencies ++= Seq("org.glassfish.hk2" % "hk2-utils" % "2.2.0-b27",
+//  "org.glassfish.hk2" % "hk2-locator" % "2.2.0-b27",
+//  "javax.validation" % "validation-api" % "1.1.0.Final")

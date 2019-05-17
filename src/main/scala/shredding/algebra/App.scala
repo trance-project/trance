@@ -5,8 +5,8 @@ import shredding.core._
 object App {
 
   def main(args: Array[String]){
-    //run1()
-    //run2()
+    run1()
+    run2()
     run3()
   }
 
@@ -252,22 +252,21 @@ object App {
       )
     
     val translator = new NRCTranslator{}
-    
-    val nested2ItemTp = TupleType(Map("n" -> IntType))
+        
+    val exp1  = {
+      import translator._ 
 
-    val nestedItemTp = TupleType(Map(
+      val nested2ItemTp = TupleType(Map("n" -> IntType))
+
+      val nestedItemTp = TupleType(Map(
         "m" -> StringType,
         "n" -> IntType,
         "k" -> BagType(nested2ItemTp)
-    ))
-    val itemTp = TupleType(Map(
+      ))
+      val itemTp = TupleType(Map(
         "h" -> IntType,
         "j" -> BagType(nestedItemTp)
-    ))
-    val rtype = BagType(itemTp)
-    
-    val exp1  = {
-      import translator._ 
+      ))
 
       val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
       
@@ -277,6 +276,24 @@ object App {
       val wref = TupleVarRef(wdef)
       val ndef = VarDef("y", TupleType("n" -> IntType))
 
+      // { (w := x.j) | x <- R, x.h > 60 }
+      // Reduce (w := x1.j) <--- x1 --- Select (x1.h < 60)(R)
+      val q0 = ForeachUnion(xdef, relationR, 
+                IfThenElse(Cond(OpGt, TupleVarRef(xdef)("h"), Const(60, IntType)),
+                  Singleton(Tuple("w" -> TupleVarRef(xdef)("j")))))
+      
+      // { ( w := { 1 | x1 <- x.j }) | x0 <- R, x0 > 60 }
+      // Reduce (w := v0) <-- v0 -- Nest(1, x1) <-- x1 -- Outerunnest(x0.j) <-- x0 -- Select (x0 > 60 )(R)
+      val q1 = ForeachUnion(xdef, relationR, 
+                IfThenElse(Cond(OpGt, TupleVarRef(xdef)("h"), Const(60, IntType)),
+                  Singleton(Tuple("w" -> Total(TupleVarRef(xdef)("j").asInstanceOf[BagExpr])))))
+      
+      val x2def = VarDef("x2", itemTp)
+      val q2 = ForeachUnion(xdef, relationR, 
+                ForeachUnion(x2def, relationR, 
+                  IfThenElse(Cond(OpEq, TupleVarRef(xdef)("h"), TupleVarRef(x2def)("h")), 
+                    Singleton(Tuple("x" -> TupleVarRef(xdef)("j"), "x2" -> TupleVarRef(x2def)("j"))))))
+        
       val q4 = ForeachUnion(xdef, relationR,
         Singleton(Tuple(
           "o5" -> xref("h"),
@@ -315,7 +332,6 @@ object App {
     println("")
     println(finse.finalize(normalized))
     println("")
-     
     /** { ( o5 := x.h, o6 := { ( o7 := w.m, o8 :=  + { "1" |  v1 <- w.k  } ) |  w <- x.j  } ) |  x <- R  }
       *
       * Reduce[ U / lambda(x,v2).( o5 := x.h, o6 := v2 ), lambda(x,v2)."true"]

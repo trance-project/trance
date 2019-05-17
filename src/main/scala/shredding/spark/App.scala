@@ -1,8 +1,5 @@
-package shredding.spark
+/**package shredding.spark
 
-/**
-  * App to have runner for spark testing
-  */
 
 import shredding.Utils.Symbol
 import shredding.core._
@@ -18,10 +15,6 @@ object App extends ShredPipelineRunner with SparkEvaluator with SparkRuntime wit
     run2()
   }
 
-  /**
-    * Test 1: Run spark on flat input without shredding
-    */
-     
   def run1(){
     val conf = new SparkConf().setMaster("local[*]").setAppName("SparkTest")
     val spark = SparkSession.builder().config(conf).getOrCreate()
@@ -91,7 +84,7 @@ object App extends ShredPipelineRunner with SparkEvaluator with SparkRuntime wit
                               TupleDictType(Map("m" -> EmptyDictType, "n" -> EmptyDictType, "k" -> BagDictType(
                                 BagType(TupleType(Map("n" -> IntType))),
                                   TupleDictType(Map("n" -> EmptyDictType)))))))))
-      /**val ddef = VarDef("R^D", dtp)
+      val ddef = VarDef("R^D", dtp)
       val rdict = relationRValue.map{ case (h, j) => 
                     val sl1 = SInLabel(); 
                       //{(h -> int, j -> label)}, (h -> empty, j ->
@@ -132,7 +125,7 @@ object App extends ShredPipelineRunner with SparkEvaluator with SparkRuntime wit
       ctx.add(fdef, rflat)
       ctx.add(ddef, rdict)
       ctx.add(initCtx, initCtxValue)
-      sparke.execute(ucqs)*/
+      sparke.execute(ucqs)
   }
 
-}
+}**/

@@ -67,6 +67,8 @@ trait ShredPipelineRunner extends PipelineRunner
     }
  
    def runOptimized(query: Expr): AlgOp = {
+      println("\nQuery:\n")
+      println(quote(query))
       val sq1 = shred(query)
       println("\nShredded:\n")
       println(quote(sq1))

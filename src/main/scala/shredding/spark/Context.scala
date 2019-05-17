@@ -1,4 +1,4 @@
-package shredding.spark
+/**package shredding.spark
 
 import shredding.core.VarDef
 import org.apache.spark.rdd.RDD
@@ -15,4 +15,4 @@ class Context() extends Serializable {
   def remove(varDef: VarDef) = ctx.remove(varDef)
 
   def reset = ctx.clear
-}
+}**/

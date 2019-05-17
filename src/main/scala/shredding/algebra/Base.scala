@@ -3,20 +3,6 @@ package shredding.algebra
 import shredding.core._
 import shredding.Utils.ind
 
-object rtype {
-  val nested2ItemTp = TupleType(Map("n" -> IntType))
-
-  val nestedItemTp = TupleType(Map(
-        "m" -> StringType,
-        "n" -> IntType,
-        "k" -> BagType(nested2ItemTp)))
-  val itemTp = TupleType(Map(
-        "h" -> IntType,
-        "j" -> BagType(nestedItemTp)))
-
-  val rtype = BagType(itemTp)
-}
-
 trait Base {
   type Rep
   def inputref(x: String, tp:Type): Rep
@@ -80,25 +66,22 @@ trait BaseStringify extends Base{
     } 
   }
   def select(x: Rep, p: Rep => Rep): Rep = { 
-    s""" | SELECT[ ${p(Variable.fresh(StringType).quote)} ](
-         | ${ind(x)} )""".stripMargin
+    s""" | SELECT[ ${p(Variable.fresh(StringType).quote)} ](${x} )""".stripMargin
   }
   def reduce(x: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
     val v = Variable.fresh(StringType)
-    s""" | REDUCE[ ${f(v.quote)} / ${p(v.quote)} ](
-         | ${ind(x)})""".stripMargin
+    s""" | REDUCE[ ${f(v.quote)} / ${p(v.quote)} ](${x})""".stripMargin
   }
   def unnest(x: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
     val v1 = Variable.fresh(StringType)
     val v = Variable.fresh(KVTupleType(StringType, StringType))
-    s""" | UNNEST[ ${f(v1.quote)} / ${p(v.quote)} ](
-         | ${ind(x)})""".stripMargin
+    s""" | UNNEST[ ${f(v1.quote)} / ${p(v.quote)} ](${x})""".stripMargin
   }
   def nest(x: Rep, f: Rep => Rep, e: Rep => Rep, p: Rep => Rep): Rep = {
     val v1 = Variable.fresh(StringType) // todo P
+    val v2 = Variable.fresh(StringType)
     val acc = e(v1.quote) match { case "1" => "+"; case _ => "U" }
-    s""" | NEST[ ${acc} / ${f(v1.quote)} / true ](
-         | ${ind(x)})""".stripMargin
+    s""" | NEST[ ${acc} / ${e(v1.quote)} / ${f(v2.quote)}, ${p(v2.quote)} ](${x})""".stripMargin
   }
   def join(e1: Rep, e2: Rep, p1: Rep => Rep, p2: Rep => Rep): Rep = {
     val (v1,v2) = (Variable.fresh(StringType), Variable.fresh(StringType))
@@ -108,8 +91,7 @@ trait BaseStringify extends Base{
   def outerunnest(x: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
     val v1 = Variable.fresh(StringType)
     val v = Variable.fresh(KVTupleType(StringType, StringType))
-    s""" | OUTERUNNEST[ ${f(v1.quote)} / ${p(v.quote)} ](
-         | ${ind(x)})""".stripMargin
+    s""" | OUTERUNNEST[ ${f(v1.quote)} / ${p(v.quote)} ](${x})""".stripMargin
   }
   def outerjoin(e1: Rep, e2: Rep, p1: Rep => Rep, p2: Rep => Rep): Rep = {
     val (v1,v2) = (Variable.fresh(StringType), Variable.fresh(StringType))
@@ -119,16 +101,40 @@ trait BaseStringify extends Base{
 
 }
 
+
 trait BaseUnnester extends BaseCompiler {
+  override def tuple(fs: Map[String, Rep]): Rep = {
+    Tuple(fs.map(f => f._2 match {
+      case Reduce(d1, v1, e1, p1) =>  
+        d1 match {
+          case Project(e, field) => 
+            val v2 = Variable.fresh(d1.tp.asInstanceOf[BagType].tp) 
+            val v3 = Variable.fresh(KVTupleType(v1.tp, v2.tp))
+                    // unnest d1, produce v3 tuples, group by original v1, match e1, output v3 and filter p1
+            f._1 -> Nest(OuterUnnest(e, v1, d1, v2, constant(true)), v3, v1, e1, v3, p1)
+          case _ => 
+            val v2 = Variable.fresh(KVTupleType(v1.tp, e1.tp))
+                    // v1 values come from d1, data is grouped by v1 and matched against e1, 
+                    // producing v2 values  
+            f._1 -> Nest(d1, v1, v1, e1, v2, p1)   
+        }
+      case f2 => 
+        f._1 -> f2
+    }))
+  }
   override def comprehension(d1: Rep, p1: Rep => Rep, e1: Rep => Rep): Rep = {
     val v1 = Variable.fresh(d1.tp.asInstanceOf[BagType].tp)
-    e1(v1) match {
-      case Reduce(d2, v2, e2, p2) =>
-        Join(Select(d1, v1, p1(v1)), Select(d2, v2, p2), v1, constant(true), v2, constant(true)) 
-          // TODO pushing the p2 condition to the join
-      case body => Reduce(d1, v1, body, p1(v1))
+    p1(v1) match {
+      case Constant(true) => 
+        e1(v1) match {
+          case Reduce(d2, v2, e2, p2) => 
+            // todo pushing the p2 condition to the join
+            Join(Select(d1, v1, p1(v1)), Select(d2, v2, p2), v1, constant(true), v2, constant(true))
+          case body => Reduce(d1, v1, body, p1(v1))
+        }
+      case _ => comprehension(Select(d1, v1, p1(v1)), (i: Rep) => constant(true), e1)   
     }
-  }  
+  }    
 }
 
 
@@ -373,7 +379,7 @@ class Finalizer(val target: Base){
     case v @ Variable(_, _) => try { 
                                 currentMap(v) 
                                } catch { 
-                                 case e:Exception => target.inputref("R", rtype.rtype) 
+                                 case e:Exception => target.inputref(v.name, v.tp) 
                                }
 
   }
