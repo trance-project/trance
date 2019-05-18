@@ -15,11 +15,9 @@ case object IntType extends PrimitiveType
 
 case object StringType extends PrimitiveType
 
-trait TTuple extends Type
+case class BagType(tp: TupleType) extends TupleAttributeType
 
-case class BagType(tp: TTuple) extends TupleAttributeType
-
-case class TupleType(attrTps: Map[String, TupleAttributeType]) extends TTuple {
+case class TupleType(attrTps: Map[String, TupleAttributeType]) extends Type {
   def apply(n: String): TupleAttributeType = attrTps(n)
 }
 
@@ -62,6 +60,20 @@ object TupleDictType {
 }
 
 /**
-  * Algebra Types
+  * Calculus types
   */
-case class KVTupleType(e1: Type, e2: Type) extends TTuple
+
+case class BagCType(tp: Type) extends Type
+
+case object EmptyCType extends Type
+
+case class RecordCType(attrTps: Map[String, Type]) extends Type {
+  def apply(n: String): Type = attrTps(n)
+}
+
+object RecordCType {
+  def apply(attrTps: (String, Type)*): RecordCType = RecordCType(Map(attrTps: _*))
+}
+
+case class KVTupleCType(e1: Type, e2: Type) extends Type
+
