@@ -218,10 +218,20 @@ trait BaseNormalized extends BaseCompiler {
     case _ => If(cond, e1, e2)
   }
 
+  // Comprehension(e1: data, v: variable representing a single element from e1, p: filters, 
+  //  e: a function that accepts variables from v and does further comprehensions, etc.
+  // { e(v) | v <- e1, p(v) }
+  //
+  // Interpret Fegaras and Maier: { e | q, v <- X, s } as { { e(s/p(v)) | v <- X, p(v) } | q }  
+  // where p(v) are the filters in s that include v
+  // and s/p(v) are the rest of th qualifiers that are passed onto the next comprehension in e
+  // I shorten this to { { e(v) | v <- X, p(v) } | q }
+  // ex: { (x,y) | x <- R, x < 4, y <- R, y > 2 } --> { { (x,y) | x <- R, x < 4 } | y <- R, y > 2 }
+  //
   override def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
     e1 match {
       case Sng(t @ Tuple(fs)) =>
-        if (fs.isEmpty) e1 // N5
+        if (fs.isEmpty) e1 // N5: { { e(v) | v <- {}, p(v) } | q } -> {} 
         else bind(t, (i: Rep) => comprehension(i, (j: Rep) => p(i), (j: Rep) => e(i))) //N6
       case Merge(e1, e2) => Merge(comprehension(e1, p, e), comprehension(e2, p, e))  //N7
       case If(cond, e3, e4 @ Some(a)) => //N4
