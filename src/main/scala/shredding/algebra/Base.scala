@@ -50,12 +50,12 @@ trait BaseStringify extends Base{
   def lte(e1: Rep, e2: Rep): Rep = s"${e1} <= ${e2}"
   def gte(e1: Rep, e2: Rep): Rep = s"${e1} >= ${e2}"
   def and(e1: Rep, e2: Rep): Rep = s"${e1}, ${e2}"
-  def not(e1: Rep): Rep = s"~${e1}"
+  def not(e1: Rep): Rep = s"!(${e1})"
   def or(e1: Rep, e2: Rep): Rep = s"${e1} || ${e2}"
   def project(e1: Rep, field: String): Rep = s"${e1}.${field}"
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = e2 match {
-    case Some(a) => s"if ${cond} then ${e1} else ${e2}"
-    case _ => s"if ${cond} then ${e1}"
+    case Some(a) => s"if (${cond}) then ${e1} else ${a}"
+    case _ => s"if (${cond}) then ${e1}"
   }
   def merge(e1: Rep, e2: Rep): Rep = s"${e1} U ${e2}"
   def bind(e1: Rep, e: Rep => Rep): Rep = {
@@ -103,10 +103,6 @@ trait BaseStringify extends Base{
          | ${ind(e2)})""".stripMargin
   }
 
-}
-
-trait BaseStringQualifiers extends BaseStringify {
-  // TODO print with a list of qualifiers
 }
 
 trait BaseUnnester extends BaseCompiler {
@@ -166,8 +162,8 @@ trait BaseCompiler extends Base {
     Comprehension(e1, v, p(v), e(v))
   }
   def bind(e1: Rep, e: Rep => Rep): Rep = {
-    val v = Variable.fresh(e1.tp)
-    Bind(v, e1, e(v)) 
+      val v = Variable.fresh(e1.tp)
+      Bind(v, e1, e(v)) 
   }
   def select(x: Rep, p: Rep => Rep): Rep = {
     val v = Variable.fresh(x.tp.asInstanceOf[BagCType].tp)
@@ -255,26 +251,28 @@ trait BaseNormalizer extends BaseCompiler {
     case _ => super.ifthen(cond, e1, e2)
   }
 
+  // { e(v) | v <- e1, p(v) }
+  // where fegaras and maier does: { e | q, v <- e1, s } 
+  // this has { { { e | s } | v <- e1 } | q }
+  // the normalization rules reduce generators, which is why I match on e1
+  // N10 is automatically handled in this representation
   override def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
     e1 match {
-      case EmptySng => e1 // N5
+      case If(cond, e3, e4 @ Some(a)) => //N4
+        If(cond, comprehension(e3, p, e), Some(comprehension(a, p, e)))
+      case EmptySng => e1 // N5 
       case Sng(t) => ifthen(p(t), Sng(e(t))) // N6
       case Merge(e1, e2) => Merge(comprehension(e1, p, e), comprehension(e2, p, e))  //N7
-      case If(cond, e3, e4 @ Some(a)) => //N4
-        Merge(comprehension(e3, (i: Rep) => And(p(i), cond), e), 
-          comprehension(a, (i: Rep) => And(p(i), Not(cond)), e))
-      case Variable(_,_) => ifthen(p(e1), Sng(e(e1)))
+      case Variable(_,_) => ifthen(p(e1), Sng(e(e1))) // input relation
       case Comprehension(e2, v2, p2, e3) => //N8 
         // { e(v) | v <- { e3 | v2 <- e2, p2 }, p(v) }
         // { { e(v) | v <- e3 } | v2 <- e2, p2 }
         Comprehension(e2, v2, p2, comprehension(e3, p, e))
-      case _ =>
-        e1.tp match {
-          case t:BagCType => super.comprehension(e1, p, e)
-          case _ => ifthen(p(e1), e(e1)) // N8 
-        }
-     }
-   }
+      case _ => // standard case (return self)
+        val v = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
+        Comprehension(e1, v, p(v), e(v))
+      }
+    }
 }
 
 trait BaseScalaInterp extends Base{
@@ -417,6 +415,7 @@ class Finalizer(val target: Base){
       target.outerjoin(finalize(e1), finalize(e2), (r: target.Rep) => withMap(v1 -> r)(finalize(p1)),
         (r: target.Rep) => withMap(v2 -> r)(finalize(p2)))
     case v @ Variable(_, _) => currentMap.getOrElse(v, target.inputref(v.name, v.tp) )
-
   }
 }
+
+

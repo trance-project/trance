@@ -402,6 +402,8 @@ object App {
 
   def runNormalizationTests(){
     val translator = new NRCTranslator{}
+    val oldcalc = new BackTranslator{}
+    
     import translator._
      
     val inters = new BaseStringify{}
@@ -409,7 +411,7 @@ object App {
     val ctx = Map(Variable("R",BagCType(RecordCType("a" -> IntType, "b" -> StringType))) -> "R")
    
     val intere = new BaseScalaInterp{}
-    intere.ctx("R") = FlatTest.cdata
+    intere.ctx("R") = FlatTest.relationRValues
     val finse = new Finalizer(intere)
 
     val intern = new BaseNormalizer{}
@@ -423,7 +425,13 @@ object App {
     // N3
     val q1 = translate(Let(xdef, Tuple("a" -> Const(42, IntType), "b" -> Const("Test", StringType)), 
                 TupleVarRef(xdef)("a")))
-   
+    val fmq1 = {
+      import oldcalc._
+      translate(q1).quote
+    }
+    println("Old version:")
+    println(fmq1)
+    println("")
     // { x1.a | x1 := (a := 42,b := Test) } 
     println("Comprehension calculus:")
     println(fins.finalize(q1))
@@ -437,13 +445,18 @@ object App {
     println("")
 
     // { (o1 := x.b) | x <- R }
-    // bug here, binding an input relation
-    //val q2a = translate(Let(rdef, relationR, 
-    //            ForeachUnion(xdef, BagVarRef(rdef), Singleton(Tuple("o1" -> TupleVarRef(xdef)("b")))))) 
-    val nrcq2 = Let(rdef, Singleton(Tuple("a" -> Const(1, IntType), "b" -> Const("one", StringType))),
-              ForeachUnion(xdef, BagVarRef(rdef), Singleton(Tuple("o1" -> TupleVarRef(xdef)("b")))))
-    val q2 = translate(nrcq2)
-
+    val q2 = translate(Let(rdef, relationR, 
+                ForeachUnion(xdef, BagVarRef(rdef), Singleton(Tuple("o1" -> TupleVarRef(xdef)("b")))))) 
+    //val nrcq2 = Let(rdef, Singleton(Tuple("a" -> Const(1, IntType), "b" -> Const("one", StringType))),
+    //          ForeachUnion(xdef, BagVarRef(rdef), Singleton(Tuple("o1" -> TupleVarRef(xdef)("b")))))
+    //val q2 = translate(nrcq2)
+    val fmq2 = {
+      import oldcalc._
+      translate(q2).quote
+    }
+    println("Old version:")
+    println(fmq2)
+    println("")
     //{ { (o1 := x3.b) | x3 <- x2 } | x2 := { (a := 1,b := one) } }
     println("Comprehension calculus:")
     println(fins.finalize(q2))
@@ -456,7 +469,95 @@ object App {
     println(finse.finalize(nq2))
     println("")
 
+    // N4
+    val ydef = VarDef("y", itemTp)
 
+    // for y in R union
+    //   for x in [ if (y.a > 40) then sng(y) else sng(y.a, "null) ]
+    //     if (x.a > 40) then sng(o1 := y.b)
+    // complex example
+    val sq3 = ForeachUnion(ydef, relationR, 
+                ForeachUnion(xdef, IfThenElse(Cond(OpGe, TupleVarRef(ydef)("a"), Const(40, IntType)),
+                                    Singleton(TupleVarRef(ydef)), Singleton(Tuple("a" -> TupleVarRef(ydef)("a"), 
+                                        "b" -> Const("null", StringType)))).asInstanceOf[BagExpr],
+                  IfThenElse(Cond(OpGt, TupleVarRef(xdef)("a"), Const(41, IntType)), 
+                Singleton(Tuple("o1" -> TupleVarRef(xdef)("b"))))))
+    val q3 = translate(sq3)
+    // { { (o1 := x6.b) | x7 <- if x6.a > 40 
+    //                          then { x6 } else { (a := x6.a,b := null) }, x7.a > 50 } 
+    //    | x6 <- R }
+    val fmq3 = {
+      import oldcalc._
+      (translate(q3).quote, translate(q3).normalize.quote)
+    }
+    println("Old version:")
+    println(fmq3._1)
+    println(fmq3._2)
+    println("")
+    println("Comprehension calculus:")
+    println(fins.finalize(q3))
+    println(finse.finalize(q3))
+    println("") 
+    // { if (x9.a >= 40)
+    //   then if (x9.a > 40) then { ( o1 := x9.b) } 
+    //   else if (x9.a > 40) then { (o1 := null) } 
+    //  | x9 <- R }
+    println("Normalized:")
+    val nq3 = finsn.finalize(q3).asInstanceOf[CExpr]
+    println(fins.finalize(nq3))
+    println(finse.finalize(nq3))
+    println("")
+
+    val sq4 = ForeachUnion(ydef, relationR, 
+                ForeachUnion(xdef, IfThenElse(Cond(OpGe, TupleVarRef(ydef)("a"), Const(40, IntType)),
+                                    Singleton(TupleVarRef(ydef)), Singleton(Tuple("a" -> TupleVarRef(ydef)("a"), 
+                                        "b" -> Const("null", StringType)))).asInstanceOf[BagExpr],
+                  Singleton(Tuple("o1" -> TupleVarRef(xdef)("b")))))
+    val q4 = translate(sq4)
+    // { { (o1 := x6.b) | x7 <- if x6.a > 40 
+    //                          then { x6 } else { (a := x6.a,b := null) } } 
+    //    | x6 <- R }
+    val fmq4 = {
+      import oldcalc._
+      (translate(q3).quote, translate(q3).normalize.quote)
+    }
+    println("Old version:")
+    println(fmq4._1)
+    println(fmq4._2)
+    println("")
+    println("Comprehension calculus:")
+    println(fins.finalize(q4))
+    println(finse.finalize(q4))
+    println("") 
+    // { if (x9.a >= 40) then { (o1 := x9.b) } else { (o1 := null) } | x9 <- R |
+    println("Normalized:")
+    val nq4 = finsn.finalize(q4).asInstanceOf[CExpr]
+    println(fins.finalize(nq4))
+    println(finse.finalize(nq4))
+    println("")
+
+    val sq5 = ForeachUnion(xdef, relationR, 
+              ForeachUnion(ydef, relationR,
+                Singleton(Tuple("o1" -> TupleVarRef(xdef)("a"), "o2" -> TupleVarRef(ydef)("a")))))
+    val q5 = translate(sq5)
+    val fmq5 = {
+      import oldcalc._
+      (translate(q4).quote, translate(q4).normalize.quote)
+    }
+    println("Old version:")
+    println(fmq5._1)
+    println(fmq5._2)
+    println("")
+    println("Comprehension calculus:")
+    println(fins.finalize(q5))
+    println(finse.finalize(q5))
+    println("") 
+    println("Normalized:")
+    val nq5 = finsn.finalize(q5).asInstanceOf[CExpr]
+    println(fins.finalize(nq5))
+    println(finse.finalize(nq5))
+    println("")
+   
   }
 
   def main(args: Array[String]){

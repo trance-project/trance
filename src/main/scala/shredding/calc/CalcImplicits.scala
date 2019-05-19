@@ -266,7 +266,8 @@ trait CalcImplicits extends ShredCalc {
       }
       case BagComp(e, Nil) => Sng(e).normalize
       case BagComp(e, quals) =>
-        val b = BagComp(e.normalize.asInstanceOf[TupleCalc], quals.map(_.normalize))
+        val b = BagComp(e.normalize.asInstanceOf[TupleCalc], 
+                  quals.map(_.normalize).filter(_ != Constant(true, BoolType)))
         if (b.qs.filter(_.isEmptyGenerator).nonEmpty) Zero()
         else if (b.hasIfGenerator){
           val ifs = b.qs.filter(_.isIfGenerator)
@@ -313,6 +314,11 @@ trait CalcImplicits extends ShredCalc {
         else Sng(t.normalize.asInstanceOf[TupleCalc])
       case Merge(e1, e2) => 
         Merge(e1.normalize.asInstanceOf[BagCalc], e2.normalize.asInstanceOf[BagCalc])
+      case IfStmt(c @ Constant(true, BoolType), e1, e2) => e1
+      case IfStmt(c @ Constant(false, BoolType), e1, e2) => e2 match {
+        case Some(a) => a
+        case _ => Zero()
+      }
       case IfStmt(e1, e2, e3 @ Some(a)) => 
         IfStmt(e1.normalize.asInstanceOf[PrimitiveCalc], 
                 e2.normalize.asInstanceOf[BagCalc], Some(a.normalize.asInstanceOf[BagCalc]))
