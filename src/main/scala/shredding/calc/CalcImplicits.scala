@@ -46,6 +46,7 @@ trait CalcImplicits extends ShredCalc {
           |${ind(dict.quote, 2)}
           |)""".stripMargin
       case TupleCDict(fs) => s"(${fs.map { case (k, v) => k + " := " + v.quote }.mkString(", ")})"
+      case TupleDictComp(td, bd) => s"{ ${td.quote} | ${bd.quote} }"
       case BagDictProj(dict, field) => dict.quote+"."+field
       case TupleDictProj(dict) => dict.quote+".tupleDict"
       case DictCUnion(d1, d2) => s"(${d1.quote}) DictUnion (${d2.quote})"
@@ -317,7 +318,7 @@ trait CalcImplicits extends ShredCalc {
                 e2.normalize.asInstanceOf[BagCalc], Some(a.normalize.asInstanceOf[BagCalc]))
       case IfStmt(e1, e2, e3 @ None) =>
         IfStmt(e1.normalize.asInstanceOf[PrimitiveCalc], e2.normalize.asInstanceOf[BagCalc], None)
-      case CLookup(l, d) => CLookup(l.normalize.asInstanceOf[LabelCalc], d)
+      case CLookup(l, d) => CLookup(l.normalize.asInstanceOf[LabelCalc], d.normalize.asInstanceOf[BagDictCalc])
       case _ => self
     }
 
@@ -333,7 +334,7 @@ trait CalcImplicits extends ShredCalc {
       case Sng(e1) => Sng(e1.bind(e2, v).asInstanceOf[TupleCalc])
       case Merge(e1, e3) => Merge(e1.bind(e2, v).asInstanceOf[BagCalc], e3.bind(e2, v).asInstanceOf[BagCalc])
       case BagComp(e1, qs) => BagComp(e1.bind(e2, v).asInstanceOf[TupleCalc], qs.map(_.bind(e2, v)))
-      case CLookup(l, d) => CLookup(l.bind(e2, v).asInstanceOf[LabelCalc], d)
+      case CLookup(l, d) => CLookup(l.bind(e2, v).asInstanceOf[LabelCalc], d.bind(e2, v).asInstanceOf[BagDictCalc])
       case _ => self
     }
 
@@ -349,7 +350,8 @@ trait CalcImplicits extends ShredCalc {
       case Sng(e1) => Sng(e1.substitute(e2, v))
       case Merge(e1, e3) => Merge(e1.substitute(e2, v), e3.substitute(e2, v))
       case BagComp(e1, qs) => BagComp(e1.substitute(e2, v), qs.map(_.substitute(e2, v)))
-      case CLookup(l, d) => CLookup(l.substitute(e2, v).asInstanceOf[LabelCalc], d)
+      case CLookup(l, d) => 
+        CLookup(l.substitute(e2, v).asInstanceOf[LabelCalc], d.substitute(e2, v).asInstanceOf[BagDictCalc])
       case _ => self
     }
 
@@ -423,15 +425,30 @@ trait CalcImplicits extends ShredCalc {
 
     // these are also optimizations in shredding
     def normalize: CompCalc = self match {
-      case BagDictProj(dict @ TupleCDict(fs), field) => fs.get(field).get
-      case TupleDictProj(dict @ BagCDict(l, f, d)) => d
+      case BagCDict(l, f, d) => 
+        BagCDict(l.normalize.asInstanceOf[LabelCalc], 
+          f.normalize.asInstanceOf[BagCalc], d.normalize.asInstanceOf[TupleDictCalc])
+      case TupleCDict(fs) => 
+        TupleCDict(fs.map(f => f._1 -> f._2.normalize.asInstanceOf[TupleDictAttributeCalc]))
+      case BagDictProj(dict @ TupleCDict(fs), field) => fs.get(field).get.normalize
+      case TupleDictProj(dict @ BagCDict(l, f, d)) => d.normalize
+      case BagDictProj(dict @ TupleDictComp(td, b @ BindTupleDict(x,e)), field) =>
+        BagDictProj(td.bind(e, x).normalize.asInstanceOf[TupleDictCalc], field).normalize
+      case TupleDictComp(td, b @ BindTupleDict(x, e)) => td.bind(e, x).normalize 
       case _ => self
     }
 
     def bind(e2: CompCalc, v: VarDef): CompCalc = self match {
       case y if self.equalsVar(v) => e2
+      case BagCDict(l, f, d) => 
+        BagCDict(l.bind(e2, v).asInstanceOf[LabelCalc], 
+          f.bind(e2, v).asInstanceOf[BagCalc], d.bind(e2, v).asInstanceOf[TupleDictCalc])
+      case TupleCDict(fs) => 
+        TupleCDict(fs.map(f => f._1 -> f._2.bind(e2, v).asInstanceOf[TupleDictAttributeCalc]))
       case BindBagDict(x, d) => BindDict(x, d.bind(e2, v).asInstanceOf[DictCalc])
       case BindTupleDict(x, d) => BindDict(x, d.bind(e2, v).asInstanceOf[DictCalc])
+      case TupleDictComp(td, b) => 
+        TupleDictComp(td.bind(e2, v).asInstanceOf[TupleDictCalc], b.bind(e2, v).asInstanceOf[BindTupleDict])
       case BagDictProj(dict, field) => BagDictProj(dict.bind(e2, v).asInstanceOf[TupleDictCalc], field)
       case TupleDictProj(dict) => TupleDictProj(dict.bind(e2, v).asInstanceOf[BagDictCalc])
       case _ => self
@@ -439,8 +456,15 @@ trait CalcImplicits extends ShredCalc {
 
     def substitute(e2: CompCalc, v: VarDef): DictCalc = self match {
       case y if self == e2 => DictVar(v)
-      case BindBagDict(x, d) => BindDict(x, d.substitute(e2, v))
-      case BindTupleDict(x, d) => BindDict(x, d.substitute(e2, v))
+      case BagCDict(l, f, d) => 
+        BagCDict(l.substitute(e2, v), f.substitute(e2, v), d.substitute(e2, v).asInstanceOf[TupleDictCalc])
+      case TupleCDict(fs) => 
+        TupleCDict(fs.map(f => f._1 -> f._2.substitute(e2, v).asInstanceOf[TupleDictAttributeCalc]))
+      case BindBagDict(x, d) => BindDict(x, d.substitute(e2, v).asInstanceOf[CompCalc]).asInstanceOf[DictCalc]
+      case BindTupleDict(x, d) => BindDict(x, d.substitute(e2, v).asInstanceOf[CompCalc]).asInstanceOf[DictCalc]
+      case TupleDictComp(td, b) => 
+        TupleDictComp(td.substitute(e2, v).asInstanceOf[TupleDictCalc], 
+          b.substitute(e2, v).asInstanceOf[BindTupleDict])
       case BagDictProj(dict, field) => BagDictProj(dict.substitute(e2, v).asInstanceOf[TupleDictCalc], field)
       case TupleDictProj(dict) => TupleDictProj(dict.substitute(e2, v).asInstanceOf[BagDictCalc])
       case _ => self

@@ -102,6 +102,11 @@ trait ShredCalc extends Calc {
   case class TupleCDict(fields: Map[String, TupleDictAttributeCalc]) extends TupleDictCalc {
     val tp: TupleDictType = TupleDictType(fields.map(f => f._1 -> f._2.tp))
   }
+  
+  // binding tuple dicts should be different than the rest
+  case class TupleDictComp(x: TupleDictCalc, qs: BindTupleDict) extends TupleDictCalc {
+    val tp: TupleDictType = x.tp 
+  }
 
   case class BindTupleDict(x: VarDef, e: TupleDictCalc) extends TupleDictCalc with Bind {
     val tp: TupleDictType = e.tp
@@ -111,10 +116,10 @@ trait ShredCalc extends Calc {
   trait BindDict extends Bind with DictCalc
   
   object BindDict {
-    def apply(x: VarDef, e: DictCalc): DictCalc = e.tp match {
+    def apply(x: VarDef, e: CompCalc): CompCalc = e.tp match {
       case _:BagDictType => BindBagDict(x, e.asInstanceOf[BagDictCalc])
       case _:TupleDictType => BindTupleDict(x, e.asInstanceOf[TupleDictCalc])
-      case t => sys.error("Cannot bind dictionary of type "+t)
+      case t => Bind(x, e)//sys.error("Cannot bind dictionary of type "+t)
     }
   }
 

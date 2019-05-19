@@ -36,7 +36,7 @@ trait NRCTranslator extends CalcImplicits with LinearizedNRC {
           case None => None
         }
         IfStmt(i.cond.translate, i.e1.translate.asInstanceOf[BagCalc], e2)
-      case l: Let => l.e2.tp match {
+      /**case l: Let => l.e2.tp match {
         case t:BagType => 
           val te2 = l.e2.translate.asInstanceOf[BagCalc]
           val v = VarDef(Symbol.fresh("v"), te2.tp.tp)
@@ -46,8 +46,18 @@ trait NRCTranslator extends CalcImplicits with LinearizedNRC {
             case _ => List(Bind(l.x, l.e1.translate), Generator(v, te2))
           }
           BagComp(TupleVar(v), qs)
+        case t:TupleDictType => BindDict(l.x, l.e1.translate.asInstanceOf[DictCalc])
         case _ => sys.error("todo need to support other lets "+self+" "+l.e2.tp)
-      }
+      }**/
+      case l:Let => 
+        val bind = BindDict(l.x, l.e1.translate)
+        l.e2.tp match {
+          case t:BagType =>
+            val v = VarDef(Symbol.fresh("v"), t.tp)
+            BagComp(TupleVar(v), List(bind, Generator(v, l.e2.translate.asInstanceOf[BagCalc])))
+          case t:TupleDictType => 
+            TupleDictComp(l.e2.translate.asInstanceOf[TupleDictCalc], bind.asInstanceOf[BindTupleDict])
+        }
       case Singleton(e1) => Sng(e1.translate.asInstanceOf[TupleCalc])
       case Tuple(fs) => Tup(fs.map(x => x._1 -> x._2.translate.asInstanceOf[TupleAttributeCalc]))
       case p:Project => p.tp match {

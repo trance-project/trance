@@ -19,8 +19,8 @@ object TestApp extends App with
     //run1()
     //run2()
     //run3()
-    run4()
-    //run6()
+    //run4()
+    run6()
   }
  
    /**
