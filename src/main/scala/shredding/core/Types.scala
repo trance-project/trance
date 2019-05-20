@@ -75,5 +75,42 @@ object RecordCType {
   def apply(attrTps: (String, Type)*): RecordCType = RecordCType(Map(attrTps: _*))
 }
 
-case class KVTupleCType(e1: Type, e2: Type) extends Type
+case class TTupleType(attrTps: Type*) extends Type {
+  def apply(n: Int): Type = attrTps(n)
+}
+
+case class KVTupleCType(e1: Type, e2: Type) extends Type{
+  def apply(n: String) = n match {
+    case "key" => e1
+    case "0" => e1
+    case "value"  => e2
+    case "1" => e2
+  }
+  def _1 = e1
+  def _2 = e2
+}
+
+trait TDict extends Type
+trait TTupleDict extends Type
+
+case object EmptyDictCType extends TDict with TTupleDict
+
+case class BagDictCType(flatTp: BagCType, dictTp: TTupleDict) extends TDict {
+  def apply(n: String): Type = n match {
+    case "flat" => flatTp
+    case "tupleDict" => dictTp
+    case "0" => flatTp
+    case "1" => dictTp
+  }
+  def _1 = flatTp
+  def _2 = dictTp
+}
+
+case class TupleDictCType(attrTps: Map[String, TDict]) extends TTupleDict {
+  def apply(n: String): TDict = attrTps(n)
+}
+
+object TupleDictCType {
+  def apply(attrTps: (String, TDict)*): TupleDictCType = TupleDictCType(Map(attrTps: _*))
+}
 

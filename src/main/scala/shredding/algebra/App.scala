@@ -13,6 +13,8 @@ object FlatTest{
   val relationRType = BagType(TupleType("a" -> IntType, "b" -> StringType))
   val relationRValues = List(Map("a" -> 42, "b" -> "Milos"), Map("a" -> 49, "b" -> "Michael"),
                            Map("a" -> 34, "b" -> "Jaclyn"), Map("a" -> 42, "b" -> "Thomas"))
+  val rF = Label.fresh()
+  val rD = Map(rF -> relationRValues)
 
 }
 
@@ -105,7 +107,10 @@ object NestedTest {
           )
         )
       )
+
 }
+
+
 
 object App {
 
@@ -560,11 +565,99 @@ object App {
    
   }
 
+  def runShred(){
+    val shredder = new ShredPipeline{};
+    val exp1 = {
+      import shredder._
+      val itemTp = TupleType("a" -> IntType, "b" -> StringType)
+      val relationR = BagVarRef(VarDef("R", BagType(itemTp))) 
+      val x = VarDef("x", itemTp)
+      val q = ForeachUnion(x, relationR, Singleton(Tuple("o1" -> TupleVarRef(x)("a"))))
+      shredPipeline(q)
+    }
+
+    val bstr = new BaseStringify{}
+    val str = new Finalizer(bstr)
+    val bnorm = new BaseNormalizer{}
+    val norm = new Finalizer(bnorm)
+    val beval = new BaseScalaInterp{}
+    beval.ctx("R^F") = FlatTest.rF
+    beval.ctx("R^D") = FlatTest.rD
+    val eval = new Finalizer(beval)
+
+    println("\nTranslated:")
+    println(str.finalize(exp1))
+    //println(eval.finalize(exp1)) should i evaluate this?
+    println("\nNormalized:")
+    val nexp1 = norm.finalize(exp1).asInstanceOf[CExpr]
+    println(str.finalize(nexp1))
+    println("\nEvaluated:")
+    eval.finalize(nexp1).asInstanceOf[List[_]].foreach(println(_))
+
+    val exp2 = {
+      import shredder._
+      val itemTp = NestedTest.itemTp
+      val relationR = BagVarRef(VarDef("R", NestedTest.inputRelationType)) 
+
+      val xdef = VarDef("x", NestedTest.itemTp)
+      val xref = TupleVarRef(xdef)
+      val wdef = VarDef("w", NestedTest.nestedItemTp)
+      val wref = TupleVarRef(wdef)
+      val ndef = VarDef("y", TupleType("n" -> IntType))
+
+      val q = ForeachUnion(xdef, relationR,
+        Singleton(Tuple(
+          "o5" -> xref("h"),
+          "o6" ->
+            ForeachUnion(wdef, BagProject(xref, "j"),
+              Singleton(Tuple(
+                "o7" -> wref("m"),
+                "o8" -> Total(BagProject(wref, "k"))
+              ))
+            )
+        ))) 
+
+      shredPipeline(q)
+    }
+
+    println("\nTranslated:")
+    println(str.finalize(exp2))
+    println("\nNormalized:")
+    val nexp2 = norm.finalize(exp2).asInstanceOf[CExpr]
+    println(str.finalize(nexp2))
+
+    val exp3 = {
+      import shredder._
+      val ytp = TupleType("b" -> IntType, "c" -> IntType)
+      val xtp = TupleType("a" -> IntType, "s1" -> BagType(ytp), "s2" -> BagType(ytp))
+      val xdef = VarDef("x", xtp)
+      val ydef = VarDef("y", ytp)
+
+      val r = BagVarRef(VarDef("R", BagType(xtp)))
+      val q = ForeachUnion(xdef, r,
+              Singleton(Tuple("a'" -> TupleVarRef(xdef)("a"),
+                "s1'" -> ForeachUnion(ydef, BagProject(TupleVarRef(xdef), "s1"),
+                          IfThenElse(Cond(OpGt, Const(5, IntType), TupleVarRef(ydef)("c")), Singleton(TupleVarRef(ydef)))),
+                "s2'" -> ForeachUnion(ydef, BagProject(TupleVarRef(xdef), "s2"),
+                          IfThenElse(Cond(OpGt, TupleVarRef(ydef)("c"), Const(6, IntType)),
+                            Singleton(TupleVarRef(ydef)))))))
+      shredPipeline(q)
+    }
+ 
+    println("\nTranslated:")
+    println(str.finalize(exp3))
+    println("\nNormalized:")
+    val nexp3 = norm.finalize(exp3).asInstanceOf[CExpr]
+    println(str.finalize(nexp3))
+ 
+  }
+
   def main(args: Array[String]){
     //run1()
     //run2()
     //run3()
-    runNormalizationTests()
+    //runNormlizationTests()
+    runShred()
   }
 
 

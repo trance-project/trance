@@ -84,9 +84,6 @@ trait SparkEvaluator extends AlgebraImplicits with SparkRuntime {
       case l => l
     }
 
-    /**
-      * Matches the pattern based on the structure of the the input vars
-      */
     def matchPattern(vars: Any, e:CompCalc, value: Any): Any = e match {
       case Tup(fs) => fs.map{ case (k,v) => v match {
         case CLabel(id, vs) => 

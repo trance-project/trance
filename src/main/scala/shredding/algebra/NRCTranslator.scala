@@ -12,6 +12,11 @@ trait NRCTranslator extends LinearizedNRC {
     case BagType(t) => BagCType(translate(t))
     case TupleType(fs) if fs.isEmpty => EmptyCType
     case TupleType(fs) => RecordCType(fs.map(f => f._1 -> translate(f._2)))
+    case BagDictType(f,d) => 
+      BagDictCType(translate(f).asInstanceOf[BagCType], translate(d).asInstanceOf[TTupleDict])
+    case EmptyDictType => EmptyDictCType
+    case TupleDictType(ts) => TupleDictCType(ts.map(f => f._1 -> translate(f._2).asInstanceOf[TDict]))
+    case LabelType(fs) => LabelType(fs.map(f => f._1 -> translate(f._2)))
     case _ => e
   }
   
@@ -27,7 +32,7 @@ trait NRCTranslator extends LinearizedNRC {
       case (te1:CExpr, te2:CExpr) => gte(te1, te2)
     }
   }
-
+ 
   def translate(e: Expr): CExpr = e match {
     case Const(v, tp) => constant(v)
     case v:VarRef => Variable(v.varDef.name, translate(v.varDef.tp))
@@ -50,6 +55,19 @@ trait NRCTranslator extends LinearizedNRC {
         Comprehension(translate(e1), Variable(x.name, translate(x.tp)), constant(true), te2)
     }
     case l:Let => Bind(Variable(l.x.name, translate(l.x.tp)), translate(l.e1), translate(l.e2))
+    case Named(v, e) => CNamed(v.name, translate(e))
+    case Sequence(exprs) => LinearCSet(exprs.map(translate(_)))
+    // shredded
+    case l @ NewLabel(vs) => 
+      Label(l.id, vs.map( v => 
+        translate(v.asInstanceOf[Expr]).asInstanceOf[Variable].name -> translate(v.asInstanceOf[Expr])).toList:_*)
+    case Lookup(lbl, dict) => CLookup(translate(lbl), translate(dict)) 
+    case EmptyDict => emptydict
+    case BagDict(lbl, flat, dict) => BagCDict(translate(lbl), translate(flat), translate(dict))
+    case BagDictProject(dict, field) => project(translate(dict), field)
+    case TupleDict(fs) => TupleCDict(fs.map(f => f._1 -> translate(f._2)))
+    case TupleDictProject(dict) => project(translate(dict), "tupleDict")
+    case DictUnion(d1, d2) => DictCUnion(translate(d1), translate(d2))
     case Total(e) => comprehension(translate(e), x => constant(true), (i: CExpr) => constant(1))
   }
 
