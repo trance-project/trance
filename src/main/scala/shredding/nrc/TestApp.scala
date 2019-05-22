@@ -926,9 +926,9 @@ object TestApp extends App
 //  Example6.run()
 //  Example7.run()
 //  Example8.run()
-//  Example9.run()
+  Example9.run()
 
 //  ExampleShredValue.run()
 
-    Example10_DeDup.run()
+//    Example10_DeDup.run()
 }

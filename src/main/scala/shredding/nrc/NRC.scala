@@ -77,7 +77,9 @@ trait NRC extends BaseExpr {
 
   implicit class TupleExprOps(tuple: TupleExpr) {
     def apply(field: String): TupleAttributeExpr = tuple match {
-      case t: Tuple => t.fields(field)
+      case Tuple(fs) => fs(field)
+      case TupleLet(x, e1, Tuple(fs)) =>
+        Let(x, e1, fs(field)).asInstanceOf[TupleAttributeExpr]
       case _ => tuple.tp(field) match {
         case _: PrimitiveType => PrimitiveProject(tuple, field)
         case _: BagType => BagProject(tuple, field)
