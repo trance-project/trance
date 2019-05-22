@@ -112,7 +112,8 @@ trait Shredding extends BaseShredding with Extensions {
       val xDict = VarDef(dictName(l.x.name), se1.dict.tp)
       val se2 = shred(l.e2, ctx + (l.x.name -> ShredExpr(ShredVarRef(xFlat), se1.dict)))
       val flat = ShredLet(xDict, se1.dict, ShredLet(xFlat, se1.flat, se2.flat))
-      ShredExpr(flat, se2.dict)
+      val dict = DictLet(xDict, se1.dict, se2.dict)
+      ShredExpr(flat, dict)
 
     case Total(e1) =>
       val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)

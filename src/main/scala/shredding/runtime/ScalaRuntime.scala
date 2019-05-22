@@ -51,12 +51,18 @@ trait ScalaRuntime {
     def apply(l: RLabel): List[Any] = f(l)
   }
 
-  final case class ROutBagDict(f: Context => List[Any], flatBagTp: BagType, dict: RTupleDict) extends RBagDict {
+  class DictFn(init: Context, val f: Context => List[Any]) {
+    // Store context when DictFn was created. Need only
+    // input values to be stored but we keep entire context.
+    val ctx = Context(init.ctx.toList: _*)
+  }
+
+  final case class ROutBagDict(dictFn: DictFn, flatBagTp: BagType, dict: RTupleDict) extends RBagDict {
     def apply(l: RLabel): List[Any] = l match {
       case ROutLabel(vs) =>
-        val ctx = new Context()
+        val ctx = dictFn.ctx
         vs.foreach(v => ctx.add(v._1, v._2))
-        f(ctx)
+        dictFn.f(ctx)
       case _: RInLabel => sys.error("Cannot evaluate ROutBagDict with RInLabel")
     }
   }

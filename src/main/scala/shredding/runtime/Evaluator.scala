@@ -47,12 +47,14 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
     case NewLabel(as) =>
       ROutLabel(as.map(a => a.varDef -> ctx(a.varDef)).toMap)
     case Lookup(l, BagDict(_, f, _)) =>
-      ROutBagDict(c => evalBag(f, c), f.tp, null)(evalLabel(l, ctx))
+      val dictFn = new DictFn(ctx, c => evalBag(f, c))
+      ROutBagDict(dictFn, f.tp, null)(evalLabel(l, ctx))
     case Lookup(l, d) =>
       evalBagDict(d, ctx)(evalLabel(l, ctx))
     case EmptyDict => REmptyDict
     case BagDict(_, flat, dict) =>
-      ROutBagDict(c => evalBag(flat, c), flat.tp, evalTupleDict(dict, ctx))
+      val dictFn = new DictFn(ctx, c => evalBag(flat, c))
+      ROutBagDict(dictFn, flat.tp, evalTupleDict(dict, ctx))
     case TupleDict(fs) =>
       RTupleDict(fs.map(f => f._1 -> eval(f._2, ctx).asInstanceOf[RTupleDictAttribute]))
     case BagDictProject(t, f) =>
