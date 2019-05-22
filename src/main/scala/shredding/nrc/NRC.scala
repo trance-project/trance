@@ -112,6 +112,10 @@ trait NRC extends BaseExpr {
     val tp: BagType = BagType(e.tp)
   }
 
+  final case class WeightedSingleton(e: TupleExpr, w: PrimitiveExpr) extends BagExpr {
+    val tp: BagType = BagType(e.tp)
+  }
+
   final case class Tuple(fields: Map[String, TupleAttributeExpr]) extends TupleExpr {
     val tp: TupleType = TupleType(fields.map(f => f._1 -> f._2.tp))
   }

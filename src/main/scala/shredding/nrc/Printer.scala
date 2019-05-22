@@ -19,6 +19,8 @@ trait Printer extends LinearizedNRC {
           |${ind(quote(e2))}""".stripMargin
     case Union(e1, e2) => s"(${quote(e1)}) Union (${quote(e2)})"
     case Singleton(e1) => s"Sng(${quote(e1)})"
+    case WeightedSingleton(e1, w1) =>
+      s"WeightedSng(${quote(e1)}, ${quote(w1)})"
     case Tuple(fs) =>
       s"(${fs.map { case (k, v) => k + " := " + quote(v) }.mkString(", ")})"
     case l: Let =>

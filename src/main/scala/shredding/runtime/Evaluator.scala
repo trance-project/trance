@@ -20,6 +20,9 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
       v
     case Union(e1, e2) => evalBag(e1, ctx) ++ evalBag(e2, ctx)
     case Singleton(e1) => List(evalTuple(e1, ctx))
+    case WeightedSingleton(e1, w1) =>
+//      List(evalTuple(e1, ctx))
+      sys.error("Unsupported evaluation of WeightedSingleton")
     case Tuple(fs) => fs.map(x => x._1 -> eval(x._2, ctx))
     case l: Let =>
       ctx.add(l.x, eval(l.e1, ctx))
