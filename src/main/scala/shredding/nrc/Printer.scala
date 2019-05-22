@@ -25,6 +25,7 @@ trait Printer extends LinearizedNRC {
       s"""|Let ${l.x.name} = ${quote(l.e1)} In
           |${quote(l.e2)}""".stripMargin
     case Total(e1) => s"Total(${quote(e1)})"
+    case DeDup(e1) => s"DeDup(${quote(e1)})"
     case i: IfThenElse =>
       if (i.e2.isDefined)
         s"""|If (${quote(i.cond.e1)} ${i.cond.op} ${quote(i.cond.e2)})

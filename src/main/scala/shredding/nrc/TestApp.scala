@@ -855,6 +855,69 @@ object TestApp extends App
     }
   }
 
+  object Example10_DeDup {
+
+    import shredding.Utils.Symbol
+
+    def run(): Unit = {
+
+      val itemTp = TupleType("a" -> IntType, "b" -> IntType)
+      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+
+      // Q = DeDup(For x in R Union {<m = x.a, n = DeDup(For y in R Union if x.a = y.a then {<o = y.b>})>})
+
+      val xdef = VarDef(Symbol.fresh("x"), itemTp)
+      val xref = TupleVarRef(xdef)
+      val ydef = VarDef(Symbol.fresh("y"), itemTp)
+      val yref = TupleVarRef(ydef)
+
+      val q1 =
+        DeDup(
+          ForeachUnion(xdef, relationR, Singleton(Tuple(
+            "m" -> xref("a"),
+            "n" ->
+              DeDup(ForeachUnion(ydef, relationR,
+                IfThenElse(Cond(OpEq, xref("a"), yref("a")), Singleton(Tuple("o" -> yref("b"))))
+              ))
+          ))))
+
+      println("[Ex10] Q1: " + quote(q1))
+
+      val relationRValue = List(
+        Map("a" -> 1, "b" -> 12),
+        Map("a" -> 1, "b" -> 33),
+        Map("a" -> 1, "b" -> 33),
+        Map("a" -> 1, "b" -> 45),
+        Map("a" -> 2, "b" -> 123),
+        Map("a" -> 2, "b" -> 1233)
+      )
+
+      val ctx = new Context()
+      ctx.add(relationR.varDef, relationRValue)
+
+      println("[Ex10] Q1 eval: " + eval(q1, ctx))
+
+      val q1shredraw = shred(q1)
+      println("[Ex10] Shredded Q1: " + quote(q1shredraw))
+
+      val q1shred = optimize(q1shredraw)
+      println("[Ex10] Shredded Q1 Optimized: " + quote(q1shred))
+
+      //      val q1trans = unshred(q1shred)
+      //      println("[Ex10] Unshredded shredded Q1: " + quote(q1trans))
+      //      println("[Ex10] Same as original Q1: " + q1trans.equals(q1))
+
+      val shredR = shred(relationRValue, relationR.tp)
+
+      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
+      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
+
+      val q1lin = linearize(q1shred)
+      println("[Ex10] Linearized Q1: " + quote(q1lin))
+      println("[Ex10] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+    }
+  }
+
 //  Example1.run()
 //  Example2.run()
 //  Example3.run()
@@ -863,8 +926,9 @@ object TestApp extends App
 //  Example6.run()
 //  Example7.run()
 //  Example8.run()
-
-  Example9.run()
+//  Example9.run()
 
 //  ExampleShredValue.run()
+
+    Example10_DeDup.run()
 }

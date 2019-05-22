@@ -27,6 +27,7 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
       ctx.remove(l.x)
       v
     case Total(e1) => evalBag(e1, ctx).size
+    case DeDup(e1) => evalBag(e1, ctx).distinct
     case i: IfThenElse =>
       val vl = eval(i.cond.e1, ctx)
       val vr = eval(i.cond.e2, ctx)

@@ -157,6 +157,10 @@ trait NRC extends BaseExpr {
     val tp: PrimitiveType = IntType
   }
 
+  final case class DeDup(e: BagExpr) extends BagExpr {
+    val tp: BagType = e.tp
+  }
+
   final case class Cond(op: OpCmp, e1: TupleAttributeExpr, e2: TupleAttributeExpr)
 
   trait IfThenElse {

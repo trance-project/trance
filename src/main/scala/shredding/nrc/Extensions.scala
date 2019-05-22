@@ -16,6 +16,7 @@ trait Extensions extends LinearizedNRC {
       case Tuple(fs) => fs.flatMap(x => collect(x._2, f)).toList
       case l: Let => collect(l.e1, f) ++ collect(l.e2, f)
       case Total(e1) => collect(e1, f)
+      case DeDup(e1) => collect(e1, f)
       case i: IfThenElse =>
         collect(i.cond.e1, f) ++ collect(i.cond.e2, f) ++
           collect(i.e1, f) ++ i.e2.map(collect(_, f)).getOrElse(Nil)
@@ -55,6 +56,8 @@ trait Extensions extends LinearizedNRC {
         ShredLet(xd, r1, r2)
       case Total(e1) =>
         Total(replace(e1, f).asInstanceOf[BagExpr])
+      case DeDup(e1) =>
+        DeDup(replace(e1, f).asInstanceOf[BagExpr])
       case i: IfThenElse =>
         val c1 = replace(i.cond.e1, f).asInstanceOf[TupleAttributeExpr]
         val c2 = replace(i.cond.e2, f).asInstanceOf[TupleAttributeExpr]

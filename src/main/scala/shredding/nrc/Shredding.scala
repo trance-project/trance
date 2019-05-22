@@ -105,8 +105,12 @@ trait Shredding extends BaseShredding with Extensions {
       ShredExpr(flat, se2.dict)
 
     case Total(e1) =>
-      val ShredExpr(lbl: LabelExpr, dict2: BagDictExpr) = shred(e1, ctx)
-      ShredExpr(Total(dict2.lookup(lbl)), EmptyDict)
+      val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      ShredExpr(Total(dict1.lookup(lbl)), EmptyDict)
+
+    case DeDup(e1) =>
+      val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      ShredExpr(lbl, BagDict(lbl, DeDup(dict1.lookup(lbl)), dict1.tupleDict))
 
     case i: IfThenElse =>
       val ShredExpr(c1: TupleAttributeExpr, _: DictExpr) = shred(i.cond.e1, ctx)
