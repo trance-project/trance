@@ -14,8 +14,8 @@ object FlatTest{
   val relationRValues = List(Map("a" -> 42, "b" -> "Milos"), Map("a" -> 49, "b" -> "Michael"),
                            Map("a" -> 34, "b" -> "Jaclyn"), Map("a" -> 42, "b" -> "Thomas"))
   val rF = Label.fresh()
-  val rD = Map(rF -> relationRValues)
-
+  val rDc = (List((rF, relationRValues)), ())
+  val rDu = relationRValues
 }
 
 object NestedTest {
@@ -55,6 +55,7 @@ object NestedTest {
         "h" -> IntType,
         "j" -> BagType(nestedItemTp)
       ))
+
 
       val inputRelationType = BagType(itemTp)
       val inputRelation = List(Map(
@@ -108,6 +109,22 @@ object NestedTest {
         )
       )
 
+      val rF = Label.fresh()
+      val rD1 = inputRelation.map{m => (m("h"), Label.fresh(), m("j").asInstanceOf[List[Map[String,Any]]]) }
+      val rD2 = rD1.map{ case (h, l, j) => (Label.fresh(), j.map{ m => 
+                  (m("m"), m("n"), Label.fresh(), m("k").asInstanceOf[List[_]])})}
+      val rD2j1 = rD2.map{ case (l, j) => (l, j.map{ case (m, n, l2, k) => Map("m" -> m, "n" -> n, "k" -> l2) }) }  
+      val rD2j2k1 = rD2.flatMap{ case (l, j) => j.map{ case (m, n, l2, k) => (l2, k) } }
+      val rDflat = rD1.map{ case (h,l,j) => Map("h" -> h, "j" -> l)}
+
+      
+      val tupleDict0 = scala.collection.mutable.Map[String, (Any, Any)]()
+      val tupleDict = scala.collection.mutable.Map[String, (Any, Any)]()
+      tupleDict0("k") = (rD2j2k1, ())
+      tupleDict("j") = (rD2j1, tupleDict0)
+      val rDc = (List((rF, rDflat)), tupleDict)
+      // not sure about this yet 
+      val rDu = (rDflat, tupleDict)
 }
 
 
@@ -582,17 +599,21 @@ object App {
     val norm = new Finalizer(bnorm)
     val beval = new BaseScalaInterp{}
     beval.ctx("R^F") = FlatTest.rF
-    beval.ctx("R^D") = FlatTest.rD
+    beval.ctx("R^D") = FlatTest.rDc
     val eval = new Finalizer(beval)
+    val unnest = new BaseUnnester{}
+    val unfin = new Finalizer(unnest)
 
     println("\nTranslated:")
     println(str.finalize(exp1))
-    //println(eval.finalize(exp1)) should i evaluate this?
     println("\nNormalized:")
     val nexp1 = norm.finalize(exp1).asInstanceOf[CExpr]
     println(str.finalize(nexp1))
     println("\nEvaluated:")
-    eval.finalize(nexp1).asInstanceOf[List[_]].foreach(println(_))
+    eval.finalize(nexp1)//.asInstanceOf[List[_]].foreach(println(_))
+    println("\nPlan:")
+    val plan1 = unfin.finalize(nexp1).asInstanceOf[CExpr]
+    println(str.finalize(plan1))
 
     val exp2 = {
       import shredder._
@@ -616,15 +637,27 @@ object App {
               ))
             )
         ))) 
-
+      val q2 = ForeachUnion(xdef, relationR, 
+                Singleton(Tuple("o5" -> xref("h"), "o6" -> Total(xref("j").asInstanceOf[BagExpr]))))
       shredPipeline(q)
     }
+
+    beval.ctx.clear
+    beval.ctx("R^F") = NestedTest.rF
+    beval.ctx("R^D") = NestedTest.rDc
 
     println("\nTranslated:")
     println(str.finalize(exp2))
     println("\nNormalized:")
     val nexp2 = norm.finalize(exp2).asInstanceOf[CExpr]
     println(str.finalize(nexp2))
+    //eval.finalize(nexp2)//.asInstanceOf[List[_]].foreach(println(_))
+    println("\nPlan:")
+    val plan2 = unfin.finalize(nexp2).asInstanceOf[CExpr]
+    println(str.finalize(plan2))
+    //plan2.asInstanceOf[LinearCSet].exprs.foreach(println(_))
+    //beval.ctx("R^D") = NestedTest.rDu
+    //eval.finalize(plan2)
 
     val exp3 = {
       import shredder._
@@ -649,7 +682,33 @@ object App {
     println("\nNormalized:")
     val nexp3 = norm.finalize(exp3).asInstanceOf[CExpr]
     println(str.finalize(nexp3))
+    println("\nPlan:")
+    val plan3 = unfin.finalize(nexp3).asInstanceOf[CExpr]
+    println(str.finalize(plan3))
  
+    val exp4 = {
+      import shredder._
+      val ytp = TupleType("b" -> IntType, "c" -> IntType)
+      val xtp = TupleType("a" -> IntType, "s1" -> BagType(ytp))
+      val xdef = VarDef("x", xtp)
+      val ydef = VarDef("y", ytp)
+
+      val r = BagVarRef(VarDef("R", BagType(xtp)))
+      val q = ForeachUnion(xdef, r,
+              Singleton(Tuple("a'" -> TupleVarRef(xdef)("a"),
+                "s1'" -> ForeachUnion(ydef, BagProject(TupleVarRef(xdef), "s1"),
+                          IfThenElse(Cond(OpGt, Const(5, IntType), TupleVarRef(ydef)("c")), Singleton(TupleVarRef(ydef)))))))
+      shredPipeline(q)
+    }
+ 
+    println("\nTranslated:")
+    println(str.finalize(exp4))
+    println("\nNormalized:")
+    val nexp4 = norm.finalize(exp4).asInstanceOf[CExpr]
+    println(str.finalize(nexp4))
+    println("\nPlan:")
+    val plan4 = unfin.finalize(nexp4).asInstanceOf[CExpr]
+    println(str.finalize(plan4))
   }
 
   def main(args: Array[String]){

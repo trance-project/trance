@@ -13,7 +13,9 @@ trait NRCTranslator extends LinearizedNRC {
     case TupleType(fs) if fs.isEmpty => EmptyCType
     case TupleType(fs) => RecordCType(fs.map(f => f._1 -> translate(f._2)))
     case BagDictType(f,d) => 
-      BagDictCType(translate(f).asInstanceOf[BagCType], translate(d).asInstanceOf[TTupleDict])
+      //???
+      BagDictCType(KVTupleCType(LabelType(Map[String, Type]()), translate(f)), 
+        translate(d).asInstanceOf[TTupleDict])
     case EmptyDictType => EmptyDictCType
     case TupleDictType(ts) => TupleDictCType(ts.map(f => f._1 -> translate(f._2).asInstanceOf[TDict]))
     case LabelType(fs) => LabelType(fs.map(f => f._1 -> translate(f._2)))
@@ -49,8 +51,6 @@ trait NRCTranslator extends LinearizedNRC {
     case ForeachUnion(x, e1, e2) => translate(e2) match { 
       case If(cond, e3 @ Sng(t), e4 @ None) => 
         Comprehension(translate(e1), Variable(x.name, translate(x.tp)), cond, e3)
-      case st @ Sng(t) => 
-        Comprehension(translate(e1), Variable(x.name, translate(x.tp)), constant(true), st)
       case te2 => 
         Comprehension(translate(e1), Variable(x.name, translate(x.tp)), constant(true), te2)
     }

@@ -6,7 +6,7 @@ sealed trait CExpr {
   def tp: Type
 }
 
-case class InputRef(data: String, tp: Type) extends CExpr
+case class InputRef(data: String, tp: Type) extends CExpr 
 
 case class Input(data: List[CExpr]) extends CExpr{
   def tp: BagCType = data match {
@@ -167,7 +167,7 @@ object Label {
 }
 
 case class CLookup(lbl: CExpr, dict: CExpr) extends CExpr {
-  def tp: BagCType = dict.tp.asInstanceOf[BagDictCType].flatTp
+  def tp: BagCType = dict.tp.asInstanceOf[BagDictCType].flat
 }
 
 case object EmptyCDict extends CExpr {
@@ -176,12 +176,14 @@ case object EmptyCDict extends CExpr {
 
 case class BagCDict(lbl: CExpr, flat: CExpr, dict: CExpr) extends CExpr {
   def tp: BagDictCType = 
-    BagDictCType(flat.tp.asInstanceOf[BagCType], dict.tp.asInstanceOf[TTupleDict])
+    BagDictCType(KVTupleCType(lbl.tp, flat.tp), dict.tp.asInstanceOf[TTupleDict])
   def apply(n: String) = n match {
-    case "flat" => flat // todoo
+    case "lbl" => lbl
+    case "flat" => flat
     case "tupleDict" => dict
   }
-  def _1 = flat // todo
+  def lambda = KVTuple(lbl, flat)
+  def _1 = flat
   def _2 = dict
 }
 

@@ -29,9 +29,9 @@ trait Base {
   def named(n: String, e: Rep): Rep
   def linset(e: List[Rep]): Rep
   def label(id: Int, vars: Map[String, Rep]): Rep
-  def lookup(lbl: Rep, dict: Rep => Rep): Rep
+  def lookup(lbl: Rep, dict: Rep): Rep
   def emptydict: Rep
-  def bagdict(flat: Rep => Rep, dict: Rep): Rep
+  def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep
   def tupledict(fs: Map[String, Rep]): Rep
   def dictunion(d1: Rep, d2: Rep): Rep
   def select(x: Rep, p: Rep => Rep): Rep
@@ -82,20 +82,17 @@ trait BaseStringify extends Base{
   def named(n: String, e: Rep): Rep = s"${n} := ${e}"
   def linset(e: List[Rep]): Rep = e.mkString("\n")
   def label(id: Int, vars: Map[String, Rep]): Rep = 
-    s"Label${id}(${vars.map(f => f._2).mkString(",")})"
-  def lookup(lbl: Rep, dict: Rep => Rep): Rep = s"Lookup(${lbl}, ${dict(lbl)})"
+    s"Label${id}(${vars.map(f => f._1 +"->"+f._2).mkString(",")})"
+  def lookup(lbl: Rep, dict: Rep): Rep = s"Lookup(${lbl}, ${dict})"
   def emptydict: Rep = s"Nil"
-  def bagdict(flat: Rep => Rep, dict: Rep): Rep = {
-    val lbl = Label.fresh()
-    s"(${lbl.quote} -> ${flat(lbl.quote)}, ${dict})"
-  }
+  def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = s"(${lbl} -> ${flat}, ${dict})"
   def tupledict(fs: Map[String, Rep]): Rep =
     s"(${fs.map(f => f._1 + " := " + f._2).mkString(",")})"
   def dictunion(d1: Rep, d2: Rep): Rep = s"${d1} U ${d2}"
   def select(x: Rep, p: Rep => Rep): Rep = { 
     s""" | SELECT[ ${p(Variable.fresh(StringType).quote)} ](${x} )""".stripMargin
   }
-  def reduce(x: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
+  def reduce(x: Rep, f: Rep => Rep, p: Rep => Rep): Rep = { 
     val v = Variable.fresh(StringType)
     s""" | REDUCE[ ${f(v.quote)} / ${p(v.quote)} ](${x})""".stripMargin
   }
@@ -128,35 +125,58 @@ trait BaseStringify extends Base{
 
 }
 
+
+// plan builder? which implements some of the unnesting
 trait BaseUnnester extends BaseCompiler {
-  override def record(fs: Map[String, Rep]): Rep = {
-    Record(fs.map(f => f._2 match {
-      case Reduce(d1, v1, e1, p1) =>  // Reduce (o7 := w.m, o8 := Reduce(w.k, v0, 1, true)) group by v1 and 
-        d1 match {
-          case Project(e, field) => 
-            val v2 = Variable.fresh(KVTupleCType(v1.tp, d1.tp.asInstanceOf[BagCType].tp))
-            val v3 = Variable.fresh(KVTupleCType(v2.tp, e1.tp))
-            f._1 -> Nest(OuterUnnest(e, v1, d1, v2, constant(true)), v2, v2, e1, v3, p1)
-          case _ => 
-            val v2 = Variable.fresh(KVTupleCType(v1.tp, e1.tp))
-            f._1 -> Nest(d1, v1, v1, e1, v2, p1)   
+
+  override def reduce(d1: Rep, e1: Rep => Rep, p1: Rep => Rep): Rep = {
+    val v1 = Variable.fresh(d1.tp.asInstanceOf[BagCType].tp)
+    e1(v1) match {
+      case Reduce(d2, v2, e2, p2) => d2 match {// todo push joins
+        case Project(e, field) => 
+          // C7, { { e2 | v2 <- d1, v3 <- v2.field, p2 } | v1 <- d1, p1(v1) }
+          val v3 = Variable.fresh(d2.tp.asInstanceOf[BagCType].tp)
+          Reduce(Unnest(d1, v2, d2, v3, p2), v1, e2, p1(v1)) 
+        case Nest(d3, v3, f, e3, v4, p3) => d3 match {
+          case _ => Reduce(d1, v1, e1(v1), p1(v1)) // TODO, outer(join/unnest)
         }
-      case f2 => f._1 -> f2
-    }))
+        case _ => 
+          // C6, { { e2 | v2 <- d2, p2 } | v1 <- d1, p1(v1) }
+          val v3 = Variable.fresh(KVTupleCType(v1.tp, v2.tp))
+          Reduce(Join(d1, d2, v1, p1(v1), v2, p2), v3, e2, constant(true))
+      }
+      case _ => Reduce(d1, v1, e1(v1), p1(v1)) // C5, w = ()
+    }
   }
+
+  override def sng(e: Rep): Rep = e match {
+    case Reduce(d1, v1, e1, p1) => e
+    case _ => super.sng(e)
+  }
+
+  override def record(fs: Map[String, Rep]): Rep = {
+    fs.filter(f => f._2.isInstanceOf[Reduce]).toList match {
+      case Nil => super.record(fs) // C5, w = ()
+      case (key, value @ Reduce(d1, v1, e1, p1)) :: tail =>
+        // C11, { { f({ e1 | v1 <- d1, p1 })  | p } | ... }
+        // { { f(v2) | p } | v2 <- { e1 | v1 <- d1, p1 } }
+        val v2 = Variable.fresh(KVTupleCType(v1.tp, e1.tp)) // w = v1, u = v1
+        val nested = Nest(d1, v1, v1, e1, v2, p1)
+        val fv2 = record(fs + (key -> v2)) match {
+          case r @ Record(fs2) => sng(r)
+          case e => e // futher nests
+        }
+        Reduce(nested, v2, fv2, constant(true))
+    }
+  }
+  
   override def comprehension(d1: Rep, p1: Rep => Rep, e1: Rep => Rep): Rep = {
     val v1 = Variable.fresh(d1.tp.asInstanceOf[BagCType].tp)
     p1(v1) match {
-      case Constant(true) => 
-        e1(v1) match {
-          case Reduce(d2, v2, e2, p2) => 
-            // todo pushing the p2 condition to the join
-            Join(Select(d1, v1, p1(v1)), Select(d2, v2, p2), v1, constant(true), v2, constant(true))
-          case body => Reduce(d1, v1, body, p1(v1))
-        }
-      case _ => comprehension(Select(d1, v1, p1(v1)), (i: Rep) => constant(true), e1)   
+      case Constant(true) => reduce(d1, e1, p1) // vacuous C4, C5, w = ()
+      case p => reduce(Select(d1, v1, p), e1, x => constant(true)) //C4, w = ()
     }
-  }    
+  }
 }
 
 
@@ -192,17 +212,17 @@ trait BaseCompiler extends Base {
   def named(n: String, e: Rep): Rep = CNamed(n, e)
   def linset(e: List[Rep]): Rep = LinearCSet(e)
   def label(id: Int, vars: Map[String, Rep]): Rep = Label(id, vars)
-  def lookup(lbl: Rep, dict: Rep => Rep): Rep = CLookup(lbl, dict(lbl))
+  def lookup(lbl: Rep, dict: Rep): Rep = CLookup(lbl, dict)
   def emptydict: Rep = EmptyCDict
-  def bagdict(flat: Rep => Rep, dict: Rep): Rep = { 
-    val lbl = Label.fresh()
-    BagCDict(lbl, flat(lbl), dict)
-  }
+  def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = BagCDict(lbl, flat, dict)
   def tupledict(fs: Map[String, Rep]): Rep = TupleCDict(fs)
   def dictunion(d1: Rep, d2: Rep): Rep = DictCUnion(d1, d2)
   def select(x: Rep, p: Rep => Rep): Rep = {
     val v = Variable.fresh(x.tp.asInstanceOf[BagCType].tp)
-    Select(x, v, p(v))
+    p(v) match {
+      case Constant(true) => x
+      case _ => Select(x, v, p(v))
+    }
   }
   def reduce(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
     val v = Variable.fresh(e1.tp)
@@ -290,6 +310,11 @@ trait BaseNormalizer extends BaseCompiler {
     case _ => super.ifthen(cond, e1, e2)
   }
 
+  override def lookup(lbl: Rep, dict: Rep): Rep = dict match {
+    case BagCDict(lbl2, flat2, dict2) if (lbl2.tp == lbl.tp) => flat2
+    case _ => super.lookup(lbl, dict)
+  }
+
   // { e(v) | v <- e1, p(v) }
   // where fegaras and maier does: { e | q, v <- e1, s } 
   // this has { { { e | s } | v <- e1 } | q }
@@ -335,13 +360,19 @@ trait BaseScalaInterp extends Base{
   def not(e1: Rep): Rep = !e1.asInstanceOf[Boolean]
   def or(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Boolean] || e2.asInstanceOf[Boolean]
   def project(e1: Rep, field: String) = e1 match {
-    case ms:Map[_,_] => ms.asInstanceOf[Map[String,_]].get(field).get
-    case ms:List[_] => ms(field.toInt)
+    case ms:Map[String,_] => ms(field)
+    case ms:scala.collection.mutable.HashMap[String,_] => ms(field)
+    case ms:List[_] => ms(0) match { // list flattening issue
+      case l:List[_] => l(0).asInstanceOf[Map[String, Rep]](field)
+      case m => m.asInstanceOf[Map[String, Rep]](field)
+    }
     case ms:Product => field match {
       case "key" => ms.asInstanceOf[Product].productElement(0)
       case "value" => ms.asInstanceOf[Product].productElement(1)
+      case "tupleDict" => ms.asInstanceOf[Product].productElement(1)
       case _ => ms.asInstanceOf[Product].productElement(field.toInt)
     }
+    case _ => sys.error("match error with "+e1.getClass)
   }
   // check this with the notes
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = e2 match {
@@ -349,24 +380,37 @@ trait BaseScalaInterp extends Base{
     case _ => if (cond.asInstanceOf[Boolean]) { e1 } else { Nil }
   } 
   def merge(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[List[_]] ++ e2.asInstanceOf[List[_]]
-  def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
-    val data = e1.asInstanceOf[List[_]]
-    e(data.head) match {
-      case i:Map[_,Rep] if i.isEmpty => data
-      case i:Int => data.filter(p.asInstanceOf[Rep => Boolean]).map(e).asInstanceOf[List[Int]].sum
-      case _ => data.filter(p.asInstanceOf[Rep => Boolean]).map(e)
-    }
+  def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = e1 match {
+      case Nil => Nil // why is this happening
+      case data @ (head :: tail) => e(head) match {
+                case i:Map[_,Rep] if i.isEmpty => data
+                case l:List[Map[_,Rep]] if l.size == 1 => 
+                  data.filter(p.asInstanceOf[Rep => Boolean]).map(m => e(m).asInstanceOf[List[_]](0))
+                case i:Int => 
+                  data.filter(p.asInstanceOf[Rep => Boolean]).map(e).asInstanceOf[List[Int]].sum
+                case _ => data.filter(p.asInstanceOf[Rep => Boolean]).map(e)
+              }
   }
   def named(n: String, e: Rep): Rep = {
     ctx(n) = e
+    println(n+" := "+e)
     e
   }
   def linset(e: List[Rep]): Rep = e
   def bind(e1: Rep, e: Rep => Rep): Rep = e(e1)
-  def label(id: Int, fs: Map[String, Rep]): Rep = (id, fs.map(f => f._2))
-  def lookup(lbl: Rep, dict: Rep => Rep): Rep = dict(lbl).asInstanceOf[Map[Rep,Rep]](lbl)
+  def label(id: Int, fs: Map[String, Rep]): Rep = {
+    fs.foreach(f => ctx(f._1) = f._2)
+    (id, fs.map(f => f._2))
+  }
+  def lookup(lbl: Rep, dict: Rep): Rep = dict match {
+    case (flat, tdict) => flat match {
+      case (head:Map[String,Rep]) :: tail => flat
+      case _ => flat.asInstanceOf[List[(_,_)]].withFilter(_._1 == lbl).map(_._2)
+    }
+    case _ => dict // (flat, ())
+  }
   def emptydict: Rep = ()
-  def bagdict(flat: Rep => Rep, dict: Rep): Rep = (flat, dict)
+  def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = (flat.asInstanceOf[List[_]].map(v => (lbl, v)), dict)
   def tupledict(fs: Map[String, Rep]): Rep = fs
   def dictunion(d1: Rep, d2: Rep): Rep = d1 // TODO
   def select(x: Rep, p: Rep => Rep): Rep = 
@@ -382,17 +426,18 @@ trait BaseScalaInterp extends Base{
       v => f(v).asInstanceOf[List[_]].map{ v2 => (v, v2) }
     }.filter{p.asInstanceOf[Rep => Boolean]}
   }
+  // e1.map(p1).join(e2.map(p2))
   def join(e1: Rep, e2: Rep, p1: Rep => Rep, p2: Rep => Rep): Rep = {
     e1.asInstanceOf[List[_]].map(v1 => 
       e2.asInstanceOf[List[_]].filter{ v2 => p1(v1) == p2(v2) }.map(v2 => (v1, v2)))
   }
   def nest(e1: Rep, f: Rep => Rep, e: Rep => Rep, p: Rep => Rep): Rep = {
-    val grpd = e1.asInstanceOf[List[_]].map(v => (f(v), e(v))).groupBy(_._1).toList match {
-      case l @ ((head: (_, List[_])) :: tail) => // fix erasure 
-        l.asInstanceOf[List[_]].map{case (k,v:List[_]) => (k, v.size)} // sum
-      case l => l
+    val grpd = e1.asInstanceOf[List[_]].map(v => (f(v), e(v))).groupBy(_._1)
+    e(e1.asInstanceOf[List[_]].head) match {
+      case i:Int => 
+        grpd.map{ case (k, v:List[Int]) => (k, v.size)}.filter(p.asInstanceOf[Rep => Boolean])
+      case _ => grpd.filter(p.asInstanceOf[Rep => Boolean])
     }
-    grpd.filter(p.asInstanceOf[Rep => Boolean])
   }
   def outerunnest(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
     e1.asInstanceOf[List[_]].flatMap{
@@ -408,19 +453,11 @@ trait BaseScalaInterp extends Base{
 
 class Finalizer(val target: Base){
   var variableMap: Map[Variable, target.Rep] = Map[Variable, target.Rep]()
-  var labelMap: Map[target.Rep, target.Rep] = Map[target.Rep, target.Rep]()
   def withMap[T](m: (Variable, target.Rep))(f: => T): T = {
     val old = variableMap
     variableMap = variableMap + m
     val res = f
     variableMap = old
-    res
-  }
-  def withLMap[T](m: (target.Rep, target.Rep))(f: => T): T = {
-    val old = labelMap
-    labelMap = labelMap + m
-    val res = f
-    labelMap = old
     res
   }
   def finalize(e: CExpr): target.Rep = e match {
@@ -457,17 +494,15 @@ class Finalizer(val target: Base){
     case Bind(x, e1, e) =>
       target.bind(finalize(e1), (r: target.Rep) => withMap(x -> r)(finalize(e)))
     case CNamed(n, e) => target.named(n, finalize(e))
-    case LinearCSet(exprs) => target.linset(exprs.map(finalize(_)))
-    case Label(id, vars) => {
-      val lbl = target.label(id, vars.withFilter(f => !f._2.isInstanceOf[InputRef]).map(f => 
-                  f._1 -> finalize(f._2)))
-      labelMap.getOrElse(lbl, lbl)
-    }
+    case LinearCSet(exprs) => 
+      target.linset(exprs.map(finalize(_)))
+    case Label(id, vars) =>
+      target.label(id, vars.withFilter(f => !f._2.isInstanceOf[InputRef]).map(f => f._1 -> finalize(f._2)))
     case CLookup(l, d) => 
-      val lbl = finalize(l)
-      target.lookup(lbl, (r: target.Rep) => withLMap(lbl -> r)(finalize(d)))
+      target.lookup(finalize(l), finalize(d))
     case EmptyCDict => target.emptydict
-    case BagCDict(l, f, d) => target.bagdict((r: target.Rep) => withLMap(finalize(l) -> r)(finalize(f)), finalize(d))
+    case BagCDict(l, f, d) => 
+      target.bagdict(finalize(l), finalize(f), finalize(d))
     case TupleCDict(fs) => target.tupledict(fs.map(f => f._1 -> finalize(f._2)))
     case DictCUnion(d1, d2) => target.dictunion(finalize(d1), finalize(d2))
     case Select(x, v, p) =>

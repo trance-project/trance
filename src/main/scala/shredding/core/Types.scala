@@ -63,6 +63,7 @@ object TupleDictType {
   * Calculus types
   */
 
+
 case class BagCType(tp: Type) extends Type
 
 case object EmptyCType extends Type
@@ -95,13 +96,16 @@ trait TTupleDict extends Type
 
 case object EmptyDictCType extends TDict with TTupleDict
 
-case class BagDictCType(flatTp: BagCType, dictTp: TTupleDict) extends TDict {
+case class BagDictCType(flatTp: KVTupleCType, dictTp: TTupleDict) extends TDict {
   def apply(n: String): Type = n match {
-    case "flat" => flatTp
+    case "lbl" => flatTp.e1
+    case "flat" => flatTp.e2
     case "tupleDict" => dictTp
     case "0" => flatTp
     case "1" => dictTp
   }
+  def lbl: LabelType = flatTp._1.asInstanceOf[LabelType]
+  def flat: BagCType = flatTp._2.asInstanceOf[BagCType]
   def _1 = flatTp
   def _2 = dictTp
 }

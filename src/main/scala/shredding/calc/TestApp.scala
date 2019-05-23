@@ -19,8 +19,8 @@ object TestApp extends App with
     //run1()
     //run2()
     //run3()
-    //run4()
-    run6()
+    run4()
+    //run6()
   }
  
    /**
@@ -372,7 +372,7 @@ object TestApp extends App with
       val ucq1 = Pipeline.run(q1)
       val ucq2 = Pipeline.run(q2)
       val ucq4 = Pipeline.run(q4)
-      //val ucq = ShredPipeline.runOptimized(q4)
+      val ucq = ShredPipeline.runOptimized(q4)
      }
 
 }
