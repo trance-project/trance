@@ -125,9 +125,70 @@ trait BaseStringify extends Base{
 
 }
 
+object Unnester {
+  import shredding.algebra.{CExpr => Exp, Variable => Sym}
+  type Ctx = (List[Sym], List[Sym], Option[Exp])
+  @inline def u(implicit ctx: Ctx): List[Sym] = ctx._1
+  @inline def w(implicit ctx: Ctx): List[Sym] = ctx._2
+  @inline def E(implicit ctx: Ctx): Option[Exp] = ctx._3
+  def unnest(e: Exp)(implicit ctx: Ctx): Exp = e match {
+    case Comprehension(e1, v, p, e) if u.isEmpty && w.isEmpty && E.isEmpty => 
+      unnest(e)((Nil, List(v), Some(Select(e1, v, p)))) // C4
+    case Sng(t) if u.isEmpty && !w.isEmpty =>
+    // case Comprehension(e1, v, p, e @ Sng(t)) if u.isEmpty && !w.isEmpty =>
+      // TODO C12
+      assert(!E.isEmpty)
+      Reduce(E.get, w.last, t, Constant(true)) // C5
+    case Comprehension(e1 @ Project(e0, f), v, p, e) if u.isEmpty && !w.isEmpty =>
+      assert(!E.isEmpty)
+      val nE = Some(Unnest(E.get, w.last, e1, v, p))
+      unnest(e)((u, w :+ v, nE)) // C7
+    case _ =>
+      e
+  }
+}
 
 // plan builder? which implements some of the unnesting
 trait BaseUnnester extends BaseCompiler {
+  // type Ctx = (List[Sym], List[Sym], Option[CExpr])
+  // var ctx: Ctx = (Nil, Nil, None)
+  // def withCtx[T](newCtx: Ctx)(f: => T): T = {
+  //   val old = ctx
+  //   ctx = newCtx
+  //   val res = f
+  //   ctx = old
+  //   res
+  // }
+
+  // override def sng(e: Rep): Rep = e match {
+  //   case Reduce(d1, v1, e1, p1) => e
+  //   case _ => super.sng(e)
+  // }
+
+  // override def reduce(d1: Rep, e1: Rep => Rep, p1: Rep => Rep): Rep = {
+  //   val v1 = Variable.fresh(d1.tp.asInstanceOf[BagCType].tp)
+  //   d1 match {
+  //     Project(e, field) => 
+  //       // C7, { { e2 | v2 <- d1, v3 <- v2.field, p2 } | v1 <- d1, p1(v1) }
+  //       val v = Variable.fresh(d2.tp.asInstanceOf[BagCType].tp)
+  //       Reduce(Unnest(d1, v2, d2, v3, p2), v1, e2, p1(v1)) 
+  //   }
+  //   e1(v1) match {
+  //       case Project(e, field) => 
+  //         // C7, { { e2 | v2 <- d1, v3 <- v2.field, p2 } | v1 <- d1, p1(v1) }
+  //         val v3 = Variable.fresh(d2.tp.asInstanceOf[BagCType].tp)
+  //         Reduce(Unnest(d1, v2, d2, v3, p2), v1, e2, p1(v1)) 
+  //       case Nest(d3, v3, f, e3, v4, p3) => d3 match {
+  //         case _ => Reduce(d1, v1, e1(v1), p1(v1)) // TODO, outer(join/unnest)
+  //       }
+  //       case _ => 
+  //         // C6, { { e2 | v2 <- d2, p2 } | v1 <- d1, p1(v1) }
+  //         val v3 = Variable.fresh(KVTupleCType(v1.tp, v2.tp))
+  //         Reduce(Join(d1, d2, v1, p1(v1), v2, p2), v3, e2, constant(true))
+  //     }
+  //     case _ => Reduce(d1, v1, e1(v1), p1(v1)) // C5, w = ()
+  //   }
+  // }
 
   override def reduce(d1: Rep, e1: Rep => Rep, p1: Rep => Rep): Rep = {
     val v1 = Variable.fresh(d1.tp.asInstanceOf[BagCType].tp)
@@ -324,7 +385,7 @@ trait BaseNormalizer extends BaseCompiler {
     e1 match {
       case If(cond, e3, e4 @ Some(a)) => //N4
         If(cond, comprehension(e3, p, e), Some(comprehension(a, p, e)))
-      case EmptySng => e1 // N5 
+      case EmptySng => EmptySng // N5 
       case Sng(t) => ifthen(p(t), Sng(e(t))) // N6
       case Merge(e1, e2) => Merge(comprehension(e1, p, e), comprehension(e2, p, e))  //N7
       case Variable(_,_) => ifthen(p(e1), Sng(e(e1))) // input relation

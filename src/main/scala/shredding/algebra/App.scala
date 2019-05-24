@@ -711,12 +711,39 @@ object App {
     println(str.finalize(plan4))
   }
 
+  def runBase(){
+    val translator = new NRCTranslator{}
+
+    val exp1 = {
+      import translator._
+      val itemTp = TupleType("a" -> IntType, "b" -> BagType(TupleType("c" -> IntType)))
+      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+      val x = VarDef("x", itemTp)
+      val y = VarDef("y", TupleType("c" -> IntType))
+      val q = ForeachUnion(x, relationR, ForeachUnion(y, BagProject(TupleVarRef(x), "b"), Singleton(Tuple("o1" -> TupleVarRef(y)("c")))))
+      translate(q)
+    }
+
+    val bstr = new BaseStringify{}
+    val str = new Finalizer(bstr)
+    val bnorm = new BaseNormalizer{}
+    val norm = new Finalizer(bnorm)
+    val comp = new Finalizer(new BaseCompiler {})
+
+    val normalized = norm.finalize(exp1).asInstanceOf[CExpr]
+    println(str.finalize(normalized))
+    val unnested = Unnester.unnest(normalized)((Nil, Nil, None))
+    val unnestedOpt = comp.finalize(unnested).asInstanceOf[CExpr]
+    println(str.finalize(unnestedOpt))
+  }
+
   def main(args: Array[String]){
-    //run1()
+    // run1()
     //run2()
     //run3()
     //runNormlizationTests()
-    runShred()
+    // runShred()
+    runBase()
   }
 
 
