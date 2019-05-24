@@ -719,22 +719,63 @@ object App {
       val itemTp = TupleType("a" -> IntType, "b" -> BagType(TupleType("c" -> IntType)))
       val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
       val x = VarDef("x", itemTp)
+      val x1 = VarDef("x1", itemTp)
       val y = VarDef("y", TupleType("c" -> IntType))
-      val q = ForeachUnion(x, relationR, ForeachUnion(y, BagProject(TupleVarRef(x), "b"), Singleton(Tuple("o1" -> TupleVarRef(y)("c")))))
+      val q = ForeachUnion(x, relationR, 
+                ForeachUnion(x1, relationR,
+                  ForeachUnion(y, BagProject(TupleVarRef(x), "b"), 
+                    Singleton(Tuple("o1" -> TupleVarRef(x1)("a"), "o2" -> TupleVarRef(y)("c"))))))
       translate(q)
     }
+
+    val exp2 = {
+      import translator._
+      val itemTp = NestedTest.itemTp
+      val relationR = BagVarRef(VarDef("R", NestedTest.inputRelationType)) 
+
+      val xdef = VarDef("x", NestedTest.itemTp)
+      val xref = TupleVarRef(xdef)
+      val wdef = VarDef("w", NestedTest.nestedItemTp)
+      val wref = TupleVarRef(wdef)
+      val ndef = VarDef("y", TupleType("n" -> IntType))
+
+      val q = ForeachUnion(xdef, relationR,
+        Singleton(Tuple(
+          "o5" -> xref("h"),
+          "o6" ->
+            ForeachUnion(wdef, BagProject(xref, "j"),
+              Singleton(Tuple(
+                "o7" -> wref("m"),
+                "o8" -> Total(BagProject(wref, "k"))
+              ))
+            )
+        ))) 
+      translate(q)
+    }
+
+
 
     val bstr = new BaseStringify{}
     val str = new Finalizer(bstr)
     val bnorm = new BaseNormalizer{}
     val norm = new Finalizer(bnorm)
-    val comp = new Finalizer(new BaseCompiler {})
-
+    
     val normalized = norm.finalize(exp1).asInstanceOf[CExpr]
     println(str.finalize(normalized))
     val unnested = Unnester.unnest(normalized)((Nil, Nil, None))
-    val unnestedOpt = comp.finalize(unnested).asInstanceOf[CExpr]
+    val unnestedOpt = norm.finalize(unnested).asInstanceOf[CExpr] // call bind
     println(str.finalize(unnestedOpt))
+
+    println("")
+    val normalized2 = norm.finalize(exp2).asInstanceOf[CExpr]
+    println(str.finalize(normalized2))
+    val unnested2 = Unnester.unnest(normalized2)((Nil, Nil, None))
+    println("Plan")
+    println(str.finalize(unnested2))
+    println("Optimized Plan")
+    val unnestedOpt2 = norm.finalize(unnested2).asInstanceOf[CExpr] // call bind
+    println(str.finalize(unnestedOpt2))
+
   }
 
   def main(args: Array[String]){
