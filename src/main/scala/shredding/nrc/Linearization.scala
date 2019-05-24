@@ -7,7 +7,7 @@ import shredding.core._
   * Linearization of nested output queries
   */
 trait Linearization {
-  this: LinearizedNRC with Shredding =>
+  this: LinearizedNRC with Shredding with Optimizer =>
 
   val initCtxName: String = "initCtx"
 
@@ -32,7 +32,7 @@ trait Linearization {
     //    consisting of labels from ctx and flat bags from dict
     val ldef = VarDef(Symbol.fresh("l"), ctx.tp.tp)
     val lbl = LabelProject(TupleVarRef(ldef), "lbl")
-    val kvpair = Tuple("k" -> lbl, "v" -> dict.lookup(lbl))
+    val kvpair = Tuple("k" -> lbl, "v" -> optimize(dict.lookup(lbl)).asInstanceOf[BagExpr])
     val mFlat = ForeachUnion(ldef, ctx, Singleton(kvpair))
     val mFlatNamed = Named(VarDef(Symbol.fresh("M_flat"), mFlat.tp), mFlat)
     val mFlatRef = BagVarRef(mFlatNamed.v)
@@ -46,9 +46,9 @@ trait Linearization {
         val kvDef = VarDef(Symbol.fresh("kv"), mFlat.tp.tp)
         val xDef = VarDef(Symbol.fresh("xF"), dict.tp.flatTp.tp)
         val mCtx =
-          ForeachUnion(kvDef, mFlatRef,
+          DeDup(ForeachUnion(kvDef, mFlatRef,
             ForeachUnion(xDef, BagProject(TupleVarRef(kvDef), "v"),
-              Singleton(Tuple("lbl" -> LabelProject(TupleVarRef(xDef), n)))))
+              Singleton(Tuple("lbl" -> LabelProject(TupleVarRef(xDef), n))))))
         val mCtxNamed = Named(VarDef(Symbol.fresh("M_ctx"), mCtx.tp), mCtx)
         val mCtxRef = BagVarRef(mCtxNamed.v)
         val bagDict = dict.tupleDict(n)
