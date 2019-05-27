@@ -127,8 +127,8 @@ case class Comprehension(e1: CExpr, v: Variable, p: CExpr, e: CExpr) extends CEx
   }
 }
 
-// bind x to e in e1
-case class Bind(x: Variable, e1: CExpr, e: CExpr) extends CExpr {
+// replace all occurences of x with e1 in e1
+case class Bind(x: CExpr, e1: CExpr, e: CExpr) extends CExpr {
   def tp: Type = e.tp
 }
 
@@ -167,7 +167,7 @@ object Label {
 }
 
 case class CLookup(lbl: CExpr, dict: CExpr) extends CExpr {
-  def tp: BagCType = dict.tp.asInstanceOf[BagDictCType].flat
+  def tp: BagCType = dict.tp.asInstanceOf[BagDictCType]._1
 }
 
 case object EmptyCDict extends CExpr {
@@ -176,11 +176,13 @@ case object EmptyCDict extends CExpr {
 
 case class BagCDict(lbl: CExpr, flat: CExpr, dict: CExpr) extends CExpr {
   def tp: BagDictCType = 
-    BagDictCType(KVTupleCType(lbl.tp, flat.tp), dict.tp.asInstanceOf[TTupleDict])
+    BagDictCType(BagCType(KVTupleCType(lbl.tp, flat.tp)), dict.tp.asInstanceOf[TTupleDict])
   def apply(n: String) = n match {
     case "lbl" => lbl
     case "flat" => flat
     case "tupleDict" => dict
+    case "0" => KVTuple(lbl, flat)
+    case "1" => dict
   }
   def lambda = KVTuple(lbl, flat)
   def _1 = flat
@@ -208,7 +210,7 @@ case class DictCUnion(d1: CExpr, d2: CExpr) extends CExpr {
 case class Select(x: CExpr, v: Variable, p: CExpr) extends CExpr {
   def tp: Type = x.tp
 }
-case class Reduce(e1: CExpr, v: Variable, e2: CExpr, p: CExpr) extends CExpr {
+case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CExpr {
   def tp: Type = e2.tp match {
     case t:RecordCType => BagCType(t)
     case t => t
@@ -216,23 +218,27 @@ case class Reduce(e1: CExpr, v: Variable, e2: CExpr, p: CExpr) extends CExpr {
 }
 
 // { (v1, v2) | v1 <- e1, v2 <- e2(v1), p((v1, v2)) } 
-case class Unnest(e1: CExpr, v1: Variable, e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
-  def tp: Type = BagCType(KVTupleCType(v1.tp, e2.tp.asInstanceOf[BagCType].tp))
+case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
+  def tp: Type = BagCType(KVTupleCType(e1.tp.asInstanceOf[BagCType].tp, e2.tp.asInstanceOf[BagCType].tp))
 }
 
-case class OuterUnnest(e1: CExpr, v1: Variable, e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
-  def tp: Type = BagCType(KVTupleCType(v1.tp, e2.tp.asInstanceOf[BagCType].tp))
+case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
+  def tp: Type = BagCType(KVTupleCType(e1.tp.asInstanceOf[BagCType].tp, e2.tp.asInstanceOf[BagCType].tp))
 }
 
-case class Nest(e1: CExpr, v1: Variable, f: CExpr, e: CExpr, v2: Variable, p: CExpr) extends CExpr {
-  def tp: Type = BagCType(KVTupleCType(f.tp, e.tp))
+case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr) extends CExpr {
+  def tp: Type = BagCType(v2.tp) // KVTupleCType(et.tp, BagType(t.tp))
 }
 
-case class OuterJoin(e1: CExpr, e2: CExpr, v1: Variable, p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
-  def tp: BagCType = BagCType(KVTupleCType(e1.tp, e2.tp))
+case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
+  def tp: BagCType = e1.tp match {
+    case BagCType(RecordCType(fs)) if fs.size == 1 && fs.contains("lbl") =>
+      BagCType(e2.tp.asInstanceOf[BagCType].tp)
+    case _ => BagCType(KVTupleCType(e1.tp, e2.tp))
+  }
 }
 
-case class Join(e1: CExpr, e2: CExpr, v1: Variable, p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
+case class Join(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
   def tp: BagCType = BagCType(KVTupleCType(e1.tp, e2.tp))
 }
 

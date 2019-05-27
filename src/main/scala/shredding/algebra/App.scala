@@ -197,11 +197,9 @@ object App {
      }
 
     val inters = new BaseStringify{}
-    val interu = new BaseUnnester{}
     val inter = new BaseScalaInterp{}
     val finalizer = new Finalizer(inter)
     val finalizers = new Finalizer(inters)
-    val finalizeru = new Finalizer(interu)
     println(finalizers.finalize(exp1))
     println(finalizer.finalize(exp1))
     println("")
@@ -237,9 +235,6 @@ object App {
     val finse = new Finalizer(intere)
     println(finse.finalize(exp1)) 
   
-    val interu = new BaseUnnester{}
-    val finsu = new Finalizer(interu)
-    println(fins.finalize(finsu.finalize(exp1).asInstanceOf[CExpr]))
 
     val exp2 = {
       import translator._
@@ -597,23 +592,25 @@ object App {
     val str = new Finalizer(bstr)
     val bnorm = new BaseNormalizer{}
     val norm = new Finalizer(bnorm)
-    val beval = new BaseScalaInterp{}
-    beval.ctx("R^F") = FlatTest.rF
-    beval.ctx("R^D") = FlatTest.rDc
-    val eval = new Finalizer(beval)
-    val unnest = new BaseUnnester{}
-    val unfin = new Finalizer(unnest)
-
     println("\nTranslated:")
     println(str.finalize(exp1))
     println("\nNormalized:")
     val nexp1 = norm.finalize(exp1).asInstanceOf[CExpr]
     println(str.finalize(nexp1))
-    println("\nEvaluated:")
-    eval.finalize(nexp1)//.asInstanceOf[List[_]].foreach(println(_))
+    val plan = Unnester.unnest(nexp1)((Nil, Nil, None))
     println("\nPlan:")
-    val plan1 = unfin.finalize(nexp1).asInstanceOf[CExpr]
+    println(str.finalize(plan))
+    val plan1 = norm.finalize(plan).asInstanceOf[CExpr]
+    println("\nOptimized:")
     println(str.finalize(plan1))
+   
+    /**val beval = new BaseScalaInterp{}
+    beval.ctx("R^F") = FlatTest.rF
+    beval.ctx("R^D") = FlatTest.rDc
+    val eval = new Finalizer(beval)
+
+    println("\nEvaluated:")
+    eval.finalize(nexp1)**///.asInstanceOf[List[_]].foreach(println(_))
 
     val exp2 = {
       import shredder._
@@ -642,7 +639,7 @@ object App {
       shredPipeline(q)
     }
 
-    beval.ctx.clear
+    /**beval.ctx.clear
     beval.ctx("R^F") = NestedTest.rF
     beval.ctx("R^D") = NestedTest.rDc
 
@@ -651,14 +648,7 @@ object App {
     println("\nNormalized:")
     val nexp2 = norm.finalize(exp2).asInstanceOf[CExpr]
     println(str.finalize(nexp2))
-    //eval.finalize(nexp2)//.asInstanceOf[List[_]].foreach(println(_))
-    println("\nPlan:")
-    val plan2 = unfin.finalize(nexp2).asInstanceOf[CExpr]
-    println(str.finalize(plan2))
-    //plan2.asInstanceOf[LinearCSet].exprs.foreach(println(_))
-    //beval.ctx("R^D") = NestedTest.rDu
-    //eval.finalize(plan2)
-
+  
     val exp3 = {
       import shredder._
       val ytp = TupleType("b" -> IntType, "c" -> IntType)
@@ -682,9 +672,6 @@ object App {
     println("\nNormalized:")
     val nexp3 = norm.finalize(exp3).asInstanceOf[CExpr]
     println(str.finalize(nexp3))
-    println("\nPlan:")
-    val plan3 = unfin.finalize(nexp3).asInstanceOf[CExpr]
-    println(str.finalize(plan3))
  
     val exp4 = {
       import shredder._
@@ -705,10 +692,7 @@ object App {
     println(str.finalize(exp4))
     println("\nNormalized:")
     val nexp4 = norm.finalize(exp4).asInstanceOf[CExpr]
-    println(str.finalize(nexp4))
-    println("\nPlan:")
-    val plan4 = unfin.finalize(nexp4).asInstanceOf[CExpr]
-    println(str.finalize(plan4))
+    println(str.finalize(nexp4))**/
   }
 
   def runBase(){
@@ -724,7 +708,7 @@ object App {
       val q = ForeachUnion(x, relationR, 
                 ForeachUnion(x1, relationR,
                   ForeachUnion(y, BagProject(TupleVarRef(x), "b"), 
-                    Singleton(Tuple("o1" -> TupleVarRef(x1)("a"), "o2" -> TupleVarRef(y)("c"))))))
+                    Singleton(Tuple("o1" -> TupleVarRef(x1)("a"), "o2" -> Total(BagProject(TupleVarRef(x), "b")))))))
       translate(q)
     }
 
@@ -783,8 +767,8 @@ object App {
     //run2()
     //run3()
     //runNormlizationTests()
-    // runShred()
-    runBase()
+    runShred()
+    //runBase()
   }
 
 

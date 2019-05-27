@@ -41,6 +41,7 @@ trait Base {
   def outerunnest(e1: Rep, r: Rep => Rep, p: Rep => Rep): Rep
   def outerjoin(e1: Rep, e2: Rep, p1: Rep => Rep, p: Rep => Rep): Rep
   def nest(e1: Rep, f: Rep => Rep, e: Rep => Rep, p: Rep => Rep): Rep
+  def tupled(vars: List[Rep]): Rep
 }
 
 trait BaseStringify extends Base{
@@ -122,6 +123,7 @@ trait BaseStringify extends Base{
     s""" | (${e1}) OUTERJOIN[${p1(v1.quote)} = ${p2(v2.quote)}]( 
          | ${ind(e2)})""".stripMargin
   }
+  def tupled(vars: List[Rep]): Rep = tuple(vars:_*)
 
 }
 
@@ -131,116 +133,76 @@ object Unnester {
   @inline def u(implicit ctx: Ctx): List[Sym] = ctx._1
   @inline def w(implicit ctx: Ctx): List[Sym] = ctx._2
   @inline def E(implicit ctx: Ctx): Option[Exp] = ctx._3
-  
+  def tupled(vars:List[Exp]): Exp = vars match {
+    case tail :: Nil => tail
+    case head :: tail => tupled(List(KVTuple(head, tail.head)) ++ tail.tail)
+  }
+  def getNest(e: Exp): (Option[Exp], Sym) = e match {
+    case Bind(nval, nv @ Sym(_,_), e1) => (Some(e), nv)
+    case Nest(_,_,_,_,v2 @ Sym(_,_),_) => (Some(e), v2)
+  }
+
   def unnest(e: Exp)(implicit ctx: Ctx): Exp = e match {
     case Comprehension(e1, v, p, e) if u.isEmpty && w.isEmpty && E.isEmpty => 
       unnest(e)((Nil, List(v), Some(Select(e1, v, p)))) // C4
-    case ift @ If(cond, Sng(t @ Record(fs)), None) if u.isEmpty && !w.isEmpty => 
+    case Comprehension(e1 @ Comprehension(_, _, _, _), v, p, e) if !w.isEmpty => // C11
+      val (nE, v2) = getNest(unnest(e1)((w, w, E)))
+      Bind(e1, v2, unnest(e)((u, w:+v2, nE)))
+    case ift @ If(cond, Sng(t @ Record(fs)), None) if !w.isEmpty => // C12, C5, and C8
       assert(!E.isEmpty)
       fs.filter(f => f._2.isInstanceOf[Comprehension]).toList match {
         case Nil => 
-          Reduce(E.get, w.last, t, cond) // C5
+          if (u.isEmpty) Reduce(E.get, w, t, cond)
+          else { 
+            val et = Tuple(u:_*)
+            Nest(E.get, w, et, t, Variable.fresh(KVTupleCType(et.tp, BagCType(t.tp))), cond)
+          }
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
-          val nE = Some(unnest(value)((w, w, E)).asInstanceOf[Nest])
-          val fv = Bind(nE.get.v2, value, If(cond, Sng(Record(fs + (key -> nE.get.v2))), None)) 
-          unnest(fv)((u, w :+ nE.get.v2, nE))
+          val (nE, v2) = getNest(unnest(value)((w, w, E)))
+          Bind(value, v2, unnest(If(cond, Sng(Record(fs + (key -> v2))), None))((u, w :+ v2, nE))) 
       }
-    case s @ Sng(t @ Record(fs)) if u.isEmpty && !w.isEmpty => 
+    case s @ Sng(t @ Record(fs)) if !w.isEmpty => 
       assert(!E.isEmpty)
       fs.filter(f => f._2.isInstanceOf[Comprehension]).toList match {
         case Nil => 
-          Reduce(E.get, w.last, t, Constant(true)) // C5
+          if (u.isEmpty) Reduce(E.get, w, t, Constant(true))
+          else { 
+            val et = Tuple(u:_*)
+            Nest(E.get, w, et, t, Variable.fresh(KVTupleCType(et.tp, BagCType(t.tp))), Constant(true))
+          }
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
-          val nE = Some(unnest(value)((w, w, E)).asInstanceOf[Nest])
-          val fv = Bind(nE.get.v2, value, Sng(Record(fs + (key -> nE.get.v2))))
-          unnest(fv)((u, w :+ nE.get.v2, nE))
+          val (nE, v2) = getNest(unnest(value)((w, w, E)))
+          Bind(value, v2, unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE)))
       }
-    case ift @ If(cond, Sng(t), None) if !u.isEmpty && !w.isEmpty =>
+    case c @ Constant(_) if !w.isEmpty =>
       assert(!E.isEmpty)
-      val et = Tuple(u:_*)
-      val v2 = Variable.fresh(KVTupleCType(et.tp, BagCType(w.last.tp)))
-      Nest(E.get, w.last, Tuple(u:_*), t, v2, cond) 
-    case Sng(t) if !u.isEmpty && !w.isEmpty =>
+      if (u.isEmpty) Reduce(E.get, w, c, Constant(true))
+      else Nest(E.get, w, w.last, c, Variable.fresh(BagCType(IntType)), Constant(true))
+    case Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && u.isEmpty && !w.isEmpty =>
       assert(!E.isEmpty)
-      val et = Tuple(u:_*)
-      val v2 = Variable.fresh(KVTupleCType(et.tp, BagCType(w.last.tp)))
-      Nest(E.get, w.last, Tuple(u:_*), t, v2, Constant(true)) 
-    case Comprehension(e1 @ Project(e0, f), v, p, e) if u.isEmpty && !w.isEmpty =>
-      assert(!E.isEmpty)
-      val nE = Some(Unnest(E.get, w.last, e1, v, p))
+      val nE = Some(Unnest(E.get, w, e1, v, p))
       unnest(e)((u, w :+ v, nE)) // C7
     case Comprehension(e1, v, p, e) if u.isEmpty && !w.isEmpty =>
       assert(!E.isEmpty) // TODO extract filters for join condition
-      val nE = Some(Join(E.get, Select(e1, v, p), w.last, Constant(true), v, p))
+      val nE = Some(Join(E.get, Select(e1, v, p), w, Constant(true), v, p))
       unnest(e)((u, w :+ v, nE)) // C6 
-    case Comprehension(e1 @ Project(e0, f), v, p, e) if !u.isEmpty && !w.isEmpty =>
+    case Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && !u.isEmpty && !w.isEmpty =>
       assert(!E.isEmpty)
-      val nE = Some(OuterUnnest(E.get, w.last, e1, v, p))
+      val nE = Some(OuterUnnest(E.get, w, e1, v, p))
       unnest(e)((u, w :+ v, nE)) // C10
     case Comprehension(e1, v, p, e) if !u.isEmpty && !w.isEmpty =>
       assert(!E.isEmpty) // TODO extract filters for join condition
-      val nE = Some(OuterJoin(E.get, Select(e1, v, p), w.last, Constant(true), v, p))
+      val nE = Some(OuterJoin(E.get, Select(e1, v, p), w, Constant(true), v, p))
       unnest(e)((u, w :+ v, nE)) // C9 
-    case Bind(x, e1, e2) => 
-      Bind(x, e1, unnest(e2)((u, w, E)))
+    case LinearCSet(exprs) => LinearCSet(exprs.map(unnest(_)((Nil, Nil, None))))
+    case CNamed(n, exp) => exp match {
+      case Sng(t) => CNamed(n, exp)
+      case _ => CNamed(n, unnest(exp)((Nil, Nil, None)))
+    }
     case _ => sys.error("not supported "+e)
   }
 
 }
-
-// plan builder? which implements some of the unnesting
-trait BaseUnnester extends BaseCompiler {
-
-  override def reduce(d1: Rep, e1: Rep => Rep, p1: Rep => Rep): Rep = {
-    val v1 = Variable.fresh(d1.tp.asInstanceOf[BagCType].tp)
-    e1(v1) match {
-      case Reduce(d2, v2, e2, p2) => d2 match {// todo push joins
-        case Project(e, field) => 
-          // C7, { { e2 | v2 <- d1, v3 <- v2.field, p2 } | v1 <- d1, p1(v1) }
-          val v3 = Variable.fresh(d2.tp.asInstanceOf[BagCType].tp)
-          Reduce(Unnest(d1, v2, d2, v3, p2), v1, e2, p1(v1)) 
-        case Nest(d3, v3, f, e3, v4, p3) => d3 match {
-          case _ => Reduce(d1, v1, e1(v1), p1(v1)) // TODO, outer(join/unnest)
-        }
-        case _ => 
-          // C6, { { e2 | v2 <- d2, p2 } | v1 <- d1, p1(v1) }
-          val v3 = Variable.fresh(KVTupleCType(v1.tp, v2.tp))
-          Reduce(Join(d1, d2, v1, p1(v1), v2, p2), v3, e2, constant(true))
-      }
-      case _ => Reduce(d1, v1, e1(v1), p1(v1)) // C5, w = ()
-    }
-  }
-
-  override def sng(e: Rep): Rep = e match {
-    case Reduce(d1, v1, e1, p1) => e
-    case _ => super.sng(e)
-  }
-
-  override def record(fs: Map[String, Rep]): Rep = {
-    fs.filter(f => f._2.isInstanceOf[Reduce]).toList match {
-      case Nil => super.record(fs) // C5, w = ()
-      case (key, value @ Reduce(d1, v1, e1, p1)) :: tail =>
-        // C11, { { f({ e1 | v1 <- d1, p1 })  | p } | ... }
-        // { { f(v2) | p } | v2 <- { e1 | v1 <- d1, p1 } }
-        val v2 = Variable.fresh(KVTupleCType(v1.tp, e1.tp)) // w = v1, u = v1
-        val nested = Nest(d1, v1, v1, e1, v2, p1)
-        val fv2 = record(fs + (key -> v2)) match {
-          case r @ Record(fs2) => sng(r)
-          case e => e // futher nests
-        }
-        Reduce(nested, v2, fv2, constant(true))
-    }
-  }
-  
-  override def comprehension(d1: Rep, p1: Rep => Rep, e1: Rep => Rep): Rep = {
-    val v1 = Variable.fresh(d1.tp.asInstanceOf[BagCType].tp)
-    p1(v1) match {
-      case Constant(true) => reduce(d1, e1, p1) // vacuous C4, C5, w = ()
-      case p => reduce(Select(d1, v1, p), e1, x => constant(true)) //C4, w = ()
-    }
-  }
-}
-
 
 trait BaseCompiler extends Base {
   type Rep = CExpr 
@@ -288,42 +250,46 @@ trait BaseCompiler extends Base {
   }
   def reduce(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
     val v = Variable.fresh(e1.tp)
-    Reduce(e1, v, f(v), p(v))
+    Reduce(e1, List(v), f(v), p(v))
   }
   def unnest(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
     val v1 = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
     val fv = f(v1)
     val v = Variable.fresh(KVTupleCType(v1.tp, fv.tp.asInstanceOf[BagCType].tp))
-    Unnest(e1, v1, fv, v, p(v))
+    Unnest(e1, List(v1), fv, v, p(v))
   }
   def nest(e1: Rep, f: Rep => Rep, e: Rep => Rep, p: Rep => Rep): Rep = {
     val v1 = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
     val fv = f(v1) // groups
     val ev = e(v1) // pattern
     val v = Variable.fresh(KVTupleCType(fv.tp, ev.tp))
-    Nest(e1, v1, fv, ev, v, p(v))
+    Nest(e1, List(v1), fv, ev, v, p(v))
   }
   def join(e1: Rep, e2: Rep, p1: Rep => Rep, p2: Rep => Rep): Rep = {
     val v1 = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
     val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp)
-    Join(e1, e2, v1, p1(v1), v2, p2(v2))
+    Join(e1, e2, List(v1), p1(v1), v2, p2(v2))
   }
   def outerunnest(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
     val v1 = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
     val fv = f(v1)
     val v = Variable.fresh(KVTupleCType(v1.tp, fv.tp.asInstanceOf[BagCType].tp))
-    OuterUnnest(e1, v1, fv, v, p(v))
+    OuterUnnest(e1, List(v1), fv, v, p(v))
   }
   def outerjoin(e1: Rep, e2: Rep, p1: Rep => Rep, p2: Rep => Rep): Rep = {
     val v1 = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
     val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp)
-    OuterJoin(e1, e2, v1, p1(v1), v2, p2(v2))
+    OuterJoin(e1, e2, List(v1), p1(v1), v2, p2(v2))
   }
+  def tupled(vars: List[Rep]): Rep = vars match {
+    case tail :: Nil => KVTuple(tail, CUnit)
+    case head :: tail => tupled(List(KVTuple(head, tail.head)) ++ tail.tail)
+  } 
 
 }
 
 trait BaseNormalizer extends BaseCompiler {
-
+    
   // reduce conditionals 
   override def equals(e1: Rep, e2: Rep): Rep = (e1, e2) match {
     case (Constant(x1), Constant(x2)) => constant(x1 == x2)
@@ -394,10 +360,13 @@ trait BaseNormalizer extends BaseCompiler {
         // { e(v) | v <- { e3 | v2 <- e2, p2 }, p(v) }
         // { { e(v) | v <- e3 } | v2 <- e2, p2 }
         Comprehension(e2, v2, p2, comprehension(e3, p, e))
+      case c @ CLookup(flat, dict) => 
+        val v1 = Variable.fresh(c.tp.tp)
+        val v2 = Variable.fresh(c.tp.tp.asInstanceOf[KVTupleCType]._2.asInstanceOf[BagCType].tp)
+        Comprehension(Project(dict, "0"), v1, equals(flat, Project(v1, "key")), 
+          Comprehension(Project(v1, "value"), v2, p(v2), e(v2)))
       case _ => // standard case (return self)
         val v = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
-        println(v)
-        println(e1)
         Comprehension(e1, v, p(v), e(v))
       }
     }
@@ -512,12 +481,17 @@ trait BaseScalaInterp extends Base{
     e1.asInstanceOf[List[_]].map(v1 => 
       e2.asInstanceOf[List[_]].filter{ v2 => p1(v1) == p2(v2) }.map(v2 => (v1, v2)))
   }
+  def tupled(vars: List[Rep]): Rep = vars match {
+    case Nil => ()
+    case tail :: Nil => tail
+    case head :: tail => tupled(List(tuple(head, tail.head)) ++ tail.tail)
+  }
 
 }
 
 class Finalizer(val target: Base){
-  var variableMap: Map[Variable, target.Rep] = Map[Variable, target.Rep]()
-  def withMap[T](m: (Variable, target.Rep))(f: => T): T = {
+  var variableMap: Map[CExpr, target.Rep] = Map[CExpr, target.Rep]()
+  def withMap[T](m: (CExpr, target.Rep))(f: => T): T = {
     val old = variableMap
     variableMap = variableMap + m
     val res = f
@@ -572,23 +546,23 @@ class Finalizer(val target: Base){
     case Select(x, v, p) =>
       target.select(finalize(x), (r: target.Rep) => withMap(v -> r)(finalize(p)))
     case Reduce(e1, v, e2, p) => 
-      target.reduce(finalize(e1), (r: target.Rep) => withMap(v -> r)(finalize(e2)), 
-        (r: target.Rep) => withMap(v -> r)(finalize(p)))
+      target.reduce(finalize(e1), (r: target.Rep) => withMap(v.last -> r)(finalize(e2)), 
+        (r: target.Rep) => withMap(v.last -> r)(finalize(p)))
     case Unnest(e1, v1, e2, v2, p) => 
-      target.unnest(finalize(e1), (r: target.Rep) => withMap(v1 -> r)(finalize(e2)), 
+      target.unnest(finalize(e1), (r: target.Rep) => withMap(v1.last -> r)(finalize(e2)), 
         (r: target.Rep) => withMap(v2 -> r)(finalize(p)))
     case Nest(e1, v1, f, e, v2, p) => 
-      target.nest(finalize(e1), (r: target.Rep) => withMap(v1 -> r)(finalize(f)),
-        (r: target.Rep) => withMap(v1 -> r)(finalize(e)), 
+      target.nest(finalize(e1), (r: target.Rep) => withMap(v1.last -> r)(finalize(f)),
+        (r: target.Rep) => withMap(v1.last -> r)(finalize(e)), 
           (r: target.Rep) => withMap(v2 -> r)(finalize(p)))
     case Join(e1, e2, v1, p1, v2, p2) =>
-      target.join(finalize(e1), finalize(e2), (r: target.Rep) => withMap(v1 -> r)(finalize(p1)),
+      target.join(finalize(e1), finalize(e2), (r: target.Rep) => withMap(v1.last -> r)(finalize(p1)),
         (r: target.Rep) => withMap(v2 -> r)(finalize(p2)))
     case OuterUnnest(e1, v1, e2, v2, p) => 
-      target.outerunnest(finalize(e1), (r: target.Rep) => withMap(v1 -> r)(finalize(e2)), 
+      target.outerunnest(finalize(e1), (r: target.Rep) => withMap(v1.last -> r)(finalize(e2)), 
         (r: target.Rep) => withMap(v2 -> r)(finalize(p)))
     case OuterJoin(e1, e2, v1, p1, v2, p2) =>
-      target.outerjoin(finalize(e1), finalize(e2), (r: target.Rep) => withMap(v1 -> r)(finalize(p1)),
+      target.outerjoin(finalize(e1), finalize(e2), (r: target.Rep) => withMap(v1.last -> r)(finalize(p1)),
         (r: target.Rep) => withMap(v2 -> r)(finalize(p2)))
     case v @ Variable(_, _) => variableMap.getOrElse(v, target.inputref(v.name, v.tp) )
   }
