@@ -67,7 +67,8 @@ trait NRCTranslator extends LinearizedNRC {
     case TupleDict(fs) => TupleCDict(fs.map(f => f._1 -> translate(f._2)))
     case TupleDictProject(dict) => project(translate(dict), "tupleDict")
     case DictUnion(d1, d2) => DictCUnion(translate(d1), translate(d2))
-    case Total(e) => comprehension(translate(e), x => constant(true), (i: CExpr) => constant(1))
+    case Total(e1) => comprehension(translate(e1), x => constant(true), (i: CExpr) => constant(1))
+    case DeDup(e1) => CDeDup(translate(e1)) 
   }
 
 }

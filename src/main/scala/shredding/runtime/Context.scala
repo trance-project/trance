@@ -7,9 +7,7 @@ import scala.collection.mutable.{HashMap => HMap}
 /**
   * Context used during evaluation
   */
-class Context extends ScalaRuntime {
-
-  val ctx: HMap[VarDef, Any] = HMap()
+class Context(val ctx: HMap[VarDef, Any] = HMap()) extends ScalaRuntime {
 
   def apply(varDef: VarDef): Any = ctx(varDef)
 
@@ -39,3 +37,8 @@ class Context extends ScalaRuntime {
 
   override def toString: String = ctx.toString
 }
+
+object Context {
+  def apply(values: (VarDef, Any)*): Context = new Context(HMap(values: _*))
+}
+

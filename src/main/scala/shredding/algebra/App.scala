@@ -641,14 +641,20 @@ object App {
 
     /**beval.ctx.clear
     beval.ctx("R^F") = NestedTest.rF
-    beval.ctx("R^D") = NestedTest.rDc
+    beval.ctx("R^D") = NestedTest.rDc**/
 
     println("\nTranslated:")
     println(str.finalize(exp2))
     println("\nNormalized:")
     val nexp2 = norm.finalize(exp2).asInstanceOf[CExpr]
     println(str.finalize(nexp2))
-  
+    val plan2 = Unnester.unnest(nexp2)((Nil, Nil, None))
+    println("\nPlan:")
+    println(str.finalize(plan2))
+    val plan2a = norm.finalize(plan2).asInstanceOf[CExpr]
+    println("\nOptimized:")
+    println(str.finalize(plan2a))
+ 
     val exp3 = {
       import shredder._
       val ytp = TupleType("b" -> IntType, "c" -> IntType)
@@ -667,7 +673,7 @@ object App {
       shredPipeline(q)
     }
  
-    println("\nTranslated:")
+    /**println("\nTranslated:")
     println(str.finalize(exp3))
     println("\nNormalized:")
     val nexp3 = norm.finalize(exp3).asInstanceOf[CExpr]

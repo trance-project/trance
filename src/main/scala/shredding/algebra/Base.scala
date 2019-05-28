@@ -25,6 +25,7 @@ trait Base {
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep] = None): Rep
   def merge(e1: Rep, e2: Rep): Rep
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep
+  def dedup(e1: Rep): Rep
   def bind(e1: Rep, e: Rep => Rep): Rep 
   def named(n: String, e: Rep): Rep
   def linset(e: List[Rep]): Rep
@@ -80,6 +81,7 @@ trait BaseStringify extends Base{
       case px => s"{ ${e(x.quote)} | ${x.quote} <- ${e1}, ${px} }"
     } 
   }
+  def dedup(e1: Rep): Rep = s"DeDup(${e1})"
   def named(n: String, e: Rep): Rep = s"${n} := ${e}"
   def linset(e: List[Rep]): Rep = e.mkString("\n")
   def label(id: Int, vars: Map[String, Rep]): Rep = 
@@ -133,16 +135,14 @@ object Unnester {
   @inline def u(implicit ctx: Ctx): List[Sym] = ctx._1
   @inline def w(implicit ctx: Ctx): List[Sym] = ctx._2
   @inline def E(implicit ctx: Ctx): Option[Exp] = ctx._3
-  def tupled(vars:List[Exp]): Exp = vars match {
-    case tail :: Nil => tail
-    case head :: tail => tupled(List(KVTuple(head, tail.head)) ++ tail.tail)
-  }
+
   def getNest(e: Exp): (Option[Exp], Sym) = e match {
     case Bind(nval, nv @ Sym(_,_), e1) => (Some(e), nv)
     case Nest(_,_,_,_,v2 @ Sym(_,_),_) => (Some(e), v2)
   }
 
   def unnest(e: Exp)(implicit ctx: Ctx): Exp = e match {
+    case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E)))
     case Comprehension(e1, v, p, e) if u.isEmpty && w.isEmpty && E.isEmpty => 
       unnest(e)((Nil, List(v), Some(Select(e1, v, p)))) // C4
     case Comprehension(e1 @ Comprehension(_, _, _, _), v, p, e) if !w.isEmpty => // C11
@@ -229,6 +229,7 @@ trait BaseCompiler extends Base {
     val v = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
     Comprehension(e1, v, p(v), e(v))
   }
+  def dedup(e1: Rep): Rep = CDeDup(e1)
   def bind(e1: Rep, e: Rep => Rep): Rep = {
       val v = Variable.fresh(e1.tp)
       Bind(v, e1, e(v)) 
@@ -424,6 +425,7 @@ trait BaseScalaInterp extends Base{
                 case _ => data.filter(p.asInstanceOf[Rep => Boolean]).map(e)
               }
   }
+  def dedup(e1: Rep): Rep = e1.asInstanceOf[List[_]].distinct
   def named(n: String, e: Rep): Rep = {
     ctx(n) = e
     println(n+" := "+e)
@@ -529,6 +531,7 @@ class Finalizer(val target: Base){
     case Comprehension(e1, v, p, e) =>
       target.comprehension(finalize(e1), (r: target.Rep) => withMap(v -> r)(finalize(p)), 
         (r: target.Rep) => withMap(v -> r)(finalize(e)))
+    case CDeDup(e1) => target.dedup(finalize(e1))
     case Bind(x, e1, e) =>
       target.bind(finalize(e1), (r: target.Rep) => withMap(x -> r)(finalize(e)))
     case CNamed(n, e) => target.named(n, finalize(e))

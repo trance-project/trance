@@ -19,12 +19,15 @@ trait Printer extends LinearizedNRC {
           |${ind(quote(e2))}""".stripMargin
     case Union(e1, e2) => s"(${quote(e1)}) Union (${quote(e2)})"
     case Singleton(e1) => s"Sng(${quote(e1)})"
+    case WeightedSingleton(e1, w1) =>
+      s"WeightedSng(${quote(e1)}, ${quote(w1)})"
     case Tuple(fs) =>
       s"(${fs.map { case (k, v) => k + " := " + quote(v) }.mkString(", ")})"
     case l: Let =>
       s"""|Let ${l.x.name} = ${quote(l.e1)} In
           |${quote(l.e2)}""".stripMargin
     case Total(e1) => s"Total(${quote(e1)})"
+    case DeDup(e1) => s"DeDup(${quote(e1)})"
     case i: IfThenElse =>
       if (i.e2.isDefined)
         s"""|If (${quote(i.cond.e1)} ${i.cond.op} ${quote(i.cond.e2)})

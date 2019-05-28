@@ -58,6 +58,8 @@ trait Dictionary {
   implicit class TupleDictExprOps(d: TupleDictExpr) {
     def apply(field: String): TupleDictAttributeExpr = d match {
       case TupleDict(fs) => fs(field)
+      case TupleDictLet(x, e1, TupleDict(fs)) =>
+        DictLet(x, e1, fs(field)).asInstanceOf[TupleDictAttributeExpr]
       case _ => d.tp(field) match {
         case EmptyDictType => EmptyDict
         case _: BagDictType => BagDictProject(d, field)

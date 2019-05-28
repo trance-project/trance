@@ -77,7 +77,9 @@ trait NRC extends BaseExpr {
 
   implicit class TupleExprOps(tuple: TupleExpr) {
     def apply(field: String): TupleAttributeExpr = tuple match {
-      case t: Tuple => t.fields(field)
+      case Tuple(fs) => fs(field)
+      case TupleLet(x, e1, Tuple(fs)) =>
+        Let(x, e1, fs(field)).asInstanceOf[TupleAttributeExpr]
       case _ => tuple.tp(field) match {
         case _: PrimitiveType => PrimitiveProject(tuple, field)
         case _: BagType => BagProject(tuple, field)
@@ -107,6 +109,10 @@ trait NRC extends BaseExpr {
   }
 
   final case class Singleton(e: TupleExpr) extends BagExpr {
+    val tp: BagType = BagType(e.tp)
+  }
+
+  final case class WeightedSingleton(e: TupleExpr, w: PrimitiveExpr) extends BagExpr {
     val tp: BagType = BagType(e.tp)
   }
 
@@ -155,6 +161,10 @@ trait NRC extends BaseExpr {
 
   final case class Total(e: BagExpr) extends PrimitiveExpr {
     val tp: PrimitiveType = IntType
+  }
+
+  final case class DeDup(e: BagExpr) extends BagExpr {
+    val tp: BagType = e.tp
   }
 
   final case class Cond(op: OpCmp, e1: TupleAttributeExpr, e2: TupleAttributeExpr)

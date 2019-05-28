@@ -4,9 +4,16 @@ import shredding.core.{VarDef, TupleType}
 import shredding.Utils.Symbol
 
 /**
-  * Simple optimization:
+  * Simple optimizations:
+  *
+  *   - let inlining:
+  *         let X = e1 in X => e1
+  *
   *   - dead code elimination
+  *         let X = e1 in e2 => e2 if not using X
+  *
   *   - beta reduction
+  *         Lookup + BagDict => flatBag
   */
 trait Optimizer extends Extensions {
   this: ShredNRC =>
@@ -14,17 +21,27 @@ trait Optimizer extends Extensions {
   def optimize(e: ShredExpr): ShredExpr =
     ShredExpr(optimize(e.flat), optimize(e.dict).asInstanceOf[DictExpr])
 
-  def optimize(e: Expr): Expr = deadCodeElimination(betaReduce(e))
+  def optimize(e: Expr): Expr = inline(deadCodeElimination(betaReduce(e)))
+
+  def inline(e: Expr): Expr = replace(e, {
+    // let X = e1 in X => e1
+    case l: Let if (l.e2 match {
+      case v2: VarRef if v2.varDef == l.x => true
+      case _ => false
+    }) => inline(l.e1)
+  })
 
   def deadCodeElimination(e: Expr): Expr = replace(e, {
-    case l: Let =>
-      val ivars = inputVars(l.e2).map(v => v.name -> v.tp).toMap
-      if (ivars.contains(l.x.name)) {
-        // Sanity check
-        assert(ivars(l.x.name) == l.x.tp)
-        l
-      }
-      else deadCodeElimination(l.e2)
+    // let X = e1 in e2 => e2 if not using X
+    case l: Let if {
+      val ivars = inputVars (l.e2).map (v => v.name -> v.tp).toMap
+      !ivars.contains (l.x.name) ||
+        {
+          // Sanity check
+          assert (ivars (l.x.name) == l.x.tp)
+          false
+        }
+    } => deadCodeElimination(l.e2)
   })
 
   def betaReduce(e: Expr): Expr = replace(e, {
@@ -35,6 +52,10 @@ trait Optimizer extends Extensions {
       BagLet(
         VarDef(Symbol.fresh("l"), TupleType("lbl" -> l1.tp)), Tuple("lbl" -> l1),
         betaReduce(flatBag).asInstanceOf[BagExpr])
+
+    /* TODO: Doesn't work nested lets */
+    case Lookup(l1, BagDictLet(x, e1, BagDict(l2, flatBag, _))) if l1.tp == l2.tp =>
+      betaReduce(Let(x, e1, flatBag))
   })
 
 }
