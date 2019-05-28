@@ -1,4 +1,4 @@
-iackage shredding.core
+package shredding.core
 
 /**
   * NRC type system: primitive types, bag type, tuple type
