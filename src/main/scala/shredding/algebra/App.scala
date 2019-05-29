@@ -15,7 +15,7 @@ object FlatTest{
                            Map("a" -> 34, "b" -> "Jaclyn"), Map("a" -> 42, "b" -> "Thomas"))
   val rF = Label.fresh()
   val rDc = (List((rF, relationRValues)), ())
-  val rDu = relationRValues
+  val rDu = relationRValues 
 }
 
 object NestedTest {
@@ -603,14 +603,15 @@ object App {
     val plan1 = norm.finalize(plan).asInstanceOf[CExpr]
     println("\nOptimized:")
     println(str.finalize(plan1))
-   
-    /**val beval = new BaseScalaInterp{}
+    println(plan1)
+     
+    val beval = new BaseScalaInterp{}
     beval.ctx("R^F") = FlatTest.rF
     beval.ctx("R^D") = FlatTest.rDc
     val eval = new Finalizer(beval)
 
     println("\nEvaluated:")
-    eval.finalize(nexp1)**///.asInstanceOf[List[_]].foreach(println(_))
+    eval.finalize(plan1)///.asInstanceOf[List[_]].foreach(println(_))
 
     val exp2 = {
       import shredder._
@@ -753,8 +754,15 @@ object App {
     val normalized = norm.finalize(exp1).asInstanceOf[CExpr]
     println(str.finalize(normalized))
     val unnested = Unnester.unnest(normalized)((Nil, Nil, None))
+    println(str.finalize(unnested))
     val unnestedOpt = norm.finalize(unnested).asInstanceOf[CExpr] // call bind
     println(str.finalize(unnestedOpt))
+    val beval = new BaseScalaInterp{}
+    beval.ctx("R") = FlatTest.relationRValues
+    val eval = new Finalizer(beval)
+
+    println("\nEvaluated:")
+    eval.finalize(unnestedOpt)///.asInstanceOf[List[_]].foreach(println(_))
 
     println("")
     val normalized2 = norm.finalize(exp2).asInstanceOf[CExpr]
@@ -766,6 +774,11 @@ object App {
     val unnestedOpt2 = norm.finalize(unnested2).asInstanceOf[CExpr] // call bind
     println(str.finalize(unnestedOpt2))
 
+    beval.ctx("R") = NestedTest.inputRelation
+
+    println("\nEvaluated:")
+    eval.finalize(unnestedOpt2)///.asInstanceOf[List[_]].foreach(println(_))
+
   }
 
   def main(args: Array[String]){
@@ -773,8 +786,8 @@ object App {
     //run2()
     //run3()
     //runNormlizationTests()
-    runShred()
-    //runBase()
+    //runShred()
+    runBase()
   }
 
 

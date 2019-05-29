@@ -81,13 +81,14 @@ case class TTupleType(attrTps: Type*) extends Type {
 }
 
 case class KVTupleCType(e1: Type, e2: Type) extends Type{
-  def apply(n: String) = n match {
+  def apply(n: String): Type = n match {
     case "key" => e1
     case "0" => e1
     case "value"  => e2
     case "1" => e2
     case _ => e2 match {
       case t:RecordCType => t(n)
+      case t:KVTupleCType => t(n)
       case t => sys.error(n)
       // todo other instances
     }

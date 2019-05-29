@@ -22,6 +22,7 @@ trait Base {
   def not(e1: Rep): Rep
   def or(e1: Rep, e2: Rep): Rep
   def project(e1: Rep, field: String): Rep
+  def casematch(e1: Rep, field: String): Rep
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep] = None): Rep
   def merge(e1: Rep, e2: Rep): Rep
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep
@@ -65,6 +66,7 @@ trait BaseStringify extends Base{
   def not(e1: Rep): Rep = s"!(${e1})"
   def or(e1: Rep, e2: Rep): Rep = s"${e1} || ${e2}"
   def project(e1: Rep, field: String): Rep = s"${e1}.${field}"
+  def casematch(e1: Rep, field: String): Rep = s"${e1}.${field}"
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = e2 match {
     case Some(a) => s"if (${cond}) then ${e1} else ${a}"
     case _ => s"if (${cond}) then ${e1}"
@@ -129,81 +131,6 @@ trait BaseStringify extends Base{
 
 }
 
-object Unnester {
-  import shredding.algebra.{CExpr => Exp, Variable => Sym}
-  type Ctx = (List[Sym], List[Sym], Option[Exp])
-  @inline def u(implicit ctx: Ctx): List[Sym] = ctx._1
-  @inline def w(implicit ctx: Ctx): List[Sym] = ctx._2
-  @inline def E(implicit ctx: Ctx): Option[Exp] = ctx._3
-
-  def getNest(e: Exp): (Option[Exp], Sym) = e match {
-    case Bind(nval, nv @ Sym(_,_), e1) => (Some(e), nv)
-    case Nest(_,_,_,_,v2 @ Sym(_,_),_) => (Some(e), v2)
-  }
-
-  def unnest(e: Exp)(implicit ctx: Ctx): Exp = e match {
-    case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E)))
-    case Comprehension(e1, v, p, e) if u.isEmpty && w.isEmpty && E.isEmpty => 
-      unnest(e)((Nil, List(v), Some(Select(e1, v, p)))) // C4
-    case Comprehension(e1 @ Comprehension(_, _, _, _), v, p, e) if !w.isEmpty => // C11
-      val (nE, v2) = getNest(unnest(e1)((w, w, E)))
-      Bind(e1, v2, unnest(e)((u, w:+v2, nE)))
-    case ift @ If(cond, Sng(t @ Record(fs)), None) if !w.isEmpty => // C12, C5, and C8
-      assert(!E.isEmpty)
-      fs.filter(f => f._2.isInstanceOf[Comprehension]).toList match {
-        case Nil => 
-          if (u.isEmpty) Reduce(E.get, w, t, cond)
-          else { 
-            val et = Tuple(u:_*)
-            Nest(E.get, w, et, t, Variable.fresh(KVTupleCType(et.tp, BagCType(t.tp))), cond)
-          }
-        case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
-          val (nE, v2) = getNest(unnest(value)((w, w, E)))
-          Bind(value, v2, unnest(If(cond, Sng(Record(fs + (key -> v2))), None))((u, w :+ v2, nE))) 
-      }
-    case s @ Sng(t @ Record(fs)) if !w.isEmpty => 
-      assert(!E.isEmpty)
-      fs.filter(f => f._2.isInstanceOf[Comprehension]).toList match {
-        case Nil => 
-          if (u.isEmpty) Reduce(E.get, w, t, Constant(true))
-          else { 
-            val et = Tuple(u:_*)
-            Nest(E.get, w, et, t, Variable.fresh(KVTupleCType(et.tp, BagCType(t.tp))), Constant(true))
-          }
-        case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
-          val (nE, v2) = getNest(unnest(value)((w, w, E)))
-          Bind(value, v2, unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE)))
-      }
-    case c @ Constant(_) if !w.isEmpty =>
-      assert(!E.isEmpty)
-      if (u.isEmpty) Reduce(E.get, w, c, Constant(true))
-      else Nest(E.get, w, w.last, c, Variable.fresh(BagCType(IntType)), Constant(true))
-    case Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && u.isEmpty && !w.isEmpty =>
-      assert(!E.isEmpty)
-      val nE = Some(Unnest(E.get, w, e1, v, p))
-      unnest(e)((u, w :+ v, nE)) // C7
-    case Comprehension(e1, v, p, e) if u.isEmpty && !w.isEmpty =>
-      assert(!E.isEmpty) // TODO extract filters for join condition
-      val nE = Some(Join(E.get, Select(e1, v, p), w, Constant(true), v, p))
-      unnest(e)((u, w :+ v, nE)) // C6 
-    case Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && !u.isEmpty && !w.isEmpty =>
-      assert(!E.isEmpty)
-      val nE = Some(OuterUnnest(E.get, w, e1, v, p))
-      unnest(e)((u, w :+ v, nE)) // C10
-    case Comprehension(e1, v, p, e) if !u.isEmpty && !w.isEmpty =>
-      assert(!E.isEmpty) // TODO extract filters for join condition
-      val nE = Some(OuterJoin(E.get, Select(e1, v, p), w, Constant(true), v, p))
-      unnest(e)((u, w :+ v, nE)) // C9 
-    case LinearCSet(exprs) => LinearCSet(exprs.map(unnest(_)((Nil, Nil, None))))
-    case CNamed(n, exp) => exp match {
-      case Sng(t) => CNamed(n, exp)
-      case _ => CNamed(n, unnest(exp)((Nil, Nil, None)))
-    }
-    case _ => sys.error("not supported "+e)
-  }
-
-}
-
 trait BaseCompiler extends Base {
   type Rep = CExpr 
   def inputref(x: String, tp: Type): Rep = InputRef(x, tp)
@@ -223,6 +150,7 @@ trait BaseCompiler extends Base {
   def not(e1: Rep): Rep = Not(e1)
   def or(e1: Rep, e2: Rep): Rep = Or(e1, e2)
   def project(e1: Rep, e2: String): Rep = Project(e1, e2)
+  def casematch(e1: Rep, e2: String): Rep = CaseMatch(e1, e2)
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = If(cond, e1, e2)
   def merge(e1: Rep, e2: Rep): Rep = Merge(e1, e2)
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
@@ -250,43 +178,81 @@ trait BaseCompiler extends Base {
     }
   }
   def reduce(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
-    val v = Variable.fresh(e1.tp)
-    Reduce(e1, List(v), f(v), p(v))
+    val v = e1.wvars//Variable.fresh(e1.tp)
+    val input = tupled(v)
+    Reduce(e1, v, f(input), p(input))
   }
   def unnest(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
-    val v1 = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
-    val fv = f(v1)
-    val v = Variable.fresh(KVTupleCType(v1.tp, fv.tp.asInstanceOf[BagCType].tp))
-    Unnest(e1, List(v1), fv, v, p(v))
+    val v1 = e1 match {
+      case InputRef(_,tp) => List(Variable.fresh(tp.asInstanceOf[BagCType].tp))
+      case _ => e1.wvars
+    }
+    val input = tupled(v1)
+    val fv = f(input) match {
+      case Project(e3, f) => Project(matchPattern(input, e3), f)
+    }
+    val v = Variable.fresh(KVTupleCType(fv.tp, fv.tp.asInstanceOf[BagCType].tp))
+    Unnest(e1, v1, fv, v, p(v))
   }
   def nest(e1: Rep, f: Rep => Rep, e: Rep => Rep, p: Rep => Rep): Rep = {
-    val v1 = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
-    val fv = f(v1) // groups
-    val ev = e(v1) // pattern
+    val v1 = e1.asInstanceOf[CExpr].wvars //Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
+    val input = tupled(v1)
+    val fv = f(input) // groups
+    val ev = e(input) // pattern
     val v = Variable.fresh(KVTupleCType(fv.tp, ev.tp))
-    Nest(e1, List(v1), fv, ev, v, p(v))
+    Nest(e1, v1, fv, ev, v, p(v))
   }
   def join(e1: Rep, e2: Rep, p1: Rep => Rep, p2: Rep => Rep): Rep = {
-    val v1 = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
+    val v1 = e1 match {
+      case InputRef(_,tp) => List(Variable.fresh(e1.tp.asInstanceOf[BagCType].tp))
+      case _ => e1.wvars
+    }
+    val input = tupled(v1)
     val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp)
-    Join(e1, e2, List(v1), p1(v1), v2, p2(v2))
+    Join(e1, e2, v1, p1(input), v2, p2(v2))
   }
   def outerunnest(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
-    val v1 = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
-    val fv = f(v1)
-    val v = Variable.fresh(KVTupleCType(v1.tp, fv.tp.asInstanceOf[BagCType].tp))
-    OuterUnnest(e1, List(v1), fv, v, p(v))
+    val v1 = e1 match {
+      case InputRef(_,tp) => List(Variable.fresh(tp.asInstanceOf[BagCType].tp))
+      case _ => e1.wvars
+    }
+    val input = tupled(v1)
+    val fv = f(input) match {
+      case Project(e3, f) => Project(matchPattern(input, e3), f)
+    }
+    val v = Variable.fresh(KVTupleCType(fv.tp, fv.tp.asInstanceOf[BagCType].tp))
+    OuterUnnest(e1, v1, fv, v, p(v))
   }
   def outerjoin(e1: Rep, e2: Rep, p1: Rep => Rep, p2: Rep => Rep): Rep = {
-    val v1 = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
+    val v1 = e1 match {
+      case InputRef(_,tp) => List(Variable.fresh(e1.tp.asInstanceOf[BagCType].tp))
+      case _ => e1.wvars
+    }
+    val input = tupled(v1)
     val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp)
-    OuterJoin(e1, e2, List(v1), p1(v1), v2, p2(v2))
+    OuterJoin(e1, e2, v1, p1(input), v2, p2(v2))
   }
   def tupled(vars: List[Rep]): Rep = vars match {
-    case tail :: Nil => KVTuple(tail, CUnit)
-    case head :: tail => tupled(List(KVTuple(head, tail.head)) ++ tail.tail)
+    //case Nil => CUnit
+    case tail :: Nil => tail
+    case head :: tail => tupled(List(Tuple(head, tail.head)) ++ tail.tail)
   } 
 
+  def matchPattern(e: CExpr, v: CExpr): CExpr = e match {
+    case t:Tuple => t.fields.toList match {
+      case tail :: Nil =>
+        if (v == tail) e
+        else sys.error("match error "+v+" "+e)
+      case (head:Tuple) :: tail =>
+        if (v == tail) CaseMatch(e, "1")
+        else CaseMatch(matchPattern(head, v), "0")
+      case head :: tail =>
+        if (v == head) CaseMatch(e, "0")
+        else if (v == tail) CaseMatch(e, "1")
+        else matchPattern(head, v)
+      }
+    case _ => e // mapping issue here 
+  }
 }
 
 trait BaseNormalizer extends BaseCompiler {
@@ -307,6 +273,8 @@ trait BaseNormalizer extends BaseCompiler {
     case (Constant(true), Constant(true)) => super.constant(true)
     case (Constant(false), _) => super.constant(false)
     case (_, Constant(false)) => super.constant(false)
+    case (Constant(true), e3) => e3
+    case (e3, Constant(true)) => e3
     case _ => super.and(e1, e2)
   }
 
@@ -323,10 +291,11 @@ trait BaseNormalizer extends BaseCompiler {
   // N3 (a := e1, b: = e2).a = e1
   override def project(e1: Rep, f: String): Rep = e1 match {
     case t:Tuple => t(f.toInt)
-    case t:Record => t(f)
+    case t:Record => t(f) 
     case t:Label => t(f)
     case t:TupleCDict => t(f)
     case t:BagCDict => t(f)
+    case InputRef(n, tp) => Project(Variable(n, tp), f) // this shouldn't be happening
     case _ => super.project(e1, f)
   }
 
@@ -393,22 +362,19 @@ trait BaseScalaInterp extends Base{
   def and(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Boolean] && e2.asInstanceOf[Boolean]
   def not(e1: Rep): Rep = !e1.asInstanceOf[Boolean]
   def or(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Boolean] || e2.asInstanceOf[Boolean]
-  def project(e1: Rep, field: String) = e1 match {
-    case ms:Map[String,_] => ms(field)
-    case ms:scala.collection.mutable.HashMap[String,_] => ms(field)
-    case ms:List[_] => ms(0) match { // list flattening issue
-      case l:List[_] => l(0).asInstanceOf[Map[String, Rep]](field)
-      case m => m.asInstanceOf[Map[String, Rep]](field)
+  def project(e1: Rep, field: String) = field match {
+    case "key" => e1.asInstanceOf[Product].productElement(0)
+    case "0" => e1.asInstanceOf[Product].productElement(0)
+    case "value" => e1.asInstanceOf[Product].productElement(1)
+    case "1" => e1.asInstanceOf[Product].productElement(1)
+    case "tupleDict" => e1.asInstanceOf[Product].productElement(1)
+    case f => e1 match {
+      case m:Map[String,_] => m(f)
+      case p:Product => println(p); p.productElement(f.toInt)
+      case t => sys.error("unsupported projection type "+t) 
     }
-    case ms:Product => field match {
-      case "key" => ms.asInstanceOf[Product].productElement(0)
-      case "value" => ms.asInstanceOf[Product].productElement(1)
-      case "tupleDict" => ms.asInstanceOf[Product].productElement(1)
-      case _ => ms.asInstanceOf[Product].productElement(field.toInt)
-    }
-    case _ => sys.error("match error with "+e1.getClass)
   }
-  // check this with the notes
+  def casematch(e1: Rep, field: String) = project(e1, field)
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = e2 match {
     case Some(a) => if (cond.asInstanceOf[Boolean]) { e1 } else { a }
     case _ => if (cond.asInstanceOf[Boolean]) { e1 } else { Nil }
@@ -448,26 +414,41 @@ trait BaseScalaInterp extends Base{
   def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = (flat.asInstanceOf[List[_]].map(v => (lbl, v)), dict)
   def tupledict(fs: Map[String, Rep]): Rep = fs
   def dictunion(d1: Rep, d2: Rep): Rep = d1 // TODO
-  def select(x: Rep, p: Rep => Rep): Rep = 
+  def select(x: Rep, p: Rep => Rep): Rep = { 
     x.asInstanceOf[List[_]].filter(p.asInstanceOf[Rep => Boolean])
-  def reduce(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep = { 
+  }
+  def reduce(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
+    println("reduce")
+    println(e1) 
     e1.asInstanceOf[List[_]].map(f).filter(p.asInstanceOf[Rep => Boolean]) match {
       case l @ ((head: Int) :: tail) => l.asInstanceOf[List[Int]].sum
       case l => l
     } 
   }
   def unnest(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
-    e1.asInstanceOf[List[_]].flatMap{
+    println("unnesting")
+    println(e1)
+    val d = e1.asInstanceOf[List[_]].flatMap{
       v => f(v).asInstanceOf[List[_]].map{ v2 => (v, v2) }
     }.filter{p.asInstanceOf[Rep => Boolean]}
+    println(d)
+    d
   }
   // e1.map(p1).join(e2.map(p2))
   def join(e1: Rep, e2: Rep, p1: Rep => Rep, p2: Rep => Rep): Rep = {
-    e1.asInstanceOf[List[_]].map(v1 => 
+    println("joining")
+    println(e1)
+    println(e2)
+    val d = e1.asInstanceOf[List[_]].map(v1 => 
       e2.asInstanceOf[List[_]].filter{ v2 => p1(v1) == p2(v2) }.map(v2 => (v1, v2)))
+    println(d)
+    d
   }
   def nest(e1: Rep, f: Rep => Rep, e: Rep => Rep, p: Rep => Rep): Rep = {
+    println("nest")
+    println(e1)
     val grpd = e1.asInstanceOf[List[_]].map(v => (f(v), e(v))).groupBy(_._1)
+    println(grpd)
     e(e1.asInstanceOf[List[_]].head) match {
       case i:Int => 
         grpd.map{ case (k, v:List[Int]) => (k, v.size)}.filter(p.asInstanceOf[Rep => Boolean])
@@ -480,8 +461,12 @@ trait BaseScalaInterp extends Base{
     }.filter{p.asInstanceOf[Rep => Boolean]}
   }
   def outerjoin(e1: Rep, e2: Rep, p1: Rep => Rep, p2: Rep => Rep): Rep = {
-    e1.asInstanceOf[List[_]].map(v1 => 
-      e2.asInstanceOf[List[_]].filter{ v2 => p1(v1) == p2(v2) }.map(v2 => (v1, v2)))
+    e1.asInstanceOf[List[_]].flatMap(v1 => 
+      e2.asInstanceOf[List[_]].filter{ v2 => p1(v1) == p2(v2) }.map(v2 => v1 match {
+        case y if v1.asInstanceOf[Map[String,_]].contains("lbl") => (v1, v2.asInstanceOf[Tuple2[_,_]]._2) 
+        // avoid duplicate of toplevel label
+        case _ => (v1, v2)
+      }))
   }
   def tupled(vars: List[Rep]): Rep = vars match {
     case Nil => ()
@@ -499,6 +484,10 @@ class Finalizer(val target: Base){
     val res = f
     variableMap = old
     res
+  }
+  def tupled(e: List[CExpr]): CExpr = e match {
+    case tail :: Nil => tail
+    case head :: tail => tupled(Tuple(head, tail.head) +: tail.tail)
   }
   def finalize(e: CExpr): target.Rep = e match {
     case InputRef(x, tp) => target.inputref(x, tp)
@@ -527,6 +516,7 @@ class Finalizer(val target: Base){
       case _ => target.ifthen(finalize(cond), finalize(e1))
     }
     case Merge(e1, e2) => target.merge(finalize(e1), finalize(e2))
+    case CaseMatch(e1, pos) => target.casematch(finalize(e1), pos)
     case Project(e1, pos) => target.project(finalize(e1), pos)
     case Comprehension(e1, v, p, e) =>
       target.comprehension(finalize(e1), (r: target.Rep) => withMap(v -> r)(finalize(p)), 
@@ -549,26 +539,51 @@ class Finalizer(val target: Base){
     case Select(x, v, p) =>
       target.select(finalize(x), (r: target.Rep) => withMap(v -> r)(finalize(p)))
     case Reduce(e1, v, e2, p) => 
+      val v1 = tupled(e1.wvars)
       target.reduce(finalize(e1), (r: target.Rep) => withMap(v.last -> r)(finalize(e2)), 
         (r: target.Rep) => withMap(v.last -> r)(finalize(p)))
-    case Unnest(e1, v1, e2, v2, p) => 
-      target.unnest(finalize(e1), (r: target.Rep) => withMap(v1.last -> r)(finalize(e2)), 
+    case Unnest(e1, v, e2 @ Project(e3, f), v2, p) => 
+      val v1 = tupled(v)
+      val proj = Project(matchPattern(v1, e3), f)
+      target.unnest(finalize(e1), (r: target.Rep) => withMap(e3 -> r)(finalize(proj)), 
         (r: target.Rep) => withMap(v2 -> r)(finalize(p)))
-    case Nest(e1, v1, f, e, v2, p) => 
-      target.nest(finalize(e1), (r: target.Rep) => withMap(v1.last -> r)(finalize(f)),
-        (r: target.Rep) => withMap(v1.last -> r)(finalize(e)), 
+    case Nest(e1, v, f, e, v2, p) => 
+      val v1 = tupled(v)
+      target.nest(finalize(e1), (r: target.Rep) => withMap(v.last -> r)(finalize(f)),
+        (r: target.Rep) => withMap(v.last -> r)(finalize(e)), 
           (r: target.Rep) => withMap(v2 -> r)(finalize(p)))
-    case Join(e1, e2, v1, p1, v2, p2) =>
-      target.join(finalize(e1), finalize(e2), (r: target.Rep) => withMap(v1.last -> r)(finalize(p1)),
+    case Join(e1, e2, v, p1, v2, p2) =>
+      val v1 = tupled(v)
+      target.join(finalize(e1), finalize(e2), (r: target.Rep) => withMap(v.last -> r)(finalize(p1)),
         (r: target.Rep) => withMap(v2 -> r)(finalize(p2)))
-    case OuterUnnest(e1, v1, e2, v2, p) => 
-      target.outerunnest(finalize(e1), (r: target.Rep) => withMap(v1.last -> r)(finalize(e2)), 
+    case OuterUnnest(e1, v, e2 @ Project(e3, f), v2, p) => 
+      val v1 = tupled(v)
+      val proj = Project(matchPattern(v1, e3), f)
+      target.outerunnest(finalize(e1), (r: target.Rep) => withMap(e3 -> r)(finalize(proj)), 
         (r: target.Rep) => withMap(v2 -> r)(finalize(p)))
-    case OuterJoin(e1, e2, v1, p1, v2, p2) =>
-      target.outerjoin(finalize(e1), finalize(e2), (r: target.Rep) => withMap(v1.last -> r)(finalize(p1)),
+    case OuterJoin(e1, e2, v, p1, v2, p2) =>
+      val v1 = tupled(v)
+      target.outerjoin(finalize(e1), finalize(e2), (r: target.Rep) => withMap(v.last -> r)(finalize(p1)),
         (r: target.Rep) => withMap(v2 -> r)(finalize(p2)))
     case v @ Variable(_, _) => variableMap.getOrElse(v, target.inputref(v.name, v.tp) )
   }
+ 
+  def matchPattern(e: CExpr, v: CExpr): CExpr = e match {
+    case t:Tuple => t.fields.toList match {
+      case tail :: Nil => 
+        if (v == tail) v
+        else sys.error("match error "+v)
+      case (head:Tuple) :: tail => 
+        if (v == tail) CaseMatch(e, "1")
+        else CaseMatch(matchPattern(head, v), "0")
+      case head :: tail => 
+        if (v == head) CaseMatch(e, "0")
+        else if (v == tail) CaseMatch(e, "1")
+        else matchPattern(head, v) //sys.error("match error "+v+" "+e)
+      }
+    case v2:Variable => e
+   }
+
 }
 
 

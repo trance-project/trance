@@ -4,6 +4,7 @@ import shredding.core._
 
 sealed trait CExpr {
   def tp: Type
+  def wvars: List[Variable] = List()
 }
 
 case class InputRef(data: String, tp: Type) extends CExpr 
@@ -41,7 +42,10 @@ case class Record(fields: Map[String, CExpr]) extends CExpr{
 }
 
 case class Tuple(fields: CExpr*) extends CExpr {
-  def tp: TTupleType = TTupleType(fields.map(_.tp):_*)
+  def tp: Type = fields.size match {
+    case 2 => KVTupleCType(fields.toList.head.tp, fields.toList.last.tp)
+    case _ => TTupleType(fields.map(_.tp):_*)
+  }
   def apply(n: Int) = fields(n)
 }
 
@@ -62,10 +66,6 @@ case class KVTuple(e1: CExpr, e2: CExpr) extends CExpr{
 }
 
 case class Equals(e1: CExpr, e2: CExpr) extends CExpr {
-  def tp: PrimitiveType = BoolType
-}
-
-case class NEquals(e1: CExpr, e2: CExpr) extends CExpr{
   def tp: PrimitiveType = BoolType
 }
 
@@ -97,14 +97,30 @@ case class Or(e1: CExpr, e2: CExpr) extends CExpr{
   def tp: PrimitiveType = BoolType
 }
 
-case class Project(e1: CExpr, field: String) extends CExpr { self =>
+case class CaseMatch(e1: CExpr, field: String) extends CExpr { self =>
   def tp: Type = e1.tp match {
-    case t:RecordCType => t.attrTps(field)
+    case t:RecordCType => println(t); t.attrTps(field)
     case t:KVTupleCType => t(field)
     case t:LabelType => t(field)
     case t:TupleDictCType => t(field)
     case t:BagDictCType => t(field)
     case _ => sys.error("unsupported projection index "+self)
+  }
+}
+
+case class Project(e1: CExpr, field: String) extends CExpr { self =>
+  def tp: Type = e1.tp match {
+    case t:RecordCType => println(t); t.attrTps(field)
+    case t:KVTupleCType => t(field)
+    case t:LabelType => t(field)
+    case t:TupleDictCType => t(field)
+    case t:BagDictCType => t(field)
+    case _ => sys.error("unsupported projection index "+self)
+  }
+
+  override def equals(that: Any): Boolean = that match {
+    case that: Variable => that.equals(e1)
+    case _ => false
   }
 }
 
@@ -134,6 +150,10 @@ case class CDeDup(e1: CExpr) extends CExpr{
 // replace all occurences of x with e1 in e1
 case class Bind(x: CExpr, e1: CExpr, e: CExpr) extends CExpr {
   def tp: Type = e.tp
+  override def wvars = e1 match {
+    case v:Variable => e.wvars :+ v
+    case _ => e.wvars :+ x.asInstanceOf[Variable]
+  }
 }
 
 case class CNamed(name: String, e: CExpr) extends CExpr {
@@ -213,25 +233,31 @@ case class DictCUnion(d1: CExpr, d2: CExpr) extends CExpr {
 
 case class Select(x: CExpr, v: Variable, p: CExpr) extends CExpr {
   def tp: Type = x.tp
+  override def wvars = List(v)
 }
+
 case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CExpr {
   def tp: Type = e2.tp match {
     case t:RecordCType => BagCType(t)
     case t => t
   }
+  override def wvars = e1.wvars
 }
 
 // { (v1, v2) | v1 <- e1, v2 <- e2(v1), p((v1, v2)) } 
 case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
   def tp: Type = BagCType(KVTupleCType(e1.tp.asInstanceOf[BagCType].tp, e2.tp.asInstanceOf[BagCType].tp))
+  override def wvars = e1.wvars :+ v2
 }
 
 case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
   def tp: Type = BagCType(KVTupleCType(e1.tp.asInstanceOf[BagCType].tp, e2.tp.asInstanceOf[BagCType].tp))
+  override def wvars = e1.wvars :+ v2
 }
 
 case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr) extends CExpr {
   def tp: Type = BagCType(v2.tp) // KVTupleCType(et.tp, BagType(t.tp))
+  override def wvars = e1.wvars :+ v2
 }
 
 case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
@@ -240,10 +266,12 @@ case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Va
       BagCType(e2.tp.asInstanceOf[BagCType].tp)
     case _ => BagCType(KVTupleCType(e1.tp, e2.tp))
   }
+  override def wvars = e1.wvars :+ v2
 }
 
 case class Join(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
   def tp: BagCType = BagCType(KVTupleCType(e1.tp, e2.tp))
+  override def wvars = e1.wvars :+ v2
 }
 
 
@@ -251,6 +279,14 @@ case class Variable(name: String, override val tp: Type) extends CExpr { self =>
   override def equals(that: Any): Boolean = that match {
     case that: Variable => this.name == that.name && this.tp == that.tp
     case _ => false
+  }
+
+  // equals with a label check
+  def lequals(that: CExpr): Boolean = that match {
+    case that: Variable => this.equals(that)
+    case t if that.tp.isInstanceOf[LabelType] => 
+      that.tp.asInstanceOf[LabelType].attrTps.keys.toList.contains(this.name)
+    case _ => false  
   }
 
   override def hashCode: Int = (name, tp).hashCode()
@@ -266,3 +302,5 @@ object Variable {
     Variable(s"x$id", tp)
   }
 }
+
+
