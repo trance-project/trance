@@ -761,6 +761,8 @@ object App {
     beval.ctx("R") = FlatTest.relationRValues
     val eval = new Finalizer(beval)
 
+    println(eval.finalize(unnested))
+
     println("\nEvaluated:")
     eval.finalize(unnestedOpt)///.asInstanceOf[List[_]].foreach(println(_))
 

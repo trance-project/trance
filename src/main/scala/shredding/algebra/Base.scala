@@ -439,7 +439,7 @@ trait BaseScalaInterp extends Base{
     println("joining")
     println(e1)
     println(e2)
-    val d = e1.asInstanceOf[List[_]].map(v1 => 
+    val d = e1.asInstanceOf[List[_]].flatMap(v1 => 
       e2.asInstanceOf[List[_]].filter{ v2 => p1(v1) == p2(v2) }.map(v2 => (v1, v2)))
     println(d)
     d
@@ -468,11 +468,11 @@ trait BaseScalaInterp extends Base{
         case _ => (v1, v2)
       }))
   }
-  def tupled(vars: List[Rep]): Rep = vars match {
+  def tupled(vars: List[Rep]): Rep = vars /*= vars match {
     case Nil => ()
     case tail :: Nil => tail
     case head :: tail => tupled(List(tuple(head, tail.head)) ++ tail.tail)
-  }
+  }*/
 
 }
 
@@ -481,6 +481,13 @@ class Finalizer(val target: Base){
   def withMap[T](m: (CExpr, target.Rep))(f: => T): T = {
     val old = variableMap
     variableMap = variableMap + m
+    val res = f
+    variableMap = old
+    res
+  }
+  def withMapList[T](m: List[(CExpr, target.Rep)])(f: => T): T = {
+    val old = variableMap
+    variableMap = variableMap ++ m
     val res = f
     variableMap = old
     res
