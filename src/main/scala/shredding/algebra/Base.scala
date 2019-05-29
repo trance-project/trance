@@ -485,6 +485,15 @@ class Finalizer(val target: Base){
     variableMap = old
     res
   }
+  def withMapSec[T](m: List[(CExpr, target.Rep)])(f: => T): T = {
+    val old = variableMap
+    variableMap = variableMap ++ m
+    val res = f
+    variableMap = old
+    res
+  }
+
+
   def tupled(e: List[CExpr]): CExpr = e match {
     case tail :: Nil => tail
     case head :: tail => tupled(Tuple(head, tail.head) +: tail.tail)
@@ -562,28 +571,11 @@ class Finalizer(val target: Base){
       target.outerunnest(finalize(e1), (r: target.Rep) => withMap(e3 -> r)(finalize(proj)), 
         (r: target.Rep) => withMap(v2 -> r)(finalize(p)))
     case OuterJoin(e1, e2, v, p1, v2, p2) =>
-      val v1 = tupled(v)
-      target.outerjoin(finalize(e1), finalize(e2), (r: target.Rep) => withMap(v.last -> r)(finalize(p1)),
+      target.outerjoin(finalize(e1), finalize(e2), (r: target.Rep) => withMap(v -> r)(finalize(p1)),
         (r: target.Rep) => withMap(v2 -> r)(finalize(p2)))
     case v @ Variable(_, _) => variableMap.getOrElse(v, target.inputref(v.name, v.tp) )
   }
  
-  def matchPattern(e: CExpr, v: CExpr): CExpr = e match {
-    case t:Tuple => t.fields.toList match {
-      case tail :: Nil => 
-        if (v == tail) v
-        else sys.error("match error "+v)
-      case (head:Tuple) :: tail => 
-        if (v == tail) CaseMatch(e, "1")
-        else CaseMatch(matchPattern(head, v), "0")
-      case head :: tail => 
-        if (v == head) CaseMatch(e, "0")
-        else if (v == tail) CaseMatch(e, "1")
-        else matchPattern(head, v) //sys.error("match error "+v+" "+e)
-      }
-    case v2:Variable => e
-   }
-
 }
 
 
