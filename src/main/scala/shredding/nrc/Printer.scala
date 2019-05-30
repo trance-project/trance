@@ -48,6 +48,10 @@ trait Printer extends LinearizedNRC {
             |Then ${quote(i.e1)}""".stripMargin
 
     // Label cases
+    case x: ExtractLabel =>
+      val tuple = x.lbl.tp.attrTps.keys.mkString(", ")
+      s"""|Extract ${quote(x.lbl)} as ($tuple) In
+          |${quote(x.e)}"""".stripMargin
     case l: NewLabel =>
       s"NewLabel(${(l.id :: l.vars.toList.map(_.name)).mkString(", ")})"
     case Lookup(lbl, dict) =>

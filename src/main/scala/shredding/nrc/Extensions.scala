@@ -26,6 +26,8 @@ trait Extensions extends LinearizedNRC {
       }
       case i: IfThenElse =>
         collect(i.cond, f) ++ collect(i.e1, f) ++ i.e2.map(collect(_, f)).getOrElse(Nil)
+      case BagExtractLabel(l, e1) =>
+        collect(l, f) ++ collect(e1, f)
       case Lookup(l, d) => collect(l, f) ++ collect(d, f)
       case BagDict(l, b, d) => collect(l, f) ++ collect(b, f) ++ collect(d, f)
       case TupleDict(fs) => fs.flatMap(x => collect(x._2, f)).toList
@@ -92,6 +94,10 @@ trait Extensions extends LinearizedNRC {
         else
           ShredIfThenElse(c, r1)
 
+      case x: ExtractLabel =>
+        val rl = replace(x.lbl, f).asInstanceOf[LabelExpr]
+        val re = replace(x.e, f)
+        ExtractLabel(rl, re)
       case Lookup(l, d) =>
         val rl = replace(l, f).asInstanceOf[LabelExpr]
         val rd = replace(d, f).asInstanceOf[BagDictExpr]

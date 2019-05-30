@@ -45,6 +45,24 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
       if (evalBool(i.cond, ctx)) eval(i.e1, ctx)
       else i.e2.map(eval(_, ctx)).getOrElse(Nil)
 
+    case x: ExtractLabel =>
+      val las = x.lbl.tp.attrTps
+      val newBoundVars = las.filterNot { case (n2, t2) =>
+        ctx.contains(VarDef(n2, t2))
+      }
+      eval(x.lbl, ctx) match {
+        case ROutLabel(fs) =>
+          newBoundVars.foreach { case (n2, t2) =>
+            val d = VarDef(n2, t2)
+            ctx.add(d, fs(d))
+          }
+        case _ =>
+      }
+      val v = eval(x.e, ctx)
+      newBoundVars.foreach { case (n2, tp2) =>
+        ctx.remove(VarDef(n2, tp2))
+      }
+      v
     case NewLabel(as) =>
       ROutLabel(as.map(a => a.varDef -> ctx(a.varDef)).toMap)
     case Lookup(l, BagDict(_, f, _)) =>
