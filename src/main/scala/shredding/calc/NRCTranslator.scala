@@ -65,8 +65,17 @@ trait NRCTranslator extends Calc {
     def translateBag(e: Expr): BagCalc = translate(e).asInstanceOf[BagCalc]
     def translateTuple(e: Expr): TupleCalc = translate(e).asInstanceOf[TupleCalc]
     def translateAttr(e: Expr): TupleAttributeCalc = translate(e).asInstanceOf[TupleAttributeCalc]
-    def translateCond(e: Cond): Conditional = 
-      Conditional(e.op, translateAttr(e.e1), translateAttr(e.e2)) 
+    def translateCond(e: Cond): PrimitiveCalc = e match {
+      case Cmp(op, e1, e2) =>
+        Conditional(op, translateAttr(e1), translateAttr(e2))
+      case And(e1, e2) =>
+        AndCondition(translateCond(e1), translateCond(e2))
+      case Or(e1, e2) =>
+        OrCondition(translateCond(e1), translateCond(e2))
+      case Not(e1) =>
+        NotCondition(translateCond(e1))
+    }
+
   }
 
 }

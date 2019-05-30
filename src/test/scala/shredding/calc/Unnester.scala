@@ -79,7 +79,7 @@ class UnnesterTest extends FunSuite with CalcTranslator with CalcImplicits with 
       val q = ForeachUnion(d, departments, 
                 Singleton(Tuple("D" -> TupleVarRef(d)("dno"), "E" -> ForeachUnion(e, employees,
                                                     IfThenElse(
-                                                      Cond(OpEq, TupleVarRef(e)("dno"), TupleVarRef(d)("dno")),
+                                                      Cmp(OpEq, TupleVarRef(e)("dno"), TupleVarRef(d)("dno")),
                                                                Singleton(TupleVarRef(e)))))))
 
       // { ( D = d.dno, E = { e | e <- Employees, e.dno = d.dno } | d <- Departments }

@@ -75,7 +75,7 @@ class TranslatorTest extends FunSuite with NRC with NRCTranslator {
 
     val q10 = ForeachUnion(x, relationR,
                 ForeachUnion(x2, relationR,
-                  IfThenElse(Cond(OpEq, TupleVarRef(x)("b"), TupleVarRef(x2)("b")),
+                  IfThenElse(Cmp(OpEq, TupleVarRef(x)("b"), TupleVarRef(x2)("b")),
                              Singleton(Tuple("w1" -> TupleVarRef(x)("a"))))))
     val tq10 = Translator.translate(q10)
     assert(tq10.tp == BagType(TupleType("w1" -> IntType)))
@@ -106,7 +106,7 @@ class TranslatorTest extends FunSuite with NRC with NRCTranslator {
     
     val q11 = ForeachUnion(x, relationR,
                 ForeachUnion(x2, relationR,
-                  BagIfThenElse(Cond(OpEq, TupleVarRef(x)("b"), TupleVarRef(x2)("b")),
+                  BagIfThenElse(Cmp(OpEq, TupleVarRef(x)("b"), TupleVarRef(x2)("b")),
                                 Singleton(Tuple("w1" -> TupleVarRef(x)("a"))),
                                 Some(Singleton(Tuple("w1" -> Const("-1", IntType)))))))
     
@@ -272,7 +272,7 @@ class TranslatorTest extends FunSuite with NRC with NRCTranslator {
       val q6 = Let(x3, Tuple("a" -> Const("Jaclyn", StringType)),
                 ForeachUnion(x1, relationS,
                   ForeachUnion(y1, TupleVarRef(x1)("c").asInstanceOf[BagExpr],
-                    IfThenElse(Cond(OpEq, TupleVarRef(x1)("a"), TupleVarRef(x3)("a")),
+                    IfThenElse(Cmp(OpEq, TupleVarRef(x1)("a"), TupleVarRef(x3)("a")),
                              Singleton(Tuple("w1" -> TupleVarRef(x1)("a"), "w2" -> TupleVarRef(y1)("c")))))))
 
       val tq6 = Translator.translate(q6)

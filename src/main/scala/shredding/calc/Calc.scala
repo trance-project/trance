@@ -238,7 +238,7 @@ trait Calc extends BaseCalc {
   /**
     * Condition types
     */
-  case class Conditional(op: OpCmp, e1: CompCalc, e2: CompCalc) extends PrimitiveCalc{ 
+  case class Conditional(op: OpCmp, e1: CompCalc, e2: CompCalc) extends PrimitiveCalc{
     val tp: PrimitiveType = BoolType
   }
 
