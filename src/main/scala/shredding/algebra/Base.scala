@@ -607,4 +607,50 @@ class Finalizer(val target: Base){
 
 }
 
+trait BaseANF extends BaseCompiler {
 
+  var state: Map[CExpr, Variable] = Map()
+  var stateInv: Map[Variable, CExpr] = Map()
+  var vars: Seq[Variable] = Seq()
+
+  def getExp(e: CExpr): CExpr = 
+    state.getOrElse(e, e)
+
+
+
+
+
+  def anf(e: CExpr): CExpr = 
+    vars.foldLeft(e)((acc, cur) => Bind(cur, stateInv(cur), acc))
+
+  // def inputref(x: String, tp: Type): Rep = InputRef(x, tp)
+  // def input(x: List[Rep]): Rep = Input(x)
+  // def constant(x: Any): Rep = Constant(x)
+  // def emptysng: Rep = EmptySng
+  // def unit: Rep = CUnit
+  // def sng(x: Rep): Rep = Sng(x)
+  // def tuple(fs: List[Rep]): Rep = Tuple(fs)
+  // def record(fs: Map[String, Rep]): Rep = Record(fs)
+  // def equals(e1: Rep, e2: Rep): Rep = Equals(e1, e2)
+  // def lt(e1: Rep, e2: Rep): Rep = Lt(e1, e2)
+  override def gt(e1: Rep, e2: Rep): Rep = {
+    val res = Gt(getExp(e1), getExp(e2))
+    val v = Variable.fresh(BoolType)
+    vars = vars :+ v
+    state = state + (res -> v)
+    stateInv = stateInv + (v -> res)
+    v
+  }
+  // def lte(e1: Rep, e2: Rep): Rep = Lte(e1, e2)
+  // def gte(e1: Rep, e2: Rep): Rep = Gte(e1, e2)
+  // def and(e1: Rep, e2: Rep): Rep = And(e1, e2)
+  // def not(e1: Rep): Rep = Not(e1)
+  // def or(e1: Rep, e2: Rep): Rep = Or(e1, e2)
+  // def project(e1: Rep, e2: String): Rep = Project(e1, e2)
+  // def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = If(cond, e1, e2)
+  // def merge(e1: Rep, e2: Rep): Rep = Merge(e1, e2)
+  // def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
+  //   val v = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
+  //   Comprehension(e1, v, p(v), e(v))
+  // }
+}

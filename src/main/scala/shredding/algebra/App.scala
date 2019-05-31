@@ -715,6 +715,12 @@ object App {
     println("")
     val ccode = "val R = "+nsgen.input(FlatTest.relationRValues3)+"\n"+sgen.finalize(normalized0)
     println(ccode)
+
+    val anfBase = new BaseANF {}
+    val anfed = new Finalizer(anfBase).finalize(normalized0)
+    println(str.quote(anfBase.anf(anfed.asInstanceOf[CExpr])))
+    println(anfBase.vars)
+    println(anfBase.state)
     /**eval.finalize(normalized0).asInstanceOf[List[_]].foreach(println(_))
     println("")
     // exp1 
