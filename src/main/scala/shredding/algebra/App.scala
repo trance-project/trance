@@ -22,7 +22,9 @@ object FlatTest{
                               Map("a" -> 34, "b" -> List(Map("c" ->5))))
 
   val rF = Label.fresh()
+  val rFType = rF.tp
   val rDc = (List((rF, relationRValues)), ())
+  val rDType = BagDictCType(BagCType(TTupleType(List(rF.tp, relationRType))), EmptyDictCType)
   val rDu = relationRValues 
 
 
@@ -567,7 +569,18 @@ object App {
     println("\n\nEvaluated:\n")
     eval.finalize(nexp1).asInstanceOf[List[_]].foreach(println(_))
 
-    println("")
+    val nsgen = new ScalaGenerator{}
+    nsgen.ctx("M_ctx1") = BagCType(LabelType(Map[String, Type]()))
+    nsgen.ctx("R^F") = FlatTest.rFType
+    nsgen.ctx("R^D") = FlatTest.rDType
+    val sgen = new Finalizer(nsgen)
+
+    // exp0
+    //println("")
+    //val ccode = "val R = "+nsgen.input(FlatTest.relationRValues)+"\n"+sgen.finalize(nexp1)
+    //println(ccode)
+
+    /**println("")
     beval.ctx.clear
     beval.ctx("R^F") = NestedTest.rF
     beval.ctx("R^D") = NestedTest.rDc
@@ -578,8 +591,9 @@ object App {
     val nexp2 = norm.finalize(exp2).asInstanceOf[CExpr]
     println(str.quote(nexp2))
     println("\nEvaluated:\n")
-    eval.finalize(nexp2)//.asInstanceOf[List[_]].foreach(println(_))
-
+    eval.finalize(nexp2)//.asInstanceOf[List[_]].foreach(println(_))**/
+ 
+   
     /**val plan = Unnester.unnest(nexp1)((Nil, Nil, None))
     println("\nPlan:")
     println(str.finalize(plan))
@@ -716,11 +730,11 @@ object App {
     val ccode = "val R = "+nsgen.input(FlatTest.relationRValues3)+"\n"+sgen.finalize(normalized0)
     println(ccode)
 
-    val anfBase = new BaseANF {}
+    /**val anfBase = new BaseANF {}
     val anfed = new Finalizer(anfBase).finalize(normalized0)
     println(str.quote(anfBase.anf(anfed.asInstanceOf[CExpr])))
     println(anfBase.vars)
-    println(anfBase.state)
+    println(anfBase.state)**/
     /**eval.finalize(normalized0).asInstanceOf[List[_]].foreach(println(_))
     println("")
     // exp1 
@@ -764,7 +778,7 @@ object App {
     //run2()
     //run3()
     //runNormlizationTests()
-    //runShred()
+    runShred()
     runBase()
   }
 

@@ -82,7 +82,9 @@ trait ScalaGenerator extends BaseStringify {
     }
   }
   override def dedup(e1: Rep): Rep = s"${e1}.distinct"
-  override def named(n: String, e: Rep): Rep = s"val ${n} = ${e}\n"
+  override def named(n: String, e: Rep): Rep = {
+    s"val ${n} = ${e}\n"
+  }
   override def linset(e: List[Rep]): Rep = s"${e.mkString("\n")}"
 
   override def label(id: Int, fs: Map[String, Rep]): Rep = {
