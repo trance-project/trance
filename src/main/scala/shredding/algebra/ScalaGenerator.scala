@@ -29,7 +29,7 @@ trait ScalaGenerator extends BaseStringify {
   override def emptysng: Rep = "Nil"
   override def unit: Rep = "Unit" //??
   override def sng(x: Rep): Rep = s"List(${x})"
-  override def record(fs: Map[String, Rep]): Rep = s"Map(${fs.map(f => quotes(f._1) + " -> " + f._2).mkString(",")})"
+  override def record(fs: Map[String, Rep]): Rep = s"""Map(${fs.map(f => quotes(f._1) + " -> " + f._2).mkString(",")})"""
   override def project(e1: Rep, field: String): Rep = e1 match {
     case m if e1.startsWith("Map") => s"${e1}.getOrElse(${quotes(field)}, None)"
     case m if e1.startsWith("(") => s"${e1}.asInstanceOf[Product].productElement(${field})"
@@ -84,6 +84,16 @@ trait ScalaGenerator extends BaseStringify {
   override def dedup(e1: Rep): Rep = s"${e1}.distinct"
   override def named(n: String, e: Rep): Rep = s"val ${n} = ${e}\n"
   override def linset(e: List[Rep]): Rep = s"${e.mkString("\n")}"
+
+  override def label(id: Int, fs: Map[String, Rep]): Rep = {
+    s"""(${id}, ${fs.map(f => "ctx.getOrElseUpdate("+quotes(f._1)+","+f._2+")")})"""
+  }
+  override def emptydict: Rep = s"()"
+  override def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = {
+    s"(${flat}.asInstanceOf[List[_]].map(v => (${lbl}, v)), ${dict})"
+  }
+  override def tupledict(fs: Map[String, Rep]): Rep = input(fs)
+  
 
   def varType(tp: Type): Variable = tp match {
     case BagCType(tt) => Variable.fresh(tt)
