@@ -16,6 +16,7 @@ object FlatTest{
   val relationRValues2 = List(List(42, "Milos"), List(49, "Michael"),
                            List(34, "Jaclyn"), List(42, "Thomas"))
 
+  val relationRType3 = RecordCType("a" -> IntType, "b" -> BagCType(RecordCType("c" -> IntType)))
   val relationRValues3 = List(Map("a" -> 42, "b" -> List(Map("c" -> 1), Map("c" -> 2), Map("c" -> 4))), 
                               Map("a" -> 49, "b" -> List(Map("c" -> 3), Map("c" -> 2))),
                               Map("a" -> 34, "b" -> List(Map("c" ->5))))
@@ -703,11 +704,18 @@ object App {
     val beval = new BaseScalaInterp{}
     beval.ctx("R") = FlatTest.relationRValues3
     val eval = new Finalizer(beval)
+    val nsgen = new ScalaGenerator{}
+    nsgen.ctx("R") = FlatTest.relationRType3
+    val sgen = new Finalizer(nsgen)
  
     // exp0
     val normalized0 = norm.finalize(exp0).asInstanceOf[CExpr]
     println(str.quote(normalized0))
-    eval.finalize(normalized0).asInstanceOf[List[_]].foreach(println(_))
+
+    println("")
+    println("val R = "+nsgen.input(FlatTest.relationRValues3)+"\n")
+    println(sgen.finalize(normalized0))
+    /**eval.finalize(normalized0).asInstanceOf[List[_]].foreach(println(_))
     println("")
     // exp1 
     val normalized = norm.finalize(exp1).asInstanceOf[CExpr]
@@ -742,7 +750,7 @@ object App {
 
     println("\nEvaluated:")
     eval.finalize(unnestedOpt2)///.asInstanceOf[List[_]].foreach(println(_))**/
-
+    */
   }
 
   def main(args: Array[String]){
@@ -750,8 +758,8 @@ object App {
     //run2()
     //run3()
     //runNormlizationTests()
-    runShred()
-    //runBase()
+    //runShred()
+    runBase()
   }
 
 
