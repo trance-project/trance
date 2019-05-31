@@ -713,8 +713,8 @@ object App {
     println(str.quote(normalized0))
 
     println("")
-    println("val R = "+nsgen.input(FlatTest.relationRValues3)+"\n")
-    println(sgen.finalize(normalized0))
+    val ccode = "val R = "+nsgen.input(FlatTest.relationRValues3)+"\n"+sgen.finalize(normalized0)
+    println(ccode)
     /**eval.finalize(normalized0).asInstanceOf[List[_]].foreach(println(_))
     println("")
     // exp1 

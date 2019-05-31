@@ -15,11 +15,17 @@ trait ScalaGenerator extends BaseStringify {
   }
 
   def cast(v: Rep): Rep = ctx(v) match {
-    case IntType => s"${v}.asInstanceOf[Int]"
     case BagCType(_) => s"${v}.asInstanceOf[List[_]]"
     case _ => v
   } 
  
+  override def lt(e1: Rep, e2: Rep): Rep = s"${e1}.asInstanceOf[Int] < ${e2}.asInstanceOf[Int]"
+  override def gt(e1: Rep, e2: Rep): Rep = s"${e1}.asInstanceOf[Int] > ${e2}.asInstanceOf[Int]"
+  override def lte(e1: Rep, e2: Rep): Rep = s"${e1}.asInstanceOf[Int] <= ${e2}.asInstanceOf[Int]"
+  override def gte(e1: Rep, e2: Rep): Rep = s"${e1}.asInstanceOf[Int] >= ${e2}.asInstanceOf[Int]"
+  override def and(e1: Rep, e2: Rep): Rep = s"${e1}.asInstanceOf[Boolean] && ${e2}.asInstanceOf[Boolean]"
+  override def not(e1: Rep): Rep = s"!${e1}.asInstanceOf[Boolean]"
+  override def or(e1: Rep, e2: Rep): Rep = s"${e1}.asInstanceOf[Boolean] || ${e2}.asInstanceOf[Boolean]"
   override def emptysng: Rep = "Nil"
   override def unit: Rep = "Unit" //??
   override def sng(x: Rep): Rep = s"List(${x})"
@@ -28,7 +34,7 @@ trait ScalaGenerator extends BaseStringify {
     case m if e1.startsWith("Map") => s"${e1}.getOrElse(${quotes(field)}, None)"
     case m if e1.startsWith("(") => s"${e1}.asInstanceOf[Product].productElement(${field})"
     case m =>  
-      val v = e1.split("\\.").filter(!_.contains("asInstanceOf"))
+      val v = e1.split("\\.").filter(!_.contains("asInstanceOf[List[_]]"))
       val v0 = v.mkString(".")
       val v1 = if (v.size > 1) { v.dropRight(1).mkString(".") } else { v0 }
       val tp = ctx(v1)
@@ -68,10 +74,12 @@ trait ScalaGenerator extends BaseStringify {
   override def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
     val v0 = e1.split("\\.").filter(!_.contains("asInstanceOf")).mkString(".")
     val v = freshVar(v0)
-    val agg = e(v) match { case "1" => ".sum"; case _ => "" }
     val filt = p(v) match { case "true" => ""; case _ => s".withFilter(${v} => ${p(v)})"}
-    s"""${e1}${filt}.map(${v} => 
-        | ${ind(e(v))})${agg}""".stripMargin  
+    e(v) match {
+      case "1" => s"${e1}${filt}.map(${v} => 1).sum"
+      case t => s"""${e1}${filt}.flatMap(${v} => 
+        | ${ind(t)})""".stripMargin  
+    }
   }
   override def dedup(e1: Rep): Rep = s"${e1}.distinct"
   override def named(n: String, e: Rep): Rep = s"val ${n} = ${e}\n"
@@ -89,3 +97,4 @@ trait ScalaGenerator extends BaseStringify {
   }
  
 }
+
