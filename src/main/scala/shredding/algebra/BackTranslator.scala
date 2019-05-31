@@ -29,6 +29,7 @@ trait BackTranslator extends CalcImplicits {
     case EmptySng => Sng(Tup(Map[String, TupleAttributeCalc]()))
     case CSng(e1) => Sng(translate(e1).asInstanceOf[TupleCalc])
     case CUnit => Tup(Map[String, TupleAttributeCalc]())
+    //case Tuple(fs)  =>  Tup(fs.zipWithIndex.map(f => f._2 -> translate(f._1).asInstanceOf[TupleAttributeCalc]))
     case Record(fs) => Tup(fs.map(f => f._1 -> translate(f._2).asInstanceOf[TupleAttributeCalc]))
     case Project(e, f) => Proj(translate(e).asInstanceOf[TupleCalc], f)
     case If(cond, e1, e2) => e2 match {
@@ -50,8 +51,6 @@ trait BackTranslator extends CalcImplicits {
           translate(e1).asInstanceOf[BagCalc]), translate(p)))
     }
     case CBind(x, e1, e) => translate(e).bind(translate(e1), translate(x).asInstanceOf[Var].varDef)
-    case KVTuple(e1, e2) => Tup("key" -> translate(e1).asInstanceOf[TupleAttributeCalc], 
-                                    "value" -> translate(e2).asInstanceOf[TupleAttributeCalc])
   }
 
 }

@@ -1,6 +1,7 @@
 package shredding.algebra
 
 import shredding.core._
+import scala.collection.mutable.HashMap
 import shredding.Utils.ind
 
 trait Base {
@@ -11,7 +12,7 @@ trait Base {
   def emptysng: Rep
   def unit: Rep 
   def sng(x: Rep): Rep
-  def tuple(fs: Rep*): Rep
+  def tuple(fs: List[Rep]): Rep
   def record(fs: Map[String, Rep]): Rep
   def equals(e1: Rep, e2: Rep): Rep
   def lt(e1: Rep, e2: Rep): Rep
@@ -22,7 +23,6 @@ trait Base {
   def not(e1: Rep): Rep
   def or(e1: Rep, e2: Rep): Rep
   def project(e1: Rep, field: String): Rep
-  def casematch(e1: Rep, field: String): Rep
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep] = None): Rep
   def merge(e1: Rep, e2: Rep): Rep
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep
@@ -37,13 +37,76 @@ trait Base {
   def tupledict(fs: Map[String, Rep]): Rep
   def dictunion(d1: Rep, d2: Rep): Rep
   def select(x: Rep, p: Rep => Rep): Rep
-  def reduce(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep
-  def unnest(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep
-  def join(e1: Rep, e2: Rep, p1: Rep => Rep, p2: Rep => Rep): Rep
-  def outerunnest(e1: Rep, r: Rep => Rep, p: Rep => Rep): Rep
-  def outerjoin(e1: Rep, e2: Rep, p1: Rep => Rep, p: Rep => Rep): Rep
-  def nest(e1: Rep, f: Rep => Rep, e: Rep => Rep, p: Rep => Rep): Rep
-  def tupled(vars: List[Rep]): Rep
+  def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep
+  def unnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep
+  def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep
+  def outerunnest(e1: Rep, r: List[Rep] => Rep, p: Rep => Rep): Rep
+  def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep): Rep
+  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep
+}
+
+object Printer {
+  val compiler = new BaseStringify{}
+  import compiler._
+
+  def quote(e: CExpr): String = e match {
+    case InputRef(d, t) => inputref(d,t)
+    case Input(d) => input(d.map(quote(_)))
+    case Constant(d) => constant(d)
+    case EmptySng => emptysng
+    case CUnit => unit
+    case Sng(e1) => sng(quote(e1))
+    case Tuple(fs) => tuple(fs.map(quote(_)))
+    case Record(fs) => record(fs.map(f => f._1 -> quote(f._2)))
+    case Equals(e1, e2) => compiler.equals(quote(e1), quote(e2))
+    case Lt(e1, e2) => lt(quote(e1), quote(e2))
+    case Lte(e1, e2) => lte(quote(e1), quote(e2))
+    case Gt(e1, e2) => gt(quote(e1), quote(e2))
+    case Gte(e1, e2) => gte(quote(e1), quote(e2))
+    case And(e1, e2) => and(quote(e1), quote(e2))
+    case Not(e1) => not(quote(e1))
+    case Or(e1, e2) => or(quote(e1), quote(e2))
+    case Project(e1, f) => project(quote(e1), f)
+    case If(c, e1, e2) => e2 match {
+      case Some(a) => ifthen(quote(c), quote(e1), Some(quote(a)))
+      case _ => ifthen(quote(c), quote(e1), None)
+    }
+    case Merge(e1, e2) => merge(quote(e1), quote(e2))
+    case Comprehension(e1, v, p, e) => p match {
+      case Constant(true) => s"{ ${quote(e)} | ${v.quote} <- ${quote(e1)} }"
+      case px => s"{ ${quote(e)} | ${v.quote} <- ${quote(e1)}, ${quote(px)} }"
+    }
+    case Bind(x, e1, e2) => s"{ ${quote(e2)} | ${quote(x)} := ${quote(e1)} }"
+    case CDeDup(e1) => s"DeDup(${quote(e1)})"
+    case CNamed(n, e) => named(n, quote(e))
+    case LinearCSet(exprs) => linset(exprs.map(quote(_)))
+    case Label(id, fs) => label(id, fs.map(f => f._1 -> quote(f._2)))
+    case CLookup(lbl, dict) => lookup(quote(lbl), quote(dict))
+    case EmptyCDict => emptydict
+    case BagCDict(lbl, flat, dict) => bagdict(quote(lbl), quote(flat), quote(dict))
+    case TupleCDict(fs) => tupledict(fs.map(f => f._1 -> quote(f._2)))
+    case DictCUnion(e1, e2) => dictunion(quote(e1), quote(e2))
+    case Select(x, v, p) => 
+      s""" | <-- (${e.wvars.map(_.quote).mkString(",")})} -- SELECT[ ${quote(p)} ](${quote(x)})""".stripMargin
+    case Reduce(e1, v, e2, p) =>  
+      s""" | REDUCE[ ${quote(e2)} / ${quote(p)} ](${quote(e1)})""".stripMargin
+    case Unnest(e1, v1, e2, v2, p) =>
+      s""" |  <-- (${e.wvars.map(_.quote).mkString(",")}) -- UNNEST[ ${quote(e2)} / ${quote(p)} ](${quote(e1)})""".stripMargin
+    case OuterUnnest(e1, v1, e2, v2, p) =>
+      s""" |  <-- (${e.wvars.map(_.quote).mkString(",")}) -- OUTERUNNEST[ ${quote(e2)} / ${quote(p)} ](${quote(e1)})""".stripMargin
+    case Nest(e1, v1, f, e3, v2, p) =>
+      val acc = e match { case Constant(1) => "+"; case _ => "U" }
+      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- NEST[ ${acc} / ${quote(e3)} / ${quote(f)}, ${quote(p)} ](${quote(e1)})""".stripMargin
+    case Join(e1, e2, v1, p1, v2, p2) => 
+      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) JOIN[${quote(p1)} = ${quote(p2)}]( 
+           | ${ind(quote(e2))})""".stripMargin
+    case OuterJoin(e1, e2, v1, p1, v2, p2) => 
+      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) OUTERJOIN[${quote(p1)} = ${quote(p2)}]( 
+           | ${ind(quote(e2))})""".stripMargin
+    case Variable(n, tp) => n
+
+  }
+
 }
 
 trait BaseStringify extends Base{
@@ -54,7 +117,7 @@ trait BaseStringify extends Base{
   def emptysng: Rep = "{}"
   def unit: Rep = "()"
   def sng(x: Rep): Rep = s"{ $x }"
-  def tuple(fs: Rep*) = s"(${fs.mkString(",")})"
+  def tuple(fs: List[Rep]) = s"(${fs.mkString(",")})"
   def record(fs: Map[String, Rep]): Rep = 
     s"(${fs.map(f => f._1 + " := " + f._2).mkString(",")})"
   def equals(e1: Rep, e2: Rep): Rep = s"${e1} = ${e2}"
@@ -66,7 +129,6 @@ trait BaseStringify extends Base{
   def not(e1: Rep): Rep = s"!(${e1})"
   def or(e1: Rep, e2: Rep): Rep = s"${e1} || ${e2}"
   def project(e1: Rep, field: String): Rep = s"${e1}.${field}"
-  def casematch(e1: Rep, field: String): Rep = s"${e1}.${field}"
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = e2 match {
     case Some(a) => s"if (${cond}) then ${e1} else ${a}"
     case _ => s"if (${cond}) then ${e1}"
@@ -85,7 +147,7 @@ trait BaseStringify extends Base{
   }
   def dedup(e1: Rep): Rep = s"DeDup(${e1})"
   def named(n: String, e: Rep): Rep = s"${n} := ${e}"
-  def linset(e: List[Rep]): Rep = e.mkString("\n")
+  def linset(e: List[Rep]): Rep = e.mkString("\n\n")
   def label(id: Int, vars: Map[String, Rep]): Rep = 
     s"Label${id}(${vars.map(f => f._1 +"->"+f._2).mkString(",")})"
   def lookup(lbl: Rep, dict: Rep): Rep = s"Lookup(${lbl}, ${dict})"
@@ -97,37 +159,36 @@ trait BaseStringify extends Base{
   def select(x: Rep, p: Rep => Rep): Rep = { 
     s""" | SELECT[ ${p(Variable.fresh(StringType).quote)} ](${x} )""".stripMargin
   }
-  def reduce(x: Rep, f: Rep => Rep, p: Rep => Rep): Rep = { 
+  def reduce(x: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = { 
     val v = Variable.fresh(StringType)
-    s""" | REDUCE[ ${f(v.quote)} / ${p(v.quote)} ](${x})""".stripMargin
+    s""" | REDUCE[ ${f(List(v.quote))} / ${p(List(v.quote))} ](${x})""".stripMargin
   }
-  def unnest(x: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
+  def unnest(x: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = {
     val v1 = Variable.fresh(StringType)
-    val v = Variable.fresh(KVTupleCType(StringType, StringType))
-    s""" | UNNEST[ ${f(v1.quote)} / ${p(v.quote)} ](${x})""".stripMargin
+    val v = Variable.fresh(StringType)
+    s""" | UNNEST[ ${f(List(v1.quote))} / ${p(v.quote)} ](${x})""".stripMargin
   }
-  def nest(x: Rep, f: Rep => Rep, e: Rep => Rep, p: Rep => Rep): Rep = {
+  def nest(x: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = {
     val v1 = Variable.fresh(StringType) 
     val v2 = Variable.fresh(StringType)
-    val acc = e(v1.quote) match { case "1" => "+"; case _ => "U" }
-    s""" | NEST[ ${acc} / ${e(v1.quote)} / ${f(v2.quote)}, ${p(v2.quote)} ](${x})""".stripMargin
+    val acc = e(List(v1.quote)) match { case "1" => "+"; case _ => "U" }
+    s""" | NEST[ ${acc} / ${e(List(v1.quote))} / ${f(List(v2.quote))}, ${p(v2.quote)} ](${x})""".stripMargin
   }
-  def join(e1: Rep, e2: Rep, p1: Rep => Rep, p2: Rep => Rep): Rep = {
+  def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
     val (v1,v2) = (Variable.fresh(StringType), Variable.fresh(StringType))
-    s""" | (${e1}) JOIN[${p1(v1.quote)} = ${p2(v2.quote)}]( 
+    s""" | (${e1}) JOIN[${p1(List(v1.quote))} = ${p2(v2.quote)}]( 
          | ${ind(e2)})""".stripMargin
   }
-  def outerunnest(x: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
+  def outerunnest(x: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = {
     val v1 = Variable.fresh(StringType)
-    val v = Variable.fresh(KVTupleCType(StringType, StringType))
-    s""" | OUTERUNNEST[ ${f(v1.quote)} / ${p(v.quote)} ](${x})""".stripMargin
+    val v = Variable.fresh(StringType)
+    s""" | OUTERUNNEST[ ${f(List(v1.quote))} / ${p(v.quote)} ](${x})""".stripMargin
   }
-  def outerjoin(e1: Rep, e2: Rep, p1: Rep => Rep, p2: Rep => Rep): Rep = {
+  def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
     val (v1,v2) = (Variable.fresh(StringType), Variable.fresh(StringType))
-    s""" | (${e1}) OUTERJOIN[${p1(v1.quote)} = ${p2(v2.quote)}]( 
+    s""" | (${e1}) OUTERJOIN[${p1(List(v1.quote))} = ${p2(v2.quote)}]( 
          | ${ind(e2)})""".stripMargin
   }
-  def tupled(vars: List[Rep]): Rep = tuple(vars:_*)
 
 }
 
@@ -139,7 +200,7 @@ trait BaseCompiler extends Base {
   def emptysng: Rep = EmptySng
   def unit: Rep = CUnit
   def sng(x: Rep): Rep = Sng(x)
-  def tuple(fs: Rep*): Rep = Tuple(fs:_*)
+  def tuple(fs: List[Rep]): Rep = Tuple(fs)
   def record(fs: Map[String, Rep]): Rep = Record(fs)
   def equals(e1: Rep, e2: Rep): Rep = Equals(e1, e2)
   def lt(e1: Rep, e2: Rep): Rep = Lt(e1, e2)
@@ -150,7 +211,6 @@ trait BaseCompiler extends Base {
   def not(e1: Rep): Rep = Not(e1)
   def or(e1: Rep, e2: Rep): Rep = Or(e1, e2)
   def project(e1: Rep, e2: String): Rep = Project(e1, e2)
-  def casematch(e1: Rep, e2: String): Rep = CaseMatch(e1, e2)
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = If(cond, e1, e2)
   def merge(e1: Rep, e2: Rep): Rep = Merge(e1, e2)
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
@@ -177,81 +237,55 @@ trait BaseCompiler extends Base {
       case _ => Select(x, v, p(v))
     }
   }
-  def reduce(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
-    val v = e1.wvars//Variable.fresh(e1.tp)
-    val input = tupled(v)
-    Reduce(e1, v, f(input), p(input))
+  def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
+    val v = e1.wvars
+    Reduce(e1, v, f(v), p(v))
   }
-  def unnest(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
+  def unnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = {
     val v1 = e1 match {
       case InputRef(_,tp) => List(Variable.fresh(tp.asInstanceOf[BagCType].tp))
       case _ => e1.wvars
     }
-    val input = tupled(v1)
-    val fv = f(input) match {
-      case Project(e3, f) => Project(matchPattern(input, e3), f)
-    }
-    val v = Variable.fresh(KVTupleCType(fv.tp, fv.tp.asInstanceOf[BagCType].tp))
+    val fv = f(v1) 
+    val v = Variable.fresh(fv.tp.asInstanceOf[BagCType].tp)
     Unnest(e1, v1, fv, v, p(v))
   }
-  def nest(e1: Rep, f: Rep => Rep, e: Rep => Rep, p: Rep => Rep): Rep = {
-    val v1 = e1.asInstanceOf[CExpr].wvars //Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
-    val input = tupled(v1)
-    val fv = f(input) // groups
-    val ev = e(input) // pattern
-    val v = Variable.fresh(KVTupleCType(fv.tp, ev.tp))
+  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = {
+    val v1 = e1.asInstanceOf[CExpr].wvars 
+    val fv = f(v1) // groups
+    val ev = e(v1) // pattern
+    val v = ev.tp match {
+      case IntType => 
+        Variable.fresh(TTupleType(fv.tp.asInstanceOf[TTupleType].attrTps :+ ev.tp))
+      case _ => 
+        Variable.fresh(TTupleType(fv.tp.asInstanceOf[TTupleType].attrTps :+ BagCType(ev.tp)))
+    }
     Nest(e1, v1, fv, ev, v, p(v))
   }
-  def join(e1: Rep, e2: Rep, p1: Rep => Rep, p2: Rep => Rep): Rep = {
+  def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
     val v1 = e1 match {
       case InputRef(_,tp) => List(Variable.fresh(e1.tp.asInstanceOf[BagCType].tp))
       case _ => e1.wvars
     }
-    val input = tupled(v1)
     val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp)
-    Join(e1, e2, v1, p1(input), v2, p2(v2))
+    Join(e1, e2, v1, p1(v1), v2, p2(v2))
   }
-  def outerunnest(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
+  def outerunnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = {
     val v1 = e1 match {
       case InputRef(_,tp) => List(Variable.fresh(tp.asInstanceOf[BagCType].tp))
       case _ => e1.wvars
     }
-    val input = tupled(v1)
-    val fv = f(input) match {
-      case Project(e3, f) => Project(matchPattern(input, e3), f)
-    }
-    val v = Variable.fresh(KVTupleCType(fv.tp, fv.tp.asInstanceOf[BagCType].tp))
+    val fv = f(v1) 
+    val v = Variable.fresh(fv.tp.asInstanceOf[BagCType].tp)
     OuterUnnest(e1, v1, fv, v, p(v))
   }
-  def outerjoin(e1: Rep, e2: Rep, p1: Rep => Rep, p2: Rep => Rep): Rep = {
+  def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
     val v1 = e1 match {
       case InputRef(_,tp) => List(Variable.fresh(e1.tp.asInstanceOf[BagCType].tp))
       case _ => e1.wvars
     }
-    val input = tupled(v1)
     val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp)
-    OuterJoin(e1, e2, v1, p1(input), v2, p2(v2))
-  }
-  def tupled(vars: List[Rep]): Rep = vars match {
-    //case Nil => CUnit
-    case tail :: Nil => tail
-    case head :: tail => tupled(List(Tuple(head, tail.head)) ++ tail.tail)
-  } 
-
-  def matchPattern(e: CExpr, v: CExpr): CExpr = e match {
-    case t:Tuple => t.fields.toList match {
-      case tail :: Nil =>
-        if (v == tail) e
-        else sys.error("match error "+v+" "+e)
-      case (head:Tuple) :: tail =>
-        if (v == tail) CaseMatch(e, "1")
-        else CaseMatch(matchPattern(head, v), "0")
-      case head :: tail =>
-        if (v == head) CaseMatch(e, "0")
-        else if (v == tail) CaseMatch(e, "1")
-        else matchPattern(head, v)
-      }
-    case _ => e // mapping issue here 
+    OuterJoin(e1, e2, v1, p1(v1), v2, p2(v2))
   }
 }
 
@@ -291,11 +325,10 @@ trait BaseNormalizer extends BaseCompiler {
   // N3 (a := e1, b: = e2).a = e1
   override def project(e1: Rep, f: String): Rep = e1 match {
     case t:Tuple => t(f.toInt)
-    case t:Record => t(f) 
+    case t:Record => t(f)
     case t:Label => t(f)
     case t:TupleCDict => t(f)
     case t:BagCDict => t(f)
-    case InputRef(n, tp) => Project(Variable(n, tp), f) // this shouldn't be happening
     case _ => super.project(e1, f)
   }
 
@@ -342,6 +375,19 @@ trait BaseNormalizer extends BaseCompiler {
     }
 }
 
+trait PlanOptimizer extends BaseNormalizer {
+
+  override def project(e1: Rep, f: String): Rep = e1 match {
+    /**case t:Record =>
+      val index = t.fields.keys.toList.indexOf(f).toString
+      Project(t, index)
+    case Variable(n, tp @ RecordCType(fs)) =>
+      Project(e1, fs.keys.toList.indexOf(f).toString)**/
+    case _ => super.project(e1, f)
+  }
+
+}
+
 trait BaseScalaInterp extends Base{
   type Rep = Any
   var ctx = scala.collection.mutable.Map[String, Any]()
@@ -351,9 +397,8 @@ trait BaseScalaInterp extends Base{
   def emptysng: Rep = Nil
   def unit: Rep = ()
   def sng(x: Rep): Rep = List(x)
-  def tuple(x: Rep*): Rep = x
+  def tuple(x: List[Rep]): Rep = x
   def record(fs: Map[String, Rep]): Rep = fs.asInstanceOf[Map[String, Rep]]
-  def kvtuple(e1: Rep, e2: Rep): Rep = (e1, e2)
   def equals(e1: Rep, e2: Rep): Rep = e1 == e2
   def lt(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Int] < e2.asInstanceOf[Int]
   def gt(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Int] > e2.asInstanceOf[Int]
@@ -370,38 +415,38 @@ trait BaseScalaInterp extends Base{
     case "tupleDict" => e1.asInstanceOf[Product].productElement(1)
     case f => e1 match {
       case m:Map[String,_] => m(f)
-      case p:Product => println(p); p.productElement(f.toInt)
-      case t => sys.error("unsupported projection type "+t) 
+      case m:HashMap[String,_] => m(f)
+      case l:List[_] => l.map(project(_,f))
+      case p:Product => p.productElement(f.toInt)
+      case t => sys.error("unsupported projection type "+t.getClass) 
     }
   }
-  def casematch(e1: Rep, field: String) = project(e1, field)
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = e2 match {
     case Some(a) => if (cond.asInstanceOf[Boolean]) { e1 } else { a }
     case _ => if (cond.asInstanceOf[Boolean]) { e1 } else { Nil }
   } 
   def merge(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[List[_]] ++ e2.asInstanceOf[List[_]]
-  def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = e1 match {
-      case Nil => Nil // why is this happening
+  def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
+    e1 match {
+      case Nil => Nil
       case data @ (head :: tail) => e(head) match {
-                case i:Map[_,Rep] if i.isEmpty => data
-                case l:List[Map[_,Rep]] if l.size == 1 => 
-                  data.filter(p.asInstanceOf[Rep => Boolean]).map(m => e(m).asInstanceOf[List[_]](0))
-                case i:Int => 
-                  data.filter(p.asInstanceOf[Rep => Boolean]).map(e).asInstanceOf[List[Int]].sum
-                case _ => data.filter(p.asInstanceOf[Rep => Boolean]).map(e)
-              }
+        case i:Int =>
+          data.withFilter(p.asInstanceOf[Rep => Boolean]).map(e).asInstanceOf[List[Int]].sum
+        case _ => data.flatMap(e.asInstanceOf[Rep => scala.collection.GenTraversableOnce[Rep]])
+                    //.filter(p.asInstanceOf[Rep => Boolean]) issue because of type mis-mastch
+      }
+    }
   }
   def dedup(e1: Rep): Rep = e1.asInstanceOf[List[_]].distinct
   def named(n: String, e: Rep): Rep = {
     ctx(n) = e
-    println(n+" := "+e)
+    println(n+" := "+e+"\n")
     e
   }
   def linset(e: List[Rep]): Rep = e
-  def bind(e1: Rep, e: Rep => Rep): Rep = e(e1)
+  def bind(e1: Rep, e: Rep => Rep): Rep = ctx.getOrElseUpdate(e1.asInstanceOf[String], e(e1))
   def label(id: Int, fs: Map[String, Rep]): Rep = {
-    fs.foreach(f => ctx(f._1) = f._2)
-    (id, fs.map(f => f._2))
+    (id, fs.map(f => ctx.getOrElseUpdate(f._1, f._2)))
   }
   def lookup(lbl: Rep, dict: Rep): Rep = dict match {
     case (flat, tdict) => flat match {
@@ -417,61 +462,59 @@ trait BaseScalaInterp extends Base{
   def select(x: Rep, p: Rep => Rep): Rep = { 
     x.asInstanceOf[List[_]].filter(p.asInstanceOf[Rep => Boolean])
   }
-  def reduce(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
+  // TODO fix filter
+  def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
     println("reduce")
-    println(e1) 
-    e1.asInstanceOf[List[_]].map(f).filter(p.asInstanceOf[Rep => Boolean]) match {
-      case l @ ((head: Int) :: tail) => l.asInstanceOf[List[Int]].sum
-      case l => l
-    } 
+    val res = e1.asInstanceOf[List[List[_]]].map(f)//.filter(p.asInstanceOf[Rep => Boolean])
+    res.foreach(println(_))
+    res
   }
-  def unnest(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
-    println("unnesting")
-    println(e1)
-    val d = e1.asInstanceOf[List[_]].flatMap{
-      v => f(v).asInstanceOf[List[_]].map{ v2 => (v, v2) }
+  def unnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = {
+    val d = e1.asInstanceOf[List[List[_]]].flatMap{
+      v => f(v).asInstanceOf[List[_]].map{ v2 => v :+ v2 }
     }.filter{p.asInstanceOf[Rep => Boolean]}
-    println(d)
+    d.foreach(println(_))
     d
   }
   // e1.map(p1).join(e2.map(p2))
-  def join(e1: Rep, e2: Rep, p1: Rep => Rep, p2: Rep => Rep): Rep = {
+  def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
     println("joining")
     println(e1)
     println(e2)
-    val d = e1.asInstanceOf[List[_]].map(v1 => 
-      e2.asInstanceOf[List[_]].filter{ v2 => p1(v1) == p2(v2) }.map(v2 => (v1, v2)))
-    println(d)
+    val d = e1.asInstanceOf[List[_]].flatMap(v1 =>
+      e2.asInstanceOf[List[_]].filter{ v2 => p1(List(v1)) == p2(v2) }.map(v2 => List(v1, v2)))
+    d.foreach(println(_))
     d
   }
-  def nest(e1: Rep, f: Rep => Rep, e: Rep => Rep, p: Rep => Rep): Rep = {
+  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = {
     println("nest")
-    println(e1)
-    val grpd = e1.asInstanceOf[List[_]].map(v => (f(v), e(v))).groupBy(_._1)
-    println(grpd)
-    e(e1.asInstanceOf[List[_]].head) match {
+    val grpd = e1.asInstanceOf[List[List[_]]].map(v => (f(v), e(v))).groupBy(_._1)
+    val result = e(e1.asInstanceOf[List[List[_]]].head) match {
       case i:Int => 
-        grpd.map{ case (k, v:List[Int]) => (k, v.size)}.filter(p.asInstanceOf[Rep => Boolean])
-      case _ => grpd.filter(p.asInstanceOf[Rep => Boolean])
+        grpd.map{ f2 => 
+          f2._1.asInstanceOf[List[_]] :+ f2._2.map(_._2).asInstanceOf[List[Int]].sum 
+        }.filter(p.asInstanceOf[Rep => Boolean])
+      case _ => grpd.map(f2 => f2._1.asInstanceOf[List[_]] :+ f2._2 ).filter(p.asInstanceOf[Rep => Boolean])
     }
+    result.foreach(println(_))
+    result
   }
-  def outerunnest(e1: Rep, f: Rep => Rep, p: Rep => Rep): Rep = {
-    e1.asInstanceOf[List[_]].flatMap{
-      v => f(v).asInstanceOf[List[_]].map{ v2 => (v, v2) }
+  def outerunnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = {
+    println("outerunnest")
+    val d =e1.asInstanceOf[List[List[_]]].flatMap{
+      v => f(v).asInstanceOf[List[_]].map{ v2 => v :+ v2 }
     }.filter{p.asInstanceOf[Rep => Boolean]}
+    d.foreach(println(_))
+    d
   }
-  def outerjoin(e1: Rep, e2: Rep, p1: Rep => Rep, p2: Rep => Rep): Rep = {
-    e1.asInstanceOf[List[_]].flatMap(v1 => 
-      e2.asInstanceOf[List[_]].filter{ v2 => p1(v1) == p2(v2) }.map(v2 => v1 match {
-        case y if v1.asInstanceOf[Map[String,_]].contains("lbl") => (v1, v2.asInstanceOf[Tuple2[_,_]]._2) 
-        // avoid duplicate of toplevel label
-        case _ => (v1, v2)
-      }))
-  }
-  def tupled(vars: List[Rep]): Rep = vars match {
-    case Nil => ()
-    case tail :: Nil => tail
-    case head :: tail => tupled(List(tuple(head, tail.head)) ++ tail.tail)
+  def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
+    println("outer-joining")
+    println(e1)
+    println(e2)
+    val d = e1.asInstanceOf[List[_]].flatMap(v1 =>
+      e2.asInstanceOf[List[_]].filter{ v2 => p1(List(v1)) == p2(v2) }.map(v2 => List(v1, v2)))
+    d.foreach(println(_))
+    d
   }
 
 }
@@ -485,18 +528,12 @@ class Finalizer(val target: Base){
     variableMap = old
     res
   }
-  def withMapSec[T](m: List[(CExpr, target.Rep)])(f: => T): T = {
+  def withMapList[T](m: List[(CExpr, target.Rep)])(f: => T): T = {
     val old = variableMap
     variableMap = variableMap ++ m
     val res = f
     variableMap = old
     res
-  }
-
-
-  def tupled(e: List[CExpr]): CExpr = e match {
-    case tail :: Nil => tail
-    case head :: tail => tupled(Tuple(head, tail.head) +: tail.tail)
   }
   def finalize(e: CExpr): target.Rep = e match {
     case InputRef(x, tp) => target.inputref(x, tp)
@@ -508,8 +545,8 @@ class Finalizer(val target: Base){
       case EmptyCType => target.emptysng
       case _ => target.sng(finalize(x))
     }
-    case t:Tuple if t.fields.isEmpty => target.unit
-    case t:Tuple => target.tuple(t.fields.map(f => finalize(f)):_*)
+    case Tuple(fs) if fs.isEmpty => target.unit
+    case Tuple(fs) => target.tuple(fs.map(f => finalize(f)))
     case Record(fs) if fs.isEmpty => target.unit
     case Record(fs) => target.record(fs.map(f => f._1 -> finalize(f._2)))
     case Equals(e1, e2) => target.equals(finalize(e1), finalize(e2))
@@ -525,7 +562,6 @@ class Finalizer(val target: Base){
       case _ => target.ifthen(finalize(cond), finalize(e1))
     }
     case Merge(e1, e2) => target.merge(finalize(e1), finalize(e2))
-    case CaseMatch(e1, pos) => target.casematch(finalize(e1), pos)
     case Project(e1, pos) => target.project(finalize(e1), pos)
     case Comprehension(e1, v, p, e) =>
       target.comprehension(finalize(e1), (r: target.Rep) => withMap(v -> r)(finalize(p)), 
@@ -548,34 +584,27 @@ class Finalizer(val target: Base){
     case Select(x, v, p) =>
       target.select(finalize(x), (r: target.Rep) => withMap(v -> r)(finalize(p)))
     case Reduce(e1, v, e2, p) => 
-      val v1 = tupled(e1.wvars)
-      target.reduce(finalize(e1), (r: target.Rep) => withMap(v.last -> r)(finalize(e2)), 
-        (r: target.Rep) => withMap(v.last -> r)(finalize(p)))
-    case Unnest(e1, v, e2 @ Project(e3, f), v2, p) => 
-      val v1 = tupled(v)
-      val proj = Project(matchPattern(v1, e3), f)
-      target.unnest(finalize(e1), (r: target.Rep) => withMap(e3 -> r)(finalize(proj)), 
+      target.reduce(finalize(e1), (r: List[target.Rep]) => withMapList(v zip r)(finalize(e2)), 
+        (r: List[target.Rep]) => withMapList(v zip r)(finalize(p)))
+    case Unnest(e1, v, e2, v2, p) => 
+      target.unnest(finalize(e1), (r: List[target.Rep]) => withMapList(v zip r)(finalize(e2)), 
         (r: target.Rep) => withMap(v2 -> r)(finalize(p)))
     case Nest(e1, v, f, e, v2, p) => 
-      val v1 = tupled(v)
-      target.nest(finalize(e1), (r: target.Rep) => withMap(v.last -> r)(finalize(f)),
-        (r: target.Rep) => withMap(v.last -> r)(finalize(e)), 
+      target.nest(finalize(e1), (r: List[target.Rep]) => withMapList(v zip r)(finalize(f)),
+        (r: List[target.Rep]) => withMapList(v zip r)(finalize(e)), 
           (r: target.Rep) => withMap(v2 -> r)(finalize(p)))
     case Join(e1, e2, v, p1, v2, p2) =>
-      val v1 = tupled(v)
-      target.join(finalize(e1), finalize(e2), (r: target.Rep) => withMap(v.last -> r)(finalize(p1)),
+      target.join(finalize(e1), finalize(e2), (r: List[target.Rep]) => withMapList(v zip r)(finalize(p1)),
         (r: target.Rep) => withMap(v2 -> r)(finalize(p2)))
-    case OuterUnnest(e1, v, e2 @ Project(e3, f), v2, p) => 
-      val v1 = tupled(v)
-      val proj = Project(matchPattern(v1, e3), f)
-      target.outerunnest(finalize(e1), (r: target.Rep) => withMap(e3 -> r)(finalize(proj)), 
+    case OuterUnnest(e1, v, e2, v2, p) => 
+      target.outerunnest(finalize(e1), (r: List[target.Rep]) => withMapList(v zip r)(finalize(e2)), 
         (r: target.Rep) => withMap(v2 -> r)(finalize(p)))
     case OuterJoin(e1, e2, v, p1, v2, p2) =>
-      target.outerjoin(finalize(e1), finalize(e2), (r: target.Rep) => withMap(v -> r)(finalize(p1)),
+      target.outerjoin(finalize(e1), finalize(e2), (r: List[target.Rep]) => withMapList(v zip r)(finalize(p1)),
         (r: target.Rep) => withMap(v2 -> r)(finalize(p2)))
     case v @ Variable(_, _) => variableMap.getOrElse(v, target.inputref(v.name, v.tp) )
   }
- 
+
 }
 
 

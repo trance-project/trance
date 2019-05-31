@@ -13,9 +13,18 @@ object FlatTest{
   val relationRType = BagType(TupleType("a" -> IntType, "b" -> StringType))
   val relationRValues = List(Map("a" -> 42, "b" -> "Milos"), Map("a" -> 49, "b" -> "Michael"),
                            Map("a" -> 34, "b" -> "Jaclyn"), Map("a" -> 42, "b" -> "Thomas"))
+  val relationRValues2 = List(List(42, "Milos"), List(49, "Michael"),
+                           List(34, "Jaclyn"), List(42, "Thomas"))
+
+  val relationRValues3 = List(Map("a" -> 42, "b" -> List(Map("c" -> 1), Map("c" -> 2), Map("c" -> 4))), 
+                              Map("a" -> 49, "b" -> List(Map("c" -> 3), Map("c" -> 2))),
+                              Map("a" -> 34, "b" -> List(Map("c" ->5))))
+
   val rF = Label.fresh()
   val rDc = (List((rF, relationRValues)), ())
   val rDu = relationRValues 
+
+
 }
 
 object NestedTest {
@@ -130,81 +139,6 @@ object NestedTest {
 
 
 object App {
-
-  def run1(){
-
-    val compiler = new BaseCompiler {}
-  
-    val exp1 = {
-      import compiler._
-
-      /**
-        * For x1 in R Union If (x1.a > 40) Then Sng((w := x1.b))
-        *  { ( w := x1.b ) |  x1 <- R, x1.a > 40  }
-        * Reduce[ U / lambda(x1).( w := x1.b ), lambda(x1)."true"]
-        *  Select[lambda(x1). x1.a > 40](R)
-        */
-      val data = FlatTest.cdata 
-      //val ffun = (i: Rep) => gt(project(i,"a"), const(40))
-      //val pmat = (i: Rep) => record(Map("w" -> project(i, "b")))
-      //comprehension(data, ffun, pmat)
-      // { (x, y) | x <- R, y <- R }
-      // { { (x,y) | y <- R } | x <- R }
-      /**comprehension(data, x => const(true), (z: Rep) => 
-        comprehension(data, x => const(true), (x: Rep) => 
-          comprehension(data, x => const(true), (y: Rep) => record(Map("x" -> x, "y" -> y)))))**/
-      bind(data, (i: Rep) => comprehension(i, x => constant(true), (x: Rep) => record(Map("x" -> project(x, "a")))))
-    }
-
-    /**
-      * For x in R Union 
-      *   Sng((o5 := x.h, o6 := For w in x.j Union 
-      *                           Sng((o7 := w.m, o8 := Total(w.k)))))
-      *
-      * { ( o5 := x.h, o6 := { ( o7 := w.m, o8 :=  + { "1" |  v1 <- w.k  } ) |  w <- x.j  } ) |  x <- R  }
-      *
-      * Reduce[ U / lambda(x,v2).( o5 := x.h, o6 := v2 ), lambda(x,v2)."true"]
-      * Nest[ U / lambda(x,w,v3).( o7 := w.m, o8 := v3 ) / lambda(x,w,v3).x, 
-      *       lambda(x,w,v3)."true" / lambda(x,w,v3).w,v3]
-      *   Nest[ + / lambda(x,w,v1)."1" / lambda(x,w,v1).x,w, lambda(x,w,v1)."true" / lambda(x,w,v1).v1]
-      *     OuterUnnest[lambda(x,w).w.k, lambda(x,w)."true"]
-      *        OuterUnnest[lambda(x).x.j, lambda(x)."true"]
-      *          Select[lambda(x)."true"](R)
-      */
-    val exp2 = {
-      import compiler._
-      val data = NestedTest.cdata 
-      val unnest1filt = (i: Rep) => gt(project(project(i, "value"), "n"), constant(40))
-      val unnest2filt = (i: Rep) => gt(project(project(i, "value"), "n"), constant(700))
-      
-      val s1 = select(data, x => constant(true))
-      // x 
-      val s2 = unnest(s1, (i: Rep) => project(i,"j"), x => constant(true))
-      // (x, w)
-      val s3 = unnest(s2, (i: Rep) => project(project(i, "value"), "k"), x => constant(true))
-      // ((x, w), v1) => ((x,w), 1)
-      val s4 = nest(s3, (i: Rep) => project(i, "key"), (i: Rep) => constant(1), x => constant(true))
-      // ((x, w), v3) => (o7 := w.m, o8 := v3)
-      // don't think this is working properly
-      val s5 = nest(s4, (i: Rep) => project(project(i, "key"), "key"), 
-                (i: Rep) => record(Map("o7" -> project(project(project(i, "key"), "value"), "m"), 
-                  "o8" -> project(i, "value"))), x => constant(true))
-      s5
-      // (x,v2) 
-      //val s6 = reduce(s5, (i: Rep) => record(Map("o5" -> project(project(i, "key"), "h"), 
-      //        "o6" -> project(i, "value"))), x => const(true))
-      //s6
-     }
-
-    val inters = new BaseStringify{}
-    val inter = new BaseScalaInterp{}
-    val finalizer = new Finalizer(inter)
-    val finalizers = new Finalizer(inters)
-    println(finalizers.finalize(exp1))
-    println(finalizer.finalize(exp1))
-    println("")
-  }
-
 
   def run2(){
     val translator = new NRCTranslator{}
@@ -579,6 +513,10 @@ object App {
 
   def runShred(){
     val shredder = new ShredPipeline{};
+    val str = Printer
+    val bnorm = new BaseNormalizer{}
+    val norm = new Finalizer(bnorm)
+
     val exp1 = {
       import shredder._
       val itemTp = TupleType("a" -> IntType, "b" -> StringType)
@@ -587,31 +525,6 @@ object App {
       val q = ForeachUnion(x, relationR, Singleton(Tuple("o1" -> TupleVarRef(x)("a"))))
       shredPipeline(q)
     }
-
-    val bstr = new BaseStringify{}
-    val str = new Finalizer(bstr)
-    val bnorm = new BaseNormalizer{}
-    val norm = new Finalizer(bnorm)
-    println("\nTranslated:")
-    println(str.finalize(exp1))
-    println("\nNormalized:")
-    val nexp1 = norm.finalize(exp1).asInstanceOf[CExpr]
-    println(str.finalize(nexp1))
-    val plan = Unnester.unnest(nexp1)((Nil, Nil, None))
-    println("\nPlan:")
-    println(str.finalize(plan))
-    val plan1 = norm.finalize(plan).asInstanceOf[CExpr]
-    println("\nOptimized:")
-    println(str.finalize(plan1))
-    println(plan1)
-     
-    val beval = new BaseScalaInterp{}
-    beval.ctx("R^F") = FlatTest.rF
-    beval.ctx("R^D") = FlatTest.rDc
-    val eval = new Finalizer(beval)
-
-    println("\nEvaluated:")
-    eval.finalize(plan1)///.asInstanceOf[List[_]].foreach(println(_))
 
     val exp2 = {
       import shredder._
@@ -640,15 +553,42 @@ object App {
       shredPipeline(q)
     }
 
-    /**beval.ctx.clear
-    beval.ctx("R^F") = NestedTest.rF
-    beval.ctx("R^D") = NestedTest.rDc**/
+    val beval = new BaseScalaInterp{}
+    val eval = new Finalizer(beval)
 
     println("\nTranslated:")
-    println(str.finalize(exp2))
+    println(str.quote(exp1))
+    println("\nNormalized:")
+    val nexp1 = norm.finalize(exp1).asInstanceOf[CExpr]
+    println(str.quote(nexp1))
+    beval.ctx("R^F") = FlatTest.rF
+    beval.ctx("R^D") = FlatTest.rDc
+    println("\n\nEvaluated:\n")
+    eval.finalize(nexp1).asInstanceOf[List[_]].foreach(println(_))
+
+    println("")
+    beval.ctx.clear
+    beval.ctx("R^F") = NestedTest.rF
+    beval.ctx("R^D") = NestedTest.rDc
+
+    println("\nTranslated:")
+    println(str.quote(exp2))
     println("\nNormalized:")
     val nexp2 = norm.finalize(exp2).asInstanceOf[CExpr]
-    println(str.finalize(nexp2))
+    println(str.quote(nexp2))
+    println("\nEvaluated:\n")
+    eval.finalize(nexp2)//.asInstanceOf[List[_]].foreach(println(_))
+
+    /**val plan = Unnester.unnest(nexp1)((Nil, Nil, None))
+    println("\nPlan:")
+    println(str.finalize(plan))
+    val plan1 = norm.finalize(plan).asInstanceOf[CExpr]
+    println("\nOptimized:")
+    println(str.finalize(plan1))
+    println(plan1)
+     
+
+
     val plan2 = Unnester.unnest(nexp2)((Nil, Nil, None))
     println("\nPlan:")
     println(str.finalize(plan2))
@@ -674,7 +614,7 @@ object App {
       shredPipeline(q)
     }
  
-    /**println("\nTranslated:")
+    println("\nTranslated:")
     println(str.finalize(exp3))
     println("\nNormalized:")
     val nexp3 = norm.finalize(exp3).asInstanceOf[CExpr]
@@ -704,6 +644,19 @@ object App {
 
   def runBase(){
     val translator = new NRCTranslator{}
+
+    val exp0 = {
+      import translator._
+      val itemTp = TupleType("a" -> IntType, "b" -> BagType(TupleType("c" -> IntType)))
+      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+      val x = VarDef("x", itemTp)
+      val x1 = VarDef("x1", itemTp)
+      val y = VarDef("y", TupleType("c" -> IntType))
+      val q = ForeachUnion(x, relationR, 
+                IfThenElse(Cond(OpGt, TupleVarRef(x)("a"), Const(40, IntType)),
+                  Singleton(Tuple("o1" -> TupleVarRef(x)("a"), "o2" -> Total(BagProject(TupleVarRef(x), "b"))))))
+      translate(q)
+    }
 
     val exp1 = {
       import translator._
@@ -744,40 +697,51 @@ object App {
       translate(q)
     }
 
-
-
-    val bstr = new BaseStringify{}
-    val str = new Finalizer(bstr)
+    val str = Printer
     val bnorm = new BaseNormalizer{}
     val norm = new Finalizer(bnorm)
-    
-    val normalized = norm.finalize(exp1).asInstanceOf[CExpr]
-    println(str.finalize(normalized))
-    val unnested = Unnester.unnest(normalized)((Nil, Nil, None))
-    println(str.finalize(unnested))
-    val unnestedOpt = norm.finalize(unnested).asInstanceOf[CExpr] // call bind
-    println(str.finalize(unnestedOpt))
     val beval = new BaseScalaInterp{}
-    beval.ctx("R") = FlatTest.relationRValues
+    beval.ctx("R") = FlatTest.relationRValues3
     val eval = new Finalizer(beval)
+ 
+    // exp0
+    val normalized0 = norm.finalize(exp0).asInstanceOf[CExpr]
+    println(str.quote(normalized0))
+    eval.finalize(normalized0).asInstanceOf[List[_]].foreach(println(_))
+    println("")
+    // exp1 
+    val normalized = norm.finalize(exp1).asInstanceOf[CExpr]
+    println(str.quote(normalized))
+    eval.finalize(normalized).asInstanceOf[List[_]].foreach(println(_))
+    println("")
+    // exp2
+    beval.ctx("R") = NestedTest.inputRelation
+    val normalized2 = norm.finalize(exp2).asInstanceOf[CExpr]
+    println(str.quote(normalized2))
+    eval.finalize(normalized2).asInstanceOf[List[_]].foreach(println(_))
+    
+    
+    /**val unnested = Unnester.unnest(normalized)((Nil, Nil, None))
+    println(str.quote(unnested))
+    val optimizer = new Finalizer(new PlanOptimizer{})
+    val unnestedOpt = optimizer.finalize(unnested).asInstanceOf[CExpr] // call bind
+    println(str.quote(unnestedOpt))
+
+    //println(eval.finalize(unnested))
 
     println("\nEvaluated:")
     eval.finalize(unnestedOpt)///.asInstanceOf[List[_]].foreach(println(_))
 
-    println("")
-    val normalized2 = norm.finalize(exp2).asInstanceOf[CExpr]
-    println(str.finalize(normalized2))
     val unnested2 = Unnester.unnest(normalized2)((Nil, Nil, None))
     println("Plan")
-    println(str.finalize(unnested2))
+    println(str.quote(unnested2))
     println("Optimized Plan")
-    val unnestedOpt2 = norm.finalize(unnested2).asInstanceOf[CExpr] // call bind
-    println(str.finalize(unnestedOpt2))
+    val unnestedOpt2 = optimizer.finalize(unnested2).asInstanceOf[CExpr] // call bind
+    println(str.quote(unnestedOpt2))
 
-    beval.ctx("R") = NestedTest.inputRelation
 
     println("\nEvaluated:")
-    eval.finalize(unnestedOpt2)///.asInstanceOf[List[_]].foreach(println(_))
+    eval.finalize(unnestedOpt2)///.asInstanceOf[List[_]].foreach(println(_))**/
 
   }
 
@@ -786,8 +750,8 @@ object App {
     //run2()
     //run3()
     //runNormlizationTests()
-    //runShred()
-    runBase()
+    runShred()
+    //runBase()
   }
 
 

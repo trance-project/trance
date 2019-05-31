@@ -76,7 +76,7 @@ object RecordCType {
   def apply(attrTps: (String, Type)*): RecordCType = RecordCType(Map(attrTps: _*))
 }
 
-case class TTupleType(attrTps: Type*) extends Type {
+case class TTupleType(attrTps: List[Type]) extends Type {
   def apply(n: Int): Type = attrTps(n)
 }
 

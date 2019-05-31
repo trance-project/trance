@@ -21,8 +21,9 @@ object Unnester {
         case Nil =>
           if (u.isEmpty) Reduce(E.get, w, t, cond)
           else {
-            val et = Tuple(u:_*)
-            Nest(E.get, w, et, t, Variable.fresh(KVTupleCType(et.tp, BagCType(t.tp))), cond)
+            val et = Tuple(u)
+            val v = Variable.fresh(TTupleType(u.map(_.tp) :+ BagCType(t.tp)))
+            Nest(E.get, w, et, t, v, cond)
           }
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
           val (nE, v2) = getNest(unnest(value)((w, w, E)))
@@ -34,8 +35,8 @@ object Unnester {
         case Nil =>
           if (u.isEmpty) Reduce(E.get, w, t, Constant(true))
           else {
-            val et = Tuple(u:_*)
-            val v = Variable.fresh(KVTupleCType(et.tp, BagCType(t.tp)))
+            val et = Tuple(u)
+            val v = Variable.fresh(TTupleType(u.map(_.tp) :+ BagCType(t.tp)))
             Nest(E.get, w, et, t, v, Constant(true))
           }
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
@@ -45,16 +46,10 @@ object Unnester {
     case c @ Constant(_) if !w.isEmpty =>
       assert(!E.isEmpty)
       if (u.isEmpty) Reduce(E.get, w, c, Constant(true))
-      else Nest(E.get, w, w.last, c, Variable.fresh(BagCType(IntType)), Constant(true))
+      else Nest(E.get, w, Tuple(u), c, Variable.fresh(TTupleType(u.map(_.tp) :+ IntType)), Constant(true))
     case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && u.isEmpty && !w.isEmpty =>
       assert(!E.isEmpty)
-      println(c)
-      println(w)
-      println(u)
-      println(e1)
-      println(E.get)
       val nE = Some(Unnest(E.get, w, e1, v, p))
-      println(nE.get)
       unnest(e)((u, w :+ v, nE)) // C7
     case Comprehension(e1, v, p, e) if u.isEmpty && !w.isEmpty =>
       assert(!E.isEmpty) // TODO extract filters for join condition
