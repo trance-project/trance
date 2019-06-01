@@ -155,7 +155,7 @@ object App {
                   Union(Singleton(Tuple("a" -> Const(34, IntType), "b" -> Const("Jaclyn", StringType))),
                     Singleton(Tuple("a" -> Const(42, IntType), "b" -> Const("Thomas", StringType)))))) 
       val q = ForeachUnion(xdef, r,//relationR,
-                IfThenElse(Cond(OpGt, TupleVarRef(xdef)("a"), Const(40, IntType)),
+                IfThenElse(Cmp(OpGt, TupleVarRef(xdef)("a"), Const(40, IntType)),
                   Singleton(Tuple("w" -> TupleVarRef(xdef)("b")))))
       val printer = new shredding.nrc.Printer{}
       println(printer.quote(q.asInstanceOf[printer.Expr]))
@@ -195,19 +195,19 @@ object App {
       
       // { ( w := v.a ) | v <- {e1}, p(v) } 
       val q4 = ForeachUnion(xdef, r2, 
-                IfThenElse(Cond(OpEq, TupleVarRef(xdef)("a"), Const(42, IntType)), 
+                IfThenElse(Cmp(OpEq, TupleVarRef(xdef)("a"), Const(42, IntType)), 
                   Singleton(Tuple("w" -> TupleVarRef(xdef)("a")))))
       // { ( w1 := v.a, w2 := { v2.b | v2 <- {e2}, p(v2) } ) } v <- {e1}, p(v) }
       val q4b = ForeachUnion(xdef, r2, 
-                IfThenElse(Cond(OpEq, TupleVarRef(xdef)("a"), Const(42, IntType)), 
+                IfThenElse(Cmp(OpEq, TupleVarRef(xdef)("a"), Const(42, IntType)), 
                   Singleton(Tuple("w1" -> TupleVarRef(xdef)("a"),
                     "w2" -> ForeachUnion(ydef, r2, 
-                              IfThenElse(Cond(OpGt, TupleVarRef(ydef)("a"), Const(45, IntType)), 
+                              IfThenElse(Cmp(OpGt, TupleVarRef(ydef)("a"), Const(45, IntType)), 
                                 Singleton(Tuple("w2" -> TupleVarRef(ydef)("b")))))))))
 
       // { ( w1 := v.a, w2 := { v2.b | v2 <- R } ) } v <- {e1}, p(v) }
       val q4c = ForeachUnion(xdef, r2, 
-                IfThenElse(Cond(OpEq, TupleVarRef(xdef)("a"), Const(42, IntType)), 
+                IfThenElse(Cmp(OpEq, TupleVarRef(xdef)("a"), Const(42, IntType)), 
                   Singleton(Tuple("w1" -> TupleVarRef(xdef)("a"),
                     "w2" -> ForeachUnion(ydef, relationR,
                               ForeachUnion(xdef, r2,  
@@ -220,7 +220,7 @@ object App {
 
       val q0 = ForeachUnion(xdef, r2,
                 ForeachUnion(v, r,
-                IfThenElse(Cond(OpGt, TupleVarRef(xdef)("a"), Const(40, IntType)),
+                IfThenElse(Cmp(OpGt, TupleVarRef(xdef)("a"), Const(40, IntType)),
                   Singleton(Tuple("w" -> TupleVarRef(xdef)("b"))))))
   
       val xvd = VarDef("x", TupleType("a" -> IntType))
@@ -281,19 +281,19 @@ object App {
       // { (w := x.j) | x <- R, x.h > 60 }
       // Reduce (w := x1.j) <--- x1 --- Select (x1.h < 60)(R)
       val q0 = ForeachUnion(xdef, relationR, 
-                IfThenElse(Cond(OpGt, TupleVarRef(xdef)("h"), Const(60, IntType)),
+                IfThenElse(Cmp(OpGt, TupleVarRef(xdef)("h"), Const(60, IntType)),
                   Singleton(Tuple("w" -> TupleVarRef(xdef)("j")))))
       
       // { ( w := { 1 | x1 <- x.j }) | x0 <- R, x0 > 60 }
       // Reduce (w := v0) <-- v0 -- Nest(1, x1) <-- x1 -- Outerunnest(x0.j) <-- x0 -- Select (x0 > 60 )(R)
       val q1 = ForeachUnion(xdef, relationR, 
-                IfThenElse(Cond(OpGt, TupleVarRef(xdef)("h"), Const(60, IntType)),
+                IfThenElse(Cmp(OpGt, TupleVarRef(xdef)("h"), Const(60, IntType)),
                   Singleton(Tuple("w" -> Total(TupleVarRef(xdef)("j").asInstanceOf[BagExpr])))))
       
       val x2def = VarDef("x2", itemTp)
       val q2 = ForeachUnion(xdef, relationR, 
                 ForeachUnion(x2def, relationR, 
-                  IfThenElse(Cond(OpEq, TupleVarRef(xdef)("h"), TupleVarRef(x2def)("h")), 
+                  IfThenElse(Cmp(OpEq, TupleVarRef(xdef)("h"), TupleVarRef(x2def)("h")), 
                     Singleton(Tuple("x" -> TupleVarRef(xdef)("j"), "x2" -> TupleVarRef(x2def)("j"))))))
         
       val q4 = ForeachUnion(xdef, relationR,
@@ -431,10 +431,10 @@ object App {
     //     if (x.a > 40) then sng(o1 := y.b)
     // complex example
     val sq3 = ForeachUnion(ydef, relationR, 
-                ForeachUnion(xdef, IfThenElse(Cond(OpGe, TupleVarRef(ydef)("a"), Const(40, IntType)),
+                ForeachUnion(xdef, IfThenElse(Cmp(OpGe, TupleVarRef(ydef)("a"), Const(40, IntType)),
                                     Singleton(TupleVarRef(ydef)), Singleton(Tuple("a" -> TupleVarRef(ydef)("a"), 
                                         "b" -> Const("null", StringType)))).asInstanceOf[BagExpr],
-                  IfThenElse(Cond(OpGt, TupleVarRef(xdef)("a"), Const(41, IntType)), 
+                  IfThenElse(Cmp(OpGt, TupleVarRef(xdef)("a"), Const(41, IntType)), 
                 Singleton(Tuple("o1" -> TupleVarRef(xdef)("b"))))))
     val q3 = translate(sq3)
     // { { (o1 := x6.b) | x7 <- if x6.a > 40 
@@ -463,7 +463,7 @@ object App {
     println("")
 
     val sq4 = ForeachUnion(ydef, relationR, 
-                ForeachUnion(xdef, IfThenElse(Cond(OpGe, TupleVarRef(ydef)("a"), Const(40, IntType)),
+                ForeachUnion(xdef, IfThenElse(Cmp(OpGe, TupleVarRef(ydef)("a"), Const(40, IntType)),
                                     Singleton(TupleVarRef(ydef)), Singleton(Tuple("a" -> TupleVarRef(ydef)("a"), 
                                         "b" -> Const("null", StringType)))).asInstanceOf[BagExpr],
                   Singleton(Tuple("o1" -> TupleVarRef(xdef)("b")))))
@@ -564,21 +564,23 @@ object App {
     println("\nNormalized:")
     val nexp1 = norm.finalize(exp1).asInstanceOf[CExpr]
     println(str.quote(nexp1))
-    beval.ctx("R^F") = FlatTest.rF
-    beval.ctx("R^D") = FlatTest.rDc
+    beval.ctx("RF") = FlatTest.rF
+    beval.ctx("RD") = FlatTest.rDc
     println("\n\nEvaluated:\n")
     eval.finalize(nexp1).asInstanceOf[List[_]].foreach(println(_))
 
     val nsgen = new ScalaGenerator{}
-    nsgen.ctx("M_ctx1") = BagCType(LabelType(Map[String, Type]()))
-    nsgen.ctx("R^F") = FlatTest.rFType
-    nsgen.ctx("R^D") = FlatTest.rDType
+    nsgen.ctx("RF") = FlatTest.rFType
+    nsgen.ctx("RD") = FlatTest.rDType
     val sgen = new Finalizer(nsgen)
 
     // exp0
-    //println("")
-    //val ccode = "val R = "+nsgen.input(FlatTest.relationRValues)+"\n"+sgen.finalize(nexp1)
-    //println(ccode)
+    println("")
+    val ccode = s"""
+      | val RF = ${nsgen.input(FlatTest.rF)}
+      | val RD = ${nsgen.input(FlatTest.rDc)}
+      ${sgen.finalize(nexp1)}""".stripMargin
+    println(ccode)
 
     /**println("")
     beval.ctx.clear
@@ -622,9 +624,9 @@ object App {
       val q = ForeachUnion(xdef, r,
               Singleton(Tuple("a'" -> TupleVarRef(xdef)("a"),
                 "s1'" -> ForeachUnion(ydef, BagProject(TupleVarRef(xdef), "s1"),
-                          IfThenElse(Cond(OpGt, Const(5, IntType), TupleVarRef(ydef)("c")), Singleton(TupleVarRef(ydef)))),
+                          IfThenElse(Cmp(OpGt, Const(5, IntType), TupleVarRef(ydef)("c")), Singleton(TupleVarRef(ydef)))),
                 "s2'" -> ForeachUnion(ydef, BagProject(TupleVarRef(xdef), "s2"),
-                          IfThenElse(Cond(OpGt, TupleVarRef(ydef)("c"), Const(6, IntType)),
+                          IfThenElse(Cmp(OpGt, TupleVarRef(ydef)("c"), Const(6, IntType)),
                             Singleton(TupleVarRef(ydef)))))))
       shredPipeline(q)
     }
@@ -646,7 +648,7 @@ object App {
       val q = ForeachUnion(xdef, r,
               Singleton(Tuple("a'" -> TupleVarRef(xdef)("a"),
                 "s1'" -> ForeachUnion(ydef, BagProject(TupleVarRef(xdef), "s1"),
-                          IfThenElse(Cond(OpGt, Const(5, IntType), TupleVarRef(ydef)("c")), Singleton(TupleVarRef(ydef)))))))
+                          IfThenElse(Cmp(OpGt, Const(5, IntType), TupleVarRef(ydef)("c")), Singleton(TupleVarRef(ydef)))))))
       shredPipeline(q)
     }
  
@@ -668,7 +670,7 @@ object App {
       val x1 = VarDef("x1", itemTp)
       val y = VarDef("y", TupleType("c" -> IntType))
       val q = ForeachUnion(x, relationR, 
-                IfThenElse(Cond(OpGt, TupleVarRef(x)("a"), Const(40, IntType)),
+                IfThenElse(Cmp(OpGt, TupleVarRef(x)("a"), Const(40, IntType)),
                   Singleton(Tuple("o1" -> TupleVarRef(x)("a"), "o2" -> Total(BagProject(TupleVarRef(x), "b"))))))
       translate(q)
     }
@@ -727,7 +729,10 @@ object App {
     println(str.quote(normalized0))
 
     println("")
-    val ccode = "val R = "+nsgen.input(FlatTest.relationRValues3)+"\n"+sgen.finalize(normalized0)
+    val ccode = s"""
+      | val R = ${nsgen.input(FlatTest.relationRValues3)}
+      | ${sgen.finalize(normalized0)}""".stripMargin
+
     println(ccode)
 
     /**val anfBase = new BaseANF {}

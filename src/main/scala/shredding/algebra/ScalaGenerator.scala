@@ -8,17 +8,27 @@ trait ScalaGenerator extends BaseStringify {
   var ctx = scala.collection.mutable.Map[Rep, Type]()
 
   def quotes(e: Rep): Rep = "\""+e+"\""
+
+  // turns input data into a string
   def input(x: Any): Rep = x match {
     case l @ (head :: tail) => s"List(${l.map(input(_)).mkString(",")})"
     case m:Map[_,_] => "Map("+m.toList.map(v => quotes(v._1.asInstanceOf[Rep]) +" -> "+input(v._2)).mkString(",")+")"
-    case _ => x+""
+    case p:Product => "("+p.productIterator.map(i => input(i)).mkString(",")+")"
+    case l:Label => label(l.id, input(l.vars).asInstanceOf[Map[String, Rep]])
+    case _ => x match {
+      case s:String => quotes(s)
+      case s => s+""
+    }
   }
 
   def cast(v: Rep): Rep = ctx(v) match {
     case BagCType(_) => s"${v}.asInstanceOf[List[_]]"
     case _ => v
   } 
- 
+  override def inputref(x: String, tp: Type): Rep = {
+    ctx(x) = tp 
+    x
+  }
   override def lt(e1: Rep, e2: Rep): Rep = s"${e1}.asInstanceOf[Int] < ${e2}.asInstanceOf[Int]"
   override def gt(e1: Rep, e2: Rep): Rep = s"${e1}.asInstanceOf[Int] > ${e2}.asInstanceOf[Int]"
   override def lte(e1: Rep, e2: Rep): Rep = s"${e1}.asInstanceOf[Int] <= ${e2}.asInstanceOf[Int]"
@@ -36,18 +46,27 @@ trait ScalaGenerator extends BaseStringify {
     case m =>  
       val v = e1.split("\\.").filter(!_.contains("asInstanceOf[List[_]]"))
       val v0 = v.mkString(".")
-      val v1 = if (v.size > 1) { v.dropRight(1).mkString(".") } else { v0 }
+      val v1 = if (v.size > 1 && !v.tail.contains("productElement") && !v.tail.contains("getOrElse")) { 
+                  v.dropRight(1).mkString(".") } else { v0 }
       val tp = ctx(v1)
       tp match {
         case t:TTupleType => 
-          val s = s"${e1}._${field.toInt+1})"
+          val s = s"${e1}.asInstanceOf[Product].productElement(${field.toInt})"
           ctx(s) = t(field.toInt)
           cast(s)
         case t:KVTupleCType => // deprecated type
-          val s = s"${e1}._${field.toInt+1}"
+          val s = s"${e1}.asInstanceOf[Product].productElement(${field.toInt})"
           ctx(s) = t(field)
           cast(s)
         case t:RecordCType => 
+          val s = s"${e1}.asInstanceOf[Map[String,_]].getOrElse(${quotes(field)}, None)"
+          ctx(s) = t(field)
+          cast(s)
+        case t:BagDictCType =>
+          val s = s"${e1}.asInstanceOf[Product].productElement(${field.toInt})"
+          ctx(s) = t(field)
+          cast(s)
+        case t:TupleDictCType =>
           val s = s"${e1}.getOrElse(${quotes(field)}, None)"
           ctx(s) = t(field)
           cast(s)
@@ -69,10 +88,10 @@ trait ScalaGenerator extends BaseStringify {
   override def merge(e1: Rep, e2: Rep): Rep = s"${e1} ++ ${e1}"
   override def bind(e1: Rep, e: Rep => Rep): Rep = {
     val v = Variable.fresh(StringType).quote
-    s"val ${v} = ${e(v)}\n ${e1}\n" // adjust type here
+    s"val ${e(v)} = ${e1}\n" // adjust type here
   }
   override def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
-    val v0 = e1.split("\\.").filter(!_.contains("asInstanceOf")).mkString(".")
+    val v0 = e1.split("\\.").filter(!_.contains("asInstanceOf[List[_]]")).mkString(".")
     val v = freshVar(v0)
     val filt = p(v) match { case "true" => ""; case _ => s".withFilter(${v} => ${p(v)})"}
     e(v) match {
@@ -83,13 +102,15 @@ trait ScalaGenerator extends BaseStringify {
   }
   override def dedup(e1: Rep): Rep = s"${e1}.distinct"
   override def named(n: String, e: Rep): Rep = {
+    ctx(n) = StringType
     s"val ${n} = ${e}\n"
   }
-  override def linset(e: List[Rep]): Rep = s"${e.mkString("\n")}"
+  override def linset(e: List[Rep]): Rep = s"${e.map("| "+_).mkString("\n")}"
 
   override def label(id: Int, fs: Map[String, Rep]): Rep = {
     s"""(${id}, ${fs.map(f => "ctx.getOrElseUpdate("+quotes(f._1)+","+f._2+")")})"""
   }
+  override def extract(lbl: Rep, exp: Rep): Rep = exp // again, label is already handled
   override def emptydict: Rep = s"()"
   override def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = {
     s"(${flat}.asInstanceOf[List[_]].map(v => (${lbl}, v)), ${dict})"

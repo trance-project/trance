@@ -65,7 +65,7 @@ object TestApp extends App
           "grp" -> xref("a"),
           "bag" -> ForeachUnion(ydef, relationR,
             IfThenElse(
-              Cond(OpEq, xref("a"), yref("a")),
+              Cmp(OpEq, xref("a"), yref("a")),
               Singleton(Tuple("q" -> yref("b")))
             ))
         )))
@@ -254,7 +254,7 @@ object TestApp extends App
             "D" -> TupleVarRef(d)("dno"),
             "E" -> ForeachUnion(e, employees,
               IfThenElse(
-                Cond(
+                Cmp(
                   OpEq,
                   TupleVarRef(e)("dno"),
                   TupleVarRef(d)("dno")),
@@ -631,13 +631,13 @@ object TestApp extends App
           "n1" ->
             ForeachUnion(ydef, relationR,
               IfThenElse(
-                Cond(OpEq, yref("a"), xref("a")),
+                Cmp(OpEq, yref("a"), xref("a")),
                 Singleton(Tuple(
                   "m2" -> yref("b"),
                   "n2" ->
                     ForeachUnion(zdef, relationR,
                       IfThenElse(
-                        Cond(OpEq, zref("a"), xref("a")),
+                        Cmp(OpEq, zref("a"), xref("a")),
                         Singleton(Tuple("m3" -> zref("c")))
                       )
                     )
@@ -697,7 +697,7 @@ object TestApp extends App
         ForeachUnion(xdef, relationR, Singleton(Tuple(
           "a1" -> xref("a"),
           "s1" -> ForeachUnion(ydef, BagProject(xref, "s"),
-            IfThenElse(Cond(OpEq, yref("c"), Const(5, IntType)), Singleton(yref))
+            IfThenElse(Cmp(OpEq, yref("c"), Const(5, IntType)), Singleton(yref))
           )
         )))
 
@@ -877,7 +877,7 @@ object TestApp extends App
             "m" -> xref("a"),
             "n" ->
               DeDup(ForeachUnion(ydef, relationR,
-                IfThenElse(Cond(OpEq, xref("a"), yref("a")), Singleton(Tuple("o" -> yref("b"))))
+                IfThenElse(Cmp(OpEq, xref("a"), yref("a")), Singleton(Tuple("o" -> yref("b"))))
               ))
           ))))
 
@@ -918,19 +918,105 @@ object TestApp extends App
     }
   }
 
-//  Example1.run()
-//  Example2.run()
-//  Example3.run()
-//  Example4.run()
-//  Example5.run()
-//  Example6.run()
-//  Example7.run()
-//  Example8.run()
+  object Example11_Conditional {
+
+    import shredding.Utils.Symbol
+
+    def run(): Unit = {
+
+      val itemTp = TupleType("a" -> IntType, "b" -> IntType)
+      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+
+      val xdef = VarDef(Symbol.fresh("x"), itemTp)
+      val xref = TupleVarRef(xdef)
+
+      val q1 =
+        ForeachUnion(xdef, relationR,
+          IfThenElse(Cmp(OpEq, xref("a"), Const(5, IntType)), Singleton(xref)))
+
+      val q2 =
+        ForeachUnion(xdef, relationR,
+          IfThenElse(Or(Cmp(OpEq, xref("a"), Const(5, IntType)), Cmp(OpEq, xref("a"), Const(2, IntType))), Singleton(xref)))
+
+      val q3 =
+        ForeachUnion(xdef, relationR,
+          IfThenElse(And(Cmp(OpNe, xref("a"), Const(5, IntType)), Not(Cmp(OpEq, xref("a"), Const(2, IntType)))), Singleton(xref)))
+
+      println("[Ex11] Q1: " + quote(q1))
+      println("[Ex11] Q2: " + quote(q2))
+      println("[Ex11] Q3: " + quote(q3))
+
+      val relationRValue = List(
+        Map("a" -> 1, "b" -> 12),
+        Map("a" -> 2, "b" -> 33),
+        Map("a" -> 3, "b" -> 33),
+        Map("a" -> 4, "b" -> 45),
+        Map("a" -> 5, "b" -> 123),
+        Map("a" -> 6, "b" -> 1233)
+      )
+
+      val ctx = new Context()
+      ctx.add(relationR.varDef, relationRValue)
+
+      println("[Ex11] Q1 eval: " + eval(q1, ctx))
+      println("[Ex11] Q2 eval: " + eval(q2, ctx))
+      println("[Ex11] Q3 eval: " + eval(q3, ctx))
+
+      val q1shredraw = shred(q1)
+      println("[Ex11] Shredded Q1: " + quote(q1shredraw))
+
+      val q2shredraw = shred(q2)
+      println("[Ex11] Shredded Q2: " + quote(q2shredraw))
+
+      val q3shredraw = shred(q3)
+      println("[Ex11] Shredded Q3: " + quote(q3shredraw))
+
+      val q1shred = optimize(q1shredraw)
+      println("[Ex11] Shredded Q1 Optimized: " + quote(q1shred))
+
+      val q2shred = optimize(q2shredraw)
+      println("[Ex11] Shredded Q2 Optimized: " + quote(q2shred))
+
+      val q3shred = optimize(q3shredraw)
+      println("[Ex11] Shredded Q3 Optimized: " + quote(q3shred))
+
+      //      val q1trans = unshred(q1shred)
+      //      println("[Ex11] Unshredded shredded Q1: " + quote(q1trans))
+      //      println("[Ex11] Same as original Q1: " + q1trans.equals(q1))
+
+      val shredR = shred(relationRValue, relationR.tp)
+
+      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
+      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
+
+      val q1lin = linearize(q1shred)
+      println("[Ex11] Linearized Q1: " + quote(q1lin))
+      println("[Ex11] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+
+      val q2lin = linearize(q2shred)
+      println("[Ex11] Linearized Q2: " + quote(q2lin))
+      println("[Ex11] Linearized Q2 eval: " + eval(q2lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+
+      val q3lin = linearize(q3shred)
+      println("[Ex11] Linearized Q3: " + quote(q3lin))
+      println("[Ex11] Linearized Q3 eval: " + eval(q3lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+    }
+  }
+
+  Example1.run()
+  Example2.run()
+  Example3.run()
+  Example4.run()
+  Example5.run()
+  Example6.run()
+  Example7.run()
+  Example8.run()
   Example9.run()
 
 //  ExampleShredValue.run()
 
+  Example10_DeDup.run()
 
-//  Example10_DeDup.run()
+  Example11_Conditional.run()
 }
 

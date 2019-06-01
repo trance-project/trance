@@ -42,9 +42,9 @@ object TestApp extends App with
     val q = ForeachUnion(xdef, r, 
               Singleton(Tuple("a'" -> TupleVarRef(xdef)("a"), 
                 "s1'" -> ForeachUnion(ydef, BagProject(TupleVarRef(xdef), "s1"), 
-                          IfThenElse(Cond(OpGt, Const(5, IntType), TupleVarRef(ydef)("c")), Singleton(TupleVarRef(ydef)))), 
+                          IfThenElse(Cmp(OpGt, Const(5, IntType), TupleVarRef(ydef)("c")), Singleton(TupleVarRef(ydef)))), 
                 "s2'" -> ForeachUnion(ydef, BagProject(TupleVarRef(xdef), "s2"),
-                          IfThenElse(Cond(OpGt, TupleVarRef(ydef)("c"), Const(6, IntType)), 
+                          IfThenElse(Cmp(OpGt, TupleVarRef(ydef)("c"), Const(6, IntType)), 
                             Singleton(TupleVarRef(ydef)))))))
     //val p = Pipeline.run(q)
     val sp = ShredPipeline.runOptimized(q)
@@ -66,7 +66,7 @@ object TestApp extends App with
     val q = ForeachUnion(xdef, r, 
               Singleton(Tuple("a'" -> TupleVarRef(xdef)("a"), "s'" -> 
                 ForeachUnion(ydef, BagProject(TupleVarRef(xdef), "s"), 
-                  IfThenElse(Cond(OpGt, Const(5, IntType), TupleVarRef(ydef)("c")), Singleton(TupleVarRef(ydef)))))))
+                  IfThenElse(Cmp(OpGt, Const(5, IntType), TupleVarRef(ydef)("c")), Singleton(TupleVarRef(ydef)))))))
     val p = Pipeline.run(q)
     val sp = ShredPipeline.runOptimized(q)
 
@@ -167,7 +167,7 @@ object TestApp extends App with
     val xdef = VarDef("x", xtp)
     val ydef = VarDef("y", ytp)
     val f = ForeachUnion(ydef, relationR, 
-              IfThenElse(Cond(OpEq, TupleVarRef(ydef)("c"), TupleVarRef(xdef)("c")),
+              IfThenElse(Cmp(OpEq, TupleVarRef(ydef)("c"), TupleVarRef(xdef)("c")),
                 BagProject(TupleVarRef(ydef), "a")))
     val q = Singleton(Tuple("a'" -> TupleVarRef(xdef)("c"), "b'" -> f))
     val p = Pipeline.run(q)
@@ -191,7 +191,7 @@ object TestApp extends App with
 
     val xdef = VarDef(Symbol.fresh("x"), itemTp)
     val q = ForeachUnion(xdef, relationR, 
-              IfThenElse(Cond(OpGt, TupleVarRef(xdef)("a"), Const(40, IntType)), 
+              IfThenElse(Cmp(OpGt, TupleVarRef(xdef)("a"), Const(40, IntType)), 
                 Singleton(Tuple("w" -> TupleVarRef(xdef)("b")))))
     val ucq = Pipeline.run(q)
   }
@@ -263,7 +263,7 @@ object TestApp extends App with
     ctx.add(departments.varDef, departmentsValue)
     val q4 = ForeachUnion(d, departments,
               ForeachUnion(e, employees,
-                IfThenElse(Cond(OpEq, TupleVarRef(d)("dno"), TupleVarRef(e)("dno")),
+                IfThenElse(Cmp(OpEq, TupleVarRef(d)("dno"), TupleVarRef(e)("dno")),
                   Singleton(Tuple("D" -> TupleVarRef(d)("dno"), "E" -> Singleton(TupleVarRef(e)))))))
     //val ucq1 = ShredPipeline.run(q4)
     val ucq2 = ShredPipeline.runOptimized(q4)
@@ -343,19 +343,19 @@ object TestApp extends App with
       // { (w := x.j) | x <- R, x.h > 60 }
       // Reduce (w := x1.j) <--- x1 --- Select (x1.h < 60)(R)
       val q0 = ForeachUnion(xdef, relationR,
-                IfThenElse(Cond(OpGt, TupleVarRef(xdef)("h"), Const(60, IntType)),
+                IfThenElse(Cmp(OpGt, TupleVarRef(xdef)("h"), Const(60, IntType)),
                   Singleton(Tuple("w" -> TupleVarRef(xdef)("j")))))
 
       // { ( w := { 1 | x1 <- x.j }) | x0 <- R, x0 > 60 }
       // Reduce (w := v0) <-- v0 -- Nest(1, x1) <-- x1 -- Outerunnest(x0.j) <-- x0 -- Select (x0 > 60 )(R)
       val q1 = ForeachUnion(xdef, relationR,
-                IfThenElse(Cond(OpGt, TupleVarRef(xdef)("h"), Const(60, IntType)),
+                IfThenElse(Cmp(OpGt, TupleVarRef(xdef)("h"), Const(60, IntType)),
                   Singleton(Tuple("w" -> Total(TupleVarRef(xdef)("j").asInstanceOf[BagExpr])))))
 
       val x2def = VarDef("x2", itemTp)
       val q2 = ForeachUnion(xdef, relationR,
                 ForeachUnion(x2def, relationR,
-                  IfThenElse(Cond(OpEq, TupleVarRef(xdef)("h"), TupleVarRef(x2def)("h")),
+                  IfThenElse(Cmp(OpEq, TupleVarRef(xdef)("h"), TupleVarRef(x2def)("h")),
                     Singleton(Tuple("x" -> TupleVarRef(xdef)("j"), "x2" -> TupleVarRef(x2def)("j"))))))
 
       val q4 = ForeachUnion(xdef, relationR,

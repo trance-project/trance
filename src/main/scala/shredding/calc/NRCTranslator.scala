@@ -11,7 +11,7 @@ import shredding.nrc.LinearizedNRC
   */
 trait NRCTranslator extends CalcImplicits with LinearizedNRC {
 
-  implicit class NRCCondTranslators(e: Cond){
+  implicit class NRCCondTranslators(e: Cmp){
     def translate: Conditional = 
       Conditional(e.op, e.e1.translate.asInstanceOf[TupleAttributeCalc], 
         e.e2.translate.asInstanceOf[TupleAttributeCalc]) 
@@ -35,7 +35,7 @@ trait NRCTranslator extends CalcImplicits with LinearizedNRC {
           case Some(b) => Option(b.translate.asInstanceOf[BagCalc])
           case None => None
         }
-        IfStmt(i.cond.translate, i.e1.translate.asInstanceOf[BagCalc], e2)
+        IfStmt(i.cond.translate.asInstanceOf[PrimitiveCalc], i.e1.translate.asInstanceOf[BagCalc], e2)
       case l:Let => 
         val bind = BindDict(l.x, l.e1.translate)
         l.e2.tp match {
@@ -80,6 +80,25 @@ trait NRCTranslator extends CalcImplicits with LinearizedNRC {
         CSequence(exprs.map(_.translate))
       case Named(v, e) => CNamed(v, e.translate)
       case _ => sys.error("not supported "+self)
+    }
+
+    // options are only used in if statements for now
+    def translateOption(e: Option[Expr]): Option[BagCalc] = e match {
+      case Some(e1) => Some(translateBag(e1))
+      case _ => None
+    }
+    def translateBag(e: Expr): BagCalc = e.translate.asInstanceOf[BagCalc]
+    def translateTuple(e: Expr): TupleCalc = e.translate.asInstanceOf[TupleCalc]
+    def translateAttr(e: Expr): TupleAttributeCalc = e.translate.asInstanceOf[TupleAttributeCalc]
+    def translateCond(e: Cond): PrimitiveCalc = e match {
+      case Cmp(op, e1, e2) =>
+        Conditional(op, translateAttr(e1), translateAttr(e2))
+      case And(e1, e2) =>
+        AndCondition(translateCond(e1), translateCond(e2))
+      case Or(e1, e2) =>
+        OrCondition(translateCond(e1), translateCond(e2))
+      case Not(e1) =>
+        NotCondition(translateCond(e1))
     }
 
   }

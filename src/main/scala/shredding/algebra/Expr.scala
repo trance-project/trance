@@ -32,6 +32,10 @@ case class Sng(e1: CExpr) extends CExpr {
   def tp: BagCType = BagCType(e1.tp)
 }
 
+case class WeightedSng(e1: CExpr, w: CExpr) extends CExpr{
+  def tp: BagCType = BagCType(e1.tp)
+}
+
 case object CUnit extends CExpr {
   def tp: Type = EmptyCType
 }
@@ -149,6 +153,10 @@ case class Label(id: Int, vars: Map[String, CExpr]) extends CExpr {
   def quote: String = s"Label${id}(${vars.map(f => f._1 +"->"+f._2).mkString(",")})"
 }
 
+case class Extract(lbl: CExpr, value: CExpr) extends CExpr {
+  val tp: Type = value.tp
+}
+
 object Label {
   def apply(id: Int, vars: (String, CExpr)*): Label = Label(id, Map(vars:_*))
   private var lastId = 1
@@ -169,7 +177,7 @@ case object EmptyCDict extends CExpr {
 
 case class BagCDict(lbl: CExpr, flat: CExpr, dict: CExpr) extends CExpr {
   def tp: BagDictCType = 
-    BagDictCType(BagCType(KVTupleCType(lbl.tp, flat.tp)), dict.tp.asInstanceOf[TTupleDict])
+    BagDictCType(BagCType(TTupleType(List(lbl.tp, flat.tp))), dict.tp.asInstanceOf[TTupleDict])
   def apply(n: String) = n match {
     case "lbl" => lbl
     case "flat" => flat
@@ -245,7 +253,6 @@ case class Join(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variabl
   def tp: BagCType = BagCType(TTupleType(v1.map(_.tp) :+ v2.tp))
   override def wvars = e1.wvars :+ v2
 }
-
 
 case class Variable(name: String, override val tp: Type) extends CExpr { self =>
   override def equals(that: Any): Boolean = that match {

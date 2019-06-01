@@ -1,6 +1,6 @@
 package shredding.nrc
 
-import shredding.core.{LabelType, VarDef}
+import shredding.core._
 
 /**
   * Label extensions
@@ -30,6 +30,38 @@ trait Label {
     assert(e2.isEmpty || e1.tp == e2.get.tp)
 
     val tp: LabelType = e1.tp
+  }
+
+  trait ExtractLabel {
+    def lbl: LabelExpr
+
+    def e: Expr
+  }
+
+  case object ExtractLabel {
+    def apply(lbl: LabelExpr, e: Expr): Expr = e.tp match {
+      case _: PrimitiveType => PrimitiveExtractLabel(lbl, e.asInstanceOf[PrimitiveExpr])
+      case _: BagType => BagExtractLabel(lbl, e.asInstanceOf[BagExpr])
+      case _: TupleType => TupleExtractLabel(lbl, e.asInstanceOf[TupleExpr])
+      case _: LabelType => LabelExtractLabel(lbl, e.asInstanceOf[LabelExpr])
+      case t => sys.error("Cannot create ExtractLabel for type " + t)
+    }
+  }
+
+  case class PrimitiveExtractLabel(lbl: LabelExpr, e: PrimitiveExpr) extends PrimitiveExpr with ExtractLabel {
+    def tp: PrimitiveType = e.tp
+  }
+
+  case class BagExtractLabel(lbl: LabelExpr, e: BagExpr) extends BagExpr with ExtractLabel {
+    def tp: BagType = e.tp
+  }
+
+  case class TupleExtractLabel(lbl: LabelExpr, e: TupleExpr) extends TupleExpr with ExtractLabel {
+    def tp: TupleType = e.tp
+  }
+
+  case class LabelExtractLabel(lbl: LabelExpr, e: LabelExpr) extends LabelExpr with ExtractLabel {
+    def tp: LabelType = e.tp
   }
 
   object NewLabel {

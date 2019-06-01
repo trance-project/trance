@@ -123,17 +123,33 @@ trait Shredding extends BaseShredding with Extensions {
       val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
       ShredExpr(lbl, BagDict(lbl, DeDup(dict1.lookup(lbl)), dict1.tupleDict))
 
+    case c: Cond => c match {
+      case Cmp(op, e1, e2) =>
+        val ShredExpr(c1: TupleAttributeExpr, _: DictExpr) = shred(e1, ctx)
+        val ShredExpr(c2: TupleAttributeExpr, _: DictExpr) = shred(e2, ctx)
+        ShredExpr(Cmp(op, c1, c2), EmptyDict)
+      case And(e1, e2) =>
+        val ShredExpr(c1: Cond, EmptyDict) = shred(e1, ctx)
+        val ShredExpr(c2: Cond, EmptyDict) = shred(e2, ctx)
+        ShredExpr(And(c1, c2), EmptyDict)
+      case Or(e1, e2) =>
+        val ShredExpr(c1: Cond, EmptyDict) = shred(e1, ctx)
+        val ShredExpr(c2: Cond, EmptyDict) = shred(e2, ctx)
+        ShredExpr(Or(c1, c2), EmptyDict)
+      case Not(e1) =>
+        val ShredExpr(c1: Cond, EmptyDict) = shred(e1, ctx)
+        ShredExpr(Not(c1), EmptyDict)
+    }
+
     case i: IfThenElse =>
-      val ShredExpr(c1: TupleAttributeExpr, _: DictExpr) = shred(i.cond.e1, ctx)
-      val ShredExpr(c2: TupleAttributeExpr, _: DictExpr) = shred(i.cond.e2, ctx)
-      val cond = Cond(i.cond.op, c1, c2)
+      val ShredExpr(c: Cond, EmptyDict) = shred(i.cond, ctx)
       val se1 = shred(i.e1, ctx)
       if (i.e2.isDefined) {
         val se2 = shred(i.e2.get, ctx)
-        ShredExpr(ShredIfThenElse(cond, se1.flat, se2.flat), DictIfThenElse(cond, se1.dict, se2.dict))
+        ShredExpr(ShredIfThenElse(c, se1.flat, se2.flat), DictIfThenElse(c, se1.dict, se2.dict))
       }
       else
-        ShredExpr(ShredIfThenElse(cond, se1.flat), se1.dict)
+        ShredExpr(ShredIfThenElse(c, se1.flat), se1.dict)
 
     case _ => sys.error("Cannot shred expr " + e)
   }

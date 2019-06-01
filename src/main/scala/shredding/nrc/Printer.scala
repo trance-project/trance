@@ -28,16 +28,30 @@ trait Printer extends LinearizedNRC {
           |${quote(l.e2)}""".stripMargin
     case Total(e1) => s"Total(${quote(e1)})"
     case DeDup(e1) => s"DeDup(${quote(e1)})"
+    case c: Cond => c match {
+      case Cmp(op, e1, e2) =>
+        s"${quote(e1)} $op ${quote(e2)}"
+      case And(e1, e2) =>
+        s"${quote(e1)} AND ${quote(e2)}"
+      case Or(e1, e2) =>
+        s"${quote(e1)} OR ${quote(e2)}"
+      case Not(e1) =>
+        s"NOT ${quote(e1)}"
+    }
     case i: IfThenElse =>
       if (i.e2.isDefined)
-        s"""|If (${quote(i.cond.e1)} ${i.cond.op} ${quote(i.cond.e2)})
+        s"""|If (${quote(i.cond)})
             |Then ${quote(i.e1)}
             |Else ${quote(i.e2.get)}""".stripMargin
       else
-        s"""|If (${quote(i.cond.e1)} ${i.cond.op} ${quote(i.cond.e2)})
+        s"""|If (${quote(i.cond)})
             |Then ${quote(i.e1)}""".stripMargin
 
     // Label cases
+    case x: ExtractLabel =>
+      val tuple = x.lbl.tp.attrTps.keys.mkString(", ")
+      s"""|Extract ${quote(x.lbl)} as ($tuple) In
+          |${quote(x.e)}"""".stripMargin
     case l: NewLabel =>
       s"NewLabel(${(l.id :: l.vars.toList.map(_.name)).mkString(", ")})"
     case Lookup(lbl, dict) =>

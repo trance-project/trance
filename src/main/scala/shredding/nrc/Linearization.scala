@@ -33,7 +33,8 @@ trait Linearization {
     val ldef = VarDef(Symbol.fresh("l"), ctx.tp.tp)
     val lbl = LabelProject(TupleVarRef(ldef), "lbl")
     val kvpair = Tuple("k" -> lbl, "v" -> optimize(dict.lookup(lbl)).asInstanceOf[BagExpr])
-    val mFlat = ForeachUnion(ldef, ctx, Singleton(kvpair))
+    val mFlat = ForeachUnion(ldef, ctx,
+      BagExtractLabel(LabelProject(TupleVarRef(ldef), "lbl"), Singleton(kvpair)))
     val mFlatNamed = Named(VarDef(Symbol.fresh("M_flat"), mFlat.tp), mFlat)
     val mFlatRef = BagVarRef(mFlatNamed.v)
 

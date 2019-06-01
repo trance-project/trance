@@ -31,6 +31,7 @@ trait Base {
   def named(n: String, e: Rep): Rep
   def linset(e: List[Rep]): Rep
   def label(id: Int, vars: Map[String, Rep]): Rep
+  def extract(lbl: Rep, exp: Rep): Rep
   def lookup(lbl: Rep, dict: Rep): Rep
   def emptydict: Rep
   def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep
@@ -81,6 +82,7 @@ object Printer {
     case CNamed(n, e) => named(n, quote(e))
     case LinearCSet(exprs) => linset(exprs.map(quote(_)))
     case Label(id, fs) => label(id, fs.map(f => f._1 -> quote(f._2)))
+    case Extract(lbl, exp) => extract(quote(lbl), quote(exp))
     case CLookup(lbl, dict) => lookup(quote(lbl), quote(dict))
     case EmptyCDict => emptydict
     case BagCDict(lbl, flat, dict) => bagdict(quote(lbl), quote(flat), quote(dict))
@@ -120,7 +122,7 @@ trait BaseStringify extends Base{
   def tuple(fs: List[Rep]) = s"(${fs.mkString(",")})"
   def record(fs: Map[String, Rep]): Rep = 
     s"(${fs.map(f => f._1 + " := " + f._2).mkString(",")})"
-  def equals(e1: Rep, e2: Rep): Rep = s"${e1} = ${e2}"
+  def equals(e1: Rep, e2: Rep): Rep = s"${e1} == ${e2}"
   def lt(e1: Rep, e2: Rep): Rep = s"${e1} < ${e2}"
   def gt(e1: Rep, e2: Rep): Rep = s"${e1} > ${e2}"
   def lte(e1: Rep, e2: Rep): Rep = s"${e1} <= ${e2}"
@@ -150,6 +152,7 @@ trait BaseStringify extends Base{
   def linset(e: List[Rep]): Rep = e.mkString("\n\n")
   def label(id: Int, vars: Map[String, Rep]): Rep = 
     s"Label${id}(${vars.map(f => f._1 +"->"+f._2).mkString(",")})"
+  def extract(lbl: Rep, exp: Rep): Rep = s"Extract(${lbl}, ${exp})"
   def lookup(lbl: Rep, dict: Rep): Rep = s"Lookup(${lbl}, ${dict})"
   def emptydict: Rep = s"Nil"
   def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = s"(${lbl} -> ${flat}, ${dict})"
@@ -225,6 +228,7 @@ trait BaseCompiler extends Base {
   def named(n: String, e: Rep): Rep = CNamed(n, e)
   def linset(e: List[Rep]): Rep = LinearCSet(e)
   def label(id: Int, vars: Map[String, Rep]): Rep = Label(id, vars)
+  def extract(lbl: Rep, exp: Rep): Rep = Extract(lbl, exp)
   def lookup(lbl: Rep, dict: Rep): Rep = CLookup(lbl, dict)
   def emptydict: Rep = EmptyCDict
   def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = BagCDict(lbl, flat, dict)
@@ -366,8 +370,8 @@ trait BaseNormalizer extends BaseCompiler {
       case c @ CLookup(flat, dict) => 
         val v1 = Variable.fresh(c.tp.tp)
         val v2 = Variable.fresh(c.tp.tp.asInstanceOf[KVTupleCType]._2.asInstanceOf[BagCType].tp)
-        Comprehension(Project(dict, "0"), v1, equals(flat, Project(v1, "key")), 
-          Comprehension(Project(v1, "value"), v2, p(v2), e(v2)))
+        Comprehension(Project(dict, "0"), v1, equals(flat, Project(v1, "0")), 
+          Comprehension(Project(v1, "1"), v2, p(v2), e(v2)))
       case _ => // standard case (return self)
         val v = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
         Comprehension(e1, v, p(v), e(v))
@@ -446,8 +450,11 @@ trait BaseScalaInterp extends Base{
   def linset(e: List[Rep]): Rep = e
   def bind(e1: Rep, e: Rep => Rep): Rep = ctx.getOrElseUpdate(e1.asInstanceOf[String], e(e1))
   def label(id: Int, fs: Map[String, Rep]): Rep = {
-    (id, fs.map(f => ctx.getOrElseUpdate(f._1, f._2)))
+    (id, fs.map(f => f._1 -> ctx.getOrElseUpdate(f._1, f._2)))
   }
+  def extract(lbl: Rep, exp: Rep): Rep = 
+    // label is already extracted into context, spark requires different implementation
+    exp
   def lookup(lbl: Rep, dict: Rep): Rep = dict match {
     case (flat, tdict) => flat match {
       case (head:Map[String,Rep]) :: tail => flat
@@ -574,6 +581,8 @@ class Finalizer(val target: Base){
       target.linset(exprs.map(finalize(_)))
     case Label(id, vars) =>
       target.label(id, vars.withFilter(f => !f._2.isInstanceOf[InputRef]).map(f => f._1 -> finalize(f._2)))
+    case Extract(lbl, exp) => 
+      target.extract(finalize(lbl), finalize(exp))
     case CLookup(l, d) => 
       target.lookup(finalize(l), finalize(d))
     case EmptyCDict => target.emptydict

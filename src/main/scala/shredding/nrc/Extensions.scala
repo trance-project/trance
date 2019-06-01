@@ -18,9 +18,16 @@ trait Extensions extends LinearizedNRC {
       case l: Let => collect(l.e1, f) ++ collect(l.e2, f)
       case Total(e1) => collect(e1, f)
       case DeDup(e1) => collect(e1, f)
+      case c: Cond => c match {
+        case Cmp(_, e1, e2) => collect(e1, f) ++ collect(e2, f)
+        case And(e1, e2) => collect(e1, f) ++ collect(e2, f)
+        case Or(e1, e2) => collect(e1, f) ++ collect(e2, f)
+        case Not(e1) => collect(e1, f)
+      }
       case i: IfThenElse =>
-        collect(i.cond.e1, f) ++ collect(i.cond.e2, f) ++
-          collect(i.e1, f) ++ i.e2.map(collect(_, f)).getOrElse(Nil)
+        collect(i.cond, f) ++ collect(i.e1, f) ++ i.e2.map(collect(_, f)).getOrElse(Nil)
+      case BagExtractLabel(l, e1) =>
+        collect(l, f) ++ collect(e1, f)
       case Lookup(l, d) => collect(l, f) ++ collect(d, f)
       case BagDict(l, b, d) => collect(l, f) ++ collect(b, f) ++ collect(d, f)
       case TupleDict(fs) => fs.flatMap(x => collect(x._2, f)).toList
@@ -63,15 +70,34 @@ trait Extensions extends LinearizedNRC {
         Total(replace(e1, f).asInstanceOf[BagExpr])
       case DeDup(e1) =>
         DeDup(replace(e1, f).asInstanceOf[BagExpr])
+      case c: Cond => c match {
+        case Cmp(op, e1, e2) =>
+          val c1 = replace(e1, f).asInstanceOf[TupleAttributeExpr]
+          val c2 = replace(e2, f).asInstanceOf[TupleAttributeExpr]
+          Cmp(op, c1, c2)
+        case And(e1, e2) =>
+          val c1 = replace(e1, f).asInstanceOf[Cond]
+          val c2 = replace(e2, f).asInstanceOf[Cond]
+          And(c1, c2)
+        case Or(e1, e2) =>
+          val c1 = replace(e1, f).asInstanceOf[Cond]
+          val c2 = replace(e2, f).asInstanceOf[Cond]
+          Or(c1, c2)
+        case Not(e1) =>
+          Not(replace(e1, f).asInstanceOf[Cond])
+      }
       case i: IfThenElse =>
-        val c1 = replace(i.cond.e1, f).asInstanceOf[TupleAttributeExpr]
-        val c2 = replace(i.cond.e2, f).asInstanceOf[TupleAttributeExpr]
+        val c = replace(i.cond, f).asInstanceOf[Cond]
         val r1 = replace(i.e1, f)
         if (i.e2.isDefined)
-          ShredIfThenElse(Cond(i.cond.op, c1, c2), r1, replace(i.e2.get, f))
+          ShredIfThenElse(c, r1, replace(i.e2.get, f))
         else
-          ShredIfThenElse(Cond(i.cond.op, c1, c2), r1)
+          ShredIfThenElse(c, r1)
 
+      case x: ExtractLabel =>
+        val rl = replace(x.lbl, f).asInstanceOf[LabelExpr]
+        val re = replace(x.e, f)
+        ExtractLabel(rl, re)
       case Lookup(l, d) =>
         val rl = replace(l, f).asInstanceOf[LabelExpr]
         val rd = replace(d, f).asInstanceOf[BagDictExpr]

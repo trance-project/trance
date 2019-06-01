@@ -167,7 +167,17 @@ trait NRC extends BaseExpr {
     val tp: BagType = e.tp
   }
 
-  final case class Cond(op: OpCmp, e1: TupleAttributeExpr, e2: TupleAttributeExpr)
+  trait Cond extends PrimitiveExpr {
+    def tp: PrimitiveType = BoolType
+  }
+
+  final case class Cmp(op: OpCmp, e1: TupleAttributeExpr, e2: TupleAttributeExpr) extends Cond
+
+  final case class And(e1: Cond, e2: Cond) extends Cond
+
+  final case class Or(e1: Cond, e2: Cond) extends Cond
+
+  final case class Not(c: Cond) extends Cond
 
   trait IfThenElse {
     def cond: Cond
