@@ -616,50 +616,111 @@ class Finalizer(val target: Base){
 
 }
 
-trait BaseANF extends BaseCompiler {
+trait BaseANF extends Base {
+
+  val compiler = new BaseCompiler {}
+
+  case class Def(e: CExpr)
+
+  type Rep = Def
+
+  implicit def defToExpr(d: Def): CExpr = {
+    d.e
+  }
+
+  implicit def funcDefToExpr(fd: Def => Def): CExpr => CExpr = {
+    (x: CExpr) => reifyBlock { fd(Def(x)) }
+  }
+
+  implicit def exprToDef(e: CExpr): Def = {
+    state.get(e) match {
+      case Some(v) => // CSE!
+        Def(v)
+      case None =>
+        e match {
+          case Constant(_) | InputRef(_, _) => Def(e)
+          case _ => 
+            val v = Variable.fresh(e.tp)
+            vars = vars :+ v
+            state = state + (e -> v)
+            stateInv = stateInv + (v -> e)
+            Def(v)
+        }
+    }
+  }
 
   var state: Map[CExpr, Variable] = Map()
   var stateInv: Map[Variable, CExpr] = Map()
   var vars: Seq[Variable] = Seq()
 
-  def getExp(e: CExpr): CExpr = 
-    state.getOrElse(e, e)
+  // def getExp(e: CExpr): CExpr = 
+  //   state.getOrElse(e, e)
 
-
-
-
-
-  def anf(e: CExpr): CExpr = 
-    vars.foldLeft(e)((acc, cur) => Bind(cur, stateInv(cur), acc))
-
-  // def inputref(x: String, tp: Type): Rep = InputRef(x, tp)
-  // def input(x: List[Rep]): Rep = Input(x)
-  // def constant(x: Any): Rep = Constant(x)
-  // def emptysng: Rep = EmptySng
-  // def unit: Rep = CUnit
-  // def sng(x: Rep): Rep = Sng(x)
-  // def tuple(fs: List[Rep]): Rep = Tuple(fs)
-  // def record(fs: Map[String, Rep]): Rep = Record(fs)
-  // def equals(e1: Rep, e2: Rep): Rep = Equals(e1, e2)
-  // def lt(e1: Rep, e2: Rep): Rep = Lt(e1, e2)
-  override def gt(e1: Rep, e2: Rep): Rep = {
-    val res = Gt(getExp(e1), getExp(e2))
-    val v = Variable.fresh(BoolType)
-    vars = vars :+ v
-    state = state + (res -> v)
-    stateInv = stateInv + (v -> res)
-    v
+  def reifyBlock(b: => Rep): CExpr = {
+    val oldState = state
+    val oldStateInv = stateInv
+    val oldVars = vars
+    state = Map()
+    stateInv = Map()
+    vars = Seq()
+    val e = b.e
+    val res = vars.foldRight(e)((cur, acc) => Bind(cur, stateInv(cur), acc))
+    state = oldState
+    stateInv = oldStateInv
+    vars = oldVars
+    res
   }
-  // def lte(e1: Rep, e2: Rep): Rep = Lte(e1, e2)
-  // def gte(e1: Rep, e2: Rep): Rep = Gte(e1, e2)
-  // def and(e1: Rep, e2: Rep): Rep = And(e1, e2)
-  // def not(e1: Rep): Rep = Not(e1)
-  // def or(e1: Rep, e2: Rep): Rep = Or(e1, e2)
-  // def project(e1: Rep, e2: String): Rep = Project(e1, e2)
-  // def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = If(cond, e1, e2)
-  // def merge(e1: Rep, e2: Rep): Rep = Merge(e1, e2)
-  // def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
-  //   val v = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
-  //   Comprehension(e1, v, p(v), e(v))
+
+  def anf(d: Rep): CExpr = 
+    vars.foldRight(d.e)((cur, acc) => Bind(cur, stateInv(cur), acc))
+
+  // override def gt(e1: Rep, e2: Rep): Rep = {
+  //   val res = Gt(getExp(e1), getExp(e2))
+  //   val v = Variable.fresh(BoolType)
+  //   vars = vars :+ v
+  //   state = state + (res -> v)
+  //   stateInv = stateInv + (v -> res)
+  //   v
   // }
+  def inputref(x: String, tp:Type): Rep = compiler.inputref(x, tp)
+  def input(x: List[Rep]): Rep = ??? 
+  def constant(x: Any): Rep = compiler.constant(x)
+  def emptysng: Rep = ???
+  def unit: Rep = compiler.unit
+  def sng(x: Rep): Rep = compiler.sng(x)
+  def tuple(fs: List[Rep]): Rep = ???
+  def record(fs: Map[String, Rep]): Rep = compiler.record(fs.map(x => (x._1, defToExpr(x._2))))
+  def equals(e1: Rep, e2: Rep): Rep = ???
+  def lt(e1: Rep, e2: Rep): Rep = compiler.lt(e1, e2)
+  def gt(e1: Rep, e2: Rep): Rep = compiler.gt(e1, e2)
+  def lte(e1: Rep, e2: Rep): Rep = ???
+  def gte(e1: Rep, e2: Rep): Rep = ???
+  def and(e1: Rep, e2: Rep): Rep = ???
+  def not(e1: Rep): Rep = ???
+  def or(e1: Rep, e2: Rep): Rep = ???
+  def project(e1: Rep, field: String): Rep = compiler.project(e1, field)
+  def ifthen(cond: Rep, e1: Rep, e2: Option[Rep] = None): Rep = ???
+  def merge(e1: Rep, e2: Rep): Rep = ???
+  def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
+    // println(s"e1: $e1\ntp: ${e1.e.tp}")
+    compiler.comprehension(e1, p, e)
+  }
+  def dedup(e1: Rep): Rep = ???
+  def bind(e1: Rep, e: Rep => Rep): Rep = ??? 
+  def named(n: String, e: Rep): Rep = ???
+  def linset(e: List[Rep]): Rep = ???
+  def label(id: Int, vars: Map[String, Rep]): Rep = ???
+  def extract(lbl: Rep, exp: Rep): Rep = ???
+  def lookup(lbl: Rep, dict: Rep): Rep = ???
+  def emptydict: Rep = ???
+  def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = ???
+  def tupledict(fs: Map[String, Rep]): Rep = ???
+  def dictunion(d1: Rep, d2: Rep): Rep = ???
+  def select(x: Rep, p: Rep => Rep): Rep = ???
+  def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = ???
+  def unnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = ???
+  def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = ???
+  def outerunnest(e1: Rep, r: List[Rep] => Rep, p: Rep => Rep): Rep = ???
+  def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep): Rep = ???
+  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = ???
 }

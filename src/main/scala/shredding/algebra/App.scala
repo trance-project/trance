@@ -735,11 +735,14 @@ object App {
 
     println(ccode)
 
-    /**val anfBase = new BaseANF {}
+    val anfBase = new BaseANF {}
     val anfed = new Finalizer(anfBase).finalize(normalized0)
-    println(str.quote(anfBase.anf(anfed.asInstanceOf[CExpr])))
-    println(anfBase.vars)
-    println(anfBase.state)**/
+    val anfExp = anfBase.anf(anfed.asInstanceOf[anfBase.Rep])
+    println(str.quote(anfExp))
+    val sanfgen = new Finalizer(new ScalaANFGenerator {})
+    println(sanfgen.finalize(anfExp))
+    // println(anfBase.vars)
+    // println(anfBase.state)
     /**eval.finalize(normalized0).asInstanceOf[List[_]].foreach(println(_))
     println("")
     // exp1 

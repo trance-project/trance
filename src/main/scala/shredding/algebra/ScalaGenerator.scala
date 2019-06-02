@@ -88,7 +88,8 @@ trait ScalaGenerator extends BaseStringify {
   override def merge(e1: Rep, e2: Rep): Rep = s"${e1} ++ ${e1}"
   override def bind(e1: Rep, e: Rep => Rep): Rep = {
     val v = Variable.fresh(StringType).quote
-    s"val ${e(v)} = ${e1}\n" // adjust type here
+    // s"val ${e(v)} = ${e1}\n" // adjust type here
+    s"val $v = $e1\n${e(v)}"
   }
   override def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
     val v0 = e1.split("\\.").filter(!_.contains("asInstanceOf[List[_]]")).mkString(".")
@@ -129,5 +130,28 @@ trait ScalaGenerator extends BaseStringify {
     v.quote
   }
  
+}
+
+trait ScalaANFGenerator extends ScalaGenerator {
+  override def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
+    // val v0 = e1.split("\\.").filter(!_.contains("asInstanceOf[List[_]]")).mkString(".")
+    // val v = freshVar(v0)
+    val v = Variable.fresh(IntType).name
+    val filt = p(v) match { case "true" => ""; case _ => s".withFilter(${v} => ${p(v)})"}
+    e(v) match {
+      case "1" => s"${e1}${filt}.map(${v} => 1).sum"
+      case t => s"""${e1}${filt}.flatMap(${v} => 
+        | ${ind(t)})""".stripMargin  
+    }
+  }
+
+  override def project(e1: Rep, field: String): Rep = s"$e1.$field"
+  override def lt(e1: Rep, e2: Rep): Rep = s"${e1} < ${e2}"
+  override def gt(e1: Rep, e2: Rep): Rep = s"${e1} > ${e2}"
+  override def lte(e1: Rep, e2: Rep): Rep = s"${e1} <= ${e2}"
+  override def gte(e1: Rep, e2: Rep): Rep = s"${e1} >= ${e2}"
+  override def and(e1: Rep, e2: Rep): Rep = s"${e1} && ${e2}"
+  override def not(e1: Rep): Rep = s"!${e1}"
+  override def or(e1: Rep, e2: Rep): Rep = s"${e1} || ${e2}"
 }
 
