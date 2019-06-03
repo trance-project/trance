@@ -275,9 +275,13 @@ case class Variable(name: String, override val tp: Type) extends CExpr { self =>
 object Variable {
   private var lastId = 1
   def fresh(tp: Type): Variable = {
+    val id = newId()
+    Variable(s"x$id", tp)
+  }
+  def newId(): Int = {
     val id = lastId
     lastId += 1
-    Variable(s"x$id", tp)
+    id
   }
 }
 

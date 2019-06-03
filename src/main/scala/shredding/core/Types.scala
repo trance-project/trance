@@ -80,23 +80,6 @@ case class TTupleType(attrTps: List[Type]) extends Type {
   def apply(n: Int): Type = attrTps(n)
 }
 
-case class KVTupleCType(e1: Type, e2: Type) extends Type{
-  def apply(n: String): Type = n match {
-    case "key" => e1
-    case "0" => e1
-    case "value"  => e2
-    case "1" => e2
-    case _ => e2 match {
-      case t:RecordCType => t(n)
-      case t:KVTupleCType => t(n)
-      case t => sys.error(n)
-      // todo other instances
-    }
-  }
-  def _1 = e1
-  def _2 = e2
-}
-
 trait TDict extends Type
 trait TTupleDict extends Type
 
@@ -104,14 +87,13 @@ case object EmptyDictCType extends TDict with TTupleDict
 
 case class BagDictCType(flatTp: BagCType, dictTp: TTupleDict) extends TDict {
   def apply(n: String): Type = n match {
-    case "lbl" => flatTp.tp.asInstanceOf[KVTupleCType].e1
-    case "flat" => flatTp.tp.asInstanceOf[KVTupleCType].e2
-    case "tupleDict" => dictTp
+    case "lbl" => flatTp.tp.asInstanceOf[TTupleType](0)
+    case "flat" => flatTp.tp.asInstanceOf[TTupleType](1)
     case "0" => flatTp
     case "1" => dictTp
   }
-  def lbl: LabelType = flatTp.tp.asInstanceOf[KVTupleCType]._1.asInstanceOf[LabelType]
-  def flat: BagCType = flatTp.tp.asInstanceOf[KVTupleCType]._2.asInstanceOf[BagCType]
+  def lbl: LabelType = flatTp.tp.asInstanceOf[TTupleType](0).asInstanceOf[LabelType]
+  def flat: BagCType = flatTp.tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType]
   def _1 = flatTp
   def _2 = dictTp
 }

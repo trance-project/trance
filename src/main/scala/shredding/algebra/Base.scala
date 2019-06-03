@@ -369,7 +369,7 @@ trait BaseNormalizer extends BaseCompiler {
         Comprehension(e2, v2, p2, comprehension(e3, p, e))
       case c @ CLookup(flat, dict) => 
         val v1 = Variable.fresh(c.tp.tp)
-        val v2 = Variable.fresh(c.tp.tp.asInstanceOf[KVTupleCType]._2.asInstanceOf[BagCType].tp)
+        val v2 = Variable.fresh(c.tp.tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
         Comprehension(Project(dict, "0"), v1, equals(flat, Project(v1, "0")), 
           Comprehension(Project(v1, "1"), v2, p(v2), e(v2)))
       case _ => // standard case (return self)
@@ -653,6 +653,7 @@ trait BaseANF extends Base {
   // def getExp(e: CExpr): CExpr = 
   //   state.getOrElse(e, e)
 
+  // TODO: CSE doesn't go beyond a scope.
   def reifyBlock(b: => Rep): CExpr = {
     val oldState = state
     val oldStateInv = stateInv
@@ -696,23 +697,26 @@ trait BaseANF extends Base {
   def not(e1: Rep): Rep = compiler.not(e1)
   def or(e1: Rep, e2: Rep): Rep = compiler.or(e1, e2)
   def project(e1: Rep, field: String): Rep = compiler.project(e1, field)
-  def ifthen(cond: Rep, e1: Rep, e2: Option[Rep] = None): Rep = ???
-  def merge(e1: Rep, e2: Rep): Rep = ??? 
+  def ifthen(cond: Rep, e1: Rep, e2: Option[Rep] = None): Rep = e2 match {
+    case Some(a) => compiler.ifthen(cond, e1, Some(a)) 
+    case _ => compiler.ifthen(cond, e1, None)
+  }
+  def merge(e1: Rep, e2: Rep): Rep = compiler.merge(e1, e2)
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
     // println(s"e1: $e1\ntp: ${e1.e.tp}")
     compiler.comprehension(e1, p, e)
   }
-  def dedup(e1: Rep): Rep = ???
-  def bind(e1: Rep, e: Rep => Rep): Rep = ??? 
-  def named(n: String, e: Rep): Rep = ???
-  def linset(e: List[Rep]): Rep = ???
-  def label(id: Int, vars: Map[String, Rep]): Rep = ???
-  def extract(lbl: Rep, exp: Rep): Rep = ???
-  def lookup(lbl: Rep, dict: Rep): Rep = ???
-  def emptydict: Rep = ???
-  def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = ???
-  def tupledict(fs: Map[String, Rep]): Rep = ???
-  def dictunion(d1: Rep, d2: Rep): Rep = ???
+  def dedup(e1: Rep): Rep = compiler.dedup(e1)
+  def bind(e1: Rep, e: Rep => Rep): Rep = compiler.bind(e1, e)
+  def named(n: String, e: Rep): Rep = compiler.named(n, e)
+  def linset(e: List[Rep]): Rep = compiler.linset(e.map(defToExpr(_)))
+  def label(id: Int, vars: Map[String, Rep]): Rep = compiler.label(id, vars.map(f => (f._1, defToExpr(f._2))))
+  def extract(lbl: Rep, exp: Rep): Rep = compiler.extract(lbl, exp)
+  def lookup(lbl: Rep, dict: Rep): Rep = compiler.lookup(lbl, dict)
+  def emptydict: Rep = compiler.emptydict
+  def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = compiler.bagdict(lbl, flat, dict)
+  def tupledict(fs: Map[String, Rep]): Rep = compiler.tupledict(fs.map(f => (f._1, defToExpr(f._2))))
+  def dictunion(d1: Rep, d2: Rep): Rep = compiler.dictunion(d1, d2)
   def select(x: Rep, p: Rep => Rep): Rep = ???
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = ???
   def unnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = ???

@@ -44,10 +44,6 @@ trait ScalaGenerator extends BaseStringify {
           val s = s"${e1}.asInstanceOf[Product].productElement(${field.toInt})"
           ctx(s) = t(field.toInt)
           cast(s)
-        case t:KVTupleCType => // deprecated type
-          val s = s"${e1}.asInstanceOf[Product].productElement(${field.toInt})"
-          ctx(s) = t(field)
-          cast(s)
         case t:RecordCType => 
           val s = s"${e1}.asInstanceOf[Map[String,_]].getOrElse(${quotes(field)}, None)"
           ctx(s) = t(field)
@@ -123,26 +119,108 @@ trait ScalaGenerator extends BaseStringify {
  
 }
 
-trait ScalaANFGenerator extends ScalaGenerator {
-  override def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
-    // val v0 = e1.split("\\.").filter(!_.contains("asInstanceOf[List[_]]")).mkString(".")
-    // val v = freshVar(v0)
-    val v = Variable.fresh(IntType).name
-    val filt = p(v) match { case "true" => ""; case _ => s".withFilter(${v} => ${p(v)})"}
-    e(v) match {
-      case "1" => s"${e1}${filt}.map(${v} => 1).sum"
-      case t => s"""${e1}${filt}.flatMap(${v} => 
-        | ${ind(t)})""".stripMargin  
+object ScalaNamedGenerator {
+  var types = Map[Type, String]()
+
+  implicit def expToString(e: CExpr): String = generate(e)
+
+  def generateTypeDef(tp: Type): String = tp match {
+    case RecordCType(fs) =>
+      val name = types(tp)
+      s"case class $name(${fs.map(x => s"${x._1}: ${generateType(x._2)}").mkString(", ")})"
+    case _ => ???
+  }
+
+  def generateType(tp: Type): String = tp match {
+    case RecordCType(_) if types.contains(tp) => types(tp)
+    case IntType => "Int"
+    case StringType => "String"
+    case BoolType => "Boolean"
+    case BagCType(tp) => s"List[${generateType(tp)}]"
+    case LabelType(fs) if fs.isEmpty => "Int" 
+    case LabelType(fs) => generateType(RecordCType(fs))
+    case _ => sys.error("not supported type " + tp)
+  }
+
+  def generateHeader(): String = {
+    types.map(x => generateTypeDef(x._1)).mkString("\n")
+  }
+
+  def handleType(tp: Type, givenName: Option[String] = None): Unit = {
+    if(!types.contains(tp)) {
+      tp match {
+        case RecordCType(fs) =>
+          fs.foreach(f => handleType(f._2))
+          val name = givenName.getOrElse("Record" + Variable.newId)
+          types = types + (tp -> name)
+        case BagCType(tp) =>
+          handleType(tp, givenName)
+        case LabelType(fs) => handleType(RecordCType(fs), Some("Label"+Variable.newId))
+        case _ => ()
+      }
+      
     }
   }
 
-  override def project(e1: Rep, field: String): Rep = s"$e1.$field"
-  override def lt(e1: Rep, e2: Rep): Rep = s"${e1} < ${e2}"
-  override def gt(e1: Rep, e2: Rep): Rep = s"${e1} > ${e2}"
-  override def lte(e1: Rep, e2: Rep): Rep = s"${e1} <= ${e2}"
-  override def gte(e1: Rep, e2: Rep): Rep = s"${e1} >= ${e2}"
-  override def and(e1: Rep, e2: Rep): Rep = s"${e1} && ${e2}"
-  override def not(e1: Rep): Rep = s"!${e1}"
-  override def or(e1: Rep, e2: Rep): Rep = s"${e1} || ${e2}"
-}
+  def generate(e: CExpr): String = e match {
+    case Variable(name, _) => name
+    case InputRef(name, tp) => 
+      handleType(tp, Some(name))
+      s"Relation_$name"
+    case Comprehension(e1, v, p, e) =>
+      val filt = p match { case Constant(true) => ""; case _ => s".withFilter({${generate(v)} => ${generate(p)}})"}
+      e match {
+        case Constant(1) => s"${generate(e1)}${filt}.map({${generate(v)} => 1}).sum"
+        case t => s"""${generate(e1)}${filt}.flatMap({${generate(v)} => 
+          | ${ind(generate(t))}})""".stripMargin  
+      }
+    case Bind(v, Record(fs), e2) => {
+      handleType(v.tp)
+      s"val ${generate(v)} = ${generateType(v.tp)}(${fs.map(f => generate(f._2)).mkString(", ")})\n${generate(e2)}"
+    }
+    case Bind(v, e1, e2) =>
+      s"val ${generate(v)} = ${generate(e1)}\n${generate(e2)}"
+    case Project(e, field) => s"${generate(e)}.$field"
+    case Equals(e1, e2) => s"${generate(e1)} == ${generate(e2)}"
+    case Lt(e1, e2) => s"${generate(e1)} < ${generate(e2)}"
+    case Gt(e1, e2) => s"${generate(e1)} > ${generate(e2)}"
+    case Lte(e1, e2) => s"${generate(e1)} <= ${generate(e2)}"
+    case Gte(e1, e2) => s"${generate(e1)} >= ${generate(e2)}"
+    case And(e1, e2) => s"${generate(e1)} && ${generate(e2)}"
+    case Or(e1, e2) => s"${generate(e1)} || ${generate(e2)}"
+    case Not(e1) => s"!(${generate(e1)})"
+    case Constant(x) => x match {
+      case s:String => s""""$s""""
+      case _ => x.toString
+    }
+    case Sng(e) => s"List(${generate(e)})"
+    case CUnit => "()"
+    case EmptySng => "Nil"
+    case If(cond, e1, e2) => e2 match {
+      case Some(a) => s"""
+        | if (${cond}) {
+        | ${ind(e1)})
+        | } else {
+        | ${ind(a)}
+        | }""".stripMargin
+      case None => s"""
+        | if (${cond})
+        | ${ind(e1)}
+        | else  Nil """.stripMargin
+    }
+    case Merge(e1, e2) => s"${generate(e1) ++ generate(e2)}"
+    case CDeDup(e1) => s"${generate(e1)}.distinct"
+    case CNamed(n, e) => s"val $n = ${generate(e)}"
+    case LinearCSet(exprs) => s"""${exprs.map(generate(_)).mkString("\n")}"""
+    case Label(id, fs) if fs.isEmpty => id.toString
+    case Label(id, fs) => s"($id, ${fs.map(f => generate(f._2))})"
+    case Extract(lbl @ Label(id, fs), exp) => fs.map(f => s"val ${f._1} = ${generate(f._2)}").mkString("\n")+generate(exp)
+    case Extract(lbl, exp) => generate(exp)
+    case EmptyCDict => "()"
+    case BagCDict(lbl, flat, dict) => 
+      s"(${generate(flat)}.map(v => (${generate(lbl)}, v)), ${generate(dict)})"
+    case TupleCDict(fs) => generate(Record(fs))
+    case _ => sys.error("not supported "+e)
+  }
 
+}

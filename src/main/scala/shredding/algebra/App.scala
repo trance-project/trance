@@ -592,6 +592,14 @@ object App {
     println(ccode)
 
     println("")
+    val anfBase = new BaseANF {}
+    val anfed = new Finalizer(anfBase).finalize(nexp1)
+    val anfExp = anfBase.anf(anfed.asInstanceOf[anfBase.Rep])
+    println(str.quote(anfExp))
+    println(ScalaNamedGenerator.generate(anfExp))
+    println(ScalaNamedGenerator.generateHeader())
+
+    /**println("")
     beval.ctx.clear
     beval.ctx("RF") = NestedTest.rF
     beval.ctx("RD") = NestedTest.rDc
@@ -616,7 +624,7 @@ object App {
       | val RF = rF
       | val RD = rDc
       ${sgen.finalize(nexp2)}""".stripMargin
-    println(ccode2)
+    println(ccode2)**/
  
     /**val plan = Unnester.unnest(nexp1)((Nil, Nil, None))
     println("\nPlan:")
@@ -763,10 +771,10 @@ object App {
     val anfed = new Finalizer(anfBase).finalize(normalized0)
     val anfExp = anfBase.anf(anfed.asInstanceOf[anfBase.Rep])
     println(str.quote(anfExp))
-    val sanfgen = new Finalizer(new ScalaANFGenerator {})
-    println(sanfgen.finalize(anfExp))
-
-    println("")
+    println(ScalaNamedGenerator.generate(anfExp))
+    println(ScalaNamedGenerator.generateHeader())
+    
+    /**println("")
     // exp2
     val normalized2 = norm.finalize(exp2).asInstanceOf[CExpr]
     println(str.quote(normalized2))
@@ -775,9 +783,7 @@ object App {
     val anfed2 = new Finalizer(anfBase).finalize(normalized2)
     val anfExp2 = anfBase.anf(anfed2.asInstanceOf[anfBase.Rep])
     println(str.quote(anfExp2))
-    println(sanfgen.finalize(anfExp2))
-
-
+    println(sanfgen.finalize(anfExp2))**/
     // println(anfBase.vars)
     // println(anfBase.state)
     /**eval.finalize(normalized0).asInstanceOf[List[_]].foreach(println(_))
