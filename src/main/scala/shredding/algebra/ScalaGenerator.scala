@@ -153,5 +153,73 @@ trait ScalaANFGenerator extends ScalaGenerator {
   override def and(e1: Rep, e2: Rep): Rep = s"${e1} && ${e2}"
   override def not(e1: Rep): Rep = s"!${e1}"
   override def or(e1: Rep, e2: Rep): Rep = s"${e1} || ${e2}"
+  override def record(fs: Map[String, Rep]): Rep = s"""new {${fs.map(f => "val " + quotes(f._1) + " = " + f._2).mkString(";")})"""
 }
 
+object ScalaNamedGenerator {
+  var types = Map[Type, String]()
+
+  implicit def expToString(e: CExpr): String = generate(e)
+
+  def generateTypeDef(tp: Type): String = tp match {
+    case RecordCType(fs) =>
+      val name = types(tp)
+      s"case class $name(${fs.map(x => s"${x._1}: ${generateType(x._2)}").mkString(", ")})"
+    case _ => ???
+  }
+
+  def generateType(tp: Type): String = tp match {
+    case RecordCType(_) if types.contains(tp) => types(tp)
+    case IntType => "Int"
+    case StringType => "String"
+    case BoolType => "Boolean"
+    case BagCType(tp) => s"List[${generateType(tp)}]"
+    case _ => sys.error("not supported type " + tp)
+  }
+
+  def generateHeader(): String = {
+    types.map(x => generateTypeDef(x._1)).mkString("\n")
+  }
+
+  def handleType(tp: Type, givenName: Option[String] = None): Unit = {
+    if(!types.contains(tp)) {
+      tp match {
+        case RecordCType(fs) =>
+          fs.foreach(f => handleType(f._2))
+          val name = givenName.getOrElse("Record" + Variable.newId)
+          types = types + (tp -> name)
+        case BagCType(tp) =>
+          handleType(tp, givenName)
+        case _ => ()
+      }
+      
+    }
+  }
+
+  def generate(e: CExpr): String = e match {
+    case Variable(name, _) => name
+    case InputRef(name, tp) => 
+      handleType(tp, Some(name))
+      s"Relation_$name"
+    case Comprehension(e1, v, p, e) =>
+      val filt = p match { case Constant(true) => ""; case _ => s".withFilter(${generate(v)} => ${generate(p)})"}
+      e match {
+        case Constant(1) => s"${generate(e1)}${filt}.map(${generate(v)} => 1).sum"
+        case t => s"""${generate(e1)}${filt}.flatMap(${generate(v)} => 
+          | ${ind(generate(t))})""".stripMargin  
+      }
+    case Bind(v, Record(fs), e2) => {
+      handleType(v.tp)
+      s"val ${generate(v)} = ${generateType(v.tp)}(${fs.map(f => generate(f._2)).mkString(", ")})\n${generate(e2)}"
+    }
+    case Bind(v, e1, e2) =>
+      s"val ${generate(v)} = ${generate(e1)}\n${generate(e2)}"
+    case Project(e, field) => s"${generate(e)}.$field"
+    case Lt(e1, e2) => s"${generate(e1)} < ${generate(e2)}"
+    case Gt(e1, e2) => s"${generate(e1)} > ${generate(e2)}"
+    case Constant(x) => x.toString
+    case Sng(e) => s"List(${generate(e)})"
+    case _ => sys.error("not supported "+e)
+  }
+
+}

@@ -741,6 +741,9 @@ object App {
     println(str.quote(anfExp))
     val sanfgen = new Finalizer(new ScalaANFGenerator {})
     println(sanfgen.finalize(anfExp))
+
+    println(ScalaNamedGenerator.generate(anfExp))
+    println(ScalaNamedGenerator.generateHeader())
     // println(anfBase.vars)
     // println(anfBase.state)
     /**eval.finalize(normalized0).asInstanceOf[List[_]].foreach(println(_))

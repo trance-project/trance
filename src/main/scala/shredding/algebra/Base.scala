@@ -656,6 +656,7 @@ trait BaseANF extends Base {
   // def getExp(e: CExpr): CExpr = 
   //   state.getOrElse(e, e)
 
+  // TODO: CSE doesn't go beyond a scope.
   def reifyBlock(b: => Rep): CExpr = {
     val oldState = state
     val oldStateInv = stateInv
