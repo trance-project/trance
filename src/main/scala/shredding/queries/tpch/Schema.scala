@@ -20,4 +20,12 @@ object TpchSchema{
 
   case class Lineitem(l_orderkey: Long, l_partkey: Long, l_suppkey: Long, l_linenumber: Int, l_quantity: java.math.BigDecimal, l_extendedprice: java.math.BigDecimal, l_discount: java.math.BigDecimal, l_tax: java.math.BigDecimal, l_returnflag: String, l_linestatus: String, l_shipdate: String, l_commitdate: String, l_receiptdate: String, l_shipinstruct: String, l_shipmode: String, l_comment: String)
 
+  val suppliertype = BagType(TupleType("s_suppkey" -> IntType, "s_name" -> StringType, "s_address" -> StringType, "s_nationkey" -> IntType, "s_phone" -> StringType, "s_acctbal" -> IntType, "s_comment" -> StringType))
+
+  case class Supplier(s_suppkey: Int, s_name: String, s_address: String, s_nationkey: Long, s_phone: String, s_acctbal: java.math.BigDecimal, s_comment: String)
+
+  val partsupptype = BagType(TupleType("ps_partkey" -> IntType, "ps_suppkey" -> IntType, "ps_availqty" -> IntType, "ps_supplycost" -> IntType, "ps_comment" -> StringType))
+
+  case class PartSupp(ps_partkey: Long, ps_suppkey: Long, ps_availqty: Int, ps_supplycost: java.math.BigDecimal, ps_comment: String)
+
 }
