@@ -9,26 +9,16 @@ trait ScalaGenerator extends BaseStringify {
 
   def quotes(e: Rep): Rep = "\""+e+"\""
 
-  // turns input data into a string
-  def input(x: Any): Rep = x match {
-    case l @ (head :: tail) => s"List(${l.map(input(_)).mkString(",")})"
-    case m:Map[_,_] => "Map("+m.toList.map(v => quotes(v._1.asInstanceOf[Rep]) +" -> "+input(v._2)).mkString(",")+")"
-    case p:Product => "("+p.productIterator.map(i => input(i)).mkString(",")+")"
-    case l:Label => label(l.id, input(l.vars).asInstanceOf[Map[String, Rep]])
-    case _ => x match {
-      case s:String => quotes(s)
-      case s => s+""
-    }
-  }
-
   def cast(v: Rep): Rep = ctx(v) match {
     case BagCType(_) => s"${v}.asInstanceOf[List[_]]"
     case _ => v
-  } 
+  }
+   
   override def inputref(x: String, tp: Type): Rep = {
     ctx(x) = tp 
     x
   }
+
   override def lt(e1: Rep, e2: Rep): Rep = s"${e1}.asInstanceOf[Int] < ${e2}.asInstanceOf[Int]"
   override def gt(e1: Rep, e2: Rep): Rep = s"${e1}.asInstanceOf[Int] > ${e2}.asInstanceOf[Int]"
   override def lte(e1: Rep, e2: Rep): Rep = s"${e1}.asInstanceOf[Int] <= ${e2}.asInstanceOf[Int]"
@@ -37,7 +27,7 @@ trait ScalaGenerator extends BaseStringify {
   override def not(e1: Rep): Rep = s"!${e1}.asInstanceOf[Boolean]"
   override def or(e1: Rep, e2: Rep): Rep = s"${e1}.asInstanceOf[Boolean] || ${e2}.asInstanceOf[Boolean]"
   override def emptysng: Rep = "Nil"
-  override def unit: Rep = "Unit" //??
+  override def unit: Rep = "Unit" 
   override def sng(x: Rep): Rep = s"List(${x})"
   override def record(fs: Map[String, Rep]): Rep = s"""Map(${fs.map(f => quotes(f._1) + " -> " + f._2).mkString(",")})"""
   override def project(e1: Rep, field: String): Rep = e1 match {
@@ -46,7 +36,7 @@ trait ScalaGenerator extends BaseStringify {
     case m =>  
       val v = e1.split("\\.").filter(!_.contains("asInstanceOf[List[_]]"))
       val v0 = v.mkString(".")
-      val v1 = if (v.size > 1 && !v.tail.contains("productElement") && !v.tail.contains("getOrElse")) { 
+      val v1 = if (v.size > 1 && !v.last.contains("productElement") && !v.last.contains("getOrElse")) { 
                   v.dropRight(1).mkString(".") } else { v0 }
       val tp = ctx(v1)
       tp match {
@@ -67,7 +57,7 @@ trait ScalaGenerator extends BaseStringify {
           ctx(s) = t(field)
           cast(s)
         case t:TupleDictCType =>
-          val s = s"${e1}.getOrElse(${quotes(field)}, None)"
+          val s = s"${e1}.asInstanceOf[Map[String, _]].getOrElse(${quotes(field)}, None)"
           ctx(s) = t(field)
           cast(s)
         case t => sys.error("projecting on invalid type "+t+" at "+e1+" with "+field)
@@ -104,19 +94,20 @@ trait ScalaGenerator extends BaseStringify {
   override def dedup(e1: Rep): Rep = s"${e1}.distinct"
   override def named(n: String, e: Rep): Rep = {
     ctx(n) = StringType
-    s"val ${n} = ${e}\n"
+    s"val ${n} = ${e}.asInstanceOf[List[_]]\n"
   }
   override def linset(e: List[Rep]): Rep = s"${e.map("| "+_).mkString("\n")}"
 
   override def label(id: Int, fs: Map[String, Rep]): Rep = {
     s"""(${id}, ${fs.map(f => "ctx.getOrElseUpdate("+quotes(f._1)+","+f._2+")")})"""
   }
-  override def extract(lbl: Rep, exp: Rep): Rep = exp // again, label is already handled
+  override def extract(lbl: Rep, exp: Rep): Rep = exp
+  //  fs.map(f => s"val ${f._1} = ctx.getOrElseUpdate(${f._2})").mkString("\n")
   override def emptydict: Rep = s"()"
   override def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = {
     s"(${flat}.asInstanceOf[List[_]].map(v => (${lbl}, v)), ${dict})"
   }
-  override def tupledict(fs: Map[String, Rep]): Rep = input(fs)
+  override def tupledict(fs: Map[String, Rep]): Rep = s"(${fs.map(f => quotes(f._1) -> f._2).mkString(",")})"
   
 
   def varType(tp: Type): Variable = tp match {

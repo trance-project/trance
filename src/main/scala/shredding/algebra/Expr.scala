@@ -181,7 +181,6 @@ case class BagCDict(lbl: CExpr, flat: CExpr, dict: CExpr) extends CExpr {
   def apply(n: String) = n match {
     case "lbl" => lbl
     case "flat" => flat
-    case "tupleDict" => dict
     case "0" => Tuple(List(lbl, flat))
     case "1" => dict
   }

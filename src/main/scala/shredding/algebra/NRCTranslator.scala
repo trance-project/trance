@@ -69,13 +69,14 @@ trait NRCTranslator extends LinearizedNRC {
       Label(l.id, vs.map( v => { 
         val v2 = translateVar(v).asInstanceOf[Variable]
         v2.name -> v2}).toList:_*)
-    case e:ExtractLabel => Extract(translate(e.lbl), translate(e.e))
+    case e:ExtractLabel => //translate(e.lbl).asInstanceOf[Label].map( v => Bind(v._1, 
+      Extract(translate(e.lbl), translate(e.e))
     case Lookup(lbl, dict) => CLookup(translate(lbl), translate(dict)) 
     case EmptyDict => emptydict
     case BagDict(lbl, flat, dict) => BagCDict(translate(lbl), translate(flat), translate(dict))
     case BagDictProject(dict, field) => project(translate(dict), field)
     case TupleDict(fs) => TupleCDict(fs.map(f => f._1 -> translate(f._2)))
-    case TupleDictProject(dict) => project(translate(dict), "tupleDict")
+    case TupleDictProject(dict) => project(translate(dict), "1")
     case DictUnion(d1, d2) => DictCUnion(translate(d1), translate(d2))
     case Total(e1) => comprehension(translate(e1), x => constant(true), (i: CExpr) => constant(1))
     case DeDup(e1) => CDeDup(translate(e1)) 

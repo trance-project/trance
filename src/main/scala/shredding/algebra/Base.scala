@@ -412,11 +412,8 @@ trait BaseScalaInterp extends Base{
   def not(e1: Rep): Rep = !e1.asInstanceOf[Boolean]
   def or(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Boolean] || e2.asInstanceOf[Boolean]
   def project(e1: Rep, field: String) = field match {
-    case "key" => e1.asInstanceOf[Product].productElement(0)
     case "0" => e1.asInstanceOf[Product].productElement(0)
-    case "value" => e1.asInstanceOf[Product].productElement(1)
     case "1" => e1.asInstanceOf[Product].productElement(1)
-    case "tupleDict" => e1.asInstanceOf[Product].productElement(1)
     case f => e1 match {
       case m:Map[String,_] => m(f)
       case m:HashMap[String,_] => m(f)
@@ -685,22 +682,22 @@ trait BaseANF extends Base {
   def inputref(x: String, tp:Type): Rep = compiler.inputref(x, tp)
   def input(x: List[Rep]): Rep = ??? 
   def constant(x: Any): Rep = compiler.constant(x)
-  def emptysng: Rep = ???
+  def emptysng: Rep = compiler.emptysng
   def unit: Rep = compiler.unit
   def sng(x: Rep): Rep = compiler.sng(x)
-  def tuple(fs: List[Rep]): Rep = ???
+  def tuple(fs: List[Rep]): Rep = compiler.tuple(fs.map(defToExpr(_)))
   def record(fs: Map[String, Rep]): Rep = compiler.record(fs.map(x => (x._1, defToExpr(x._2))))
-  def equals(e1: Rep, e2: Rep): Rep = ???
+  def equals(e1: Rep, e2: Rep): Rep = compiler.equals(e1, e2)
   def lt(e1: Rep, e2: Rep): Rep = compiler.lt(e1, e2)
   def gt(e1: Rep, e2: Rep): Rep = compiler.gt(e1, e2)
-  def lte(e1: Rep, e2: Rep): Rep = ???
-  def gte(e1: Rep, e2: Rep): Rep = ???
-  def and(e1: Rep, e2: Rep): Rep = ???
-  def not(e1: Rep): Rep = ???
-  def or(e1: Rep, e2: Rep): Rep = ???
+  def lte(e1: Rep, e2: Rep): Rep = compiler.lte(e1, e2)
+  def gte(e1: Rep, e2: Rep): Rep = compiler.gte(e1, e2)
+  def and(e1: Rep, e2: Rep): Rep = compiler.and(e1, e2)
+  def not(e1: Rep): Rep = compiler.not(e1)
+  def or(e1: Rep, e2: Rep): Rep = compiler.or(e1, e2)
   def project(e1: Rep, field: String): Rep = compiler.project(e1, field)
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep] = None): Rep = ???
-  def merge(e1: Rep, e2: Rep): Rep = ???
+  def merge(e1: Rep, e2: Rep): Rep = ??? 
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
     // println(s"e1: $e1\ntp: ${e1.e.tp}")
     compiler.comprehension(e1, p, e)

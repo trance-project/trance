@@ -122,6 +122,7 @@ object NestedTest {
       )
 
       val rF = Label.fresh()
+      val rFType = rF.tp
       val rD1 = inputRelation.map{m => (m("h"), Label.fresh(), m("j").asInstanceOf[List[Map[String,Any]]]) }
       val rD2 = rD1.map{ case (h, l, j) => (Label.fresh(), j.map{ m => 
                   (m("m"), m("n"), Label.fresh(), m("k").asInstanceOf[List[_]])})}
@@ -134,7 +135,14 @@ object NestedTest {
       val tupleDict = scala.collection.mutable.Map[String, (Any, Any)]()
       tupleDict0("k") = (rD2j2k1, ())
       tupleDict("j") = (rD2j1, tupleDict0)
+      val tdictt = TupleDictCType(Map("h" -> EmptyDictCType, "j" -> 
+        BagDictCType(BagCType(TTupleType(List(rF.tp, 
+          BagCType(RecordCType("m" -> StringType, "n" -> IntType, "j" -> rF.tp))))), 
+            TupleDictCType(Map("m" -> EmptyDictCType, "n" -> EmptyDictCType, "k" -> 
+              BagDictCType(BagCType(TTupleType(List(rF.tp, 
+                BagCType(RecordCType("n" -> IntType))))), EmptyDictCType))))))
       val rDc = (List((rF, rDflat)), tupleDict)
+      val rDType = BagDictCType(BagCType(TTupleType(List(rF.tp, BagCType(RecordCType("h" -> IntType, "j" -> rF.tp))))), tdictt)
       // not sure about this yet 
       val rDu = (rDflat, tupleDict)
 }
@@ -577,15 +585,16 @@ object App {
     // exp0
     println("")
     val ccode = s"""
-      | val RF = ${nsgen.input(FlatTest.rF)}
-      | val RD = ${nsgen.input(FlatTest.rDc)}
+      | import shredding.algebra.FlatTest._
+      | val RF = rF
+      | val RD = rDc
       ${sgen.finalize(nexp1)}""".stripMargin
     println(ccode)
 
-    /**println("")
+    println("")
     beval.ctx.clear
-    beval.ctx("R^F") = NestedTest.rF
-    beval.ctx("R^D") = NestedTest.rDc
+    beval.ctx("RF") = NestedTest.rF
+    beval.ctx("RD") = NestedTest.rDc
 
     println("\nTranslated:")
     println(str.quote(exp2))
@@ -593,9 +602,22 @@ object App {
     val nexp2 = norm.finalize(exp2).asInstanceOf[CExpr]
     println(str.quote(nexp2))
     println("\nEvaluated:\n")
-    eval.finalize(nexp2)//.asInstanceOf[List[_]].foreach(println(_))**/
+    eval.finalize(nexp2)
  
-   
+    nsgen.ctx.clear
+    nsgen.ctx("RF") = NestedTest.rFType
+    nsgen.ctx("RD") = NestedTest.rDType
+ 
+    // exp1
+    println("")
+    val ccode2 = s"""
+      | import shredding.algebra.NestedTest._
+      | var ctx = scala.collection.mutable.Map[String,Any]()
+      | val RF = rF
+      | val RD = rDc
+      ${sgen.finalize(nexp2)}""".stripMargin
+    println(ccode2)
+ 
     /**val plan = Unnester.unnest(nexp1)((Nil, Nil, None))
     println("\nPlan:")
     println(str.finalize(plan))
@@ -730,17 +752,32 @@ object App {
 
     println("")
     val ccode = s"""
-      | val R = ${nsgen.input(FlatTest.relationRValues3)}
+      | import shredding.algebra.FlatTest._
+      | val R = relationRValues3
       | ${sgen.finalize(normalized0)}""".stripMargin
 
     println(ccode)
 
+    println("")
     val anfBase = new BaseANF {}
     val anfed = new Finalizer(anfBase).finalize(normalized0)
     val anfExp = anfBase.anf(anfed.asInstanceOf[anfBase.Rep])
     println(str.quote(anfExp))
     val sanfgen = new Finalizer(new ScalaANFGenerator {})
     println(sanfgen.finalize(anfExp))
+
+    println("")
+    // exp2
+    val normalized2 = norm.finalize(exp2).asInstanceOf[CExpr]
+    println(str.quote(normalized2))
+    println("")
+
+    val anfed2 = new Finalizer(anfBase).finalize(normalized2)
+    val anfExp2 = anfBase.anf(anfed2.asInstanceOf[anfBase.Rep])
+    println(str.quote(anfExp2))
+    println(sanfgen.finalize(anfExp2))
+
+
     // println(anfBase.vars)
     // println(anfBase.state)
     /**eval.finalize(normalized0).asInstanceOf[List[_]].foreach(println(_))
@@ -787,7 +824,7 @@ object App {
     //run3()
     //runNormlizationTests()
     runShred()
-    runBase()
+    //runBase()
   }
 
 
