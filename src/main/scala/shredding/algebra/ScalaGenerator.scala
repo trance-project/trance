@@ -126,8 +126,8 @@ object ScalaNamedGenerator {
 
   def generateTypeDef(tp: Type): String = tp match {
     case RecordCType(fs) =>
-      val name = types(tp)
-      s"case class $name(${fs.map(x => s"${x._1}: ${generateType(x._2)}").mkString(", ")})"
+     val name = types(tp)
+      s"case class $name(${fs.map(x => s"${x._1}: ${generateType(x._2)}").mkString(", ")})" 
     case _ => ???
   }
 
@@ -137,8 +137,9 @@ object ScalaNamedGenerator {
     case StringType => "String"
     case BoolType => "Boolean"
     case BagCType(tp) => s"List[${generateType(tp)}]"
-    case LabelType(fs) if fs.isEmpty => "Int" 
-    case LabelType(fs) => generateType(RecordCType(fs))
+    case TupleDictCType(fs) if !fs.isEmpty => generateType(RecordCType(fs))
+    case LabelType(fs) if fs.filter(_._1 != "RF").isEmpty => "Int" 
+    case LabelType(fs) => generateType(RecordCType())
     case _ => sys.error("not supported type " + tp)
   }
 
@@ -155,7 +156,13 @@ object ScalaNamedGenerator {
           types = types + (tp -> name)
         case BagCType(tp) =>
           handleType(tp, givenName)
-        case LabelType(fs) => handleType(RecordCType(fs), Some("Label"+Variable.newId))
+        case LabelType(fs) if !fs.filter(_._1 != "RF").isEmpty => handleType(RecordCType(fs), Some("Label"+Variable.newId))
+        case BagDictCType(BagCType(TTupleType(ls)), dict) => 
+          handleType(ls.last, givenName)
+          handleType(dict)
+        case TupleDictCType(fs)  => 
+          val ffs = fs.filter(_._2 != EmptyDictCType)
+          if (!ffs.isEmpty) { handleType(RecordCType(ffs)) } else { () }
         case _ => ()
       }
       
@@ -166,7 +173,7 @@ object ScalaNamedGenerator {
     case Variable(name, _) => name
     case InputRef(name, tp) => 
       handleType(tp, Some(name))
-      s"Relation_$name"
+      name
     case Comprehension(e1, v, p, e) =>
       val filt = p match { case Constant(true) => ""; case _ => s".withFilter({${generate(v)} => ${generate(p)}})"}
       e match {
@@ -210,10 +217,12 @@ object ScalaNamedGenerator {
     }
     case Merge(e1, e2) => s"${generate(e1) ++ generate(e2)}"
     case CDeDup(e1) => s"${generate(e1)}.distinct"
-    case CNamed(n, e) => s"val $n = ${generate(e)}"
+    case CNamed(n, e) => generate(e)
     case LinearCSet(exprs) => s"""${exprs.map(generate(_)).mkString("\n")}"""
-    case Label(id, fs) if fs.isEmpty => id.toString
-    case Label(id, fs) => s"($id, ${fs.map(f => generate(f._2))})"
+    case Label(id, fs) if !fs.filter(_._1 != "RF").isEmpty => 
+      handleType(e.tp)
+      s"${generateType(e.tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
+    case Label(id, fs)  => id.toString
     case Extract(lbl @ Label(id, fs), exp) => fs.map(f => s"val ${f._1} = ${generate(f._2)}").mkString("\n")+generate(exp)
     case Extract(lbl, exp) => generate(exp)
     case EmptyCDict => "()"

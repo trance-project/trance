@@ -248,8 +248,8 @@ trait BaseScalaInterp extends Base{
   def not(e1: Rep): Rep = !e1.asInstanceOf[Boolean]
   def or(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Boolean] || e2.asInstanceOf[Boolean]
   def project(e1: Rep, field: String) = field match {
-    case "0" => e1.asInstanceOf[Product].productElement(0)
-    case "1" => e1.asInstanceOf[Product].productElement(1)
+    case "_1" => e1.asInstanceOf[Product].productElement(0)
+    case "_2" => e1.asInstanceOf[Product].productElement(1)
     case f => e1 match {
       case m:Map[String,_] => m(f)
       case m:HashMap[String,_] => m(f)
@@ -382,6 +382,12 @@ trait BaseANF extends Base {
       case None =>
         e match {
           case Constant(_) | InputRef(_, _) => Def(e)
+          case CNamed(n, e1) =>
+            val v = Variable(n, e1.tp)
+            vars = vars :+ v
+            state = state + (e1 -> v) 
+            stateInv = stateInv + (v -> e) 
+            Def(v) 
           case _ => 
             val v = Variable.fresh(e.tp)
             vars = vars :+ v
@@ -415,7 +421,10 @@ trait BaseANF extends Base {
   def anf(d: Rep): CExpr = 
     vars.foldRight(d.e)((cur, acc) => Bind(cur, stateInv(cur), acc))
 
-  def inputref(x: String, tp:Type): Rep = compiler.inputref(x, tp)
+  def inputref(x: String, tp:Type): Rep = {
+    val v = Variable(x, tp)
+    compiler.inputref(exprToDef(v).e.asInstanceOf[Variable].name, tp)
+  }
   def input(x: List[Rep]): Rep = ??? 
   def constant(x: Any): Rep = compiler.constant(x)
   def emptysng: Rep = compiler.emptysng
@@ -457,6 +466,8 @@ trait BaseANF extends Base {
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep): Rep = ???
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = ???
 }
+
+
 class Finalizer(val target: Base){
   var variableMap: Map[CExpr, target.Rep] = Map[CExpr, target.Rep]()
   def withMap[T](m: (CExpr, target.Rep))(f: => T): T = {

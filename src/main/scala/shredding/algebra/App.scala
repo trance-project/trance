@@ -175,20 +175,6 @@ object App {
     println("\n\nEvaluated:\n")
     eval.finalize(nexp1).asInstanceOf[List[_]].foreach(println(_))
 
-    val nsgen = new ScalaGenerator{}
-    nsgen.ctx("RF") = FlatTest.rFType
-    nsgen.ctx("RD") = FlatTest.rDType
-    val sgen = new Finalizer(nsgen)
-
-    // exp0
-    println("")
-    val ccode = s"""
-      | import shredding.algebra.FlatTest._
-      | val RF = rF
-      | val RD = rDc
-      ${sgen.finalize(nexp1)}""".stripMargin
-    println(ccode)
-
     println("")
     val anfBase = new BaseANF {}
     val anfed = new Finalizer(anfBase).finalize(nexp1)
@@ -267,7 +253,7 @@ object App {
 
   def main(args: Array[String]){
     runShred()
-    runBase()
+    //runBase()
   }
 
 

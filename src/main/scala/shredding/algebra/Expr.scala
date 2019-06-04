@@ -47,6 +47,10 @@ case class Record(fields: Map[String, CExpr]) extends CExpr{
 
 case class Tuple(fields: List[CExpr]) extends CExpr {
   def tp: Type = TTupleType(fields.map(_.tp))
+  def apply(n: String) = n match {
+    case "_1" => fields(0)
+    case "_2" => fields(1) 
+  } 
   def apply(n: Int) = fields(n)
 }
 
@@ -85,7 +89,11 @@ case class Or(e1: CExpr, e2: CExpr) extends CExpr{
 case class Project(e1: CExpr, field: String) extends CExpr { self =>
   def tp: Type = e1.tp match {
     case t:RecordCType => t.attrTps(field) 
-    case t:TTupleType => t(field.toInt)
+    case t:TTupleType => field match {
+      case "_1" => t(0)
+      case "_2" => t(1)
+      case  _ => t(field.toInt)
+    }
     case t:LabelType => t(field)
     case t:TupleDictCType => t(field)
     case t:BagDictCType => t(field)
@@ -181,8 +189,8 @@ case class BagCDict(lbl: CExpr, flat: CExpr, dict: CExpr) extends CExpr {
   def apply(n: String) = n match {
     case "lbl" => lbl
     case "flat" => flat
-    case "0" => Tuple(List(lbl, flat))
-    case "1" => dict
+    case "_1" => Tuple(List(lbl, flat))
+    case "_2" => dict
   }
   def lambda = Tuple(List(lbl, flat))
   def _1 = flat
