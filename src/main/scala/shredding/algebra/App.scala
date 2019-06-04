@@ -28,7 +28,6 @@ object FlatTest{
   val rDType = BagDictCType(BagCType(TTupleType(List(rF.tp, relationRType))), EmptyDictCType)
   val rDu = relationRValues 
 
-
 }
 
 object NestedTest {
@@ -158,9 +157,9 @@ object App {
     val norm = new Finalizer(bnorm)
     
     val exp1 = shredder.shredPipeline(FlatTests.query1.asInstanceOf[shredder.Expr])
-    val exp2 = shredder.shredPipeline(NestedTests.query1.asInstanceOf[shredder.Expr])
+    val exp2 = shredder.shredPipeline(NestedTests.query2.asInstanceOf[shredder.Expr])
     val exp3 = shredder.shredPipeline(NestedTests.query3.asInstanceOf[shredder.Expr])
-    val exp4 = shredder.shredPipeline(NestedTests.query3.asInstanceOf[shredder.Expr]) 
+    val exp4 = shredder.shredPipeline(NestedTests.query4.asInstanceOf[shredder.Expr]) 
 
     val beval = new BaseScalaInterp{}
     val eval = new Finalizer(beval)
@@ -183,7 +182,7 @@ object App {
     println(ScalaNamedGenerator.generate(anfExp))
     println(ScalaNamedGenerator.generateHeader())
 
-    /**println("")
+    println("")
     beval.ctx.clear
     beval.ctx("RF") = NestedTest.rF
     beval.ctx("RD") = NestedTest.rDc
@@ -193,22 +192,19 @@ object App {
     println("\nNormalized:")
     val nexp2 = norm.finalize(exp2).asInstanceOf[CExpr]
     println(str.quote(nexp2))
-    println("\nEvaluated:\n")
-    eval.finalize(nexp2)
+    //println("\nEvaluated:\n")
+    //eval.finalize(nexp2)
  
-    nsgen.ctx.clear
-    nsgen.ctx("RF") = NestedTest.rFType
-    nsgen.ctx("RD") = NestedTest.rDType
- 
-    // exp1
     println("")
-    val ccode2 = s"""
-      | import shredding.algebra.NestedTest._
-      | var ctx = scala.collection.mutable.Map[String,Any]()
-      | val RF = rF
-      | val RD = rDc
-      ${sgen.finalize(nexp2)}""".stripMargin
-    println(ccode2)**/
+    val anfed1 = new Finalizer(anfBase).finalize(nexp2)
+    val anfExp1 = anfBase.anf(anfed1.asInstanceOf[anfBase.Rep])
+    println(str.quote(anfExp1))
+    ScalaNamedGenerator.types = ScalaNamedGenerator.types.empty
+    //ScalaNamedGenerator.types = ScalaNamedGenerator.types + (RecordCType("a" -> IntType, "b" -> IntType) -> "R1")
+    //ScalaNamedGenerator.types = ScalaNamedGenerator.types + (RecordCType("c" -> IntType) -> "R2")
+    println(ScalaNamedGenerator.generate(anfExp1))
+    println(ScalaNamedGenerator.generateHeader())
+
  
   }
 

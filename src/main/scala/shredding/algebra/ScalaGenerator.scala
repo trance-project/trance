@@ -128,7 +128,7 @@ object ScalaNamedGenerator {
     case RecordCType(fs) =>
      val name = types(tp)
       s"case class $name(${fs.map(x => s"${x._1}: ${generateType(x._2)}").mkString(", ")})" 
-    case _ => ???
+    case _ => sys.error("unsupported type "+tp)
   }
 
   def generateType(tp: Type): String = tp match {
@@ -137,6 +137,8 @@ object ScalaNamedGenerator {
     case StringType => "String"
     case BoolType => "Boolean"
     case BagCType(tp) => s"List[${generateType(tp)}]"
+    case BagDictCType(flat, dict) => s"(${generateType(flat)}, ${generateType(dict)})"
+    case TTupleType(fs) => s"(${fs.map(f => generateType(f))})"
     case TupleDictCType(fs) if !fs.isEmpty => generateType(RecordCType(fs))
     case LabelType(fs) if fs.filter(_._1 != "RF").isEmpty => "Int" 
     case LabelType(fs) => generateType(RecordCType())
@@ -157,10 +159,8 @@ object ScalaNamedGenerator {
         case BagCType(tp) =>
           handleType(tp, givenName)
         case LabelType(fs) if !fs.filter(_._1 != "RF").isEmpty => handleType(RecordCType(fs), Some("Label"+Variable.newId))
-        case BagDictCType(BagCType(TTupleType(ls)), dict) => 
-          handleType(ls.last, givenName)
-          handleType(dict)
-        case TupleDictCType(fs)  => 
+        case BagDictCType(BagCType(TTupleType(ls)), dict) => handleType(ls.last, givenName)
+        case TupleDictCType(fs) =>
           val ffs = fs.filter(_._2 != EmptyDictCType)
           if (!ffs.isEmpty) { handleType(RecordCType(ffs)) } else { () }
         case _ => ()
