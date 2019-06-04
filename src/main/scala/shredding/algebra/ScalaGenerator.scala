@@ -217,7 +217,7 @@ object ScalaNamedGenerator {
     }
     case Merge(e1, e2) => s"${generate(e1) ++ generate(e2)}"
     case CDeDup(e1) => s"${generate(e1)}.distinct"
-    case CNamed(n, e) => generate(e)
+    case CNamed(n, e) => s"/* bnamed */${generate(e)}/* enamed */"
     case LinearCSet(exprs) => s"""${exprs.map(generate(_)).mkString("\n")}"""
     case Label(id, fs) if !fs.filter(_._1 != "RF").isEmpty => 
       handleType(e.tp)

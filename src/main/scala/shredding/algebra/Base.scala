@@ -382,12 +382,14 @@ trait BaseANF extends Base {
       case None =>
         e match {
           case Constant(_) | InputRef(_, _) => Def(e)
-          case CNamed(n, e1) =>
-            val v = Variable(n, e1.tp)
-            vars = vars :+ v
-            state = state + (e1 -> v) 
-            stateInv = stateInv + (v -> e) 
-            Def(v) 
+          // case CNamed(n, e1) =>
+          //   val v = Variable(n, e1.tp)
+          //   vars = vars :+ v
+          //   state = state + (e1 -> v) 
+          //   stateInv = stateInv + (v -> e1) 
+          //   // val v = state(e1)
+          //   // varMaps = varMaps + (n -> v)
+          //   Def(v)
           case _ => 
             val v = Variable.fresh(e.tp)
             vars = vars :+ v
@@ -401,6 +403,7 @@ trait BaseANF extends Base {
   var state: Map[CExpr, Variable] = Map()
   var stateInv: Map[Variable, CExpr] = Map()
   var vars: Seq[Variable] = Seq()
+  var varMaps: Map[String, Variable] = Map()
 
   // TODO: CSE doesn't go beyond a scope.
   def reifyBlock(b: => Rep): CExpr = {
@@ -422,8 +425,9 @@ trait BaseANF extends Base {
     vars.foldRight(d.e)((cur, acc) => Bind(cur, stateInv(cur), acc))
 
   def inputref(x: String, tp:Type): Rep = {
-    val v = Variable(x, tp)
-    compiler.inputref(exprToDef(v).e.asInstanceOf[Variable].name, tp)
+    // val name = exprToDef(Variable(x, tp)).e.asInstanceOf[Variable].name
+    val name = varMaps.get(x).map(_.name).getOrElse(x)
+    compiler.inputref(name, tp)
   }
   def input(x: List[Rep]): Rep = ??? 
   def constant(x: Any): Rep = compiler.constant(x)
@@ -449,7 +453,11 @@ trait BaseANF extends Base {
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = compiler.comprehension(e1, p, e)
   def dedup(e1: Rep): Rep = compiler.dedup(e1)
   def bind(e1: Rep, e: Rep => Rep): Rep = compiler.bind(e1, e)
-  def named(n: String, e: Rep): Rep = compiler.named(n, e)
+  def named(n: String, e: Rep): Rep = {
+    val d = compiler.named(n, e)
+    varMaps = varMaps + (n -> d.e.asInstanceOf[Variable])
+    d
+  }
   def linset(e: List[Rep]): Rep = compiler.linset(e.map(defToExpr(_)))
   def label(id: Int, vars: Map[String, Rep]): Rep = compiler.label(id, vars.map(f => (f._1, defToExpr(f._2))))
   def extract(lbl: Rep, exp: Rep): Rep = compiler.extract(lbl, exp)
