@@ -3,8 +3,10 @@ package shredding.queries.tpch
 import shredding.core._
 import shredding.nrc.LinearizedNRC
 
-trait Queries extends LinearizedNRC {
-
+object Queries { 
+  val nrc = new LinearizedNRC {}
+  import nrc._
+  
   /**
     * var Q1 =
     * for (c <- Customer) yield (c.name,
