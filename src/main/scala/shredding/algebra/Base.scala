@@ -46,71 +46,6 @@ trait Base {
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep
 }
 
-object Printer {
-  val compiler = new BaseStringify{}
-  import compiler._
-
-  def quote(e: CExpr): String = e match {
-    case InputRef(d, t) => inputref(d,t)
-    case Input(d) => input(d.map(quote(_)))
-    case Constant(d) => constant(d)
-    case EmptySng => emptysng
-    case CUnit => unit
-    case Sng(e1) => sng(quote(e1))
-    case Tuple(fs) => tuple(fs.map(quote(_)))
-    case Record(fs) => record(fs.map(f => f._1 -> quote(f._2)))
-    case Equals(e1, e2) => compiler.equals(quote(e1), quote(e2))
-    case Lt(e1, e2) => lt(quote(e1), quote(e2))
-    case Lte(e1, e2) => lte(quote(e1), quote(e2))
-    case Gt(e1, e2) => gt(quote(e1), quote(e2))
-    case Gte(e1, e2) => gte(quote(e1), quote(e2))
-    case And(e1, e2) => and(quote(e1), quote(e2))
-    case Not(e1) => not(quote(e1))
-    case Or(e1, e2) => or(quote(e1), quote(e2))
-    case Project(e1, f) => project(quote(e1), f)
-    case If(c, e1, e2) => e2 match {
-      case Some(a) => ifthen(quote(c), quote(e1), Some(quote(a)))
-      case _ => ifthen(quote(c), quote(e1), None)
-    }
-    case Merge(e1, e2) => merge(quote(e1), quote(e2))
-    case Comprehension(e1, v, p, e) => p match {
-      case Constant(true) => s"{ ${quote(e)} | ${v.quote} <- ${quote(e1)} }"
-      case px => s"{ ${quote(e)} | ${v.quote} <- ${quote(e1)}, ${quote(px)} }"
-    }
-    case Bind(x, e1, e2) => s"{ ${quote(e2)} | ${quote(x)} := ${quote(e1)} }"
-    case CDeDup(e1) => s"DeDup(${quote(e1)})"
-    case CNamed(n, e) => named(n, quote(e))
-    case LinearCSet(exprs) => linset(exprs.map(quote(_)))
-    case Label(id, fs) => label(id, fs.map(f => f._1 -> quote(f._2)))
-    case Extract(lbl, exp) => extract(quote(lbl), quote(exp))
-    case CLookup(lbl, dict) => lookup(quote(lbl), quote(dict))
-    case EmptyCDict => emptydict
-    case BagCDict(lbl, flat, dict) => bagdict(quote(lbl), quote(flat), quote(dict))
-    case TupleCDict(fs) => tupledict(fs.map(f => f._1 -> quote(f._2)))
-    case DictCUnion(e1, e2) => dictunion(quote(e1), quote(e2))
-    case Select(x, v, p) => 
-      s""" | <-- (${e.wvars.map(_.quote).mkString(",")})} -- SELECT[ ${quote(p)} ](${quote(x)})""".stripMargin
-    case Reduce(e1, v, e2, p) =>  
-      s""" | REDUCE[ ${quote(e2)} / ${quote(p)} ](${quote(e1)})""".stripMargin
-    case Unnest(e1, v1, e2, v2, p) =>
-      s""" |  <-- (${e.wvars.map(_.quote).mkString(",")}) -- UNNEST[ ${quote(e2)} / ${quote(p)} ](${quote(e1)})""".stripMargin
-    case OuterUnnest(e1, v1, e2, v2, p) =>
-      s""" |  <-- (${e.wvars.map(_.quote).mkString(",")}) -- OUTERUNNEST[ ${quote(e2)} / ${quote(p)} ](${quote(e1)})""".stripMargin
-    case Nest(e1, v1, f, e3, v2, p) =>
-      val acc = e match { case Constant(1) => "+"; case _ => "U" }
-      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- NEST[ ${acc} / ${quote(e3)} / ${quote(f)}, ${quote(p)} ](${quote(e1)})""".stripMargin
-    case Join(e1, e2, v1, p1, v2, p2) => 
-      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) JOIN[${quote(p1)} = ${quote(p2)}]( 
-           | ${ind(quote(e2))})""".stripMargin
-    case OuterJoin(e1, e2, v1, p1, v2, p2) => 
-      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) OUTERJOIN[${quote(p1)} = ${quote(p2)}]( 
-           | ${ind(quote(e2))})""".stripMargin
-    case Variable(n, tp) => n
-
-  }
-
-}
-
 trait BaseStringify extends Base{
   type Rep = String
   def inputref(x: String, tp: Type): Rep = x
@@ -293,105 +228,6 @@ trait BaseCompiler extends Base {
   }
 }
 
-trait BaseNormalizer extends BaseCompiler {
-    
-  // reduce conditionals 
-  override def equals(e1: Rep, e2: Rep): Rep = (e1, e2) match {
-    case (Constant(x1), Constant(x2)) => constant(x1 == x2)
-    case _ => super.equals(e1, e2)
-  }
-
-  override def not(e1: Rep): Rep = e1 match {
-    case Constant(true) => super.constant(false)
-    case Constant(false) => super.constant(true)
-    case _ => super.not(e1)
-  }
-  
-  override def and(e1: Rep, e2: Rep): Rep  = (e1, e2) match {
-    case (Constant(true), Constant(true)) => super.constant(true)
-    case (Constant(false), _) => super.constant(false)
-    case (_, Constant(false)) => super.constant(false)
-    case (Constant(true), e3) => e3
-    case (e3, Constant(true)) => e3
-    case _ => super.and(e1, e2)
-  }
-
-  override def or(e1: Rep, e2: Rep): Rep  = (e1, e2) match {
-    case (Constant(false), Constant(false)) => super.constant(false)
-    case (Constant(true), _) => super.constant(true)
-    case (_, Constant(true)) => super.constant(true)
-    case _ => super.and(e1, e2)
-  }
-
-  // N1, N2
-  override def bind(e1: Rep, e: Rep => Rep): Rep = e(e1)
-
-  // N3 (a := e1, b: = e2).a = e1
-  override def project(e1: Rep, f: String): Rep = e1 match {
-    case t:Tuple => t(f.toInt)
-    case t:Record => t(f)
-    case t:Label => t(f)
-    case t:TupleCDict => t(f)
-    case t:BagCDict => t(f)
-    case _ => super.project(e1, f)
-  }
-
-  override def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = cond match {
-    case Constant(true) => e1
-    case Constant(false) => e2 match {
-      case Some(a) =>  a
-      case _ => super.emptysng
-    }
-    case _ => super.ifthen(cond, e1, e2)
-  }
-
-  override def lookup(lbl: Rep, dict: Rep): Rep = dict match {
-    case BagCDict(lbl2, flat2, dict2) if (lbl2.tp == lbl.tp) => flat2
-    case _ => super.lookup(lbl, dict)
-  }
-
-  // { e(v) | v <- e1, p(v) }
-  // where fegaras and maier does: { e | q, v <- e1, s } 
-  // this has { { { e | s } | v <- e1 } | q }
-  // the normalization rules reduce generators, which is why I match on e1
-  // N10 is automatically handled in this representation
-  override def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
-    e1 match {
-      case If(cond, e3, e4 @ Some(a)) => //N4
-        If(cond, comprehension(e3, p, e), Some(comprehension(a, p, e)))
-      case EmptySng => EmptySng // N5 
-      case Sng(t) => ifthen(p(t), Sng(e(t))) // N6
-      case Merge(e1, e2) => Merge(comprehension(e1, p, e), comprehension(e2, p, e))  //N7
-      case Variable(_,_) => ifthen(p(e1), Sng(e(e1))) // input relation
-      case Comprehension(e2, v2, p2, e3) => //N8 
-        // { e(v) | v <- { e3 | v2 <- e2, p2 }, p(v) }
-        // { { e(v) | v <- e3 } | v2 <- e2, p2 }
-        Comprehension(e2, v2, p2, comprehension(e3, p, e))
-      case c @ CLookup(flat, dict) => 
-        val v1 = Variable.fresh(c.tp.tp)
-        val v2 = Variable.fresh(c.tp.tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
-        Comprehension(Project(dict, "0"), v1, equals(flat, Project(v1, "0")), 
-          Comprehension(Project(v1, "1"), v2, p(v2), e(v2)))
-      case _ => // standard case (return self)
-        val v = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
-        Comprehension(e1, v, p(v), e(v))
-      }
-    }
-}
-
-trait PlanOptimizer extends BaseNormalizer {
-
-  override def project(e1: Rep, f: String): Rep = e1 match {
-    /**case t:Record =>
-      val index = t.fields.keys.toList.indexOf(f).toString
-      Project(t, index)
-    case Variable(n, tp @ RecordCType(fs)) =>
-      Project(e1, fs.keys.toList.indexOf(f).toString)**/
-    case _ => super.project(e1, f)
-  }
-
-}
-
 trait BaseScalaInterp extends Base{
   type Rep = Any
   var ctx = scala.collection.mutable.Map[String, Any]()
@@ -523,6 +359,104 @@ trait BaseScalaInterp extends Base{
 
 }
 
+trait BaseANF extends Base {
+
+  val compiler = new BaseCompiler {}
+
+  case class Def(e: CExpr)
+
+  type Rep = Def
+
+  implicit def defToExpr(d: Def): CExpr = {
+    d.e
+  }
+
+  implicit def funcDefToExpr(fd: Def => Def): CExpr => CExpr = {
+    (x: CExpr) => reifyBlock { fd(Def(x)) }
+  }
+
+  implicit def exprToDef(e: CExpr): Def = {
+    state.get(e) match {
+      case Some(v) => // CSE!
+        Def(v)
+      case None =>
+        e match {
+          case Constant(_) | InputRef(_, _) => Def(e)
+          case _ => 
+            val v = Variable.fresh(e.tp)
+            vars = vars :+ v
+            state = state + (e -> v)
+            stateInv = stateInv + (v -> e)
+            Def(v)
+        }
+    }
+  }
+
+  var state: Map[CExpr, Variable] = Map()
+  var stateInv: Map[Variable, CExpr] = Map()
+  var vars: Seq[Variable] = Seq()
+
+  // TODO: CSE doesn't go beyond a scope.
+  def reifyBlock(b: => Rep): CExpr = {
+    val oldState = state
+    val oldStateInv = stateInv
+    val oldVars = vars
+    state = Map()
+    stateInv = Map()
+    vars = Seq()
+    val e = b.e
+    val res = vars.foldRight(e)((cur, acc) => Bind(cur, stateInv(cur), acc))
+    state = oldState
+    stateInv = oldStateInv
+    vars = oldVars
+    res
+  }
+
+  def anf(d: Rep): CExpr = 
+    vars.foldRight(d.e)((cur, acc) => Bind(cur, stateInv(cur), acc))
+
+  def inputref(x: String, tp:Type): Rep = compiler.inputref(x, tp)
+  def input(x: List[Rep]): Rep = ??? 
+  def constant(x: Any): Rep = compiler.constant(x)
+  def emptysng: Rep = compiler.emptysng
+  def unit: Rep = compiler.unit
+  def sng(x: Rep): Rep = compiler.sng(x)
+  def tuple(fs: List[Rep]): Rep = compiler.tuple(fs.map(defToExpr(_)))
+  def record(fs: Map[String, Rep]): Rep = compiler.record(fs.map(x => (x._1, defToExpr(x._2))))
+  def equals(e1: Rep, e2: Rep): Rep = compiler.equals(e1, e2)
+  def lt(e1: Rep, e2: Rep): Rep = compiler.lt(e1, e2)
+  def gt(e1: Rep, e2: Rep): Rep = compiler.gt(e1, e2)
+  def lte(e1: Rep, e2: Rep): Rep = compiler.lte(e1, e2)
+  def gte(e1: Rep, e2: Rep): Rep = compiler.gte(e1, e2)
+  def and(e1: Rep, e2: Rep): Rep = compiler.and(e1, e2)
+  def not(e1: Rep): Rep = compiler.not(e1)
+  def or(e1: Rep, e2: Rep): Rep = compiler.or(e1, e2)
+  def project(e1: Rep, field: String): Rep = compiler.project(e1, field)
+  def ifthen(cond: Rep, e1: Rep, e2: Option[Rep] = None): Rep = e2 match {
+    case Some(a) => compiler.ifthen(cond, e1, Some(a)) 
+    case _ => compiler.ifthen(cond, e1, None)
+  }
+  def merge(e1: Rep, e2: Rep): Rep = compiler.merge(e1, e2)
+  def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = compiler.comprehension(e1, p, e)
+  def dedup(e1: Rep): Rep = compiler.dedup(e1)
+  def bind(e1: Rep, e: Rep => Rep): Rep = compiler.bind(e1, e)
+  def named(n: String, e: Rep): Rep = compiler.named(n, e)
+  def linset(e: List[Rep]): Rep = compiler.linset(e.map(defToExpr(_)))
+  def label(id: Int, vars: Map[String, Rep]): Rep = compiler.label(id, vars.map(f => (f._1, defToExpr(f._2))))
+  def extract(lbl: Rep, exp: Rep): Rep = compiler.extract(lbl, exp)
+  def lookup(lbl: Rep, dict: Rep): Rep = compiler.lookup(lbl, dict)
+  def emptydict: Rep = compiler.emptydict
+  def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = compiler.bagdict(lbl, flat, dict)
+  def tupledict(fs: Map[String, Rep]): Rep = compiler.tupledict(fs.map(f => (f._1, defToExpr(f._2))))
+  def dictunion(d1: Rep, d2: Rep): Rep = compiler.dictunion(d1, d2)
+  def select(x: Rep, p: Rep => Rep): Rep = ???
+  def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = ???
+  def unnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = ???
+  def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = ???
+  def outerunnest(e1: Rep, r: List[Rep] => Rep, p: Rep => Rep): Rep = ???
+  def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep): Rep = ???
+  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = ???
+}
 class Finalizer(val target: Base){
   var variableMap: Map[CExpr, target.Rep] = Map[CExpr, target.Rep]()
   def withMap[T](m: (CExpr, target.Rep))(f: => T): T = {
@@ -613,115 +547,3 @@ class Finalizer(val target: Base){
 
 }
 
-trait BaseANF extends Base {
-
-  val compiler = new BaseCompiler {}
-
-  case class Def(e: CExpr)
-
-  type Rep = Def
-
-  implicit def defToExpr(d: Def): CExpr = {
-    d.e
-  }
-
-  implicit def funcDefToExpr(fd: Def => Def): CExpr => CExpr = {
-    (x: CExpr) => reifyBlock { fd(Def(x)) }
-  }
-
-  implicit def exprToDef(e: CExpr): Def = {
-    state.get(e) match {
-      case Some(v) => // CSE!
-        Def(v)
-      case None =>
-        e match {
-          case Constant(_) | InputRef(_, _) => Def(e)
-          case _ => 
-            val v = Variable.fresh(e.tp)
-            vars = vars :+ v
-            state = state + (e -> v)
-            stateInv = stateInv + (v -> e)
-            Def(v)
-        }
-    }
-  }
-
-  var state: Map[CExpr, Variable] = Map()
-  var stateInv: Map[Variable, CExpr] = Map()
-  var vars: Seq[Variable] = Seq()
-
-  // def getExp(e: CExpr): CExpr = 
-  //   state.getOrElse(e, e)
-
-  // TODO: CSE doesn't go beyond a scope.
-  def reifyBlock(b: => Rep): CExpr = {
-    val oldState = state
-    val oldStateInv = stateInv
-    val oldVars = vars
-    state = Map()
-    stateInv = Map()
-    vars = Seq()
-    val e = b.e
-    val res = vars.foldRight(e)((cur, acc) => Bind(cur, stateInv(cur), acc))
-    state = oldState
-    stateInv = oldStateInv
-    vars = oldVars
-    res
-  }
-
-  def anf(d: Rep): CExpr = 
-    vars.foldRight(d.e)((cur, acc) => Bind(cur, stateInv(cur), acc))
-
-  // override def gt(e1: Rep, e2: Rep): Rep = {
-  //   val res = Gt(getExp(e1), getExp(e2))
-  //   val v = Variable.fresh(BoolType)
-  //   vars = vars :+ v
-  //   state = state + (res -> v)
-  //   stateInv = stateInv + (v -> res)
-  //   v
-  // }
-  def inputref(x: String, tp:Type): Rep = compiler.inputref(x, tp)
-  def input(x: List[Rep]): Rep = ??? 
-  def constant(x: Any): Rep = compiler.constant(x)
-  def emptysng: Rep = compiler.emptysng
-  def unit: Rep = compiler.unit
-  def sng(x: Rep): Rep = compiler.sng(x)
-  def tuple(fs: List[Rep]): Rep = compiler.tuple(fs.map(defToExpr(_)))
-  def record(fs: Map[String, Rep]): Rep = compiler.record(fs.map(x => (x._1, defToExpr(x._2))))
-  def equals(e1: Rep, e2: Rep): Rep = compiler.equals(e1, e2)
-  def lt(e1: Rep, e2: Rep): Rep = compiler.lt(e1, e2)
-  def gt(e1: Rep, e2: Rep): Rep = compiler.gt(e1, e2)
-  def lte(e1: Rep, e2: Rep): Rep = compiler.lte(e1, e2)
-  def gte(e1: Rep, e2: Rep): Rep = compiler.gte(e1, e2)
-  def and(e1: Rep, e2: Rep): Rep = compiler.and(e1, e2)
-  def not(e1: Rep): Rep = compiler.not(e1)
-  def or(e1: Rep, e2: Rep): Rep = compiler.or(e1, e2)
-  def project(e1: Rep, field: String): Rep = compiler.project(e1, field)
-  def ifthen(cond: Rep, e1: Rep, e2: Option[Rep] = None): Rep = e2 match {
-    case Some(a) => compiler.ifthen(cond, e1, Some(a)) 
-    case _ => compiler.ifthen(cond, e1, None)
-  }
-  def merge(e1: Rep, e2: Rep): Rep = compiler.merge(e1, e2)
-  def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
-    // println(s"e1: $e1\ntp: ${e1.e.tp}")
-    compiler.comprehension(e1, p, e)
-  }
-  def dedup(e1: Rep): Rep = compiler.dedup(e1)
-  def bind(e1: Rep, e: Rep => Rep): Rep = compiler.bind(e1, e)
-  def named(n: String, e: Rep): Rep = compiler.named(n, e)
-  def linset(e: List[Rep]): Rep = compiler.linset(e.map(defToExpr(_)))
-  def label(id: Int, vars: Map[String, Rep]): Rep = compiler.label(id, vars.map(f => (f._1, defToExpr(f._2))))
-  def extract(lbl: Rep, exp: Rep): Rep = compiler.extract(lbl, exp)
-  def lookup(lbl: Rep, dict: Rep): Rep = compiler.lookup(lbl, dict)
-  def emptydict: Rep = compiler.emptydict
-  def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = compiler.bagdict(lbl, flat, dict)
-  def tupledict(fs: Map[String, Rep]): Rep = compiler.tupledict(fs.map(f => (f._1, defToExpr(f._2))))
-  def dictunion(d1: Rep, d2: Rep): Rep = compiler.dictunion(d1, d2)
-  def select(x: Rep, p: Rep => Rep): Rep = ???
-  def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = ???
-  def unnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = ???
-  def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = ???
-  def outerunnest(e1: Rep, r: List[Rep] => Rep, p: Rep => Rep): Rep = ???
-  def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep): Rep = ???
-  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = ???
-}
