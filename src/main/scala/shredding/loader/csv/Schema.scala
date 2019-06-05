@@ -34,6 +34,7 @@ case class Continuous(attribute: Attribute, offset: Int) extends Constraint
 object Compressed extends Constraint
 
 case class Schema(tables: ArrayBuffer[Table]) {
+  def this(tables: List[Table]) = this(ArrayBuffer[Table]() ++ tables)
   def findTable(name: String): Option[Table] = tables.find(t => t.name == name)
   //def findTableByType(tpe: Type): Option[Table] = tables.find(t => t.name) //+ "Tuple" == tpe.name)
   def findAttribute(attrName: String): Option[Attribute] = tables.map(t => t.attributes).flatten.find(attr => attr.name == attrName)
@@ -48,7 +49,8 @@ case class Table(name: String, attributes: List[Attribute], constraints: ArrayBu
   def findAttribute(attrName: String): Option[Attribute] = attributes.find(attr => attr.name == attrName)
 }
 
-case class Attribute(name: String, dataType: Type, constraints: List[Constraint] = List(), var distinctValuesCount: Int = 0, var nullValuesCount: Long = 0) {
+case class Attribute(_name: String, dataType: Type, constraints: List[Constraint] = List(), var distinctValuesCount: Int = 0, var nullValuesCount: Long = 0) {
+  def name = _name.toLowerCase()
   def hasConstraint(con: Constraint) = constraints.contains(con)
 }
 

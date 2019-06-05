@@ -85,7 +85,7 @@ class FastScanner(filename: String) {
   }
 
   private val buffer = new Array[Byte](1 << 10)
-  def next_string: OptimalString = {
+  def next_string: String = {
     java.util.Arrays.fill(buffer, 0.toByte)
     byteRead = br.read()
     var cnt = 0
@@ -96,7 +96,7 @@ class FastScanner(filename: String) {
     }
     val resultArray = new Array[Byte](cnt)
     System.arraycopy(buffer, 0, resultArray, 0, cnt)
-    new OptimalString(resultArray)
+    new String(resultArray.map(_.toChar))
   }
 
   def next_date: Int = {

@@ -21,6 +21,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case IntType => "Int"
     case StringType => "String"
     case BoolType => "Boolean"
+    case DoubleType => "Double"
     case BagCType(tp) => s"List[${generateType(tp)}]" 
     case BagDictCType(flat @ BagCType(TTupleType(fs)), dict) => dict match {
         case TupleDictCType(ds) if !ds.filter(_._2 != EmptyDictCType).isEmpty => 

@@ -18,20 +18,20 @@ object TpchQueries {
     * yield (p.name, l.qty) ))
     */
   
-  val relC = BagVarRef(VarDef("C", TpchSchema.customertype))
-  val c = VarDef("c", TpchSchema.customertype.tp)
+  val relC = BagVarRef(VarDef("C", TPCHSchema.customertype))
+  val c = VarDef("c", TPCHSchema.customertype.tp)
   val cr = TupleVarRef(c) 
 
-  val relO = BagVarRef(VarDef("O", TpchSchema.orderstype))
-  val o = VarDef("o", TpchSchema.orderstype.tp)
+  val relO = BagVarRef(VarDef("O", TPCHSchema.orderstype))
+  val o = VarDef("o", TPCHSchema.orderstype.tp)
   val or = TupleVarRef(o)
 
-  val relL = BagVarRef(VarDef("L", TpchSchema.lineittype))
-  val l = VarDef("l", TpchSchema.lineittype.tp)
+  val relL = BagVarRef(VarDef("L", TPCHSchema.lineittype))
+  val l = VarDef("l", TPCHSchema.lineittype.tp)
   val lr = TupleVarRef(l)
 
-  val relP = BagVarRef(VarDef("P", TpchSchema.parttype))
-  val p = VarDef("p", TpchSchema.parttype.tp)
+  val relP = BagVarRef(VarDef("P", TPCHSchema.parttype))
+  val p = VarDef("p", TPCHSchema.parttype.tp)
   val pr = TupleVarRef(p)
 
   val query1 = ForeachUnion(c, relC, 
@@ -81,8 +81,8 @@ object TpchQueries {
   
   // Query 2
 
-  val relS = BagVarRef(VarDef("S", TpchSchema.suppliertype))
-  val s = VarDef("s", TpchSchema.suppliertype.tp)
+  val relS = BagVarRef(VarDef("S", TPCHSchema.suppliertype))
+  val s = VarDef("s", TPCHSchema.suppliertype.tp)
   val sr = TupleVarRef(s)
   val query2 = ForeachUnion(s, relS, 
             Singleton(Tuple("s_name" -> sr("s_name"), "customers2" -> ForeachUnion(l, relL, 
@@ -94,8 +94,8 @@ object TpchQueries {
                         Singleton(Tuple("c_name2" -> cr("c_name"))))))))))))
 
 
-  val relPS = BagVarRef(VarDef("PS", TpchSchema.partsupptype))
-  val ps = VarDef("ps", TpchSchema.partsupptype.tp)
+  val relPS = BagVarRef(VarDef("PS", TPCHSchema.partsupptype))
+  val ps = VarDef("ps", TPCHSchema.partsupptype.tp)
   val psr = TupleVarRef(ps) 
 
   val query3 = ForeachUnion(p, relP, 
