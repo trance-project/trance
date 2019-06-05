@@ -2,7 +2,7 @@ package shredding.algebra
 
 import shredding.core._
 import shredding.queries.simple.{FlatTests, NestedTests}
-import shredding.queries.tpch.{Queries => TPCH}
+import shredding.queries.tpch.{Queries => TPCH, TpchSchema}
 
 object FlatTest{
   val compiler = new BaseCompiler{}
@@ -200,7 +200,7 @@ object App {
     val anfed1 = new Finalizer(anfBase).finalize(nexp2)
     val anfExp1 = anfBase.anf(anfed1.asInstanceOf[anfBase.Rep])
     println(str.quote(anfExp1))
-    val sgen = ScalaNamedGenerator
+    val sgen = new ScalaNamedGenerator()
     println(sgen.generate(anfExp1))
     println(sgen.generateHeader())
 
@@ -227,21 +227,23 @@ object App {
 
     // exp0
     val normalized0 = norm.finalize(exp0).asInstanceOf[CExpr]
-    println(str.quote(normalized0))
+    //println(str.quote(normalized0))
 
     val normalized1 = norm.finalize(exp5).asInstanceOf[CExpr]
-    println(str.quote(normalized1))
+    println("/** "+str.quote(normalized1)+"**/")
 
     val normalized4 = norm.finalize(exp4).asInstanceOf[CExpr]
-    println(str.quote(normalized4))
+    //println(str.quote(normalized4))
     
     println("")
     val anfed = new Finalizer(anfBase).finalize(normalized1)
     val anfExp = anfBase.anf(anfed.asInstanceOf[anfBase.Rep])
-    println(str.quote(anfExp))
-    val sgenn = ScalaNamedGenerator
-    println(sgenn.generate(anfExp))
-    println(sgenn.generateHeader())
+    //println(str.quote(anfExp))
+    val inputtypes = TpchSchema.inputs.map(f => translator.translate(f._1) -> f._2)
+    val sgenn = new ScalaNamedGenerator(inputtypes)
+    val ccode = sgenn.generate(anfExp)
+    val header = sgenn.generateHeader()
+    println(header+"\n\n"+ccode)
 
     /**val anfed1 = new Finalizer(anfBase).finalize(exp)
     val anfExp1 = anfBase.anf(anfed1.asInstanceOf[anfBase.Rep])

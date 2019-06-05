@@ -3,8 +3,9 @@ package shredding.algebra
 import shredding.core._
 import shredding.Utils.ind
 
-object ScalaNamedGenerator {
-  var types = Map[Type, String]()
+class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
+  var types:Map[Type,String] = inputs
+  var typelst:Seq[Type] = inputs.map(_._1).toSeq
 
   implicit def expToString(e: CExpr): String = generate(e)
 
@@ -34,7 +35,7 @@ object ScalaNamedGenerator {
   }
 
   def generateHeader(): String = {
-    types.map(x => generateTypeDef(x._1)).mkString("\n")
+    typelst.map(x => generateTypeDef(x)).mkString("\n")
   }
 
   def handleType(tp: Type, givenName: Option[String] = None): Unit = {
@@ -44,6 +45,7 @@ object ScalaNamedGenerator {
           fs.foreach(f => handleType(f._2))
           val name = givenName.getOrElse("Record" + Variable.newId)
           types = types + (tp -> name)
+          typelst = typelst :+ tp 
         case BagCType(tp) =>
           handleType(tp, givenName)
         case LabelType(fs) if !fs.filter(_._1 != "RF").isEmpty => 

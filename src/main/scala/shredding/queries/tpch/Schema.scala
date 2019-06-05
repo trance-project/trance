@@ -28,4 +28,11 @@ object TpchSchema{
 
   case class PartSupp(ps_partkey: Long, ps_suppkey: Long, ps_availqty: Int, ps_supplycost: java.math.BigDecimal, ps_comment: String)
 
+  var inputs:Map[Type, String] = Map(partsupptype.tp -> "PartSupp", 
+                                     suppliertype.tp -> "Supplier", 
+                                     lineittype.tp -> "Lineitem", 
+                                     orderstype.tp -> "Orders",
+                                     customertype.tp -> "Customer", 
+                                     parttype.tp -> "Part")
+
 }
