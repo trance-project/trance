@@ -3,7 +3,7 @@ package shredding.queries.tpch
 import shredding.core._
 import shredding.nrc.LinearizedNRC
 
-object Queries { 
+object TpchQueries { 
   val nrc = new LinearizedNRC {}
   import nrc._
   
