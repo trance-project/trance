@@ -382,14 +382,6 @@ trait BaseANF extends Base {
       case None =>
         e match {
           case Constant(_) | InputRef(_, _) => Def(e)
-          // case CNamed(n, e1) =>
-          //   val v = Variable(n, e1.tp)
-          //   vars = vars :+ v
-          //   state = state + (e1 -> v) 
-          //   stateInv = stateInv + (v -> e1) 
-          //   // val v = state(e1)
-          //   // varMaps = varMaps + (n -> v)
-          //   Def(v)
           case _ => 
             val v = Variable.fresh(e.tp)
             vars = vars :+ v
@@ -425,7 +417,6 @@ trait BaseANF extends Base {
     vars.foldRight(d.e)((cur, acc) => Bind(cur, stateInv(cur), acc))
 
   def inputref(x: String, tp:Type): Rep = {
-    // val name = exprToDef(Variable(x, tp)).e.asInstanceOf[Variable].name
     val name = varMaps.get(x).map(_.name).getOrElse(x)
     compiler.inputref(name, tp)
   }

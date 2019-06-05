@@ -12,7 +12,7 @@ trait NRCTranslator extends LinearizedNRC {
     case BagType(t) => BagCType(translate(t))
     case TupleType(fs) if fs.isEmpty => EmptyCType
     case TupleType(fs) => RecordCType(fs.map(f => f._1 -> translate(f._2)))
-    case BagDictType(f,d) => 
+    case BagDictType(f,d) =>
       BagDictCType(BagCType(TTupleType(List(LabelType(Map[String, Type]()), translate(f)))), 
         translate(d).asInstanceOf[TTupleDict])
     case EmptyDictType => EmptyDictCType

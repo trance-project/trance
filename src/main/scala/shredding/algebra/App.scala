@@ -163,8 +163,9 @@ object App {
 
     val beval = new BaseScalaInterp{}
     val eval = new Finalizer(beval)
+    val anfBase = new BaseANF {}
 
-    println("\nTranslated:")
+    /**println("\nTranslated:")
     println(str.quote(exp1))
     println("\nNormalized:")
     val nexp1 = norm.finalize(exp1).asInstanceOf[CExpr]
@@ -175,12 +176,11 @@ object App {
     eval.finalize(nexp1).asInstanceOf[List[_]].foreach(println(_))
 
     println("")
-    val anfBase = new BaseANF {}
     val anfed = new Finalizer(anfBase).finalize(nexp1)
     val anfExp = anfBase.anf(anfed.asInstanceOf[anfBase.Rep])
     println(str.quote(anfExp))
     println(ScalaNamedGenerator.generate(anfExp))
-    println(ScalaNamedGenerator.generateHeader())
+    println(ScalaNamedGenerator.generateHeader())**/
 
     println("")
     beval.ctx.clear
@@ -199,11 +199,9 @@ object App {
     val anfed1 = new Finalizer(anfBase).finalize(nexp2)
     val anfExp1 = anfBase.anf(anfed1.asInstanceOf[anfBase.Rep])
     println(str.quote(anfExp1))
-    ScalaNamedGenerator.types = ScalaNamedGenerator.types.empty
-    //ScalaNamedGenerator.types = ScalaNamedGenerator.types + (RecordCType("a" -> IntType, "b" -> IntType) -> "R1")
-    //ScalaNamedGenerator.types = ScalaNamedGenerator.types + (RecordCType("c" -> IntType) -> "R2")
-    println(ScalaNamedGenerator.generate(anfExp1))
-    println(ScalaNamedGenerator.generateHeader())
+    val sgen = ScalaNamedGenerator
+    println(sgen.generate(anfExp1))
+    println(sgen.generateHeader())
 
  
   }
@@ -214,6 +212,7 @@ object App {
     val exp0 = translator.translate(NestedTests.query2.asInstanceOf[translator.Expr])
     val exp1 = translator.translate(NestedTests.query2a.asInstanceOf[translator.Expr])
     val exp2 = translator.translate(NestedTests.query1.asInstanceOf[translator.Expr])
+    val exp3 = translator.translate(FlatTests.query2.asInstanceOf[translator.Expr])
 
     val str = Printer
     val bnorm = new BaseNormalizer{}
@@ -221,29 +220,26 @@ object App {
     val beval = new BaseScalaInterp{}
     beval.ctx("R") = FlatTest.relationRValues3
     val eval = new Finalizer(beval)
-    val nsgen = new ScalaGenerator{}
-    nsgen.ctx("R") = FlatTest.relationRType3
-    val sgen = new Finalizer(nsgen)
- 
+    val anfBase = new BaseANF {}
+
     // exp0
     val normalized0 = norm.finalize(exp0).asInstanceOf[CExpr]
     println(str.quote(normalized0))
 
-    println("")
-    val ccode = s"""
-      | import shredding.algebra.FlatTest._
-      | val R = relationRValues3
-      | ${sgen.finalize(normalized0)}""".stripMargin
-
-    println(ccode)
-
-    println("")
-    val anfBase = new BaseANF {}
+    /**println("")
     val anfed = new Finalizer(anfBase).finalize(normalized0)
     val anfExp = anfBase.anf(anfed.asInstanceOf[anfBase.Rep])
     println(str.quote(anfExp))
-    println(ScalaNamedGenerator.generate(anfExp))
-    println(ScalaNamedGenerator.generateHeader())
+    val sgenn = ScalaNamedGenerator
+    println(sgenn.generate(anfExp))
+    println(sgenn.generateHeader())**/
+
+    val anfed1 = new Finalizer(anfBase).finalize(exp3)
+    val anfExp1 = anfBase.anf(anfed1.asInstanceOf[anfBase.Rep])
+    println(str.quote(anfExp1))
+    val sgenn1 = ScalaNamedGenerator
+    println(sgenn1.generate(anfExp1))
+    println(sgenn1.generateHeader())
     
   }
 
