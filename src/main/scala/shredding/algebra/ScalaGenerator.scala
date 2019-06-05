@@ -100,6 +100,7 @@ object ScalaNamedGenerator {
       case _ => x.toString
     }
     case Sng(e) => s"List(${generate(e)})"
+    case WeightedSng(e, q) => s"(1 to ${generate(q)}).map(v => ${generate(e)})"
     case CUnit => "()"
     case EmptySng => "Nil"
     case If(cond, e1, e2) => e2 match {

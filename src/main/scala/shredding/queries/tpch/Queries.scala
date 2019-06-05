@@ -42,18 +42,42 @@ object Queries {
                     And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")), Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))), 
                       Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity")))))))))))))
 
-  val q1 = VarDef("Q1", TupleType("c_name" -> StringType, "c_orders" -> 
-                          BagType(TupleType("o_orderdate" -> StringType, "o_parts" -> 
-                            BagType(TupleType("p_name" -> StringType, "l_qty" -> IntType)))))) 
+  val q1type = TupleType("c_name" -> StringType, "c_orders" ->
+                          BagType(TupleType("o_orderdate" -> StringType, "o_parts" ->
+                            BagType(TupleType("p_name" -> StringType, "l_qty" -> IntType)))))
+
+  val Q1 = VarDef("Q1", BagType(q1type)) 
+  val q1 = VarDef("q1", q1type)
   val q1r = TupleVarRef(q1)
   val cq1 = VarDef("corders", TupleType("o_orderdate" -> StringType, "o_parts" ->
                             BagType(TupleType("p_name" -> StringType, "l_qty" -> IntType))))
   val cq1r = TupleVarRef(cq1)
 
   val pq1 = VarDef("oparts", TupleType("p_name" -> StringType, "l_qty" -> IntType))
+  val pq2 = VarDef("oparts2", TupleType("p_name" -> StringType, "l_qty" -> IntType))
+
   val pq1r = TupleVarRef(pq1)
 
-  // query 4 
+  val qt = VarDef("qt", IntType)
+
+  /** 
+    * need to add primitive support for month extraction
+    *
+    * var Q4 = (
+    *   for ((c_name, c_orders) <- Q1; 
+    *        (o_orderdate, o_parts) <- c_orders; 
+    *        (p_name, l_qty) <- o_parts)
+    *   yield ((c_name,p_name,getMonth(o_orderdate)),l_qty) ) 
+    *    .reduceByKey(_ + _)
+    */
+  val query4 = ForeachUnion(q1, BagVarRef(Q1), 
+                ForeachUnion(cq1, BagProject(q1r, "c_orders"), 
+                  ForeachUnion(pq1, BagProject(cq1r, "o_parts"), 
+                    Singleton(Tuple("c_name" -> q1r("c_name"), "p_name" -> pq1r("p_name"), "month" -> cq1r("o_orderdate"), 
+                      "t_qty" -> Total(ForeachUnion(pq2, BagProject(cq1r, "o_parts"), 
+                                  IfThenElse(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")),
+                                    WeightedSingleton(Tuple("l_qty" -> pq1r("l_qty")), 
+                                      TupleVarRef(pq2)("l_qty").asInstanceOf[PrimitiveExpr]))))))))) 
   
   // Query 2
 

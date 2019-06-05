@@ -12,6 +12,7 @@ trait Base {
   def emptysng: Rep
   def unit: Rep 
   def sng(x: Rep): Rep
+  def weightedsng(x: Rep, q: Rep): Rep
   def tuple(fs: List[Rep]): Rep
   def record(fs: Map[String, Rep]): Rep
   def equals(e1: Rep, e2: Rep): Rep
@@ -54,6 +55,7 @@ trait BaseStringify extends Base{
   def emptysng: Rep = "{}"
   def unit: Rep = "()"
   def sng(x: Rep): Rep = s"{ $x }"
+  def weightedsng(x: Rep, q: Rep): Rep = s"Weighted({$x}, $q)"
   def tuple(fs: List[Rep]) = s"(${fs.mkString(",")})"
   def record(fs: Map[String, Rep]): Rep = 
     s"(${fs.map(f => f._1 + " := " + f._2).mkString(",")})"
@@ -138,6 +140,7 @@ trait BaseCompiler extends Base {
   def emptysng: Rep = EmptySng
   def unit: Rep = CUnit
   def sng(x: Rep): Rep = Sng(x)
+  def weightedsng(x: Rep, q: Rep): Rep = WeightedSng(x, q)
   def tuple(fs: List[Rep]): Rep = Tuple(fs)
   def record(fs: Map[String, Rep]): Rep = Record(fs)
   def equals(e1: Rep, e2: Rep): Rep = Equals(e1, e2)
@@ -237,6 +240,9 @@ trait BaseScalaInterp extends Base{
   def emptysng: Rep = Nil
   def unit: Rep = ()
   def sng(x: Rep): Rep = List(x)
+  def weightedsng(x: Rep, q: Rep) = {
+    if (q.asInstanceOf[Int] > 0) { (1 to q.asInstanceOf[Int]).map(w => x) } else { emptysng }
+  }
   def tuple(x: List[Rep]): Rep = x
   def record(fs: Map[String, Rep]): Rep = fs.asInstanceOf[Map[String, Rep]]
   def equals(e1: Rep, e2: Rep): Rep = e1 == e2
@@ -425,6 +431,7 @@ trait BaseANF extends Base {
   def emptysng: Rep = compiler.emptysng
   def unit: Rep = compiler.unit
   def sng(x: Rep): Rep = compiler.sng(x)
+  def weightedsng(x: Rep, q: Rep): Rep = compiler.weightedsng(x, q)
   def tuple(fs: List[Rep]): Rep = compiler.tuple(fs.map(defToExpr(_)))
   def record(fs: Map[String, Rep]): Rep = compiler.record(fs.map(x => (x._1, defToExpr(x._2))))
   def equals(e1: Rep, e2: Rep): Rep = compiler.equals(e1, e2)
@@ -493,6 +500,7 @@ class Finalizer(val target: Base){
       case EmptyCType => target.emptysng
       case _ => target.sng(finalize(x))
     }
+    case WeightedSng(x, q) => target.weightedsng(finalize(x), finalize(q))
     case Tuple(fs) if fs.isEmpty => target.unit
     case Tuple(fs) => target.tuple(fs.map(f => finalize(f)))
     case Record(fs) if fs.isEmpty => target.unit
