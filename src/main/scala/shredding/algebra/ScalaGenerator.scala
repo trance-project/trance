@@ -5,7 +5,7 @@ import shredding.Utils.ind
 
 class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
   var types:Map[Type,String] = inputs
-  var typelst:Seq[Type] = inputs.map(_._1).toSeq
+  var typelst:Seq[Type] = Seq()//inputs.map(_._1).toSeq
 
   implicit def expToString(e: CExpr): String = generate(e)
 
@@ -30,8 +30,8 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       }
     case TupleDictCType(fs) if !fs.filter(_._2 != EmptyDictCType).isEmpty => 
       generateType(RecordCType(fs.filter(_._2 != EmptyDictCType)))
-    case LabelType(fs) if fs.filter(_._1 != "RF").isEmpty => "Int" 
-    case LabelType(fs) => generateType(RecordCType())
+    case LabelType(fs) if fs.isEmpty => "Int" 
+    case LabelType(fs) => generateType(RecordCType(fs))
     case _ => sys.error("not supported type " + tp)
   }
 
@@ -49,7 +49,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
           typelst = typelst :+ tp 
         case BagCType(tp) =>
           handleType(tp, givenName)
-        case LabelType(fs) if !fs.filter(_._1 != "RF").isEmpty => 
+        case LabelType(fs) if !fs.isEmpty => 
           val name = givenName.getOrElse("Label" + Variable.newId)
           handleType(RecordCType(fs), Some(name))
         case BagDictCType(flat @ BagCType(TTupleType(fs)), dict) =>
@@ -122,12 +122,15 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case CDeDup(e1) => s"${generate(e1)}.distinct"
     case CNamed(n, e) => generate(e)
     case LinearCSet(exprs) => s"""${exprs.map(generate(_)).mkString("\n")}"""
-    case Label(id, fs) if !fs.filter(_._1 != "RF").isEmpty => 
+    case Label(id, fs) if !fs.isEmpty => 
       handleType(e.tp)
       s"${generateType(e.tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
-    case Label(id, fs)  => id.toString
-    case Extract(lbl @ Label(id, fs), exp) => fs.map(f => s"val ${f._1} = ${generate(f._2)}").mkString("\n")+generate(exp)
-    case Extract(lbl, exp) => generate(exp)
+    case Label(id, fs)  => 
+      id.toString
+    case Extract(lbl @ Label(id, fs), exp) => 
+      fs.map(f => s"val ${f._1} = ${generate(f._2)}").mkString("\n")+generate(exp)
+    case Extract(lbl, exp) => 
+      generate(exp)
     case EmptyCDict => "()"
     case BagCDict(lbl, flat, dict) => 
       s"(${generate(flat)}.map(v => (${generate(lbl)}, v)), ${generate(dict)})"

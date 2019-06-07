@@ -529,7 +529,7 @@ class Finalizer(val target: Base){
     case LinearCSet(exprs) => 
       target.linset(exprs.map(finalize(_)))
     case Label(id, vars) =>
-      target.label(id, vars.withFilter(f => !f._2.isInstanceOf[InputRef]).map(f => f._1 -> finalize(f._2)))
+      target.label(id, vars.map(f => f._1 -> finalize(f._2)))
     case Extract(lbl, exp) => 
       target.extract(finalize(lbl), finalize(exp))
     case CLookup(l, d) => 

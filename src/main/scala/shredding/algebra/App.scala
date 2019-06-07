@@ -1,8 +1,9 @@
 package shredding.algebra
 
+import java.io._
 import shredding.core._
 import shredding.queries.simple.{FlatTests, NestedTests}
-import shredding.queries.tpch.{TpchQueries, TPCHSchema}
+import shredding.queries.tpch.{TPCHQueries, TPCHSchema, TPCHLoader}
 
 object FlatTest{
   val compiler = new BaseCompiler{}
@@ -152,7 +153,8 @@ object App {
 
   def runShred(){
     
-    val shredder = new ShredPipeline{};
+    val translator = new NRCTranslator{}
+    val shredder = new ShredPipeline{}
     val str = Printer
     val bnorm = new BaseNormalizer{}
     val norm = new Finalizer(bnorm)
@@ -161,6 +163,7 @@ object App {
     val exp2 = shredder.shredPipeline(NestedTests.query2.asInstanceOf[shredder.Expr])
     val exp3 = shredder.shredPipeline(NestedTests.query3.asInstanceOf[shredder.Expr])
     val exp4 = shredder.shredPipeline(NestedTests.query4.asInstanceOf[shredder.Expr]) 
+    val tpch1 = shredder.shredPipeline(TPCHQueries.query1.asInstanceOf[shredder.Expr])
 
     val beval = new BaseScalaInterp{}
     val eval = new Finalizer(beval)
@@ -181,30 +184,43 @@ object App {
     val anfExp = anfBase.anf(anfed.asInstanceOf[anfBase.Rep])
     println(str.quote(anfExp))
     println(ScalaNamedGenerator.generate(anfExp))
-    println(ScalaNamedGenerator.generateHeader())**/
+    println(ScalaNamedGenerator.generateHeader())
 
     println("")
     beval.ctx.clear
     beval.ctx("RF") = NestedTest.rF
-    beval.ctx("RD") = NestedTest.rDc
+    beval.ctx("RD") = NestedTest.rDc**/
 
-    println("\nTranslated:")
-    println(str.quote(exp2))
+    //println("\nTranslated:")
+    //println(str.quote())
     println("\nNormalized:")
-    val nexp2 = norm.finalize(exp2).asInstanceOf[CExpr]
-    println(str.quote(nexp2))
+    val nquery1 = norm.finalize(tpch1).asInstanceOf[CExpr]
+    println("/** "+str.quote(nquery1)+" **/" )
     //println("\nEvaluated:\n")
     //eval.finalize(nexp2)
  
     println("")
-    val anfed1 = new Finalizer(anfBase).finalize(nexp2)
+    val anfed1 = new Finalizer(anfBase).finalize(nquery1)
     val anfExp1 = anfBase.anf(anfed1.asInstanceOf[anfBase.Rep])
     println(str.quote(anfExp1))
-    val sgen = new ScalaNamedGenerator()
-    println(sgen.generate(anfExp1))
-    println(sgen.generateHeader())
+    val inputtypes = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2)
+    val sgen = new ScalaNamedGenerator(inputtypes)
+    val ccode = sgen.generate(anfExp1)
+    val header = sgen.generateHeader()
 
+    val finalc = s"""
+      |/** Generated code **/
+      |${TPCHQueries.q1shreddata}
+      |${header}
+      |var start = System.currentTimeMillis()
+      |${ccode}
+      |var end = System.currentTimeMillis() - start""".stripMargin
  
+    var out = "/Users/jac/shredder/src/test/scala/shredding/queries/tpch/ShredQ1.Scala"
+    val printer = new PrintWriter(new FileOutputStream(new File(out), false))
+    printer.println(finalc)
+    printer.close 
+
   }
 
   def runBase(){
@@ -214,8 +230,8 @@ object App {
     val exp1 = translator.translate(NestedTests.query2a.asInstanceOf[translator.Expr])
     val exp2 = translator.translate(NestedTests.query1.asInstanceOf[translator.Expr])
     val exp3 = translator.translate(FlatTests.query2.asInstanceOf[translator.Expr])
-    val exp4 = translator.translate(TpchQueries.query4.asInstanceOf[translator.Expr])
-    val exp5 = translator.translate(TpchQueries.query1.asInstanceOf[translator.Expr])
+    val exp4 = translator.translate(TPCHQueries.query4.asInstanceOf[translator.Expr])
+    val exp5 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
 
     val str = Printer
     val bnorm = new BaseNormalizer{}
@@ -243,7 +259,19 @@ object App {
     val sgenn = new ScalaNamedGenerator(inputtypes)
     val ccode = sgenn.generate(anfExp)
     val header = sgenn.generateHeader()
-    println(header+"\n\n"+ccode)
+
+    val finalc = s"""
+      |/** Generated code **/
+      |${TPCHQueries.query1data}
+      |${header}
+      |var start = System.currentTimeMillis()
+      |${ccode}
+      |var end = System.currentTimeMillis() - start""".stripMargin
+
+    var out = "/Users/jac/shredder/src/test/scala/shredding/queries/tpch/Q1.Scala"
+    val printer = new PrintWriter(new FileOutputStream(new File(out), false))
+    printer.println(finalc)
+    printer.close
 
     /**val anfed1 = new Finalizer(anfBase).finalize(exp)
     val anfExp1 = anfBase.anf(anfed1.asInstanceOf[anfBase.Rep])
@@ -255,7 +283,7 @@ object App {
   }
 
   def main(args: Array[String]){
-    //runShred()
+    runShred()
     runBase()
   }
 

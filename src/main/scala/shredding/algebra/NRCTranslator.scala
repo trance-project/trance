@@ -14,8 +14,9 @@ trait NRCTranslator extends LinearizedNRC {
     case TupleType(fs) => RecordCType(fs.map(f => f._1 -> translate(f._2)))
     case BagDictType(f,d) =>
       BagDictCType(BagCType(TTupleType(List(LabelType(Map[String, Type]()), translate(f)))), 
-        translate(d).asInstanceOf[TTupleDict])
+        translate(d).asInstanceOf[TTupleDict]) 
     case EmptyDictType => EmptyDictCType
+    case TupleDictType(ts) if ts.isEmpty => EmptyDictCType
     case TupleDictType(ts) => TupleDictCType(ts.map(f => f._1 -> translate(f._2).asInstanceOf[TDict]))
     case LabelType(fs) => LabelType(fs.map(f => f._1.replace("^", "") -> translate(f._2)))
     case _ => e
@@ -71,7 +72,7 @@ trait NRCTranslator extends LinearizedNRC {
       Label(l.id, vs.map( v => { 
         val v2 = translateVar(v).asInstanceOf[Variable]
         v2.name -> v2}).toList:_*)
-    case e:ExtractLabel => //translate(e.lbl).asInstanceOf[Label].map( v => Bind(v._1, 
+    case e:ExtractLabel =>//translate(e.lbl).asInstanceOf[Label].map( v => Bind(v._1, 
       Extract(translate(e.lbl), translate(e.e))
     case Lookup(lbl, dict) => CLookup(translate(lbl), translate(dict)) 
     case EmptyDict => emptydict

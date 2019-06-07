@@ -125,7 +125,7 @@ case class Comprehension(e1: CExpr, v: Variable, p: CExpr, e: CExpr) extends CEx
 }
 
 case class CDeDup(e1: CExpr) extends CExpr{
-  def tp: BagCType = e1.asInstanceOf[BagCType]
+  def tp: BagCType = e1.tp.asInstanceOf[BagCType]
 }
 
 // replace all occurences of x with e1 in e1

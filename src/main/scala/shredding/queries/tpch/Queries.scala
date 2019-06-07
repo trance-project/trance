@@ -3,7 +3,7 @@ package shredding.queries.tpch
 import shredding.core._
 import shredding.nrc.LinearizedNRC
 
-object TpchQueries { 
+object TPCHQueries { 
   val nrc = new LinearizedNRC {}
   import nrc._
   
@@ -34,6 +34,25 @@ object TpchQueries {
   val p = VarDef("p", TPCHSchema.parttype.tp)
   val pr = TupleVarRef(p)
 
+  val query1data = s"""
+    |import shredding.queries.tpch._
+    |val C = TPCHLoader.loadCustomer.toList
+    |val O = TPCHLoader.loadOrders.toList
+    |val L = TPCHLoader.loadLineitem.toList
+    |val P = TPCHLoader.loadPart.toList""".stripMargin
+  
+  val q1shreddata = s"""
+    |import shredding.queries.tpch._
+    |val CF = 1
+    |val CD = (List((CF, TPCHLoader.loadCustomer.toList)), ())
+    |val OF = 2
+    |val OD = (List((OF, TPCHLoader.loadOrders.toList)), ())
+    |val LF = 3
+    |val LD = (List((LF, TPCHLoader.loadLineitem.toList)), ())
+    |val PF = 4
+    |val PD = (List((PF, TPCHLoader.loadPart.toList)), ())
+    |val PD = ((PF, TPCHLoader.loadPart.toList), ())""".stripMargin
+ 
   val query1 = ForeachUnion(c, relC, 
             Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(o, relO, 
               IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")), 
