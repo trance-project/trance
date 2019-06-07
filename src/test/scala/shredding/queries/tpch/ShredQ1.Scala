@@ -2,15 +2,15 @@
 /** Generated code **/
 
 import shredding.queries.tpch._
-val CF = 1
-val CD = (List((CF, TPCHLoader.loadCustomer.toList)), ())
-val OF = 2
-val OD = (List((OF, TPCHLoader.loadOrders.toList)), ())
-val LF = 3
-val LD = (List((LF, TPCHLoader.loadLineitem.toList)), ())
-val PF = 4
-val PD = (List((PF, TPCHLoader.loadPart.toList)), ())
-val PD = ((PF, TPCHLoader.loadPart.toList), ())
+val C__F = 1
+val C__D = (List((C__F, TPCHLoader.loadCustomer.toList)), ())
+val O__F = 2
+val O__D = (List((O__F, TPCHLoader.loadOrders.toList)), ())
+val L__F = 3
+val L__D = (List((L__F, TPCHLoader.loadLineitem.toList)), ())
+val P__F = 4
+val P__D = (List((P__F, TPCHLoader.loadPart.toList)), ())
+val P__D = ((P__F, TPCHLoader.loadPart.toList), ())
 case class Record135()
 case class Record136(L__F: Record135, C__F: Record135, P__F: Record135, O__F: Record135)
 case class Record137(lbl: Record136)
