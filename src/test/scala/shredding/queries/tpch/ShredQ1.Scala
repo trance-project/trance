@@ -11,22 +11,21 @@ val L__D = (List((L__F, TPCHLoader.loadLineitem.toList)), ())
 val P__F = 4
 val P__D = (List((P__F, TPCHLoader.loadPart.toList)), ())
 val P__D = ((P__F, TPCHLoader.loadPart.toList), ())
-case class Record135()
-case class Record136(L__F: Record135, C__F: Record135, P__F: Record135, O__F: Record135)
-case class Record137(lbl: Record136)
-case class Record139(L__F: Record135, P__F: Record135, O__F: Record135, c__F: Customer)
-case class Record140(c_name: String, c_orders: Record139)
-case class Record141(k: Record136, v: List[Record140])
-case class Record142(lbl: Record139)
-case class Record144(o__F: Orders, L__F: Record135, P__F: Record135)
-case class Record145(o_orderdate: String, o_parts: Record144)
-case class Record146(k: Record139, v: List[Record145])
-case class Record147(lbl: Record144)
-case class Record150(p_name: String, l_qty: Double)
-case class Record151(k: Record144, v: List[Record150])
+case class Record135(P__F: Int, C__F: Int, L__F: Int, O__F: Int)
+case class Record136(lbl: Record135)
+case class Record138(P__F: Int, L__F: Int, O__F: Int, c__F: Customer)
+case class Record139(c_name: String, c_orders: Record138)
+case class Record140(k: Record135, v: List[Record139])
+case class Record141(lbl: Record138)
+case class Record143(o__F: Orders, P__F: Int, L__F: Int)
+case class Record144(o_orderdate: String, o_parts: Record143)
+case class Record145(k: Record138, v: List[Record144])
+case class Record146(lbl: Record143)
+case class Record149(p_name: String, l_qty: Double)
+case class Record150(k: Record143, v: List[Record149])
 var start = System.currentTimeMillis()
-val x19 = Record136(L__F, C__F, P__F, O__F)
-val x20 = Record137(x19)
+val x19 = Record135(P__F, C__F, L__F, O__F)
+val x20 = Record136(x19)
 val x21 = List(x20)
 val x22 = x21
 val x45 = x22.flatMap({x23 => 
@@ -41,15 +40,15 @@ val x45 = x22.flatMap({x23 =>
     val x41 = x31.flatMap({x32 => 
        val x33 = x32.c_name
       val x34 = x23.lbl
-      val x35 = x34.L__F
-      val x36 = x34.P__F
+      val x35 = x34.P__F
+      val x36 = x34.L__F
       val x37 = x34.O__F
-      val x38 = Record139(x35, x36, x37, x32)
-      val x39 = Record140(x33, x38)
+      val x38 = Record138(x35, x36, x37, x32)
+      val x39 = Record139(x33, x38)
       val x40 = List(x39)
       x40})
     x41})
-  val x43 = Record141(x24, x42)
+  val x43 = Record140(x24, x42)
   val x44 = List(x43)
   x44})
 val x46 = x45
@@ -57,7 +56,7 @@ val x54 = x46.flatMap({x47 =>
    val x48 = x47.v
   val x53 = x48.flatMap({x49 => 
      val x50 = x49.c_orders
-    val x51 = Record142(x50)
+    val x51 = Record141(x50)
     val x52 = List(x51)
     x52})
   x53})
@@ -80,14 +79,14 @@ val x83 = x56.flatMap({x57 =>
     x71}).flatMap({x66 => 
        val x72 = x66.o_orderdate
       val x73 = x57.lbl
-      val x74 = x73.L__F
-      val x75 = x73.P__F
-      val x76 = Record144(x66, x74, x75)
-      val x77 = Record145(x72, x76)
+      val x74 = x73.P__F
+      val x75 = x73.L__F
+      val x76 = Record143(x66, x74, x75)
+      val x77 = Record144(x72, x76)
       val x78 = List(x77)
       x78})
     x79})
-  val x81 = Record146(x58, x80)
+  val x81 = Record145(x58, x80)
   val x82 = List(x81)
   x82})
 val x84 = x83
@@ -95,7 +94,7 @@ val x92 = x84.flatMap({x85 =>
    val x86 = x85.v
   val x91 = x86.flatMap({x87 => 
      val x88 = x87.o_parts
-    val x89 = Record147(x88)
+    val x89 = Record146(x88)
     val x90 = List(x89)
     x90})
   x91})
@@ -130,13 +129,13 @@ val x132 = x94.flatMap({x95 =>
         x121}).flatMap({x112 => 
            val x122 = x112.p_name
           val x123 = x104.l_quantity
-          val x124 = Record150(x122, x123)
+          val x124 = Record149(x122, x123)
           val x125 = List(x124)
           x125})
         x126})
       x127})
     x128})
-  val x130 = Record151(x96, x129)
+  val x130 = Record150(x96, x129)
   val x131 = List(x130)
   x131})
 val x133 = x132

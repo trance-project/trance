@@ -19,7 +19,8 @@ trait NRCTranslator extends LinearizedNRC {
     case TupleDictType(ts) if ts.isEmpty => EmptyDictCType
     case TupleDictType(ts) => TupleDictCType(ts.map(f => f._1 -> translate(f._2).asInstanceOf[TDict]))
     // case LabelType(fs) => LabelType(fs.map(f => f._1.replace("^", "") -> translate(f._2)))
-  case LabelType(fs) => RecordCType(fs.map(f => translateName(f._1) -> translate(f._2)))
+    case LabelType(fs) if fs.isEmpty => IntType
+    case LabelType(fs) => RecordCType(fs.map(f => translateName(f._1) -> translate(f._2)))
     case _ => e
   }
   
