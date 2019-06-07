@@ -1,6 +1,5 @@
-package shredding.algebra
+package shredding.wmcc
 
-import shredding.core._
 import shredding.Utils.ind
 /**
   * Prints top down, stringify prints bottom up

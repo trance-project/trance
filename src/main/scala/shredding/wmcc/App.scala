@@ -1,10 +1,14 @@
-package shredding.algebra
+package shredding.wmcc
 
 import java.io._
 import shredding.core._
 import shredding.queries.simple.{FlatTests, NestedTests}
 import shredding.queries.tpch.{TPCHQueries, TPCHSchema, TPCHLoader}
 
+/**
+  * This App is just a scratch space to quickly test components in this 
+  * directory. 
+  */
 object FlatTest{
   val compiler = new BaseCompiler{}
   import compiler._
@@ -204,23 +208,6 @@ object App {
     val anfed1 = new Finalizer(anfBase).finalize(nquery1)
     val anfExp1 = anfBase.anf(anfed1.asInstanceOf[anfBase.Rep])
     println(str.quote(anfExp1))
-    val inputtypes = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2)
-    val sgen = new ScalaNamedGenerator(inputtypes)
-    val ccode = sgen.generate(anfExp1)
-    val header = sgen.generateHeader()
-
-    val finalc = s"""
-      |/** Generated code **/
-      |${TPCHQueries.q1shreddata}
-      |${header}
-      |var start = System.currentTimeMillis()
-      |${ccode}
-      |var end = System.currentTimeMillis() - start""".stripMargin
- 
-    var out = "src/test/scala/shredding/queries/tpch/ShredQ1.Scala"
-    val printer = new PrintWriter(new FileOutputStream(new File(out), false))
-    printer.println(finalc)
-    printer.close 
 
   }
 
@@ -233,6 +220,7 @@ object App {
     val exp3 = translator.translate(FlatTests.query2.asInstanceOf[translator.Expr])
     val exp4 = translator.translate(TPCHQueries.query4.asInstanceOf[translator.Expr])
     val exp5 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
+    val exp6 = translator.translate(FlatTests.query1.asInstanceOf[translator.Expr])
 
     val str = Printer
     val bnorm = new BaseNormalizer{}
@@ -246,7 +234,7 @@ object App {
     val normalized0 = norm.finalize(exp0).asInstanceOf[CExpr]
     //println(str.quote(normalized0))
 
-    val normalized1 = norm.finalize(exp5).asInstanceOf[CExpr]
+    val normalized1 = norm.finalize(exp2).asInstanceOf[CExpr]
     println("/** "+str.quote(normalized1)+"**/")
 
     val normalized4 = norm.finalize(exp4).asInstanceOf[CExpr]
@@ -255,32 +243,8 @@ object App {
     println("")
     val anfed = new Finalizer(anfBase).finalize(normalized1)
     val anfExp = anfBase.anf(anfed.asInstanceOf[anfBase.Rep])
-    //println(str.quote(anfExp))
-    val inputtypes = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2)
-    val sgenn = new ScalaNamedGenerator(inputtypes)
-    val ccode = sgenn.generate(anfExp)
-    val header = sgenn.generateHeader()
+    println(str.quote(anfExp))
 
-    val finalc = s"""
-      |/** Generated code **/
-      |${TPCHQueries.query1data}
-      |${header}
-      |var start = System.currentTimeMillis()
-      |${ccode}
-      |var end = System.currentTimeMillis() - start""".stripMargin
-
-    var out = "src/test/scala/shredding/queries/tpch/Q1.Scala"
-    val printer = new PrintWriter(new FileOutputStream(new File(out), false))
-    printer.println(finalc)
-    printer.close
-
-    /**val anfed1 = new Finalizer(anfBase).finalize(exp)
-    val anfExp1 = anfBase.anf(anfed1.asInstanceOf[anfBase.Rep])
-    println(str.quote(anfExp1))
-    val sgenn1 = ScalaNamedGenerator
-    println(sgenn1.generate(anfExp1))
-    println(sgenn1.generateHeader())*/
-    
   }
 
   def main(args: Array[String]){

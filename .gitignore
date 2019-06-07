@@ -2,3 +2,5 @@ project/
 target/
 .history
 *.swp
+compile.sh
+tests/*

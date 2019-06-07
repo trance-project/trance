@@ -50,8 +50,7 @@ object TPCHQueries {
     |val L__F = 3
     |val L__D = (List((L__F, TPCHLoader.loadLineitem.toList)), ())
     |val P__F = 4
-    |val P__D = (List((P__F, TPCHLoader.loadPart.toList)), ())
-    |val P__D = ((P__F, TPCHLoader.loadPart.toList), ())""".stripMargin
+    |val P__D = (List((P__F, TPCHLoader.loadPart.toList)), ())""".stripMargin
  
   val query1 = ForeachUnion(c, relC, 
             Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(o, relO, 

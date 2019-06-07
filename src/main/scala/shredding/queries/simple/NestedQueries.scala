@@ -3,11 +3,14 @@ package shredding.queries.simple
 import shredding.core._
 import shredding.nrc.LinearizedNRC
 
+case class InputR3(n: Int)
+case class InputR2(m: String, n: Int, k: List[InputR3])
+case class InputR1(h: Int, j: List[InputR2])
+
 object NestedTests {
 
   val nrc = new LinearizedNRC{}
   val datat3 = TupleType(Map("n" -> IntType))
-
   val datat2 = TupleType(Map("m" -> StringType, "n" -> IntType, "k" -> BagType(datat3)))
   val datat = TupleType(Map("h" -> IntType, "j" -> BagType(datat2)))
 
@@ -61,6 +64,39 @@ object NestedTests {
           )
         )
       )
+    
+    val nestedInputs:Map[Type,String] = Map(datat -> "InputR1", datat2 -> "InputR2", datat3 -> "InputR3")
+    
+    val R = List(InputR1(42, List(InputR2("Milos", 123, List(InputR3(123), InputR3(456), InputR3(789), InputR3(123))),
+                                 InputR2("Michael", 7, List(InputR3(2), InputR3(9), InputR3(1))),
+                                 InputR2("Jaclyn", 12, List(InputR3(14), InputR3(12))))), 
+                InputR1(69, List(InputR2("Thomas", 987, List(InputR3(987), InputR3(654), InputR3(987), InputR3(987))))))
+    val header = s"""
+      |import shredding.queries.simple._
+      |val R = List(InputR1(42, List(InputR2("Milos", 123, List(InputR3(123), InputR3(456), InputR3(789), InputR3(123))),
+      |                           InputR2("Michael", 7, List(InputR3(2), InputR3(9), InputR3(1))),
+      |                           InputR2("Jaclyn", 12, List(InputR3(14), InputR3(12))))), 
+      |          InputR1(69, List(InputR2("Thomas", 987, List(InputR3(987), InputR3(654), InputR3(987), InputR3(987))))))""".stripMargin
+     
+    /**val R__F = 1
+    case class InputR1Flat(a: Int, b: Int)
+    case class InputR2Flat(m: String, n: Int, k: Int)
+    case class InputR3Flat(n: Int)
+    case class InputR2Dict(k: (List[(Int, List[InputR3Flat])], Unit))
+    case class InputR1Dict(j: (List[(Int, List[InputR2Flat])], InputR2Dict))
+    val R__D = (List((R__F, List(InputR1Flat(42, 2), InputR1Flat(69, 3)))), 
+      InputR1Dict(j: (List((2, List(InputR2Flat("Milos", 123, 4), InputR2Flat("Michael", 7, 5), 
+                                    InputR2Flat("Jaclyn", 12, 6))),
+                            (3, List(InputR2Flat("Thomas", 987, 7)))), 
+      InputR2Dict(k: (List((4, List(InputR3Flat(123), InputR3Flat(456), InputR3Flat(789), InputR3Flat(123))), 
+                            (5, List(InputR3Flat(2), InputR3Flat(9), InputR3Flat(1))), 
+                            (6, List(InputR3Flat(14), InputR3Flat(12))), 
+                            (7, List(InputR3Flat(987), InputR3Flat(654), InputR3Flat(987), InputR3Flat(987)))), ())))))
+    **/
+    val shredHeader = s"""
+      |import shredding.queries.simple_
+      |val R__F = 1
+      """.stripMargin
 
     // michael's first grouping example
     val query1 = {

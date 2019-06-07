@@ -1,6 +1,4 @@
-package shredding.algebra
-
-import shredding.core._
+package shredding.wmcc
 
 trait BaseNormalizer extends BaseCompiler {
 

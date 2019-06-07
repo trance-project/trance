@@ -1,4 +1,4 @@
-package shredding.algebra
+package shredding.wmcc
 
 import shredding.core._
 import shredding.nrc.LinearizedNRC
