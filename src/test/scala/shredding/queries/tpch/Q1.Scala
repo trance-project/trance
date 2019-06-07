@@ -6,37 +6,37 @@ val C = TPCHLoader.loadCustomer.toList
 val O = TPCHLoader.loadOrders.toList
 val L = TPCHLoader.loadLineitem.toList
 val P = TPCHLoader.loadPart.toList
-case class Record190(p_name: String, l_qty: Double)
-case class Record191(o_orderdate: String, o_parts: List[Record190])
-case class Record192(c_name: String, c_orders: List[Record191])
+case class Record196(p_name: String, l_qty: Double)
+case class Record197(o_orderdate: String, o_parts: List[Record196])
+case class Record198(c_name: String, c_orders: List[Record197])
 var start = System.currentTimeMillis()
-val x189 = C.flatMap({x162 => 
-   val x163 = x162.c_name
-  val x186 = O.withFilter({x164 => val x165 = x164.o_custkey
-  val x166 = x162.c_custkey
-  val x167 = x165 == x166
-  x167}).flatMap({x164 => 
-     val x168 = x164.o_orderdate
-    val x183 = L.flatMap({x169 => 
-       val x182 = P.withFilter({x170 => val x171 = x169.l_orderkey
-      val x172 = x164.o_orderkey
-      val x173 = x171 == x172
-      val x174 = x169.l_partkey
-      val x175 = x170.p_partkey
-      val x176 = x174 == x175
-      val x177 = x173 && x176
-      x177}).flatMap({x170 => 
-         val x178 = x170.p_name
-        val x179 = x169.l_quantity
-        val x180 = Record190(x178, x179)
-        val x181 = List(x180)
-        x181})
-      x182})
-    val x184 = Record191(x168, x183)
-    val x185 = List(x184)
-    x185})
-  val x187 = Record192(x163, x186)
-  val x188 = List(x187)
-  x188})
-x189
+val x195 = C.flatMap({x168 => 
+   val x169 = x168.c_name
+  val x192 = O.withFilter({x170 => val x171 = x170.o_custkey
+  val x172 = x168.c_custkey
+  val x173 = x171 == x172
+  x173}).flatMap({x170 => 
+     val x174 = x170.o_orderdate
+    val x189 = L.flatMap({x175 => 
+       val x188 = P.withFilter({x176 => val x177 = x175.l_orderkey
+      val x178 = x170.o_orderkey
+      val x179 = x177 == x178
+      val x180 = x175.l_partkey
+      val x181 = x176.p_partkey
+      val x182 = x180 == x181
+      val x183 = x179 && x182
+      x183}).flatMap({x176 => 
+         val x184 = x176.p_name
+        val x185 = x175.l_quantity
+        val x186 = Record196(x184, x185)
+        val x187 = List(x186)
+        x187})
+      x188})
+    val x190 = Record197(x174, x189)
+    val x191 = List(x190)
+    x191})
+  val x193 = Record198(x169, x192)
+  val x194 = List(x193)
+  x194})
+x195
 var end = System.currentTimeMillis() - start

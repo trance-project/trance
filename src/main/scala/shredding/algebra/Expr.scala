@@ -100,10 +100,10 @@ case class Project(e1: CExpr, field: String) extends CExpr { self =>
     case _ => sys.error("unsupported projection index "+self)
   }
 
-  override def equals(that: Any): Boolean = that match {
-    case that: Variable => that.equals(e1)
-    case _ => false
-  }
+  // override def equals(that: Any): Boolean = that match {
+  //   case that: Variable => that.equals(e1)
+  //   case _ => false
+  // }
 }
 
 case class If(cond: CExpr, e1: CExpr, e2: Option[CExpr]) extends CExpr {
@@ -262,10 +262,10 @@ case class Join(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variabl
 }
 
 case class Variable(name: String, override val tp: Type) extends CExpr { self =>
-  override def equals(that: Any): Boolean = that match {
-    case that: Variable => this.name == that.name && this.tp == that.tp
-    case _ => false
-  }
+  // override def equals(that: Any): Boolean = that match {
+  //   case that: Variable => this.name == that.name && this.tp == that.tp
+  //   case _ => false
+  // }
 
   // equals with a label check
   def lequals(that: CExpr): Boolean = that match {

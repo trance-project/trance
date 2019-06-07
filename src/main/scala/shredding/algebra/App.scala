@@ -191,8 +191,9 @@ object App {
     beval.ctx("RF") = NestedTest.rF
     beval.ctx("RD") = NestedTest.rDc**/
 
-    //println("\nTranslated:")
-    //println(str.quote())
+    println("\nTranslated:")
+    println(str.quote(tpch1))
+    
     println("\nNormalized:")
     val nquery1 = norm.finalize(tpch1).asInstanceOf[CExpr]
     println("/** "+str.quote(nquery1)+" **/" )
@@ -216,7 +217,7 @@ object App {
       |${ccode}
       |var end = System.currentTimeMillis() - start""".stripMargin
  
-    var out = "/Users/jac/shredder/src/test/scala/shredding/queries/tpch/ShredQ1.Scala"
+    var out = "src/test/scala/shredding/queries/tpch/ShredQ1.Scala"
     val printer = new PrintWriter(new FileOutputStream(new File(out), false))
     printer.println(finalc)
     printer.close 
@@ -268,7 +269,7 @@ object App {
       |${ccode}
       |var end = System.currentTimeMillis() - start""".stripMargin
 
-    var out = "/Users/jac/shredder/src/test/scala/shredding/queries/tpch/Q1.Scala"
+    var out = "src/test/scala/shredding/queries/tpch/Q1.Scala"
     val printer = new PrintWriter(new FileOutputStream(new File(out), false))
     printer.println(finalc)
     printer.close

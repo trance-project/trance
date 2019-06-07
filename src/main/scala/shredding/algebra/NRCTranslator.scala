@@ -18,7 +18,8 @@ trait NRCTranslator extends LinearizedNRC {
     case EmptyDictType => EmptyDictCType
     case TupleDictType(ts) if ts.isEmpty => EmptyDictCType
     case TupleDictType(ts) => TupleDictCType(ts.map(f => f._1 -> translate(f._2).asInstanceOf[TDict]))
-    case LabelType(fs) => LabelType(fs.map(f => f._1.replace("^", "") -> translate(f._2)))
+    // case LabelType(fs) => LabelType(fs.map(f => f._1.replace("^", "") -> translate(f._2)))
+  case LabelType(fs) => RecordCType(fs.map(f => translateName(f._1) -> translate(f._2)))
     case _ => e
   }
   
@@ -40,7 +41,8 @@ trait NRCTranslator extends LinearizedNRC {
     case Not(e1) => not(translate(e1))
   }
 
-  def translate(v: VarDef): CExpr = Variable(v.name.replace("^", ""), translate(v.tp))
+  def translateName(name: String): String = name.replace("^", "__")
+  def translate(v: VarDef): CExpr = Variable(translateName(v.name), translate(v.tp))
   def translateVar(v: VarRef): CExpr = translate(v.varDef)
  
   def translate(e: Expr): CExpr = e match {
@@ -68,12 +70,21 @@ trait NRCTranslator extends LinearizedNRC {
     case Named(v, e) => CNamed(v.name, translate(e))
     case Sequence(exprs) => LinearCSet(exprs.map(translate(_)))
     // shredded
+    // case l @ NewLabel(vs) => 
+    //   Label(l.id, vs.map( v => { 
+    //     val v2 = translateVar(v).asInstanceOf[Variable]
+    //     v2.name -> v2}).toList:_*)
+    // case e:ExtractLabel =>//translate(e.lbl).asInstanceOf[Label].map( v => Bind(v._1, 
+    //   Extract(translate(e.lbl), translate(e.e))
     case l @ NewLabel(vs) => 
-      Label(l.id, vs.map( v => { 
+      record(vs.map(v => {
         val v2 = translateVar(v).asInstanceOf[Variable]
-        v2.name -> v2}).toList:_*)
-    case e:ExtractLabel =>//translate(e.lbl).asInstanceOf[Label].map( v => Bind(v._1, 
-      Extract(translate(e.lbl), translate(e.e))
+        translateName(v2.name) -> v2
+      }).toMap)
+    case e:ExtractLabel =>
+      val lbl = translate(e.lbl)
+      val bindings = e.lbl.tp.attrTps.map(k => Variable(translateName(k._1), translate(k._2)) -> project(lbl, translateName(k._1))).toSeq
+      bindings.foldRight(translate(e.e))((cur, acc) => Bind(cur._1, cur._2, acc))
     case Lookup(lbl, dict) => CLookup(translate(lbl), translate(dict)) 
     case EmptyDict => emptydict
     case BagDict(lbl, flat, dict) => BagCDict(translate(lbl), translate(flat), translate(dict))

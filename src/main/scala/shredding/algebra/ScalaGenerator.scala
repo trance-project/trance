@@ -83,9 +83,14 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
           s"""${generate(e1)}${filt}.flatMap({${generate(v)} => 
             | ${ind(generate(t))}})""".stripMargin  
         }
-    case Bind(v, Record(fs), e2) => {
-      handleType(v.tp)
-      s"val ${generate(v)} = ${generateType(v.tp)}(${fs.map(f => generate(f._2)).mkString(", ")})\n${generate(e2)}"
+    // case Bind(v, Record(fs), e2) => {
+    //   handleType(v.tp)
+    //   s"val ${generate(v)} = ${generateType(v.tp)}(${fs.map(f => generate(f._2)).mkString(", ")})\n${generate(e2)}"
+    // }
+    case Record(fs) => {
+      val tp = e.tp
+      handleType(tp)
+      s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
     }
     case Bind(v, e1, e2) =>
       s"val ${generate(v)} = ${generate(e1)}\n${generate(e2)}"
@@ -122,13 +127,13 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case CDeDup(e1) => s"${generate(e1)}.distinct"
     case CNamed(n, e) => generate(e)
     case LinearCSet(exprs) => s"""${exprs.map(generate(_)).mkString("\n")}"""
-    case Label(id, fs) if !fs.isEmpty => 
-      handleType(e.tp)
-      s"${generateType(e.tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
-    case Label(id, fs)  => 
-      id.toString
-    case Extract(lbl @ Label(id, fs), exp) => 
-      fs.map(f => s"val ${f._1} = ${generate(f._2)}").mkString("\n")+generate(exp)
+    // case Label(id, fs) if !fs.isEmpty => 
+    //   handleType(e.tp)
+    //   s"${generateType(e.tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
+    // case Label(id, fs)  => 
+    //   id.toString
+    // case Extract(lbl @ Label(id, fs), exp) => 
+    //   fs.map(f => s"val ${f._1} = ${generate(f._2)}").mkString("\n")+generate(exp)
     case Extract(lbl, exp) => 
       generate(exp)
     case EmptyCDict => "()"
