@@ -34,13 +34,15 @@ object TPCHQueries {
   val p = VarDef("p", TPCHSchema.parttype.tp)
   val pr = TupleVarRef(p)
 
-  val query1data = s"""
+  val q1name = "Query1"
+  val q1data = s"""
     |import shredding.examples.tpch._
     |val C = TPCHLoader.loadCustomer.toList
     |val O = TPCHLoader.loadOrders.toList
     |val L = TPCHLoader.loadLineitem.toList
     |val P = TPCHLoader.loadPart.toList""".stripMargin
   
+  val q1shredname = "ShredQuery1"
   val q1shreddata = s"""
     |import shredding.examples.tpch._
     |val C__F = 1

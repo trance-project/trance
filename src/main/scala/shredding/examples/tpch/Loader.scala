@@ -4,8 +4,9 @@ import shredding.loader.csv._
 
 object TPCHLoader {
 
-  def tpchSchema: Schema = TPCHSchema.getSchema(Config.datapath, getScalingFactor)
-  def getScalingFactor: Double = Config.datapath.slice(Config.datapath.lastIndexOfSlice("sf") + 2, Config.datapath.length - 1).toDouble
+  val datapath = Config.datapath
+  def tpchSchema: Schema = TPCHSchema.getSchema()
+  def getScalingFactor: Double = datapath.slice(datapath.lastIndexOfSlice("sf") + 2, datapath.length - 1).toDouble
   def getTable(tableName: String): Table = tpchSchema.tables.find(t => t.name == tableName).get
 
   import Loader.loadTable
