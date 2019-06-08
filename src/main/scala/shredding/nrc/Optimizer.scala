@@ -1,7 +1,7 @@
 package shredding.nrc
 
 import shredding.core.{VarDef, TupleType}
-import shredding.Utils.Symbol
+import shredding.utils.Utils.Symbol
 
 /**
   * Simple optimizations:

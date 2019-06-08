@@ -7,7 +7,7 @@ import shredding.core._
   */
 trait Printer extends LinearizedNRC {
 
-  import shredding.Utils.ind
+  import shredding.utils.Utils.ind
 
   def quote(e: Expr): String = e match {
     case Const(v, StringType) => "\"" + v + "\""

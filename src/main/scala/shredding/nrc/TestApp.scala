@@ -310,7 +310,7 @@ object TestApp extends App
 
   object Example4 {
 
-    import shredding.Utils.Symbol
+    import shredding.utils.Utils.Symbol
 
     def run(): Unit = {
 
@@ -374,7 +374,7 @@ object TestApp extends App
 
   object Example5 {
 
-    import shredding.Utils.Symbol
+    import shredding.utils.Utils.Symbol
 
     def run(): Unit = {
 
@@ -440,7 +440,7 @@ object TestApp extends App
 
   object Example6 {
 
-    import shredding.Utils.Symbol
+    import shredding.utils.Utils.Symbol
 
     def run(): Unit = {
 
@@ -521,7 +521,7 @@ object TestApp extends App
 
   object Example7 {
 
-    import shredding.Utils.Symbol
+    import shredding.utils.Utils.Symbol
 
     def run(): Unit = {
 
@@ -601,7 +601,7 @@ object TestApp extends App
 
   object Example8 {
 
-    import shredding.Utils.Symbol
+    import shredding.utils.Utils.Symbol
 
     def run(): Unit = {
 
@@ -678,7 +678,7 @@ object TestApp extends App
 
   object Example9 {
 
-    import shredding.Utils.Symbol
+    import shredding.utils.Utils.Symbol
 
     def run(): Unit = {
 
@@ -857,7 +857,7 @@ object TestApp extends App
 
   object Example10_DeDup {
 
-    import shredding.Utils.Symbol
+    import shredding.utils.Utils.Symbol
 
     def run(): Unit = {
 
@@ -920,7 +920,7 @@ object TestApp extends App
 
   object Example11_Conditional {
 
-    import shredding.Utils.Symbol
+    import shredding.utils.Utils.Symbol
 
     def run(): Unit = {
 

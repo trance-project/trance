@@ -1,4 +1,4 @@
-package shredding.queries.normalization
+package shredding.examples.normalize
 
 import shredding.core._
 import shredding.nrc.LinearizedNRC

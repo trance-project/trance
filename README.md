@@ -12,4 +12,5 @@ Organization of `src/main/scala/shredding`:
 * `wmcc`: weighted monad comprehension calculus (wmcc), which algebra operators (select, reduce, join, etc.).
 * `generator`: code generators, currently just native scala
 * `loader`: functionality to load data for executing queries, currently csv readers used for reading tpch from a file
-* `queries`: a directory of queries that are used for examples and experiments
+* `examples`: a directory of example queries 
+* `utils`: utility methods used throughout

@@ -1,4 +1,4 @@
-package shredding.queries.tpch
+package shredding.examples.tpch
 
 import shredding.core._
 import shredding.loader.csv._

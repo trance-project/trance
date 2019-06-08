@@ -1,6 +1,6 @@
 package shredding.runtime
 
-import shredding.Utils.ind
+import shredding.utils.Utils.ind
 import shredding.core._
 
 /**

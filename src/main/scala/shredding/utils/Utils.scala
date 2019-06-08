@@ -1,4 +1,4 @@
-package shredding
+package shredding.utils
 
 object Utils {
 

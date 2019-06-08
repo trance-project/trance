@@ -1,4 +1,4 @@
-package shredding.queries.tpch
+package shredding.examples.tpch
 
 import shredding.core._
 import shredding.nrc.LinearizedNRC
@@ -35,14 +35,14 @@ object TPCHQueries {
   val pr = TupleVarRef(p)
 
   val query1data = s"""
-    |import shredding.queries.tpch._
+    |import shredding.examples.tpch._
     |val C = TPCHLoader.loadCustomer.toList
     |val O = TPCHLoader.loadOrders.toList
     |val L = TPCHLoader.loadLineitem.toList
     |val P = TPCHLoader.loadPart.toList""".stripMargin
   
   val q1shreddata = s"""
-    |import shredding.queries.tpch._
+    |import shredding.examples.tpch._
     |val C__F = 1
     |val C__D = (List((C__F, TPCHLoader.loadCustomer.toList)), ())
     |val O__F = 2

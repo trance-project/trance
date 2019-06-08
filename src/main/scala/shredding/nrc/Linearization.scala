@@ -1,6 +1,6 @@
 package shredding.nrc
 
-import shredding.Utils.Symbol
+import shredding.utils.Utils.Symbol
 import shredding.core._
 
 /**

@@ -2,7 +2,7 @@ package shredding.generator
 
 import shredding.core._
 import shredding.wmcc._
-import shredding.Utils.ind
+import shredding.utils.Utils.ind
 
 class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
   var types:Map[Type,String] = inputs

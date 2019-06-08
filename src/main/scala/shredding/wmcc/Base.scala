@@ -2,7 +2,7 @@ package shredding.wmcc
 
 import shredding.core._
 import scala.collection.mutable.HashMap
-import shredding.Utils.ind
+import shredding.utils.Utils.ind
 
 trait Base {
   type Rep

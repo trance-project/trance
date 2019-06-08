@@ -1,4 +1,4 @@
-package shredding.queries.tpch
+package shredding.examples.tpch
 
 object Config {
 

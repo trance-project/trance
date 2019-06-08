@@ -1,6 +1,6 @@
 package shredding.wmcc
 
-import shredding.Utils.ind
+import shredding.utils.Utils.ind
 /**
   * Prints top down, stringify prints bottom up
   */
