@@ -42,8 +42,7 @@ object TPCHQueries {
     |val L = TPCHLoader.loadLineitem.toList
     |val P = TPCHLoader.loadPart.toList""".stripMargin
   
-  val q1shredname = "ShredQuery1"
-  val q1shreddata = s"""
+  val sq1data = s"""
     |import shredding.examples.tpch._
     |val C__F = 1
     |val C__D = (List((C__F, TPCHLoader.loadCustomer.toList)), ())

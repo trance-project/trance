@@ -3,7 +3,6 @@ package shredding.generator
 import java.io._
 import shredding.core._
 import shredding.wmcc._
-import shredding.utils.PipelineRunner
 import shredding.examples.tpch.{TPCHQueries, TPCHSchema, TPCHLoader}
 
 /**
@@ -12,7 +11,8 @@ import shredding.examples.tpch.{TPCHQueries, TPCHSchema, TPCHLoader}
   */
 
 object App {
-
+  
+  
   def write(n: String, i: String, h: String, q: String): String = s"""
       |package experiments
       |/** Generated code **/
@@ -36,21 +36,44 @@ object App {
       | }
       |}""".stripMargin
 
-  val runner = new PipelineRunner{}
-
-  implicit def toExpr(e: TPCHQueries.nrc.Expr): runner.Expr = e.asInstanceOf[runner.Expr]
-
   def main(args: Array[String]){
-    val translator = new NRCTranslator{}
-    val codegen = new ScalaNamedGenerator(TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2))
-    val gcode = codegen.generate(runner.toAnf(TPCHQueries.query1))
-    val header = codegen.generateHeader()
     
-    var out = s"src/test/scala/shredding/queries/tpch/${TPCHQueries.q1name}.Scala"
+    val runner = new PipelineRunner{}
+    val translator = new NRCTranslator{}
+    val normalizer = new Finalizer(new BaseNormalizer{})
+    val anfBase = new BaseANF {}
+    val anfer = new Finalizer(anfBase)
+
+    val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2)
+    // standard pipeline
+    val codegen = new ScalaNamedGenerator(inputs)
+    val q1 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
+    val normq1 = normalizer.finalize(q1)
+    val anfedq1 = anfer.finalize(normq1.asInstanceOf[CExpr])
+    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
+    val gcode = codegen.generate(anfExp1)
+    val header = codegen.generateHeader()
+    var out = s"src/test/scala/shredding/examples/tpch/${TPCHQueries.q1name}.Scala"
     val printer = new PrintWriter(new FileOutputStream(new File(out), false))
     val finalc = write(TPCHQueries.q1name, TPCHQueries.q1data, header, gcode)
     printer.println(finalc)
     printer.close
+
+    // shredded pipeline
+    val scodegen = new ScalaNamedGenerator(inputs)
+    val nq1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
+    val nnormq1 = normalizer.finalize(nq1)
+    val anfednq1 = anfer.finalize(nnormq1.asInstanceOf[CExpr])
+    val anfExpn1 = anfBase.anf(anfednq1.asInstanceOf[anfBase.Rep])
+    val sgcode = scodegen.generate(anfExpn1)
+    val sheader = scodegen.generateHeader()
+
+    var sout = s"src/test/scala/shredding/examples/tpch/Shred${TPCHQueries.q1name}.Scala"
+    val sprinter = new PrintWriter(new FileOutputStream(new File(sout), false))
+    val sfinalc = write("Shred"+TPCHQueries.q1name, TPCHQueries.sq1data, sheader, sgcode)
+    sprinter.println(sfinalc)
+    sprinter.close
+
   }
 
 

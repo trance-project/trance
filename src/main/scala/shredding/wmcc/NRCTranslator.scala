@@ -18,7 +18,6 @@ trait NRCTranslator extends LinearizedNRC {
     case EmptyDictType => EmptyDictCType
     case TupleDictType(ts) if ts.isEmpty => EmptyDictCType
     case TupleDictType(ts) => TupleDictCType(ts.map(f => f._1 -> translate(f._2).asInstanceOf[TDict]))
-    // case LabelType(fs) => LabelType(fs.map(f => f._1.replace("^", "") -> translate(f._2)))
     case LabelType(fs) if fs.isEmpty => IntType
     case LabelType(fs) => RecordCType(fs.map(f => translateName(f._1) -> translate(f._2)))
     case _ => e
@@ -45,7 +44,7 @@ trait NRCTranslator extends LinearizedNRC {
   def translateName(name: String): String = name.replace("^", "__")
   def translate(v: VarDef): CExpr = Variable(translateName(v.name), translate(v.tp))
   def translateVar(v: VarRef): CExpr = translate(v.varDef)
- 
+  
   def translate(e: Expr): CExpr = e match {
     case Const(v, tp) => constant(v)
     case v:VarRef => translateVar(v)
@@ -70,21 +69,15 @@ trait NRCTranslator extends LinearizedNRC {
     case l:Let => Bind(translate(l.x), translate(l.e1), translate(l.e2))
     case Named(v, e) => CNamed(v.name, translate(e))
     case Sequence(exprs) => LinearCSet(exprs.map(translate(_)))
-    // shredded
-    // case l @ NewLabel(vs) => 
-    //   Label(l.id, vs.map( v => { 
-    //     val v2 = translateVar(v).asInstanceOf[Variable]
-    //     v2.name -> v2}).toList:_*)
-    // case e:ExtractLabel =>//translate(e.lbl).asInstanceOf[Label].map( v => Bind(v._1, 
-    //   Extract(translate(e.lbl), translate(e.e))
-    case l @ NewLabel(vs) => 
+     case l @ NewLabel(vs) => 
       record(vs.map(v => {
         val v2 = translateVar(v).asInstanceOf[Variable]
         translateName(v2.name) -> v2
       }).toMap)
     case e:ExtractLabel =>
       val lbl = translate(e.lbl)
-      val bindings = e.lbl.tp.attrTps.map(k => Variable(translateName(k._1), translate(k._2)) -> project(lbl, translateName(k._1))).toSeq
+      val bindings = e.lbl.tp.attrTps.map(k => 
+        Variable(translateName(k._1), translate(k._2)) -> project(lbl, translateName(k._1))).toSeq
       bindings.foldRight(translate(e.e))((cur, acc) => Bind(cur._1, cur._2, acc))
     case Lookup(lbl, dict) => CLookup(translate(lbl), translate(dict)) 
     case EmptyDict => emptydict
@@ -96,6 +89,7 @@ trait NRCTranslator extends LinearizedNRC {
     case Total(e1) => comprehension(translate(e1), x => constant(true), (i: CExpr) => constant(1))
     case DeDup(e1) => CDeDup(translate(e1)) 
     case WeightedSingleton(tup, qty) => WeightedSng(translate(tup), translate(qty))
+    case _ => sys.error("cannot translate "+e)
   }
 
 }
