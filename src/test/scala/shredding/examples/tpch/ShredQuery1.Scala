@@ -12,20 +12,18 @@ val L__F = 3
 val L__D = (List((L__F, TPCHLoader.loadLineitem.toList)), ())
 val P__F = 4
 val P__D = (List((P__F, TPCHLoader.loadPart.toList)), ())
- case class Record169(p_name: String, l_qty: Double)
-case class Record170(o_orderdate: String, o_parts: List[Record169])
-case class Record171(c_name: String, c_orders: List[Record170])
-case class Record172(P__F: Int, C__F: Int, L__F: Int, O__F: Int)
-case class Record173(lbl: Record172)
-case class Record175(P__F: Int, L__F: Int, O__F: Int, c__F: Customer)
-case class Record176(c_name: String, c_orders: Record175)
-case class Record177(k: Record172, v: List[Record176])
-case class Record178(lbl: Record175)
-case class Record180(o__F: Orders, P__F: Int, L__F: Int)
-case class Record181(o_orderdate: String, o_parts: Record180)
-case class Record182(k: Record175, v: List[Record181])
-case class Record183(lbl: Record180)
-case class Record186(k: Record180, v: List[Record169])
+ case class Record169(P__F: Int, C__F: Int, L__F: Int, O__F: Int)
+case class Record170(lbl: Record169)
+case class Record172(P__F: Int, L__F: Int, O__F: Int, c__F: Customer)
+case class Record173(c_name: String, c_orders: Record172)
+case class Record174(k: Record169, v: List[Record173])
+case class Record175(lbl: Record172)
+case class Record177(o__F: Orders, P__F: Int, L__F: Int)
+case class Record178(o_orderdate: String, o_parts: Record177)
+case class Record179(k: Record172, v: List[Record178])
+case class Record180(lbl: Record177)
+case class Record183(p_name: String, l_qty: Double)
+case class Record184(k: Record177, v: List[Record183])
  def main(args: Array[String]){ 
     var time = List[Long]()
     for (i <- 1 to 5) {
@@ -39,36 +37,8 @@ case class Record186(k: Record180, v: List[Record169])
  }
  
  def f(){
-   val x32 = C.flatMap({x5 => 
-   val x6 = x5.c_name
-  val x29 = O.withFilter({x7 => val x8 = x7.o_custkey
-  val x9 = x5.c_custkey
-  val x10 = x8 == x9
-  x10}).flatMap({x7 => 
-     val x11 = x7.o_orderdate
-    val x26 = L.flatMap({x12 => 
-       val x25 = P.withFilter({x13 => val x14 = x12.l_orderkey
-      val x15 = x7.o_orderkey
-      val x16 = x14 == x15
-      val x17 = x12.l_partkey
-      val x18 = x13.p_partkey
-      val x19 = x17 == x18
-      val x20 = x16 && x19
-      x20}).flatMap({x13 => 
-         val x21 = x13.p_name
-        val x22 = x12.l_quantity
-        val x23 = Record169(x21, x22)
-        val x24 = List(x23)
-        x24})
-      x25})
-    val x27 = Record170(x11, x26)
-    val x28 = List(x27)
-    x28})
-  val x30 = Record171(x6, x29)
-  val x31 = List(x30)
-  x31})
-val x53 = Record172(P__F, C__F, L__F, O__F)
-val x54 = Record173(x53)
+   val x53 = Record169(P__F, C__F, L__F, O__F)
+val x54 = Record170(x53)
 val x55 = List(x54)
 val x56 = x55
 val x79 = x56.flatMap({x57 => 
@@ -86,12 +56,12 @@ val x79 = x56.flatMap({x57 =>
       val x69 = x68.P__F
       val x70 = x68.L__F
       val x71 = x68.O__F
-      val x72 = Record175(x69, x70, x71, x66)
-      val x73 = Record176(x67, x72)
+      val x72 = Record172(x69, x70, x71, x66)
+      val x73 = Record173(x67, x72)
       val x74 = List(x73)
       x74})
     x75})
-  val x77 = Record177(x58, x76)
+  val x77 = Record174(x58, x76)
   val x78 = List(x77)
   x78})
 val x80 = x79
@@ -99,7 +69,7 @@ val x88 = x80.flatMap({x81 =>
    val x82 = x81.v
   val x87 = x82.flatMap({x83 => 
      val x84 = x83.c_orders
-    val x85 = Record178(x84)
+    val x85 = Record175(x84)
     val x86 = List(x85)
     x86})
   x87})
@@ -124,12 +94,12 @@ val x117 = x90.flatMap({x91 =>
       val x107 = x91.lbl
       val x108 = x107.P__F
       val x109 = x107.L__F
-      val x110 = Record180(x100, x108, x109)
-      val x111 = Record181(x106, x110)
+      val x110 = Record177(x100, x108, x109)
+      val x111 = Record178(x106, x110)
       val x112 = List(x111)
       x112})
     x113})
-  val x115 = Record182(x92, x114)
+  val x115 = Record179(x92, x114)
   val x116 = List(x115)
   x116})
 val x118 = x117
@@ -137,7 +107,7 @@ val x126 = x118.flatMap({x119 =>
    val x120 = x119.v
   val x125 = x120.flatMap({x121 => 
      val x122 = x121.o_parts
-    val x123 = Record183(x122)
+    val x123 = Record180(x122)
     val x124 = List(x123)
     x124})
   x125})
@@ -172,13 +142,13 @@ val x166 = x128.flatMap({x129 =>
         x155}).flatMap({x146 => 
            val x156 = x146.p_name
           val x157 = x138.l_quantity
-          val x158 = Record169(x156, x157)
+          val x158 = Record183(x156, x157)
           val x159 = List(x158)
           x159})
         x160})
       x161})
     x162})
-  val x164 = Record186(x130, x163)
+  val x164 = Record184(x130, x163)
   val x165 = List(x164)
   x165})
 val x167 = x166

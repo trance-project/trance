@@ -2,6 +2,11 @@ package shredding.wmcc
 
 import shredding.core._
 
+/**
+  * Unnesting algorithm from Fegaras and Maier
+  * WMCC to algebra data operators (select, reduce, etc)
+  */
+
 object Unnester {
   type Ctx = (List[Variable], List[Variable], Option[CExpr])
   @inline def u(implicit ctx: Ctx): List[Variable] = ctx._1

@@ -2,6 +2,13 @@ package shredding.wmcc
 
 import shredding.core._
 
+/**
+  * Weighted Monad Comprehension Calculus (WMCC) expression nodes 
+  * includes WMCC nodes for shredding extensions, and 
+  * algebra data operators for translating WMCC to plans 
+  */
+
+
 sealed trait CExpr {
   def tp: Type
   def wvars: List[Variable] = List()
@@ -100,15 +107,10 @@ case class Project(e1: CExpr, field: String) extends CExpr { self =>
     case _ => sys.error("unsupported projection index "+self)
   }
 
-  // override def equals(that: Any): Boolean = that match {
-  //   case that: Variable => that.equals(e1)
-  //   case _ => false
-  // }
 }
 
 case class If(cond: CExpr, e1: CExpr, e2: Option[CExpr]) extends CExpr {
   assert(cond.tp == BoolType)
-  // disjoint types?
   val tp: Type = e1.tp
 }
 
@@ -116,7 +118,6 @@ case class Merge(e1: CExpr, e2: CExpr) extends CExpr {
   def tp: BagCType = e1.tp.asInstanceOf[BagCType]  //disjoint types?
 }
 
-// reorder variables, confusing to create
 case class Comprehension(e1: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
   def tp: Type = e.tp match {
     case t:RecordCType => BagCType(t)
@@ -147,33 +148,11 @@ case class LinearCSet(exprs: List[CExpr]) extends CExpr {
 
 /**
   * Shred extensions
+  * Labels are just Records, ie. Label(x: x, y: y) 
+  * Extract nodes are just projections on the attributes of these labels
+  * ie. a subquery "for label in domain union x" 
+  * is represented as "for label in domain union label.x"
   */
-
-case class Label(id: Int, vars: Map[String, CExpr]) extends CExpr {
-  val tp: LabelType = LabelType(vars.map(f => f._1 -> f._2.tp))
-  def apply(n: String) = vars(n)
-  override def equals(that: Any): Boolean = that match {
-    case that: Label => this.id == that.id
-    case _ => false
-  }
-  
-  override def hashCode: Int = id.hashCode()
-  def quote: String = s"Label${id}(${vars.map(f => f._1 +"->"+f._2).mkString(",")})"
-}
-
-case class Extract(lbl: CExpr, value: CExpr) extends CExpr {
-  val tp: Type = value.tp
-}
-
-object Label {
-  def apply(id: Int, vars: (String, CExpr)*): Label = Label(id, Map(vars:_*))
-  private var lastId = 1
-  def fresh(vars: Map[String, CExpr] = Map[String,CExpr]()): Label = {
-    val id = lastId
-    lastId += 1
-    Label(id, vars)
-  }
-}
 
 case class CLookup(lbl: CExpr, dict: CExpr) extends CExpr {
   def tp: BagCType = dict.tp.asInstanceOf[BagDictCType]._1
@@ -212,7 +191,9 @@ case class DictCUnion(d1: CExpr, d2: CExpr) extends CExpr {
 }
 
 /**
-  * Algebra extensions
+  * Algebra data operators for creating plans from WMCC
+  * These are defined as an extension off of the WMCC nodes 
+  * since WMCC nodes are used to represent inputs, constants, tuples, bags, etc.
   */
 
 case class Select(x: CExpr, v: Variable, p: CExpr) extends CExpr {
@@ -262,12 +243,9 @@ case class Join(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variabl
 }
 
 case class Variable(name: String, override val tp: Type) extends CExpr { self =>
-  // override def equals(that: Any): Boolean = that match {
-  //   case that: Variable => this.name == that.name && this.tp == that.tp
-  //   case _ => false
-  // }
 
   // equals with a label check
+  // check if deprecated (was used in unnesting before labels were represented as records)
   def lequals(that: CExpr): Boolean = that match {
     case that: Variable => this.equals(that)
     case t if that.tp.isInstanceOf[LabelType] => 

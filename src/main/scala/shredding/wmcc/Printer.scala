@@ -1,9 +1,12 @@
 package shredding.wmcc
 
 import shredding.utils.Utils.ind
+
 /**
-  * Prints top down, stringify prints bottom up
+  * Top down printer (preserves variable names through transformations)
+  * for bottom up printer see BaseStringify in Base.scala
   */
+
 object Printer {
   val compiler = new BaseStringify{}
   import compiler._
@@ -39,8 +42,6 @@ object Printer {
     case CDeDup(e1) => s"DeDup(${quote(e1)})"
     case CNamed(n, e) => named(n, quote(e))
     case LinearCSet(exprs) => linset(exprs.map(quote(_)))
-    case Label(id, fs) => label(id, fs.map(f => f._1 -> quote(f._2)))
-    case Extract(lbl, exp) => extract(quote(lbl), quote(exp))
     case CLookup(lbl, dict) => lookup(quote(lbl), quote(dict))
     case EmptyCDict => emptydict
     case BagCDict(lbl, flat, dict) => bagdict(quote(lbl), quote(flat), quote(dict))

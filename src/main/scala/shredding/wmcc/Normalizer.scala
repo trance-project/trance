@@ -1,5 +1,11 @@
 package shredding.wmcc
 
+import shredding.core._
+
+/**
+  * Normalization rules for WMCC 
+  */
+
 trait BaseNormalizer extends BaseCompiler {
 
   // reduce conditionals
@@ -37,7 +43,7 @@ trait BaseNormalizer extends BaseCompiler {
   override def project(e1: Rep, f: String): Rep = e1 match {
     case t:Tuple => t(f.toInt)
     case t:Record => t(f)
-    case t:Label => t(f)
+    //case t:Label => t(f)
     case t:TupleCDict => t(f)
     case t:BagCDict => t(f)
     case _ => super.project(e1, f)

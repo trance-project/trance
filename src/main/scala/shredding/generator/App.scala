@@ -6,8 +6,7 @@ import shredding.wmcc._
 import shredding.examples.tpch.{TPCHQueries, TPCHSchema, TPCHLoader}
 
 /**
-  * This App is just a scratch space to quickly test components in this 
-  * directory. 
+  * Generates Scala code for a provided query
   */
 
 object App {
@@ -36,14 +35,13 @@ object App {
       | }
       |}""".stripMargin
 
-  def main(args: Array[String]){
     
+  def run(){
     val runner = new PipelineRunner{}
     val translator = new NRCTranslator{}
     val normalizer = new Finalizer(new BaseNormalizer{})
     val anfBase = new BaseANF {}
     val anfer = new Finalizer(anfBase)
-
     val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2)
     // standard pipeline
     val codegen = new ScalaNamedGenerator(inputs)
@@ -58,8 +56,16 @@ object App {
     val finalc = write(TPCHQueries.q1name, TPCHQueries.q1data, header, gcode)
     printer.println(finalc)
     printer.close
+  }
 
+  def runShred(){
     // shredded pipeline
+    val runner = new PipelineRunner{}
+    val translator = new NRCTranslator{}
+    val normalizer = new Finalizer(new BaseNormalizer{})
+    val anfBase = new BaseANF {}
+    val anfer = new Finalizer(anfBase)
+    val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2)
     val scodegen = new ScalaNamedGenerator(inputs)
     val nq1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
     val nnormq1 = normalizer.finalize(nq1)
@@ -73,8 +79,10 @@ object App {
     val sfinalc = write("Shred"+TPCHQueries.q1name, TPCHQueries.sq1data, sheader, sgcode)
     sprinter.println(sfinalc)
     sprinter.close
-
   }
 
-
+  def main(args: Array[String]){
+    run()
+    runShred()
+  }
 }

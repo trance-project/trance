@@ -4,6 +4,10 @@ import shredding.core._
 import scala.collection.mutable.HashMap
 import shredding.utils.Utils.ind
 
+/**
+  * Based compilers for WMCC and algebra data operators
+  */
+
 trait Base {
   type Rep
   def inputref(x: String, tp:Type): Rep
@@ -31,8 +35,6 @@ trait Base {
   def bind(e1: Rep, e: Rep => Rep): Rep 
   def named(n: String, e: Rep): Rep
   def linset(e: List[Rep]): Rep
-  def label(id: Int, vars: Map[String, Rep]): Rep
-  def extract(lbl: Rep, exp: Rep): Rep
   def lookup(lbl: Rep, dict: Rep): Rep
   def emptydict: Rep
   def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep
@@ -87,9 +89,6 @@ trait BaseStringify extends Base{
   def dedup(e1: Rep): Rep = s"DeDup(${e1})"
   def named(n: String, e: Rep): Rep = s"${n} := ${e}"
   def linset(e: List[Rep]): Rep = e.mkString("\n\n")
-  def label(id: Int, vars: Map[String, Rep]): Rep = 
-    s"Label${id}(${vars.map(f => f._1 +"->"+f._2).mkString(",")})"
-  def extract(lbl: Rep, exp: Rep): Rep = s"Extract(${lbl}, ${exp})"
   def lookup(lbl: Rep, dict: Rep): Rep = s"Lookup(${lbl}, ${dict})"
   def emptydict: Rep = s"Nil"
   def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = s"(${lbl} -> ${flat}, ${dict})"
@@ -132,6 +131,10 @@ trait BaseStringify extends Base{
 
 }
 
+/**
+  * Generates expression nodes defined in Expr.scala
+  */
+
 trait BaseCompiler extends Base {
   type Rep = CExpr 
   def inputref(x: String, tp: Type): Rep = InputRef(x, tp)
@@ -165,8 +168,6 @@ trait BaseCompiler extends Base {
   }
   def named(n: String, e: Rep): Rep = CNamed(n, e)
   def linset(e: List[Rep]): Rep = LinearCSet(e)
-  def label(id: Int, vars: Map[String, Rep]): Rep = Label(id, vars)
-  def extract(lbl: Rep, exp: Rep): Rep = Extract(lbl, exp)
   def lookup(lbl: Rep, dict: Rep): Rep = CLookup(lbl, dict)
   def emptydict: Rep = EmptyCDict
   def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = BagCDict(lbl, flat, dict)
@@ -231,6 +232,9 @@ trait BaseCompiler extends Base {
   }
 }
 
+/**
+  * Scala evaluation 
+  */
 trait BaseScalaInterp extends Base{
   type Rep = Any
   var ctx = scala.collection.mutable.Map[String, Any]()
@@ -288,12 +292,6 @@ trait BaseScalaInterp extends Base{
   }
   def linset(e: List[Rep]): Rep = e
   def bind(e1: Rep, e: Rep => Rep): Rep = ctx.getOrElseUpdate(e1.asInstanceOf[String], e(e1))
-  def label(id: Int, fs: Map[String, Rep]): Rep = {
-    (id, fs.map(f => f._1 -> ctx.getOrElseUpdate(f._1, f._2)))
-  }
-  def extract(lbl: Rep, exp: Rep): Rep = 
-    // label is already extracted into context, spark requires different implementation
-    exp
   def lookup(lbl: Rep, dict: Rep): Rep = dict match {
     case (flat, tdict) => flat match {
       case (head:Map[String,Rep]) :: tail => flat
@@ -365,6 +363,10 @@ trait BaseScalaInterp extends Base{
 
 }
 
+/**
+  * ANF compiler for generating scala code,
+  * uses common subexpression elimination (CSE) 
+  */
 trait BaseANF extends Base {
 
   val compiler = new BaseCompiler {}
@@ -457,8 +459,6 @@ trait BaseANF extends Base {
     d
   }
   def linset(e: List[Rep]): Rep = compiler.linset(e.map(defToExpr(_)))
-  def label(id: Int, vars: Map[String, Rep]): Rep = compiler.label(id, vars.map(f => (f._1, defToExpr(f._2))))
-  def extract(lbl: Rep, exp: Rep): Rep = compiler.extract(lbl, exp)
   def lookup(lbl: Rep, dict: Rep): Rep = compiler.lookup(lbl, dict)
   def emptydict: Rep = compiler.emptydict
   def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = compiler.bagdict(lbl, flat, dict)
@@ -472,7 +472,6 @@ trait BaseANF extends Base {
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep): Rep = ???
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = ???
 }
-
 
 class Finalizer(val target: Base){
   var variableMap: Map[CExpr, target.Rep] = Map[CExpr, target.Rep]()
@@ -528,10 +527,6 @@ class Finalizer(val target: Base){
     case CNamed(n, e) => target.named(n, finalize(e))
     case LinearCSet(exprs) => 
       target.linset(exprs.map(finalize(_)))
-    case Label(id, vars) =>
-      target.label(id, vars.map(f => f._1 -> finalize(f._2)))
-    case Extract(lbl, exp) => 
-      target.extract(finalize(lbl), finalize(exp))
     case CLookup(l, d) => 
       target.lookup(finalize(l), finalize(d))
     case EmptyCDict => target.emptydict

@@ -3,6 +3,13 @@ package shredding.wmcc
 import shredding.core._
 import shredding.nrc.LinearizedNRC
 
+/**
+  * Translate (source and target) NRC to WMCC
+  * Label nodes from NRC are represented as records, 
+  * Free variables which are bound in a subquery from an extract node 
+  * are bound by referencing and projecting on a label node
+  */
+
 trait NRCTranslator extends LinearizedNRC {
   val compiler = new BaseCompiler{}
   import compiler._

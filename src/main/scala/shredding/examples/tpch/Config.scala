@@ -2,6 +2,6 @@ package shredding.examples.tpch
 
 object Config {
 
-  val datapath = "sf.001/"
+  val datapath = "sf.00001/"
 
 }

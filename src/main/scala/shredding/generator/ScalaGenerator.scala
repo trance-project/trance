@@ -4,6 +4,10 @@ import shredding.core._
 import shredding.wmcc._
 import shredding.utils.Utils.ind
 
+/**
+  * Generates Scala code, assumes nodes are compiled from ANF
+  */
+
 class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
   var types:Map[Type,String] = inputs
   var typelst:Seq[Type] = Seq()//inputs.map(_._1).toSeq
@@ -124,8 +128,6 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case CDeDup(e1) => s"${generate(e1)}.distinct"
     case CNamed(n, e) => generate(e)
     case LinearCSet(exprs) => s"""${exprs.map(generate(_)).mkString("\n")}"""
-    case Extract(lbl, exp) => 
-      generate(exp)
     case EmptyCDict => "()"
     case BagCDict(lbl, flat, dict) => 
       s"(${generate(flat)}.map(v => (${generate(lbl)}, v)), ${generate(dict)})"
