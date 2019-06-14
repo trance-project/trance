@@ -1,0 +1,102 @@
+package shredding.wmcc
+
+import shredding.core._
+import shredding.nrc.LinearizedNRC
+
+/**
+  * Translate (source and target) NRC to WMCC
+  * Label nodes from NRC are represented as records, 
+  * Free variables which are bound in a subquery from an extract node 
+  * are bound by referencing and projecting on a label node
+  */
+
+trait NRCTranslator extends LinearizedNRC {
+  val compiler = new BaseCompiler{}
+  import compiler._
+
+  def translate(e: Type): Type = e match {
+    case BagType(t @ TupleType(fs)) if fs.isEmpty => BagCType(EmptyCType)
+    case BagType(t) => BagCType(translate(t))
+    case TupleType(fs) if fs.isEmpty => EmptyCType
+    case TupleType(fs) => RecordCType(fs.map(f => f._1 -> translate(f._2)))
+    case BagDictType(f,d) =>
+      BagDictCType(BagCType(TTupleType(List(LabelType(Map[String, Type]()), translate(f)))), 
+        translate(d).asInstanceOf[TTupleDict]) 
+    case EmptyDictType => EmptyDictCType
+    case TupleDictType(ts) if ts.isEmpty => EmptyDictCType
+    case TupleDictType(ts) => TupleDictCType(ts.map(f => f._1 -> translate(f._2).asInstanceOf[TDict]))
+    case LabelType(fs) if fs.isEmpty => IntType
+    case LabelType(fs) => RecordCType(fs.map(f => translateName(f._1) -> translate(f._2)))
+    case _ => e
+  }
+  
+  def translate(e: Cond): CExpr = e match {
+    case Cmp(op, e1, e2) => op match {
+      case OpEq => compiler.equals(translate(e1), translate(e2))
+      case OpNe => not(compiler.equals(translate(e1), translate(e2)))
+      case OpGt => (translate(e1), translate(e2)) match {
+        case (te1 @ Constant(_), te2:CExpr) =>  lt(te2, te1) // 5 > x
+        case (te1:CExpr, te2:CExpr) => gt(te1, te2)
+      }
+      case OpGe => (translate(e1), translate(e2)) match {
+        case (te1 @ Constant(_), te2:CExpr) => lte(te2, te1)
+        case (te1:CExpr, te2:CExpr) => gte(te1, te2)
+      }
+    }
+    case And(e1, e2) => and(translate(e1), translate(e2))
+    case Or(e1, e2) => or(translate(e1), translate(e2))
+    case Not(e1) => not(translate(e1))
+  }
+
+  def translateName(name: String): String = name.replace("^", "__")
+  def translate(v: VarDef): CExpr = Variable(translateName(v.name), translate(v.tp))
+  def translateVar(v: VarRef): CExpr = translate(v.varDef)
+  
+  def translate(e: Expr): CExpr = e match {
+    case Const(v, tp) => constant(v)
+    case v:VarRef => translateVar(v)
+    case Singleton(e1 @ Tuple(fs)) if fs.isEmpty => emptysng
+    case Singleton(e1) => sng(translate(e1))
+    case Tuple(fs) if fs.isEmpty => unit
+    case Tuple(fs) => record(fs.map(f => f._1 -> translate(f._2)))
+    case p:Project => project(translate(p.tuple), p.field)
+    case ift:IfThenElse => ift.e2 match {
+      case Some(a) => ifthen(translate(ift.cond), translate(ift.e1), Option(translate(a)))
+      case _ => ifthen(translate(ift.cond), translate(ift.e1))
+    }
+    case Union(e1, e2) => merge(translate(e1), translate(e2))
+    case ForeachUnion(x, e1, e2) => translate(e2) match {
+      case If(cond, e3 @ WeightedSng(t, q), e4 @ None) => 
+        Comprehension(translate(e1), translate(x).asInstanceOf[Variable], cond, e3) 
+      case If(cond, e3 @ Sng(t), e4 @ None) => 
+        Comprehension(translate(e1), translate(x).asInstanceOf[Variable], cond, e3)
+      case te2 => 
+        Comprehension(translate(e1), translate(x).asInstanceOf[Variable], constant(true), te2)
+    }
+    case l:Let => Bind(translate(l.x), translate(l.e1), translate(l.e2))
+    case Named(v, e) => CNamed(v.name, translate(e))
+    case Sequence(exprs) => LinearCSet(exprs.map(translate(_)))
+     case l @ NewLabel(vs) => 
+      record(vs.map(v => {
+        val v2 = translateVar(v).asInstanceOf[Variable]
+        translateName(v2.name) -> v2
+      }).toMap)
+    case e:ExtractLabel =>
+      val lbl = translate(e.lbl)
+      val bindings = e.lbl.tp.attrTps.map(k => 
+        Variable(translateName(k._1), translate(k._2)) -> project(lbl, translateName(k._1))).toSeq
+      bindings.foldRight(translate(e.e))((cur, acc) => Bind(cur._1, cur._2, acc))
+    case Lookup(lbl, dict) => CLookup(translate(lbl), translate(dict)) 
+    case EmptyDict => emptydict
+    case BagDict(lbl, flat, dict) => BagCDict(translate(lbl), translate(flat), translate(dict))
+    case BagDictProject(dict, field) => project(translate(dict), field)
+    case TupleDict(fs) => TupleCDict(fs.map(f => f._1 -> translate(f._2)))
+    case TupleDictProject(dict) => project(translate(dict), "_2")
+    case DictUnion(d1, d2) => DictCUnion(translate(d1), translate(d2))
+    case Total(e1) => comprehension(translate(e1), x => constant(true), (i: CExpr) => constant(1))
+    case DeDup(e1) => CDeDup(translate(e1)) 
+    case WeightedSingleton(tup, qty) => WeightedSng(translate(tup), translate(qty))
+    case _ => sys.error("cannot translate "+e)
+  }
+
+}
