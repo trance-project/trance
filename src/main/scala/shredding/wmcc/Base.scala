@@ -232,6 +232,8 @@ trait BaseCompiler extends Base {
   }
 }
 
+case class RecordValue(map: Map[String, Any])
+
 /**
   * Scala evaluation 
   */
@@ -248,7 +250,7 @@ trait BaseScalaInterp extends Base{
     if (q.asInstanceOf[Int] > 0) { (1 to q.asInstanceOf[Int]).map(w => x) } else { emptysng }
   }
   def tuple(x: List[Rep]): Rep = x
-  def record(fs: Map[String, Rep]): Rep = fs.asInstanceOf[Map[String, Rep]]
+  def record(fs: Map[String, Rep]): Rep = RecordValue(fs.asInstanceOf[Map[String, Rep]])
   def equals(e1: Rep, e2: Rep): Rep = e1 == e2
   def lt(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Int] < e2.asInstanceOf[Int]
   def gt(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Int] > e2.asInstanceOf[Int]
@@ -261,7 +263,7 @@ trait BaseScalaInterp extends Base{
     case "_1" => e1.asInstanceOf[Product].productElement(0)
     case "_2" => e1.asInstanceOf[Product].productElement(1)
     case f => e1 match {
-      case m:Map[String,_] => m(f)
+      case m:RecordValue => m.map(f)
       case m:HashMap[String,_] => m(f)
       case l:List[_] => l.map(project(_,f))
       case p:Product => p.productElement(f.toInt)
