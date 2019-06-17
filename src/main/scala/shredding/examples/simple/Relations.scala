@@ -26,8 +26,8 @@ object FlatRelations {
 
   // Relation 1: Bag(a: Int, b: String)  
   val type1a = TupleType("a" -> IntType, "b" -> StringType)  
-  val format1a = List(Map("a" -> 42, "b" -> "Milos"), Map("a" -> 49, "b" -> "Michael"),
-                           Map("a" -> 34, "b" -> "Jaclyn"), Map("a" -> 42, "b" -> "Thomas"))
+  val format1a = List(RecordValue("a" -> 42, "b" -> "Milos"), RecordValue("a" -> 49, "b" -> "Michael"),
+                           RecordValue("a" -> 34, "b" -> "Jaclyn"), RecordValue("a" -> 42, "b" -> "Thomas"))
 
   val type1b = RecordCType("a" -> IntType, "b" -> StringType)
   val format1b = List(InputR(42, "Milos"), InputR(49, "Michael"), InputR(34, "Jaclyn"), InputR(42, "Thomas")) 

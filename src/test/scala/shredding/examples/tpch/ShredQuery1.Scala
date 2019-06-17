@@ -28,16 +28,16 @@ case class Record184(k: Record177, v: List[Record183])
     var time = List[Long]()
     for (i <- 1 to 5) {
       var start = System.currentTimeMillis()
-      println(f)
+      f
       var end = System.currentTimeMillis() - start
       time = time :+ end
     }
+    println(time)
     val avg = (time.sum/5)
     println(avg)
  }
- 
  def f(){
-   val x53 = Record169(P__F, C__F, L__F, O__F)
+  val x53 = Record169(P__F, C__F, L__F, O__F)
 val x54 = Record170(x53)
 val x55 = List(x54)
 val x56 = x55

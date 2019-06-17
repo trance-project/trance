@@ -1,7 +1,9 @@
 package shredding.examples.tpch
 
 object Config {
-
-  val datapath = "sf.00001/"
-
+  val prop = new java.util.Properties
+  val fsin = new java.io.FileInputStream("data.flat")
+  prop.load(fsin)
+  val datapath = prop.getProperty("datapath")
+  println(datapath)
 }

@@ -63,17 +63,17 @@ object TPCHQueries {
 
   val q1type = TupleType("c_name" -> StringType, "c_orders" ->
                           BagType(TupleType("o_orderdate" -> StringType, "o_parts" ->
-                            BagType(TupleType("p_name" -> StringType, "l_qty" -> IntType)))))
+                            BagType(TupleType("p_name" -> StringType, "l_qty" -> DoubleType)))))
 
   val Q1 = VarDef("Q1", BagType(q1type)) 
   val q1 = VarDef("q1", q1type)
   val q1r = TupleVarRef(q1)
   val cq1 = VarDef("corders", TupleType("o_orderdate" -> StringType, "o_parts" ->
-                            BagType(TupleType("p_name" -> StringType, "l_qty" -> IntType))))
+                            BagType(TupleType("p_name" -> StringType, "l_qty" -> DoubleType))))
   val cq1r = TupleVarRef(cq1)
 
-  val pq1 = VarDef("oparts", TupleType("p_name" -> StringType, "l_qty" -> IntType))
-  val pq2 = VarDef("oparts2", TupleType("p_name" -> StringType, "l_qty" -> IntType))
+  val pq1 = VarDef("oparts", TupleType("p_name" -> StringType, "l_qty" -> DoubleType))
+  val pq2 = VarDef("oparts2", TupleType("p_name" -> StringType, "l_qty" -> DoubleType))
 
   val pq1r = TupleVarRef(pq1)
 
@@ -90,14 +90,15 @@ object TPCHQueries {
     *    .reduceByKey(_ + _)
     */
   val q4name = "Query4"
-  val query4 = ForeachUnion(q1, BagVarRef(Q1), 
-                ForeachUnion(cq1, BagProject(q1r, "c_orders"), 
-                  ForeachUnion(pq1, BagProject(cq1r, "o_parts"), 
-                    Singleton(Tuple("c_name" -> q1r("c_name"), "p_name" -> pq1r("p_name"), "month" -> cq1r("o_orderdate"), 
-                      "t_qty" -> Total(ForeachUnion(pq2, BagProject(cq1r, "o_parts"), 
+  val query4 = Sequence(List(Named(Q1, query1),
+                ForeachUnion(q1, BagVarRef(Q1), 
+                  ForeachUnion(cq1, BagProject(q1r, "c_orders"), 
+                    ForeachUnion(pq1, BagProject(cq1r, "o_parts"), 
+                      Singleton(Tuple("c_name" -> q1r("c_name"), "p_name" -> pq1r("p_name"), "month" -> cq1r("o_orderdate"), 
+                        "t_qty" -> Total(ForeachUnion(pq2, BagProject(cq1r, "o_parts"), 
                                   IfThenElse(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")),
                                     WeightedSingleton(Tuple("l_qty" -> pq1r("l_qty")), 
-                                      TupleVarRef(pq2)("l_qty").asInstanceOf[PrimitiveExpr]))))))))) 
+                                      TupleVarRef(pq2)("l_qty").asInstanceOf[PrimitiveExpr]))))))))))) 
   
   // Query 2
 

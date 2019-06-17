@@ -81,12 +81,15 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       e match {
         case Constant(1) => s"${generate(e1)}${filt}.map({${generate(v)} => 1}).sum"
         // nested sum, // .. val x0 = x.map({ y => 1 }); x0
-        case t @ Bind(_, _, Bind(_, Comprehension(_,_,_,Constant(1)), _)) =>
-          s"""${generate(e1)}${filt}.flatMap({${generate(v)} =>              
-            | ${ind(generate(t).replace(".sum", ""))}}).sum""".stripMargin  
         case t => 
-          s"""${generate(e1)}${filt}.flatMap({${generate(v)} => 
-            | ${ind(generate(t))}})""".stripMargin  
+          val gt = generate(t) 
+          if (gt.contains("1}).sum")){
+            s"""${generate(e1)}${filt}.flatMap({${generate(v)} =>
+            | ${ind(gt.replace(".sum", ""))}}).sum""".stripMargin
+          }else{
+            s"""${generate(e1)}${filt}.flatMap({${generate(v)} => 
+            | ${ind(gt)}})""".stripMargin  
+          }
         }
     case Record(fs) => {
       val tp = e.tp
@@ -109,7 +112,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       case _ => x.toString
     }
     case Sng(e) => s"List(${generate(e)})"
-    case WeightedSng(e, q) => s"(1 to ${generate(q)}).map(v => ${generate(e)})"
+    case WeightedSng(e, q) => s"(1 to ${generate(q)}.asInstanceOf[Int]).map(v => ${generate(e)})"
     case CUnit => "()"
     case EmptySng => "Nil"
     case If(cond, e1, e2) => e2 match {

@@ -15,16 +15,16 @@ case class Record35(c_name: String, c_orders: List[Record34])
     var time = List[Long]()
     for (i <- 1 to 5) {
       var start = System.currentTimeMillis()
-      println(f)
+      f
       var end = System.currentTimeMillis() - start
       time = time :+ end
     }
+    println(time)
     val avg = (time.sum/5)
     println(avg)
  }
- 
  def f(){
-   val x32 = C.flatMap({x5 => 
+  val x32 = C.flatMap({x5 => 
    val x6 = x5.c_name
   val x29 = O.withFilter({x7 => val x8 = x7.o_custkey
   val x9 = x5.c_custkey

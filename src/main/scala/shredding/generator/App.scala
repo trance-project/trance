@@ -39,6 +39,7 @@ object App {
       |      var end = System.currentTimeMillis() - start
       |      time = time :+ end
       |    }
+      |    println(time)
       |    val avg = (time.sum/5)
       |    println(avg)
       | }
@@ -48,7 +49,7 @@ object App {
       |}""".stripMargin
   }
   
-  def run(){
+  def run1(){
     val runner = new PipelineRunner{}
     val translator = new NRCTranslator{}
     val normalizer = new Finalizer(new BaseNormalizer{})
@@ -58,13 +59,30 @@ object App {
  
     val codegen = new ScalaNamedGenerator(inputs)   
 
-    //val q1 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
-    //val normq1 = normalizer.finalize(q1)
-    //val anfedq1 = anfer.finalize(normq1.asInstanceOf[CExpr])
-    //val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
-    //println(Printer.quote(anfExp1.asInstanceOf[CExpr]))
-    //val gcode1 = codegen.generate(anfExp1)
-    //val header1 = codegen.generateHeader()
+    val q1 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
+    val normq1 = normalizer.finalize(q1)
+    val anfedq1 = anfer.finalize(normq1.asInstanceOf[CExpr])
+    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
+    println(Printer.quote(anfExp1.asInstanceOf[CExpr]))
+    val gcode1 = codegen.generate(anfExp1)
+    val header1 = codegen.generateHeader()
+
+    var out = s"src/test/scala/shredding/examples/tpch/${TPCHQueries.q1name}.Scala"
+    val printer = new PrintWriter(new FileOutputStream(new File(out), false))
+    val finalc = write(TPCHQueries.q1name, TPCHQueries.q1data, header1, gcode1)
+    printer.println(finalc)
+    printer.close
+  }
+
+  def run4(){
+    val runner = new PipelineRunner{}
+    val translator = new NRCTranslator{}
+    val normalizer = new Finalizer(new BaseNormalizer{})
+    val anfBase = new BaseANF {}
+    val anfer = new Finalizer(anfBase)
+    val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2)
+ 
+    val codegen = new ScalaNamedGenerator(inputs)   
 
     val q4 = translator.translate(TPCHQueries.query4.asInstanceOf[translator.Expr])
     val normq4 = normalizer.finalize(q4)
@@ -80,7 +98,34 @@ object App {
     printer.close
   }
 
-  def runShred(){
+  def run1Shred(){
+    // shredded pipeline
+    val runner = new PipelineRunner{}
+    val translator = new NRCTranslator{}
+    val normalizer = new Finalizer(new BaseNormalizer{})
+    val anfBase = new BaseANF {}
+    val anfer = new Finalizer(anfBase)
+    val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2)
+    val scodegen = new ScalaNamedGenerator(inputs)
+    val nq1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
+    val nnormq1 = normalizer.finalize(nq1)
+    val anfednq1 = anfer.finalize(nnormq1.asInstanceOf[CExpr])
+    val anfExpn1 = anfBase.anf(anfednq1.asInstanceOf[anfBase.Rep])
+    val sgcode = scodegen.generate(anfExpn1)
+    val sheader = scodegen.generateHeader()
+
+    val query = TPCHQueries.query1.asInstanceOf[translator.Expr]
+    val qname = TPCHQueries.q1name
+    val qdata = TPCHQueries.sq1data
+
+    var sout = s"src/test/scala/shredding/examples/tpch/Shred${qname}.Scala"
+    val sprinter = new PrintWriter(new FileOutputStream(new File(sout), false))
+    val sfinalc = write("Shred"+qname, qdata, sheader, sgcode)
+    sprinter.println(sfinalc)
+    sprinter.close
+  }
+
+  def run4Shred(){
     // shredded pipeline
     val runner = new PipelineRunner{}
     val translator = new NRCTranslator{}
@@ -98,7 +143,7 @@ object App {
 
     val query = TPCHQueries.query4.asInstanceOf[translator.Expr]
     val qname = TPCHQueries.q4name
-    val qdata = TPCHQueries.q1data
+    val qdata = TPCHQueries.sq1data
 
     var sout = s"src/test/scala/shredding/examples/tpch/Shred${qname}.Scala"
     val sprinter = new PrintWriter(new FileOutputStream(new File(sout), false))
@@ -107,8 +152,11 @@ object App {
     sprinter.close
   }
 
+
   def main(args: Array[String]){
-    run()
-    //runShred()
+    run1()
+    run1Shred()
+    run4()
+    run4Shred()
   }
 }
