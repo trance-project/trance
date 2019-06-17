@@ -232,7 +232,13 @@ trait BaseCompiler extends Base {
   }
 }
 
-case class RecordValue(map: Map[String, Any])
+trait CaseClassRecord
+case class RecordValue(map: Map[String, Any]) {
+  override def toString(): String = map.map(x => s"${x._1}:${x._2}").mkString("Rec(", ",", ")")
+}
+object RecordValue {
+  def apply(vs: (String, Any)*): RecordValue = RecordValue(vs.toMap)
+}
 
 /**
   * Scala evaluation 
@@ -259,15 +265,19 @@ trait BaseScalaInterp extends Base{
   def and(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Boolean] && e2.asInstanceOf[Boolean]
   def not(e1: Rep): Rep = !e1.asInstanceOf[Boolean]
   def or(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Boolean] || e2.asInstanceOf[Boolean]
-  def project(e1: Rep, field: String) = field match {
+  def project(e1: Rep, f: String) = f match {
     case "_1" => e1.asInstanceOf[Product].productElement(0)
     case "_2" => e1.asInstanceOf[Product].productElement(1)
     case f => e1 match {
       case m:RecordValue => m.map(f)
+      case c:CaseClassRecord => 
+        val field = c.getClass.getDeclaredFields.find(_.getName == f).get
+        field.setAccessible(true)
+        field.get(c)
       case m:HashMap[String,_] => m(f)
       case l:List[_] => l.map(project(_,f))
       case p:Product => p.productElement(f.toInt)
-      case t => sys.error("unsupported projection type "+t.getClass) 
+      case t => sys.error(s"unsupported projection type ${t.getClass} for object:\n$t") 
     }
   }
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = e2 match {
