@@ -1,0 +1,6 @@
+List(Record174(Record169(4,1,3,2),List(Record173(Customer#000000001,Record172(4,3,2,Customer(1,Customer#000000001,IVhzIApeRb ot,c,E,15,25-989-741-2988,711.56,BUILDING,to the even, regular platelets. regular, ironic epitaphs nag e))))))
+List(Record175(Record172(4,3,2,Customer(1,Customer#000000001,IVhzIApeRb ot,c,E,15,25-989-741-2988,711.56,BUILDING,to the even, regular platelets. regular, ironic epitaphs nag e))))
+List(Record179(Record172(4,3,2,Customer(1,Customer#000000001,IVhzIApeRb ot,c,E,15,25-989-741-2988,711.56,BUILDING,to the even, regular platelets. regular, ironic epitaphs nag e)),List(Record178(1996-01-02,Record177(Orders(1,1,O,124828.11,1996-01-02,5-LOW,Clerk#000000951,0,nstructions sleep furiously among ),4,3)))))
+List(Record180(Record177(Orders(1,1,O,124828.11,1996-01-02,5-LOW,Clerk#000000951,0,nstructions sleep furiously among ),4,3)))
+List(Record184(Record177(Orders(1,1,O,124828.11,1996-01-02,5-LOW,Clerk#000000951,0,nstructions sleep furiously among ),4,3),List(Record183(goldenrod lavender spring chocolate lace,17.0), Record183(goldenrod lavender spring chocolate lace,36.0), Record183(goldenrod lavender spring chocolate lace,8.0), Record183(goldenrod lavender spring chocolate lace,28.0), Record183(goldenrod lavender spring chocolate lace,24.0), Record183(goldenrod lavender spring chocolate lace,32.0))))
+List(Record170(Record169(4,1,3,2)))

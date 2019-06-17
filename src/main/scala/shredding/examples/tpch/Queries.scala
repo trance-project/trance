@@ -89,6 +89,7 @@ object TPCHQueries {
     *   yield ((c_name,p_name,getMonth(o_orderdate)),l_qty) ) 
     *    .reduceByKey(_ + _)
     */
+  val q4name = "Query4"
   val query4 = ForeachUnion(q1, BagVarRef(Q1), 
                 ForeachUnion(cq1, BagProject(q1r, "c_orders"), 
                   ForeachUnion(pq1, BagProject(cq1r, "o_parts"), 
