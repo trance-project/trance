@@ -25,6 +25,10 @@ case class Region(r_regionkey: Int, r_name: String, r_comment: String) extends C
 
 case class Nation(n_nationkey: Int, n_name: String, n_regionkey: Int, n_comment: String) extends CaseClassRecord
 
+case class Q1Flat(P__F: Int, C__F: Int, L__F: Int, O__F: Int)
+
+case class Q1Flat2(Q1__F: Q1Flat)
+
 object TPCHSchema {
   val folderLocation = Config.datapath
   val scalingFactor = 1
@@ -214,6 +218,7 @@ object TPCHSchema {
 
   val regiontype = tableType(regionTable)
 
+  var q1ftype = TupleType("P__F" -> IntType, "C__F" -> IntType, "L__F" -> IntType, "O__F" -> IntType)
   var tpchInputs:Map[Type, String] = Map(partsupptype.tp -> "PartSupp", 
                                      suppliertype.tp -> "Supplier", 
                                      lineittype.tp -> "Lineitem", 
@@ -221,7 +226,8 @@ object TPCHSchema {
                                      customertype.tp -> "Customer", 
                                      parttype.tp -> "Part",
                                      nationtype.tp -> "Nation",
-                                     regiontype.tp -> "Region")
+                                     regiontype.tp -> "Region", 
+                                     q1ftype -> "Q1Flat")
   
   var tpchShredInputs:Map[Type, String] = Map(
     BagDictType(partsupptype, TupleDictType(Map[String, TupleDictAttributeType]())) -> "PartSupp", 

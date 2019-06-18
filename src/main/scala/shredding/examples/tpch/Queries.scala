@@ -90,7 +90,14 @@ object TPCHQueries {
     *    .reduceByKey(_ + _)
     */
   val q4name = "Query4"
-  val query4 = Sequence(List(Named(Q1, query1),
+
+  val sq4data = (v: String) => s"""
+    |case class Input_Q1_Dict2(o_parts: (List[Record399], Unit))
+    |case class Input_Q1_Dict1(c_orders: (List[Record394], Input_Q1_Dict2))
+    |val Q1__F = $v._1.head.lbl
+    |val Q1__D = ($v._2, Input_Q1_Dict1(($v._4, Input_Q1_Dict2(($v._6, Unit)))))""".stripMargin
+
+  val query4 = //Sequence(List(Named(Q1, query1),
                 ForeachUnion(q1, BagVarRef(Q1), 
                   ForeachUnion(cq1, BagProject(q1r, "c_orders"), 
                     ForeachUnion(pq1, BagProject(cq1r, "o_parts"), 
@@ -98,7 +105,7 @@ object TPCHQueries {
                         "t_qty" -> Total(ForeachUnion(pq2, BagProject(cq1r, "o_parts"), 
                                   IfThenElse(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")),
                                     WeightedSingleton(Tuple("l_qty" -> pq1r("l_qty")), 
-                                      TupleVarRef(pq2)("l_qty").asInstanceOf[PrimitiveExpr]))))))))))) 
+                                      TupleVarRef(pq2)("l_qty").asInstanceOf[PrimitiveExpr])))))))))//)) 
   
   // Query 2
 

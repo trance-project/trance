@@ -13,11 +13,17 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
   var typelst:Seq[Type] = Seq()//inputs.map(_._1).toSeq
 
   implicit def expToString(e: CExpr): String = generate(e)
+  
+  def kvName(x: String): String = x match {
+    case "k" => "_1"
+    case "v" => "_2" 
+    case _ => x
+  } 
 
   def generateTypeDef(tp: Type): String = tp match {
     case RecordCType(fs) =>
      val name = types(tp)
-      s"case class $name(${fs.map(x => s"${x._1}: ${generateType(x._2)}").mkString(", ")})" 
+      s"case class $name(${fs.map(x => s"${kvName(x._1)}: ${generateType(x._2)}").mkString(", ")})" 
     case _ => sys.error("unsupported type "+tp)
   }
 
@@ -82,10 +88,10 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
         case Constant(1) => s"${generate(e1)}${filt}.map({${generate(v)} => 1}).sum"
         // nested sum, // .. val x0 = x.map({ y => 1 }); x0
         case t => 
-          val gt = generate(t) 
-          if (gt.contains("1}).sum")){
+          val gt = generate(t)
+          if (gt.contains(".sum")){
             s"""${generate(e1)}${filt}.flatMap({${generate(v)} =>
-            | ${ind(gt.replace(".sum", ""))}}).sum""".stripMargin
+                | ${ind(gt.replace(".sum", ""))}}).sum""".stripMargin
           }else{
             s"""${generate(e1)}${filt}.flatMap({${generate(v)} => 
             | ${ind(gt)}})""".stripMargin  
@@ -98,7 +104,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     }
     case Bind(v, e1, e2) =>
       s"val ${generate(v)} = ${generate(e1)}\n${generate(e2)}"
-    case Project(e, field) => s"${generate(e)}.$field"
+    case Project(e, field) => s"${generate(e)}.${kvName(field)}"
     case Equals(e1, e2) => s"${generate(e1)} == ${generate(e2)}"
     case Lt(e1, e2) => s"${generate(e1)} < ${generate(e2)}"
     case Gt(e1, e2) => s"${generate(e1)} > ${generate(e2)}"
@@ -130,7 +136,9 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Merge(e1, e2) => s"${generate(e1) ++ generate(e2)}"
     case CDeDup(e1) => s"${generate(e1)}.distinct"
     case CNamed(n, e) => generate(e)
-    case LinearCSet(exprs) => s"""${exprs.map(generate(_)).mkString("\n")}"""
+    case LinearCSet(exprs) => 
+      //val names = exprs.map(cn => cn match { case CNamed(n, e1) => n }).mkString(",")
+      s"""(${exprs.map(generate(_)).mkString(",")})"""
     case EmptyCDict => "()"
     case BagCDict(lbl, flat, dict) => 
       s"(${generate(flat)}.map(v => (${generate(lbl)}, v)), ${generate(dict)})"

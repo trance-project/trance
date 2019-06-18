@@ -417,6 +417,13 @@ trait BaseANF extends Base {
   var vars: Seq[Variable] = Seq()
   var varMaps: Map[String, Variable] = Map()
 
+  def reset = {
+    state = Map()
+    stateInv = Map()
+    vars = Seq()
+    varMaps = Map()
+  }
+
   // TODO: CSE doesn't go beyond a scope.
   def reifyBlock(b: => Rep): CExpr = {
     val oldState = state
