@@ -29,6 +29,9 @@ case class Q1Flat(P__F: Int, C__F: Int, L__F: Int, O__F: Int)
 
 case class Q1Flat2(Q1__F: Q1Flat)
 
+//case class Flat3(p_name:
+
+
 object TPCHSchema {
   val folderLocation = Config.datapath
   val scalingFactor = 1

@@ -291,8 +291,9 @@ trait BaseScalaInterp extends Base{
       case data @ (head :: tail) => e(head) match {
         case i:Int =>
           data.withFilter(p.asInstanceOf[Rep => Boolean]).map(e).asInstanceOf[List[Int]].sum
-        case _ => data.flatMap(e.asInstanceOf[Rep => scala.collection.GenTraversableOnce[Rep]])
-                    //.filter(p.asInstanceOf[Rep => Boolean]) issue because of type mis-mastch
+        case _ => 
+          data.withFilter(p.asInstanceOf[Rep => Boolean]).
+            flatMap(e.asInstanceOf[Rep => scala.collection.GenTraversableOnce[Rep]])
       }
     }
   }
