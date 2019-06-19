@@ -13,15 +13,15 @@ case class Record240(o_orderdate: String, o_parts: List[Record239])
 case class Record241(c_name: String, c_orders: List[Record240])
 case class Record277(l_qty: Double)
 case class Record279(c_name: String, p_name: String, month: String, t_qty: Int)
- val x234 = C.flatMap(acc235 =>  
+ val x234 = C.flatMap(x207 =>  
   {  val x208 = x207.c_name
-    val x231 = O.flatMap(acc236 =>  
+    val x231 = O.flatMap(x209 =>  
       if({val x210 = x209.o_custkey
       val x211 = x207.c_custkey
       val x212 = x210 == x211
       x212}) {  val x213 = x209.o_orderdate
-        val x228 = L.flatMap(acc237 =>  
-          {  val x227 = P.flatMap(acc238 =>  
+        val x228 = L.flatMap(x214 =>  
+          {  val x227 = P.flatMap(x215 =>  
               if({val x216 = x214.l_orderkey
               val x217 = x209.o_orderkey
               val x218 = x216 == x217
@@ -56,11 +56,11 @@ x234
     println(avg)
  }
  def f(){
-  val x272 = Q1.flatMap(acc273 =>  
+  val x272 = Q1.flatMap(x248 =>  
   {  val x249 = x248.c_orders
-    val x271 = x249.flatMap(acc274 =>  
+    val x271 = x249.flatMap(x250 =>  
       {  val x251 = x250.o_parts
-        val x270 = x251.flatMap(acc275 =>  
+        val x270 = x251.flatMap(x252 =>  
           {  val x253 = x248.c_name
             val x254 = x252.p_name
             val x255 = x250.o_orderdate

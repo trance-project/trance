@@ -99,7 +99,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
         case DoubleType =>
           s"${generate(e1)}.foldLeft(0.0)(($acc, $cur) => \n${ind(conditional(s"$acc + {${generate(e)}}", s"$acc"))})"
         case _ =>
-          s"${generate(e1)}.flatMap($acc =>  \n${ind(conditional(generate(e), "Nil"))})"
+          s"${generate(e1)}.flatMap($cur =>  \n${ind(conditional(generate(e), "Nil"))})"
       }
       
       // val filt = p match { case Constant(true) => ""; case _ => s".withFilter({${generate(v)} => ${generate(p)}})"}

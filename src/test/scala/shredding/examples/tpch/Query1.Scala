@@ -24,15 +24,15 @@ case class Record39(c_name: String, c_orders: List[Record38])
     println(avg)
  }
  def f(){
-  val x32 = C.flatMap(acc33 =>  
+  val x32 = C.flatMap(x5 =>  
   {  val x6 = x5.c_name
-    val x29 = O.flatMap(acc34 =>  
+    val x29 = O.flatMap(x7 =>  
       if({val x8 = x7.o_custkey
       val x9 = x5.c_custkey
       val x10 = x8 == x9
       x10}) {  val x11 = x7.o_orderdate
-        val x26 = L.flatMap(acc35 =>  
-          {  val x25 = P.flatMap(acc36 =>  
+        val x26 = L.flatMap(x12 =>  
+          {  val x25 = P.flatMap(x13 =>  
               if({val x14 = x12.l_orderkey
               val x15 = x7.o_orderkey
               val x16 = x14 == x15

@@ -35,16 +35,16 @@ case class Record545(_1: Q1Flat2, _2: List[Record544])
 val x298 = Record413(x297)
 val x299 = List(x298)
 val x300 = x299
-val x323 = x300.flatMap(acc414 =>  
+val x323 = x300.flatMap(x301 =>  
   {  val x302 = x301.lbl
     val x303 = C__D._1
-    val x320 = x303.flatMap(acc416 =>  
+    val x320 = x303.flatMap(x304 =>  
       if({val x305 = x301.lbl
       val x306 = x305.C__F
       val x307 = x304._1
       val x308 = x306 == x307
       x308}) {  val x309 = x304._2
-        val x319 = x309.flatMap(acc417 =>  
+        val x319 = x309.flatMap(x310 =>  
           {  val x311 = x310.c_name
             val x312 = x301.lbl
             val x313 = x312.P__F
@@ -59,9 +59,9 @@ val x323 = x300.flatMap(acc414 =>
     val x322 = List(x321)
     x322})
 val x324 = x323
-val x332 = x324.flatMap(acc421 =>  
+val x332 = x324.flatMap(x325 =>  
   {  val x326 = x325._2
-    val x331 = x326.flatMap(acc422 =>  
+    val x331 = x326.flatMap(x327 =>  
       {  val x328 = x327.c_orders
         val x329 = Record423(x328)
         val x330 = List(x329)
@@ -69,16 +69,16 @@ val x332 = x324.flatMap(acc421 =>
     x331})
 val x333 = x332.distinct
 val x334 = x333
-val x361 = x334.flatMap(acc424 =>  
+val x361 = x334.flatMap(x335 =>  
   {  val x336 = x335.lbl
     val x337 = O__D._1
-    val x358 = x337.flatMap(acc426 =>  
+    val x358 = x337.flatMap(x338 =>  
       if({val x339 = x335.lbl
       val x340 = x339.O__F
       val x341 = x338._1
       val x342 = x340 == x341
       x342}) {  val x343 = x338._2
-        val x357 = x343.flatMap(acc427 =>  
+        val x357 = x343.flatMap(x344 =>  
           if({val x345 = x344.o_custkey
           val x346 = x335.lbl
           val x347 = x346.c__F
@@ -97,9 +97,9 @@ val x361 = x334.flatMap(acc424 =>
     val x360 = List(x359)
     x360})
 val x362 = x361
-val x370 = x362.flatMap(acc431 =>  
+val x370 = x362.flatMap(x363 =>  
   {  val x364 = x363._2
-    val x369 = x364.flatMap(acc432 =>  
+    val x369 = x364.flatMap(x365 =>  
       {  val x366 = x365.o_parts
         val x367 = Record433(x366)
         val x368 = List(x367)
@@ -107,24 +107,24 @@ val x370 = x362.flatMap(acc431 =>
     x369})
 val x371 = x370.distinct
 val x372 = x371
-val x410 = x372.flatMap(acc434 =>  
+val x410 = x372.flatMap(x373 =>  
   {  val x374 = x373.lbl
     val x375 = L__D._1
-    val x407 = x375.flatMap(acc436 =>  
+    val x407 = x375.flatMap(x376 =>  
       if({val x377 = x373.lbl
       val x378 = x377.L__F
       val x379 = x376._1
       val x380 = x378 == x379
       x380}) {  val x381 = x376._2
-        val x406 = x381.flatMap(acc437 =>  
+        val x406 = x381.flatMap(x382 =>  
           {  val x383 = P__D._1
-            val x405 = x383.flatMap(acc439 =>  
+            val x405 = x383.flatMap(x384 =>  
               if({val x385 = x373.lbl
               val x386 = x385.P__F
               val x387 = x384._1
               val x388 = x386 == x387
               x388}) {  val x389 = x384._2
-                val x404 = x389.flatMap(acc440 =>  
+                val x404 = x389.flatMap(x390 =>  
                   if({val x391 = x382.l_orderkey
                   val x392 = x373.lbl
                   val x393 = x392.o__F
@@ -149,8 +149,8 @@ val x411 = x410
 val x412 = (x300,x324,x334,x362,x372,x411)
 x412
  
-case class Input_Q1_Dict2(o_parts: (List[Foo], Unit))
-case class Input_Q1_Dict1(c_orders: (List[Goo], Input_Q1_Dict2))
+case class Input_Q1_Dict2(o_parts: (List[Record442], Unit))
+case class Input_Q1_Dict1(c_orders: (List[Record430], Input_Q1_Dict2))
 val Q1__F = x412._1.head.lbl
 val Q1__D = (x412._2, Input_Q1_Dict1((x412._4, Input_Q1_Dict2((x412._6, Unit)))))
  def main(args: Array[String]){ 
@@ -170,36 +170,36 @@ val Q1__D = (x412._2, Input_Q1_Dict1((x412._4, Input_Q1_Dict2((x412._6, Unit))))
 val x455 = Record526(x454)
 val x456 = List(x455)
 val x457 = x456
-val x523 = x457.flatMap(acc527 =>  
+val x523 = x457.flatMap(x458 =>  
   {  val x459 = x458.lbl
     val x460 = Q1__D._1
-    val x520 = x460.flatMap(acc531 =>  
+    val x520 = x460.flatMap(x461 =>  
       if({val x462 = x458.lbl
       val x463 = x462.Q1__F
       val x464 = x461._1
       val x465 = x463 == x464
       x465}) {  val x466 = x461._2
-        val x519 = x466.flatMap(acc532 =>  
+        val x519 = x466.flatMap(x467 =>  
           {  val x468 = Q1__D._2
             val x469 = x468.c_orders
             val x470 = x469._1
-            val x518 = x470.flatMap(acc534 =>  
+            val x518 = x470.flatMap(x471 =>  
               if({val x472 = x467.c_orders
               val x473 = x471._1
               val x474 = x472 == x473
               x474}) {  val x475 = x471._2
-                val x517 = x475.flatMap(acc535 =>  
+                val x517 = x475.flatMap(x476 =>  
                   {  val x477 = Q1__D._2
                     val x478 = x477.c_orders
                     val x479 = x478._2
                     val x480 = x479.o_parts
                     val x481 = x480._1
-                    val x516 = x481.flatMap(acc537 =>  
+                    val x516 = x481.flatMap(x482 =>  
                       if({val x483 = x476.o_parts
                       val x484 = x482._1
                       val x485 = x483 == x484
                       x485}) {  val x486 = x482._2
-                        val x515 = x486.flatMap(acc538 =>  
+                        val x515 = x486.flatMap(x487 =>  
                           {  val x488 = x467.c_name
                             val x489 = x487.p_name
                             val x490 = x476.o_orderdate

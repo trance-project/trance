@@ -175,7 +175,7 @@ object App {
     var sout = s"src/test/scala/shredding/examples/tpch/Shred${TPCHQueries.q4name}.Scala"
     val sprinter = new PrintWriter(new FileOutputStream(new File(sout), false))
     // TODO change Foo and Goo to appropriate types
-    val sfinalc = write2("Shred"+TPCHQueries.q4name, TPCHQueries.sq1data, header4, gcode1, TPCHQueries.sq4data("Foo", "Goo"), gcode4)
+    val sfinalc = write2("Shred"+TPCHQueries.q4name, TPCHQueries.sq1data, header4, gcode1, TPCHQueries.sq4data("Record442", "Record430"), gcode4)
     sprinter.println(sfinalc)
     sprinter.close
   }
