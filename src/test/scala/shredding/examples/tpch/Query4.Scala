@@ -60,7 +60,7 @@ x215
    val x226 = x225.c_orders
   val x248 = x226.flatMap({x227 =>
      val x228 = x227.o_parts
-    val x247 = x228.flatMap({x229 =>
+    val x247 = x228.flatMap({x229 => 
        val x230 = x225.c_name
       val x231 = x229.p_name
       val x232 = x227.o_orderdate

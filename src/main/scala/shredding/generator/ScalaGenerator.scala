@@ -92,7 +92,9 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
         // nested sum, // .. val x0 = x.map({ y => 1 }); x0
         case t => 
           val gt = generate(t)
-          if (gt.contains(".sum")){
+          if (gt.contains("}).sum")){
+            println("here")
+            println(gt)
             s"""${generate(e1)}${filt}.flatMap({${generate(v)} =>
                 | ${ind(gt.replace(".sum", ""))}}).sum""".stripMargin
           }else{

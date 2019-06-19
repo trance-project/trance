@@ -170,7 +170,7 @@ val Q1__D = (x384._2, Input_Q1_Dict1((x384._4, Input_Q1_Dict2((x384._6, Unit))))
 val x412 = Record483(x411)
 val x413 = List(x412)
 val x414 = x413
-val x480 = x414.flatMap({x415 =>
+val x480 = x414.flatMap({x415 => 
    val x416 = x415.lbl
   val x417 = Q1__D._1
   val x477 = x417.withFilter({x418 => val x419 = x415.lbl
@@ -199,7 +199,7 @@ val x480 = x414.flatMap({x415 =>
           val x442 = x440 == x441
           x442}).flatMap({x439 =>
              val x443 = x439._2
-            val x472 = x443.flatMap({x444 =>
+            val x472 = x443.flatMap({x444 => 
                val x445 = x424.c_name
               val x446 = x444.p_name
               val x447 = x433.o_orderdate
@@ -231,10 +231,10 @@ val x480 = x414.flatMap({x415 =>
           x473})
         x474})
       x475})
-    x476})
+    x476}).sum
   val x478 = Record492(x416, x477)
   val x479 = List(x478)
-  x479}).sum
+  x479})
 val x481 = x480
 val x482 = (x414,x481)
 x482
