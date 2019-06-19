@@ -291,8 +291,9 @@ trait BaseScalaInterp extends Base{
       case data @ (head :: tail) => e(head) match {
         case i:Int =>
           data.withFilter(p.asInstanceOf[Rep => Boolean]).map(e).asInstanceOf[List[Int]].sum
-        case _ => data.flatMap(e.asInstanceOf[Rep => scala.collection.GenTraversableOnce[Rep]])
-                    //.filter(p.asInstanceOf[Rep => Boolean]) issue because of type mis-mastch
+        case _ => 
+          data.withFilter(p.asInstanceOf[Rep => Boolean]).
+            flatMap(e.asInstanceOf[Rep => scala.collection.GenTraversableOnce[Rep]])
       }
     }
   }
@@ -416,6 +417,13 @@ trait BaseANF extends Base {
   var stateInv: Map[Variable, CExpr] = Map()
   var vars: Seq[Variable] = Seq()
   var varMaps: Map[String, Variable] = Map()
+
+  def reset = {
+    state = Map()
+    stateInv = Map()
+    vars = Seq()
+    varMaps = Map()
+  }
 
   // TODO: CSE doesn't go beyond a scope.
   def reifyBlock(b: => Rep): CExpr = {
