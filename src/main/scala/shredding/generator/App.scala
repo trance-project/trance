@@ -170,9 +170,12 @@ object App {
     val gcode4 = codegen.generate(anfExp4)
     val header4 = codegen.generateHeader()
 
+    // println(s"type: ${normq1.asInstanceOf[CExpr].tp}")
+
     var sout = s"src/test/scala/shredding/examples/tpch/Shred${TPCHQueries.q4name}.Scala"
     val sprinter = new PrintWriter(new FileOutputStream(new File(sout), false))
-    val sfinalc = write2("Shred"+TPCHQueries.q4name, TPCHQueries.sq1data, header4, gcode1, TPCHQueries.sq4data, gcode4)
+    // TODO change Foo and Goo to appropriate types
+    val sfinalc = write2("Shred"+TPCHQueries.q4name, TPCHQueries.sq1data, header4, gcode1, TPCHQueries.sq4data("Foo", "Goo"), gcode4)
     sprinter.println(sfinalc)
     sprinter.close
   }

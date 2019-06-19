@@ -149,8 +149,8 @@ val x411 = x410
 val x412 = (x300,x324,x334,x362,x372,x411)
 x412
  
-case class Input_Q1_Dict2(o_parts: (List[Record399], Unit))
-case class Input_Q1_Dict1(c_orders: (List[Record394], Input_Q1_Dict2))
+case class Input_Q1_Dict2(o_parts: (List[Foo], Unit))
+case class Input_Q1_Dict1(c_orders: (List[Goo], Input_Q1_Dict2))
 val Q1__F = x412._1.head.lbl
 val Q1__D = (x412._2, Input_Q1_Dict1((x412._4, Input_Q1_Dict2((x412._6, Unit)))))
  def main(args: Array[String]){ 
@@ -212,19 +212,19 @@ val x523 = x457.flatMap(acc527 =>
                               if({val x497 = x476.o_parts
                               val x498 = x496._1
                               val x499 = x497 == x498
-                              x499}) {  acc540 + val x500 = x496._2
+                              x499}) {  acc540 + {val x500 = x496._2
                                 val x511 = x500.foldLeft(0)((acc541, x501) => 
                                   if({val x502 = x501.p_name
                                   val x503 = x487.p_name
                                   val x504 = x502 == x503
-                                  x504}) {  acc541 + val x505 = x487.l_qty
+                                  x504}) {  acc541 + {val x505 = x487.l_qty
                                     val x506 = Record542(x505)
                                     val x507 = x501.l_qty
                                     val x508 = (1 to x507.asInstanceOf[Int]).map(v => x506)
                                     val x510 = x508.foldLeft(0)((acc543, x509) => 
-                                      {  acc543 + 1})
-                                    x510} else {  acc541})
-                                x511} else {  acc540})
+                                      {  acc543 + {1}})
+                                    x510}} else {  acc541})
+                                x511}} else {  acc540})
                             val x513 = Record544(x488, x489, x490, x512)
                             val x514 = List(x513)
                             x514})
