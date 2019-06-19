@@ -69,13 +69,13 @@ x234
               if({val x258 = x257.p_name
               val x259 = x252.p_name
               val x260 = x258 == x259
-              x260}) {  acc276 + val x261 = x252.l_qty
+              x260}) {  acc276 + {val x261 = x252.l_qty
                 val x262 = Record277(x261)
                 val x263 = x257.l_qty
                 val x264 = (1 to x263.asInstanceOf[Int]).map(v => x262)
                 val x266 = x264.foldLeft(0)((acc278, x265) => 
-                  {  acc278 + 1})
-                x266} else {  acc276})
+                  {  acc278 + {1}})
+                x266}} else {  acc276})
             val x268 = Record279(x253, x254, x255, x267)
             val x269 = List(x268)
             x269})

@@ -95,9 +95,9 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
         }
       e.tp match {
         case IntType =>
-          s"${generate(e1)}.foldLeft(0)(($acc, $cur) => \n${ind(conditional(s"$acc + ${generate(e)}", s"$acc"))})"
+          s"${generate(e1)}.foldLeft(0)(($acc, $cur) => \n${ind(conditional(s"$acc + {${generate(e)}}", s"$acc"))})"
         case DoubleType =>
-          s"${generate(e1)}.foldLeft(0.0)(($acc, $cur) => \n${ind(conditional(s"$acc + ${generate(e)}", s"$acc"))})"
+          s"${generate(e1)}.foldLeft(0.0)(($acc, $cur) => \n${ind(conditional(s"$acc + {${generate(e)}}", s"$acc"))})"
         case _ =>
           s"${generate(e1)}.flatMap($acc =>  \n${ind(conditional(generate(e), "Nil"))})"
       }
