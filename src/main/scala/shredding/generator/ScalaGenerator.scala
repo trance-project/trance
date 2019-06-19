@@ -86,20 +86,36 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       handleType(tp, Some("Input_"+name))
       name
     case Comprehension(e1, v, p, e) =>
-      val filt = p match { case Constant(true) => ""; case _ => s".withFilter({${generate(v)} => ${generate(p)}})"}
-      e match {
-        case Constant(1) => s"${generate(e1)}${filt}.map({${generate(v)} => 1}).sum"
-        // nested sum, // .. val x0 = x.map({ y => 1 }); x0
-        case t => 
-          val gt = generate(t)
-          if (gt.contains(".sum")){
-            s"""${generate(e1)}${filt}.flatMap({${generate(v)} =>
-                | ${ind(gt.replace(".sum", ""))}}).sum""".stripMargin
-          }else{
-            s"""${generate(e1)}${filt}.flatMap({${generate(v)} => 
-            | ${ind(gt)}})""".stripMargin  
-          }
+      val acc = "acc" + Variable.newId()
+      val cur = generate(v)
+      def conditional(thenp: String, elsep: String): String = 
+        p match {
+          case Constant(true) => s"{${ind(thenp)}}"
+          case _ => s"if({${generate(p)}}) {${ind(thenp)}} else {${ind(elsep)}}"
         }
+      e.tp match {
+        case IntType =>
+          s"${generate(e1)}.foldLeft(0)(($acc, $cur) => \n${ind(conditional(s"$acc + ${generate(e)}", s"$acc"))})"
+        case DoubleType =>
+          s"${generate(e1)}.foldLeft(0.0)(($acc, $cur) => \n${ind(conditional(s"$acc + ${generate(e)}", s"$acc"))})"
+        case _ =>
+          s"${generate(e1)}.flatMap($acc =>  \n${ind(conditional(generate(e), "Nil"))})"
+      }
+      
+      // val filt = p match { case Constant(true) => ""; case _ => s".withFilter({${generate(v)} => ${generate(p)}})"}
+      // e match {
+      //   case Constant(1) => s"${generate(e1)}${filt}.count"
+      //   // nested sum, // .. val x0 = x.map({ y => 1 }); x0
+      //   case t => 
+      //     val gt = generate(t)
+      //     if (gt.contains(".sum")){
+      //       s"""${generate(e1)}${filt}.flatMap({${generate(v)} =>
+      //           | ${ind(gt.replace(".sum", ""))}}).sum""".stripMargin
+      //     }else{
+      //       s"""${generate(e1)}${filt}.flatMap({${generate(v)} => 
+      //       | ${ind(gt)}})""".stripMargin  
+      //     }
+      //   }
     case Record(fs) => {
       val tp = e.tp
       handleType(tp)
