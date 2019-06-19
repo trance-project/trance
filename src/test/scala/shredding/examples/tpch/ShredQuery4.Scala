@@ -31,7 +31,6 @@ case class Input_Q1__DDict484(c_orders: (List[(Int, List[Flat485])], Dict485))
 case class Record490(l_qty: Double)
 case class Record491(c_name: String, p_name: String, month: String, t_qty: Int)
 case class Record492(_1: Q1Flat2, _2: List[Record491])
-var start0 = System.currentTimeMillis()
  val x269 = Q1Flat(P__F, C__F, L__F, O__F)
 val x270 = Record385(x269)
 val x271 = List(x270)
@@ -154,8 +153,6 @@ case class Input_Q1_Dict2(o_parts: (List[Record399], Unit))
 case class Input_Q1_Dict1(c_orders: (List[Record394], Input_Q1_Dict2))
 val Q1__F = x384._1.head.lbl
 val Q1__D = (x384._2, Input_Q1_Dict1((x384._4, Input_Q1_Dict2((x384._6, Unit)))))
-var end0 = System.currentTimeMillis() - start0
-println(s"setup time: $end0")
  def main(args: Array[String]){ 
     var time = List[Long]()
     for (i <- 1 to 5) {  
@@ -226,7 +223,7 @@ val x480 = x414.flatMap({x415 =>
                   val x465 = (1 to x464.asInstanceOf[Int]).map(v => x463)
                   val x467 = x465.map({x466 => 1})
                   x467})
-                x468}).sum
+                x468})
               val x470 = Record491(x445, x446, x447, x469)
               val x471 = List(x470)
               x471})
@@ -237,7 +234,7 @@ val x480 = x414.flatMap({x415 =>
     x476})
   val x478 = Record492(x416, x477)
   val x479 = List(x478)
-  x479})
+  x479}).sum
 val x481 = x480
 val x482 = (x414,x481)
 x482

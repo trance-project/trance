@@ -13,7 +13,6 @@ case class Record217(o_orderdate: String, o_parts: List[Record216])
 case class Record218(c_name: String, c_orders: List[Record217])
 case class Record250(l_qty: Double)
 case class Record251(c_name: String, p_name: String, month: String, t_qty: Int)
- var start0 = System.currentTimeMillis()
  val x215 = C.flatMap({x188 => 
    val x189 = x188.c_name
   val x212 = O.withFilter({x190 => val x191 = x190.o_custkey
@@ -44,8 +43,6 @@ case class Record251(c_name: String, p_name: String, month: String, t_qty: Int)
   x214})
 x215
  val Q1 = x215
- var end0 = System.currentTimeMillis() - start0
- println(s"setup time: $end0")
  def main(args: Array[String]){ 
     var time = List[Long]()
     for (i <- 1 to 5) {  
@@ -77,12 +74,12 @@ x215
         val x240 = x234.l_qty
         val x241 = (1 to x240.asInstanceOf[Int]).map(v => x239)
         val x243 = x241.map({x242 => 1})
-        x243}).sum
+        x243})
       val x245 = Record251(x230, x231, x232, x244)
       val x246 = List(x245)
       x246})
     x247})
-  x248})
+  x248}).sum
 x249
  }
 }

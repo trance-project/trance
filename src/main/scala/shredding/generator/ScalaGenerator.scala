@@ -35,14 +35,12 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case DoubleType => "Double"
     case BagCType(tp) => s"List[${generateType(tp)}]" 
     case BagDictCType(flat @ BagCType(TTupleType(fs)), dict) => 
-      println(types)
-      println(fs.last match { case BagCType(fs2) => generateType(fs2) })
       dict match {
         case TupleDictCType(ds) if !ds.filter(_._2 != EmptyDictCType).isEmpty => 
-          s"(List[${generateType(RecordCType("_1" -> fs.head, "_2" -> fs.last))}], ${generateType(dict)})"
-          //s"(List[(${generateType(fs.head)}, ${generateType(fs.last)})], ${generateType(dict)})"
-        case _ => s"(List[${generateType(RecordCType("_1" -> fs.head, "_2" -> fs.last))}], Unit)"
-          //s"(List[(${generateType(fs.head)}, ${generateType(fs.last)})], Unit)"
+          //s"(List[${generateType(RecordCType("_1" -> fs.head, "_2" -> fs.last))}], ${generateType(dict)})"
+          s"(List[(${generateType(fs.head)}, ${generateType(fs.last)})], ${generateType(dict)})"
+        case _ => //s"(List[${generateType(RecordCType("_1" -> fs.head, "_2" -> fs.last))}], Unit)"
+          s"(List[(${generateType(fs.head)}, ${generateType(fs.last)})], Unit)"
       }
     case TupleDictCType(fs) if !fs.filter(_._2 != EmptyDictCType).isEmpty => 
       generateType(RecordCType(fs.filter(_._2 != EmptyDictCType)))

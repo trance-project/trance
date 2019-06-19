@@ -42,7 +42,9 @@ object App {
       translate(Tuple("a" -> xref("c"), "b" -> ForeachUnion(ydef, relationR,
         IfThenElse(
           Cmp(OpEq, yref("c"), xref("c")),
-          Singleton(Tuple("b'" -> yref("a")))))))
+          Singleton(Tuple("b'" -> yref("a"))), 
+          Singleton(Tuple("b'" -> Const(-1, IntType)))).asInstanceOf[BagExpr]
+      )))
     }
     val normq3 = normalizer.finalize(q3)
     println(Printer.quote(normq3.asInstanceOf[CExpr]))

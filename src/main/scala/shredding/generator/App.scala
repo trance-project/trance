@@ -152,13 +152,8 @@ object App {
     val normalizer = new Finalizer(new BaseNormalizer{})
     val anfBase = new BaseANF {}
     val anfer = new Finalizer(anfBase)
-    val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) //++
-                  /**Map(RecordCType("Q1__F" -> IntType) -> "Q1Flat2",
-                      RecordCType(Map("p_name" -> StringType, "l_qty" -> DoubleType)) -> "Flat3",
-                      RecordCType("_1" -> LabelType(Map()), "_2" -> BagCType(RecordCType(Map(p_name -> StringType, l_qty -> DoubleType))))) -> "KVFlat3")))**/
-                  //    RecordCType("o__F" -> translator.translate((TPCHSchema.orderstype.tp)),
-                        //"P__F" -> IntType, "L__F" -> IntType) -> "Label1") // override
-                  //TPCHQueries.query4inputs.map(f => f._1 -> f._2).asInstanceOf[Map[Type,String]]
+    val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) ++
+                  Map(RecordCType("Q1__F" -> IntType) -> "Q1Flat2")
     val codegen = new ScalaNamedGenerator(inputs)
 
     val q1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
