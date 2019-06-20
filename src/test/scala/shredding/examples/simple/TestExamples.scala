@@ -56,7 +56,7 @@ class TestExamples extends FunSuite
 
     eval.ctx("R") = data
     println("[TEST_1] input data :" + data)
-    val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr]);
+    val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr])
     println("[TEST_1] EVAL:" + evaluated)
 
     val expected = List(RecordValue("E" -> List(1, 2, 3)), RecordValue("E" -> List(11, 22, 33)),
@@ -101,7 +101,7 @@ class TestExamples extends FunSuite
 
     eval.ctx("R") = data
     println("[TEST_2] input data :" + data)
-    val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr]);
+    val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr])
     println("[TEST_2] EVAL:" + evaluated)
 
     val expected = List(RecordValue("E" -> List(1, 2, 3)), RecordValue("E" -> List(11, 22, 33)),
@@ -146,7 +146,7 @@ class TestExamples extends FunSuite
 
     eval.ctx("R") = data
     println("[TEST_3] input data :" + data)
-    val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr]);
+    val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr])
     println("[TEST_3] EVAL:" + evaluated)
 
     val expected = List(RecordValue("a" -> List(RecordValue("E" -> List(1, 2, 3)), RecordValue("E" -> List(11, 22, 33)),
@@ -195,7 +195,7 @@ class TestExamples extends FunSuite
     eval.ctx("R") = data
     eval.ctx("x") = RecordValue("a" -> 4, "c" -> 44)
     println("[TEST_4] input data :" + data)
-    val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr]);
+    val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr])
     println("[TEST_4] EVAL:" + evaluated)
 
     val expected = RecordValue("a" -> 44, "b" -> List(RecordValue("b'" -> 4)))
@@ -228,7 +228,7 @@ class TestExamples extends FunSuite
           OpEq, yref("c"), xref("c")),
         Singleton(Tuple("a'" -> yref("a")))))))
 
-    val results = ForeachUnion(xdef, relationS, q4.asInstanceOf[BagExpr]);
+    val results = ForeachUnion(xdef, relationS, q4.asInstanceOf[BagExpr])
     printQuery("TEST_5", results)
     val translator = new NRCTranslator {}
     val normalizer = new Finalizer(new BaseNormalizer {})
@@ -255,7 +255,7 @@ class TestExamples extends FunSuite
     eval.ctx("S") = dataS
     eval.ctx("x") = RecordValue("a" -> 4, "c" -> 44)
     //println("[TEST_5] input data :" + data)
-    val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr]);
+    val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr])
     println("[TEST_5] EVAL:" + evaluated)
 
     val expected = List(RecordValue("a" -> 11000,"b" -> List()),
@@ -329,7 +329,7 @@ class TestExamples extends FunSuite
 
     eval.ctx("R") = data
     println("[TEST_2] input data :" + data)
-    val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr]);
+    val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr])
     println("[TEST_2] EVAL:" + evaluated)
     val expected = List(
       RecordValue("c'" -> 103), RecordValue("c'" -> 203), RecordValue("c'" -> 303), RecordValue("c'" -> 403),
