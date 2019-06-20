@@ -43,8 +43,11 @@ object App {
       |object $n {
       | $i1
       | $h
+      | var start0 = System.currentTimeMillis()
       | $q1
       | ${i2(q1.split("\n").last)}
+      | var end0 = System.currentTimeMillis() - start0
+      | println("setup time: "+end0)
       | def main(args: Array[String]){ 
       |    var time = List[Long]()
       |    for (i <- 1 to 5) {  
@@ -67,15 +70,20 @@ object App {
     val runner = new PipelineRunner{}
     val translator = new NRCTranslator{}
     val normalizer = new Finalizer(new BaseNormalizer{})
+    val optimizer = new Finalizer(new BasePlanOptimizer{})
     val anfBase = new BaseANF {}
     val anfer = new Finalizer(anfBase)
     val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2)
- 
+     
     val codegen = new ScalaNamedGenerator(inputs)   
 
     val q1 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
-    val normq1 = normalizer.finalize(q1)
-    val anfedq1 = anfer.finalize(normq1.asInstanceOf[CExpr])
+    println(Printer.quote(q1))
+    val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
+    println(Printer.quote(normq1))
+    val plan1 = Unnester.unnest(normq1)(Nil, Nil, None)
+    println(Printer.quote(plan1))
+    val anfedq1 = anfer.finalize(normq1)
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
     println(Printer.quote(anfExp1.asInstanceOf[CExpr]))
     val gcode1 = codegen.generate(anfExp1)
@@ -170,8 +178,6 @@ object App {
     val gcode4 = codegen.generate(anfExp4)
     val header4 = codegen.generateHeader()
 
-    // println(s"type: ${normq1.asInstanceOf[CExpr].tp}")
-
     var sout = s"src/test/scala/shredding/examples/tpch/Shred${TPCHQueries.q4name}.Scala"
     val sprinter = new PrintWriter(new FileOutputStream(new File(sout), false))
     // TODO change Foo and Goo to appropriate types
@@ -182,8 +188,8 @@ object App {
 
   def main(args: Array[String]){
     run1()
-    run1Shred()
+    /**run1Shred()
     run4()
-    run4Shred()
+    run4Shred()**/
   }
 }

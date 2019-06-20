@@ -240,6 +240,47 @@ object RecordValue {
   def apply(vs: (String, Any)*): RecordValue = RecordValue(vs.toMap)
 }
 
+trait BasePlanOptimizer extends BaseCompiler {
+  // reduce conditionals
+  override def equals(e1: Rep, e2: Rep): Rep = (e1, e2) match {
+    case (Constant(x1), Constant(x2)) => constant(x1 == x2)
+    case _ => super.equals(e1, e2)
+  }
+
+  override def not(e1: Rep): Rep = e1 match {
+    case Constant(true) => super.constant(false)
+    case Constant(false) => super.constant(true)
+    case _ => super.not(e1)
+  }
+
+  override def and(e1: Rep, e2: Rep): Rep  = (e1, e2) match {
+    case (Constant(true), Constant(true)) => super.constant(true)
+    case (Constant(false), _) => super.constant(false)
+    case (_, Constant(false)) => super.constant(false)
+    case (Constant(true), e3) => e3
+    case (e3, Constant(true)) => e3
+    case _ => super.and(e1, e2)
+  }
+
+  override def or(e1: Rep, e2: Rep): Rep  = (e1, e2) match {
+    case (Constant(false), Constant(false)) => super.constant(false)
+    case (Constant(true), _) => super.constant(true)
+    case (_, Constant(true)) => super.constant(true)
+    case _ => super.and(e1, e2)
+  }
+
+  override def bind(e1: Rep, e: Rep => Rep): Rep = e(e1)
+
+  override def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = cond match {
+    case Constant(true) => e1
+    case Constant(false) => e2 match {
+      case Some(a) =>  a
+      case _ => super.emptysng
+    }
+    case _ => super.ifthen(cond, e1, e2)
+  }
+}
+
 /**
   * Scala evaluation 
   */
@@ -396,6 +437,10 @@ trait BaseANF extends Base {
     (x: CExpr) => reifyBlock { fd(Def(x)) }
   }
 
+  implicit def funcDefsToExpr(fd: List[Def] => Def): List[CExpr] => CExpr = {
+    (x: List[CExpr]) => reifyBlock { fd(x.map(x2 => Def(x2))) }
+  }
+
   implicit def exprToDef(e: CExpr): Def = {
     state.get(e) match {
       case Some(v) => // CSE!
@@ -484,13 +529,13 @@ trait BaseANF extends Base {
   def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = compiler.bagdict(lbl, flat, dict)
   def tupledict(fs: Map[String, Rep]): Rep = compiler.tupledict(fs.map(f => (f._1, defToExpr(f._2))))
   def dictunion(d1: Rep, d2: Rep): Rep = compiler.dictunion(d1, d2)
-  def select(x: Rep, p: Rep => Rep): Rep = ???
-  def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = ???
-  def unnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = ???
-  def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = ???
-  def outerunnest(e1: Rep, r: List[Rep] => Rep, p: Rep => Rep): Rep = ???
-  def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep): Rep = ???
-  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = ???
+  def select(x: Rep, p: Rep => Rep): Rep = compiler.select(x, p)
+  def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = compiler.reduce(e1, f, p)
+  def unnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = compiler.unnest(e1, f, p)
+  def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = compiler.join(e1, e2, p1, p2)
+  def outerunnest(e1: Rep, r: List[Rep] => Rep, p: Rep => Rep): Rep = compiler.outerunnest(e1, r, p)
+  def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep): Rep = compiler.outerjoin(e1, e2, p1, p)
+  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = compiler.nest(e1, f, e, p)
 }
 
 class Finalizer(val target: Base){
@@ -562,7 +607,7 @@ class Finalizer(val target: Base){
     case Unnest(e1, v, e2, v2, p) => 
       target.unnest(finalize(e1), (r: List[target.Rep]) => withMapList(v zip r)(finalize(e2)), 
         (r: target.Rep) => withMap(v2 -> r)(finalize(p)))
-    case Nest(e1, v, f, e, v2, p) => 
+    case Nest(e1, v, f, e, v2, p) =>
       target.nest(finalize(e1), (r: List[target.Rep]) => withMapList(v zip r)(finalize(f)),
         (r: List[target.Rep]) => withMapList(v zip r)(finalize(e)), 
           (r: target.Rep) => withMap(v2 -> r)(finalize(p)))

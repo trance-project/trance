@@ -101,21 +101,6 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
         case _ =>
           s"${generate(e1)}.flatMap($cur =>  \n${ind(conditional(generate(e), "Nil"))})"
       }
-      
-      // val filt = p match { case Constant(true) => ""; case _ => s".withFilter({${generate(v)} => ${generate(p)}})"}
-      // e match {
-      //   case Constant(1) => s"${generate(e1)}${filt}.count"
-      //   // nested sum, // .. val x0 = x.map({ y => 1 }); x0
-      //   case t => 
-      //     val gt = generate(t)
-      //     if (gt.contains(".sum")){
-      //       s"""${generate(e1)}${filt}.flatMap({${generate(v)} =>
-      //           | ${ind(gt.replace(".sum", ""))}}).sum""".stripMargin
-      //     }else{
-      //       s"""${generate(e1)}${filt}.flatMap({${generate(v)} => 
-      //       | ${ind(gt)}})""".stripMargin  
-      //     }
-      //   }
     case Record(fs) => {
       val tp = e.tp
       handleType(tp)
@@ -156,7 +141,6 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case CDeDup(e1) => s"${generate(e1)}.distinct"
     case CNamed(n, e) => generate(e)
     case LinearCSet(exprs) => 
-      //val names = exprs.map(cn => cn match { case CNamed(n, e1) => n }).mkString(",")
       s"""(${exprs.map(generate(_)).mkString(",")})"""
     case EmptyCDict => "()"
     case BagCDict(lbl, flat, dict) => 

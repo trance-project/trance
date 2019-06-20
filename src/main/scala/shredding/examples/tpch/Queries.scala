@@ -57,9 +57,10 @@ object TPCHQueries {
             Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(o, relO, 
               IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")), 
                 Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(l, relL, 
-                  ForeachUnion(p, relP, IfThenElse(
-                    And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")), Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))), 
-                      Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity")))))))))))))
+                  IfThenElse(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
+                    ForeachUnion(p, relP, IfThenElse(
+                      Cmp(OpEq, lr("l_partkey"), pr("p_partkey")), 
+                        Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))))))))))
 
   val q1type = TupleType("c_name" -> StringType, "c_orders" ->
                           BagType(TupleType("o_orderdate" -> StringType, "o_parts" ->
@@ -105,8 +106,7 @@ object TPCHQueries {
                         "t_qty" -> Total(ForeachUnion(pq2, BagProject(cq1r, "o_parts"), 
                                   IfThenElse(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")),
                                     WeightedSingleton(Tuple("l_qty" -> pq1r("l_qty")), 
-                                      TupleVarRef(pq2)("l_qty").asInstanceOf[PrimitiveExpr])))))))))//)) 
-  
+                                      TupleVarRef(pq2)("l_qty").asInstanceOf[PrimitiveExpr])))))))))//))   
   // Query 2
 
   val relS = BagVarRef(VarDef("S", TPCHSchema.suppliertype))

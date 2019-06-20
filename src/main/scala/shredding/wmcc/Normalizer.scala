@@ -90,4 +90,5 @@ trait BaseNormalizer extends BaseCompiler {
         Comprehension(e1, v, p(v), e(v))
       }
     }
+
 }

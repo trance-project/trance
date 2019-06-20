@@ -234,7 +234,6 @@ case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable,
 
 case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
   def tp: BagCType = BagCType(TTupleType(v1.map(_.tp) :+ v2.tp))
-  override def wvars = e1.wvars :+ v2
 }
 
 case class Join(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
@@ -243,13 +242,16 @@ case class Join(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variabl
 }
 
 case class Variable(name: String, override val tp: Type) extends CExpr { self =>
-
+  
   // equals with a label check
   // check if deprecated (was used in unnesting before labels were represented as records)
   def lequals(that: CExpr): Boolean = that match {
     case that: Variable => this.equals(that)
-    case t if that.tp.isInstanceOf[LabelType] => 
+    case Project(v, f) => this.equals(v)
+    case t if that.tp.isInstanceOf[LabelType] =>
       that.tp.asInstanceOf[LabelType].attrTps.keys.toList.contains(this.name)
+    case t if that.tp.isInstanceOf[RecordCType] => // new label representation
+      that.tp.asInstanceOf[RecordCType].attrTps.keys.toList.contains(this.name)
     case _ => false  
   }
 

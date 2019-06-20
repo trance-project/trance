@@ -66,9 +66,7 @@ trait NRCTranslator extends LinearizedNRC {
     }
     case Union(e1, e2) => merge(translate(e1), translate(e2))
     case ForeachUnion(x, e1, e2) => translate(e2) match {
-      case If(cond, e3 @ WeightedSng(t, q), e4 @ None) => 
-        Comprehension(translate(e1), translate(x).asInstanceOf[Variable], cond, e3) 
-      case If(cond, e3 @ Sng(t), e4 @ None) => 
+      case If(cond, e3, e4 @ None) => 
         Comprehension(translate(e1), translate(x).asInstanceOf[Variable], cond, e3)
       case te2 => 
         Comprehension(translate(e1), translate(x).asInstanceOf[Variable], constant(true), te2)
