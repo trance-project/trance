@@ -1,10 +1,8 @@
 package shredding.examples.simple
 
 import shredding.core._
-import shredding.examples.tpch.TPCHQueries
-import shredding.nrc.{Linearization, LinearizedNRC, NRC, Optimizer, Printer, ShredNRC, Shredding}
-import shredding.runtime.{Evaluator, ScalaPrinter, ScalaShredding}
-import shredding.wmcc.{BaseNormalizer, BaseScalaInterp, CExpr, Finalizer, NRCTranslator, Printer, RecordValue}
+import shredding.nrc.{NRC, Printer, ShredNRC}
+import shredding.wmcc._
 
 
 object TestExamples extends App
