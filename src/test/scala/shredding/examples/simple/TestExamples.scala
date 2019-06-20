@@ -1,11 +1,13 @@
 package shredding.examples.simple
 
+import org.scalatest.FunSuite
 import shredding.core._
 import shredding.nrc.{NRC, Printer, ShredNRC}
 import shredding.wmcc._
 
 
-object TestExamples extends App
+//object TestExamples extends App
+class TestExamples extends FunSuite
   with NRC
   with ShredNRC
   with Printer {
@@ -27,7 +29,7 @@ object TestExamples extends App
     Suppose x is a variable of type <. . . a : Bag(C). . .>
     E = x.a
     */
-  def test1() {
+  test("test1") {
     println("")
     println("[TEST_1] A query doing a simple projection on a tuple variable.\n    Suppose x is a variable of type <. . . a : Bag(C). . .>\n    E = x.a")
     val tuple = TupleType("b" -> StringType, "a" -> BagType(TupleType("c" -> IntType)), "d" -> StringType)
@@ -61,7 +63,7 @@ object TestExamples extends App
 
     val expected = List(RecordValue("E"->List(1, 2, 3)), RecordValue("E"->List(11, 22, 33)),
       RecordValue("E"->List(111, 222, 333)), RecordValue("E"->List(1111, 2222, 3333)))
-    assert(expected == evaluated)
+    assert(evaluated==expected)
 
   }
 
@@ -69,7 +71,7 @@ object TestExamples extends App
   2. Projecting every tuple in a bag onto a bag attribute. Input: R of type BagType(h. . . a : BagType(C). . .i.
     E = For x In R Union x.a
     */
-  def test2() {
+  test("test2") {
     println()
     println("[TEST_2] Projecting every tuple in a bag onto a bag attribute. Input: R of type BagType(h. . . a : BagType(C). . .i.\n    E = For x In R Union x.a")
 
@@ -106,7 +108,7 @@ object TestExamples extends App
 
     val expected = List(RecordValue("E"->List(1, 2, 3)), RecordValue("E"->List(11, 22, 33)),
       RecordValue("E"->List(111, 222, 333)), RecordValue("E"->List(1111, 2222, 3333)))
-    assert(expected == evaluated)
+    assert(evaluated==expected)
 
 
   }
@@ -118,7 +120,7 @@ object TestExamples extends App
   a singleton tuple.
     E = {a' = x.ai}
     */
-  def test3(): Unit = {
+  test("test3") {
     println()
     println("[TEST_3] Taking a projection of a variable onto a bag attribute (as in the first example) and wrapping it in\n  a singleton tuple.\n E = {a' = x.ai}")
 
@@ -151,7 +153,7 @@ object TestExamples extends App
 
     val expected = List(RecordValue("a" ->List(RecordValue("E"->List(1, 2, 3)), RecordValue("E"->List(11, 22, 33)),
         RecordValue("E"->List(111, 222, 333)), RecordValue("E"->List(1111, 2222, 3333)))))
-    assert(expected == evaluated)
+    assert(evaluated==expected)
   }
 
   /*
@@ -159,7 +161,7 @@ object TestExamples extends App
   value.
     E = <a' = x.c, b' = For y In R Union (If y.c == x.c Then y.a)>
 */
-  def test4(): Unit = {
+  test("test4") {
     println()
     println("[TEST_4] Output a tuple where one attribute is a value and another is a complex bag that groups on the\n  value.\n    E = <a' = x.c, b' = For y In R Union (If y.c == x.c Then y.a)>")
     val tuple_x = TupleType("a" -> IntType, "c" -> IntType)
@@ -199,7 +201,7 @@ object TestExamples extends App
     println("[TEST_4] EVAL:" + evaluated)
 
     val expected = RecordValue("a"->44,"b"->List(RecordValue("b'"->4)))
-    assert(expected == evaluated)
+    assert(evaluated==expected)
   }
 
   /*
@@ -209,7 +211,7 @@ object TestExamples extends App
     E = For x In S Union {a' = x.c, b0 = For y In R Union (If y.c == x.c Then y.a)}
 
   */
-  def test5(): Unit = {
+  test("test5") {
     println()
     println("[TEST_5] Take the previous example and enclose it in an iterator so that it contains a bag of complex tuples;\n  this will end up performing a group-by.\n    E = For x In S Union {a' = x.c, b0 = For y In R Union (If y.c == x.c Then y.a)}")
 
@@ -248,7 +250,7 @@ object TestExamples extends App
         }
     }
 */
-  def test6(): Unit = {
+  test("test6") {
     println()
     println("[TEST_6]   E =\n    For x In R Union\n    {a' = x.a, s1 =\n      " +
       "For y In R Union If y.a == x.a Then\n        " +
@@ -304,7 +306,7 @@ object TestExamples extends App
       RecordValue("c'" -> 103), RecordValue("c'" -> 203), RecordValue("c'" -> 303), RecordValue("c'" -> 403),
       RecordValue("c'" -> 103), RecordValue("c'" -> 203), RecordValue("c'" -> 303), RecordValue("c'" -> 403),
       RecordValue("c'" -> 103), RecordValue("c'" -> 203), RecordValue("c'" -> 303), RecordValue("c'" -> 403))
-    assert(expected == evaluated)
+    assert(evaluated==expected)
   }
 
   /*
@@ -322,7 +324,7 @@ object TestExamples extends App
     sng (o5 = x.h, o6 = For w In Z Union sng(o7 = w.o1, o8 = Mult(w.o1, Z)))
 
 */
-  def test7(): Unit = {
+  test("test7") {
 
     println()
     println("[TEST_7]     For x In R Union\n    " +
@@ -361,7 +363,7 @@ object TestExamples extends App
       Output :
         Bag(contig: String, start: Int, alleleCnts: Bag(iscase: Int, cnts: Bag(ref: Int, alt: Int)))
       */
-  def test8(): Unit = {
+  test("test8") {
     println()
     println("[TEST_8] A portion of the alele count example")
     val results = null
@@ -369,13 +371,4 @@ object TestExamples extends App
 
   }
 
-
-  TestExamples.test1()
-  TestExamples.test2()
-  TestExamples.test3()
-  TestExamples.test4()
-  TestExamples.test5()
-  TestExamples.test6()
-  TestExamples.test7()
-  TestExamples.test8()
 }
