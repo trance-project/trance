@@ -362,57 +362,54 @@ trait BaseScalaInterp extends Base{
   }
   // TODO fix filter
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    println("reduce")
-    val res = e1.asInstanceOf[List[List[_]]].map(f)//.filter(p.asInstanceOf[Rep => Boolean])
-    res.foreach(println(_))
-    res
+    e1.asInstanceOf[List[List[_]]].map(v2 => f(flatten(v2)))//.filter(p.asInstanceOf[Rep => Boolean])
   }
   def unnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = {
-    val d = e1.asInstanceOf[List[List[_]]].flatMap{
+    e1.asInstanceOf[List[List[_]]].flatMap{
       v => f(v).asInstanceOf[List[_]].map{ v2 => v :+ v2 }
     }.filter{p.asInstanceOf[Rep => Boolean]}
-    d.foreach(println(_))
-    d
   }
-  // e1.map(p1).join(e2.map(p2))
   def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
-    println("joining")
-    println(e1)
-    println(e2)
-    val d = e1.asInstanceOf[List[_]].flatMap(v1 =>
+    e1.asInstanceOf[List[_]].flatMap(v1 =>
       e2.asInstanceOf[List[_]].filter{ v2 => p1(List(v1)) == p2(v2) }.map(v2 => List(v1, v2)))
-    d.foreach(println(_))
-    d
   }
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = {
-    println("nest")
-    val grpd = e1.asInstanceOf[List[List[_]]].map(v => (f(v), e(v))).groupBy(_._1)
-    val result = e(e1.asInstanceOf[List[List[_]]].head) match {
+    // todo add counts back in
+    val grps = scala.collection.mutable.Map[Any,List[_]]()
+    e1.asInstanceOf[List[List[_]]].foreach{ v =>
+      val grp = f(v)
+      if (grps.contains(grp)){ grps(grp) = grps(grp) :+ v } else { grps(grp) = List(v) }
+    }
+    grps.flatMap(x1 => x1._2.map(x2 => 
+      List(x1._1, e(flatten(x2.asInstanceOf[List[_]]))))).toList.filter(p.asInstanceOf[Rep => Boolean])
+    /**e(e1.asInstanceOf[List[List[_]]].head) match {
       case i:Int => 
         grpd.map{ f2 => 
           f2._1.asInstanceOf[List[_]] :+ f2._2.map(_._2).asInstanceOf[List[Int]].sum 
         }.filter(p.asInstanceOf[Rep => Boolean])
       case _ => grpd.map(f2 => f2._1.asInstanceOf[List[_]] :+ f2._2 ).filter(p.asInstanceOf[Rep => Boolean])
-    }
-    result.foreach(println(_))
-    result
+    }**/
   }
   def outerunnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = {
-    println("outerunnest")
-    val d =e1.asInstanceOf[List[List[_]]].flatMap{
+    e1.asInstanceOf[List[List[_]]].flatMap{
       v => f(v).asInstanceOf[List[_]].map{ v2 => v :+ v2 }
     }.filter{p.asInstanceOf[Rep => Boolean]}
-    d.foreach(println(_))
-    d
   }
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
-    println("outer-joining")
-    println(e1)
-    println(e2)
-    val d = e1.asInstanceOf[List[_]].flatMap(v1 =>
-      e2.asInstanceOf[List[_]].filter{ v2 => p1(List(v1)) == p2(v2) }.map(v2 => List(v1, v2)))
-    d.foreach(println(_))
-    d
+    e1.asInstanceOf[List[_]].flatMap(v1 =>
+      e2.asInstanceOf[List[_]].filter{ v2 => p1(key(v1)) == p2(v2) }.map(v2 => flatten(List(v1, v2))))
+  }
+
+  // keys and flattens input tuples
+  def key(k: Any): List[Rep] = k match {
+    case c:CaseClassRecord => List(k).asInstanceOf[List[Rep]]
+    case _ => k.asInstanceOf[List[Rep]]
+  }
+
+  def flatten(k: List[_]): List[_] = k match {
+    case Nil => Nil
+    case (head: List[_]) :: tail => flatten(head) ++ flatten(tail)
+    case head :: tail => head +: flatten(tail)
   }
 
 }
@@ -620,7 +617,7 @@ class Finalizer(val target: Base){
     case OuterJoin(e1, e2, v, p1, v2, p2) =>
       target.outerjoin(finalize(e1), finalize(e2), (r: List[target.Rep]) => withMapList(v zip r)(finalize(p1)),
         (r: target.Rep) => withMap(v2 -> r)(finalize(p2)))
-    case v @ Variable(_, _) => variableMap.getOrElse(v, target.inputref(v.name, v.tp) )
+    case v @ Variable(_, _) => variableMap.getOrElse(v, target.inputref(v.name, v.tp))
   }
 
 }
