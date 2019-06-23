@@ -42,9 +42,9 @@ trait Base {
   def dictunion(d1: Rep, d2: Rep): Rep
   def select(x: Rep, p: Rep => Rep): Rep
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep
-  def unnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep
+  def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep
   def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep
-  def outerunnest(e1: Rep, r: List[Rep] => Rep, p: Rep => Rep): Rep
+  def outerunnest(e1: Rep, r: List[Rep] => Rep, p: List[Rep] => Rep): Rep
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep): Rep
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep
 }
@@ -102,10 +102,10 @@ trait BaseStringify extends Base{
     val v = Variable.fresh(StringType)
     s""" | REDUCE[ ${f(List(v.quote))} / ${p(List(v.quote))} ](${x})""".stripMargin
   }
-  def unnest(x: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = {
+  def unnest(x: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
     val v1 = Variable.fresh(StringType)
     val v = Variable.fresh(StringType)
-    s""" | UNNEST[ ${f(List(v1.quote))} / ${p(v.quote)} ](${x})""".stripMargin
+    s""" | UNNEST[ ${f(List(v1.quote))} / ${p(List(v.quote))} ](${x})""".stripMargin
   }
   def nest(x: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = {
     val v1 = Variable.fresh(StringType) 
@@ -118,10 +118,10 @@ trait BaseStringify extends Base{
     s""" | (${e1}) JOIN[${p1(List(v1.quote))} = ${p2(v2.quote)}]( 
          | ${ind(e2)})""".stripMargin
   }
-  def outerunnest(x: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = {
+  def outerunnest(x: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
     val v1 = Variable.fresh(StringType)
     val v = Variable.fresh(StringType)
-    s""" | OUTERUNNEST[ ${f(List(v1.quote))} / ${p(v.quote)} ](${x})""".stripMargin
+    s""" | OUTERUNNEST[ ${f(List(v1.quote))} / ${p(List(v.quote))} ](${x})""".stripMargin
   }
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
     val (v1,v2) = (Variable.fresh(StringType), Variable.fresh(StringType))
@@ -184,14 +184,14 @@ trait BaseCompiler extends Base {
     val v = e1.wvars
     Reduce(e1, v, f(v), p(v))
   }
-  def unnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = {
+  def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
     val v1 = e1 match {
       case InputRef(_,tp) => List(Variable.fresh(tp.asInstanceOf[BagCType].tp))
       case _ => e1.wvars
     }
     val fv = f(v1) 
     val v = Variable.fresh(fv.tp.asInstanceOf[BagCType].tp)
-    Unnest(e1, v1, fv, v, p(v))
+    Unnest(e1, v1, fv, v, p(v1 :+ v))
   }
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = {
     val v1 = e1.asInstanceOf[CExpr].wvars 
@@ -213,14 +213,14 @@ trait BaseCompiler extends Base {
     val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp)
     Join(e1, e2, v1, p1(v1), v2, p2(v2))
   }
-  def outerunnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = {
+  def outerunnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
     val v1 = e1 match {
       case InputRef(_,tp) => List(Variable.fresh(tp.asInstanceOf[BagCType].tp))
       case _ => e1.wvars
     }
     val fv = f(v1) 
     val v = Variable.fresh(fv.tp.asInstanceOf[BagCType].tp)
-    OuterUnnest(e1, v1, fv, v, p(v))
+    OuterUnnest(e1, v1, fv, v, p(v1 :+ v))
   }
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
     val v1 = e1 match {
@@ -284,6 +284,7 @@ trait BasePlanOptimizer extends BaseCompiler {
 /**
   * Scala evaluation 
   */
+case class Nested(k: List[_], v: List[_])
 trait BaseScalaInterp extends Base{
   type Rep = Any
   var ctx = scala.collection.mutable.Map[String, Any]()
@@ -315,7 +316,7 @@ trait BaseScalaInterp extends Base{
         val field = c.getClass.getDeclaredFields.find(_.getName == f).get
         field.setAccessible(true)
         field.get(c)
-      case m:HashMap[String,_] => m(f)
+      //case m:HashMap[_,_] => m(f.asInstanceOf[_])
       case l:List[_] => l.map(project(_,f))
       case p:Product => p.productElement(f.toInt)
       case t => sys.error(s"unsupported projection type ${t.getClass} for object:\n$t") 
@@ -348,7 +349,7 @@ trait BaseScalaInterp extends Base{
   def bind(e1: Rep, e: Rep => Rep): Rep = ctx.getOrElseUpdate(e1.asInstanceOf[String], e(e1))
   def lookup(lbl: Rep, dict: Rep): Rep = dict match {
     case (flat, tdict) => flat match {
-      case (head:Map[String,Rep]) :: tail => flat
+      case (head:Map[_,_]) :: tail => flat
       case _ => flat.asInstanceOf[List[(_,_)]].withFilter(_._1 == lbl).map(_._2)
     }
     case _ => dict // (flat, ())
@@ -360,56 +361,46 @@ trait BaseScalaInterp extends Base{
   def select(x: Rep, p: Rep => Rep): Rep = { 
     x.asInstanceOf[List[_]].filter(p.asInstanceOf[Rep => Boolean])
   }
-  // TODO fix filter
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    e1.asInstanceOf[List[List[_]]].map(v2 => f(flatten(v2)))//.filter(p.asInstanceOf[Rep => Boolean])
+    e1.asInstanceOf[List[_]].map(v2 => f(tupleVars(v2))) 
   }
-  def unnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = {
-    e1.asInstanceOf[List[List[_]]].flatMap{
-      v => f(v).asInstanceOf[List[_]].map{ v2 => v :+ v2 }
-    }.filter{p.asInstanceOf[Rep => Boolean]}
+  def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
+    outerunnest(e1, f, p)
   }
   def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
-    e1.asInstanceOf[List[_]].flatMap(v1 =>
-      e2.asInstanceOf[List[_]].filter{ v2 => p1(List(v1)) == p2(v2) }.map(v2 => List(v1, v2)))
+    outerjoin(e1, e2, p1, p2)
   }
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = {
-    // todo add counts back in
-    val grps = scala.collection.mutable.Map[Any,List[_]]()
-    e1.asInstanceOf[List[List[_]]].foreach{ v =>
-      val grp = f(v)
-      if (grps.contains(grp)){ grps(grp) = grps(grp) :+ v } else { grps(grp) = List(v) }
+    // todo filter?
+    val grps = e1.asInstanceOf[List[_]].groupBy(v => f(tupleVars(v)))
+    e(tupleVars(e1.asInstanceOf[List[_]].head)) match {
+      case i:Int => grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.foldLeft(0)((v1, x2) => v1 + 1)).toList
+      case _ => grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.map(v => e(tupleVars(v)))).toList
     }
-    grps.flatMap(x1 => x1._2.map(x2 => 
-      List(x1._1, e(flatten(x2.asInstanceOf[List[_]]))))).toList.filter(p.asInstanceOf[Rep => Boolean])
-    /**e(e1.asInstanceOf[List[List[_]]].head) match {
-      case i:Int => 
-        grpd.map{ f2 => 
-          f2._1.asInstanceOf[List[_]] :+ f2._2.map(_._2).asInstanceOf[List[Int]].sum 
-        }.filter(p.asInstanceOf[Rep => Boolean])
-      case _ => grpd.map(f2 => f2._1.asInstanceOf[List[_]] :+ f2._2 ).filter(p.asInstanceOf[Rep => Boolean])
-    }**/
   }
-  def outerunnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = {
-    e1.asInstanceOf[List[List[_]]].flatMap{
-      v => f(v).asInstanceOf[List[_]].map{ v2 => v :+ v2 }
-    }.filter{p.asInstanceOf[Rep => Boolean]}
+  def outerunnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
+    val res = e1.asInstanceOf[List[_]].flatMap{
+      v =>
+        val v1 = tupleVars(v)
+        f(v1).asInstanceOf[List[_]].map{ v2 => 
+          val nv = v1 :+ v2
+          if (p.asInstanceOf[Rep => Boolean](nv)) { nv } else { Nil }
+      }
+    }
+    res
   }
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
-    e1.asInstanceOf[List[_]].flatMap(v1 =>
-      e2.asInstanceOf[List[_]].filter{ v2 => p1(key(v1)) == p2(v2) }.map(v2 => flatten(List(v1, v2))))
+    val res = e1.asInstanceOf[List[_]].flatMap(v => {
+      val v1 = tupleVars(v)
+      e2.asInstanceOf[List[_]].filter{ v2 => p1(v1) == p2(v2) }.map(v2 => v1 :+ v2)})
+    res
   }
 
   // keys and flattens input tuples
-  def key(k: Any): List[Rep] = k match {
+  def tupleVars(k: Any): List[Rep] = k match {
     case c:CaseClassRecord => List(k).asInstanceOf[List[Rep]]
+    case c:RecordValue => List(k).asInstanceOf[List[Rep]]
     case _ => k.asInstanceOf[List[Rep]]
-  }
-
-  def flatten(k: List[_]): List[_] = k match {
-    case Nil => Nil
-    case (head: List[_]) :: tail => flatten(head) ++ flatten(tail)
-    case head :: tail => head +: flatten(tail)
   }
 
 }
@@ -528,9 +519,9 @@ trait BaseANF extends Base {
   def dictunion(d1: Rep, d2: Rep): Rep = compiler.dictunion(d1, d2)
   def select(x: Rep, p: Rep => Rep): Rep = compiler.select(x, p)
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = compiler.reduce(e1, f, p)
-  def unnest(e1: Rep, f: List[Rep] => Rep, p: Rep => Rep): Rep = compiler.unnest(e1, f, p)
+  def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = compiler.unnest(e1, f, p)
   def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = compiler.join(e1, e2, p1, p2)
-  def outerunnest(e1: Rep, r: List[Rep] => Rep, p: Rep => Rep): Rep = compiler.outerunnest(e1, r, p)
+  def outerunnest(e1: Rep, r: List[Rep] => Rep, p: List[Rep] => Rep): Rep = compiler.outerunnest(e1, r, p)
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep): Rep = compiler.outerjoin(e1, e2, p1, p)
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = compiler.nest(e1, f, e, p)
 }
@@ -603,7 +594,7 @@ class Finalizer(val target: Base){
         (r: List[target.Rep]) => withMapList(v zip r)(finalize(p)))
     case Unnest(e1, v, e2, v2, p) => 
       target.unnest(finalize(e1), (r: List[target.Rep]) => withMapList(v zip r)(finalize(e2)), 
-        (r: target.Rep) => withMap(v2 -> r)(finalize(p)))
+        (r: List[target.Rep]) => withMapList((v :+ v2) zip r)(finalize(p)))
     case Nest(e1, v, f, e, v2, p) =>
       target.nest(finalize(e1), (r: List[target.Rep]) => withMapList(v zip r)(finalize(f)),
         (r: List[target.Rep]) => withMapList(v zip r)(finalize(e)), 
@@ -613,7 +604,7 @@ class Finalizer(val target: Base){
         (r: target.Rep) => withMap(v2 -> r)(finalize(p2)))
     case OuterUnnest(e1, v, e2, v2, p) => 
       target.outerunnest(finalize(e1), (r: List[target.Rep]) => withMapList(v zip r)(finalize(e2)), 
-        (r: target.Rep) => withMap(v2 -> r)(finalize(p)))
+        (r: List[target.Rep]) => withMapList((v :+ v2) zip r)(finalize(p)))
     case OuterJoin(e1, e2, v, p1, v2, p2) =>
       target.outerjoin(finalize(e1), finalize(e2), (r: List[target.Rep]) => withMapList(v zip r)(finalize(p1)),
         (r: target.Rep) => withMap(v2 -> r)(finalize(p2)))

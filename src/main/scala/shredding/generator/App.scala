@@ -43,12 +43,12 @@ object App {
       |object $n {
       | $i1
       | $h
-      | var start0 = System.currentTimeMillis()
-      | $q1
-      | ${i2(q1.split("\n").last)}
-      | var end0 = System.currentTimeMillis() - start0
-      | println("setup time: "+end0)
       | def main(args: Array[String]){ 
+      |    var start0 = System.currentTimeMillis()
+      |    $q1
+      |    ${i2(q1.split("\n").last)}
+      |    var end0 = System.currentTimeMillis() - start0
+      |    println("setup time: "+end0)
       |    var time = List[Long]()
       |    for (i <- 1 to 5) {  
       |     var start = System.currentTimeMillis()
@@ -188,8 +188,8 @@ object App {
 
   def main(args: Array[String]){
     run1()
-    /**run1Shred()
+    run1Shred()
     run4()
-    run4Shred()**/
+    run4Shred()
   }
 }

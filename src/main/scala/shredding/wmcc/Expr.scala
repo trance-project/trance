@@ -251,7 +251,7 @@ case class Variable(name: String, override val tp: Type) extends CExpr { self =>
   // check if deprecated (was used in unnesting before labels were represented as records)
   def lequals(that: CExpr): Boolean = that match {
     case that: Variable => this.equals(that)
-    case Project(v, f) => this.equals(v)
+    case Project(v, f) => this.lequals(v)
     case t if that.tp.isInstanceOf[LabelType] =>
       that.tp.asInstanceOf[LabelType].attrTps.keys.toList.contains(this.name)
     case t if that.tp.isInstanceOf[RecordCType] => // new label representation
