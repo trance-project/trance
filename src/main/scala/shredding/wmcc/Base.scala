@@ -546,7 +546,7 @@ trait BaseANF extends Base {
       case _ =>
         Variable.fresh(TTupleType(fv.tp.asInstanceOf[TTupleType].attrTps :+ BagCType(ev.tp)))
     }
-    Nest(e1, v1, fv, ev, v2, p(v2))
+    Nest(e1, v1, fv, ev, v2, p(v2)) 
   }
 }
 

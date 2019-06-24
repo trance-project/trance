@@ -222,10 +222,10 @@ object App {
   }
 
   def main(args: Array[String]){
-    run()
+    //run()
     run1()
-    run1Shred()
-    run4()
-    run4Shred()
+    //run1Shred()
+    //run4()
+    //run4Shred()
   }
 }

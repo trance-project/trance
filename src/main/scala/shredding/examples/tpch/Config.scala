@@ -5,5 +5,4 @@ object Config {
   val fsin = new java.io.FileInputStream("data.flat")
   prop.load(fsin)
   val datapath = prop.getProperty("datapath")
-  println(datapath)
 }
