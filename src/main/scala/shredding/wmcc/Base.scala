@@ -536,7 +536,8 @@ trait BaseANF extends Base {
   }
   def outerunnest(e1: Rep, r: List[Rep] => Rep, p: List[Rep] => Rep): Rep = unnest(e1, r, p)
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep): Rep = join(e1, e2, p1, p)
-  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = {
+  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = ??? // TODO
+  /*{
     val v1 = stateInv(e1.e.asInstanceOf[Variable]).wvars
     val fv = f(v1)
     val ev = e(v1) 
@@ -546,8 +547,17 @@ trait BaseANF extends Base {
       case _ =>
         Variable.fresh(TTupleType(fv.tp.asInstanceOf[TTupleType].attrTps :+ BagCType(ev.tp)))
     }
-    Nest(e1, v1, fv, ev, v2, p(v2)) 
-  }
+    println(s"v1: ${v1.map(_.name)}")
+    println(s"v1 vars: ${e1.e.asInstanceOf[Variable].name}")
+    println(s"v2: ${v2.name}")
+    val Bind(_, fvexpr, _) = fv
+    val res = Nest(e1, v1, fvexpr, ev, v2, p(v2)) 
+    println(fv.wvars.map(_.name))
+    println(fv.getClass)
+    println(Printer.quote(fvexpr))    
+    println(Printer.quote(res))
+    res
+  }*/
 }
 
 class Finalizer(val target: Base){
