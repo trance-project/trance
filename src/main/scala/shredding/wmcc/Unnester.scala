@@ -28,7 +28,7 @@ object Unnester {
           if (u.isEmpty) Reduce(E.get, w, t, cond)
           else {
             val et = Tuple(u)
-            val v = Variable.fresh(TTupleType(u.map(_.tp) :+ BagCType(t.tp)))
+            val v = Variable.fresh(TTupleType(et.tp.attrTps :+ BagCType(t.tp)))
             Nest(E.get, w, et, t, v, cond)
           }
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
@@ -44,7 +44,7 @@ object Unnester {
           if (u.isEmpty) Reduce(E.get, w, t, Constant(true))
           else {
             val et = Tuple(u)
-            val v = Variable.fresh(TTupleType(u.map(_.tp) :+ BagCType(t.tp)))
+            val v = Variable.fresh(TTupleType(et.tp.attrTps :+ BagCType(t.tp)))
             Nest(E.get, w, et, t, v, Constant(true))
           }
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
@@ -56,7 +56,10 @@ object Unnester {
     case c @ Constant(_) if !w.isEmpty =>
       assert(!E.isEmpty)
       if (u.isEmpty) Reduce(E.get, w, c, Constant(true))
-      else Nest(E.get, w, Tuple(u), c, Variable.fresh(TTupleType(u.map(_.tp) :+ IntType)), Constant(true))
+      else {
+        val et = Tuple(u)
+        Nest(E.get, w, et, c, Variable.fresh(TTupleType(et.tp.attrTps :+ IntType)), Constant(true))
+      }
     case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && u.isEmpty && !w.isEmpty =>
       assert(!E.isEmpty)
       val nE = Some(Unnest(E.get, w, e1, v, p))

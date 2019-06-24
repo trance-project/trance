@@ -53,7 +53,7 @@ case class Record(fields: Map[String, CExpr]) extends CExpr{
 }
 
 case class Tuple(fields: List[CExpr]) extends CExpr {
-  def tp: Type = TTupleType(fields.map(_.tp))
+  def tp: TTupleType = TTupleType(fields.map(_.tp))
   def apply(n: String) = n match {
     case "_1" => fields(0)
     case "_2" => fields(1) 
@@ -223,11 +223,16 @@ case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p
 case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr) extends CExpr {
   def tp: BagCType = e.tp match {
     case IntType => 
-      BagCType(TTupleType(f.asInstanceOf[TTupleType].attrTps :+ e.tp))
-    case _ => BagCType(TTupleType(f.asInstanceOf[TTupleType].attrTps :+ BagCType(e.tp)))
+      BagCType(TTupleType(f.tp.asInstanceOf[TTupleType].attrTps :+ e.tp))
+    case _ => BagCType(TTupleType(f.tp.asInstanceOf[TTupleType].attrTps :+ BagCType(e.tp)))
   }
   override def wvars = { 
-    val uvars = f.asInstanceOf[Tuple].fields
+    val uvars = f match {
+      case Bind(v1, t @ Tuple(fs), v2) => fs
+      case Tuple(fs) => fs
+      case v:Variable => List(v)
+      case _ => sys.error(s"unsupported $f")
+    }
     e1.wvars.filter(uvars.contains(_)) :+ v2
   }
 }
@@ -251,6 +256,7 @@ case class Variable(name: String, override val tp: Type) extends CExpr { self =>
   // check if deprecated (was used in unnesting before labels were represented as records)
   def lequals(that: CExpr): Boolean = that match {
     case that: Variable => this.equals(that)
+    //case Bind(v, e1, e2) => 
     case Project(v, f) => this.lequals(v)
     case t if that.tp.isInstanceOf[LabelType] =>
       that.tp.asInstanceOf[LabelType].attrTps.keys.toList.contains(this.name)

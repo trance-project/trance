@@ -175,10 +175,7 @@ trait BaseCompiler extends Base {
   def dictunion(d1: Rep, d2: Rep): Rep = DictCUnion(d1, d2)
   def select(x: Rep, p: Rep => Rep): Rep = {
     val v = Variable.fresh(x.tp.asInstanceOf[BagCType].tp)
-    p(v) match {
-      case Constant(true) => x
-      case _ => Select(x, v, p(v))
-    }
+    Select(x, v, p(v))
   }
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
     val v = e1.wvars
@@ -374,7 +371,8 @@ trait BaseScalaInterp extends Base{
     // todo filter?
     val grps = e1.asInstanceOf[List[_]].groupBy(v => f(tupleVars(v)))
     e(tupleVars(e1.asInstanceOf[List[_]].head)) match {
-      case i:Int => grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.foldLeft(0)((v1, x2) => v1 + 1)).toList
+      case i:Int => 
+        grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.foldLeft(0)((v1, x2) => v1 + 1)).toList
       case _ => grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.map(v => e(tupleVars(v)))).toList
     }
   }
@@ -390,10 +388,11 @@ trait BaseScalaInterp extends Base{
     res
   }
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
-    val res = e1.asInstanceOf[List[_]].flatMap(v => {
-      val v1 = tupleVars(v)
-      e2.asInstanceOf[List[_]].filter{ v2 => p1(v1) == p2(v2) }.map(v2 => v1 :+ v2)})
-    res
+    val hm = e1.asInstanceOf[List[_]].groupBy(v => p1(tupleVars(v)))
+    e2.asInstanceOf[List[_]].flatMap(v2 => hm.get(p2(v2)) match {
+      case Some(v1) => v1.map(v => tupleVars(v) :+ v2)
+      case _ => Nil
+    })
   }
 
   // keys and flattens input tuples
@@ -413,13 +412,15 @@ trait BaseANF extends Base {
 
   val compiler = new BaseCompiler {}
 
-  case class Def(e: CExpr)
+  case class Def(e: CExpr) 
 
   type Rep = Def
 
   implicit def defToExpr(d: Def): CExpr = {
     d.e
   }
+  
+  //implicit def lstToDef(e: List[CExpr]): List[Def] = e.map(Def(_))
 
   implicit def funcDefToExpr(fd: Def => Def): CExpr => CExpr = {
     (x: CExpr) => reifyBlock { fd(Def(x)) }
@@ -518,12 +519,35 @@ trait BaseANF extends Base {
   def tupledict(fs: Map[String, Rep]): Rep = compiler.tupledict(fs.map(f => (f._1, defToExpr(f._2))))
   def dictunion(d1: Rep, d2: Rep): Rep = compiler.dictunion(d1, d2)
   def select(x: Rep, p: Rep => Rep): Rep = compiler.select(x, p)
-  def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = compiler.reduce(e1, f, p)
-  def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = compiler.unnest(e1, f, p)
-  def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = compiler.join(e1, e2, p1, p2)
-  def outerunnest(e1: Rep, r: List[Rep] => Rep, p: List[Rep] => Rep): Rep = compiler.outerunnest(e1, r, p)
-  def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep): Rep = compiler.outerjoin(e1, e2, p1, p)
-  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = compiler.nest(e1, f, e, p)
+  def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
+    val v = stateInv(e1.e.asInstanceOf[Variable]).wvars
+    Reduce(e1, v, f(v), p(v))
+  }
+  def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
+    val v1 = stateInv(e1.e.asInstanceOf[Variable]).wvars
+    val fv = f(v1)
+    val v2 = Variable.fresh(fv.tp.asInstanceOf[BagCType].tp)
+    Unnest(e1, v1, fv, v2, p(v1 :+ v2))
+  }
+  def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
+    val v1 = stateInv(e1.e.asInstanceOf[Variable]).wvars
+    val v2 = Variable.fresh(e2.e.asInstanceOf[Variable].tp.asInstanceOf[BagCType].tp)
+    Join(e1, e2, v1, p1(v1), v2, p2(v2))
+  }
+  def outerunnest(e1: Rep, r: List[Rep] => Rep, p: List[Rep] => Rep): Rep = unnest(e1, r, p)
+  def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep): Rep = join(e1, e2, p1, p)
+  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = {
+    val v1 = stateInv(e1.e.asInstanceOf[Variable]).wvars
+    val fv = f(v1)
+    val ev = e(v1) 
+    val v2 = ev.tp match {
+      case IntType =>
+        Variable.fresh(TTupleType(fv.tp.asInstanceOf[TTupleType].attrTps :+ ev.tp))
+      case _ =>
+        Variable.fresh(TTupleType(fv.tp.asInstanceOf[TTupleType].attrTps :+ BagCType(ev.tp)))
+    }
+    Nest(e1, v1, fv, ev, v2, p(v2))
+  }
 }
 
 class Finalizer(val target: Base){

@@ -3,6 +3,7 @@ package shredding.generator
 import java.io._
 import shredding.core._
 import shredding.wmcc._
+import shredding.examples.simple.{FlatTests, FlatRelations}
 import shredding.examples.tpch.{TPCHQueries, TPCHSchema, TPCHLoader}
 
 /**
@@ -66,6 +67,40 @@ object App {
       |}""".stripMargin
   }
  
+  def run(){
+    val runner = new PipelineRunner{}
+    val translator = new NRCTranslator{}
+    val normalizer = new Finalizer(new BaseNormalizer{})
+    val optimizer = new Finalizer(new BasePlanOptimizer{})
+    val anfBase = new BaseANF {}
+    val anfer = new Finalizer(anfBase)
+    val inputs = Map(FlatRelations.type1b.asInstanceOf[Type] -> "InputR")
+    val codegen = new ScalaNamedGenerator(inputs)
+    val eval = new BaseScalaInterp{}
+    val evaluator = new Finalizer(eval)
+
+    val q1 = translator.translate(FlatTests.q4.asInstanceOf[translator.Expr])
+    val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
+    println(Printer.quote(normq1.asInstanceOf[CExpr]))
+    eval.ctx("R") = FlatRelations.format1a
+    println(evaluator.finalize(normq1.asInstanceOf[CExpr]))
+    val plan1 = Unnester.unnest(normq1)(Nil, Nil, None).asInstanceOf[CExpr]
+    println(Printer.quote(plan1))
+    //println(evaluator.finalize(plan1))
+    val anfedq1 = anfer.finalize(plan1)
+    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
+    println(Printer.quote(anfExp1.asInstanceOf[CExpr]))
+    val gcode1 = codegen.generate(anfExp1)
+    val header1 = codegen.generateHeader()
+
+    var out = s"src/test/scala/shredding/examples/simple/Query1.Scala"
+    val printer = new PrintWriter(new FileOutputStream(new File(out), false))
+    val finalc = write("Query1", FlatRelations.format1c, header1, gcode1)
+    printer.println(finalc)
+    printer.close
+ 
+  }
+
   def run1(){
     val runner = new PipelineRunner{}
     val translator = new NRCTranslator{}
@@ -83,7 +118,7 @@ object App {
     println(Printer.quote(normq1))
     val plan1 = Unnester.unnest(normq1)(Nil, Nil, None)
     println(Printer.quote(plan1))
-    val anfedq1 = anfer.finalize(normq1)
+    val anfedq1 = anfer.finalize(plan1)
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
     println(Printer.quote(anfExp1.asInstanceOf[CExpr]))
     val gcode1 = codegen.generate(anfExp1)
@@ -187,6 +222,7 @@ object App {
   }
 
   def main(args: Array[String]){
+    run()
     run1()
     run1Shred()
     run4()
