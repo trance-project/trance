@@ -178,20 +178,17 @@ trait BaseCompiler extends Base {
     Select(x, v, p(v))
   }
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    val v = e1.wvars
+    val v = vars(e1.tp)
     Reduce(e1, v, f(v), p(v))
   }
   def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    val v1 = e1 match {
-      case InputRef(_,tp) => List(Variable.fresh(tp.asInstanceOf[BagCType].tp))
-      case _ => e1.wvars
-    }
+    val v1 = vars(e1.tp) 
     val fv = f(v1) 
     val v = Variable.fresh(fv.tp.asInstanceOf[BagCType].tp)
     Unnest(e1, v1, fv, v, p(v1 :+ v))
   }
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = {
-    val v1 = e1.asInstanceOf[CExpr].wvars 
+    val v1 = vars(e1.tp) 
     val fv = f(v1) // groups
     val ev = e(v1) // pattern
     val v = ev.tp match {
@@ -203,30 +200,19 @@ trait BaseCompiler extends Base {
     Nest(e1, v1, fv, ev, v, p(v))
   }
   def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
-    val v1 = e1 match {
-      case InputRef(_,tp) => List(Variable.fresh(e1.tp.asInstanceOf[BagCType].tp))
-      case _ => e1.wvars
-    }
+    val v1 = vars(e1.tp) 
     val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp)
     Join(e1, e2, v1, p1(v1), v2, p2(v2))
   }
-  def outerunnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    val v1 = e1 match {
-      case InputRef(_,tp) => List(Variable.fresh(tp.asInstanceOf[BagCType].tp))
-      case _ => e1.wvars
-    }
-    val fv = f(v1) 
-    val v = Variable.fresh(fv.tp.asInstanceOf[BagCType].tp)
-    OuterUnnest(e1, v1, fv, v, p(v1 :+ v))
+  def outerunnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = unnest(e1, f, p)
+  def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = join(e1, e2, p1, p2)//{
+  
+  def vars(e: Type): List[Variable] = e match {
+    case BagCType(tp:RecordCType) => List(Variable.fresh(tp))
+    case BagCType(tp @ TTupleType(tps)) => tps.map(Variable.fresh(_))
+    case _ => ???
   }
-  def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
-    val v1 = e1 match {
-      case InputRef(_,tp) => List(Variable.fresh(e1.tp.asInstanceOf[BagCType].tp))
-      case _ => e1.wvars
-    }
-    val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp)
-    OuterJoin(e1, e2, v1, p1(v1), v2, p2(v2))
-  }
+
 }
 
 trait CaseClassRecord
@@ -519,45 +505,17 @@ trait BaseANF extends Base {
   def tupledict(fs: Map[String, Rep]): Rep = compiler.tupledict(fs.map(f => (f._1, defToExpr(f._2))))
   def dictunion(d1: Rep, d2: Rep): Rep = compiler.dictunion(d1, d2)
   def select(x: Rep, p: Rep => Rep): Rep = compiler.select(x, p)
-  def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    val v = stateInv(e1.e.asInstanceOf[Variable]).wvars
-    Reduce(e1, v, f(v), p(v))
-  }
-  def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    val v1 = stateInv(e1.e.asInstanceOf[Variable]).wvars
-    val fv = f(v1)
-    val v2 = Variable.fresh(fv.tp.asInstanceOf[BagCType].tp)
-    Unnest(e1, v1, fv, v2, p(v1 :+ v2))
-  }
-  def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
-    val v1 = stateInv(e1.e.asInstanceOf[Variable]).wvars
-    val v2 = Variable.fresh(e2.e.asInstanceOf[Variable].tp.asInstanceOf[BagCType].tp)
-    Join(e1, e2, v1, p1(v1), v2, p2(v2))
-  }
+  def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = compiler.reduce(e1, f, p)
+  def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = compiler.unnest(e1, f, p)
+  def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = compiler.join(e1, e2, p1, p2)
   def outerunnest(e1: Rep, r: List[Rep] => Rep, p: List[Rep] => Rep): Rep = unnest(e1, r, p)
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep): Rep = join(e1, e2, p1, p)
-  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = ??? // TODO
-  /*{
-    val v1 = stateInv(e1.e.asInstanceOf[Variable]).wvars
-    val fv = f(v1)
-    val ev = e(v1) 
-    val v2 = ev.tp match {
-      case IntType =>
-        Variable.fresh(TTupleType(fv.tp.asInstanceOf[TTupleType].attrTps :+ ev.tp))
-      case _ =>
-        Variable.fresh(TTupleType(fv.tp.asInstanceOf[TTupleType].attrTps :+ BagCType(ev.tp)))
-    }
-    println(s"v1: ${v1.map(_.name)}")
-    println(s"v1 vars: ${e1.e.asInstanceOf[Variable].name}")
-    println(s"v2: ${v2.name}")
-    val Bind(_, fvexpr, _) = fv
-    val res = Nest(e1, v1, fvexpr, ev, v2, p(v2)) 
-    println(fv.wvars.map(_.name))
-    println(fv.getClass)
-    println(Printer.quote(fvexpr))    
-    println(Printer.quote(res))
-    res
-  }*/
+  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = compiler.nest(e1, f, e, p) 
+  def vars(e: Type): List[Variable] = e match {
+    case BagCType(tp:RecordCType) => List(Variable.fresh(tp))
+    case BagCType(tp @ TTupleType(tps)) => tps.map(Variable.fresh(_))
+    case _ => ???
+  }
 }
 
 class Finalizer(val target: Base){
