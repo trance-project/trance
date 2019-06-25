@@ -37,21 +37,21 @@ object TPCHQueries {
   val q1name = "Query1"
   val q1data = s"""
     |import shredding.examples.tpch._
-    |val C = TPCHLoader.loadCustomer.toList
-    |val O = TPCHLoader.loadOrders.toList
-    |val L = TPCHLoader.loadLineitem.toList
-    |val P = TPCHLoader.loadPart.toList""".stripMargin
+    |val C = TPCHLoader.loadCustomer[Customer].toList
+    |val O = TPCHLoader.loadOrders[Orders].toList
+    |val L = TPCHLoader.loadLineitem[Lineitem].toList
+    |val P = TPCHLoader.loadPart[Part].toList""".stripMargin
   
   val sq1data = s"""
     |import shredding.examples.tpch._
     |val C__F = 1
-    |val C__D = (List((C__F, TPCHLoader.loadCustomer.toList)), ())
+    |val C__D = (List((C__F, TPCHLoader.loadCustomer[Customer].toList)), ())
     |val O__F = 2
-    |val O__D = (List((O__F, TPCHLoader.loadOrders.toList)), ())
+    |val O__D = (List((O__F, TPCHLoader.loadOrders[Orders].toList)), ())
     |val L__F = 3
-    |val L__D = (List((L__F, TPCHLoader.loadLineitem.toList)), ())
+    |val L__D = (List((L__F, TPCHLoader.loadLineitem[Lineitem].toList)), ())
     |val P__F = 4
-    |val P__D = (List((P__F, TPCHLoader.loadPart.toList)), ())""".stripMargin
+    |val P__D = (List((P__F, TPCHLoader.loadPart[Part].toList)), ())""".stripMargin
  
   val query1 = ForeachUnion(c, relC, 
             Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(o, relO, 

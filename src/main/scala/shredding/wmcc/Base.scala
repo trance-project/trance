@@ -267,10 +267,9 @@ trait BasePlanOptimizer extends BaseCompiler {
 /**
   * Scala evaluation 
   */
-case class Nested(k: List[_], v: List[_])
 trait BaseScalaInterp extends Base{
   type Rep = Any
-  var ctx = scala.collection.mutable.Map[String, Any]()
+  val ctx = scala.collection.mutable.Map[Any, Any]()
   def inputref(x: String, tp: Type): Rep = ctx(x)
   def input(x: List[Rep]): Rep = x
   def constant(x: Any): Rep = x
@@ -329,7 +328,7 @@ trait BaseScalaInterp extends Base{
     e
   }
   def linset(e: List[Rep]): Rep = e
-  def bind(e1: Rep, e: Rep => Rep): Rep = ctx.getOrElseUpdate(e1.asInstanceOf[String], e(e1))
+  def bind(e1: Rep, e: Rep => Rep): Rep = e(e1) //ctx.getOrElseUpdate(e1, e(e1))
   def lookup(lbl: Rep, dict: Rep): Rep = dict match {
     case (flat, tdict) => flat match {
       case (head:Map[_,_]) :: tail => flat
@@ -465,8 +464,10 @@ trait BaseANF extends Base {
     vars.foldRight(d.e)((cur, acc) => Bind(cur, stateInv(cur), acc))
 
   def inputref(x: String, tp:Type): Rep = {
-    val name = varMaps.get(x).map(_.name).getOrElse(x)
-    compiler.inputref(name, tp)
+    // val v = varMaps.get(x).getOrElse(compiler.inputref(x, tp))
+    //val name = varMaps.get(x).map(_.name).getOrElse(x)
+    compiler.inputref(x, tp)
+    // v
   }
   def input(x: List[Rep]): Rep = ??? 
   def constant(x: Any): Rep = compiler.constant(x)

@@ -50,8 +50,10 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case _ => sys.error("not supported type " + tp)
   }
 
-  def generateHeader(): String = {
-    typelst.map(x => generateTypeDef(x)).mkString("\n")
+  def generateHeader(names: List[String] = List()): String = {
+    val h1 = typelst.map(x => generateTypeDef(x)).mkString("\n")
+    val h2 = inputs.withFilter(x => !names.contains(x._2)).map( x => generateTypeDef(x._1)).toList
+    if (h2.nonEmpty) { s"$h1\n${h2.mkString("\n")}" } else { h1 }
   }
 
   def handleType(tp: Type, givenName: Option[String] = None): Unit = {
@@ -118,7 +120,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Or(e1, e2) => s"${generate(e1)} || ${generate(e2)}"
     case Not(e1) => s"!(${generate(e1)})"
     case Constant(x) => x match {
-      case s:String => s""""$s""""
+      case s:String => "\"" + s + "\""
       case _ => x.toString
     }
     case Sng(e) => s"List(${generate(e)})"
@@ -139,7 +141,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     }
     case Merge(e1, e2) => s"${generate(e1) ++ generate(e2)}"
     case CDeDup(e1) => s"${generate(e1)}.distinct"
-    case CNamed(n, e) => generate(e)
+    case Bind(x, CNamed(n, e), e2) => s"val $n = ${generate(e)}\nval ${generate(x)} = $n\n${generate(e2)}"
     case LinearCSet(exprs) => 
       s"""(${exprs.map(generate(_)).mkString(",")})"""
     case EmptyCDict => "()"
@@ -160,24 +162,24 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
         |${ind(generate(f))}.map($gv2 => {
         |${ind(s"val nv = List$vars :+ $gv2 \n if (${generate(p)}) { nv } else { Nil }")}
         |)}""".stripMargin
-    case Bind(v, Nest(e1, v1, f, e2, v2, p), _) =>
+    case Nest(e1, v1, f, e2, v2, p) =>
     //case Nest(e1, v1, f, e2, v2, p) => 
-      val grps = generate(v)
+      val grps = "grps" + Variable.newId()
       val vars = generateVars(v1)
-      val grped = s"val $grps = ${generate(e1)}.groupBy($vars => ${generate(f)})"
+      val grped = s"{ val $grps = ${generate(e1)}.groupBy{ case $vars => { ${generate(f)} }}"
       e2.tp match {
         case IntType => s"$grped\n $grps.map(v => (v._1, v._2.foldLeft(0)(v1, v2) => v1 + 1))).toList"  
-        case _ => s"$grped\n $grps.map(v => (v._1, v._2.map(${generate(v2)} => ${generate(e2)}))).toList"
+        case _ => s"$grped\n $grps.map(v => (v._1, v._2.map{${generate(v2)} => ${generate(e2)}})).toList }"
       }
-    case Bind(v, Join(e1, e2, v1, p1, v2, p2), _) =>
-      val hm = generate(v)
+    case Join(e1, e2, v1, p1, v2, p2) =>
+      val hm = "hm" + Variable.newId()
       val vars = generateVars(v1)
-      s"""|val $hm = ${generate(e1)}.groupBy($vars => {
-        |${ind(generate(p1))}})
-        |${generate(e2)}.flatMap(${generate(v2)} => $hm.get(${generate(p2)}) match {
+      s"""|{ val $hm = ${generate(e1)}.groupBy{ case $vars => {
+        |${ind(generate(p1))}}}
+        |${generate(e2)}.flatMap(${generate(v2)} => $hm.get({${generate(p2)}}) match {
         | case Some(a) => a.map(v => (v, ${generate(v2)}))
         | case _ => Nil
-        |})""".stripMargin
+        |}) }""".stripMargin
     case OuterJoin(e1, e2, v1, p1, v2, p2) => generate(Join(e1, e2, v1, p1, v2, p2))
     case OuterUnnest(e1, v1, f, v2, p) => generate(Unnest(e1, v1, f, v2, p))
     case Bind(v, e1, e2) =>

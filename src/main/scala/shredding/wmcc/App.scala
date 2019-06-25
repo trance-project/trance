@@ -9,19 +9,25 @@ object App {
   val translator = new NRCTranslator{}
   val normalizer = new Finalizer(new BaseNormalizer{})
   val runner = new PipelineRunner{}
+  val anfBase = new BaseANF {}
+  val anfer = new Finalizer(anfBase)
   
   def main(args: Array[String]){
     val eval = new BaseScalaInterp{}
     val evaluator = new Finalizer(eval)
     
-    /**val q1 = translator.translate(FlatTests.q1.asInstanceOf[translator.Expr])
+    val q1 = translator.translate(FlatTests.q1.asInstanceOf[translator.Expr])
     val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
     println(Printer.quote(normq1.asInstanceOf[CExpr]))
     eval.ctx("R") = FlatRelations.format1a
     println(evaluator.finalize(normq1.asInstanceOf[CExpr]))
     val plan1 = Unnester.unnest(normq1)(Nil, Nil, None).asInstanceOf[CExpr]
     println(Printer.quote(plan1))
-    println(evaluator.finalize(plan1))**/
+    println(evaluator.finalize(plan1))
+    val anfedq1 = anfer.finalize(plan1)
+    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
+    println(evaluator.finalize(anfExp1.asInstanceOf[CExpr]))
+
 
     val q2 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
     val sq2 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
@@ -50,11 +56,21 @@ object App {
     println("\nPlan")
     println(Printer.quote(plan2))
     println(evaluator.finalize(plan2))
+    anfBase.reset
+    val anfedq2 = anfer.finalize(plan2)
+    val anfExp2 = anfBase.anf(anfedq2.asInstanceOf[anfBase.Rep])
+    println(evaluator.finalize(anfExp2.asInstanceOf[CExpr]))
 
     val splan2 = Unnester.unnest(snormq2)(Nil, Nil, None).asInstanceOf[CExpr]
     println("\nShredPlan")
     println(Printer.quote(splan2))
     println(evaluator.finalize(splan2))
+    // bug here
+    anfBase.reset
+    val anfedqs2 = anfer.finalize(splan2)
+    val anfExps2 = anfBase.anf(anfedqs2.asInstanceOf[anfBase.Rep])
+    println(Printer.quote(anfExps2))
+    println(evaluator.finalize(anfExps2.asInstanceOf[CExpr]))
 
     /**val q3 = {    
       import translator._
