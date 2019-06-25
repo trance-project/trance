@@ -36,14 +36,12 @@ object TPCHQueries {
 
   val q1name = "Query1"
   val q1data = s"""
-    |import shredding.examples.tpch._
     |val C = TPCHLoader.loadCustomer[Customer].toList
     |val O = TPCHLoader.loadOrders[Orders].toList
     |val L = TPCHLoader.loadLineitem[Lineitem].toList
     |val P = TPCHLoader.loadPart[Part].toList""".stripMargin
   
   val sq1data = s"""
-    |import shredding.examples.tpch._
     |val C__F = 1
     |val C__D = (List((C__F, TPCHLoader.loadCustomer[Customer].toList)), ())
     |val O__F = 2
