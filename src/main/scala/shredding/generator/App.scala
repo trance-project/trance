@@ -180,6 +180,7 @@ object App {
 
     val q4 = translator.translate(TPCHQueries.query4.asInstanceOf[translator.Expr])
     val normq4 = normalizer.finalize(q4).asInstanceOf[CExpr]
+    println(Printer.quote(normq4))
     anfBase.reset
     val anfedq1 = anfer.finalize(normq4)
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
@@ -204,10 +205,10 @@ object App {
     val q1 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
     val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
 
-    val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) ++ 
-                  Map(normq1.asInstanceOf[CExpr].tp.asInstanceOf[BagCType].tp -> "Q1Out")
+    val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) 
     val ng = TPCHSchema.tpchInputs.toList.map(f => f._2)
     val codegen = new ScalaNamedGenerator(inputs)   
+    codegen.handleType(normq1.asInstanceOf[CExpr].tp.asInstanceOf[BagCType].tp, Some("Q1Out"))
 
     val plan1 = Unnester.unnest(normq1)(Nil, Nil, None).asInstanceOf[CExpr]
     val anfedq1 = new Finalizer(anfBase).finalize(plan1)
@@ -351,15 +352,17 @@ object App {
     val normalizer = new Finalizer(new BaseNormalizer{})
     val anfBase = new BaseANF {}
 
-    val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) ++
-                  Map(RecordCType("Q1__F" -> IntType) -> "Q1Flat2")
-    val ng = TPCHSchema.tpchInputs.toList.map(f => f._2)
+    /**val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) ++
+                  Map(RecordCType("Q1__F" -> IntType) -> "Q1Flat2")**/
+    val inputs = TPCHSchema.tpchShredInputs
+    val ng = TPCHSchema.tpchShredInputs.toList.map(f => f._2)
     val codegen = new ScalaNamedGenerator(inputs)
 
     val q1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
     val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
+    println(Printer.quote(normq1))
     val plan1 = Unnester.unnest(normq1)((Nil, Nil, None)).asInstanceOf[CExpr]
-
+    println(Printer.quote(plan1))
     val anfedq1 = new Finalizer(anfBase).finalize(plan1)
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
     val gcode1 = codegen.generate(anfExp1)
@@ -383,13 +386,21 @@ object App {
   }
 
   def main(args: Array[String]){
+    println("\n----------------- SIMPLE -------------------")
     run()
+    println("\n----------------- Query 1 -------------------")
     run1()
+    println("\n----------------- Query Shred 1 -------------------")
     run1Shred()
+    println("\n----------------- Query Shred 1 Calc -------------------")
     run1ShredCalc()
+    println("\n----------------- Query 4 Calc -------------------")
     run4Calc()
+    println("----------------- Query 4 -------------------")
     run4()
+    println("----------------- Query Shred 4 -------------------")
     run4Shred()
+    println("----------------- Query Shred 4 Calc -------------------")
     run4ShredCalc()
   }
 }

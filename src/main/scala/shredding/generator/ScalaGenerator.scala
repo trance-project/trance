@@ -79,7 +79,6 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
           if (!ffs.isEmpty) { handleType(RecordCType(ffs), givenName) } else { () }
         case _ => ()
       }
-      
     }
   }
 
@@ -153,9 +152,9 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       case _ => s"${generate(x)}.filter(${generate(v)} => ${generate(p)})"
     }
     case Reduce(e1, v, f, p) => 
-      s"${generate(e1)}.map{ case ${generateVars(v)} => { \n${ind(generate(f))} }}"
+      s"${generate(e1)}.map{ case ${generateVars(v, e1.tp)} => { \n${ind(generate(f))} }}"
     case Unnest(e1, v1, f, v2, p) => 
-      val vars = generateVars(v1)
+      val vars = generateVars(v1, e1.tp)
       val gv2 = generate(v2)
       s"""
         |${generate(e1)}.flatMap{$vars => 
@@ -163,10 +162,9 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
         |${ind(s"val nv = List$vars :+ $gv2 \n if (${generate(p)}) { nv } else { Nil }")}
         |)}""".stripMargin
     case Nest(e1, v1, f, e2, v2, p) =>
-      println(e.tp)
       val grps = "grps" + Variable.newId()
       val acc = "acc"+Variable.newId()
-      val vars = generateVars(v1)
+      val vars = generateVars(v1, e1.tp)
       val gv2 = generate(v2)
       val grped = s"{ val $grps = ${generate(e1)}.groupBy{ case $vars => { ${generate(f)} }}"
       e2.tp match {
@@ -174,9 +172,8 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
         case _ => s"$grped\n $grps.map($gv2 => ($gv2._1, $gv2._2.map{case $vars => ${generate(e2)}})).toList }"
       }
     case Join(e1, e2, v1, p1, v2, p2) =>
-      println(e.tp)
       val hm = "hm" + Variable.newId()
-      val vars = generateVars(v1)
+      val vars = generateVars(v1, e1.tp)
       s"""|{ val $hm = ${generate(e1)}.groupBy{ case $vars => {
         |${ind(generate(p1))}}}
         |${generate(e2)}.flatMap(${generate(v2)} => $hm.get({${generate(p2)}}) match {
@@ -189,11 +186,12 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       s"val ${generate(v)} = ${generate(e1)}\n${generate(e2)}"
     case _ => sys.error("not supported "+e)
   }
-
-  def generateVars(e: List[Variable]): String = e match {
+  
+  def generateVars(e: List[Variable], tp: Type): String = e match {
     case Nil => sys.error("empty variable list")
     case tail :: Nil => generate(tail)
     case head :: tail => s"(${e.map(generate(_)).mkString(",")})"
   }
+  
 
 }

@@ -233,13 +233,15 @@ object TPCHSchema {
                                      q1ftype -> "Q1Flat")
   
   var tpchShredInputs:Map[Type, String] = Map(
-    BagDictType(partsupptype, TupleDictType(Map[String, TupleDictAttributeType]())) -> "PartSupp", 
-    BagDictType(suppliertype, TupleDictType(Map[String, TupleDictAttributeType]())) -> "Supplier", 
-    BagDictType(lineittype, TupleDictType(Map[String, TupleDictAttributeType]())) -> "Lineitem", 
-    BagDictType(orderstype, TupleDictType(Map[String, TupleDictAttributeType]())) -> "Orders",
-    BagDictType(customertype, TupleDictType(Map[String, TupleDictAttributeType]())) -> "Customer", 
-    BagDictType(parttype, TupleDictType(Map[String, TupleDictAttributeType]())) -> "Part",
-    BagDictType(nationtype, TupleDictType(Map[String, TupleDictAttributeType]())) -> "Nation",
-    BagDictType(regiontype, TupleDictType(Map[String, TupleDictAttributeType]())) -> "Region")
+    RecordCType("P__F" -> IntType, "C__F" -> IntType, "L__F" -> IntType, "O__F" -> IntType) -> "Q1Flat",
+    RecordCType("Q1__F" -> IntType) -> "Q1Flat2",
+    BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(partsupptype.tp.attrTps))))), EmptyDictCType) -> "PD", 
+    BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(suppliertype.tp.attrTps))))), EmptyDictCType) -> "SD", 
+    BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(lineittype.tp.attrTps))))), EmptyDictCType) -> "LD", 
+    BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(orderstype.tp.attrTps))))), EmptyDictCType) -> "OD",
+    BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(customertype.tp.attrTps))))), EmptyDictCType) -> "CD", 
+    BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(parttype.tp.attrTps))))), EmptyDictCType) -> "PD",
+    BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(nationtype.tp.attrTps))))), EmptyDictCType) -> "ND",
+    BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(regiontype.tp.attrTps))))), EmptyDictCType) -> "RD")
 
 }
