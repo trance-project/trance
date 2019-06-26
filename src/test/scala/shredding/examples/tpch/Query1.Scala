@@ -68,6 +68,6 @@ val x112 = x107.map{ case (x108, x109) => {
   val x110 = x108.c_name
   val x111 = Record122(x110, x109)
   x111 }}
-println(x112)
+x112
  }
 }

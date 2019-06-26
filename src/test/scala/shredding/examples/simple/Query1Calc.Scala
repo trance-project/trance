@@ -23,8 +23,8 @@ val R = List(InputR(42, "Milos"), InputR(49, "Michael"),
     println(end0+","+avg)
  }
  def f(R: List[InputR]){
-  R.flatMap(x1 =>  
-  {  R.flatMap(x2 =>  
-      if({x1.a == x2.a}) {  List(Record5(x1.a, x1.b, x2.b))} else {  Nil})})
+  R.flatMap(x1 => { 
+    R.flatMap(x2 => { 
+      if({x1.a == x2.a}) {  List(Record5(x1.a, x1.b, x2.b))} else {  Nil}})})
  }
 }

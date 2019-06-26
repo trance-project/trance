@@ -79,6 +79,11 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       }
     }
   }
+  
+  def conditional(p: CExpr, thenp: String, elsep: String): String = p match {
+    case Constant(true) => s"${ind(thenp)}"
+    case _ => s"if({${generate(p)}}) {${ind(thenp)}} else {${ind(elsep)}}"
+  }
 
   def generate(e: CExpr): String = e match {
     case Variable(name, _) => name
@@ -88,18 +93,13 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Comprehension(e1, v, p, e) =>
       val acc = "acc" + Variable.newId()
       val cur = generate(v)
-      def conditional(thenp: String, elsep: String): String = 
-        p match {
-          case Constant(true) => s"{${ind(thenp)}}"
-          case _ => s"if({${generate(p)}}) {${ind(thenp)}} else {${ind(elsep)}}"
-        }
       e.tp match {
         case IntType =>
-          s"${generate(e1)}.foldLeft(0)(($acc, $cur) => \n${ind(conditional(s"$acc + {${generate(e)}}", s"$acc"))})"
+          s"${generate(e1)}.foldLeft(0)(($acc, $cur) => \n${ind(conditional(p, s"$acc + {${generate(e)}}", s"$acc"))})"
         case DoubleType =>
-          s"${generate(e1)}.foldLeft(0.0)(($acc, $cur) => \n${ind(conditional(s"$acc + {${generate(e)}}", s"$acc"))})"
+          s"${generate(e1)}.foldLeft(0.0)(($acc, $cur) => \n${ind(conditional(p, s"$acc + {${generate(e)}}", s"$acc"))})"
         case _ =>
-          s"${generate(e1)}.flatMap($cur =>  \n${ind(conditional(generate(e), "Nil"))})"
+          s"${generate(e1)}.flatMap($cur => { \n${ind(conditional(p, s"${generate(e)}", "Nil"))}})"
       }
     case Record(fs) => {
       val tp = e.tp
@@ -154,11 +154,11 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Unnest(e1, v1, f, v2, p) => 
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 = generate(v2)
-      s"""
-        |${generate(e1)}.flatMap{$vars => 
-        |${ind(generate(f))}.map($gv2 => {
-        |${ind(s"val nv = List$vars :+ $gv2 \n if (${generate(p)}) { nv } else { Nil }")}
-        |)}""".stripMargin
+      val nv = "nv"+Variable.newId()
+      s"""|${generate(e1)}.flatMap{ case $vars => 
+          |${ind(generate(f))}.map($gv2 => {
+          |${ind(s"val $nv = ($vars, $gv2) \n ${conditional(p, nv, "Nil")}")}
+          |})}""".stripMargin
     case Nest(e1, v1, f, e2, v2, p) =>
       val grps = "grps" + Variable.newId()
       val acc = "acc"+Variable.newId()
@@ -166,7 +166,8 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       val gv2 = generate(v2)
       val grped = s"{ val $grps = ${generate(e1)}.groupBy{ case $vars => { ${generate(f)} }}"
       e2.tp match {
-        case IntType => s"$grped\n $grps.map($gv2 => ($gv2._1, $gv2._2.foldLeft(0)($acc, $gv2) => $acc + ${generate(e2)}))).toList"  
+        case IntType => 
+          s"$grped\n $grps.map($gv2 => ($gv2._1, $gv2._2.foldLeft(0)($acc, $gv2) => $acc + ${generate(e2)}))).toList"  
         case _ => s"$grped\n $grps.map($gv2 => ($gv2._1, $gv2._2.map{case $vars => ${generate(e2)}})).toList }"
       }
     case Join(e1, e2, v1, p1, v2, p2) =>
@@ -183,6 +184,11 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Bind(v, e1, e2) =>
       s"val ${generate(v)} = ${generate(e1)}\n${generate(e2)}"
     case _ => sys.error("not supported "+e)
+  }
+
+  def toList(e: String): String = e match {
+    case _ if e.startsWith("(") => s"List$e"
+    case _ => s"List($e)"
   }
 
   def generateVars(e: List[Variable], tp: Type): String = tp match {

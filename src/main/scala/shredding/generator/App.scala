@@ -67,6 +67,36 @@ object App {
       |}""".stripMargin
   }
  
+  def write2s(n: String, i1: String, h: String, q1: String, i2: String, f1: String, f2: String, q2: String): String = {
+    s"""
+      |package experiments
+      |/** Generated code **/
+      |import shredding.examples.tpch._
+      |object $n {
+      | $h
+      | def main(args: Array[String]){ 
+      |    var start0 = System.currentTimeMillis()
+      |    $i1
+      |    val $i2 = { 
+      |      $q1 
+      |    }
+      |    var end0 = System.currentTimeMillis() - start0
+      |    var time = List[Long]()
+      |    for (i <- 1 to 5) {  
+      |     var start = System.currentTimeMillis()
+      |      $f1
+      |      var end = System.currentTimeMillis() - start
+      |      time = time :+ end
+      |    }
+      |    val avg = (time.sum/5)
+      |    println(end0+","+avg)
+      | }
+      | def $f2{
+      |  $q2
+      | }
+      |}""".stripMargin
+  }
+
   def run(){
     val runner = new PipelineRunner{}
     val translator = new NRCTranslator{}
@@ -303,10 +333,9 @@ object App {
     sprinter.close
   }
 
-  //val f1q4 = "f(Q1__F, Q1__D)"
-  //val f2q4 = "f(Q1__F: Q1Flat, )"
-  // need to deal with these
-
+  val f1q4 = "f(Q1__F, Q1__D)"
+  val f2q4 = "f(Q1__F: Q1Flat, Q1__D: (RecM_flat1, Input_Q1_Dict1))"
+  
   def run4ShredCalc(){
     // shredded pipeline
     val runner = new PipelineRunner{}
@@ -317,10 +346,10 @@ object App {
     val q1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
     val normq1 = normalizer.finalize(q1)
 
-    val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) ++
-                  normq1.asInstanceOf[LinearCSet].getTypeMap 
+    val inputs = (TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) ++
+                  TPCHSchema.tpchShredInputs) ++ normq1.asInstanceOf[LinearCSet].getTypeMap 
 
-    val ng = TPCHSchema.tpchInputs.toList.map(f => f._2)
+    val ng = TPCHSchema.tpchShredInputs.toList.map(f => f._2) ++ TPCHSchema.tpchInputs.toList.map(f => f._2)
     val codegen = new ScalaNamedGenerator(inputs)
 
     val anfedq1 = new Finalizer(anfBase).finalize(normq1.asInstanceOf[CExpr])
@@ -337,9 +366,8 @@ object App {
 
     var sout = s"src/test/scala/shredding/examples/tpch/Shred${TPCHQueries.q4name}Calc.Scala"
     val sprinter = new PrintWriter(new FileOutputStream(new File(sout), false))
-    // TODO change Foo and Goo to appropriate types
-    val sfinalc = write2(s"Shred${TPCHQueries.q4name}Calc", TPCHQueries.sq1data, header4, gcode1, "foo", gcode4)
-    //TPCHQueries.sq4data("Record442", "Record430"), gcode4)
+    val hs = TPCHQueries.sq4data("RecM_flat2", "RecM_flat3")("Q1")
+    val sfinalc = write2s(s"Shred${TPCHQueries.q4name}Calc", TPCHQueries.sq1data+s"\n$hs", header4, gcode1, "Q1", f1q4, f2q4, gcode4)
     sprinter.println(sfinalc)
     sprinter.close
   }
@@ -351,11 +379,6 @@ object App {
     val normalizer = new Finalizer(new BaseNormalizer{})
     val anfBase = new BaseANF {}
 
-    /**val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) ++
-                  Map(RecordCType("Q1__F" -> IntType) -> "Q1Flat2")**/
-    val inputs = TPCHSchema.tpchShredInputs
-    val ng = TPCHSchema.tpchShredInputs.toList.map(f => f._2)
-    val codegen = new ScalaNamedGenerator(inputs)
 
     val q1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
     val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
@@ -364,6 +387,12 @@ object App {
     println(Printer.quote(plan1))
     val anfedq1 = new Finalizer(anfBase).finalize(plan1)
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
+
+    val inputs = (TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) ++
+                  TPCHSchema.tpchShredInputs) ++ normq1.asInstanceOf[LinearCSet].getTypeMap 
+
+    val ng = TPCHSchema.tpchShredInputs.toList.map(f => f._2) ++ TPCHSchema.tpchInputs.toList.map(f => f._2)
+    val codegen = new ScalaNamedGenerator(inputs)
     val gcode1 = codegen.generate(anfExp1)
 
     val q4 = runner.shredPipeline(TPCHQueries.query4.asInstanceOf[runner.Expr])
@@ -377,9 +406,8 @@ object App {
 
     var sout = s"src/test/scala/shredding/examples/tpch/Shred${TPCHQueries.q4name}.Scala"
     val sprinter = new PrintWriter(new FileOutputStream(new File(sout), false))
-    // TODO change Foo and Goo to appropriate types
-    val sfinalc = write2("Shred"+TPCHQueries.q4name, TPCHQueries.sq1data, header4, gcode1, "foo", gcode4)
-    //TPCHQueries.sq4data("Record442", "Record430"), gcode4)
+    val hs = TPCHQueries.sq4data("RecM_flat2", "RecM_flat3")("Q1")
+    val sfinalc = write2s(s"Shred${TPCHQueries.q4name}Calc", TPCHQueries.sq1data+s"\n$hs", header4, gcode1, "Q1", f1q4, f2q4, gcode4)
     sprinter.println(sfinalc)
     sprinter.close
   }
@@ -389,7 +417,7 @@ object App {
     run()
     println("\n----------------- Query 1 -------------------")
     run1()
-    /**println("\n----------------- Query Shred 1 -------------------")
+    println("\n----------------- Query Shred 1 -------------------")
     run1Shred()
     println("\n----------------- Query Shred 1 Calc -------------------")
     run1ShredCalc()
@@ -400,6 +428,6 @@ object App {
     println("----------------- Query Shred 4 -------------------")
     run4Shred()
     println("----------------- Query Shred 4 Calc -------------------")
-    run4ShredCalc()**/
+    run4ShredCalc()
   }
 }

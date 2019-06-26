@@ -45,17 +45,17 @@ val x297 = RecM_ctx1(x296)
 val x298 = List(x297)
 val M_ctx1 = x298
 val x299 = M_ctx1
-val x322 = M_ctx1.flatMap(x300 =>  
-  {  val x301 = x300.lbl
+val x322 = M_ctx1.flatMap(x300 => { 
+    val x301 = x300.lbl
     val x302 = C__D._1
-    val x319 = x302.flatMap(x303 =>  
+    val x319 = x302.flatMap(x303 => { 
       if({val x304 = x300.lbl
       val x305 = x304.C__F
       val x306 = x303._1
       val x307 = x305 == x306
       x307}) {  val x308 = x303._2
-        val x318 = x308.flatMap(x309 =>  
-          {  val x310 = x309.c_name
+        val x318 = x308.flatMap(x309 => { 
+            val x310 = x309.c_name
             val x311 = x300.lbl
             val x312 = x311.P__F
             val x313 = x311.L__F
@@ -64,16 +64,16 @@ val x322 = M_ctx1.flatMap(x300 =>
             val x316 = Record416(x310, x315)
             val x317 = List(x316)
             x317})
-        x318} else {  Nil})
+        x318} else {  Nil}})
     val x320 = RecM_flat1(x301, x319)
     val x321 = List(x320)
     x321})
 val M_flat1 = x322
 val x323 = M_flat1
-val x331 = M_flat1.flatMap(x324 =>  
-  {  val x325 = x324._2
-    val x330 = x325.flatMap(x326 =>  
-      {  val x327 = x326.c_orders
+val x331 = M_flat1.flatMap(x324 => { 
+    val x325 = x324._2
+    val x330 = x325.flatMap(x326 => { 
+        val x327 = x326.c_orders
         val x328 = RecM_ctx2(x327)
         val x329 = List(x328)
         x329})
@@ -81,16 +81,16 @@ val x331 = M_flat1.flatMap(x324 =>
 val x332 = x331.distinct
 val M_ctx2 = x332
 val x333 = M_ctx2
-val x360 = M_ctx2.flatMap(x334 =>  
-  {  val x335 = x334.lbl
+val x360 = M_ctx2.flatMap(x334 => { 
+    val x335 = x334.lbl
     val x336 = O__D._1
-    val x357 = x336.flatMap(x337 =>  
+    val x357 = x336.flatMap(x337 => { 
       if({val x338 = x334.lbl
       val x339 = x338.O__F
       val x340 = x337._1
       val x341 = x339 == x340
       x341}) {  val x342 = x337._2
-        val x356 = x342.flatMap(x343 =>  
+        val x356 = x342.flatMap(x343 => { 
           if({val x344 = x343.o_custkey
           val x345 = x334.lbl
           val x346 = x345.c__F
@@ -103,17 +103,17 @@ val x360 = M_ctx2.flatMap(x334 =>
             val x353 = Record423(x343, x351, x352)
             val x354 = Record424(x349, x353)
             val x355 = List(x354)
-            x355} else {  Nil})
-        x356} else {  Nil})
+            x355} else {  Nil}})
+        x356} else {  Nil}})
     val x358 = RecM_flat2(x335, x357)
     val x359 = List(x358)
     x359})
 val M_flat2 = x360
 val x361 = M_flat2
-val x369 = M_flat2.flatMap(x362 =>  
-  {  val x363 = x362._2
-    val x368 = x363.flatMap(x364 =>  
-      {  val x365 = x364.o_parts
+val x369 = M_flat2.flatMap(x362 => { 
+    val x363 = x362._2
+    val x368 = x363.flatMap(x364 => { 
+        val x365 = x364.o_parts
         val x366 = RecM_ctx3(x365)
         val x367 = List(x366)
         x367})
@@ -121,29 +121,29 @@ val x369 = M_flat2.flatMap(x362 =>
 val x370 = x369.distinct
 val M_ctx3 = x370
 val x371 = M_ctx3
-val x408 = M_ctx3.flatMap(x372 =>  
-  {  val x373 = x372.lbl
+val x408 = M_ctx3.flatMap(x372 => { 
+    val x373 = x372.lbl
     val x374 = L__D._1
-    val x405 = x374.flatMap(x375 =>  
+    val x405 = x374.flatMap(x375 => { 
       if({val x376 = x372.lbl
       val x377 = x376.L__F
       val x378 = x375._1
       val x379 = x377 == x378
       x379}) {  val x380 = x375._2
-        val x404 = x380.flatMap(x381 =>  
+        val x404 = x380.flatMap(x381 => { 
           if({val x382 = x381.l_orderkey
           val x383 = x372.lbl
           val x384 = x383.o__F
           val x385 = x384.o_orderkey
           val x386 = x382 == x385
           x386}) {  val x387 = P__D._1
-            val x403 = x387.flatMap(x388 =>  
+            val x403 = x387.flatMap(x388 => { 
               if({val x389 = x372.lbl
               val x390 = x389.P__F
               val x391 = x388._1
               val x392 = x390 == x391
               x392}) {  val x393 = x388._2
-                val x402 = x393.flatMap(x394 =>  
+                val x402 = x393.flatMap(x394 => { 
                   if({val x395 = x381.l_partkey
                   val x396 = x394.p_partkey
                   val x397 = x395 == x396
@@ -151,10 +151,10 @@ val x408 = M_ctx3.flatMap(x372 =>
                     val x399 = x381.l_quantity
                     val x400 = Record434(x398, x399)
                     val x401 = List(x400)
-                    x401} else {  Nil})
-                x402} else {  Nil})
-            x403} else {  Nil})
-        x404} else {  Nil})
+                    x401} else {  Nil}})
+                x402} else {  Nil}})
+            x403} else {  Nil}})
+        x404} else {  Nil}})
     val x406 = RecM_flat3(x373, x405)
     val x407 = List(x406)
     x407})
