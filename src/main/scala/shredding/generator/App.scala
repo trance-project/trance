@@ -91,7 +91,7 @@ object App {
     val header11 = codegen1.generateHeader()
     var out1 = s"src/test/scala/shredding/examples/simple/Query1Calc.Scala"
     val printer1 = new PrintWriter(new FileOutputStream(new File(out1), false))
-    val finalc1 = write("Query1Calc", FlatRelations.format1c, header11, f1q1, f2q1, gcode11)
+    val finalc1 = write("Query1Calc", FlatRelations.format1c, header11, "f(R)", "f(R: List[InputR])", gcode11)
     printer1.println(finalc1)
     printer1.close
 
@@ -106,7 +106,7 @@ object App {
 
     var out = s"src/test/scala/shredding/examples/simple/Query1.Scala"
     val printer = new PrintWriter(new FileOutputStream(new File(out), false))
-    val finalc = write("Query1", FlatRelations.format1c, header1, f1q1, f2q1, gcode1)
+    val finalc = write("Query1", FlatRelations.format1c, header1, "f(R)", "f(R: List[InputR])", gcode1)
     printer.println(finalc)
     printer.close
  
@@ -233,6 +233,12 @@ object App {
     printer.close
   }
 
+   val f1sq1 = "f(C__F, C__D, O__F, O__D, L__F, L__D, P__F, P__D)"
+   val f2sq1 = s"""f(C__F: Int, C__D: (List[(Int, List[Customer])], Unit),
+                     O__F: Int, O__D: (List[(Int, List[Orders])], Unit),
+                     L__F: Int, L__D: (List[(Int, List[Lineitem])], Unit),
+                     P__F: Int, P__D: (List[(Int, List[Part])], Unit))"""
+
    def run1ShredCalc(){
     // shredded pipeline
     val runner = new PipelineRunner{}
@@ -260,7 +266,7 @@ object App {
 
     var sout = s"src/test/scala/shredding/examples/tpch/Shred${qname}Calc.Scala"
     val sprinter = new PrintWriter(new FileOutputStream(new File(sout), false))
-    val sfinalc = write(s"Shred${qname}Calc", qdata, sheader, f1q1, f2q1, sgcode)
+    val sfinalc = write(s"Shred${qname}Calc", qdata, sheader, f1sq1, f2sq1, sgcode)
     sprinter.println(sfinalc)
     sprinter.close
   }
@@ -293,10 +299,14 @@ object App {
 
     var sout = s"src/test/scala/shredding/examples/tpch/Shred${qname}.Scala"
     val sprinter = new PrintWriter(new FileOutputStream(new File(sout), false))
-    val sfinalc = write("Shred"+qname, qdata, sheader, f1q1, f2q1, sgcode)
+    val sfinalc = write("Shred"+qname, qdata, sheader, f1sq1, f2sq1, sgcode)
     sprinter.println(sfinalc)
     sprinter.close
   }
+
+  //val f1q4 = "f(Q1__F, Q1__D)"
+  //val f2q4 = "f(Q1__F: Q1Flat, )"
+  // need to deal with these
 
   def run4ShredCalc(){
     // shredded pipeline
@@ -305,13 +315,15 @@ object App {
     val normalizer = new Finalizer(new BaseNormalizer{})
     val anfBase = new BaseANF {}
 
+    val q1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
+    val normq1 = normalizer.finalize(q1)
+
     val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) ++
-                  Map(RecordCType("Q1__F" -> IntType) -> "Q1Flat2")
+                  normq1.asInstanceOf[LinearCSet].getTypeMap 
+
     val ng = TPCHSchema.tpchInputs.toList.map(f => f._2)
     val codegen = new ScalaNamedGenerator(inputs)
 
-    val q1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
-    val normq1 = normalizer.finalize(q1)
     val anfedq1 = new Finalizer(anfBase).finalize(normq1.asInstanceOf[CExpr])
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
     val gcode1 = codegen.generate(anfExp1)
@@ -372,13 +384,13 @@ object App {
   }
 
   def main(args: Array[String]){
-    run()
+    //run()
     run1()
-    run1Shred()
+    /**run1Shred()
     run1ShredCalc()
     run4Calc()
     run4()
     run4Shred()
-    run4ShredCalc()
+    run4ShredCalc()**/
   }
 }

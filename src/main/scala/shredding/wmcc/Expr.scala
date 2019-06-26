@@ -215,21 +215,24 @@ case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CEx
 
 // { (v1, v2) | v1 <- e1, v2 <- e2(v1), p((v1, v2)) } 
 case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
-  def tp: Type = BagCType(TTupleType(v1.map(_.tp) :+ v2.tp))
+  def tp: Type = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  //def tp: Type = BagCType(TTupleType(v1.map(_.tp) :+ v2.tp))
   override def wvars = e1.wvars :+ v2
 }
 
 case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
-  def tp: Type = BagCType(TTupleType(v1.map(_.tp) :+ v2.tp))
+  def tp: Type = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  //def tp: Type = BagCType(TTupleType(v1.map(_.tp) :+ v2.tp))
   override def wvars = e1.wvars :+ v2
 }
 
 case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr) extends CExpr {
-  def tp: BagCType = e.tp match {
+  def tp: BagCType = BagCType(v2.tp) 
+  /**def tp: BagCType = e.tp match {
     case IntType => 
       BagCType(TTupleType(f.tp.asInstanceOf[TTupleType].attrTps :+ e.tp))
     case _ => BagCType(TTupleType(f.tp.asInstanceOf[TTupleType].attrTps :+ BagCType(e.tp)))
-  }
+  }**/
   override def wvars = { 
     val uvars = f match {
       case Bind(v1, t @ Tuple(fs), v2) => fs
@@ -242,7 +245,8 @@ case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable,
 }
 
 case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
-  def tp: BagCType = BagCType(TTupleType(v1.map(_.tp) :+ v2.tp))
+  def tp: BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  //def tp: BagCType = BagCType(TTupleType(v1.map(_.tp) :+ v2.tp))
   override def wvars = {
     assert(v1 == e1.wvars)
     e1.wvars :+ v2
@@ -250,7 +254,8 @@ case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Va
 }
 
 case class Join(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
-  def tp: BagCType = BagCType(TTupleType(v1.map(_.tp) :+ v2.tp))
+  def tp: BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  //def tp: BagCType = BagCType(TTupleType(v1.map(_.tp) :+ v2.tp))
   override def wvars = e1.wvars :+ v2
 }
 

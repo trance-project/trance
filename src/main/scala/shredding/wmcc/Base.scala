@@ -208,9 +208,9 @@ trait BaseCompiler extends Base {
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = join(e1, e2, p1, p2)//{
   
   def vars(e: Type): List[Variable] = e match {
-    case BagCType(tp:RecordCType) => List(Variable.fresh(tp))
-    case BagCType(tp @ TTupleType(tps)) => tps.map(Variable.fresh(_))
-    case _ => ???
+    case BagCType(tp) => vars(tp)
+    case TTupleType(tps) => tps.flatMap(vars(_))
+    case _ => List(Variable.fresh(e))
   }
 
 }
@@ -485,7 +485,10 @@ trait BaseANF extends Base {
   def and(e1: Rep, e2: Rep): Rep = compiler.and(e1, e2)
   def not(e1: Rep): Rep = compiler.not(e1)
   def or(e1: Rep, e2: Rep): Rep = compiler.or(e1, e2)
-  def project(e1: Rep, field: String): Rep = compiler.project(e1, field)
+  def project(e1: Rep, field: String): Rep = {
+    println(e1)
+    compiler.project(e1, field)
+  }
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep] = None): Rep = e2 match {
     case Some(a) => compiler.ifthen(cond, e1, Some(a)) 
     case _ => compiler.ifthen(cond, e1, None)
