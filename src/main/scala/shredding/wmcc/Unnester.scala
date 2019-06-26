@@ -73,6 +73,15 @@ object Unnester {
       assert(!E.isEmpty)
       val nE = Some(OuterUnnest(E.get, w, e1, v, p))
       unnest(e)((u, w :+ v, nE)) // C10
+    case Comprehension(e1 @ WeightedSng(t, q), v, p, e) if !u.isEmpty && !w.isEmpty =>
+      assert(!E.isEmpty)
+      val preds = ps(p, v, w)
+      val ws = preds._3 match {
+        case Constant(true) => Tuple(List(t, q))
+        case p2 => Tuple(List(t, q, p2)) //???
+      }
+      val nE = Some(OuterJoin(E.get, Select(e1, v, preds._1), w, preds._2, v, ws))
+      unnest(e)((u, w :+ v, nE)) // C9
     case Comprehension(e1, v, p, e) if !u.isEmpty && !w.isEmpty =>
       assert(!E.isEmpty)
       val preds = ps(p, v, w)
