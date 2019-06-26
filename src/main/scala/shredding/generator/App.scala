@@ -23,7 +23,6 @@ object App {
       |    var start0 = System.currentTimeMillis()
       |    $i
       |    var end0 = System.currentTimeMillis() - start0
-      |    println("setup: "+end0) 
       |    var time = List[Long]()
       |    for (i <- 1 to 5) {
       |      var start = System.currentTimeMillis()
@@ -32,7 +31,7 @@ object App {
       |      time = time :+ end
       |    }
       |    val avg = (time.sum/5)
-      |    println(avg)
+      |    println(end0+","+avg)
       | }
       | def $f2{
       |  $q
@@ -384,13 +383,13 @@ object App {
   }
 
   def main(args: Array[String]){
-    //run()
+    run()
     run1()
-    /**run1Shred()
+    run1Shred()
     run1ShredCalc()
     run4Calc()
     run4()
     run4Shred()
-    run4ShredCalc()**/
+    run4ShredCalc()
   }
 }
