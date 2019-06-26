@@ -4,8 +4,8 @@ package experiments
 import shredding.examples.tpch._
 object Query1 {
  case class Record118(p_name: String, l_qty: Double)
-case class Record121(o_orderdate: String, o_parts: Record118)
-case class Record122(c_name: String, c_orders: Record121)
+case class Record121(o_orderdate: String, o_parts: List[Record118])
+case class Record122(c_name: String, c_orders: List[Record121])
  def main(args: Array[String]){ 
     var start0 = System.currentTimeMillis()
     
@@ -59,15 +59,15 @@ x94 }}
 val x96 = x92.l_quantity
 val x97 = Record118(x95, x96)
 x97})).toList }
-val x107 = { val grps119 = x99.groupBy{ case (x100, x101, x102) => { val x103 = (x100)
+val x107 = { val grps119 = x99.groupBy{ case ((x100, x101), x102) => { val x103 = (x100)
 x103 }}
- grps119.map(x106 => (x106._1, x106._2.map{case (x100, x101, x102) => val x104 = x101.o_orderdate
+ grps119.map(x106 => (x106._1, x106._2.map{case ((x100, x101), x102) => val x104 = x101.o_orderdate
 val x105 = Record121(x104, x102)
 x105})).toList }
 val x112 = x107.map{ case (x108, x109) => { 
   val x110 = x108.c_name
   val x111 = Record122(x110, x109)
   x111 }}
-x112
+println(x112)
  }
 }

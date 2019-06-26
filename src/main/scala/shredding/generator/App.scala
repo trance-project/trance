@@ -51,7 +51,6 @@ object App {
       |    $i1
       |    val $i2 = { $q1 }
       |    var end0 = System.currentTimeMillis() - start0
-      |    println("setup time: "+end0)
       |    var time = List[Long]()
       |    for (i <- 1 to 5) {  
       |     var start = System.currentTimeMillis()
@@ -60,7 +59,7 @@ object App {
       |      time = time :+ end
       |    }
       |    val avg = (time.sum/5)
-      |    println(avg)
+      |    println(end0+","+avg)
       | }
       | def f($i2: List[${i2}Out]){
       |  $q2
@@ -390,7 +389,7 @@ object App {
     run()
     println("\n----------------- Query 1 -------------------")
     run1()
-    println("\n----------------- Query Shred 1 -------------------")
+    /**println("\n----------------- Query Shred 1 -------------------")
     run1Shred()
     println("\n----------------- Query Shred 1 Calc -------------------")
     run1ShredCalc()
@@ -401,6 +400,6 @@ object App {
     println("----------------- Query Shred 4 -------------------")
     run4Shred()
     println("----------------- Query Shred 4 Calc -------------------")
-    run4ShredCalc()
+    run4ShredCalc()**/
   }
 }

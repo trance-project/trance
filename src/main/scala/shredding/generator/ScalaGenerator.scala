@@ -38,10 +38,8 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case BagDictCType(flat @ BagCType(TTupleType(fs)), dict) => 
       dict match {
         case TupleDictCType(ds) if !ds.filter(_._2 != EmptyDictCType).isEmpty => 
-          //s"(List[${generateType(RecordCType("_1" -> fs.head, "_2" -> fs.last))}], ${generateType(dict)})"
           s"(List[(${generateType(fs.head)}, ${generateType(fs.last)})], ${generateType(dict)})"
-        case _ => //s"(List[${generateType(RecordCType("_1" -> fs.head, "_2" -> fs.last))}], Unit)"
-          s"(List[(${generateType(fs.head)}, ${generateType(fs.last)})], Unit)"
+        case _ => s"(List[(${generateType(fs.head)}, ${generateType(fs.last)})], Unit)"
       }
     case TupleDictCType(fs) if !fs.filter(_._2 != EmptyDictCType).isEmpty => 
       generateType(RecordCType(fs.filter(_._2 != EmptyDictCType)))
@@ -152,9 +150,9 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       case _ => s"${generate(x)}.filter(${generate(v)} => ${generate(p)})"
     }
     case Reduce(e1, v, f, p) => 
-      s"${generate(e1)}.map{ case ${generateVars(v, e1.tp)} => { \n${ind(generate(f))} }}"
+      s"${generate(e1)}.map{ case ${generateVars(v, e1.tp.asInstanceOf[BagCType].tp)} => { \n${ind(generate(f))} }}"
     case Unnest(e1, v1, f, v2, p) => 
-      val vars = generateVars(v1, e1.tp)
+      val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 = generate(v2)
       s"""
         |${generate(e1)}.flatMap{$vars => 
@@ -164,16 +162,16 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Nest(e1, v1, f, e2, v2, p) =>
       val grps = "grps" + Variable.newId()
       val acc = "acc"+Variable.newId()
-      val vars = generateVars(v1, e1.tp)
+      val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 = generate(v2)
       val grped = s"{ val $grps = ${generate(e1)}.groupBy{ case $vars => { ${generate(f)} }}"
       e2.tp match {
-        case IntType => s"$grped\n $grps.map($gv2 => ($gv2._1, $gv2._2.foldLeft(0)($acc, $gv2) => $acc + 1))).toList"  
+        case IntType => s"$grped\n $grps.map($gv2 => ($gv2._1, $gv2._2.foldLeft(0)($acc, $gv2) => $acc + ${generate(e2)}))).toList"  
         case _ => s"$grped\n $grps.map($gv2 => ($gv2._1, $gv2._2.map{case $vars => ${generate(e2)}})).toList }"
       }
     case Join(e1, e2, v1, p1, v2, p2) =>
       val hm = "hm" + Variable.newId()
-      val vars = generateVars(v1, e1.tp)
+      val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       s"""|{ val $hm = ${generate(e1)}.groupBy{ case $vars => {
         |${ind(generate(p1))}}}
         |${generate(e2)}.flatMap(${generate(v2)} => $hm.get({${generate(p2)}}) match {
@@ -188,7 +186,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
   }
 
   def generateVars(e: List[Variable], tp: Type): String = tp match {
-    case BagCType(t) => generateVars(e, t)
+    case TTupleType(seq) if (seq.size == 2 && seq.head == IntType) => s"${generate(e.head)}"
     case TTupleType(seq) if e.size == seq.size => e.map(generate).mkString("(", ", ", ")")
     case TTupleType(seq) if e.size > seq.size => {
       val en = e.dropRight(seq.size - 1)
@@ -197,7 +195,6 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     }
     case TTupleType(seq) => sys.error(s"not supported ${e.size} ${seq.size} --> $e:\n ${generateType(tp)}")
     case _ if e.size == 1 => s"${generate(e.head)}"
-  }
-  
+  }  
 
 }
