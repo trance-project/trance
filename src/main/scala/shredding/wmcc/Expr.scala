@@ -11,7 +11,7 @@ import shredding.core._
 
 sealed trait CExpr {
   def tp: Type
-  def tpMap: Map[Variable, Type] = Map()
+  // def tpMap: Map[Variable, Type] = Map()
   def wvars: List[Variable] = List()
 }
 
@@ -203,7 +203,7 @@ case class DictCUnion(d1: CExpr, d2: CExpr) extends CExpr {
 
 case class Select(x: CExpr, v: Variable, p: CExpr) extends CExpr {
   def tp: Type = x.tp
-  def tpMap: Map[Variable, Type] = Map(v -> x.asInstanceOf[BagCType].tp)
+  // def tpMap: Map[Variable, Type] = Map(v -> x.asInstanceOf[BagCType].tp)
   override def wvars = List(v)
 }
 
@@ -212,26 +212,26 @@ case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CEx
     case t:RecordCType => BagCType(t)
     case t => t
   }
-  def tpMap: Map[Variable, Type] = e1.tpMap // head of plan
+  // def tpMap: Map[Variable, Type] = e1.tpMap // head of plan
   override def wvars = e1.wvars
 }
 
 // { (v1, v2) | v1 <- e1, v2 <- e2(v1), p((v1, v2)) } 
 case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
   def tp: Type = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
-  def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
+  // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = e1.wvars :+ v2
 }
 
 case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
   def tp: Type = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
-  def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
+  // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = e1.wvars :+ v2
 }
 
 case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr) extends CExpr {
   def tp: BagCType = BagCType(v2.tp) 
-  def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
+  // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = { 
     val uvars = f match {
       case Bind(v1, t @ Tuple(fs), v2) => fs
@@ -245,7 +245,7 @@ case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable,
 
 case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
   def tp: BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
-  def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
+  // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = {
     assert(v1 == e1.wvars)
     e1.wvars :+ v2
@@ -254,7 +254,7 @@ case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Va
 
 case class Join(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
   def tp: BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
-  def tpMap: Map[Variable, Type] = e1.tpMap ++ (v2, v2.tp)
+  // def tpMap: Map[Variable, Type] = e1.tpMap ++ (v2, v2.tp)
   override def wvars = e1.wvars :+ v2
 }
 

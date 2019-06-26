@@ -186,11 +186,17 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       s"val ${generate(v)} = ${generate(e1)}\n${generate(e2)}"
     case _ => sys.error("not supported "+e)
   }
-  
-  def generateVars(e: List[Variable], tp: Type): String = e match {
-    case Nil => sys.error("empty variable list")
-    case tail :: Nil => generate(tail)
-    case head :: tail => s"(${e.map(generate(_)).mkString(",")})"
+
+  def generateVars(e: List[Variable], tp: Type): String = tp match {
+    case BagCType(t) => generateVars(e, t)
+    case TTupleType(seq) if e.size == seq.size => e.map(generate).mkString("(", ", ", ")")
+    case TTupleType(seq) if e.size > seq.size => {
+      val en = e.dropRight(seq.size - 1)
+      val rest = e.takeRight(seq.size - 1).map(generate).mkString(", ")
+      s"(${generateVars(en, seq.head)}, $rest)"
+    }
+    case TTupleType(seq) => sys.error(s"not supported ${e.size} ${seq.size} --> $e:\n ${generateType(tp)}")
+    case _ if e.size == 1 => s"${generate(e.head)}"
   }
   
 
