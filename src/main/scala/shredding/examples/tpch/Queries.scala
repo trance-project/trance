@@ -64,7 +64,7 @@ object TPCHQueries {
                           BagType(TupleType("o_orderdate" -> StringType, "o_parts" ->
                             BagType(TupleType("p_name" -> StringType, "l_qty" -> DoubleType)))))
 
-  val Q1 = VarDef("Q1", BagType(q1type)) 
+  val Q1 = VarDef("Q1", query1.tp) 
   val q1 = VarDef("q1", q1type)
   val q1r = TupleVarRef(q1)
   val cq1 = VarDef("corders", TupleType("o_orderdate" -> StringType, "o_parts" ->
@@ -125,17 +125,48 @@ object TPCHQueries {
   val ps = VarDef("ps", TPCHSchema.partsupptype.tp)
   val psr = TupleVarRef(ps) 
 
+  // Query 3
+  val q3data = s"""
+    |val C = TPCHLoader.loadCustomer[Customer].toList
+    |val O = TPCHLoader.loadOrders[Orders].toList
+    |val L = TPCHLoader.loadLineitem[Lineitem].toList
+    |val P = TPCHLoader.loadPart[Part].toList
+    |val PS = TPCHLoader.loadPartSupp[PartSupp].toList
+    |val S = TPCHLoader.loadSupplier[Supplier].toList""".stripMargin
+
+  val q3name = "Query3"
   val query3 = ForeachUnion(p, relP, 
                 Singleton(Tuple("p_name" -> pr("p_name"), "suppliers" -> ForeachUnion(ps, relPS, 
                   IfThenElse(Cmp(OpEq, psr("ps_partkey"), pr("p_partkey")),
                     ForeachUnion(s, relS, 
                       IfThenElse(Cmp(OpEq, sr("s_suppkey"), psr("ps_suppkey")), 
-                        Singleton(Tuple("s_name" -> sr("s_name"))))))),
+                        Singleton(Tuple("s_name" -> sr("s_name"), "s_nationkey" -> sr("s_nationkey"))))))),
                   "customers" -> ForeachUnion(l, relL, 
                     IfThenElse(Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
                       ForeachUnion(o, relO, 
                         IfThenElse(Cmp(OpEq, or("o_orderkey"), lr("l_orderkey")),
                           ForeachUnion(c, relC, 
                             IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
-                              Singleton(Tuple("c_name" -> cr("c_name"))))))))))))
+                              Singleton(Tuple("c_name" -> cr("c_name"), "c_nationkey" -> cr("c_nationkey"))))))))))))
+  
+  // Query 5
+
+  val Q3 = VarDef("Q3", query3.tp)
+  val q3 = VarDef("q3", query3.tp.asInstanceOf[BagType].tp)
+  val c5 = VarDef("c", query3.tp.asInstanceOf[BagType].tp.attrTps("customers").asInstanceOf[BagType].tp)
+  val s5 = VarDef("s", query3.tp.asInstanceOf[BagType].tp.attrTps("suppliers").asInstanceOf[BagType].tp)
+
+  val rq3 = TupleVarRef(q3)
+  val rc5 = TupleVarRef(c5)
+  val rs5 = TupleVarRef(s5)
+  
+  val query5 = ForeachUnion(q3, BagVarRef(Q3), 
+                Singleton(Tuple("p_name" -> rq3("p_name"), "cnt" -> 
+                  Total(ForeachUnion(c5, BagProject(rq3, "customers"),
+                    IfThenElse(Cmp(OpEq, 
+                      Total(ForeachUnion(s5, BagProject(rq3, "suppliers"), 
+                              IfThenElse(Cmp(OpEq, rc5("c_nationkey"), rs5("s_nationkey")), 
+                                Singleton(Tuple("flag" -> Const(true, BoolType)))))),
+                      Const(0, IntType)),
+                      Singleton(Tuple("p_name" -> rq3("p_name")))))))))
 }

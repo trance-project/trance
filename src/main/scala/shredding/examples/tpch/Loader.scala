@@ -15,7 +15,7 @@ object TPCHLoader {
 
   def loadRegion[T](implicit c: ClassTag[T]) = loadTable[T](getTable("REGION"))
 
-  def loadPartsupp[T: TypeTag](implicit c: ClassTag[T]) = loadTable[T](getTable("PARTSUPP"))
+  def loadPartSupp[T: TypeTag](implicit c: ClassTag[T]) = loadTable[T](getTable("PARTSUPP"))
 
   def loadPart[T: TypeTag](implicit c: ClassTag[T]) = loadTable[T](getTable("PART"))
 

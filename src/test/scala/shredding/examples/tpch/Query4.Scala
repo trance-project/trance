@@ -2,12 +2,12 @@
 package experiments
 /** Generated code **/
 import shredding.examples.tpch._
-object Query4 {
- case class Record514(p_name: String, l_qty: Double)
+case class Record514(p_name: String, l_qty: Double)
 case class Record515(o_orderdate: String, o_parts: List[Record514])
 case class Q1Out(c_name: String, c_orders: List[Record515])
 case class Record632(l_qty: Double)
 case class Record635(c_name: String, p_name: String, month: String, t_qty: Int)
+object Query4 {
  def main(args: Array[String]){ 
     var start0 = System.currentTimeMillis()
     
@@ -60,18 +60,9 @@ val x566 = x561.map{ case (x562, x563) => {
   x565 }}
 x566 }
     var end0 = System.currentTimeMillis() - start0
-    var time = List[Long]()
-    for (i <- 1 to 5) {  
-     var start = System.currentTimeMillis()
-      f(Q1)
-      var end = System.currentTimeMillis() - start
-      time = time :+ end
-    }
-    val avg = (time.sum/5)
-    println(end0+","+avg)
- }
- def f(Q1: List[Q1Out]){
-  val x582 = Q1
+    
+    def f(){
+      val x582 = Q1
 val x586 = x582.flatMap{ case x583 => 
   val x584 = x583.c_orders
   x584.map(x585 => {
@@ -112,5 +103,15 @@ val x627 = x618.map{ case ((x619, x620, x621), x622) => {
   val x626 = Record635(x623, x624, x625, x622)
   x626 }}
 x627
+    }
+    var time = List[Long]()
+    for (i <- 1 to 5) {  
+     var start = System.currentTimeMillis()
+      f
+      var end = System.currentTimeMillis() - start
+      time = time :+ end
+    }
+    val avg = (time.sum/5)
+    println(end0+","+avg)
  }
 }

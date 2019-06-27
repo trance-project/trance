@@ -2,8 +2,7 @@
 package experiments
 /** Generated code **/
 import shredding.examples.tpch._
-object ShredQuery1 {
- case class Record259(P__F: Int, L__F: Int, O__F: Int, c__F: Customer)
+    case class Record259(P__F: Int, L__F: Int, O__F: Int, c__F: Customer)
 case class Record260(c_name: String, c_orders: Record259)
 case class Record267(o__F: Orders, P__F: Int, L__F: Int)
 case class Record268(o_orderdate: String, o_parts: Record267)
@@ -14,6 +13,7 @@ case class RecM_flat1(_1: Q1Flat, _2: List[Record260])
 case class RecM_ctx3(lbl: Record267)
 case class RecM_ctx2(lbl: Record259)
 case class RecM_ctx1(lbl: Q1Flat)
+object ShredQuery1 {
  def main(args: Array[String]){ 
     var start0 = System.currentTimeMillis()
     
@@ -25,22 +25,8 @@ val L__F = 3
 val L__D = (List((L__F, TPCHLoader.loadLineitem[Lineitem].toList)), ())
 val P__F = 4
 val P__D = (List((P__F, TPCHLoader.loadPart[Part].toList)), ())
-    var end0 = System.currentTimeMillis() - start0
-    var time = List[Long]()
-    for (i <- 1 to 5) {
-      var start = System.currentTimeMillis()
-      f(C__F, C__D, O__F, O__D, L__F, L__D, P__F, P__D)
-      var end = System.currentTimeMillis() - start
-      time = time :+ end
-    }
-    val avg = (time.sum/5)
-    println(end0+","+avg)
- }
- def f(C__F: Int, C__D: (List[(Int, List[Customer])], Unit),
-                     O__F: Int, O__D: (List[(Int, List[Orders])], Unit),
-                     L__F: Int, L__D: (List[(Int, List[Lineitem])], Unit),
-                     P__F: Int, P__D: (List[(Int, List[Part])], Unit)){
-  val x140 = Q1Flat(P__F, C__F, L__F, O__F)
+    def f(){
+      val x140 = Q1Flat(P__F, C__F, L__F, O__F)
 val x141 = RecM_ctx1(x140)
 val x142 = List(x141)
 val M_ctx1 = x142
@@ -161,6 +147,17 @@ val x252 = M_ctx3.flatMap(x216 => {
 val M_flat3 = x252
 val x253 = M_flat3
 val x254 = (x143,x167,x177,x205,x215,x253)
-x254
+x254 
+    }
+    var end0 = System.currentTimeMillis() - start0
+    var time = List[Long]()
+    for (i <- 1 to 5) {
+      var start = System.currentTimeMillis()
+      f
+      var end = System.currentTimeMillis() - start
+      time = time :+ end
+    }
+    val avg = (time.sum/5)
+    println(end0+","+avg)
  }
 }

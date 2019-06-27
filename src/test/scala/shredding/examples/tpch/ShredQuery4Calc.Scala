@@ -2,8 +2,7 @@
 package experiments
 /** Generated code **/
 import shredding.examples.tpch._
-object ShredQuery4Calc {
- case class Record1154(P__F: Int, L__F: Int, O__F: Int, c__F: Customer)
+case class Record1154(P__F: Int, L__F: Int, O__F: Int, c__F: Customer)
 case class Record1155(c_name: String, c_orders: Record1154)
 case class Record1162(o__F: Orders, P__F: Int, L__F: Int)
 case class Record1163(o_orderdate: String, o_parts: Record1162)
@@ -25,6 +24,7 @@ case class RecM_ctx1(lbl: Q1Flat)
 
 case class Input_Q1_Dict2(o_parts: (List[RecM_flat3], Unit))
 case class Input_Q1_Dict1(c_orders: (List[RecM_flat2], Input_Q1_Dict2))
+object ShredQuery4Calc {
  def main(args: Array[String]){ 
     var start0 = System.currentTimeMillis()
     
@@ -36,8 +36,7 @@ val L__F = 3
 val L__D = (List((L__F, TPCHLoader.loadLineitem[Lineitem].toList)), ())
 val P__F = 4
 val P__D = (List((P__F, TPCHLoader.loadPart[Part].toList)), ())
-    val Q1 = { 
-      val x1035 = Q1Flat(P__F, C__F, L__F, O__F)
+    val Q1 = { val x1035 = Q1Flat(P__F, C__F, L__F, O__F)
 val x1036 = RecM_ctx1(x1035)
 val x1037 = List(x1036)
 val M_ctx1 = x1037
@@ -158,24 +157,13 @@ val x1147 = M_ctx3.flatMap(x1111 => {
 val M_flat3 = x1147
 val x1148 = M_flat3
 val x1149 = (x1038,x1062,x1072,x1100,x1110,x1148)
-x1149
-}
-
-val Q1__F = Q1._1.head.lbl
-val Q1__D = (Q1._2, Input_Q1_Dict1((Q1._4, Input_Q1_Dict2((Q1._6, Unit))))) 
+x1149 }
     var end0 = System.currentTimeMillis() - start0
-    var time = List[Long]()
-    for (i <- 1 to 5) {  
-     var start = System.currentTimeMillis()
-      f(Q1__F, Q1__D)
-      var end = System.currentTimeMillis() - start
-      time = time :+ end
-    }
-    val avg = (time.sum/5)
-    println(end0+","+avg)
- }
- def f(Q1__F: Q1Flat, Q1__D: (List[RecM_flat1], Input_Q1_Dict1)){
-  val x1185 = Q1Flat2(Q1__F)
+    
+val Q1__F = Q1._1.head.lbl
+val Q1__D = (Q1._2, Input_Q1_Dict1((Q1._4, Input_Q1_Dict2((Q1._6, Unit)))))
+    def f(){
+      val x1185 = Q1Flat2(Q1__F)
 val x1186 = Record1257(x1185)
 val x1187 = List(x1186)
 val M_ctx1 = x1187
@@ -250,5 +238,15 @@ val M_flat1 = x1254
 val x1255 = M_flat1
 val x1256 = (x1188,x1255)
 x1256
+    }
+    var time = List[Long]()
+    for (i <- 1 to 5) {  
+     var start = System.currentTimeMillis()
+      f
+      var end = System.currentTimeMillis() - start
+      time = time :+ end
+    }
+    val avg = (time.sum/5)
+    println(end0+","+avg)
  }
 }
