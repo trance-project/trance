@@ -6,8 +6,8 @@ object Query4 {
  case class Record514(p_name: String, l_qty: Double)
 case class Record515(o_orderdate: String, o_parts: List[Record514])
 case class Q1Out(c_name: String, c_orders: List[Record515])
-case class Record633(l_qty: Double)
-case class Record637(c_name: String, p_name: String, month: String, t_qty: Int)
+case class Record632(l_qty: Double)
+case class Record635(c_name: String, p_name: String, month: String, t_qty: Int)
  def main(args: Array[String]){ 
     var start0 = System.currentTimeMillis()
     
@@ -75,44 +75,42 @@ x566 }
 val x586 = x582.flatMap{ case x583 => 
   val x584 = x583.c_orders
   x584.map(x585 => {
-  val nv630 = (x583, x585) 
-     nv630
+  val nv628 = (x583, x585) 
+     nv628
 })}
 val x591 = x586.flatMap{ case (x587, x588) => 
   val x589 = x588.o_parts
   x589.map(x590 => {
-  val nv631 = ((x587, x588), x590) 
-     nv631
+  val nv629 = ((x587, x588), x590) 
+     nv629
 })}
 val x600 = x591.flatMap{ case ((x592, x593), x594) => 
   val x595 = x593.o_parts
-  x595.map(x596 => {
-  val nv632 = (((x592, x593), x594), x596) 
+  x595.flatMap(x596 => {
+  val nv630 = (((x592, x593), x594), x596) 
    if({val x597 = x596.p_name
   val x598 = x594.p_name
   val x599 = x597 == x598
-  x599}) {  nv632} else {  Nil}
+  x599}) {  List(nv630)} else {  Nil}
 })}
-val x601 = x577.l_qty
-val x602 = Record633(x601)
-val x603 = x578.l_qty
-val x604 = (1 to x603.asInstanceOf[Int]).map(v => x602)
-val x606 = x604
-val x612 = { val hm634 = x600.groupBy{ case (((x607, x608), x609), x610) => {
-  true}}
-x606.flatMap(x611 => hm634.get({true}) match {
- case Some(a) => a.map(v => (v, x611))
- case _ => Nil
-}) }
-val x620 = { val grps635 = x612.groupBy{ case ((((x613, x614), x615), x616), x617) => { val x618 = (x613,x614,x615)
-x618 }}
- grps635.map(x619 => (x619._1, x619._2.foldLeft(0)(acc636, x619) => acc636 + 1))).toList
-val x629 = x620.map{ case ((x621, x622, x623), x624) => { 
-  val x625 = x621.c_name
-  val x626 = x623.p_name
-  val x627 = x622.o_orderdate
-  val x628 = Record637(x625, x626, x627, x624)
-  x628 }}
-x629
+val x610 = x600.flatMap{ case (((x601, x602), x603), x604) => 
+  val x605 = x603.l_qty
+  val x606 = Record632(x605)
+  val x607 = x604.l_qty
+  val x608 = (1 to x607.asInstanceOf[Int]).map(v => x606)
+  x608.map(x609 => {
+  val nv631 = ((((x601, x602), x603), x604), x609) 
+     nv631
+})}
+val x618 = { val grps633 = x610.groupBy{ case ((((x611, x612), x613), x614), x615) => { val x616 = (x611,x612,x613)
+x616 }}
+ grps633.map(x617 => (x617._1, x617._2.foldLeft(0)((acc634, x617) => acc634 + 1))).toList }
+val x627 = x618.map{ case ((x619, x620, x621), x622) => { 
+  val x623 = x619.c_name
+  val x624 = x621.p_name
+  val x625 = x620.o_orderdate
+  val x626 = Record635(x623, x624, x625, x622)
+  x626 }}
+x627
  }
 }

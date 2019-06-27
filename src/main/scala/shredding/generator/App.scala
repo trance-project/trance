@@ -79,7 +79,6 @@ object App {
       |    $i1
       |    val $i2 = { 
       |      $q1 
-      |    }
       |    var end0 = System.currentTimeMillis() - start0
       |    var time = List[Long]()
       |    for (i <- 1 to 5) {  
@@ -334,7 +333,7 @@ object App {
   }
 
   val f1q4 = "f(Q1__F, Q1__D)"
-  val f2q4 = "f(Q1__F: Q1Flat, Q1__D: (RecM_flat1, Input_Q1_Dict1))"
+  val f2q4 = "f(Q1__F: Q1Flat, Q1__D: (List[RecM_flat1], Input_Q1_Dict1))"
   
   def run4ShredCalc(){
     // shredded pipeline
@@ -366,8 +365,9 @@ object App {
 
     var sout = s"src/test/scala/shredding/examples/tpch/Shred${TPCHQueries.q4name}Calc.Scala"
     val sprinter = new PrintWriter(new FileOutputStream(new File(sout), false))
-    val hs = TPCHQueries.sq4data("RecM_flat2", "RecM_flat3")("Q1")
-    val sfinalc = write2s(s"Shred${TPCHQueries.q4name}Calc", TPCHQueries.sq1data+s"\n$hs", header4, gcode1, "Q1", f1q4, f2q4, gcode4)
+    val cc = TPCHQueries.sq4cclass("RecM_flat2", "RecM_flat3")
+    val dd = TPCHQueries.sq4data("Q1")
+    val sfinalc = write2s(s"Shred${TPCHQueries.q4name}Calc", TPCHQueries.sq1data, s"$header4\n$cc", s"$gcode1\n}\n$dd", "Q1", f1q4, f2q4, gcode4)
     sprinter.println(sfinalc)
     sprinter.close
   }
@@ -406,8 +406,9 @@ object App {
 
     var sout = s"src/test/scala/shredding/examples/tpch/Shred${TPCHQueries.q4name}.Scala"
     val sprinter = new PrintWriter(new FileOutputStream(new File(sout), false))
-    val hs = TPCHQueries.sq4data("RecM_flat2", "RecM_flat3")("Q1")
-    val sfinalc = write2s(s"Shred${TPCHQueries.q4name}Calc", TPCHQueries.sq1data+s"\n$hs", header4, gcode1, "Q1", f1q4, f2q4, gcode4)
+    val cc = TPCHQueries.sq4cclass("RecM_flat2", "RecM_flat3")
+    val dd = TPCHQueries.sq4data("Q1")
+    val sfinalc = write2s(s"Shred${TPCHQueries.q4name}", TPCHQueries.sq1data, s"$header4\n$cc", s"$gcode1\n}\n$dd", "Q1", f1q4, f2q4, gcode4)
     sprinter.println(sfinalc)
     sprinter.close
   }

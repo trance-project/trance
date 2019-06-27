@@ -463,18 +463,18 @@ trait BaseANF extends Base {
   def anf(d: Rep): CExpr = 
     vars.foldRight(d.e)((cur, acc) => Bind(cur, stateInv(cur), acc))
 
-  def inputref(x: String, tp:Type): Rep = {
-    // val v = varMaps.get(x).getOrElse(compiler.inputref(x, tp))
-    //val name = varMaps.get(x).map(_.name).getOrElse(x)
-    compiler.inputref(x, tp)
-    // v
-  }
+  def inputref(x: String, tp:Type): Rep = compiler.inputref(x, tp)
   def input(x: List[Rep]): Rep = ??? 
   def constant(x: Any): Rep = compiler.constant(x)
   def emptysng: Rep = compiler.emptysng
   def unit: Rep = compiler.unit
   def sng(x: Rep): Rep = compiler.sng(x)
-  def weightedsng(x: Rep, q: Rep): Rep = compiler.weightedsng(x, q)
+  def weightedsng(x: Rep, q: Rep): Rep = { // weighted singleton is actually a context
+    // (x: Rep => Rep, q: Rep => Rep)
+    // where the variables get passed through the context
+    val t = compiler.weightedsng(x, q)
+    t
+  }
   def tuple(fs: List[Rep]): Rep = compiler.tuple(fs.map(defToExpr(_)))
   def record(fs: Map[String, Rep]): Rep = compiler.record(fs.map(x => (x._1, defToExpr(x._2))))
   def equals(e1: Rep, e2: Rep): Rep = compiler.equals(e1, e2)
@@ -505,10 +505,16 @@ trait BaseANF extends Base {
   def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = compiler.bagdict(lbl, flat, dict)
   def tupledict(fs: Map[String, Rep]): Rep = compiler.tupledict(fs.map(f => (f._1, defToExpr(f._2))))
   def dictunion(d1: Rep, d2: Rep): Rep = compiler.dictunion(d1, d2)
-  def select(x: Rep, p: Rep => Rep): Rep = compiler.select(x, p)
+  def select(x: Rep, p: Rep => Rep): Rep = {
+    val s = compiler.select(x, p)
+    s
+  }
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = compiler.reduce(e1, f, p)
   def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = compiler.unnest(e1, f, p)
-  def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = compiler.join(e1, e2, p1, p2)
+  def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
+    val j = compiler.join(e1, e2, p1, p2)
+    j
+  }
   def outerunnest(e1: Rep, r: List[Rep] => Rep, p: List[Rep] => Rep): Rep = unnest(e1, r, p)
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep): Rep = join(e1, e2, p1, p)
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep): Rep = compiler.nest(e1, f, e, p) 

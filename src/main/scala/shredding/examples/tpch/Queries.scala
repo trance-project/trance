@@ -90,9 +90,10 @@ object TPCHQueries {
     */
   val q4name = "Query4"
 
-  val sq4data = (r1: String, r2: String) => (v: String) => s"""
+  val sq4cclass = (r1: String, r2: String) => s"""
     |case class Input_Q1_Dict2(o_parts: (List[$r2], Unit))
-    |case class Input_Q1_Dict1(c_orders: (List[$r1], Input_Q1_Dict2))
+    |case class Input_Q1_Dict1(c_orders: (List[$r1], Input_Q1_Dict2))""".stripMargin
+  val sq4data = (v: String) => s"""
     |val Q1__F = $v._1.head.lbl
     |val Q1__D = ($v._2, Input_Q1_Dict1(($v._4, Input_Q1_Dict2(($v._6, Unit)))))""".stripMargin
 

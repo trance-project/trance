@@ -19,7 +19,6 @@ object Unnester {
       unnest(e)((Nil, List(v), Some(Select(e1, v, p)))) // C4
     case Comprehension(e1 @ Comprehension(_, _, _, _), v, p, e) if !w.isEmpty => // C11
       val (nE, v2) = getNest(unnest(e1)((w, w, E)))
-      //Bind(e1, v2, unnest(e)((u, w:+v2, nE)))
       unnest(e)((u, w:+v2, nE))
     case ift @ If(cond, Sng(t @ Record(fs)), None) if !w.isEmpty => // C12, C5, and C8
       assert(!E.isEmpty)
@@ -33,7 +32,6 @@ object Unnester {
           }
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
           val (nE, v2) = getNest(unnest(value)((w, w, E)))
-          //Bind(value, v2, unnest(If(cond, Sng(Record(fs + (key -> v2))), None))((u, w :+ v2, nE)))
           unnest(If(cond, Sng(Record(fs + (key -> v2))), None))((u, w :+ v2, nE))
         case _ => sys.error("unsupported")
       }
@@ -49,7 +47,6 @@ object Unnester {
           }
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
           val (nE, v2) = getNest(unnest(value)((w, w, E)))
-          //Bind(value, v2, unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE)))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case _ => sys.error("unsupported")
       }
@@ -60,33 +57,28 @@ object Unnester {
         val et = Tuple(u)
         Nest(E.get, w, et, c, Variable.fresh(TTupleType(et.tp.attrTps :+ IntType)), Constant(true))
       }
-    case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && u.isEmpty && !w.isEmpty =>
+    case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
       assert(!E.isEmpty)
-      val nE = Some(Unnest(E.get, w, e1, v, p))
-      unnest(e)((u, w :+ v, nE)) // C7
-    case Comprehension(e1, v, p, e) if u.isEmpty && !w.isEmpty =>
+      val nE = u.isEmpty match {
+        case true => Some(Unnest(E.get, w, e1, v, p)) //C7
+        case _ => Some(OuterUnnest(E.get, w, e1, v, p)) //C10
+      }
+      unnest(e)((u, w :+ v, nE))
+    case Comprehension(e1 @ WeightedSng(_, _), v, p, e) if !w.isEmpty =>
+      assert(!E.isEmpty)
+      val nE = u.isEmpty match {
+        case true => Some(Unnest(E.get, w, e1, v, p)) //C7
+        case _ => Some(OuterUnnest(E.get, w, e1, v, p)) //C10
+      }
+      unnest(e)((u, w :+ v, nE))
+    case Comprehension(e1, v, p, e) if !w.isEmpty =>
       assert(!E.isEmpty) 
       val preds = ps(p, v, w)
-      val nE = Some(Join(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3)) 
-      unnest(e)((u, w :+ v, nE)) // C9
-    case Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && !u.isEmpty && !w.isEmpty =>
-      assert(!E.isEmpty)
-      val nE = Some(OuterUnnest(E.get, w, e1, v, p))
-      unnest(e)((u, w :+ v, nE)) // C10
-    case Comprehension(e1 @ WeightedSng(t, q), v, p, e) if !u.isEmpty && !w.isEmpty =>
-      assert(!E.isEmpty)
-      val preds = ps(p, v, w)
-      val ws = preds._3 match {
-        case Constant(true) => Tuple(List(t, q))
-        case p2 => Tuple(List(t, q, p2)) //???
+      val nE = u.isEmpty match {
+        case true => Some(Join(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3)) //C6
+        case _ => Some(OuterJoin(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3)) //C9
       }
-      val nE = Some(OuterJoin(E.get, Select(e1, v, preds._1), w, preds._2, v, ws))
-      unnest(e)((u, w :+ v, nE)) // C9
-    case Comprehension(e1, v, p, e) if !u.isEmpty && !w.isEmpty =>
-      assert(!E.isEmpty)
-      val preds = ps(p, v, w)
-      val nE = Some(OuterJoin(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3))
-      unnest(e)((u, w :+ v, nE)) // C9
+      unnest(e)((u, w :+ v, nE))
     case LinearCSet(exprs) => LinearCSet(exprs.map(unnest(_)((Nil, Nil, None))))
     case CNamed(n, exp) => exp match {
       case Sng(t) => CNamed(n, exp)
