@@ -82,9 +82,7 @@ trait BaseNormalizer extends BaseCompiler {
         Comprehension(e2, v2, p2, comprehension(e3, p, e))
       case c @ CLookup(flat, dict) =>
         val v1 = Variable.fresh(c.tp.tp)
-        val v2 = Variable.fresh(c.tp.tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
-        Comprehension(Project(dict, "_1"), v1, equals(flat, Project(v1, "_1")),
-          Comprehension(Project(v1, "_2"), v2, p(v2), e(v2)))
+        Comprehension(Project(dict, "flat"), v1, and(equals(flat, Project(dict, "lbl")), p(v1)), e(v1))
       case _ => // standard case (return self)
         val v = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
         Comprehension(e1, v, p(v), e(v))

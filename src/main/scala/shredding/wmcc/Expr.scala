@@ -160,7 +160,7 @@ case class LinearCSet(exprs: List[CExpr]) extends CExpr {
   */
 
 case class CLookup(lbl: CExpr, dict: CExpr) extends CExpr {
-  def tp: BagCType = dict.tp.asInstanceOf[BagDictCType]._1
+  def tp: BagCType = dict.tp.asInstanceOf[BagDictCType].flat
 }
 
 case object EmptyCDict extends CExpr {

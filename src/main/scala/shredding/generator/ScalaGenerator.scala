@@ -161,7 +161,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
               |${ind(generate(f))}.map($gv2 => {
               |${ind(s"val $nv = ($vars, $gv2) \n ${conditional(p, nv, "Nil")}")}
               |})}""".stripMargin
-         case _ => 
+        case _ => // ask about this
           s"""|${generate(e1)}.flatMap{ case $vars =>
               |${ind(generate(f))}.withFilter{ case $gv2 =>
               |${ind(s"{${generate(p)}}}.map($gv2 => ($vars, $gv2))")}
@@ -171,10 +171,6 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
             |${ind(generate(f))}.collect{ case $gv2 =>
             |${ind(s"if({${generate(p)}}) ($vars, $gv2)")}
             |}}""".stripMargin**/
-         /** s"""|${generate(e1)}.flatMap{ case $vars => 
-              |${ind(generate(f))}.flatMap($gv2 => {
-              |${ind(s"val $nv = ($vars, $gv2) \n ${conditional(p, s"List($nv)", "Nil")}")}
-              |})}""".stripMargin**/
       }
     case Nest(e1, v1, f, e2, v2, p) =>
       val grps = "grps" + Variable.newId()

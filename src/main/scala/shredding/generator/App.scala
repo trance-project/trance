@@ -424,13 +424,13 @@ object App {
 
 
   def main(args: Array[String]){
-    println("\n----------------- SIMPLE -------------------")
-    run()
-    println("\n----------------- Query 1 -------------------")
-    run1()
-    println("\n----------------- Query Shred 1 -------------------")
+    //println("\n----------------- SIMPLE -------------------")
+    //run()
+    //println("\n----------------- Query 1 -------------------")
+    //run1()
+    //println("\n----------------- Query Shred 1 -------------------")
     run1Shred()
-    println("\n----------------- Query Shred 1 Calc -------------------")
+    /**println("\n----------------- Query Shred 1 Calc -------------------")
     run1ShredCalc()
     println("\n----------------- Query 4 Calc -------------------")
     run4Calc()
@@ -441,6 +441,6 @@ object App {
     println("----------------- Query Shred 4 Calc -------------------")
     run4ShredCalc()
     println("----------------- Query 3 -------------------")
-    run3()
+    run3()**/
   }
 }
