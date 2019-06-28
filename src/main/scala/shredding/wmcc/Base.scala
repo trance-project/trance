@@ -374,10 +374,11 @@ trait BaseScalaInterp extends Base{
   }
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
     val hm = e1.asInstanceOf[List[_]].groupBy(v => p1(tupleVars(v)))
-    e2.asInstanceOf[List[_]].flatMap(v2 => hm.get(p2(v2)) match {
+    val res = e2.asInstanceOf[List[_]].flatMap(v2 => hm.get(p2(v2)) match {
       case Some(v1) => v1.map(v => tupleVars(v) :+ v2)
       case _ => Nil
     })
+    res
   }
 
   // keys and flattens input tuples

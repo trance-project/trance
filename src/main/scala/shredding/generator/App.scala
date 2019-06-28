@@ -157,9 +157,6 @@ object App {
     printer.close
   }
 
-  val f1q1 = "f(C,O,L,P)"
-  val f2q1 = "f(C: List[Customer], O: List[Orders], L:List[Lineitem], P:List[Part])"
-
   def run1(){
     val runner = new PipelineRunner{}
     val translator = new NRCTranslator{}
@@ -279,12 +276,6 @@ object App {
     printer.close
   }
 
-   val f1sq1 = "f(C__F, C__D, O__F, O__D, L__F, L__D, P__F, P__D)"
-   val f2sq1 = s"""f(C__F: Int, C__D: (List[(Int, List[Customer])], Unit),
-                     O__F: Int, O__D: (List[(Int, List[Orders])], Unit),
-                     L__F: Int, L__D: (List[(Int, List[Lineitem])], Unit),
-                     P__F: Int, P__D: (List[(Int, List[Part])], Unit))"""
-
    def run1ShredCalc(){
     // shredded pipeline
     val runner = new PipelineRunner{}
@@ -327,16 +318,19 @@ object App {
     val anfer = new Finalizer(anfBase)
 
     val nq1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
-    val nnormq1 = normalizer.finalize(nq1)
-    
-    val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) ++ 
-                  nnormq1.asInstanceOf[LinearCSet].getTypeMap
-    val ng = TPCHSchema.tpchInputs.toList.map(f => f._2)
-    val scodegen = new ScalaNamedGenerator(inputs)   
-    
-    val anfednq1 = anfer.finalize(nnormq1.asInstanceOf[CExpr])
-    val anfExpn1 = anfBase.anf(anfednq1.asInstanceOf[anfBase.Rep])
-    val sgcode = scodegen.generate(anfExpn1)
+    val nnormq1 = normalizer.finalize(nq1).asInstanceOf[CExpr]
+    println(Printer.quote(nnormq1))
+    val plan1 = Unnester.unnest(nnormq1)((Nil, Nil, None)).asInstanceOf[CExpr]
+    println(Printer.quote(plan1))
+    val anfedq1 = new Finalizer(anfBase).finalize(plan1)
+    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
+
+    val inputs = (TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) ++
+                  TPCHSchema.tpchShredInputs) ++ nnormq1.asInstanceOf[LinearCSet].getTypeMap 
+
+    val ng = TPCHSchema.tpchShredInputs.toList.map(f => f._2) ++ TPCHSchema.tpchInputs.toList.map(f => f._2)
+    val scodegen = new ScalaNamedGenerator(inputs)
+    val sgcode = scodegen.generate(anfExp1)
     val sheader = scodegen.generateHeader(ng)
 
     val query = TPCHQueries.query1.asInstanceOf[translator.Expr]
@@ -350,9 +344,6 @@ object App {
     sprinter.close
   }
 
-  val f1q4 = "f(Q1__F, Q1__D)"
-  val f2q4 = "f(Q1__F: Q1Flat, Q1__D: (List[RecM_flat1], Input_Q1_Dict1))"
-  
   def run4ShredCalc(){
     // shredded pipeline
     val runner = new PipelineRunner{}

@@ -1,7 +1,7 @@
 package shredding.wmcc
 
 import shredding.core._
-import shredding.examples.tpch.{TPCHQueries, TPCHSchema, TPCHLoader}
+import shredding.examples.tpch._//{TPCHQueries, TPCHSchema, TPCHLoader}
 import shredding.examples.simple._
 
 object App {
@@ -37,18 +37,18 @@ object App {
     println(Printer.quote(normq2))
     println("")
     println(Printer.quote(snormq2))
-    eval.ctx("C") = TPCHLoader.loadCustomer.toList 
-    eval.ctx("O") = TPCHLoader.loadOrders.toList 
-    eval.ctx("L") = TPCHLoader.loadLineitem.toList 
-    eval.ctx("P") = TPCHLoader.loadPart.toList 
+    eval.ctx("C") = TPCHLoader.loadCustomer[Customer].toList 
+    eval.ctx("O") = TPCHLoader.loadOrders[Orders].toList 
+    eval.ctx("L") = TPCHLoader.loadLineitem[Lineitem].toList 
+    eval.ctx("P") = TPCHLoader.loadPart[Part].toList 
     eval.ctx("C__F") = 1
-    eval.ctx("C__D") = (List((1, TPCHLoader.loadCustomer.toList)), ())
+    eval.ctx("C__D") = (List((1, TPCHLoader.loadCustomer[Customer].toList)), ())
     eval.ctx("O__F") = 2
-    eval.ctx("O__D") = (List((2, TPCHLoader.loadOrders.toList)), ())
+    eval.ctx("O__D") = (List((2, TPCHLoader.loadOrders[Orders].toList)), ())
     eval.ctx("L__F") = 3
-    eval.ctx("L__D") = (List((3, TPCHLoader.loadLineitem.toList)), ())
+    eval.ctx("L__D") = (List((3, TPCHLoader.loadLineitem[Lineitem].toList)), ())
     eval.ctx("P__F") = 4
-    eval.ctx("P__D") = (List((4, TPCHLoader.loadPart.toList)), ())
+    eval.ctx("P__D") = (List((4, TPCHLoader.loadPart[Part].toList)), ())
     println("")
     println(evaluator.finalize(normq2))
 

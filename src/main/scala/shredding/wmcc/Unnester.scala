@@ -57,6 +57,21 @@ object Unnester {
         val et = Tuple(u)
         Nest(E.get, w, et, c, Variable.fresh(TTupleType(et.tp.attrTps :+ IntType)), Constant(true))
       }
+    /**case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
+      assert(!E.isEmpty)
+      p match { 
+        case Constant(true) => u.isEmpty match {
+                                 case true => Some(Unnest(E.get, w, e1, v, p)) //C7
+                                 case _ => Some(OuterUnnest(E.get, w, e1, v, p)) //C10
+                               }
+        case _ => // could be an plan optimization compiler
+          val preds = ps(p, v, w)
+          val nE = u.isEmpty match {
+            case true => Some(Join(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3)) //C6
+            case _ => Some(OuterJoin(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3)) //C9
+          }
+      }
+      unnest(e)((u, w :+ v, nE))**/
     case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
       assert(!E.isEmpty)
       val nE = u.isEmpty match {
