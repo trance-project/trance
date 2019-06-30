@@ -290,7 +290,7 @@ trait BaseScalaInterp extends Base{
   def not(e1: Rep): Rep = !e1.asInstanceOf[Boolean]
   def or(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Boolean] || e2.asInstanceOf[Boolean]
   def project(e1: Rep, f: String) = f match {
-    case "_1" if e1.isInstanceOf[List[(Int, List[_])]] => e1.asInstanceOf[List[(Int, List[_])]].head._2
+    case "_1" if e1.isInstanceOf[List[(Int, List[_])]] => e1.asInstanceOf[List[(Int, List[_])]].head._2 //no
     case "_1" => e1.asInstanceOf[Product].productElement(0)
     case "_2" => e1.asInstanceOf[Product].productElement(1)
     case f => e1 match {

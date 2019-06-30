@@ -187,16 +187,21 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
           s"$grped\n $grps.map($gv2 => ($gv2._1, $gv2._2.foldLeft(0)(($acc, $gv2) => $acc + ${generate(e2)}))).toList }"  
         case _ => s"$grped\n $grps.map($gv2 => ($gv2._1, $gv2._2.map{case $vars => ${generate(e2)}})).toList }"
       }
-    // this doesn't cover all cases
-    case Join(e1, e2, v1, p1, v2, p2 @ Bind(_,jcond, _)) if isLabelProj(jcond) => 
+    case Join(e1, e2, v1, p1, v2, p2 @ Bind(v3, jcond1, jcond2)) if isLabelProj(jcond1) => 
       val hm = "hm" + Variable.newId()
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
-      s"""|{ val $hm = ${generate(e1)}.groupBy{ case $vars => {
-        |${ind(generate(p1))}}}
-        |${generate(e2)}.flatMap(${generate(v2)} => $hm.get({${generate(p2)}}) match {
-        | case Some(a) => a.flatMap(a1 => ${generate(v2)}._2.map(v => (a1, v))) // distinct labels
-        | case _ => Nil
-        |}) }""".stripMargin
+      val gv2 =  generate(v2)
+      val v4 = Variable("v1", TTupleType(List(IntType, v2.tp)))
+      val grpby = jcond2 match {
+        case Bind(_, _, Bind(_, Tuple(_), _)) => 
+          s"val $hm = ${generate(e2)}.flatMap(v1 => v1._2.map($gv2 => ({${generate(Bind(v3, Project(v4, "_1"), jcond2))}}, v1._2))).toMap"
+        case _ => s"val $hm = ${generate(e2)}.toMap"
+      }
+      s"""|{ $grpby
+          |${generate(e1)}.flatMap{ case $vars => $hm.get({${generate(p1)}}) match {
+          | case Some(a) => a.map(v1 => ($vars, v1))
+          | case _ => Nil
+          |}}}""".stripMargin
     case Join(e1, e2, v1, p1, v2, p2) =>
       val hm = "hm" + Variable.newId()
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
@@ -213,7 +218,6 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case _ => sys.error("not supported "+e)
   }
 
-//Bind(_, Project(dict,"lbl"), _)) if dict.tp.isInstanceOf[BagDictCType] =>
   def isLabelProj(e: CExpr): Boolean = e match {
     case Project(e1, "lbl") if e1.tp.isInstanceOf[BagDictCType] => true
     case Project(e1, "lbl") if e1.tp.isInstanceOf[BagDictCType] => true
