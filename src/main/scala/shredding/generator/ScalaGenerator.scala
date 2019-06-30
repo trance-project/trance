@@ -208,7 +208,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       s"""|{ val $hm = ${generate(e1)}.groupBy{ case $vars => {
         |${ind(generate(p1))}}}
         |${generate(e2)}.flatMap(${generate(v2)} => $hm.get({${generate(p2)}}) match {
-        | s"case Some(a) => a.map(v => (v, ${generate(v2)}))"
+        | case Some(a) => a.map(v => (v, ${generate(v2)}))
         | case _ => Nil
         |}) }""".stripMargin
     case OuterJoin(e1, e2, v1, p1, v2, p2) => generate(Join(e1, e2, v1, p1, v2, p2))

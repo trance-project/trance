@@ -22,10 +22,10 @@ object App {
       | def main(args: Array[String]){ 
       |    var start0 = System.currentTimeMillis()
       |    $i
+      |    var end0 = System.currentTimeMillis() - start0
       |    def f(){
       |      $q 
       |    }
-      |    var end0 = System.currentTimeMillis() - start0
       |    var time = List[Long]()
       |    for (i <- 1 to 5) {
       |      var start = System.currentTimeMillis()
