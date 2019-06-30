@@ -107,7 +107,11 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
     }
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
-    case Project(e, field) => s"${generate(e)}.${kvName(field)}"
+    case Project(e, field) => e.tp match {
+      case BagDictCType(_,_) if (field == "lbl") => s"${generate(e)}._1"
+      case BagDictCType(_,_) if (field == "flat") => s"${generate(e)}._1"
+      case _ => s"${generate(e)}.${kvName(field)}"
+    }
     case Equals(e1, e2) => s"${generate(e1)} == ${generate(e2)}"
     case Lt(e1, e2) => s"${generate(e1)} < ${generate(e2)}"
     case Gt(e1, e2) => s"${generate(e1)} > ${generate(e2)}"
@@ -183,13 +187,23 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
           s"$grped\n $grps.map($gv2 => ($gv2._1, $gv2._2.foldLeft(0)(($acc, $gv2) => $acc + ${generate(e2)}))).toList }"  
         case _ => s"$grped\n $grps.map($gv2 => ($gv2._1, $gv2._2.map{case $vars => ${generate(e2)}})).toList }"
       }
+    // this doesn't cover all cases
+    case Join(e1, e2, v1, p1, v2, p2 @ Bind(_,jcond, _)) if isLabelProj(jcond) => 
+      val hm = "hm" + Variable.newId()
+      val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
+      s"""|{ val $hm = ${generate(e1)}.groupBy{ case $vars => {
+        |${ind(generate(p1))}}}
+        |${generate(e2)}.flatMap(${generate(v2)} => $hm.get({${generate(p2)}}) match {
+        | case Some(a) => a.flatMap(a1 => ${generate(v2)}._2.map(v => (a1, v))) // distinct labels
+        | case _ => Nil
+        |}) }""".stripMargin
     case Join(e1, e2, v1, p1, v2, p2) =>
       val hm = "hm" + Variable.newId()
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       s"""|{ val $hm = ${generate(e1)}.groupBy{ case $vars => {
         |${ind(generate(p1))}}}
         |${generate(e2)}.flatMap(${generate(v2)} => $hm.get({${generate(p2)}}) match {
-        | case Some(a) => a.map(v => (v, ${generate(v2)}))
+        | s"case Some(a) => a.map(v => (v, ${generate(v2)}))"
         | case _ => Nil
         |}) }""".stripMargin
     case OuterJoin(e1, e2, v1, p1, v2, p2) => generate(Join(e1, e2, v1, p1, v2, p2))
@@ -197,6 +211,14 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Bind(v, e1, e2) =>
       s"val ${generate(v)} = ${generate(e1)}\n${generate(e2)}"
     case _ => sys.error("not supported "+e)
+  }
+
+//Bind(_, Project(dict,"lbl"), _)) if dict.tp.isInstanceOf[BagDictCType] =>
+  def isLabelProj(e: CExpr): Boolean = e match {
+    case Project(e1, "lbl") if e1.tp.isInstanceOf[BagDictCType] => true
+    case Project(e1, "lbl") if e1.tp.isInstanceOf[BagDictCType] => true
+    case Tuple(fs) => fs.map(isLabelProj(_)).contains(true)
+    case _ => false
   }
 
   def toList(e: String): String = e match {

@@ -11,8 +11,7 @@ import shredding.core._
 
 sealed trait CExpr {
   def tp: Type
-  // def tpMap: Map[Variable, Type] = Map()
-  def wvars: List[Variable] = List()
+  def wvars: List[Variable] = List() // remove this 
 }
 
 case class InputRef(data: String, tp: Type) extends CExpr 

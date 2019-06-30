@@ -106,8 +106,7 @@ object Unnester {
   }
 
   def getP1(e: CExpr, v: Variable): Boolean = e match {
-    case Equals(e1, e2 @ Project(InputRef(_,_), "lbl")) => false
-    case Equals(e1 @ Project(InputRef(_,_), "lbl"), e2) => false
+    case e @ Equals(e1, e2) if (isLabelProj(e1) || isLabelProj(e2)) => false
     case Equals(e1, e2) if (v.lequals(e1) == v.lequals(e2)) => true
     case Lt(e1, e2 @ Constant(_)) if v.lequals(e1) => true
     case Lt(e1 @ Constant(_), e2) if v.lequals(e2) => true
@@ -137,9 +136,15 @@ object Unnester {
     val p1s = preds.filter(e2 => getP1(e2, v))
     val preds2 = toList(listToAnd(preds.filterNot(p1s.contains(_))))
     // p1, p2s for left, p2s for right
-    (listToAnd(p1s), listToExpr(preds2.filter(e2 => lequals(e2, vs))), listToExpr(preds2.filter(e2 => v.lequals(e2))))
+    (listToAnd(p1s), listToExpr(preds2.filter(e2 => lequals(e2, vs))), listToExpr(preds2.filter(e2 => { (v.lequals(e2) || isLabelProj(e2))})))
   }
-   
+
+  def isLabelProj(e: CExpr): Boolean = e match {
+    case Project(e1, "lbl") if e1.tp.isInstanceOf[BagDictCType] => true
+    case Project(e1, "lbl") if e1.tp.isInstanceOf[BagDictCType] => true
+    case _ => false
+  }
+
   def lequals(e: CExpr, vs: List[Variable]): Boolean = vs.map(_.lequals(e)).contains(true)
 
 }
