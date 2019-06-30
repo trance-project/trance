@@ -13,6 +13,7 @@ val C = TPCHLoader.loadCustomer[Customer].toList
 val O = TPCHLoader.loadOrders[Orders].toList
 val L = TPCHLoader.loadLineitem[Lineitem].toList
 val P = TPCHLoader.loadPart[Part].toList
+    var end0 = System.currentTimeMillis() - start0
     def f(){
       val x54 = C.flatMap(x28 => { 
     val x29 = x28.c_name
@@ -43,7 +44,6 @@ val P = TPCHLoader.loadPart[Part].toList
     x53})
 x54 
     }
-    var end0 = System.currentTimeMillis() - start0
     var time = List[Long]()
     for (i <- 1 to 5) {
       var start = System.currentTimeMillis()

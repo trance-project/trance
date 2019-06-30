@@ -22,7 +22,7 @@ val x528 = { val hm569 = x521.groupBy{ case x524 => {
   x526}}
 x523.flatMap(x525 => hm569.get({val x527 = x525.o_custkey
 x527}) match {
- s"case Some(a) => a.map(v => (v, x525))"
+ case Some(a) => a.map(v => (v, x525))
  case _ => Nil
 }) }
 val x530 = L
@@ -31,7 +31,7 @@ val x536 = { val hm570 = x528.groupBy{ case (x531, x532) => {
   x534}}
 x530.flatMap(x533 => hm570.get({val x535 = x533.l_orderkey
 x535}) match {
- s"case Some(a) => a.map(v => (v, x533))"
+ case Some(a) => a.map(v => (v, x533))
  case _ => Nil
 }) }
 val x538 = P
@@ -40,7 +40,7 @@ val x545 = { val hm571 = x536.groupBy{ case ((x539, x540), x541) => {
   x543}}
 x538.flatMap(x542 => hm571.get({val x544 = x542.p_partkey
 x544}) match {
- s"case Some(a) => a.map(v => (v, x542))"
+ case Some(a) => a.map(v => (v, x542))
  case _ => Nil
 }) }
 val x555 = { val grps572 = x545.groupBy{ case (((x546, x547), x548), x549) => { val x550 = (x546,x547)

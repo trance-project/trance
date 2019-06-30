@@ -11,6 +11,7 @@ object Query1 {
 import shredding.examples.simple._
 val R = List(InputR(42, "Milos"), InputR(49, "Michael"), 
                   InputR(34, "Jaclyn"), InputR(42, "Thomas"))
+    var end0 = System.currentTimeMillis() - start0
     def f(){
       val x7 = R
 val x9 = R
@@ -19,7 +20,7 @@ val x14 = { val hm22 = x7.groupBy{ case x10 => {
   x12}}
 x9.flatMap(x11 => hm22.get({val x13 = x11.a
 x13}) match {
- s"case Some(a) => a.map(v => (v, x11))"
+ case Some(a) => a.map(v => (v, x11))
  case _ => Nil
 }) }
 val x21 = x14.map{ case (x15, x16) => { 
@@ -30,7 +31,6 @@ val x21 = x14.map{ case (x15, x16) => {
   x20 }}
 x21 
     }
-    var end0 = System.currentTimeMillis() - start0
     var time = List[Long]()
     for (i <- 1 to 5) {
       var start = System.currentTimeMillis()

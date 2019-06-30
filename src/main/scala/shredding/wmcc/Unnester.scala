@@ -71,6 +71,11 @@ object Unnester {
         case _ => Some(OuterUnnest(E.get, w, e1, v, p)) //C10
       }
       unnest(e)((u, w :+ v, nE))
+    case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
+      assert(!E.isEmpty)
+      val preds = lkupps(p, v, w)
+      val nE = Some(Lookup(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3, preds._4)) //Lookup rule
+      unnest(e)((u, w :+ v, nE))
     case Comprehension(e1, v, p, e) if !w.isEmpty =>
       assert(!E.isEmpty) 
       val preds = ps(p, v, w)
@@ -135,8 +140,23 @@ object Unnester {
     val preds = andToList(e)
     val p1s = preds.filter(e2 => getP1(e2, v))
     val preds2 = toList(listToAnd(preds.filterNot(p1s.contains(_))))
+    println("preds")
+    println(preds2)
     // p1, p2s for left, p2s for right
+    //(listToAnd(p1s), listToExpr(preds2.filter(e2 => lequals(e2, vs))), listToExpr(preds2.filter(e2 => v.lequals(e2))))
+
     (listToAnd(p1s), listToExpr(preds2.filter(e2 => lequals(e2, vs))), listToExpr(preds2.filter(e2 => { (v.lequals(e2) || isLabelProj(e2))})))
+  }
+
+  def lkupps(e: CExpr, v: Variable, vs:List[Variable]): (CExpr, CExpr, CExpr, CExpr) = {
+    val preds = andToList(e)
+    val p1s = preds.filter(e2 => getP1(e2, v))
+    val preds2 = toList(listToAnd(preds.filterNot(p1s.contains(_))))
+    // p1, p2s for left, p2s for right
+    //(listToAnd(p1s), listToExpr(preds2.filter(e2 => lequals(e2, vs))), listToExpr(preds2.filter(e2 => v.lequals(e2))))
+    val p2s = preds2.filter(e2 => lequals(e2, vs))
+    val p3s = preds2.filter(e2 => { (v.lequals(e2) || isLabelProj(e2)) })
+    (listToAnd(p1s), p2s.head, p3s.head, Equals(listToExpr(p2s.tail), listToExpr(p3s.tail)))
   }
 
   def isLabelProj(e: CExpr): Boolean = e match {

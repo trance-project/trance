@@ -67,6 +67,9 @@ object Printer {
     case OuterJoin(e1, e2, v1, p1, v2, p2) =>
       s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) OUTERJOIN[${quote(p1)} = ${quote(p2)}](
            | ${ind(quote(e2))})""".stripMargin
+    case Lookup(e1, e2, v1, p1, v2, p2, p3) =>
+      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) LOOKUP[${quote(p1)} = ${quote(p2)}, ${quote(p3)}](
+           | ${ind(quote(e2))})""".stripMargin
     case Variable(n, tp) => n
   }
 }

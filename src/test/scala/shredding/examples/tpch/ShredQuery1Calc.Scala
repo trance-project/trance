@@ -25,6 +25,7 @@ val L__F = 3
 val L__D = (List((L__F, TPCHLoader.loadLineitem[Lineitem].toList)), ())
 val P__F = 4
 val P__D = (List((P__F, TPCHLoader.loadPart[Part].toList)), ())
+    var end0 = System.currentTimeMillis() - start0
     def f(){
       val x309 = Q1Flat(P__F, C__F, L__F, O__F)
 val x310 = RecM_ctx1(x309)
@@ -138,7 +139,6 @@ val x411 = M_flat3
 val x412 = (x312,x333,x343,x368,x378,x411)
 x412 
     }
-    var end0 = System.currentTimeMillis() - start0
     var time = List[Long]()
     for (i <- 1 to 5) {
       var start = System.currentTimeMillis()

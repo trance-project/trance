@@ -13,6 +13,7 @@ val C = TPCHLoader.loadCustomer[Customer].toList
 val O = TPCHLoader.loadOrders[Orders].toList
 val L = TPCHLoader.loadLineitem[Lineitem].toList
 val P = TPCHLoader.loadPart[Part].toList
+    var end0 = System.currentTimeMillis() - start0
     def f(){
       val x65 = C
 val x67 = O
@@ -21,7 +22,7 @@ val x72 = { val hm113 = x65.groupBy{ case x68 => {
   x70}}
 x67.flatMap(x69 => hm113.get({val x71 = x69.o_custkey
 x71}) match {
- s"case Some(a) => a.map(v => (v, x69))"
+ case Some(a) => a.map(v => (v, x69))
  case _ => Nil
 }) }
 val x74 = L
@@ -30,7 +31,7 @@ val x80 = { val hm114 = x72.groupBy{ case (x75, x76) => {
   x78}}
 x74.flatMap(x77 => hm114.get({val x79 = x77.l_orderkey
 x79}) match {
- s"case Some(a) => a.map(v => (v, x77))"
+ case Some(a) => a.map(v => (v, x77))
  case _ => Nil
 }) }
 val x82 = P
@@ -39,7 +40,7 @@ val x89 = { val hm115 = x80.groupBy{ case ((x83, x84), x85) => {
   x87}}
 x82.flatMap(x86 => hm115.get({val x88 = x86.p_partkey
 x88}) match {
- s"case Some(a) => a.map(v => (v, x86))"
+ case Some(a) => a.map(v => (v, x86))
  case _ => Nil
 }) }
 val x99 = { val grps116 = x89.groupBy{ case (((x90, x91), x92), x93) => { val x94 = (x90,x91)
@@ -59,7 +60,6 @@ val x112 = x107.map{ case (x108, x109) => {
   x111 }}
 x112 
     }
-    var end0 = System.currentTimeMillis() - start0
     var time = List[Long]()
     for (i <- 1 to 5) {
       var start = System.currentTimeMillis()

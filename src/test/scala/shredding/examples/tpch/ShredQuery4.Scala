@@ -44,13 +44,15 @@ val x656 = M_ctx1
 val x658 = M_ctx1
 val x659 = C__D._1
 val x661 = x659
-val x667 = { val hm792 = x661.toMap
-x658.flatMap{ case x662 => hm792.get({val x664 = x662.lbl
+val x667 = { val hm792 = x658.groupBy{ case x662 => { val x664 = x662.lbl
 val x665 = x664.C__F
-x665}) match {
- case Some(a) => a.map(v1 => (x662, v1))
- case _ => Nil
-}}}
+x665 } }
+ x661.flatMap(v1 => v1._2.map(x663 =>
+ hm792.get({val x666 = v1._1
+x666}) match {
+ case Some(a) => (a.head, x663)
+ case _ => (a.head, None)
+ })}
 val x679 = { val grps793 = x667.groupBy{ case (x668, x669) => { val x670 = (x668)
 x670 }}
  grps793.map(x678 => (x678._1, x678._2.map{case (x668, x669) => val x671 = x669.c_name
@@ -84,19 +86,20 @@ val x698 = M_ctx2
 val x700 = M_ctx2
 val x701 = O__D._1
 val x703 = x701
-val x714 = { val hm799 = x703.flatMap(v1 => v1._2.map(x705 => ({val x711 = v1._1
-val x712 = x705.o_custkey
-val x713 = (x711,x712)
-x713}, v1._2))).toMap
-x700.flatMap{ case x704 => hm799.get({val x706 = x704.lbl
+val x714 = { val hm799 = x700.groupBy{ case x704 => { val x706 = x704.lbl
 val x707 = x706.O__F
 val x708 = x706.c__F
 val x709 = x708.c_custkey
 val x710 = (x707,x709)
-x710}) match {
- case Some(a) => a.map(v1 => (x704, v1))
- case _ => Nil
-}}}
+x710 } }
+ x703.flatMap(v1 => v1._2.map(x705 =>
+ hm799.get({val x711 = v1._1
+val x712 = x705.o_custkey
+val x713 = (x711,x712)
+x713}) match {
+ case Some(a) => (a.head, x705)
+ case _ => (a.head, None)
+ })}
 val x725 = { val grps800 = x714.groupBy{ case (x715, x716) => { val x717 = (x715)
 x717 }}
  grps800.map(x724 => (x724._1, x724._2.map{case (x715, x716) => val x718 = x716.o_orderdate
@@ -129,33 +132,35 @@ val x744 = M_ctx3
 val x746 = M_ctx3
 val x747 = L__D._1
 val x749 = x747
-val x760 = { val hm806 = x749.flatMap(v1 => v1._2.map(x751 => ({val x757 = v1._1
-val x758 = x751.l_orderkey
-val x759 = (x757,x758)
-x759}, v1._2))).toMap
-x746.flatMap{ case x750 => hm806.get({val x752 = x750.lbl
+val x760 = { val hm806 = x746.groupBy{ case x750 => { val x752 = x750.lbl
 val x753 = x752.L__F
 val x754 = x752.o__F
 val x755 = x754.o_orderkey
 val x756 = (x753,x755)
-x756}) match {
- case Some(a) => a.map(v1 => (x750, v1))
- case _ => Nil
-}}}
+x756 } }
+ x749.flatMap(v1 => v1._2.map(x751 =>
+ hm806.get({val x757 = v1._1
+val x758 = x751.l_orderkey
+val x759 = (x757,x758)
+x759}) match {
+ case Some(a) => (a.head, x751)
+ case _ => (a.head, None)
+ })}
 val x761 = P__D._1
 val x763 = x761
-val x774 = { val hm808 = x763.flatMap(v1 => v1._2.map(x766 => ({val x771 = v1._1
-val x772 = x766.p_partkey
-val x773 = (x771,x772)
-x773}, v1._2))).toMap
-x760.flatMap{ case (x764, x765) => hm808.get({val x767 = x764.lbl
+val x774 = { val hm808 = x760.groupBy{ case (x764, x765) => { val x767 = x764.lbl
 val x768 = x767.P__F
 val x769 = x765.l_partkey
 val x770 = (x768,x769)
-x770}) match {
- case Some(a) => a.map(v1 => ((x764, x765), v1))
- case _ => Nil
-}}}
+x770 } }
+ x763.flatMap(v1 => v1._2.map(x766 =>
+ hm808.get({val x771 = v1._1
+val x772 = x766.p_partkey
+val x773 = (x771,x772)
+x773}) match {
+ case Some(a) => (a.head, x766)
+ case _ => (a.head, None)
+ })}
 val x783 = { val grps809 = x774.groupBy{ case ((x775, x776), x777) => { val x778 = (x775)
 x778 }}
  grps809.map(x782 => (x782._1, x782._2.map{case ((x775, x776), x777) => val x779 = x777.p_name
@@ -183,13 +188,15 @@ val x824 = M_ctx1
 val x826 = M_ctx1
 val x827 = Q1__D._1
 val x829 = x827
-val x835 = { val hm926 = x829.toMap
-x826.flatMap{ case x830 => hm926.get({val x832 = x830.lbl
+val x835 = { val hm926 = x826.groupBy{ case x830 => { val x832 = x830.lbl
 val x833 = x832.Q1__F
-x833}) match {
- case Some(a) => a.map(v1 => (x830, v1))
- case _ => Nil
-}}}
+x833 } }
+ x829.flatMap(v1 => v1._2.map(x831 =>
+ hm926.get({val x834 = v1._1
+x834}) match {
+ case Some(a) => (a.head, x831)
+ case _ => (a.head, None)
+ })}
 val x836 = Q1__D._2
 val x837 = x836.c_orders
 val x838 = x837._1
@@ -201,7 +208,7 @@ x840.flatMap(x843 => hm928.get({val x845 = Q1__D._2
 val x846 = x845.c_orders
 val x847 = x846._1
 x847}) match {
- s"case Some(a) => a.map(v => (v, x843))"
+ case Some(a) => a.map(v => (v, x843))
  case _ => Nil
 }) }
 val x849 = x837._2
@@ -217,7 +224,7 @@ val x861 = x860._2
 val x862 = x861.o_parts
 val x863 = x862._1
 x863}) match {
- s"case Some(a) => a.map(v => (v, x857))"
+ case Some(a) => a.map(v => (v, x857))
  case _ => Nil
 }) }
 val x866 = x851
@@ -234,7 +241,7 @@ val x879 = x878._1
 val x880 = x871.p_name
 val x881 = (x879,x880)
 x881}) match {
- s"case Some(a) => a.map(v => (v, x871))"
+ case Some(a) => a.map(v => (v, x871))
  case _ => Nil
 }) }
 val x893 = x882.flatMap{ case ((((x883, x884), x885), x886), x887) => 

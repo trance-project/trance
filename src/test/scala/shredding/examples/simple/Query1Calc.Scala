@@ -11,12 +11,12 @@ object Query1Calc {
 import shredding.examples.simple._
 val R = List(InputR(42, "Milos"), InputR(49, "Michael"), 
                   InputR(34, "Jaclyn"), InputR(42, "Thomas"))
+    var end0 = System.currentTimeMillis() - start0
     def f(){
       R.flatMap(x1 => { 
     R.flatMap(x2 => { 
       if({x1.a == x2.a}) {  List(Record5(x1.a, x1.b, x2.b))} else {  Nil}})}) 
     }
-    var end0 = System.currentTimeMillis() - start0
     var time = List[Long]()
     for (i <- 1 to 5) {
       var start = System.currentTimeMillis()
