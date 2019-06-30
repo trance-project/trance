@@ -200,23 +200,6 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
           | case Some(a) => a$filt.map($gv2 => ($vars, $gv2))
           | case _ => Nil
           |}}}""".stripMargin
-      
-      /**s"""|{ val $hm = ${generate(e1)}.groupBy{ case $vars => { ${generate(p1)} } }
-          | ${generate(e2)}.flatMap(v1 => v1._2.map($gv2 =>
-          | $hm.get({${generate(Bind(v3, Project(v4, "_1"), jcond2))}}) match {
-          | case Some(a) => (a.head, $gv2)
-          | case _ => (a.head, None)
-          | })}""".stripMargin**/
-      /**val grpby = jcond2 match {
-        case Bind(_, _, Bind(_, Tuple(_), _)) => 
-          s"val $hm = ${generate(e2)}.flatMap(v1 => v1._2.map($gv2 => ({${generate(Bind(v3, Project(v4, "_1"), jcond2))}}, v1._2))).toMap"
-        case _ => s"val $hm = ${generate(e2)}.toMap"
-      }
-      s"""|{ $grpby
-          |${generate(e1)}.flatMap{ case $vars => $hm.get({${generate(p1)}}) match {
-          | case Some(a) => a.map(v1 => ($vars, v1))
-          | case _ => Nil
-          |}}}""".stripMargin**/
     case Join(e1, e2, v1, p1, v2, p2) =>
       val hm = "hm" + Variable.newId()
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
