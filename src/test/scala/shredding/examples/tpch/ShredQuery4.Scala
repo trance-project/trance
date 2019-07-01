@@ -24,7 +24,7 @@ case class RecM_ctx1(lbl: Q1Flat)
 
 case class Input_Q1_Dict2(o_parts: (List[RecM_flat3], Unit))
 case class Input_Q1_Dict1(c_orders: (List[RecM_flat2], Input_Q1_Dict2))
-object ShredQuery4Calc {
+object ShredQuery4 {
  def main(args: Array[String]){ 
     var start0 = System.currentTimeMillis()
     

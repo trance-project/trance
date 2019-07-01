@@ -417,7 +417,7 @@ object App {
     val sprinter = new PrintWriter(new FileOutputStream(new File(sout), false))
     val cc = TPCHQueries.sq4cclass("RecM_flat2", "RecM_flat3")
     val dd = TPCHQueries.sq4data("Q1")
-    val sfinalc = write2(s"Shred${TPCHQueries.q4name}Calc", s"${TPCHQueries.sq1data}", s"$header4\n$cc", gcode1, "Q1", gcode4, dd)
+    val sfinalc = write2(s"Shred${TPCHQueries.q4name}", s"${TPCHQueries.sq1data}", s"$header4\n$cc", gcode1, "Q1", gcode4, dd)
     sprinter.println(sfinalc)
     sprinter.close
   }
