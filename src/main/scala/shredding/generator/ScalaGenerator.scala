@@ -193,11 +193,12 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       val gv2 =  generate(v2)
       p3 match {
         case Constant(true) =>
-          s"""|{ val $hm = ${generate(e2)}.toMap
-              | ${generate(e1)}.flatMap{case $vars => $hm.get({ ${generate(p1)} }) match {
-              | case Some(a) => a.map($gv2 => ($vars, $gv2))
+          s"""|{ val $hm = ${generate(e1)}.groupBy{case $vars => { ${generate(p1)} } }
+              | ${generate(e2)}.flatMap{$gv2 => $hm.get($gv2._1) match {
+              | case Some(a) => a.map(a1 => (a1, $gv2._2))
               | case _ => Nil
-              |}}}""".stripMargin
+              |}}.flatMap(v => v._2.map(v2 => (v._1, v2)))
+              |}""".stripMargin
         case _ => 
           s"""|{ val $hm = ${generate(e1)}.groupBy{case $vars => { ${generate(p1)} } }
               | val join1 = ${generate(e2)}.flatMap{$gv2 => $hm.get($gv2._1) match {

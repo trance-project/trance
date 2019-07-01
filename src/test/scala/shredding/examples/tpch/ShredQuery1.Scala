@@ -35,13 +35,14 @@ val x118 = M_ctx1
 val x120 = M_ctx1
 val x121 = C__D._1
 val x123 = x121
-val x128 = { val hm246 = x123.toMap
- x120.flatMap{case x124 => hm246.get({ val x126 = x124.lbl
+val x128 = { val hm246 = x120.groupBy{case x124 => { val x126 = x124.lbl
 val x127 = x126.C__F
-x127 }) match {
- case Some(a) => a.map(x125 => (x124, x125))
+x127 } }
+ x123.flatMap{x125 => hm246.get(x125._1) match {
+ case Some(a) => a.map(a1 => (a1, x125._2))
  case _ => Nil
-}}}
+}}.flatMap(v => v._2.map(v2 => (v._1, v2)))
+}
 val x140 = { val grps247 = x128.groupBy{ case (x129, x130) => { val x131 = (x129)
 x131 }}
  grps247.map(x139 => (x139._1, x139._2.map{case (x129, x130) => val x132 = x130.c_name

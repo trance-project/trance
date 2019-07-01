@@ -44,13 +44,14 @@ val x410 = M_ctx1
 val x412 = M_ctx1
 val x413 = C__D._1
 val x415 = x413
-val x420 = { val hm538 = x415.toMap
- x412.flatMap{case x416 => hm538.get({ val x418 = x416.lbl
+val x420 = { val hm538 = x412.groupBy{case x416 => { val x418 = x416.lbl
 val x419 = x418.C__F
-x419 }) match {
- case Some(a) => a.map(x417 => (x416, x417))
+x419 } }
+ x415.flatMap{x417 => hm538.get(x417._1) match {
+ case Some(a) => a.map(a1 => (a1, x417._2))
  case _ => Nil
-}}}
+}}.flatMap(v => v._2.map(v2 => (v._1, v2)))
+}
 val x432 = { val grps539 = x420.groupBy{ case (x421, x422) => { val x423 = (x421)
 x423 }}
  grps539.map(x431 => (x431._1, x431._2.map{case (x421, x422) => val x424 = x422.c_name
@@ -194,33 +195,36 @@ val x570 = M_ctx1
 val x572 = M_ctx1
 val x573 = Q1__D._1
 val x575 = x573
-val x580 = { val hm656 = x575.toMap
- x572.flatMap{case x576 => hm656.get({ val x578 = x576.lbl
+val x580 = { val hm656 = x572.groupBy{case x576 => { val x578 = x576.lbl
 val x579 = x578.Q1__F
-x579 }) match {
- case Some(a) => a.map(x577 => (x576, x577))
+x579 } }
+ x575.flatMap{x577 => hm656.get(x577._1) match {
+ case Some(a) => a.map(a1 => (a1, x577._2))
  case _ => Nil
-}}}
+}}.flatMap(v => v._2.map(v2 => (v._1, v2)))
+}
 val x581 = Q1__D._2
 val x582 = x581.c_orders
 val x583 = x582._1
 val x585 = x583
-val x590 = { val hm658 = x585.toMap
- x580.flatMap{case (x586, x587) => hm658.get({ val x589 = x587.c_orders
-x589 }) match {
- case Some(a) => a.map(x588 => ((x586, x587), x588))
+val x590 = { val hm658 = x580.groupBy{case (x586, x587) => { val x589 = x587.c_orders
+x589 } }
+ x585.flatMap{x588 => hm658.get(x588._1) match {
+ case Some(a) => a.map(a1 => (a1, x588._2))
  case _ => Nil
-}}}
+}}.flatMap(v => v._2.map(v2 => (v._1, v2)))
+}
 val x591 = x582._2
 val x592 = x591.o_parts
 val x593 = x592._1
 val x595 = x593
-val x601 = { val hm659 = x595.toMap
- x590.flatMap{case ((x596, x597), x598) => hm659.get({ val x600 = x598.o_parts
-x600 }) match {
- case Some(a) => a.map(x599 => (((x596, x597), x598), x599))
+val x601 = { val hm659 = x590.groupBy{case ((x596, x597), x598) => { val x600 = x598.o_parts
+x600 } }
+ x595.flatMap{x599 => hm659.get(x599._1) match {
+ case Some(a) => a.map(a1 => (a1, x599._2))
  case _ => Nil
-}}}
+}}.flatMap(v => v._2.map(v2 => (v._1, v2)))
+}
 val x603 = x593
 val x612 = { val hm660 = x601.groupBy{case (((x604, x605), x606), x607) => { val x609 = x606.o_parts
 x609 } }
