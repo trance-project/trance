@@ -389,11 +389,9 @@ object App {
     val anfBase = new BaseANF {}
 
 
-    val q1 = runner.shredPipeline(TPCHQueries.query4.asInstanceOf[runner.Expr])
+    val q1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
     val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
-    println(Printer.quote(normq1))
     val plan1 = Unnester.unnest(normq1)((Nil, Nil, None)).asInstanceOf[CExpr]
-    println(Printer.quote(plan1))
     val anfedq1 = new Finalizer(anfBase).finalize(plan1)
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
 
@@ -406,7 +404,9 @@ object App {
 
     val q4 = runner.shredPipeline(TPCHQueries.query4.asInstanceOf[runner.Expr])
     val normq4 = normalizer.finalize(q4).asInstanceOf[CExpr]
+    println(Printer.quote(normq1))
     val plan4 = Unnester.unnest(normq4)((Nil, Nil, None)).asInstanceOf[CExpr]
+    println(Printer.quote(plan1))
     anfBase.reset
     val anfedq4 = new Finalizer(anfBase).finalize(plan4)
     val anfExp4 = anfBase.anf(anfedq4.asInstanceOf[anfBase.Rep])
