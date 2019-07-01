@@ -389,7 +389,7 @@ object App {
     val anfBase = new BaseANF {}
 
 
-    val q1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
+    val q1 = runner.shredPipeline(TPCHQueries.query4.asInstanceOf[runner.Expr])
     val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
     println(Printer.quote(normq1))
     val plan1 = Unnester.unnest(normq1)((Nil, Nil, None)).asInstanceOf[CExpr]
