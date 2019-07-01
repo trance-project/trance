@@ -59,6 +59,16 @@ object TPCHQueries {
                     ForeachUnion(p, relP, IfThenElse(
                       Cmp(OpEq, lr("l_partkey"), pr("p_partkey")), 
                         Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))))))))))
+  /**val query1 = ForeachUnion(c, relC, 
+            Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(o, relO, 
+              IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")), 
+                Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> 
+                  ForeachUnion(p, relP,
+                    ForeachUnion(l, relL, 
+                      IfThenElse(And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
+                                      Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))), 
+                        Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity")))))))))))))**/
+
 
   val q1type = TupleType("c_name" -> StringType, "c_orders" ->
                           BagType(TupleType("o_orderdate" -> StringType, "o_parts" ->

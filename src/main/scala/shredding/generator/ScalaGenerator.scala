@@ -191,15 +191,26 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       val hm = "hm" + Variable.newId()
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 =  generate(v2)
-      val filt = p3 match {
-        case Constant(true) => s""
-        case _ => s".withFilter($gv2 => { ${generate(p3)} } )"
-      }
-      s"""|{ val $hm = ${generate(e2)}.toMap
-          | ${generate(e1)}.flatMap{case $vars => $hm.get({ ${generate(p1)} }) match {
-          | case Some(a) => a$filt.map($gv2 => ($vars, $gv2))
-          | case _ => Nil
-          |}}}""".stripMargin
+      p3 match {
+        case Constant(true) =>
+          s"""|{ val $hm = ${generate(e2)}.toMap
+              | ${generate(e1)}.flatMap{case $vars => $hm.get({ ${generate(p1)} }) match {
+              | case Some(a) => a.map($gv2 => ($vars, $gv2))
+              | case _ => Nil
+              |}}}""".stripMargin
+        case _ => 
+          s"""|{ val $hm = ${generate(e1)}.groupBy{case $vars => { ${generate(p1)} } }
+              | val join1 = ${generate(e2)}.flatMap{$gv2 => $hm.get($gv2._1) match {
+              | case Some(a) => $gv2._2
+              | case _ => Nil
+              | }}
+              | val join2 = ${generate(e1)}.groupBy{case $vars => { ${generate(p3)} } }
+              | join1.flatMap($gv2 => join2.get({ ${generate(p2)} }) match {
+              |   case Some(a) => a.map(a1 => (a1, $gv2))
+              |   case _ => Nil
+              | })
+              |}""".stripMargin
+        }
     case Join(e1, e2, v1, p1, v2, p2) =>
       val hm = "hm" + Variable.newId()
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
