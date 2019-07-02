@@ -247,7 +247,7 @@ object App {
 
     val q1 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
     val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
-
+    
     val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) 
     val ng = TPCHSchema.tpchInputs.toList.map(f => f._2)
     val codegen = new ScalaNamedGenerator(inputs)   
@@ -259,7 +259,9 @@ object App {
     val gcode1 = codegen.generate(anfExp1)
 
     val q4 = translator.translate(TPCHQueries.query4.asInstanceOf[translator.Expr])
+    println(Printer.quote(q4))
     val normq4 = normalizer.finalize(q4).asInstanceOf[CExpr]
+    println(Printer.quote(normq4))
     val plan4 = Unnester.unnest(normq4)(Nil, Nil, None)
     println(Printer.quote(plan4))
     anfBase.reset
@@ -403,10 +405,11 @@ object App {
     val gcode1 = codegen.generate(anfExp1)
 
     val q4 = runner.shredPipeline(TPCHQueries.query4.asInstanceOf[runner.Expr])
+    println(Printer.quote(q4))
     val normq4 = normalizer.finalize(q4).asInstanceOf[CExpr]
-    println(Printer.quote(normq1))
+    println(Printer.quote(normq4))
     val plan4 = Unnester.unnest(normq4)((Nil, Nil, None)).asInstanceOf[CExpr]
-    println(Printer.quote(plan1))
+    println(Printer.quote(plan4))
     anfBase.reset
     val anfedq4 = new Finalizer(anfBase).finalize(plan4)
     val anfExp4 = anfBase.anf(anfedq4.asInstanceOf[anfBase.Rep])

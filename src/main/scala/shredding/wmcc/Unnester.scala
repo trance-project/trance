@@ -50,13 +50,6 @@ object Unnester {
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case _ => sys.error("unsupported")
       }
-    case c @ Constant(_) if !w.isEmpty =>
-      assert(!E.isEmpty)
-      if (u.isEmpty) Reduce(E.get, w, c, Constant(true))
-      else {
-        val et = Tuple(u)
-        Nest(E.get, w, et, c, Variable.fresh(TTupleType(et.tp.attrTps :+ IntType)), Constant(true))
-      }
     case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
       assert(!E.isEmpty)
        val nE = u.isEmpty match {
@@ -84,6 +77,13 @@ object Unnester {
         case _ => Some(OuterJoin(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3)) //C9
       }
       unnest(e)((u, w :+ v, nE))
+    case c if (!w.isEmpty && c.tp.isInstanceOf[PrimitiveType]) =>
+      assert(!E.isEmpty)
+      if (u.isEmpty) Reduce(E.get, w, c, Constant(true))
+      else {
+        val et = Tuple(u)
+        Nest(E.get, w, et, c, Variable.fresh(TTupleType(et.tp.attrTps :+ IntType)), Constant(true))
+      }
     case LinearCSet(exprs) => LinearCSet(exprs.map(unnest(_)((Nil, Nil, None))))
     case CNamed(n, exp) => exp match {
       case Sng(t) => CNamed(n, exp)

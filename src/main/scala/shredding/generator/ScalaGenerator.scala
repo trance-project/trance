@@ -184,7 +184,9 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       val grped = s"{ val $grps = ${generate(e1)}.groupBy{ case $vars => { ${generate(f)} }}"
       e2.tp match {
         case IntType => 
-          s"$grped\n $grps.map($gv2 => ($gv2._1, $gv2._2.foldLeft(0)(($acc, $gv2) => $acc + ${generate(e2)}))).toList }"  
+          s"$grped\n $grps.map($gv2 => ($gv2._1, $gv2._2.foldLeft(0){ case ($acc, $vars) => $acc + {${generate(e2)}} })).toList }"  
+        case DoubleType => 
+          s"$grped\n $grps.map($gv2 => ($gv2._1, $gv2._2.foldLeft(0.0){ case ($acc, $vars) => $acc + {${generate(e2)}} })).toList }"  
         case _ => s"$grped\n $grps.map($gv2 => ($gv2._1, $gv2._2.map{case $vars => ${generate(e2)}})).toList }"
       }
     case Lookup(e1, e2, v1, p1, v2, p2, p3) => 

@@ -229,7 +229,7 @@ case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p
 }
 
 case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr) extends CExpr {
-  def tp: BagCType = BagCType(v2.tp) 
+  def tp: Type = BagCType(v2.tp) // check 
   // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = { 
     val uvars = f match {

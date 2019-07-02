@@ -201,6 +201,8 @@ trait BaseCompiler extends Base {
     val v = ev.tp match {
       case IntType => 
         Variable.fresh(TTupleType(List(fv.tp, ev.tp)))
+      case DoubleType =>
+        Variable.fresh(TTupleType(List(fv.tp, ev.tp)))
       case _ => 
         Variable.fresh(TTupleType(List(fv.tp, BagCType(ev.tp))))
     }
