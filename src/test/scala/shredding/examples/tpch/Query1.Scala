@@ -2,9 +2,9 @@
 package experiments
 /** Generated code **/
 import shredding.examples.tpch._
-    case class Record122(p_name: String, l_qty: Double)
-case class Record125(o_orderdate: String, o_parts: List[Record122])
-case class Record126(c_name: String, c_orders: List[Record125])
+    case class Record118(p_name: String, l_qty: Double)
+case class Record121(o_orderdate: String, o_parts: List[Record118])
+case class Record122(c_name: String, c_orders: List[Record121])
 object Query1 {
  def main(args: Array[String]){ 
     var start0 = System.currentTimeMillis()
@@ -15,47 +15,47 @@ val L = TPCHLoader.loadLineitem[Lineitem].toList
 val P = TPCHLoader.loadPart[Part].toList
     var end0 = System.currentTimeMillis() - start0
     def f(){
-      val x66 = C
-val x68 = O
-val x74 = { val hm117 = x66.groupBy{ case x69 => {val x72 = x69.c_custkey
-x72} }
-x68.flatMap(x70 => hm117.get({val x73 = x70.o_custkey
-x73}) match {
- case Some(a) => a.map(v => (v, x70))
+      val x65 = C
+val x67 = O
+val x72 = { val hm113 = x65.groupBy{ case x68 => {val x70 = x68.c_custkey
+x70} }
+x67.flatMap(x69 => hm113.get({val x71 = x69.o_custkey
+x71}) match {
+ case Some(a) => a.map(v => (v, x69))
  case _ => Nil
 }) }
-val x76 = L
-val x83 = { val hm118 = x74.groupBy{ case (x77, x78) => {val x81 = x78.o_orderkey
-x81} }
-x76.flatMap(x79 => hm118.get({val x82 = x79.l_orderkey
-x82}) match {
- case Some(a) => a.map(v => (v, x79))
+val x74 = L
+val x80 = { val hm114 = x72.groupBy{ case (x75, x76) => {val x78 = x76.o_orderkey
+x78} }
+x74.flatMap(x77 => hm114.get({val x79 = x77.l_orderkey
+x79}) match {
+ case Some(a) => a.map(v => (v, x77))
  case _ => Nil
 }) }
-val x85 = P
-val x93 = { val hm119 = x83.groupBy{ case ((x86, x87), x88) => {val x91 = x88.l_partkey
-x91} }
-x85.flatMap(x89 => hm119.get({val x92 = x89.p_partkey
-x92}) match {
- case Some(a) => a.map(v => (v, x89))
+val x82 = P
+val x89 = { val hm115 = x80.groupBy{ case ((x83, x84), x85) => {val x87 = x85.l_partkey
+x87} }
+x82.flatMap(x86 => hm115.get({val x88 = x86.p_partkey
+x88}) match {
+ case Some(a) => a.map(v => (v, x86))
  case _ => Nil
 }) }
-val x103 = { val grps120 = x93.groupBy{ case (((x94, x95), x96), x97) => { val x98 = (x94,x95)
-x98 }}
- grps120.map(x102 => (x102._1, x102._2.map{case (((x94, x95), x96), x97) => val x99 = x97.p_name
-val x100 = x96.l_quantity
-val x101 = Record122(x99, x100)
-x101})).toList }
-val x111 = { val grps123 = x103.groupBy{ case ((x104, x105), x106) => { val x107 = (x104)
-x107 }}
- grps123.map(x110 => (x110._1, x110._2.map{case ((x104, x105), x106) => val x108 = x105.o_orderdate
-val x109 = Record125(x108, x106)
-x109})).toList }
-val x116 = x111.map{ case (x112, x113) => { 
-  val x114 = x112.c_name
-  val x115 = Record126(x114, x113)
-  x115 }}
-x116 
+val x99 = { val grps116 = x89.groupBy{ case (((x90, x91), x92), x93) => { val x94 = (x90,x91)
+x94 }}
+ grps116.map(x98 => (x98._1, x98._2.map{case (((x90, x91), x92), x93) => val x95 = x93.p_name
+val x96 = x92.l_quantity
+val x97 = Record118(x95, x96)
+x97})).toList }
+val x107 = { val grps119 = x99.groupBy{ case ((x100, x101), x102) => { val x103 = (x100)
+x103 }}
+ grps119.map(x106 => (x106._1, x106._2.map{case ((x100, x101), x102) => val x104 = x101.o_orderdate
+val x105 = Record121(x104, x102)
+x105})).toList }
+val x112 = x107.map{ case (x108, x109) => { 
+  val x110 = x108.c_name
+  val x111 = Record122(x110, x109)
+  x111 }}
+x112 
     }
     var time = List[Long]()
     for (i <- 1 to 5) {

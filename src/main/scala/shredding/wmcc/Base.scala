@@ -210,20 +210,14 @@ trait BaseCompiler extends Base {
   }
   def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
     val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
-    val v2 = e2 match {
-      case Select(Project(e1, _), _, _) if e1.tp.isInstanceOf[BagDictCType] =>
-        Variable.fresh(e2.tp.asInstanceOf[BagDictCType].flat.tp)
-      case _ => Variable.fresh(e2.tp.asInstanceOf[BagCType].tp)
-    }
-    println("stop")
-    println(p1(v1))
+    val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp)
     Join(e1, e2, v1, p1(v1), v2, p2(v2))
   }
   def outerunnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = unnest(e1, f, p)
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = join(e1, e2, p1, p2)
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
     val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
-    val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp)
+    val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
     Lookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
   }
 
@@ -517,11 +511,7 @@ trait BaseANF extends Base {
   def and(e1: Rep, e2: Rep): Rep = compiler.and(e1, e2)
   def not(e1: Rep): Rep = compiler.not(e1)
   def or(e1: Rep, e2: Rep): Rep = compiler.or(e1, e2)
-  def project(e1: Rep, field: String): Rep = {
-    println(e1)
-    println(field)
-    compiler.project(e1, field)
-  }
+  def project(e1: Rep, field: String): Rep = compiler.project(e1, field)
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep] = None): Rep = e2 match {
     case Some(a) => compiler.ifthen(cond, e1, Some(a)) 
     case _ => compiler.ifthen(cond, e1, None)

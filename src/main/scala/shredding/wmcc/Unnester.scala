@@ -64,25 +64,16 @@ object Unnester {
         case _ => Some(OuterUnnest(E.get, w, e1, v, p)) //C10
       }
       unnest(e)((u, w :+ v, nE))
-    case Comprehension(e1 @ Project(e0, f), v, p, e @ Comprehension(Project(e2, f2), v2, p2, e3)) if e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
+    case Comprehension(e1 @ Project(e0, f), v, p @ Equals(lbl1, lbl2), Comprehension(e2, v2, p2, e3)) if e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
       assert(!E.isEmpty)
-      val preds = ps(p,v,w)
-      p2 match {
-        case Constant(true) => 
-          val nE = Some(Join(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3))
-          unnest(e3)((u, w :+ v, nE))
-        case _ => 
-          println("variable typing information")
-          println(v)
-          println(v2)
-          //val nv = Variable(v.name, v.tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
-          //println(nv)
-          val preds2 = ps(p2, v2, w :+ v)
-          println(preds2._3)
-          val lu = Join(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3) 
-          val nE = Some(Join(E.get, lu, w:+v, preds2._2, v2, preds2._3)) 
-          unnest(e3)((u, w ++ List(v, v2) , nE))
+      val (p1s, p2s) = p2 match {
+        case Equals(f1, f2) if v2.lequals(f1) => (f1, f2)
+        case Equals(f1, f2) => (f2, f1)
+        case Constant(true) => (Constant(true), Constant(true))
+        case _ => sys.error(s"not supported $p2") 
       }
+      val nE = Some(Lookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, p1s, p2s))
+      unnest(e3)((u, w :+ v2, nE)) 
     case Comprehension(e1, v, p, e) if !w.isEmpty =>
       assert(!E.isEmpty) 
       val preds = ps(p, v, w)
@@ -103,13 +94,13 @@ object Unnester {
       case Sng(t) => CNamed(n, exp)
       case _ => CNamed(n, unnest(exp)((Nil, Nil, None)))
     }
-    case _ => sys.error("not supported "+e)
+    case _ => sys.error(s"not supported $e")
   }
 
   def getNest(e: CExpr): (Option[CExpr], Variable) = e match {
     case Bind(nval, nv @ Variable(_,_), e1) => (Some(e), nv)
     case Nest(_,_,_,_,v2 @ Variable(_,_),_) => (Some(e), v2)
-    case _ => sys.error("unsupported")
+    case _ => sys.error(s"not supported $e")
   }
 
   // need to support ors
@@ -125,7 +116,6 @@ object Unnester {
   }
 
   def getP1(e: CExpr, v: Variable): Boolean = e match {
-    case e @ Equals(e1, e2) if (isLabelProj(e1) || isLabelProj(e2)) => false
     case Equals(e1, e2) if (v.lequals(e1) == v.lequals(e2)) => true
     case Lt(e1, e2 @ Constant(_)) if v.lequals(e1) => true
     case Lt(e1 @ Constant(_), e2) if v.lequals(e2) => true
@@ -155,23 +145,8 @@ object Unnester {
     val p1s = preds.filter(e2 => getP1(e2, v))
     val preds2 = toList(listToAnd(preds.filterNot(p1s.contains(_))))
     val preds21 = listToExpr(preds2.filter(e2 => lequals(e2, vs)))
-    val preds22 = listToExpr(preds2.filter(e2 => { (v.lequals(e2) || isLabelProj(e2))}))
+    val preds22 = listToExpr(preds2.filter(e2 => v.lequals(e2)))
     (listToAnd(p1s), preds21, preds22)
-  }
-
-  def lkupps(e: CExpr, v: Variable, vs:List[Variable]): (CExpr, CExpr, CExpr, CExpr) = {
-    val preds = andToList(e)
-    val p1s = preds.filter(e2 => getP1(e2, v))
-    val preds2 = toList(listToAnd(preds.filterNot(p1s.contains(_))))
-    val p2s = preds2.filter(e2 => lequals(e2, vs))
-    val p3s = preds2.filter(e2 => { (v.lequals(e2) || isLabelProj(e2)) })
-    (listToAnd(p1s), p2s.head, listToExpr(p3s.tail), listToExpr(p2s.tail))
-  }
-
-  def isLabelProj(e: CExpr): Boolean = e match {
-    case Project(e1, "lbl") if e1.tp.isInstanceOf[BagDictCType] => true
-    case Project(e1, "lbl") if e1.tp.isInstanceOf[BagDictCType] => true
-    case _ => false
   }
 
   def lequals(e: CExpr, vs: List[Variable]): Boolean = vs.map(_.lequals(e)).contains(true)

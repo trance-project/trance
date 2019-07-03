@@ -436,7 +436,7 @@ object App {
     run1Shred()
     println("\n----------------- Query Shred 1 Calc -------------------")
     run1ShredCalc()
-/**    println("\n----------------- Query 4 Calc -------------------")
+    println("\n----------------- Query 4 Calc -------------------")
     run4Calc()
     println("----------------- Query 4 -------------------")
     run4()
@@ -445,6 +445,6 @@ object App {
     println("----------------- Query Shred 4 Calc -------------------")
     run4ShredCalc()
     println("----------------- Query 3 -------------------")
-    run3()**/
+    run3()
   }
 }
