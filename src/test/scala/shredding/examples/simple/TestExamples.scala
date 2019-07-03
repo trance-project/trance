@@ -356,15 +356,6 @@ class TestExamples extends FunSuite
 */
   test("test7") {
 
-    println()
-    println("[TEST_7]     For x In R Union\n    " +
-      "Let Z :=\n    For y In x.a Union\n      " +
-      "sng(o1 = y.b, o2 = For q In x.c Union If (q.e = y.b) Then (o3 = q.h, o4 = q.j) )\n    " +
-      "In\n    " +
-      "sng (o5 = x.h, o6 = For w In Z Union sng(o7 = w.o1, o8 = Mult(w.o1, Z)))")
-
-    // printQuery("TEST_7", results)
-
   }
 
   /*
@@ -396,9 +387,50 @@ class TestExamples extends FunSuite
   test("test8") {
     println()
     println("[TEST_8] A portion of the alele count example")
-    val results = null
-    //printQuery("TEST_8", results)
 
+    val bagV = BagType(TupleType("contig" -> StringType, "start"->IntType,
+        "genotypes" -> BagType(TupleType("sample" -> StringType, "call"->IntType))))
+    val bagC = BagType(TupleType("sample" -> StringType, "iscase"->DoubleType))
+
+
+    val relationV = BagVarRef(VarDef("V", bagV))
+    val vdef = VarDef("v", bagV.tp)
+    val vref = TupleVarRef(vdef)
+
+//    val gdef = VarDef("g", tuple)
+
+//    val tuple_x = TupleType("a" -> IntType, "b" -> IntType, "c" -> IntType)
+//    val relationR = BagVarRef(VarDef("R", BagType(tuple_x)))
+//    val xdef = VarDef("x", tuple_x)
+//    val zdef = VarDef("z", tuple_x)
+//    val ydef = VarDef("y", tuple_x)
+//    val xref = TupleVarRef(xdef)
+//    val yref = TupleVarRef(ydef)
+//    val zref = TupleVarRef(zdef)
+
+
+
+//    val results = ForeachUnion(vdef, relationV,
+//          Singleton(Tuple("contig" -> vref("contig"), "start"->vref("start")),
+//            "alleleCnts" -> Let(
+//
+//            )//let
+//          )//Singleton
+//        )//foreachu
+
+//      ForeachUnion(ydef, relationR, IfThenElse(Cmp(OpEq, xref("a"), yref("a")),
+//        //{b' = y.b, s2 =
+//        //  For z In R Union If z.a == x.a ∧ z.b == y.b Then
+//        //    {c' = z.ci}
+//        ForeachUnion(zdef, relationR,
+//          IfThenElse(
+//            Or(Cmp(OpEq, zref("a"), xref("a")), Cmp(OpEq, zref("b"), yref("b"))),
+//            Singleton(Tuple("c'" -> zref("c"))))
+//        ),
+//      )
+//      ))
+
+ //   printQuery("TEST_8", results)
   }
 
 }

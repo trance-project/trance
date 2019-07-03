@@ -287,7 +287,10 @@ trait BaseScalaInterp extends Base{
   def merge(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[List[_]] ++ e2.asInstanceOf[List[_]]
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
     e1 match {
-      case Nil => Nil
+      case Nil => e(List("any")) match {
+        case Int => 0
+        case _ => Nil
+      }//Nil
       case data @ (head :: tail) => e(head) match {
         case i:Int =>
           data.withFilter(p.asInstanceOf[Rep => Boolean]).map(e).asInstanceOf[List[Int]].sum
