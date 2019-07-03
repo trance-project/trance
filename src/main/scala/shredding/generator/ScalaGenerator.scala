@@ -98,7 +98,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
           s"${generate(e1)}.foldLeft(0)(($acc, $cur) => \n${ind(conditional(p, s"$acc + {${generate(e)}}", s"$acc"))})"
         case DoubleType =>
           s"${generate(e1)}.foldLeft(0.0)(($acc, $cur) => \n${ind(conditional(p, s"$acc + {${generate(e)}}", s"$acc"))})"
-        case _ =>
+        case _ => 
           s"${generate(e1)}.flatMap($cur => { \n${ind(conditional(p, s"${generate(e)}", "Nil"))}})"
       }
     case Record(fs) => {
@@ -108,8 +108,8 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     }
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
     case Project(e, field) => e.tp match {
-      case BagDictCType(_,_) if (field == "lbl") => s"${generate(e)}._1"
-      case BagDictCType(_,_) if (field == "flat") => s"${generate(e)}._1"
+      //case BagDictCType(_,_) if (field == "lbl") => s"${generate(e)}._1"
+      //case BagDictCType(_,_) if (field == "flat") => s"${generate(e)}._1"
       case _ => s"${generate(e)}.${kvName(field)}"
     }
     case Equals(e1, e2) => s"${generate(e1)} == ${generate(e2)}"
@@ -217,8 +217,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Join(e1, e2, v1, p1, v2, p2) =>
       val hm = "hm" + Variable.newId()
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
-      s"""|{ val $hm = ${generate(e1)}.groupBy{ case $vars => {
-        |${ind(generate(p1))}}}
+      s"""|{ val $hm = ${generate(e1)}.groupBy{ case $vars => {${generate(p1)}} }
         |${generate(e2)}.flatMap(${generate(v2)} => $hm.get({${generate(p2)}}) match {
         | case Some(a) => a.map(v => (v, ${generate(v2)}))
         | case _ => Nil

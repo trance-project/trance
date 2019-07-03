@@ -243,21 +243,30 @@ case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable,
 }
 
 case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
-  def tp: BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
-  // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
+  def tp: BagCType = e2 match {
+    case Select(Project(e1, _), _, _) if e1.tp.isInstanceOf[BagDictCType] => 
+      e1.tp.asInstanceOf[BagDictCType].flat.asInstanceOf[BagCType]
+    case _ => BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  }
   override def wvars = {
     assert(v1 == e1.wvars)
     e1.wvars :+ v2
   }
 }
 
+// unnests an inner bag, without unnesting before a downstream join
 case class Lookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, p3: CExpr) extends CExpr {
   def tp:BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  //def tp:BagCType = BagCType(v2.tp.asInstanceOf[BagDictCType].dict)
   override def wvars = e1.wvars :+ v2
 }
 
 case class Join(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
-  def tp: BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  def tp: BagCType = e2 match {
+    case Select(Project(e1, _), _, _) if e1.tp.isInstanceOf[BagDictCType] => 
+      e1.tp.asInstanceOf[BagDictCType].flat.asInstanceOf[BagCType]
+    case _ => BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  }
   // def tpMap: Map[Variable, Type] = e1.tpMap ++ (v2, v2.tp)
   override def wvars = e1.wvars :+ v2
 }

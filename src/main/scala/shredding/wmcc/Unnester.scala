@@ -64,11 +64,25 @@ object Unnester {
         case _ => Some(OuterUnnest(E.get, w, e1, v, p)) //C10
       }
       unnest(e)((u, w :+ v, nE))
-    case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
+    case Comprehension(e1 @ Project(e0, f), v, p, e @ Comprehension(Project(e2, f2), v2, p2, e3)) if e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
       assert(!E.isEmpty)
-      val preds = lkupps(p, v, w)
-      val nE = Some(Lookup(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3, preds._4))
-      unnest(e)((u, w :+ v, nE))
+      val preds = ps(p,v,w)
+      p2 match {
+        case Constant(true) => 
+          val nE = Some(Join(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3))
+          unnest(e3)((u, w :+ v, nE))
+        case _ => 
+          println("variable typing information")
+          println(v)
+          println(v2)
+          //val nv = Variable(v.name, v.tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
+          //println(nv)
+          val preds2 = ps(p2, v2, w :+ v)
+          println(preds2._3)
+          val lu = Join(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3) 
+          val nE = Some(Join(E.get, lu, w:+v, preds2._2, v2, preds2._3)) 
+          unnest(e3)((u, w ++ List(v, v2) , nE))
+      }
     case Comprehension(e1, v, p, e) if !w.isEmpty =>
       assert(!E.isEmpty) 
       val preds = ps(p, v, w)

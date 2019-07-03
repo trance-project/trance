@@ -2,9 +2,9 @@
 package experiments
 /** Generated code **/
 import shredding.examples.tpch._
-    case class Record36(p_name: String, l_qty: Double)
-case class Record37(o_orderdate: String, o_parts: List[Record36])
-case class Record38(c_name: String, c_orders: List[Record37])
+    case class Record60(p_name: String, l_qty: Double)
+case class Record61(o_orderdate: String, o_parts: List[Record60])
+case class Record62(c_name: String, c_orders: List[Record61])
 object Query1Calc {
  def main(args: Array[String]){ 
     var start0 = System.currentTimeMillis()
@@ -15,34 +15,34 @@ val L = TPCHLoader.loadLineitem[Lineitem].toList
 val P = TPCHLoader.loadPart[Part].toList
     var end0 = System.currentTimeMillis() - start0
     def f(){
-      val x31 = C.flatMap(x5 => { 
-    val x6 = x5.c_name
-    val x28 = O.flatMap(x7 => { 
-      if({val x8 = x7.o_custkey
-      val x9 = x5.c_custkey
-      val x10 = x8 == x9
-      x10}) {  val x11 = x7.o_orderdate
-        val x25 = L.flatMap(x12 => { 
-          if({val x13 = x12.l_orderkey
-          val x14 = x7.o_orderkey
-          val x15 = x13 == x14
-          x15}) {  val x24 = P.flatMap(x16 => { 
-              if({val x17 = x12.l_partkey
-              val x18 = x16.p_partkey
-              val x19 = x17 == x18
-              x19}) {  val x20 = x16.p_name
-                val x21 = x12.l_quantity
-                val x22 = Record36(x20, x21)
-                val x23 = List(x22)
-                x23} else {  Nil}})
-            x24} else {  Nil}})
-        val x26 = Record37(x11, x25)
-        val x27 = List(x26)
-        x27} else {  Nil}})
-    val x29 = Record38(x6, x28)
-    val x30 = List(x29)
-    x30})
-x31 
+      val x55 = C.flatMap(x29 => { 
+    val x30 = x29.c_name
+    val x52 = O.flatMap(x31 => { 
+      if({val x32 = x31.o_custkey
+      val x33 = x29.c_custkey
+      val x34 = x32 == x33
+      x34}) {  val x35 = x31.o_orderdate
+        val x49 = L.flatMap(x36 => { 
+          if({val x37 = x36.l_orderkey
+          val x38 = x31.o_orderkey
+          val x39 = x37 == x38
+          x39}) {  val x48 = P.flatMap(x40 => { 
+              if({val x41 = x36.l_partkey
+              val x42 = x40.p_partkey
+              val x43 = x41 == x42
+              x43}) {  val x44 = x40.p_name
+                val x45 = x36.l_quantity
+                val x46 = Record60(x44, x45)
+                val x47 = List(x46)
+                x47} else {  Nil}})
+            x48} else {  Nil}})
+        val x50 = Record61(x35, x49)
+        val x51 = List(x50)
+        x51} else {  Nil}})
+    val x53 = Record62(x30, x52)
+    val x54 = List(x53)
+    x54})
+x55 
     }
     var time = List[Long]()
     for (i <- 1 to 5) {

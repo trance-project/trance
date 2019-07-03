@@ -288,6 +288,7 @@ object App {
 
     val nq1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
     val nnormq1 = normalizer.finalize(nq1).asInstanceOf[CExpr]
+    println(Printer.quote(nnormq1))
     val anfedq1 = anfer.finalize(nnormq1)
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
 
@@ -427,23 +428,23 @@ object App {
 
 
   def main(args: Array[String]){
-    /**println("\n----------------- SIMPLE -------------------")
-    run()**/
+    println("\n----------------- SIMPLE -------------------")
+    run()
     println("\n----------------- Query 1 -------------------")
     run1()
     println("\n----------------- Query Shred 1 -------------------")
     run1Shred()
-    /**println("\n----------------- Query Shred 1 Calc -------------------")
+    println("\n----------------- Query Shred 1 Calc -------------------")
     run1ShredCalc()
-    println("\n----------------- Query 4 Calc -------------------")
-    run4Calc()**/
+/**    println("\n----------------- Query 4 Calc -------------------")
+    run4Calc()
     println("----------------- Query 4 -------------------")
     run4()
     println("----------------- Query Shred 4 -------------------")
     run4Shred()
-    //println("----------------- Query Shred 4 Calc -------------------")
-    //run4ShredCalc()
+    println("----------------- Query Shred 4 Calc -------------------")
+    run4ShredCalc()
     println("----------------- Query 3 -------------------")
-    run3()
+    run3()**/
   }
 }
