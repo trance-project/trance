@@ -11,400 +11,156 @@ import shredding.examples.tpch.{TPCHQueries, TPCHSchema, TPCHLoader}
   */
 
 object App {
+  
+  val runner = new PipelineRunner{}
+  val translator = new NRCTranslator{}
+  val normalizer = new Finalizer(new BaseNormalizer{})
+  val tpchInputM = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2)
+  val tpchShredM = tpchInputM ++ TPCHSchema.tpchShredInputs
+   
+  def run1Calc(){
     
-  def write(n: String, i: String, h: String, q: String): String = { 
-    s"""
-      |package experiments
-      |/** Generated code **/
-      |import shredding.examples.tpch._
-      |    $h
-      |object $n {
-      | def main(args: Array[String]){ 
-      |    var start0 = System.currentTimeMillis()
-      |    $i
-      |    var end0 = System.currentTimeMillis() - start0
-      |    def f(){
-      |      $q 
-      |    }
-      |    var time = List[Long]()
-      |    for (i <- 1 to 5) {
-      |      var start = System.currentTimeMillis()
-      |      f
-      |      var end = System.currentTimeMillis() - start
-      |      time = time :+ end
-      |    }
-      |    val avg = (time.sum/5)
-      |    println(end0+","+avg)
-      | }
-      |}""".stripMargin
-  }
-     
-  def write2(n: String, i1: String, h: String, q1: String, i2: String, q2: String, ef: String = ""): String = {
-    s"""
-      |package experiments
-      |/** Generated code **/
-      |import shredding.examples.tpch._
-      |$h
-      |object $n {
-      | def main(args: Array[String]){ 
-      |    var start0 = System.currentTimeMillis()
-      |    $i1
-      |    val $i2 = { $q1 }
-      |    var end0 = System.currentTimeMillis() - start0
-      |    $ef
-      |    def f(){
-      |      $q2
-      |    }
-      |    var time = List[Long]()
-      |    for (i <- 1 to 5) {  
-      |     var start = System.currentTimeMillis()
-      |      f
-      |      var end = System.currentTimeMillis() - start
-      |      time = time :+ end
-      |    }
-      |    val avg = (time.sum/5)
-      |    println(end0+","+avg)
-      | }
-      |}""".stripMargin
-  }
- 
-  def run(){
-    val runner = new PipelineRunner{}
-    val translator = new NRCTranslator{}
-    val normalizer = new Finalizer(new BaseNormalizer{})
-    val optimizer = new Finalizer(new BasePlanOptimizer{})
-    val anfBase = new BaseANF {}
-    val anfer = new Finalizer(anfBase)
-    val inputs = Map(FlatRelations.type1b.asInstanceOf[Type] -> "InputR")
-    val codegen = new ScalaNamedGenerator(inputs)
-    val eval = new BaseScalaInterp{}
-    val evaluator = new Finalizer(eval)
-
-    val q1 = translator.translate(FlatTests.q4.asInstanceOf[translator.Expr])
-    val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
-    println(Printer.quote(normq1.asInstanceOf[CExpr]))
-    //eval.ctx("R") = FlatRelations.format1a
-    //println(evaluator.finalize(normq1.asInstanceOf[CExpr]))
-    val codegen1 = new ScalaNamedGenerator(inputs)
-    val gcode11 = codegen1.generate(normq1)
-    val header11 = codegen1.generateHeader()
-    var out1 = s"src/test/scala/shredding/examples/simple/Query1Calc.Scala"
-    val printer1 = new PrintWriter(new FileOutputStream(new File(out1), false))
-    val finalc1 = write("Query1Calc", FlatRelations.format1c, header11, gcode11)
-    printer1.println(finalc1)
-    printer1.close
-
-    val plan1 = Unnester.unnest(normq1)(Nil, Nil, None).asInstanceOf[CExpr]
-    println(Printer.quote(plan1))
-    //println(evaluator.finalize(plan1))
-    val anfedq1 = anfer.finalize(plan1)
-    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
-    println(Printer.quote(anfExp1.asInstanceOf[CExpr]))
-    val gcode1 = codegen.generate(anfExp1)
-    val header1 = codegen.generateHeader()
-
-    var out = s"src/test/scala/shredding/examples/simple/Query1.Scala"
-    val printer = new PrintWriter(new FileOutputStream(new File(out), false))
-    val finalc = write("Query1", FlatRelations.format1c, header1, gcode1)
-    printer.println(finalc)
-    printer.close
- 
-  }
-
-  def run3(){
-    val runner = new PipelineRunner{}
-    val translator = new NRCTranslator{}
-    val normalizer = new Finalizer(new BaseNormalizer{})
-    val optimizer = new Finalizer(new BasePlanOptimizer{})
-    val anfBase = new BaseANF {}
-    val anfer = new Finalizer(anfBase)
-    val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2)
-    val ng = TPCHSchema.tpchInputs.toList.map(f => f._2)
-     
-    val codegen = new ScalaNamedGenerator(inputs)   
-
-    val q1 = translator.translate(TPCHQueries.query3.asInstanceOf[translator.Expr])
-    println(Printer.quote(q1))
-    val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
-    println(Printer.quote(normq1))
-    val anfedq1c = anfer.finalize(normq1)
-    val anfExp1c = anfBase.anf(anfedq1c.asInstanceOf[anfBase.Rep])
-    println(Printer.quote(anfExp1c.asInstanceOf[CExpr]))
-    val codegen1 = new ScalaNamedGenerator(inputs)
-    val gcode11 = codegen1.generate(anfExp1c)
-    val header11 = codegen1.generateHeader(ng)
-
-    var out1 = s"src/test/scala/shredding/examples/tpch/${TPCHQueries.q3name}Calc.Scala"
-    val printer1 = new PrintWriter(new FileOutputStream(new File(out1), false))
-    val finalc1 = write(s"${TPCHQueries.q3name}Calc", TPCHQueries.q3data, header11, gcode11)
-    printer1.println(finalc1)
-    printer1.close
-
-    /** unnesting starts here **/
-    val plan1 = Unnester.unnest(normq1)(Nil, Nil, None)
-    println(Printer.quote(plan1))
-    anfBase.reset
-    val anfedq1 = anfer.finalize(plan1)
-    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
-    println(Printer.quote(anfExp1.asInstanceOf[CExpr]))
-    val gcode1 = codegen.generate(anfExp1)
-    val header1 = codegen.generateHeader(ng)
-
-    var out = s"src/test/scala/shredding/examples/tpch/${TPCHQueries.q3name}.Scala"
-    val printer = new PrintWriter(new FileOutputStream(new File(out), false))
-    val finalc = write(TPCHQueries.q3name, TPCHQueries.q3data, header1, gcode1)
-    printer.println(finalc)
-    printer.close
-  }
-
-  def run1(){
-    val runner = new PipelineRunner{}
-    val translator = new NRCTranslator{}
-    val normalizer = new Finalizer(new BaseNormalizer{})
-    val optimizer = new Finalizer(new BasePlanOptimizer{})
-    val anfBase = new BaseANF {}
-    val anfer = new Finalizer(anfBase)
-    val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2)
-    val ng = TPCHSchema.tpchInputs.toList.map(f => f._2)
-     
-    val codegen = new ScalaNamedGenerator(inputs)   
-
+    println("---------------------------- Query 1  ----------------------------")  
     val q1 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
-    println(Printer.quote(q1))
-    val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
-    println(Printer.quote(normq1))
-    val anfedq1c = anfer.finalize(normq1)
-    val anfExp1c = anfBase.anf(anfedq1c.asInstanceOf[anfBase.Rep])
-    println(Printer.quote(anfExp1c.asInstanceOf[CExpr]))
-    val codegen1 = new ScalaNamedGenerator(inputs)
-    val gcode11 = codegen1.generate(anfExp1c)
-    val header11 = codegen1.generateHeader(ng)
+    val qinfo = (q1.asInstanceOf[CExpr], TPCHQueries.q1name, TPCHQueries.q1data)
+    Utils.runCalc(qinfo, tpchInputM)
 
-    var out1 = s"src/test/scala/shredding/examples/tpch/${TPCHQueries.q1name}Calc.Scala"
-    val printer1 = new PrintWriter(new FileOutputStream(new File(out1), false))
-    val finalc1 = write(s"${TPCHQueries.q1name}Calc", TPCHQueries.q1data, header11, gcode11)
-    printer1.println(finalc1)
-    printer1.close
+    println("---------------------------- Query 1 Shred ----------------------------")  
+    val sq1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
+    val sqinfo = (sq1.asInstanceOf[CExpr], "Shred"+TPCHQueries.q1name, TPCHQueries.sq1data)
+    Utils.runCalc(sqinfo, tpchShredM)
 
-    /** unnesting starts here **/
-    val plan1 = Unnester.unnest(normq1)(Nil, Nil, None)
-    println(Printer.quote(plan1))
-    anfBase.reset
-    val anfedq1 = anfer.finalize(plan1)
-    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
-    println(Printer.quote(anfExp1.asInstanceOf[CExpr]))
-    val gcode1 = codegen.generate(anfExp1)
-    val header1 = codegen.generateHeader(ng)
+  }
+ 
+  def run1(){
+    
+    println("---------------------------- Query 1 Unnest ----------------------------")  
+    val q1 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
+    val qinfo = (q1.asInstanceOf[CExpr], TPCHQueries.q1name, TPCHQueries.q1data)
+    Utils.run(qinfo, tpchInputM)
 
-    var out = s"src/test/scala/shredding/examples/tpch/${TPCHQueries.q1name}.Scala"
-    val printer = new PrintWriter(new FileOutputStream(new File(out), false))
-    val finalc = write(TPCHQueries.q1name, TPCHQueries.q1data, header1, gcode1)
-    printer.println(finalc)
-    printer.close
+    println("---------------------------- Query 1 Shred Unnest ----------------------------")
+    val sq1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
+    val sqinfo = (sq1.asInstanceOf[CExpr], "Shred"+TPCHQueries.q1name, TPCHQueries.sq1data)
+    Utils.run(sqinfo, tpchShredM)
+
+  }
+
+  def run3Calc(){
+    println("---------------------------- Query 3 ----------------------------")
+    val q3 = translator.translate(TPCHQueries.query3.asInstanceOf[translator.Expr])
+    val qinfo = (q3.asInstanceOf[CExpr], TPCHQueries.q3name, TPCHQueries.q3data)
+    Utils.runCalc(qinfo, tpchInputM)
+
+    println("---------------------------- Query 3 Shred ----------------------------")
+    val sq3 = runner.shredPipeline(TPCHQueries.query3.asInstanceOf[runner.Expr])
+    val sqinfo = (sq3.asInstanceOf[CExpr], "Shred"+TPCHQueries.q3name, TPCHQueries.sq3data)
+    Utils.runCalc(sqinfo, tpchShredM)
+  }
+ 
+  def run3(){
+    println("---------------------------- Query 3 Unnest ----------------------------")
+    val q3 = translator.translate(TPCHQueries.query3.asInstanceOf[translator.Expr])
+    val qinfo = (q3.asInstanceOf[CExpr], TPCHQueries.q3name, TPCHQueries.q3data)
+    Utils.run(qinfo, tpchInputM)
+
+    println("---------------------------- Query 3 Shred Unnest ----------------------------")
+    val sq3 = runner.shredPipeline(TPCHQueries.query3.asInstanceOf[runner.Expr])
+    val sqinfo = (sq3.asInstanceOf[CExpr], "Shred"+TPCHQueries.q3name, TPCHQueries.sq3data)
+    Utils.run(sqinfo, tpchShredM)
   }
 
   def run4Calc(){
-    val runner = new PipelineRunner{}
-    val translator = new NRCTranslator{}
-    val normalizer = new Finalizer(new BaseNormalizer{})
-    val anfBase = new BaseANF {}
-    val anfer = new Finalizer(anfBase)
-
+    
+    println("---------------------------- Query 4 ----------------------------")  
     val q1 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
-    val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
-    val anfedq1c = anfer.finalize(normq1)
-    val anfExp1c = anfBase.anf(anfedq1c.asInstanceOf[anfBase.Rep])
-
-    val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) ++ 
-                  Map(normq1.tp.asInstanceOf[BagCType].tp -> "Q1Out")
-    val ng = TPCHSchema.tpchInputs.toList.map(f => f._2)
-    val codegen = new ScalaNamedGenerator(inputs)   
-    val gcode1 = codegen.generate(anfExp1c)
-
     val q4 = translator.translate(TPCHQueries.query4.asInstanceOf[translator.Expr])
-    val normq4 = normalizer.finalize(q4).asInstanceOf[CExpr]
-    println(Printer.quote(normq4))
-    anfBase.reset
-    val anfedq1 = anfer.finalize(normq4)
-    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
+    val q1info = (q1.asInstanceOf[CExpr], TPCHQueries.q1name, TPCHQueries.q1data)
+    val q4info = (q4.asInstanceOf[CExpr], TPCHQueries.q4name, "")
+    Utils.runCalc(q1info, tpchInputM, q4info)
 
-    val gcode4 = codegen.generate(anfExp1)
-    val header4 = codegen.generateHeader(ng)
+    println("---------------------------- Query 4 Shred ----------------------------")  
+    val sq1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
+    val sq4 = runner.shredPipeline(TPCHQueries.query4.asInstanceOf[runner.Expr])
+    val sq1info = (sq1.asInstanceOf[CExpr], "Shred"+TPCHQueries.q1name, TPCHQueries.sq1data)
+    val sq4info = (sq4.asInstanceOf[CExpr], "Shred"+TPCHQueries.q4name, TPCHQueries.sq4data)
+    Utils.runCalc(sq1info, tpchShredM, sq4info)
 
-    var out = s"src/test/scala/shredding/examples/tpch/${TPCHQueries.q4name}Calc.Scala"
-    val printer = new PrintWriter(new FileOutputStream(new File(out), false))
-    val finalc = write2(s"${TPCHQueries.q4name}Calc", TPCHQueries.q1data, header4, gcode1, "Q1", gcode4)
-    printer.println(finalc)
-    printer.close
   }
 
   def run4(){
-    val runner = new PipelineRunner{}
-    val translator = new NRCTranslator{}
-    val normalizer = new Finalizer(new BaseNormalizer{})
-    val anfBase = new BaseANF {}
-    val anfer = new Finalizer(anfBase)
-
-    val q1 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
-    val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
     
-    val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) 
-    val ng = TPCHSchema.tpchInputs.toList.map(f => f._2)
-    val codegen = new ScalaNamedGenerator(inputs)   
-    codegen.handleType(normq1.asInstanceOf[CExpr].tp.asInstanceOf[BagCType].tp, Some("Q1Out"))
-
-    val plan1 = Unnester.unnest(normq1)(Nil, Nil, None).asInstanceOf[CExpr]
-    val anfedq1 = new Finalizer(anfBase).finalize(plan1)
-    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
-    val gcode1 = codegen.generate(anfExp1)
-
+    println("---------------------------- Query 4 Unnest ----------------------------")  
+    val q1 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
     val q4 = translator.translate(TPCHQueries.query4.asInstanceOf[translator.Expr])
-    println(Printer.quote(q4))
-    val normq4 = normalizer.finalize(q4).asInstanceOf[CExpr]
-    println(Printer.quote(normq4))
-    val plan4 = Unnester.unnest(normq4)(Nil, Nil, None)
-    println(Printer.quote(plan4))
-    anfBase.reset
-    val anfedq4 = anfer.finalize(plan4)
-    val anfExp4 = anfBase.anf(anfedq4.asInstanceOf[anfBase.Rep])
-    println(Printer.quote(anfExp4.asInstanceOf[CExpr]))
-    val gcode4 = codegen.generate(anfExp4)
-    val header4 = codegen.generateHeader(ng)
+    val q1info = (q1.asInstanceOf[CExpr], TPCHQueries.q1name, TPCHQueries.q1data)
+    val q4info = (q4.asInstanceOf[CExpr], TPCHQueries.q4name, "")
+    Utils.run(q1info, tpchInputM, q4info)
 
-    var out = s"src/test/scala/shredding/examples/tpch/${TPCHQueries.q4name}.Scala"
-    val printer = new PrintWriter(new FileOutputStream(new File(out), false))
-    val finalc = write2(TPCHQueries.q4name, TPCHQueries.q1data, header4, gcode1, "Q1", gcode4)
-    printer.println(finalc)
-    printer.close
+    println("---------------------------- Query 4 Shred Unnest ----------------------------")  
+    val sq1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
+    val sq4 = runner.shredPipeline(TPCHQueries.query4.asInstanceOf[runner.Expr])
+    val sq1info = (sq1.asInstanceOf[CExpr], "Shred"+TPCHQueries.q1name, TPCHQueries.sq1data)
+    val sq4info = (sq4.asInstanceOf[CExpr], "Shred"+TPCHQueries.q4name, TPCHQueries.sq4data)
+    Utils.run(sq1info, tpchShredM, sq4info)
+
   }
 
-   def run1ShredCalc(){
-    // shredded pipeline
-    val runner = new PipelineRunner{}
-    val translator = new NRCTranslator{}
-    val normalizer = new Finalizer(new BaseNormalizer{})
-    val anfBase = new BaseANF {}
-    val anfer = new Finalizer(anfBase)
+  def run5Calc(){
+    println("---------------------------- Query 5 ----------------------------")
+    val q3 = translator.translate(TPCHQueries.query3.asInstanceOf[translator.Expr])
+    val q5 = translator.translate(TPCHQueries.query5.asInstanceOf[translator.Expr])
+    val q3info = (q3.asInstanceOf[CExpr], TPCHQueries.q3name, TPCHQueries.q3data)
+    val q5info = (q5.asInstanceOf[CExpr], TPCHQueries.q5name, "")
+    Utils.runCalc(q3info, tpchInputM, q5info)
 
-    val nq1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
-    val nnormq1 = normalizer.finalize(nq1).asInstanceOf[CExpr]
-    println(Printer.quote(nnormq1))
-    val anfedq1 = anfer.finalize(nnormq1)
-    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
-
-    val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) ++ 
-                  nnormq1.asInstanceOf[LinearCSet].getTypeMap
-    val ng = TPCHSchema.tpchInputs.toList.map(f => f._2)
-
-    val scodegen = new ScalaNamedGenerator(inputs)   
-    val sgcode = scodegen.generate(anfExp1)
-    val sheader = scodegen.generateHeader(ng)
-
-    val query = TPCHQueries.query1.asInstanceOf[translator.Expr]
-    val qname = TPCHQueries.q1name
-    val qdata = TPCHQueries.sq1data
-
-    var sout = s"src/test/scala/shredding/examples/tpch/Shred${qname}Calc.Scala"
-    val sprinter = new PrintWriter(new FileOutputStream(new File(sout), false))
-    val sfinalc = write(s"Shred${qname}Calc", qdata, sheader, sgcode)
-    sprinter.println(sfinalc)
-    sprinter.close
+    println("---------------------------- Query 5 Shred ----------------------------")
+    val sq3 = runner.shredPipeline(TPCHQueries.query3.asInstanceOf[runner.Expr])
+    val sq5 = runner.shredPipeline(TPCHQueries.query5.asInstanceOf[runner.Expr])
+    val sq3info = (sq3.asInstanceOf[CExpr], "Shred"+TPCHQueries.q3name, TPCHQueries.sq3data)
+    val sq5info = (sq5.asInstanceOf[CExpr], "Shred"+TPCHQueries.q5name, TPCHQueries.sq5data)
+    Utils.runCalc(sq3info, tpchShredM, sq5info)
   }
  
-  
-  def run1Shred(){
-    // shredded pipeline
-    val runner = new PipelineRunner{}
-    val translator = new NRCTranslator{}
-    val normalizer = new Finalizer(new BaseNormalizer{})
-    val anfBase = new BaseANF {}
-    val anfer = new Finalizer(anfBase)
+  def run5(){
+    println("---------------------------- Query 5 Unnest ----------------------------")
+    val q3 = translator.translate(TPCHQueries.query3.asInstanceOf[translator.Expr])
+    val q5 = translator.translate(TPCHQueries.query5.asInstanceOf[translator.Expr])
+    val q3info = (q3.asInstanceOf[CExpr], TPCHQueries.q3name, TPCHQueries.q3data)
+    val q5info = (q5.asInstanceOf[CExpr], TPCHQueries.q5name, "")
+    Utils.run(q3info, tpchInputM, q5info)
 
-    val nq1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
-    val nnormq1 = normalizer.finalize(nq1).asInstanceOf[CExpr]
-    println(Printer.quote(nnormq1))
-    val plan1 = Unnester.unnest(nnormq1)((Nil, Nil, None)).asInstanceOf[CExpr]
-    println(Printer.quote(plan1))
-    val anfedq1 = new Finalizer(anfBase).finalize(plan1)
-    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
-
-    val inputs = (TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) ++
-                  TPCHSchema.tpchShredInputs) ++ nnormq1.asInstanceOf[LinearCSet].getTypeMap 
-
-    val ng = TPCHSchema.tpchShredInputs.toList.map(f => f._2) ++ TPCHSchema.tpchInputs.toList.map(f => f._2)
-    val scodegen = new ScalaNamedGenerator(inputs)
-    val sgcode = scodegen.generate(anfExp1)
-    val sheader = scodegen.generateHeader(ng)
-
-    val query = TPCHQueries.query1.asInstanceOf[translator.Expr]
-    val qname = TPCHQueries.q1name
-    val qdata = TPCHQueries.sq1data
-
-    var sout = s"src/test/scala/shredding/examples/tpch/Shred${qname}.Scala"
-    val sprinter = new PrintWriter(new FileOutputStream(new File(sout), false))
-    val sfinalc = write("Shred"+qname, qdata, sheader, sgcode)
-    sprinter.println(sfinalc)
-    sprinter.close
+    println("---------------------------- Query 5 Shred Unnest ----------------------------")
+    val sq3 = runner.shredPipeline(TPCHQueries.query3.asInstanceOf[runner.Expr])
+    val sq5 = runner.shredPipeline(TPCHQueries.query5.asInstanceOf[runner.Expr])
+    val sq3info = (sq3.asInstanceOf[CExpr], "Shred"+TPCHQueries.q3name, TPCHQueries.sq3data)
+    val sq5info = (sq5.asInstanceOf[CExpr], "Shred"+TPCHQueries.q5name, TPCHQueries.sq5data)
+    Utils.run(sq3info, tpchShredM, sq5info)
   }
 
-  def run4ShredCalc(){
-    // shredded pipeline
-    val runner = new PipelineRunner{}
-    val translator = new NRCTranslator{}
-    val normalizer = new Finalizer(new BaseNormalizer{})
+  /**def run4Input(){
     val anfBase = new BaseANF {}
 
-    val q1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
-    val normq1 = normalizer.finalize(q1)
+    val input4 = translator.translate(TPCHQueries.input4.asInstanceOf[translator.Expr])
+    val normi4 = normalizer.finalize(input4).asInstanceOf[CExpr]
 
-    val inputs = (TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) ++
-                  TPCHSchema.tpchShredInputs) ++ normq1.asInstanceOf[LinearCSet].getTypeMap 
+    val plani4 = Unnester.unnest(normi4)((Nil, Nil, None)).asInstanceOf[CExpr]
+    val anfedqi4 = new Finalizer(anfBase).finalize(plani4)
+    val anfExpi4 = anfBase.anf(anfedqi4.asInstanceOf[anfBase.Rep])
 
-    val ng = TPCHSchema.tpchShredInputs.toList.map(f => f._2) ++ TPCHSchema.tpchInputs.toList.map(f => f._2)
-    val codegen = new ScalaNamedGenerator(inputs)
+    val ng = TPCHSchema.tpchInputs.toList.map(f => f._2)
+    val inputs = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) ++ 
+                  normi4.asInstanceOf[LinearCSet].getTypeMap
+                   
+    val codegen = new ScalaNamedGenerator(inputs)   
+    val gcode = codegen.generate(anfExpi4)
 
-    val anfedq1 = new Finalizer(anfBase).finalize(normq1.asInstanceOf[CExpr])
-    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
-    val gcode1 = codegen.generate(anfExp1)
-
-    val q4 = runner.shredPipeline(TPCHQueries.query4.asInstanceOf[runner.Expr])
-    val normq4 = normalizer.finalize(q4)
-    anfBase.reset
-    val anfedq4 = new Finalizer(anfBase).finalize(normq4.asInstanceOf[CExpr])
-    val anfExp4 = anfBase.anf(anfedq4.asInstanceOf[anfBase.Rep])
-    val gcode4 = codegen.generate(anfExp4)
-    val header4 = codegen.generateHeader(ng)
-
-    var sout = s"src/test/scala/shredding/examples/tpch/Shred${TPCHQueries.q4name}Calc.Scala"
-    val sprinter = new PrintWriter(new FileOutputStream(new File(sout), false))
-    val cc = TPCHQueries.sq4cclass("RecM_flat2", "RecM_flat3")
-    val dd = TPCHQueries.sq4data("Q1")
-    val sfinalc = write2(s"Shred${TPCHQueries.q4name}Calc", s"${TPCHQueries.sq1data}", s"$header4\n$cc", gcode1, "Q1", gcode4, dd)
-    sprinter.println(sfinalc)
-    sprinter.close
-  }
-
-  def run4Shred(){
-    // shredded pipeline
-    val runner = new PipelineRunner{}
-    val translator = new NRCTranslator{}
-    val normalizer = new Finalizer(new BaseNormalizer{})
-    val anfBase = new BaseANF {}
-
-
-    val q1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
-    val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
-    val plan1 = Unnester.unnest(normq1)((Nil, Nil, None)).asInstanceOf[CExpr]
-    val anfedq1 = new Finalizer(anfBase).finalize(plan1)
-    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
-
-    val inputs = (TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2) ++
-                  TPCHSchema.tpchShredInputs) ++ normq1.asInstanceOf[LinearCSet].getTypeMap 
-
-    val ng = TPCHSchema.tpchShredInputs.toList.map(f => f._2) ++ TPCHSchema.tpchInputs.toList.map(f => f._2)
-    val codegen = new ScalaNamedGenerator(inputs)
-    val gcode1 = codegen.generate(anfExp1)
-
+    println(TPCHQueries.q1data)
+    println(codegen.generateHeader(ng))
+    println(gcode)
+    // todo figure out how to integrate this
+    //val Q1__F = Q1._1.head.lbl
+    //val Q1__D = (Q1._2, Input_Q1_Dict1((Q1._4, Input_Q1_Dict2((Q1._6, Unit)))))
     val q4 = runner.shredPipeline(TPCHQueries.query4.asInstanceOf[runner.Expr])
     println(Printer.quote(q4))
     val normq4 = normalizer.finalize(q4).asInstanceOf[CExpr]
@@ -424,27 +180,19 @@ object App {
     val sfinalc = write2(s"Shred${TPCHQueries.q4name}", s"${TPCHQueries.sq1data}", s"$header4\n$cc", gcode1, "Q1", gcode4, dd)
     sprinter.println(sfinalc)
     sprinter.close
-  }
+    
+  }**/
 
 
   def main(args: Array[String]){
-    println("\n----------------- SIMPLE -------------------")
-    run()
-    println("\n----------------- Query 1 -------------------")
+    run1Calc()
     run1()
-    println("\n----------------- Query Shred 1 -------------------")
-    run1Shred()
-    println("\n----------------- Query Shred 1 Calc -------------------")
-    run1ShredCalc()
-    println("\n----------------- Query 4 Calc -------------------")
-    run4Calc()
-    println("----------------- Query 4 -------------------")
-    run4()
-    println("----------------- Query Shred 4 -------------------")
-    run4Shred()
-    println("----------------- Query Shred 4 Calc -------------------")
-    run4ShredCalc()
-    println("----------------- Query 3 -------------------")
+    run3Calc()
     run3()
+    run4Calc()
+    run4()
+    run5Calc()
+    run5()
+
   }
 }

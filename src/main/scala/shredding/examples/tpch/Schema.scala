@@ -27,10 +27,11 @@ case class Nation(n_nationkey: Int, n_name: String, n_regionkey: Int, n_comment:
 
 case class Q1Flat(P__F: Int, C__F: Int, L__F: Int, O__F: Int)
 
-case class Q1Flat2(Q1__F: Q1Flat)
+case class Q1Flat2(Query4__F: Q1Flat)
 
-//case class Flat3(p_name:
+case class Q3Flat(O__F: Int, C__F: Int, PS__F: Int, S__F: Int, L__F: Int, P__F: Int)
 
+case class Q3Flat2(Query5__F: Q3Flat)
 
 object TPCHSchema {
   val folderLocation = Config.datapath
@@ -234,7 +235,10 @@ object TPCHSchema {
   
   var tpchShredInputs:Map[Type, String] = Map(
     RecordCType("P__F" -> IntType, "C__F" -> IntType, "L__F" -> IntType, "O__F" -> IntType) -> "Q1Flat",
-    RecordCType("Q1__F" -> IntType) -> "Q1Flat2",
+    RecordCType("Query4__F" -> IntType) -> "Q1Flat2",
+    RecordCType("O__F" -> IntType, "C__F" -> IntType, "PS__F" -> IntType, 
+                "S__F" -> IntType, "L__F" -> IntType, "P__F" -> IntType) -> "Q3Flat",
+    RecordCType("Query5__F" -> IntType) -> "Q3Flat2",
     BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(partsupptype.tp.attrTps))))), EmptyDictCType) -> "PD", 
     BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(suppliertype.tp.attrTps))))), EmptyDictCType) -> "SD", 
     BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(lineittype.tp.attrTps))))), EmptyDictCType) -> "LD", 

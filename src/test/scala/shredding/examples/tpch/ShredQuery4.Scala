@@ -2,29 +2,26 @@
 package experiments
 /** Generated code **/
 import shredding.examples.tpch._
-case class Record784(P__F: Int, L__F: Int, O__F: Int, c__F: Customer)
-case class Record785(c_name: String, c_orders: Record784)
-case class Record791(o__F: Orders, P__F: Int, L__F: Int)
-case class Record792(o_orderdate: String, o_parts: Record791)
-case class Record800(p_name: String, l_qty: Double)
-case class Record887(lbl: Q1Flat2)
-case class Input_Q1__DFlat888(c_name: String, c_orders: Int)
-case class Flat889(o_orderdate: String, o_parts: Int)
-case class Dict889(o_parts: (List[(Int, List[Record800])], Unit))
-case class Input_Q1__DDict888(c_orders: (List[(Int, List[Flat889])], Dict889))
-case class Record900(c_name: String, p_name: String, month: String, t_qty: Double)
-case class Record901(_1: Q1Flat2, _2: List[Record900])
-case class RecM_flat2(_1: Record784, _2: List[Record792])
-case class RecM_flat3(_1: Record791, _2: List[Record800])
-case class RecM_flat1(_1: Q1Flat, _2: List[Record785])
-case class RecM_ctx3(lbl: Record791)
-case class RecM_ctx2(lbl: Record784)
+case class Record1548(P__F: Int, L__F: Int, O__F: Int, c__F: Customer)
+case class Record1549(c_name: String, c_orders: Record1548)
+case class Record1555(o__F: Orders, P__F: Int, L__F: Int)
+case class Record1556(o_orderdate: String, o_parts: Record1555)
+case class Record1564(p_name: String, l_qty: Double)
+case class Record1650(lbl: Q1Flat2)
+case class Input_Query4__DFlat1651(c_name: String, c_orders: Int)
+case class Flat1652(o_orderdate: String, o_parts: Int)
+case class Dict1652(o_parts: (List[(Int, List[Record1564])], Unit))
+case class Input_Query4__DDict1651(c_orders: (List[(Int, List[Flat1652])], Dict1652))
+case class Record1663(c_name: String, p_name: String, month: String, t_qty: Double)
+case class Record1664(_1: Q1Flat2, _2: List[Record1663])
+case class RecM_flat2(_1: Record1548, _2: List[Record1556])
+case class RecM_flat3(_1: Record1555, _2: List[Record1564])
+case class RecM_flat1(_1: Q1Flat, _2: List[Record1549])
+case class RecM_ctx3(lbl: Record1555)
+case class RecM_ctx2(lbl: Record1548)
 case class RecM_ctx1(lbl: Q1Flat)
-
-case class Input_Q1_Dict2(o_parts: (List[RecM_flat3], Unit))
-case class Input_Q1_Dict1(c_orders: (List[RecM_flat2], Input_Q1_Dict2))
 object ShredQuery4 {
- def main(args: Array[String]){ 
+ def main(args: Array[String]){
     var start0 = System.currentTimeMillis()
     
 val C__F = 1
@@ -35,232 +32,234 @@ val L__F = 3
 val L__D = (List((L__F, TPCHLoader.loadLineitem[Lineitem].toList)), ())
 val P__F = 4
 val P__D = (List((P__F, TPCHLoader.loadPart[Part].toList)), ())
-    val Q1 = { val x650 = Q1Flat(P__F, C__F, L__F, O__F)
-val x651 = RecM_ctx1(x650)
-val x652 = List(x651)
-val M_ctx1 = x652
-val x653 = M_ctx1
-val x655 = M_ctx1
-val x656 = C__D._1
-val x658 = x656
-val x663 = { val hm781 = x655.groupBy{case x659 => { val x661 = x659.lbl
-val x662 = x661.C__F
-x662 } }
- x658.flatMap{x660 => hm781.get(x660._1) match {
- case Some(a) => a.map(a1 => (a1, x660._2))
+    val ShredQuery4 = { val x1414 = Q1Flat(P__F, C__F, L__F, O__F)
+val x1415 = RecM_ctx1(x1414)
+val x1416 = List(x1415)
+val M_ctx1 = x1416
+val x1417 = M_ctx1
+val x1419 = M_ctx1
+val x1420 = C__D._1
+val x1422 = x1420
+val x1427 = { val hm1545 = x1419.groupBy{case x1423 => { val x1425 = x1423.lbl
+val x1426 = x1425.C__F
+x1426 } }
+ x1422.flatMap{x1424 => hm1545.get(x1424._1) match {
+ case Some(a) => a.map(a1 => (a1, x1424._2))
  case _ => Nil
 }}.flatMap(v => v._2.map(v2 => (v._1, v2)))
 }
-val x675 = { val grps782 = x663.groupBy{ case (x664, x665) => { val x666 = (x664)
-x666 }}
- grps782.map(x674 => (x674._1, x674._2.map{case (x664, x665) => val x667 = x665.c_name
-val x668 = x664.lbl
-val x669 = x668.P__F
-val x670 = x668.L__F
-val x671 = x668.O__F
-val x672 = Record784(x669, x670, x671, x665)
-val x673 = Record785(x667, x672)
-x673})).toList }
-val x680 = x675.map{ case (x676, x677) => { 
-  val x678 = x676.lbl
-  val x679 = RecM_flat1(x678, x677)
-  x679 }}
-val M_flat1 = x680
-val x681 = M_flat1
-val x683 = M_flat1
-val x687 = x683.flatMap{ case x684 => 
-  val x685 = x684._2
-  x685.map(x686 => {
-  val nv786 = (x684, x686) 
-     nv786
+val x1439 = { val grps1546 = x1427.groupBy{ case (x1428, x1429) => { val x1430 = (x1428)
+x1430 }}
+ grps1546.map(x1438 => (x1438._1, x1438._2.map{case (x1428, x1429) => val x1431 = x1429.c_name
+val x1432 = x1428.lbl
+val x1433 = x1432.P__F
+val x1434 = x1432.L__F
+val x1435 = x1432.O__F
+val x1436 = Record1548(x1433, x1434, x1435, x1429)
+val x1437 = Record1549(x1431, x1436)
+x1437})).toList }
+val x1444 = x1439.map{ case (x1440, x1441) => { 
+  val x1442 = x1440.lbl
+  val x1443 = RecM_flat1(x1442, x1441)
+  x1443 }}
+val M_flat1 = x1444
+val x1445 = M_flat1
+val x1447 = M_flat1
+val x1451 = x1447.flatMap{ case x1448 => 
+  val x1449 = x1448._2
+  x1449.map(x1450 => {
+  val nv1550 = (x1448, x1450) 
+     nv1550
 })}
-val x692 = x687.map{ case (x688, x689) => { 
-  val x690 = x689.c_orders
-  val x691 = RecM_ctx2(x690)
-  x691 }}
-val x693 = x692.distinct
-val M_ctx2 = x693
-val x694 = M_ctx2
-val x696 = M_ctx2
-val x697 = O__D._1
-val x699 = x697
-val x708 = { val hm788 = x696.groupBy{case x700 => { val x702 = x700.lbl
-val x703 = x702.O__F
-x703 } }
- val join1 = x699.flatMap{x701 => hm788.get(x701._1) match {
- case Some(a) => x701._2
+val x1456 = x1451.map{ case (x1452, x1453) => { 
+  val x1454 = x1453.c_orders
+  val x1455 = RecM_ctx2(x1454)
+  x1455 }}
+val x1457 = x1456.distinct
+val M_ctx2 = x1457
+val x1458 = M_ctx2
+val x1460 = M_ctx2
+val x1461 = O__D._1
+val x1463 = x1461
+val x1472 = { val hm1552 = x1460.groupBy{case x1464 => { val x1466 = x1464.lbl
+val x1467 = x1466.O__F
+x1467 } }
+ val join1 = x1463.flatMap{x1465 => hm1552.get(x1465._1) match {
+ case Some(a) => x1465._2
  case _ => Nil
  }}
- val join2 = x696.groupBy{case x700 => { val x705 = x700.lbl
-val x706 = x705.c__F
-val x707 = x706.c_custkey
-x707 } }
- join1.flatMap(x701 => join2.get({ val x704 = x701.o_custkey
-x704 }) match {
-   case Some(a) => a.map(a1 => (a1, x701))
+ val join2 = x1460.groupBy{case x1464 => { val x1469 = x1464.lbl
+val x1470 = x1469.c__F
+val x1471 = x1470.c_custkey
+x1471 } }
+ join1.flatMap(x1465 => join2.get({ val x1468 = x1465.o_custkey
+x1468 }) match {
+   case Some(a) => a.map(a1 => (a1, x1465))
    case _ => Nil
  })
 }
-val x719 = { val grps789 = x708.groupBy{ case (x709, x710) => { val x711 = (x709)
-x711 }}
- grps789.map(x718 => (x718._1, x718._2.map{case (x709, x710) => val x712 = x710.o_orderdate
-val x713 = x709.lbl
-val x714 = x713.P__F
-val x715 = x713.L__F
-val x716 = Record791(x710, x714, x715)
-val x717 = Record792(x712, x716)
-x717})).toList }
-val x724 = x719.map{ case (x720, x721) => { 
-  val x722 = x720.lbl
-  val x723 = RecM_flat2(x722, x721)
-  x723 }}
-val M_flat2 = x724
-val x725 = M_flat2
-val x727 = M_flat2
-val x731 = x727.flatMap{ case x728 => 
-  val x729 = x728._2
-  x729.map(x730 => {
-  val nv793 = (x728, x730) 
-     nv793
+val x1483 = { val grps1553 = x1472.groupBy{ case (x1473, x1474) => { val x1475 = (x1473)
+x1475 }}
+ grps1553.map(x1482 => (x1482._1, x1482._2.map{case (x1473, x1474) => val x1476 = x1474.o_orderdate
+val x1477 = x1473.lbl
+val x1478 = x1477.P__F
+val x1479 = x1477.L__F
+val x1480 = Record1555(x1474, x1478, x1479)
+val x1481 = Record1556(x1476, x1480)
+x1481})).toList }
+val x1488 = x1483.map{ case (x1484, x1485) => { 
+  val x1486 = x1484.lbl
+  val x1487 = RecM_flat2(x1486, x1485)
+  x1487 }}
+val M_flat2 = x1488
+val x1489 = M_flat2
+val x1491 = M_flat2
+val x1495 = x1491.flatMap{ case x1492 => 
+  val x1493 = x1492._2
+  x1493.map(x1494 => {
+  val nv1557 = (x1492, x1494) 
+     nv1557
 })}
-val x736 = x731.map{ case (x732, x733) => { 
-  val x734 = x733.o_parts
-  val x735 = RecM_ctx3(x734)
-  x735 }}
-val x737 = x736.distinct
-val M_ctx3 = x737
-val x738 = M_ctx3
-val x740 = M_ctx3
-val x741 = L__D._1
-val x743 = x741
-val x752 = { val hm795 = x740.groupBy{case x744 => { val x746 = x744.lbl
-val x747 = x746.L__F
-x747 } }
- val join1 = x743.flatMap{x745 => hm795.get(x745._1) match {
- case Some(a) => x745._2
+val x1500 = x1495.map{ case (x1496, x1497) => { 
+  val x1498 = x1497.o_parts
+  val x1499 = RecM_ctx3(x1498)
+  x1499 }}
+val x1501 = x1500.distinct
+val M_ctx3 = x1501
+val x1502 = M_ctx3
+val x1504 = M_ctx3
+val x1505 = L__D._1
+val x1507 = x1505
+val x1516 = { val hm1559 = x1504.groupBy{case x1508 => { val x1510 = x1508.lbl
+val x1511 = x1510.L__F
+x1511 } }
+ val join1 = x1507.flatMap{x1509 => hm1559.get(x1509._1) match {
+ case Some(a) => x1509._2
  case _ => Nil
  }}
- val join2 = x740.groupBy{case x744 => { val x749 = x744.lbl
-val x750 = x749.o__F
-val x751 = x750.o_orderkey
-x751 } }
- join1.flatMap(x745 => join2.get({ val x748 = x745.l_orderkey
-x748 }) match {
-   case Some(a) => a.map(a1 => (a1, x745))
+ val join2 = x1504.groupBy{case x1508 => { val x1513 = x1508.lbl
+val x1514 = x1513.o__F
+val x1515 = x1514.o_orderkey
+x1515 } }
+ join1.flatMap(x1509 => join2.get({ val x1512 = x1509.l_orderkey
+x1512 }) match {
+   case Some(a) => a.map(a1 => (a1, x1509))
    case _ => Nil
  })
 }
-val x753 = P__D._1
-val x755 = x753
-val x763 = { val hm797 = x752.groupBy{case (x756, x757) => { val x759 = x756.lbl
-val x760 = x759.P__F
-x760 } }
- val join1 = x755.flatMap{x758 => hm797.get(x758._1) match {
- case Some(a) => x758._2
+val x1517 = P__D._1
+val x1519 = x1517
+val x1527 = { val hm1561 = x1516.groupBy{case (x1520, x1521) => { val x1523 = x1520.lbl
+val x1524 = x1523.P__F
+x1524 } }
+ val join1 = x1519.flatMap{x1522 => hm1561.get(x1522._1) match {
+ case Some(a) => x1522._2
  case _ => Nil
  }}
- val join2 = x752.groupBy{case (x756, x757) => { val x762 = x757.l_partkey
-x762 } }
- join1.flatMap(x758 => join2.get({ val x761 = x758.p_partkey
-x761 }) match {
-   case Some(a) => a.map(a1 => (a1, x758))
+ val join2 = x1516.groupBy{case (x1520, x1521) => { val x1526 = x1521.l_partkey
+x1526 } }
+ join1.flatMap(x1522 => join2.get({ val x1525 = x1522.p_partkey
+x1525 }) match {
+   case Some(a) => a.map(a1 => (a1, x1522))
    case _ => Nil
  })
 }
-val x772 = { val grps798 = x763.groupBy{ case ((x764, x765), x766) => { val x767 = (x764)
-x767 }}
- grps798.map(x771 => (x771._1, x771._2.map{case ((x764, x765), x766) => val x768 = x766.p_name
-val x769 = x765.l_quantity
-val x770 = Record800(x768, x769)
-x770})).toList }
-val x777 = x772.map{ case (x773, x774) => { 
-  val x775 = x773.lbl
-  val x776 = RecM_flat3(x775, x774)
-  x776 }}
-val M_flat3 = x777
-val x778 = M_flat3
-val x779 = (x653,x681,x694,x725,x738,x778)
-x779 }
+val x1536 = { val grps1562 = x1527.groupBy{ case ((x1528, x1529), x1530) => { val x1531 = (x1528)
+x1531 }}
+ grps1562.map(x1535 => (x1535._1, x1535._2.map{case ((x1528, x1529), x1530) => val x1532 = x1530.p_name
+val x1533 = x1529.l_quantity
+val x1534 = Record1564(x1532, x1533)
+x1534})).toList }
+val x1541 = x1536.map{ case (x1537, x1538) => { 
+  val x1539 = x1537.lbl
+  val x1540 = RecM_flat3(x1539, x1538)
+  x1540 }}
+val M_flat3 = x1541
+val x1542 = M_flat3
+val x1543 = (x1417,x1445,x1458,x1489,x1502,x1542)
+x1543 }
     var end0 = System.currentTimeMillis() - start0
     
-val Q1__F = Q1._1.head.lbl
-val Q1__D = (Q1._2, Input_Q1_Dict1((Q1._4, Input_Q1_Dict2((Q1._6, Unit)))))
+case class Input_Q1_Dict2(o_parts: (List[RecM_flat3], Unit))
+case class Input_Q1_Dict1(c_orders: (List[RecM_flat2], Input_Q1_Dict2))
+val Query4__F = ShredQuery4._1.head.lbl
+val Query4__D = (ShredQuery4._2, Input_Q1_Dict1((ShredQuery4._4, Input_Q1_Dict2((ShredQuery4._6, Unit)))))
     def f(){
-      val x813 = Q1Flat2(Q1__F)
-val x814 = Record887(x813)
-val x815 = List(x814)
-val M_ctx1 = x815
-val x816 = M_ctx1
-val x818 = M_ctx1
-val x819 = Q1__D._1
-val x821 = x819
-val x826 = { val hm891 = x818.groupBy{case x822 => { val x824 = x822.lbl
-val x825 = x824.Q1__F
-x825 } }
- x821.flatMap{x823 => hm891.get(x823._1) match {
- case Some(a) => a.map(a1 => (a1, x823._2))
+      val x1576 = Q1Flat2(Query4__F)
+val x1577 = Record1650(x1576)
+val x1578 = List(x1577)
+val M_ctx1 = x1578
+val x1579 = M_ctx1
+val x1581 = M_ctx1
+val x1582 = Query4__D._1
+val x1584 = x1582
+val x1589 = { val hm1654 = x1581.groupBy{case x1585 => { val x1587 = x1585.lbl
+val x1588 = x1587.Query4__F
+x1588 } }
+ x1584.flatMap{x1586 => hm1654.get(x1586._1) match {
+ case Some(a) => a.map(a1 => (a1, x1586._2))
  case _ => Nil
 }}.flatMap(v => v._2.map(v2 => (v._1, v2)))
 }
-val x827 = Q1__D._2
-val x828 = x827.c_orders
-val x829 = x828._1
-val x831 = x829
-val x836 = { val hm893 = x826.groupBy{case (x832, x833) => { val x835 = x833.c_orders
-x835 } }
- x831.flatMap{x834 => hm893.get(x834._1) match {
- case Some(a) => a.map(a1 => (a1, x834._2))
+val x1590 = Query4__D._2
+val x1591 = x1590.c_orders
+val x1592 = x1591._1
+val x1594 = x1592
+val x1599 = { val hm1656 = x1589.groupBy{case (x1595, x1596) => { val x1598 = x1596.c_orders
+x1598 } }
+ x1594.flatMap{x1597 => hm1656.get(x1597._1) match {
+ case Some(a) => a.map(a1 => (a1, x1597._2))
  case _ => Nil
 }}.flatMap(v => v._2.map(v2 => (v._1, v2)))
 }
-val x837 = x828._2
-val x838 = x837.o_parts
-val x839 = x838._1
-val x841 = x839
-val x847 = { val hm894 = x836.groupBy{case ((x842, x843), x844) => { val x846 = x844.o_parts
-x846 } }
- x841.flatMap{x845 => hm894.get(x845._1) match {
- case Some(a) => a.map(a1 => (a1, x845._2))
+val x1600 = x1591._2
+val x1601 = x1600.o_parts
+val x1602 = x1601._1
+val x1604 = x1602
+val x1610 = { val hm1657 = x1599.groupBy{case ((x1605, x1606), x1607) => { val x1609 = x1607.o_parts
+x1609 } }
+ x1604.flatMap{x1608 => hm1657.get(x1608._1) match {
+ case Some(a) => a.map(a1 => (a1, x1608._2))
  case _ => Nil
 }}.flatMap(v => v._2.map(v2 => (v._1, v2)))
 }
-val x849 = x839
-val x858 = { val hm895 = x847.groupBy{case (((x850, x851), x852), x853) => { val x855 = x852.o_parts
-x855 } }
- val join1 = x849.flatMap{x854 => hm895.get(x854._1) match {
- case Some(a) => x854._2
+val x1612 = x1602
+val x1621 = { val hm1658 = x1610.groupBy{case (((x1613, x1614), x1615), x1616) => { val x1618 = x1615.o_parts
+x1618 } }
+ val join1 = x1612.flatMap{x1617 => hm1658.get(x1617._1) match {
+ case Some(a) => x1617._2
  case _ => Nil
  }}
- val join2 = x847.groupBy{case (((x850, x851), x852), x853) => { val x857 = x853.p_name
-x857 } }
- join1.flatMap(x854 => join2.get({ val x856 = x854.p_name
-x856 }) match {
-   case Some(a) => a.map(a1 => (a1, x854))
+ val join2 = x1610.groupBy{case (((x1613, x1614), x1615), x1616) => { val x1620 = x1616.p_name
+x1620 } }
+ join1.flatMap(x1617 => join2.get({ val x1619 = x1617.p_name
+x1619 }) match {
+   case Some(a) => a.map(a1 => (a1, x1617))
    case _ => Nil
  })
 }
-val x867 = { val grps896 = x858.groupBy{ case ((((x859, x860), x861), x862), x863) => { val x864 = (x859,x860,x861,x862)
-x864 }}
- grps896.map(x866 => (x866._1, x866._2.foldLeft(0.0){ case (acc897, ((((x859, x860), x861), x862), x863)) => acc897 + {val x865 = x863.l_qty
-x865} })).toList }
-val x879 = { val grps898 = x867.groupBy{ case ((x868, x869, x870, x871), x872) => { val x873 = (x868)
-x873 }}
- grps898.map(x878 => (x878._1, x878._2.map{case ((x868, x869, x870, x871), x872) => val x874 = x869.c_name
-val x875 = x871.p_name
-val x876 = x870.o_orderdate
-val x877 = Record900(x874, x875, x876, x872)
-x877})).toList }
-val x884 = x879.map{ case (x880, x881) => { 
-  val x882 = x880.lbl
-  val x883 = Record901(x882, x881)
-  x883 }}
-val M_flat1 = x884
-val x885 = M_flat1
-val x886 = (x816,x885)
-x886
+val x1630 = { val grps1659 = x1621.groupBy{ case ((((x1622, x1623), x1624), x1625), x1626) => { val x1627 = (x1622,x1623,x1624,x1625)
+x1627 }}
+ grps1659.map(x1629 => (x1629._1, x1629._2.foldLeft(0.0){ case (acc1660, ((((x1622, x1623), x1624), x1625), x1626)) => acc1660 + {val x1628 = x1626.l_qty
+x1628} })).toList }
+val x1642 = { val grps1661 = x1630.groupBy{ case ((x1631, x1632, x1633, x1634), x1635) => { val x1636 = (x1631)
+x1636 }}
+ grps1661.map(x1641 => (x1641._1, x1641._2.map{case ((x1631, x1632, x1633, x1634), x1635) => val x1637 = x1632.c_name
+val x1638 = x1634.p_name
+val x1639 = x1633.o_orderdate
+val x1640 = Record1663(x1637, x1638, x1639, x1635)
+x1640})).toList }
+val x1647 = x1642.map{ case (x1643, x1644) => { 
+  val x1645 = x1643.lbl
+  val x1646 = Record1664(x1645, x1644)
+  x1646 }}
+val M_flat1 = x1647
+val x1648 = M_flat1
+val x1649 = (x1579,x1648)
+x1649
     }
     var time = List[Long]()
-    for (i <- 1 to 5) {  
+    for (i <- 1 to 5) {
      var start = System.currentTimeMillis()
       f
       var end = System.currentTimeMillis() - start

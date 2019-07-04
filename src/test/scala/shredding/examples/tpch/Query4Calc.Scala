@@ -2,73 +2,73 @@
 package experiments
 /** Generated code **/
 import shredding.examples.tpch._
-case class Record485(p_name: String, l_qty: Double)
-case class Record486(o_orderdate: String, o_parts: List[Record485])
-case class Record516(c_name: String, p_name: String, month: String, t_qty: Double)
-case class Q1Out(c_name: String, c_orders: List[Record486])
+case class Record998(p_name: String, l_qty: Double)
+case class Record999(o_orderdate: String, o_parts: List[Record998])
+case class Record1028(c_name: String, p_name: String, month: String, t_qty: Double)
+case class Query1Out(c_name: String, c_orders: List[Record999])
 object Query4Calc {
- def main(args: Array[String]){ 
+ def main(args: Array[String]){
     var start0 = System.currentTimeMillis()
     
 val C = TPCHLoader.loadCustomer[Customer].toList
 val O = TPCHLoader.loadOrders[Orders].toList
 val L = TPCHLoader.loadLineitem[Lineitem].toList
 val P = TPCHLoader.loadPart[Part].toList
-    val Q1 = { val x480 = C.flatMap(x454 => { 
-    val x455 = x454.c_name
-    val x477 = O.flatMap(x456 => { 
-      if({val x457 = x456.o_custkey
-      val x458 = x454.c_custkey
-      val x459 = x457 == x458
-      x459}) {  val x460 = x456.o_orderdate
-        val x474 = L.flatMap(x461 => { 
-          if({val x462 = x461.l_orderkey
-          val x463 = x456.o_orderkey
-          val x464 = x462 == x463
-          x464}) {  val x473 = P.flatMap(x465 => { 
-              if({val x466 = x461.l_partkey
-              val x467 = x465.p_partkey
-              val x468 = x466 == x467
-              x468}) {  val x469 = x465.p_name
-                val x470 = x461.l_quantity
-                val x471 = Record485(x469, x470)
-                val x472 = List(x471)
-                x472} else {  Nil}})
-            x473} else {  Nil}})
-        val x475 = Record486(x460, x474)
-        val x476 = List(x475)
-        x476} else {  Nil}})
-    val x478 = Q1Out(x455, x477)
-    val x479 = List(x478)
-    x479})
-x480 }
+    val Query4 = { val x993 = C.flatMap(x967 => { 
+    val x968 = x967.c_name
+    val x990 = O.flatMap(x969 => { 
+      if({val x970 = x969.o_custkey
+      val x971 = x967.c_custkey
+      val x972 = x970 == x971
+      x972}) {  val x973 = x969.o_orderdate
+        val x987 = L.flatMap(x974 => { 
+          if({val x975 = x974.l_orderkey
+          val x976 = x969.o_orderkey
+          val x977 = x975 == x976
+          x977}) {  val x986 = P.flatMap(x978 => { 
+              if({val x979 = x974.l_partkey
+              val x980 = x978.p_partkey
+              val x981 = x979 == x980
+              x981}) {  val x982 = x978.p_name
+                val x983 = x974.l_quantity
+                val x984 = Record998(x982, x983)
+                val x985 = List(x984)
+                x985} else {  Nil}})
+            x986} else {  Nil}})
+        val x988 = Record999(x973, x987)
+        val x989 = List(x988)
+        x989} else {  Nil}})
+    val x991 = Query1Out(x968, x990)
+    val x992 = List(x991)
+    x992})
+x993 }
     var end0 = System.currentTimeMillis() - start0
     
     def f(){
-      val x511 = Q1.flatMap(x492 => { 
-    val x493 = x492.c_orders
-    val x510 = x493.flatMap(x494 => { 
-        val x495 = x494.o_parts
-        val x509 = x495.flatMap(x496 => { 
-            val x497 = x492.c_name
-            val x498 = x496.p_name
-            val x499 = x494.o_orderdate
-            val x500 = x494.o_parts
-            val x506 = x500.foldLeft(0.0)((acc515, x501) => 
-              if({val x502 = x501.p_name
-              val x503 = x496.p_name
-              val x504 = x502 == x503
-              x504}) {  acc515 + {val x505 = x501.l_qty
-                x505}} else {  acc515})
-            val x507 = Record516(x497, x498, x499, x506)
-            val x508 = List(x507)
-            x508})
-        x509})
-    x510})
-x511
+      val x1023 = Query4.flatMap(x1004 => { 
+    val x1005 = x1004.c_orders
+    val x1022 = x1005.flatMap(x1006 => { 
+        val x1007 = x1006.o_parts
+        val x1021 = x1007.flatMap(x1008 => { 
+            val x1009 = x1004.c_name
+            val x1010 = x1008.p_name
+            val x1011 = x1006.o_orderdate
+            val x1012 = x1006.o_parts
+            val x1018 = x1012.foldLeft(0.0)((acc1027, x1013) => 
+              if({val x1014 = x1013.p_name
+              val x1015 = x1008.p_name
+              val x1016 = x1014 == x1015
+              x1016}) {  acc1027 + {val x1017 = x1013.l_qty
+                x1017}} else {  acc1027})
+            val x1019 = Record1028(x1009, x1010, x1011, x1018)
+            val x1020 = List(x1019)
+            x1020})
+        x1021})
+    x1022})
+x1023
     }
     var time = List[Long]()
-    for (i <- 1 to 5) {  
+    for (i <- 1 to 5) {
      var start = System.currentTimeMillis()
       f
       var end = System.currentTimeMillis() - start

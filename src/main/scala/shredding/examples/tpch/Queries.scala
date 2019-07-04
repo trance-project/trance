@@ -59,22 +59,37 @@ object TPCHQueries {
                     ForeachUnion(p, relP, IfThenElse(
                       Cmp(OpEq, lr("l_partkey"), pr("p_partkey")), 
                         Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))))))))))
-  /**val query1 = ForeachUnion(c, relC, 
-            Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(o, relO, 
-              IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")), 
-                Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> 
-                  ForeachUnion(p, relP,
-                    ForeachUnion(l, relL, 
-                      IfThenElse(And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
-                                      Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))), 
-                        Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity")))))))))))))**/
-
 
   val q1type = TupleType("c_name" -> StringType, "c_orders" ->
                           BagType(TupleType("o_orderdate" -> StringType, "o_parts" ->
                             BagType(TupleType("p_name" -> StringType, "l_qty" -> DoubleType)))))
 
-  val Q1 = VarDef("Q1", query1.tp) 
+  
+  val inputq4a = ForeachUnion(c, relC, 
+                  Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> cr("c_custkey"))))
+  val input4a = Named(VarDef("Q1Flat1", inputq4a.tp), inputq4a)
+
+  val inputq4b = ForeachUnion(c, relC, 
+                  Singleton(Tuple("_1" -> cr("c_custkey"), "_2" -> ForeachUnion(o, relO, 
+                    Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> 
+                      Singleton(Tuple("a" -> cr("c_custkey"), "b" -> or("o_orderkey")))))))))
+  val input4b = Named(VarDef("Q1Flat2", inputq4b.tp), inputq4b)
+
+  val inputq4c = ForeachUnion(c, relC, 
+                  ForeachUnion(o, relO, 
+                    Singleton(Tuple("_1" -> Singleton(Tuple("a" -> cr("c_custkey"), "b" -> or("o_orderkey"))),
+                      "_2" -> ForeachUnion(l, relL,
+                        IfThenElse(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
+                          ForeachUnion(p, relP, IfThenElse(
+                            Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
+                              Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity")))))))))))
+  val input4c = Named(VarDef("Q1Flat3", inputq4c.tp), inputq4c)
+  
+  val input4 = Sequence(List(input4a, input4b, input4c))
+  
+  val q4name = "Query4"
+ 
+  val Q1 = VarDef(q4name, query1.tp) 
   val q1 = VarDef("q1", q1type)
   val q1r = TupleVarRef(q1)
   val cq1 = VarDef("corders", TupleType("o_orderdate" -> StringType, "o_parts" ->
@@ -98,14 +113,15 @@ object TPCHQueries {
     *   yield ((c_name,p_name,getMonth(o_orderdate)),l_qty) ) 
     *    .reduceByKey(_ + _)
     */
-  val q4name = "Query4"
 
-  val sq4cclass = (r1: String, r2: String) => s"""
-    |case class Input_Q1_Dict2(o_parts: (List[$r2], Unit))
-    |case class Input_Q1_Dict1(c_orders: (List[$r1], Input_Q1_Dict2))""".stripMargin
-  val sq4data = (v: String) => s"""
-    |val Q1__F = $v._1.head.lbl
-    |val Q1__D = ($v._2, Input_Q1_Dict1(($v._4, Input_Q1_Dict2(($v._6, Unit)))))""".stripMargin
+  //val sq4cclass = (r1: String, r2: String) => s"""
+  val sq4data = s"""
+    |case class Input_Q1_Dict2(o_parts: (List[RecM_flat3], Unit))
+    |case class Input_Q1_Dict1(c_orders: (List[RecM_flat2], Input_Q1_Dict2))
+    |val Query4__F = ShredQuery4._1.head.lbl
+    |val Query4__D = (ShredQuery4._2, Input_Q1_Dict1((ShredQuery4._4, Input_Q1_Dict2((ShredQuery4._6, Unit)))))""".stripMargin
+
+
 
   val query4 = //Sequence(List(Named(Q1, query1),
                 ForeachUnion(q1, BagVarRef(Q1), 
@@ -121,6 +137,7 @@ object TPCHQueries {
   val relS = BagVarRef(VarDef("S", TPCHSchema.suppliertype))
   val s = VarDef("s", TPCHSchema.suppliertype.tp)
   val sr = TupleVarRef(s)
+  
   val query2 = ForeachUnion(s, relS, 
             Singleton(Tuple("s_name" -> sr("s_name"), "customers2" -> ForeachUnion(l, relL, 
               IfThenElse(Cmp(OpEq, sr("s_suppkey"), lr("l_suppkey")), 
@@ -144,6 +161,20 @@ object TPCHQueries {
     |val PS = TPCHLoader.loadPartSupp[PartSupp].toList
     |val S = TPCHLoader.loadSupplier[Supplier].toList""".stripMargin
 
+  val sq3data = s"""
+    |val C__F = 1
+    |val C__D = (List((C__F, TPCHLoader.loadCustomer[Customer].toList)), ())
+    |val O__F = 2
+    |val O__D = (List((O__F, TPCHLoader.loadOrders[Orders].toList)), ())
+    |val L__F = 3
+    |val L__D = (List((L__F, TPCHLoader.loadLineitem[Lineitem].toList)), ())
+    |val P__F = 4
+    |val P__D = (List((P__F, TPCHLoader.loadPart[Part].toList)), ())
+    |val PS__F = 5
+    |val PS__D = (List((PS__F, TPCHLoader.loadPartSupp[PartSupp].toList)), ())
+    |val S__F = 6
+    |val S__D = (List((S__F, TPCHLoader.loadSupplier[Supplier].toList)), ())""".stripMargin
+
   val q3name = "Query3"
   val query3 = ForeachUnion(p, relP, 
                 Singleton(Tuple("p_name" -> pr("p_name"), "suppliers" -> ForeachUnion(ps, relPS, 
@@ -160,8 +191,8 @@ object TPCHQueries {
                               Singleton(Tuple("c_name" -> cr("c_name"), "c_nationkey" -> cr("c_nationkey"))))))))))))
   
   // Query 5
-
-  val Q3 = VarDef("Q3", query3.tp)
+  val q5name = "Query5"
+  val Q3 = VarDef(q5name, query3.tp)
   val q3 = VarDef("q3", query3.tp.asInstanceOf[BagType].tp)
   val c5 = VarDef("c", query3.tp.asInstanceOf[BagType].tp.attrTps("customers").asInstanceOf[BagType].tp)
   val s5 = VarDef("s", query3.tp.asInstanceOf[BagType].tp.attrTps("suppliers").asInstanceOf[BagType].tp)
@@ -170,6 +201,11 @@ object TPCHQueries {
   val rc5 = TupleVarRef(c5)
   val rs5 = TupleVarRef(s5)
   
+  val sq5data = s"""
+    |case class Input_Q3_Dict1(suppliers: (List[RecM_flat2], Unit), customers: (List[RecM_flat3], Unit))
+    |val Query5__F = ShredQuery5._1.head.lbl
+    |val Query5__D = (ShredQuery5._2, Input_Q3_Dict1((ShredQuery5._4, Unit), (ShredQuery5._6, Unit)))""".stripMargin
+
   val query5 = ForeachUnion(q3, BagVarRef(Q3), 
                 Singleton(Tuple("p_name" -> rq3("p_name"), "cnt" -> 
                   Total(ForeachUnion(c5, BagProject(rq3, "customers"),
