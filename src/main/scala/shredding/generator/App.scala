@@ -1,9 +1,6 @@
 package shredding.generator
 
-import java.io._
-import shredding.core._
 import shredding.wmcc._
-import shredding.examples.simple.{FlatTests, FlatRelations}
 import shredding.examples.tpch.{TPCHQueries, TPCHSchema, TPCHLoader}
 
 /**
@@ -12,12 +9,23 @@ import shredding.examples.tpch.{TPCHQueries, TPCHSchema, TPCHLoader}
 
 object App {
   
+  def main(args: Array[String]){
+    /**run1Calc()
+    run1()
+    run3Calc()
+    run3()
+    run4Calc()
+    run4()
+    run5Calc()**/
+    run5()
+  }
+  
   val runner = new PipelineRunner{}
   val translator = new NRCTranslator{}
   val normalizer = new Finalizer(new BaseNormalizer{})
   val tpchInputM = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2)
   val tpchShredM = tpchInputM ++ TPCHSchema.tpchShredInputs
-   
+  
   def run1Calc(){
     
     println("---------------------------- Query 1  ----------------------------")  
@@ -183,16 +191,4 @@ object App {
     
   }**/
 
-
-  def main(args: Array[String]){
-    run1Calc()
-    run1()
-    run3Calc()
-    run3()
-    run4Calc()
-    run4()
-    run5Calc()
-    run5()
-
-  }
 }

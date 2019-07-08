@@ -17,7 +17,7 @@ object Unnester {
     case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E)))
     case Comprehension(e1, v, p, e) if u.isEmpty && w.isEmpty && E.isEmpty =>
       unnest(e)((Nil, List(v), Some(Select(e1, v, p)))) // C4
-    case Comprehension(e1 @ Comprehension(_, _, _, _), v, p, e) if !w.isEmpty => // C11
+    case Comprehension(e1 @ Comprehension(_, _, _, _), v, p, e) if !w.isEmpty => // C11 (relaxed)
       val (nE, v2) = getNest(unnest(e1)((w, w, E)))
       unnest(e)((u, w:+v2, nE))
     case ift @ If(cond, Sng(t @ Record(fs)), None) if !w.isEmpty => // C12, C5, and C8
@@ -33,7 +33,7 @@ object Unnester {
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
           val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(If(cond, Sng(Record(fs + (key -> v2))), None))((u, w :+ v2, nE))
-        case _ => sys.error("unsupported")
+        case _ => sys.error("not supported")
       }
     case s @ Sng(t @ Record(fs)) if !w.isEmpty =>
       assert(!E.isEmpty)
@@ -48,15 +48,21 @@ object Unnester {
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
           val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
-        case _ => sys.error("unsupported")
-      }
+        case _ => sys.error("not supported")
+     }
     case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
       assert(!E.isEmpty)
-       val nE = u.isEmpty match {
-        case true => Some(Unnest(E.get, w, e1, v, p)) //C7
-        case _ => Some(OuterUnnest(E.get, w, e1, v, p)) //C10
+      getPM(p) match {
+        case (Constant(false), _) =>
+          unnest(e)((u, w :+ v, Some(OuterUnnest(E.get, w, e1, v, p))))
+        case (e2, be2) => 
+          val nE = Some(OuterUnnest(E.get, w, e1, v, Constant(true))) // C11
+          val (nE2, nv) = getNest(unnest(e2)((w :+ v, w :+ v, nE))) 
+          unnest(e)((u, w :+ nv, nE2)) match {
+            case Nest(e3, w3, f3, t3, v3, p3) => Nest(e3, w3, f3, t3, nv, be2(nv))
+            case res => res
+          }
       }
-      unnest(e)((u, w :+ v, nE))
     case Comprehension(e1 @ WeightedSng(_, _), v, p, e) if !w.isEmpty =>
       assert(!E.isEmpty)
       val nE = u.isEmpty match {
@@ -74,6 +80,12 @@ object Unnester {
       }
       val nE = Some(Lookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, p1s, p2s))
       unnest(e3)((u, w :+ v2, nE)) 
+/**          case Comprehension(e1 @ Project(e0, f), v, p @ Equals(lbl1, lbl2),
+            Comprehension(e2, v2, p2, e3)) if e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty && hasPM(p2) => // C11 in a lookup
+      assert(!E.isEmpty)
+      val (pc, nc) = getPM(p2)
+      val (nE, v3) = getNest(unnest(pc)((w, w, E)))
+      unnest(Comprehension(e1, v, p, Comprehension(e2, v2, nc(v3), e3)))((u, w :+ v3, nE)) **/
     case Comprehension(e1, v, p, e) if !w.isEmpty =>
       assert(!E.isEmpty) 
       val preds = ps(p, v, w)
@@ -94,18 +106,27 @@ object Unnester {
       case Sng(t) => CNamed(n, exp)
       case _ => CNamed(n, unnest(exp)((Nil, Nil, None)))
     }
+    case Bind(e1, e2, e3) => Bind(e1, e2, unnest(e3)((u, w, E)))
     case _ => sys.error(s"not supported $e")
   }
 
   def getNest(e: CExpr): (Option[CExpr], Variable) = e match {
     case Bind(nval, nv @ Variable(_,_), e1) => (Some(e), nv)
+    /**case Nest(Nest(e1, v1, f1, e2, v2, p2), v3, f3, e3, v4 @ Variable(_,_), p4) => 
+      val ne = Nest(Nest(e1, v1, f1, e2, v2, Constant(true)), v3, f3, e3, v4, p2)
+      (Some(ne), v4)**/
     case Nest(_,_,_,_,v2 @ Variable(_,_),_) => (Some(e), v2)
+    //case Unnest(_,_,_, v2 @ Variable(_,_), _) => (Some(e), v2)
+    //case OuterUnnest(_,_,_, v2 @ Variable(_,_), _) => (Some(e), v2)
     case _ => sys.error(s"not supported $e")
   }
 
-  // need to support ors
+
+  // p1, p2, p3 extraction 
+
   def andToList(e: CExpr): List[CExpr] = e match {
     case And(e1, e2) => andToList(e1) ++ andToList(e2)
+    case Or(e1, e2) => ???
     case _ => List(e)
   }
 
@@ -150,5 +171,25 @@ object Unnester {
   }
 
   def lequals(e: CExpr, vs: List[Variable]): Boolean = vs.map(_.lequals(e)).contains(true)
+  
+  def getPM(e: CExpr): (CExpr, Variable => CExpr) = e match {
+    case Equals(e1 @ Comprehension(_,_,_,_), e2) => (e1, (v: Variable) => Equals(v, e2))
+    case Equals(e1, e2 @ Comprehension(_,_,_,_)) => (e2, (v: Variable) => Equals(e1, v))
+    case Gt(e1 @ Comprehension(_,_,_,_), e2) => (e1, (v: Variable) => Gt(v, e2))
+    case Gt(e1, e2 @ Comprehension(_,_,_,_)) => (e2, (v: Variable) => Gt(e1, v))
+    case Gte(e1 @ Comprehension(_,_,_,_), e2) => (e1, (v: Variable) => Gte(v, e2))
+    case Gte(e1, e2 @ Comprehension(_,_,_,_)) => (e2, (v: Variable) => Gte(e1, v))
+    case Lt(e1 @ Comprehension(_,_,_,_), e2) => (e1, (v: Variable) => Lt(v, e2))
+    case Lt(e1, e2 @ Comprehension(_,_,_,_)) => (e2, (v: Variable) => Lt(e1, v))
+    case Lte(e1 @ Comprehension(_,_,_,_), e2) => (e1, (v: Variable) => Lte(v, e2))
+    case Lte(e1, e2 @ Comprehension(_,_,_,_)) => (e2, (v: Variable) => Lte(e1, v))
+    case And(e1, e2) => ???
+    case Or(e1, e2) => ???
+    case Not(e1) => ???
+    case _ => (Constant(false), (v: Variable) => Constant(true))
+  }
+
+
+
 
 }

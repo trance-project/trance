@@ -82,8 +82,10 @@ object Utils {
     val codegen = new ScalaNamedGenerator(inputs)
     
     val plan1 = Unnester.unnest(normq1)(Nil, Nil, None).asInstanceOf[CExpr]
+    println(Printer.quote(plan1))
     val anfedq1 = anfer.finalize(plan1)
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
+    println(Printer.quote(anfExp1))
     val gcode = codegen.generate(anfExp1)
     val header = codegen.generateHeader(ng)
 
@@ -97,7 +99,9 @@ object Utils {
       val (q2, q2name, q2data) = q2Info
 
       val normq2 = normalizer.finalize(q2).asInstanceOf[CExpr]
+      println(Printer.quote(normq2))
       val plan2 = Unnester.unnest(normq2)(Nil, Nil, None)
+      println(Printer.quote(plan2))
       anfBase.reset
       val anfedq2 = anfer.finalize(plan2)
       val anfExp2 = anfBase.anf(anfedq2.asInstanceOf[anfBase.Rep])
