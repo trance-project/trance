@@ -28,30 +28,20 @@ object App {
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
     println(evaluator.finalize(anfExp1.asInstanceOf[CExpr]))
 
-
-    val q2 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
-    val sq2 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
+    val q2 = translator.translate(translator.Named(VarDef("Query5", TPCHQueries.query3.tp), 
+              TPCHQueries.query3.asInstanceOf[translator.Expr]))
     val normq2 = normalizer.finalize(q2).asInstanceOf[CExpr]
-    val snormq2 = normalizer.finalize(sq2).asInstanceOf[CExpr]
     println("")
     println(Printer.quote(normq2))
-    println("")
-    println(Printer.quote(snormq2))
     eval.ctx("C") = TPCHLoader.loadCustomer[Customer].toList 
     eval.ctx("O") = TPCHLoader.loadOrders[Orders].toList 
     eval.ctx("L") = TPCHLoader.loadLineitem[Lineitem].toList 
     eval.ctx("P") = TPCHLoader.loadPart[Part].toList 
-    eval.ctx("C__F") = 1
-    eval.ctx("C__D") = (List((1, TPCHLoader.loadCustomer[Customer].toList)), ())
-    eval.ctx("O__F") = 2
-    eval.ctx("O__D") = (List((2, TPCHLoader.loadOrders[Orders].toList)), ())
-    eval.ctx("L__F") = 3
-    eval.ctx("L__D") = (List((3, TPCHLoader.loadLineitem[Lineitem].toList)), ())
-    eval.ctx("P__F") = 4
-    eval.ctx("P__D") = (List((4, TPCHLoader.loadPart[Part].toList)), ())
+    eval.ctx("PS") = TPCHLoader.loadPartSupp[PartSupp].toList 
+    eval.ctx("S") = TPCHLoader.loadSupplier[Supplier].toList 
     println("")
     println(evaluator.finalize(normq2))
-
+    
     val plan2 = Unnester.unnest(normq2)(Nil, Nil, None).asInstanceOf[CExpr]
     println("\nPlan")
     println(Printer.quote(plan2))
@@ -60,6 +50,36 @@ object App {
     val anfedq2 = anfer.finalize(plan2)
     val anfExp2 = anfBase.anf(anfedq2.asInstanceOf[anfBase.Rep])
     println(evaluator.finalize(anfExp2.asInstanceOf[CExpr]))
+ 
+    val q5 = translator.translate(TPCHQueries.query5.asInstanceOf[translator.Expr])
+    val normq5 = normalizer.finalize(q5).asInstanceOf[CExpr]
+    println("")
+    println(Printer.quote(normq5))
+    println("")
+    println(evaluator.finalize(normq5))
+    
+    val plan5 = Unnester.unnest(normq5)(Nil, Nil, None).asInstanceOf[CExpr]
+    println("\nPlan")
+    println(Printer.quote(plan5))
+    println(evaluator.finalize(plan5))
+    anfBase.reset
+    val anfedq5 = anfer.finalize(plan5)
+    val anfExp5 = anfBase.anf(anfedq5.asInstanceOf[anfBase.Rep])
+    println(evaluator.finalize(anfExp5.asInstanceOf[CExpr]))
+
+    /**val sq2 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
+    val snormq2 = normalizer.finalize(sq2).asInstanceOf[CExpr]
+    println("")
+    println(Printer.quote(snormq2))
+
+    eval.ctx("C__F") = 1
+    eval.ctx("C__D") = (List((1, TPCHLoader.loadCustomer[Customer].toList)), ())
+    eval.ctx("O__F") = 2
+    eval.ctx("O__D") = (List((2, TPCHLoader.loadOrders[Orders].toList)), ())
+    eval.ctx("L__F") = 3
+    eval.ctx("L__D") = (List((3, TPCHLoader.loadLineitem[Lineitem].toList)), ())
+    eval.ctx("P__F") = 4
+    eval.ctx("P__D") = (List((4, TPCHLoader.loadPart[Part].toList)), ())
 
     val splan2 = Unnester.unnest(snormq2)(Nil, Nil, None).asInstanceOf[CExpr]
     println("\nShredPlan")
@@ -70,7 +90,7 @@ object App {
     val anfedqs2 = anfer.finalize(splan2)
     val anfExps2 = anfBase.anf(anfedqs2.asInstanceOf[anfBase.Rep])
     println(Printer.quote(anfExps2))
-    println(evaluator.finalize(anfExps2.asInstanceOf[CExpr]))
+    println(evaluator.finalize(anfExps2.asInstanceOf[CExpr]))**/
 
     /**val q3 = {    
       import translator._

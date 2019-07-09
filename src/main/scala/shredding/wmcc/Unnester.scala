@@ -59,7 +59,9 @@ object Unnester {
           val nE = Some(OuterUnnest(E.get, w, e1, v, Constant(true))) // C11
           val (nE2, nv) = getNest(unnest(e2)((w :+ v, w :+ v, nE))) 
           unnest(e)((u, w :+ nv, nE2)) match {
-            case Nest(e3, w3, f3, t3, v3, p3) => Nest(e3, w3, f3, t3, nv, be2(nv))
+            case Nest(e3, w3, f3, t3, v3, p3) => 
+              //Nest(e3, w3, f3, t3, nv, be2(nv))
+              NestBlock(nE.get, w, f3, t3, nv, be2(nv), e3, nv)
             case res => res
           }
       }
@@ -118,6 +120,7 @@ object Unnester {
     case Nest(_,_,_,_,v2 @ Variable(_,_),_) => (Some(e), v2)
     //case Unnest(_,_,_, v2 @ Variable(_,_), _) => (Some(e), v2)
     //case OuterUnnest(_,_,_, v2 @ Variable(_,_), _) => (Some(e), v2)
+    case NestBlock(_,_,_,_,v2 @ Variable(_,_),_,_,_) => (Some(e), v2)
     case _ => sys.error(s"not supported $e")
   }
 
