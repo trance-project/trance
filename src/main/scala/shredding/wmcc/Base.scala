@@ -430,8 +430,7 @@ trait BaseScalaInterp extends Base{
       case i:Int => 
         grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.foldLeft(0)((v1, x2) => { 
           hm.get(tupleVars(x2)) match {
-            case Some(a) =>
-              if (p.asInstanceOf[Rep => Boolean](a)) { v1 + 1 } else {0}
+            case Some(a) if (p.asInstanceOf[Rep => Boolean](a)) => v1 + 1
             case _ => 0
           }
          })).toList

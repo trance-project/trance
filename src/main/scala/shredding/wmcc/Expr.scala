@@ -204,6 +204,11 @@ case class Select(x: CExpr, v: Variable, p: CExpr) extends CExpr {
   def tp: Type = x.tp
   // def tpMap: Map[Variable, Type] = Map(v -> x.asInstanceOf[BagCType].tp)
   override def wvars = List(v)
+  // todo equality should support filter
+  override def equals(that: Any): Boolean = that match {
+    case Select(x1, v1, p1) if (x1 == x) => true
+    case _ => false
+  }
 }
 
 case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CExpr {
@@ -220,12 +225,20 @@ case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CEx
   def tp: Type = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
   // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = e1.wvars :+ v2
+  override def equals(that: Any): Boolean = that match {
+    case Unnest(e11, v11, e21, v21, p1) if (e1 == e11 && e21 == e2) => true
+    case _ => false
+  }
 }
 
 case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
   def tp: Type = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
   // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = e1.wvars :+ v2
+  override def equals(that: Any): Boolean = that match {
+    case OuterUnnest(e11, v11, e21, v21, p1) if (e1 == e11 && e21 == e2) => true
+    case _ => false
+  }
 }
 
 case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr) extends CExpr {
@@ -243,14 +256,12 @@ case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable,
 }
 
 case class NestBlock(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr, e2: CExpr, v3: Variable) extends CExpr {
-  assert(e2.isInstanceOf[Nest])
-  def tp: Type = BagCType(v2.tp) // check
+  def tp: Type = BagCType(v2.tp)
 }
 
 case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
   def tp: BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
   override def wvars = {
-    //assert(v1 == e1.wvars)
     e1.wvars :+ v2
   }
 }

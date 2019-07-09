@@ -60,8 +60,7 @@ object Unnester {
           val (nE2, nv) = getNest(unnest(e2)((w :+ v, w :+ v, nE))) 
           unnest(e)((u, w :+ nv, nE2)) match {
             case Nest(e3, w3, f3, t3, v3, p3) => 
-              //Nest(e3, w3, f3, t3, nv, be2(nv))
-              NestBlock(nE.get, w, f3, t3, nv, be2(nv), e3, nv)
+              NestBlock(nE.get, w, f3, t3, nv, be2(nv), e3, nv) //nE is reduced during CSE
             case res => res
           }
       }

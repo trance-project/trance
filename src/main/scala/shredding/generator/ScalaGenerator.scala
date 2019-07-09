@@ -160,23 +160,19 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
           |${ind(generate(f))}.flatMap($gv2 => {
           |${ind(s"${conditional(p, s"List(($vars, $gv2))", "Nil")}")}
           |})}""".stripMargin
-    // this is an example of what should happen
-    case Bind(t3, t4, Bind(t1, n @ Nest(e1, v1, f, e2, v2, p), Bind(t5, n2 @ Nest(e3, v3, f2, e4, v4, p2), e5))) => 
-      val e3in = generate(t4).split("\\.").head
-      println(v3)
-      val vars = generateVars(v3.dropRight(1), n.tp.asInstanceOf[BagCType].tp)
-      val gv4 = generate(v3.dropRight(1).last)
-      s"""| val ${generate(t3)} = ${generate(t4)}
-          | val ${generate(t1)} = ${generate(n).replace(".toList", "")}
-          | val ${generate(t5)} = $e3in.groupBy{ case $vars => { ${generate(f2)} } }.map{
-          |   case v => (v._1, v._2.foldLeft(0){ case (acc, $vars) => ${generate(t1)}.get($vars) match {
-          |       case Some($gv4) if { ${generate(p2)} } => acc + 1
-          |       case _ => 0
-          |     }
-          |   })
-          | }
-          | ${generate(e5)}
-          | """.stripMargin
+    case NestBlock(e1, v1, f, e, v2, p, e2, v3) => 
+        val acc = "acc" + Variable.newId()
+        val grps = "grps" + Variable.newId()
+        val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
+        // address issues with this
+        s"""| { val hm = ${generate(e2)}.toMap 
+            | ${generate(e1)}.groupBy{ case $vars => { ${generate(f)} } }.map{
+            |   case v => (v._1, v._2.foldLeft(0){ case ($acc, $vars) => 
+            |     hm.get($vars) match {
+            |       case Some(${generate(v3)}) if ({ ${generate(p)} }) => $acc + ${generate(e)}
+            |       case _ => 0
+            |     }
+            |  })} }""".stripMargin
     case Nest(e1, v1, f, e2, v2, p) => 
       val grps = "grps" + Variable.newId()
       val acc = "acc"+Variable.newId()
