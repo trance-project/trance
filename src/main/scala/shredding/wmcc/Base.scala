@@ -49,6 +49,7 @@ trait Base {
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep): Rep
   def nestb(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep, e2: Rep): Rep
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep
+  def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep
 }
 
 trait BaseStringify extends Base{
@@ -141,6 +142,11 @@ trait BaseStringify extends Base{
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
     val (v1,v2) = (Variable.fresh(StringType), Variable.fresh(StringType))
     s""" | (${e1}) LOOKUP[${p1(List(v1.quote))} = ${p2(v2.quote)}, ${p3(List(v1.quote, v2.quote))}](
+         | ${ind(e2)})""".stripMargin
+  }
+  def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
+    val (v1,v2) = (Variable.fresh(StringType), Variable.fresh(StringType))
+    s""" | (${e1}) OUTERLOOKUP[${p1(List(v1.quote))} = ${p2(v2.quote)}, ${p3(List(v1.quote, v2.quote))}](
          | ${ind(e2)})""".stripMargin
   }
 
@@ -252,6 +258,11 @@ trait BaseCompiler extends Base {
     val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
     val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
     Lookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
+  }
+  def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
+    val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
+    val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
+    OuterLookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
   }
 
   def vars(e: Type): List[Variable] = e match {
@@ -396,7 +407,7 @@ trait BaseScalaInterp extends Base{
     e1.asInstanceOf[List[_]].map(v2 => f(tupleVars(v2))) 
   }
   def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    val res = e1.asInstanceOf[List[_]].flatMap{
+    e1.asInstanceOf[List[_]].flatMap{
       v =>
         val v1 = tupleVars(v)
         f(v1).asInstanceOf[List[_]].map{ v2 => 
@@ -404,37 +415,30 @@ trait BaseScalaInterp extends Base{
           if (p.asInstanceOf[Rep => Boolean](nv)) { nv } else { Nil }
       }
     }
-    res
   }
   def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
     outerjoin(e1, e2, p1, p2)
   }
   
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    // todo filter
-    //println("\nnest")
     val grps = e1.asInstanceOf[List[_]].groupBy(v => f(tupleVars(v)))
-    //println(grps)
-    //println(e1)
-    val te1 = e1 match {
+    e1 match {
       case Nil => e(Nil) match { case i:Int => 0; case _ => Nil }
       case head :: tail => e(head.asInstanceOf[List[_]]) match {
         case i:Int => 
           grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.foldLeft(0)((v1, x2) => 
-            if (x2.asInstanceOf[List[_]].last != None) { v1 + i } else { 0 } )).toList
+            if (x2.asInstanceOf[List[_]].last != None && p(x2.asInstanceOf[List[_]]).asInstanceOf[Boolean]) { 
+              v1 + i } else { 0 } )).toList
         case _ => 
           grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.flatMap(v => { 
             val v2 = tupleVars(v)
-            if (v2.last != None) { List(e(v2)) } else { Nil } })).toList
+            if (v2.last != None && p(v2).asInstanceOf[Boolean]) { 
+              List(e(v2)) 
+            } else { Nil } })).toList
         }
      }
-    //println(te1)
-    te1
   }
   def nestb(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep, e2: Rep): Rep = {
-    // todo filter
-    //println("\nnestb")
-    //println(e2)
     val hm = e2.asInstanceOf[List[List[_]]].map{x => (x.dropRight(1), x.last) }.toMap
     val grps = e1.asInstanceOf[List[_]].groupBy(v => f(tupleVars(v)))
     e(tupleVars(e1.asInstanceOf[List[_]].head)) match {
@@ -446,15 +450,14 @@ trait BaseScalaInterp extends Base{
           }
          })).toList
       case _ =>
-        // not sure about this case 
-        grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.flatMap(v => { 
-          val v2 = tupleVars(v)
-          if (v2.last != None) { List(e(v2)) } else { Nil } })).toList
+        grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.withFilter(v => 
+          tupleVars(v).last != None && p(tupleVars(v).last).asInstanceOf[Boolean]).map(v => 
+            e(tupleVars(v)))).toList
     }
   }
 
   def outerunnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    val res = e1.asInstanceOf[List[_]].flatMap{
+    e1.asInstanceOf[List[_]].flatMap{
       v =>
         val v1 = tupleVars(v)
         f(v1).asInstanceOf[List[_]].map{ v2 => 
@@ -462,33 +465,35 @@ trait BaseScalaInterp extends Base{
           if (p.asInstanceOf[Rep => Boolean](nv)) { nv } else { v1 :+ None }
       }
     }
-    res
   }
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
     val hm = e1.asInstanceOf[List[_]].groupBy(v => p1(tupleVars(v)))
-    val res = e2.asInstanceOf[List[_]].flatMap(v2 => hm.get(p2(v2)) match {
+    e2.asInstanceOf[List[_]].flatMap(v2 => hm.get(p2(v2)) match {
       case Some(v1) => v1.map(v => tupleVars(v) :+ v2)
       case _ => Nil
     })
-    res
   }
   // TODO
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
-    //println(e2)
-    //println("\nlookup")
-    //println(e1)
-    //println(e2)
     val hm = mapVars(e2)
-    val res = e1.asInstanceOf[List[_]].flatMap(v2 => { 
+    e1.asInstanceOf[List[_]].flatMap(v2 => { 
                 val vs = tupleVars(v2)
                 hm.get(p1(vs)) match {
-                  case Some(v1) => v1.asInstanceOf[List[_]].flatMap(v3 => {
-                    if (p3(vs) == p2(v3)) { List(vs :+ v3) } else { Nil }
+                  case Some(v1) => v1.asInstanceOf[List[_]].withFilter(v3 => 
+                    p3(vs) == p2(v3)).map(v3 => vs :+ v3)
+                  case _ => Nil
+                }})
+  }
+  def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
+    val hm = mapVars(e2)
+    e1.asInstanceOf[List[_]].flatMap(v2 => { 
+                val vs = tupleVars(v2)
+                hm.get(p1(vs)) match {
+                  case Some(v1) => v1.asInstanceOf[List[_]].map(v3 => {
+                    if (p3(vs) == p2(v3)) { vs :+ v3 } else { vs :+ None }
                   })
                   case _ => Nil  
                 }})
-      //println(res)
-      res
   }
 
   // keys and flattens input tuples
@@ -630,6 +635,7 @@ trait BaseANF extends Base {
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep): Rep = compiler.nest(e1, f, e, p) 
   def nestb(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep, e2: Rep): Rep = compiler.nestb(e1, f, e, p, e2) 
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = compiler.lkup(e1, e2, p1, p2, p3)
+  def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = compiler.outerlkup(e1, e2, p1, p2, p3)
   def vars(e: Type): List[Variable] = e match {
     case BagCType(tp:RecordCType) => List(Variable.fresh(tp))
     case BagCType(tp @ TTupleType(tps)) => tps.map(Variable.fresh(_))
@@ -725,6 +731,9 @@ class Finalizer(val target: Base){
         (r: target.Rep) => withMap(v2 -> r)(finalize(p2)))
     case Lookup(e1, e2, v, p1, v2, p2, p3) =>
       target.lkup(finalize(e1), finalize(e2), (r: List[target.Rep]) => withMapList(v zip r)(finalize(p1)),
+        (r: target.Rep) => withMap(v2 -> r)(finalize(p2)), (r: List[target.Rep]) => withMapList((v :+ v2) zip r)(finalize(p3)))
+    case OuterLookup(e1, e2, v, p1, v2, p2, p3) =>
+      target.outerlkup(finalize(e1), finalize(e2), (r: List[target.Rep]) => withMapList(v zip r)(finalize(p1)),
         (r: target.Rep) => withMap(v2 -> r)(finalize(p2)), (r: List[target.Rep]) => withMapList((v :+ v2) zip r)(finalize(p3)))
     case v @ Variable(_, _) => variableMap.getOrElse(v, target.inputref(v.name, v.tp))
   }

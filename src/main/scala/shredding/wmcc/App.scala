@@ -28,6 +28,21 @@ object App {
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
     println(evaluator.finalize(anfExp1.asInstanceOf[CExpr]))
 
+    val sq1 = runner.shredPipeline(NestedTests.q10.asInstanceOf[runner.Expr])
+    val snormq1 = normalizer.finalize(sq1).asInstanceOf[CExpr]
+    println(Printer.quote(snormq1.asInstanceOf[CExpr]))
+    eval.ctx.clear
+    eval.ctx("R__F") = 1
+    eval.ctx("R__D") = NestedRelations.sformat4a
+    println(evaluator.finalize(snormq1.asInstanceOf[CExpr]))
+    val splan1 = Unnester.unnest(snormq1)(Nil, Nil, None).asInstanceOf[CExpr]
+    println(Printer.quote(splan1))
+    println(evaluator.finalize(splan1))
+    anfBase.reset
+    val sanfedq1 = anfer.finalize(splan1)
+    val sanfExp1 = anfBase.anf(sanfedq1.asInstanceOf[anfBase.Rep])
+    println(evaluator.finalize(sanfExp1.asInstanceOf[CExpr]))
+
     /**val q1 = translator.translate(FlatTests.q1.asInstanceOf[translator.Expr])
     val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
     println(Printer.quote(normq1.asInstanceOf[CExpr]))

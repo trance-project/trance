@@ -53,8 +53,10 @@ object Unnester {
     case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
       assert(!E.isEmpty)
       getPM(p) match {
-        case (Constant(false), _) =>
-          unnest(e)((u, w :+ v, Some(OuterUnnest(E.get, w, e1, v, p))))
+        case (Constant(false), _) => u.isEmpty match {
+          case true => unnest(e)((u, w :+ v, Some(Unnest(E.get, w, e1, v, p))))
+          case _ => unnest(e)((u, w :+ v, Some(OuterUnnest(E.get, w, e1, v, p))))
+        }
         case (e2, be2) => 
           val nE = Some(OuterUnnest(E.get, w, e1, v, Constant(true))) // C11
           val (nE2, nv) = getNest(unnest(e2)((w :+ v, w :+ v, nE))) 
@@ -81,10 +83,13 @@ object Unnester {
           case Constant(true) => (Constant(true), Constant(true))
           case _ => sys.error(s"not supported $p2") 
         }
-        val nE = Some(Lookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, p1s, p2s))
+        val nE = u.isEmpty match {
+          case true => Some(Lookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, p1s, p2s))
+          case _ => Some(OuterLookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, p1s, p2s))
+        }
         unnest(e3)((u, w :+ v2, nE)) 
         case (e, be2) => 
-          val nE = Some(Lookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, Constant(true), Constant(true)))
+          val nE = Some(OuterLookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, Constant(true), Constant(true)))
           val (nE2, nv) = getNest(unnest(e)((w :+ v2, w :+ v2, nE)))
           unnest(e3)((u, w :+ nv, nE2)) match {
             case Nest(e4, w4, f4, t4, v4, p4) => NestBlock(nE.get, w, f4, t4, nv, be2(nv), e4, nv)

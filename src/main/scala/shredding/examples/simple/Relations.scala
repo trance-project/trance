@@ -187,4 +187,15 @@ object NestedRelations{
                                                 RecordValue("f" -> 1, "g" -> 15),
                                                 RecordValue("f" -> 1, "g" -> 15)))) 
        
+    val sformat4a = (List((1, List(RecordValue("a" -> "part", "b" -> 2, "e" -> 3)))),
+                      RecordValue("b" -> (List((2, List(RecordValue("c" -> 1,"d" -> 17),
+                                                               RecordValue("c" -> 1,"d" -> 17),
+                                                               RecordValue("c" -> 1,"d" -> 17),
+                                                               RecordValue("c" -> 1,"d" -> 17)))), ()),
+                                  "e" -> (List((3, List(RecordValue("f" -> 1, "g" -> 15),
+                                                               RecordValue("f" -> 1, "g" -> 15),
+                                                               RecordValue("f" -> 1, "g" -> 15),
+                                                               RecordValue("f" -> 1, "g" -> 15),
+                                                               RecordValue("f" -> 1, "g" -> 15),
+                                                               RecordValue("f" -> 1, "g" -> 15)))), ())))
 }
