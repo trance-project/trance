@@ -15,8 +15,8 @@ object App {
     run3Calc()
     run3()
     run4Calc()
-    run4()
-    run5Calc()**/
+    run4()**/
+    run5Calc()
     run5()
   }
   

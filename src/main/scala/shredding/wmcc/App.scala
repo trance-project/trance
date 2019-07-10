@@ -15,8 +15,20 @@ object App {
   def main(args: Array[String]){
     val eval = new BaseScalaInterp{}
     val evaluator = new Finalizer(eval)
-    
-    val q1 = translator.translate(FlatTests.q1.asInstanceOf[translator.Expr])
+
+    val q1 = translator.translate(NestedTests.q10.asInstanceOf[translator.Expr])
+    val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
+    println(Printer.quote(normq1.asInstanceOf[CExpr]))
+    eval.ctx("R") = NestedRelations.format4a
+    println(evaluator.finalize(normq1.asInstanceOf[CExpr]))
+    val plan1 = Unnester.unnest(normq1)(Nil, Nil, None).asInstanceOf[CExpr]
+    println(Printer.quote(plan1))
+    println(evaluator.finalize(plan1))
+    val anfedq1 = anfer.finalize(plan1)
+    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
+    println(evaluator.finalize(anfExp1.asInstanceOf[CExpr]))
+
+    /**val q1 = translator.translate(FlatTests.q1.asInstanceOf[translator.Expr])
     val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
     println(Printer.quote(normq1.asInstanceOf[CExpr]))
     eval.ctx("R") = FlatRelations.format1a
@@ -26,9 +38,9 @@ object App {
     println(evaluator.finalize(plan1))
     val anfedq1 = anfer.finalize(plan1)
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
-    println(evaluator.finalize(anfExp1.asInstanceOf[CExpr]))
+    println(evaluator.finalize(anfExp1.asInstanceOf[CExpr]))**/
 
-    val q2 = translator.translate(translator.Named(VarDef("Query5", TPCHQueries.query3.tp), 
+    /**val q2 = translator.translate(translator.Named(VarDef("Query5", TPCHQueries.query3.tp), 
               TPCHQueries.query3.asInstanceOf[translator.Expr]))
     val normq2 = normalizer.finalize(q2).asInstanceOf[CExpr]
     println("")
@@ -67,10 +79,11 @@ object App {
     val anfExp5 = anfBase.anf(anfedq5.asInstanceOf[anfBase.Rep])
     println(evaluator.finalize(anfExp5.asInstanceOf[CExpr]))
 
-    /**val sq2 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
+    val sq2 = runner.shredPipeline(TPCHQueries.query3.asInstanceOf[runner.Expr])
     val snormq2 = normalizer.finalize(sq2).asInstanceOf[CExpr]
     println("")
     println(Printer.quote(snormq2))
+    eval.ctx.clear
 
     eval.ctx("C__F") = 1
     eval.ctx("C__D") = (List((1, TPCHLoader.loadCustomer[Customer].toList)), ())
@@ -80,17 +93,43 @@ object App {
     eval.ctx("L__D") = (List((3, TPCHLoader.loadLineitem[Lineitem].toList)), ())
     eval.ctx("P__F") = 4
     eval.ctx("P__D") = (List((4, TPCHLoader.loadPart[Part].toList)), ())
-
+    eval.ctx("PS__F") = 5
+    eval.ctx("PS__D") = (List((5, TPCHLoader.loadPartSupp[PartSupp].toList)), ())
+    eval.ctx("S__F") = 6
+    eval.ctx("S__D") = (List((6, TPCHLoader.loadSupplier[Supplier].toList)), ())
+    
+    println(evaluator.finalize(snormq2))
+    
     val splan2 = Unnester.unnest(snormq2)(Nil, Nil, None).asInstanceOf[CExpr]
     println("\nShredPlan")
     println(Printer.quote(splan2))
     println(evaluator.finalize(splan2))
-    // bug here
     anfBase.reset
     val anfedqs2 = anfer.finalize(splan2)
     val anfExps2 = anfBase.anf(anfedqs2.asInstanceOf[anfBase.Rep])
     println(Printer.quote(anfExps2))
-    println(evaluator.finalize(anfExps2.asInstanceOf[CExpr]))**/
+    println(evaluator.finalize(anfExps2.asInstanceOf[CExpr]))
+
+    eval.ctx("Query5__F") = eval.ctx("M_ctx1").asInstanceOf[List[_]].head.asInstanceOf[RecordValue]
+    eval.ctx("Query5__D") = (eval.ctx("M_flat1"), (RecordValue("customers" -> (eval.ctx("M_flat3"), ()), "suppliers" -> (eval.ctx("M_flat2"), ()))))
+
+
+    val sq5 = runner.shredPipeline(TPCHQueries.query5.asInstanceOf[runner.Expr])
+    val snormq5 = normalizer.finalize(sq5).asInstanceOf[CExpr]
+    println("")
+    println(Printer.quote(snormq5))
+    println(evaluator.finalize(snormq5))
+
+    val splan5 = Unnester.unnest(snormq5)(Nil, Nil, None).asInstanceOf[CExpr]
+    println("\nShredPlan")
+    println(Printer.quote(splan5))
+    println(evaluator.finalize(splan5))
+    anfBase.reset
+    val anfedqs5 = anfer.finalize(splan5)
+    val anfExps5 = anfBase.anf(anfedqs5.asInstanceOf[anfBase.Rep])
+    println(Printer.quote(anfExps5))
+    println(evaluator.finalize(anfExps5.asInstanceOf[CExpr]))**/
+
 
     /**val q3 = {    
       import translator._

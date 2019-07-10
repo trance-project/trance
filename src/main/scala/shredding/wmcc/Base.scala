@@ -339,6 +339,7 @@ trait BaseScalaInterp extends Base{
   def project(e1: Rep, f: String) = f match {
     case "_1" if e1.isInstanceOf[List[(Int, List[_])]] => e1.asInstanceOf[List[(Int, List[_])]].head._2 //no
     case "_1" => e1.asInstanceOf[Product].productElement(0)
+    case "_2" if e1.isInstanceOf[RecordValue] => e1.asInstanceOf[RecordValue].map("v")
     case "_2" => e1.asInstanceOf[Product].productElement(1)
     case f => e1 match {
       case m:RecordValue => m.map(f)
@@ -411,26 +412,36 @@ trait BaseScalaInterp extends Base{
   
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
     // todo filter
+    //println("\nnest")
     val grps = e1.asInstanceOf[List[_]].groupBy(v => f(tupleVars(v)))
-    e(tupleVars(e1.asInstanceOf[List[_]].head)) match {
-      case i:Int => 
-        grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.foldLeft(0)((v1, x2) => 
-          if (x2.asInstanceOf[List[_]].last != None) { v1 + 1 } else { 0 } )).toList
-      case _ => 
-        grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.flatMap(v => { 
-          val v2 = tupleVars(v)
-          if (v2.last != None) { List(e(v2)) } else { Nil } })).toList
-    }
+    //println(grps)
+    //println(e1)
+    val te1 = e1 match {
+      case Nil => e(Nil) match { case i:Int => 0; case _ => Nil }
+      case head :: tail => e(head.asInstanceOf[List[_]]) match {
+        case i:Int => 
+          grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.foldLeft(0)((v1, x2) => 
+            if (x2.asInstanceOf[List[_]].last != None) { v1 + i } else { 0 } )).toList
+        case _ => 
+          grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.flatMap(v => { 
+            val v2 = tupleVars(v)
+            if (v2.last != None) { List(e(v2)) } else { Nil } })).toList
+        }
+     }
+    //println(te1)
+    te1
   }
   def nestb(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: Rep => Rep, e2: Rep): Rep = {
     // todo filter
+    //println("\nnestb")
+    //println(e2)
     val hm = e2.asInstanceOf[List[List[_]]].map{x => (x.dropRight(1), x.last) }.toMap
     val grps = e1.asInstanceOf[List[_]].groupBy(v => f(tupleVars(v)))
     e(tupleVars(e1.asInstanceOf[List[_]].head)) match {
       case i:Int => 
         grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.foldLeft(0)((v1, x2) => { 
           hm.get(tupleVars(x2)) match {
-            case Some(a) if (p.asInstanceOf[Rep => Boolean](a)) => v1 + 1
+            case Some(a) if (p.asInstanceOf[Rep => Boolean](a)) => v1 + i
             case _ => 0
           }
          })).toList
@@ -461,15 +472,23 @@ trait BaseScalaInterp extends Base{
     })
     res
   }
+  // TODO
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
-    val hm = e2.asInstanceOf[List[(Any, Any)]].toMap
-    val res = e2.asInstanceOf[List[_]].flatMap(v2 => hm.get(p2(v2)) match {
-      case Some(v1) => 
-        v1.asInstanceOf[List[_]].withFilter(v => p3.asInstanceOf[List[Rep] => Boolean](tupleVars(v) :+ v2))
-          .map(v => tupleVars(v) :+ v2)
-      case _ => Nil
-    })
-    res
+    //println(e2)
+    //println("\nlookup")
+    //println(e1)
+    //println(e2)
+    val hm = mapVars(e2)
+    val res = e1.asInstanceOf[List[_]].flatMap(v2 => { 
+                val vs = tupleVars(v2)
+                hm.get(p1(vs)) match {
+                  case Some(v1) => v1.asInstanceOf[List[_]].flatMap(v3 => {
+                    if (p3(vs) == p2(v3)) { List(vs :+ v3) } else { Nil }
+                  })
+                  case _ => Nil  
+                }})
+      //println(res)
+      res
   }
 
   // keys and flattens input tuples
@@ -477,6 +496,11 @@ trait BaseScalaInterp extends Base{
     case c:CaseClassRecord => List(k).asInstanceOf[List[Rep]]
     case c:RecordValue => List(k).asInstanceOf[List[Rep]]
     case _ => k.asInstanceOf[List[Rep]]
+  }
+  def mapVars(k: Any): Map[Any, Any] = k match {
+    case l:List[_] if l.head.isInstanceOf[RecordValue] =>
+      l.asInstanceOf[List[RecordValue]].map{ case rv => (rv.map("k"), rv.map("v")) }.toMap
+    case _ => k.asInstanceOf[List[(Any, Any)]].toMap
   }
 
 }
