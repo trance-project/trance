@@ -47,13 +47,15 @@ class SLeNDerQueries extends FunSuite {
 
 
 
+  // QUERY 7 : From the tpch database answer the following query:
+  // for each country of origin list the parts that are supplied locally but bought by foreign customers.
   test("testQ7") {
     println("")
     val q7 = {
       import TPCHQueries.nrc._
       import shredding.nrc.Printer
 
-// QUERY 3
+// QUERY 3 - this is the same as in TPCHQuery query3, but it also returns the keys.
       val query3 = ForeachUnion(p, relP,
           Singleton(Tuple("p_name" -> pr("p_name"), "suppliers" -> ForeachUnion(ps, relPS,
               IfThenElse(Cmp(OpEq, psr("ps_partkey"), pr("p_partkey")),
@@ -75,7 +77,7 @@ class SLeNDerQueries extends FunSuite {
 
 
       println("[TEST_Q7]" + query3.tp)
-// QUERY 7
+// QUERY 7 : for each country of origin list the parts that are supplied locally but bought by foreign customers.
 
       val ndef = VarDef("n", TPCHSchema.nationtype.tp)
       val relN = BagVarRef(VarDef("N", TPCHSchema.nationtype))
@@ -94,74 +96,39 @@ class SLeNDerQueries extends FunSuite {
       val suppliersCond1 = ForeachUnion(sdef, q3ref("suppliers").asInstanceOf[BagExpr],
         IfThenElse(
           Cmp(OpEq, sref("s_nationkey"), nref("n_nationkey")),
-          Singleton(Tuple("count" -> Const(1,IntType))) /*,
-          Singleton(Tuple("count" -> Const(0,IntType)))*/
+          Singleton(Tuple("count" -> Const(1,IntType)))
         ).asInstanceOf[BagExpr])
       val cdef = VarDef("c", TupleType(Map("c_name" -> StringType, "c_nationkey" -> IntType)))
       val cref = TupleVarRef(cdef)
       val customersCond1 = ForeachUnion(cdef, q3ref("customers").asInstanceOf[BagExpr],
         IfThenElse(
-          Cmp(OpEq, cref("c_nationkey"), nref("n_nationkey")),
-          Singleton(Tuple("count" -> Const(1,IntType)))/*,
-          Singleton(Tuple("count" -> Const(0,IntType)))*/
+          Cmp(OpNe, cref("c_nationkey"), nref("n_nationkey")),
+          Singleton(Tuple("count" -> Const(1,IntType)))
           ).asInstanceOf[BagExpr])
       val query7 = ForeachUnion(ndef, relN,
         Singleton(Tuple(
           "n_name" -> nref("n_name"),
           "part_names" -> ForeachUnion(xdef2, query3,
             IfThenElse(And(Cmp(OpGe,Total(suppliersCond1), Const(0,IntType)),
-              Cmp(OpGt,Total(customersCond1), Const(0,IntType))),
+              Cmp(OpNe,Total(customersCond1), Const(0,IntType))),
             Singleton(Tuple(
             "p_name" -> q3ref("p_name"))
           )))
         )))
 
-      // PRINT Q7
+// PRINT Q7
       val printer = new Printer {}
       println("query: \n" + printer.quote(query7.asInstanceOf[printer.Expr]))
 
       val translator = new NRCTranslator {}
 
       val normalizer = new Finalizer(new BaseNormalizer {})
-
-//
-//      { { (n_name := x8.n_name,part_names := { if ({ { { 1 | x15 <-
-//          if (x11.s_nationkey == x8.n_nationkey) then { { (count := 1) } } } |
-//        x11 <- S, x11.s_suppkey == x10.ps_suppkey } | x10 <- PS, x10.ps_partkey == x9.p_partkey }
-//        >= 0, { { { { 1 | x16 <- if (x14.c_nationkey == x8.n_nationkey) then { { (count := 1) } } }
-//        | x14 <- C, x14.c_custkey == x13.o_custkey } | x13 <- O, x13.o_orderkey == x12.l_orderkey }
-//        | x12 <- L, x12.l_partkey == x9.p_partkey } > 0) then { { (p_name := x9.p_name) } } | x9 <- P }) } | x8 <- N }
-
-
-
-
-      //val qTranslated = translator.translate(query3.asInstanceOf[translator.Expr])
       val qTranslated = translator.translate(query7.asInstanceOf[translator.Expr])
-
-//      List(
-//        Rec(p_name    :part 1,
-//            suppliers :List(Rec(s_name:supplier A,s_nationkey:600)),
-//            customers :List(Rec(c_name:Test Customer1,c_nationkey:1), Rec(c_name:Test Customer1,c_nationkey:1))),
-//        Rec(p_name    :part 2,
-//            suppliers :List(Rec(s_name:supplier A,s_nationkey:600)),
-//            customers :List(Rec(c_name:Test Customer1,c_nationkey:1), Rec(c_name:Test Customer2,c_nationkey:1))),
-//        Rec(p_name    :part 3,
-//            suppliers :List(Rec(s_name:supplier B,s_nationkey:600)),
-//            customers :List()),
-//        Rec(p_name    :part 4,
-//            suppliers :List(Rec(s_name:supplier C,s_nationkey:601)),
-//            customers :List()),
-//        Rec(p_name    :part 5,
-//            suppliers :List(Rec(s_name:supplier C,s_nationkey:601)),
-//            customers:List()))
-
       val normq1 = normalizer.finalize(qTranslated)
       println("translated: \n" + Printer.quote(normq1.asInstanceOf[CExpr]))
-
-      // EXECUTE Q7
+// EXECUTE Q7
       val eval = new BaseScalaInterp{}
       val evaluator = new Finalizer(eval)
-
       eval.ctx("N") = TestData.nation
       eval.ctx("S") = TestData.supplier
       eval.ctx("PS") = TestData.partsupp
@@ -169,8 +136,25 @@ class SLeNDerQueries extends FunSuite {
       eval.ctx("L") = TestData.lineitem
       eval.ctx("O") = TestData.orders
       eval.ctx("P") = TestData.part
-      println(evaluator.finalize(normq1.asInstanceOf[CExpr]))
+      val res = evaluator.finalize(normq1.asInstanceOf[CExpr])
+      println("Q7 results:\n" + res)
+      println("Q7 results(head):\n" + res.asInstanceOf[List[Any]].head)
+      val head = res.asInstanceOf[List[RecordValue]].head
+      assert(RecordValue("n_name" -> "Country1", "part_names" -> List()).equals(head))
 
+      val customers = List(
+        RecordValue("c_custkey" -> 1, "c_name" -> "Test Customer1", "c_nationkey" ->  1 ),
+        RecordValue("c_custkey" -> 2, "c_name" -> "Test Customer2", "c_nationkey" ->  1 ),
+        RecordValue("c_custkey" -> 3, "c_name" -> "Test Customer3", "c_nationkey" ->  2 ),
+        RecordValue("c_custkey" -> 4, "c_name" -> "Test Customer4", "c_nationkey" ->  2 ),
+        RecordValue("c_custkey" -> 5, "c_name" -> "Test Customer5", "c_nationkey" ->  3 ),
+        RecordValue("c_custkey" -> 6, "c_name" -> "Test Customer6", "c_nationkey" ->  3 )
+      )
+      eval.ctx("C") = customers
+      val res2 = evaluator.finalize(normq1.asInstanceOf[CExpr])
+      println("Q7 results2:\n" + res2)
+      val head2 = res2.asInstanceOf[List[RecordValue]].head
+      assert(RecordValue("n_name" -> "Country1", "part_names" -> List(List(RecordValue("p_name"->"part 5")))).equals(head2))
     }
   }
 
