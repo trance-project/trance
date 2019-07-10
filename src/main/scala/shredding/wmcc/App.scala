@@ -16,7 +16,7 @@ object App {
     val eval = new BaseScalaInterp{}
     val evaluator = new Finalizer(eval)
 
-    val q1 = translator.translate(NestedTests.q10.asInstanceOf[translator.Expr])
+    /**val q1 = translator.translate(NestedTests.q10.asInstanceOf[translator.Expr])
     val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
     println(Printer.quote(normq1.asInstanceOf[CExpr]))
     eval.ctx("R") = NestedRelations.format4a
@@ -41,7 +41,7 @@ object App {
     anfBase.reset
     val sanfedq1 = anfer.finalize(splan1)
     val sanfExp1 = anfBase.anf(sanfedq1.asInstanceOf[anfBase.Rep])
-    println(evaluator.finalize(sanfExp1.asInstanceOf[CExpr]))
+    println(evaluator.finalize(sanfExp1.asInstanceOf[CExpr]))**/
 
     /**val q1 = translator.translate(FlatTests.q1.asInstanceOf[translator.Expr])
     val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
@@ -92,7 +92,7 @@ object App {
     anfBase.reset
     val anfedq5 = anfer.finalize(plan5)
     val anfExp5 = anfBase.anf(anfedq5.asInstanceOf[anfBase.Rep])
-    println(evaluator.finalize(anfExp5.asInstanceOf[CExpr]))
+    println(evaluator.finalize(anfExp5.asInstanceOf[CExpr]))**/
 
     val sq2 = runner.shredPipeline(TPCHQueries.query3.asInstanceOf[runner.Expr])
     val snormq2 = normalizer.finalize(sq2).asInstanceOf[CExpr]
@@ -125,9 +125,16 @@ object App {
     println(Printer.quote(anfExps2))
     println(evaluator.finalize(anfExps2.asInstanceOf[CExpr]))
 
-    eval.ctx("Query5__F") = eval.ctx("M_ctx1").asInstanceOf[List[_]].head.asInstanceOf[RecordValue]
-    eval.ctx("Query5__D") = (eval.ctx("M_flat1"), (RecordValue("customers" -> (eval.ctx("M_flat3"), ()), "suppliers" -> (eval.ctx("M_flat2"), ()))))
-
+    eval.ctx("Query5__F") = eval.ctx("M_ctx1").asInstanceOf[List[_]].head.asInstanceOf[RecordValue].map("lbl")
+    println("\n query 5 flat")
+    println(eval.ctx("Query5__F"))
+    def makeInput(k: Any): List[(Any, List[Any])] = k match {
+      case l:List[_] => l.asInstanceOf[List[RecordValue]].map{ case rv => (rv.map("k"), rv.map("v").asInstanceOf[List[Any]]) }
+      case _ => ???
+    }
+    eval.ctx("Query5__D") = (makeInput(eval.ctx("M_flat1")), (RecordValue("customers" -> (makeInput(eval.ctx("M_flat3")), ()), "suppliers" -> (makeInput(eval.ctx("M_flat2")), ()))))
+    println("\n query 5 dict")
+    println(eval.ctx("Query5__D"))
 
     val sq5 = runner.shredPipeline(TPCHQueries.query5.asInstanceOf[runner.Expr])
     val snormq5 = normalizer.finalize(sq5).asInstanceOf[CExpr]
@@ -143,8 +150,7 @@ object App {
     val anfedqs5 = anfer.finalize(splan5)
     val anfExps5 = anfBase.anf(anfedqs5.asInstanceOf[anfBase.Rep])
     println(Printer.quote(anfExps5))
-    println(evaluator.finalize(anfExps5.asInstanceOf[CExpr]))**/
-
+    println(evaluator.finalize(anfExps5.asInstanceOf[CExpr]))
 
     /**val q3 = {    
       import translator._

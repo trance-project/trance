@@ -74,7 +74,7 @@ object Printer {
       s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) LOOKUP[${quote(p1)}, ${quote(p2)} = ${quote(p3)}](
            | ${ind(quote(e2))})""".stripMargin
     case OuterLookup(e1, e2, v1, p1, v2, p2, p3) =>
-      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) LOOKUP[${quote(p1)}, ${quote(p2)} = ${quote(p3)}](
+      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) OUTERLOOKUP[${quote(p1)}, ${quote(p2)} = ${quote(p3)}](
            | ${ind(quote(e2))})""".stripMargin
     case Variable(n, tp) => n
   }
