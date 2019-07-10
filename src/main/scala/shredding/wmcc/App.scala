@@ -16,7 +16,7 @@ object App {
     val eval = new BaseScalaInterp{}
     val evaluator = new Finalizer(eval)
 
-    /**val q1 = translator.translate(NestedTests.q10.asInstanceOf[translator.Expr])
+    val q1 = translator.translate(NestedTests.q10.asInstanceOf[translator.Expr])
     val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
     println(Printer.quote(normq1.asInstanceOf[CExpr]))
     eval.ctx("R") = NestedRelations.format4a
@@ -41,7 +41,7 @@ object App {
     anfBase.reset
     val sanfedq1 = anfer.finalize(splan1)
     val sanfExp1 = anfBase.anf(sanfedq1.asInstanceOf[anfBase.Rep])
-    println(evaluator.finalize(sanfExp1.asInstanceOf[CExpr]))**/
+    println(evaluator.finalize(sanfExp1.asInstanceOf[CExpr]))
 
     /**val q1 = translator.translate(FlatTests.q1.asInstanceOf[translator.Expr])
     val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
@@ -55,7 +55,8 @@ object App {
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
     println(evaluator.finalize(anfExp1.asInstanceOf[CExpr]))**/
 
-    /**val q2 = translator.translate(translator.Named(VarDef("Query5", TPCHQueries.query3.tp), 
+    println("\n---------------------------------------- STARTS HERE -----------------------\n")
+    val q2 = translator.translate(translator.Named(VarDef("Query5", TPCHQueries.query3.tp), 
               TPCHQueries.query3.asInstanceOf[translator.Expr]))
     val normq2 = normalizer.finalize(q2).asInstanceOf[CExpr]
     println("")
@@ -92,13 +93,14 @@ object App {
     anfBase.reset
     val anfedq5 = anfer.finalize(plan5)
     val anfExp5 = anfBase.anf(anfedq5.asInstanceOf[anfBase.Rep])
-    println(evaluator.finalize(anfExp5.asInstanceOf[CExpr]))**/
+    println(evaluator.finalize(anfExp5.asInstanceOf[CExpr]))
 
     val sq2 = runner.shredPipeline(TPCHQueries.query3.asInstanceOf[runner.Expr])
     val snormq2 = normalizer.finalize(sq2).asInstanceOf[CExpr]
     println("")
     println(Printer.quote(snormq2))
     eval.ctx.clear
+    println("\n-------------------- ENDS HERE -----------------------------\n")
 
     eval.ctx("C__F") = 1
     eval.ctx("C__D") = (List((1, TPCHLoader.loadCustomer[Customer].toList)), ())

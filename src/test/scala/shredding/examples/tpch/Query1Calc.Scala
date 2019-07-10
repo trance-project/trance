@@ -16,33 +16,33 @@ val P = TPCHLoader.loadPart[Part].toList
     var end0 = System.currentTimeMillis() - start0
     def f(){
       val x989 = C.flatMap(x963 => { 
-    val x964 = x963.c_name
+    val x964 = x963.c_name 
     val x986 = O.flatMap(x965 => { 
-      if({val x966 = x965.o_custkey
-      val x967 = x963.c_custkey
-      val x968 = x966 == x967
-      x968}) {  val x969 = x965.o_orderdate
+      if({val x966 = x965.o_custkey 
+      val x967 = x963.c_custkey 
+      val x968 = x966 == x967 
+      x968   }) {  val x969 = x965.o_orderdate 
         val x983 = L.flatMap(x970 => { 
-          if({val x971 = x970.l_orderkey
-          val x972 = x965.o_orderkey
-          val x973 = x971 == x972
-          x973}) {  val x982 = P.flatMap(x974 => { 
-              if({val x975 = x970.l_partkey
-              val x976 = x974.p_partkey
-              val x977 = x975 == x976
-              x977}) {  val x978 = x974.p_name
-                val x979 = x970.l_quantity
-                val x980 = Record994(x978, x979)
-                val x981 = List(x980)
-                x981} else {  Nil}})
-            x982} else {  Nil}})
-        val x984 = Record995(x969, x983)
-        val x985 = List(x984)
-        x985} else {  Nil}})
-    val x987 = Query1Out(x964, x986)
-    val x988 = List(x987)
-    x988})
-x989
+          if({val x971 = x970.l_orderkey 
+          val x972 = x965.o_orderkey 
+          val x973 = x971 == x972 
+          x973   }) {  val x982 = P.flatMap(x974 => { 
+              if({val x975 = x970.l_partkey 
+              val x976 = x974.p_partkey 
+              val x977 = x975 == x976 
+              x977   }) {  val x978 = x974.p_name 
+                val x979 = x970.l_quantity 
+                val x980 = Record994(x978, x979) 
+                val x981 = List(x980) 
+                x981} else {  Nil}}) 
+            x982} else {  Nil}}) 
+        val x984 = Record995(x969, x983) 
+        val x985 = List(x984) 
+        x985} else {  Nil}}) 
+    val x987 = Query1Out(x964, x986) 
+    val x988 = List(x987) 
+    x988}) 
+x989 
     }
     var time = List[Long]()
     for (i <- 1 to 5) {

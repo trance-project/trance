@@ -61,8 +61,7 @@ object Unnester {
           val nE = Some(OuterUnnest(E.get, w, e1, v, Constant(true))) // C11
           val (nE2, nv) = getNest(unnest(e2)((w :+ v, w :+ v, nE))) 
           unnest(e)((u, w :+ nv, nE2)) match {
-            case Nest(e3, w3, f3, t3, v3, p3) => 
-              NestBlock(nE.get, w, f3, t3, nv, be2(nv), e3, nv) //nE is reduced during CSE
+            case Nest(e3, w3, f3, t3, v3, p3) => Nest(e3, w3, f3, t3, nv, be2(nv)) 
             case res => res
           }
       }
@@ -92,7 +91,7 @@ object Unnester {
           val nE = Some(OuterLookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, Constant(true), Constant(true)))
           val (nE2, nv) = getNest(unnest(e)((w :+ v2, w :+ v2, nE)))
           unnest(e3)((u, w :+ nv, nE2)) match {
-            case Nest(e4, w4, f4, t4, v4, p4) => NestBlock(nE.get, w, f4, t4, nv, be2(nv), e4, nv)
+            case Nest(e4, w4, f4, t4, v4, p4) => Nest(e4, w4, f4, t4, v4, p4)
             case res => res
           }
       }
@@ -122,13 +121,7 @@ object Unnester {
 
   def getNest(e: CExpr): (Option[CExpr], Variable) = e match {
     case Bind(nval, nv @ Variable(_,_), e1) => (Some(e), nv)
-    /**case Nest(Nest(e1, v1, f1, e2, v2, p2), v3, f3, e3, v4 @ Variable(_,_), p4) => 
-      val ne = Nest(Nest(e1, v1, f1, e2, v2, Constant(true)), v3, f3, e3, v4, p2)
-      (Some(ne), v4)**/
     case Nest(_,_,_,_,v2 @ Variable(_,_),_) => (Some(e), v2)
-    //case Unnest(_,_,_, v2 @ Variable(_,_), _) => (Some(e), v2)
-    //case OuterUnnest(_,_,_, v2 @ Variable(_,_), _) => (Some(e), v2)
-    case NestBlock(_,_,_,_,v2 @ Variable(_,_),_,_,_) => (Some(e), v2)
     case _ => sys.error(s"not supported $e")
   }
 

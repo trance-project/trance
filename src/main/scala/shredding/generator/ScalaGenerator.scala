@@ -160,19 +160,6 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
           |${ind(generate(f))}.flatMap($gv2 => {
           |${ind(s"${conditional(p, s"List(($vars, $gv2))", "Nil")}")}
           |})}""".stripMargin
-    case NestBlock(e1, v1, f, e, v2, p, e2, v3) => 
-        val acc = "acc" + Variable.newId()
-        val grps = "grps" + Variable.newId()
-        val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
-        // address issues with this
-        s"""| { val hm = ${generate(e2)}.toMap 
-            | ${generate(e1)}.groupBy{ case $vars => { ${generate(f)} } }.map{
-            |   case v => (v._1, v._2.foldLeft(0){ case ($acc, $vars) => 
-            |     hm.get($vars) match {
-            |       case Some(${generate(v3)}) if ({ ${generate(p)} }) => $acc + ${generate(e)}
-            |       case _ => 0
-            |     }
-            |  })} }""".stripMargin
     case Nest(e1, v1, f, e2, v2, p) => 
       val grps = "grps" + Variable.newId()
       val acc = "acc"+Variable.newId()
@@ -191,6 +178,31 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
               | { ${generate(e2)} } } ) ) }""".stripMargin
       }
     case Lookup(e1, e2, v1, p1, v2, p2, p3) => 
+      val hm = "hm" + Variable.newId()
+      val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
+      val gv2 =  generate(v2)
+      p3 match {
+        case Constant(true) =>
+          s"""|{ val $hm = ${generate(e1)}.groupBy{case $vars => { ${generate(p1)} } }
+              | ${generate(e2)}.flatMap{$gv2 => $hm.get($gv2._1) match {
+              | case Some(a) => a.map(a1 => (a1, $gv2._2))
+              | case _ => Nil
+              |}}.flatMap(v => v._2.map(v2 => (v._1, v2)))
+              |}""".stripMargin
+        case _ => 
+          s"""|{ val $hm = ${generate(e1)}.groupBy{case $vars => { ${generate(p1)} } }
+              | val join1 = ${generate(e2)}.flatMap{$gv2 => $hm.get($gv2._1) match {
+              | case Some(a) => $gv2._2
+              | case _ => Nil
+              | }}
+              | val join2 = ${generate(e1)}.groupBy{case $vars => { ${generate(p3)} } }
+              | join1.flatMap($gv2 => join2.get({ ${generate(p2)} }) match {
+              |   case Some(a) => a.map(a1 => (a1, $gv2))
+              |   case _ => Nil
+              | })
+              |}""".stripMargin
+        }
+    case OuterLookup(e1, e2, v1, p1, v2, p2, p3) => 
       val hm = "hm" + Variable.newId()
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 =  generate(v2)

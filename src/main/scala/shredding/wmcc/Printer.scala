@@ -61,9 +61,6 @@ object Printer {
     case Nest(e1, v1, f, e3, v2, p) =>
       val acc = e match { case Constant(1) => "+"; case _ => "U" }
       s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- NEST[ ${acc} / ${quote(e3)} / ${quote(f)}, ${quote(p)} ](${quote(e1)})""".stripMargin
-    case NestBlock(e1, v1, f, e3, v2, p, e2, v3) =>
-      val acc = e match { case Constant(1) => "+"; case _ => "U" }
-      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- NEST[ ${acc} / ${quote(e3)} / ${quote(f)}, ${quote(p)} ](${quote(e2)})""".stripMargin
     case Join(e1, e2, v1, p1, v2, p2) =>
       s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) JOIN[${quote(p1)} = ${quote(p2)}](
            | ${ind(quote(e2))})""".stripMargin

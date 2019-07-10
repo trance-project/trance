@@ -10,12 +10,12 @@ import shredding.examples.tpch.{TPCHQueries, TPCHSchema, TPCHLoader}
 object App {
   
   def main(args: Array[String]){
-    /**run1Calc()
+    run1Calc()
     run1()
     run3Calc()
     run3()
     run4Calc()
-    run4()**/
+    run4()
     run5Calc()
     run5()
   }

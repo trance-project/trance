@@ -255,10 +255,6 @@ case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable,
   }
 }
 
-case class NestBlock(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr, e2: CExpr, v3: Variable) extends CExpr {
-  def tp: Type = BagCType(v2.tp)
-}
-
 case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
   def tp: BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
   override def wvars = {
