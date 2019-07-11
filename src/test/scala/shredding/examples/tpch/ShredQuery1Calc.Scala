@@ -3,16 +3,16 @@ package experiments
 /** Generated code **/
 import shredding.core.CaseClassRecord
 import shredding.examples.tpch._
-    case class Record1172(P__F: Int, L__F: Int, O__F: Int, c__F: Customer, uniqueId: Long) extends CaseClassRecord
-case class Record1173(c_name: String, c_orders: Record1172, uniqueId: Long) extends CaseClassRecord
-case class Record1180(o__F: Orders, P__F: Int, L__F: Int, uniqueId: Long) extends CaseClassRecord
-case class Record1181(o_orderdate: String, o_parts: Record1180, uniqueId: Long) extends CaseClassRecord
-case class Record1191(p_name: String, l_qty: Double, uniqueId: Long) extends CaseClassRecord
-case class RecM_flat2(_1: Record1172, _2: List[Record1181], uniqueId: Long) extends CaseClassRecord
-case class RecM_flat3(_1: Record1180, _2: List[Record1191], uniqueId: Long) extends CaseClassRecord
-case class RecM_flat1(_1: Q1Flat, _2: List[Record1173], uniqueId: Long) extends CaseClassRecord
-case class RecM_ctx3(lbl: Record1180, uniqueId: Long) extends CaseClassRecord
-case class RecM_ctx2(lbl: Record1172, uniqueId: Long) extends CaseClassRecord
+    case class Record174(P__F: Int, L__F: Int, O__F: Int, c__F: Customer, uniqueId: Long) extends CaseClassRecord
+case class Record175(c_name: String, c_orders: Record174, uniqueId: Long) extends CaseClassRecord
+case class Record182(o__F: Orders, P__F: Int, L__F: Int, uniqueId: Long) extends CaseClassRecord
+case class Record183(o_orderdate: String, o_parts: Record182, uniqueId: Long) extends CaseClassRecord
+case class Record193(p_name: String, l_qty: Double, uniqueId: Long) extends CaseClassRecord
+case class RecM_flat2(_1: Record174, _2: List[Record183], uniqueId: Long) extends CaseClassRecord
+case class RecM_flat3(_1: Record182, _2: List[Record193], uniqueId: Long) extends CaseClassRecord
+case class RecM_flat1(_1: Q1Flat, _2: List[Record175], uniqueId: Long) extends CaseClassRecord
+case class RecM_ctx3(lbl: Record182, uniqueId: Long) extends CaseClassRecord
+case class RecM_ctx2(lbl: Record174, uniqueId: Long) extends CaseClassRecord
 case class RecM_ctx1(lbl: Q1Flat, uniqueId: Long) extends CaseClassRecord
 object ShredQuery1Calc {
  def main(args: Array[String]){
@@ -34,128 +34,128 @@ val P__F = 4
 val P__D = (List((P__F, TPCHLoader.loadPart[Part].toList)), ())
     var end0 = System.currentTimeMillis() - start0
     def f(){
-      val x1053 = Q1Flat(P__F, C__F, L__F, O__F, newId) 
-val x1054 = RecM_ctx1(x1053, newId) 
-val x1055 = List(x1054) 
-val M_ctx1 = x1055
-val x1056 = M_ctx1
-val x1079 = M_ctx1.flatMap(x1057 => { 
-    val x1058 = x1057.lbl 
-    val x1059 = C__D._1 
-    val x1076 = x1059.flatMap(x1060 => { 
-      if({val x1061 = x1057.lbl 
-      val x1062 = x1061.C__F 
-      val x1063 = x1060._1 
-      val x1064 = x1062 == x1063 
-      x1064    }) {  val x1065 = x1060._2 
-        val x1075 = x1065.flatMap(x1066 => { 
-            val x1067 = x1066.c_name 
-            val x1068 = x1057.lbl 
-            val x1069 = x1068.P__F 
-            val x1070 = x1068.L__F 
-            val x1071 = x1068.O__F 
-            val x1072 = Record1172(x1069, x1070, x1071, x1066, newId) 
-            val x1073 = Record1173(x1067, x1072, newId) 
-            val x1074 = List(x1073) 
-            x1074}) 
-        x1075} else {  Nil}}) 
-    val x1077 = RecM_flat1(x1058, x1076, newId) 
-    val x1078 = List(x1077) 
-    x1078}) 
-val M_flat1 = x1079
-val x1080 = M_flat1
-val x1088 = M_flat1.flatMap(x1081 => { 
-    val x1082 = x1081._2 
-    val x1087 = x1082.flatMap(x1083 => { 
-        val x1084 = x1083.c_orders 
-        val x1085 = RecM_ctx2(x1084, newId) 
-        val x1086 = List(x1085) 
-        x1086}) 
-    x1087}) 
-val x1089 = x1088.distinct 
-val M_ctx2 = x1089
-val x1090 = M_ctx2
-val x1117 = M_ctx2.flatMap(x1091 => { 
-    val x1092 = x1091.lbl 
-    val x1093 = O__D._1 
-    val x1114 = x1093.flatMap(x1094 => { 
-      if({val x1095 = x1091.lbl 
-      val x1096 = x1095.O__F 
-      val x1097 = x1094._1 
-      val x1098 = x1096 == x1097 
-      x1098    }) {  val x1099 = x1094._2 
-        val x1113 = x1099.flatMap(x1100 => { 
-          if({val x1101 = x1100.o_custkey 
-          val x1102 = x1091.lbl 
-          val x1103 = x1102.c__F 
-          val x1104 = x1103.c_custkey 
-          val x1105 = x1101 == x1104 
-          x1105     }) {  val x1106 = x1100.o_orderdate 
-            val x1107 = x1091.lbl 
-            val x1108 = x1107.P__F 
-            val x1109 = x1107.L__F 
-            val x1110 = Record1180(x1100, x1108, x1109, newId) 
-            val x1111 = Record1181(x1106, x1110, newId) 
-            val x1112 = List(x1111) 
-            x1112} else {  Nil}}) 
-        x1113} else {  Nil}}) 
-    val x1115 = RecM_flat2(x1092, x1114, newId) 
-    val x1116 = List(x1115) 
-    x1116}) 
-val M_flat2 = x1117
-val x1118 = M_flat2
-val x1126 = M_flat2.flatMap(x1119 => { 
-    val x1120 = x1119._2 
-    val x1125 = x1120.flatMap(x1121 => { 
-        val x1122 = x1121.o_parts 
-        val x1123 = RecM_ctx3(x1122, newId) 
-        val x1124 = List(x1123) 
-        x1124}) 
-    x1125}) 
-val x1127 = x1126.distinct 
-val M_ctx3 = x1127
-val x1128 = M_ctx3
-val x1165 = M_ctx3.flatMap(x1129 => { 
-    val x1130 = x1129.lbl 
-    val x1131 = L__D._1 
-    val x1162 = x1131.flatMap(x1132 => { 
-      if({val x1133 = x1129.lbl 
-      val x1134 = x1133.L__F 
-      val x1135 = x1132._1 
-      val x1136 = x1134 == x1135 
-      x1136    }) {  val x1137 = x1132._2 
-        val x1161 = x1137.flatMap(x1138 => { 
-          if({val x1139 = x1138.l_orderkey 
-          val x1140 = x1129.lbl 
-          val x1141 = x1140.o__F 
-          val x1142 = x1141.o_orderkey 
-          val x1143 = x1139 == x1142 
-          x1143     }) {  val x1144 = P__D._1 
-            val x1160 = x1144.flatMap(x1145 => { 
-              if({val x1146 = x1129.lbl 
-              val x1147 = x1146.P__F 
-              val x1148 = x1145._1 
-              val x1149 = x1147 == x1148 
-              x1149    }) {  val x1150 = x1145._2 
-                val x1159 = x1150.flatMap(x1151 => { 
-                  if({val x1152 = x1138.l_partkey 
-                  val x1153 = x1151.p_partkey 
-                  val x1154 = x1152 == x1153 
-                  x1154   }) {  val x1155 = x1151.p_name 
-                    val x1156 = x1138.l_quantity 
-                    val x1157 = Record1191(x1155, x1156, newId) 
-                    val x1158 = List(x1157) 
-                    x1158} else {  Nil}}) 
-                x1159} else {  Nil}}) 
-            x1160} else {  Nil}}) 
-        x1161} else {  Nil}}) 
-    val x1163 = RecM_flat3(x1130, x1162, newId) 
-    val x1164 = List(x1163) 
-    x1164}) 
-val M_flat3 = x1165
-val x1166 = M_flat3
-val x1167 = (x1056,x1080,x1090,x1118,x1128,x1166) 
-x1167           
+      val x55 = Q1Flat(P__F, C__F, L__F, O__F, newId) 
+val x56 = RecM_ctx1(x55, newId) 
+val x57 = List(x56) 
+val M_ctx1 = x57
+val x58 = M_ctx1
+val x81 = M_ctx1.flatMap(x59 => { 
+    val x60 = x59.lbl 
+    val x61 = C__D._1 
+    val x78 = x61.flatMap(x62 => { 
+      if({val x63 = x59.lbl 
+      val x64 = x63.C__F 
+      val x65 = x62._1 
+      val x66 = x64 == x65 
+      x66    }) {  val x67 = x62._2 
+        val x77 = x67.flatMap(x68 => { 
+            val x69 = x68.c_name 
+            val x70 = x59.lbl 
+            val x71 = x70.P__F 
+            val x72 = x70.L__F 
+            val x73 = x70.O__F 
+            val x74 = Record174(x71, x72, x73, x68, newId) 
+            val x75 = Record175(x69, x74, newId) 
+            val x76 = List(x75) 
+            x76}) 
+        x77} else {  Nil}}) 
+    val x79 = RecM_flat1(x60, x78, newId) 
+    val x80 = List(x79) 
+    x80}) 
+val M_flat1 = x81
+val x82 = M_flat1
+val x90 = M_flat1.flatMap(x83 => { 
+    val x84 = x83._2 
+    val x89 = x84.flatMap(x85 => { 
+        val x86 = x85.c_orders 
+        val x87 = RecM_ctx2(x86, newId) 
+        val x88 = List(x87) 
+        x88}) 
+    x89}) 
+val x91 = x90.distinct 
+val M_ctx2 = x91
+val x92 = M_ctx2
+val x119 = M_ctx2.flatMap(x93 => { 
+    val x94 = x93.lbl 
+    val x95 = O__D._1 
+    val x116 = x95.flatMap(x96 => { 
+      if({val x97 = x93.lbl 
+      val x98 = x97.O__F 
+      val x99 = x96._1 
+      val x100 = x98 == x99 
+      x100    }) {  val x101 = x96._2 
+        val x115 = x101.flatMap(x102 => { 
+          if({val x103 = x102.o_custkey 
+          val x104 = x93.lbl 
+          val x105 = x104.c__F 
+          val x106 = x105.c_custkey 
+          val x107 = x103 == x106 
+          x107     }) {  val x108 = x102.o_orderdate 
+            val x109 = x93.lbl 
+            val x110 = x109.P__F 
+            val x111 = x109.L__F 
+            val x112 = Record182(x102, x110, x111, newId) 
+            val x113 = Record183(x108, x112, newId) 
+            val x114 = List(x113) 
+            x114} else {  Nil}}) 
+        x115} else {  Nil}}) 
+    val x117 = RecM_flat2(x94, x116, newId) 
+    val x118 = List(x117) 
+    x118}) 
+val M_flat2 = x119
+val x120 = M_flat2
+val x128 = M_flat2.flatMap(x121 => { 
+    val x122 = x121._2 
+    val x127 = x122.flatMap(x123 => { 
+        val x124 = x123.o_parts 
+        val x125 = RecM_ctx3(x124, newId) 
+        val x126 = List(x125) 
+        x126}) 
+    x127}) 
+val x129 = x128.distinct 
+val M_ctx3 = x129
+val x130 = M_ctx3
+val x167 = M_ctx3.flatMap(x131 => { 
+    val x132 = x131.lbl 
+    val x133 = L__D._1 
+    val x164 = x133.flatMap(x134 => { 
+      if({val x135 = x131.lbl 
+      val x136 = x135.L__F 
+      val x137 = x134._1 
+      val x138 = x136 == x137 
+      x138    }) {  val x139 = x134._2 
+        val x163 = x139.flatMap(x140 => { 
+          if({val x141 = x140.l_orderkey 
+          val x142 = x131.lbl 
+          val x143 = x142.o__F 
+          val x144 = x143.o_orderkey 
+          val x145 = x141 == x144 
+          x145     }) {  val x146 = P__D._1 
+            val x162 = x146.flatMap(x147 => { 
+              if({val x148 = x131.lbl 
+              val x149 = x148.P__F 
+              val x150 = x147._1 
+              val x151 = x149 == x150 
+              x151    }) {  val x152 = x147._2 
+                val x161 = x152.flatMap(x153 => { 
+                  if({val x154 = x140.l_partkey 
+                  val x155 = x153.p_partkey 
+                  val x156 = x154 == x155 
+                  x156   }) {  val x157 = x153.p_name 
+                    val x158 = x140.l_quantity 
+                    val x159 = Record193(x157, x158, newId) 
+                    val x160 = List(x159) 
+                    x160} else {  Nil}}) 
+                x161} else {  Nil}}) 
+            x162} else {  Nil}}) 
+        x163} else {  Nil}}) 
+    val x165 = RecM_flat3(x132, x164, newId) 
+    val x166 = List(x165) 
+    x166}) 
+val M_flat3 = x167
+val x168 = M_flat3
+val x169 = (x58,x82,x92,x120,x130,x168) 
+x169           
     }
     var time = List[Long]()
     for (i <- 1 to 5) {

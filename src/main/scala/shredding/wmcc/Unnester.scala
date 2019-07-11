@@ -95,13 +95,23 @@ object Unnester {
           }
       }
     case Comprehension(e1, v, p, e) if !w.isEmpty =>
-      assert(!E.isEmpty) 
       val preds = ps(p, v, w)
-      val nE = u.isEmpty match {
-        case true => Some(Join(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3)) //C6
-        case _ => Some(OuterJoin(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3)) //C9
+      assert(!E.isEmpty)
+      getPM(preds._1) match {
+        case (Constant(false), _) => 
+          val preds = ps(p, v, w)
+          u.isEmpty match {
+            case true => unnest(e)((u, w :+ v, Some(Join(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3))))
+            case _ => unnest(e)((u, w :+ v, Some(OuterJoin(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3))))
+          }
+        case (e2, be2) => 
+          val nE = Some(OuterJoin(E.get, Select(e1, v, Constant(true)), w, preds._2, v, preds._3)) // C11
+          val (nE2, nv) = getNest(unnest(e2)((w :+ v, w :+ v, nE))) 
+          unnest(e)((u, w :+ nv, nE2)) match {
+            case Nest(e3, w3, f3, t3, v3, p3, g3) => Nest(e3, w3, f3, t3, nv, be2(nv), g3) 
+            case res => res
+          }
       }
-      unnest(e)((u, w :+ v, nE))
     case c if (!w.isEmpty && c.tp.isInstanceOf[PrimitiveType]) =>
       assert(!E.isEmpty)
       if (u.isEmpty) Reduce(E.get, w, c, Constant(true))
@@ -187,9 +197,20 @@ object Unnester {
     case Lt(e1, e2 @ Comprehension(_,_,_,_)) => (e2, (v: Variable) => Lt(e1, v))
     case Lte(e1 @ Comprehension(_,_,_,_), e2) => (e1, (v: Variable) => Lte(v, e2))
     case Lte(e1, e2 @ Comprehension(_,_,_,_)) => (e2, (v: Variable) => Lte(e1, v))
-    case And(e1, e2) => ???
+    case And(e1, e2) => getPM(e1) match {
+      case (Constant(false), _) => getPM(e2) match {
+        case (pm, be) => (pm, (v: Variable) => And(e1, be(v)))
+        case _ => (Constant(false), (v: Variable) => Constant(true))
+      }
+      case (pm, be) => (pm, (v: Variable) => And(be(v), e2))
+      case _ => (Constant(false), (v: Variable) => Constant(true))
+    }
     case Or(e1, e2) => ???
     case Not(e1) => ???
+    case If(c, e1, _) => getPM(c) match {
+      case (Constant(false), _) => (Constant(false), (v: Variable) => Constant(true))
+      case (pm, bp) => (pm, bp)
+    } 
     case _ => (Constant(false), (v: Variable) => Constant(true))
   }
 

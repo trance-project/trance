@@ -12,12 +12,12 @@ object App {
   def main(args: Array[String]){
     run1Calc()
     run1()
-    run3Calc()
+    /**run3Calc()
     run3()
     run4Calc()
     run4()
     run5Calc()
-    run5()
+    run5()**/
     run7Calc()
     run7()
   }

@@ -240,15 +240,15 @@ object TPCHQueries {
   val cdef = VarDef("c", TupleType(Map("c_name" -> StringType, "c_nationkey" -> IntType)))
   val cref = TupleVarRef(cdef)
   val customersCond1 = ForeachUnion(cdef, rq3("customers").asInstanceOf[BagExpr],
-                        IfThenElse(Cmp(OpNe, cref("c_nationkey"), nref("n_nationkey")),
+                        IfThenElse(Cmp(OpEq, cref("c_nationkey"), nref("n_nationkey")),
                                    Singleton(Tuple("count" -> Const(1, IntType)))).asInstanceOf[BagExpr])
 
   val query7 =  ForeachUnion(ndef, relN,
                   Singleton(Tuple("n_name" -> nref("n_name"),
                                   "part_names" -> ForeachUnion(q3, BagVarRef(Q37),
-                                                    IfThenElse(Cmp(OpGe, Total(suppliersCond1), Const(0, IntType)),
-                                                               IfThenElse(Cmp(OpNe, Total(customersCond1), Const(0, IntType)),
-                                                                          Singleton(Tuple("p_name" -> rq3("p_name")))))))))
-
+                                                    //ForeachUnion(sdef, rq3("suppliers").asInstanceOf[BagExpr], 
+                                                      IfThenElse(And(Cmp(OpGt, Total(suppliersCond1), Const(0, IntType)),//sref("s_nationkey"), nref("n_nationkey")),
+                                                                     Cmp(OpEq, Total(customersCond1), Const(0, IntType))),
+                                                                  Singleton(Tuple("p_name" -> rq3("p_name"))))))))//)
 
 }

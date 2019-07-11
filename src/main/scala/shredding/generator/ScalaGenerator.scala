@@ -175,6 +175,10 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
         case _ => "(null)"
       }
       val grped = s"{ val $grps = ${generate(e1)}.groupBy{ case $vars => { ${generate(f)} } }"
+      val chkg = g match {
+        case Bind(_, t @ Tuple(fs), _) => generate(t)
+        case _ => "_"
+      }
       e2.tp match {
         case IntType => 
           s"""|$grped\n $grps.toList.map($gv2 => ($gv2._1, $gv2._2.foldLeft(0){ 
@@ -195,7 +199,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
               |   $np3
               |   case $vars => {${generate(g)}} match {
               |   case $nonet => Nil
-              |   case _ => List({${generate(e2)}})
+              |   case $chkg => List({${generate(e2)}})
               | }
               |} ) ) }""".stripMargin 
       }
@@ -249,11 +253,18 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Join(e1, e2, v1, p1, v2, p2) =>
       val hm = "hm" + Variable.newId()
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
-      s"""|{ val $hm = ${generate(e1)}.groupBy{ case $vars => {${generate(p1)}} }
-        |${generate(e2)}.flatMap(${generate(v2)} => $hm.get({${generate(p2)}}) match {
-        | case Some(a) => a.map(v => (v, ${generate(v2)}))
-        | case _ => Nil
-        |}) }""".stripMargin
+      (p1, p2) match {
+        case (Constant(true), Constant(true)) => 
+        s"""|${generate(e2)}.flatMap{ ${generate(v2)} => 
+            | ${generate(e1)}.map{ $vars => ($vars, ${generate(v2)}) }
+            |}""".stripMargin
+        case _ => 
+        s"""|{ val $hm = ${generate(e1)}.groupBy{ case $vars => {${generate(p1)}} }
+            |${generate(e2)}.flatMap(${generate(v2)} => $hm.get({${generate(p2)}}) match {
+            | case Some(a) => a.map(v => (v, ${generate(v2)}))
+            | case _ => Nil
+            |}) }""".stripMargin
+       }
     case OuterJoin(e1, e2, v1, p1, v2, p2) => generate(Join(e1, e2, v1, p1, v2, p2))
     case OuterUnnest(e1, v1, f, v2, p) => //generate(Unnest(e1, v1, f, v2, p))
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
