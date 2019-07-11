@@ -23,7 +23,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
   def generateTypeDef(tp: Type): String = tp match {
     case RecordCType(fs) =>
      val name = types(tp)
-      s"case class $name(${fs.map(x => s"${kvName(x._1)}: ${generateType(x._2)}").mkString(", ")})" 
+      s"case class $name(${fs.map(x => s"${kvName(x._1)}: ${generateType(x._2)}").mkString(", ")}, uniqueId: Long) extends CaseClassRecord" 
     case _ => sys.error("unsupported type "+tp)
   }
 
@@ -104,7 +104,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Record(fs) => {
       val tp = e.tp
       handleType(tp)
-      s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
+      s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")}, newId)"
     }
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
     case Project(e, field) => e.tp match {
@@ -128,14 +128,14 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case EmptySng => "Nil"
     case If(cond, e1, e2) => e2 match {
       case Some(a) => s"""
-        | if (${cond}) {
-        | ${ind(e1)})
+        | if ({${generate(cond)}}) {
+        | {${ind(generate(e1))}})
         | } else {
-        | ${ind(a)}
+        | {${ind(generate(a))}}
         | }""".stripMargin
       case None => s"""
-        | if (${cond})
-        | ${ind(e1)}
+        | if ({${generate(cond)}})
+        | {${ind(generate(e1))}}
         | else  Nil """.stripMargin
     }
     case Merge(e1, e2) => s"${generate(e1) ++ generate(e2)}"
@@ -160,22 +160,44 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
           |${ind(generate(f))}.flatMap($gv2 => {
           |${ind(s"${conditional(p, s"List(($vars, $gv2))", "Nil")}")}
           |})}""".stripMargin
-    case Nest(e1, v1, f, e2, v2, p) => 
+    case Nest(e1, v1, f, e2, v2, p, g) => 
       val grps = "grps" + Variable.newId()
       val acc = "acc"+Variable.newId()
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 = generate(v2)
-      val grped = s"{ val $grps = ${generate(e1)}.groupBy{ case $vars => { ${generate(f)} }}"
+      val np3 = if (v1.size > 1) { 
+        val nv = if (v1.last.tp == IntType) { 0 } else { "null" }
+        val sv = s"${vars.split(",").dropRight(1).mkString(",")}, $nv)"
+        s"case $sv =>  Nil" 
+      } else { "" } 
+      val nonet = g match {
+        case Bind(_, Tuple(fs), _) if fs.size != 1 => s"(${fs.tail.map(e => null).mkString(",")},_)"
+        case _ => "(null)"
+      }
+      val grped = s"{ val $grps = ${generate(e1)}.groupBy{ case $vars => { ${generate(f)} } }"
       e2.tp match {
         case IntType => 
-          s"""|$grped\n $grps.toList.map($gv2 => ($gv2._1, $gv2._2.foldLeft(0){ case ($acc, $vars) => 
-              | if ($vars._2.equals(None)) { 0 } else { $acc + {${generate(e2)}} } } ) ) }""".stripMargin
+          s"""|$grped\n $grps.toList.map($gv2 => ($gv2._1, $gv2._2.foldLeft(0){ 
+              | case ($acc, $vars) => {${generate(g)}} match {
+              |   case $nonet => $acc
+              |   case _ => $acc + {${generate(e2)}}
+              | }
+              |} ) ) }""".stripMargin
         case DoubleType => 
-          s"""|$grped\n $grps.toList.map($gv2 => ($gv2._1, $gv2._2.foldLeft(0){ case ($acc, $vars) => 
-              | if ($vars._2.equals(None)) { 0 } else { $acc + {${generate(e2)}} } } ) ) }""".stripMargin
+          s"""|$grped\n $grps.toList.map($gv2 => ($gv2._1, $gv2._2.foldLeft(0){ 
+              | case ($acc, $vars) => {${generate(g)}} match {
+              |   case $nonet => $acc
+              |   case _ => $acc + {${generate(e2)}}
+              | }
+              |} ) ) }""".stripMargin
         case _ => 
-          s"""|$grped\n $grps.toList.map($gv2 => ($gv2._1, $gv2._2.map{ case $vars => 
-              | { ${generate(e2)} } } ) ) }""".stripMargin
+          s"""|$grped\n $grps.toList.map($gv2 => ($gv2._1, $gv2._2.flatMap{ 
+              |   $np3
+              |   case $vars => {${generate(g)}} match {
+              |   case $nonet => Nil
+              |   case _ => List({${generate(e2)}})
+              | }
+              |} ) ) }""".stripMargin 
       }
     case Lookup(e1, e2, v1, p1, v2, p2, p3) => 
       val hm = "hm" + Variable.newId()
@@ -206,27 +228,24 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       val hm = "hm" + Variable.newId()
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 =  generate(v2)
-      p3 match {
-        case Constant(true) =>
-          s"""|{ val $hm = ${generate(e1)}.groupBy{case $vars => { ${generate(p1)} } }
-              | ${generate(e2)}.flatMap{$gv2 => $hm.get($gv2._1) match {
-              | case Some(a) => a.map(a1 => (a1, $gv2._2))
-              | case _ => Nil
-              |}}.flatMap(v => v._2.map(v2 => (v._1, v2)))
-              |}""".stripMargin
-        case _ => 
-          s"""|{ val $hm = ${generate(e1)}.groupBy{case $vars => { ${generate(p1)} } }
-              | val join1 = ${generate(e2)}.flatMap{$gv2 => $hm.get($gv2._1) match {
-              | case Some(a) => $gv2._2
-              | case _ => Nil
-              | }}
-              | val join2 = ${generate(e1)}.groupBy{case $vars => { ${generate(p3)} } }
-              | join1.flatMap($gv2 => join2.get({ ${generate(p2)} }) match {
-              |   case Some(a) => a.map(a1 => (a1, $gv2))
-              |   case _ => Nil
-              | })
-              |}""".stripMargin
-        }
+      val np3 = if (v1.size > 1) {
+        val sv = s"${vars.split(",").dropRight(1).mkString(",")}, null)"
+        s"case $sv =>  List(($sv, null))"
+      } else { "" }
+      val nonet = p1 match {
+        case Bind(_, Tuple(fs), _) => fs.map(e => null).mkString("(", ",", ")")
+        case _ => "(null)" 
+      }
+      s"""|{ val $hm = ${generate(e2)}.map{ case $gv2 => ($gv2._1, $gv2._2)}.toMap
+          |${generate(e1)}.flatMap{ 
+          |  $np3
+          |  case $vars => $hm.get({${generate(p1)}}) match {
+          |   case Some(a) => a.flatMap{ case $gv2 => 
+          |     if ({${generate(p2)}} == {${generate(p3)} }) { List(($vars, $gv2)) } else { List(($vars, null)) }
+          |   }
+          |   case _ => List(($vars, null))
+          | }
+          |}}""".stripMargin
     case Join(e1, e2, v1, p1, v2, p2) =>
       val hm = "hm" + Variable.newId()
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
@@ -236,13 +255,6 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
         | case _ => Nil
         |}) }""".stripMargin
     case OuterJoin(e1, e2, v1, p1, v2, p2) => generate(Join(e1, e2, v1, p1, v2, p2))
-      /**val hm = "hm" + Variable.newId()
-      val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
-      s"""|{ val $hm = ${generate(e1)}.groupBy{ case $vars => {${generate(p1)}} }
-        |${generate(e2)}.flatMap(${generate(v2)} => $hm.get({${generate(p2)}}) match {
-        | case Some(a) => a.map(v => (v, ${generate(v2)}))
-        | case _ => List((None, ${generate(v2)}))
-        |}) }""".stripMargin**/
     case OuterUnnest(e1, v1, f, v2, p) => //generate(Unnest(e1, v1, f, v2, p))
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 = generate(v2)

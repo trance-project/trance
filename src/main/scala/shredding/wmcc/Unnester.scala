@@ -27,8 +27,9 @@ object Unnester {
           if (u.isEmpty) Reduce(E.get, w, t, cond)
           else {
             val et = Tuple(u)
+            val gt = Tuple((w.toSet -- u).toList)
             val v = Variable.fresh(TTupleType(et.tp.attrTps :+ BagCType(t.tp)))
-            Nest(E.get, w, et, t, v, cond)
+            Nest(E.get, w, et, t, v, cond, gt)
           }
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
           val (nE, v2) = getNest(unnest(value)((w, w, E)))
@@ -42,8 +43,9 @@ object Unnester {
           if (u.isEmpty) Reduce(E.get, w, t, Constant(true))
           else {
             val et = Tuple(u)
+            val gt = Tuple((w.toSet -- u).toList)
             val v = Variable.fresh(TTupleType(et.tp.attrTps :+ BagCType(t.tp)))
-            Nest(E.get, w, et, t, v, Constant(true))
+            Nest(E.get, w, et, t, v, Constant(true), gt)
           }
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
           val (nE, v2) = getNest(unnest(value)((w, w, E)))
@@ -61,7 +63,7 @@ object Unnester {
           val nE = Some(OuterUnnest(E.get, w, e1, v, Constant(true))) // C11
           val (nE2, nv) = getNest(unnest(e2)((w :+ v, w :+ v, nE))) 
           unnest(e)((u, w :+ nv, nE2)) match {
-            case Nest(e3, w3, f3, t3, v3, p3) => Nest(e3, w3, f3, t3, nv, be2(nv)) 
+            case Nest(e3, w3, f3, t3, v3, p3, g3) => Nest(e3, w3, f3, t3, nv, be2(nv), g3) 
             case res => res
           }
       }
@@ -82,16 +84,13 @@ object Unnester {
           case Constant(true) => (Constant(true), Constant(true))
           case _ => sys.error(s"not supported $p2") 
         }
-        val nE = u.isEmpty match {
-          case true => Some(Lookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, p1s, p2s))
-          case _ => Some(OuterLookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, p1s, p2s))
-        }
+        val nE = Some(Lookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, p1s, p2s))
         unnest(e3)((u, w :+ v2, nE)) 
         case (e, be2) => 
           val nE = Some(OuterLookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, Constant(true), Constant(true)))
           val (nE2, nv) = getNest(unnest(e)((w :+ v2, w :+ v2, nE)))
           unnest(e3)((u, w :+ nv, nE2)) match {
-            case Nest(e4, w4, f4, t4, v4, p4) => Nest(e4, w4, f4, t4, v4, p4)
+            case Nest(e4, w4, f4, t4, v4, p4, g3) => Nest(e4, w4, f4, t4, v4, p4, g3)
             case res => res
           }
       }
@@ -108,7 +107,8 @@ object Unnester {
       if (u.isEmpty) Reduce(E.get, w, c, Constant(true))
       else {
         val et = Tuple(u)
-        Nest(E.get, w, et, c, Variable.fresh(TTupleType(et.tp.attrTps :+ IntType)), Constant(true))
+        val gt = Tuple((w.toSet -- u).toList)
+        Nest(E.get, w, et, c, Variable.fresh(TTupleType(et.tp.attrTps :+ IntType)), Constant(true), gt)
       }
     case LinearCSet(exprs) => LinearCSet(exprs.map(unnest(_)((Nil, Nil, None))))
     case CNamed(n, exp) => exp match {
@@ -121,7 +121,7 @@ object Unnester {
 
   def getNest(e: CExpr): (Option[CExpr], Variable) = e match {
     case Bind(nval, nv @ Variable(_,_), e1) => (Some(e), nv)
-    case Nest(_,_,_,_,v2 @ Variable(_,_),_) => (Some(e), v2)
+    case Nest(_,_,_,_,v2 @ Variable(_,_),_,_) => (Some(e), v2)
     case _ => sys.error(s"not supported $e")
   }
 

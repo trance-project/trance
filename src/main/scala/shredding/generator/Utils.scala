@@ -125,11 +125,18 @@ object Utils {
     s"""
       |package experiments
       |/** Generated code **/
+      |import shredding.core.CaseClassRecord
       |import shredding.examples.tpch._
       |    $h
       |object $n {
       | def main(args: Array[String]){
       |    var start0 = System.currentTimeMillis()
+      |    var id = 0L
+      |    def newId: Long = {
+      |      val prevId = id
+      |      id += 1
+      |      prevId
+      |    }
       |    $i
       |    var end0 = System.currentTimeMillis() - start0
       |    def f(){
@@ -156,11 +163,18 @@ object Utils {
     s"""
       |package experiments
       |/** Generated code **/
+      |import shredding.core.CaseClassRecord
       |import shredding.examples.tpch._
       |$h
       |object $n {
       | def main(args: Array[String]){
       |    var start0 = System.currentTimeMillis()
+      |    var id = 0L
+      |    def newId: Long = {
+      |      val prevId = id
+      |      id += 1
+      |      prevId
+      |    }
       |    $i1
       |    val $i2 = { $q1 }
       |    var end0 = System.currentTimeMillis() - start0

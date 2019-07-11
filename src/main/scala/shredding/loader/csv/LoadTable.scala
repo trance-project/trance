@@ -145,8 +145,15 @@ object Loader {
       val recordArguments = recordType.member(termNames.CONSTRUCTOR).asMethod.paramLists.head map {
         p => (p.name.decodedName.toString, p.typeSignature)
       }
+      var id = 0L
+      def newId: Long = {
+        val prevId = id
+        id += 1
+        prevId
+      }
 
       val arguments = recordArguments.map {
+        case ("uniqueId", tpe) => ("uniqueId", tpe, Attribute("uniqueId", LongType))
         case (name, tpe) =>
           (name, tpe, table.attributes.find(a => a.name == name) match {
             case Some(a) => a
@@ -161,6 +168,7 @@ object Loader {
             case IntType        => ldr.next_int
             case StringType     => ldr.next_string
             case DoubleType     => ldr.next_double
+            case LongType       => newId
             //case DecimalType(_) => ldr.next_double
             //case CharType       => ldr.next_char
             //case DateType       => ldr.next_date

@@ -216,4 +216,39 @@ object TPCHQueries {
                       Const(0, IntType)),
                       Singleton(Tuple("p_name" -> rq3("p_name")))))))))
 
+  val q7name = "Query7"
+  val Q37 = VarDef(q7name, query3.tp)
+  val q7data = "val N = TPCHLoader.loadNation[Nation].toList"
+  val sq7data = s"""
+    |case class Input_Q3_Dict1(suppliers: (List[RecM_flat2], Unit), customers: (List[RecM_flat3], Unit))
+    |val N__F = 7
+    |val N__D = (List((N__F, TPCHLoader.loadNation[Nation].toList)), ())
+    |val Query7__F = ShredQuery7._1.head.lbl
+    |val Query7__D = (ShredQuery7._2, Input_Q3_Dict1((ShredQuery7._4, Unit), (ShredQuery7._6, Unit)))""".stripMargin
+
+  val ndef = VarDef("n", TPCHSchema.nationtype.tp)
+  val relN = BagVarRef(VarDef("N", TPCHSchema.nationtype))
+  val nref = TupleVarRef(ndef)
+
+  val sdef = VarDef("s", TupleType(Map("s_name" -> StringType, "s_nationkey" -> IntType)))
+  val sref = TupleVarRef(sdef)
+
+  val suppliersCond1 = ForeachUnion(sdef, rq3("suppliers").asInstanceOf[BagExpr],
+                        IfThenElse(Cmp(OpEq, sref("s_nationkey"), nref("n_nationkey")),
+                                   Singleton(Tuple("count" -> Const(1, IntType)))).asInstanceOf[BagExpr])
+  
+  val cdef = VarDef("c", TupleType(Map("c_name" -> StringType, "c_nationkey" -> IntType)))
+  val cref = TupleVarRef(cdef)
+  val customersCond1 = ForeachUnion(cdef, rq3("customers").asInstanceOf[BagExpr],
+                        IfThenElse(Cmp(OpNe, cref("c_nationkey"), nref("n_nationkey")),
+                                   Singleton(Tuple("count" -> Const(1, IntType)))).asInstanceOf[BagExpr])
+
+  val query7 =  ForeachUnion(ndef, relN,
+                  Singleton(Tuple("n_name" -> nref("n_name"),
+                                  "part_names" -> ForeachUnion(q3, BagVarRef(Q37),
+                                                    IfThenElse(Cmp(OpGe, Total(suppliersCond1), Const(0, IntType)),
+                                                               IfThenElse(Cmp(OpNe, Total(customersCond1), Const(0, IntType)),
+                                                                          Singleton(Tuple("p_name" -> rq3("p_name")))))))))
+
+
 }
