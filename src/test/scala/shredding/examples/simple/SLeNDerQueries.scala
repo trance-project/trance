@@ -4,7 +4,10 @@ import org.scalatest.FunSuite
 import shredding.core._
 import shredding.examples.tpch.TPCHQueries.{c, cr, l, lr, o, or, p, pr, ps, psr, relC, relL, relO, relP, relPS, relS, s, sr}
 import shredding.examples.tpch.{TPCHQueries, TPCHSchema, TestData}
+import shredding.nrc.{NRC, Printer, ShredNRC}
+
 import shredding.wmcc._
+
 
 class SLeNDerQueries extends FunSuite {
 
@@ -104,7 +107,7 @@ class SLeNDerQueries extends FunSuite {
         Singleton(Tuple(
           "n_name" -> nref("n_name"),
           "part_names" -> ForeachUnion(xdef2, query3,
-            IfThenElse(And(Cmp(OpGe, Total(suppliersCond1), Const(0, IntType)),
+            IfThenElse(And(Cmp(OpGt, Total(suppliersCond1), Const(0, IntType)),
               Cmp(OpNe, Total(customersCond1), Const(0, IntType))),
               Singleton(Tuple(
                 "p_name" -> q3ref("p_name"))
@@ -148,8 +151,131 @@ class SLeNDerQueries extends FunSuite {
       val res2 = evaluator.finalize(normq1.asInstanceOf[CExpr])
       println("Q7 results with new context :\n" + res2)
       val head2 = res2.asInstanceOf[List[RecordValue]].head
-      assert(RecordValue("n_name" -> "Country1", "part_names" -> List(List(RecordValue("p_name" -> "part 5")))).equals(head2))
+//      assert(RecordValue("n_name" -> "Country1", "part_names" -> List(List(RecordValue("p_name" -> "part 5")))).equals(head2))
     }
   }
 
+
+
+  // QUERY 7 : uses two different approach for Q7, executes both and prints the results.
+  test("testQ7V2") {
+    println("")
+    val q7 = {
+      import TPCHQueries.nrc._
+      import shredding.nrc.Printer
+
+      // QUERY 3 - this is the same as in TPCHQuery query3, but it also returns the keys.
+      val query3 = ForeachUnion(p, relP,
+        Singleton(Tuple("p_name" -> pr("p_name"), "suppliers" -> ForeachUnion(ps, relPS,
+          IfThenElse(Cmp(OpEq, psr("ps_partkey"), pr("p_partkey")),
+            ForeachUnion(s, relS,
+              IfThenElse(Cmp(OpEq, sr("s_suppkey"), psr("ps_suppkey")),
+                Singleton(Tuple("s_name" -> sr("s_name"),
+                  "s_nationkey" -> sr("s_nationkey")
+                )))))),
+          "customers" -> ForeachUnion(l, relL,
+            IfThenElse(Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
+              ForeachUnion(o, relO,
+                IfThenElse(Cmp(OpEq, or("o_orderkey"), lr("l_orderkey")),
+                  ForeachUnion(c, relC,
+                    IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
+                      Singleton(Tuple(
+                        "c_name" -> cr("c_name"),
+                        "c_nationkey" -> cr("c_nationkey"),
+                      )))))))))))
+
+
+      println("[TEST_Q7]" + query3.tp)
+      // QUERY 7 : for each country of origin list the parts that are supplied locally but bought by foreign customers.
+//      For n in N Union
+//      Sng((n_name := n.n_name, part_names := For q3 in Query3 Union
+//        For s in q3.suppliers Union
+//        If (s.s_nationkey = n.n_nationkey AND Total(For c in q3.customers Union
+//          If (c.c_nationkey = n.n_nationkey)
+//          Then Sng((count := 1))) = 0)
+//        Then Sng((p_name := q3.p_name))))
+
+      val ndef = VarDef("n", TPCHSchema.nationtype.tp)
+      val relN = BagVarRef(VarDef("N", TPCHSchema.nationtype))
+      val q3Type = BagType(TupleType(Map(
+        "p_name" -> StringType,
+        "suppliers" -> BagType(TupleType(Map("s_name" -> StringType, "s_nationkey" -> IntType))),
+        "customers" -> BagType(TupleType(Map("c_name" -> StringType, "c_nationkey" -> IntType))))))
+      val xdef2 = VarDef("x", q3Type.tp)
+
+      val q3ref = TupleVarRef(xdef2)
+      val nref = TupleVarRef(ndef)
+
+      val sdef = VarDef("s", TupleType(Map("s_name" -> StringType, "s_nationkey" -> IntType)))
+      val sref = TupleVarRef(sdef)
+
+      val suppliersCond1 = ForeachUnion(sdef, q3ref("suppliers").asInstanceOf[BagExpr],
+        IfThenElse(
+          Cmp(OpEq, sref("s_nationkey"), nref("n_nationkey")),
+          Singleton(Tuple("count" -> Const(1, IntType)))
+        ).asInstanceOf[BagExpr])
+      val cdef = VarDef("c", TupleType(Map("c_name" -> StringType, "c_nationkey" -> IntType)))
+      val cref = TupleVarRef(cdef)
+      val customersCond1 = ForeachUnion(cdef, q3ref("customers").asInstanceOf[BagExpr],
+        IfThenElse(
+          Cmp(OpNe, cref("c_nationkey"), nref("n_nationkey")),
+          Singleton(Tuple("count" -> Const(1, IntType)))
+        ).asInstanceOf[BagExpr])
+
+
+      val customersCond1_new = ForeachUnion(cdef, q3ref("customers").asInstanceOf[BagExpr],
+        IfThenElse(Cmp(OpEq, cref("c_nationkey"), nref("n_nationkey")),
+          Singleton(Tuple("count" -> Const(1, IntType)))).asInstanceOf[BagExpr])
+
+      val query7_old = ForeachUnion(ndef, relN,
+        Singleton(Tuple(
+          "n_name" -> nref("n_name"),
+          "part_names" -> ForeachUnion(xdef2, query3,
+            IfThenElse(And(Cmp(OpGt, Total(suppliersCond1), Const(0, IntType)),
+              Cmp(OpNe, Total(customersCond1), Const(0, IntType))),
+              Singleton(Tuple(
+                "p_name" -> q3ref("p_name"))
+              )))
+        )))
+      val query7 =  ForeachUnion(ndef, relN,
+        Singleton(Tuple("n_name" -> nref("n_name"),
+          "part_names" -> ForeachUnion(xdef2, query3,
+            ForeachUnion(sdef,  q3ref("suppliers").asInstanceOf[BagExpr],
+              IfThenElse(And(Cmp(OpEq, sref("s_nationkey"), nref("n_nationkey")),
+                Cmp(OpEq, Total(customersCond1_new), Const(0, IntType))),
+                Singleton(Tuple("p_name" ->  q3ref("p_name")))))))))
+
+      // PRINT Q7
+      val printer = new Printer {}
+      println("query: \n" + printer.quote(query7.asInstanceOf[printer.Expr]))
+      println("query_old: \n" + printer.quote(query7_old.asInstanceOf[printer.Expr]))
+      val translator = new NRCTranslator {}
+      val normalizer = new Finalizer(new BaseNormalizer {})
+      val qTranslated = translator.translate(query7.asInstanceOf[translator.Expr])
+      val qTranslated_old = translator.translate(query7_old.asInstanceOf[translator.Expr])
+      val normq1 = normalizer.finalize(qTranslated)
+      val normq1_old = normalizer.finalize(qTranslated_old)
+      println("translated: \n" + Printer.quote(normq1.asInstanceOf[CExpr]))
+      println("translated_old: \n" + Printer.quote(normq1_old.asInstanceOf[CExpr]))
+      // EXECUTE Q7
+      val eval = new BaseScalaInterp {}
+      val evaluator = new Finalizer(eval)
+      eval.ctx("N") = TestData.nation
+      eval.ctx("S") = TestData.supplier
+      eval.ctx("PS") = TestData.partsupp
+      eval.ctx("C") = TestData.customers
+      eval.ctx("L") = TestData.lineitem
+      eval.ctx("O") = TestData.orders
+      eval.ctx("P") = TestData.part
+
+
+
+      // EXECUTE Q7
+      val res_old = evaluator.finalize(normq1_old.asInstanceOf[CExpr])
+      val res = evaluator.finalize(normq1.asInstanceOf[CExpr])
+      println("Q7 results_old:\n" + res_old)
+      println("Q7 results:\n" + res)
+
+    }
+  }
 }
