@@ -86,11 +86,11 @@ object Unnester {
         }
         val nE = Some(Lookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, p1s, p2s))
         unnest(e3)((u, w :+ v2, nE)) 
-        case (e, be2) => 
+        case (e4, be2) => 
           val nE = Some(OuterLookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, Constant(true), Constant(true)))
-          val (nE2, nv) = getNest(unnest(e)((w :+ v2, w :+ v2, nE)))
+          val (nE2, nv) = getNest(unnest(e4)((w :+ v2, w :+ v2, nE)))
           unnest(e3)((u, w :+ nv, nE2)) match {
-            case Nest(e4, w4, f4, t4, v4, p4, g3) => Nest(e4, w4, f4, t4, v4, p4, g3)
+            case Nest(e4, w4, f4, t4, v4, p4, g3) => Nest(e4, w4, f4, t4, nv, be2(nv), g3)
             case res => res
           }
       }
@@ -197,7 +197,7 @@ object Unnester {
     case Lt(e1, e2 @ Comprehension(_,_,_,_)) => (e2, (v: Variable) => Lt(e1, v))
     case Lte(e1 @ Comprehension(_,_,_,_), e2) => (e1, (v: Variable) => Lte(v, e2))
     case Lte(e1, e2 @ Comprehension(_,_,_,_)) => (e2, (v: Variable) => Lte(e1, v))
-    case And(e1, e2) => getPM(e1) match {
+    case And(e1, e2) => getPM(e1) match { // ???
       case (Constant(false), _) => getPM(e2) match {
         case (pm, be) => (pm, (v: Variable) => And(e1, be(v)))
         case _ => (Constant(false), (v: Variable) => Constant(true))

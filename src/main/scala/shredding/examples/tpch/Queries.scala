@@ -246,9 +246,9 @@ object TPCHQueries {
   val query7 =  ForeachUnion(ndef, relN,
                   Singleton(Tuple("n_name" -> nref("n_name"),
                                   "part_names" -> ForeachUnion(q3, BagVarRef(Q37),
-                                                    //ForeachUnion(sdef, rq3("suppliers").asInstanceOf[BagExpr], 
-                                                      IfThenElse(And(Cmp(OpGt, Total(suppliersCond1), Const(0, IntType)),//sref("s_nationkey"), nref("n_nationkey")),
+                                                    ForeachUnion(sdef, rq3("suppliers").asInstanceOf[BagExpr], 
+                                                      IfThenElse(And(Cmp(OpEq, sref("s_nationkey"), nref("n_nationkey")),
                                                                      Cmp(OpEq, Total(customersCond1), Const(0, IntType))),
-                                                                  Singleton(Tuple("p_name" -> rq3("p_name"))))))))//)
+                                                                  Singleton(Tuple("p_name" -> rq3("p_name")))))))))
 
 }
