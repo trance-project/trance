@@ -18,6 +18,8 @@ case object StringType extends PrimitiveType
 
 case object DoubleType extends PrimitiveType
 
+case object LongType extends PrimitiveType
+
 case class BagType(tp: TupleType) extends TupleAttributeType
 
 case class TupleType(attrTps: Map[String, TupleAttributeType]) extends Type {

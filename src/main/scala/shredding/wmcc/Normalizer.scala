@@ -50,12 +50,20 @@ trait BaseNormalizer extends BaseCompiler {
   }
 
   override def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = cond match {
-    case Constant(true) => e1
+    case Constant(true) => e1 match {
+      case Sng(t) if t.tp.isInstanceOf[PrimitiveType] => t
+      case _ => e1
+    }
     case Constant(false) => e2 match {
-      case Some(a) =>  a
+      case Some(a @ Sng(t)) if t.tp.isInstanceOf[PrimitiveType] => t 
+      case Some(a) => a 
       case _ => super.emptysng
     }
-    case _ => super.ifthen(cond, e1, e2)
+    case _ => e1 match {
+      case Sng(t) if t.tp == IntType => super.ifthen(cond, t, Some(Constant(0)))
+      case Sng(t) if t.tp == DoubleType => super.ifthen(cond, t, Some(Constant(0.0))) 
+      case _ => super.ifthen(cond, e1, e2)
+    }
   }
 
   override def lookup(lbl: Rep, dict: Rep): Rep = dict match {
@@ -76,18 +84,32 @@ trait BaseNormalizer extends BaseCompiler {
       case Sng(t) => ifthen(p(t), Sng(e(t))) // N6
       case Merge(e1, e2) => Merge(comprehension(e1, p, e), comprehension(e2, p, e))  //N7
       case Variable(_,_) => ifthen(p(e1), Sng(e(e1))) // input relation
-      case Comprehension(e2, v2, p2, e3) => //N8
+      case Comprehension(e2, v2, p2, e3) => e3 match {
+        // weighted singleton used for count
+        // { 1 | v <- { WeightedSng(t,q) | v2 <- e2, p2}, p(v) }
+        // { if (p(v)) { q } else { 0 } | v2 <- e2, p2, v := t, ... }
+        // need to sum if more than one weighted sng is in a comprehension
+        case WeightedSng(t, q) if (e(e3) == Constant(1)) =>
+          val c2 = comprehension(Sng(t), p, (i: CExpr) => q) match {
+            case Comprehension(a,b,c,Constant(1)) => Comprehension(a, b, c, q)
+            case c3 => c3
+          } 
+          Comprehension(e2, v2, p2, c2)
+        //N8
         // { e(v) | v <- { e3 | v2 <- e2, p2 }, p(v) }
         // { { e(v) | v <- e3 } | v2 <- e2, p2 }
-        Comprehension(e2, v2, p2, comprehension(e3, p, e))
+        case _ => Comprehension(e2, v2, p2, comprehension(e3, p, e))
+      }
       case c @ CLookup(flat, dict) =>
-        val v1 = Variable.fresh(c.tp.tp)
-        val v2 = Variable.fresh(c.tp.tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
-        Comprehension(Project(dict, "_1"), v1, equals(flat, Project(v1, "_1")),
+        val v1 = Variable.fresh(dict.tp.asInstanceOf[BagDictCType].flatTp.tp)
+        val v2 = Variable.fresh(c.tp.tp)
+        //Comprehension(Project(dict, "flat"), v1, and(equals(flat, Project(dict, "lbl")), p(v1)), e(v1))
+        Comprehension(Project(dict, "_1"), v1, equals(flat, Project(v1, "_1")), 
           Comprehension(Project(v1, "_2"), v2, p(v2), e(v2)))
       case _ => // standard case (return self)
         val v = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
         Comprehension(e1, v, p(v), e(v))
       }
     }
+
 }

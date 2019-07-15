@@ -3,7 +3,7 @@ package shredding.examples.simple
 import org.scalatest.FunSuite
 import shredding.core._
 import shredding.examples.simple.{FlatRelations, FlatTests}
-import shredding.wmcc.{BaseNormalizer, BaseScalaInterp, CExpr, Finalizer, NRCTranslator, PipelineRunner, Printer}
+import shredding.wmcc.{BaseNormalizer, BaseScalaInterp, CExpr, Finalizer, NRCTranslator, PipelineRunner, Printer, Rec}
 import shredding.examples.tpch.TPCHQueries.{c, cr, l, lr, o, or, p, pr, ps, psr, relC, relL, relO, relP, relPS, relS, s, sr}
 import shredding.examples.tpch.{TPCHQueries, TPCHSchema, TestData}
 
@@ -37,7 +37,28 @@ class ShreddingTest extends FunSuite {
                         "c_name" -> PrimitiveProject(cr.asInstanceOf[TupleExpr],"c_name"),
                         "c_nationkey" -> PrimitiveProject(cr.asInstanceOf[TupleExpr],"c_nationkey"),
                       )))))))))))
+      val eval = new BaseScalaInterp {}
+      val evaluator = new Finalizer(eval)
 
+      // ** here i will evaluate query3 so i can pass the output of that to query 7 **/
+      eval.ctx("S__F") = 1
+      eval.ctx("S__D") = (List((1,TestData.supplier)), ())
+      eval.ctx("PS__F") = 1
+      eval.ctx("PS__D") = (List((1,TestData.partsupp)), ())
+      eval.ctx("C__F") = 1
+      eval.ctx("C__D") = (List((1,TestData.customers)), ())
+      eval.ctx("L__F") = 1
+      eval.ctx("L__D") = (List((1,TestData.lineitem)), ())
+      eval.ctx("O__F") = 1
+      eval.ctx("O__D") = (List((1,TestData.orders)), ())
+      eval.ctx("P__F") = 1
+      eval.ctx("P__D") = (List((1,TestData.part)), ())
+
+      val shreddedQ3 = runner.shredPipeline(query3.asInstanceOf[runner.Expr])
+      val snormq3 = normalizer.finalize(shreddedQ3)
+
+      println("Query 3 output, to be used for query 7 input")
+      println(evaluator.finalize(snormq3.asInstanceOf[CExpr]))
 
       println("[TEST_Q7]" + query3.tp)
       // QUERY 7 : for each country of origin list the parts that are supplied locally but bought by foreign customers.
@@ -55,6 +76,7 @@ class ShreddingTest extends FunSuite {
         "p_name" -> StringType,
         "suppliers" -> BagType(TupleType(Map("s_name" -> StringType, "s_nationkey" -> IntType))),
         "customers" -> BagType(TupleType(Map("c_name" -> StringType, "c_nationkey" -> IntType))))))
+      val Q3 = VarDef("Q3", q3Type)
       val xdef2 = VarDef("x", q3Type.tp)
 
       val q3ref = TupleVarRef(xdef2)
@@ -93,7 +115,7 @@ class ShreddingTest extends FunSuite {
         )))
       val query7 =  ForeachUnion(ndef, relN,
         Singleton(Tuple("n_name" -> nref("n_name"),
-          "part_names" -> ForeachUnion(xdef2, query3,
+          "part_names" -> ForeachUnion(xdef2, BagVarRef(Q3),
             ForeachUnion(sdef,  q3ref("suppliers").asInstanceOf[BagExpr],
               IfThenElse(And(Cmp(OpEq, sref("s_nationkey"), nref("n_nationkey")),
                 Cmp(OpEq, Total(customersCond1_new), Const(0, IntType))),
@@ -107,30 +129,19 @@ class ShreddingTest extends FunSuite {
       val normq1 = normalizer.finalize(qTranslated)
       println("translated: \n" + Printer.quote(normq1.asInstanceOf[CExpr]))
 
-
-
       val shreddedQ7 = runner.shredPipeline(query7.asInstanceOf[runner.Expr])
       val snormq7 = normalizer.finalize(shreddedQ7)
       println("Shredded q7: " + Printer.quote(snormq7.asInstanceOf[CExpr]))
       // EXECUTE Q7
-      val eval = new BaseScalaInterp {}
-      val evaluator = new Finalizer(eval)
+
+      eval.ctx("Q3__F") = eval.ctx("M_ctx1").asInstanceOf[List[_]].head.asInstanceOf[Rec].map("lbl")
+      def makeInput(k: Any): List[(Any, List[Any])] = k match {
+        case l:List[_] => l.asInstanceOf[List[Rec]].map{ case rv => (rv.map("k"), rv.map("v").asInstanceOf[List[Any]]) }
+        case _ => ???
+      }
+      eval.ctx("Q3__D") = (makeInput(eval.ctx("M_flat1")), (Rec("customers" -> (makeInput(eval.ctx("M_flat3")), ()), "suppliers" -> (makeInput(eval.ctx("M_flat2")), ()))))
       eval.ctx("N__F") = 1
       eval.ctx("N__D") = (List((1,TestData.nation)), ())
-
-
-      eval.ctx("S__F") = 1
-      eval.ctx("S__D") = (List((1,TestData.supplier)), ())
-      eval.ctx("PS__F") = 1
-      eval.ctx("PS__D") = (List((1,TestData.partsupp)), ())
-      eval.ctx("C__F") = 1
-      eval.ctx("C__D") = (List((1,TestData.customers)), ())
-      eval.ctx("L__F") = 1
-      eval.ctx("L__D") = (List((1,TestData.lineitem)), ())
-      eval.ctx("O__F") = 1
-      eval.ctx("O__D") = (List((1,TestData.orders)), ())
-      eval.ctx("P__F") = 1
-      eval.ctx("P__D") = (List((1,TestData.part)), ())
 
       //shredding
 

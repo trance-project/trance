@@ -134,22 +134,22 @@ class SLeNDerQueries extends FunSuite {
       eval.ctx("P") = TestData.part
       val res = evaluator.finalize(normq1.asInstanceOf[CExpr])
       println("Q7 results:\n" + res)
-      val head = res.asInstanceOf[List[RecordValue]].head
-      assert(RecordValue("n_name" -> "Country1", "part_names" -> List()).equals(head))
+      val head = res.asInstanceOf[List[Rec]].head
+      assert(Rec("n_name" -> "Country1", "part_names" -> List()).equals(head))
 
       val customers = List(
-        RecordValue("c_custkey" -> 1, "c_name" -> "Test Customer1", "c_nationkey" -> 1),
-        RecordValue("c_custkey" -> 2, "c_name" -> "Test Customer2", "c_nationkey" -> 1),
-        RecordValue("c_custkey" -> 3, "c_name" -> "Test Customer3", "c_nationkey" -> 2),
-        RecordValue("c_custkey" -> 4, "c_name" -> "Test Customer4", "c_nationkey" -> 2),
-        RecordValue("c_custkey" -> 5, "c_name" -> "Test Customer5", "c_nationkey" -> 3),
-        RecordValue("c_custkey" -> 6, "c_name" -> "Test Customer6", "c_nationkey" -> 3)
+        Rec("c_custkey" -> 1, "c_name" -> "Test Customer1", "c_nationkey" -> 1),
+        Rec("c_custkey" -> 2, "c_name" -> "Test Customer2", "c_nationkey" -> 1),
+        Rec("c_custkey" -> 3, "c_name" -> "Test Customer3", "c_nationkey" -> 2),
+        Rec("c_custkey" -> 4, "c_name" -> "Test Customer4", "c_nationkey" -> 2),
+        Rec("c_custkey" -> 5, "c_name" -> "Test Customer5", "c_nationkey" -> 3),
+        Rec("c_custkey" -> 6, "c_name" -> "Test Customer6", "c_nationkey" -> 3)
       )
       eval.ctx("C") = customers
       val res2 = evaluator.finalize(normq1.asInstanceOf[CExpr])
       println("Q7 results with new context :\n" + res2)
-      val head2 = res2.asInstanceOf[List[RecordValue]].head
-//      assert(RecordValue("n_name" -> "Country1", "part_names" -> List(List(RecordValue("p_name" -> "part 5")))).equals(head2))
+      val head2 = res2.asInstanceOf[List[Rec]].head
+//      assert(Rec("n_name" -> "Country1", "part_names" -> List(List(Rec("p_name" -> "part 5")))).equals(head2))
     }
   }
 
