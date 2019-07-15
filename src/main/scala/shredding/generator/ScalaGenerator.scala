@@ -9,8 +9,9 @@ import shredding.utils.Utils.ind
   */
 
 class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
-  var types:Map[Type,String] = inputs
-  var typelst:Seq[Type] = Seq()//inputs.map(_._1).toSeq
+ 
+  var types: Map[Type, String] = inputs
+  var typelst: Seq[Type] = Seq()
 
   implicit def expToString(e: CExpr): String = generate(e)
   
@@ -79,7 +80,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       }
     }
   }
-  
+
   def conditional(p: CExpr, thenp: String, elsep: String): String = p match {
     case Constant(true) => s"${ind(thenp)}"
     case _ => s"if({${generate(p)}}) {${ind(thenp)}} else {${ind(elsep)}}"

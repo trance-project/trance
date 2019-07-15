@@ -7,7 +7,8 @@ import shredding.wmcc._
 object Utils {
 
   val normalizer = new Finalizer(new BaseNormalizer{})
-  val pathout = (outf: String) => s"src/test/scala/shredding/examples/tpch/$outf.Scala"
+  //val pathout = (outf: String) => s"src/test/scala/shredding/examples/tpch/$outf.Scala"
+  val pathout = (outf: String) => s"src/test/scala/shredding/examples/simple/$outf.Scala"
 
   /**
     * Produces an output file for a query pipeline
@@ -116,6 +117,141 @@ object Utils {
     }
 
   }
+
+  /**
+    * Produces an output file for a query pipeline
+    * (either shredded or not shredded) the does not do unnesting
+    * Currently, this does not handle Spark code that does nested
+    * comprehensions with an input that is an RDD. The generated 
+    * Spark application for those queries will error out during execution.
+    */
+
+  def runCalcSpark(qInfo: (CExpr, String, String), inputM: Map[Type, String], 
+              q2Info: (CExpr, String, String) = (EmptySng, "", "")): Unit = {
+    val anfBase = new BaseANF {}
+    val anfer = new Finalizer(anfBase)
+
+    val (q1, qname, qdata) = qInfo
+    
+    val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
+    println(Printer.quote(normq1))
+    val inputs = normq1 match {
+                   case l @ LinearCSet(_) => inputM ++ l.getTypeMap
+                   case _ => inputM ++ Map(normq1.tp.asInstanceOf[BagCType].tp -> s"${qname}Out")
+                 }
+    val ng = inputM.toList.map(f => f._2)
+    val codegen = new SparkNamedGenerator(inputs)
+    
+    val anfedq1 = new Finalizer(anfBase).finalize(normq1.asInstanceOf[CExpr])
+    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
+    val gcode = codegen.generate(anfExp1)
+    val header = codegen.generateHeader(ng)
+
+    val printer = new PrintWriter(new FileOutputStream(new File(pathout(qname+"SparkCalc")), false))
+    val finalc = writeSpark(qname+"SparkCalc", qdata, header, gcode)
+    printer.println(finalc)
+    printer.close 
+
+    // generate the down stream query
+    if (q2Info != (EmptySng, "", "")){
+      
+      val (q2, q2name, q2data) = q2Info
+
+      val normq2 = normalizer.finalize(q2).asInstanceOf[CExpr]
+      anfBase.reset
+      val anfedq2 = anfer.finalize(normq2)
+      val anfExp2 = anfBase.anf(anfedq2.asInstanceOf[anfBase.Rep])
+
+      val gcode2 = codegen.generate(anfExp2)
+      val header2 = codegen.generateHeader(ng)
+
+      val printer2 = new PrintWriter(new FileOutputStream(new File(pathout(q2name+"Calc")), false))
+      val finalc2 = write2(q2name+"Calc", qdata, header2, gcode, q2name, gcode2, q2data)
+      printer2.println(finalc2)
+      printer2.close 
+
+    }
+
+  }
+
+  /**
+    * Produces an ouptut spark application 
+    * (either shredded or not shredded) that does unnesting
+    */
+ 
+  def runSpark(qInfo: (CExpr, String, String), inputM: Map[Type, String], 
+          q2Info: (CExpr, String, String) = (EmptySng, "", "")): Unit = {
+    val anfBase = new BaseANF {}
+    val anfer = new Finalizer(anfBase)
+
+    val (q1, qname, qdata) = qInfo
+    
+    val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
+    val inputs = normq1 match {
+                  case l @ LinearCSet(_) => inputM ++ l.getTypeMap
+                  case _ => inputM ++ Map(normq1.tp.asInstanceOf[BagCType].tp -> s"${qname}Out")
+                 }
+    val ng = inputM.toList.map(f => f._2)
+    val codegen = new SparkNamedGenerator(inputs)
+    
+    val plan1 = Unnester.unnest(normq1)(Nil, Nil, None).asInstanceOf[CExpr]
+    println(Printer.quote(plan1))
+    val anfedq1 = anfer.finalize(plan1)
+    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
+    println(Printer.quote(anfExp1))
+    val gcode = codegen.generate(anfExp1)
+    val header = codegen.generateHeader(ng)
+
+    val printer = new PrintWriter(new FileOutputStream(new File(pathout(qname+"Spark")), false))
+    val finalc = writeSpark(qname+"Spark", qdata, header, gcode)
+    printer.println(finalc)
+    printer.close 
+
+    // generate the down stream query
+    if (q2Info != (EmptySng, "", "")){
+      val (q2, q2name, q2data) = q2Info
+
+      val normq2 = normalizer.finalize(q2).asInstanceOf[CExpr]
+      println(Printer.quote(normq2))
+      val plan2 = Unnester.unnest(normq2)(Nil, Nil, None)
+      println(Printer.quote(plan2))
+      anfBase.reset
+      val anfedq2 = anfer.finalize(plan2)
+      val anfExp2 = anfBase.anf(anfedq2.asInstanceOf[anfBase.Rep])
+
+      val gcode2 = codegen.generate(anfExp2)
+      val header2 = codegen.generateHeader(ng)
+
+      val printer2 = new PrintWriter(new FileOutputStream(new File(pathout(q2name)), false))
+      val finalc2 = write2(q2name, qdata, header2, gcode, q2name, gcode2, q2data)
+      printer2.println(finalc2)
+      printer2.close 
+    }
+
+  }
+
+  /**
+    * Writes out a query for a Spark application
+    **/
+
+  def writeSpark(appname: String, data: String, header: String, gcode: String): String  = {
+    s"""
+      |package experiments
+      |/** Generated **/
+      |import org.apache.spark.SparkConf
+      |import org.apache.spark.sql.SparkSession
+      |import shredding.examples.simple._
+      |$header
+      |object $appname {
+      | def main(args: Array[String]){
+      |   val conf = new SparkConf().setMaster("local[*]").setAppName(\"$appname\")
+      |   val spark = SparkSession.builder().config(conf).getOrCreate()
+      |   $data
+      |   $gcode
+      | }
+      |}""".stripMargin
+  }
+
 
   /**
     * Writes out a query that has inputs provided from the context (h)

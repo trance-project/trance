@@ -1,6 +1,8 @@
 package shredding.generator
 
+import shredding.core._
 import shredding.wmcc._
+import shredding.examples.simple.{FlatTests, NestedTests, FlatRelations, NestedRelations}
 import shredding.examples.tpch.{TPCHQueries, TPCHSchema, TPCHLoader}
 
 /**
@@ -9,17 +11,46 @@ import shredding.examples.tpch.{TPCHQueries, TPCHSchema, TPCHLoader}
 
 object App {
   
+  def runSparkCalc(){
+    println(" ------------------------------- Spark Test Query -------------------------- ")
+    val q1 = translator.translate(NestedTests.q10.asInstanceOf[translator.Expr])
+    val qinfo = (q1.asInstanceOf[CExpr], NestedTests.q10name, NestedRelations.format4Spark)
+    Utils.runCalcSpark(qinfo, NestedRelations.q10inputs)
+  }
+
+  def runSpark(){
+    println(" ------------------------------- Spark Test Query -------------------------- ")
+    val q1 = translator.translate(FlatTests.q1.asInstanceOf[translator.Expr])
+    val qinfo = (q1.asInstanceOf[CExpr], "FlatTest1", FlatRelations.format1Spark)
+    Utils.runSpark(qinfo, Map[Type, String]())
+    
+    val q2 = translator.translate(FlatTests.q3.asInstanceOf[translator.Expr])
+    val q2info = (q2.asInstanceOf[CExpr], "FlatTest2", FlatRelations.format1Spark)
+    Utils.runSpark(q2info, Map[Type, String]())
+  
+  }
+
+  def runSpark2(){
+    println(" ------------------------------- Spark Test Query Plan -------------------------- ")
+    val q2 = translator.translate(NestedTests.q11.asInstanceOf[translator.Expr])
+    val q2info = (q2.asInstanceOf[CExpr], NestedTests.q11name, NestedRelations.format4Spark)
+    Utils.runSpark(q2info, NestedRelations.q10inputs)
+  
+  }
+
   def main(args: Array[String]){
-    run1Calc()
+    //runSparkCalc()
+    runSpark()
+    /**run1Calc()
     run1()
-    /**run3Calc()
+    run3Calc()
     run3()
     run4Calc()
     run4()
     run5Calc()
-    run5()**/
+    run5()
     run7Calc()
-    run7()
+    run7()**/
   }
   
   val runner = new PipelineRunner{}

@@ -12,6 +12,17 @@ case class InputRB1(a: Int, b: List[InputRB2])
 case class InputRB1F(a: Int, b: Int)
 case class InputRB1D(b: (List[(Int, List[InputRB2])], Unit))
 
+case class RecordValue3(f: Int, g: Int)
+case class RecordValue2(c: Int, d: Int)
+case class RecordValue1(a: Int, b: List[RecordValue2], e:List[RecordValue3])
+
+case class P(p_partkey: Int, p_name: String)
+case class PS(ps_partkey: Int, ps_suppkey: Int)
+case class S(s_suppkey: Int, s_name: String, s_nationkey: Int)
+case class L(l_partkey: Int, l_orderkey: Int)
+case class O(o_orderkey: Int, o_custkey: Int)
+case class C(c_custkey: Int, c_name: String, c_nationkey: Int)
+
 /**
   * Flat and nested relations used for simple queries
   * each relation starts with type information, then has the 
@@ -46,6 +57,11 @@ object FlatRelations {
     |val R__F = 1
     |val R__D = (List((R__F, List(InputR(42, "Milos"), InputR(49, "Michael"), 
     |             InputR(34, "Jaclyn"), InputR(42, "Thomas")))), ())""".stripMargin
+  
+  val format1Spark = s"""
+    |val R = spark.sparkContext.parallelize(List(Input_R(42, "Milos"), Input_R(49, "Michael"),
+    |              Input_R(34, "Jaclyn"), Input_R(42, "Thomas")))""".stripMargin
+
 }
 
 object NestedRelations{
@@ -171,10 +187,20 @@ object NestedRelations{
                         Map("a" -> 10, "s1" -> List(Map("b" -> 5, "c" -> 20)),
                         "s2" -> List(Map("b" -> 11, "c" -> 16), Map("b" -> 2, "c" -> 50))))
     
-    
+    val format3Spark = s"""
+      |val R = spark.sparkContext.parallelize(List(RecordValue1(\"part1\", List(RecordValue2(12, 3), RecordValue2(4, 2)),
+      |                  List(RecordValue3(16, 11), RecordValue3(6, 6))), 
+      |     RecordValue1(\"part10\", List(RecordValue2(5, 20)),
+      |                  List(RecordValue3(11, 16), RecordValue3(2, 50)))))""".stripMargin
+       
     val type4b = TupleType("c" -> IntType, "d" -> IntType)
     val type4e = TupleType("f" -> IntType, "g" -> IntType)
     val type4a = TupleType("a" -> StringType, "b" -> BagType(type4b), "e" -> BagType(type4e))
+   
+    var q10inputs: Map[Type, String] = Map(type4b -> "RecordValue2", 
+                                           type4e -> "RecordValue3", 
+                                           type4a -> "RecordValue1")
+   
     val format4a = List(RecordValue("a" -> "part", 
                                     "b" -> List(RecordValue("c" -> 1,"d" -> 17), 
                                                 RecordValue("c" -> 1,"d" -> 17),
@@ -186,7 +212,37 @@ object NestedRelations{
                                                 RecordValue("f" -> 1, "g" -> 15),
                                                 RecordValue("f" -> 1, "g" -> 15),
                                                 RecordValue("f" -> 1, "g" -> 15)))) 
-       
+ 
+    val typeP = TupleType("p_partkey" -> IntType, "p_name" -> StringType)
+    val typePS = TupleType("ps_partkey" -> IntType, "ps_suppkey" -> IntType)
+    val typeS = TupleType("s_suppkey" -> IntType, "s_name" -> StringType, "s_nationkey" -> IntType)
+    val typeL = TupleType("l_partkey" -> IntType, "l_orderkey" -> IntType)
+    val typeO = TupleType("o_orderkey" -> IntType, "o_custkey" -> IntType)
+    val typeC = TupleType("c_custkey" -> IntType, "c_name" -> StringType, "c_nationkey" -> IntType)
+
+    val format4Spark = 
+      s"""
+        val P = spark.sparkContext.parallelize(List(Input_P(1, "part1", newId), Input_P(2, "part2", newId), 
+                  Input_P(3, "part3", newId), Input_P(4, "part4", newId), Input_P(5, "part5", newId)))
+        val PS = spark.sparkContext.parallelize(List(Input_PS(1, 1, newId), Input_PS(2, 1, newId), Input_PS(3, 2, newId), 
+                  Input_PS(4, 3, newId), Input_PS(5, 3, newId), Input_PS(1, 4, newId)))
+        val S = spark.sparkContext.parallelize(List(Input_S(1, "supplier A", 1, newId), Input_S(2, "supplier B", 1, newId), 
+                  Input_S(3, "supplier C", 2, newId), Input_S(4, "supplier D", 3, newId)))
+        val L = spark.sparkContext.parallelize(List(Input_L(1, 1, newId), Input_L(1, 2, newId), Input_L(2, 1, newId), Input_L(2, 3, newId), Input_L(3, 1, newId), Input_L(4, 5, newId), Input_L(5, 4, newId)))
+        val O = spark.sparkContext.parallelize(List(Input_O(1, 1, newId), Input_O(2, 1, newId), Input_O(3, 2, newId), Input_O(4, 3, newId), Input_O(5, 2, newId)))
+        val C = spark.sparkContext.parallelize(List(Input_C(1, "Test Customer 1", 1, newId), Input_C(2, "Test Customer 2", 1, newId), Input_C(3, "Test Customer 3", 1, newId), Input_C(4, "Test Customer 4", 2, newId), Input_C(5, "Test Customer 5", 3, newId), Input_C(6, "Test Customer 6", 3, newId)))
+        val R = spark.sparkContext.parallelize(List(RecordValue1("part1", 
+                            List(RecordValue2(1,17), 
+                                 RecordValue2(1,17),
+                                 RecordValue2(1,17),
+                                 RecordValue2(1,17)),
+                            List(RecordValue3(1, 15), 
+                                 RecordValue3(1, 15),
+                                 RecordValue3(1, 15),
+                                 RecordValue3(1, 15),
+                                 RecordValue3(1, 15),
+                                 RecordValue3(1, 15)))))"""
+                                       
     val sformat4a = (List((1, List(RecordValue("a" -> "part", "b" -> 2, "e" -> 3)))),
                       RecordValue("b" -> (List((2, List(RecordValue("c" -> 1,"d" -> 17),
                                                                RecordValue("c" -> 1,"d" -> 17),
