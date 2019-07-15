@@ -2,10 +2,8 @@ package shredding.examples.simple
 
 import org.scalatest.FunSuite
 import shredding.core._
-import shredding.examples.tpch.TPCHQueries.{c, cr, l, lr, o, or, p, pr, ps, psr, relC, relL, relO, relP, relPS, relS, s, sr}
+import shredding.examples.tpch.TPCHQueries._
 import shredding.examples.tpch.{TPCHQueries, TPCHSchema, TestData}
-import shredding.nrc.{NRC, Printer, ShredNRC}
-
 import shredding.wmcc._
 
 
