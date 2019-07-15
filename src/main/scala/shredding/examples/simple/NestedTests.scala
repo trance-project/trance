@@ -86,4 +86,23 @@ object NestedTests {
                 "s2'" -> ForeachUnion(x7, BagProject(TupleVarRef(x6), "s2"),
                           IfThenElse(Cmp(OpGt, TupleVarRef(x7)("c"), Const(6, IntType)),
                             Singleton(TupleVarRef(x7)))))))
+    
+    val relR4 = BagVarRef(VarDef("R", BagType(NestedRelations.type4a)))
+    val x8 = VarDef("x", NestedRelations.type4a)
+    val rx8 = TupleVarRef(x8)
+    val x9 = VarDef("y", NestedRelations.type4b)
+    val rx9 = TupleVarRef(x9)
+    val x10 = VarDef("z", NestedRelations.type4e)
+    val rx10 = TupleVarRef(x10)
+    val q10 = ForeachUnion(x8, relR4, 
+                Singleton(Tuple("o1" -> rx8("a"), "o2" -> 
+                  Total(ForeachUnion(x9, BagProject(rx8, "b"),
+                          IfThenElse(Cmp(OpEq, 
+                                         Total(ForeachUnion(x10, BagProject(rx8, "e"),
+                                                IfThenElse(Cmp(OpEq, rx9("d"), rx10("g")), 
+                                                  Singleton(Tuple("flag" -> Const("exists", StringType)))))),
+                                          Const(0, IntType)),
+                                      Singleton(Tuple("o3" -> rx8("a"))))))))) 
+                                                          
+
 }

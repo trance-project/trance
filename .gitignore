@@ -1,6 +1,8 @@
+*DS_Store*
 project/
 target/
 .history
 *.swp
 compile.sh
-tests/*
+test*
+data.flat

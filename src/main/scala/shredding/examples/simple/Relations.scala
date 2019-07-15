@@ -136,9 +136,9 @@ object NestedRelations{
     val nested2Inputs:Map[Type, String] = Map(type22a -> "InputRB1", type21a -> "InputRB2")
     val nested2SInputs:Map[Type, String] = Map(type22a -> "InputRB1", TupleType("a" -> IntType, "b" -> IntType) -> "IntputRB1F", BagDictType(BagType(TupleType("c" -> IntType)), TupleDictType(Map[String, TupleDictAttributeType]())) -> "InputRB1D")
    
-    val format2a = List(Map("a" -> 42, "b" -> List(Map("c" -> 1), Map("c" -> 2), Map("c" -> 4))),
-                              Map("a" -> 49, "b" -> List(Map("c" -> 3), Map("c" -> 2))),
-                              Map("a" -> 34, "b" -> List(Map("c" ->5))))
+   val format2a = List(RecordValue("a" -> 42, "b" -> List(RecordValue("c" -> 1), RecordValue("c" -> 2), RecordValue("c" -> 4))),
+                              RecordValue("a" -> 49, "b" -> List(RecordValue("c" -> 3), RecordValue("c" -> 2))),
+                              RecordValue("a" -> 34, "b" -> List(RecordValue("c" ->5))))
     
     val format2b = List(InputRB1(42,  List(InputRB2(1), InputRB2(2), InputRB2(4))),
                         InputRB1(49,  List(InputRB2(3), InputRB2(2))),
@@ -171,4 +171,31 @@ object NestedRelations{
                         Map("a" -> 10, "s1" -> List(Map("b" -> 5, "c" -> 20)),
                         "s2" -> List(Map("b" -> 11, "c" -> 16), Map("b" -> 2, "c" -> 50))))
     
+    
+    val type4b = TupleType("c" -> IntType, "d" -> IntType)
+    val type4e = TupleType("f" -> IntType, "g" -> IntType)
+    val type4a = TupleType("a" -> StringType, "b" -> BagType(type4b), "e" -> BagType(type4e))
+    val format4a = List(RecordValue("a" -> "part", 
+                                    "b" -> List(RecordValue("c" -> 1,"d" -> 17), 
+                                                RecordValue("c" -> 1,"d" -> 17),
+                                                RecordValue("c" -> 1,"d" -> 17),
+                                                RecordValue("c" -> 1,"d" -> 17)), 
+                                    "e" -> List(RecordValue("f" -> 1, "g" -> 15), 
+                                                RecordValue("f" -> 1, "g" -> 15),
+                                                RecordValue("f" -> 1, "g" -> 15),
+                                                RecordValue("f" -> 1, "g" -> 15),
+                                                RecordValue("f" -> 1, "g" -> 15),
+                                                RecordValue("f" -> 1, "g" -> 15)))) 
+       
+    val sformat4a = (List((1, List(RecordValue("a" -> "part", "b" -> 2, "e" -> 3)))),
+                      RecordValue("b" -> (List((2, List(RecordValue("c" -> 1,"d" -> 17),
+                                                               RecordValue("c" -> 1,"d" -> 17),
+                                                               RecordValue("c" -> 1,"d" -> 17),
+                                                               RecordValue("c" -> 1,"d" -> 17)))), ()),
+                                  "e" -> (List((3, List(RecordValue("f" -> 1, "g" -> 15),
+                                                               RecordValue("f" -> 1, "g" -> 15),
+                                                               RecordValue("f" -> 1, "g" -> 15),
+                                                               RecordValue("f" -> 1, "g" -> 15),
+                                                               RecordValue("f" -> 1, "g" -> 15),
+                                                               RecordValue("f" -> 1, "g" -> 15)))), ())))
 }

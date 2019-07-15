@@ -11,7 +11,7 @@ import shredding.core._
 
 sealed trait CExpr {
   def tp: Type
-  def wvars: List[Variable] = List()
+  def wvars: List[Variable] = List() // remove this 
 }
 
 case class InputRef(data: String, tp: Type) extends CExpr 
@@ -53,7 +53,7 @@ case class Record(fields: Map[String, CExpr]) extends CExpr{
 }
 
 case class Tuple(fields: List[CExpr]) extends CExpr {
-  def tp: Type = TTupleType(fields.map(_.tp))
+  def tp: TTupleType = TTupleType(fields.map(_.tp))
   def apply(n: String) = n match {
     case "_1" => fields(0)
     case "_2" => fields(1) 
@@ -143,7 +143,11 @@ case class CNamed(name: String, e: CExpr) extends CExpr {
 }
 
 case class LinearCSet(exprs: List[CExpr]) extends CExpr {
-  def tp: Type = EmptyCType // arbitrary type for a set of expressions
+  def tp: Type = EmptyCType
+  def getTypeMap: Map[Type, String] = exprs.map{ e => e match {
+    case CNamed(n, e1) => (e1.tp.asInstanceOf[BagCType].tp -> s"Rec$n")
+    case e1 => (e1.tp.asInstanceOf[BagCType].tp -> s"Record${Variable.newId}")
+  }}.toMap
 }
 
 /**
@@ -155,7 +159,7 @@ case class LinearCSet(exprs: List[CExpr]) extends CExpr {
   */
 
 case class CLookup(lbl: CExpr, dict: CExpr) extends CExpr {
-  def tp: BagCType = dict.tp.asInstanceOf[BagDictCType]._1
+  def tp: BagCType = dict.tp.asInstanceOf[BagDictCType].flat
 }
 
 case object EmptyCDict extends CExpr {
@@ -168,11 +172,11 @@ case class BagCDict(lbl: CExpr, flat: CExpr, dict: CExpr) extends CExpr {
   def apply(n: String) = n match {
     case "lbl" => lbl
     case "flat" => flat
-    case "_1" => Tuple(List(lbl, flat))
+    //case "_1" => List(lbl, flat)
     case "_2" => dict
   }
-  def lambda = Tuple(List(lbl, flat))
-  def _1 = flat
+  //def lambda = Tuple(List(lbl, flat))
+  //def _1 = flat
   def _2 = dict
 }
 
@@ -198,7 +202,13 @@ case class DictCUnion(d1: CExpr, d2: CExpr) extends CExpr {
 
 case class Select(x: CExpr, v: Variable, p: CExpr) extends CExpr {
   def tp: Type = x.tp
+  // def tpMap: Map[Variable, Type] = Map(v -> x.asInstanceOf[BagCType].tp)
   override def wvars = List(v)
+  // todo equality should support filter
+  override def equals(that: Any): Boolean = that match {
+    case Select(x1, v1, p1) if (x1 == x) => true
+    case _ => false
+  }
 }
 
 case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CExpr {
@@ -206,50 +216,80 @@ case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CEx
     case t:RecordCType => BagCType(t)
     case t => t
   }
+  // def tpMap: Map[Variable, Type] = e1.tpMap // head of plan
   override def wvars = e1.wvars
 }
 
 // { (v1, v2) | v1 <- e1, v2 <- e2(v1), p((v1, v2)) } 
 case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
-  def tp: Type = BagCType(TTupleType(v1.map(_.tp) :+ v2.tp))
+  def tp: Type = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = e1.wvars :+ v2
+  override def equals(that: Any): Boolean = that match {
+    case Unnest(e11, v11, e21, v21, p1) if (e1 == e11 && e21 == e2) => true
+    case _ => false
+  }
 }
 
 case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
-  def tp: Type = BagCType(TTupleType(v1.map(_.tp) :+ v2.tp))
+  def tp: Type = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = e1.wvars :+ v2
+  override def equals(that: Any): Boolean = that match {
+    case OuterUnnest(e11, v11, e21, v21, p1) if (e1 == e11 && e21 == e2) => true
+    case _ => false
+  }
 }
 
-case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr) extends CExpr {
-  def tp: BagCType = e.tp match {
-    case IntType => 
-      BagCType(TTupleType(f.asInstanceOf[TTupleType].attrTps :+ e.tp))
-    case _ => BagCType(TTupleType(f.asInstanceOf[TTupleType].attrTps :+ BagCType(e.tp)))
-  }
+case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr, g: CExpr) extends CExpr {
+  def tp: Type = BagCType(v2.tp) // check 
+  // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = { 
-    val uvars = f.asInstanceOf[Tuple].fields
+    val uvars = f match {
+      case Bind(v1, t @ Tuple(fs), v2) => fs
+      case Tuple(fs) => fs
+      case v:Variable => List(v)
+      case _ => sys.error(s"unsupported $f")
+    }
     e1.wvars.filter(uvars.contains(_)) :+ v2
   }
 }
 
 case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
-  def tp: BagCType = BagCType(TTupleType(v1.map(_.tp) :+ v2.tp))
+  def tp: BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  override def wvars = {
+    e1.wvars :+ v2
+  }
+}
+
+// unnests an inner bag, without unnesting before a downstream join
+case class Lookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, p3: CExpr) extends CExpr {
+  def tp:BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  override def wvars = e1.wvars :+ v2
+}
+
+case class OuterLookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, p3: CExpr) extends CExpr {
+  def tp:BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
   override def wvars = e1.wvars :+ v2
 }
 
 case class Join(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
-  def tp: BagCType = BagCType(TTupleType(v1.map(_.tp) :+ v2.tp))
+  def tp: BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
   override def wvars = e1.wvars :+ v2
 }
 
 case class Variable(name: String, override val tp: Type) extends CExpr { self =>
-
+  
   // equals with a label check
   // check if deprecated (was used in unnesting before labels were represented as records)
   def lequals(that: CExpr): Boolean = that match {
     case that: Variable => this.equals(that)
-    case t if that.tp.isInstanceOf[LabelType] => 
+    //case Bind(v, e1, e2) => 
+    case Project(v, f) => this.lequals(v)
+    case t if that.tp.isInstanceOf[LabelType] =>
       that.tp.asInstanceOf[LabelType].attrTps.keys.toList.contains(this.name)
+    case t if that.tp.isInstanceOf[RecordCType] => // new label representation
+      that.tp.asInstanceOf[RecordCType].attrTps.keys.toList.contains(this.name)
     case _ => false  
   }
 
