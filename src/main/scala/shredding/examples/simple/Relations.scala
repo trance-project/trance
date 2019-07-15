@@ -129,6 +129,13 @@ object NestedRelations{
                                  InputR2("Michael", 7, List(InputR3(2), InputR3(9), InputR3(1))),
                                  InputR2("Jaclyn", 12, List(InputR3(14), InputR3(12))))),
                 InputR1(69, List(InputR2("Thomas", 987, List(InputR3(987), InputR3(654), InputR3(987), InputR3(987))))))
+
+    val format1Spark = s"""
+      |val R = spark.sparkContext.parallelize(List(InputR1(42, List(InputR2("Milos", 123, List(InputR3(123), InputR3(456), InputR3(789), InputR3(123))),
+      |                           InputR2("Michael", 7, List(InputR3(2), InputR3(9), InputR3(1))),
+      |                          InputR2("Jaclyn", 12, List(InputR3(14), InputR3(12))))),
+      |          InputR1(69, List(InputR2("Thomas", 987, List(InputR3(987), InputR3(654), InputR3(987), InputR3(987)))))))""".stripMargin
+    
     /**val R__F = 1
     case class InputR1Flat(a: Int, b: Int)
     case class InputR2Flat(m: String, n: Int, k: Int)
@@ -152,7 +159,7 @@ object NestedRelations{
     val nested2Inputs:Map[Type, String] = Map(type22a -> "InputRB1", type21a -> "InputRB2")
     val nested2SInputs:Map[Type, String] = Map(type22a -> "InputRB1", TupleType("a" -> IntType, "b" -> IntType) -> "IntputRB1F", BagDictType(BagType(TupleType("c" -> IntType)), TupleDictType(Map[String, TupleDictAttributeType]())) -> "InputRB1D")
    
-   val format2a = List(RecordValue("a" -> 42, "b" -> List(RecordValue("c" -> 1), RecordValue("c" -> 2), RecordValue("c" -> 4))),
+    val format2a = List(RecordValue("a" -> 42, "b" -> List(RecordValue("c" -> 1), RecordValue("c" -> 2), RecordValue("c" -> 4))),
                               RecordValue("a" -> 49, "b" -> List(RecordValue("c" -> 3), RecordValue("c" -> 2))),
                               RecordValue("a" -> 34, "b" -> List(RecordValue("c" ->5))))
     

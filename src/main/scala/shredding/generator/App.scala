@@ -28,6 +28,19 @@ object App {
     val q2info = (q2.asInstanceOf[CExpr], "FlatTest2", FlatRelations.format1Spark)
     Utils.runSpark(q2info, Map[Type, String]())
   
+    val q3 = translator.translate(FlatTests.q4.asInstanceOf[translator.Expr])
+    val q3info = (q3.asInstanceOf[CExpr], "FlatTest3", FlatRelations.format1Spark)
+    Utils.runSpark(q3info, Map[Type, String]())
+
+    val q4 = translator.translate(NestedTests.q2.asInstanceOf[translator.Expr])
+    val q4info = (q4.asInstanceOf[CExpr], "NestedTest1", NestedRelations.format1Spark)
+    Utils.runSpark(q4info, Map[Type, String]())
+
+    // sng bug in unnesting 
+    val q5 = translator.translate(NestedTests.q8.asInstanceOf[translator.Expr])
+    val q5info = (q5.asInstanceOf[CExpr], "NestedTest1", NestedRelations.format1Spark)
+    Utils.runSpark(q5info, Map[Type, String]())
+ 
   }
 
   def runSpark2(){
