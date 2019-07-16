@@ -16,6 +16,9 @@ case class RecordValue3(f: Int, g: Int)
 case class RecordValue2(c: Int, d: Int)
 case class RecordValue1(a: Int, b: List[RecordValue2], e:List[RecordValue3])
 
+case class InputS2(b: Int, c: Int)
+case class InputS1(b: Int, s1: List[InputS2], s2: List[InputS2])
+
 case class P(p_partkey: Int, p_name: String)
 case class PS(ps_partkey: Int, ps_suppkey: Int)
 case class S(s_suppkey: Int, s_name: String, s_nationkey: Int)
@@ -163,6 +166,11 @@ object NestedRelations{
                               RecordValue("a" -> 49, "b" -> List(RecordValue("c" -> 3), RecordValue("c" -> 2))),
                               RecordValue("a" -> 34, "b" -> List(RecordValue("c" ->5))))
     
+    val format2aSpark = s"""
+      |val R = spark.sparkContext.parallelize(List(InputRB1(42, List(InputRB2(1), InputRB2(2), InputRB2(4))),
+                              InputRB1(49, List(InputRB2(3), InputRB2(2))),
+                              InputRB1(34, List(InputRB2(5)))))""".stripMargin
+    
     val format2b = List(InputRB1(42,  List(InputRB2(1), InputRB2(2), InputRB2(4))),
                         InputRB1(49,  List(InputRB2(3), InputRB2(2))),
                         InputRB1(34,  List(InputRB2(5))))
@@ -193,7 +201,12 @@ object NestedRelations{
                         "s2" -> List(Map("b" -> 16, "c" -> 11), Map("b" -> 6, "c" -> 6))), 
                         Map("a" -> 10, "s1" -> List(Map("b" -> 5, "c" -> 20)),
                         "s2" -> List(Map("b" -> 11, "c" -> 16), Map("b" -> 2, "c" -> 50))))
-    
+   val format3aSpark = s"""
+    | val R = spark.sparkContext.parallelize(List(InputS1(1, List(InputS2(12, 3), InputS2(4, 2)),
+    |                    List(InputS2(16, 11), InputS2(6, 6))), 
+    |                    InputS1(10, List(InputS2(5, 20)),
+    |                    List(InputS2(11, 16), InputS2(2, 50)))))""".stripMargin
+   
     val format3Spark = s"""
       |val R = spark.sparkContext.parallelize(List(RecordValue1(\"part1\", List(RecordValue2(12, 3), RecordValue2(4, 2)),
       |                  List(RecordValue3(16, 11), RecordValue3(6, 6))), 

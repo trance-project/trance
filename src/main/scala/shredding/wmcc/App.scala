@@ -16,7 +16,14 @@ object App {
     val eval = new BaseScalaInterp{}
     val evaluator = new Finalizer(eval)
 
-    val q1 = translator.translate(NestedTests.q10.asInstanceOf[translator.Expr])
+    val q8 = translator.translate(NestedTests.q8.asInstanceOf[translator.Expr])
+    val nq8 = normalizer.finalize(q8).asInstanceOf[CExpr]
+    println(Printer.quote(nq8.asInstanceOf[CExpr]))
+    eval.ctx("R") = NestedRelations.format2a
+    println(evaluator.finalize(nq8.asInstanceOf[CExpr]))
+
+  
+    /**val q1 = translator.translate(NestedTests.q10.asInstanceOf[translator.Expr])
     val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
     println(Printer.quote(normq1.asInstanceOf[CExpr]))
     eval.ctx("R") = NestedRelations.format4a
@@ -41,7 +48,7 @@ object App {
     anfBase.reset
     val sanfedq1 = anfer.finalize(splan1)
     val sanfExp1 = anfBase.anf(sanfedq1.asInstanceOf[anfBase.Rep])
-    println(evaluator.finalize(sanfExp1.asInstanceOf[CExpr]))
+    println(evaluator.finalize(sanfExp1.asInstanceOf[CExpr]))**/
 
     /**val q1 = translator.translate(FlatTests.q1.asInstanceOf[translator.Expr])
     val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
@@ -55,7 +62,7 @@ object App {
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
     println(evaluator.finalize(anfExp1.asInstanceOf[CExpr]))**/
 
-    println("\n---------------------------------------- STARTS HERE -----------------------\n")
+    /**println("\n---------------------------------------- STARTS HERE -----------------------\n")
     val q2 = translator.translate(translator.Named(VarDef("Query5", TPCHQueries.query3.tp), 
               TPCHQueries.query3.asInstanceOf[translator.Expr]))
     val normq2 = normalizer.finalize(q2).asInstanceOf[CExpr]
@@ -152,7 +159,7 @@ object App {
     val anfedqs5 = anfer.finalize(splan5)
     val anfExps5 = anfBase.anf(anfedqs5.asInstanceOf[anfBase.Rep])
     println(Printer.quote(anfExps5))
-    println(evaluator.finalize(anfExps5.asInstanceOf[CExpr]))
+    println(evaluator.finalize(anfExps5.asInstanceOf[CExpr]))**/
 
     /**val q3 = {    
       import translator._

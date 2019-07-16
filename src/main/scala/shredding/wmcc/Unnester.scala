@@ -36,6 +36,15 @@ object Unnester {
           unnest(If(cond, Sng(Record(fs + (key -> v2))), None))((u, w :+ v2, nE))
         case _ => sys.error("not supported")
       }
+    case s @ Sng(v @ Variable(_,_)) if !w.isEmpty =>
+      assert(!E.isEmpty)
+      if (u.isEmpty) Reduce(E.get, w, v, Constant(true))
+      else {
+        val et = Tuple(u)
+        val gt = Tuple((w.toSet -- u).toList)
+        val v2 = Variable.fresh(TTupleType(et.tp.attrTps :+ BagCType(v.tp)))
+        Nest(E.get, w, et, v, v2, Constant(true), gt)
+      }
     case s @ Sng(t @ Record(fs)) if !w.isEmpty =>
       assert(!E.isEmpty)
       fs.filter(f => f._2.isInstanceOf[Comprehension]).toList match {
@@ -48,6 +57,7 @@ object Unnester {
             Nest(E.get, w, et, t, v, Constant(true), gt)
           }
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
+          println(value)
           val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case _ => sys.error("not supported")

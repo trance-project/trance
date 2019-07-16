@@ -48,7 +48,7 @@ trait NRCTranslator extends LinearizedNRC {
     case Not(e1) => not(translate(e1))
   }
 
-  def translateName(name: String): String = name.replace("^", "__")
+  def translateName(name: String): String = name.replace("^", "__").replace("'", "")
   def translate(v: VarDef): CExpr = Variable(translateName(v.name), translate(v.tp))
   def translateVar(v: VarRef): CExpr = translate(v.varDef)
   
@@ -58,7 +58,7 @@ trait NRCTranslator extends LinearizedNRC {
     case Singleton(e1 @ Tuple(fs)) if fs.isEmpty => emptysng
     case Singleton(e1) => sng(translate(e1))
     case Tuple(fs) if fs.isEmpty => unit
-    case Tuple(fs) => record(fs.map(f => f._1 -> translate(f._2)))
+    case Tuple(fs) => record(fs.map(f => translateName(f._1) -> translate(f._2)))
     case p:Project => project(translate(p.tuple), p.field)
     case ift:IfThenElse => ift.e2 match {
       case Some(a) => ifthen(translate(ift.cond), translate(ift.e1), Option(translate(a)))
