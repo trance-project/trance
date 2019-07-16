@@ -16,11 +16,13 @@ object App {
     val eval = new BaseScalaInterp{}
     val evaluator = new Finalizer(eval)
 
-    val q8 = translator.translate(NestedTests.q8.asInstanceOf[translator.Expr])
+    val q8 = translator.translate(NestedTests.q1.asInstanceOf[translator.Expr])
     val nq8 = normalizer.finalize(q8).asInstanceOf[CExpr]
     println(Printer.quote(nq8.asInstanceOf[CExpr]))
-    eval.ctx("R") = NestedRelations.format2a
+    eval.ctx("R") = NestedRelations.format1a
     println(evaluator.finalize(nq8.asInstanceOf[CExpr]))
+    val p8 = Unnester.unnest(nq8)((Nil, Nil, None)).asInstanceOf[CExpr]
+    println(evaluator.finalize(p8))
 
   
     /**val q1 = translator.translate(NestedTests.q10.asInstanceOf[translator.Expr])

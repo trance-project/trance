@@ -77,51 +77,51 @@ object NestedRelations{
   // type map for scala code generation
   val nested1Inputs:Map[Type,String] = Map(type1a -> "InputR1", type2a -> "InputR2", type3a -> "InputR3")
 
-  val format1a = List(Map(
+  val format1a = List(RecordValue(
           "h" -> 42,
           "j" -> List(
-            Map(
+            RecordValue(
               "m" -> "Milos",
               "n" -> 123,
               "k" -> List(
-                Map("n" -> 123),
-                Map("n" -> 456),
-                Map("n" -> 789),
-                Map("n" -> 123)
+                RecordValue("n" -> 123),
+                RecordValue("n" -> 456),
+                RecordValue("n" -> 789),
+                RecordValue("n" -> 123)
               )
             ),
-            Map(
+            RecordValue(
               "m" -> "Michael",
               "n" -> 7,
               "k" -> List(
-                Map("n" -> 2),
-                Map("n" -> 9),
-               Map("n" -> 1)
+                RecordValue("n" -> 2),
+                RecordValue("n" -> 9),
+               RecordValue("n" -> 1)
               )
             ),
-            Map(
+            RecordValue(
               "m" -> "Jaclyn",
               "n" -> 12,
               "k" -> List(
-                Map("n" -> 14),
-                Map("n" -> 12)
+                RecordValue("n" -> 14),
+                RecordValue("n" -> 12)
               )
             )
           )
         ),
-        Map(
+        RecordValue(
           "h" -> 69,
           "j" -> List(
-            Map(
+            RecordValue(
               "m" -> "Thomas",
               "n" -> 987,
               "k" -> List(
-                Map("n" -> 987),
-                Map("n" -> 654),
-                Map("n" -> 987),
-                Map("n" -> 654),
-                Map("n" -> 987),
-                Map("n" -> 987)
+                RecordValue("n" -> 987),
+                RecordValue("n" -> 654),
+                RecordValue("n" -> 987),
+                RecordValue("n" -> 654),
+                RecordValue("n" -> 987),
+                RecordValue("n" -> 987)
               )
             )
           )
@@ -131,7 +131,7 @@ object NestedRelations{
     val format1b = List(InputR1(42, List(InputR2("Milos", 123, List(InputR3(123), InputR3(456), InputR3(789), InputR3(123))),
                                  InputR2("Michael", 7, List(InputR3(2), InputR3(9), InputR3(1))),
                                  InputR2("Jaclyn", 12, List(InputR3(14), InputR3(12))))),
-                InputR1(69, List(InputR2("Thomas", 987, List(InputR3(987), InputR3(654), InputR3(987), InputR3(987))))))
+                InputR1(69, List(InputR2("Thomas", 987, List(InputR3(987), InputR3(654), InputR3(987), InputR3(987), InputR3(987), InputR3(987))))))
 
     val format1Spark = s"""
       |val R = spark.sparkContext.parallelize(List(InputR1(42, List(InputR2("Milos", 123, List(InputR3(123), InputR3(456), InputR3(789), InputR3(123))),
