@@ -3,7 +3,7 @@ package shredding.examples.simple
 import org.scalatest.FunSuite
 import shredding.core._
 import shredding.examples.simple.{FlatRelations, FlatTests}
-import shredding.wmcc.{BaseNormalizer, BaseScalaInterp, CExpr, Finalizer, NRCTranslator, PipelineRunner, Printer, Rec}
+import shredding.wmcc.{BaseNormalizer, BaseScalaInterp, CExpr, Finalizer, NRCTranslator, PipelineRunner, Printer, Rec, Unnester}
 import shredding.examples.tpch.TPCHQueries.{c, cr, l, lr, o, or, p, pr, ps, psr, relC, relL, relO, relP, relPS, relS, s, sr}
 import shredding.examples.tpch.{TPCHQueries, TPCHSchema, TestData}
 
@@ -12,6 +12,96 @@ class ShreddingTest extends FunSuite {
   val translator = new NRCTranslator{}
   val normalizer = new Finalizer(new BaseNormalizer{})
   val runner = new PipelineRunner{}
+
+  test("testQ6 shredded") {
+    println("")
+    val q6 = {
+      import translator._
+
+      println("[TEST_Q6]")
+      val q2Type = BagType(TupleType(Map("s_name" -> StringType, "customers2" -> BagType(TupleType(Map("c_name2" -> StringType))))))
+      val xdef = VarDef("x", q2Type.tp)
+      val xref = TupleVarRef(xdef)
+      val cz = VarDef("cz", TupleType(Map("c_name2" -> StringType)))
+      val czr = TupleVarRef(cz)
+
+      val eval = new BaseScalaInterp {}
+      val evaluator = new Finalizer(eval)
+
+      eval.ctx("S__F") = 1
+      eval.ctx("S__D") = (List((1,TestData.supplier)), ())
+      eval.ctx("PS__F") = 1
+      eval.ctx("PS__D") = (List((1,TestData.partsupp)), ())
+      eval.ctx("C__F") = 1
+      eval.ctx("C__D") = (List((1,TestData.customers)), ())
+      eval.ctx("L__F") = 1
+      eval.ctx("L__D") = (List((1,TestData.lineitem)), ())
+      eval.ctx("O__F") = 1
+      eval.ctx("O__D") = (List((1,TestData.orders)), ())
+      eval.ctx("P__F") = 1
+      eval.ctx("P__D") = (List((1,TestData.part)), ())
+
+      val shreddedQ2 = runner.shredPipeline(TPCHQueries.query2.asInstanceOf[runner.Expr])
+      val snormQ2 = normalizer.finalize(shreddedQ2)
+      println("Shredded q2: \n" + Printer.quote(snormQ2.asInstanceOf[CExpr]))
+      println("Shredded q2 done, Evaluating:")
+      println(evaluator.finalize(snormQ2.asInstanceOf[CExpr]))
+      println("Evaluating q2 done.")
+
+      val Q2 = VarDef("Q2", q2Type)
+
+      val query6 = ForeachUnion(TPCHQueries.c, relC.asInstanceOf[BagExpr],
+        Singleton(
+          Tuple("cname" -> PrimitiveProject(TPCHQueries.cr.asInstanceOf[TupleExpr],"c_name"),
+            "customers" -> ForeachUnion(xdef, BagVarRef(Q2),
+              ForeachUnion(
+                cz,
+                BagProject(xref, "customers2"),
+                IfThenElse(Cmp(OpEq, PrimitiveProject(TPCHQueries.cr.asInstanceOf[TupleExpr],"c_name"), czr("c_name2")),
+                  Singleton(Tuple("s_name" -> xref("s_name")) //sng
+                  ))
+              )
+            )
+          ))
+      )
+
+
+
+      //val printer = new Printer {}
+      //calculus
+      val q6Translated = translator.translate(query6.asInstanceOf[translator.Expr])
+      //normalized calc
+      val normq6 = normalizer.finalize(q6Translated)
+      println("translated: \n" + Printer.quote(normq6.asInstanceOf[CExpr]))
+      //plan from normalized calc
+      val plan1 = Unnester.unnest(normq6.asInstanceOf[CExpr])((Nil, Nil, None))
+      println("plan: \n" + Printer.quote(plan1.asInstanceOf[CExpr]))
+
+      val shreddedQ6 = runner.shredPipeline(query6.asInstanceOf[runner.Expr])
+      val snormq6 = normalizer.finalize(shreddedQ6)
+      println("Shredded q6: " + Printer.quote(snormq6.asInstanceOf[CExpr]))
+
+      //plan from shredded calc
+      val sPlan1 = Unnester.unnest(snormq6.asInstanceOf[CExpr])((Nil, Nil, None))
+      println("shredded plan: \n" + Printer.quote(sPlan1.asInstanceOf[CExpr]))
+
+      // EXECUTE Q6
+
+            eval.ctx("Q2__F") = eval.ctx("M_ctx1").asInstanceOf[List[_]].head.asInstanceOf[Rec].map("lbl")
+            def makeInput(k: Any): List[(Any, List[Any])] = k match {
+              case l:List[_] => l.asInstanceOf[List[Rec]].map{ case rv => (rv.map("k"), rv.map("v").asInstanceOf[List[Any]]) }
+              case _ => ???
+            }
+            eval.ctx("Q2__D") = (makeInput(eval.ctx("M_flat1")), (Rec("customers2" -> (makeInput(eval.ctx("M_flat2")), ()))))
+            eval.ctx("C__F") = 1
+            eval.ctx("C__D") = (List((1,TestData.customers)), ())
+
+      println("Q6 shredded q results:\n"+evaluator.finalize(snormq6.asInstanceOf[CExpr]))
+      println("Q6 shredded q results of the plan:\n"+evaluator.finalize(plan1.asInstanceOf[CExpr]))
+
+
+    }
+  }
 
   test("testQ7V2 shredded") {
     println("")
@@ -78,41 +168,17 @@ class ShreddingTest extends FunSuite {
         "customers" -> BagType(TupleType(Map("c_name" -> StringType, "c_nationkey" -> IntType))))))
       val Q3 = VarDef("Q3", q3Type)
       val xdef2 = VarDef("x", q3Type.tp)
-
       val q3ref = TupleVarRef(xdef2)
       val nref = TupleVarRef(ndef)
-
       val sdef = VarDef("s", TupleType(Map("s_name" -> StringType, "s_nationkey" -> IntType)))
       val sref = TupleVarRef(sdef)
-
-      val suppliersCond1 = ForeachUnion(sdef, q3ref("suppliers").asInstanceOf[BagExpr],
-        IfThenElse(
-          Cmp(OpEq, sref("s_nationkey"), nref("n_nationkey")),
-          Singleton(Tuple("count" -> Const(1, IntType)))
-        ).asInstanceOf[BagExpr])
       val cdef = VarDef("c", TupleType(Map("c_name" -> StringType, "c_nationkey" -> IntType)))
       val cref = TupleVarRef(cdef)
-      val customersCond1 = ForeachUnion(cdef, q3ref("customers").asInstanceOf[BagExpr],
-        IfThenElse(
-          Cmp(OpNe, cref("c_nationkey"), nref("n_nationkey")),
-          Singleton(Tuple("count" -> Const(1, IntType)))
-        ).asInstanceOf[BagExpr])
-
 
       val customersCond1_new = ForeachUnion(cdef, q3ref("customers").asInstanceOf[BagExpr],
         IfThenElse(Cmp(OpEq, cref("c_nationkey"), nref("n_nationkey")),
           Singleton(Tuple("count" -> Const(1, IntType)))).asInstanceOf[BagExpr])
 
-      val query7_old = ForeachUnion(ndef, relN,
-        Singleton(Tuple(
-          "n_name" -> nref("n_name"),
-          "part_names" -> ForeachUnion(xdef2, query3,
-            IfThenElse(And(Cmp(OpGt, Total(suppliersCond1), Const(0, IntType)),
-              Cmp(OpNe, Total(customersCond1), Const(0, IntType))),
-              Singleton(Tuple(
-                "p_name" -> q3ref("p_name"))
-              )))
-        )))
       val query7 =  ForeachUnion(ndef, relN,
         Singleton(Tuple("n_name" -> nref("n_name"),
           "part_names" -> ForeachUnion(xdef2, BagVarRef(Q3),
@@ -122,9 +188,6 @@ class ShreddingTest extends FunSuite {
                 Singleton(Tuple("p_name" ->  q3ref("p_name")))))))))
 
       // PRINT Q7
-//      val printer = new Printer {}
-//      println("query: \n" + printer.quote(query7.asInstanceOf[printer.Expr]))
-//      val normalizer = new Finalizer(new BaseNormalizer {})
       val qTranslated = translator.translate(query7.asInstanceOf[translator.Expr])
       val normq1 = normalizer.finalize(qTranslated)
       println("translated: \n" + Printer.quote(normq1.asInstanceOf[CExpr]))
@@ -143,14 +206,8 @@ class ShreddingTest extends FunSuite {
       eval.ctx("N__F") = 1
       eval.ctx("N__D") = (List((1,TestData.nation)), ())
 
-      //shredding
-
-      // EXECUTE Q7
-//      val res = evaluator.finalize(normq1.asInstanceOf[CExpr])
-//      println("Q7 results old:\n" + res)
       println("Q7 shredded q results:\n"+evaluator.finalize(snormq7.asInstanceOf[CExpr]))
-
-
     }
   }
 }
+

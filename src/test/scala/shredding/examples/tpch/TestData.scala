@@ -36,13 +36,13 @@ object TestData {
   )
   //lineitem
   val lineitem = List(
-    RecordValue("l_partkey" -> 1, "l_orderkey"->1),
-    RecordValue("l_partkey" -> 1, "l_orderkey"->2),
-    RecordValue("l_partkey" -> 2, "l_orderkey"->1),
-    RecordValue("l_partkey" -> 2, "l_orderkey"->3),
-    RecordValue("l_partkey" -> 3, "l_orderkey"->1),
-    RecordValue("l_partkey" -> 4, "l_orderkey"->5),
-    RecordValue("l_partkey" -> 5, "l_orderkey"->4),
+    RecordValue("l_partkey" -> 1, "l_orderkey"->1, "l_suppkey"->1),
+    RecordValue("l_partkey" -> 1, "l_orderkey"->2, "l_suppkey"->1),
+    RecordValue("l_partkey" -> 2, "l_orderkey"->1, "l_suppkey"->1),
+    RecordValue("l_partkey" -> 2, "l_orderkey"->3, "l_suppkey"->2),
+    RecordValue("l_partkey" -> 3, "l_orderkey"->1, "l_suppkey"->2),
+    RecordValue("l_partkey" -> 4, "l_orderkey"->5, "l_suppkey"->3),
+    RecordValue("l_partkey" -> 5, "l_orderkey"->4, "l_suppkey"->3),
   )
   //orders
   val orders = List(

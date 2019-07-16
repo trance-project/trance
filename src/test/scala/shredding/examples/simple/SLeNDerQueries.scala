@@ -19,10 +19,38 @@ class SLeNDerQueries extends FunSuite {
     val xref = TupleVarRef(xdef)
     val cz = VarDef("cz", TupleType(Map("c_name2" -> StringType)))
     val czr = TupleVarRef(cz)
+    val translator = new NRCTranslator {}
+    val normalizer = new Finalizer(new BaseNormalizer {})
+    val eval = new BaseScalaInterp {}
+    val evaluator = new Finalizer(eval)
+    eval.ctx("N") = TestData.nation
+    eval.ctx("S") = TestData.supplier
+    eval.ctx("PS") = TestData.partsupp
+    eval.ctx("C") = TestData.customers
+    eval.ctx("L") = TestData.lineitem
+    eval.ctx("O") = TestData.orders
+    eval.ctx("P") = TestData.part
+
+    val query2 = ForeachUnion(s, relS,
+      Singleton(Tuple("s_name" -> sr("s_name"), "customers2" -> ForeachUnion(l, relL,
+        IfThenElse(Cmp(OpEq, sr("s_suppkey"), lr("l_suppkey")),
+          ForeachUnion(o, relO,
+            IfThenElse(Cmp(OpEq, or("o_orderkey"), lr("l_orderkey")),
+              ForeachUnion(c, relC,
+                IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
+                  Singleton(Tuple("c_name2" -> cr("c_name"))))))))))))
+    val Q2 = VarDef("Q2", q2Type)
+    val q2Translated = translator.translate(query2.asInstanceOf[translator.Expr])
+    val normq2 = normalizer.finalize(q2Translated)
+    println("translated: \n" + Printer.quote(normq2.asInstanceOf[CExpr]))
+
+    val res2 = evaluator.finalize(normq2.asInstanceOf[CExpr])
+    eval.ctx("Q2") = res2
+
     val query6 = ForeachUnion(TPCHQueries.c, TPCHQueries.relC,
       Singleton(
         Tuple("cname" -> TPCHQueries.cr("c_name"),
-          "customers" -> ForeachUnion(xdef, TPCHQueries.query2,
+          "customers" -> ForeachUnion(xdef, BagVarRef(Q2),
             ForeachUnion(
               cz,
               BagProject(xref, "customers2"),
@@ -35,11 +63,19 @@ class SLeNDerQueries extends FunSuite {
     )
     val printer = new Printer {}
     println("query: \n" + printer.quote(query6.asInstanceOf[printer.Expr]))
-    val translator = new NRCTranslator {}
-    val normalizer = new Finalizer(new BaseNormalizer {})
     val qTranslated = translator.translate(query6.asInstanceOf[translator.Expr])
-    val normq1 = normalizer.finalize(qTranslated)
-    println("translated: \n" + Printer.quote(normq1.asInstanceOf[CExpr]))
+    val normq6 = normalizer.finalize(qTranslated)
+    println("translated: \n" + Printer.quote(normq6.asInstanceOf[CExpr]))
+
+    val res = evaluator.finalize(normq6.asInstanceOf[CExpr])
+    println("Q6 results:\n" + res)
+
+    val plan1 = Unnester.unnest(normq6.asInstanceOf[CExpr])((Nil, Nil, None))
+    println("plan: \n" + Printer.quote(plan1.asInstanceOf[CExpr]))
+    //eval.doteq = true
+    println("Q6 shredded q results of the plan:\n"+evaluator.finalize(plan1.asInstanceOf[CExpr]))
+
+
   }
 
 
