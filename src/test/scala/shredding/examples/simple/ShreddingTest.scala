@@ -97,7 +97,7 @@ class ShreddingTest extends FunSuite {
             eval.ctx("C__D") = (List((1,TestData.customers)), ())
 
       println("Q6 shredded q results:\n"+evaluator.finalize(snormq6.asInstanceOf[CExpr]))
-      println("Q6 shredded q results of the plan:\n"+evaluator.finalize(plan1.asInstanceOf[CExpr]))
+     // println("Q6 shredded q results of the plan:\n"+evaluator.finalize(plan1.asInstanceOf[CExpr]))
 
 
     }
