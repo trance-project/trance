@@ -249,9 +249,25 @@ trait BaseCompiler extends Base {
 
 }
 
-case class RecordValue(map: Map[String, Any], uniqueId: Long) {
+
+/**
+  * This checks standard equality
+  */
+case class Rec(map: Map[String, Any]) {
   override def toString(): String = map.map(x => s"${x._1}:${x._2}").mkString("Rec(", ",", ")")
 }
+
+object Rec {
+  def apply(vs: (String, Any)*): Rec = Rec(vs.toMap)
+}
+
+/**
+  * This is used for dot-equality
+  */
+case class RecordValue(map: Map[String, Any], uniqueId: Long) extends CaseClassRecord {
+  override def toString(): String = map.map(x => s"${x._1}:${x._2}").mkString("RecV(", ",", ")")
+}
+
 object RecordValue {
   def apply(vs: (String, Any)*): RecordValue = RecordValue(vs.toMap, newId)
   var id = 0L
@@ -309,6 +325,7 @@ trait BasePlanOptimizer extends BaseCompiler {
 trait BaseScalaInterp extends Base{
   type Rep = Any
   val ctx = scala.collection.mutable.Map[Any, Any]()
+  var doteq = true
   def inputref(x: String, tp: Type): Rep = ctx(x)
   def input(x: List[Rep]): Rep = x
   def constant(x: Any): Rep = x
@@ -319,7 +336,10 @@ trait BaseScalaInterp extends Base{
     if (q.asInstanceOf[Int] > 0) { (1 to q.asInstanceOf[Int]).map(w => x) } else { emptysng }
   }
   def tuple(x: List[Rep]): Rep = x
-  def record(fs: Map[String, Rep]): Rep = RecordValue(fs.asInstanceOf[Map[String, Rep]], RecordValue.newId)
+  def record(fs: Map[String, Rep]): Rep = {
+    if (doteq) RecordValue(fs.asInstanceOf[Map[String, Rep]], RecordValue.newId)
+    else Rec(fs.asInstanceOf[Map[String, Rep]])
+  }
   def equals(e1: Rep, e2: Rep): Rep = e1 == e2
   def lt(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Int] < e2.asInstanceOf[Int]
   def gt(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Int] > e2.asInstanceOf[Int]
@@ -334,6 +354,7 @@ trait BaseScalaInterp extends Base{
     case "_2" if e1.isInstanceOf[RecordValue] => e1.asInstanceOf[RecordValue].map("v")
     case "_2" => e1.asInstanceOf[Product].productElement(1)
     case f => e1 match {
+      case m:Rec => m.map(f)
       case m:RecordValue => m.map(f)
       case c:CaseClassRecord => 
         val field = c.getClass.getDeclaredFields.find(_.getName == f).get
@@ -352,7 +373,7 @@ trait BaseScalaInterp extends Base{
   def merge(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[List[_]] ++ e2.asInstanceOf[List[_]]
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
     e1 match {
-      case Nil => Nil
+      case Nil => e(Nil) match { case i:Int => 0; case _ => Nil }
       case data @ (head :: tail) => e(head) match {
         case i:Int =>
           data.withFilter(p.asInstanceOf[Rep => Boolean]).map(e).asInstanceOf[List[Int]].sum
@@ -414,7 +435,7 @@ trait BaseScalaInterp extends Base{
         case _ => 
           grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.flatMap(v => { 
             val v2 = tupleVars(v)
-            if (g(v2) != None && p(v2).asInstanceOf[Boolean]) { 
+            if (!g(v2).asInstanceOf[List[_]].contains(None) && p(v2).asInstanceOf[Boolean]) { 
               List(e(v2)) 
             } else { Nil } })).toList
         }
