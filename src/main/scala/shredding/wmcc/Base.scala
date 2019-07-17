@@ -264,9 +264,10 @@ object Rec {
 /**
   * This is used for dot-equality
   */
-case class RecordValue(map: Map[String, Any], uniqueId: Long) {
-  override def toString(): String = map.map(x => s"${x._1}:${x._2}").mkString("Rec(", ",", ")")
+case class RecordValue(map: Map[String, Any], uniqueId: Long) extends CaseClassRecord {
+  override def toString(): String = map.map(x => s"${x._1}:${x._2}").mkString("RecV(", ",", ")")
 }
+
 object RecordValue {
   def apply(vs: (String, Any)*): RecordValue = RecordValue(vs.toMap, newId)
   var id = 0L
@@ -324,7 +325,7 @@ trait BasePlanOptimizer extends BaseCompiler {
 trait BaseScalaInterp extends Base{
   type Rep = Any
   val ctx = scala.collection.mutable.Map[Any, Any]()
-  val doteq = false
+  var doteq = true
   def inputref(x: String, tp: Type): Rep = ctx(x)
   def input(x: List[Rep]): Rep = x
   def constant(x: Any): Rep = x
@@ -434,7 +435,7 @@ trait BaseScalaInterp extends Base{
         case _ => 
           grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.flatMap(v => { 
             val v2 = tupleVars(v)
-            if (g(v2) != None && p(v2).asInstanceOf[Boolean]) { 
+            if (!g(v2).asInstanceOf[List[_]].contains(None) && p(v2).asInstanceOf[Boolean]) { 
               List(e(v2)) 
             } else { Nil } })).toList
         }
