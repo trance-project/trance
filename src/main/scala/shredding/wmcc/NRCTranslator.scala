@@ -20,7 +20,8 @@ trait NRCTranslator extends LinearizedNRC {
     case TupleType(fs) if fs.isEmpty => EmptyCType
     case TupleType(fs) => RecordCType(fs.map(f => f._1 -> translate(f._2)))
     case BagDictType(f,d) =>
-      BagDictCType(BagCType(TTupleType(List(IntType, translate(f)))), 
+      // this will break the local version, need to changes shredded format for that
+      BagDictCType(BagCType(TTupleType(List(IntType, translate(f).asInstanceOf[BagCType].tp))), 
         translate(d).asInstanceOf[TTupleDict]) 
     case EmptyDictType => EmptyDictCType
     case TupleDictType(ts) if ts.isEmpty => EmptyDictCType

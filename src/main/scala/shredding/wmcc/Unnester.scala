@@ -57,7 +57,6 @@ object Unnester {
             Nest(E.get, w, et, t, v, Constant(true), gt)
           }
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
-          println(value)
           val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case _ => sys.error("not supported")
@@ -84,17 +83,20 @@ object Unnester {
         case _ => Some(OuterUnnest(E.get, w, e1, v, p)) //C10
       }
       unnest(e)((u, w :+ v, nE))
-    case Comprehension(e1 @ Project(e0, f), v, p @ Equals(lbl1, lbl2), Comprehension(e2, v2, p2, e3)) if e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
+   case Comprehension(e1 @ Project(e0, f), v, p @ Equals(lbl1, lbl2), Comprehension(e2, v2, p2, e3)) if e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
       assert(!E.isEmpty)
       getPM(p2) match {
-        case (Constant(false), _) =>
-          val (p1s, p2s) = p2 match {
+        case (Constant(false), _) => 
+          val (sp2s, p1s, p2s) = ps(p2, v2, w)
+          /**val (p1s, p2s) = p2 match {
           case Equals(f1, f2) if v2.lequals(f1) => (f1, f2)
           case Equals(f1, f2) => (f2, f1)
           case Constant(true) => (Constant(true), Constant(true))
           case _ => sys.error(s"not supported $p2") 
-        }
-        val nE = Some(Lookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, p1s, p2s))
+        }**/
+        // if this is changed to Select(e0, ...) then the local code generation 
+        // will need to be updated to handle types similar to spark
+        val nE = Some(Lookup(E.get, Select(e1, v2, sp2s), w, lbl1, v2, p1s, p2s))
         unnest(e3)((u, w :+ v2, nE)) 
         case (e4, be2) => 
           val nE = Some(OuterLookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, Constant(true), Constant(true)))

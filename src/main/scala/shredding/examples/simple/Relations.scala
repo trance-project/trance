@@ -65,6 +65,11 @@ object FlatRelations {
     |val R = spark.sparkContext.parallelize(List(Input_R(42, "Milos"), Input_R(49, "Michael"),
     |              Input_R(34, "Jaclyn"), Input_R(42, "Thomas")))""".stripMargin
 
+  val format2Spark = s"""
+    |val R__F = 1
+    |val R__D = spark.sparkContext.parallelize(List(Input_R__D(42, "Milos"), Input_R__D(49, "Michael"),
+    |              Input_R__D(34, "Jaclyn"), Input_R__D(42, "Thomas"))).map(m => (R__F, m))""".stripMargin
+
 }
 
 object NestedRelations{

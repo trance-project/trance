@@ -187,6 +187,8 @@ object Utils {
     val (q1, qname, qdata) = qInfo
     
     val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
+    println(s"\n$qname")
+    println(Printer.quote(normq1))
     val inputs = normq1 match {
                   case l @ LinearCSet(_) => inputM ++ l.getTypeMap
                   case _ => inputM ++ Map(normq1.tp.asInstanceOf[BagCType].tp -> s"${qname}Out")

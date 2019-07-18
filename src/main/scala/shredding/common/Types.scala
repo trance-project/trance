@@ -97,7 +97,11 @@ case class BagDictCType(flatTp: BagCType, dictTp: TTupleDict) extends TDict {
     case "_2" => dictTp
   }
   def lbl: LabelType = flatTp.tp.asInstanceOf[TTupleType](0).asInstanceOf[LabelType]
-  def flat: BagCType = flatTp.tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType]
+  def flat: BagCType = flatTp.tp match {
+    case ttp @ TTupleType(List(IntType, RecordCType(_))) => BagCType(ttp)
+    case TTupleType(fs) => fs(1).asInstanceOf[BagCType]
+    case _ => sys.error("type not supported in flat bag")
+  }
   def _1 = flatTp
   def _2 = dictTp
 }

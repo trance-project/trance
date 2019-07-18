@@ -95,7 +95,8 @@ case class Or(e1: CExpr, e2: CExpr) extends CExpr{
 
 case class Project(e1: CExpr, field: String) extends CExpr { self =>
   def tp: Type = e1.tp match {
-    case t:RecordCType => t.attrTps(field) 
+    case t:RecordCType => t.attrTps(field)
+    case t @ TTupleType(List(IntType, RecordCType(fs))) if ( field != "_1" && field != "_2") => fs(field) 
     case t:TTupleType => field match {
       case "_1" => t(0)
       case "_2" => t(1)

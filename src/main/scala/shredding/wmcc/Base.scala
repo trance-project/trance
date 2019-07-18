@@ -187,8 +187,16 @@ trait BaseCompiler extends Base {
   def tupledict(fs: Map[String, Rep]): Rep = TupleCDict(fs)
   def dictunion(d1: Rep, d2: Rep): Rep = DictCUnion(d1, d2)
   def select(x: Rep, p: Rep => Rep): Rep = {
-    val v = Variable.fresh(x.tp.asInstanceOf[BagCType].tp)
-    Select(x, v, p(v))
+    val v = x.tp match {
+      case btp:BagDictCType => Variable.fresh(btp.flatTp.tp)       
+      case btp:BagCType => Variable.fresh(btp.tp)
+      case _ => sys.error("selection type not supported")
+    }
+    val p2 = v.tp match {
+      case TTupleType(List(IntType, RecordCType(_))) => p(Project(v, "_2")) 
+      case _ => p(v)
+    }
+    Select(x, v, p2)
   }
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
     val v = vars(e1.tp.asInstanceOf[BagCType].tp)
@@ -232,7 +240,14 @@ trait BaseCompiler extends Base {
   }
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
     val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
-    val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
+    val v2 = e2.tp match {
+      case btp:BagDictCType => Variable.fresh(btp.flat.tp)
+      case _ => Variable.fresh(e2.tp.asInstanceOf[BagCType].tp) 
+    }
+    /**match {
+      case btp:BagDictCType => Variable.fresh(btp.flatTp.tp)
+      case btp:BagCType => Variable.fresh(btp.tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
+    }**/
     Lookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
   }
   def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {

@@ -23,14 +23,26 @@ object App {
     val q1 = translator.translate(FlatTests.q1.asInstanceOf[translator.Expr])
     val qinfo = (q1.asInstanceOf[CExpr], "FlatTest1", FlatRelations.format1Spark)
     Utils.runSpark(qinfo, Map[Type, String]())
+
+    val sq1 = runner.shredPipeline(FlatTests.q1.asInstanceOf[runner.Expr])
+    val sqinfo = (sq1.asInstanceOf[CExpr], "FlatShredTest1", FlatRelations.format2Spark)
+    Utils.runSpark(sqinfo, Map[Type, String]())
     
     val q2 = translator.translate(FlatTests.q3.asInstanceOf[translator.Expr])
     val q2info = (q2.asInstanceOf[CExpr], "FlatTest2", FlatRelations.format1Spark)
     Utils.runSpark(q2info, Map[Type, String]())
+
+    val sq2 = runner.shredPipeline(FlatTests.q3.asInstanceOf[runner.Expr])
+    val sq2info = (sq2.asInstanceOf[CExpr], "FlatShredTest2", FlatRelations.format2Spark)
+    Utils.runSpark(sq2info, Map[Type, String]())
   
     val q3 = translator.translate(FlatTests.q4.asInstanceOf[translator.Expr])
     val q3info = (q3.asInstanceOf[CExpr], "FlatTest3", FlatRelations.format1Spark)
     Utils.runSpark(q3info, Map[Type, String]())
+
+    val sq3 = runner.shredPipeline(FlatTests.q4.asInstanceOf[runner.Expr])
+    val sq3info = (sq3.asInstanceOf[CExpr], "FlatShredTest3", FlatRelations.format2Spark)
+    Utils.runSpark(sq3info, Map[Type, String]())
 
     val q4 = translator.translate(NestedTests.q2.asInstanceOf[translator.Expr])
     val q4info = (q4.asInstanceOf[CExpr], "NestedTest1", NestedRelations.format1Spark)
