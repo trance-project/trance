@@ -111,6 +111,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
     case Project(e2, field) => e2.tp match {
       case BagDictCType(_,_) => s"${generate(e2)}"
+      case TTupleType(List(IntType, RecordCType(_))) => s"${generate(e2)}._2.${kvName(field)}"
       case _ => s"${generate(e2)}.${kvName(field)}"
     }
     case Equals(e1, e2) => s"${generate(e1)} == ${generate(e2)}"
@@ -236,13 +237,13 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Lookup(e1, e2, v1, p1, v2, p2, p3) =>
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 =  generate(v2)
-      val key1 = p2 match {
+      val key1 = p3 match {
         case Constant(true) => s"{${generate(p1)}}"
-        case _ => s"(({${generate(p1)}}, {${generate(p2)}}), $vars)"
+        case _ => s"({${generate(p1)}}, {${generate(p3)}})"
       }
-      val key2 = p3 match {
-        case Constant(true) => ""
-        case _ => s".map($gv2 => (($gv2._1, {${generate(p3)}}), $gv2))" 
+      val key2 = p2 match {
+        case Constant(true) => s".map($gv2 => ($gv2._1, $gv2))"
+        case _ => s".map($gv2 => (($gv2._1, {${generate(p2)}}), $gv2))" 
       }
       s"""|{ val out1 = ${generate(e1)}.map{ case $vars => ($key1, $vars) }
           |  val out2 = ${generate(e2)}$key2
@@ -251,13 +252,13 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case OuterLookup(e1, e2, v1, p1, v2, p2, p3) =>
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 =  generate(v2)
-      val key1 = p2 match {
+      val key1 = p3 match {
         case Constant(true) => s"{${generate(p1)}}"
-        case _ => s"(({${generate(p1)}}, {${generate(p2)}}), $vars)"
+        case _ => s"({${generate(p1)}}, {${generate(p3)}})"
       }
-      val key2 = p3 match {
+      val key2 = p2 match {
         case Constant(true) => ""
-        case _ => s".map($gv2 => (($gv2._1, {${generate(p3)}}), $gv2))" 
+        case _ => s".map($gv2 => (($gv2._1, {${generate(p2)}}), $gv2))" 
       }
       s"""|{ val out1 = ${generate(e1)}.map{ case $vars => ($key1, $vars) }
           |  val out2 = ${generate(e2)}$key2

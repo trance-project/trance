@@ -265,7 +265,11 @@ case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Va
 
 // unnests an inner bag, without unnesting before a downstream join
 case class Lookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, p3: CExpr) extends CExpr {
-  def tp:BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  def tp:BagCType = v2.tp match {
+    // this is a fix for a join on a top level flat bag
+    //case TTupleType(List(IntType, rt)) => BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, rt)))
+    case _ => BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  }
   override def wvars = e1.wvars :+ v2
 }
 

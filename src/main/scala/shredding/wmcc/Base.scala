@@ -244,10 +244,6 @@ trait BaseCompiler extends Base {
       case btp:BagDictCType => Variable.fresh(btp.flat.tp)
       case _ => Variable.fresh(e2.tp.asInstanceOf[BagCType].tp) 
     }
-    /**match {
-      case btp:BagDictCType => Variable.fresh(btp.flatTp.tp)
-      case btp:BagCType => Variable.fresh(btp.tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
-    }**/
     Lookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
   }
   def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
