@@ -48,6 +48,10 @@ object App {
     val q4info = (q4.asInstanceOf[CExpr], "NestedTest1", NestedRelations.format1Spark)
     Utils.runSpark(q4info, Map[Type, String]())
 
+    val sq4 = runner.shredPipeline(NestedTests.q2.asInstanceOf[runner.Expr])
+    val sq4info = (sq4.asInstanceOf[CExpr], "NestedShredTest1", NestedRelations.format2Spark)
+    Utils.runSpark(sq4info, Map[Type, String]())
+
     val q5 = translator.translate(NestedTests.q8.asInstanceOf[translator.Expr])
     val q5info = (q5.asInstanceOf[CExpr], "NestedTest2", NestedRelations.format2aSpark)
     Utils.runSpark(q5info, Map[Type, String](RecordCType("c" -> IntType) -> "InputRB2"))

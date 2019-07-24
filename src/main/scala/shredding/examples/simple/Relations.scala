@@ -67,7 +67,7 @@ object FlatRelations {
 
   val format2Spark = s"""
     |val R__F = 1
-    |val R__D = spark.sparkContext.parallelize(List(Input_R__D(42, "Milos"), Input_R__D(49, "Michael"),
+    |val R__D_1 = spark.sparkContext.parallelize(List(Input_R__D(42, "Milos"), Input_R__D(49, "Michael"),
     |              Input_R__D(34, "Jaclyn"), Input_R__D(42, "Thomas"))).map(m => (R__F, m))""".stripMargin
 
 }
@@ -144,21 +144,20 @@ object NestedRelations{
       |                          InputR2("Jaclyn", 12, List(InputR3(14), InputR3(12))))),
       |          InputR1(69, List(InputR2("Thomas", 987, List(InputR3(987), InputR3(654), InputR3(987), InputR3(987)))))))""".stripMargin
     
-    /**val R__F = 1
-    case class InputR1Flat(a: Int, b: Int)
-    case class InputR2Flat(m: String, n: Int, k: Int)
-    case class InputR3Flat(n: Int)
-    case class InputR2Dict(k: (List[(Int, List[InputR3Flat])], Unit))
-    case class InputR1Dict(j: (List[(Int, List[InputR2Flat])], InputR2Dict))
-    val R__D = (List((R__F, List(InputR1Flat(42, 2), InputR1Flat(69, 3)))),
-      InputR1Dict(j: (List((2, List(InputR2Flat("Milos", 123, 4), InputR2Flat("Michael", 7, 5),
-                                    InputR2Flat("Jaclyn", 12, 6))),
-                            (3, List(InputR2Flat("Thomas", 987, 7)))),
-      InputR2Dict(k: (List((4, List(InputR3Flat(123), InputR3Flat(456), InputR3Flat(789), InputR3Flat(123))),
-                            (5, List(InputR3Flat(2), InputR3Flat(9), InputR3Flat(1))),
-                            (6, List(InputR3Flat(14), InputR3Flat(12))),
-                            (7, List(InputR3Flat(987), InputR3Flat(654), InputR3Flat(987), InputR3Flat(987)))), ())))))
-    **/
+    
+    val format2Spark = s"""
+      |val R = List(InputR1(42, List(InputR2("Milos", 123, List(InputR3(123), InputR3(456), InputR3(789), InputR3(123))),
+      |                           InputR2("Michael", 7, List(InputR3(2), InputR3(9), InputR3(1))),
+      |                          InputR2("Jaclyn", 12, List(InputR3(14), InputR3(12))))),
+      |          InputR1(69, List(InputR2("Thomas", 987, List(InputR3(987), InputR3(654), InputR3(987), InputR3(987))))))
+      |case class Flat1(h: Int, j: Int)
+      |case class Flat2(m: String, n: Int, k: Int)
+      |case class Flat3(n: Int)
+      |val R__F = 1
+      |val R__D_1 = spark.sparkContext.parallelize(R.map{ case t => (R__F, Flat1(t.h, t.hashCode)) })
+      |val R__D_2j_1 = spark.sparkContext.parallelize(R.map{ case t => (t.hashCode, t.j.map{ case t2 => Flat2(t2.m, t2.n, t2.hashCode) }) })
+      |val R__D_2j_1_2k_1 = spark.sparkContext.parallelize(R.map{ case t => t.j.map{ case t3 => (t3.hashCode, t3.k.map{ case t4 => Flat3(t4.n) }) } })
+    """
     
     // Bag(a: Int, b: Bag(c: Int))
     val type22a = TupleType("c" -> IntType) 

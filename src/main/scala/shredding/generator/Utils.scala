@@ -242,6 +242,7 @@ object Utils {
       |/** Generated **/
       |import org.apache.spark.SparkConf
       |import org.apache.spark.sql.SparkSession
+      |import shredding.core.CaseClassRecord
       |import shredding.examples.simple._
       |$header
       |object $appname {

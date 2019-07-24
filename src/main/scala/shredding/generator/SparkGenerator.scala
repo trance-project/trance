@@ -86,7 +86,15 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Constant(true) => s"${ind(thenp)}"
     case _ => s"if({${generate(p)}}) {${ind(thenp)}} else {${ind(elsep)}}"
   }
-  
+
+  def sanitizeName(e: CExpr): CExpr = e match {
+    case Bind(v @ Variable(_, TupleDictCType(_)), Project(e1, f1), Bind(Variable(_, BagDictCType(_,_)), Project(e2, f2), e3)) => 
+      sanitizeName(Bind(v, Project(e1, s"$f1$f2"), e3)) 
+    case Bind(v @ Variable(_, TupleDictCType(_)), Project(e1, f1), Bind(v2 @ Variable(_, BagCType(_)), Project(e2 @ Variable(_, BagDictCType(_,_)), f2), Bind(v3, _, e3))) =>
+      sanitizeName(Bind(v, Project(e1, s"$f1$f2"), Bind(v3, v, e3)))
+    case _ => e 
+  }
+
   def generate(e: CExpr): String = e match {
     case Variable(name, _) => name
     case InputRef(name, tp) => 
@@ -110,8 +118,9 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     }
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
     case Project(e2, field) => e2.tp match {
-      case BagDictCType(_,_) => s"${generate(e2)}"
-      case TTupleType(List(IntType, RecordCType(_))) => s"${generate(e2)}._2.${kvName(field)}"
+      case BagDictCType(_,_) => s"${generate(e2)}${field.replace(".", "")}"
+      case TupleDictCType(_) => s"${generate(e2)}${field.replace(".", "")}"
+      case TTupleType(List(IntType, RecordCType(_))) if field != "_2" => s"${generate(e2)}._2.${kvName(field)}"
       case _ => s"${generate(e2)}.${kvName(field)}"
     }
     case Equals(e1, e2) => s"${generate(e1)} == ${generate(e2)}"
@@ -164,17 +173,22 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
         case Bind(_, Tuple(fs), _) if fs.size != 1 => s"(${fs.tail.map(e => null).mkString(",")},_)"
         case _ => "(null)"
       }
+      // this has the wrong type
+      val agg = v1.last.tp match {
+        case TTupleType(List(IntType, RecordCType(_))) => s"case $gv2 => $gv2._2.map(v => ({${generate(f)}}, {${generate(e2)}}))"
+        case _ => s"case _ => List(({${generate(f)}}, {${generate(e2)}}))"
+      }
       e2.tp match {
         case IntType => 
-          s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
-              |     case $nonet => ({${generate(f)}}, 0)
-              |     case _ => ({${generate(f)}}, {${generate(e2)}})
+          s"""|${generate(e1)}.flatMap{ case $vars => ${generate(g)} match {
+              |     case $nonet => List(({${generate(f)}}, 0))
+              |     $agg
               |   }
               |}.foldByKey(0){ case ($acc, $gv2) => $acc + $gv2 }""".stripMargin
         case DoubleType => 
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
               |     case $nonet => ({${generate(f)}}, 0)
-              |     case _ => ({${generate(f)}}, {${generate(e2)}})
+              |     $agg
               |   }
               |}.foldByKey(0){ case ($acc, $gv2) => $acc + $gv2 }""".stripMargin
         case _ => 
@@ -294,8 +308,9 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     }
     case LinearCSet(exprs) =>
       s"""(${exprs.map(generate(_)).mkString(",")})"""
-    case Bind(v, e1, e2) =>
-      s"val ${generate(v)} = ${generate(e1)} \n${generate(e2)} "
+    case Bind(v, e1, e2) => sanitizeName(e) match {
+        case Bind(v2, e3, e4) => s"val ${generate(v2)} = ${generate(e3)} \n${generate(e4)}"
+      }
     case _ => sys.error("not supported "+e)
   }
 
