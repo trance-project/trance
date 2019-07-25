@@ -185,7 +185,6 @@ object Utils {
     val anfer = new Finalizer(anfBase)
 
     val (q1, qname, qdata) = qInfo
-    
     val normq1 = normalizer.finalize(q1).asInstanceOf[CExpr]
     println(s"\n$qname")
     println(Printer.quote(normq1))

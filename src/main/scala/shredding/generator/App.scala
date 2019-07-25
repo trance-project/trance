@@ -56,12 +56,20 @@ object App {
     val q5info = (q5.asInstanceOf[CExpr], "NestedTest2", NestedRelations.format2aSpark)
     Utils.runSpark(q5info, Map[Type, String](RecordCType("c" -> IntType) -> "InputRB2"))
 
+    val sq5 = runner.shredPipeline(NestedTests.q8.asInstanceOf[runner.Expr])
+    val sq5info = (sq5.asInstanceOf[CExpr], "NestedShredTest2", NestedRelations.format2bSpark)
+    Utils.runSpark(sq5info, Map[Type, String](RecordCType("c" -> IntType) -> "InputRB2"))
+
     val q6 = translator.translate(NestedTests.q1.asInstanceOf[translator.Expr])
     val q6info = (q6.asInstanceOf[CExpr], "NestedTest3", NestedRelations.format1Spark)
     Utils.runSpark(q6info, Map[Type, String](RecordCType("n" -> IntType) -> "InputR3",
                                              RecordCType("m" -> IntType, "n" -> IntType, "k" -> BagCType(RecordCType("n" -> IntType))) -> "InputR2",
                                              RecordCType("h" -> IntType, "j" -> 
                                               BagCType(RecordCType("m" -> IntType, "n" -> IntType, "k" -> BagCType(RecordCType("n" -> IntType))))) -> "InputR1"))
+
+    val sq6 = runner.shredPipeline(NestedTests.q1.asInstanceOf[runner.Expr])
+    val sq6info = (sq6.asInstanceOf[CExpr], "NestedShredTest3", NestedRelations.format2Spark)
+    Utils.runSpark(sq6info, Map[Type, String]())
 
   }
 
@@ -79,10 +87,10 @@ object App {
     /**run1Calc()
     run1()
     run3Calc()
-    run3()
+    run3()**/
     run4Calc()
     run4()
-    run5Calc()
+    /**run5Calc()
     run5()
     run7Calc()
     run7()**/

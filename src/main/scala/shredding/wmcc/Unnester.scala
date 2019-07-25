@@ -88,9 +88,7 @@ object Unnester {
       getPM(p2) match {
         case (Constant(false), _) => 
           val (sp2s, p1s, p2s) = ps(p2, v2, w)
-        // if this is changed to Select(e0, ...) then the local code generation 
-        // will need to be updated to handle types similar to spark
-        val nE = Some(Lookup(E.get, Select(e1, v2, sp2s), w, lbl1, v2, p2s, p1s))
+        val nE = Some(Lookup(E.get, Select(e1, v, sp2s), w, lbl1, v2, p2s, p1s))
         unnest(e3)((u, w :+ v2, nE)) 
         case (e4, be2) => 
           val nE = Some(OuterLookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, Constant(true), Constant(true)))

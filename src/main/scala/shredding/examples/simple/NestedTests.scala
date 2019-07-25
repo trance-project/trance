@@ -69,8 +69,8 @@ object NestedTests {
     
    // michael's filter inner bag example
    val q8 = ForeachUnion(x3, relR2,
-              Singleton(Tuple("a'" -> TupleVarRef(x3)("a"),
-                "s1'" -> ForeachUnion(x5, BagProject(TupleVarRef(x3), "b"),
+              Singleton(Tuple("a" -> TupleVarRef(x3)("a"),
+                "s1" -> ForeachUnion(x5, BagProject(TupleVarRef(x3), "b"),
                  IfThenElse(Cmp(OpGt, Const(2, IntType), TupleVarRef(x5)("c")), Singleton(TupleVarRef(x5)))))))
    // Relation 3
   

@@ -150,13 +150,12 @@ object NestedRelations{
       |                           InputR2("Michael", 7, List(InputR3(2), InputR3(9), InputR3(1))),
       |                          InputR2("Jaclyn", 12, List(InputR3(14), InputR3(12))))),
       |          InputR1(69, List(InputR2("Thomas", 987, List(InputR3(987), InputR3(654), InputR3(987), InputR3(987))))))
-      |case class Flat1(h: Int, j: Int)
       |case class Flat2(m: String, n: Int, k: Int)
       |case class Flat3(n: Int)
       |val R__F = 1
-      |val R__D_1 = spark.sparkContext.parallelize(R.map{ case t => (R__F, Flat1(t.h, t.hashCode)) })
+      |val R__D_1 = spark.sparkContext.parallelize(List((R__F, R.map{ case t => Input_R__D(t.h, t.hashCode)})))
       |val R__D_2j_1 = spark.sparkContext.parallelize(R.map{ case t => (t.hashCode, t.j.map{ case t2 => Flat2(t2.m, t2.n, t2.hashCode) }) })
-      |val R__D_2j_1_2k_1 = spark.sparkContext.parallelize(R.map{ case t => t.j.map{ case t3 => (t3.hashCode, t3.k.map{ case t4 => Flat3(t4.n) }) } })
+      |val R__D_2j_2k_1 = spark.sparkContext.parallelize(R.map{ case t => t.j.map{ case t3 => (t3.hashCode, t3.k.map{ case t4 => Flat3(t4.n) }) } })
     """
     
     // Bag(a: Int, b: Bag(c: Int))
@@ -175,6 +174,14 @@ object NestedRelations{
                               InputRB1(49, List(InputRB2(3), InputRB2(2))),
                               InputRB1(34, List(InputRB2(5)))))""".stripMargin
     
+    val format2bSpark = s"""
+      |val R = List(InputRB1(42, List(InputRB2(1), InputRB2(2), InputRB2(4))),
+      |                        InputRB1(49, List(InputRB2(3), InputRB2(2))),
+      |                        InputRB1(34, List(InputRB2(5))))
+      |val R__F = 1
+      |val R__D_1 = spark.sparkContext.parallelize(List((R__F, R.map{ case t => Input_R__D(t.a, t.hashCode)})))
+      |val R__D_2b_1 = spark.sparkContext.parallelize(R.map{ case t => (t.hashCode, t.b) })""".stripMargin
+
     val format2b = List(InputRB1(42,  List(InputRB2(1), InputRB2(2), InputRB2(4))),
                         InputRB1(49,  List(InputRB2(3), InputRB2(2))),
                         InputRB1(34,  List(InputRB2(5))))

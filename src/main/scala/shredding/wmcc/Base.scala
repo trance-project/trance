@@ -240,10 +240,7 @@ trait BaseCompiler extends Base {
   }
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
     val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
-    val v2 = e2.tp match {
-      case btp:BagDictCType => Variable.fresh(btp.flat.tp)
-      case _ => Variable.fresh(e2.tp.asInstanceOf[BagCType].tp) 
-    }
+    val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
     Lookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
   }
   def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
@@ -628,7 +625,7 @@ trait BaseANF extends Base {
   def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = compiler.join(e1, e2, p1, p2)
   def outerunnest(e1: Rep, r: List[Rep] => Rep, p: List[Rep] => Rep): Rep = compiler.outerunnest(e1, r, p)
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep): Rep = compiler.outerjoin(e1, e2, p1, p)
-  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep = compiler.nest(e1, f, e, p, g) 
+  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep = compiler.nest(e1, f, e, p, g)
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = compiler.lkup(e1, e2, p1, p2, p3)
   def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = compiler.outerlkup(e1, e2, p1, p2, p3)
   def vars(e: Type): List[Variable] = e match {

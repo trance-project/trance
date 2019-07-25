@@ -100,7 +100,7 @@ case class Project(e1: CExpr, field: String) extends CExpr { self =>
     case t:TTupleType => field match {
       case "_1" => t(0)
       case "_2" => t(1)
-      case  _ => t(field.toInt)
+      case  _ => println(t); t(field.toInt)
     }
     case t:LabelType => t(field)
     case t:TupleDictCType => t(field)
@@ -160,7 +160,8 @@ case class LinearCSet(exprs: List[CExpr]) extends CExpr {
   */
 
 case class CLookup(lbl: CExpr, dict: CExpr) extends CExpr {
-  def tp: BagCType = dict.tp.asInstanceOf[BagDictCType].flat
+  def tp: BagCType = dict.tp.asInstanceOf[BagDictCType]("flat").asInstanceOf[BagCType]
+  //def tp: BagCType = dict.tp.asInstanceOf[BagDictCType].flatTp
 }
 
 case object EmptyCDict extends CExpr {

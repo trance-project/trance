@@ -189,7 +189,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
               | }
               |} ) ) }""".stripMargin
         case DoubleType => 
-          s"""|$grped\n $grps.toList.map($gv2 => ($gv2._1, $gv2._2.foldLeft(0){ 
+          s"""|$grped\n $grps.toList.map($gv2 => ($gv2._1, $gv2._2.foldLeft(0.0){ 
               | case ($acc, $vars) => {${generate(g)}} match {
               |   case $nonet => $acc
               |   case _ => $acc + {${generate(e2)}}

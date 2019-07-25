@@ -37,7 +37,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case BoolType => "Boolean"
     case DoubleType => "Double"
     case LongType => "Long"
-    case TTupleType(fs) => s"${fs.map(generateType(_)).mkString(",")})"
+    case TTupleType(fs) => s"(${fs.map(generateType(_)).mkString(",")})"
     case BagCType(tp) => s"List[${generateType(tp)}]" //combineByKey, etc. may need this to be iterable
     case BagDictCType(flat @ BagCType(TTupleType(fs)), dict) =>
       dict match {
@@ -121,6 +121,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       case BagDictCType(_,_) => s"${generate(e2)}${field.replace(".", "")}"
       case TupleDictCType(_) => s"${generate(e2)}${field.replace(".", "")}"
       case TTupleType(List(IntType, RecordCType(_))) if field != "_2" => s"${generate(e2)}._2.${kvName(field)}"
+      case RecordCType(fs) => s"${generate(e2)}.${kvName(field)(fs.size)}"
       case _ => s"${generate(e2)}.${kvName(field)}"
     }
     case Equals(e1, e2) => s"${generate(e1)} == ${generate(e2)}"
@@ -255,9 +256,10 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
         case Constant(true) => s"{${generate(p1)}}"
         case _ => s"({${generate(p1)}}, {${generate(p3)}})"
       }
+      // need to optimize this for top level lookups
       val key2 = p2 match {
-        case Constant(true) => s".map($gv2 => ($gv2._1, $gv2))"
-        case _ => s".map($gv2 => (($gv2._1, {${generate(p2)}}), $gv2))" 
+        case Constant(true) => s".flatMap($gv2 => $gv2._2.map{case v2 => ($gv2._1, v2)})"
+        case _ => s".flatMap($gv2 => $gv2._2.map{case v2 => (($gv2._1, {${generate(p2)}}), v2))})" 
       }
       s"""|{ val out1 = ${generate(e1)}.map{ case $vars => ($key1, $vars) }
           |  val out2 = ${generate(e2)}$key2
