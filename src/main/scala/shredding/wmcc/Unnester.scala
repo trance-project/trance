@@ -156,6 +156,8 @@ object Unnester {
 
   def getP1(e: CExpr, v: Variable): Boolean = e match {
     case Equals(e1, e2) if (v.lequals(e1) == v.lequals(e2)) => true
+    case Equals(e1, e2 @ Constant(_)) if v.lequals(e1) => true
+    case Equals(e1 @ Constant(_), e2) if v.lequals(e2) => true
     case Lt(e1, e2 @ Constant(_)) if v.lequals(e1) => true
     case Lt(e1 @ Constant(_), e2) if v.lequals(e2) => true
     case Gt(e1, e2 @ Constant(_)) if v.lequals(e1) => true

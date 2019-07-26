@@ -2,6 +2,7 @@ package shredding.generator
 
 import shredding.core._
 import shredding.wmcc._
+import shredding.examples.genomic.{GenomicTests, GenomicRelations}
 import shredding.examples.simple.{FlatTests, NestedTests, FlatRelations, NestedRelations}
 import shredding.examples.tpch.{TPCHQueries, TPCHSchema, TPCHLoader}
 
@@ -73,23 +74,40 @@ object App {
 
   }
 
-  def runSpark2(){
-    println(" ------------------------------- Spark Test Query Plan -------------------------- ")
-    val q2 = translator.translate(NestedTests.q11.asInstanceOf[translator.Expr])
-    val q2info = (q2.asInstanceOf[CExpr], NestedTests.q11name, NestedRelations.format4Spark)
-    Utils.runSpark(q2info, NestedRelations.q10inputs)
-  
+  def runBio(){
+    println(" ------------------------------- Spark Bio Query Plan -------------------------- ")
+    val q1 = translator.translate(GenomicTests.q1.asInstanceOf[translator.Expr])
+    val q1info = (q1.asInstanceOf[CExpr], "AlleleCounts", GenomicRelations.format1Spark)
+    Utils.runSpark(q1info, GenomicRelations.q1inputs.map(r => translator.translate(r._1) -> r._2))
+
+    val q2 = translator.translate(GenomicTests.q2.asInstanceOf[translator.Expr])
+    val q2info = (q2.asInstanceOf[CExpr], "TotalGenotypes", GenomicRelations.format1Spark)
+    Utils.runSpark(q2info, GenomicRelations.q1inputs.map(r => translator.translate(r._1) -> r._2))
+
+    val q3 = translator.translate(GenomicTests.q3.asInstanceOf[translator.Expr])
+    val q3info = (q3.asInstanceOf[CExpr], "CaseGenotypes", GenomicRelations.format1Spark)
+    Utils.runSpark(q3info, GenomicRelations.q1inputs.map(r => translator.translate(r._1) -> r._2))
+
+    val q4 = translator.translate(GenomicTests.q4.asInstanceOf[translator.Expr])
+    val q4info = (q4.asInstanceOf[CExpr], "AltMutations", GenomicRelations.format1Spark)
+    Utils.runSpark(q4info, GenomicRelations.q1inputs.map(r => translator.translate(r._1) -> r._2))
+
+    val q5 = translator.translate(GenomicTests.q5.asInstanceOf[translator.Expr])
+    val q5info = (q5.asInstanceOf[CExpr], "AltCount", GenomicRelations.format1Spark)
+    Utils.runSpark(q5info, GenomicRelations.q1inputs.map(r => translator.translate(r._1) -> r._2))
+
   }
 
   def main(args: Array[String]){
+    runBio()
     //runSparkCalc()
-    runSpark()
+    //runSpark()
     /**run1Calc()
     run1()
     run3Calc()
     run3()**/
-    run4Calc()
-    run4()
+    //run4Calc()
+    //run4()
     /**run5Calc()
     run5()
     run7Calc()

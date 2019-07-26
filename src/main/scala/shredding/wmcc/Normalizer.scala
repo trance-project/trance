@@ -62,6 +62,10 @@ trait BaseNormalizer extends BaseCompiler {
     case _ => e1 match {
       case Sng(t) if t.tp == IntType => super.ifthen(cond, t, Some(Constant(0)))
       case Sng(t) if t.tp == DoubleType => super.ifthen(cond, t, Some(Constant(0.0))) 
+      case If(cond2, e3, e4) => e2 match {
+        case None => ifthen(and(cond, cond2), e3, e4)
+        case Some(e5) => ifthen(and(cond, not(cond2)), e4.get, Some(ifthen(and(cond, cond2), e3, e2)))
+      }
       case _ => super.ifthen(cond, e1, e2)
     }
   }
@@ -80,6 +84,8 @@ trait BaseNormalizer extends BaseCompiler {
     e1 match {
       case If(cond, e3, e4 @ Some(a)) => //N4
         If(cond, comprehension(e3, p, e), Some(comprehension(a, p, e)))
+      case If(cond, e3 @ WeightedSng(t, q), None) => comprehension(e3, (i: CExpr) => cond, e)
+      case WeightedSng(t, q) if e(t) == Constant(1) => comprehension(Sng(t), p, (i: CExpr) => q)
       case EmptySng => EmptySng // N5
       case Sng(t) => ifthen(p(t), Sng(e(t))) // N6
       case Merge(e1, e2) => Merge(comprehension(e1, p, e), comprehension(e2, p, e))  //N7

@@ -243,6 +243,7 @@ object Utils {
       |import org.apache.spark.sql.SparkSession
       |import shredding.core.CaseClassRecord
       |import shredding.examples.simple._
+      |import shredding.examples.genomic._
       |$header
       |object $appname {
       | def main(args: Array[String]){

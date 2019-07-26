@@ -140,18 +140,16 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case WeightedSng(e, q) => s"(1 to ${generate(q)}.asInstanceOf[Int]).map(v => ${generate(e)})"
     case CUnit => "()"
     case EmptySng => "Nil"
-    case If(cond, e1, e2) => e2 match {
-      case Some(a) => s"""
+    case If(cond, e1, Some(e2)) => s"""
         | if ({${generate(cond)}}) {
-        | {${ind(generate(e1))}})
+        | {${ind(generate(e1))}}
         | } else {
-        | {${ind(generate(a))}}
+        | {${ind(generate(e2))}}
         | }""".stripMargin
-      case None => s"""
+    case If(cond, e1, None) => s"""
         | if ({${generate(cond)}})
         | {${ind(generate(e1))}}
         | else  Nil """.stripMargin
-    }
     case Merge(e1, e2) => s"${generate(e1) ++ generate(e2)}"
     case CDeDup(e1) => s"${generate(e1)}.distinct"
     case Nest(e1, v1, f, e2, v2, p, g) =>
@@ -171,7 +169,9 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
                       | }""".stripMargin
       }
       val nonet = g match {
-        case Bind(_, Tuple(fs), _) if fs.size != 1 => s"(${fs.tail.map(e => null).mkString(",")},_)"
+        case Bind(_, Tuple(fs), _) if fs.size != 1 => s"(_,${fs.tail.map(e => 
+          e.tp match { case IntType => 0; case _ => null}).mkString(",")})"
+          //s"(${fs.tail.map(e => null).mkString(",")},_)"
         case _ => "(null)"
       }
       // this has the wrong type
@@ -235,12 +235,16 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case OuterJoin(e1, e2, v1, p1, v2, p2) => 
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 = generate(v2)
-      s"""|{ val out1 = ${generate(e1)}.map{ case $vars => ({${generate(p1)}}, $vars) }
+      val nonet = v1.size match {
+        case 1 => ""
+        case _ => s"case (a, null) => (null, (a, null)); " 
+      }
+      s"""|{ val out1 = ${generate(e1)}.map{ $nonet case $vars => ({${generate(p1)}}, $vars) }
           |  val out2 = ${generate(e2)}.map{ case $gv2 => ({${generate(p2)}}, $gv2) }
-          |  out1.leftOuterJoin(out2).map{ case (k,v) => v match {
-          |   case Some(a) => a
-          |   case _ => null
-          |  }
+          |  out1.leftOuterJoin(out2).map{ 
+          |   case (k, ($vars, Some($gv2))) => ($vars, $gv2)
+          |   case (k, ($vars, None)) => ($vars, null)
+          |  } 
           |}""".stripMargin
     case Join(e1, e2, v1, p1, v2, p2) => 
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
