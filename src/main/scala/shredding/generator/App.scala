@@ -76,11 +76,15 @@ object App {
 
   def runBio(){
     println(" ------------------------------- Spark Bio Query Plan -------------------------- ")
-    val q1 = translator.translate(GenomicTests.q1.asInstanceOf[translator.Expr])
+    /**val q1 = translator.translate(GenomicTests.q1.asInstanceOf[translator.Expr])
     val q1info = (q1.asInstanceOf[CExpr], "AlleleCounts", GenomicRelations.format1Spark)
-    Utils.runSpark(q1info, GenomicRelations.q1inputs.map(r => translator.translate(r._1) -> r._2))
+    Utils.runSpark(q1info, GenomicRelations.q1inputs.map(r => translator.translate(r._1) -> r._2))**/
 
-    val q2 = translator.translate(GenomicTests.q2.asInstanceOf[translator.Expr])
+    val sq1 = runner.shredPipeline(GenomicTests.q1.asInstanceOf[runner.Expr])
+    val sq1info = (sq1.asInstanceOf[CExpr], "ShredAlleleCounts", GenomicRelations.format2Spark)
+    Utils.runSpark(sq1info, GenomicRelations.q1inputs.map(r => translator.translate(r._1) -> r._2))
+
+    /**val q2 = translator.translate(GenomicTests.q2.asInstanceOf[translator.Expr])
     val q2info = (q2.asInstanceOf[CExpr], "TotalGenotypes", GenomicRelations.format1Spark)
     Utils.runSpark(q2info, GenomicRelations.q1inputs.map(r => translator.translate(r._1) -> r._2))
 
@@ -95,13 +99,13 @@ object App {
     val q5 = translator.translate(GenomicTests.q5.asInstanceOf[translator.Expr])
     val q5info = (q5.asInstanceOf[CExpr], "AltCount", GenomicRelations.format1Spark)
     Utils.runSpark(q5info, GenomicRelations.q1inputs.map(r => translator.translate(r._1) -> r._2))
-
+    **/
   }
 
   def main(args: Array[String]){
+     //runSparkCalc()
+    runSpark()
     runBio()
-    //runSparkCalc()
-    //runSpark()
     /**run1Calc()
     run1()
     run3Calc()

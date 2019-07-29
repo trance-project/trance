@@ -7,6 +7,7 @@ case class Clinical(sample: String, iscase: String)
 case class Genotype(sample: String, call: Int)
 case class Case(iscase: String)
 case class Variant(contig: String, start: Int, genotypes: List[Genotype])
+case class VariantFlat(contig: String, start: Int, genotypes: Int)
 
 object GenomicRelations{
 
@@ -14,8 +15,10 @@ object GenomicRelations{
    val clintype = TupleType("sample" -> StringType, "iscase" -> StringType)
    val genotype = TupleType("sample" -> StringType, "call" -> IntType)
    val varianttype = TupleType("contig" -> StringType, "start" -> IntType, "genotypes" -> BagType(genotype))
+   val variantftype = TupleType("contig" -> StringType, "start" -> IntType, "genotypes" -> IntType)
+
    val q1inputs = Map[Type, String](casetype -> "Case", clintype -> "Clinical", 
-                    genotype -> "Genotype", varianttype -> "Variant")
+                    genotype -> "Genotype", varianttype -> "Variant", variantftype -> "VariantFlat")
 
    val format1Spark = s"""
     |val cases = spark.sparkContext.parallelize(List(Case("control"), Case("case")))
@@ -25,6 +28,21 @@ object GenomicRelations{
     |   Variant("1", 102, List(Genotype("one", 2), Genotype("two", 0), Genotype("three", 1), Genotype("four", 2)))))
     |val clinical = spark.sparkContext.parallelize(List(
     |    Clinical("one", "case"), Clinical("two", "case"), Clinical("three", "control"), Clinical("four", "control")))
+    """.stripMargin 
+
+   val format2Spark = s"""
+      |val cases__F = 1
+      |val cases__D_1 = spark.sparkContext.parallelize(List((1, List(Case("control"), Case("case")))))
+      |val clinical__F = 2
+      |val clinical__D_1 = spark.sparkContext.parallelize(List((2, List(
+      |  Clinical("one", "case"), Clinical("two", "case"), Clinical("three", "control"), Clinical("four", "control")))))
+      |val variants = spark.sparkContext.parallelize(List(
+      |  Variant("1", 100, List(Genotype("one", 0), Genotype("two", 1), Genotype("three", 2), Genotype("four", 0))),
+      |  Variant("1", 101, List(Genotype("one", 1), Genotype("two", 1), Genotype("three", 0), Genotype("four", 1))),
+      |  Variant("1", 102, List(Genotype("one", 2), Genotype("two", 0), Genotype("three", 1), Genotype("four", 2)))))
+      |val variants__F = 2
+      |val variants__D_1 = variants.map{ case v => VariantFlat(v.contig, v.start, v.hashCode) }
+      |val variants__Dgenotypes_1 = variants.map{ case v => (v.hashCode, v.genotypes.map{ case g => Genotype(g.sample, g.call)})}
     """.stripMargin 
 
 }

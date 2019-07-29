@@ -58,6 +58,8 @@ trait ShredNRC extends NRC with Label with Dictionary {
     def apply(c: Cond, e1: Expr, e2: Expr): Expr = e1.tp match {
       case _: LabelType =>
         LabelIfThenElse(c, e1.asInstanceOf[LabelExpr], Some(e2.asInstanceOf[LabelExpr]))
+      case _:DictType => 
+        DictIfThenElse(c, e1.asInstanceOf[DictExpr], e2.asInstanceOf[DictExpr])
       case _ => IfThenElse(c, e1, e2)
     }
 

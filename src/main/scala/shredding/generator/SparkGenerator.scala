@@ -152,6 +152,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
         | else  Nil """.stripMargin
     case Merge(e1, e2) => s"${generate(e1) ++ generate(e2)}"
     case CDeDup(e1) => s"${generate(e1)}.distinct"
+    case EmptyCDict => s"()"
     case Nest(e1, v1, f, e2, v2, p, g) =>
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val zero = e2.tp match {
