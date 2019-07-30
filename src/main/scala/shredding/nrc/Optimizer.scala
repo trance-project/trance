@@ -56,6 +56,10 @@ trait Optimizer extends Extensions {
     /* TODO: Doesn't work nested lets */
     case Lookup(l1, BagDictLet(x, e1, BagDict(l2, flatBag, _))) if l1.tp == l2.tp =>
       betaReduce(Let(x, e1, flatBag))
+
+    case Lookup(l1, BagDictIfThenElse(c, BagDict(l2, f2, _), BagDict(l3, f3, _)))
+        if l1.tp == l2.tp && l1.tp == l3.tp =>
+      betaReduce(BagIfThenElse(c, f2, Some(f3)))
   })
 
 }
