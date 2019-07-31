@@ -11,7 +11,7 @@ import scala.collection.mutable.ArrayBuffer
 case class PartSupp(ps_partkey: Int, ps_suppkey: Int, ps_availqty: Int, ps_supplycost: Double, ps_comment: String) extends CaseClassRecord{
   def uniqueId: Long = ps_partkey.toLong
 }
-
+ 
 case class Part(p_partkey: Int, p_name: String, p_mfgr: String, p_brand: String, p_type: String, p_size: Int, p_container: String, p_retailprice: Double, p_comment: String) extends CaseClassRecord{
   def uniqueId: Long = p_partkey.toLong
 }
@@ -25,6 +25,7 @@ case class Orders(o_orderkey: Int, o_custkey: Int, o_orderstatus: String, o_tota
 }
 
 case class Lineitem(l_orderkey: Int, l_partkey: Int, l_suppkey: Int, l_linenumber: Int, l_quantity: Double, l_extendedprice: Double, l_discount: Double, l_tax: Double, l_returnflag: String, l_linestatus: String, l_shipdate: String, l_commitdate: String, l_receiptdate: String, l_shipinstruct: String, l_shipmode: String, l_comment: String, uniqueId: Long) extends CaseClassRecord
+
 
 case class Supplier(s_suppkey: Int, s_name: String, s_address: String, s_nationkey: Int, s_phone: String, s_acctbal: Double, s_comment: String) extends CaseClassRecord{
   def uniqueId: Long = s_suppkey.toLong
