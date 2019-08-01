@@ -266,10 +266,10 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       // need to optimize this for top level lookups
       val key2 = p2 match {
         // TODO case for more than 1 level of nesting
-        case Constant(true) => s".flatMap($gv2 => $gv2._2.map{case v2 => ($gv2._1, v2)})"
-        //case Constant(true) => ""
-        case _ => s".flatMap($gv2 => $gv2._2.map{case v2 => (($gv2._1, {${generate(p2)}}), v2))})" 
-        //case _ => s".map($gv2 => (($gv2._1, {${generate(p2)}}), $gv2._2))"
+        //case Constant(true) => s".flatMap($gv2 => $gv2._2.map{case v2 => ($gv2._1, v2)})"
+        case Constant(true) => ""
+        //case _ => s".flatMap($gv2 => $gv2._2.map{case v2 => (($gv2._1, {${generate(p2)}}), v2))})" 
+        case _ => s".map($gv2 => (($gv2._1, {${generate(p2)}}), $gv2._2))"
       }
       s"""|{ val out1 = ${generate(e1)}.map{ case $vars => ($key1, $vars) }
           |  val out2 = ${generate(e2)}$key2
