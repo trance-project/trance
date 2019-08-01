@@ -40,7 +40,26 @@ object TPCHQueries {
     |val O = TPCHLoader.loadOrders[Orders].toList
     |val L = TPCHLoader.loadLineitem[Lineitem].toList
     |val P = TPCHLoader.loadPart[Part].toList""".stripMargin
+
+  val q1spark = s"""
+    |val tpch = TPCHLoader(spark)
+    |val C = tpch.loadCustomers
+    |val O = tpch.loadOrders
+    |val L = tpch.loadLineitem
+    |val P = tpch.loadPart""".stripMargin
   
+  val sq1spark = s"""
+    |val tpch = TPCHLoader(spark)
+    |val C__F = 1
+    |val C__D_1 = tpch.loadCustomers()
+    |val O__F = 2
+    |val O__D_1 = tpch.loadOrders()
+    |val L__F = 3
+    |val L__D_1 = tpch.loadLineitem()
+    |val P__F = 4
+    |val P__D_1 = tpch.loadPart()""".stripMargin
+
+
   val sq1data = s"""
     |val C__F = 1
     |val C__D = (List((C__F, TPCHLoader.loadCustomer[Customer].toList)), ())

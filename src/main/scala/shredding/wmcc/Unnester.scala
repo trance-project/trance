@@ -87,9 +87,15 @@ object Unnester {
       assert(!E.isEmpty)
       getPM(p2) match {
         case (Constant(false), _) => 
+          // p1s are from the context
           val (sp2s, p1s, p2s) = ps(p2, v2, w)
-        val nE = Some(Lookup(E.get, Select(e1, v, sp2s), w, lbl1, v2, p2s, p1s))
-        unnest(e3)((u, w :+ v2, nE)) 
+          val nE = e1 match {
+            // top level case
+            case Project(InputRef(name, BagDictCType(_,_)), "_1") if name.endsWith("__D") => 
+              Some(Join(E.get, Select(e1, v2, sp2s), w, p1s, v2, p2s))  
+             case _ => Some(Lookup(E.get, Select(e1, v, sp2s), w, lbl1, v2, p2s, p1s))
+          }
+          unnest(e3)((u, w :+ v2, nE)) 
         case (e4, be2) => 
           val nE = Some(OuterLookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, Constant(true), Constant(true)))
           val (nE2, nv) = getNest(unnest(e4)((w :+ v2, w :+ v2, nE)))

@@ -19,6 +19,19 @@ object App {
     Utils.runCalcSpark(qinfo, NestedRelations.q10inputs)
   }
 
+  def runTPCH(){
+    println("---------------------------- TPCH Query 1 Unnest ----------------------------")  
+    val q1 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
+    val qinfo = (q1.asInstanceOf[CExpr], TPCHQueries.q1name, TPCHQueries.q1spark)
+    Utils.runSpark(qinfo, tpchInputM)
+
+    println("---------------------------- TPCH Query 1 Shred Unnest ----------------------------")
+    val sq1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
+    val sqinfo = (sq1.asInstanceOf[CExpr], "Shred"+TPCHQueries.q1name, TPCHQueries.sq1spark)
+    Utils.runSpark(sqinfo, tpchShredM)
+
+  }
+
   def runSpark(){
     println(" ------------------------------- Spark Test Query -------------------------- ")
     val q1 = translator.translate(FlatTests.q1.asInstanceOf[translator.Expr])
@@ -103,9 +116,10 @@ object App {
   }
 
   def main(args: Array[String]){
+    runTPCH()
      //runSparkCalc()
-    runSpark()
-    runBio()
+    //runSpark()
+    //runBio()
     /**run1Calc()
     run1()
     run3Calc()

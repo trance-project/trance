@@ -7,8 +7,8 @@ import shredding.wmcc._
 object Utils {
 
   val normalizer = new Finalizer(new BaseNormalizer{})
-  //val pathout = (outf: String) => s"src/test/scala/shredding/examples/tpch/$outf.Scala"
-  val pathout = (outf: String) => s"src/test/scala/shredding/examples/simple/$outf.Scala"
+  val pathout = (outf: String) => s"src/test/scala/shredding/examples/tpch/$outf.Scala"
+  //val pathout = (outf: String) => s"src/test/scala/shredding/examples/simple/$outf.Scala"
 
   /**
     * Produces an output file for a query pipeline
@@ -241,9 +241,7 @@ object Utils {
       |/** Generated **/
       |import org.apache.spark.SparkConf
       |import org.apache.spark.sql.SparkSession
-      |import shredding.core.CaseClassRecord
-      |import shredding.examples.simple._
-      |import shredding.examples.genomic._
+      |import sprkloader._
       |$header
       |object $appname {
       | def main(args: Array[String]){

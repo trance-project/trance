@@ -1003,6 +1003,29 @@ object TestApp extends App
     }
   }
 
+
+  object Example12_Genomic {
+
+    import shredding.examples.genomic.GenomicTests
+
+    def run(): Unit = {
+
+      val q1 = GenomicTests.q1.asInstanceOf[Expr]
+
+      println("[Ex12] Q1: " + quote(q1))
+
+      val q1shredraw = shred(q1)
+      println("[Ex12] Shredded Q1: " + quote(q1shredraw))
+
+      val q1shred = optimize(q1shredraw)
+      println("[Ex12] Shredded Q1 Optimized: " + quote(q1shred))
+
+      val q1lin = linearize(q1shred)
+      println("[Ex12] Linearized Q1: " + quote(q1lin))
+    }
+  }
+
+
   Example1.run()
   Example2.run()
   Example3.run()
@@ -1018,5 +1041,7 @@ object TestApp extends App
   Example10_DeDup.run()
 
   Example11_Conditional.run()
+
+  Example12_Genomic.run()
 }
 

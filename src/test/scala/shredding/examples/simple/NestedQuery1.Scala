@@ -1,9 +1,8 @@
 
-package experiments
 /** Generated code **/
-object Query1 {
+class Query1 {
  
-import shredding.queries.simple._
+import shredding.examples.simple._
 val R = List(InputR1(42, List(InputR2("Milos", 123, List(InputR3(123), InputR3(456), InputR3(789), InputR3(123))),
                            InputR2("Michael", 7, List(InputR3(2), InputR3(9), InputR3(1))),
                            InputR2("Jaclyn", 12, List(InputR3(14), InputR3(12))))), 

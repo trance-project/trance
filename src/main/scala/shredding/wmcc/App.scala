@@ -212,7 +212,6 @@ object App {
     val splan4 = Unnester.unnest(snormq4)(Nil, Nil, None).asInstanceOf[CExpr]
     println(Printer.quote(splan4))
     println(evaluator.finalize(splan4))**/
-
   }
 
 
