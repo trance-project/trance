@@ -87,11 +87,21 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case _ => s"if({${generate(p)}}) {${ind(thenp)}} else {${ind(elsep)}}"
   }
 
+  var dictref = Map[Variable, String]()
   def sanitizeName(e: CExpr): CExpr = e match {
-    case Bind(v @ Variable(_, TupleDictCType(_)), Project(e1, f1), Bind(Variable(_, BagDictCType(_,_)), Project(e2, f2), e3)) => 
-      sanitizeName(Bind(v, Project(e1, s"$f1$f2"), e3)) 
-    case Bind(v @ Variable(_, TupleDictCType(_)), Project(e1, f1), Bind(v2 @ Variable(_, BagCType(_)), Project(e2 @ Variable(_, BagDictCType(_,_)), f2), Bind(v3, _, e3))) =>
-      sanitizeName(Bind(v, Project(e1, s"$f1$f2"), Bind(v3, v, e3)))
+    case Bind(v @ Variable(_, TupleDictCType(_)), e1 @ Project(InputRef(dname, _), f), e2) => 
+      dictref = dictref ++ Map(v -> s"$dname$f")
+      sanitizeName(e2)
+    case Bind(v @ Variable(dname, BagDictCType(_,_)), Project(e1 @ Variable(vname, t), f1), Bind(Variable(_, BagCType(_)), Project(e2, f2), Bind(v3, _, e3))) =>
+      val nv = dictref.getOrElse(e1, vname)
+      if (f2 == "_1") { dictref = dictref ++ Map(v -> s"$nv$f1") }
+      sanitizeName(Bind(v, Project(Variable(nv, t), s"$f1$f2"), Bind(v3, v, e3)))
+    case Bind(v @ Variable(_, TupleDictCType(_)), Project(e1 @ Variable(vname, t), f1), Bind(Variable(_, BagDictCType(_,_)), Project(e2, f2), Bind(v3, _, e3))) => 
+      val nv = dictref.getOrElse(e1, vname)
+      sanitizeName(Bind(v, Project(Variable(nv, t), s"$f1$f2"), Bind(v3, v, e3))) 
+    case Bind(v @ Variable(_, TupleDictCType(_)), Project(e1 @ Variable(vname, t), f1), Bind(v2 @ Variable(_, BagCType(_)), Project(e2 @ Variable(_, BagDictCType(_,_)), f2), Bind(v3, _, e3))) =>
+      val nv = dictref.getOrElse(e1, vname)
+      sanitizeName(Bind(v, Project(Variable(nv, t), s"$f1$f2"), Bind(v3, v, e3)))
     case _ => e 
   }
 
@@ -178,24 +188,24 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       // this has the wrong type
       val agg = v1.last.tp match {
         case TTupleType(List(IntType, RecordCType(_))) => s"case $gv2 => $gv2._2.map(v => ({${generate(f)}}, {${generate(e2)}}))"
-        case _ => s"case _ => List(({${generate(f)}}, {${generate(e2)}}))"
+        case _ => s"case _ => ({${generate(f)}}, {${generate(e2)}})" //List(({${generate(f)}}, {${generate(e2)}}))"
       }
       e2.tp match {
         case IntType => 
-          s"""|${generate(e1)}.flatMap{ case $vars => ${generate(g)} match {
-              |     case $nonet => List(({${generate(f)}}, 0))
+          s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
+              |     /**case $nonet => List(({${generate(f)}}, 0))**/
               |     $agg
               |   }
               |}.foldByKey(0){ case ($acc, $gv2) => $acc + $gv2 }""".stripMargin
         case DoubleType => 
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
-              |     case $nonet => ({${generate(f)}}, 0)
+              |     /**case $nonet => ({${generate(f)}}, 0)**/
               |     $agg
               |   }
               |}.foldByKey(0){ case ($acc, $gv2) => $acc + $gv2 }""".stripMargin
         case _ => 
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
-              |     case $nonet => ({${generate(f)}}, Nil)
+              |     /**case $nonet => ({${generate(f)}}, Nil)**/
               |     case _ => ({${generate(f)}}, $ge2)
               |   }
               |}.foldByKey(Nil){ case ($acc, $gv2) => $acc ++ $gv2 }""".stripMargin
@@ -264,13 +274,9 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
         case Constant(true) => s"{${generate(p1)}}"
         case _ => s"({${generate(p1)}}, {${generate(p3)}})"
       }
-      // need to optimize this for top level lookups
       val key2 = p2 match {
-        // TODO case for more than 1 level of nesting
-        //case Constant(true) => s".flatMap($gv2 => $gv2._2.map{case v2 => ($gv2._1, v2)})"
-        case Constant(true) => ""
-        //case _ => s".flatMap($gv2 => $gv2._2.map{case v2 => (($gv2._1, {${generate(p2)}}), v2))})" 
-        case _ => s".map($gv2 => (($gv2._1, {${generate(p2)}}), $gv2._2))"
+        case Constant(true) => s".flatMap($gv2 => $gv2._2.map{case v2 => ($gv2._1, v2)})"
+        case _ => s".flatMap(v2 => v2._2.map{case $gv2 => ((v2._1, {${generate(p2)}}), $gv2)})" 
       }
       s"""|{ val out1 = ${generate(e1)}.map{ case $vars => ($key1, $vars) }
           |  val out2 = ${generate(e2)}$key2
@@ -284,8 +290,8 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
         case _ => s"({${generate(p1)}}, {${generate(p3)}})"
       }
       val key2 = p2 match {
-        case Constant(true) => ""
-        case _ => s".map($gv2 => (($gv2._1, {${generate(p2)}}), $gv2))" 
+        case Constant(true) => s".flatMap($gv2 => $gv2._2.map{case v2 => ($gv2._1, v2)})"
+        case _ => s".flatMap(v2 => v2._2.map{case $gv2 => ((v2._1, {${generate(p2)}}), $gv2)})"
       }
       s"""|{ val out1 = ${generate(e1)}.map{ case $vars => ($key1, $vars) }
           |  val out2 = ${generate(e2)}$key2
@@ -308,19 +314,21 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       // capture top level label for now
       case "M_ctx1" => 
         s"""|val $n = spark.sparkContext.parallelize(${generate(e)})
-            |//println(\"$n\")
+            |println(\"$n\")
             |val ${generate(x)} = $n
-            |//$n.collect.foreach(println(_))
+            |$n.collect.foreach(println(_))
             |${generate(e2)}""".stripMargin
       case _ => 
         s"""|val $n = ${generate(e)}
-            |//println(\"$n\")
+            |println(\"$n\")
             |val ${generate(x)} = $n
-            |//$n.collect.foreach(println(_))
+            |$n.collect.foreach(println(_))
             |${generate(e2)}""".stripMargin
     }
     case Bind(x, e1 @ LinearCSet(rs), e2) =>
-      s"val ${generate(x)} = ${generate(e1)}\n ${generate(e2)}\n val res = ${generate(rs.last)}"
+      //s"val ${generate(x)} = ${generate(e1)}\n 
+      //s"${generate(e2)}\n 
+      s"val res = ${generate(rs.last)}"
     case LinearCSet(exprs) => 
       s"""(${exprs.map(generate(_)).mkString(",")})"""
     case Bind(v, e1, e2) => sanitizeName(e) match {

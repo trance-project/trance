@@ -20,7 +20,9 @@ case class Region(r_regionkey: Int, r_name: String, r_comment: String)
 case class Nation(n_nationkey: Int, n_name: String, n_regionkey: Int, n_comment: String) 
 
 case class Q1Flat(P__F: Int, C__F: Int, L__F: Int, O__F: Int)
+case class Q1Flat2(Query4__F: Q1Flat)
 case class Q3Flat(O__F: Int, C__F: Int, PS__F: Int, S__F: Int, L__F: Int, P__F: Int)
+case class Q3Flat2(N__F: Int, Query7__F: Q3Flat)
 case class Q5Flat(Query5__F: Q3Flat)
 
 object Config {
@@ -72,13 +74,13 @@ class TPCHLoader(spark: SparkSession){
   }
 
   def loadOrders():RDD[Orders] = {
-    spark.sparkContext.textFile(s"file:///$datapath/order.tbl").map(line => {
+    spark.sparkContext.textFile(s"file:///$datapath/orders.tbl").map(line => {
                     val l = line.split("\\|")
                     Orders(l(0).toInt, l(1).toInt, l(2), l(3).toDouble, l(4), l(5), l(6), l(7).toInt, l(8))})
   }
 
   def loadShredOrders(flat: Int):RDD[(Int, Orders)] = {
-    spark.sparkContext.textFile(s"file:///$datapath/order.tbl").map(line => {
+    spark.sparkContext.textFile(s"file:///$datapath/orders.tbl").map(line => {
                     val l = line.split("\\|")
                     (flat, Orders(l(0).toInt, l(1).toInt, l(2), l(3).toDouble, l(4), l(5), l(6), l(7).toInt, l(8)))})
   }

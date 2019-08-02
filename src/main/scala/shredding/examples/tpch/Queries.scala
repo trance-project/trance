@@ -44,20 +44,36 @@ object TPCHQueries {
   val q1spark = s"""
     |val tpch = TPCHLoader(spark)
     |val C = tpch.loadCustomers
+    |C.cache
+    |C.count
     |val O = tpch.loadOrders
+    |O.cache
+    |O.count
     |val L = tpch.loadLineitem
-    |val P = tpch.loadPart""".stripMargin
+    |L.cache
+    |L.count
+    |val P = tpch.loadPart
+    |P.cache
+    |P.count""".stripMargin
   
   val sq1spark = s"""
     |val tpch = TPCHLoader(spark)
     |val C__F = 1
     |val C__D_1 = tpch.loadCustomers()
+    |C__D_1.cache
+    |C__D_1.count
     |val O__F = 2
     |val O__D_1 = tpch.loadOrders()
+    |O__D_1.cache
+    |O__D_1.count
     |val L__F = 3
     |val L__D_1 = tpch.loadLineitem()
+    |L__D_1.cache
+    |L__D_1.count
     |val P__F = 4
-    |val P__D_1 = tpch.loadPart()""".stripMargin
+    |val P__D_1 = tpch.loadPart()
+    |P__D_1.cache
+    |P__D_1.count""".stripMargin
 
 
   val sq1data = s"""
@@ -142,9 +158,15 @@ object TPCHQueries {
 
   val sq4spark = s"""
       |val Query4__F = M_ctx1.collect.take(1)(0).lbl
-      |val Query4__D_1 = M_flat1
-      |val Query4__D_2c_orders = M_flat2
+      |val Query4__D_1 = M_flat1.flatMap(r => r._2)
+      |Query4__D_1.cache
+      |Query4__D_1.count
+      |val Query4__D_2c_orders_1 = M_flat2
+      |Query4__D_2c_orders_1.cache
+      |Query4__D_2c_orders_1.count
       |val Query4__D_2c_orders_2o_parts = M_flat3
+      |Query4__D_2c_orders_2o_parts.cache
+      |Query4__D_2c_orders_2o_parts.count
     """
 
   val query4 = //Sequence(List(Named(Q1, query1),
@@ -188,26 +210,50 @@ object TPCHQueries {
   val q3spark = s"""
     |val tpch = TPCHLoader(spark)
     |val C = tpch.loadCustomers
+    |C.cache
+    |C.count
     |val O = tpch.loadOrders
+    |O.cache
+    |O.count
     |val L = tpch.loadLineitem
+    |L.cache
+    |L.count
     |val P = tpch.loadPart
+    |P.cache
+    |P.count
     |val PS = tpch.loadPartSupp
-    |val S = tpch.loadSupplier""".stripMargin
+    |PS.cache
+    |PS.count
+    |val S = tpch.loadSupplier
+    |S.cache
+    |S.count""".stripMargin
 
   val sq3spark = s"""
     |val tpch = TPCHLoader(spark)
     |val C__F = 1
-    |val C__D_1 = tpch.loadCustomers
+    |val C__D_1 = tpch.loadCustomers()
+    |C__D_1.cache
+    |C__D_1.count
     |val O__F = 2
-    |val O__D_1 = tpch.loadOrders
+    |val O__D_1 = tpch.loadOrders()
+    |O__D_1.cache
+    |O__D_1.count
     |val L__F = 3
-    |val L__D_1 = tpch.loadLineitem
+    |val L__D_1 = tpch.loadLineitem()
+    |L__D_1.cache
+    |L__D_1.count
     |val P__F = 4
-    |val P__D_1 = tpch.loadPart
+    |val P__D_1 = tpch.loadPart()
+    |P__D_1.cache
+    |P__D_1.count
     |val PS__F = 5
     |val PS__D_1 = tpch.loadPartSupp
+    |PS__D_1.cache
+    |PS__D_1.count
     |val S__F = 6
-    |val S__D_1 = tpch.loadSupplier""".stripMargin
+    |val S__D_1 = tpch.loadSupplier
+    |S__D_1.cache
+    |S__D_1.count""".stripMargin
 
   val sq3data = s"""
     |val C__F = 1
@@ -256,13 +302,13 @@ object TPCHQueries {
 
   val sq5spark = s"""
     |val Query5__F = M_ctx1.collect.take(1)(0).lbl
-    |val Query5__D_1 = M_flat1
+    |val Query5__D_1 = M_flat1.flatMap(r => r._2)
     |Query5__D_1.cache
     |Query5__D_1.count
-    |val Query5__D_2suppliers_1 = M_flat2
+    |val Query5__D_2suppliers_1 = M_flat2.map(r => (r._1, r._2))
     |Query5__D_2suppliers_1.cache
     |Query5__D_2suppliers_1.count
-    |val Query5__D_2customers_1 = M_flat3
+    |val Query5__D_2customers_1 = M_flat3.map(r => (r._1, r._2))
     |Query5__D_2customers_1.cache
     |Query5__D_2customers_1.count
   """
