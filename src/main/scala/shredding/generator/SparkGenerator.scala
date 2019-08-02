@@ -244,10 +244,11 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       //s"""|{ val out1 = ${generate(e1)}.map{ $nonet case $vars => ({${generate(p1)}}, $vars) }
       s"""|{ val out1 = ${generate(e1)}.map{ case $vars => ({${generate(p1)}}, $vars) }
           |  val out2 = ${generate(e2)}.map{ case $gv2 => ({${generate(p2)}}, $gv2) }
-          |  out1.leftOuterJoin(out2).map{ 
+          |  out1.join(out2).map{ case (k,v) => v }
+          |  /**.map{ 
           |   case (k, ($vars, Some($gv2))) => ($vars, $gv2)
           |   case (k, ($vars, None)) => ($vars, null)
-          |  } 
+          |  }**/ 
           |}""".stripMargin
     case Join(e1, e2, v1, p1, v2, p2) => 
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
@@ -307,18 +308,20 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       // capture top level label for now
       case "M_ctx1" => 
         s"""|val $n = spark.sparkContext.parallelize(${generate(e)})
-            |println(\"$n\")
+            |//println(\"$n\")
             |val ${generate(x)} = $n
-            |$n.collect.foreach(println(_))
+            |//$n.collect.foreach(println(_))
             |${generate(e2)}""".stripMargin
       case _ => 
         s"""|val $n = ${generate(e)}
-            |println(\"$n\")
+            |//println(\"$n\")
             |val ${generate(x)} = $n
-            |$n.collect.foreach(println(_))
+            |//$n.collect.foreach(println(_))
             |${generate(e2)}""".stripMargin
     }
-    case LinearCSet(exprs) =>
+    case Bind(x, e1 @ LinearCSet(rs), e2) =>
+      s"val ${generate(x)} = ${generate(e1)}\n ${generate(e2)}\n val res = ${generate(rs.last)}"
+    case LinearCSet(exprs) => 
       s"""(${exprs.map(generate(_)).mkString(",")})"""
     case Bind(v, e1, e2) => sanitizeName(e) match {
         case Bind(v2, e3, e4) => s"val ${generate(v2)} = ${generate(e3)} \n${generate(e4)}"

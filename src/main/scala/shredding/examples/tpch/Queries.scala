@@ -140,7 +140,12 @@ object TPCHQueries {
     |val Query4__F = ShredQuery4._1.head.lbl
     |val Query4__D = (ShredQuery4._2, Input_Q1_Dict1((ShredQuery4._4, Input_Q1_Dict2((ShredQuery4._6, Unit)))))""".stripMargin
 
-
+  val sq4spark = s"""
+      |val Query4__F = M_ctx1.collect.take(1)(0).lbl
+      |val Query4__D_1 = M_flat1
+      |val Query4__D_2c_orders = M_flat2
+      |val Query4__D_2c_orders_2o_parts = M_flat3
+    """
 
   val query4 = //Sequence(List(Named(Q1, query1),
                 ForeachUnion(q1, BagVarRef(Q1), 
@@ -179,6 +184,30 @@ object TPCHQueries {
     |val P = TPCHLoader.loadPart[Part].toList
     |val PS = TPCHLoader.loadPartSupp[PartSupp].toList
     |val S = TPCHLoader.loadSupplier[Supplier].toList""".stripMargin
+
+  val q3spark = s"""
+    |val tpch = TPCHLoader(spark)
+    |val C = tpch.loadCustomers
+    |val O = tpch.loadOrders
+    |val L = tpch.loadLineitem
+    |val P = tpch.loadPart
+    |val PS = tpch.loadPartSupp
+    |val S = tpch.loadSupplier""".stripMargin
+
+  val sq3spark = s"""
+    |val tpch = TPCHLoader(spark)
+    |val C__F = 1
+    |val C__D_1 = tpch.loadCustomers
+    |val O__F = 2
+    |val O__D_1 = tpch.loadOrders
+    |val L__F = 3
+    |val L__D_1 = tpch.loadLineitem
+    |val P__F = 4
+    |val P__D_1 = tpch.loadPart
+    |val PS__F = 5
+    |val PS__D_1 = tpch.loadPartSupp
+    |val S__F = 6
+    |val S__D_1 = tpch.loadSupplier""".stripMargin
 
   val sq3data = s"""
     |val C__F = 1
@@ -224,6 +253,19 @@ object TPCHQueries {
     |case class Input_Q3_Dict1(suppliers: (List[RecM_flat2], Unit), customers: (List[RecM_flat3], Unit))
     |val Query5__F = ShredQuery5._1.head.lbl
     |val Query5__D = (ShredQuery5._2, Input_Q3_Dict1((ShredQuery5._4, Unit), (ShredQuery5._6, Unit)))""".stripMargin
+
+  val sq5spark = s"""
+    |val Query5__F = M_ctx1.collect.take(1)(0).lbl
+    |val Query5__D_1 = M_flat1
+    |Query5__D_1.cache
+    |Query5__D_1.count
+    |val Query5__D_2suppliers_1 = M_flat2
+    |Query5__D_2suppliers_1.cache
+    |Query5__D_2suppliers_1.count
+    |val Query5__D_2customers_1 = M_flat3
+    |Query5__D_2customers_1.cache
+    |Query5__D_2customers_1.count
+  """
 
   val query5 = ForeachUnion(q3, BagVarRef(Q3), 
                 Singleton(Tuple("p_name" -> rq3("p_name"), "cnt" -> 

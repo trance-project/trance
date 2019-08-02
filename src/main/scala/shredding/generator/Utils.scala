@@ -223,8 +223,8 @@ object Utils {
       val gcode2 = codegen.generate(anfExp2)
       val header2 = codegen.generateHeader(ng)
 
-      val printer2 = new PrintWriter(new FileOutputStream(new File(pathout(q2name)), false))
-      val finalc2 = write2(q2name, qdata, header2, gcode, q2name, gcode2, q2data)
+      val printer2 = new PrintWriter(new FileOutputStream(new File(pathout(q2name+"Spark")), false))
+      val finalc2 = writeSpark2(q2name+"Spark", qdata, header2, gcode, q2name, gcode2, q2data)
       printer2.println(finalc2)
       printer2.close 
     }
@@ -245,10 +245,44 @@ object Utils {
       |$header
       |object $appname {
       | def main(args: Array[String]){
-      |   val conf = new SparkConf().setMaster("local[*]").setAppName(\"$appname\")
+      |   val conf = new SparkConf().setMaster(Config.master).setAppName(\"$appname\")
       |   val spark = SparkSession.builder().config(conf).getOrCreate()
       |   $data
-      |   $gcode
+      |   var start0 = System.currentTimeMillis()
+      |   $gcode.count
+      |   var end0 = System.currentTimeMillis() - start0
+      |   println($appname+","+Config.datapath+","+end0)
+      | }
+      |}""".stripMargin
+  }
+
+  /**
+    * Writes out a query for a Spark application that takes a materialized query as input
+    **/
+
+  def writeSpark2(appname: String, data: String, header: String, gcode1: String, input: String, gcode: String, shred: String = ""): String  = {
+    val inputquery = if (appname.startsWith("Shred")) { s"$gcode1 \n $shred" }
+                     else { s"val $input = { $gcode1 } \n $input.cache \n $input.count" }
+    s"""
+      |package experiments
+      |/** Generated **/
+      |import org.apache.spark.SparkConf
+      |import org.apache.spark.sql.SparkSession
+      |import sprkloader._
+      |$header
+      |object $appname {
+      | def main(args: Array[String]){
+      |   val conf = new SparkConf().setMaster(Config.master).setAppName(\"$appname\")
+      |   val spark = SparkSession.builder().config(conf).getOrCreate()
+      |   $data
+      |   $inputquery
+      |   var start0 = System.currentTimeMillis()
+      |   def f() {
+      |     $gcode.count
+      |   }
+      |   f
+      |   var end0 = System.currentTimeMillis() - start0
+      |   println($appname+","+Config.datapath+","+end0)
       | }
       |}""".stripMargin
   }

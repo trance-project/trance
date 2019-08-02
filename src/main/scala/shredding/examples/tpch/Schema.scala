@@ -255,6 +255,7 @@ object TPCHSchema {
     RecordCType("O__F" -> IntType, "C__F" -> IntType, "PS__F" -> IntType, 
                 "S__F" -> IntType, "L__F" -> IntType, "P__F" -> IntType) -> "Q3Flat",
     RecordCType("N__F" -> IntType, "Query7__F" -> IntType) -> "Q3Flat2",
+    RecordCType("Query5__F" -> IntType) -> "Q5Flat",
     RecordCType("Query7__F" -> IntType, "N__F" -> IntType) -> "Q3Flat3",
     BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(partsupptype.tp.attrTps))))), EmptyDictCType) -> "PD", 
     BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(suppliertype.tp.attrTps))))), EmptyDictCType) -> "SD", 

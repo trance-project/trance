@@ -30,6 +30,36 @@ object App {
     val sqinfo = (sq1.asInstanceOf[CExpr], "Shred"+TPCHQueries.q1name, TPCHQueries.sq1spark)
     Utils.runSpark(sqinfo, tpchShredM)
 
+    println("---------------------------- TPCH Query 4 Unnest ----------------------------")  
+    val q4 = translator.translate(TPCHQueries.query4.asInstanceOf[translator.Expr])
+    val q4info = (q4.asInstanceOf[CExpr], TPCHQueries.q4name, "")
+    Utils.runSpark(qinfo, tpchInputM, q4info)
+
+    println("---------------------------- TPCH Query 4 Shred Unnest ----------------------------")
+    val sq4 = runner.shredPipeline(TPCHQueries.query4.asInstanceOf[runner.Expr])
+    val sq4info = (sq4.asInstanceOf[CExpr], "Shred"+TPCHQueries.q4name, TPCHQueries.sq4spark)
+    Utils.runSpark(sqinfo, tpchShredM, sq4info)
+
+    println("---------------------------- TPCH Query 3 Unnest ----------------------------")  
+    val q3 = translator.translate(TPCHQueries.query3.asInstanceOf[translator.Expr])
+    val q3info = (q3.asInstanceOf[CExpr], TPCHQueries.q3name, TPCHQueries.q3spark)
+    Utils.runSpark(q3info, tpchInputM)
+
+    println("---------------------------- TPCH Query 3 Shred Unnest ----------------------------")
+    val sq3 = runner.shredPipeline(TPCHQueries.query3.asInstanceOf[runner.Expr])
+    val sq3info = (sq3.asInstanceOf[CExpr], "Shred"+TPCHQueries.q3name, TPCHQueries.sq3spark)
+    Utils.runSpark(sq3info, tpchShredM)
+
+    println("---------------------------- TPCH Query 5 Unnest ----------------------------")  
+    val q5 = translator.translate(TPCHQueries.query5.asInstanceOf[translator.Expr])
+    val q5info = (q5.asInstanceOf[CExpr], TPCHQueries.q5name, "")
+    Utils.runSpark(q3info, tpchInputM, q5info)
+
+    println("---------------------------- TPCH Query 5 Shred Unnest ----------------------------")
+    val sq5 = runner.shredPipeline(TPCHQueries.query5.asInstanceOf[runner.Expr])
+    val sq5info = (sq5.asInstanceOf[CExpr], "Shred"+TPCHQueries.q5name, TPCHQueries.sq5spark)
+    Utils.runSpark(sq3info, tpchShredM, sq5info)
+
   }
 
   def runSpark(){

@@ -5,15 +5,24 @@ To compile and run:
 sbt run
 ```
 
-To compile and run generated code for Spark application:
+To build an application jar to run with Spark submit:
 ```
-CLASSPATH="target/scala-2.12/shredder_2.12-0.1.jar:$SPARK_HOME/jars/spark-core_2.12-2.4.0.jar:$SPARK_HOME/jars/spark-sql_2.12-2.4.0.jar"
+SPARK_HOME=/path/to/spark
+CLASSPATH="target/scala-2.12/shredder_2.12-0.1.jar:$SPARK_HOME/jars/spark-core_2.12-2.4.2.jar:$SPARK_HOME/jars/spark-sql_2.12-2.4.2.jar:spark/target/scala-2.12/sprkloader_2.12-0.1.jar"
 
-scalac -classpath $CLASSPATH -d tests src/test/scala/shredding/examples/$1/$2.Scala
+scalac -classpath $CLASSPATH /path/to/generated/code/Query1.Scala -d Query1.jar
+```
 
-spark-submit --class experiments.$2 \
-  --master "local[*]" \
-  --driver-class-path tests:target/scala-2.12/shredder_2.12-0.1.jar target/scala-2.12/shredder_2.12-0.1.jar
+To run spark submit (example executor configuration):
+```
+  spark-submit --class experiments.Query1 \
+      --master "spark://master-ip:7077" \
+      --executor-cores 4 \
+      --num-executors 10 \
+      --executor-memory 24G \
+      --driver-memory 32G \
+      --jars spark/target/scala-2.12/sprkloader_2.12-0.1.jar \
+      --driver-class-path spark/target/scala-2.12/sprkloader_2.12-0.1.jar Query1.jar
 ```
 
 
