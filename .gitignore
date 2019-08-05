@@ -3,6 +3,6 @@ project/
 target/
 .history
 *.swp
+simple*
 compile.sh
-test*
 data.flat
