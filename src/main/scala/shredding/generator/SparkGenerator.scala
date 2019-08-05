@@ -26,7 +26,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case RecordCType(fs) =>
      val name = types(tp)
      val fsize = fs.size
-      s"case class $name(${fs.map(x => s"${kvName(x._1)(fsize)}: ${generateType(x._2)}").mkString(", ")})"
+      s"case class $name(${fs.map(x => s"${kvName(x._1)(fsize)}: ${generateType(x._2)}").mkString(", ")}, uniqueId: Long)"
     case _ => sys.error("unsupported type "+tp)
   }
 
@@ -124,7 +124,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Record(fs) => {
       val tp = e.tp
       handleType(tp)
-      s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
+      s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")}, newId)"
     }
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
     case Project(e2, field) => e2.tp match {
@@ -172,41 +172,45 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       } 
       val acc = "acc"+Variable.newId
       val gv2 = generate(v2)
-      val ge2 = p match {
-        case Constant(true) => s"List({${generate(e2)}})"
-        case _ => s"""| {${generate(e2)}} match {
-                      |   case $gv2 if {${generate(p)}} => List($gv2) 
-                      |   case _ => Nil
-                      | }""".stripMargin
-      }
       val nonet = g match {
         case Bind(_, Tuple(fs), _) if fs.size != 1 => s"(_,${fs.tail.map(e => 
           e.tp match { case IntType => 0; case _ => null}).mkString(",")})"
-          //s"(${fs.tail.map(e => null).mkString(",")},_)"
         case _ => "(null)"
       }
-      // this has the wrong type
-      val agg = v1.last.tp match {
-        case TTupleType(List(IntType, RecordCType(_))) => s"case $gv2 => $gv2._2.map(v => ({${generate(f)}}, {${generate(e2)}}))"
-        case _ => s"case _ => ({${generate(f)}}, {${generate(e2)}})" //List(({${generate(f)}}, {${generate(e2)}}))"
+      val ge2 = (p, e2.tp) match {
+        case (Constant(true), IntType) => 
+          s"""|case $nonet => ({${generate(f)}}, 0)
+              |case $gv2 => ({${generate(f)}}, {${generate(e2)}})""".stripMargin
+        case (Constant(true), DoubleType) => 
+          s"""|case $nonet => ({${generate(f)}}, 0.0)
+               |case $gv2 => ({${generate(f)}}, {${generate(e2)}})""".stripMargin
+        case (Constant(true), _) => 
+          s"""|case $nonet => ({${generate(f)}}, Nil) 
+              |case $gv2 => ({${generate(f)}}, List({${generate(e2)}}))""".stripMargin
+        case (_, IntType) => 
+          s"""| case $gv2 if {${generate(p)}} => ({${generate(f)}}, {${generate(e2)}})
+              | case $gv2 => ({${generate(f)}}, 0)""".stripMargin
+        case (_, DoubleType) =>
+          s"""| case $gv2 if {${generate(p)}} => ({${generate(f)}}, {${generate(e2)}})
+              | case $gv2 => ({${generate(f)}}, 0)""".stripMargin
+        case _ =>
+          s"""| case $gv2 if {${generate(p)}} => ({${generate(f)}}, List({${generate(e2)}}))
+              | case $gv2 => ({${generate(f)}}, Nil)""".stripMargin
       }
       e2.tp match {
         case IntType => 
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
-              |     /**case $nonet => List(({${generate(f)}}, 0))**/
-              |     $agg
+              |     $ge2
               |   }
               |}.foldByKey(0){ case ($acc, $gv2) => $acc + $gv2 }""".stripMargin
         case DoubleType => 
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
-              |     /**case $nonet => ({${generate(f)}}, 0)**/
-              |     $agg
+              |     $ge2
               |   }
-              |}.foldByKey(0){ case ($acc, $gv2) => $acc + $gv2 }""".stripMargin
+              |}.foldByKey(0.0){ case ($acc, $gv2) => $acc + $gv2 }""".stripMargin
         case _ => 
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
-              |     /**case $nonet => ({${generate(f)}}, Nil)**/
-              |     case _ => ({${generate(f)}}, $ge2)
+              |     $ge2
               |   }
               |}.foldByKey(Nil){ case ($acc, $gv2) => $acc ++ $gv2 }""".stripMargin
       }
@@ -278,7 +282,11 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
         case Constant(true) => s".flatMap($gv2 => $gv2._2.map{case v2 => ($gv2._1, v2)})"
         case _ => s".flatMap(v2 => v2._2.map{case $gv2 => ((v2._1, {${generate(p2)}}), $gv2)})" 
       }
-      s"""|{ val out1 = ${generate(e1)}.map{ case $vars => ($key1, $vars) }
+      val nonet = v1.size match {
+        case 1 => ""
+        case _ => s"(a, null) => (null, (a, null))" 
+      }
+      s"""|{ val out1 = ${generate(e1)}.map{ case $nonet; case $vars => ($key1, $vars) }
           |  val out2 = ${generate(e2)}$key2
           |  out1.join(out2).map{ case (k, v) => v }
           |}""".stripMargin
@@ -293,9 +301,13 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
         case Constant(true) => s".flatMap($gv2 => $gv2._2.map{case v2 => ($gv2._1, v2)})"
         case _ => s".flatMap(v2 => v2._2.map{case $gv2 => ((v2._1, {${generate(p2)}}), $gv2)})"
       }
-      s"""|{ val out1 = ${generate(e1)}.map{ case $vars => ($key1, $vars) }
+      val nonet = v1.size match {
+        case 1 => ""
+        case _ => s"(a, null) => (null, (a, null)) " 
+      }
+      s"""|{ val out1 = ${generate(e1)}.map{ case $nonet; case $vars => ($key1, $vars) }
           |  val out2 = ${generate(e2)}$key2
-          |  out1.join(out2).map{ case (k, v) => v }
+          |  out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
           |}""".stripMargin
     case Select(x, v, p) => p match {
       case Constant(true) => generate(x)

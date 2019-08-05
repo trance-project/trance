@@ -272,7 +272,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
       val gv2 = generate(v2)
       s"""|${generate(e1)}.flatMap{ case $vars => 
           |${ind(generate(f))}.flatMap($gv2 => {
-          |${ind(s"${conditional(p, s"List(($vars, $gv2))", s"List(($vars, None))")}")}
+          |${ind(s"${conditional(p, s"List(($vars, $gv2))", s"List(($vars, null))")}")}
           |})}""".stripMargin
     case Bind(v, e1, e2) =>
       s"val ${generate(v)} = ${generate(e1)} \n${generate(e2)} "

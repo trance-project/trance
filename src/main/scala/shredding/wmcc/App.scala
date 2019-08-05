@@ -64,7 +64,7 @@ object App {
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
     println(evaluator.finalize(anfExp1.asInstanceOf[CExpr]))**/
 
-    /**println("\n---------------------------------------- STARTS HERE -----------------------\n")
+    println("\n---------------------------------------- STARTS HERE -----------------------\n")
     val q2 = translator.translate(translator.Named(VarDef("Query5", TPCHQueries.query3.tp), 
               TPCHQueries.query3.asInstanceOf[translator.Expr]))
     val normq2 = normalizer.finalize(q2).asInstanceOf[CExpr]
@@ -111,7 +111,7 @@ object App {
     eval.ctx.clear
     println("\n-------------------- ENDS HERE -----------------------------\n")
 
-    eval.ctx("C__F") = 1
+    /**eval.ctx("C__F") = 1
     eval.ctx("C__D") = (List((1, TPCHLoader.loadCustomer[Customer].toList)), ())
     eval.ctx("O__F") = 2
     eval.ctx("O__D") = (List((2, TPCHLoader.loadOrders[Orders].toList)), ())

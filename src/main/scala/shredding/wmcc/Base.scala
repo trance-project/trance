@@ -434,7 +434,8 @@ trait BaseScalaInterp extends Base{
   } 
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep = {
     val grps = e1.asInstanceOf[List[_]].groupBy(v => f(tupleVars(v)))
-    e1 match {
+    println(e1)
+    val res = e1 match {
       case Nil => e(Nil) match { case i:Int => 0; case _ => Nil }
       case head :: tail => e(head.asInstanceOf[List[_]]) match {
         case i:Int => 
@@ -451,6 +452,8 @@ trait BaseScalaInterp extends Base{
             } else { Nil } })).toList
         }
      }
+     println(res)
+     res
   }
   def outerunnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
     e1.asInstanceOf[List[_]].flatMap{

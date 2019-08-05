@@ -93,7 +93,11 @@ object Unnester {
             // top level case
             case Project(InputRef(name, BagDictCType(_,_)), "_1") if name.endsWith("__D") => 
               Some(Join(E.get, Select(e1, v2, sp2s), w, p1s, v2, p2s))  
-             case _ => Some(Lookup(E.get, Select(e1, v, sp2s), w, lbl1, v2, p2s, p1s))
+             case _ => if (u.isEmpty) {
+               Some(Lookup(E.get, Select(e1, v, sp2s), w, lbl1, v2, p2s, p1s))
+             }else{
+              Some(OuterLookup(E.get, Select(e1, v, sp2s), w, lbl1, v2, p2s, p1s))
+             }
           }
           unnest(e3)((u, w :+ v2, nE)) 
         case (e4, be2) => 

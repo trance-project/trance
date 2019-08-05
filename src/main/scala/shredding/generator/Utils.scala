@@ -248,6 +248,12 @@ object Utils {
       |   val conf = new SparkConf().setMaster(Config.master).setAppName(\"$appname\")
       |   val spark = SparkSession.builder().config(conf).getOrCreate()
       |   $data
+      |    var id = 0L
+      |    def newId: Long = {
+      |      val prevId = id
+      |      id += 1
+      |      prevId
+      |    }
       |   var start0 = System.currentTimeMillis()
       |   $gcode.count
       |   var end0 = System.currentTimeMillis() - start0
@@ -275,6 +281,12 @@ object Utils {
       |   val conf = new SparkConf().setMaster(Config.master).setAppName(\"$appname\")
       |   val spark = SparkSession.builder().config(conf).getOrCreate()
       |   $data
+      |    var id = 0L
+      |    def newId: Long = {
+      |      val prevId = id
+      |      id += 1
+      |      prevId
+      |    }
       |   $inputquery
       |   var start0 = System.currentTimeMillis()
       |   def f() {
