@@ -326,15 +326,15 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       // capture top level label for now
       case "M_ctx1" => 
         s"""|val $n = spark.sparkContext.parallelize(${generate(e)})
-            |println(\"$n\")
+            |//println(\"$n\")
             |val ${generate(x)} = $n
-            |$n.collect.foreach(println(_))
+            |//$n.collect.foreach(println(_))
             |${generate(e2)}""".stripMargin
       case _ => 
         s"""|val $n = ${generate(e)}
-            |println(\"$n\")
+            |//println(\"$n\")
             |val ${generate(x)} = $n
-            |$n.collect.foreach(println(_))
+            |//$n.collect.foreach(println(_))
             |${generate(e2)}""".stripMargin
     }
     case Bind(x, e1 @ LinearCSet(rs), e2) =>
