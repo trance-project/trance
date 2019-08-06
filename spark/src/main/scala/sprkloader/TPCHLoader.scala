@@ -75,13 +75,15 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   }
 
   def loadOrders():RDD[Orders] = {
-    spark.sparkContext.textFile(s"file:///$datapath/order.tbl").map(line => {
+    val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
+    spark.sparkContext.textFile(s"file:///$datapath/$ofile").map(line => {
                     val l = line.split("\\|")
                     Orders(l(0).toInt, l(1).toInt, l(2), l(3).toDouble, l(4), l(5), l(6), l(7).toInt, l(8), l(0).toLong)})
   }
 
   def loadShredOrders(flat: Int):RDD[(Int, Orders)] = {
-    spark.sparkContext.textFile(s"file:///$datapath/order.tbl").map(line => {
+    val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
+    spark.sparkContext.textFile(s"file:///$datapath/$ofile").map(line => {
                     val l = line.split("\\|")
                     (flat, Orders(l(0).toInt, l(1).toInt, l(2), l(3).toDouble, l(4), l(5), l(6), l(7).toInt, l(8), l(0).toLong))})
   }
