@@ -245,7 +245,8 @@ object Utils {
       |$header
       |object $appname {
       | def main(args: Array[String]){
-      |   val conf = new SparkConf().setMaster(Config.master).setAppName(\"$appname\")
+      |   val sf = Config.datapath.split("/").last
+      |   val conf = new SparkConf().setMaster(Config.master).setAppName(\"$appname\"+sf)
       |   val spark = SparkSession.builder().config(conf).getOrCreate()
       |   $data
       |    var id = 0L
@@ -257,7 +258,6 @@ object Utils {
       |   var start0 = System.currentTimeMillis()
       |   $gcode.count
       |   var end0 = System.currentTimeMillis() - start0
-      |   val sf = Config.datapath.split("/").last
       |   println("$appname"+sf+","+Config.datapath+","+end0)
       | }
       |}""".stripMargin
@@ -279,7 +279,8 @@ object Utils {
       |$header
       |object $appname {
       | def main(args: Array[String]){
-      |   val conf = new SparkConf().setMaster(Config.master).setAppName(\"$appname\")
+      |   val sf = Config.datapath.split("/").last
+      |   val conf = new SparkConf().setMaster(Config.master).setAppName(\"$appname\"+sf)
       |   val spark = SparkSession.builder().config(conf).getOrCreate()
       |   $data
       |    var id = 0L
@@ -295,7 +296,6 @@ object Utils {
       |   }
       |   f
       |   var end0 = System.currentTimeMillis() - start0
-      |   val sf = Config.datapath.split("/").last
       |   println("$appname"+sf+","+Config.datapath+","+end0)
       | }
       |}""".stripMargin

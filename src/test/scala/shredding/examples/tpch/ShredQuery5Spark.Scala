@@ -21,7 +21,8 @@ case class RecM_flat2(_1: Record1141, _2: List[Record1147], uniqueId: Long)
 case class RecM_ctx2(lbl: Record1141, uniqueId: Long)
 object ShredQuery5Spark {
  def main(args: Array[String]){
-   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery5Spark")
+   val sf = Config.datapath.split("/").last
+   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery5Spark"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    
 val tpch = TPCHLoader(spark)
@@ -71,7 +72,8 @@ val x1004 = { val out1 = x998.map{ case x1002 => ({true}, x1002) }
 } 
 val x1020 = x1004.map{ case (x1005, x1006) => val x1019 = (x1006) 
 x1019 match {
-   case (null) => ({val x1007 = (x1005) 
+   case case (null) => ({val x1007 = (x1005) 
+x1007}, Nil) => ({val x1007 = (x1005) 
 x1007}, Nil) 
    case x1018 => ({val x1007 = (x1005) 
 x1007}, List({val x1008 = x1006.p_name 
@@ -136,7 +138,9 @@ x1059}, x1057) }
 } 
 val x1070 = x1060.map{ case ((x1061, x1062), x1063) => val x1069 = (x1062,x1063) 
 x1069 match {
-   case (_, null) => ({val x1064 = (x1061) 
+   case Vector(case (_,null) => ({val x1064 = (x1061) 
+x1064}, Nil)
+) => ({val x1064 = (x1061) 
 x1064}, Nil) 
    case x1068 => ({val x1064 = (x1061) 
 x1064}, List({val x1065 = x1063.s_name 
@@ -202,7 +206,11 @@ x1119}, x1117) }
 } 
 val x1131 = x1120.map{ case (((x1121, x1122), x1123), x1124) => val x1130 = (x1122,x1123,x1124) 
 x1130 match {
-   case (_,_, null) => ({val x1125 = (x1121) 
+   case Vector(case (_,null,_,_) => ({val x1125 = (x1121) 
+x1125}, Nil)
+, case (_,_,null) => ({val x1125 = (x1121) 
+x1125}, Nil)
+) => ({val x1125 = (x1121) 
 x1125}, Nil) 
    case x1129 => ({val x1125 = (x1121) 
 x1125}, List({val x1126 = x1124.c_name 
@@ -267,7 +275,8 @@ x1194}), x1192)})
 } 
 val x1204 = x1196.map{ case (((x1197, x1198), x1199), x1200) => val x1203 = (x1200) 
 x1203 match {
-   case (null) => ({val x1201 = (x1197,x1198,x1199) 
+   case case (null) => ({val x1201 = (x1197,x1198,x1199) 
+x1201}, 0) => ({val x1201 = (x1197,x1198,x1199) 
 x1201}, 0)
    case x1202 => ({val x1201 = (x1197,x1198,x1199) 
 x1201}, {1})
@@ -284,7 +293,9 @@ x1209}, 0)
 }.foldByKey(0){ case (acc1233, x1210) => acc1233 + x1210 } 
 val x1222 = x1213.map{ case ((x1214, x1215), x1216) => val x1221 = (x1215,x1216) 
 x1221 match {
-   case (0, null) => ({val x1217 = (x1214) 
+   case Vector(case (_,null) => ({val x1217 = (x1214) 
+x1217}, Nil)
+) => ({val x1217 = (x1214) 
 x1217}, Nil) 
    case x1220 => ({val x1217 = (x1214) 
 x1217}, List({val x1218 = x1215.p_name 
@@ -305,7 +316,6 @@ val res = x1228.count
    }
    f
    var end0 = System.currentTimeMillis() - start0
-   val sf = Config.datapath.split("/").last
    println("ShredQuery5Spark"+sf+","+Config.datapath+","+end0)
  }
 }

@@ -10,7 +10,8 @@ case class Record968(p_name: String, cnt: Int, uniqueId: Long)
 case class Query3Out(p_name: String, suppliers: List[Record924], customers: List[Record926], uniqueId: Long)
 object Query5Spark {
  def main(args: Array[String]){
-   val conf = new SparkConf().setMaster(Config.master).setAppName("Query5Spark")
+   val sf = Config.datapath.split("/").last
+   val conf = new SparkConf().setMaster(Config.master).setAppName("Query5Spark"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    
 val tpch = TPCHLoader(spark)
@@ -55,7 +56,9 @@ x866}, x864) }
 } 
 val x877 = x867.map{ case ((x868, x869), x870) => val x876 = (x869,x870) 
 x876 match {
-   case (_, null) => ({val x871 = (x868) 
+   case Vector(case (_,null) => ({val x871 = (x868) 
+x871}, Nil)
+) => ({val x871 = (x868) 
 x871}, Nil) 
    case x875 => ({val x871 = (x868) 
 x871}, List({val x872 = x870.s_name 
@@ -87,7 +90,11 @@ x903}, x901) }
 } 
 val x916 = x904.map{ case ((((x905, x906), x907), x908), x909) => val x915 = (x907,x908,x909) 
 x915 match {
-   case (_,_, null) => ({val x910 = (x905,x906) 
+   case Vector(case (_,null,_,_) => ({val x910 = (x905,x906) 
+x910}, Nil)
+, case (_,_,null) => ({val x910 = (x905,x906) 
+x910}, Nil)
+) => ({val x910 = (x905,x906) 
 x910}, Nil) 
    case x914 => ({val x910 = (x905,x906) 
 x910}, List({val x911 = x909.c_name 
@@ -130,7 +137,8 @@ x944}) { ((x938, x939), x941) } else { ((x938, x939), null) } }
  }} 
 val x952 = x945.map{ case ((x946, x947), x948) => val x951 = (x948) 
 x951 match {
-   case (null) => ({val x949 = (x946,x947) 
+   case case (null) => ({val x949 = (x946,x947) 
+x949}, 0) => ({val x949 = (x946,x947) 
 x949}, 0)
    case x950 => ({val x949 = (x946,x947) 
 x949}, {1})
@@ -154,7 +162,6 @@ x965.count
    }
    f
    var end0 = System.currentTimeMillis() - start0
-   val sf = Config.datapath.split("/").last
    println("Query5Spark"+sf+","+Config.datapath+","+end0)
  }
 }

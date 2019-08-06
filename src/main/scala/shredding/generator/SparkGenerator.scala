@@ -153,9 +153,16 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       val acc = "acc"+Variable.newId
       val gv2 = generate(v2)
       val nonet = g match {
-        case Bind(_, Tuple(fs), _) if fs.size != 1 => s"(${fs.tail.map(e => 
-          e.tp match { case IntType => 0; case _ => "_"}).mkString(",")}, null)"
-        case _ => "(null)"
+        case Bind(_, Tuple(fs), _) if fs.size != 1 => 
+          (2 to fs.size).map(i => 
+            if (i != fs.size) { 
+              s"case (${fs.slice(1, i).map(e => "_").mkString(",")},null,${fs.slice(i-1, 4).map(e => "_").mkString(",")}) => ({${generate(f)}}, $zero)\n" 
+            } else { 
+              s"case (${fs.slice(1, i).map(e => "_").mkString(",")},null) => ({${generate(f)}}, $zero)\n" 
+            }
+          )
+          //s"(${fs.tail.map(e => "_").mkString(",")}, null)"
+        case _ => s"case (null) => ({${generate(f)}}, $zero)"
       }
       (p, e2.tp) match {
         case (Constant(true), RecordCType(_)) => 
