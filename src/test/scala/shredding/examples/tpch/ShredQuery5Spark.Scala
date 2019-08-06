@@ -136,7 +136,7 @@ x1059}, x1057) }
 } 
 val x1070 = x1060.map{ case ((x1061, x1062), x1063) => val x1069 = (x1062,x1063) 
 x1069 match {
-   case (_,null) => ({val x1064 = (x1061) 
+   case (_, null) => ({val x1064 = (x1061) 
 x1064}, Nil) 
    case x1068 => ({val x1064 = (x1061) 
 x1064}, List({val x1065 = x1063.s_name 
@@ -202,7 +202,7 @@ x1119}, x1117) }
 } 
 val x1131 = x1120.map{ case (((x1121, x1122), x1123), x1124) => val x1130 = (x1122,x1123,x1124) 
 x1130 match {
-   case (_,null,null) => ({val x1125 = (x1121) 
+   case (_,_, null) => ({val x1125 = (x1121) 
 x1125}, Nil) 
    case x1129 => ({val x1125 = (x1121) 
 x1125}, List({val x1126 = x1124.c_name 
@@ -284,7 +284,7 @@ x1209}, 0)
 }.foldByKey(0){ case (acc1233, x1210) => acc1233 + x1210 } 
 val x1222 = x1213.map{ case ((x1214, x1215), x1216) => val x1221 = (x1215,x1216) 
 x1221 match {
-   case (_,0) => ({val x1217 = (x1214) 
+   case (0, null) => ({val x1217 = (x1214) 
 x1217}, Nil) 
    case x1220 => ({val x1217 = (x1214) 
 x1217}, List({val x1218 = x1215.p_name 
@@ -300,11 +300,12 @@ x1226
 val M_flat1 = x1227
 //println("M_flat1")
 val x1228 = M_flat1
-M_flat1.collect.foreach(println(_))
+//M_flat1.collect.foreach(println(_))
 val res = x1228.count
    }
    f
    var end0 = System.currentTimeMillis() - start0
-   println(ShredQuery5Spark+","+Config.datapath+","+end0)
+   val sf = Config.datapath.split("/").last
+   println("ShredQuery5Spark"+sf+","+Config.datapath+","+end0)
  }
 }

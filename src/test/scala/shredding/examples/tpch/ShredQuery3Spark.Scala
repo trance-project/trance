@@ -133,7 +133,7 @@ x1059}, x1057) }
 } 
 val x1070 = x1060.map{ case ((x1061, x1062), x1063) => val x1069 = (x1062,x1063) 
 x1069 match {
-   case (_,null) => ({val x1064 = (x1061) 
+   case (_, null) => ({val x1064 = (x1061) 
 x1064}, Nil) 
    case x1068 => ({val x1064 = (x1061) 
 x1064}, List({val x1065 = x1063.s_name 
@@ -199,7 +199,7 @@ x1119}, x1117) }
 } 
 val x1131 = x1120.map{ case (((x1121, x1122), x1123), x1124) => val x1130 = (x1122,x1123,x1124) 
 x1130 match {
-   case (_,null,null) => ({val x1125 = (x1121) 
+   case (_,_, null) => ({val x1125 = (x1121) 
 x1125}, Nil) 
    case x1129 => ({val x1125 = (x1121) 
 x1125}, List({val x1126 = x1124.c_name 
@@ -216,9 +216,10 @@ x1135
 val M_flat3 = x1136
 //println("M_flat3")
 val x1137 = M_flat3
-M_flat3.collect.foreach(println(_))
+//M_flat3.collect.foreach(println(_))
 val res = x1137.count
    var end0 = System.currentTimeMillis() - start0
-   println(ShredQuery3Spark+","+Config.datapath+","+end0)
+   val sf = Config.datapath.split("/").last
+   println("ShredQuery3Spark"+sf+","+Config.datapath+","+end0)
  }
 }

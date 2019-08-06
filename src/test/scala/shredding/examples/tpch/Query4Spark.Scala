@@ -56,7 +56,7 @@ x250}, x248) }
 } 
 val x262 = x251.map{ case (((x252, x253), x254), x255) => val x261 = (x254,x255) 
 x261 match {
-   case (_,null) => ({val x256 = (x252,x253) 
+   case (_, null) => ({val x256 = (x252,x253) 
 x256}, Nil) 
    case x260 => ({val x256 = (x252,x253) 
 x256}, List({val x257 = x255.p_name 
@@ -67,7 +67,7 @@ x259}))
 }.foldByKey(Nil){ case (acc277, x260) => acc277 ++ x260 } 
 val x271 = x262.map{ case ((x263, x264), x265) => val x270 = (x264,x265) 
 x270 match {
-   case (_,null) => ({val x266 = (x263) 
+   case (_, null) => ({val x266 = (x263) 
 x266}, Nil) 
    case x269 => ({val x266 = (x263) 
 x266}, List({val x267 = x264.o_orderdate 
@@ -130,10 +130,11 @@ val x321 = x316.o_orderdate
 val x322 = Record325(x319, x320, x321, x318, newId) 
 x322 
 } 
-x323.collect.foreach(println(_))//count
+x323.count
    }
    f
    var end0 = System.currentTimeMillis() - start0
-   println(Query4Spark+","+Config.datapath+","+end0)
+   val sf = Config.datapath.split("/").last
+   println("Query4Spark"+sf+","+Config.datapath+","+end0)
  }
 }

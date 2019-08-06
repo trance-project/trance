@@ -175,7 +175,7 @@ x453}, x451) }
 } 
 val x464 = x454.map{ case ((x455, x456), x457) => val x463 = (x456,x457) 
 x463 match {
-   case (_,null) => ({val x458 = (x455) 
+   case (_, null) => ({val x458 = (x455) 
 x458}, Nil) 
    case x462 => ({val x458 = (x455) 
 x458}, List({val x459 = x457.p_name 
@@ -195,6 +195,7 @@ val x470 = M_flat3
 //M_flat3.collect.foreach(println(_))
 val res = x470.count
    var end0 = System.currentTimeMillis() - start0
-   println(ShredQuery1Spark+","+Config.datapath+","+end0)
+   val sf = Config.datapath.split("/").last
+   println("ShredQuery1Spark"+sf+","+Config.datapath+","+end0)
  }
 }

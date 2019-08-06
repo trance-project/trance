@@ -257,7 +257,8 @@ object Utils {
       |   var start0 = System.currentTimeMillis()
       |   $gcode.count
       |   var end0 = System.currentTimeMillis() - start0
-      |   println($appname+","+Config.datapath+","+end0)
+      |   val sf = Config.datapath.split("/").last
+      |   println("$appname"+sf+","+Config.datapath+","+end0)
       | }
       |}""".stripMargin
   }
@@ -294,7 +295,8 @@ object Utils {
       |   }
       |   f
       |   var end0 = System.currentTimeMillis() - start0
-      |   println($appname+","+Config.datapath+","+end0)
+      |   val sf = Config.datapath.split("/").last
+      |   println("$appname"+sf+","+Config.datapath+","+end0)
       | }
       |}""".stripMargin
   }
