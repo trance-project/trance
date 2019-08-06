@@ -4,6 +4,7 @@ import shredding.core._
 
 /**
   * Unnesting algorithm from Fegaras and Maier
+  * with extensions for dictionary lookups
   * WMCC to algebra data operators (select, reduce, etc)
   */
 
