@@ -72,7 +72,7 @@ val x1004 = { val out1 = x998.map{ case x1002 => ({true}, x1002) }
 } 
 val x1020 = x1004.map{ case (x1005, x1006) => val x1019 = (x1006) 
 x1019 match {
-   case case (null) => ({val x1007 = (x1005) 
+   case (null) => ({val x1007 = (x1005) 
 x1007}, Nil) => ({val x1007 = (x1005) 
 x1007}, Nil) 
    case x1018 => ({val x1007 = (x1005) 
@@ -138,7 +138,7 @@ x1059}, x1057) }
 } 
 val x1070 = x1060.map{ case ((x1061, x1062), x1063) => val x1069 = (x1062,x1063) 
 x1069 match {
-   case Vector(case (_,null) => ({val x1064 = (x1061) 
+   Vector(case (_,null) => ({val x1064 = (x1061) 
 x1064}, Nil)
 ) => ({val x1064 = (x1061) 
 x1064}, Nil) 
@@ -206,7 +206,7 @@ x1119}, x1117) }
 } 
 val x1131 = x1120.map{ case (((x1121, x1122), x1123), x1124) => val x1130 = (x1122,x1123,x1124) 
 x1130 match {
-   case Vector(case (_,null,_,_) => ({val x1125 = (x1121) 
+   Vector(case (_,null,_,_) => ({val x1125 = (x1121) 
 x1125}, Nil)
 , case (_,_,null) => ({val x1125 = (x1121) 
 x1125}, Nil)
@@ -275,7 +275,7 @@ x1194}), x1192)})
 } 
 val x1204 = x1196.map{ case (((x1197, x1198), x1199), x1200) => val x1203 = (x1200) 
 x1203 match {
-   case case (null) => ({val x1201 = (x1197,x1198,x1199) 
+   case (null) => ({val x1201 = (x1197,x1198,x1199) 
 x1201}, 0) => ({val x1201 = (x1197,x1198,x1199) 
 x1201}, 0)
    case x1202 => ({val x1201 = (x1197,x1198,x1199) 
@@ -293,7 +293,7 @@ x1209}, 0)
 }.foldByKey(0){ case (acc1233, x1210) => acc1233 + x1210 } 
 val x1222 = x1213.map{ case ((x1214, x1215), x1216) => val x1221 = (x1215,x1216) 
 x1221 match {
-   case Vector(case (_,null) => ({val x1217 = (x1214) 
+   Vector(case (_,null) => ({val x1217 = (x1214) 
 x1217}, Nil)
 ) => ({val x1217 = (x1214) 
 x1217}, Nil) 

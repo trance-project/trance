@@ -69,7 +69,7 @@ val x1004 = { val out1 = x998.map{ case x1002 => ({true}, x1002) }
 } 
 val x1020 = x1004.map{ case (x1005, x1006) => val x1019 = (x1006) 
 x1019 match {
-   case case (null) => ({val x1007 = (x1005) 
+   case (null) => ({val x1007 = (x1005) 
 x1007}, Nil) => ({val x1007 = (x1005) 
 x1007}, Nil) 
    case x1018 => ({val x1007 = (x1005) 
@@ -135,7 +135,7 @@ x1059}, x1057) }
 } 
 val x1070 = x1060.map{ case ((x1061, x1062), x1063) => val x1069 = (x1062,x1063) 
 x1069 match {
-   case Vector(case (_,null) => ({val x1064 = (x1061) 
+   Vector(case (_,null) => ({val x1064 = (x1061) 
 x1064}, Nil)
 ) => ({val x1064 = (x1061) 
 x1064}, Nil) 
@@ -203,7 +203,7 @@ x1119}, x1117) }
 } 
 val x1131 = x1120.map{ case (((x1121, x1122), x1123), x1124) => val x1130 = (x1122,x1123,x1124) 
 x1130 match {
-   case Vector(case (_,null,_,_) => ({val x1125 = (x1121) 
+   Vector(case (_,null,_,_) => ({val x1125 = (x1121) 
 x1125}, Nil)
 , case (_,_,null) => ({val x1125 = (x1121) 
 x1125}, Nil)

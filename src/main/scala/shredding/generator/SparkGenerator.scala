@@ -161,19 +161,18 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
               s"case (${fs.slice(1, i).map(e => "_").mkString(",")},null) => ({${generate(f)}}, $zero)\n" 
             }
           )
-          //s"(${fs.tail.map(e => "_").mkString(",")}, null)"
         case _ => s"case (null) => ({${generate(f)}}, $zero)"
       }
       (p, e2.tp) match {
         case (Constant(true), RecordCType(_)) => 
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
-              |   case $nonet => ({${generate(f)}}, $zero) 
+              |   $nonet => ({${generate(f)}}, $zero) 
               |   case $gv2 => ({${generate(f)}}, List({${generate(e2)}}))
               | }
               |}.foldByKey(Nil){ case ($acc, $gv2) => $acc ++ $gv2 }""".stripMargin
         case (Constant(true), _) => 
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
-              |   case $nonet => ({${generate(f)}}, $zero)
+              |   $nonet => ({${generate(f)}}, $zero)
               |   case $gv2 => ({${generate(f)}}, {${generate(e2)}})
               | }
               |}.foldByKey($zero){ case ($acc, $gv2) => $acc + $gv2 }""".stripMargin
