@@ -181,9 +181,8 @@ x453}, x451) }
 } 
 val x464 = x454.map{ case ((x455, x456), x457) => val x463 = (x456,x457) 
 x463 match {
-   Vector(case (_,null) => ({val x458 = (x455) 
-x458}, Nil)
-) => ({val x458 = (x455) 
+   case (_,null) => ({val x458 = (x455) 
+x458}, Nil) => ({val x458 = (x455) 
 x458}, Nil) 
    case x462 => ({val x458 = (x455) 
 x458}, List({val x459 = x457.p_name 
@@ -265,13 +264,12 @@ x545})
 }.foldByKey(0.0){ case (acc571, x546) => acc571 + x546 } 
 val x561 = x548.map{ case ((x549, x550, x551, x552), x553) => val x560 = (x553,x552,x550,x551) 
 x560 match {
-   Vector(case (_,null,_,_,_) => ({val x554 = (x549) 
+   case (_,null,_,_,_) => ({val x554 = (x549) 
 x554}, Nil)
-, case (_,_,null,_,_) => ({val x554 = (x549) 
+case (_,_,null,_,_) => ({val x554 = (x549) 
 x554}, Nil)
-, case (_,_,_,null) => ({val x554 = (x549) 
-x554}, Nil)
-) => ({val x554 = (x549) 
+case (_,_,_,null) => ({val x554 = (x549) 
+x554}, Nil) => ({val x554 = (x549) 
 x554}, Nil) 
    case x559 => ({val x554 = (x549) 
 x554}, List({val x555 = x550.c_name 
