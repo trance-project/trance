@@ -70,7 +70,6 @@ val x1004 = { val out1 = x998.map{ case x1002 => ({true}, x1002) }
 val x1020 = x1004.map{ case (x1005, x1006) => val x1019 = (x1006) 
 x1019 match {
    case (null) => ({val x1007 = (x1005) 
-x1007}, Nil) => ({val x1007 = (x1005) 
 x1007}, Nil) 
    case x1018 => ({val x1007 = (x1005) 
 x1007}, List({val x1008 = x1006.p_name 
@@ -136,7 +135,6 @@ x1059}, x1057) }
 val x1070 = x1060.map{ case ((x1061, x1062), x1063) => val x1069 = (x1062,x1063) 
 x1069 match {
    case (_,null) => ({val x1064 = (x1061) 
-x1064}, Nil) => ({val x1064 = (x1061) 
 x1064}, Nil) 
    case x1068 => ({val x1064 = (x1061) 
 x1064}, List({val x1065 = x1063.s_name 
@@ -205,7 +203,6 @@ x1130 match {
    case (_,null,_,_) => ({val x1125 = (x1121) 
 x1125}, Nil)
 case (_,_,null) => ({val x1125 = (x1121) 
-x1125}, Nil) => ({val x1125 = (x1121) 
 x1125}, Nil) 
    case x1129 => ({val x1125 = (x1121) 
 x1125}, List({val x1126 = x1124.c_name 

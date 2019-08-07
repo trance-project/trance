@@ -62,7 +62,6 @@ val x358 = { val out1 = x352.map{ case x356 => ({true}, x356) }
 val x371 = x358.map{ case (x359, x360) => val x370 = (x360) 
 x370 match {
    case (null) => ({val x361 = (x359) 
-x361}, Nil) => ({val x361 = (x359) 
 x361}, Nil) 
    case x369 => ({val x361 = (x359) 
 x361}, List({val x362 = x360.c_name 
@@ -117,7 +116,6 @@ x401}, x397) }
 val x414 = x402.map{ case (x403, x404) => val x413 = (x404) 
 x413 match {
    case (null) => ({val x405 = (x403) 
-x405}, Nil) => ({val x405 = (x403) 
 x405}, Nil) 
    case x412 => ({val x405 = (x403) 
 x405}, List({val x406 = x404.o_orderdate 
@@ -179,7 +177,6 @@ x453}, x451) }
 val x464 = x454.map{ case ((x455, x456), x457) => val x463 = (x456,x457) 
 x463 match {
    case (_,null) => ({val x458 = (x455) 
-x458}, Nil) => ({val x458 = (x455) 
 x458}, Nil) 
    case x462 => ({val x458 = (x455) 
 x458}, List({val x459 = x457.p_name 
