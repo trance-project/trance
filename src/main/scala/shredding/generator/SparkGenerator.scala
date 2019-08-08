@@ -230,11 +230,17 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Join(e1, e2, v1, p1, v2, p2) => 
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 = generate(v2)
+      (p1, p2) match {
+        case (Constant(true), Constant(true)) =>
+          // this will override with actual cartesian product
+          s"${generate(e2)}.map{ case c => (${generate(e1)}, c) }"
+        case _ => 
       // ${checkNull(v1)} in map below causes invariance issues in PairRDDFunctions
-      s"""|{ val out1 = ${generate(e1)}.map{ case $vars => ({${generate(p1)}}, $vars) }
-          |  val out2 = ${generate(e2)}.map{ case $gv2 => ({${generate(p2)}}, $gv2) }
-          |  out1.join(out2).map{ case (k,v) => v }
-          |}""".stripMargin
+       s"""|{ val out1 = ${generate(e1)}.map{ case $vars => ({${generate(p1)}}, $vars) }
+           |  val out2 = ${generate(e2)}.map{ case $gv2 => ({${generate(p2)}}, $gv2) }
+           |  out1.join(out2).map{ case (k,v) => v }
+           |}""".stripMargin
+      }
     case Lookup(e1, e2, v1, p1, v2, p2, p3) =>
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       s"""|{ val out1 = ${generate(e1)}.map{${checkNull(v1)} case $vars => (${e1Key(p1, p3)}, $vars) }
@@ -270,10 +276,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       } 
     case Bind(x, CNamed(n, e), e2) => n match {
        case "M_ctx1" => 
-        s"""|val $n = spark.sparkContext.parallelize(${generate(e)})
-            |//println(\"$n\")
-            |val ${generate(x)} = $n
-            |//$n.collect.foreach(println(_))
+        s"""|val M_ctx1 = ${generate(e)}.head
             |${generate(e2)}""".stripMargin
       case _ => 
         s"""|val $n = ${generate(e)}

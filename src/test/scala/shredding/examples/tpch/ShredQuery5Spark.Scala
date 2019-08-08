@@ -59,17 +59,11 @@ S__D_1.count
    val x993 = Q3Flat(O__F, C__F, PS__F, S__F, L__F, P__F, newId) 
 val x994 = RecM_ctx1(x993, newId) 
 val x995 = List(x994) 
-val M_ctx1 = spark.sparkContext.parallelize(x995)
-//println("M_ctx1")
-val x996 = M_ctx1
-//M_ctx1.collect.foreach(println(_))
+val M_ctx1 = x995.head
 val x998 = M_ctx1 
 val x999 = P__D_1 
 val x1001 = x999 
-val x1004 = { val out1 = x998.map{ case x1002 => ({true}, x1002) }
-  val out2 = x1001.map{ case x1003 => ({true}, x1003) }
-  out1.join(out2).map{ case (k,v) => v }
-} 
+val x1004 = x1001.map{ case c => (x998, c) } 
 val x1020 = x1004.map{ case (x1005, x1006) => val x1019 = (x1006) 
 x1019 match {
    case (null) => ({val x1007 = (x1005) 
@@ -241,17 +235,11 @@ Query5__D_2customers_1.count
      val x1163 = Q5Flat(Query5__F, newId) 
 val x1164 = Record1230(x1163, newId) 
 val x1165 = List(x1164) 
-val M_ctx1 = spark.sparkContext.parallelize(x1165)
-//println("M_ctx1")
-val x1166 = M_ctx1
-//M_ctx1.collect.foreach(println(_))
+val M_ctx1 = x1165.head
 val x1168 = M_ctx1 
 val x1169 = Query5__D_1 
 val x1171 = x1169 
-val x1174 = { val out1 = x1168.map{ case x1172 => ({true}, x1172) }
-  val out2 = x1171.map{ case x1173 => ({true}, x1173) }
-  out1.join(out2).map{ case (k,v) => v }
-} 
+val x1174 = x1171.map{ case c => (x1168, c) } 
 val x1176 = Query5__D_2customers_1 
 val x1179 = x1176 
 val x1184 = { val out1 = x1174.map{ case (a, null) => (null, (a, null)); case (x1180, x1181) => ({val x1183 = x1181.customers 
@@ -264,7 +252,6 @@ x1183}, (x1180, x1181)) }
        for (v <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (v, w)
       }
   }
-  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
 val x1185 = Query5__D_2suppliers_1 
 val x1188 = x1185 
@@ -280,7 +267,6 @@ x1194}), x1192)})
        for (v <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (v, w)
       }
   }
-  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
 val x1204 = x1196.map{ case (((x1197, x1198), x1199), x1200) => val x1203 = (x1200) 
 x1203 match {

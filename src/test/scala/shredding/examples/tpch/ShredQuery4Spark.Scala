@@ -51,17 +51,11 @@ P__D_1.count
    val x347 = Q1Flat(P__F, C__F, L__F, O__F, newId) 
 val x348 = RecM_ctx1(x347, newId) 
 val x349 = List(x348) 
-val M_ctx1 = spark.sparkContext.parallelize(x349)
-//println("M_ctx1")
-val x350 = M_ctx1
-//M_ctx1.collect.foreach(println(_))
+val M_ctx1 = x349.head
 val x352 = M_ctx1 
 val x353 = C__D_1 
 val x355 = x353 
-val x358 = { val out1 = x352.map{ case x356 => ({true}, x356) }
-  val out2 = x355.map{ case x357 => ({true}, x357) }
-  out1.join(out2).map{ case (k,v) => v }
-} 
+val x358 = x355.map{ case c => (x352, c) } 
 val x371 = x358.map{ case (x359, x360) => val x370 = (x360) 
 x370 match {
    case (null) => ({val x361 = (x359) 
@@ -199,7 +193,7 @@ val x470 = M_flat3
 //M_flat3.collect.foreach(println(_))
 val res = x470 
  
-val Query4__F = M_ctx1.collect.take(1)(0).lbl
+val Query4__F = M_ctx1.lbl
 val Query4__D_1 = M_flat1.flatMap(r => r._2)
 Query4__D_1.cache
 Query4__D_1.count
@@ -215,17 +209,11 @@ Query4__D_2c_orders_2o_parts.count
      val x495 = Q1Flat2(Query4__F, newId) 
 val x496 = Record569(x495, newId) 
 val x497 = List(x496) 
-val M_ctx1 = spark.sparkContext.parallelize(x497)
-//println("M_ctx1")
-val x498 = M_ctx1
-//M_ctx1.collect.foreach(println(_))
+val M_ctx1 = x497.head
 val x500 = M_ctx1 
 val x501 = Query4__D_1 
 val x503 = x501 
-val x506 = { val out1 = x500.map{ case x504 => ({true}, x504) }
-  val out2 = x503.map{ case x505 => ({true}, x505) }
-  out1.join(out2).map{ case (k,v) => v }
-} 
+val x506 = x503.map{ case c => (x500, c) } 
 val x508 = Query4__D_2c_orders_1 
 val x511 = x508 
 val x516 = { val out1 = x506.map{ case (a, null) => (null, (a, null)); case (x512, x513) => ({val x515 = x513.c_orders 
@@ -238,7 +226,6 @@ x515}, (x512, x513)) }
        for (v <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (v, w)
       }
   }
-  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
 val x517 = Query4__D_2c_orders_2o_parts 
 val x519 = x517 
@@ -253,7 +240,6 @@ x526}, ((x522, x523), x524)) }
        for (v <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (v, w)
       }
   }
-  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
 val x529 = x519 
 val x538 = { val out1 = x527.map{ case (a, null) => (null, (a, null)); case (((x530, x531), x532), x533) => (({val x535 = x532.o_parts 
@@ -268,7 +254,6 @@ x536}), x534)})
        for (v <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (v, w)
       }
   }
-  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
 val x548 = x538.map{ case ((((x539, x540), x541), x542), x543) => val x547 = (x543) 
 x547 match {

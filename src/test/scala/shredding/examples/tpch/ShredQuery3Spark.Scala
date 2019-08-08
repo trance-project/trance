@@ -56,17 +56,11 @@ S__D_1.count
    val x993 = Q3Flat(O__F, C__F, PS__F, S__F, L__F, P__F, newId) 
 val x994 = RecM_ctx1(x993, newId) 
 val x995 = List(x994) 
-val M_ctx1 = spark.sparkContext.parallelize(x995)
-//println("M_ctx1")
-val x996 = M_ctx1
-//M_ctx1.collect.foreach(println(_))
+val M_ctx1 = x995.head
 val x998 = M_ctx1 
 val x999 = P__D_1 
 val x1001 = x999 
-val x1004 = { val out1 = x998.map{ case x1002 => ({true}, x1002) }
-  val out2 = x1001.map{ case x1003 => ({true}, x1003) }
-  out1.join(out2).map{ case (k,v) => v }
-} 
+val x1004 = x1001.map{ case c => (x998, c) } 
 val x1020 = x1004.map{ case (x1005, x1006) => val x1019 = (x1006) 
 x1019 match {
    case (null) => ({val x1007 = (x1005) 
