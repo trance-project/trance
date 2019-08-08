@@ -203,7 +203,7 @@ x1119}, x1117) }
 } 
 val x1131 = x1120.map{ case (((x1121, x1122), x1123), x1124) => val x1130 = (x1122,x1123,x1124) 
 x1130 match {
-   case (_,null,_,_) => ({val x1125 = (x1121) 
+   case (_,null,_) => ({val x1125 = (x1121) 
 x1125}, Nil)
 case (_,_,null) => ({val x1125 = (x1121) 
 x1125}, Nil) 
@@ -257,7 +257,14 @@ val x1179 = x1176
 val x1184 = { val out1 = x1174.map{ case (a, null) => (null, (a, null)); case (x1180, x1181) => ({val x1183 = x1181.customers 
 x1183}, (x1180, x1181)) }
   val out2 = x1179.flatMap(x1182 => x1182._2.map{case v2 => (x1182._1, v2)})
-  out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
+  out1.cogroup(out2).flatMap { pair =>
+     if (pair._2._2.isEmpty) {
+       pair._2._1.iterator.map(v => (v, null))
+     } else {
+       for (v <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (v, w)
+      }
+  }
+  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
 val x1185 = Query5__D_2suppliers_1 
 val x1188 = x1185 
@@ -266,7 +273,14 @@ x1193}, {val x1195 = x1191.c_nationkey
 x1195}), ((x1189, x1190), x1191)) }
   val out2 = x1188.flatMap(v2 => v2._2.map{case x1192 => ((v2._1, {val x1194 = x1192.s_nationkey 
 x1194}), x1192)})
-  out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
+  out1.cogroup(out2).flatMap { pair =>
+     if (pair._2._2.isEmpty) {
+       pair._2._1.iterator.map(v => (v, null))
+     } else {
+       for (v <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (v, w)
+      }
+  }
+  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
 val x1204 = x1196.map{ case (((x1197, x1198), x1199), x1200) => val x1203 = (x1200) 
 x1203 match {

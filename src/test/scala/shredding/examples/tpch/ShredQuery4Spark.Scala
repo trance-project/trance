@@ -58,11 +58,10 @@ val x350 = M_ctx1
 val x352 = M_ctx1 
 val x353 = C__D_1 
 val x355 = x353 
-/**val x358 = { val out1 = x352.map{ case x356 => ({true}, x356) }
+val x358 = { val out1 = x352.map{ case x356 => ({true}, x356) }
   val out2 = x355.map{ case x357 => ({true}, x357) }
   out1.join(out2).map{ case (k,v) => v }
-} **/
-val x358 = C__D_1.map{ case c => (x348, c) }
+} 
 val x371 = x358.map{ case (x359, x360) => val x370 = (x360) 
 x370 match {
    case (null) => ({val x361 = (x359) 
@@ -195,7 +194,9 @@ val x468 = RecM_flat3(x467, x466, newId)
 x468 
 } 
 val M_flat3 = x469
+//println("M_flat3")
 val x470 = M_flat3
+//M_flat3.collect.foreach(println(_))
 val res = x470 
  
 val Query4__F = M_ctx1.collect.take(1)(0).lbl
@@ -215,21 +216,29 @@ Query4__D_2c_orders_2o_parts.count
 val x496 = Record569(x495, newId) 
 val x497 = List(x496) 
 val M_ctx1 = spark.sparkContext.parallelize(x497)
+//println("M_ctx1")
 val x498 = M_ctx1
+//M_ctx1.collect.foreach(println(_))
 val x500 = M_ctx1 
 val x501 = Query4__D_1 
 val x503 = x501 
-/**val x506 = { val out1 = x500.map{ case x504 => ({true}, x504) }
+val x506 = { val out1 = x500.map{ case x504 => ({true}, x504) }
   val out2 = x503.map{ case x505 => ({true}, x505) }
   out1.join(out2).map{ case (k,v) => v }
-}**/
-val x506 = Query4__D_1.map{ case c => (x496, c) }
+} 
 val x508 = Query4__D_2c_orders_1 
 val x511 = x508 
 val x516 = { val out1 = x506.map{ case (a, null) => (null, (a, null)); case (x512, x513) => ({val x515 = x513.c_orders 
 x515}, (x512, x513)) }
   val out2 = x511.flatMap(x514 => x514._2.map{case v2 => (x514._1, v2)})
-  out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
+  out1.cogroup(out2).flatMap { pair =>
+     if (pair._2._2.isEmpty) {
+       pair._2._1.iterator.map(v => (v, null))
+     } else {
+       for (v <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (v, w)
+      }
+  }
+  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
 val x517 = Query4__D_2c_orders_2o_parts 
 val x519 = x517 
@@ -237,7 +246,14 @@ val x521 = x519
 val x527 = { val out1 = x516.map{ case (a, null) => (null, (a, null)); case ((x522, x523), x524) => ({val x526 = x524.o_parts 
 x526}, ((x522, x523), x524)) }
   val out2 = x521.flatMap(x525 => x525._2.map{case v2 => (x525._1, v2)})
-  out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
+  out1.cogroup(out2).flatMap { pair =>
+     if (pair._2._2.isEmpty) {
+       pair._2._1.iterator.map(v => (v, null))
+     } else {
+       for (v <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (v, w)
+      }
+  }
+  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
 val x529 = x519 
 val x538 = { val out1 = x527.map{ case (a, null) => (null, (a, null)); case (((x530, x531), x532), x533) => (({val x535 = x532.o_parts 
@@ -245,7 +261,14 @@ x535}, {val x537 = x533.p_name
 x537}), (((x530, x531), x532), x533)) }
   val out2 = x529.flatMap(v2 => v2._2.map{case x534 => ((v2._1, {val x536 = x534.p_name 
 x536}), x534)})
-  out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
+  out1.cogroup(out2).flatMap { pair =>
+     if (pair._2._2.isEmpty) {
+       pair._2._1.iterator.map(v => (v, null))
+     } else {
+       for (v <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (v, w)
+      }
+  }
+  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
 val x548 = x538.map{ case ((((x539, x540), x541), x542), x543) => val x547 = (x543) 
 x547 match {
@@ -255,18 +278,14 @@ x544}, 0.0)
 x544}, {val x545 = x543.l_qty 
 x545})
  }
-}.foldByKey(0.0){ case (acc571, x546) => acc571 + x546 }
+}.foldByKey(0.0){ case (acc571, x546) => acc571 + x546 } 
 val x561 = x548.map{ case ((x549, x550, x551, x552), x553) => val x560 = (x553,x552,x550,x551) 
 x560 match {
-   case (_,null,_,_,_) => ({val x554 = (x549) 
+   case (_,null,_,_) => ({val x554 = (x549) 
 x554}, Nil)
-case (_,_,null,_,_) => ({val x554 = (x549) 
+case (_,_,null,_) => ({val x554 = (x549) 
 x554}, Nil)
 case (_,_,_,null) => ({val x554 = (x549) 
-x554}, Nil) 
-   case (_,_,null, _) => ({val x554 = (x549) 
-x554}, Nil) 
-   case (_,null,_, _) => ({val x554 = (x549) 
 x554}, Nil) 
    case x559 => ({val x554 = (x549) 
 x554}, List({val x555 = x550.c_name 
@@ -275,7 +294,7 @@ val x557 = x551.o_orderdate
 val x558 = Record573(x555, x556, x557, x553, newId) 
 x558}))
  }
-}.foldByKey(Nil){ case (acc572, x559) => acc572 ++ x559 }
+}.foldByKey(Nil){ case (acc572, x559) => acc572 ++ x559 } 
 val x566 = x561.map{ case (x562, x563) => 
    val x564 = x562.lbl 
 val x565 = Record574(x564, x563, newId) 

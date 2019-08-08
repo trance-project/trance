@@ -93,7 +93,7 @@ x903}, x901) }
 } 
 val x916 = x904.map{ case ((((x905, x906), x907), x908), x909) => val x915 = (x907,x908,x909) 
 x915 match {
-   case (_,null,_,_) => ({val x910 = (x905,x906) 
+   case (_,null,_) => ({val x910 = (x905,x906) 
 x910}, Nil)
 case (_,_,null) => ({val x910 = (x905,x906) 
 x910}, Nil) 

@@ -155,8 +155,8 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       val nonet = g match {
         case Bind(_, Tuple(fs), _) if fs.size != 1 => 
           (2 to fs.size).map(i => 
-            if (i != fs.size) { 
-              s"case (${fs.slice(1, i).map(e => "_").mkString(",")},null,${fs.slice(i-1, 4).map(e => "_").mkString(",")}) => ({${generate(f)}}, $zero)" 
+            if (i != fs.size) {
+              s"case (${fs.slice(1, i).map(e => "_").mkString(",")},null,${fs.slice(i, fs.size).map(e => "_").mkString(",")}) => ({${generate(f)}}, $zero)"
             } else { 
               s"case (${fs.slice(1, i).map(e => "_").mkString(",")},null) => ({${generate(f)}}, $zero)" 
             }
@@ -245,7 +245,13 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       s"""|{ val out1 = ${generate(e1)}.map{${checkNull(v1)} case $vars => (${e1Key(p1, p3)}, $vars) }
           |  val out2 = ${generate(e2)}${e2Key(v2, p2)}
-          |  out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
+          |  out1.cogroup(out2).flatMap { pair =>
+          |     if (pair._2._2.isEmpty) {
+          |       pair._2._1.iterator.map(v => (v, null))
+          |     } else {
+          |       for (v <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (v, w)
+          |      }
+          |  }
           |}""".stripMargin
     case Select(x, v, p) => p match {
       case Constant(true) => generate(x)
