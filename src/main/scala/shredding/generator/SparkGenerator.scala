@@ -153,20 +153,26 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       val acc = "acc"+Variable.newId
       val gv2 = generate(v2)
       val nonet = g match {
-        case Bind(_, Tuple(fs), _) if fs.size != 1 => s"(${fs.tail.map(e => 
-          e.tp match { case IntType => 0; case _ => "_"}).mkString(",")}, null)"
-        case _ => "(null)"
+        case Bind(_, Tuple(fs), _) if fs.size != 1 => 
+          (2 to fs.size).map(i => 
+            if (i != fs.size) { 
+              s"case (${fs.slice(1, i).map(e => "_").mkString(",")},null,${fs.slice(i-1, 4).map(e => "_").mkString(",")}) => ({${generate(f)}}, $zero)" 
+            } else { 
+              s"case (${fs.slice(1, i).map(e => "_").mkString(",")},null) => ({${generate(f)}}, $zero)" 
+            }
+          ).mkString("\n")
+        case _ => s"case (null) => ({${generate(f)}}, $zero)"
       }
       (p, e2.tp) match {
         case (Constant(true), RecordCType(_)) => 
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
-              |   case $nonet => ({${generate(f)}}, $zero) 
+              |   $nonet 
               |   case $gv2 => ({${generate(f)}}, List({${generate(e2)}}))
               | }
               |}.foldByKey(Nil){ case ($acc, $gv2) => $acc ++ $gv2 }""".stripMargin
         case (Constant(true), _) => 
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
-              |   case $nonet => ({${generate(f)}}, $zero)
+              |   $nonet
               |   case $gv2 => ({${generate(f)}}, {${generate(e2)}})
               | }
               |}.foldByKey($zero){ case ($acc, $gv2) => $acc + $gv2 }""".stripMargin

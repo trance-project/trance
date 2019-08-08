@@ -17,7 +17,8 @@ case class RecM_flat2(_1: Record1141, _2: List[Record1147], uniqueId: Long) exte
 case class RecM_ctx2(lbl: Record1141, uniqueId: Long) extends CaseClassRecord
 object ShredQuery3Spark {
  def main(args: Array[String]){
-   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery3Spark")
+   val sf = Config.datapath.split("/").last
+   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery3Spark"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    
 val tpch = TPCHLoader(spark)
@@ -133,7 +134,7 @@ x1059}, x1057) }
 } 
 val x1070 = x1060.map{ case ((x1061, x1062), x1063) => val x1069 = (x1062,x1063) 
 x1069 match {
-   case (_, null) => ({val x1064 = (x1061) 
+   case (_,null) => ({val x1064 = (x1061) 
 x1064}, Nil) 
    case x1068 => ({val x1064 = (x1061) 
 x1064}, List({val x1065 = x1063.s_name 
@@ -199,7 +200,9 @@ x1119}, x1117) }
 } 
 val x1131 = x1120.map{ case (((x1121, x1122), x1123), x1124) => val x1130 = (x1122,x1123,x1124) 
 x1130 match {
-   case (_,_, null) => ({val x1125 = (x1121) 
+   case (_,null,_,_) => ({val x1125 = (x1121) 
+x1125}, Nil)
+case (_,_,null) => ({val x1125 = (x1121) 
 x1125}, Nil) 
    case x1129 => ({val x1125 = (x1121) 
 x1125}, List({val x1126 = x1124.c_name 
@@ -219,7 +222,6 @@ val x1137 = M_flat3
 //M_flat3.collect.foreach(println(_))
 val res = x1137.count
    var end0 = System.currentTimeMillis() - start0
-   val sf = Config.datapath.split("/").last
    println("ShredQuery3Spark"+sf+","+Config.datapath+","+end0)
  }
 }
