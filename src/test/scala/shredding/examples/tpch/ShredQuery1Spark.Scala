@@ -4,17 +4,17 @@ package experiments
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import sprkloader._
-case class Record474(P__F: Int, L__F: Int, O__F: Int, c__F: Customer, uniqueId: Long)
-case class Record475(c_name: String, c_orders: Record474, uniqueId: Long)
-case class Record478(o__F: Orders, P__F: Int, L__F: Int, uniqueId: Long)
-case class Record479(o_orderdate: String, o_parts: Record478, uniqueId: Long)
-case class Record483(p_name: String, l_qty: Double, uniqueId: Long)
-case class RecM_flat2(_1: Record474, _2: List[Record479], uniqueId: Long)
-case class RecM_flat3(_1: Record478, _2: List[Record483], uniqueId: Long)
-case class RecM_flat1(_1: Q1Flat, _2: List[Record475], uniqueId: Long)
-case class RecM_ctx3(lbl: Record478, uniqueId: Long)
-case class RecM_ctx2(lbl: Record474, uniqueId: Long)
-case class RecM_ctx1(lbl: Q1Flat, uniqueId: Long)
+case class Record474(P__F: Int, L__F: Int, O__F: Int, c__F: Customer, uniqueId: Long) extends CaseClassRecord
+case class Record475(c_name: String, c_orders: Record474, uniqueId: Long) extends CaseClassRecord
+case class Record478(o__F: Orders, P__F: Int, L__F: Int, uniqueId: Long) extends CaseClassRecord
+case class Record479(o_orderdate: String, o_parts: Record478, uniqueId: Long) extends CaseClassRecord
+case class Record483(p_name: String, l_qty: Double, uniqueId: Long) extends CaseClassRecord
+case class RecM_flat2(_1: Record474, _2: List[Record479], uniqueId: Long) extends CaseClassRecord
+case class RecM_flat3(_1: Record478, _2: List[Record483], uniqueId: Long) extends CaseClassRecord
+case class RecM_flat1(_1: Q1Flat, _2: List[Record475], uniqueId: Long) extends CaseClassRecord
+case class RecM_ctx3(lbl: Record478, uniqueId: Long) extends CaseClassRecord
+case class RecM_ctx2(lbl: Record474, uniqueId: Long) extends CaseClassRecord
+case class RecM_ctx1(lbl: Q1Flat, uniqueId: Long) extends CaseClassRecord
 object ShredQuery1Spark {
  def main(args: Array[String]){
    val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery1Spark")
@@ -54,10 +54,11 @@ val x350 = M_ctx1
 val x352 = M_ctx1 
 val x353 = C__D_1 
 val x355 = x353 
-val x358 = { val out1 = x352.map{ case x356 => ({true}, x356) }
+/**val x358 = { val out1 = x352.map{ case x356 => ({true}, x356) }
   val out2 = x355.map{ case x357 => ({true}, x357) }
   out1.join(out2).map{ case (k,v) => v }
-} 
+}**/
+val x358 = C__D_1.map{ case c => (x348, c) } 
 val x371 = x358.map{ case (x359, x360) => val x370 = (x360) 
 x370 match {
    case (null) => ({val x361 = (x359) 

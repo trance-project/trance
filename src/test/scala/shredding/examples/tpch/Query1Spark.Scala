@@ -4,9 +4,9 @@ package experiments
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import sprkloader._
-case class Record278(p_name: String, l_qty: Double, uniqueId: Long)
-case class Record280(o_orderdate: String, o_parts: List[Record278], uniqueId: Long)
-case class Query1Out(c_name: String, c_orders: List[Record280], uniqueId: Long)
+case class Record278(p_name: String, l_qty: Double, uniqueId: Long) extends CaseClassRecord
+case class Record280(o_orderdate: String, o_parts: List[Record278], uniqueId: Long) extends CaseClassRecord
+case class Query1Out(c_name: String, c_orders: List[Record280], uniqueId: Long) extends CaseClassRecord
 object Query1Spark {
  def main(args: Array[String]){
    val conf = new SparkConf().setMaster(Config.master).setAppName("Query1Spark")
@@ -38,21 +38,24 @@ val x234 = { val out1 = x227.map{ case x230 => ({val x232 = x230.c_custkey
 x232}, x230) }
   val out2 = x229.map{ case x231 => ({val x233 = x231.o_custkey 
 x233}, x231) }
-  out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
+  out1.join(out2).map{ case (k,v) => v }
+  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
 val x236 = L 
 val x242 = { val out1 = x234.map{ case (x237, x238) => ({val x240 = x238.o_orderkey 
 x240}, (x237, x238)) }
   val out2 = x236.map{ case x239 => ({val x241 = x239.l_orderkey 
 x241}, x239) }
-  out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
+  out1.join(out2).map{ case (k,v) => v }
+  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
 val x244 = P 
 val x251 = { val out1 = x242.map{ case ((x245, x246), x247) => ({val x249 = x247.l_partkey 
 x249}, ((x245, x246), x247)) }
   val out2 = x244.map{ case x248 => ({val x250 = x248.p_partkey 
 x250}, x248) }
-  out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
+  out1.join(out2).map{ case (k,v) => v }
+  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
 val x262 = x251.map{ case (((x252, x253), x254), x255) => val x261 = (x254,x255) 
 x261 match {

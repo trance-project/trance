@@ -4,21 +4,21 @@ package experiments
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import sprkloader._
-case class Record474(P__F: Int, L__F: Int, O__F: Int, c__F: Customer, uniqueId: Long)
-case class Record475(c_name: String, c_orders: Record474, uniqueId: Long)
-case class Record478(o__F: Orders, P__F: Int, L__F: Int, uniqueId: Long)
-case class Record479(o_orderdate: String, o_parts: Record478, uniqueId: Long)
-case class Record483(p_name: String, l_qty: Double, uniqueId: Long)
-case class Record569(lbl: Q1Flat2, uniqueId: Long)
-case class Input_Query4__D(c_name: String, c_orders: Int, uniqueId: Long)
-case class Record573(c_name: String, p_name: String, month: String, t_qty: Double, uniqueId: Long)
-case class Record574(_1: Q1Flat2, _2: List[Record573], uniqueId: Long)
-case class RecM_flat2(_1: Record474, _2: List[Record479], uniqueId: Long)
-case class RecM_flat3(_1: Record478, _2: List[Record483], uniqueId: Long)
-case class RecM_flat1(_1: Q1Flat, _2: List[Record475], uniqueId: Long)
-case class RecM_ctx3(lbl: Record478, uniqueId: Long)
-case class RecM_ctx2(lbl: Record474, uniqueId: Long)
-case class RecM_ctx1(lbl: Q1Flat, uniqueId: Long)
+case class Record474(P__F: Int, L__F: Int, O__F: Int, c__F: Customer, uniqueId: Long) extends CaseClassRecord
+case class Record475(c_name: String, c_orders: Record474, uniqueId: Long) extends CaseClassRecord
+case class Record478(o__F: Orders, P__F: Int, L__F: Int, uniqueId: Long) extends CaseClassRecord
+case class Record479(o_orderdate: String, o_parts: Record478, uniqueId: Long) extends CaseClassRecord
+case class Record483(p_name: String, l_qty: Double, uniqueId: Long) extends CaseClassRecord
+case class Record569(lbl: Q1Flat2, uniqueId: Long) extends CaseClassRecord
+case class Input_Query4__D(c_name: String, c_orders: Int, uniqueId: Long) extends CaseClassRecord
+case class Record573(c_name: String, p_name: String, month: String, t_qty: Double, uniqueId: Long) extends CaseClassRecord
+case class Record574(_1: Q1Flat2, _2: List[Record573], uniqueId: Long) extends CaseClassRecord
+case class RecM_flat2(_1: Record474, _2: List[Record479], uniqueId: Long) extends CaseClassRecord
+case class RecM_flat3(_1: Record478, _2: List[Record483], uniqueId: Long) extends CaseClassRecord
+case class RecM_flat1(_1: Q1Flat, _2: List[Record475], uniqueId: Long) extends CaseClassRecord
+case class RecM_ctx3(lbl: Record478, uniqueId: Long) extends CaseClassRecord
+case class RecM_ctx2(lbl: Record474, uniqueId: Long) extends CaseClassRecord
+case class RecM_ctx1(lbl: Q1Flat, uniqueId: Long) extends CaseClassRecord
 object ShredQuery4Spark {
  def main(args: Array[String]){
    val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery4Spark")
@@ -57,10 +57,11 @@ val x350 = M_ctx1
 val x352 = M_ctx1 
 val x353 = C__D_1 
 val x355 = x353 
-val x358 = { val out1 = x352.map{ case x356 => ({true}, x356) }
+/**val x358 = { val out1 = x352.map{ case x356 => ({true}, x356) }
   val out2 = x355.map{ case x357 => ({true}, x357) }
   out1.join(out2).map{ case (k,v) => v }
-} 
+} **/
+val x358 = C__D_1.map{ case c => (x348, c) }
 val x371 = x358.map{ case (x359, x360) => val x370 = (x360) 
 x370 match {
    case (null) => ({val x361 = (x359) 
@@ -193,9 +194,7 @@ val x468 = RecM_flat3(x467, x466, newId)
 x468 
 } 
 val M_flat3 = x469
-//println("M_flat3")
 val x470 = M_flat3
-//M_flat3.collect.foreach(println(_))
 val res = x470 
  
 val Query4__F = M_ctx1.collect.take(1)(0).lbl
@@ -215,16 +214,15 @@ Query4__D_2c_orders_2o_parts.count
 val x496 = Record569(x495, newId) 
 val x497 = List(x496) 
 val M_ctx1 = spark.sparkContext.parallelize(x497)
-//println("M_ctx1")
 val x498 = M_ctx1
-//M_ctx1.collect.foreach(println(_))
 val x500 = M_ctx1 
 val x501 = Query4__D_1 
 val x503 = x501 
-val x506 = { val out1 = x500.map{ case x504 => ({true}, x504) }
+/**val x506 = { val out1 = x500.map{ case x504 => ({true}, x504) }
   val out2 = x503.map{ case x505 => ({true}, x505) }
   out1.join(out2).map{ case (k,v) => v }
-} 
+}**/
+val x506 = Query4__D_1.map{ case c => (x496, c) }
 val x508 = Query4__D_2c_orders_1 
 val x511 = x508 
 val x516 = { val out1 = x506.map{ case (a, null) => (null, (a, null)); case (x512, x513) => ({val x515 = x513.c_orders 
@@ -256,10 +254,14 @@ x544}, 0.0)
 x544}, {val x545 = x543.l_qty 
 x545})
  }
-}.foldByKey(0.0){ case (acc571, x546) => acc571 + x546 } 
+}.foldByKey(0.0){ case (acc571, x546) => acc571 + x546 }
 val x561 = x548.map{ case ((x549, x550, x551, x552), x553) => val x560 = (x553,x552,x550,x551) 
 x560 match {
    case (_,_,_, null) => ({val x554 = (x549) 
+x554}, Nil) 
+   case (_,_,null, _) => ({val x554 = (x549) 
+x554}, Nil) 
+   case (_,null,_, _) => ({val x554 = (x549) 
 x554}, Nil) 
    case x559 => ({val x554 = (x549) 
 x554}, List({val x555 = x550.c_name 
@@ -268,7 +270,7 @@ val x557 = x551.o_orderdate
 val x558 = Record573(x555, x556, x557, x553, newId) 
 x558}))
  }
-}.foldByKey(Nil){ case (acc572, x559) => acc572 ++ x559 } 
+}.foldByKey(Nil){ case (acc572, x559) => acc572 ++ x559 }
 val x566 = x561.map{ case (x562, x563) => 
    val x564 = x562.lbl 
 val x565 = Record574(x564, x563, newId) 
@@ -277,7 +279,7 @@ x565
 val M_flat1 = x566
 //println("M_flat1")
 val x567 = M_flat1
-M_flat1.collect.foreach(println(_))
+//M_flat1.collect.foreach(println(_))
 val res = x567.count
    }
    f

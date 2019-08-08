@@ -4,17 +4,17 @@ package experiments
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import sprkloader._
-case class Record1141(p__F: Part, S__F: Int, PS__F: Int, uniqueId: Long)
-case class Record1142(p__F: Part, C__F: Int, L__F: Int, O__F: Int, uniqueId: Long)
-case class Record1143(p_name: String, suppliers: Record1141, customers: Record1142, uniqueId: Long)
-case class Record1147(s_name: String, s_nationkey: Int, uniqueId: Long)
-case class Record1152(c_name: String, c_nationkey: Int, uniqueId: Long)
-case class RecM_ctx1(lbl: Q3Flat, uniqueId: Long)
-case class RecM_ctx3(lbl: Record1142, uniqueId: Long)
-case class RecM_flat1(_1: Q3Flat, _2: List[Record1143], uniqueId: Long)
-case class RecM_flat3(_1: Record1142, _2: List[Record1152], uniqueId: Long)
-case class RecM_flat2(_1: Record1141, _2: List[Record1147], uniqueId: Long)
-case class RecM_ctx2(lbl: Record1141, uniqueId: Long)
+case class Record1141(p__F: Part, S__F: Int, PS__F: Int, uniqueId: Long) extends CaseClassRecord
+case class Record1142(p__F: Part, C__F: Int, L__F: Int, O__F: Int, uniqueId: Long) extends CaseClassRecord
+case class Record1143(p_name: String, suppliers: Record1141, customers: Record1142, uniqueId: Long) extends CaseClassRecord
+case class Record1147(s_name: String, s_nationkey: Int, uniqueId: Long) extends CaseClassRecord
+case class Record1152(c_name: String, c_nationkey: Int, uniqueId: Long) extends CaseClassRecord
+case class RecM_ctx1(lbl: Q3Flat, uniqueId: Long) extends CaseClassRecord
+case class RecM_ctx3(lbl: Record1142, uniqueId: Long) extends CaseClassRecord
+case class RecM_flat1(_1: Q3Flat, _2: List[Record1143], uniqueId: Long) extends CaseClassRecord
+case class RecM_flat3(_1: Record1142, _2: List[Record1152], uniqueId: Long) extends CaseClassRecord
+case class RecM_flat2(_1: Record1141, _2: List[Record1147], uniqueId: Long) extends CaseClassRecord
+case class RecM_ctx2(lbl: Record1141, uniqueId: Long) extends CaseClassRecord
 object ShredQuery3Spark {
  def main(args: Array[String]){
    val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery3Spark")

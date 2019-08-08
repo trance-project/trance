@@ -25,7 +25,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case RecordCType(fs) =>
      val name = types(tp)
      val fsize = fs.size
-      s"case class $name(${fs.map(x => s"${kvName(x._1)(fsize)}: ${generateType(x._2)}").mkString(", ")}, uniqueId: Long)"
+      s"case class $name(${fs.map(x => s"${kvName(x._1)(fsize)}: ${generateType(x._2)}").mkString(", ")}, uniqueId: Long) extends CaseClassRecord"
     case _ => sys.error("unsupported type "+tp)
   }
 
@@ -218,7 +218,8 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       // ${checkNull(v1)} in map below causes invariance issues in PairRDDFunctions
       s"""|{ val out1 = ${generate(e1)}.map{ case $vars => ({${generate(p1)}}, $vars) }
           |  val out2 = ${generate(e2)}.map{ case $gv2 => ({${generate(p2)}}, $gv2) }
-          |  out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
+          |  out1.join(out2).map{ case (k,v) => v }
+          |  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
           |}""".stripMargin
     case Join(e1, e2, v1, p1, v2, p2) => 
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
@@ -246,8 +247,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     }
     case Reduce(e1, v, f, p) =>
       val vars = generateVars(v, e1.tp.asInstanceOf[BagCType].tp)
-      p match {
-        case Constant(true) =>
+      p match { case Constant(true) =>
           s"""|${generate(e1)}.map{ case $vars => 
               |   ${generate(f)} 
               |}""".stripMargin
