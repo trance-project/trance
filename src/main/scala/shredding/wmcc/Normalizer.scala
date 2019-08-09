@@ -89,7 +89,18 @@ trait BaseNormalizer extends BaseCompiler {
       case EmptySng => EmptySng // N5
       case Sng(t) => ifthen(p(t), Sng(e(t))) // N6
       case Merge(e1, e2) => Merge(comprehension(e1, p, e), comprehension(e2, p, e))  //N7
-      case Variable(_,_) => ifthen(p(e1), Sng(e(e1))) // input relation
+      case InputRef("M_ctx1", BagCType(t)) => 
+        val v1 = Variable("M_ctx1", t)
+        e(v1) match {
+          case Sng(r @ Record(_)) => 
+            println("made it here")
+            println(r.fields)
+            r.fields("v") match {
+              case Comprehension(e2, v2, Equals(_, _), e3) => Comprehension(e2, v2, Constant(true), e3)  
+            } 
+          case s => sys.error(s"not supported $s")
+        }
+      case Variable(name,_) => ifthen(p(e1), Sng(e(e1))) // input relation
       case Comprehension(e2, v2, p2, e3) => e3 match {
         // weighted singleton used for count
         // { 1 | v <- { WeightedSng(t,q) | v2 <- e2, p2}, p(v) }
@@ -104,7 +115,8 @@ trait BaseNormalizer extends BaseCompiler {
         //N8
         // { e(v) | v <- { e3 | v2 <- e2, p2 }, p(v) }
         // { { e(v) | v <- e3 } | v2 <- e2, p2 }
-        case _ => Comprehension(e2, v2, p2, comprehension(e3, p, e))
+        case _ => 
+          Comprehension(e2, v2, p2, comprehension(e3, p, e))
       }
       case c @ CLookup(flat, dict) =>
         val v1 = Variable.fresh(dict.tp.asInstanceOf[BagDictCType].flatTp.tp)
