@@ -146,6 +146,7 @@ case class CNamed(name: String, e: CExpr) extends CExpr {
 case class LinearCSet(exprs: List[CExpr]) extends CExpr {
   def tp: Type = EmptyCType
   def getTypeMap: Map[Type, String] = exprs.map{ e => e match {
+    case CNamed("M_ctx1", e1) => (e1.tp -> s"RecM_ctx1") 
     case CNamed(n, e1) => (e1.tp.asInstanceOf[BagCType].tp -> s"Rec$n")
     case e1 => (e1.tp.asInstanceOf[BagCType].tp -> s"Record${Variable.newId}")
   }}.toMap

@@ -274,17 +274,12 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
               |   ${generate(f)} 
               |}.filter($vars => {${generate(p)}})""".stripMargin
       } 
-    case Bind(x, CNamed(n, e), e2) => n match {
-       case "M_ctx1" => 
-        s"""|val M_ctx1 = ${generate(e)}.head
-            |${generate(e2)}""".stripMargin
-      case _ => 
-        s"""|val $n = ${generate(e)}
+    case Bind(x, CNamed(n, e), e2) =>
+      s"""|val $n = ${generate(e)}
             |//println(\"$n\")
             |val ${generate(x)} = $n
             |//$n.collect.foreach(println(_))
             |${generate(e2)}""".stripMargin
-    }
     case Bind(x, e1 @ LinearCSet(rs), e2) =>
       // count will be called on the last item in the linear set
       s"val res = ${generate(rs.last)}"

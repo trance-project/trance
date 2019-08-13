@@ -137,7 +137,7 @@ object Unnester {
       }
     case LinearCSet(exprs) => LinearCSet(exprs.map(unnest(_)((Nil, Nil, None))))
     case CNamed(n, exp) => exp match {
-      case Sng(t) => CNamed(n, exp)
+      case Record(lbl) => CNamed(n, exp)
       case _ => CNamed(n, unnest(exp)((Nil, Nil, None)))
     }
     case Bind(e1, e2, e3) => Bind(e1, e2, unnest(e3)((u, w, E)))

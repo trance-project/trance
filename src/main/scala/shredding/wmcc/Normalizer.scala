@@ -75,6 +75,11 @@ trait BaseNormalizer extends BaseCompiler {
     case _ => super.lookup(lbl, dict)
   }
 
+  override def named(n: String, e: Rep): Rep = (n, e) match {
+    case ("M_ctx1", Sng(lbl)) => super.named(n, lbl) 
+    case _ => super.named(n, e)
+  }
+
   // { e(v) | v <- e1, p(v) }
   // where fegaras and maier does: { e | q, v <- e1, s }
   // this has { { { e | s } | v <- e1 } | q }
@@ -89,14 +94,19 @@ trait BaseNormalizer extends BaseCompiler {
       case EmptySng => EmptySng // N5
       case Sng(t) => ifthen(p(t), Sng(e(t))) // N6
       case Merge(e1, e2) => Merge(comprehension(e1, p, e), comprehension(e2, p, e))  //N7
+      case InputRef("M_flat1", BagCType(r @ RecordCType(_))) => 
+        val v1 = Variable.fresh(r) 
+        e(v1) match {
+          case Comprehension(Project(_, v), v2, p2, e2) => Comprehension(InputRef("M_flat1", r.attrTps("v")), v2, p2, e2) 
+          case s => sys.error(s"not supported $s")
+        }
       case InputRef("M_ctx1", BagCType(t)) => 
         val v1 = Variable("M_ctx1", t)
         e(v1) match {
           case Sng(r @ Record(_)) => 
-            println("made it here")
-            println(r.fields)
             r.fields("v") match {
-              case Comprehension(e2, v2, Equals(_, _), e3) => Comprehension(e2, v2, Constant(true), e3)  
+              case Comprehension(Project(InputRef(n, BagDictCType(BagCType(TTupleType(lst)),td)), "_1"), v2, Equals(_, _), Comprehension(e3, v3, p3, e4)) => 
+                Comprehension(Project(InputRef(n, BagDictCType(BagCType(lst.last.asInstanceOf[BagCType].tp), td)), "_1"), v3, p3, e4)  
             } 
           case s => sys.error(s"not supported $s")
         }
