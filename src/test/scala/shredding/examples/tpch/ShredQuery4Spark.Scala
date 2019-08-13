@@ -216,9 +216,9 @@ x476}), ((x470, x471), x472)) }
 x475}), x473)})
   out1.cogroup(out2).flatMap { pair =>
      if (pair._2._2.isEmpty) {
-       pair._2._1.iterator.map(v => (v, null))
+       pair._2._1.iterator.map{ case ((x470, x471), x472) => (((x470, x471), x472), null) }
      } else {
-       for (v <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (v, w)
+       for (((x470, x471), x472) <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (((x470, x471), x472), w)
       }
   }
 } 

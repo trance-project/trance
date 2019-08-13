@@ -253,9 +253,9 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
           |  val out2 = ${generate(e2)}${e2Key(v2, p2)}
           |  out1.cogroup(out2).flatMap { pair =>
           |     if (pair._2._2.isEmpty) {
-          |       pair._2._1.iterator.map(v => (v, null))
+          |       pair._2._1.iterator.map{ case $vars => ($vars, null) }
           |     } else {
-          |       for (v <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (v, w)
+          |       for ($vars <- pair._2._1.iterator; w <- pair._2._2.iterator) yield ($vars, w)
           |      }
           |  }
           |}""".stripMargin
