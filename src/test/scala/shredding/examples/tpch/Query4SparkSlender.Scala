@@ -1,0 +1,66 @@
+
+package experiments
+/** Generated **/
+import org.apache.spark.SparkConf
+import org.apache.spark.sql.SparkSession
+import sprkloader._
+case class Record253(p_name: String, l_qty: Double, uniqueId: Long) extends CaseClassRecord
+case class Record255(o_orderdate: String, o_parts: List[Record253], uniqueId: Long) extends CaseClassRecord
+case class Record300(c_name: String, p_name: String, month: String, t_qty: Double, uniqueId: Long) extends CaseClassRecord
+case class Query1Out(c_name: String, c_orders: List[Record255], uniqueId: Long) extends CaseClassRecord
+object Query4SparkSlender {
+ def main(args: Array[String]){
+   val sf = Config.datapath.split("/").last
+   val conf = new SparkConf().setMaster(Config.master).setAppName("Query4Spark"+sf)
+   val spark = SparkSession.builder().config(conf).getOrCreate()
+   
+val tpch = TPCHLoader(spark)
+val C = tpch.loadCustomers
+C.cache
+C.count
+val O = tpch.loadOrders
+O.cache
+O.count
+val L = tpch.loadLineitem
+L.cache
+L.count
+val P = tpch.loadPart
+P.cache
+P.count
+    var id = 0L
+    def newId: Long = {
+      val prevId = id
+      id += 1
+      prevId
+    }
+  val Query4 = {
+
+    val l = L.map(l => l.l_partkey -> (l.l_orderkey, l.l_quantity))
+    val p = P.map(p => p.p_partkey -> p.p_name)
+    val lpj = l.join(p)
+    // this throws error: value withFilter is not a member of org.apache.spark.rdd.RDD[(Int, (Int, String))]
+    //for ((_, ((l_orderkey, p_name)) <- lpj) yield (l_orderkey, p_name)
+    val OrderParts = lpj.map{ case (_, ((l_orderkey, l_quantity), p_name)) => (l_orderkey, (p_name, l_quantity)) }.groupByKey()
+    val o = O.map(o => o.o_orderkey -> (o.o_custkey, o.o_orderdate)).join(OrderParts)
+    val CustomerOrders = o.map{ case (_, ((o_custkey, o_orderdate), parts)) => (o_custkey, (o_orderdate, parts)) }.groupByKey()
+    C.map(c => c.c_custkey -> c.c_name).join(CustomerOrders).map{ case (_, (c_name, orders)) => (c_name, orders) }
+  }
+ Query4.cache 
+ Query4.count
+   
+  var start0 = System.currentTimeMillis()
+   def f() {
+    // this gives same with filter error
+    //val p1 = { for ((c_name, c_orders) <- Query4; (o_orderdate, o_parts) <- c_orders; (p_name, l_quantity) <- o_parts)
+    //            yield ((c_name, p_name, o_orderdate), l_qty) }
+    val p1 = Query4.flatMap{ case (c_name, c_orders) => c_orders.flatMap{ 
+      case (o_orderdate, o_parts) => o_parts.map{ case (p_name, l_quantity) => ((c_name, p_name, o_orderdate), l_quantity) } } }
+    val p2 = p1.reduceByKey(_ + _)
+    p2.count
+   }
+   f
+   var end0 = System.currentTimeMillis() - start0
+   println("Query4Spark"+sf+","+Config.datapath+","+end0)
+ }
+
+}
