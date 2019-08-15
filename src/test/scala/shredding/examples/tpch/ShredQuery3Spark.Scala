@@ -3,6 +3,7 @@ package experiments
 /** Generated **/
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
+import java.util.{HashMap => JHashMap}
 import sprkloader._
 case class Record1141(p__F: Part, S__F: Int, PS__F: Int, uniqueId: Long) extends CaseClassRecord
 case class Record1142(p__F: Part, C__F: Int, L__F: Int, O__F: Int, uniqueId: Long) extends CaseClassRecord
@@ -11,9 +12,9 @@ case class Record1147(s_name: String, s_nationkey: Int, uniqueId: Long) extends 
 case class Record1152(c_name: String, c_nationkey: Int, uniqueId: Long) extends CaseClassRecord
 case class RecM_ctx1(lbl: Q3Flat, uniqueId: Long) extends CaseClassRecord
 case class RecM_ctx3(lbl: Record1142, uniqueId: Long) extends CaseClassRecord
-case class RecM_flat1(_1: Q3Flat, _2: List[Record1143], uniqueId: Long) extends CaseClassRecord
-case class RecM_flat3(_1: Record1142, _2: List[Record1152], uniqueId: Long) extends CaseClassRecord
-case class RecM_flat2(_1: Record1141, _2: List[Record1147], uniqueId: Long) extends CaseClassRecord
+case class RecM_flat1(_1: Q3Flat, _2: Iterable[Record1143], uniqueId: Long) extends CaseClassRecord
+case class RecM_flat3(_1: Record1142, _2: Iterable[Record1152], uniqueId: Long) extends CaseClassRecord
+case class RecM_flat2(_1: Record1141, _2: Iterable[Record1147], uniqueId: Long) extends CaseClassRecord
 case class RecM_ctx2(lbl: Record1141, uniqueId: Long) extends CaseClassRecord
 object ShredQuery3Spark {
  def main(args: Array[String]){
@@ -64,9 +65,9 @@ val x1004 = x1001.map{ case c => (x998, c) }
 val x1020 = x1004.map{ case (x1005, x1006) => val x1019 = (x1006) 
 x1019 match {
    case (null) => ({val x1007 = (x1005) 
-x1007}, Nil) 
+x1007}, null) 
    case x1018 => ({val x1007 = (x1005) 
-x1007}, List({val x1008 = x1006.p_name 
+x1007}, {val x1008 = x1006.p_name 
 val x1009 = x1005.lbl 
 val x1010 = x1009.S__F 
 val x1011 = x1009.PS__F 
@@ -76,9 +77,9 @@ val x1014 = x1009.L__F
 val x1015 = x1009.O__F 
 val x1016 = Record1142(x1006, x1013, x1014, x1015, newId) 
 val x1017 = Record1143(x1008, x1012, x1016, newId) 
-x1017}))
+x1017})
  }
-}.foldByKey(Nil){ case (acc1140, x1018) => acc1140 ++ x1018 } 
+}.mapPartitions(it => { it.toList.groupBy(_._1).mapValues(_.map(_._2)).iterator }, true) 
 val x1025 = x1020.map{ case (x1021, x1022) => 
    val x1023 = x1021.lbl 
 val x1024 = RecM_flat1(x1023, x1022, newId) 
@@ -129,14 +130,14 @@ x1059}, x1057) }
 val x1070 = x1060.map{ case ((x1061, x1062), x1063) => val x1069 = (x1062,x1063) 
 x1069 match {
    case (_,null) => ({val x1064 = (x1061) 
-x1064}, Nil) 
+x1064}, null) 
    case x1068 => ({val x1064 = (x1061) 
-x1064}, List({val x1065 = x1063.s_name 
+x1064}, {val x1065 = x1063.s_name 
 val x1066 = x1063.s_nationkey 
 val x1067 = Record1147(x1065, x1066, newId) 
-x1067}))
+x1067})
  }
-}.foldByKey(Nil){ case (acc1146, x1068) => acc1146 ++ x1068 } 
+}.mapPartitions(it => { it.toList.groupBy(_._1).mapValues(_.map(_._2)).iterator }, true) 
 val x1075 = x1070.map{ case (x1071, x1072) => 
    val x1073 = x1071.lbl 
 val x1074 = RecM_flat2(x1073, x1072, newId) 
@@ -195,16 +196,16 @@ x1119}, x1117) }
 val x1131 = x1120.map{ case (((x1121, x1122), x1123), x1124) => val x1130 = (x1122,x1123,x1124) 
 x1130 match {
    case (_,null,_) => ({val x1125 = (x1121) 
-x1125}, Nil)
+x1125}, null)
 case (_,_,null) => ({val x1125 = (x1121) 
-x1125}, Nil) 
+x1125}, null) 
    case x1129 => ({val x1125 = (x1121) 
-x1125}, List({val x1126 = x1124.c_name 
+x1125}, {val x1126 = x1124.c_name 
 val x1127 = x1124.c_nationkey 
 val x1128 = Record1152(x1126, x1127, newId) 
-x1128}))
+x1128})
  }
-}.foldByKey(Nil){ case (acc1151, x1129) => acc1151 ++ x1129 } 
+}.mapPartitions(it => { it.toList.groupBy(_._1).mapValues(_.map(_._2)).iterator }, true) 
 val x1136 = x1131.map{ case (x1132, x1133) => 
    val x1134 = x1132.lbl 
 val x1135 = RecM_flat3(x1134, x1133, newId) 

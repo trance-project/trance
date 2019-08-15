@@ -3,11 +3,12 @@ package experiments
 /** Generated **/
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
+import java.util.{HashMap => JHashMap}
 import sprkloader._
 case class Record924(s_name: String, s_nationkey: Int, uniqueId: Long) extends CaseClassRecord
 case class Record926(c_name: String, c_nationkey: Int, uniqueId: Long) extends CaseClassRecord
 case class Record968(p_name: String, cnt: Int, uniqueId: Long) extends CaseClassRecord
-case class Query3Out(p_name: String, suppliers: List[Record924], customers: List[Record926], uniqueId: Long) extends CaseClassRecord
+case class Query3Out(p_name: String, suppliers: Iterable[Record924], customers: Iterable[Record926], uniqueId: Long) extends CaseClassRecord
 object Query5Spark {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
@@ -59,14 +60,14 @@ x866}, x864) }
 val x877 = x867.map{ case ((x868, x869), x870) => val x876 = (x869,x870) 
 x876 match {
    case (_,null) => ({val x871 = (x868) 
-x871}, Nil) 
+x871}, null) 
    case x875 => ({val x871 = (x868) 
-x871}, List({val x872 = x870.s_name 
+x871}, {val x872 = x870.s_name 
 val x873 = x870.s_nationkey 
 val x874 = Record924(x872, x873, newId) 
-x874}))
+x874})
  }
-}.foldByKey(Nil){ case (acc923, x875) => acc923 ++ x875 } 
+}.groupByKey() 
 val x879 = L 
 val x885 = { val out1 = x877.map{ case (x880, x881) => ({val x883 = x880.p_partkey 
 x883}, (x880, x881)) }
@@ -94,16 +95,16 @@ x903}, x901) }
 val x916 = x904.map{ case ((((x905, x906), x907), x908), x909) => val x915 = (x907,x908,x909) 
 x915 match {
    case (_,null,_) => ({val x910 = (x905,x906) 
-x910}, Nil)
+x910}, null)
 case (_,_,null) => ({val x910 = (x905,x906) 
-x910}, Nil) 
+x910}, null) 
    case x914 => ({val x910 = (x905,x906) 
-x910}, List({val x911 = x909.c_name 
+x910}, {val x911 = x909.c_name 
 val x912 = x909.c_nationkey 
 val x913 = Record926(x911, x912, newId) 
-x913}))
+x913})
  }
-}.foldByKey(Nil){ case (acc925, x914) => acc925 ++ x914 } 
+}.groupByKey() 
 val x922 = x916.map{ case ((x917, x918), x919) => 
    val x920 = x917.p_name 
 val x921 = Query3Out(x920, x918, x919, newId) 
@@ -143,7 +144,7 @@ x949}, 0)
    case x950 => ({val x949 = (x946,x947) 
 x949}, {1})
  }
-}.foldByKey(0){ case (acc966, x950) => acc966 + x950 } 
+}.reduceByKey(_ + _) 
 val x960 = x952.map{ case ((x953, x954), x955) => val x959 = (x954) 
 x959 match {
    case x957 if {val x958 = x955 == 0 
@@ -152,7 +153,7 @@ x956}, {1})
    case x957 => ({val x956 = (x953) 
 x956}, 0)
  }
-}.foldByKey(0){ case (acc967, x957) => acc967 + x957 } 
+}.reduceByKey(_ + _) 
 val x965 = x960.map{ case (x961, x962) => 
    val x963 = x961.p_name 
 val x964 = Record968(x963, x962, newId) 

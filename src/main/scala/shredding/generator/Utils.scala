@@ -242,6 +242,7 @@ object Utils {
       |/** Generated **/
       |import org.apache.spark.SparkConf
       |import org.apache.spark.sql.SparkSession
+      |import java.util.{HashMap => JHashMap}
       |import sprkloader._
       |$header
       |object $appname {
@@ -276,6 +277,7 @@ object Utils {
       |/** Generated **/
       |import org.apache.spark.SparkConf
       |import org.apache.spark.sql.SparkSession
+      |import java.util.{HashMap => JHashMap}
       |import sprkloader._
       |$header
       |object $appname {

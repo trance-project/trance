@@ -158,7 +158,7 @@ object TPCHQueries {
 
   val sq4spark = s"""
       |val Query4__F = M_ctx1.lbl
-      |val Query4__D_1 = M_flat1
+      |val Query4__D_1 = M_flat1.flatMap{ r => r._2 }
       |Query4__D_1.cache
       |Query4__D_1.count
       |val Query4__D_2c_orders_1 = M_flat2

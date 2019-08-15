@@ -37,7 +37,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case DoubleType => "Double"
     case LongType => "Long"
     case TTupleType(fs) => s"(${fs.map(generateType(_)).mkString(",")})"
-    case BagCType(tp) => s"List[${generateType(tp)}]" //combineByKey, etc. may need this to be iterable
+    case BagCType(tp) => s"Iterable[${generateType(tp)}]" //combineByKey, etc. may need this to be iterable
     case BagDictCType(flat @ BagCType(TTupleType(fs)), dict) =>
       dict match {
         case TupleDictCType(ds) if !ds.filter(_._2 != EmptyDictCType).isEmpty =>
@@ -148,7 +148,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       val zero = e2.tp match {
         case IntType => "0"
         case DoubleType => "0.0"
-        case _ => "Nil"
+        case _ => "null"
       } 
       val acc = "acc"+Variable.newId
       val gv2 = generate(v2)
@@ -163,31 +163,40 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
           ).mkString("\n")
         case _ => s"case (null) => ({${generate(f)}}, $zero)"
       }
+      
+      // for now check if this is the shredded version
+      // could move a local option to the nest node
+      val gbfun = if (v1.head.tp match {
+        case r @ RecordCType(_) => r.attrTps.contains("lbl")
+        case _ => false
+      }) ".mapPartitions(it => { it.toList.groupBy(_._1).mapValues(_.map(_._2)).iterator }, true)" 
+      else ".groupByKey()"
+      
       (p, e2.tp) match {
         case (Constant(true), RecordCType(_)) => 
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
               |   $nonet 
-              |   case $gv2 => ({${generate(f)}}, List({${generate(e2)}}))
+              |   case $gv2 => ({${generate(f)}}, {${generate(e2)}})
               | }
-              |}.foldByKey(Nil){ case ($acc, $gv2) => $acc ++ $gv2 }""".stripMargin
+              |}$gbfun""".stripMargin
         case (Constant(true), _) => 
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
               |   $nonet
               |   case $gv2 => ({${generate(f)}}, {${generate(e2)}})
               | }
-              |}.foldByKey($zero){ case ($acc, $gv2) => $acc + $gv2 }""".stripMargin
+              |}.reduceByKey(_ + _)""".stripMargin
         case (_, RecordCType(_)) => 
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
-              |   case $gv2 if {${generate(p)}} => ({${generate(f)}}, List({${generate(e2)}}))
+              |   case $gv2 if {${generate(p)}} => ({${generate(f)}}, {${generate(e2)}})
               |   case $gv2 => ({${generate(f)}}, $zero)
-              | }
-              |}.foldByKey($zero){ case ($acc, $gv2) => $acc ++ $gv2 }""".stripMargin
+              | }    
+              |}$gbfun""".stripMargin
         case _ =>
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
               |   case $gv2 if {${generate(p)}} => ({${generate(f)}}, {${generate(e2)}})
               |   case $gv2 => ({${generate(f)}}, $zero)
               | }
-              |}.foldByKey($zero){ case ($acc, $gv2) => $acc + $gv2 }""".stripMargin
+              |}.reduceByKey(_ + _)""".stripMargin
       }
     case Unnest(e1, v1, f, v2, p) => 
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
@@ -274,12 +283,17 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
               |   ${generate(f)} 
               |}.filter($vars => {${generate(p)}})""".stripMargin
       } 
-    case Bind(x, CNamed(n, e), e2) =>
-      s"""|val $n = ${generate(e)}
+    case Bind(x, CNamed(n, e), e2) => n match {
+       case "M_ctx1" =>
+        s"""|val M_ctx1 = ${generate(e)}.head
+            |${generate(e2)}""".stripMargin
+      case _ =>
+        s"""|val $n = ${generate(e)}
             |//println(\"$n\")
             |val ${generate(x)} = $n
             |//$n.collect.foreach(println(_))
             |${generate(e2)}""".stripMargin
+    }
     case Bind(x, e1 @ LinearCSet(rs), e2) =>
       // count will be called on the last item in the linear set
       s"val res = ${generate(rs.last)}"
