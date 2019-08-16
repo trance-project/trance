@@ -4,6 +4,8 @@ package experiments
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import sprkloader._
+import sprkloader.SkewPairRDD._
+
 case class Record253(p_name: String, l_qty: Double, uniqueId: Long) extends CaseClassRecord
 case class Record255(o_orderdate: String, o_parts: List[Record253], uniqueId: Long) extends CaseClassRecord
 case class Record300(c_name: String, p_name: String, month: String, t_qty: Double, uniqueId: Long) extends CaseClassRecord
@@ -13,7 +15,8 @@ object Query4SparkSlender {
    val sf = Config.datapath.split("/").last
    val conf = new SparkConf().setMaster(Config.master).setAppName("Query4Spark"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
-   
+
+
 val tpch = TPCHLoader(spark)
 val C = tpch.loadCustomers
 C.cache
@@ -33,11 +36,11 @@ P.count
       id += 1
       prevId
     }
-  val Query4 = {
 
+val Query4 = {
     val l = L.map(l => l.l_partkey -> (l.l_orderkey, l.l_quantity))
     val p = P.map(p => p.p_partkey -> p.p_name)
-    val lpj = l.join(p)
+    val lpj = l.joinSkewLeft(p)
     // this throws error: value withFilter is not a member of org.apache.spark.rdd.RDD[(Int, (Int, String))]
     //for ((_, ((l_orderkey, p_name)) <- lpj) yield (l_orderkey, p_name)
     val OrderParts = lpj.map{ case (_, ((l_orderkey, l_quantity), p_name)) => (l_orderkey, (p_name, l_quantity)) }.groupByKey()
@@ -45,6 +48,7 @@ P.count
     val CustomerOrders = o.map{ case (_, ((o_custkey, o_orderdate), parts)) => (o_custkey, (o_orderdate, parts)) }.groupByKey()
     C.map(c => c.c_custkey -> c.c_name).join(CustomerOrders).map{ case (_, (c_name, orders)) => (c_name, orders) }
   }
+ 
  Query4.cache 
  Query4.count
    

@@ -258,9 +258,9 @@ x536}), x534)})
 } 
 val x548 = x538.map{ case ((((x539, x540), x541), x542), x543) => val x547 = (x543) 
 x547 match {
-   case (null) => ({val x544 = (x539,x540,x541,x542) 
+   case (null) => ({val x544 = (x539,x540.c_name,x541.o_orderdate,x542) 
 x544}, 0.0)
-   case x546 => ({val x544 = (x539,x540,x541,x542) 
+   case x546 => ({val x544 = (x539,x540.c_name,x541.o_orderdate,x542) 
 x544}, {val x545 = x543.l_qty 
 x545})
  }
@@ -274,22 +274,22 @@ x554}, null)
 case (_,_,_,null) => ({val x554 = (x549) 
 x554}, null) 
    case x559 => ({val x554 = (x549) 
-x554}, {val x555 = x550.c_name 
+x554}, {val x555 = x550//.c_name 
 val x556 = x552.p_name 
-val x557 = x551.o_orderdate 
+val x557 = x551//.o_orderdate 
 val x558 = Record573(x555, x556, x557, x553, newId) 
 x558})
  }
 }.mapPartitions(it => { it.toList.groupBy(_._1).mapValues(_.map(_._2)).iterator }, true) 
-val x566 = x561.map{ case (x562, x563) => 
+/**val x566 = x561.map{ case (x562, x563) => 
    val x564 = x562.lbl 
 val x565 = Record574(x564, x563, newId) 
 x565 
-} 
-val M_flat1 = x566
+}**/
+val M_flat1 = x561//x566
 //println("M_flat1")
 val x567 = M_flat1
-//M_flat1.collect.foreach(println(_))
+M_flat1.collect.foreach(println(_))
 val res = x567.count
    }
    f
