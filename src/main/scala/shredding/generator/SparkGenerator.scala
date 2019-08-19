@@ -169,7 +169,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       val gbfun = if (v1.head.tp match {
         case r @ RecordCType(_) => r.attrTps.contains("lbl")
         case _ => false
-      }) ".mapPartitions(it => { it.toList.groupBy(_._1).mapValues(_.map(_._2)).iterator }, true)" 
+      }) ".groupByLabel()" 
       else ".groupByKey()"
       
       (p, e2.tp) match {
