@@ -1,5 +1,6 @@
 package sprkloader
 
+import scala.collection.mutable.HashMap
 import org.apache.spark.rdd.RDD
 import org.apache.spark.broadcast.Broadcast
 import scala.reflect.ClassTag
@@ -21,11 +22,11 @@ object SkewPairRDD {
     def balanceLeft[S](rrdd: RDD[(K, S)], hkeys: Broadcast[Set[K]]): (RDD[((K, Int), V)], RDD[((K, Int), S)]) = {
       val lrekey = lrdd.mapPartitions{ it =>
         it.zipWithIndex.map{ case ((k,v), i) => 
-          (k, { if (hkeys.value(k)) i % (2 * reducers) else 0 }) -> v
+          (k, { if (hkeys.value(k)) i % reducers else 0 }) -> v
         }
       }
       val rdupp = rrdd.flatMap{ case (k,v) =>
-        Range(0, {if (hkeys.value(k)) (2 * reducers) else 1 }).map(id => (k, id) -> v) 
+        Range(0, {if (hkeys.value(k)) reducers else 1 }).map(id => (k, id) -> v) 
       }
       (lrekey, rdupp)
     }
@@ -38,6 +39,17 @@ object SkewPairRDD {
         rekey.join(dupp).map{ case ((k, _), v) => k -> v }
       }
       else lrdd.join(rrdd) 
+    }
+
+    def groupByLabel(): RDD[(K, Iterable[V])] = {
+      val groupBy = (i: Iterator[(K,V)]) => {
+        val hm = HashMap[K, Vector[V]]()
+        i.foreach{ v =>
+          hm(v._1) = hm.getOrElse(v._1, Vector()) :+ v._2
+        }
+        hm.iterator
+      }
+      lrdd.mapPartitions(groupBy)
     }
 
   }
