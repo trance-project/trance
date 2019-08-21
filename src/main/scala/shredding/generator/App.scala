@@ -40,7 +40,14 @@ object App {
     val sq4info = (sq4.asInstanceOf[CExpr], "Shred"+TPCHQueries.q4name, TPCHQueries.sq4spark)
     Utils.runSpark(sqinfo, tpchShredM, sq4info)
 
-    println("---------------------------- TPCH Query 3 Unnest ----------------------------")  
+    println("---------------------------- TPCH Query 4 Unnest with Let ----------------------------")  
+    val q1a = translator.translate(TPCHQueries.query1a.asInstanceOf[translator.Expr])
+    val q1ainfo = (q1a.asInstanceOf[CExpr], TPCHQueries.q1aname, TPCHQueries.q1spark)
+    val q4ainfo = (q4.asInstanceOf[CExpr], TPCHQueries.q4name+"A", "")
+    Utils.runSpark(q1ainfo, tpchInputM, q4ainfo)
+
+
+    /**println("---------------------------- TPCH Query 3 Unnest ----------------------------")  
     val q3 = translator.translate(TPCHQueries.query3.asInstanceOf[translator.Expr])
     val q3info = (q3.asInstanceOf[CExpr], TPCHQueries.q3name, TPCHQueries.q3spark)
     Utils.runSpark(q3info, tpchInputM)
@@ -58,7 +65,7 @@ object App {
     println("---------------------------- TPCH Query 5 Shred Unnest ----------------------------")
     val sq5 = runner.shredPipeline(TPCHQueries.query5.asInstanceOf[runner.Expr])
     val sq5info = (sq5.asInstanceOf[CExpr], "Shred"+TPCHQueries.q5name, TPCHQueries.sq5spark)
-    Utils.runSpark(sq3info, tpchShredM, sq5info)
+    Utils.runSpark(sq3info, tpchShredM, sq5info)**/
 
   }
 

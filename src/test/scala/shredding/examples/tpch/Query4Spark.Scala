@@ -5,6 +5,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import java.util.{HashMap => JHashMap}
 import sprkloader._
+import sprkloader.SkewPairRDD._
 case class Record278(p_name: String, l_qty: Double, uniqueId: Long) extends CaseClassRecord
 case class Record280(o_orderdate: String, o_parts: Iterable[Record278], uniqueId: Long) extends CaseClassRecord
 case class Record325(c_name: String, p_name: String, month: String, t_qty: Double, uniqueId: Long) extends CaseClassRecord
@@ -56,7 +57,7 @@ val x251 = { val out1 = x242.map{ case ((x245, x246), x247) => ({val x249 = x247
 x249}, ((x245, x246), x247)) }
   val out2 = x244.map{ case x248 => ({val x250 = x248.p_partkey 
 x250}, x248) }
-  out1.join(out2).map{ case (k,v) => v }
+  out1.joinSkewLeft(out2).map{ case (k,v) => v }
   //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
 val x262 = x251.map{ case (((x252, x253), x254), x255) => val x261 = (x254,x255) 
@@ -116,7 +117,7 @@ x300} match {
      case lst => lst.map{ case x301 => if ({val x302 = x301.p_name 
 val x303 = x299.p_name 
 val x304 = x302 == x303 
-x304}) { (((x297, x298), x299), x301) } else { (((x297, x298), x299), null) } }
+x304}) { (((x297.c_name, x298.o_orderdate), x299), x301) } else { (((x297.c_name, x298.o_orderdate), x299), null) } }
   }
  }} 
 val x314 = x305.map{ case (((x306, x307), x308), x309) => val x313 = (x309) 

@@ -86,6 +86,21 @@ object TPCHQueries {
     |val P__F = 4
     |val P__D = (List((P__F, TPCHLoader.loadPart[Part].toList)), ())""".stripMargin
  
+  val q1aname = "Query1A" 
+  val ljp = VarDef("ljp", BagType(TupleType("l_orderkey" -> IntType, "p_name" -> StringType, "l_qty" -> DoubleType)))
+  val lp = VarDef("lp", TupleType("l_orderkey" -> IntType, "p_name" -> StringType, "l_qty" -> DoubleType))
+  val lpr = TupleVarRef(lp)
+  val query1a = Let(ljp, ForeachUnion(l, relL,
+                          ForeachUnion(p, relP, IfThenElse(Cmp(OpEq, lr("l_partkey"), pr("p_partkey")), 
+                            Singleton(Tuple("l_orderkey" -> lr("l_orderkey"), "p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity")))))),
+                    ForeachUnion(c, relC, 
+                      Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(o, relO, 
+                        IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")), 
+                          Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> 
+                            ForeachUnion(lp, BagVarRef(ljp),
+                              IfThenElse(Cmp(OpEq, lpr("l_orderkey"), or("o_orderkey")),
+                                Singleton(Tuple("p_name" -> lpr("p_name"), "l_qty" -> lpr("l_qty")))))))))))))
+
   val query1 = ForeachUnion(c, relC, 
             Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(o, relO, 
               IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")), 

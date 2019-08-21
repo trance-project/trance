@@ -5,6 +5,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import java.util.{HashMap => JHashMap}
 import sprkloader._
+import sprkloader.SkewPairRDD._
 case class Record278(p_name: String, l_qty: Double, uniqueId: Long) extends CaseClassRecord
 case class Record280(o_orderdate: String, o_parts: Iterable[Record278], uniqueId: Long) extends CaseClassRecord
 case class Query1Out(c_name: String, c_orders: Iterable[Record280], uniqueId: Long) extends CaseClassRecord

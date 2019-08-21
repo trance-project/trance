@@ -5,9 +5,11 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import java.util.{HashMap => JHashMap}
 import sprkloader._
+import sprkloader.SkewPairRDD._
 case class Record474(P__F: Int, L__F: Int, O__F: Int, c__F: Customer, uniqueId: Long) extends CaseClassRecord
 case class Record475(c_name: String, c_orders: Record474, uniqueId: Long) extends CaseClassRecord
-case class Record478(o__F: Orders, P__F: Int, L__F: Int, uniqueId: Long) extends CaseClassRecord
+//case class Record478(o__F: Orders, P__F: Int, L__F: Int, uniqueId: Long) extends CaseClassRecord
+case class Record478(o__F: Int, P__F: Int, L__F: Int, uniqueId: Long) extends CaseClassRecord
 case class Record479(o_orderdate: String, o_parts: Record478, uniqueId: Long) extends CaseClassRecord
 case class Record483(p_name: String, l_qty: Double, uniqueId: Long) extends CaseClassRecord
 case class RecM_flat2(_1: Record474, _2: Iterable[Record479], uniqueId: Long) extends CaseClassRecord
@@ -68,7 +70,7 @@ val x367 = Record474(x364, x365, x366, x360, newId)
 val x368 = Record475(x362, x367, newId) 
 x368})
  }
-}.mapPartitions(it => { it.toList.groupBy(_._1).mapValues(_.map(_._2)).iterator }, true) 
+}.groupByLabel()
 val x376 = x371.map{ case (x372, x373) => 
    val x374 = x372.lbl 
 val x375 = RecM_flat1(x374, x373, newId) 
@@ -117,11 +119,11 @@ x405}, {val x406 = x404.o_orderdate
 val x407 = x403.lbl 
 val x408 = x407.P__F 
 val x409 = x407.L__F 
-val x410 = Record478(x404, x408, x409, newId) 
+val x410 = Record478(x404.o_orderkey, x408, x409, newId) 
 val x411 = Record479(x406, x410, newId) 
 x411})
  }
-}.mapPartitions(it => { it.toList.groupBy(_._1).mapValues(_.map(_._2)).iterator }, true) 
+}.groupByLabel() 
 val x419 = x414.map{ case (x415, x416) => 
    val x417 = x415.lbl 
 val x418 = RecM_flat2(x417, x416, newId) 
@@ -153,9 +155,10 @@ val x433 = M_ctx3
 val x435 = M_ctx3 
 val x436 = L__D_1 
 val x438 = x436 
-val x445 = { val out1 = x435.map{ case x439 => ({val x441 = x439.lbl 
+
+/**val x445 = { val out1 = x435.map{ case x439 => ({val x441 = x439.lbl 
 val x442 = x441.o__F 
-val x443 = x442.o_orderkey 
+val x443 = x442//.o_orderkey 
 x443}, x439) }
   val out2 = x438.map{ case x440 => ({val x444 = x440.l_orderkey 
 x444}, x440) }
@@ -167,9 +170,37 @@ val x454 = { val out1 = x445.map{ case (x449, x450) => ({val x452 = x450.l_partk
 x452}, (x449, x450)) }
   val out2 = x448.map{ case x451 => ({val x453 = x451.p_partkey 
 x453}, x451) }
+  out1.joinSkewLeft(out2).map{ case (k,v) => v }
+}
+ 
+val x464 = x454.map{ case ((x455, x456), x457) => val x463 = (x456,x457) **/
+
+val x446 = P__D_1
+val x448 = x446
+val x454 = {
+
+  //val out1 = x445.map{ case (x449, x450) => ({val x452 = x450.l_partkey
+  //x452}, (x449, x450)) }
+  val out1 = L__D_1.map{ case x450 => ({val x452 = x450.l_partkey
+  x452}, x450) }
+  val out2 = x448.map{ case x451 => ({val x453 = x451.p_partkey
+x453}, x451) }
+  out1.joinSkewLeft(out2).map{ case (k,v) => v }
+}
+
+
+val x445 = { val out1 = x435.map{ case x439 => ({val x441 = x439.lbl
+val x442 = x441.o__F
+val x443 = x442//.o_orderkey
+x443}, x439) }
+  //val out2 = x438.map{ case x440 => ({val x444 = x440.l_orderkey
+//x444}, x440) }
+  val out2 = x454.map{ case (x449, x450) => (x449.l_orderkey, (x449, x450)) }
   out1.join(out2).map{ case (k,v) => v }
-} 
-val x464 = x454.map{ case ((x455, x456), x457) => val x463 = (x456,x457) 
+}
+
+// (M_ctx3Label, (Lineitem, Part))
+val x464 = x445.map{ case (x455, (x456, x457)) => val x463 = (x456,x457)
 x463 match {
    case (_,null) => ({val x458 = (x455) 
 x458}, null) 
@@ -179,7 +210,7 @@ val x460 = x456.l_quantity
 val x461 = Record483(x459, x460, newId) 
 x461})
  }
-}.mapPartitions(it => { it.toList.groupBy(_._1).mapValues(_.map(_._2)).iterator }, true) 
+}.groupByLabel()
 val x469 = x464.map{ case (x465, x466) => 
    val x467 = x465.lbl 
 val x468 = RecM_flat3(x467, x466, newId) 
