@@ -40,7 +40,7 @@ trait Base {
   def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep
   def tupledict(fs: Map[String, Rep]): Rep
   def dictunion(d1: Rep, d2: Rep): Rep
-  def select(x: Rep, p: Rep => Rep): Rep
+  def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep
   def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep
   def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep
@@ -97,8 +97,9 @@ trait BaseStringify extends Base{
   def tupledict(fs: Map[String, Rep]): Rep =
     s"(${fs.map(f => f._1 + " := " + f._2).mkString(",")})"
   def dictunion(d1: Rep, d2: Rep): Rep = s"${d1} U ${d2}"
-  def select(x: Rep, p: Rep => Rep): Rep = { 
-    s""" | SELECT[ ${p(Variable.fresh(StringType).quote)} ](${x} )""".stripMargin
+  def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = { 
+    val v = Variable.fresh(StringType).quote
+    s""" | SELECT[ ${p(v)}, ${e(v)} ](${x} )""".stripMargin
   }
   def reduce(x: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = { 
     val v = Variable.fresh(StringType)
@@ -186,17 +187,19 @@ trait BaseCompiler extends Base {
   def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = BagCDict(lbl, flat, dict)
   def tupledict(fs: Map[String, Rep]): Rep = TupleCDict(fs)
   def dictunion(d1: Rep, d2: Rep): Rep = DictCUnion(d1, d2)
-  def select(x: Rep, p: Rep => Rep): Rep = {
+  def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
     val v = x.tp match {
-      case btp:BagDictCType => Variable.fresh(btp.flatTp.tp)       
+      case btp:BagDictCType => Variable.fresh(btp.flatTp.tp)      
+      case BagCType(TTupleType(List(IntType, BagCType(rt)))) => Variable.fresh(rt) 
       case btp:BagCType => Variable.fresh(btp.tp)
       case _ => sys.error("selection type not supported")
     }
-    val p2 = v.tp match {
-      case TTupleType(List(IntType, RecordCType(_))) => p(Project(v, "_2")) 
-      case _ => p(v)
+    val (p2, e2) = v.tp match {
+      case TTupleType(List(IntType, RecordCType(_))) => 
+        (p(Project(v, "_2")), e(Project(v, "_2")))
+      case _ => (p(v), e(v))
     }
-    Select(x, v, p2)
+    Select(x, v, p2, e2)
   }
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
     val v = vars(e1.tp.asInstanceOf[BagCType].tp)
@@ -413,8 +416,8 @@ trait BaseScalaInterp extends Base{
   def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = (flat.asInstanceOf[List[_]].map(v => (lbl, v)), dict)
   def tupledict(fs: Map[String, Rep]): Rep = fs
   def dictunion(d1: Rep, d2: Rep): Rep = d1 // TODO
-  def select(x: Rep, p: Rep => Rep): Rep = { 
-    x.asInstanceOf[List[_]].filter(p.asInstanceOf[Rep => Boolean])
+  def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = { 
+    x.asInstanceOf[List[_]].filter(p.asInstanceOf[Rep => Boolean]).map(e)
   }
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
     e1.asInstanceOf[List[_]].map(v2 => f(tupleVars(v2))) 
@@ -605,7 +608,9 @@ trait BaseANF extends Base {
   def and(e1: Rep, e2: Rep): Rep = compiler.and(e1, e2)
   def not(e1: Rep): Rep = compiler.not(e1)
   def or(e1: Rep, e2: Rep): Rep = compiler.or(e1, e2)
-  def project(e1: Rep, field: String): Rep = compiler.project(e1, field)
+  def project(e1: Rep, field: String): Rep = {
+    compiler.project(e1, field)
+  }
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep] = None): Rep = e2 match {
     case Some(a) => compiler.ifthen(cond, e1, Some(a)) 
     case _ => compiler.ifthen(cond, e1, None)
@@ -625,7 +630,7 @@ trait BaseANF extends Base {
   def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = compiler.bagdict(lbl, flat, dict)
   def tupledict(fs: Map[String, Rep]): Rep = compiler.tupledict(fs.map(f => (f._1, defToExpr(f._2))))
   def dictunion(d1: Rep, d2: Rep): Rep = compiler.dictunion(d1, d2)
-  def select(x: Rep, p: Rep => Rep): Rep = compiler.select(x, p)
+  def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = compiler.select(x, p, e)
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = compiler.reduce(e1, f, p)
   def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = compiler.unnest(e1, f, p)
   def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = compiler.join(e1, e2, p1, p2)
@@ -702,8 +707,9 @@ class Finalizer(val target: Base){
       target.bagdict(finalize(l), finalize(f), finalize(d))
     case TupleCDict(fs) => target.tupledict(fs.map(f => f._1 -> finalize(f._2)))
     case DictCUnion(d1, d2) => target.dictunion(finalize(d1), finalize(d2))
-    case Select(x, v, p) =>
-      target.select(finalize(x), (r: target.Rep) => withMap(v -> r)(finalize(p)))
+    case Select(x, v, p, e) =>
+      target.select(finalize(x), (r: target.Rep) => 
+        withMap(v -> r)(finalize(p)), (r: target.Rep) => withMap(v -> r)(finalize(e)))
     case Reduce(e1, v, e2, p) => 
       target.reduce(finalize(e1), (r: List[target.Rep]) => withMapList(v zip r)(finalize(e2)), 
         (r: List[target.Rep]) => withMapList(v zip r)(finalize(p)))

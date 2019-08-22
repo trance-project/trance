@@ -20,6 +20,11 @@ object App {
   }
 
   def runTPCH(){
+    println("---------------------------- TPCH Query 0 Unnest ----------------------------")  
+    val q0 = translator.translate(TPCHQueries.query0.asInstanceOf[translator.Expr])
+    val q0info = (q0.asInstanceOf[CExpr], TPCHQueries.q0name, TPCHQueries.q1spark)
+    Utils.runSpark(q0info, tpchInputM)
+
     println("---------------------------- TPCH Query 1 Unnest ----------------------------")  
     val q1 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
     val qinfo = (q1.asInstanceOf[CExpr], TPCHQueries.q1name, TPCHQueries.q1spark)
@@ -40,11 +45,11 @@ object App {
     val sq4info = (sq4.asInstanceOf[CExpr], "Shred"+TPCHQueries.q4name, TPCHQueries.sq4spark)
     Utils.runSpark(sqinfo, tpchShredM, sq4info)
 
-    println("---------------------------- TPCH Query 4 Unnest with Let ----------------------------")  
+    /**println("---------------------------- TPCH Query 4 Unnest with Let ----------------------------")  
     val q1a = translator.translate(TPCHQueries.query1a.asInstanceOf[translator.Expr])
     val q1ainfo = (q1a.asInstanceOf[CExpr], TPCHQueries.q1aname, TPCHQueries.q1spark)
     val q4ainfo = (q4.asInstanceOf[CExpr], TPCHQueries.q4name+"A", "")
-    Utils.runSpark(q1ainfo, tpchInputM, q4ainfo)
+    Utils.runSpark(q1ainfo, tpchInputM, q4ainfo)**/
 
 
     /**println("---------------------------- TPCH Query 3 Unnest ----------------------------")  

@@ -47,10 +47,10 @@ object Printer {
     case BagCDict(lbl, flat, dict) => bagdict(quote(lbl), quote(flat), quote(dict))
     case TupleCDict(fs) => tupledict(fs.map(f => f._1 -> quote(f._2)))
     case DictCUnion(e1, e2) => dictunion(quote(e1), quote(e2))
-    case Select(x, v, p) => quote(p) match {
-      case "true" => quote(x)
+    case Select(x, v, p, e) => quote(p) match {
+      //case "true" => quote(x)
       case _ => s""" 
-        | <-- (${e.wvars.map(_.quote).mkString(",")})} -- SELECT[ ${quote(p)} ](${quote(x)})""".stripMargin
+        | <-- (${quote(v)}) -- SELECT[ ${quote(p)}, ${quote(e)} ](${quote(x)})""".stripMargin
     }
     case Reduce(e1, v, e2, p) =>
       s""" | REDUCE[ ${quote(e2)} / ${quote(p)} ](${quote(e1)})""".stripMargin

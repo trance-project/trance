@@ -17,7 +17,7 @@ object Unnester {
   def unnest(e: CExpr)(implicit ctx: Ctx): CExpr = e match {
     case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E)))
     case Comprehension(e1, v, p, e) if u.isEmpty && w.isEmpty && E.isEmpty =>
-      unnest(e)((Nil, List(v), Some(Select(e1, v, p)))) // C4
+      unnest(e)((Nil, List(v), Some(Select(e1, v, p, v)))) // C4
     case Comprehension(e1 @ Comprehension(_, _, _, _), v, p, e) if !w.isEmpty => // C11 (relaxed)
       val (nE, v2) = getNest(unnest(e1)((w, w, E)))
       unnest(e)((u, w:+v2, nE))
@@ -93,16 +93,16 @@ object Unnester {
           val nE = e1 match {
             // top level case
              case Project(InputRef(name, BagDictCType(_,_)), "_1") if name.endsWith("__D") => 
-               Some(Join(E.get, Select(e1, v2, sp2s), w, p1s, v2, p2s))  
+               Some(Join(E.get, Select(e1, v2, sp2s, v2), w, p1s, v2, p2s))  
              case _ => if (u.isEmpty) {
-               Some(Lookup(E.get, Select(e1, v, sp2s), w, lbl1, v2, p2s, p1s))
+               Some(Lookup(E.get, Select(e1, v, sp2s, v2), w, lbl1, v2, p2s, p1s))
              }else{
-              Some(OuterLookup(E.get, Select(e1, v, sp2s), w, lbl1, v2, p2s, p1s))
+              Some(OuterLookup(E.get, Select(e1, v, sp2s, v2), w, lbl1, v2, p2s, p1s))
              }
           }
           unnest(e3)((u, w :+ v2, nE)) 
         case (e4, be2) => 
-          val nE = Some(OuterLookup(E.get, Select(e1, v2, Constant(true)), w, lbl1, v2, Constant(true), Constant(true)))
+          val nE = Some(OuterLookup(E.get, Select(e1, v2, Constant(true), v2), w, lbl1, v2, Constant(true), Constant(true)))
           val (nE2, nv) = getNest(unnest(e4)((w :+ v2, w :+ v2, nE)))
           unnest(e3)((u, w :+ nv, nE2)) match {
             case Nest(e4, w4, f4, t4, v4, p4, g3) => Nest(e4, w4, f4, t4, nv, be2(nv), g3)
@@ -116,11 +116,11 @@ object Unnester {
         case (Constant(false), _) => 
           val preds = ps(p, v, w)
           u.isEmpty match {
-            case true => unnest(e)((u, w :+ v, Some(Join(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3))))
-            case _ => unnest(e)((u, w :+ v, Some(OuterJoin(E.get, Select(e1, v, preds._1), w, preds._2, v, preds._3))))
+            case true => unnest(e)((u, w :+ v, Some(Join(E.get, Select(e1, v, preds._1, v), w, preds._2, v, preds._3))))
+            case _ => unnest(e)((u, w :+ v, Some(OuterJoin(E.get, Select(e1, v, preds._1, v), w, preds._2, v, preds._3))))
           }
         case (e2, be2) => 
-          val nE = Some(OuterJoin(E.get, Select(e1, v, Constant(true)), w, preds._2, v, preds._3)) // C11
+          val nE = Some(OuterJoin(E.get, Select(e1, v, Constant(true), v), w, preds._2, v, preds._3)) // C11
           val (nE2, nv) = getNest(unnest(e2)((w :+ v, w :+ v, nE))) 
           unnest(e)((u, w :+ nv, nE2)) match {
             case Nest(e3, w3, f3, t3, v3, p3, g3) => Nest(e3, w3, f3, t3, nv, be2(nv), g3) 

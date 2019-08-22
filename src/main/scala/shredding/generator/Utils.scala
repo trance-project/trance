@@ -195,7 +195,7 @@ object Utils {
     val ng = inputM.toList.map(f => f._2)
     val codegen = new SparkNamedGenerator(inputs)
     
-    val plan1 = Unnester.unnest(normq1)(Nil, Nil, None).asInstanceOf[CExpr]
+    val plan1 = Projections.push(Unnester.unnest(normq1)(Nil, Nil, None).asInstanceOf[CExpr])
     println(Printer.quote(plan1))
     val anfedq1 = anfer.finalize(plan1)
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
@@ -214,7 +214,7 @@ object Utils {
 
       val normq2 = normalizer.finalize(q2).asInstanceOf[CExpr]
       println(Printer.quote(normq2))
-      val plan2 = Unnester.unnest(normq2)(Nil, Nil, None)
+      val plan2 = Projections.push(Unnester.unnest(normq2)(Nil, Nil, None))
       println(Printer.quote(plan2))
       anfBase.reset
       val anfedq2 = anfer.finalize(plan2)
@@ -241,8 +241,8 @@ object Utils {
       |/** Generated **/
       |import org.apache.spark.SparkConf
       |import org.apache.spark.sql.SparkSession
-      |import java.util.{HashMap => JHashMap}
       |import sprkloader._
+      |import sprkloader.SkewPairRDD._
       |$header
       |object $appname {
       | def main(args: Array[String]){
@@ -276,8 +276,8 @@ object Utils {
       |/** Generated **/
       |import org.apache.spark.SparkConf
       |import org.apache.spark.sql.SparkSession
-      |import java.util.{HashMap => JHashMap}
       |import sprkloader._
+      |import sprkloader.SkewPairRDD._
       |$header
       |object $appname {
       | def main(args: Array[String]){

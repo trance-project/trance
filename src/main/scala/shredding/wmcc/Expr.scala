@@ -8,7 +8,6 @@ import shredding.core._
   * algebra data operators for translating WMCC to plans 
   */
 
-
 sealed trait CExpr {
   def tp: Type
   def wvars: List[Variable] = List() // remove this 
@@ -96,11 +95,11 @@ case class Or(e1: CExpr, e2: CExpr) extends CExpr{
 case class Project(e1: CExpr, field: String) extends CExpr { self =>
   def tp: Type = e1.tp match {
     case t:RecordCType => t.attrTps(field)
-    case t @ TTupleType(List(IntType, RecordCType(fs))) if ( field != "_1" && field != "_2") => fs(field) 
+    case t @ TTupleType(List(IntType, RecordCType(fs))) if ( field != "_1" && field != "_2") => fs(field)
     case t:TTupleType => field match {
       case "_1" => t(0)
       case "_2" => t(1)
-      case  _ => println(t); t(field.toInt)
+      case  _ => t(field.toInt)
     }
     case t:LabelType => t(field)
     case t:TupleDictCType => t(field)
@@ -202,15 +201,10 @@ case class DictCUnion(d1: CExpr, d2: CExpr) extends CExpr {
   * since WMCC nodes are used to represent inputs, constants, tuples, bags, etc.
   */
 
-case class Select(x: CExpr, v: Variable, p: CExpr) extends CExpr {
-  def tp: Type = x.tp
+case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
+  def tp: Type = x.tp//BagCType(e.tp)
   // def tpMap: Map[Variable, Type] = Map(v -> x.asInstanceOf[BagCType].tp)
   override def wvars = List(v)
-  // todo equality should support filter
-  override def equals(that: Any): Boolean = that match {
-    case Select(x1, v1, p1) if (x1 == x) => true
-    case _ => false
-  }
 }
 
 case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CExpr {
