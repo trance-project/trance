@@ -6,10 +6,10 @@ import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
 case class Record576(c_name: String, c_custkey: Int, uniqueId: Long) extends CaseClassRecord
-case class Record578(P__F: Int, L__F: Int, O__F: Int, c__F: Record576, uniqueId: Long) extends CaseClassRecord
+case class Record578(P__F: Int, L__F: Int, O__F: Int, c__F: Customer, uniqueId: Long) extends CaseClassRecord
 case class Record579(c_name: String, c_orders: Record578, uniqueId: Long) extends CaseClassRecord
 case class Record581(o_orderdate: String, o_custkey: Int, o_orderkey: Int, uniqueId: Long) extends CaseClassRecord
-case class Record583(o__F: Record581, P__F: Int, L__F: Int, uniqueId: Long) extends CaseClassRecord
+case class Record583(o__F: Orders, P__F: Int, L__F: Int, uniqueId: Long) extends CaseClassRecord
 case class Record584(o_orderdate: String, o_parts: Record583, uniqueId: Long) extends CaseClassRecord
 case class Record586(l_quantity: Double, l_partkey: Int, l_orderkey: Int, uniqueId: Long) extends CaseClassRecord
 case class Record588(p_name: String, p_partkey: Int, uniqueId: Long) extends CaseClassRecord
