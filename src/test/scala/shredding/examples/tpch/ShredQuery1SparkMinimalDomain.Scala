@@ -20,7 +20,7 @@ case class RecM_flat1(_1: Q1Flat, _2: Iterable[Record582], uniqueId: Long) exten
 case class RecM_ctx3(lbl: Record586, uniqueId: Long) extends CaseClassRecord
 case class RecM_ctx2(lbl: Record581, uniqueId: Long) extends CaseClassRecord
 case class RecM_ctx1(lbl: Q1Flat, uniqueId: Long) extends CaseClassRecord
-object ShredQuery1Spark {
+object ShredQuery1SparkMinimalDomain {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
    val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery1Spark"+sf)
@@ -87,7 +87,10 @@ val M_flat1 = x471
 //println("M_flat1")
 val x472 = M_flat1
 //M_flat1.collect.foreach(println(_))
-
+M_flat1.cache
+M_flat1.count
+var end0 = System.currentTimeMillis() - start0
+var start1 = System.currentTimeMillis()
 
 val x474 = M_flat1 
 val x478 = x474.flatMap{ case x475 => x475 match {
@@ -107,6 +110,12 @@ val x484 = x483.distinct
 val M_ctx2 = x484
 //println("M_ctx2")
 val x485 = M_ctx2
+M_ctx2.cache
+M_ctx2.count
+var end1 = System.currentTimeMillis() - start1
+var start2 = System.currentTimeMillis()
+
+
 //M_ctx2.collect.foreach(println(_))
 val x487 = M_ctx2 
 val x488 = O__D_1 
@@ -146,6 +155,11 @@ val M_flat2 = x518
 //println("M_flat2")
 val x519 = M_flat2
 //M_flat2.collect.foreach(println(_))
+M_flat2.cache
+M_flat2.count
+var end2 = System.currentTimeMillis() - start2
+var start3 = System.currentTimeMillis()
+
 val x521 = M_flat2 
 val x525 = x521.flatMap{ case x522 => x522 match {
    case null => List((x522, null))
@@ -165,6 +179,10 @@ val M_ctx3 = x531
 //println("M_ctx3")
 val x532 = M_ctx3
 //M_ctx3.collect.foreach(println(_))
+M_ctx3.cache
+M_ctx3.count
+var end3 = System.currentTimeMillis() - start3
+var start4 = System.currentTimeMillis()
 
 val x534 = M_ctx3 
 val x535 = L__D_1 
@@ -193,7 +211,7 @@ x558}, x556) }
 x559}, x557) }
   out1.joinSkewLeft(out2).map{ case (k,v) => v }
 }
- 
+
 val x570 = x560.map{ case (x562, x563) => val x569 = (x562,x563) 
 x569 match {
    case (_,null) => ({val x564 = (x562.l_orderkey) 
@@ -215,9 +233,21 @@ x574
 val M_flat3 = x570//x575
 //println("M_flat3")
 val x576 = M_flat3
+M_flat3.cache
+M_flat3.count
 //M_flat3.collect.foreach(println(_))
-val res = x576.count
-   var end0 = System.currentTimeMillis() - start0
-   println("ShredQuery1Spark"+sf+","+Config.datapath+","+end0)
+//M_flat1.saveAsObjectFile("mflat1")
+//M_flat2.saveAsObjectFile("mflat2")
+//M_flat3.saveAsObjectFile("mflat3")
+
+//val res = x576.count
+   var end4 = System.currentTimeMillis() - start4
+   var end = System.currentTimeMillis() - start0
+   println("ShredQuery1Spark"+sf+","+Config.datapath+",level1,"+end0)
+   println("ShredQuery1Spark"+sf+","+Config.datapath+",domain1,"+end1)
+   println("ShredQuery1Spark"+sf+","+Config.datapath+",level2,"+end2)
+   println("ShredQuery1Spark"+sf+","+Config.datapath+",domain2,"+end3)
+   println("ShredQuery1Spark"+sf+","+Config.datapath+",level3,"+end4)
+   println("ShredQuery1Spark"+sf+","+Config.datapath+",total,"+end)
  }
 }

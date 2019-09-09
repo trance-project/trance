@@ -214,7 +214,8 @@ object Utils {
 
       val normq2 = normalizer.finalize(q2).asInstanceOf[CExpr]
       println(Printer.quote(normq2))
-      val plan2 = Projections.push(Unnester.unnest(normq2)(Nil, Nil, None))
+      //val plan2 = Projections.push(Unnester.unnest(normq2)(Nil, Nil, None))
+      val plan2 = Unnester.unnest(normq2)(Nil, Nil, None)
       println(Printer.quote(plan2))
       anfBase.reset
       val anfedq2 = anfer.finalize(plan2)

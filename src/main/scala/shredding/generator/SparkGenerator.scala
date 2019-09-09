@@ -270,7 +270,11 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
           |}""".stripMargin
     case Select(x, v, p, e) => 
       val gv = generate(v)
-      val proj = if (v != e) { s".map($gv => { ${generate(e)} })" } else { "" }
+      val proj = e match {
+        case Variable(_,_) => ""
+        case InputRef(_,_) => ""
+        case _ => s".map($gv => { ${generate(e)} })"
+      }
       p match {
         case Constant(true) => s"${generate(x)}$proj"
         case _ => s"${generate(x)}.filter($gv => { ${generate(p)} })$proj"

@@ -27,7 +27,7 @@ object Projections {
   }
 
   def printhm():Unit = proj.foreach(f => println(s"${f._1.asInstanceOf[Variable].name} -> ${f._2}"))
-
+  
   def push(e: CExpr): CExpr = e match {
     case Reduce(d, v, f, p) => 
       fields(f)

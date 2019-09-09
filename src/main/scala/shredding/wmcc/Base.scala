@@ -331,6 +331,7 @@ trait BasePlanOptimizer extends BaseCompiler {
     }
     case _ => super.ifthen(cond, e1, e2)
   }
+
 }
 
 /**
