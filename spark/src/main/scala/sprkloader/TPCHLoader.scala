@@ -39,6 +39,10 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   val datapath = Config.datapath
   val parts = Config.minPartitions
 
+  def parseBigInt(n: String): Int = {
+    val b = BigInt(n).intValue()
+    if (b < 0) b*(-1) else b 
+  }
 
   def loadCustomers():RDD[Customer] = {
     spark.sparkContext.textFile(s"file:///$datapath/customer.tbl", minPartitions = parts).map(line => {
@@ -76,10 +80,6 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
                     (flat, Part(l(0).toInt, l(1), l(2), l(3), l(4), l(5).toInt, l(6), l(7).toDouble, l(8), l(0).toLong))})
   }
 
-  def parseBigInt(n: String): Int = {
-    val b = BigInt(n).intValue()
-    if (b < 0) b*(-1) else b 
-  }
 
   def loadOrders():RDD[Orders] = {
     val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
@@ -105,7 +105,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 
     spark.sparkContext.textFile(s"file:///$datapath/lineitem.tbl",minPartitions = parts).map(line => {
                     val l = line.split("\\|")
-                    Lineitem(l(0).toInt, l(1).toInt, l(2).toInt, l(3).toInt, l(4).toDouble, l(5).toDouble, l(6).toDouble, 
+                    Lineitem(parseBigInt(l(0)), l(1).toInt, l(2).toInt, l(3).toInt, l(4).toDouble, l(5).toDouble, l(6).toDouble, 
                       l(7).toDouble, l(8), l(9), l(10), l(11), l(12), l(13), l(14), l(15), newId)})
   }
 
