@@ -41,6 +41,17 @@ object SkewPairRDD {
       else lrdd.join(rrdd) 
     }
 
+    def groupByLabel(): RDD[(K, Iterable[V])] = {
+      val groupBy = (i: Iterator[(K,V)]) => {
+        val hm = HashMap[K, Vector[V]]()
+        i.foreach{ v =>
+          hm(v._1) = hm.getOrElse(v._1, Vector()) :+ v._2
+        }
+        hm.iterator
+      }
+      lrdd.mapPartitions(groupBy)
+    }
+
     def groupByLabel[R: ClassTag,S: ClassTag](f: (K,V) => (R,S)): RDD[(R, Iterable[S])] = {
       val groupBy = (i: Iterator[(K,V)]) => {
         val hm = HashMap[R, Vector[S]]()
