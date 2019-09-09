@@ -76,11 +76,16 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
                     (flat, Part(l(0).toInt, l(1), l(2), l(3), l(4), l(5).toInt, l(6), l(7).toDouble, l(8), l(0).toLong))})
   }
 
+  def parseBigInt(n: String): Int = {
+    val b = BigInt(n).intValue()
+    if (b < 0) b*(-1) else b 
+  }
+
   def loadOrders():RDD[Orders] = {
     val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
     spark.sparkContext.textFile(s"file:///$datapath/$ofile",minPartitions = parts).map(line => {
                     val l = line.split("\\|")
-                    Orders(l(0).toInt, l(1).toInt, l(2), l(3).toDouble, l(4), l(5), l(6), l(7).toInt, l(8), l(0).toLong)})
+                    Orders(parseBigInt(l(0)), l(1).toInt, l(2), l(3).toDouble, l(4), l(5), l(6), l(7).toInt, l(8), l(0).toLong)})
   }
 
   def loadShredOrders(flat: Int):RDD[(Int, Orders)] = {
