@@ -36,21 +36,21 @@ object TestData {
   )
   //lineitem
   val lineitem = List(
-    RecordValue("l_partkey" -> 1, "l_orderkey"->1, "l_suppkey"->1),
-    RecordValue("l_partkey" -> 1, "l_orderkey"->2, "l_suppkey"->1),
-    RecordValue("l_partkey" -> 2, "l_orderkey"->1, "l_suppkey"->1),
-    RecordValue("l_partkey" -> 2, "l_orderkey"->3, "l_suppkey"->2),
-    RecordValue("l_partkey" -> 3, "l_orderkey"->1, "l_suppkey"->2),
-    RecordValue("l_partkey" -> 4, "l_orderkey"->5, "l_suppkey"->3),
-    RecordValue("l_partkey" -> 5, "l_orderkey"->4, "l_suppkey"->3),
+    RecordValue("l_partkey" -> 1, "l_orderkey"->1, "l_suppkey"->1,"l_quantity"->1),
+    RecordValue("l_partkey" -> 1, "l_orderkey"->2, "l_suppkey"->1,"l_quantity"->1),
+    RecordValue("l_partkey" -> 2, "l_orderkey"->1, "l_suppkey"->1,"l_quantity"->1),
+    RecordValue("l_partkey" -> 2, "l_orderkey"->3, "l_suppkey"->2,"l_quantity"->1),
+    RecordValue("l_partkey" -> 3, "l_orderkey"->1, "l_suppkey"->2,"l_quantity"->1),
+    RecordValue("l_partkey" -> 4, "l_orderkey"->5, "l_suppkey"->3,"l_quantity"->1),
+    RecordValue("l_partkey" -> 5, "l_orderkey"->4, "l_suppkey"->3,"l_quantity"->1),
   )
   //orders
   val orders = List(
-    RecordValue("o_orderkey"->1,"o_custkey"->1),
-    RecordValue("o_orderkey"->2,"o_custkey"->1),
-    RecordValue("o_orderkey"->3,"o_custkey"->2),
-    RecordValue("o_orderkey"->4,"o_custkey"->3),
-    RecordValue("o_orderkey"->5,"o_custkey"->2)
+    RecordValue("o_orderkey"->1,"o_custkey"->1, "o_orderdate" -> "2018"),
+    RecordValue("o_orderkey"->2,"o_custkey"->1, "o_orderdate" -> "2018"),
+    RecordValue("o_orderkey"->3,"o_custkey"->2, "o_orderdate" -> "2019"),
+    RecordValue("o_orderkey"->4,"o_custkey"->3, "o_orderdate" -> "2019"),
+    RecordValue("o_orderkey"->5,"o_custkey"->2, "o_orderdate" -> "2019")
   )
   //customers
   val customers = List(
