@@ -263,8 +263,9 @@ val x655 = x634.map{
 val x623 = {
   val out1 = x613.map{ case (a, null) => (null, (a, null)); case (x619, x620) => ({val x622 = x620.c_orders
 x622}, (x619, x620)) }
-  out1.outerLookupSkewLeft(x655.map{ case (a,b) => 
-    a.productElement(0) -> (a.productElement(1), a.productElement(2), a.productElement(3), b) 
+  out1.outerLookupSkewLeft(x655.map{ 
+    case ((a,b,c,d), e) =>  a -> (b, c, d, e)
+    case (_,_) => sys.error("failed") 
   }.asInstanceOf[RDD[(experiments.Record578, Any)]])
 }.groupByLabel()
   
