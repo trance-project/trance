@@ -72,13 +72,11 @@ P.count
     val p2 = p1.reduceByKey(_ + _)
     p2.count**/
     val result = Query4.flatMap { case (c_name, c_orders) =>
-          c_orders.map { o_info => (c_name, o_info) } }
-        .flatMap { case (c_name, (o_orderdate,o_infos)) =>
+          c_orders.map { o_info => (c_name, o_info) } }.flatMap { case (c_name, (o_orderdate,o_infos)) =>
           o_infos.map { case (p_name, l_qty) =>
             (c_name, p_name, o_orderdate) -> l_qty
           }          
-        }
-      .reduceByKey(_ + _)
+        }.reduceByKey(_ + _)
     result.cache
     result.count
    }

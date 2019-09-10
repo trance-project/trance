@@ -177,44 +177,7 @@ val x538 = x536.l_partkey
 val x539 = x536.l_orderkey
 val x540 = Record586(x537, x538, x539, newId)
 x540 })
-/**val x548 = { val out1 = x534.map{ case x542 => ({val x544 = x542.lbl
-val x545 = x544.o__F
-val x546 = x545.o_orderkey
-x546}, x542) }
-  val out2 = x541.map{ case x543 => ({val x547 = x543.l_orderkey
-x547}, x543) }
-  out1.join(out2).map{ case (k,v) => v }
-}**/
 
-/**val x549 = P__D_1
-val x554 = x549.map(x550 => { val x551 = x550.p_name
-val x552 = x550.p_partkey
-val x553 = Record588(x551, x552, newId)
-x553 })
-val x560 = { val out1 = x541.map{ case x556 => ({val x558 = x556.l_partkey
-x558}, x556) }
-  val out2 = x554.map{ case x557 => ({val x559 = x557.p_partkey
-x559}, x557) }
-  out1.joinSkewLeft(out2).map{ case (k,v) => v }
-}
-
-val x570 = x560.map{ case (x562, x563) => val x569 = (x562,x563)
-x569 match {
-   case (_,null) => ({val x564 = (x562.l_orderkey)
-x564}, null)
-   case x568 => ({val x564 = (x562.l_orderkey)
-x564}, {val x565 = x563.p_name
-val x566 = x562.l_quantity
-val x567 = Record590(x565, x566, newId)
-x567})
- }
-}.groupByLabel()**/
-
-/**val x575 = x570.map{ case (x571, x572) =>
-   val x573 = x571.lbl
-val x574 = RecM_flat3(x573, x572, newId)
-x574
-} **/
 val x549 = P__D_1
 val x554 = x549.map(x550 => { val x551 = x550.p_name
 val x552 = x550.p_partkey
@@ -270,90 +233,38 @@ Query4__D_2c_orders_2o_parts.count
     
    var start0 = System.currentTimeMillis()
    def f() {
-     val x602 = Q1Flat2(Query4__F, newId) 
-val x603 = Record676(x602, newId) 
-val x604 = List(x603) 
+     val x602 = Q1Flat2(Query4__F, newId)
+val x603 = Record676(x602, newId)
+val x604 = List(x603)
 val M_ctx1 = x604.head
-val x607 = M_ctx1 
-val x608 = Query4__D_1 
-val x610 = x608 
-val x613 = x610.map{ case c => (x607, c) } 
-val x615 = Query4__D_2c_orders_1 
-val x618 = x615 
-val x623 = { val out1 = x613.map{ case (a, null) => (null, (a, null)); case (x619, x620) => ({val x622 = x620.c_orders 
+val x607 = M_ctx1
+val x608 = Query4__D_1
+val x610 = x608
+val x613 = x610.map{ case c => (x607, c) }
+val x615 = Query4__D_2c_orders_1
+val x618 = x615
+
+val x623 = { val out1 = x613.map{ case (a, null) => (null, (a, null)); case (x619, x620) => ({val x622 = x620.c_orders
 x622}, (x619, x620)) }
   val out2 = x618.flatMap(x621 => x621._2.map{case v2 => (x621._1, v2)})
-  out1.cogroup(out2).flatMap { pair =>
-     if (pair._2._2.isEmpty) {
-       pair._2._1.iterator.map{ case (x619, x620) => ((x619, x620), null) }
-     } else {
-       for ((x619, x620) <- pair._2._1.iterator; w <- pair._2._2.iterator) yield ((x619, x620), w)
-      }
-  }
-} 
-val x624 = Query4__D_2c_orders_2o_parts 
-val x626 = x624 
-val x628 = x626 
-val x634 = { val out1 = x623.map{ case (a, null) => (null, (a, null)); case ((x629, x630), x631) => ({val x633 = x631.o_parts 
-x633}, ((x629, x630), x631)) }
+  out1.outerLookupSkewLeft(out2)
+}
+
+val x624 = Query4__D_2c_orders_2o_parts
+val x626 = x624
+val x628 = x626
+
+val x634 = { val out1 = x623.map{ case (a, null) => (null, (a, null)); case ((x629, x630), x631) => ({val x633 = x631.o_parts
+    x633}, ((x629, x630), x631)) }
   val out2 = x628.flatMap(x632 => x632._2.map{case v2 => (x632._1, v2)})
-  out1.cogroup(out2).flatMap { pair =>
-     if (pair._2._2.isEmpty) {
-       pair._2._1.iterator.map{ case ((x629, x630), x631) => (((x629, x630), x631), null) }
-     } else {
-       for (((x629, x630), x631) <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (((x629, x630), x631), w)
-      }
-  }
-} 
-val x636 = x626 
-val x645 = { val out1 = x634.map{ case (a, null) => (null, (a, null)); case (((x637, x638), x639), x640) => (({val x642 = x639.o_parts 
-x642}, {val x644 = x640.p_name 
-x644}), (((x637, x638), x639), x640)) }
-  val out2 = x636.flatMap(v2 => v2._2.map{case x641 => ((v2._1, {val x643 = x641.p_name 
-x643}), x641)})
-  out1.cogroup(out2).flatMap { pair =>
-     if (pair._2._2.isEmpty) {
-       pair._2._1.iterator.map{ case (((x637, x638), x639), x640) => ((((x637, x638), x639), x640), null) }
-     } else {
-       for ((((x637, x638), x639), x640) <- pair._2._1.iterator; w <- pair._2._2.iterator) yield ((((x637, x638), x639), x640), w)
-      }
-  }
-} 
-val x655 = x645.map{ case ((((x646, x647), x648), x649), x650) => val x654 = (x650) 
-x654 match {
-   case (null) => ({val x651 = (x646,x647,x648,x649) 
-x651}, 0.0)
-   case x653 => ({val x651 = (x646,x647,x648,x649) 
-x651}, {val x652 = x650.l_qty 
-x652})
- }
-}.reduceByKey(_ + _) 
-val x668 = x655.map{ case ((x656, x657, x658, x659), x660) => val x667 = (x660,x657,x658,x659) 
-x667 match {
-   case (_,null,_,_) => ({val x661 = (x656) 
-x661}, null)
-case (_,_,null,_) => ({val x661 = (x656) 
-x661}, null)
-case (_,_,_,null) => ({val x661 = (x656) 
-x661}, null) 
-   case x666 => ({val x661 = (x656) 
-x661}, {val x662 = x657.c_name 
-val x663 = x659.p_name 
-val x664 = x658.o_orderdate 
-val x665 = Record680(x662, x663, x664, x660, newId) 
-x665})
- }
-}.groupByLabel() 
-val x673 = x668.map{ case (x669, x670) => 
-   val x671 = x669.lbl 
-val x672 = Record681(x671, x670, newId) 
-x672 
-} 
-val M_flat1 = x673
-//println("M_flat1")
-val x674 = M_flat1
-M_flat1.collect.foreach(println(_))
-val res = x674.count
+  out1.outerLookup(out2)
+}
+
+val x655 = x634.map{
+  case (a, null) => (a, 0.0)
+  case ((x637, x638), x639) => ((x637, x637._2.c_name, x638.o_orderdate, x639.p_name), x639.l_qty)
+}.reduceByKey(_+_)
+  x655.count
    }
    f
    var end0 = System.currentTimeMillis() - start0

@@ -260,13 +260,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       s"""|{ val out1 = ${generate(e1)}.map{${checkNull(v1)} case $vars => (${e1Key(p1, p3)}, $vars) }
           |  val out2 = ${generate(e2)}${e2Key(v2, p2)}
-          |  out1.cogroup(out2).flatMap { pair =>
-          |     if (pair._2._2.isEmpty) {
-          |       pair._2._1.iterator.map{ case $vars => ($vars, null) }
-          |     } else {
-          |       for ($vars <- pair._2._1.iterator; w <- pair._2._2.iterator) yield ($vars, w)
-          |      }
-          |  }
+          |  out1.outerLookup(out2)
           |}""".stripMargin
     case Select(x, v, p, e) => 
       val gv = generate(v)
