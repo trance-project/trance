@@ -252,24 +252,21 @@ val x628 = x626
 val x634 = {
   val out1 = x618.flatMap(x621 => x621._2.map{case v2 => (v2.o_parts, (x621._1, v2))})
   val out2 = x628.flatMap(x632 => x632._2.map{case v2 => (x632._1, v2)})
-  out1.outerLookup(out2)
+  out1.lookup(out2)
 }
 
 val x655 = x634.map{
-  case (a, null) => (a, 0.0)
   case ((x637, x638), x639) => ((x637, x637.c__F.c_name, x638.o_orderdate, x639.p_name), x639.l_qty)
-}.reduceByKey(_+_)
+}.reduceByKey(_+_).map{
+  case ((a,b,c,d), e) => a -> (b, c, d, e)
+}
 
 val x623 = {
   val out1 = x613.map{ case (a, null) => (null, (a, null)); case (x619, x620) => ({val x622 = x620.c_orders
 x622}, (x619, x620)) }
-  out1.outerLookupSkewLeft(x655.map{ 
-    case ((a,b,c,d), e) =>  a -> (b, c, d, e)
-    case (_,_) => sys.error("failed") 
-  }.asInstanceOf[RDD[(experiments.Record578, Any)]])
+  out1.outerLookupSkewLeft(x655)
 }.groupByLabel()
   
-  x623.collect.foreach(println(_))
   x623.count
    }
    f
