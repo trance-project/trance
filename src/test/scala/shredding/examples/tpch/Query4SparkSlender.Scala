@@ -77,7 +77,7 @@ P.count
             (c_name, p_name, o_orderdate) -> l_qty
           }          
         }.reduceByKey(_ + _)
-    result.cache
+    //result.cache
     result.count
    }
    f
