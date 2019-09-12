@@ -364,7 +364,7 @@ trait BaseScalaInterp extends Base{
   def not(e1: Rep): Rep = !e1.asInstanceOf[Boolean]
   def or(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Boolean] || e2.asInstanceOf[Boolean]
   def project(e1: Rep, f: String) = f match {
-    case "_1" if e1.isInstanceOf[List[(Int, List[_])]] => e1.asInstanceOf[List[(Int, List[_])]].head._2 //no
+    //case "_1" if e1.isInstanceOf[List[(Int, List[_])]] => e1.asInstanceOf[List[(Int, List[_])]].head._2 //no
     case "_1" => e1.asInstanceOf[Product].productElement(0)
     case "_2" if e1.isInstanceOf[RecordValue] => e1.asInstanceOf[RecordValue].map("v")
     case "_2" => e1.asInstanceOf[Product].productElement(1)
@@ -502,7 +502,7 @@ trait BaseScalaInterp extends Base{
   // keys and flattens input tuples
   def tupleVars(k: Any): List[Rep] = k match {
     case c:CaseClassRecord => List(k).asInstanceOf[List[Rep]]
-    case c:RecordValue => List(k).asInstanceOf[List[Rep]]
+    //case c:RecordValue => List(k).asInstanceOf[List[Rep]]
     case _ => k.asInstanceOf[List[Rep]]
   }
   def mapVars(k: Any): Map[Any, Any] = k match {

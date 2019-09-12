@@ -300,8 +300,9 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       s"val res = ${generate(rs.last)}"
     case Bind(v, e1, e2) => sanitizeName(e) match {
         case Bind(v2, e3, e4) => s"val ${generate(v2)} = ${generate(e3)} \n${generate(e4)}"
+      	case _ => sys.error(s"not support $e")
       }
-    case _ => sys.error("not supported "+e)
+    case _ => sys.error(s"not supported $e")
   }
 
   /**

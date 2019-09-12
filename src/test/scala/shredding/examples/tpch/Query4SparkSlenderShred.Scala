@@ -3,6 +3,7 @@ package experiments
 /** Generated **/
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.rdd.RDD
 import sprkloader._
 import sprkloader.SkewPairRDD._
 
@@ -27,7 +28,7 @@ object Query4SparkSlenderShred {
    val conf = new SparkConf().setMaster(Config.master).setAppName("Query1SparkSlender"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
 
-val tpch = TPCHLoader(spark)
+/**val tpch = TPCHLoader(spark)
 val C = tpch.loadCustomers
 C.cache
 C.count
@@ -39,7 +40,7 @@ L.cache
 L.count
 val P = tpch.loadPart
 P.cache
-P.count
+P.count**/
     var id = 0L
     def newId: Long = {
       val prevId = id
@@ -47,7 +48,7 @@ P.count
       prevId
     }
    
-  //var start0 = System.currentTimeMillis()
+  /**var start0 = System.currentTimeMillis()
    val result_F = C.map(c => (c.c_name, c.c_custkey))
    result_F.cache
    result_F.count
@@ -66,7 +67,16 @@ P.count
    //var end3 = System.currentTimeMillis() - start2
    //println("Query1SparkSlenderShred"+sf+","+Config.datapath+",level1,"+end0)
    //println("Query1SparkSlenderShred"+sf+","+Config.datapath+",level2,"+end1)
-   //println("Query1SparkSlenderShred"+sf+","+Config.datapath+",level3,"+end2)
+   //println("Query1SparkSlenderShred"+sf+","+Config.datapath+",level3,"+end2)**/
+  val result_F = spark.sparkContext.objectFile[(String, Int)]("/nfs_qc4/result_F")
+  result_F.count
+  result_F.cache
+  val result_G1 = spark.sparkContext.objectFile[(Int, Iterable[(String, Int)])]("/nfs_qc4/result_G1")
+  result_G1.cache
+  result_G1.count
+  val result_G2 = spark.sparkContext.objectFile[(Int, Iterable[(String, Double)])]("/nfs_qc4/result_G2")
+  result_G2.cache
+  result_G2.count
   var start0 = System.currentTimeMillis() 
   val aux0 = result_G1.flatMap{ case (o_custkey, o_infoSeq) => o_infoSeq.map{ case (o_orderdate, o_orderkey) => 
                   o_orderkey -> (o_custkey, o_orderdate) } }.join(result_G2).flatMap{
