@@ -65,8 +65,6 @@ object Unnester {
     case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
       assert(!E.isEmpty)
       val (p1, p2) = ps1(p,v)
-      println("this will get pushed")
-      println(pushPredicate(e, p2))
       getPM(p) match {
         case (Constant(false), _) => u.isEmpty match {
           case true => unnest(pushPredicate(e, p2))((u, w :+ v, Some(Unnest(E.get, w, e1, v, p1))))

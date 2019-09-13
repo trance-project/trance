@@ -195,7 +195,7 @@ object Utils {
     val ng = inputM.toList.map(f => f._2)
     val codegen = new SparkNamedGenerator(inputs)
     
-    val plan1 = Projections.push(Unnester.unnest(normq1)(Nil, Nil, None).asInstanceOf[CExpr])
+    val plan1 = Optimizer.applyAll(Unnester.unnest(normq1)(Nil, Nil, None).asInstanceOf[CExpr])
     println(Printer.quote(plan1))
     val anfedq1 = anfer.finalize(plan1)
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
@@ -214,8 +214,7 @@ object Utils {
 
       val normq2 = normalizer.finalize(q2).asInstanceOf[CExpr]
       println(Printer.quote(normq2))
-      //val plan2 = Projections.push(Unnester.unnest(normq2)(Nil, Nil, None))
-      val plan2 = Unnester.unnest(normq2)(Nil, Nil, None)
+      val plan2 = Optimizer.applyAll(Unnester.unnest(normq2)(Nil, Nil, None))
       println(Printer.quote(plan2))
       anfBase.reset
       val anfedq2 = anfer.finalize(plan2)

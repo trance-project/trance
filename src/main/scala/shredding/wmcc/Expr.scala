@@ -242,11 +242,13 @@ case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p
 case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr, g: CExpr) extends CExpr {
   def tp: Type = BagCType(v2.tp) // check 
   // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
+  // this needs redone
   override def wvars = { 
     val uvars = f match {
       case Bind(v1, t @ Tuple(fs), v2) => fs
       case Tuple(fs) => fs
       case v:Variable => List(v)
+      case Bind(v1, Project(v2, f), v3) => List(v2)
       case _ => sys.error(s"unsupported $f")
     }
     e1.wvars.filter(uvars.contains(_)) :+ v2

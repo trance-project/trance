@@ -4,7 +4,7 @@ import shredding.core._
 import scala.collection.immutable.Set
 import scala.collection.mutable.HashMap
 
-object Projections {
+object Optimizer {
 
   // temporary hack to handle missing label projections
   val tmp1 = HashMap[String, Set[String]]().withDefaultValue(Set())
@@ -12,6 +12,10 @@ object Projections {
 
   val proj = HashMap[Variable, Set[String]]().withDefaultValue(Set())
   
+  def applyAll(e: CExpr) = {
+    mergeReduce(push(e))
+  }
+
   def fields(e: CExpr):Unit = e match {
     case Record(ms) => ms.foreach(f => { 
       if (tmp1.contains(f._1) && f._2.isInstanceOf[Variable]){
@@ -26,6 +30,29 @@ object Projections {
   }
 
   def printhm():Unit = proj.foreach(f => println(s"${f._1.asInstanceOf[Variable].name} -> ${f._2}"))
+  
+  /**
+    * Merge a reduce and a nest, this is necessary for returning the right answer for a nested
+    * count comprehension that translates to reduceByKey(_+_)
+    * unclear if this is spark specific or a bug in the unnest algorithm 
+    */
+  def mergeReduce(e: CExpr) = e match {
+    case Reduce(Nest(e1, v1, f2, e2, v2, p2, g), v, f, p) => f match {
+      case Record(fs) => // swap the tuple and record, in order to return appropriate type 
+	val newgrps = fs.filter(_._2 != v2)
+        val removed = fs.filterNot(_._2 != v2).keys.toList.head
+	val newpat = newgrps.map{
+			case (k,v) => v match {
+			  case Project(v3, f) => (k, v3)
+			  case _ => (k,v)
+			} 
+		     } ++ Map(removed -> v2)
+        if (newgrps.nonEmpty) 
+	  Reduce(Nest(e1, v1, Tuple(newgrps.values.toList), e2, v2, p2, g), v, Record(newpat), p)
+        else e
+    }
+    case _ => e
+  }
   
   def push(e: CExpr): CExpr = e match {
     case Reduce(d, v, f, p) => 
