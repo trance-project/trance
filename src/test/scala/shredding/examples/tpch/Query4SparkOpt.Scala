@@ -11,7 +11,7 @@ case class Record75(l_quantity: Double, l_partkey: Int, l_orderkey: Int, uniqueI
 case class Record76(p_name: String, p_partkey: Int, uniqueId: Long) extends CaseClassRecord
 case class Record78(p_name: String, l_qty: Double, uniqueId: Long) extends CaseClassRecord
 case class Record80(o_orderdate: String, o_parts: Iterable[Record78], uniqueId: Long) extends CaseClassRecord
-case class Record125(c_name: String, p_name: String, month: String, t_qty: Double, uniqueId: Long) extends CaseClassRecord
+case class Record129(c_name: String, p_name: String, month: String, t_qty: Double, uniqueId: Long) extends CaseClassRecord
 case class Query1Out(c_name: String, c_orders: Iterable[Record80], uniqueId: Long) extends CaseClassRecord
 object Query4SparkOpt {
  def main(args: Array[String]){
@@ -125,35 +125,13 @@ x94 match {
      case x95 => x95.map{ case v2 => ((x92, x93), v2) }
   }
  }} 
-
-/**val x105 = x96.flatMap{ case ((x97, x98), x99) => ((x97, x98), x99) match {
-   case (_, null) => List((((x97, x98), x99), null))
-   case _ => 
-   {val x100 = x98.o_parts 
-x100} match {
-     case Nil => List((((x97, x98), x99), null))
-     case lst => lst.map{ case x101 => if ({val x102 = x101.p_name 
-val x103 = x99.p_name 
-val x104 = x102 == x103 
-x104}) { (((x97, x98), x99), x101) } else { (((x97, x98), x99), null) } }
-  }
- }}**/
-
-val x105 = x96 
-val x114 = x105.map{ case ((x106, x107), x108) => ({val x110 = (x106.c_name,x108.p_name,x107.o_orderdate) 
-x110}, {val x111 = x108.l_qty 
-x111})
- }.reduceByKey(_ + _) 
-val x123 = x114
-/**val x123 = x114.map{ case ((x115, x116, x117), x118) => 
-   val x119 = x115.c_name 
-val x120 = x117.p_name 
-val x121 = x116.o_orderdate 
-val x122 = Record125(x119, x120, x121, x118, newId) 
-x122 
-}**/ 
-x123.collect.foreach(println(_))
-x123.count
+val x118 = x96.map{ case ((x103, x104), x105) =>
+   ({val x107 = (x103.c_name,x104.o_orderdate,x105.p_name) 
+x107}, x105.l_qty)
+}.reduceByKey(_ + _) 
+val x127 = x118
+x127.collect.foreach(println(_))
+x127.count
    }
    f
    var end0 = System.currentTimeMillis() - start0
