@@ -220,6 +220,7 @@ object Utils {
       anfBase.reset
       val anfedq2 = anfer.finalize(plan2)
       val anfExp2 = anfBase.anf(anfedq2.asInstanceOf[anfBase.Rep])
+      println(Printer.quote(anfExp2))
 
       val gcode2 = codegen.generate(anfExp2)
       val header2 = codegen.generateHeader(ng)

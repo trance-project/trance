@@ -64,10 +64,13 @@ object Unnester {
      }
     case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
       assert(!E.isEmpty)
+      val (p1, p2) = ps1(p,v)
+      println("this will get pushed")
+      println(pushPredicate(e, p2))
       getPM(p) match {
         case (Constant(false), _) => u.isEmpty match {
-          case true => unnest(e)((u, w :+ v, Some(Unnest(E.get, w, e1, v, p))))
-          case _ => unnest(e)((u, w :+ v, Some(OuterUnnest(E.get, w, e1, v, p))))
+          case true => unnest(pushPredicate(e, p2))((u, w :+ v, Some(Unnest(E.get, w, e1, v, p1))))
+          case _ => unnest(pushPredicate(e, p2))((u, w :+ v, Some(OuterUnnest(E.get, w, e1, v, p1))))
         }
         case (e2, be2) => 
           val nE = Some(OuterUnnest(E.get, w, e1, v, Constant(true))) // C11
@@ -144,6 +147,12 @@ object Unnester {
     case _ => sys.error(s"not supported $e")
   }
 
+  def pushPredicate(e: CExpr, p: CExpr): CExpr = (e, p) match {
+    case (_, Constant(true)) => e
+    case (Comprehension(e1, v1, p1, e2), _) => Comprehension(e1, v1, And(p, p1), e2)
+    case _ => If(p, e, None)
+  }
+
   def getNest(e: CExpr): (Option[CExpr], Variable) = e match {
     case Bind(nval, nv @ Variable(_,_), e1) => (Some(e), nv)
     case Nest(_,_,_,_,v2 @ Variable(_,_),_,_) => (Some(e), v2)
@@ -190,6 +199,13 @@ object Unnester {
     case Nil => Constant(true)
     case tail :: Nil => tail
     case head :: tail => Tuple(e)
+  }
+
+  def ps1(e: CExpr, v: Variable): (CExpr, CExpr) = {
+    val preds = andToList(e)
+    val p1s = preds.filter(e2 => getP1(e2, v))
+    val ps2 = preds.filterNot(p1s.contains(_))
+    (listToAnd(p1s), listToAnd(ps2))
   }
 
   def ps(e: CExpr, v: Variable, vs:List[Variable]): (CExpr, CExpr, CExpr) = {

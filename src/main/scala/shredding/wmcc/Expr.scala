@@ -223,17 +223,19 @@ case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CEx
   override def wvars = e1.wvars :+ v2
   override def equals(that: Any): Boolean = that match {
     case Unnest(e11, v11, e21, v21, p1) if (e1 == e11 && e21 == e2) => true
-    case _ => false
+    case OuterUnnest(e11, v11, e21, v21, p1) if (e1 == e11 && e21 == e2) => true
+    case e => false
   }
 }
 
-case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
+case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr { self =>
   def tp: Type = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
   // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = e1.wvars :+ v2
   override def equals(that: Any): Boolean = that match {
+    case Unnest(e11, v11, e21, v21, p1) if (e1 == e11 && e21 == e2) => true
     case OuterUnnest(e11, v11, e21, v21, p1) if (e1 == e11 && e21 == e2) => true
-    case _ => false
+    case e => false
   }
 }
 

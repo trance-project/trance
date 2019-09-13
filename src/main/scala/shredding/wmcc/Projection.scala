@@ -12,7 +12,6 @@ object Projections {
 
   val proj = HashMap[Variable, Set[String]]().withDefaultValue(Set())
   
-
   def fields(e: CExpr):Unit = e match {
     case Record(ms) => ms.foreach(f => { 
       if (tmp1.contains(f._1) && f._2.isInstanceOf[Variable]){

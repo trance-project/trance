@@ -203,7 +203,9 @@ object TPCHQueries {
                     ForeachUnion(pq1, BagProject(cq1r, "o_parts"), 
                       Singleton(Tuple("c_name" -> q1r("c_name"), "p_name" -> pq1r("p_name"), "month" -> cq1r("o_orderdate"), 
                         "t_qty" -> Total(ForeachUnion(pq2, BagProject(cq1r, "o_parts"), 
-                                  IfThenElse(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")),
+                                  IfThenElse(And(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")), 
+				 	Cmp(OpEq, TupleVarRef(pq2)("l_qty"), pq1r("l_qty"))),
+                                  //IfThenElse(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")),
                                     WeightedSingleton(Tuple("l_qty" -> pq1r("l_qty")), 
                                       TupleVarRef(pq2)("l_qty").asInstanceOf[PrimitiveExpr])))))))))//))   
   // Query 2

@@ -136,10 +136,16 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
         | } else {
         | {${ind(generate(e2))}}
         | }""".stripMargin
-    case If(cond, e1, None) => s"""
+    case If(cond, e1, None) => 
+      val zero = e1.tp match {
+        case IntType => "0"
+        case DoubleType => "0.0"
+        case _ => "Nil"
+      } 
+	s"""
         | if ({${generate(cond)}})
         | {${ind(generate(e1))}}
-        | else  Nil """.stripMargin
+        | else $zero """.stripMargin
     case Merge(e1, e2) => s"${generate(e1) ++ generate(e2)}"
     case CDeDup(e1) => s"${generate(e1)}.distinct"
     case EmptyCDict => s"()"
