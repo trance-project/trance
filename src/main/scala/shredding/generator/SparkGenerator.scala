@@ -151,7 +151,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case EmptyCDict => s"()"
     case Nest(e1, v1, f, e2, v2, p, g) =>
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
-      val zero = e2.tp match {
+      val zero = (z: CExpr) => z.tp match {
         case IntType => "0"
         case DoubleType => "0.0"
         case _ => "null"
@@ -162,12 +162,12 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
         case Bind(_, Tuple(fs), _) if fs.size != 1 => 
           (2 to fs.size).map(i => 
             if (i != fs.size) {
-              s"case (${fs.slice(1, i).map(e => "_").mkString(",")},null,${fs.slice(i, fs.size).map(e => "_").mkString(",")}) => ({${generate(f)}}, $zero)"
+              s"case (${fs.slice(1, i).map(e => "_").mkString(",")},${zero(fs(i-1))},${fs.slice(i, fs.size).map(e => "_").mkString(",")}) => ({${generate(f)}}, ${zero(e2)})"
             } else { 
-              s"case (${fs.slice(1, i).map(e => "_").mkString(",")},null) => ({${generate(f)}}, $zero)" 
+              s"case (${fs.slice(1, i).map(e => "_").mkString(",")},${zero(fs.last)}) => ({${generate(f)}}, ${zero(e2)})" 
             }
           ).mkString("\n")
-        case _ => s"case (null) => ({${generate(f)}}, $zero)"
+        case _ => s"case (null) => ({${generate(f)}}, ${zero(e2)})"
       }
       
       // for now check if this is the shredded version

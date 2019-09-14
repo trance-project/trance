@@ -195,11 +195,13 @@ object Utils {
     val ng = inputM.toList.map(f => f._2)
     val codegen = new SparkNamedGenerator(inputs)
     
-    val plan1 = Optimizer.applyAll(Unnester.unnest(normq1)(Nil, Nil, None).asInstanceOf[CExpr])
+    val plan1a = Unnester.unnest(normq1)(Nil, Nil, None).asInstanceOf[CExpr]
+    println(Printer.quote(plan1a))
+    val plan1 = Optimizer.applyAll(plan1a)
     println(Printer.quote(plan1))
     val anfedq1 = anfer.finalize(plan1)
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
-    println(Printer.quote(anfExp1))
+    //println(Printer.quote(anfExp1))
     val gcode = codegen.generate(anfExp1)
     val header = codegen.generateHeader(ng)
 
@@ -214,12 +216,14 @@ object Utils {
 
       val normq2 = normalizer.finalize(q2).asInstanceOf[CExpr]
       println(Printer.quote(normq2))
-      val plan2 = Optimizer.applyAll(Unnester.unnest(normq2)(Nil, Nil, None))
+      val plan2a = Unnester.unnest(normq2)(Nil, Nil, None)
+      println(Printer.quote(plan2a))
+      val plan2 = Optimizer.applyAll(plan2a)
       println(Printer.quote(plan2))
       anfBase.reset
       val anfedq2 = anfer.finalize(plan2)
       val anfExp2 = anfBase.anf(anfedq2.asInstanceOf[anfBase.Rep])
-      println(Printer.quote(anfExp2))
+      //println(Printer.quote(anfExp2))
 
       val gcode2 = codegen.generate(anfExp2)
       val header2 = codegen.generateHeader(ng)

@@ -36,7 +36,7 @@ object Optimizer {
     * count comprehension that translates to reduceByKey(_+_)
     * unclear if this is spark specific or a bug in the unnest algorithm 
     */
-  def mergeReduce(e: CExpr) = e match {
+  def mergeReduce(e: CExpr): CExpr = e match {
     case Reduce(Nest(e1, v1, f2, e2, v2, p2, g), v, f, p) => f match {
       case Record(fs) => // swap the tuple and record, in order to return appropriate type 
 	val newgrps = fs.filter(_._2 != v2)
@@ -51,6 +51,8 @@ object Optimizer {
 	  Reduce(Nest(e1, v1, Tuple(newgrps.values.toList), e2, v2, p2, g), v, Record(newpat), p)
         else e
     }
+    case LinearCSet(exprs) => LinearCSet(exprs.map(mergeReduce(_)))
+    case CNamed(n, e1) => CNamed(n, mergeReduce(e1))
     case _ => e
   }
   
@@ -62,10 +64,10 @@ object Optimizer {
       fields(e)
       Nest(push(e1), v1, f, e, v, p, g)
     case Unnest(e1, v1, f, v2, p) =>
-      fields(f) // TODO
+      fields(f)
       Unnest(push(e1), v1, f, v2, p)
     case OuterUnnest(e1, v1, f, v2, p) =>
-      fields(f) //TODO
+      fields(f)
       OuterUnnest(push(e1), v1, f, v2, p)
     case Join(e1, e2, v1, p1, v2, p2) =>   
       fields(p1)
@@ -75,14 +77,14 @@ object Optimizer {
       fields(p1)
       fields(p2)
       OuterJoin(push(e1), push(e2), v1, p1, v2, p2)
-    case Lookup(e1, e2, v1, p1, v2, p2, p3) =>
+    /**case Lookup(e1, e2, v1, p1, v2, p2, p3) => e // TODO
       fields(p2)
       fields(p3)
       Lookup(push(e1), push(e2), v1, p1, v2, p2, p3)
-    case OuterLookup(e1, e2, v1, p1, v2, p2, p3) =>
+    case OuterLookup(e1, e2, v1, p1, v2, p2, p3) => e
       fields(p2)
       fields(p3)
-      OuterLookup(push(e1), push(e2), v1, p1, v2, p2, p3)
+      OuterLookup(push(e1), push(e2), v1, p1, v2, p2, p3)**/
     case Select(InputRef(n, _), _,_,_) if n.contains("M_ctx") => e 
     case Select(d, v, f, e2) =>
       fields(e)

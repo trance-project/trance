@@ -91,18 +91,20 @@ object Unnester {
         case (Constant(false), _) => 
           // p1s are from the context
           val (sp2s, p1s, p2s) = ps(p2, v2, w)
-          val nE = e1 match {
+          e1 match {
             // top level case
              case Project(InputRef(name, BagDictCType(_,_)), "_1") if name.endsWith("__D") => 
-               Some(Join(E.get, Select(e1, v2, sp2s, v2), w, p1s, v2, p2s))  
+               val nE = Some(Join(E.get, Select(e1, v2, sp2s, v2), w, p1s, v2, p2s))  
+               unnest(e3)((u, w :+ v2, nE)) 
              case _ => if (u.isEmpty) {
-               Some(Lookup(E.get, Select(e1, v, sp2s, v2), w, lbl1, v2, p2s, p1s))
+               val nE = Some(Lookup(E.get, Select(e1, v, sp2s, v2), w, lbl1, v2, Constant(true), Constant(true)))
+	       unnest(pushPredicate(e3, p2))((u, w :+ v2, nE)) 
              }else{
-              Some(OuterLookup(E.get, Select(e1, v, sp2s, v2), w, lbl1, v2, p2s, p1s))
-             }
+               val nE = Some(OuterLookup(E.get, Select(e1, v, sp2s, v2), w, lbl1, v2, Constant(true), Constant(true)))
+ 	       unnest(pushPredicate(e3, p2))((u, w :+ v2, nE))      
+	     }
           }
-          unnest(e3)((u, w :+ v2, nE)) 
-        case (e4, be2) => 
+	case (e4, be2) => 
           val nE = Some(OuterLookup(E.get, Select(e1, v2, Constant(true), v2), w, lbl1, v2, Constant(true), Constant(true)))
           val (nE2, nv) = getNest(unnest(e4)((w :+ v2, w :+ v2, nE)))
           unnest(e3)((u, w :+ nv, nE2)) match {
