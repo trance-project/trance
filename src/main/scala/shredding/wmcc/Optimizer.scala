@@ -37,8 +37,23 @@ object Optimizer {
     * unclear if this is spark specific or a bug in the unnest algorithm 
     */
   def mergeReduce(e: CExpr): CExpr = e match {
+    case Reduce(n1 @ Nest( n2 @ Nest(e1, v3, f3, e3, v4, p3, g2), v1, Tuple(lbl), e2, v2, p2, g), v, f, p) if e3.tp.isInstanceOf[PrimitiveType] => e2 match {
+      case Record(fs) =>
+	val newgrps = fs.filter(_._2 != v4)
+        val removed = fs.filterNot(_._2 != v4).keys.toList.head
+	val newpat = newgrps.map{
+			case (k,v) => v match {
+			  case Project(v3, f) => (k, v3)
+			  case _ => (k,v)
+			} 
+		     } ++ Map(removed -> v4)
+        if (newgrps.nonEmpty) 
+	  Reduce(Nest(Nest(e1, v3, Tuple(lbl ++ newgrps.values.toList), e3, v4, p3, g2), v1, Tuple(lbl), Record(newpat), v2, p2, g), v, f, p)
+        else e
+      case _ => e
+    }
     case Reduce(Nest(e1, v1, f2, e2, v2, p2, g), v, f, p) => f match {
-      case Record(fs) => // swap the tuple and record, in order to return appropriate type 
+      case Record(fs) =>
 	val newgrps = fs.filter(_._2 != v2)
         val removed = fs.filterNot(_._2 != v2).keys.toList.head
 	val newpat = newgrps.map{
@@ -50,6 +65,7 @@ object Optimizer {
         if (newgrps.nonEmpty) 
 	  Reduce(Nest(e1, v1, Tuple(newgrps.values.toList), e2, v2, p2, g), v, Record(newpat), p)
         else e
+      case _ => e
     }
     case LinearCSet(exprs) => LinearCSet(exprs.map(mergeReduce(_)))
     case CNamed(n, e1) => CNamed(n, mergeReduce(e1))
