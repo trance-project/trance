@@ -20,9 +20,11 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
       v
     case Union(e1, e2) => evalBag(e1, ctx) ++ evalBag(e2, ctx)
     case Singleton(e1) => List(evalTuple(e1, ctx))
-    case WeightedSingleton(e1, w1) =>
-//      List(evalTuple(e1, ctx))
-      sys.error("Unsupported evaluation of WeightedSingleton")
+    case WeightedSingleton(e1, w1) => w1.tp match {
+      case IntType => (1 to eval(w1, ctx).asInstanceOf[Int]).map(w => evalTuple(e1, ctx))
+      case DoubleType => (1 to eval(w1, ctx).asInstanceOf[Double].toInt).map(w => evalTuple(e1, ctx))
+    }
+      //sys.error("Unsupported evaluation of WeightedSingleton")
     case Tuple(fs) => fs.map(x => x._1 -> eval(x._2, ctx))
     case l: Let =>
       ctx.add(l.x, eval(l.e1, ctx))
@@ -93,7 +95,11 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
   }
 
   protected def evalBag(e: Expr, ctx: Context): List[_] =
-    eval(e, ctx).asInstanceOf[List[_]]
+    try{
+      eval(e, ctx).asInstanceOf[List[_]]
+    }catch{
+      case ex:Exception => eval(e, ctx).asInstanceOf[Vector[_]].toList
+    }
 
   protected def evalTuple(e: Expr, ctx: Context): Map[String, _] =
     eval(e, ctx).asInstanceOf[Map[String, _]]

@@ -11,9 +11,19 @@ object Optimizer {
   val tmp2 = HashMap[Variable, Set[String]]().withDefaultValue(Set())
 
   val proj = HashMap[Variable, Set[String]]().withDefaultValue(Set())
-  
+  var domainVars:List[Variable] = List()
+
+  def getReferences(e: CExpr): Unit = e match {
+    case LinearCSet(ps) => ps.foreach(p => println(getReferences(p)))
+    case CNamed(n, p) => domainVars.foreach(p2 => { println(n); println(p2); println(p2.isReferenced(p)) })
+    case _ => println("not a shredded plan")
+  }
+ 
   def applyAll(e: CExpr) = {
-    mergeReduce(push(e))
+    val p = mergeReduce(push(e))
+    //println("looking at domain vars")
+    //println(getReferences(p))
+    p
   }
 
   def fields(e: CExpr):Unit = e match {
@@ -72,6 +82,7 @@ object Optimizer {
     case _ => e
   }
   
+
   def push(e: CExpr): CExpr = e match {
     case Reduce(d, v, f, p) => 
       fields(f)
@@ -101,13 +112,15 @@ object Optimizer {
       fields(p2)
       fields(p3)
       OuterLookup(push(e1), push(e2), v1, p1, v2, p2, p3)**/
-    case Select(InputRef(n, _), _,_,_) if n.contains("M_ctx") => e 
+    case Select(InputRef(n, _), v,_,_) if n.contains("M_ctx") => 
+      domainVars = domainVars :+ v
+      e 
     case Select(d, v, f, e2) =>
       fields(e)
       Select(push(d), v, f, Record((proj(v) ++ tmp2(v)).map(f2 => f2 -> Project(v, f2)).toMap))
     case CNamed(n, o) => CNamed(n, push(o))
     case LinearCSet(rs) => LinearCSet(rs.reverse.map(r => push(r)).reverse)
     case _ => e
-  } 
+  }
 
 }

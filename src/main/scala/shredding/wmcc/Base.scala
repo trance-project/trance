@@ -263,35 +263,6 @@ trait BaseCompiler extends Base {
 
 }
 
-
-/**
-  * This checks standard equality
-  */
-case class Rec(map: Map[String, Any]) {
-  override def toString(): String = map.map(x => s"${x._1}:${x._2}").mkString("Rec(", ",", ")")
-}
-
-object Rec {
-  def apply(vs: (String, Any)*): Rec = Rec(vs.toMap)
-}
-
-/**
-  * This is used for dot-equality
-  */
-case class RecordValue(map: Map[String, Any], uniqueId: Long) extends CaseClassRecord {
-  override def toString(): String = map.map(x => s"${x._1}:${x._2}").mkString("RecV(", ",", ")")
-}
-
-object RecordValue {
-  def apply(vs: (String, Any)*): RecordValue = RecordValue(vs.toMap, newId)
-  var id = 0L
-  def newId: Long = {
-    val prevId = id
-    id += 1
-    prevId
-  }
-}
-
 trait BasePlanOptimizer extends BaseCompiler {
   // reduce conditionals
   override def equals(e1: Rep, e2: Rep): Rep = (e1, e2) match {
@@ -388,20 +359,28 @@ trait BaseScalaInterp extends Base{
   def merge(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[List[_]] ++ e2.asInstanceOf[List[_]]
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
     e1 match {
-      case Nil => e(Nil) match { case i:Int => 0; case _ => Nil }
+      case Nil => e(Nil) match { case i:Int => 0; case i:Double => 0.0; case _ => Nil }
       case data @ (head :: tail) => e(head) match {
         case i:Int =>
           data.withFilter(p.asInstanceOf[Rep => Boolean]).map(e).asInstanceOf[List[Int]].sum
-        case _ => 
+        case i:Double =>
+          data.withFilter(p.asInstanceOf[Rep => Boolean]).map(e).asInstanceOf[List[Double]].sum
+	case _ => 
           data.withFilter(p.asInstanceOf[Rep => Boolean]).
             flatMap(e.asInstanceOf[Rep => scala.collection.GenTraversableOnce[Rep]])
       }
     }
   }
-  def dedup(e1: Rep): Rep = e1.asInstanceOf[List[_]].distinct
+  def dedup(e1: Rep): Rep = {
+    val data = e1.asInstanceOf[List[_]]
+    data.head match {
+      case r:Rec => data.distinct
+      case r:RecordValue => data.map(_.asInstanceOf[RecordValue].toRec).distinct
+    }
+  }
   def named(n: String, e: Rep): Rep = {
     ctx(n) = e
-    println(n+" := "+e+"\n")
+    //println(n+" := "+e+"\n")
     e
   }
   def linset(e: List[Rep]): Rep = e
@@ -438,17 +417,23 @@ trait BaseScalaInterp extends Base{
   } 
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep = {
     val grps = e1.asInstanceOf[List[_]].groupBy(v => f(tupleVars(v)))
-    println(e1)
+    //println(e1)
     val res = e1 match {
       case Nil => e(Nil) match { case i:Int => 0; case _ => Nil }
       case head :: tail => e(head.asInstanceOf[List[_]]) match {
         case i:Int => 
-          grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.foldLeft(0)((v1, x2) => { 
+          grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.foldLeft(0)((acc, v1) => { 
             // this should be if g(x2) != None 
-            if (g(x2.asInstanceOf[List[_]]) != None && p(x2.asInstanceOf[List[_]]).asInstanceOf[Boolean]) { 
-              v1 + i } else { v1 } 
+            if (g(v1.asInstanceOf[List[_]]) != None && p(v1.asInstanceOf[List[_]]).asInstanceOf[Boolean]) { 
+              acc + e(v1.asInstanceOf[List[_]]).asInstanceOf[Int] } else { acc } 
            })).toList
-        case _ => 
+        case i:Double =>
+          grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.foldLeft(0.0)((acc, v1) => { 
+            // this should be if g(x2) != None  
+            if (g(v1.asInstanceOf[List[_]]) != None && p(v1.asInstanceOf[List[_]]).asInstanceOf[Boolean]) { 
+              acc + e(v1.asInstanceOf[List[_]]).asInstanceOf[Double] } else { acc } 
+           })).toList
+	case _ => 
           grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.flatMap(v => { 
             val v2 = tupleVars(v)
             if (!g(v2).asInstanceOf[List[_]].contains(None) && p(v2).asInstanceOf[Boolean]) { 
@@ -456,7 +441,7 @@ trait BaseScalaInterp extends Base{
             } else { Nil } })).toList
         }
      }
-     println(res)
+     //println(res)
      res
   }
   def outerunnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
@@ -546,7 +531,7 @@ trait BaseANF extends Base {
       case None =>
         e match {
           case Constant(_) | InputRef(_, _) => Def(e)
-          case _ => 
+	  case _ => 
             val v = Variable.fresh(e.tp)
             vars = vars :+ v
             state = state + (e -> v)
@@ -609,9 +594,7 @@ trait BaseANF extends Base {
   def and(e1: Rep, e2: Rep): Rep = compiler.and(e1, e2)
   def not(e1: Rep): Rep = compiler.not(e1)
   def or(e1: Rep, e2: Rep): Rep = compiler.or(e1, e2)
-  def project(e1: Rep, field: String): Rep = {
-    compiler.project(e1, field)
-  }
+  def project(e1: Rep, field: String): Rep = compiler.project(e1, field)
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep] = None): Rep = e2 match {
     case Some(a) => compiler.ifthen(cond, e1, Some(a)) 
     case _ => compiler.ifthen(cond, e1, None)
