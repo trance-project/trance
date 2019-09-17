@@ -124,6 +124,34 @@ trait Extensions extends LinearizedNRC {
       case _ => ex
     })
 
+  def labelParameters(e: Expr): Set[LabelParameter] = labelParameters(e, Map.empty).toSet
+
+  protected def labelParameters(e: Expr, scope: Map[String, VarDef]): List[LabelParameter] =
+    collect(e, {
+      case v: VarRef =>
+        filterByScope(VarRefLabelParameter(v), scope).toList
+//      case TupleProject(_: TupleVarRef, fs) =>
+
+      case ForeachUnion(x, e1, e2) =>
+        labelParameters(e1, scope) ++ labelParameters(e2, scope + (x.name -> x))
+      case l: Let =>
+        labelParameters(l.e1, scope) ++ labelParameters(l.e2, scope + (l.x.name -> l.x))
+      case NewLabel(vs) =>
+        vs.flatMap(filterByScope(_, scope)).toList
+      case BagDict(l, f, d) =>
+        val lblVars = inputVars(l, Map.empty)
+        val lblScope = scope ++ lblVars.map(v => v.name -> v.varDef).toMap
+        labelParameters(f, lblScope) ++ labelParameters(d, scope)
+      case Named(v, e1) => labelParameters(e1, scope + (v.name -> v))
+    })
+
+  protected def filterByScope(p: LabelParameter, scope: Map[String, VarDef]): Option[LabelParameter] =
+    scope.get(p.name).map { p2 =>
+      // Sanity check
+      assert(p.tp == p2.tp, "Types differ: " + p.tp + " and " + p2.tp)
+      p
+    }
+
   def inputVars(e: Expr): Set[VarRef] = inputVars(e, Map.empty).toSet
 
   protected def inputVars(e: Expr, scope: Map[String, VarDef]): List[VarRef] = collect(e, {
