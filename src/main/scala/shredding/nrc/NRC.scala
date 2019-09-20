@@ -42,6 +42,7 @@ trait NRC extends BaseExpr {
     def name: String = varDef.name
 
     def tp: Type = varDef.tp
+
   }
 
   case object VarRef {

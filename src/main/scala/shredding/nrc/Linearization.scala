@@ -17,7 +17,10 @@ trait Linearization {
 
       // Construct variable reference to the initial context
       // that represents a bag containing e.flat.
-      val bagFlat = Singleton(Tuple("lbl" -> e.flat.asInstanceOf[TupleAttributeExpr]))
+      //val bagFlat = Singleton(Tuple("lbl" -> e.flat.asInstanceOf[TupleAttributeExpr]))
+      val bagFlat = Singleton(Tuple("lbl" ->
+                      NewLabel(labelParameters(e.flat)).asInstanceOf[TupleAttributeExpr]))
+      
       val initCtxNamed = Named(VarDef(Symbol.fresh("M_ctx"), bagFlat.tp), bagFlat)
       val initCtxRef = BagVarRef(initCtxNamed.v)
 

@@ -74,10 +74,11 @@ trait NRCTranslator extends LinearizedNRC {
     case l:Let => Bind(translate(l.x), translate(l.e1), translate(l.e2))
     case Named(v, e) => CNamed(v.name, translate(e))
     case Sequence(exprs) => LinearCSet(exprs.map(translate(_)))
-     case l @ NewLabel(vs) => 
-      record(vs.map(v => {
-        val v2 = translateVar(v).asInstanceOf[Variable]
-        translateName(v2.name) -> v2
+    case v:VarRefLabelParameter => translateVar(v.v)
+    case l @ NewLabel(vs) => 
+      record(vs.map(v => v match {
+        case v2:VarRefLabelParameter => translateName(v2.name) -> translateVar(v2.v)
+        case v2:ProjectLabelParameter => translateName(v2.name) -> translate(v2.p.asInstanceOf[Expr])
       }).toMap)
     case e:ExtractLabel =>
       val lbl = translate(e.lbl)

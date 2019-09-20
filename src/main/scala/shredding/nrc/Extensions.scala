@@ -1,6 +1,6 @@
 package shredding.nrc
 
-import shredding.core.VarDef
+import shredding.core._
 
 /**
   * Extension methods for NRC expressions
@@ -124,18 +124,26 @@ trait Extensions extends LinearizedNRC {
       case _ => ex
     })
 
-  def labelParameters(e: Expr): Set[LabelParameter] = labelParameters(e, Map.empty).toSet
+  // removes input labels and dictionaries from labels
+  def isInput(e: LabelParameter): Boolean = e match {
+    case VarRefLabelParameter(LabelVarRef(VarDef(_, LabelType(ms)))) => ms.isEmpty
+    case _ => e.tp.isInstanceOf[DictType]
+  }
+  
+  def labelParameters(e: Expr): Set[LabelParameter] = 
+    labelParameters(e, Map.empty).filterNot(isInput(_)).toSet
 
   protected def labelParameters(e: Expr, scope: Map[String, VarDef]): List[LabelParameter] =
     collect(e, {
       case v: VarRef =>
         filterByScope(VarRefLabelParameter(v), scope).toList
-//      case TupleProject(_: TupleVarRef, fs) =>
-
+      case p:Project => 
+        filterByScope(ProjectLabelParameter(p), scope).toList
       case ForeachUnion(x, e1, e2) =>
         labelParameters(e1, scope) ++ labelParameters(e2, scope + (x.name -> x))
       case l: Let =>
-        labelParameters(l.e1, scope) ++ labelParameters(l.e2, scope + (l.x.name -> l.x))
+        val ivs = inputVars(l.e1, scope).map{ v => v.name -> v.varDef }.toMap ++ scope
+        labelParameters(l.e1, ivs) ++ labelParameters(l.e2, scope + (l.x.name -> l.x))
       case NewLabel(vs) =>
         vs.flatMap(filterByScope(_, scope)).toList
       case BagDict(l, f, d) =>
@@ -145,20 +153,34 @@ trait Extensions extends LinearizedNRC {
       case Named(v, e1) => labelParameters(e1, scope + (v.name -> v))
     })
 
-  protected def filterByScope(p: LabelParameter, scope: Map[String, VarDef]): Option[LabelParameter] =
-    scope.get(p.name).map { p2 =>
-      // Sanity check
-      assert(p.tp == p2.tp, "Types differ: " + p.tp + " and " + p2.tp)
-      p
+  protected def filterByScope(p: LabelParameter, scope: Map[String, VarDef]): Option[LabelParameter] = {
+    p match {
+      case v:VarRefLabelParameter => scope.get(v.name).map{ p2 =>
+        assert(p.tp == p2.tp, "Types differ: " + p.tp + " and " + p2.tp)
+        None  
+      }.getOrElse(Some(p))
+      case ProjectLabelParameter(plp) => plp.tuple match {
+          case p2:Project => filterByScope(ProjectLabelParameter(p2), scope) match {
+            case None => None
+            case _ => Some(p)
+          }
+          case TupleVarRef(v) => scope.get(v.name).map{ p2 =>
+            None
+          }.getOrElse(Some(p))
+      }
     }
+  }
 
   def inputVars(e: Expr): Set[VarRef] = inputVars(e, Map.empty).toSet
 
   protected def inputVars(e: Expr, scope: Map[String, VarDef]): List[VarRef] = collect(e, {
     case v: VarRef => inputVarRef(v, scope)
-    case ForeachUnion(x, e1, e2) => inputVars(e1, scope) ++ inputVars(e2, scope + (x.name -> x))
+    case ForeachUnion(x, e1, e2) => 
+      inputVars(e1, scope) ++ inputVars(e2, scope + (x.name -> x))
     case l: Let => inputVars(l.e1, scope) ++ inputVars(l.e2, scope + (l.x.name -> l.x))
-    case NewLabel(vs) => vs.flatMap(inputVarRef(_, scope)).toList
+    //case NewLabel(vs) => 
+      //vs.flatMap(lp => labelParameters(lp.asInstanceOf[Expr], scope)).toList
+    //  vs.flatMap(lp => inputVarRef(lp.asInstanceOf[Expr], scope)).toList
     case BagDict(l, f, d) =>
       val lblVars = inputVars(l, Map.empty)
       val lblScope = scope ++ lblVars.map(v => v.name -> v.varDef).toMap
