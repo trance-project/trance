@@ -64,6 +64,24 @@ trait Label {
     def tp: LabelType = e.tp
   }
 
+  trait LabelParameter {
+    def name: String
+
+    def tp: Type
+  }
+
+  case class VarRefLabelParameter(v: VarRef) extends LabelParameter {
+    def name: String = v.name
+
+    def tp: Type = v.tp
+  }
+
+  case class ProjectLabelParameter(p: Project) extends LabelParameter {
+    def name: String = p.tuple.asInstanceOf[TupleVarRef].name + "." + p.field
+
+    def tp: Type = p.tp
+  }
+
   object NewLabel {
     private var currId = 0
 
@@ -75,7 +93,7 @@ trait Label {
     implicit def orderingById: Ordering[NewLabel] = Ordering.by(e => e.id)
   }
 
-  case class NewLabel(vars: Set[VarRef] = Set.empty) extends LabelExpr {
+  case class NewLabel(vars: Set[LabelParameter] = Set.empty) extends LabelExpr {
     val id: Int = NewLabel.getNextId
 
     val tp: LabelType = LabelType(vars.map(v => v.name -> v.tp).toMap)

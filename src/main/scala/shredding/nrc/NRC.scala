@@ -42,6 +42,7 @@ trait NRC extends BaseExpr {
     def name: String = varDef.name
 
     def tp: Type = varDef.tp
+
   }
 
   case object VarRef {
@@ -80,6 +81,8 @@ trait NRC extends BaseExpr {
       case Tuple(fs) => fs(field)
       case TupleLet(x, e1, Tuple(fs)) =>
         Let(x, e1, fs(field)).asInstanceOf[TupleAttributeExpr]
+      case TupleIfThenElse(c, Tuple(fs1), Tuple(fs2)) =>
+        IfThenElse(c, fs1(field), fs2(field)).asInstanceOf[TupleAttributeExpr]
       case _ => tuple.tp(field) match {
         case _: PrimitiveType => PrimitiveProject(tuple, field)
         case _: BagType => BagProject(tuple, field)
