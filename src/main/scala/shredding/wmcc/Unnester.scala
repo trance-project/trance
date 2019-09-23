@@ -58,7 +58,7 @@ object Unnester {
             Nest(E.get, w, et, t, v, Constant(true), gt)
           }
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
-          val (nE, v2) = getNest(unnest(value)((w, w, E)))
+	  val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case _ => sys.error("not supported")
      }
@@ -144,7 +144,7 @@ object Unnester {
       case _ => CNamed(n, unnest(exp)((Nil, Nil, None)))
     }
     case Bind(e1, e2, e3) => Bind(e1, e2, unnest(e3)((u, w, E)))
-    case _ => sys.error(s"not supported $e")
+    case _ => sys.error(s"not supported $e \n $w")
   }
 
   def pushPredicate(e: CExpr, p: CExpr): CExpr = (e, p) match {
