@@ -43,8 +43,15 @@ trait Optimizer extends Extensions {
         }
     } => deadCodeElimination(l.e2)
   })
-
+  
   def betaReduce(e: Expr): Expr = replace(e, {
+    
+    case b @ BagDict(lbl @ NewLabel(ps), flat, outputDict) => ps.toList.foldRight(b)((curr, acc) =>
+      curr match {
+        case p:ProjectLabelParameter => substitute(acc, VarDef(p.name, p.tp)).asInstanceOf[BagDict]
+        case v:VarRefLabelParameter => substitute(acc, v.v.varDef).asInstanceOf[BagDict]
+      })
+    
     case Lookup(l1, BagDict(l2, flatBag, _)) if l1.tp == l2.tp =>
       betaReduce(flatBag)
 

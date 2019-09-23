@@ -5,7 +5,7 @@ import shredding.core._
 /**
   * Common shredding methods
   */
-trait BaseShredding {
+trait BaseShredding extends Printer {
 
   def flatName(s: String): String = s + "^F"
 
@@ -36,8 +36,9 @@ trait BaseShredding {
 trait Shredding extends BaseShredding with Extensions {
   this: ShredNRC =>
 
+  // deprecated
   def labelVars(e: Expr): Set[VarRef] = inputVars(e).filterNot(_.isInstanceOf[DictExpr])
-
+  
   def shred(e: Expr): ShredExpr = shred(e, Map.empty)
 
   def shred(e: Expr, ctx: Map[String, ShredExpr]): ShredExpr = e match {

@@ -12,6 +12,7 @@ trait PipelineRunner extends Linearization
     println("\nQuery:\n")
     println(quote(query))
     val sq = shred(query)
+    println(sq)
     println("\nShredded:\n")
     println(quote(sq))
     val lsq = linearize(sq)

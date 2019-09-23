@@ -39,6 +39,11 @@ trait Extensions extends LinearizedNRC {
       case _ => List()
     })
 
+  // substitute label projections with their variable counter part
+  def substitute(e: Expr, v:VarDef) = replace(e, {
+    case p:Project if v.name == p.tuple.asInstanceOf[TupleVarRef].name + "." + p.field => VarRef(v)
+  })
+
   def replace(e: Expr, f: PartialFunction[Expr, Expr]): Expr =
     f.applyOrElse(e, (ex: Expr) => ex match {
       case p: Project =>
