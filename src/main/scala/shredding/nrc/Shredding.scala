@@ -38,7 +38,7 @@ trait Shredding extends BaseShredding with Extensions {
 
   // deprecated
   def labelVars(e: Expr): Set[VarRef] = inputVars(e).filterNot(_.isInstanceOf[DictExpr])
-  
+
   def shred(e: Expr): ShredExpr = shred(e, Map.empty)
 
   def shred(e: Expr, ctx: Map[String, ShredExpr]): ShredExpr = e match {
@@ -77,9 +77,16 @@ trait Shredding extends BaseShredding with Extensions {
       val flat =
         BagLet(xDict, dict1.tupleDict,
           ForeachUnion(xFlat, resolved1, resolved2))
-      val lbl = NewLabel(labelParameters(flat))
+      val lbl = NewLabel(labelParameters(flat))   
       val outputDict = TupleDictLet(xDict, dict1.tupleDict, dict2.tupleDict)
-      ShredExpr(lbl, BagDict(lbl, flat, outputDict))
+      val bagdict = BagDict(lbl, flat, outputDict)
+      val bd = if (!isDeepestQuery(resolved2)) {
+        lbl.vars.foldRight(bagdict)((curr, acc) => curr match {
+            case p:ProjectLabelParameter => substitute(acc, VarDef(p.name, p.tp)).asInstanceOf[BagDict]
+            case _ => acc
+          })
+      }else bagdict
+      ShredExpr(lbl, bd)
 
     case Union(e1, e2) =>
       val ShredExpr(l1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)

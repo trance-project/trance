@@ -32,7 +32,8 @@ trait NRCTranslator extends LinearizedNRC {
   
   def translate(e: Cond): CExpr = e match {
     case Cmp(op, e1, e2) => op match {
-      case OpEq => compiler.equals(translate(e1), translate(e2))
+      case OpEq => 
+        compiler.equals(translate(e1), translate(e2))
       case OpNe => not(compiler.equals(translate(e1), translate(e2)))
       case OpGt => (translate(e1), translate(e2)) match {
         case (te1 @ Constant(_), te2:CExpr) =>  lt(te2, te1) // 5 > x
@@ -48,7 +49,7 @@ trait NRCTranslator extends LinearizedNRC {
     case Not(e1) => not(translate(e1))
   }
 
-  def translateName(name: String): String = name.replace("^", "__").replace("'", "")
+  def translateName(name: String): String = name.replace("^", "__").replace("'", "").replace(".", "")
   def translate(v: VarDef): CExpr = Variable(translateName(v.name), translate(v.tp))
   def translateVar(v: VarRef): CExpr = translate(v.varDef)
   
@@ -83,8 +84,6 @@ trait NRCTranslator extends LinearizedNRC {
       val lbl = translate(e.lbl)
       val bindings = e.lbl.tp.attrTps.map(k => 
         Variable(translateName(k._1), translate(k._2)) -> project(lbl, translateName(k._1))).toSeq
-        //val v = Variable.fresh(translate(k._2)) -> 
-        //List(v -> project(lbl, translateName(k._1)), v -> )
       bindings.foldRight(translate(e.e))((cur, acc) => Bind(cur._1, cur._2, acc))
     case Lookup(lbl, dict) => CLookup(translate(lbl), translate(dict)) 
     case EmptyDict => emptydict

@@ -55,7 +55,7 @@ object TestApp extends App
       ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
       ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
 
-       val q1lin = linearize(q1shred)
+      val q1lin = linearize(q1shred)
       println("[Ex1] Linearized Q1: " + quote(q1lin))
       println("[Ex1] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n\n"))
 
@@ -79,7 +79,6 @@ object TestApp extends App
 
       val q2shred = optimize(q2shredraw)
       println("[Ex1] Shredded Q2 Optimized: " + quote(q2shred))
-
 
 //      val q2trans = unshred(q2shred)
 //      println("[Ex1] Unshredded shredded Q2: " + quote(q2trans))
@@ -1027,9 +1026,9 @@ object TestApp extends App
   }
 
 
-  Example1.run()
+  //Example1.run()
   Example2.run()
-  Example3.run()
+  //Example3.run()
   //Example4.run() // look into this more
   /**Example5.run()
   Example6.run()

@@ -5,7 +5,7 @@ import shredding.core._
 /**
   * Extension methods for NRC expressions
   */
-trait Extensions extends LinearizedNRC {
+trait Extensions extends LinearizedNRC with Printer {
 
   def collect[A](e: Expr, f: PartialFunction[Expr, List[A]]): List[A] =
     f.applyOrElse(e, (ex: Expr) => ex match {
@@ -38,11 +38,6 @@ trait Extensions extends LinearizedNRC {
       case Sequence(ee) => ee.flatMap(collect(_, f))
       case _ => List()
     })
-
-  // substitute label projections with their variable counter part
-  def substitute(e: Expr, v:VarDef) = replace(e, {
-    case p:Project if v.name == p.tuple.asInstanceOf[TupleVarRef].name + "." + p.field => VarRef(v)
-  })
 
   def replace(e: Expr, f: PartialFunction[Expr, Expr]): Expr =
     f.applyOrElse(e, (ex: Expr) => ex match {
@@ -125,19 +120,38 @@ trait Extensions extends LinearizedNRC {
 
       case Named(v, e1) => Named(v, replace(e1, f))
       case Sequence(ee) => Sequence(ee.map(replace(_, f)))
-
       case _ => ex
     })
+  
+  // substitute label projections with their variable counter part
+  def substitute(e: Expr, v:VarDef) = replace(e, {
+    case p:Project if v.name == p.tuple.asInstanceOf[TupleVarRef].name + "." + p.field => v.tp match {
+         case _:LabelType => LabelVarRef(v)
+         case _ => VarRef(v)
+      }
+  })
 
   // removes input labels and dictionaries from labels
-  def isInput(e: LabelParameter): Boolean = e match {
+  def invalidLabelElement(e: LabelParameter): Boolean = e match {
     case VarRefLabelParameter(LabelVarRef(VarDef(_, LabelType(ms)))) => ms.isEmpty
-    case _ => e.tp.isInstanceOf[DictType]
+    case VarRefLabelParameter(v) => 
+      if (v.tp.isInstanceOf[DictType]) true
+      else if (v.varDef.name.contains('.')) true
+      else false
+    case _ => false
   }
   
   def labelParameters(e: Expr): Set[LabelParameter] = 
-    labelParameters(e, Map.empty).filterNot(isInput(_)).toSet
+    labelParameters(e, Map.empty).filterNot(invalidLabelElement(_)).toSet
 
+  // this prevents the substituting of unused label variables 
+  // into subexpressions (see shredding)
+  def isDeepestQuery(e: Expr): Boolean = 
+    collect(e, { case l if l.tp.isInstanceOf[LabelType] => List(l) }) match {
+      case Nil => true
+      case _ => false
+    }
+ 
   protected def labelParameters(e: Expr, scope: Map[String, VarDef]): List[LabelParameter] =
     collect(e, {
       case v: VarRef =>
@@ -145,8 +159,8 @@ trait Extensions extends LinearizedNRC {
       case p:Project => 
         filterByScope(ProjectLabelParameter(p), scope).toList
       case ForeachUnion(x, e1, e2) =>
-        labelParameters(e1, scope) ++ labelParameters(e2, scope + (x.name -> x))
-      case l: Let =>
+        labelParameters(e1, scope) ++ labelParameters(e2, scope + (x.name -> x)) 
+      case l: Let => // does not work with nested lets, see isDeepestQuery
         val ivs = inputVars(l.e1, scope).map{ v => v.name -> v.varDef }.toMap ++ scope
         labelParameters(l.e1, ivs) ++ labelParameters(l.e2, scope + (l.x.name -> l.x))
       case NewLabel(vs) =>
@@ -183,9 +197,6 @@ trait Extensions extends LinearizedNRC {
     case ForeachUnion(x, e1, e2) => 
       inputVars(e1, scope) ++ inputVars(e2, scope + (x.name -> x))
     case l: Let => inputVars(l.e1, scope) ++ inputVars(l.e2, scope + (l.x.name -> l.x))
-    //case NewLabel(vs) => 
-      //vs.flatMap(lp => labelParameters(lp.asInstanceOf[Expr], scope)).toList
-    //  vs.flatMap(lp => inputVarRef(lp.asInstanceOf[Expr], scope)).toList
     case BagDict(l, f, d) =>
       val lblVars = inputVars(l, Map.empty)
       val lblScope = scope ++ lblVars.map(v => v.name -> v.varDef).toMap
