@@ -5,13 +5,13 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
-case class Record362(c_name: String, c_custkey: Int, uniqueId: Long) extends CaseClassRecord
-case class Record363(o_orderdate: String, o_orderkey: Int, o_custkey: Int, uniqueId: Long) extends CaseClassRecord
-case class Record364(l_quantity: Double, l_partkey: Int, l_orderkey: Int, uniqueId: Long) extends CaseClassRecord
-case class Record365(p_name: String, p_partkey: Int, uniqueId: Long) extends CaseClassRecord
-case class Record367(p_name: String, l_qty: Double, uniqueId: Long) extends CaseClassRecord
-case class Record369(o_orderdate: String, o_parts: Iterable[Record367], uniqueId: Long) extends CaseClassRecord
-case class Query1Out(c_name: String, c_orders: Iterable[Record369], uniqueId: Long) extends CaseClassRecord
+case class Record317(c_name: String, c_custkey: Int, uniqueId: Long) extends CaseClassRecord
+case class Record318(o_orderdate: String, o_orderkey: Int, o_custkey: Int, uniqueId: Long) extends CaseClassRecord
+case class Record319(l_quantity: Double, l_partkey: Int, l_orderkey: Int, uniqueId: Long) extends CaseClassRecord
+case class Record320(p_name: String, p_partkey: Int, uniqueId: Long) extends CaseClassRecord
+case class Record322(p_name: String, l_qty: Double, uniqueId: Long) extends CaseClassRecord
+case class Record324(o_orderdate: String, o_parts: Iterable[Record322], uniqueId: Long) extends CaseClassRecord
+case class Query1Out(c_name: String, c_orders: Iterable[Record324], uniqueId: Long) extends CaseClassRecord
 object Query1Spark {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
@@ -38,72 +38,73 @@ P.count
       prevId
     }
    var start0 = System.currentTimeMillis()
-   val x301 = C.map(x297 => { val x298 = x297.c_name 
-val x299 = x297.c_custkey 
-val x300 = Record362(x298, x299, newId) 
-x300 }) 
-val x307 = O.map(x302 => { val x303 = x302.o_orderdate 
-val x304 = x302.o_orderkey 
-val x305 = x302.o_custkey 
-val x306 = Record363(x303, x304, x305, newId) 
-x306 }) 
-val x312 = { val out1 = x301.map{ case x308 => ({val x310 = x308.c_custkey 
-x310}, x308) }
-  val out2 = x307.map{ case x309 => ({val x311 = x309.o_custkey 
-x311}, x309) }
+   val x256 = C.map(x252 => { val x253 = x252.c_name 
+val x254 = x252.c_custkey 
+val x255 = Record317(x253, x254, newId) 
+x255 }) 
+val x262 = O.map(x257 => { val x258 = x257.o_orderdate 
+val x259 = x257.o_orderkey 
+val x260 = x257.o_custkey 
+val x261 = Record318(x258, x259, x260, newId) 
+x261 }) 
+val x267 = { val out1 = x256.map{ case x263 => ({val x265 = x263.c_custkey 
+x265}, x263) }
+  val out2 = x262.map{ case x264 => ({val x266 = x264.o_custkey 
+x266}, x264) }
   out1.join(out2).map{ case (k,v) => v }
   //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
-val x318 = L.map(x313 => { val x314 = x313.l_quantity 
-val x315 = x313.l_partkey 
-val x316 = x313.l_orderkey 
-val x317 = Record364(x314, x315, x316, newId) 
-x317 }) 
-val x324 = { val out1 = x312.map{ case (x319, x320) => ({val x322 = x320.o_orderkey 
-x322}, (x319, x320)) }
-  val out2 = x318.map{ case x321 => ({val x323 = x321.l_orderkey 
-x323}, x321) }
+val x273 = L.map(x268 => { val x269 = x268.l_quantity 
+val x270 = x268.l_partkey 
+val x271 = x268.l_orderkey 
+val x272 = Record319(x269, x270, x271, newId) 
+x272 }) 
+val x279 = { val out1 = x267.map{ case (x274, x275) => ({val x277 = x275.o_orderkey 
+x277}, (x274, x275)) }
+  val out2 = x273.map{ case x276 => ({val x278 = x276.l_orderkey 
+x278}, x276) }
   out1.join(out2).map{ case (k,v) => v }
   //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
-val x329 = P.map(x325 => { val x326 = x325.p_name 
-val x327 = x325.p_partkey 
-val x328 = Record365(x326, x327, newId) 
-x328 }) 
-val x336 = { val out1 = x324.map{ case ((x330, x331), x332) => ({val x334 = x332.l_partkey 
-x334}, ((x330, x331), x332)) }
-  val out2 = x329.map{ case x333 => ({val x335 = x333.p_partkey 
-x335}, x333) }
+val x284 = P.map(x280 => { val x281 = x280.p_name 
+val x282 = x280.p_partkey 
+val x283 = Record320(x281, x282, newId) 
+x283 }) 
+val x291 = { val out1 = x279.map{ case ((x285, x286), x287) => ({val x289 = x287.l_partkey 
+x289}, ((x285, x286), x287)) }
+  val out2 = x284.map{ case x288 => ({val x290 = x288.p_partkey 
+x290}, x288) }
   out1.join(out2).map{ case (k,v) => v }
   //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
-val x347 = x336.map{ case (((x337, x338), x339), x340) => val x346 = (x339,x340) 
-x346 match {
-   case (_,null) => ({val x341 = (x337,x338) 
-x341}, null) 
-   case x345 => ({val x341 = (x337,x338) 
-x341}, {val x342 = x340.p_name 
-val x343 = x339.l_quantity 
-val x344 = Record367(x342, x343, newId) 
-x344})
+val x302 = x291.map{ case (((x292, x293), x294), x295) => val x301 = (x294,x295) 
+x301 match {
+   case (_,null) => ({val x296 = (x292,x293) 
+x296}, null) 
+   case x300 => ({val x296 = (x292,x293) 
+x296}, {val x297 = x295.p_name 
+val x298 = x294.l_quantity 
+val x299 = Record322(x297, x298, newId) 
+x299})
  }
 }.groupByKey() 
-val x356 = x347.map{ case ((x348, x349), x350) => val x355 = (x349,x350) 
-x355 match {
-   case (_,null) => ({val x351 = (x348) 
-x351}, null) 
-   case x354 => ({val x351 = (x348) 
-x351}, {val x352 = x349.o_orderdate 
-val x353 = Record369(x352, x350, newId) 
-x353})
+val x312 = x302.map{ case ((x303, x304), x305) => val x311 = (x304,x305) 
+x311 match {
+   case (_,null) => ({val x306 = x303.c_name 
+val x307 = (x306) 
+x307}, null) 
+   case x310 => ({val x306 = x303.c_name 
+val x307 = (x306) 
+x307}, {val x308 = x304.o_orderdate 
+val x309 = Record324(x308, x305, newId) 
+x309})
  }
 }.groupByKey() 
-val x361 = x356.map{ case (x357, x358) => 
-   val x359 = x357.c_name 
-val x360 = Query1Out(x359, x358, newId) 
-x360 
+val x316 = x312.map{ case (x313, x314) => 
+   val x315 = Query1Out(x313, x314, newId) 
+x315 
 } 
-x361.count
+x316.count
    var end0 = System.currentTimeMillis() - start0
    println("Query1Spark"+sf+","+Config.datapath+","+end0)
  }

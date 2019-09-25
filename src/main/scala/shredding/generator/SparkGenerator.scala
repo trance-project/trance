@@ -48,6 +48,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       generateType(RecordCType(fs.filter(_._2 != EmptyDictCType)))
     case LabelType(fs) if fs.isEmpty => "Int"
     case LabelType(fs) => generateType(RecordCType(fs))
+    case EmptyCType => "Unit"
     case _ => sys.error("not supported type " + tp)
   }
 

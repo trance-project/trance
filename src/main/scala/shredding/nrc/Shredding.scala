@@ -5,7 +5,7 @@ import shredding.core._
 /**
   * Common shredding methods
   */
-trait BaseShredding {
+trait BaseShredding extends Printer {
 
   def flatName(s: String): String = s + "^F"
 
@@ -36,6 +36,7 @@ trait BaseShredding {
 trait Shredding extends BaseShredding with Extensions {
   this: ShredNRC =>
 
+  // deprecated
   def labelVars(e: Expr): Set[VarRef] = inputVars(e).filterNot(_.isInstanceOf[DictExpr])
 
   def shred(e: Expr): ShredExpr = shred(e, Map.empty)
@@ -76,28 +77,35 @@ trait Shredding extends BaseShredding with Extensions {
       val flat =
         BagLet(xDict, dict1.tupleDict,
           ForeachUnion(xFlat, resolved1, resolved2))
-      val lbl = NewLabel(labelVars(flat))
+      val lbl = NewLabel(labelParameters(flat))   
       val outputDict = TupleDictLet(xDict, dict1.tupleDict, dict2.tupleDict)
-      ShredExpr(lbl, BagDict(lbl, flat, outputDict))
+      val bagdict = BagDict(lbl, flat, outputDict)
+      val bd = if (!isDeepestQuery(resolved2)) {
+        lbl.vars.foldRight(bagdict)((curr, acc) => curr match {
+            case p:ProjectLabelParameter => substitute(acc, VarDef(p.name, p.tp)).asInstanceOf[BagDict]
+            case _ => acc
+          })
+      }else bagdict
+      ShredExpr(lbl, bd)
 
     case Union(e1, e2) =>
       val ShredExpr(l1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
       val ShredExpr(l2: LabelExpr, dict2: BagDictExpr) = shred(e2, ctx)
       val dict = dict1.union(dict2).asInstanceOf[BagDictExpr]
       val flat = Union(dict1.lookup(l1), dict2.lookup(l2))
-      val lbl = NewLabel(labelVars(flat))
+      val lbl = NewLabel(labelParameters(flat))
       ShredExpr(lbl, BagDict(lbl, flat, dict.tupleDict))
 
     case Singleton(e1) =>
       val ShredExpr(flat: TupleExpr, dict: TupleDictExpr) = shred(e1, ctx)
-      val lbl = NewLabel(labelVars(flat))
+      val lbl = NewLabel(labelParameters(flat))
       ShredExpr(lbl, BagDict(lbl, Singleton(flat), dict))
 
     case WeightedSingleton(e1, w1) =>
       val ShredExpr(flat1: TupleExpr, dict: TupleDictExpr) = shred(e1, ctx)
       val ShredExpr(flat2: PrimitiveExpr, EmptyDict) = shred(w1, ctx)
       val flat = WeightedSingleton(flat1, flat2)
-      val lbl = NewLabel(labelVars(flat))
+      val lbl = NewLabel(labelParameters(flat))
       ShredExpr(lbl, BagDict(lbl, flat, dict))
 
     case Tuple(fs) =>

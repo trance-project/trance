@@ -1,11 +1,11 @@
 package shredding.nrc
 
-import shredding.core.VarDef
+import shredding.core._
 
 /**
   * Extension methods for NRC expressions
   */
-trait Extensions extends LinearizedNRC {
+trait Extensions extends LinearizedNRC with Printer {
 
   def collect[A](e: Expr, f: PartialFunction[Expr, List[A]]): List[A] =
     f.applyOrElse(e, (ex: Expr) => ex match {
@@ -120,17 +120,83 @@ trait Extensions extends LinearizedNRC {
 
       case Named(v, e1) => Named(v, replace(e1, f))
       case Sequence(ee) => Sequence(ee.map(replace(_, f)))
-
       case _ => ex
     })
+  
+  // substitute label projections with their variable counter part
+  def substitute(e: Expr, v:VarDef) = replace(e, {
+    case p:Project if v.name == p.tuple.asInstanceOf[TupleVarRef].name + "." + p.field => v.tp match {
+         case _:LabelType => LabelVarRef(v)
+         case _ => VarRef(v)
+      }
+  })
+
+  // removes input labels and dictionaries from labels
+  def invalidLabelElement(e: LabelParameter): Boolean = e match {
+    case VarRefLabelParameter(LabelVarRef(VarDef(_, LabelType(ms)))) => ms.isEmpty
+    case VarRefLabelParameter(v) => 
+      if (v.tp.isInstanceOf[DictType]) true
+      else if (v.varDef.name.contains('.')) true
+      else false
+    case _ => false
+  }
+  
+  def labelParameters(e: Expr): Set[LabelParameter] = 
+    labelParameters(e, Map.empty).filterNot(invalidLabelElement(_)).toSet
+
+  // this prevents the substituting of unused label variables 
+  // into subexpressions (see shredding)
+  def isDeepestQuery(e: Expr): Boolean = 
+    collect(e, { case l if l.tp.isInstanceOf[LabelType] => List(l) }) match {
+      case Nil => true
+      case _ => false
+    }
+ 
+  protected def labelParameters(e: Expr, scope: Map[String, VarDef]): List[LabelParameter] =
+    collect(e, {
+      case v: VarRef =>
+        filterByScope(VarRefLabelParameter(v), scope).toList
+      case p:Project => 
+        filterByScope(ProjectLabelParameter(p), scope).toList
+      case ForeachUnion(x, e1, e2) =>
+        labelParameters(e1, scope) ++ labelParameters(e2, scope + (x.name -> x)) 
+      case l: Let => // does not work with nested lets, see isDeepestQuery
+        val ivs = inputVars(l.e1, scope).map{ v => v.name -> v.varDef }.toMap ++ scope
+        labelParameters(l.e1, ivs) ++ labelParameters(l.e2, scope + (l.x.name -> l.x))
+      case NewLabel(vs) =>
+        vs.flatMap(filterByScope(_, scope)).toList
+      case BagDict(l, f, d) =>
+        val lblVars = inputVars(l, Map.empty)
+        val lblScope = scope ++ lblVars.map(v => v.name -> v.varDef).toMap
+        labelParameters(f, lblScope) ++ labelParameters(d, scope)
+      case Named(v, e1) => labelParameters(e1, scope + (v.name -> v))
+    })
+
+  protected def filterByScope(p: LabelParameter, scope: Map[String, VarDef]): Option[LabelParameter] = {
+    p match {
+      case v:VarRefLabelParameter => scope.get(v.name).map{ p2 =>
+        assert(p.tp == p2.tp, "Types differ: " + p.tp + " and " + p2.tp)
+        None  
+      }.getOrElse(Some(p))
+      case ProjectLabelParameter(plp) => plp.tuple match {
+          case p2:Project => filterByScope(ProjectLabelParameter(p2), scope) match {
+            case None => None
+            case _ => Some(p)
+          }
+          case TupleVarRef(v) => scope.get(v.name).map{ p2 =>
+            None
+          }.getOrElse(Some(p))
+      }
+    }
+  }
 
   def inputVars(e: Expr): Set[VarRef] = inputVars(e, Map.empty).toSet
 
   protected def inputVars(e: Expr, scope: Map[String, VarDef]): List[VarRef] = collect(e, {
     case v: VarRef => inputVarRef(v, scope)
-    case ForeachUnion(x, e1, e2) => inputVars(e1, scope) ++ inputVars(e2, scope + (x.name -> x))
+    case ForeachUnion(x, e1, e2) => 
+      inputVars(e1, scope) ++ inputVars(e2, scope + (x.name -> x))
     case l: Let => inputVars(l.e1, scope) ++ inputVars(l.e2, scope + (l.x.name -> l.x))
-    case NewLabel(vs) => vs.flatMap(inputVarRef(_, scope)).toList
     case BagDict(l, f, d) =>
       val lblVars = inputVars(l, Map.empty)
       val lblScope = scope ++ lblVars.map(v => v.name -> v.varDef).toMap

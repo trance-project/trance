@@ -12,7 +12,11 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
     case Const(v, _) => v
     case v: VarRef => ctx(v.varDef)
     case p: Project =>
-      evalTuple(p.tuple, ctx)(p.field)
+      try{ 
+        evalTuple(p.tuple, ctx)(p.field)
+      }catch{
+        case e:Exception => ctx(VarDef(p.tuple.asInstanceOf[TupleVarRef].varDef.name+"."+p.field, p.tp))
+      }
     case ForeachUnion(x, e1, e2) =>
       val v1 = evalBag(e1, ctx)
       val v = v1.flatMap { xv => ctx.add(x, xv); evalBag(e2, ctx) }
@@ -52,6 +56,7 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
       val newBoundVars = las.filterNot { case (n2, t2) =>
         ctx.contains(VarDef(n2, t2))
       }
+      var expression = x.e
       eval(x.lbl, ctx) match {
         case ROutLabel(fs) =>
           newBoundVars.foreach { case (n2, t2) =>
@@ -66,7 +71,13 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
       }
       v
     case NewLabel(as) =>
-      ROutLabel(as.map(a => a.varDef -> ctx(a.varDef)).toMap)
+      ROutLabel(as.map(a => a match { 
+        case l:VarRefLabelParameter => 
+          l.v.varDef -> ctx(l.v.varDef)
+        case l:ProjectLabelParameter => 
+          val v1 = VarDef(l.name, l.tp)
+          v1 -> eval(l.p.asInstanceOf[Expr], ctx)
+      }).toMap)
     case Lookup(l, BagDict(_, f, _)) =>
       val dictFn = new DictFn(ctx, c => evalBag(f, c))
       ROutBagDict(dictFn, f.tp, null)(evalLabel(l, ctx))

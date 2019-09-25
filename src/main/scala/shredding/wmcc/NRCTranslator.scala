@@ -32,7 +32,8 @@ trait NRCTranslator extends LinearizedNRC {
   
   def translate(e: Cond): CExpr = e match {
     case Cmp(op, e1, e2) => op match {
-      case OpEq => compiler.equals(translate(e1), translate(e2))
+      case OpEq => 
+        compiler.equals(translate(e1), translate(e2))
       case OpNe => not(compiler.equals(translate(e1), translate(e2)))
       case OpGt => (translate(e1), translate(e2)) match {
         case (te1 @ Constant(_), te2:CExpr) =>  lt(te2, te1) // 5 > x
@@ -48,7 +49,7 @@ trait NRCTranslator extends LinearizedNRC {
     case Not(e1) => not(translate(e1))
   }
 
-  def translateName(name: String): String = name.replace("^", "__").replace("'", "")
+  def translateName(name: String): String = name.replace("^", "__").replace("'", "").replace(".", "")
   def translate(v: VarDef): CExpr = Variable(translateName(v.name), translate(v.tp))
   def translateVar(v: VarRef): CExpr = translate(v.varDef)
   
@@ -73,12 +74,13 @@ trait NRCTranslator extends LinearizedNRC {
     case l:Let => Bind(translate(l.x), translate(l.e1), translate(l.e2))
     case Named(v, e) => CNamed(v.name, translate(e))
     case Sequence(exprs) => LinearCSet(exprs.map(translate(_)))
-     case l @ NewLabel(vs) => 
-      record(vs.map(v => {
-        val v2 = translateVar(v).asInstanceOf[Variable]
-        translateName(v2.name) -> v2
+    case v:VarRefLabelParameter => translateVar(v.v)
+    case l @ NewLabel(vs) => 
+      record(vs.map(v => v match {
+        case v2:VarRefLabelParameter => translateName(v2.name) -> translateVar(v2.v)
+        case v2:ProjectLabelParameter => translateName(v2.name) -> translate(v2.p.asInstanceOf[Expr])
       }).toMap)
-    case e:ExtractLabel =>
+    case e:ExtractLabel =>  
       val lbl = translate(e.lbl)
       val bindings = e.lbl.tp.attrTps.map(k => 
         Variable(translateName(k._1), translate(k._2)) -> project(lbl, translateName(k._1))).toSeq

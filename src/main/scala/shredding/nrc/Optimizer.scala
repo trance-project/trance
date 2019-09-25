@@ -45,6 +45,7 @@ trait Optimizer extends Extensions {
   })
 
   def betaReduce(e: Expr): Expr = replace(e, {
+    
     case Lookup(l1, BagDict(l2, flatBag, _)) if l1.tp == l2.tp =>
       betaReduce(flatBag)
 
