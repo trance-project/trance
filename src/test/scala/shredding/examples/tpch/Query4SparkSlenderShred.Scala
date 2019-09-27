@@ -95,7 +95,7 @@ P.count**/
   result.count
   //result.collect.foreach(println(_))
   var end0 = System.currentTimeMillis() - start0
-   println("Query4SparkSlenderShred"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
+   println("Query4SparkSlenderShreds"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
  }
 
 }
