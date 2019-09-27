@@ -7,7 +7,6 @@ import scala.collection.mutable.HashMap
 object Optimizer {
 
   val proj = HashMap[Variable, Set[String]]().withDefaultValue(Set())
-
  
   def applyAll(e: CExpr) = push(e)
 

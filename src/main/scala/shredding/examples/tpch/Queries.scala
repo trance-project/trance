@@ -189,7 +189,7 @@ object TPCHQueries {
     |val Query4__D = (ShredQuery4._2, Input_Q1_Dict1((ShredQuery4._4, Input_Q1_Dict2((ShredQuery4._6, Unit)))))""".stripMargin
 
   val sq4spark = s"""
-      |val Query4__F = M_ctx1.lbl
+      |val Query4__F = M_ctx1
       |val Query4__D_1 = M_flat1.flatMap{ r => r._2 }
       |Query4__D_1.cache
       |Query4__D_1.count

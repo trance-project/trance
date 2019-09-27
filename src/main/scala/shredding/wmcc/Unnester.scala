@@ -23,7 +23,7 @@ object Unnester {
       unnest(e)((u, w:+v2, nE))
     case ift @ If(cond, Sng(t @ Record(fs)), None) if !w.isEmpty => // C12, C5, and C8
       assert(!E.isEmpty)
-      fs.filter(f => f._2.isInstanceOf[Comprehension]).toList match {
+      fs.filter(f => (f._2.isInstanceOf[Comprehension] || f._2.isInstanceOf[CDeDup])).toList match {
         case Nil =>
           if (u.isEmpty) Reduce(E.get, w, t, cond)
           else {
@@ -35,6 +35,9 @@ object Unnester {
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
           val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(If(cond, Sng(Record(fs + (key -> v2))), None))((u, w :+ v2, nE))
+        case (key, CDeDup(value @ Comprehension(e1, v, p, e))) :: tail =>
+          val (nE, v2) = getNest(unnest(value)((w, w, E)))
+          unnest(If(cond, Sng(Record(fs + (key -> v2))), None))((u, w :+ v2, Some(CDeDup(nE.get))))
         case _ => sys.error("not supported")
       }
     case s @ Sng(v @ Variable(_,_)) if !w.isEmpty =>
@@ -48,7 +51,7 @@ object Unnester {
       }
     case s @ Sng(t @ Record(fs)) if !w.isEmpty =>
       assert(!E.isEmpty)
-      fs.filter(f => f._2.isInstanceOf[Comprehension]).toList match {
+      fs.filter(f => (f._2.isInstanceOf[Comprehension] || f._2.isInstanceOf[CDeDup])).toList match {
         case Nil =>
           if (u.isEmpty) Reduce(E.get, w, t, Constant(true))
           else {
@@ -58,8 +61,11 @@ object Unnester {
             Nest(E.get, w, et, t, v, Constant(true), gt)
           }
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
-	  val (nE, v2) = getNest(unnest(value)((w, w, E)))
+	        val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
+        case (key, CDeDup(value @ Comprehension(e1, v, p, e))) :: tail =>
+	        val (nE, v2) = getNest(unnest(value)((w, w, E)))
+          unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, Some(CDeDup(nE.get))))
         case _ => sys.error("not supported")
      }
     case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
@@ -93,7 +99,7 @@ object Unnester {
           val (sp2s, p1s, p2s) = ps(p2, v2, w)
           e1 match {
             // top level case
-             case Project(InputRef(name, BagDictCType(_,_)), "_1") if name.endsWith("__D") => 
+             case Project(InputRef(name, BagDictCType(_,_)), "_1") if name.endsWith("__D") =>
                val nE = Some(Join(E.get, Select(e1, v2, sp2s, v2), w, p1s, v2, p2s))  
                unnest(e3)((u, w :+ v2, nE)) 
              case _ => if (u.isEmpty) {
