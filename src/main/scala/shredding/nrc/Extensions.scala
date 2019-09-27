@@ -134,23 +134,15 @@ trait Extensions extends LinearizedNRC with Printer {
   // removes input labels and dictionaries from labels
   def invalidLabelElement(e: LabelParameter): Boolean = e match {
     case VarRefLabelParameter(LabelVarRef(VarDef(_, LabelType(ms)))) => ms.isEmpty
-    case VarRefLabelParameter(v) => 
-      if (v.tp.isInstanceOf[DictType]) true
-      else if (v.varDef.name.contains('.')) true
-      else false
-    case _ => false
+    case _ => e.tp.isInstanceOf[DictType]
   }
   
   def labelParameters(e: Expr): Set[LabelParameter] = 
     labelParameters(e, Map.empty).filterNot(invalidLabelElement(_)).toSet
 
-  // this prevents the substituting of unused label variables 
-  // into subexpressions (see shredding)
-  def isDeepestQuery(e: Expr): Boolean = 
-    collect(e, { case l if l.tp.isInstanceOf[LabelType] => List(l) }) match {
-      case Nil => true
-      case _ => false
-    }
+  def collectLabelParameters(e: ShredExpr): Set[LabelParameter] = 
+    (collect(e.flat, { case l:NewLabel => l.vars.toList }) ++ 
+        collect(e.dict, { case l:NewLabel => l.vars.toList })).toSet
  
   protected def labelParameters(e: Expr, scope: Map[String, VarDef]): List[LabelParameter] =
     collect(e, {
@@ -160,7 +152,7 @@ trait Extensions extends LinearizedNRC with Printer {
         filterByScope(ProjectLabelParameter(p), scope).toList
       case ForeachUnion(x, e1, e2) =>
         labelParameters(e1, scope) ++ labelParameters(e2, scope + (x.name -> x)) 
-      case l: Let => // does not work with nested lets, see isDeepestQuery
+      case l: Let => 
         val ivs = inputVars(l.e1, scope).map{ v => v.name -> v.varDef }.toMap ++ scope
         labelParameters(l.e1, ivs) ++ labelParameters(l.e2, scope + (l.x.name -> l.x))
       case NewLabel(vs) =>

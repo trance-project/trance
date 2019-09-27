@@ -25,7 +25,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case RecordCType(fs) =>
      val name = types(tp)
      val fsize = fs.size
-      s"case class $name(${fs.map(x => s"${kvName(x._1)(fsize)}: ${generateType(x._2)}").mkString(", ")}, uniqueId: Long) extends CaseClassRecord"
+      s"case class $name(${fs.map(x => s"${kvName(x._1)(fsize)}: ${generateType(x._2)}").mkString(", ")})"
     case _ => sys.error("unsupported type "+tp)
   }
 
@@ -46,8 +46,8 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       }
     case TupleDictCType(fs) if !fs.filter(_._2 != EmptyDictCType).isEmpty =>
       generateType(RecordCType(fs.filter(_._2 != EmptyDictCType)))
-    case LabelType(fs) if fs.isEmpty => "Int"
-    case LabelType(fs) => generateType(RecordCType(fs))
+    case RecordCType(fs) if fs.isEmpty => "Unit"
+    //case LabelType(fs) => generateType(RecordCType(fs))
     case EmptyCType => "Unit"
     case _ => sys.error("not supported type " + tp)
   }
@@ -85,7 +85,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
   def generate(e: CExpr): String = e match {
     case Variable(name, _) => name
     case InputRef(name, tp) => 
-      handleType(tp, Some("Input_"+name))
+      //handleType(tp, Some("Input_"+name))
       name
     case Comprehension(e1, v, p, e) =>
         val acc = "acc" + Variable.newId()
@@ -105,7 +105,10 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Record(fs) => {
       val tp = e.tp
       handleType(tp)
-      s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")}, newId)"
+      println(s"working on $e")
+      val s = s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
+      println(s)
+      s
     }
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
     case Project(e2, field) => e2.tp match {

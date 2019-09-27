@@ -191,7 +191,7 @@ object Utils {
     println(s"\n$qname")
     println(Printer.quote(normq1))
     val inputs = normq1 match {
-                  case l @ LinearCSet(_) => inputM ++ l.getTypeMap
+                  case l @ LinearCSet(_) => inputM //++ l.getTypeMap
                   case _ => inputM ++ Map(normq1.tp.asInstanceOf[BagCType].tp -> s"${qname}Out")
                  }
     val ng = inputM.toList.map(f => f._2)

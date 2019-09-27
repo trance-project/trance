@@ -21,6 +21,13 @@ trait Optimizer extends Extensions {
   def optimize(e: ShredExpr): ShredExpr =
     ShredExpr(optimize(e.flat), optimize(e.dict).asInstanceOf[DictExpr])
 
+  def optimize(e: ShredNamed): ShredNamed = {
+    val se = ShredExpr(optimize(e.e.flat), optimize(e.e.dict).asInstanceOf[DictExpr])
+    ShredNamed(VarDef(e.v.name, se.flat.tp), se)
+  }
+
+  def optimize(e: ShredSequence): ShredSequence = ShredSequence(e.exprs.map(s => optimize(s)))
+
   def optimize(e: Expr): Expr = inline(deadCodeElimination(betaReduce(e)))
 
   def inline(e: Expr): Expr = replace(e, {
