@@ -123,12 +123,35 @@ trait Extensions extends LinearizedNRC with Printer {
       case _ => ex
     })
   
+
+  def replaceLabelParams(e: Expr): Expr = replace(e, {
+    case BagDict(lbl @ NewLabel(ps), flat, dict) =>
+      println("replacing this label")
+      println(lbl)
+      println("in this expression")
+      println(quote(flat)) 
+      println("replacing with this")
+      BagDict(lbl, ps.foldRight(flat)((curr, acc) => curr match {
+        case p:ProjectLabelParameter => 
+          println(s"subbed $p")
+          val s = substitute(acc, VarDef(p.name, p.tp)).asInstanceOf[BagExpr]
+          println(s"with this $s")
+          s
+        case _ => acc
+      }), replaceLabelParams(dict).asInstanceOf[TupleDictExpr])
+  })
+
   // substitute label projections with their variable counter part
-  def substitute(e: Expr, v:VarDef) = replace(e, {
+  def substitute(e: Expr, v:VarDef): Expr = replace(e, {
     case p:Project if v.name == p.tuple.asInstanceOf[TupleVarRef].name + "." + p.field => v.tp match {
          case _:LabelType => LabelVarRef(v)
          case _ => VarRef(v)
       }
+    case NewLabel(ps) => NewLabel(ps.toList.map{p => p match {
+      case ProjectLabelParameter(p2) => substitute(p2.asInstanceOf[Expr], v) match {
+        case v2:VarRef => VarRefLabelParameter(v2)
+        case v2 => p }
+      case _ => p }}.toSet)
   })
 
   // removes input labels and dictionaries from labels
@@ -140,10 +163,6 @@ trait Extensions extends LinearizedNRC with Printer {
   def labelParameters(e: Expr): Set[LabelParameter] = 
     labelParameters(e, Map.empty).filterNot(invalidLabelElement(_)).toSet
 
-  def collectLabelParameters(e: ShredExpr): Set[LabelParameter] = 
-    (collect(e.flat, { case l:NewLabel => l.vars.toList }) ++ 
-        collect(e.dict, { case l:NewLabel => l.vars.toList })).toSet
- 
   protected def labelParameters(e: Expr, scope: Map[String, VarDef]): List[LabelParameter] =
     collect(e, {
       case v: VarRef =>
