@@ -25,6 +25,10 @@ object App {
   }
 
   def main(args: Array[String]){
+    runTPCH()  
+  }
+
+  def runTPCH(){  
     val eval = new BaseScalaInterp{}
     val evaluator = new Finalizer(eval)
 
@@ -302,6 +306,5 @@ object App {
     println(Printer.quote(splan4))
     println(evaluator.finalize(splan4))**/
   }
-
 
 }

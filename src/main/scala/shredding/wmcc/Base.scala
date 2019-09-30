@@ -175,7 +175,10 @@ trait BaseCompiler extends Base {
     val v = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
     Comprehension(e1, v, p(v), e(v))
   }
-  def dedup(e1: Rep): Rep = CDeDup(e1)
+  def dedup(e1: Rep): Rep = {
+    assert(!e1.tp.isInstanceOf[PrimitiveType])
+    CDeDup(e1)
+  }
   def bind(e1: Rep, e: Rep => Rep): Rep = {
       val v = Variable.fresh(e1.tp)
       Bind(v, e1, e(v)) 
