@@ -27,7 +27,53 @@ object App {
 
   def main(args: Array[String]){
     //runTPCH()  
-    runGenomic()
+    //runGenomic()
+    runPathway()
+  }
+
+  def runPathway(){
+    val eval = new BaseScalaInterp{}
+    val evaluator = new Finalizer(eval)
+    
+    def populate = {
+      eval.ctx.clear
+      eval.ctx("cases") = GenomicRelations.cases
+      eval.ctx("variants") = GenomicRelations.variants
+      eval.ctx("clinical") = GenomicRelations.clinical
+      eval.ctx("cases__F") = GenomicRelations.cases__F
+      eval.ctx("cases__D") = GenomicRelations.cases__D
+      eval.ctx("variants__F") = GenomicRelations.variants__F
+      eval.ctx("variants__D") = GenomicRelations.variants__D
+      eval.ctx("clinical__F") = GenomicRelations.clinical__F
+      eval.ctx("clinical__D") = GenomicRelations.clinical__D
+    }
+
+    /**println(" ----------------------- Query 1: simple mutation burden ----------------------- ")
+    populate
+    val q1 = normalizer.finalize(
+              translator.translate(
+                PathwayTests.q1.asInstanceOf[translator.Expr]).asInstanceOf[CExpr]).asInstanceOf[CExpr]
+
+    println(s"${runner.quote(PathwayTests.q1.asInstanceOf[runner.Expr])}\n")
+
+    println(Printer.quote(q1))
+    //println(s"${evaluator.finalize(q1)}\n")
+    
+    val p1 = Unnester.unnest(q1)((Nil, Nil, None)).asInstanceOf[CExpr]
+    println(Printer.quote(p1))
+    //println(s"${evaluator.finalize(p1)}\n")
+
+    val anfedq1 = anfer.finalize(p1)
+    val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
+    //println(evaluator.finalize(anfExp1.asInstanceOf[CExpr]))
+
+    val sq1 = normalizer.finalize(
+                runner.shredPipeline(
+                  PathwayTests.q1.asInstanceOf[runner.Expr]).asInstanceOf[CExpr]).asInstanceOf[CExpr]
+    
+    println(Printer.quote(sq1.asInstanceOf[CExpr]))
+    //println(s"${evaluator.finalize(sq1)}\n") **/
+
   }
 
   def runGenomic(){

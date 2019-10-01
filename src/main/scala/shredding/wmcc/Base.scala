@@ -266,23 +266,6 @@ trait BaseCompiler extends Base {
 
 }
 
-/**
-  * This is used for dot-equality
-  */
-case class RecordValue(map: Map[String, Any], uniqueId: Long) extends CaseClassRecord {
-  override def toString(): String = map.map(x => s"${x._1}:${x._2}").mkString("RecV(", ",", ")")
-}
-
-object RecordValue {
-  def apply(vs: (String, Any)*): RecordValue = RecordValue(vs.toMap, newId)
-  var id = 0L
-  def newId: Long = {
-    val prevId = id
-    id += 1
-    prevId
-  }
-}
-
 trait BasePlanOptimizer extends BaseCompiler {
   // reduce conditionals
   override def equals(e1: Rep, e2: Rep): Rep = (e1, e2) match {
