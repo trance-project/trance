@@ -8,7 +8,7 @@ import org.apache.spark.rdd.RDD
 import java.io.ByteArrayInputStream
 
 import com.oda.gdbspark._
-//sdfsdfsdf
+
   /** defines a genomic path with name and description url.
     * the file /home/gabor/Downloads/c2.cp.v6.2.symbols.gmt is downloaded from
     *     http://software.broadinstitute.org/gsea/msigdb/download_file.jsp?filePath=/resources/msigdb/6.2/c2.cp.v6.2.symbols.gmt
