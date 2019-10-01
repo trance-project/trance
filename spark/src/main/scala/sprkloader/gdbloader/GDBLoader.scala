@@ -1,5 +1,4 @@
-package gdbloader
-
+package sprkloader.gdbloader
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{Dataset, SparkSession}
