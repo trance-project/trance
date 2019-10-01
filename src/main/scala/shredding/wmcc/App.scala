@@ -48,8 +48,8 @@ object App {
       eval.ctx("clinical__D") = GenomicRelations.clinical__D
     }
 
-    /**println(" ----------------------- Query 1: simple mutation burden ----------------------- ")
-    populate
+    println(" ----------------------- Query 1: simple mutation burden ----------------------- ")
+    //populate
     val q1 = normalizer.finalize(
               translator.translate(
                 PathwayTests.q1.asInstanceOf[translator.Expr]).asInstanceOf[CExpr]).asInstanceOf[CExpr]
