@@ -169,7 +169,8 @@ object Loader {
             case StringType     => ldr.next_string
             case DoubleType     => ldr.next_double
             case LongType       => newId
-            //case DecimalType(_) => ldr.next_double
+            case t => sys.error("unsupported type $t")
+	    //case DecimalType(_) => ldr.next_double
             //case CharType       => ldr.next_char
             //case DateType       => ldr.next_date
             //case VarCharType(len) => //loadString(len, ldr)

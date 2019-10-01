@@ -53,6 +53,10 @@ trait Dictionary {
 
   case class TupleDict(fields: Map[String, TupleDictAttributeExpr]) extends TupleDictExpr {
     val tp: TupleDictType = TupleDictType(fields.map(f => f._1 -> f._2.tp))
+    def lastExpr: Boolean = { 
+      val vals = fields.values.toSet
+      (vals.size == 1 && vals.head == EmptyDict)
+    }
   }
 
   implicit class TupleDictExprOps(d: TupleDictExpr) {
@@ -138,7 +142,7 @@ trait Dictionary {
       case (BagDict(l1, f1, d1), BagDict(l2, f2, d2)) =>
         val attrTps = l1.tp.attrTps ++ l2.tp.attrTps
         val vars = attrTps.map { case (n, t) => ShredVarRef(VarDef(n, t)).asInstanceOf[VarRef] }.toSet
-        val lbl = NewLabel(vars)
+        val lbl = NewLabel(vars.map(VarRefLabelParameter(_)))
         BagDict(lbl, Union(f1, f2), d1.union(d2).asInstanceOf[TupleDictExpr])
       case (d1: BagDictExpr, d2: BagDictExpr) =>
         DictUnion(d1, d2)

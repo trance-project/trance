@@ -41,7 +41,6 @@ object SkewPairRDD {
       else lrdd.join(rrdd) 
     }
 
-    // this is an outerlookup
     def outerLookup[S >: Null](rrdd: RDD[(K,S)]): RDD[(V,S)] = {
       lrdd.cogroup(rrdd).flatMap{ pair =>
         if (pair._2._2.isEmpty) {

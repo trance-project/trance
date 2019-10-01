@@ -127,20 +127,22 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case WeightedSng(e, q) => s"(1 to ${generate(q)}.asInstanceOf[Int]).map(v => ${generate(e)})"
     case CUnit => "()"
     case EmptySng => "Nil"
-    case If(cond, e1, e2) => e2 match {
-      case Some(a) => s"""
-        | if ({${generate(cond)}}) {
-        | {${ind(generate(e1))}})
-        | } else {
-        | {${ind(generate(a))}}
-        | }""".stripMargin
-      case None => s"""
-        | if ({${generate(cond)}})
-        | {${ind(generate(e1))}}
-        | else  Nil """.stripMargin
-    }
+    case If(cond, e1, e2) => 
+      val zero = e1.tp match { case IntType => 0; case DoubleType => 0.0; case _ => Nil }
+      e2 match {
+        case Some(a) => s"""
+          | if ({${generate(cond)}}) {
+          | {${ind(generate(e1))}})
+          | } else {
+          | {${ind(generate(a))}}
+          | }""".stripMargin
+        case None => s"""
+          | if ({${generate(cond)}})
+          | {${ind(generate(e1))}}
+          | else $zero """.stripMargin
+      }
     case Merge(e1, e2) => s"${generate(e1) ++ generate(e2)}"
-    case CDeDup(e1) => s"${generate(e1)}.distinct"
+    case CDeDup(e1) => s"${generate(e1)}.map(_.toRec).distinct"
     case Bind(x, CNamed(n, e), e2) => s"val $n = ${generate(e)}\nval ${generate(x)} = $n\n${generate(e2)}"
     case LinearCSet(exprs) => 
       s"""(${exprs.map(generate(_)).mkString(",")})"""
@@ -148,7 +150,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case BagCDict(lbl, flat, dict) => 
       s"(${generate(flat)}.map(v => (${generate(lbl)}, v)), ${generate(dict)})"
     case TupleCDict(fs) => generate(Record(fs))
-    case Select(x, v, p) => p match {
+    case Select(x, v, p, e) => p match {
       case Constant(true) => generate(x)
       case _ => s"${generate(x)}.filter(${generate(v)} => ${generate(p)})"
     }

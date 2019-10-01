@@ -12,7 +12,11 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
     case Const(v, _) => v
     case v: VarRef => ctx(v.varDef)
     case p: Project =>
-      evalTuple(p.tuple, ctx)(p.field)
+      try{ 
+        evalTuple(p.tuple, ctx)(p.field)
+      }catch{
+        case e:Exception => ctx(VarDef(p.tuple.asInstanceOf[TupleVarRef].varDef.name+"."+p.field, p.tp))
+      }
     case ForeachUnion(x, e1, e2) =>
       val v1 = evalBag(e1, ctx)
       val v = v1.flatMap { xv => ctx.add(x, xv); evalBag(e2, ctx) }
@@ -20,9 +24,11 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
       v
     case Union(e1, e2) => evalBag(e1, ctx) ++ evalBag(e2, ctx)
     case Singleton(e1) => List(evalTuple(e1, ctx))
-    case WeightedSingleton(e1, w1) =>
-//      List(evalTuple(e1, ctx))
-      sys.error("Unsupported evaluation of WeightedSingleton")
+    case WeightedSingleton(e1, w1) => w1.tp match {
+      case IntType => (1 to eval(w1, ctx).asInstanceOf[Int]).map(w => evalTuple(e1, ctx))
+      case DoubleType => (1 to eval(w1, ctx).asInstanceOf[Double].toInt).map(w => evalTuple(e1, ctx))
+    }
+      //sys.error("Unsupported evaluation of WeightedSingleton")
     case Tuple(fs) => fs.map(x => x._1 -> eval(x._2, ctx))
     case l: Let =>
       ctx.add(l.x, eval(l.e1, ctx))
@@ -50,6 +56,7 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
       val newBoundVars = las.filterNot { case (n2, t2) =>
         ctx.contains(VarDef(n2, t2))
       }
+      var expression = x.e
       eval(x.lbl, ctx) match {
         case ROutLabel(fs) =>
           newBoundVars.foreach { case (n2, t2) =>
@@ -64,7 +71,13 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
       }
       v
     case NewLabel(as) =>
-      ROutLabel(as.map(a => a.varDef -> ctx(a.varDef)).toMap)
+      ROutLabel(as.map(a => a match { 
+        case l:VarRefLabelParameter => 
+          l.v.varDef -> ctx(l.v.varDef)
+        case l:ProjectLabelParameter => 
+          val v1 = VarDef(l.name, l.tp)
+          v1 -> eval(l.p.asInstanceOf[Expr], ctx)
+      }).toMap)
     case Lookup(l, BagDict(_, f, _)) =>
       val dictFn = new DictFn(ctx, c => evalBag(f, c))
       ROutBagDict(dictFn, f.tp, null)(evalLabel(l, ctx))
@@ -93,7 +106,11 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
   }
 
   protected def evalBag(e: Expr, ctx: Context): List[_] =
-    eval(e, ctx).asInstanceOf[List[_]]
+    try{
+      eval(e, ctx).asInstanceOf[List[_]]
+    }catch{
+      case ex:Exception => eval(e, ctx).asInstanceOf[Vector[_]].toList
+    }
 
   protected def evalTuple(e: Expr, ctx: Context): Map[String, _] =
     eval(e, ctx).asInstanceOf[Map[String, _]]

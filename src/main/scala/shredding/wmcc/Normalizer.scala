@@ -75,6 +75,12 @@ trait BaseNormalizer extends BaseCompiler {
     case _ => super.lookup(lbl, dict)
   }
 
+  override def sng(x: Rep): Rep = x match {
+    case Sng(t) => sng(t)
+    case _ => super.sng(x)
+  }
+
+ 
   // { e(v) | v <- e1, p(v) }
   // where fegaras and maier does: { e | q, v <- e1, s }
   // this has { { { e | s } | v <- e1 } | q }
@@ -87,7 +93,7 @@ trait BaseNormalizer extends BaseCompiler {
       case If(cond, e3 @ WeightedSng(t, q), None) => comprehension(e3, (i: CExpr) => cond, e)
       case WeightedSng(t, q) if e(t) == Constant(1) => comprehension(Sng(t), p, (i: CExpr) => q)
       case EmptySng => EmptySng // N5
-      case Sng(t) => ifthen(p(t), Sng(e(t))) // N6
+      case Sng(t) => ifthen(p(t), sng(e(t))) // N6
       case Merge(e1, e2) => Merge(comprehension(e1, p, e), comprehension(e2, p, e))  //N7
       case Variable(name,_) => ifthen(p(e1), Sng(e(e1))) // input relation
       case Comprehension(e2, v2, p2, e3) => e3 match {

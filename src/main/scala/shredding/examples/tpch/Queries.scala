@@ -154,8 +154,12 @@ object TPCHQueries {
  
   val Q1 = VarDef(q4name, query1.tp) 
   val q1 = VarDef("q1", q1type)
+  val q2 = VarDef("q12", q1type)
   val q1r = TupleVarRef(q1)
+
   val cq1 = VarDef("corders", TupleType("o_orderdate" -> StringType, "o_parts" ->
+                            BagType(TupleType("p_name" -> StringType, "l_qty" -> DoubleType))))
+  val cq2 = VarDef("corders2", TupleType("o_orderdate" -> StringType, "o_parts" ->
                             BagType(TupleType("p_name" -> StringType, "l_qty" -> DoubleType))))
   val cq1r = TupleVarRef(cq1)
 
@@ -185,7 +189,7 @@ object TPCHQueries {
     |val Query4__D = (ShredQuery4._2, Input_Q1_Dict1((ShredQuery4._4, Input_Q1_Dict2((ShredQuery4._6, Unit)))))""".stripMargin
 
   val sq4spark = s"""
-      |val Query4__F = M_ctx1.lbl
+      |val Query4__F = M_ctx1
       |val Query4__D_1 = M_flat1.flatMap{ r => r._2 }
       |Query4__D_1.cache
       |Query4__D_1.count
@@ -196,16 +200,39 @@ object TPCHQueries {
       |Query4__D_2c_orders_2o_parts.cache
       |Query4__D_2c_orders_2o_parts.count
     """
+  /**val query4 = ForeachUnion(q1, BagVarRef(Q1), 
+                  ForeachUnion(cq1, BagProject(q1r, "c_orders"), 
+                    ForeachUnion(pq1, BagProject(cq1r, "o_parts"), 
+                      Singleton(Tuple("c_name" -> q1r("c_name"), "p_name" -> pq1r("p_name"), "month" -> cq1r("o_orderdate"), 
+                        "t_qty" -> Total(
+			     ForeachUnion(q2, BagVarRef(Q1),
+			       ForeachUnion(cq2, BagProject(q1r, "c_orders"),
+			         ForeachUnion(pq2, BagProject(cq1r, "o_parts"), 
+                                    IfThenElse(And(And(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")), 
+				     	Cmp(OpEq, TupleVarRef(cq2)("o_orderdate"), cq1r("o_orderdate"))),
+					Cmp(OpEq, TupleVarRef(q2)("c_name"), q1r("c_name")))
+                                  //IfThenElse(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")),
+                                    WeightedSingleton(Tuple("l_qty" -> pq1r("l_qty")), 
+                                      TupleVarRef(pq2)("l_qty").asInstanceOf[PrimitiveExpr])))))))))))   **/
 
-  val query4 = //Sequence(List(Named(Q1, query1),
-                ForeachUnion(q1, BagVarRef(Q1), 
+  val query4a = ForeachUnion(q1, BagVarRef(Q1), 
                   ForeachUnion(cq1, BagProject(q1r, "c_orders"), 
                     ForeachUnion(pq1, BagProject(cq1r, "o_parts"), 
                       Singleton(Tuple("c_name" -> q1r("c_name"), "p_name" -> pq1r("p_name"), "month" -> cq1r("o_orderdate"), 
                         "t_qty" -> Total(ForeachUnion(pq2, BagProject(cq1r, "o_parts"), 
-                                  IfThenElse(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")),
-                                    WeightedSingleton(Tuple("l_qty" -> pq1r("l_qty")), 
-                                      TupleVarRef(pq2)("l_qty").asInstanceOf[PrimitiveExpr])))))))))//))   
+                                  	IfThenElse(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")),
+                                    		WeightedSingleton(Tuple("l_qty" -> pq1r("l_qty")), 
+                                      		TupleVarRef(pq2)("l_qty").asInstanceOf[PrimitiveExpr])))))))))
+
+
+  val query4 = DeDup(ForeachUnion(q1, BagVarRef(Q1), 
+                  ForeachUnion(cq1, BagProject(q1r, "c_orders"), 
+                    ForeachUnion(pq1, BagProject(cq1r, "o_parts"), 
+                      Singleton(Tuple("c_name" -> q1r("c_name"), "p_name" -> pq1r("p_name"), "month" -> cq1r("o_orderdate"), 
+                        "t_qty" -> Total(ForeachUnion(pq2, BagProject(cq1r, "o_parts"), 
+                                  	IfThenElse(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")),
+                                    		WeightedSingleton(Tuple("l_qty" -> pq1r("l_qty")), 
+                                      		TupleVarRef(pq2)("l_qty").asInstanceOf[PrimitiveExpr]))))))))))
   // Query 2
 
   val relS = BagVarRef(VarDef("S", TPCHSchema.suppliertype))

@@ -10,7 +10,7 @@ import shredding.core._
 
 sealed trait CExpr {
   def tp: Type
-  def wvars: List[Variable] = List() // remove this 
+  def wvars: List[Variable] = List() // remove this, only using for printing
 }
 
 case class InputRef(data: String, tp: Type) extends CExpr 
@@ -202,8 +202,7 @@ case class DictCUnion(d1: CExpr, d2: CExpr) extends CExpr {
   */
 
 case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
-  def tp: Type = x.tp//BagCType(e.tp)
-  // def tpMap: Map[Variable, Type] = Map(v -> x.asInstanceOf[BagCType].tp)
+  def tp: Type = x.tp
   override def wvars = List(v)
 }
 
@@ -212,7 +211,6 @@ case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CEx
     case t:RecordCType => BagCType(t)
     case t => t
   }
-  // def tpMap: Map[Variable, Type] = e1.tpMap // head of plan
   override def wvars = e1.wvars
 }
 
@@ -222,29 +220,33 @@ case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CEx
   // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = e1.wvars :+ v2
   override def equals(that: Any): Boolean = that match {
-    case Unnest(e11, v11, e21, v21, p1) if (e1 == e11 && e21 == e2) => true
-    case _ => false
+    case Unnest(e11, v11, e21, v21, p1) => e21 == e2
+    case OuterUnnest(e11, v11, e21, v21, p1) => e21 == e2
+    case e => false
   }
 }
 
-case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
+case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr { self =>
   def tp: Type = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
-  // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = e1.wvars :+ v2
+  // need to fix this to work with ANF
   override def equals(that: Any): Boolean = that match {
-    case OuterUnnest(e11, v11, e21, v21, p1) if (e1 == e11 && e21 == e2) => true
-    case _ => false
+    case Unnest(e11, v11, e21, v21, p1) if e21 == e2 => true
+    case OuterUnnest(e11, v11, e21, v21, p1) if e21 == e2 => true
+    case e => false
   }
 }
 
 case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr, g: CExpr) extends CExpr {
   def tp: Type = BagCType(v2.tp) // check 
   // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
+  // this needs redone
   override def wvars = { 
     val uvars = f match {
       case Bind(v1, t @ Tuple(fs), v2) => fs
       case Tuple(fs) => fs
       case v:Variable => List(v)
+      case Bind(v1, Project(v2, f), v3) => List(v2)
       case _ => sys.error(s"unsupported $f")
     }
     e1.wvars.filter(uvars.contains(_)) :+ v2
@@ -292,7 +294,27 @@ case class Variable(name: String, override val tp: Type) extends CExpr { self =>
       that.tp.asInstanceOf[RecordCType].attrTps.keys.toList.contains(this.name)
     case _ => false  
   }
-
+  
+  // variable is referenced more than just for a join condition in a lookup
+  // used to avoid joins on domains
+  // for now collects a set of expressions for which this variable is referenced
+  def isReferenced(that: CExpr): List[CExpr] = that match {
+    case Reduce(e1, v, e2, p) => isReferenced(e1) ++ isReferenced(e2) ++ isReferenced(p)
+    case Nest(e1, v1, f, e, v2, p, g) =>
+      isReferenced(e1) ++ isReferenced(f) ++ isReferenced(e) ++ isReferenced(p) ++ isReferenced(g)
+    case Join(e1, e2, v1, p1, v2, p2) =>
+      isReferenced(e1) ++ isReferenced(e2) ++ isReferenced(p1) ++ isReferenced(p2)
+    case Tuple(fs) => fs.flatMap(isReferenced(_))
+    case r @ Record(_) => r.fields.flatMap(m => isReferenced(m._2)).toList
+    case Equals(e1, e2) => if (isReferenced(e1).nonEmpty || isReferenced(e2).nonEmpty) List(that) else Nil
+    case Project(v:Variable, f) if v.name == this.name => List(that)
+    case Project(v, f) => isReferenced(v) match {
+      case Nil => Nil
+      case l => List(that)
+    }
+    case v @ Variable(n, tp) if n == this.name => List(v)
+    case _ => Nil
+  }
   override def hashCode: Int = (name, tp).hashCode()
   def quote: String = self.name
 
