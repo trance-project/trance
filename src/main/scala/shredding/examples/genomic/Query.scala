@@ -9,12 +9,20 @@ case class Case(iscase: String)
 case class Variant(contig: String, start: Int, genotypes: List[Genotype])
 case class VariantFlat(contig: String, start: Int, genotypes: Int)
 
+case class Genotype2(sample: String, call: Int, allele1: String, allele2: String)
+case class Variant2(contig: String, start: Int, genotypes: List[Genotype2])
+
+
 object GenomicRelations{
 
    val casetype = TupleType("iscase" -> StringType)
    val clintype = TupleType("sample" -> StringType, "iscase" -> StringType)
    val genotype = TupleType("sample" -> StringType, "call" -> IntType)
    val varianttype = TupleType("contig" -> StringType, "start" -> IntType, "genotypes" -> BagType(genotype))
+   val genotype2 = TupleType("sample" -> StringType, "call" -> IntType, "allele1" -> StringType, "allele2" -> StringType)
+   val varianttype2 = TupleType("contig" -> StringType, "start" -> IntType, "genotypes" -> BagType(genotype2))
+
+
    val variantftype = TupleType("contig" -> StringType, "start" -> IntType, "genotypes" -> IntType)
 
    val q1inputs = Map[Type, String](casetype -> "Case", clintype -> "Clinical", 

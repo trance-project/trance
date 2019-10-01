@@ -48,6 +48,32 @@ object App {
       eval.ctx("clinical__D") = GenomicRelations.clinical__D
     }
 
+    println(" ----------------------- Query 0: simple  ----------------------- ")
+    //populate
+    val q0 = normalizer.finalize(
+              translator.translate(
+                PathwayTests.q0.asInstanceOf[translator.Expr]).asInstanceOf[CExpr]).asInstanceOf[CExpr]
+
+    println(s"${runner.quote(PathwayTests.q0.asInstanceOf[runner.Expr])}\n")
+
+    println(Printer.quote(q0))
+    //println(s"${evaluator.finalize(q1)}\n")
+    
+    val p0 = Unnester.unnest(q0)((Nil, Nil, None)).asInstanceOf[CExpr]
+    println(Printer.quote(p0))
+    //println(s"${evaluator.finalize(p1)}\n")
+
+    val anfedq0 = anfer.finalize(p0)
+    val anfExp0 = anfBase.anf(anfedq0.asInstanceOf[anfBase.Rep])
+    //println(evaluator.finalize(anfExp1.asInstanceOf[CExpr]))
+
+    val sq0 = normalizer.finalize(
+                runner.shredPipeline(
+                  PathwayTests.q0.asInstanceOf[runner.Expr]).asInstanceOf[CExpr]).asInstanceOf[CExpr]
+    
+    println(Printer.quote(sq0.asInstanceOf[CExpr]))
+    //println(s"${evaluator.finalize(sq1)}\n") **/
+
     println(" ----------------------- Query 1: simple mutation burden ----------------------- ")
     //populate
     val q1 = normalizer.finalize(

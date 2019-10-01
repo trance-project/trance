@@ -104,13 +104,13 @@ object Unnester {
                unnest(e3)((u, w :+ v2, nE)) 
              case _ => if (u.isEmpty) {
                val nE = Some(Lookup(E.get, Select(e1, v, sp2s, v2), w, lbl1, v2, Constant(true), Constant(true)))
-	       unnest(pushPredicate(e3, p2))((u, w :+ v2, nE)) 
+	             unnest(pushPredicate(e3, p2))((u, w :+ v2, nE)) 
              }else{
                val nE = Some(OuterLookup(E.get, Select(e1, v, sp2s, v2), w, lbl1, v2, Constant(true), Constant(true)))
- 	       unnest(pushPredicate(e3, p2))((u, w :+ v2, nE))      
-	     }
+ 	             unnest(pushPredicate(e3, p2))((u, w :+ v2, nE))      
+	           }
           }
-	case (e4, be2) => 
+	      case (e4, be2) => 
           val nE = Some(OuterLookup(E.get, Select(e1, v2, Constant(true), v2), w, lbl1, v2, Constant(true), Constant(true)))
           val (nE2, nv) = getNest(unnest(e4)((w :+ v2, w :+ v2, nE)))
           unnest(e3)((u, w :+ nv, nE2)) match {
@@ -244,8 +244,9 @@ object Unnester {
       case (pm, be) => (pm, (v: Variable) => And(be(v), e2))
       case _ => (Constant(false), (v: Variable) => Constant(true))
     }
-    case Or(e1, e2) => ???
-    case Not(e1) => ???
+    case Or(e1 @ Comprehension(_,_,_,_), e2) => (e1, (v: Variable) => Or(v, e2))
+    case Or(e1, e2 @ Comprehension(_,_,_,_)) => (e1, (v: Variable) => Or(e1, v))
+    case Not(e1 @ Comprehension(_,_,_,_)) => (e1, (v: Variable) => Not(v))
     case If(c, e1, _) => getPM(c) match {
       case (Constant(false), _) => (Constant(false), (v: Variable) => Constant(true))
       case (pm, bp) => (pm, bp)
