@@ -126,17 +126,9 @@ trait Extensions extends LinearizedNRC with Printer {
 
   def replaceLabelParams(e: Expr): Expr = replace(e, {
     case BagDict(lbl @ NewLabel(ps), flat, dict) =>
-      println("replacing this label")
-      println(lbl)
-      println("in this expression")
-      println(quote(flat)) 
-      println("replacing with this")
       BagDict(lbl, ps.foldRight(flat)((curr, acc) => curr match {
         case p:ProjectLabelParameter => 
-          println(s"subbed $p")
-          val s = substitute(acc, VarDef(p.name, p.tp)).asInstanceOf[BagExpr]
-          println(s"with this $s")
-          s
+          substitute(acc, VarDef(p.name, p.tp)).asInstanceOf[BagExpr]
         case _ => acc
       }), replaceLabelParams(dict).asInstanceOf[TupleDictExpr])
   })
