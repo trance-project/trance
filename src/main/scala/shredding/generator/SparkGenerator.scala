@@ -184,12 +184,18 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
               |   case $gv2 => ({${generate(f)}}, {${generate(e2)}})
               | }
               |}$gbfun""".stripMargin
-        case (Constant(true), _) => 
-          s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
-              |   $nonet
-              |   case $gv2 => ({${generate(f)}}, {${generate(e2)}})
-              | }
-              |}.reduceByKey(_ + _)""".stripMargin
+        case (Constant(true), _) => g match {
+          case Bind(_, CUnit, _) =>
+            s"""|${generate(e1)}.map{ case $vars => 
+                |   ({${generate(f)}}, {${generate(e2)}})
+                |}.reduceByKey(_ + _)""".stripMargin
+          case _ =>
+            s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
+                |   $nonet
+                |   case $gv2 => ({${generate(f)}}, {${generate(e2)}})
+                | }
+                |}.reduceByKey(_ + _)""".stripMargin
+        }
         case (_, RecordCType(_)) => 
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
               |   case $gv2 if {${generate(p)}} => ({${generate(f)}}, {${generate(e2)}})

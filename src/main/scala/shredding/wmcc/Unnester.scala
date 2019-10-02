@@ -16,6 +16,16 @@ object Unnester {
 
   def unnest(e: CExpr)(implicit ctx: Ctx): CExpr = e match {
     case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E)))
+    case CSetGroupBy(e1) => ???
+    case CBagGroupBy(e1) => ???
+    case CPrimitiveGroupBy(e1) => unnest(e1)(u, w, E) match {
+      case Reduce(e2, v2, e3 @ Record(fs), p2 @ Constant(true)) => 
+        val key = Record(fs.dropRight(1))
+        val value = fs.last._2 // should be a bag or a primitive
+        val v = Variable.fresh(TTupleType(List(key.tp, value.tp)))
+        val g = if (u.isEmpty) CUnit else Tuple((w.toSet -- u).toList)
+        Nest(e2, v2, key, value, v, p2, g)
+    } 
     case Comprehension(e1, v, p, e) if u.isEmpty && w.isEmpty && E.isEmpty =>
       unnest(e)((Nil, List(v), Some(Select(e1, v, p, v)))) // C4
     case Comprehension(e1 @ Comprehension(_, _, _, _), v, p, e) if !w.isEmpty => // C11 (relaxed)

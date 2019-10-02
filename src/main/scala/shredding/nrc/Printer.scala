@@ -46,7 +46,7 @@ trait Printer extends LinearizedNRC {
       else
         s"""|If (${quote(i.cond)})
             |Then ${quote(i.e1)}""".stripMargin
-
+    case g:GroupBy => s"(${quote(g.bag)}).groupBy(${g.agg})"
     // Label cases
     case x: ExtractLabel =>
       val tuple = x.lbl.tp.attrTps.keys.mkString(", ")

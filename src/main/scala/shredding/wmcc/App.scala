@@ -26,9 +26,9 @@ object App {
   }
 
   def main(args: Array[String]){
-    //runTPCH()  
+    runTPCH()  
     //runGenomic()
-    runPathway()
+    //runPathway()
   }
 
   def runPathway(){
@@ -406,7 +406,31 @@ object App {
     println("")
     //println(Printer.quote(snormq2))
     eval.ctx.clear
-    println("\n-------------------- ENDS HERE -----------------------------\n")
+    println("\n-------------------- Query 4, Group By -----------------------------\n")
+
+    val q0b = TPCHQueries.query4b.asInstanceOf[nrceval.Expr]
+    println(nrcprinter.quote(q0b.asInstanceOf[nrcprinter.Expr]))
+    //println("\nNRC EVALUTED:\n")
+    //println(nrceval.eval(q0b, ctx))
+    val q4b = translator.translate(TPCHQueries.query4b.asInstanceOf[translator.Expr])
+    println(Printer.quote(q4b))
+    val normq4b = normalizer.finalize(q4b).asInstanceOf[CExpr]
+    println("\nNormalized Calculus:\n")
+    println(Printer.quote(normq4b))
+    //println("\nNORMALIZED CALC EVALUATED")
+    //println(evaluator.finalize(normq5a))
+    
+    val plan4b = Unnester.unnest(normq4b)(Nil, Nil, None).asInstanceOf[CExpr]
+    println("\nPlan:\n")
+    println(Printer.quote(plan4b))
+    //println("\nPLAN EVALUTED:\n")
+    //println(evaluator.finalize(plan5a))
+    anfBase.reset
+    val anfedq4b = anfer.finalize(plan4b)
+    val anfExp4b = anfBase.anf(anfedq4b.asInstanceOf[anfBase.Rep])
+    //println(evaluator.finalize(anfExp5.asInstanceOf[CExpr]))
+
+
 
     /**eval.ctx("C__F") = 1
     eval.ctx("C__D") = (List((1, TPCHLoader.loadCustomer[Customer].toList)), ())

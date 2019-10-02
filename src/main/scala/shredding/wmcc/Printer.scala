@@ -40,6 +40,9 @@ object Printer {
     }
     case Bind(x, e1, e2) => s"{ ${quote(e2)} | ${quote(x)} := ${quote(e1)} }"
     case CDeDup(e1) => s"DeDup(${quote(e1)})"
+    case CSetGroupBy(e1) => s"(${quote(e1)}).groupBy(+U)"
+    case CBagGroupBy(e1) => s"(${quote(e1)}).groupBy(U)"
+    case CPrimitiveGroupBy(e1) => s"(${quote(e1)}).groupBy(+)"
     case CNamed(n, e) => named(n, quote(e))
     case LinearCSet(exprs) => linset(exprs.map(quote(_)))
     case CLookup(lbl, dict) => lookup(quote(lbl), quote(dict))
@@ -60,7 +63,8 @@ object Printer {
       s""" |  <-- (${e.wvars.map(_.quote).mkString(",")}) -- OUTERUNNEST[ ${quote(e2)} / ${quote(p)} ](${quote(e1)})""".stripMargin
     case Nest(e1, v1, f, e3, v2, p, g) =>
       val acc = e match { case Constant(1) => "+"; case _ => "U" }
-      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- NEST[ ${acc} / ${quote(e3)} / ${quote(f)}, ${quote(p)} / ${quote(g)} ](${quote(e1)})""".stripMargin
+      val outs = if (e.wvars.size == 1) "" else s"<-- (${e.wvars.map(_.quote).mkString(",")}) --"
+      s""" | $outs NEST[ ${acc} / ${quote(e3)} / ${quote(f)}, ${quote(p)} / ${quote(g)} ](${quote(e1)})""".stripMargin
     case Join(e1, e2, v1, p1, v2, p2) =>
       s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) JOIN[${quote(p1)} = ${quote(p2)}](
            | ${ind(quote(e2))})""".stripMargin

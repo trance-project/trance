@@ -27,6 +27,7 @@ object Optimizer {
       Reduce(push(d), v, f, p)
     case Nest(e1, v1, f, e, v, p, g) => 
       fields(e)
+      fields(f)
       Nest(push(e1), v1, f, e, v, p, g)
     case Unnest(e1, v1, f, v2, p) =>
       fields(f)
