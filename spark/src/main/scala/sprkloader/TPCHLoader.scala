@@ -2,14 +2,24 @@ package sprkloader
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.Dataset
+import org.apache.spark.sql.types.{IntegerType, StringType, DoubleType, StructField, StructType}
 
 case class PartSupp(ps_partkey: Int, ps_suppkey: Int, ps_availqty: Int, ps_supplycost: Double, ps_comment: String, uniqueId: Long) extends CaseClassRecord
 
+case class Part2(p_partkey: Int, p_name: String, p_mfgr: String, p_brand: String, p_type: String, p_size: Int, p_container: String, p_retailprice: Double, p_comment: String)
+
 case class Part(p_partkey: Int, p_name: String, p_mfgr: String, p_brand: String, p_type: String, p_size: Int, p_container: String, p_retailprice: Double, p_comment: String, uniqueId: Long) extends CaseClassRecord
+
+case class Customer2(c_custkey: Int, c_name: String, c_address: String, c_nationkey: Int, c_phone: String, c_acctbal: Double, c_mktsegment: String, c_comment: String)
 
 case class Customer(c_custkey: Int, c_name: String, c_address: String, c_nationkey: Int, c_phone: String, c_acctbal: Double, c_mktsegment: String, c_comment: String, uniqueId: Long) extends CaseClassRecord
 
+case class Orders2(o_orderkey: Int, o_custkey: Int, o_orderstatus: String, o_totalprice: Double, o_orderdate: String, o_orderpriority: String, o_clerk: String, o_shippriority: Int, o_comment: String)
+
 case class Orders(o_orderkey: Int, o_custkey: Int, o_orderstatus: String, o_totalprice: Double, o_orderdate: String, o_orderpriority: String, o_clerk: String, o_shippriority: Int, o_comment: String, uniqueId: Long) extends CaseClassRecord
+
+case class Lineitem2(l_orderkey: Int, l_partkey: Int, l_suppkey: Int, l_linenumber: Int, l_quantity: Double, l_extendedprice: Double, l_discount: Double, l_tax: Double, l_returnflag: String, l_linestatus: String, l_shipdate: String, l_commitdate: String, l_receiptdate: String, l_shipinstruct: String, l_shipmode: String, l_comment: String)
 
 case class Lineitem(l_orderkey: Int, l_partkey: Int, l_suppkey: Int, l_linenumber: Int, l_quantity: Double, l_extendedprice: Double, l_discount: Double, l_tax: Double, l_returnflag: String, l_linestatus: String, l_shipdate: String, l_commitdate: String, l_receiptdate: String, l_shipinstruct: String, l_shipmode: String, l_comment: String, uniqueId: Long) extends CaseClassRecord
 
@@ -43,13 +53,32 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
     val b = BigInt(n).intValue()
     if (b < 0) b*(-1) else b 
   }
+  
+  import spark.implicits._
 
   def loadCustomers():RDD[Customer] = {
     spark.sparkContext.textFile(s"file:///$datapath/customer.tbl", minPartitions = parts).map(line => {
                     val l = line.split("\\|")
                     Customer(l(0).toInt, l(1), l(2), l(3).toInt, l(4), l(5).toDouble, l(6), l(7), l(0).toLong)})
   }
- 
+
+  def loadCustomersDF():Dataset[Customer2] = { 
+    val schema = StructType(Array(
+                      StructField("c_custkey", IntegerType), 
+                      StructField("c_name", StringType),
+                      StructField("c_address", StringType),
+                      StructField("c_nationkey", IntegerType), 
+                      StructField("c_phone", StringType), 
+                      StructField("c_acctbal", DoubleType),
+                      StructField("c_mktsegment", StringType), 
+                      StructField("c_comment", StringType)))
+
+    spark.read.schema(schema)
+      .option("delimiter", "|")
+      .csv(s"file:///$datapath/customer.tbl")
+      .as[Customer2]
+  }
+
   def loadShredCustomers(flat: Int):RDD[(Int, Customer)] = {
     spark.sparkContext.textFile(s"file:///$datapath/customer.tbl").map(line => {
                     val l = line.split("\\|")
@@ -74,6 +103,24 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
                     Part(l(0).toInt, l(1), l(2), l(3), l(4), l(5).toInt, l(6), l(7).toDouble, l(8), l(0).toLong)})
   }
 
+  def loadPartDF():Dataset[Part2] = {
+    val schema = StructType(Array(
+                      StructField("p_partkey", IntegerType), 
+                      StructField("p_name", StringType), 
+                      StructField("p_mfgr", StringType), 
+                      StructField("p_brand", StringType), 
+                      StructField("p_type", StringType), 
+                      StructField("p_size", IntegerType), 
+                      StructField("p_container", StringType), 
+                      StructField("p_retailprice", DoubleType), 
+                      StructField("p_comment", StringType)))
+
+    spark.read.schema(schema)
+      .option("delimiter", "|")
+      .csv(s"file:///$datapath/part.tbl")
+      .as[Part2]
+  }
+
   def loadShredPart(flat: Int):RDD[(Int, Part)] = {
     spark.sparkContext.textFile(s"file:///$datapath/part.tbl").map(line => {
                     val l = line.split("\\|")
@@ -86,6 +133,27 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
     spark.sparkContext.textFile(s"file:///$datapath/$ofile",minPartitions = parts).map(line => {
                     val l = line.split("\\|")
                     Orders(parseBigInt(l(0)), l(1).toInt, l(2), l(3).toDouble, l(4), l(5), l(6), l(7).toInt, l(8), l(0).toLong)})
+  }
+
+
+  def loadOrdersDF():Dataset[Orders2] = {
+
+    val schema = StructType(Array(
+                  StructField("o_orderkey", IntegerType), 
+                  StructField("o_custkey", IntegerType), 
+                  StructField("o_orderstatus", StringType), 
+                  StructField("o_totalprice", DoubleType), 
+                  StructField("o_orderdate", StringType), 
+                  StructField("o_orderpriority", StringType), 
+                  StructField("o_clerk", StringType), 
+                  StructField("o_shippriority", IntegerType), 
+                  StructField("o_comment", StringType)))
+   
+    val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
+    spark.read.schema(schema)
+      .option("delimiter", "|")
+      .csv(s"file:///$datapath/$ofile")
+      .as[Orders2]
   }
 
   def loadShredOrders(flat: Int):RDD[(Int, Orders)] = {
@@ -108,6 +176,34 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
                     Lineitem(parseBigInt(l(0)), l(1).toInt, l(2).toInt, l(3).toInt, l(4).toDouble, l(5).toDouble, l(6).toDouble, 
                       l(7).toDouble, l(8), l(9), l(10), l(11), l(12), l(13), l(14), l(15), newId)})
   }
+  
+  def loadLineitemDF():Dataset[Lineitem2] = {
+    val schema = StructType(Array(
+                   StructField("l_orderkey", IntegerType), 
+                   StructField("l_partkey", IntegerType),
+                   StructField("l_suppkey", IntegerType),
+                   StructField("l_linenumber", IntegerType), 
+                   StructField("l_quantity", DoubleType), 
+                   StructField("l_extendedprice", DoubleType), 
+                   StructField("l_discount", DoubleType), 
+                   StructField("l_tax", DoubleType), 
+                   StructField("l_returnflag", StringType), 
+                   StructField("l_linestatus", StringType), 
+                   StructField("l_shipdate", StringType), 
+                   StructField("l_commitdate", StringType), 
+                   StructField("l_receiptdate", StringType), 
+                   StructField("l_shipinstruct", StringType), 
+                   StructField("l_shipmode", StringType), 
+                   StructField("l_comment", StringType)))
+
+    spark.read.schema(schema)
+      .option("delimiter", "|")
+      .csv(s"file:///$datapath/lineitem.tbl")
+      .as[Lineitem2]
+
+  }
+
+
 
   def loadShredLineitem(flat: Int):RDD[(Int, Lineitem)] = {
     var id = 0L
