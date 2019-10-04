@@ -30,7 +30,7 @@ trait Linearization {
     case _ => sys.error("Cannot linearize dict type " + e.dict)
   }
 
-  private def linearize(dict: BagDictExpr, ctx: BagVarRef, domain: Boolean = false): List[Expr] = {
+  private def linearize(dict: BagDictExpr, ctx: BagVarRef): List[Expr] = {
     // 1. Iterate over ctx (bag of labels) and produce key-value pairs
     //    consisting of labels from ctx and flat bags from dict
     val ldef = VarDef(Symbol.fresh("l"), ctx.tp.tp)
@@ -64,19 +64,4 @@ trait Linearization {
       }
   }
 
-  // name this something better
-  //for (x ← X) (k = g(x), v = for (y ← Y) if ( g(x) = f(y) ) h(y) ) ⇒ 
-  //( for (y ← Y) (f(y), h(y)) ).groupByLabel()
-  private def linearizeOpt(dict: BagDictExpr, ctx: BagVarRef): Unit = {
-    // 1. Iterate over ctx (bag of labels) and produce key-value pairs
-    //    consisting of labels from ctx and flat bags from dict
-    val ldef = VarDef(Symbol.fresh("l"), ctx.tp.tp)
-    val lbl = LabelProject(TupleVarRef(ldef), "lbl")
-    //val kvpair = Tuple("k" -> lbl, "v" -> optimize(dict.lookup(lbl)).asInstanceOf[BagExpr])
-    //val mFlat = ForeachUnion(ldef, ctx,
-    //  BagExtractLabel(LabelProject(TupleVarRef(ldef), "lbl"), Singleton(kvpair)))
-    //val mFlatNamed = Named(VarDef(Symbol.fresh("M_flat"), mFlat.tp), mFlat)
-    //val mFlatRef = BagVarRef(mFlatNamed.v)
-    println(optimize(dict.lookup(lbl)))
-  }
 }

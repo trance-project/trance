@@ -189,7 +189,7 @@ object TPCHQueries {
     |val Query4__D = (ShredQuery4._2, Input_Q1_Dict1((ShredQuery4._4, Input_Q1_Dict2((ShredQuery4._6, Unit)))))""".stripMargin
 
   val sq4spark = s"""
-      |val Query4__F = M_ctx1.lbl
+      |val Query4__F = M_ctx1
       |val Query4__D_1 = M_flat1.flatMap{ r => r._2 }
       |Query4__D_1.cache
       |Query4__D_1.count
@@ -224,6 +224,11 @@ object TPCHQueries {
                                     		WeightedSingleton(Tuple("l_qty" -> pq1r("l_qty")), 
                                       		TupleVarRef(pq2)("l_qty").asInstanceOf[PrimitiveExpr])))))))))
 
+  val query4b = GroupBy(ForeachUnion(q1, BagVarRef(Q1), 
+                  ForeachUnion(cq1, BagProject(q1r, "c_orders"), 
+                    ForeachUnion(pq1, BagProject(cq1r, "o_parts"), 
+                      Singleton(Tuple("c_name" -> q1r("c_name"), "p_name" -> pq1r("p_name"), "month" -> cq1r("o_orderdate"), 
+                        "t_qty" -> pq1r("l_qty")))))))
 
   val query4 = DeDup(ForeachUnion(q1, BagVarRef(Q1), 
                   ForeachUnion(cq1, BagProject(q1r, "c_orders"), 

@@ -33,6 +33,9 @@ trait Base {
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep
   def dedup(e1: Rep): Rep
   def bind(e1: Rep, e: Rep => Rep): Rep 
+  def setgroupby(e1: Rep): Rep
+  def baggroupby(e1: Rep): Rep
+  def primgroupby(e1: Rep): Rep
   def named(n: String, e: Rep): Rep
   def linset(e: List[Rep]): Rep
   def lookup(lbl: Rep, dict: Rep): Rep
@@ -81,6 +84,9 @@ trait BaseStringify extends Base{
     val x = Variable.fresh(StringType)
     s"{ ${e(x.quote)} | ${x.quote} := ${e1} }"
   }
+  def setgroupby(e1: Rep): Rep = s"($e1).groupBy(U)"
+  def baggroupby(e1: Rep): Rep = s"($e1).groupBy(+U)"
+  def primgroupby(e1: Rep): Rep = s"($e1).groupBy(+)"
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = { 
     val x = Variable.fresh(StringType)
     p(x.quote) match {
@@ -175,11 +181,17 @@ trait BaseCompiler extends Base {
     val v = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
     Comprehension(e1, v, p(v), e(v))
   }
-  def dedup(e1: Rep): Rep = CDeDup(e1)
+  def dedup(e1: Rep): Rep = {
+    assert(!e1.tp.isInstanceOf[PrimitiveType])
+    CDeDup(e1)
+  }
   def bind(e1: Rep, e: Rep => Rep): Rep = {
       val v = Variable.fresh(e1.tp)
       Bind(v, e1, e(v)) 
   }
+  def setgroupby(e1: Rep): Rep = CSetGroupBy(e1)
+  def baggroupby(e1: Rep): Rep = CBagGroupBy(e1)
+  def primgroupby(e1: Rep): Rep = CPrimitiveGroupBy(e1)
   def named(n: String, e: Rep): Rep = CNamed(n, e)
   def linset(e: List[Rep]): Rep = LinearCSet(e)
   def lookup(lbl: Rep, dict: Rep): Rep = CLookup(lbl, dict)
@@ -340,7 +352,11 @@ trait BaseScalaInterp extends Base{
     case "_2" if e1.isInstanceOf[RecordValue] => e1.asInstanceOf[RecordValue].map("v")
     case "_2" => e1.asInstanceOf[Product].productElement(1)
     case f => e1 match {
-      case m:Rec => m.map(f)
+      case None => None
+      case m:Rec => m.map.get("map") match {
+        case Some(a) => a.asInstanceOf[Map[String, Any]](f)
+        case _ => m.map(f)
+      }
       case m:RecordValue => m.map(f)
       case c:CaseClassRecord => 
         val field = c.getClass.getDeclaredFields.find(_.getName == f).get
@@ -348,7 +364,7 @@ trait BaseScalaInterp extends Base{
         field.get(c)
       //case m:HashMap[_,_] => m(f.asInstanceOf[_])
       case l:List[_] => l.map(project(_,f))
-      case p:Product => p.productElement(f.toInt)
+      case p:Product => println(p); p.productElement(f.toInt)
       case t => sys.error(s"unsupported projection type ${t.getClass} for object:\n$t") 
     }
   }
@@ -380,11 +396,14 @@ trait BaseScalaInterp extends Base{
   }
   def named(n: String, e: Rep): Rep = {
     ctx(n) = e
-    //println(n+" := "+e+"\n")
+    println(n+" := "+e+"\n")
     e
   }
   def linset(e: List[Rep]): Rep = e
   def bind(e1: Rep, e: Rep => Rep): Rep = e(e1) //ctx.getOrElseUpdate(e1, e(e1))
+  def setgroupby(e1: Rep): Rep = ???
+  def baggroupby(e1: Rep): Rep = ???
+  def primgroupby(e1: Rep): Rep = ??? 
   def lookup(lbl: Rep, dict: Rep): Rep = dict match {
     case (flat, tdict) => flat match {
       case (head:Map[_,_]) :: tail => flat
@@ -417,7 +436,6 @@ trait BaseScalaInterp extends Base{
   } 
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep = {
     val grps = e1.asInstanceOf[List[_]].groupBy(v => f(tupleVars(v)))
-    //println(e1)
     val res = e1 match {
       case Nil => e(Nil) match { case i:Int => 0; case _ => Nil }
       case head :: tail => e(head.asInstanceOf[List[_]]) match {
@@ -425,7 +443,9 @@ trait BaseScalaInterp extends Base{
           grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.foldLeft(0)((acc, v1) => { 
             // this should be if g(x2) != None 
             if (g(v1.asInstanceOf[List[_]]) != None && p(v1.asInstanceOf[List[_]]).asInstanceOf[Boolean]) { 
-              acc + e(v1.asInstanceOf[List[_]]).asInstanceOf[Int] } else { acc } 
+              val nacc = e(v1.asInstanceOf[List[_]]) match { case Nil => 0; case c => c.asInstanceOf[Int] }
+              acc + nacc 
+            } else { acc } 
            })).toList
         case i:Double =>
           grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.foldLeft(0.0)((acc, v1) => { 
@@ -487,7 +507,7 @@ trait BaseScalaInterp extends Base{
   // keys and flattens input tuples
   def tupleVars(k: Any): List[Rep] = k match {
     case c:CaseClassRecord => List(k).asInstanceOf[List[Rep]]
-    //case c:RecordValue => List(k).asInstanceOf[List[Rep]]
+    case c:Rec => List(k).asInstanceOf[List[Rep]]
     case _ => k.asInstanceOf[List[Rep]]
   }
   def mapVars(k: Any): Map[Any, Any] = k match {
@@ -603,6 +623,9 @@ trait BaseANF extends Base {
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = compiler.comprehension(e1, p, e)
   def dedup(e1: Rep): Rep = compiler.dedup(e1)
   def bind(e1: Rep, e: Rep => Rep): Rep = compiler.bind(e1, e)
+  def setgroupby(e1: Rep): Rep = compiler.setgroupby(e1)
+  def baggroupby(e1: Rep): Rep = compiler.baggroupby(e1)
+  def primgroupby(e1: Rep): Rep = compiler.primgroupby(e1)
   def named(n: String, e: Rep): Rep = {
     val d = compiler.named(n, e)
     varMaps = varMaps + (n -> d.e.asInstanceOf[Variable])
@@ -681,6 +704,9 @@ class Finalizer(val target: Base){
     case CDeDup(e1) => target.dedup(finalize(e1))
     case Bind(x, e1, e) =>
       target.bind(finalize(e1), (r: target.Rep) => withMap(x -> r)(finalize(e)))
+    case CSetGroupBy(e1) => target.setgroupby(finalize(e1))
+    case CBagGroupBy(e1) => target.baggroupby(finalize(e1))
+    case CPrimitiveGroupBy(e1) => target.primgroupby(finalize(e1))
     case CNamed(n, e) => target.named(n, finalize(e))
     case LinearCSet(exprs) => 
       target.linset(exprs.map(finalize(_)))

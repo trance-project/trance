@@ -123,35 +123,38 @@ trait Extensions extends LinearizedNRC with Printer {
       case _ => ex
     })
   
+
+  def replaceLabelParams(e: Expr): Expr = replace(e, {
+    case BagDict(lbl @ NewLabel(ps), flat, dict) =>
+      BagDict(lbl, ps.foldRight(flat)((curr, acc) => curr match {
+        case p:ProjectLabelParameter => 
+          substitute(acc, VarDef(p.name, p.tp)).asInstanceOf[BagExpr]
+        case _ => acc
+      }), replaceLabelParams(dict).asInstanceOf[TupleDictExpr])
+  })
+
   // substitute label projections with their variable counter part
-  def substitute(e: Expr, v:VarDef) = replace(e, {
+  def substitute(e: Expr, v:VarDef): Expr = replace(e, {
     case p:Project if v.name == p.tuple.asInstanceOf[TupleVarRef].name + "." + p.field => v.tp match {
          case _:LabelType => LabelVarRef(v)
          case _ => VarRef(v)
       }
+    case NewLabel(ps) => NewLabel(ps.toList.map{p => p match {
+      case ProjectLabelParameter(p2) => substitute(p2.asInstanceOf[Expr], v) match {
+        case v2:VarRef => VarRefLabelParameter(v2)
+        case v2 => p }
+      case _ => p }}.toSet)
   })
 
   // removes input labels and dictionaries from labels
   def invalidLabelElement(e: LabelParameter): Boolean = e match {
     case VarRefLabelParameter(LabelVarRef(VarDef(_, LabelType(ms)))) => ms.isEmpty
-    case VarRefLabelParameter(v) => 
-      if (v.tp.isInstanceOf[DictType]) true
-      else if (v.varDef.name.contains('.')) true
-      else false
-    case _ => false
+    case _ => e.tp.isInstanceOf[DictType]
   }
   
   def labelParameters(e: Expr): Set[LabelParameter] = 
     labelParameters(e, Map.empty).filterNot(invalidLabelElement(_)).toSet
 
-  // this prevents the substituting of unused label variables 
-  // into subexpressions (see shredding)
-  def isDeepestQuery(e: Expr): Boolean = 
-    collect(e, { case l if l.tp.isInstanceOf[LabelType] => List(l) }) match {
-      case Nil => true
-      case _ => false
-    }
- 
   protected def labelParameters(e: Expr, scope: Map[String, VarDef]): List[LabelParameter] =
     collect(e, {
       case v: VarRef =>
@@ -160,7 +163,7 @@ trait Extensions extends LinearizedNRC with Printer {
         filterByScope(ProjectLabelParameter(p), scope).toList
       case ForeachUnion(x, e1, e2) =>
         labelParameters(e1, scope) ++ labelParameters(e2, scope + (x.name -> x)) 
-      case l: Let => // does not work with nested lets, see isDeepestQuery
+      case l: Let => 
         val ivs = inputVars(l.e1, scope).map{ v => v.name -> v.varDef }.toMap ++ scope
         labelParameters(l.e1, ivs) ++ labelParameters(l.e2, scope + (l.x.name -> l.x))
       case NewLabel(vs) =>

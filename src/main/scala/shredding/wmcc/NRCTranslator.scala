@@ -25,7 +25,7 @@ trait NRCTranslator extends LinearizedNRC {
     case EmptyDictType => EmptyDictCType
     case TupleDictType(ts) if ts.isEmpty => EmptyDictCType
     case TupleDictType(ts) => TupleDictCType(ts.map(f => f._1 -> translate(f._2).asInstanceOf[TDict]))
-    case LabelType(fs) if fs.isEmpty => IntType
+    case LabelType(fs) if fs.isEmpty => EmptyCType
     case LabelType(fs) => RecordCType(fs.map(f => translateName(f._1) -> translate(f._2)))
     case _ => e
   }
@@ -73,6 +73,9 @@ trait NRCTranslator extends LinearizedNRC {
     }
     case l:Let => Bind(translate(l.x), translate(l.e1), translate(l.e2))
     case Named(v, e) => CNamed(v.name, translate(e))
+    case SetGroupBy(e1) => CSetGroupBy(translate(e1))
+    case BagGroupBy(e1) => CBagGroupBy(translate(e1))
+    case PrimitiveGroupBy(e1) => CPrimitiveGroupBy(translate(e1))
     case Sequence(exprs) => LinearCSet(exprs.map(translate(_)))
     case v:VarRefLabelParameter => translateVar(v.v)
     case l @ NewLabel(vs) => 

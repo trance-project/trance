@@ -55,6 +55,11 @@ object App {
     val sq4info = (sq4.asInstanceOf[CExpr], "Shred"+TPCHQueries.q4name, TPCHQueries.sq4spark)
     Utils.runSpark(sqinfo, tpchShredM, sq4info)**/
 
+    println("---------------------------- TPCH Query 4 with GroupBy Unnest ----------------------------")  
+    val q4b = translator.translate(TPCHQueries.query4b.asInstanceOf[translator.Expr])
+    val q4binfo = (q4b.asInstanceOf[CExpr], TPCHQueries.q4name, "")
+    Utils.runSpark(qinfo, tpchInputM, q4binfo)
+
     /**println("---------------------------- TPCH Query 4 Unnest with Let ----------------------------")  
     val q1a = translator.translate(TPCHQueries.query1a.asInstanceOf[translator.Expr])
     val q1ainfo = (q1a.asInstanceOf[CExpr], TPCHQueries.q1aname, TPCHQueries.q1spark)

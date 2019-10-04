@@ -1028,13 +1028,13 @@ object TestApp extends App
 
   //Example1.run()
   Example2.run()
-  //Example3.run()
+  Example3.run()
   //Example4.run() // look into this more
-  /**Example5.run()
+  Example5.run()
   Example6.run()
   Example7.run()
   Example8.run()
-  Example9.run()**/
+  Example9.run()
 
 //  ExampleShredValue.run()
 

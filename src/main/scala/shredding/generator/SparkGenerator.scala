@@ -25,7 +25,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case RecordCType(fs) =>
      val name = types(tp)
      val fsize = fs.size
-      s"case class $name(${fs.map(x => s"${kvName(x._1)(fsize)}: ${generateType(x._2)}").mkString(", ")}, uniqueId: Long) extends CaseClassRecord"
+      s"case class $name(${fs.map(x => s"${kvName(x._1)(fsize)}: ${generateType(x._2)}").mkString(", ")})"
     case _ => sys.error("unsupported type "+tp)
   }
 
@@ -46,8 +46,8 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       }
     case TupleDictCType(fs) if !fs.filter(_._2 != EmptyDictCType).isEmpty =>
       generateType(RecordCType(fs.filter(_._2 != EmptyDictCType)))
-    case LabelType(fs) if fs.isEmpty => "Int"
-    case LabelType(fs) => generateType(RecordCType(fs))
+    case RecordCType(fs) if fs.isEmpty => "Unit"
+    //case LabelType(fs) => generateType(RecordCType(fs))
     case EmptyCType => "Unit"
     case _ => sys.error("not supported type " + tp)
   }
@@ -84,9 +84,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
 
   def generate(e: CExpr): String = e match {
     case Variable(name, _) => name
-    case InputRef(name, tp) => 
-      handleType(tp, Some("Input_"+name))
-      name
+    case InputRef(name, tp) => name
     case Comprehension(e1, v, p, e) =>
         val acc = "acc" + Variable.newId()
         val cur = generate(v)
@@ -105,7 +103,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Record(fs) => {
       val tp = e.tp
       handleType(tp)
-      s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")}, newId)"
+      s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
     }
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
     case Project(e2, field) => e2.tp match {
@@ -143,7 +141,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
         case DoubleType => "0.0"
         case _ => "Nil"
       } 
-	s"""
+	    s"""
         | if ({${generate(cond)}})
         | {${ind(generate(e1))}}
         | else $zero """.stripMargin
@@ -186,22 +184,28 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
               |   case $gv2 => ({${generate(f)}}, {${generate(e2)}})
               | }
               |}$gbfun""".stripMargin
-        case (Constant(true), _) => 
-          s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
-              |   $nonet
-              |   case $gv2 => ({${generate(f)}}, {${generate(e2)}})
-              | }
-              |}.reduceByKey(_ + _)""".stripMargin
+        case (Constant(true), _) => g match {
+          case Bind(_, CUnit, _) =>
+            s"""|${generate(e1)}.map{ case $vars => 
+                |   ({${generate(f)}}, {${generate(e2)}})
+                |}.reduceByKey(_ + _)""".stripMargin
+          case _ =>
+            s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
+                |   $nonet
+                |   case $gv2 => ({${generate(f)}}, {${generate(e2)}})
+                | }
+                |}.reduceByKey(_ + _)""".stripMargin
+        }
         case (_, RecordCType(_)) => 
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
               |   case $gv2 if {${generate(p)}} => ({${generate(f)}}, {${generate(e2)}})
-              |   case $gv2 => ({${generate(f)}}, $zero)
+              |   case $gv2 => ({${generate(f)}}, ${zero(e2)})
               | }    
               |}$gbfun""".stripMargin
         case _ =>
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
               |   case $gv2 if {${generate(p)}} => ({${generate(f)}}, {${generate(e2)}})
-              |   case $gv2 => ({${generate(f)}}, $zero)
+              |   case $gv2 => ({${generate(f)}}, ${zero(e2)})
               | }
               |}.reduceByKey(_ + _)""".stripMargin
       }
@@ -249,7 +253,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       (p1, p2) match {
         case (Constant(true), Constant(true)) =>
           // this will override with actual cartesian product
-          s"${generate(e2)}.map{ case c => (${generate(e1)}, c) }"
+          s"${generate(e2)}.map{ case c => (${generate(e1)}.head, c) }"
         case _ => 
       // ${checkNull(v1)} in map below causes invariance issues in PairRDDFunctions
        s"""|{ val out1 = ${generate(e1)}.map{ case $vars => ({${generate(p1)}}, $vars) }
@@ -293,7 +297,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       } 
     case Bind(x, CNamed(n, e), e2) => n match {
        case "M_ctx1" =>
-        s"""|val M_ctx1 = ${generate(e)}.head
+        s"""|val M_ctx1 = ${generate(e)}
             |${generate(e2)}""".stripMargin
       case _ =>
         s"""|val $n = ${generate(e)}

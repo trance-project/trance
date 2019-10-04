@@ -38,9 +38,29 @@ trait Shredding extends BaseShredding with Extensions {
 
   // deprecated
   def labelVars(e: Expr): Set[VarRef] = inputVars(e).filterNot(_.isInstanceOf[DictExpr])
+  
+  /**def substituteLabelParameters(e: ShredExpr): ShredExpr = {
+    val params = collectLabelParameters(e)
+    // this handles simple cases, may need to have proper scope for label substitution
+    val dict = params.foldRight(e.dict)((curr, acc) => curr match {
+      case p:ProjectLabelParameter => substitute(acc, VarDef(p.name, p.tp)).asInstanceOf[DictExpr]
+      case _ => acc
+    })
+    ShredExpr(e.flat, dict)
+  }**/
+  def substituteLabelParameters(e: ShredExpr): ShredExpr = ShredExpr(e.flat, replaceLabelParams(e.dict).asInstanceOf[DictExpr])
 
-  def shred(e: Expr): ShredExpr = shred(e, Map.empty)
-
+  def shred(e: Expr): ShredExpr = substituteLabelParameters(shred(e, Map.empty)) 
+  
+  def shredSequence(e: Sequence): ShredSequence = {
+    ShredSequence(e.exprs.map(s => s match {
+      case Named(n, e1) => 
+        val se = shred(e1, Map.empty)
+        ShredNamed(VarDef(n.name, n.tp), substituteLabelParameters(se))
+      case _ => sys.error("can't support unnamed expressions") //substituteLabelParameters(shred(s, Map.empty))
+    }))
+  }
+  
   def shred(e: Expr, ctx: Map[String, ShredExpr]): ShredExpr = e match {
     case Const(_, _) => ShredExpr(e, EmptyDict)
 
@@ -77,16 +97,11 @@ trait Shredding extends BaseShredding with Extensions {
       val flat =
         BagLet(xDict, dict1.tupleDict,
           ForeachUnion(xFlat, resolved1, resolved2))
-      val lbl = NewLabel(labelParameters(flat))   
+
+      val lbl = NewLabel(labelParameters(flat))  
       val outputDict = TupleDictLet(xDict, dict1.tupleDict, dict2.tupleDict)
       val bagdict = BagDict(lbl, flat, outputDict)
-      val bd = if (!isDeepestQuery(resolved2)) {
-        lbl.vars.foldRight(bagdict)((curr, acc) => curr match {
-            case p:ProjectLabelParameter => substitute(acc, VarDef(p.name, p.tp)).asInstanceOf[BagDict]
-            case _ => acc
-          })
-      }else bagdict
-      ShredExpr(lbl, bd)
+      ShredExpr(lbl, bagdict)
 
     case Union(e1, e2) =>
       val ShredExpr(l1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)

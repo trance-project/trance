@@ -138,6 +138,17 @@ case class Bind(x: CExpr, e1: CExpr, e: CExpr) extends CExpr {
   }
 }
 
+case class CSetGroupBy(e1: CExpr) extends CExpr {
+  def tp: BagType = e1.tp.asInstanceOf[BagType]
+}
+case class CBagGroupBy(e1: CExpr) extends CExpr {
+  def tp: BagType = e1.tp.asInstanceOf[BagType]
+}
+case class CPrimitiveGroupBy(e1: CExpr) extends CExpr {
+  def tp: BagType = e1.tp.asInstanceOf[BagType]
+}
+
+
 case class CNamed(name: String, e: CExpr) extends CExpr {
   def tp: Type = e.tp
 }
@@ -220,8 +231,8 @@ case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CEx
   // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = e1.wvars :+ v2
   override def equals(that: Any): Boolean = that match {
-    case Unnest(e11, v11, e21, v21, p1) if e21 == e2 => true
-    case OuterUnnest(e11, v11, e21, v21, p1) if e21 == e2 => true
+    case Unnest(e11, v11, e21, v21, p1) => e21 == e2
+    case OuterUnnest(e11, v11, e21, v21, p1) => e21 == e2
     case e => false
   }
 }
@@ -247,6 +258,7 @@ case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable,
       case Tuple(fs) => fs
       case v:Variable => List(v)
       case Bind(v1, Project(v2, f), v3) => List(v2)
+      case Record(fs) => Nil
       case _ => sys.error(s"unsupported $f")
     }
     e1.wvars.filter(uvars.contains(_)) :+ v2
