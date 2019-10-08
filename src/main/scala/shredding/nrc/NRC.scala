@@ -229,68 +229,36 @@ trait NRC extends BaseExpr {
     val tp: BagType = e1.tp
   }
 
-  trait Monoid
-  object SetUnion extends Monoid{
-    override def toString = "U+"
-  }
-  object BagUnion extends Monoid{
-    override def toString = "U"
-  }
-  // could be any kind of reduce function?
-  object Primitive extends Monoid{
-    override def toString = "+"
-  }
-  
-  
-  /**
-    * Initial implementation of GroupBy, since 
-    * Tuples cannot contain Tuples, every element but the last of the tuple
-    * is assumed to be the key. The last element will be a bag of values 
-    * to aggregate, or a primitive type in the case of counting.
-    * ie. Set or Bag Union: {(x1, x2, x3, {(x4, x5)}}.groupBy(...)
-    * groups by (x1, x2, x3) and does bag union on the values
-    * in this case set or bag says if keys are duplicated or not
-    * Primitive Union {(x1, x2, x3, x4)}.groupBy(+)
-    * groups by (x1, x2, x3) and sums x4 values 
-    */
-  trait GroupBy {
-    def bag: BagExpr
 
-    // default groupBy does set union
-    val agg: Monoid
+  trait GroupBy extends BagExpr {
+    def bag: BagExpr
+    def grp: TupleExpr
+    def value: Expr
+    def v: VarDef
   }
 
   object GroupBy {
-    def apply(bag: BagExpr, agg: Monoid): BagExpr = agg match {
-      case SetUnion => SetGroupBy(bag)
-      case BagUnion => BagGroupBy(bag)
-      case Primitive => PrimitiveGroupBy(bag)
-      case t => sys.error("Cannot create GroupBy for aggregate " + t)
+    def apply(bag: BagExpr, grp: List[String], ins: List[String], tp: Type): BagExpr = { 
+      val x = VarDef.fresh(bag.tp.tp)
+      val xr = TupleVarRef(x)
+      tp match {
+        case p:PrimitiveType => 
+          assert(ins.size == 1)
+          PlusGroupBy(bag, x, Tuple(grp.map{g => (g -> xr(g))}.toMap), 
+            xr(ins.head).asInstanceOf[PrimitiveExpr])
+        case b:BagType => 
+          BagGroupBy(bag, x, Tuple(grp.map{g => (g -> xr(g))}.toMap), 
+            Tuple(ins.map{g => (g -> xr(g))}.toMap))      
+      }
     }
-
-    def apply(bag: BagExpr): BagExpr = bag.tp.tp.attrTps.last._2 match {
-      case _:BagType => SetGroupBy(bag)
-      case _:PrimitiveType => PrimitiveGroupBy(bag)
-      case t => sys.error("Cannot create GroupBy for aggregate " + t)
-    }
   }
 
-  final case class SetGroupBy(bag: BagExpr) extends BagExpr with GroupBy {
-    val agg: Monoid = SetUnion
-    assert(bag.tp.tp.attrTps.last._2.isInstanceOf[BagType])
-    val tp: BagType = bag.tp
+  final case class BagGroupBy(bag: BagExpr, v: VarDef, grp: TupleExpr, value: TupleExpr) extends GroupBy {
+    val tp: BagType = BagType(TupleType(grp.tp.attrTps + ("_2" -> BagType(value.tp))))
   }
 
-  final case class BagGroupBy(bag: BagExpr) extends BagExpr with GroupBy {
-    val agg: Monoid = BagUnion
-    assert(bag.tp.tp.attrTps.last._2.isInstanceOf[BagType])
-    val tp: BagType = bag.tp
-  }
-
-  final case class PrimitiveGroupBy(bag: BagExpr) extends BagExpr with GroupBy {
-    val agg: Monoid = Primitive
-    assert(bag.tp.tp.attrTps.last._2.isInstanceOf[PrimitiveType])
-    val tp: BagType = bag.tp
+  final case class PlusGroupBy(bag: BagExpr, v: VarDef, grp: TupleExpr, value: PrimitiveExpr) extends GroupBy {
+    val tp: BagType = BagType(TupleType(grp.tp.attrTps + ("_2" -> value.tp)))
   }
 
 }

@@ -138,16 +138,10 @@ case class Bind(x: CExpr, e1: CExpr, e: CExpr) extends CExpr {
   }
 }
 
-case class CSetGroupBy(e1: CExpr) extends CExpr {
-  def tp: BagType = e1.tp.asInstanceOf[BagType]
+//case class CGroupBy(e1: CExpr, v: Variable, grp: CExpr, value: CExpr) extends CExpr {
+case class CGroupBy(e1: CExpr, v1: Variable, grp: CExpr, value: CExpr) extends CExpr {
+  def tp: BagCType = BagCType(RecordCType("_1" -> grp.tp, "_2" -> value.tp))
 }
-case class CBagGroupBy(e1: CExpr) extends CExpr {
-  def tp: BagType = e1.tp.asInstanceOf[BagType]
-}
-case class CPrimitiveGroupBy(e1: CExpr) extends CExpr {
-  def tp: BagType = e1.tp.asInstanceOf[BagType]
-}
-
 
 case class CNamed(name: String, e: CExpr) extends CExpr {
   def tp: Type = e.tp
@@ -250,8 +244,7 @@ case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p
 
 case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr, g: CExpr) extends CExpr {
   def tp: Type = BagCType(v2.tp) // check 
-  // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
-  // this needs redone
+  // only using this for printing, consider removing
   override def wvars = { 
     val uvars = f match {
       case Bind(v1, t @ Tuple(fs), v2) => fs

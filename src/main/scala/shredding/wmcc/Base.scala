@@ -33,9 +33,7 @@ trait Base {
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep
   def dedup(e1: Rep): Rep
   def bind(e1: Rep, e: Rep => Rep): Rep 
-  def setgroupby(e1: Rep): Rep
-  def baggroupby(e1: Rep): Rep
-  def primgroupby(e1: Rep): Rep
+  def groupby(e1: Rep, g: Rep => Rep, v: Rep => Rep): Rep
   def named(n: String, e: Rep): Rep
   def linset(e: List[Rep]): Rep
   def lookup(lbl: Rep, dict: Rep): Rep
@@ -84,9 +82,10 @@ trait BaseStringify extends Base{
     val x = Variable.fresh(StringType)
     s"{ ${e(x.quote)} | ${x.quote} := ${e1} }"
   }
-  def setgroupby(e1: Rep): Rep = s"($e1).groupBy(U)"
-  def baggroupby(e1: Rep): Rep = s"($e1).groupBy(+U)"
-  def primgroupby(e1: Rep): Rep = s"($e1).groupBy(+)"
+  def groupby(e1: Rep, g: Rep => Rep, v: Rep => Rep): Rep = {
+    val v2 = Variable.fresh(StringType)
+    s"(${e1}).groupBy(${g(v2.quote)}, ${v(v2.quote)})"
+  }
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = { 
     val x = Variable.fresh(StringType)
     p(x.quote) match {
@@ -189,9 +188,10 @@ trait BaseCompiler extends Base {
       val v = Variable.fresh(e1.tp)
       Bind(v, e1, e(v)) 
   }
-  def setgroupby(e1: Rep): Rep = CSetGroupBy(e1)
-  def baggroupby(e1: Rep): Rep = CBagGroupBy(e1)
-  def primgroupby(e1: Rep): Rep = CPrimitiveGroupBy(e1)
+  def groupby(e1: Rep, g: Rep => Rep, v: Rep => Rep): Rep = {
+    val v2 = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
+    CGroupBy(e1, v2, g(v2), v(v2)) 
+  }
   def named(n: String, e: Rep): Rep = CNamed(n, e)
   def linset(e: List[Rep]): Rep = LinearCSet(e)
   def lookup(lbl: Rep, dict: Rep): Rep = CLookup(lbl, dict)
@@ -228,10 +228,11 @@ trait BaseCompiler extends Base {
     val fv = f(v1) // groups
     val ev = e(v1) // pattern
     val v = ev.tp match {
-      case IntType => 
-        Variable.fresh(TTupleType(List(fv.tp, ev.tp)))
-      case DoubleType =>
-        Variable.fresh(TTupleType(List(fv.tp, ev.tp)))
+      case p:PrimitiveType =>
+        fv.tp match {
+          case RecordCType(fs) => Variable.fresh(RecordCType(fs + ("_2" -> ev.tp)))
+          case fvtp =>Variable.fresh(TTupleType(List(fvtp, ev.tp)))
+        }
       case _ => 
         Variable.fresh(TTupleType(List(fv.tp, BagCType(ev.tp))))
     }
@@ -267,9 +268,14 @@ trait BaseCompiler extends Base {
     OuterLookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
   }
 
+  /**
+    * Why am I using this still??
+    */
   def vars(e: Type): List[Variable] = e match {
     case TTupleType(tps) if (tps.head == IntType) => List(Variable.fresh(e))
-    case TTupleType(tps) => tps.flatMap(vars(_))
+    case TTupleType(tps) if (tps.head.isInstanceOf[RecordCType] && tps.last.isInstanceOf[PrimitiveType] && tps.size == 2) => 
+      List(Variable.fresh(e)) // fix this
+    case TTupleType(tps) => tps.flatMap(vars(_)) 
     case _ => List(Variable.fresh(e))
   }
 
@@ -364,7 +370,7 @@ trait BaseScalaInterp extends Base{
         field.get(c)
       //case m:HashMap[_,_] => m(f.asInstanceOf[_])
       case l:List[_] => l.map(project(_,f))
-      case p:Product => println(p); p.productElement(f.toInt)
+      case p:Product => p.productElement(f.toInt)
       case t => sys.error(s"unsupported projection type ${t.getClass} for object:\n$t") 
     }
   }
@@ -401,9 +407,16 @@ trait BaseScalaInterp extends Base{
   }
   def linset(e: List[Rep]): Rep = e
   def bind(e1: Rep, e: Rep => Rep): Rep = e(e1) //ctx.getOrElseUpdate(e1, e(e1))
-  def setgroupby(e1: Rep): Rep = ???
-  def baggroupby(e1: Rep): Rep = ???
-  def primgroupby(e1: Rep): Rep = ??? 
+  def groupby(e1: Rep, g: Rep => Rep, v: Rep => Rep): Rep = {
+    val grp = e1.asInstanceOf[List[_]].groupBy(g)
+    e1.asInstanceOf[List[_]].head match {
+      case Int => grp.map{ case (g2, v2) => 
+        (g2, v2.asInstanceOf[List[_]].map(v).asInstanceOf[List[Int]].sum) }
+      case Double => grp.map{ case (g2, v2) => 
+        (g2, v2.asInstanceOf[List[_]].map(v).asInstanceOf[List[Double]].sum) }
+      case _ => grp.map{ case (g2, v2) => (g2, v2.asInstanceOf[List[_]].map(v)) }
+    }
+  }
   def lookup(lbl: Rep, dict: Rep): Rep = dict match {
     case (flat, tdict) => flat match {
       case (head:Map[_,_]) :: tail => flat
@@ -614,7 +627,9 @@ trait BaseANF extends Base {
   def and(e1: Rep, e2: Rep): Rep = compiler.and(e1, e2)
   def not(e1: Rep): Rep = compiler.not(e1)
   def or(e1: Rep, e2: Rep): Rep = compiler.or(e1, e2)
-  def project(e1: Rep, field: String): Rep = compiler.project(e1, field)
+  def project(e1: Rep, field: String): Rep = {
+    compiler.project(e1, field)
+  }
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep] = None): Rep = e2 match {
     case Some(a) => compiler.ifthen(cond, e1, Some(a)) 
     case _ => compiler.ifthen(cond, e1, None)
@@ -623,9 +638,7 @@ trait BaseANF extends Base {
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = compiler.comprehension(e1, p, e)
   def dedup(e1: Rep): Rep = compiler.dedup(e1)
   def bind(e1: Rep, e: Rep => Rep): Rep = compiler.bind(e1, e)
-  def setgroupby(e1: Rep): Rep = compiler.setgroupby(e1)
-  def baggroupby(e1: Rep): Rep = compiler.baggroupby(e1)
-  def primgroupby(e1: Rep): Rep = compiler.primgroupby(e1)
+  def groupby(e1: Rep, g: Rep => Rep, v: Rep => Rep): Rep = compiler.groupby(e1, g, v)
   def named(n: String, e: Rep): Rep = {
     val d = compiler.named(n, e)
     varMaps = varMaps + (n -> d.e.asInstanceOf[Variable])
@@ -704,9 +717,9 @@ class Finalizer(val target: Base){
     case CDeDup(e1) => target.dedup(finalize(e1))
     case Bind(x, e1, e) =>
       target.bind(finalize(e1), (r: target.Rep) => withMap(x -> r)(finalize(e)))
-    case CSetGroupBy(e1) => target.setgroupby(finalize(e1))
-    case CBagGroupBy(e1) => target.baggroupby(finalize(e1))
-    case CPrimitiveGroupBy(e1) => target.primgroupby(finalize(e1))
+    case CGroupBy(e1, v2, g, v) => 
+      target.groupby(finalize(e1), (r: target.Rep) => withMap(v2 -> r)(finalize(g)), 
+        (r: target.Rep) => withMap(v2 -> r)(finalize(v)))
     case CNamed(n, e) => target.named(n, finalize(e))
     case LinearCSet(exprs) => 
       target.linset(exprs.map(finalize(_)))
@@ -720,7 +733,7 @@ class Finalizer(val target: Base){
     case Select(x, v, p, e) =>
       target.select(finalize(x), (r: target.Rep) => 
         withMap(v -> r)(finalize(p)), (r: target.Rep) => withMap(v -> r)(finalize(e)))
-    case Reduce(e1, v, e2, p) => 
+    case Reduce(e1, v, e2, p) =>
       target.reduce(finalize(e1), (r: List[target.Rep]) => withMapList(v zip r)(finalize(e2)), 
         (r: List[target.Rep]) => withMapList(v zip r)(finalize(p)))
     case Unnest(e1, v, e2, v2, p) => 

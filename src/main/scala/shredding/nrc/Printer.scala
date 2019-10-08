@@ -46,7 +46,10 @@ trait Printer extends LinearizedNRC {
       else
         s"""|If (${quote(i.cond)})
             |Then ${quote(i.e1)}""".stripMargin
-    case g:GroupBy => s"(${quote(g.bag)}).groupBy(${g.agg})"
+    case g:GroupBy => g.value.tp match {
+      case b:BagType => s"(${quote(g.bag)}).groupBy(${quote(g.grp)}), ${quote(g.value)})"
+      case _ => s"(${quote(g.bag)}).groupBy+(${quote(g.grp)}), ${quote(g.value)})"
+    }
     // Label cases
     case x: ExtractLabel =>
       val tuple = x.lbl.tp.attrTps.keys.mkString(", ")
@@ -77,10 +80,6 @@ trait Printer extends LinearizedNRC {
 
     case _ => sys.error("Cannot print unknown expression " + e)
   }
-
-  def quote(e: ShredNamed): String = s"${e.v.name} := ${quote(e.e)}"
-  
-  def quote(e: ShredSequence): String = e.exprs.map(e1 => quote(e1)).mkString("\n")
 
   def quote(e: ShredExpr): String =
     s"""|Flat: ${quote(e.flat)}

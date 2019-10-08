@@ -38,29 +38,12 @@ trait Shredding extends BaseShredding with Extensions {
 
   // deprecated
   def labelVars(e: Expr): Set[VarRef] = inputVars(e).filterNot(_.isInstanceOf[DictExpr])
-  
-  /**def substituteLabelParameters(e: ShredExpr): ShredExpr = {
-    val params = collectLabelParameters(e)
-    // this handles simple cases, may need to have proper scope for label substitution
-    val dict = params.foldRight(e.dict)((curr, acc) => curr match {
-      case p:ProjectLabelParameter => substitute(acc, VarDef(p.name, p.tp)).asInstanceOf[DictExpr]
-      case _ => acc
-    })
-    ShredExpr(e.flat, dict)
-  }**/
-  def substituteLabelParameters(e: ShredExpr): ShredExpr = ShredExpr(e.flat, replaceLabelParams(e.dict).asInstanceOf[DictExpr])
+   
+  def substituteLabelParameters(e: ShredExpr): ShredExpr = 
+    ShredExpr(e.flat, replaceLabelParams(e.dict).asInstanceOf[DictExpr])
 
   def shred(e: Expr): ShredExpr = substituteLabelParameters(shred(e, Map.empty)) 
-  
-  def shredSequence(e: Sequence): ShredSequence = {
-    ShredSequence(e.exprs.map(s => s match {
-      case Named(n, e1) => 
-        val se = shred(e1, Map.empty)
-        ShredNamed(VarDef(n.name, n.tp), substituteLabelParameters(se))
-      case _ => sys.error("can't support unnamed expressions") //substituteLabelParameters(shred(s, Map.empty))
-    }))
-  }
-  
+    
   def shred(e: Expr, ctx: Map[String, ShredExpr]): ShredExpr = e match {
     case Const(_, _) => ShredExpr(e, EmptyDict)
 
@@ -145,6 +128,14 @@ trait Shredding extends BaseShredding with Extensions {
     case DeDup(e1) =>
       val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
       ShredExpr(lbl, BagDict(lbl, DeDup(dict1.lookup(lbl)), dict1.tupleDict))
+
+    case BagGroupBy(e1, v1, grp, value) => 
+      val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      ShredExpr(lbl, BagDict(lbl, BagGroupBy(dict1.lookup(lbl), v1, grp, value), dict1.tupleDict))
+
+    case PlusGroupBy(e1, v1, grp, value) => 
+      val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      ShredExpr(lbl, BagDict(lbl, PlusGroupBy(dict1.lookup(lbl), v1, grp, value), dict1.tupleDict))
 
     case c: Cond => c match {
       case Cmp(op, e1, e2) =>

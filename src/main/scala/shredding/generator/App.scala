@@ -45,7 +45,7 @@ object App {
     val sqinfo = (sq1.asInstanceOf[CExpr], "Shred"+TPCHQueries.q1name, TPCHQueries.sq1spark)
     Utils.runSpark(sqinfo, tpchShredM)
 
-    /**println("---------------------------- TPCH Query 4 Unnest ----------------------------")  
+    println("---------------------------- TPCH Query 4 Unnest ----------------------------")  
     val q4 = translator.translate(TPCHQueries.query4.asInstanceOf[translator.Expr])
     val q4info = (q4.asInstanceOf[CExpr], TPCHQueries.q4name, "")
     Utils.runSpark(qinfo, tpchInputM, q4info)
@@ -53,12 +53,17 @@ object App {
     println("---------------------------- TPCH Query 4 Shred Unnest ----------------------------")
     val sq4 = runner.shredPipeline(TPCHQueries.query4.asInstanceOf[runner.Expr])
     val sq4info = (sq4.asInstanceOf[CExpr], "Shred"+TPCHQueries.q4name, TPCHQueries.sq4spark)
-    Utils.runSpark(sqinfo, tpchShredM, sq4info)**/
+    Utils.runSpark(sqinfo, tpchShredM, sq4info)
 
     println("---------------------------- TPCH Query 4 with GroupBy Unnest ----------------------------")  
     val q4b = translator.translate(TPCHQueries.query4b.asInstanceOf[translator.Expr])
     val q4binfo = (q4b.asInstanceOf[CExpr], TPCHQueries.q4name, "")
     Utils.runSpark(qinfo, tpchInputM, q4binfo)
+
+    println("---------------------------- TPCH Query 4 with GroupBy Shred Unnest ----------------------------")
+    val sq4b = runner.shredPipeline(TPCHQueries.query4b.asInstanceOf[runner.Expr])
+    val sq4binfo = (sq4b.asInstanceOf[CExpr], "Shred"+TPCHQueries.q4name, TPCHQueries.sq4spark)
+    Utils.runSpark(sqinfo, tpchShredM, sq4binfo)
 
     /**println("---------------------------- TPCH Query 4 Unnest with Let ----------------------------")  
     val q1a = translator.translate(TPCHQueries.query1a.asInstanceOf[translator.Expr])

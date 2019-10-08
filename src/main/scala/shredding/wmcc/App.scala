@@ -412,6 +412,7 @@ object App {
     println(nrcprinter.quote(q0b.asInstanceOf[nrcprinter.Expr]))
     //println("\nNRC EVALUTED:\n")
     //println(nrceval.eval(q0b, ctx))
+    println("\ncalculus: \n")
     val q4b = translator.translate(TPCHQueries.query4b.asInstanceOf[translator.Expr])
     println(Printer.quote(q4b))
     val normq4b = normalizer.finalize(q4b).asInstanceOf[CExpr]

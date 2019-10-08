@@ -14,18 +14,29 @@ object Unnester {
   @inline def w(implicit ctx: Ctx): List[Variable] = ctx._2
   @inline def E(implicit ctx: Ctx): Option[CExpr] = ctx._3
 
+  def isNestedComprehension(e: CExpr): Boolean = e match {
+    case c:Comprehension => true
+    case d:CDeDup => true
+    case g:CGroupBy => true
+    case _ => false
+  }
+
   def unnest(e: CExpr)(implicit ctx: Ctx): CExpr = e match {
     case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E)))
-    case CSetGroupBy(e1) => ???
-    case CBagGroupBy(e1) => ???
-    case CPrimitiveGroupBy(e1) => unnest(e1)(u, w, E) match {
+    case CGroupBy(e1, v1, grp, value) => unnest(e1)(u, w, E) match {
       case Reduce(e2, v2, e3 @ Record(fs), p2 @ Constant(true)) => 
         val key = Record(fs.dropRight(1))
-        val value = fs.last._2 // should be a bag or a primitive
+        val value = fs.last._2 // should be of primitive type
         val v = Variable.fresh(TTupleType(List(key.tp, value.tp)))
         val g = if (u.isEmpty) CUnit else Tuple((w.toSet -- u).toList)
         Nest(e2, v2, key, value, v, p2, g)
-    } 
+      case Nest(e2, v2, f2, e3 @ Record(fs), v3, p2 @ Constant(true), g) => 
+        val key = Tuple(u :+ Record(fs.dropRight(1)))
+        val value = fs.last._2 // shoud be of primitive type
+        val v = Variable.fresh(TTupleType(List(Record(fs.dropRight(1)).tp, value.tp)))
+        val g = if (u.isEmpty) CUnit else Tuple((w.toSet -- u).toList)
+        Nest(e2, v2, key, value, v, p2, g)    
+    }
     case Comprehension(e1, v, p, e) if u.isEmpty && w.isEmpty && E.isEmpty =>
       unnest(e)((Nil, List(v), Some(Select(e1, v, p, v)))) // C4
     case Comprehension(e1 @ Comprehension(_, _, _, _), v, p, e) if !w.isEmpty => // C11 (relaxed)
@@ -33,7 +44,7 @@ object Unnester {
       unnest(e)((u, w:+v2, nE))
     case ift @ If(cond, Sng(t @ Record(fs)), None) if !w.isEmpty => // C12, C5, and C8
       assert(!E.isEmpty)
-      fs.filter(f => (f._2.isInstanceOf[Comprehension] || f._2.isInstanceOf[CDeDup])).toList match {
+      fs.filter(f => isNestedComprehension(f._2)).toList match {
         case Nil =>
           if (u.isEmpty) Reduce(E.get, w, t, cond)
           else {
@@ -48,6 +59,9 @@ object Unnester {
         case (key, CDeDup(value @ Comprehension(e1, v, p, e))) :: tail =>
           val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(If(cond, Sng(Record(fs + (key -> v2))), None))((u, w :+ v2, Some(CDeDup(nE.get))))
+        case (key, value @ CGroupBy(e1, v1, grp, value2)) :: tail =>
+	        val (nE, v2) = getNest(unnest(value)((w, w, E)))
+          unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case _ => sys.error("not supported")
       }
     case s @ Sng(v @ Variable(_,_)) if !w.isEmpty =>
@@ -59,15 +73,30 @@ object Unnester {
         val v2 = Variable.fresh(TTupleType(et.tp.attrTps :+ BagCType(v.tp)))
         Nest(E.get, w, et, v, v2, Constant(true), gt)
       }
+    case s @ Sng(t @ Record(fs)) if fs.keySet == Set("k", "v") && !w.isEmpty =>
+      val (nE, v2) = fs.get("v").get match {    
+        case value @ Comprehension(e1, v, p, e) => getNest(unnest(value)((w, w, E))) 
+        case CDeDup(value @ Comprehension(e1, v, p, e)) => 
+          val (nE1, v21) = getNest(unnest(value)((w, w, E)))
+          (Some(CDeDup(nE1.get)), v21)
+        case value @ CGroupBy(e1, v1, grp, value2) => getNest(unnest(value)((w, w, E)))
+      }
+      val vars = w :+ v2
+      Reduce(nE.get, vars, Record(Map("k" -> vars.head, "v" -> Tuple(vars.tail))), Constant(true))
     case s @ Sng(t @ Record(fs)) if !w.isEmpty =>
       assert(!E.isEmpty)
-      fs.filter(f => (f._2.isInstanceOf[Comprehension] || f._2.isInstanceOf[CDeDup])).toList match {
+      fs.filter(f => isNestedComprehension(f._2)).toList match {
         case Nil =>
-          if (u.isEmpty) Reduce(E.get, w, t, Constant(true))
-          else {
+          if (u.isEmpty) { 
+            t match {
+              case Record(ms) if ms.keySet == Set("k", "v") =>
+                Reduce(E.get, w, Record(Map("k" -> w.head, "v" -> Tuple(w.tail))), Constant(true))
+              case _ => Reduce(E.get, w, t, Constant(true)) 
+            }
+          }else {
             val et = Tuple(u)
             val gt = Tuple((w.toSet -- u).toList)
-            val v = Variable.fresh(TTupleType(et.tp.attrTps :+ BagCType(t.tp)))
+            val v = Variable.fresh(TTupleType(et.tp.attrTps :+ BagCType(t.tp))) 
             Nest(E.get, w, et, t, v, Constant(true), gt)
           }
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
@@ -76,6 +105,9 @@ object Unnester {
         case (key, CDeDup(value @ Comprehension(e1, v, p, e))) :: tail =>
 	        val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, Some(CDeDup(nE.get))))
+        case (key, value @ CGroupBy(e1, v1, grp, value2)) :: tail =>
+	        val (nE, v2) = getNest(unnest(value)((w, w, E)))
+          unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case _ => sys.error("not supported")
      }
     case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>

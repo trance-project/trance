@@ -197,7 +197,8 @@ object Utils {
     
     val plan1a = Unnester.unnest(normq1)(Nil, Nil, None).asInstanceOf[CExpr]
     val plan1 = Optimizer.applyAll(plan1a)
-
+    println(Printer.quote(plan1.asInstanceOf[CExpr]))
+  
     val anfedq1 = anfer.finalize(plan1)
     val anfExp1 = anfBase.anf(anfedq1.asInstanceOf[anfBase.Rep])
     val gcode = codegen.generate(anfExp1)

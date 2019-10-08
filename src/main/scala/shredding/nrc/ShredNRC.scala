@@ -13,10 +13,6 @@ trait ShredNRC extends NRC with Label with Dictionary {
 
   final case class ShredExpr(flat: Expr, dict: DictExpr)
 
-  final case class ShredNamed(v: VarDef, e: ShredExpr)
-
-  final case class ShredSequence(exprs: List[ShredNamed])
-
   final case class Lookup(lbl: LabelExpr, dict: BagDictExpr) extends BagExpr {
     def tp: BagType = dict.tp.flatTp
   }

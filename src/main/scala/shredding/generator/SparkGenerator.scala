@@ -176,7 +176,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
         case _ => false
       }) ".groupByLabel()" 
       else ".groupByKey()"
-      
+
       (p, e2.tp) match {
         case (Constant(true), RecordCType(_)) => 
           s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
@@ -284,6 +284,11 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
         case Constant(true) => s"${generate(x)}$proj"
         case _ => s"${generate(x)}.filter($gv => { ${generate(p)} })$proj"
       }
+    case Reduce(e1, v, Bind(_, _, Bind(_, Record(fs), _)), p) if fs.keySet == Set("k", "v") && v.last.tp.isInstanceOf[PrimitiveType] =>
+      val vars = generateVars(v, e1.tp.asInstanceOf[BagCType].tp)
+      s"""|${generate(e1)}.map{ case $vars => 
+          |  (${generate(v.head)}, ${generate(Tuple(v.tail))})
+          |}.groupByLabel()""".stripMargin
     case Reduce(e1, v, f, p) =>
       val vars = generateVars(v, e1.tp.asInstanceOf[BagCType].tp)
       p match { case Constant(true) =>
@@ -294,7 +299,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
           s"""|${generate(e1)}.map{ case $vars => 
               |   ${generate(f)} 
               |}.filter($vars => {${generate(p)}})""".stripMargin
-      } 
+      }
     case Bind(x, CNamed(n, e), e2) => n match {
        case "M_ctx1" =>
         s"""|val M_ctx1 = ${generate(e)}
@@ -349,7 +354,8 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
   def e2Key(v2: CExpr, p2: CExpr) = {
     val gv2 = generate(v2)
     p2 match {
-      case Constant(true) => s".flatMap($gv2 => $gv2._2.map{case v2 => ($gv2._1, v2)})"
+      // handle this differently for input dictionaries
+      case Constant(true) => s".flatMap($gv2 => $gv2._2.map{case v2 => ($gv2._1.lbl, v2)})"
       case _ => s".flatMap(v2 => v2._2.map{case $gv2 => ((v2._1, {${generate(p2)}}), $gv2)})"
     }
   }

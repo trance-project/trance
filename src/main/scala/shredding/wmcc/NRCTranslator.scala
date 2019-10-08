@@ -72,10 +72,9 @@ trait NRCTranslator extends LinearizedNRC {
       case te2 => Comprehension(translate(e1), translate(x).asInstanceOf[Variable], constant(true), te2)
     }
     case l:Let => Bind(translate(l.x), translate(l.e1), translate(l.e2))
+    case g:GroupBy => 
+      CGroupBy(translate(g.bag), translate(g.v).asInstanceOf[Variable], translate(g.grp), translate(g.value))
     case Named(v, e) => CNamed(v.name, translate(e))
-    case SetGroupBy(e1) => CSetGroupBy(translate(e1))
-    case BagGroupBy(e1) => CBagGroupBy(translate(e1))
-    case PrimitiveGroupBy(e1) => CPrimitiveGroupBy(translate(e1))
     case Sequence(exprs) => LinearCSet(exprs.map(translate(_)))
     case v:VarRefLabelParameter => translateVar(v.v)
     case l @ NewLabel(vs) => 
