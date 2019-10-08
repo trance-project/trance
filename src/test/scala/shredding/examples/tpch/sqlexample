@@ -1,0 +1,124 @@
+/**
+  * Spark SQL Example
+  */
+import sprkloader._
+import sprkloader.SkewPairRDD._
+import org.apache.spark.sql.functions.{struct, collect_list}
+
+val tpch = TPCHLoader(spark)
+
+val c = tpch.loadCustomersDF
+c.cache
+c.count
+
+val o = tpch.loadOrdersDF
+o.cache
+o.count
+
+val l = tpch.loadLineitemDF
+l.cache
+l.count
+
+val p = tpch.loadPartDF
+p.cache
+p.count
+
+/**
+  * Query 1, Non-shred 
+  */
+
+val lpj = l.join(p, l("l_partkey") === p("p_partkey")).groupBy(l("l_orderkey")).agg(collect_list(struct(p("p_name"), l("l_quantity"))).as("parts"))
+
+val o2 = lpj.join(o, lpj("l_orderkey") === o("o_orderkey")).groupBy(o("o_custkey")).agg(collect_list(struct(o("o_orderdate"), lpj("parts"))).as("orders"))
+
+val c2 = c.join(o2, c("c_custkey") === o2("o_custkey")).select("c_name", "orders")
+c2.show()
+
+/**
+  * Query 1, Shred, manual example without domains
+  */
+
+val d1 = l.join(p, l("l_partkey") === p("p_partkey")).select("l_orderkey", "p_name", "l_quantity")
+d1.show()
+
+val d2 = c.select("c_name", "c_custkey") 
+d2.show()
+
+val d3 = o.select("o_custkey", "o_orderkey", "o_orderdate")
+d3.show()
+
+/**
+  * Query 1, Shred, based on our plans
+  */
+
+/**
+M_flat1 :=  REDUCE[ (k := x744,v := (x759)) / true ]( <-- (x744,x759) -- NEST[ U / (c_name := x746.c_name,c_orders := (c__Fc_custkey := x746.c_custkey)) / (x744), true / (x746) ]( <-- (x744,x746) -- (
+ <-- (x744) -- SELECT[ true, x744 ](M_ctx1)) JOIN[true = true](
+
+   <-- (x746) -- SELECT[ true, (c_name := x746.c_name,c_custkey := x746.c_custkey) ](C__D._1))))
+**/
+
+// omit the join on the dummy label
+val M_flat1 = c.select("c_name", "c_custkey")
+M_flat1.show()
+
+val M_ctx2 = M_flat1.select("c_custkey")
+
+/**
+  M_flat2 :=  REDUCE[ (k := x749,v := (x760)) / true ]( <-- (x749,x760) -- NEST[ U / (o_orderdate := x751.o_orderdate,o_parts := (o__Fo_orderkey := x751.o_orderkey)) / (x749), true / (x751) ]( <-- (x749,x751) -- (
+ <-- (x749) -- SELECT[ true, x749 ](M_ctx2)) JOIN[x749.lbl.c__Fc_custkey = x751.o_custkey](
+
+   <-- (x751) -- SELECT[ true, (o_orderdate := x751.o_orderdate,o_orderkey := x751.o_orderkey,o_custkey := x751.o_custkey) ](O__D._1))))
+  */
+
+val M_flat2 = M_ctx2.join(o, o("o_orderkey") === M_ctx2("c_custkey")).select("o_orderdate", "o_orderkey", "o_custkey")
+M_flat2.show()
+
+val M_ctx3 = M_flat2.select("o_orderkey")
+
+/**
+M_flat3 :=  REDUCE[ (k := x754,v := (x761)) / true ]( <-- (x754,x761) -- NEST[ U / (p_name := x758.p_name,l_qty := x756.l_quantity) / (x754), true / (x756,x758) ]( <-- (x754,x756,x758) -- ( <-- (x754,x756) -- (
+ <-- (x754) -- SELECT[ true, x754 ](M_ctx3)) JOIN[x754.lbl.o__Fo_orderkey = x756.l_orderkey](
+
+   <-- (x756) -- SELECT[ true, (l_quantity := x756.l_quantity,l_partkey := x756.l_partkey,l_orderkey := x756.l_orderkey) ](L__D._1))) JOIN[x756.l_partkey = x758.p_partkey](
+
+   <-- (x758) -- SELECT[ true, (p_name := x758.p_name,p_partkey := x758.p_partkey) ](P__D._1))))
+   **/
+
+val M_flat3 = M_ctx3.join(l, l("l_orderkey") === M_ctx3("o_orderkey")).join(p, col("l_partkey") === col("p_partkey")).select("p_name", "l_quantity", "l_orderkey")
+M_flat3.show()
+
+/**
+  * Query 1, just raw sql in the spark sql api
+  */
+
+/**
+M_flat1 :=  REDUCE[ (k := x744,v := (x759)) / true ]( <-- (x744,x759) -- NEST[ U / (c_name := x746.c_name,c_orders := (c__Fc_custkey := x746.c_custkey)) / (x744), true / (x746) ]( <-- (x744,x746) -- (
+ <-- (x744) -- SELECT[ true, x744 ](M_ctx1)) JOIN[true = true](
+
+   <-- (x746) -- SELECT[ true, (c_name := x746.c_name,c_custkey := x746.c_custkey) ](C__D._1))))
+**/
+
+// omit the join on the dummy label
+c.createOrReplaceTempView("customer")
+val M_flat1 = spark.sql("select c_name, c_custkey from customer")
+M_flat1.show()
+
+M_flat1.createOrReplaceTempView("Mflat1")
+val M_ctx2 = spark.sql("select c_custkey from Mflat1")
+M_ctx2.show()
+
+o.createOrReplaceTempView("orders")
+M_ctx2.createOrReplaceTempView("Mctx2")
+val M_flat2 = spark.sql("select o_orderdate, o_orderkey, o_custkey from Mctx2 join orders on o_orderkey = c_custkey")
+M_flat2.show()
+
+M_flat2.createOrReplaceTempView("Mflat2")
+val M_ctx3 = spark.sql("select o_orderkey from Mflat2")
+M_ctx3.show()
+
+l.createOrReplaceTempView("lineitem")
+p.createOrReplaceTempView("part")
+M_ctx3.createOrReplaceTempView("Mctx3")
+val M_flat3 = spark.sql("select p_name, l_quantity, l_orderkey from Mctx3 join lineitem on l_orderkey = o_orderkey join part on p_partkey = l_partkey")
+M_flat3.show()
