@@ -24,6 +24,21 @@ p.cache
 p.count
 
 /**
+  * Gather statistics
+  */
+
+c.write.saveAsTable("customer")
+o.write.saveAsTable("orders")
+l.write.saveAsTable("lineitem")
+p.write.saveAsTable("part")
+
+
+spark.sql("ANALYZE TABLE customer COMPUTE STATISTICS")
+spark.sql("ANALYZE TABLE orders COMPUTE STATISTICS")
+spark.sql("ANALYZE TABLE lineitem COMPUTE STATISTICS")
+spark.sql("ANALYZE TABLE part COMPUTE STATISTICS")
+
+/**
   * Query 1, Non-shred 
   */
 
@@ -100,7 +115,6 @@ M_flat1 :=  REDUCE[ (k := x744,v := (x759)) / true ]( <-- (x744,x759) -- NEST[ U
 **/
 
 // omit the join on the dummy label
-c.createOrReplaceTempView("customer")
 val M_flat1 = spark.sql("select c_name, c_custkey from customer")
 M_flat1.show()
 
@@ -108,7 +122,6 @@ M_flat1.createOrReplaceTempView("Mflat1")
 val M_ctx2 = spark.sql("select c_custkey from Mflat1")
 M_ctx2.show()
 
-o.createOrReplaceTempView("orders")
 M_ctx2.createOrReplaceTempView("Mctx2")
 val M_flat2 = spark.sql("select o_orderdate, o_orderkey, o_custkey from Mctx2 join orders on o_orderkey = c_custkey")
 M_flat2.show()
@@ -117,8 +130,6 @@ M_flat2.createOrReplaceTempView("Mflat2")
 val M_ctx3 = spark.sql("select o_orderkey from Mflat2")
 M_ctx3.show()
 
-l.createOrReplaceTempView("lineitem")
-p.createOrReplaceTempView("part")
 M_ctx3.createOrReplaceTempView("Mctx3")
 val M_flat3 = spark.sql("select p_name, l_quantity, l_orderkey from Mctx3 join lineitem on l_orderkey = o_orderkey join part on p_partkey = l_partkey")
 M_flat3.show()
