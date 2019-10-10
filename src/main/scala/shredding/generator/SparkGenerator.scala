@@ -284,6 +284,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
         case Constant(true) => s"${generate(x)}$proj"
         case _ => s"${generate(x)}.filter($gv => { ${generate(p)} })$proj"
       }
+    // handle other types
     case Reduce(e1, v, Bind(_, _, Bind(_, Record(fs), _)), p) if fs.keySet == Set("k", "v") && v.last.tp.isInstanceOf[PrimitiveType] =>
       val vars = generateVars(v, e1.tp.asInstanceOf[BagCType].tp)
       s"""|${generate(e1)}.map{ case $vars => 
