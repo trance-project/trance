@@ -59,7 +59,7 @@ val x967 = out2.map{
   case (x957, x958) =>
     ({val x960 = x958.p_name
       val x961 = x957
-      val x963 = (x957,x958)
+      val x963 = (x961,x960)
      x963}, {val x964 = x958.l_qty
      x964})
 }.reduceByKey(_+_)
