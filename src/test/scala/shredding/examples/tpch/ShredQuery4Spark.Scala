@@ -27,7 +27,7 @@ object ShredQuery4Spark {
    val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery4Spark"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    
-val tpch = TPCHLoader(spark)
+/**val tpch = TPCHLoader(spark)
 val C__F = 1
 val C__D_1 = tpch.loadCustomers()
 C__D_1.cache
@@ -49,13 +49,15 @@ P__D_1.count
       val prevId = id
       id += 1
       prevId
-    }
-   val x762 = () 
+    }**/
+
+val x762 = () 
 val x763 = Record894(x762) 
 val x764 = List(x763) 
 val M_ctx1 = x764
 val x767 = M_ctx1 
-val x768 = C__D_1 
+
+/**val x768 = C__D_1 
 val x773 = x768.map(x769 => { val x770 = x769.c_name 
 val x771 = x769.c_custkey 
 val x772 = Record895(x770, x771) 
@@ -178,7 +180,7 @@ val x876 = { val out1 = x864.map{ case (x871, x872) => ({val x874 = x872.l_partk
 x874}, (x871, x872)) }
   val out2 = x870.map{ case x873 => ({val x875 = x873.p_partkey 
 x875}, x873) }
-  out1.join(out2).map{ case (k,v) => v }
+  out1.joinSkewLeft(out2).map{ case (k,v) => v }
 } 
 val x886 = x876.map{ case ((x877, x878), x879) => val x885 = (x878,x879) 
 x885 match {
@@ -201,7 +203,15 @@ val M_flat3 = x891
 val x892 = M_flat3
 //M_flat3.collect.foreach(println(_))
 val res = x892 
- 
+M_flat1.saveAsObjectFile("/nfs_qc4/M_flat1")
+M_flat2.saveAsObjectFile("/nfs_qc4/M_flat2")
+M_flat3.saveAsObjectFile("/nfs_qc4/M_flat3")
+**/
+
+val M_flat1 = spark.sparkContext.objectFile[Record899]("/nfs_qc4/M_flat1")
+val M_flat2 = spark.sparkContext.objectFile[Record905]("/nfs_qc4/M_flat2")
+val M_flat3 = spark.sparkContext.objectFile[Record911]("/nfs_qc4/M_flat3")
+
 val Query4__F = M_ctx1
 val Query4__D_1 = M_flat1.flatMap{ r => r._2 }
 Query4__D_1.cache
@@ -236,17 +246,20 @@ val x948 = x946
 val x954 = { val out1 = x943.map{ case (a, null) => (null, (a, null)); case ((x949, x950), x951) => ({val x953 = x951.o_parts 
 x953}, ((x949, x950), x951)) }
   val out2 = x948.flatMap(x952 => x952._2.map{case v2 => (x952._1.lbl, v2)})
-  out1.outerLookup(out2)
+  //out1.outerLookup(out2)
+  out2.outerLookupSkewLeft(out1)
 } 
-val x967 = x954.map{ case (((x955, x956), x957), x958) => 
-   ({val x959 = x956.c_name 
-val x960 = x958.p_name 
-val x961 = x957.o_orderdate 
-val x962 = Record977(x959, x960, x961) 
-val x963 = (x955,x962) 
-x963}, {val x964 = x958.l_qty 
-x964})
-}.reduceByKey(_ + _) 
+val x967 = x954.map{ 
+  case (a, null) => (a, 0.0) 
+  case (((x955, x956), x957), x958) =>
+    ({val x959 = x956.c_name
+      val x960 = x958.p_name
+      val x961 = x957.o_orderdate
+      val x962 = Record977(x959, x960, x961)
+      val x963 = (x955,x962)
+     x963}, {val x964 = x958.l_qty
+     x964})
+}.reduceByKey(_+_)
 val x973 = x967.map{ case ((x968, x969), x970) => 
   (x968, (x969,x970))
 }.groupByLabel() 
@@ -255,7 +268,8 @@ val M_flat1 = x973
 val x974 = M_flat1
 //M_flat1.collect.foreach(println(_))
 val res = x974.count
-   }
+println(res)
+  }
    f
    var end0 = System.currentTimeMillis() - start0
    println("ShredQuery4Spark"+sf+","+Config.datapath+","+end0)
