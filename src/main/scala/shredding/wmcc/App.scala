@@ -26,7 +26,8 @@ object App {
   }
 
   def main(args: Array[String]){
-    runTPCH()  
+    println(runner.makeBag)
+    //runTPCH()  
     //runGenomic()
     //runPathway()
   }
