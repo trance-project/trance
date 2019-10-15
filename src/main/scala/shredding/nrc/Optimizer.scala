@@ -92,4 +92,25 @@ trait Optimizer extends Extensions {
       }
       else ForeachUnion(x, bag1, BagIfThenElse(Cmp(OpEq, p1, p2), bag2, None))
   })
+
+  def nestingRewriteLossy(e: Expr): Expr = replace(e, {
+    case f @ ForeachUnion(x, b1,
+      BagIfThenElse(
+        Cmp(OpEq,
+          p1 @ PrimitiveProject(t1: TupleVarRef, f1),
+          p2 @ PrimitiveProject(t2: TupleVarRef, f2)),
+        b2, None)) =>
+
+      val bag1 = nestingRewrite(b1).asInstanceOf[BagExpr]
+      val bag2 = nestingRewrite(b2).asInstanceOf[BagExpr]
+
+      val ivars = inputVars(f)
+      if (ivars.contains(t1) && !ivars.contains(t2)) {
+        ForeachUnion(x, bag1, Singleton(Tuple("key" -> p2, "value" -> bag2)))
+      }
+      else if (!ivars.contains(t1) && ivars.contains(t2)) {
+        ForeachUnion(x, bag1, Singleton(Tuple("key" -> p1, "value" -> bag2)))
+      }
+      else ForeachUnion(x, bag1, BagIfThenElse(Cmp(OpEq, p1, p2), bag2, None))
+  })
 }

@@ -1078,45 +1078,45 @@ object TestApp extends App
 
       println("[Nesting rewrite] Q1 rewritten: " + quote(q1opt))
 
-      val q1full = TPCHQueries.query1.asInstanceOf[Expr]
+      val q1full = TPCHQueries.query1_v2.asInstanceOf[Expr]
 
       println("[Nesting rewrite] Full Q1: " + quote(q1full))
 
-      val q1fullopt = nestingRewrite(q1full)
+//      val q1fullopt = nestingRewrite(q1full)
+//
+//      println("[Nesting rewrite] Full Q1 rewritten: " + quote(q1fullopt))
 
-      println("[Nesting rewrite] Full Q1 rewritten: " + quote(q1fullopt))
-
-      val q1fullshredraw = shred(q1fullopt)
+      val q1fullshredraw = shred(q1full)
       println("[Nesting rewrite] Shredded Full Q1: " + quote(q1fullshredraw))
 
       val q1fullshred = optimize(q1fullshredraw)
       println("[Nesting rewrite] Shredded Q1 Optimized: " + quote(q1fullshred))
 
-      val q1fulllin = linearize(q1fullshred)
+      val q1fulllin = linearizeNoDomains(q1fullshred)
       println("[Nesting rewrite] Linearized Q1: " + quote(q1fulllin))
 
     }
   }
 
-  Example1.run()
-  Example2.run()
-  Example3.run()
-  Example4.run()
-  Example5.run()
-  Example6.run()
-  Example7.run()
-  Example8.run()
-  Example9.run()
-
-//  ExampleShredValue.run()
-
-  Example10_DeDup.run()
-
-  Example11_Conditional.run()
-
-  Example12_Genomic.run()
-
-  Example_Slender_Query1.run()
+//  Example1.run()
+//  Example2.run()
+//  Example3.run()
+//  Example4.run()
+//  Example5.run()
+//  Example6.run()
+//  Example7.run()
+//  Example8.run()
+//  Example9.run()
+//
+////  ExampleShredValue.run()
+//
+//  Example10_DeDup.run()
+//
+//  Example11_Conditional.run()
+//
+//  Example12_Genomic.run()
+//
+//  Example_Slender_Query1.run()
 
   Example_Nesting_Rewrite.run()
 }

@@ -11,6 +11,28 @@ trait Linearization {
 
   val initCtxName: String = "initCtx"
 
+  def linearizeNoDomains(e: ShredExpr): Sequence = e.dict match {
+    case d: BagDict =>
+      Symbol.freshClear()
+      Sequence(linearizeNoDomains(d))
+    case _ => sys.error("Cannot linearize bag dict type " + e.dict)
+  }
+
+  def linearizeNoDomains(dict: BagDict): List[Expr] = {
+    val flatBagExpr = dict.flat
+    val flatBagExprRewritten = nestingRewriteLossy(flatBagExpr)
+    val mFlatNamed = Named(VarDef(Symbol.fresh("M_flat"), flatBagExpr.tp), flatBagExprRewritten)
+
+    val labelTps = dict.tp.flatTp.tp.attrTps.filter(_._2.isInstanceOf[LabelType]).toList
+    mFlatNamed ::
+      labelTps.flatMap { case (n, _) =>
+        dict.tupleDict(n) match {
+          case b: BagDict => linearizeNoDomains(b)
+          case b => sys.error("Unknown dictionary " + b)
+        }
+      }
+  }
+
   def linearize(e: ShredExpr): Sequence = e.dict match {
     case d: BagDictExpr =>
       Symbol.freshClear()
@@ -40,7 +62,7 @@ trait Linearization {
 
     // 2. For each label type in dict.flatBagTp.tp,
     //    create the context (bag of labels) and recur
-    val labelTps = dict.tp.flatTp.tp.asInstanceOf[TupleType].attrTps.filter(_._2.isInstanceOf[LabelType]).toList
+    val labelTps = dict.tp.flatTp.tp.attrTps.filter(_._2.isInstanceOf[LabelType]).toList
 
     mFlatNamed ::
       labelTps.flatMap { case (n, _) =>
