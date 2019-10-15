@@ -1086,6 +1086,15 @@ object TestApp extends App
 
       println("[Nesting rewrite] Full Q1 rewritten: " + quote(q1fullopt))
 
+      val q1fullshredraw = shred(q1fullopt)
+      println("[Nesting rewrite] Shredded Full Q1: " + quote(q1fullshredraw))
+
+      val q1fullshred = optimize(q1fullshredraw)
+      println("[Nesting rewrite] Shredded Q1 Optimized: " + quote(q1fullshred))
+
+      val q1fulllin = linearize(q1fullshred)
+      println("[Nesting rewrite] Linearized Q1: " + quote(q1fulllin))
+
     }
   }
 

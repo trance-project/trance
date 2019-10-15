@@ -1,6 +1,6 @@
 package shredding.nrc
 
-import shredding.core.{VarDef, OpEq}
+import shredding.core.{VarDef, TupleType, OpEq}
 import shredding.utils.Utils.Symbol
 
 /**
