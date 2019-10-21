@@ -5,21 +5,21 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
-case class Record894(lbl: Unit)
-case class Record895(c_name: String, c_custkey: Int)
-case class Record897(c__Fc_custkey: Int)
-case class Record898(c_name: String, c_orders: Record897)
-case class Record899(_1: Record894, _2: (Iterable[Record898]))
-case class Record900(lbl: Record897)
-case class Record901(o_orderdate: String, o_orderkey: Int, o_custkey: Int)
-case class Record903(o__Fo_orderkey: Int)
-case class Record904(o_orderdate: String, o_parts: Record903)
-case class Record905(_1: Record900, _2: (Iterable[Record904]))
-case class Record906(lbl: Record903)
-case class Record907(l_quantity: Double, l_partkey: Int, l_orderkey: Int)
-case class Record908(p_name: String, p_partkey: Int)
-case class Record910(p_name: String, l_qty: Double)
-case class Record911(_1: Record906, _2: (Iterable[Record910]))
+case class Record518(lbl: Unit)
+case class Record519(c_custkey: Int, c_name: String)
+case class Record521(c__Fc_custkey: Int)
+case class Record522(c_id: Int, c_name: String, c_orders: Record521)
+case class Record523(_1: Record518, _2: (Iterable[Record522]))
+case class Record524(lbl: Record521)
+case class Record525(o_orderkey: Int, o_orderdate: String, o_custkey: Int)
+case class Record527(o__Fo_orderkey: Int)
+case class Record528(o_id: Int, o_orderdate: String, o_parts: Record527)
+case class Record529(_1: Record524, _2: (Iterable[Record528]))
+case class Record530(lbl: Record527)
+case class Record531(l_quantity: Double, l_partkey: Int, l_orderkey: Int)
+case class Record532(p_name: String, p_partkey: Int)
+case class Record534(p_name: String, l_qty: Double)
+case class Record535(_1: Record530, _2: (Iterable[Record534]))
 object ShredQuery1Spark {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
@@ -50,158 +50,158 @@ P__D_1.count
       prevId
     }
    var start0 = System.currentTimeMillis()
-   val x762 = () 
-val x763 = Record894(x762) 
-val x764 = List(x763) 
-val M_ctx1 = x764
-val x767 = M_ctx1 
-val x768 = C__D_1 
-val x773 = x768.map(x769 => { val x770 = x769.c_name 
-val x771 = x769.c_custkey 
-val x772 = Record895(x770, x771) 
-x772 }) 
-val x776 = x773.map{ case c => (x767.head, c) } 
-val x786 = x776.map{ case (x777, x778) => val x785 = (x778) 
-x785 match {
-   case (null) => ({val x779 = (x777) 
-x779}, null) 
-   case x784 => ({val x779 = (x777) 
-x779}, {val x780 = x778.c_name 
-val x781 = x778.c_custkey 
-val x782 = Record897(x781) 
-val x783 = Record898(x780, x782) 
-x783})
+   val x386 = () 
+val x387 = Record518(x386) 
+val x388 = List(x387) 
+val M_ctx1 = x388
+val x391 = M_ctx1 
+val x392 = C__D_1 
+val x397 = x392.map(x393 => { val x394 = x393.c_custkey 
+val x395 = x393.c_name 
+val x396 = Record519(x394, x395) 
+x396 }) 
+val x400 = x397.map{ case c => (x391.head, c) } 
+val x410 = x400.map{ case (x401, x402) => val x409 = (x402) 
+x409 match {
+   case (null) => ({val x403 = (x401) 
+x403}, null) 
+   case x408 => ({val x403 = (x401) 
+x403}, {val x404 = x402.c_custkey 
+val x405 = x402.c_name 
+val x406 = Record521(x404) 
+val x407 = Record522(x404, x405, x406) 
+x407})
  }
 }.groupByLabel() 
-val x791 = x786.map{ case (x787, x788) => 
-   val x789 = (x788) 
-val x790 = Record899(x787, x789) 
-x790 
+val x415 = x410.map{ case (x411, x412) => 
+   val x413 = (x412) 
+val x414 = Record523(x411, x413) 
+x414 
 } 
-val M_flat1 = x791
+val M_flat1 = x415
 //println("M_flat1")
-val x792 = M_flat1
+val x416 = M_flat1
 //M_flat1.collect.foreach(println(_))
-val x794 = M_flat1 
-val x798 = x794.flatMap{ case x795 => x795 match {
-   case null => List((x795, null))
+val x418 = M_flat1 
+val x422 = x418.flatMap{ case x419 => x419 match {
+   case null => List((x419, null))
    case _ =>
-   val x796 = x795._2 
-x796 match {
-     case x797 => x797.map{ case v2 => (x795, v2) }
+   val x420 = x419._2 
+x420 match {
+     case x421 => x421.map{ case v2 => (x419, v2) }
   }
  }} 
-val x803 = x798.map{ case (x799, x800) => 
-   val x801 = x800.c_orders 
-val x802 = Record900(x801) 
-x802 
+val x427 = x422.map{ case (x423, x424) => 
+   val x425 = x424.c_orders 
+val x426 = Record524(x425) 
+x426 
 } 
-val x804 = x803.distinct 
-val M_ctx2 = x804
+val x428 = x427.distinct 
+val M_ctx2 = x428
 //println("M_ctx2")
-val x805 = M_ctx2
+val x429 = M_ctx2
 //M_ctx2.collect.foreach(println(_))
-val x807 = M_ctx2 
-val x808 = O__D_1 
-val x814 = x808.map(x809 => { val x810 = x809.o_orderdate 
-val x811 = x809.o_orderkey 
-val x812 = x809.o_custkey 
-val x813 = Record901(x810, x811, x812) 
-x813 }) 
-val x820 = { val out1 = x807.map{ case x815 => ({val x817 = x815.lbl 
-val x818 = x817.c__Fc_custkey 
-x818}, x815) }
-  val out2 = x814.map{ case x816 => ({val x819 = x816.o_custkey 
-x819}, x816) }
+val x431 = M_ctx2 
+val x432 = O__D_1 
+val x438 = x432.map(x433 => { val x434 = x433.o_orderkey 
+val x435 = x433.o_orderdate 
+val x436 = x433.o_custkey 
+val x437 = Record525(x434, x435, x436) 
+x437 }) 
+val x444 = { val out1 = x431.map{ case x439 => ({val x441 = x439.lbl 
+val x442 = x441.c__Fc_custkey 
+x442}, x439) }
+  val out2 = x438.map{ case x440 => ({val x443 = x440.o_custkey 
+x443}, x440) }
   out1.join(out2).map{ case (k,v) => v }
 } 
-val x830 = x820.map{ case (x821, x822) => val x829 = (x822) 
-x829 match {
-   case (null) => ({val x823 = (x821) 
-x823}, null) 
-   case x828 => ({val x823 = (x821) 
-x823}, {val x824 = x822.o_orderdate 
-val x825 = x822.o_orderkey 
-val x826 = Record903(x825) 
-val x827 = Record904(x824, x826) 
-x827})
+val x454 = x444.map{ case (x445, x446) => val x453 = (x446) 
+x453 match {
+   case (null) => ({val x447 = (x445) 
+x447}, null) 
+   case x452 => ({val x447 = (x445) 
+x447}, {val x448 = x446.o_orderkey 
+val x449 = x446.o_orderdate 
+val x450 = Record527(x448) 
+val x451 = Record528(x448, x449, x450) 
+x451})
  }
 }.groupByLabel() 
-val x835 = x830.map{ case (x831, x832) => 
-   val x833 = (x832) 
-val x834 = Record905(x831, x833) 
-x834 
+val x459 = x454.map{ case (x455, x456) => 
+   val x457 = (x456) 
+val x458 = Record529(x455, x457) 
+x458 
 } 
-val M_flat2 = x835
+val M_flat2 = x459
 //println("M_flat2")
-val x836 = M_flat2
+val x460 = M_flat2
 //M_flat2.collect.foreach(println(_))
-val x838 = M_flat2 
-val x842 = x838.flatMap{ case x839 => x839 match {
-   case null => List((x839, null))
+val x462 = M_flat2 
+val x466 = x462.flatMap{ case x463 => x463 match {
+   case null => List((x463, null))
    case _ =>
-   val x840 = x839._2 
-x840 match {
-     case x841 => x841.map{ case v2 => (x839, v2) }
+   val x464 = x463._2 
+x464 match {
+     case x465 => x465.map{ case v2 => (x463, v2) }
   }
  }} 
-val x847 = x842.map{ case (x843, x844) => 
-   val x845 = x844.o_parts 
-val x846 = Record906(x845) 
-x846 
+val x471 = x466.map{ case (x467, x468) => 
+   val x469 = x468.o_parts 
+val x470 = Record530(x469) 
+x470 
 } 
-val x848 = x847.distinct 
-val M_ctx3 = x848
+val x472 = x471.distinct 
+val M_ctx3 = x472
 //println("M_ctx3")
-val x849 = M_ctx3
+val x473 = M_ctx3
 //M_ctx3.collect.foreach(println(_))
-val x851 = M_ctx3 
-val x852 = L__D_1 
-val x858 = x852.map(x853 => { val x854 = x853.l_quantity 
-val x855 = x853.l_partkey 
-val x856 = x853.l_orderkey 
-val x857 = Record907(x854, x855, x856) 
-x857 }) 
-val x864 = { val out1 = x851.map{ case x859 => ({val x861 = x859.lbl 
-val x862 = x861.o__Fo_orderkey 
-x862}, x859) }
-  val out2 = x858.map{ case x860 => ({val x863 = x860.l_orderkey 
-x863}, x860) }
+val x475 = M_ctx3 
+val x476 = L__D_1 
+val x482 = x476.map(x477 => { val x478 = x477.l_quantity 
+val x479 = x477.l_partkey 
+val x480 = x477.l_orderkey 
+val x481 = Record531(x478, x479, x480) 
+x481 }) 
+val x488 = { val out1 = x475.map{ case x483 => ({val x485 = x483.lbl 
+val x486 = x485.o__Fo_orderkey 
+x486}, x483) }
+  val out2 = x482.map{ case x484 => ({val x487 = x484.l_orderkey 
+x487}, x484) }
   out1.join(out2).map{ case (k,v) => v }
 } 
-val x865 = P__D_1 
-val x870 = x865.map(x866 => { val x867 = x866.p_name 
-val x868 = x866.p_partkey 
-val x869 = Record908(x867, x868) 
-x869 }) 
-val x876 = { val out1 = x864.map{ case (x871, x872) => ({val x874 = x872.l_partkey 
-x874}, (x871, x872)) }
-  val out2 = x870.map{ case x873 => ({val x875 = x873.p_partkey 
-x875}, x873) }
+val x489 = P__D_1 
+val x494 = x489.map(x490 => { val x491 = x490.p_name 
+val x492 = x490.p_partkey 
+val x493 = Record532(x491, x492) 
+x493 }) 
+val x500 = { val out1 = x488.map{ case (x495, x496) => ({val x498 = x496.l_partkey 
+x498}, (x495, x496)) }
+  val out2 = x494.map{ case x497 => ({val x499 = x497.p_partkey 
+x499}, x497) }
   out1.join(out2).map{ case (k,v) => v }
 } 
-val x886 = x876.map{ case ((x877, x878), x879) => val x885 = (x878,x879) 
-x885 match {
-   case (_,null) => ({val x880 = (x877) 
-x880}, null) 
-   case x884 => ({val x880 = (x877) 
-x880}, {val x881 = x879.p_name 
-val x882 = x878.l_quantity 
-val x883 = Record910(x881, x882) 
-x883})
+val x510 = x500.map{ case ((x501, x502), x503) => val x509 = (x502,x503) 
+x509 match {
+   case (_,null) => ({val x504 = (x501) 
+x504}, null) 
+   case x508 => ({val x504 = (x501) 
+x504}, {val x505 = x503.p_name 
+val x506 = x502.l_quantity 
+val x507 = Record534(x505, x506) 
+x507})
  }
 }.groupByLabel() 
-val x891 = x886.map{ case (x887, x888) => 
-   val x889 = (x888) 
-val x890 = Record911(x887, x889) 
-x890 
+val x515 = x510.map{ case (x511, x512) => 
+   val x513 = (x512) 
+val x514 = Record535(x511, x513) 
+x514 
 } 
-val M_flat3 = x891
+val M_flat3 = x515
 //println("M_flat3")
-val x892 = M_flat3
+val x516 = M_flat3
 //M_flat3.collect.foreach(println(_))
-val res = x892.count
+val res = x516.count
    var end0 = System.currentTimeMillis() - start0
-   println("ShredQuery1Spark"+sf+","+Config.datapath+","+end0)
+   println("ShredQuery1Spark"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
  }
 }

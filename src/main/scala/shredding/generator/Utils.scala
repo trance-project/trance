@@ -216,7 +216,6 @@ object Utils {
       val normq2 = normalizer.finalize(q2).asInstanceOf[CExpr]
       println(Printer.quote(normq2))
       val plan2a = Unnester.unnest(normq2)(Nil, Nil, None)
-      //println(Printer.quote(plan2a))
       val plan2 = Optimizer.applyAll(plan2a)
       println(Printer.quote(plan2))
       
@@ -264,7 +263,7 @@ object Utils {
       |   var start0 = System.currentTimeMillis()
       |   $gcode.count
       |   var end0 = System.currentTimeMillis() - start0
-      |   println("$appname"+sf+","+Config.datapath+","+end0)
+      |   println("$appname"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
       | }
       |}""".stripMargin
   }
@@ -303,7 +302,7 @@ object Utils {
       |   }
       |   f
       |   var end0 = System.currentTimeMillis() - start0
-      |   println("$appname"+sf+","+Config.datapath+","+end0)
+      |   println("$appname"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
       | }
       |}""".stripMargin
   }

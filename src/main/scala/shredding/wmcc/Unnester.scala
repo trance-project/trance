@@ -133,8 +133,14 @@ object Unnester {
         case _ => Some(OuterUnnest(E.get, w, e1, v, p)) //C10
       }
       unnest(e)((u, w :+ v, nE))
-   case Comprehension(e1 @ Project(e0, f), v, p @ Equals(lbl1, lbl2), Comprehension(e2, v2, p2, e3)) if e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
+   case Comprehension(e1 @ Project(e0, f), v, ps1, Comprehension(e2, v2, p2, e3)) if e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
       assert(!E.isEmpty)
+      // filters have been pushed from the previous comprehension
+      val lbl1 = ps1 match {
+        case Equals(l1, l2) => l1
+        case And(Equals(l1, l2), l3) => l1
+        case And(l3, Equals(l1, l2)) => l1
+      }
       getPM(p2) match {
         case (Constant(false), _) => 
           // p1s are from the context

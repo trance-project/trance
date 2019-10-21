@@ -122,6 +122,20 @@ object TPCHQueries {
                     ForeachUnion(p, relP, IfThenElse(
                       Cmp(OpEq, lr("l_partkey"), pr("p_partkey")), 
                         Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))))))))))
+ 
+ // query 1 with extended schema for filtering in query 4 
+ val query1b = ForeachUnion(c, relC, 
+            Singleton(Tuple("c_id" -> cr("c_custkey"), "c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(o, relO, 
+              IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")), 
+                Singleton(Tuple("o_id" -> or("o_orderkey"), "o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(l, relL, 
+                  IfThenElse(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
+                    ForeachUnion(p, relP, IfThenElse(
+                      Cmp(OpEq, lr("l_partkey"), pr("p_partkey")), 
+                        Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))))))))))
+
+  val q1btype = TupleType("c_id" -> IntType, "c_name" -> StringType, "c_orders" ->
+                          BagType(TupleType("o_id" -> IntType, "o_orderdate" -> StringType, "o_parts" ->
+                            BagType(TupleType("p_name" -> StringType, "l_qty" -> DoubleType)))))
 
   val q1type = TupleType("c_name" -> StringType, "c_orders" ->
                           BagType(TupleType("o_orderdate" -> StringType, "o_parts" ->
@@ -151,7 +165,7 @@ object TPCHQueries {
   val input4 = Sequence(List(input4a, input4b, input4c))
   
   val q4name = "Query4"
- 
+
   val Q1 = VarDef(q4name, query1.tp) 
   val q1 = VarDef("q1", q1type)
   val q2 = VarDef("q12", q1type)
@@ -227,6 +241,28 @@ object TPCHQueries {
   val vd = VarDef("x", 
             TupleType("c_name" -> StringType, "p_name" -> StringType, 
                       "month" -> StringType, "t_qty" -> DoubleType))
+
+  val q1b = VarDef("q1", q1btype)
+  val Q1b = VarDef(q4name, query1b.tp)
+  val q1br = TupleVarRef(q1b) 
+
+  val cq1b = VarDef("c1", TupleType("o_id" -> IntType, "o_orderdate" -> StringType, "o_parts" -> BagType(TupleType("p_name" -> StringType, "l_qty" -> DoubleType))))
+  val cq1br = TupleVarRef(cq1b)
+
+  val query4c = GroupBy(
+                  ForeachUnion(q1b, BagVarRef(Q1b),
+                    IfThenElse(Cmp(OpGt, Const(1000, IntType), q1br("c_id")),  
+                      ForeachUnion(cq1b, BagProject(q1br, "c_orders"), 
+                        IfThenElse(Cmp(OpGt, Const(1000, IntType), cq1br("o_id")),
+                          ForeachUnion(pq1, BagProject(cq1br, "o_parts"), 
+                            Singleton(Tuple("c_name" -> q1br("c_name"), 
+                                        "p_name" -> pq1r("p_name"), 
+                                        "month" -> cq1br("o_orderdate"), 
+                                        "t_qty" -> pq1r("l_qty")))))))),
+                   List("c_name", "p_name", "month"),
+                   List("t_qty"), DoubleType)
+
+  // query4 like with filter
   val query4b = GroupBy(
                   ForeachUnion(q1, BagVarRef(Q1), 
                     ForeachUnion(cq1, BagProject(q1r, "c_orders"), 

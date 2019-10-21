@@ -47,8 +47,13 @@ object Optimizer {
     // TODO HANDLE LOOKUPS 
     case Select(d, v, f, e2) =>
       fields(e)
-      if (proj(v) == e2.asInstanceOf[Variable].tp.asInstanceOf[RecordCType].attrTps.keySet) Select(push(d), v, f, e2)
-      else Select(push(d), v, f, Record(proj(v).map(f2 => f2 -> Project(v, f2)).toMap))
+      val projs = proj(v)
+      e2 match {
+        case Variable(_, RecordCType(tfs)) if tfs.keySet != projs => 
+          Select(push(d), v, f, Record(proj(v).map(f2 => f2 -> Project(v, f2)).toMap))
+        case _ => 
+          Select(push(d), v, f, e2)
+      }
     case CNamed(n, o) => CNamed(n, push(o))
     case LinearCSet(rs) => LinearCSet(rs.reverse.map(r => push(r)).reverse)
     case _ => e
