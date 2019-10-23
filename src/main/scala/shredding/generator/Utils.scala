@@ -216,13 +216,15 @@ object Utils {
       val normq2 = normalizer.finalize(q2).asInstanceOf[CExpr]
       println(Printer.quote(normq2))
       val plan2a = Unnester.unnest(normq2)(Nil, Nil, None)
-      val plan2 = Optimizer.applyAll(plan2a)
+      println("plan before optimization")
+	  println(Printer.quote(plan2a))
+	  val plan2 = Optimizer.applyAll(plan2a)
       println(Printer.quote(plan2))
       
       anfBase.reset
       val anfedq2 = anfer.finalize(plan2)
       val anfExp2 = anfBase.anf(anfedq2.asInstanceOf[anfBase.Rep])
-      //println(Printer.quote(anfExp2))
+      println(Printer.quote(anfExp2))
 
       val gcode2 = codegen.generate(anfExp2)
       val header2 = codegen.generateHeader(ng)

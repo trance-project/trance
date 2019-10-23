@@ -44,7 +44,6 @@ object Optimizer {
       fields(p2)
       OuterJoin(push(e1), push(e2), v1, p1, v2, p2)
     case Select(InputRef(n, _), v,_,_) if n.contains("M_ctx") => e
-    // TODO HANDLE LOOKUPS 
     case Select(d, v, f, e2) =>
       fields(e)
       val projs = proj(v)

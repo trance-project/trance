@@ -28,13 +28,13 @@ object Unnester {
         val key = Record(fs.dropRight(1))
         val value = fs.last._2 // should be of primitive type
         val v = Variable.fresh(TTupleType(List(key.tp, value.tp)))
-        val g = if (u.isEmpty) CUnit else Tuple((w.toSet -- u).toList)
+		val g = Tuple(u ++ fs.dropRight(1).map(v => v._2 match { case Project(t, f) => t; case v3 => v3}).toList)
         Nest(e2, v2, key, value, v, p2, g)
-      case Nest(e2, v2, f2, e3 @ Record(fs), v3, p2 @ Constant(true), g) => 
+      case n @ Nest(e2, v2, f2, e3 @ Record(fs), v3, p2 @ Constant(true), g) => 
         val key = Tuple(u :+ Record(fs.dropRight(1)))
         val value = fs.last._2 // shoud be of primitive type
         val v = Variable.fresh(TTupleType(List(Record(fs.dropRight(1)).tp, value.tp)))
-        val g = if (u.isEmpty) CUnit else Tuple((w.toSet -- u).toList)
+		val g = Tuple(u ++ fs.dropRight(1).map(v => v._2 match { case Project(t, f) => t; case v3 => v3}).toList)
         Nest(e2, v2, key, value, v, p2, g)    
     }
     case Comprehension(e1, v, p, e) if u.isEmpty && w.isEmpty && E.isEmpty =>
@@ -155,7 +155,7 @@ object Unnester {
 	             unnest(pushPredicate(e3, p2))((u, w :+ v2, nE)) 
              }else{
                val nE = Some(OuterLookup(E.get, Select(e1, v, sp2s, v2), w, lbl1, v2, Constant(true), Constant(true)))
- 	             unnest(pushPredicate(e3, p2))((u, w :+ v2, nE))      
+				 unnest(pushPredicate(e3, p2))((u, w :+ v2, nE))      
 	           }
           }
 	      case (e4, be2) => 

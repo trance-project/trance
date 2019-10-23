@@ -61,16 +61,15 @@ val x395 = x393.c_name
 val x396 = Record519(x394, x395) 
 x396 }) 
 val x400 = x397.map{ case c => (x391.head, c) } 
-val x410 = x400.map{ case (x401, x402) => val x409 = (x402) 
+val x410 = x400.flatMap{ case (x401, x402) => val x409 = (x402) 
 x409 match {
-   case (null) => ({val x403 = (x401) 
-x403}, null) 
-   case x408 => ({val x403 = (x401) 
+   case (null) => Nil 
+   case x408 => List(({val x403 = (x401) 
 x403}, {val x404 = x402.c_custkey 
 val x405 = x402.c_name 
 val x406 = Record521(x404) 
 val x407 = Record522(x404, x405, x406) 
-x407})
+x407}))
  }
 }.groupByLabel() 
 val x415 = x410.map{ case (x411, x412) => 
@@ -115,16 +114,15 @@ x442}, x439) }
 x443}, x440) }
   out1.join(out2).map{ case (k,v) => v }
 } 
-val x454 = x444.map{ case (x445, x446) => val x453 = (x446) 
+val x454 = x444.flatMap{ case (x445, x446) => val x453 = (x446) 
 x453 match {
-   case (null) => ({val x447 = (x445) 
-x447}, null) 
-   case x452 => ({val x447 = (x445) 
+   case (null) => Nil 
+   case x452 => List(({val x447 = (x445) 
 x447}, {val x448 = x446.o_orderkey 
 val x449 = x446.o_orderdate 
 val x450 = Record527(x448) 
 val x451 = Record528(x448, x449, x450) 
-x451})
+x451}))
  }
 }.groupByLabel() 
 val x459 = x454.map{ case (x455, x456) => 
@@ -180,15 +178,14 @@ x498}, (x495, x496)) }
 x499}, x497) }
   out1.join(out2).map{ case (k,v) => v }
 } 
-val x510 = x500.map{ case ((x501, x502), x503) => val x509 = (x502,x503) 
+val x510 = x500.flatMap{ case ((x501, x502), x503) => val x509 = (x502,x503) 
 x509 match {
-   case (_,null) => ({val x504 = (x501) 
-x504}, null) 
-   case x508 => ({val x504 = (x501) 
+   case (_,null) => Nil 
+   case x508 => List(({val x504 = (x501) 
 x504}, {val x505 = x503.p_name 
 val x506 = x502.l_quantity 
 val x507 = Record534(x505, x506) 
-x507})
+x507}))
  }
 }.groupByLabel() 
 val x515 = x510.map{ case (x511, x512) => 

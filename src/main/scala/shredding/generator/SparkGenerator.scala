@@ -161,12 +161,12 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
         case Bind(_, Tuple(fs), _) if fs.size != 1 => 
           (2 to fs.size).map(i => 
             if (i != fs.size) {
-              s"case (${fs.slice(1, i).map(e => "_").mkString(",")},${zero(fs(i-1))},${fs.slice(i, fs.size).map(e => "_").mkString(",")}) => ({${generate(f)}}, ${zero(e2)})"
+              s"case (${fs.slice(1, i).map(e => "_").mkString(",")},${zero(fs(i-1))},${fs.slice(i, fs.size).map(e => "_").mkString(",")}) => Nil" //({${generate(f)}}, ${zero(e2)})"
             } else { 
-              s"case (${fs.slice(1, i).map(e => "_").mkString(",")},${zero(fs.last)}) => ({${generate(f)}}, ${zero(e2)})" 
+              s"case (${fs.slice(1, i).map(e => "_").mkString(",")},${zero(fs.last)}) => Nil" //({${generate(f)}}, ${zero(e2)})" 
             }
           ).mkString("\n")
-        case _ => s"case (null) => ({${generate(f)}}, ${zero(e2)})"
+		case _ => s"case (null) => Nil" //({${generate(f)}}, ${zero(e2)})"
       }
       
       // for now check if this is the shredded version
@@ -179,33 +179,29 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
 
       (p, e2.tp) match {
         case (Constant(true), RecordCType(_)) => 
-          s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
+          s"""|${generate(e1)}.flatMap{ case $vars => ${generate(g)} match {
               |   $nonet 
-              |   case $gv2 => ({${generate(f)}}, {${generate(e2)}})
+              |   case $gv2 => List(({${generate(f)}}, {${generate(e2)}}))
               | }
               |}$gbfun""".stripMargin
         case (Constant(true), _) => g match {
-          case Bind(_, CUnit, _) =>
-            s"""|${generate(e1)}.map{ case $vars => 
-                |   ({${generate(f)}}, {${generate(e2)}})
-                |}.reduceByKey(_ + _)""".stripMargin
           case _ =>
-            s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
+            s"""|${generate(e1)}.flatMap{ case $vars => ${generate(g)} match {
                 |   $nonet
-                |   case $gv2 => ({${generate(f)}}, {${generate(e2)}})
+                |   case $gv2 => List(({${generate(f)}}, {${generate(e2)}}))
                 | }
                 |}.reduceByKey(_ + _)""".stripMargin
         }
         case (_, RecordCType(_)) => 
-          s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
-              |   case $gv2 if {${generate(p)}} => ({${generate(f)}}, {${generate(e2)}})
-              |   case $gv2 => ({${generate(f)}}, ${zero(e2)})
+          s"""|${generate(e1)}.flatMap{ case $vars => ${generate(g)} match {
+              |   case $gv2 if {${generate(p)}} => List(({${generate(f)}}, {${generate(e2)}}))
+              |   case $gv2 => List(({${generate(f)}}, ${zero(e2)}))
               | }    
               |}$gbfun""".stripMargin
         case _ =>
-          s"""|${generate(e1)}.map{ case $vars => ${generate(g)} match {
-              |   case $gv2 if {${generate(p)}} => ({${generate(f)}}, {${generate(e2)}})
-              |   case $gv2 => ({${generate(f)}}, ${zero(e2)})
+          s"""|${generate(e1)}.flatMap{ case $vars => ${generate(g)} match {
+              |   case $gv2 if {${generate(p)}} => List(({${generate(f)}}, {${generate(e2)}}))
+              |   case $gv2 => List(({${generate(f)}}, ${zero(e2)}))
               | }
               |}.reduceByKey(_ + _)""".stripMargin
       }
@@ -268,19 +264,19 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
           |  out1.join(out2).map{ case (k, v) => v }
           |}""".stripMargin
     case OuterLookup(e1, e2, v1, p1, v2, p2, p3) =>      
-      val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
+	  val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       s"""|{ val out1 = ${generate(e1)}.map{${checkNull(v1)} case $vars => (${e1Key(p1, p3)}, $vars) }
           |  val out2 = ${generate(e2)}${e2Key(v2, p2)}
           |  out1.outerLookup(out2)
           |}""".stripMargin
-    case Select(x, v, p, e) => 
-      val gv = generate(v)
-      val proj = e match {
+    case Select(x, v, p, e2) => 
+	  val gv = generate(v)
+      val proj = e2 match {
         case Variable(_,_) => ""
         case InputRef(_,_) => ""
-        case _ => s".map($gv => { ${generate(e)} })"
+        case _ => s".map($gv => { ${generate(e2)} })"
       }
-      p match {
+   	  p match {
         case Constant(true) => s"${generate(x)}$proj"
         case _ => s"${generate(x)}.filter($gv => { ${generate(p)} })$proj"
       }
@@ -306,7 +302,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
         s"""|val M_ctx1 = ${generate(e)}
             |${generate(e2)}""".stripMargin
       case _ =>
-        s"""|val $n = ${generate(e)}
+		s"""|val $n = ${generate(e)}
             |//println(\"$n\")
             |val ${generate(x)} = $n
             |//$n.collect.foreach(println(_))
@@ -315,7 +311,8 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Bind(x, e1 @ LinearCSet(rs), e2) =>
       // count will be called on the last item in the linear set
       s"val res = ${generate(rs.last)}"
-    case Bind(v, e1, e2) => sanitizeName(e) match {
+    case Bind(v, e1, e2) => 
+	  sanitizeName(e) match {
         case Bind(v2, e3, e4) => s"val ${generate(v2)} = ${generate(e3)} \n${generate(e4)}"
       	case _ => sys.error(s"not support $e")
       }

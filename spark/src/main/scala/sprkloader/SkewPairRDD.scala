@@ -18,8 +18,8 @@ object SkewPairRDD {
       .filter(_._2 >= reducers)
       .keys.collect.toSet
     }
-
-    def balanceLeft[S](rrdd: RDD[(K, S)], hkeys: Broadcast[Set[K]]): (RDD[((K, Int), V)], RDD[((K, Int), S)]) = {
+	
+	def balanceLeft[S](rrdd: RDD[(K, S)], hkeys: Broadcast[Set[K]]): (RDD[((K, Int), V)], RDD[((K, Int), S)]) = {
       val lrekey = lrdd.mapPartitions{ it =>
         it.zipWithIndex.map{ case ((k,v), i) => 
           (k, { if (hkeys.value(k)) i % reducers else 0 }) -> v

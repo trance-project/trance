@@ -78,26 +78,24 @@ x294}, x292) }
   out1.join(out2).map{ case (k,v) => v }
   //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
 } 
-val x306 = x295.map{ case (((x296, x297), x298), x299) => val x305 = (x298,x299) 
+val x306 = x295.flatMap{ case (((x296, x297), x298), x299) => val x305 = (x298,x299) 
 x305 match {
-   case (_,null) => ({val x300 = (x296,x297) 
-x300}, null) 
-   case x304 => ({val x300 = (x296,x297) 
+   case (_,null) => Nil 
+   case x304 => List(({val x300 = (x296,x297) 
 x300}, {val x301 = x299.p_name 
 val x302 = x298.l_quantity 
 val x303 = Record328(x301, x302) 
-x303})
+x303}))
  }
 }.groupByKey() 
-val x316 = x306.map{ case ((x307, x308), x309) => val x315 = (x308,x309) 
+val x316 = x306.flatMap{ case ((x307, x308), x309) => val x315 = (x308,x309) 
 x315 match {
-   case (_,null) => ({val x310 = (x307) 
-x310}, null) 
-   case x314 => ({val x310 = (x307) 
+   case (_,null) => Nil 
+   case x314 => List(({val x310 = (x307) 
 x310}, {val x311 = x308.o_orderkey 
 val x312 = x308.o_orderdate 
 val x313 = Record330(x311, x312, x309) 
-x313})
+x313}))
  }
 }.groupByKey() 
 val x322 = x316.map{ case (x317, x318) => 
@@ -135,13 +133,17 @@ x351 match {
      case x352 => x352.map{ case v2 => ((x349, x350), v2) }
   }
  }} 
-val x364 = x353.map{ case ((x354, x355), x356) => 
-   ({val x357 = x354.c_name 
+val x364 = x353.flatMap{ case ((x354, x355), x356) => val x363 = (x354,x356,x355) 
+x363 match {
+   case (_,null,_) => Nil
+case (_,_,null) => Nil
+   case x362 => List(({val x357 = x354.c_name 
 val x358 = x356.p_name 
 val x359 = x355.o_orderdate 
 val x360 = Record367(x357, x358, x359) 
 x360}, {val x361 = x356.l_qty 
-x361})
+x361}))
+ }
 }.reduceByKey(_ + _) 
 x364.count
    }

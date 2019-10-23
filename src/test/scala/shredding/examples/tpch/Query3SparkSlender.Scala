@@ -59,6 +59,7 @@ S.count
                   p_names.map(p_name => (p_name, suppliers.toArray, customers.toArray)) }
    result.count
    var end0 = System.currentTimeMillis() - start0
+   //result.saveAsObjectFile("/nfs_qc4/query3/result")
    println("Query3SparkSlender"+sf+","+Config.datapath+","+end0,spark.sparkContext.applicationId)
  }
 }
