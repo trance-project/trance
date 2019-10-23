@@ -3,6 +3,7 @@ package shredding.generator
 import java.io._
 import shredding.core._
 import shredding.wmcc._
+import shredding.examples.tpch._
 
 object Utils {
 
@@ -173,12 +174,37 @@ object Utils {
     }
 
   }
-
-  /**
+ 
+   /**
     * Produces an ouptut spark application 
     * (either shredded or not shredded) that does unnesting
     */
- 
+   
+  def timed(e: String): String = 
+    s"""|def f = { 
+        | $e
+        | res.count
+        |}
+        |var start0 = System.currentTimeMillis()
+        |f
+        |var end0 = System.currentTimeMillis()""".stripMargin
+
+  def runSparkNew(query: Query, shred: Boolean = false): Unit = {
+    
+    val codegen = new SparkNamedGenerator(query.inputTypes(shred))
+    val gcode = if (shred) codegen.generate(query.sanf) else codegen.generate(query.anf)
+    val header = codegen.generateHeader(query.headerTypes(shred))
+   
+    val qname = if (shred) s"Shred${query.name}" else query.name
+    val fname = pathout(qname+"Spark") 
+    println(s"Writing out $qname to $fname")
+    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
+    val finalc = writeSparkNew(qname+"Spark", query.inputs(if (shred) TPCHSchema.stblcmds else TPCHSchema.tblcmds), header, timed(gcode))
+    printer.println(finalc)
+    printer.close 
+  
+  }
+  
   def runSpark(qInfo: (CExpr, String, String), inputM: Map[Type, String], 
           q2Info: (CExpr, String, String) = (EmptySng, "", "")): Unit = {
     val anfBase = new BaseANF {}
@@ -235,9 +261,44 @@ object Utils {
 
   }
 
+  /** def runSparkInputNew(inputQuery: Query, query: Query, shred: Boolean = false): Unit = {
+    
+    val codegen = new SparkNamedGenerator(inputQuery.inputTypes(shred))
+    val inputCode = codegen.generate(inputQuery.anf)
+    val gcode = codegen.generate(query.anf)
+    val header = codegen.generateHeader(inputQuery.headerTypes)
+
+    val printer = new PrintWriter(new FileOutputStream(new File(pathout(query.name+"Spark")), false))
+    val finalc = writeSparkNew(query.name+"Spark", query.inputs(TPCHSchema.tblcmds), header, s"$inputCode\n${timed(gcode)}")
+    printer.println(finalc)
+    printer.close 
+  
+  }**/
+
   /**
     * Writes out a query for a Spark application
     **/
+
+  def writeSparkNew(appname: String, data: String, header: String, gcode: String): String  = {
+    s"""
+      |package experiments
+      |/** Generated **/
+      |import org.apache.spark.SparkConf
+      |import org.apache.spark.sql.SparkSession
+      |import sprkloader._
+      |import sprkloader.SkewPairRDD._
+      |$header
+      |object $appname {
+      | def main(args: Array[String]){
+      |   val sf = Config.datapath.split("/").last
+      |   val conf = new SparkConf().setMaster(Config.master).setAppName(\"$appname\"+sf)
+      |   val spark = SparkSession.builder().config(conf).getOrCreate()
+      |   $data
+      |   $gcode
+      |   println("$appname"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
+      | }
+      |}""".stripMargin
+  }
 
   def writeSpark(appname: String, data: String, header: String, gcode: String): String  = {
     s"""
@@ -254,12 +315,12 @@ object Utils {
       |   val conf = new SparkConf().setMaster(Config.master).setAppName(\"$appname\"+sf)
       |   val spark = SparkSession.builder().config(conf).getOrCreate()
       |   $data
-      |    var id = 0L
-      |    def newId: Long = {
-      |      val prevId = id
-      |      id += 1
-      |      prevId
-      |    }
+      |   var id = 0L
+      |   def newId: Long = {
+      |     val prevId = id
+      |     id += 1
+      |     prevId
+      |   }
       |   var start0 = System.currentTimeMillis()
       |   $gcode.count
       |   var end0 = System.currentTimeMillis() - start0
@@ -271,7 +332,7 @@ object Utils {
   /**
     * Writes out a query for a Spark application that takes a materialized query as input
     **/
-
+  
   def writeSpark2(appname: String, data: String, header: String, gcode1: String, input: String, gcode: String, shred: String = ""): String  = {
     val inputquery = if (appname.startsWith("Shred")) { s"$gcode1 \n $shred" }
                      else { s"val $input = { $gcode1 } \n $input.cache \n $input.count" }

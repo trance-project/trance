@@ -49,7 +49,7 @@ object Optimizer {
       fields(e)
       val projs = proj(v)
       e2 match {
-        case Variable(_, RecordCType(tfs)) if tfs.keySet != projs => 
+        case Variable(_, RecordCType(tfs)) if tfs.keySet != projs  && tfs.keySet != Set("lbl") => 
           Select(push(d), v, f, Record(proj(v).map(f2 => f2 -> Project(v, f2)).toMap))
         case _ => 
           Select(push(d), v, f, e2)

@@ -9,21 +9,44 @@ trait PipelineRunner extends Linearization
   with Optimizer 
   with NRCTranslator {
 
-  def shredPipeline(query: Expr): CExpr = {
-    println("\nQuery:\n")
-    println(quote(query))
-    val sq = shred(query)
-    println("\nShredded:\n")
-    println(quote(sq))
-    println("\nOptimized:\n")
-    val sqo = optimize(sq)
-    println(quote(sqo))
-    val lsq = linearize(sqo)
-    println("\nLinearized:\n")
-    println(quote(lsq))
-    translate(lsq)
+  def shredPipelineNew(query: Expr): Expr = query match {
+    case Sequence(fs) => Sequence(fs.map{
+      case Named(n, e1) => Named(n, shredPipelineNew(e1))
+      case e1 => shredPipelineNew(e1) 
+    })
+    case _ => 
+      //println("\nQuery:\n")
+      //println(quote(query))
+      val sq = shred(query)
+      //println("\nShredded:\n")
+      //println(quote(sq))
+      //println("\nOptimized:\n")
+      val sqo = optimize(sq)
+      //println(quote(sqo))
+      val lsq = linearize(sqo)
+      //println("\nLinearized:\n")
+      //println(quote(lsq))
+      lsq
   }
 
+  def shredPipeline(query: Expr): CExpr = {
+      println("\nQuery:\n")
+      println(quote(query))
+      val sq = shred(query)
+      println("\nShredded:\n")
+      println(quote(sq))
+      //println("\nOptimized:\n")
+      val sqo = optimize(sq)
+      //println(quote(sqo))
+      val lsq = linearize(sqo)
+      println("\nLinearized:\n")
+      println(quote(lsq))
+      translate(lsq)
+  }
+
+  /**
+    * Example for value shredding
+    */
   def makeBag = {
 
     val r2type = TupleType("index" -> IntType, "m" -> IntType, "n" -> IntType, "k" ->

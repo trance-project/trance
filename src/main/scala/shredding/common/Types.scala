@@ -68,6 +68,8 @@ object TupleDictType {
   * Types used for WMCC 
   */
 
+case class TypeSet(tp: Map[Type, String]) extends Type 
+
 case class BagCType(tp: Type) extends Type
 
 case object EmptyCType extends Type

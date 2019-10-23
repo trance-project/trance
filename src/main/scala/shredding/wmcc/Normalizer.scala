@@ -36,6 +36,26 @@ trait BaseNormalizer extends BaseCompiler {
     case _ => super.or(e1, e2)
   }
 
+  override def linset(es: List[Rep]): Rep = 
+    super.linset(es.flatMap{
+      case LinearCSet(fs) => fs
+      case fs => List(fs)
+    })
+
+  override def named(n: String, e: Rep): Rep = e match {
+    case LinearCSet(fs) => LinearCSet(fs.map{ 
+      case CNamed("M_ctx1", Sng(e1)) => CNamed(n+"__F", e1)
+      case CNamed("M_flat1", Comprehension(InputRef("M_ctx1", BagCType(tp)), v1, p1, e2)) =>
+        CNamed(n+"__D_1", Comprehension(Sng(InputRef(n+"__F", tp)), v1, p1, e2))
+        //Sng(Record(fs)))) if fs.keySet == Set("k", "v") => 
+       //   CNamed(n+"__D_1", fs("v"))
+          //Bind(v1, InputRef(n+"__F", tp), fs("v")))
+          //Comprehension(Sng(InputRef(n+"__F", tp)), v1, p1, e2))
+      case _ => sys.error("further nested dictionaries not supported")
+    })
+    case _ => super.named(n, e)
+  }
+
   // N1, N2
   override def bind(e1: Rep, e: Rep => Rep): Rep = e(e1)
 
