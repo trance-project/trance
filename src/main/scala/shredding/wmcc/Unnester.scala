@@ -38,7 +38,11 @@ object Unnester {
         Nest(e2, v2, key, value, v, p2, g)    
     }
     case Comprehension(e1, v, p, e) if u.isEmpty && w.isEmpty && E.isEmpty =>
-      unnest(e)((Nil, List(v), Some(Select(e1, v, p, v)))) // C4
+      val filt = p match {
+        case Equals(InputRef(_, EmptyCType), _) => Constant(true)
+        case _ => p
+      }
+      unnest(e)((Nil, List(v), Some(Select(e1, v, filt, v)))) // C4
     case Comprehension(e1 @ Comprehension(_, _, _, _), v, p, e) if !w.isEmpty => // C11 (relaxed)
       val (nE, v2) = getNest(unnest(e1)((w, w, E)))
       unnest(e)((u, w:+v2, nE))
@@ -147,9 +151,9 @@ object Unnester {
           val (sp2s, p1s, p2s) = ps(p2, v2, w)
           e1 match {
             // top level case
-             case Project(InputRef(name, BagDictCType(_,_)), "_1") if name.endsWith("__D") =>
+             case Project(InputRef(name, btp @ BagDictCType(_,_)), "_1") if name.endsWith("__D") =>
                val nE = Some(Join(E.get, Select(e1, v2, sp2s, v2), w, p1s, v2, p2s))  
-               unnest(e3)((u, w :+ v2, nE)) 
+               unnest(e3)((u, w :+ v2, nE))
              case _ => if (u.isEmpty) {
                val nE = Some(Lookup(E.get, Select(e1, v, sp2s, v2), w, lbl1, v2, Constant(true), Constant(true)))
 	             unnest(pushPredicate(e3, p2))((u, w :+ v2, nE)) 
@@ -194,6 +198,7 @@ object Unnester {
       }
     case LinearCSet(exprs) => LinearCSet(exprs.map(unnest(_)((Nil, Nil, None))))
     case CNamed(n, exp) => exp match {
+      case Record(lbl) => CNamed(n, exp)
       case Sng(Record(lbl)) => CNamed(n, exp)
       case _ => CNamed(n, unnest(exp)((Nil, Nil, None)))
     }
@@ -206,7 +211,7 @@ object Unnester {
     case (Comprehension(e1, v1, p1, e2), _) => Comprehension(e1, v1, And(p, p1), e2)
     case _ => If(p, e, None)
   }
-
+  
   def getNest(e: CExpr): (Option[CExpr], Variable) = e match {
     case Bind(nval, nv @ Variable(_,_), e1) => (Some(e), nv)
     case Nest(_,_,_,_,v2 @ Variable(_,_),_,_) => (Some(e), v2)

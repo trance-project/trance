@@ -261,4 +261,12 @@ trait NRC extends BaseExpr {
     val tp: BagType = BagType(TupleType(grp.tp.attrTps + ("_2" -> value.tp)))
   }
 
+  case class Named(v: VarDef, e: Expr) extends Expr {
+    def tp: Type = TupleType()    // unit type
+  }
+
+  case class Sequence(exprs: List[Expr]) extends Expr {
+    val tp: Type = exprs.lastOption.map(_.tp).getOrElse(TupleType())
+  }
+
 }

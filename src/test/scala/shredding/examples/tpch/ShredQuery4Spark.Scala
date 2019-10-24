@@ -78,7 +78,6 @@ val x414 = Record523(x411, x413)
 x414 
 } 
 val M_flat1 = x415
-//println("M_flat1")
 val x416 = M_flat1
 //M_flat1.collect.foreach(println(_))
 val x418 = M_flat1 
@@ -97,7 +96,6 @@ x426
 } 
 val x428 = x427.distinct 
 val M_ctx2 = x428
-//println("M_ctx2")
 val x429 = M_ctx2
 //M_ctx2.collect.foreach(println(_))
 val x431 = M_ctx2 
@@ -131,7 +129,6 @@ val x458 = Record529(x455, x457)
 x458 
 } 
 val M_flat2 = x459
-//println("M_flat2")
 val x460 = M_flat2
 //M_flat2.collect.foreach(println(_))
 val x462 = M_flat2 
@@ -150,7 +147,6 @@ x470
 } 
 val x472 = x471.distinct 
 val M_ctx3 = x472
-//println("M_ctx3")
 val x473 = M_ctx3
 //M_ctx3.collect.foreach(println(_))
 val x475 = M_ctx3 
@@ -194,7 +190,6 @@ val x514 = Record535(x511, x513)
 x514 
 } 
 val M_flat3 = x515
-//println("M_flat3")
 val x516 = M_flat3
 //M_flat3.collect.foreach(println(_))
 val res = x516 
@@ -255,7 +250,6 @@ val x601 = x595.map{ case ((x596, x597), x598) =>
   (x596, (x597,x598))
 }.groupByLabel() 
 val M_flat1 = x601
-//println("M_flat1")
 val x602 = M_flat1
 //M_flat1.collect.foreach(println(_))
 val res = x602.count

@@ -4,14 +4,33 @@ import shredding.core._
 import shredding.wmcc._
 import shredding.examples.genomic.{GenomicTests, GenomicRelations}
 import shredding.examples.simple.{FlatTests, NestedTests, FlatRelations, NestedRelations}
-import shredding.examples.tpch.{TPCHQueries, TPCHSchema, TPCHLoader}
+import shredding.examples.tpch._
 
 /**
   * Generates Scala code for a provided query
   */
 
 object App {
+ 
+   def main(args: Array[String]){
+    runTPCH1()
+    //runTPCH()
+  }
   
+  val runner = new PipelineRunner{}
+  val translator = new NRCTranslator{}
+  val normalizer = new Finalizer(new BaseNormalizer{})
+  val tpchInputM = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2)
+  val tpchShredM = tpchInputM ++ TPCHSchema.tpchShredInputs
+ 
+  def runTPCH1(){
+
+    println(" --------------------------- TPCH Query 1 Optimized-------------------------")  
+    Utils.runSparkNew(TPCHQuery1)
+    Utils.runSparkNew(TPCHQuery1, shred = true)
+  
+  }
+
   def runSparkCalc(){
     println(" ------------------------------- Spark Test Query -------------------------- ")
     val q1 = translator.translate(NestedTests.q10.asInstanceOf[translator.Expr])
@@ -207,29 +226,6 @@ object App {
     **/
   }
 
-  def main(args: Array[String]){
-    runTPCH()
-     //runSparkCalc()
-    //runSpark()
-    //runBio()
-    //run1Calc()
-    //run1()
-    //run3Calc()
-    //run3()
-    //run4Calc()
-    //run4()
-    //run4a()
-    /**run5Calc()
-    run5()
-    run7Calc()
-    run7()**/
-  }
-  
-  val runner = new PipelineRunner{}
-  val translator = new NRCTranslator{}
-  val normalizer = new Finalizer(new BaseNormalizer{})
-  val tpchInputM = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2)
-  val tpchShredM = tpchInputM ++ TPCHSchema.tpchShredInputs
   
   def run1Calc(){
     
