@@ -3,6 +3,7 @@ package shredding.generator
 import java.io._
 import shredding.core._
 import shredding.wmcc._
+import shredding.examples.Query
 import shredding.examples.tpch._
 
 object Utils {
@@ -182,8 +183,7 @@ object Utils {
    
   def timed(e: String): String = 
     s"""|def f = { 
-        | $e
-        | res.count
+        | $e.count
         |}
         |var start0 = System.currentTimeMillis()
         |f
@@ -204,7 +204,32 @@ object Utils {
     printer.close 
   
   }
+
+  def inputs(n: String, e: String): String = 
+    s"""|val $n = {
+        | $e
+        |}
+        |$n.cache
+        |$n.count""".stripMargin
+ 
+  def runSparkInputNew(inputQuery: Query, query: Query, shred: Boolean = false): Unit = {
+    
+    val codegen = new SparkNamedGenerator(inputQuery.inputTypes(shred))
+    val (inputCode, gcode) = 
+      if (shred) (codegen.generate(inputQuery.sanf), codegen.generate(query.sanf))
+      else (codegen.generate(inputQuery.anf), codegen.generate(query.anf))
+    val header = codegen.generateHeader(inputQuery.headerTypes(shred))
+
+    val qname = if (shred) s"Shred${query.name}" else query.name
+    val fname = pathout(qname+"Spark")
+    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
+    val finalc = writeSparkNew(qname+"Spark", query.inputs(if (shred) TPCHSchema.stblcmds else TPCHSchema.tblcmds), 
+                  header, s"${inputs(inputQuery.name, inputCode)}\n${timed(gcode)}")
+    printer.println(finalc)
+    printer.close 
   
+  }
+ 
   def runSpark(qInfo: (CExpr, String, String), inputM: Map[Type, String], 
           q2Info: (CExpr, String, String) = (EmptySng, "", "")): Unit = {
     val anfBase = new BaseANF {}
@@ -261,19 +286,6 @@ object Utils {
 
   }
 
-  /** def runSparkInputNew(inputQuery: Query, query: Query, shred: Boolean = false): Unit = {
-    
-    val codegen = new SparkNamedGenerator(inputQuery.inputTypes(shred))
-    val inputCode = codegen.generate(inputQuery.anf)
-    val gcode = codegen.generate(query.anf)
-    val header = codegen.generateHeader(inputQuery.headerTypes)
-
-    val printer = new PrintWriter(new FileOutputStream(new File(pathout(query.name+"Spark")), false))
-    val finalc = writeSparkNew(query.name+"Spark", query.inputs(TPCHSchema.tblcmds), header, s"$inputCode\n${timed(gcode)}")
-    printer.println(finalc)
-    printer.close 
-  
-  }**/
 
   /**
     * Writes out a query for a Spark application

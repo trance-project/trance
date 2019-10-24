@@ -19,18 +19,18 @@ object Query1Spark {
    val conf = new SparkConf().setMaster(Config.master).setAppName("Query1Spark"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
-val C = tpch.loadCustomers
-C.cache
-C.count
-val O = tpch.loadOrders
-O.cache
-O.count
 val L = tpch.loadLineitem
 L.cache
 L.count
 val P = tpch.loadPart
 P.cache
 P.count
+val C = tpch.loadCustomers
+C.cache
+C.count
+val O = tpch.loadOrders
+O.cache
+O.count
 
    def f = { 
  val x13 = L.map(x8 => { val x9 = x8.l_orderkey 
@@ -108,8 +108,7 @@ val x79 = x74.map{ case (x75, x76) =>
 val x78 = Record90(x77, x76) 
 x78 
 } 
-val res = x79
- res.count
+x79.count
 }
 var start0 = System.currentTimeMillis()
 f

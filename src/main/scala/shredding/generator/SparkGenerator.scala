@@ -313,7 +313,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     }
     case Bind(x, e1 @ LinearCSet(rs), e2) =>
       // count will be called on the last item in the linear set
-      s"val res = ${generate(rs.last)}"
+      s"${generate(rs.last)}"
     case Bind(v, e1, e2) => sanitizeName(e) match {
         case Bind(v2, e3, e4) => s"val ${generate(v2)} = ${generate(e3)} \n${generate(e4)}"
       	case _ => sys.error(s"not support $e")

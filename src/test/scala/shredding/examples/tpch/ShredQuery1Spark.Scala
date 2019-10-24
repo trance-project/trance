@@ -28,14 +28,6 @@ object ShredQuery1Spark {
    val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery1Spark"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
-val C__F = 1
-val C__D_1 = tpch.loadCustomers
-C__D_1.cache
-C__D_1.count
-val O__F = 2
-val O__D_1 = tpch.loadOrders
-O__D_1.cache
-O__D_1.count
 val L__F = 3
 val L__D_1 = tpch.loadLineitem
 L__D_1.cache
@@ -44,6 +36,14 @@ val P__F = 4
 val P__D_1 = tpch.loadPart
 P__D_1.cache
 P__D_1.count
+val C__F = 1
+val C__D_1 = tpch.loadCustomers
+C__D_1.cache
+C__D_1.count
+val O__F = 2
+val O__D_1 = tpch.loadOrders
+O__D_1.cache
+O__D_1.count
 
    def f = { 
  val x153 = () 
@@ -69,7 +69,7 @@ val x180 = { val out1 = x168.map{ case (x175, x176) => ({val x178 = x176.l_partk
 x178}, (x175, x176)) }
   val out2 = x174.map{ case x177 => ({val x179 = x177.p_partkey 
 x179}, x177) }
-  out1.joinSkewLeft(out2).map{ case (k,v) => v }
+  out1.join(out2).map{ case (k,v) => v }
 } 
 val x191 = x180.map{ case ((x181, x182), x183) => val x190 = (x182,x183) 
 x190 match {
@@ -88,8 +88,7 @@ val x196 = x191.map{ case (x192, x193) =>
 val x195 = Record316(x192, x194) 
 x195 
 } 
-// there is a bug here, related to the join that happens later
-val ljp__D_1 = x196.flatMap(r => r._2)
+val ljp__D_1 = x196
 val x197 = ljp__D_1
 //ljp__D_1.collect.foreach(println(_))
 val x198 = List(x154) 
@@ -222,8 +221,7 @@ x307
 val M_flat3 = x308
 val x309 = M_flat3
 //M_flat3.collect.foreach(println(_))
-val res = x309
-res.count
+x309.count
 }
 var start0 = System.currentTimeMillis()
 f
