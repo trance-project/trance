@@ -37,11 +37,11 @@ object App {
     /**Utils.runSparkInputNew(TPCHQuery4Inputs, TPCHQuery4)
     Utils.runSparkInputNew(TPCHQuery4Inputs, TPCHQuery4, shred = true)**/
   
-    /**Utils.runSparkNew(TPCHQuery3Full)
-    Utils.runSparkNew(TPCHQuery3Full, shred = true)**/
+    Utils.runSparkNew(TPCHQuery3Full)
+    Utils.runSparkNew(TPCHQuery3Full, shred = true)
 
-    Utils.runSparkNew(TPCHQuery2Full)
-    Utils.runSparkNew(TPCHQuery2Full, shred = true)
+    /**Utils.runSparkNew(TPCHQuery2Full)
+    Utils.runSparkNew(TPCHQuery2Full, shred = true)**/
   }
 
   def runSparkCalc(){

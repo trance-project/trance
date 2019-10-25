@@ -47,10 +47,15 @@ S.count
   var start0 = System.currentTimeMillis()
     
    val lineitem = L.map(l => l.l_orderkey -> l.l_suppkey)
-   val orders = O.map(o => o.o_custkey -> o.o_orderkey)
-   val resultInner = C.map(c => c.c_custkey -> c.c_name).joinSkewLeft(orders).map{
+   val orders = O.map(o => o.o_orderkey -> o.o_custkey) //o.o_custkey -> o.o_orderkey)
+   val customers = C.map(c => c.c_custkey -> c.c_name)
+   val resultInner = lineitem.join(orders).map{
+     case (_, (l_suppkey, o_custkey)) => o_custkey -> l_suppkey
+   }.joinSkewLeft(customers).map(_._2)
+   
+   /**C.map(c => c.c_custkey -> c.c_name).joinSkewLeft(orders).map{
      case (_, (c_info, o_orderkey)) => o_orderkey -> c_info
-   }.join(lineitem).map(_._2.swap)
+   }.join(lineitem).map(_._2.swap)**/
 
    val result = S.map(s => s.s_suppkey -> s.s_name).cogroup(resultInner, new HashPartitioner(Config.minPartitions)).flatMap{
      case (_, (itV, itW)) => itV.map(v => (v, itW.toArray))
