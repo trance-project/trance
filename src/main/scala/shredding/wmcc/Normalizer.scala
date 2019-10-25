@@ -127,8 +127,11 @@ trait BaseNormalizer extends BaseCompiler {
         //N8
         // { e(v) | v <- { e3 | v2 <- e2, p2 }, p(v) }
         // { { e(v) | v <- e3 } | v2 <- e2, p2 }
-        case _ => 
-          Comprehension(e2, v2, p2, comprehension(e3, p, e))
+        case _ =>
+          comprehension(e3, p, e) match {
+            case If(cond, e4, None) => Comprehension(e2, v2, And(p2, cond), e4)
+            case c => Comprehension(e2, v2, p2, c)
+          }
       }
       case c @ CLookup(flat, dict) =>
         val v1 = Variable.fresh(dict.tp.asInstanceOf[BagDictCType].flatTp.tp)

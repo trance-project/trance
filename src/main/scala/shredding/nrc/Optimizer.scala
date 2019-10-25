@@ -99,17 +99,17 @@ trait Optimizer extends Extensions {
       BagIfThenElse(
         Cmp(OpEq,
           p1 @ PrimitiveProject(t1: TupleVarRef, f1),
-          p2 @ PrimitiveProject(t2: TupleVarRef, f2)),
+          p2 @ PrimitiveVarRef(t2)), // label has been replaced by it's variable representation
         b2, None)) =>
 
       val bag1 = nestingRewrite(b1).asInstanceOf[BagExpr]
       val bag2 = nestingRewrite(b2).asInstanceOf[BagExpr]
 
       val ivars = inputVars(f)
-      if (ivars.contains(t1) && !ivars.contains(t2)) {
+      if (ivars.contains(t1) && !ivars.contains(p2)) {
         ForeachUnion(x, bag1, Singleton(Tuple("key" -> p2, "value" -> bag2)))
       }
-      else if (!ivars.contains(t1) && ivars.contains(t2)) {
+      else if (!ivars.contains(t1) && ivars.contains(p2)) {
         ForeachUnion(x, bag1, Singleton(Tuple("key" -> p1, "value" -> bag2)))
       }
       else ForeachUnion(x, bag1, BagIfThenElse(Cmp(OpEq, p1, p2), bag2, None))

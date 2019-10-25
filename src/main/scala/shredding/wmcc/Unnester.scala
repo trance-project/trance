@@ -52,12 +52,16 @@ object Unnester {
         case _ => p
       }
       e match {
-        case Comprehension(ed @ Project(e0, f), v, ps1, Comprehension(e2, v2, p2, e3)) if isDictType(ed.tp) =>
-          unnest(e3)((u, w :+ v2, Some(Select(e1, v2, p2, v2))))
+        // hack need to appropriately handle dictionary types
+        case Comprehension(ed @ Project(InputRef(dict, dictTp), f), v, ps1, Comprehension(e2, v2, p2, e3)) if isDictType(ed.tp) =>
+          val newTp = dictTp match { 
+            case BagDictCType(BagCType(TTupleType(List(IntType, bagt))), _) => bagt
+            case _ => sys.error("should not be transforming this")
+          }
+          unnest(e3)((u, w :+ v2, Some(Select(InputRef(dict+f, newTp), v2, p2, v2))))
         case _ =>
           unnest(e2)((Nil, List(v), Some(Select(e1, v, filt, v)))) // C4
       }
-      //case Project(v1, "_2") if v1 == v => unnest(e3)((u, w :+ v2, Some(Select(e1, v2, p2, v2))))
     case Comprehension(e1 @ Comprehension(_, _, _, _), v, p, e) if !w.isEmpty => // C11 (relaxed)
       val (nE, v2) = getNest(unnest(e1)((w, w, E)))
       unnest(e)((u, w:+v2, nE))
