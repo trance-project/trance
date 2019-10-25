@@ -15,20 +15,20 @@ trait PipelineRunner extends Linearization
       case e1 => shredPipelineNew(e1) 
     })
     case _ => 
-      println("\nQuery:\n")
-      println(quote(query))
-      val nq = nestingRewrite(query)
-      println("\nRewrite:\n")
-      println(quote(nq))
-      val sq = shred(nq)
+      //println("\nQuery:\n")
+      //println(quote(query))
+      //val nq = nestingRewrite(query)
+      //println("\nRewrite:\n")
+      //println(quote(nq))
+      val sq = shred(query)
       //println("\nShredded:\n")
       //println(quote(sq))
       //println("\nOptimized:\n")
       val sqo = optimize(sq)
       //println(quote(sqo))
       val lsq = linearizeNoDomains(sqo)
-      //println("\nLinearized:\n")
-      //println(quote(lsq))
+      println("\nLinearized:\n")
+      println(quote(lsq))
       lsq
   }
 

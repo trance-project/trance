@@ -12,6 +12,7 @@ object Optimizer {
 
   def fields(e: CExpr):Unit = e match {
     case Record(ms) => ms.foreach(f => fields(f._2))
+    case Sng(r) => fields(r)
     case Tuple(fs) => fs.foreach( f => fields(f))
     case Project(v @ Variable(_,_), s) => proj(v) = proj(v) ++ Set(s)
     case _ => Unit
@@ -49,7 +50,7 @@ object Optimizer {
       e2 match {
         case Variable(_, RecordCType(tfs)) if tfs.keySet != projs  && tfs.keySet != Set("lbl") =>
           Select(push(d), v, f, Record(projs.map(f2 => f2 -> Project(v, f2)).toMap))
-        case _ => 
+        case _ =>
           Select(push(d), v, f, e2)
       }
     case CNamed(n, o) => CNamed(n, push(o))

@@ -7,7 +7,7 @@ import shredding.core._
   * Linearization of nested output queries
   */
 trait Linearization {
-  this: LinearizedNRC with Shredding with Optimizer with Printer =>
+  this: LinearizedNRC with Shredding with Optimizer =>
 
   val initCtxName: String = "initCtx"
 
@@ -28,8 +28,7 @@ trait Linearization {
       labelTps.flatMap { case (n, _) =>
         dict.tupleDict(n) match {
           case b: BagDict => linearizeNoDomains(b)
-          //case b: BagDictProject => 
-          case b => sys.error("Unknown dictionary " + b + quote(b))
+          case b => sys.error("Unknown dictionary " + b)
         }
       }
   }

@@ -47,7 +47,8 @@ trait BaseNormalizer extends BaseCompiler {
       case CNamed("M_ctx1", Sng(e1)) => CNamed(n+"__F", e1)
       case CNamed("M_flat1", Comprehension(InputRef("M_ctx1", BagCType(tp)), v1, p1, e2)) =>
         CNamed(n+"__D_1", Comprehension(Sng(InputRef(n+"__F", tp)), v1, p1, e2))
-      case _ => sys.error("further nested dictionaries not supported")
+      case CNamed("M_flat1", c) => CNamed(n+"__D_1", c)
+      case _ => sys.error(s"further nested dictionaries not supported $e")
     })
     case _ => super.named(n, e)
   }

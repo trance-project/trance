@@ -45,6 +45,25 @@ trait TPCHBase extends Query {
 
 }
   
+object TPCHQuery1Full extends TPCHBase {
+
+  val name = "Query1Full"
+
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+ 
+  val query = ForeachUnion(c, relC,
+    Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(o, relO,
+      IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")),
+        Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(l, relL,
+          IfThenElse(
+            Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
+            ForeachUnion(p, relP, IfThenElse(
+              Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
+              Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))))))))))
+
+}
+
 /**
   * // this is query1_ljp
   * Let ljp = For l in L Union

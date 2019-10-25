@@ -9,8 +9,8 @@ import shredding.examples.tpch._
 object Utils {
 
   val normalizer = new Finalizer(new BaseNormalizer{})
-  val pathout = (outf: String) => s"src/test/scala/shredding/examples/tpch/$outf.Scala"
-  //val pathout = (outf: String) => s"src/test/scala/shredding/examples/simple/$outf.Scala"
+  val pathout = (outf: String) => s"src/test/scala/shredding/examples/tpch/$outf.scala"
+  //val pathout = (outf: String) => s"src/test/scala/shredding/examples/simple/$outf.scala"
 
   /**
     * Produces an output file for a query pipeline

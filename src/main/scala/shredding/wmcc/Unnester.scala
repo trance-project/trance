@@ -21,6 +21,15 @@ object Unnester {
     case _ => false
   }
 
+  def isDictType(e: Type): Boolean = e match { 
+    case btp:BagDictCType => true
+    case BagCType(TTupleType(fs)) => fs match {
+      case (head @ IntType) :: (value @ BagCType(_)) :: Nil => true
+      case _ => false 
+    }
+    case _ => false
+  }
+
   def unnest(e: CExpr)(implicit ctx: Ctx): CExpr = e match {
     case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E)))
     case CGroupBy(e1, v1, grp, value) => unnest(e1)(u, w, E) match {
@@ -37,12 +46,18 @@ object Unnester {
         val g = if (u.isEmpty) CUnit else Tuple((w.toSet -- u).toList)
         Nest(e2, v2, key, value, v, p2, g)    
     }
-    case Comprehension(e1, v, p, e) if u.isEmpty && w.isEmpty && E.isEmpty =>
+    case Comprehension(e1, v, p, e2) if u.isEmpty && w.isEmpty && E.isEmpty =>
       val filt = p match {
         case Equals(InputRef(_, EmptyCType), _) => Constant(true)
         case _ => p
       }
-      unnest(e)((Nil, List(v), Some(Select(e1, v, filt, v)))) // C4
+      e match {
+        case Comprehension(ed @ Project(e0, f), v, ps1, Comprehension(e2, v2, p2, e3)) if isDictType(ed.tp) =>
+          unnest(e3)((u, w :+ v2, Some(Select(e1, v2, p2, v2))))
+        case _ =>
+          unnest(e2)((Nil, List(v), Some(Select(e1, v, filt, v)))) // C4
+      }
+      //case Project(v1, "_2") if v1 == v => unnest(e3)((u, w :+ v2, Some(Select(e1, v2, p2, v2))))
     case Comprehension(e1 @ Comprehension(_, _, _, _), v, p, e) if !w.isEmpty => // C11 (relaxed)
       val (nE, v2) = getNest(unnest(e1)((w, w, E)))
       unnest(e)((u, w:+v2, nE))
@@ -114,7 +129,7 @@ object Unnester {
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case _ => sys.error("not supported")
      }
-    case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
+    case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !isDictType(e0.tp) && !w.isEmpty =>
       assert(!E.isEmpty)
       val (p1, p2) = ps1(p,v)
       getPM(p) match {
@@ -137,7 +152,7 @@ object Unnester {
         case _ => Some(OuterUnnest(E.get, w, e1, v, p)) //C10
       }
       unnest(e)((u, w :+ v, nE))
-   case Comprehension(e1 @ Project(e0, f), v, ps1, Comprehension(e2, v2, p2, e3)) if e0.tp.isInstanceOf[BagDictCType] && !w.isEmpty =>
+   case Comprehension(e1 @ Project(e0, f), v, ps1, Comprehension(e2, v2, p2, e3)) if isDictType(e0.tp) && !w.isEmpty =>
       assert(!E.isEmpty)
       // filters have been pushed from the previous comprehension
       val lbl1 = ps1 match {
@@ -151,9 +166,12 @@ object Unnester {
           val (sp2s, p1s, p2s) = ps(p2, v2, w)
           e1 match {
             // top level case
-             case Project(InputRef(name, btp @ BagDictCType(_,_)), "_1") if name.endsWith("__D") =>
-               val nE = Some(Join(E.get, Select(e1, v2, sp2s, v2), w, p1s, v2, p2s))  
-               unnest(e3)((u, w :+ v2, nE))
+             case Project(InputRef(name, btp @ BagDictCType(_,_)), "_1") if name.endsWith("__D") => e2 match {
+              //case Project(v1, "_2") if v1 == v => unnest(e3)((u, w :+ v2, Some(Select(e1, v2, p2, v2))))
+              case _ =>
+                val nE = Some(Join(E.get, Select(e1, v2, sp2s, v2), w, p1s, v2, p2s))  
+                unnest(e3)((u, w :+ v2, nE))
+             }
              case _ => if (u.isEmpty) {
                val nE = Some(Lookup(E.get, Select(e1, v, sp2s, v2), w, lbl1, v2, Constant(true), Constant(true)))
 	             unnest(pushPredicate(e3, p2))((u, w :+ v2, nE)) 
