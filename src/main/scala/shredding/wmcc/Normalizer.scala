@@ -93,6 +93,7 @@ trait BaseNormalizer extends BaseCompiler {
   }
 
   override def sng(x: Rep): Rep = x match {
+    case c:Comprehension => c
     case Sng(t) => sng(t)
     case _ => super.sng(x)
   }
@@ -129,7 +130,7 @@ trait BaseNormalizer extends BaseCompiler {
         // { { e(v) | v <- e3 } | v2 <- e2, p2 }
         case _ =>
           comprehension(e3, p, e) match {
-            case If(cond, e4, None) => Comprehension(e2, v2, And(p2, cond), e4)
+            case If(cond, e4, None) => Comprehension(e2, v2, and(p2, cond), e4)
             case c => Comprehension(e2, v2, p2, c)
           }
       }

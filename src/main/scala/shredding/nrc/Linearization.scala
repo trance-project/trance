@@ -7,7 +7,7 @@ import shredding.core._
   * Linearization of nested output queries
   */
 trait Linearization {
-  this: LinearizedNRC with Shredding with Optimizer =>
+  this: LinearizedNRC with Shredding with Optimizer with Printer =>
 
   val initCtxName: String = "initCtx"
 
@@ -20,7 +20,11 @@ trait Linearization {
 
   def linearizeNoDomains(dict: BagDict): List[Expr] = {
     val flatBagExpr = dict.flat
+    //println("before")
+    //println(flatBagExpr)
     val flatBagExprRewritten = nestingRewriteLossy(flatBagExpr)
+    //println("after")
+    //println(quote(flatBagExprRewritten))
     val mFlatNamed = Named(VarDef(Symbol.fresh("M_flat"), flatBagExpr.tp), flatBagExprRewritten)
 
     val labelTps = dict.tp.flatTp.tp.attrTps.filter(_._2.isInstanceOf[LabelType]).toList
