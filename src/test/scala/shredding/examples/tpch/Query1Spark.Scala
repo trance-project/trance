@@ -112,7 +112,7 @@ x91.count
 }
 var start0 = System.currentTimeMillis()
 f
-var end0 = System.currentTimeMillis()
+var end0 = System.currentTimeMillis() - start0
    println("Query1Spark"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
  }
 }

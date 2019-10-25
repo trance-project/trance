@@ -1,7 +1,8 @@
 package shredding.nrc
 
 import shredding.core._
-import shredding.runtime.{Context, Evaluator, ScalaShredding, ScalaPrinter}
+import shredding.examples.tpch.{TPCHQueries, TPCHSchema}
+import shredding.runtime.{Context, Evaluator, ScalaPrinter, ScalaShredding}
 
 object TestApp extends App
   with NRC
@@ -1025,23 +1026,98 @@ object TestApp extends App
     }
   }
 
+  object Example_Slender_Query1 {
 
-  //Example1.run()
-  Example2.run()
-  Example3.run()
-  //Example4.run() // look into this more
-  Example5.run()
-  Example6.run()
-  Example7.run()
-  Example8.run()
-  Example9.run()
+    import shredding.examples.tpch.TPCHQueries
 
-//  ExampleShredValue.run()
+    def run(): Unit = {
 
-  /**Example10_DeDup.run()
+      val q1 = TPCHQueries.query1_v2.asInstanceOf[Expr]
 
-  Example11_Conditional.run()
+      println("[Ex13] Q1: " + quote(q1))
 
-  Example12_Genomic.run()**/
+      val q1shredraw = shred(q1)
+      println("[Ex13] Shredded Q1: " + quote(q1shredraw))
+
+      val q1shred = optimize(q1shredraw)
+      println("[Ex13] Shredded Q1 Optimized: " + quote(q1shred))
+
+      val q1lin = linearize(q1shred)
+      println("[Ex13] Linearized Q1: " + quote(q1lin))
+    }
+  }
+
+  object Example_Nesting_Rewrite {
+
+    def run(): Unit = {
+
+      val relC = BagVarRef(VarDef("C", TPCHSchema.customertype))
+      val c = VarDef("c", TPCHSchema.customertype.tp)
+      val cr = TupleVarRef(c)
+
+      val relO = BagVarRef(VarDef("O", TPCHSchema.orderstype))
+      val o = VarDef("o", TPCHSchema.orderstype.tp)
+      val or = TupleVarRef(o)
+
+      val relL = BagVarRef(VarDef("L", TPCHSchema.lineittype))
+      val l = VarDef("l", TPCHSchema.lineittype.tp)
+      val lr = TupleVarRef(l)
+
+      val relP = BagVarRef(VarDef("P", TPCHSchema.parttype))
+      val p = VarDef("p", TPCHSchema.parttype.tp)
+      val pr = TupleVarRef(p)
+
+      val q1 =
+        ForeachUnion(p, relP, IfThenElse(
+          Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
+          Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity")))))
+
+      println("[Nesting rewrite] Q1: " + quote(q1))
+
+      val q1opt = nestingRewrite(q1)
+
+      println("[Nesting rewrite] Q1 rewritten: " + quote(q1opt))
+
+      val q1full = TPCHQueries.query1_v2.asInstanceOf[Expr]
+
+      println("[Nesting rewrite] Full Q1: " + quote(q1full))
+
+//      val q1fullopt = nestingRewrite(q1full)
+//
+//      println("[Nesting rewrite] Full Q1 rewritten: " + quote(q1fullopt))
+
+      val q1fullshredraw = shred(q1full)
+      println("[Nesting rewrite] Shredded Full Q1: " + quote(q1fullshredraw))
+
+      val q1fullshred = optimize(q1fullshredraw)
+      println("[Nesting rewrite] Shredded Q1 Optimized: " + quote(q1fullshred))
+
+      val q1fulllin = linearizeNoDomains(q1fullshred)
+      println("[Nesting rewrite] Linearized Q1: " + quote(q1fulllin))
+
+    }
+  }
+
+//  Example1.run()
+//  Example2.run()
+//  Example3.run()
+//  Example4.run()
+//  Example5.run()
+//  Example6.run()
+//  Example7.run()
+//  Example8.run()
+//  Example9.run()
+//
+////  ExampleShredValue.run()
+//
+//  Example10_DeDup.run()
+//
+//  Example11_Conditional.run()
+//
+//  Example12_Genomic.run()
+//
+//  Example_Slender_Query1.run()
+
+  Example_Nesting_Rewrite.run()
 }
 
