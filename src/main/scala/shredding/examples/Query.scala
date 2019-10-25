@@ -16,25 +16,40 @@ trait Query extends NRCTranslator {
 
   /** standard query **/
   val query: Expr
-  def calculus: CExpr = translate(query)
-  def normalize: CExpr = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
-  def unnest: CExpr = Optimizer.applyAll(Unnester.unnest(this.normalize)(Nil, Nil, None))
+  def calculus: CExpr = {val q = translate(query); println(Printer.quote(q)); q}
+  def normalize: CExpr = {
+    val norm = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
+    println(Printer.quote(norm))
+    norm
+  }
+  def unnest: CExpr = {
+    val plan = Optimizer.applyAll(Unnester.unnest(this.normalize)(Nil, Nil, None))
+    println(Printer.quote(plan))
+    plan
+  }
   def anf: CExpr = {
     val anfBase = new BaseANF{}
     val anfer = new Finalizer(anfBase)
+    //println(Printer.quote(this.normalize))
     anfBase.anf(anfer.finalize(this.unnest).asInstanceOf[anfBase.Rep])
   }
 
   /** shred query **/
   def shred: Expr = runner.shredPipelineNew(query.asInstanceOf[runner.Expr]).asInstanceOf[Expr]
-  def scalculus: CExpr = translate(shred)
-  def snormalize: CExpr = normalizer.finalize(this.scalculus).asInstanceOf[CExpr]
-  def sunnest: CExpr = Optimizer.applyAll(Unnester.unnest(this.snormalize)(Nil, Nil, None))
+  def scalculus: CExpr = {val q = translate(shred); println(Printer.quote(q)); q}
+  def snormalize: CExpr = {
+    val norm = normalizer.finalize(this.scalculus).asInstanceOf[CExpr]
+    println(Printer.quote(norm))
+    norm
+  }
+  def sunnest: CExpr = {
+    val plan = Optimizer.applyAll(Unnester.unnest(this.snormalize)(Nil, Nil, None))
+    println(Printer.quote(plan))
+    plan
+  }
   def sanf: CExpr = {
     val anfBase = new BaseANF{}
     val anfer = new Finalizer(anfBase)
-    println(Printer.quote(this.snormalize))
-    println(Printer.quote(this.sunnest))
     anfBase.anf(anfer.finalize(this.sunnest).asInstanceOf[anfBase.Rep])
   }
 

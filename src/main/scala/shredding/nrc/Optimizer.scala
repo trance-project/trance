@@ -1,6 +1,6 @@
 package shredding.nrc
 
-import shredding.core.{VarDef, TupleType}
+import shredding.core.{VarDef, TupleType, OpEq}
 import shredding.utils.Utils.Symbol
 
 /**
@@ -63,4 +63,55 @@ trait Optimizer extends Extensions {
       betaReduce(BagIfThenElse(c, f2, Some(f3)))
   })
 
+  def nestingRewrite(e: Expr): Expr = replace(e, {
+    case f @ ForeachUnion(x, b1,
+      BagIfThenElse(
+        Cmp(OpEq,
+          p1 @ PrimitiveProject(t1: TupleVarRef, f1),
+          p2 @ PrimitiveProject(t2: TupleVarRef, f2)),
+        b2, None)) =>
+
+      val bag1 = nestingRewrite(b1).asInstanceOf[BagExpr]
+      val bag2 = nestingRewrite(b2).asInstanceOf[BagExpr]
+
+      val ivars = inputVars(f)
+      if (ivars.contains(t1) && !ivars.contains(t2)) {
+        val gb = VarDef(Symbol.fresh("gb"), TupleType("key" -> t2.tp(f2), "value" -> bag2.tp))
+        val gbr = TupleVarRef(gb)
+        ForeachUnion(gb,
+          ForeachUnion(x, bag1, Singleton(Tuple("key" -> p2, "value" -> bag2))),
+          BagIfThenElse(Cmp(OpEq, p1, gbr("key")), gbr("value").asInstanceOf[BagExpr], None)
+        )
+      }
+      else if (!ivars.contains(t1) && ivars.contains(t2)) {
+        val gb = VarDef(Symbol.fresh("gb"), TupleType("key" -> t1.tp(f1), "value" -> bag2.tp))
+        val gbr = TupleVarRef(gb)
+        ForeachUnion(gb,
+          ForeachUnion(x, bag1, Singleton(Tuple("key" -> p1, "value" -> bag2))),
+          BagIfThenElse(Cmp(OpEq, p2, gbr("key")), gbr("value").asInstanceOf[BagExpr], None)
+        )
+      }
+      else ForeachUnion(x, bag1, BagIfThenElse(Cmp(OpEq, p1, p2), bag2, None))
+  })
+
+  def nestingRewriteLossy(e: Expr): Expr = replace(e, {
+    case f @ ForeachUnion(x, b1,
+      BagIfThenElse(
+        Cmp(OpEq,
+          p1 @ PrimitiveProject(t1: TupleVarRef, f1),
+          p2 @ PrimitiveVarRef(t2)), // label has been replaced by it's variable representation
+        b2, None)) =>
+
+      val bag1 = nestingRewrite(b1).asInstanceOf[BagExpr]
+      val bag2 = nestingRewrite(b2).asInstanceOf[BagExpr]
+
+      val ivars = inputVars(f)
+      if (ivars.contains(t1) && !ivars.contains(p2)) {
+        ForeachUnion(x, bag1, Singleton(Tuple("key" -> p2, "value" -> bag2)))
+      }
+      else if (!ivars.contains(t1) && ivars.contains(p2)) {
+        ForeachUnion(x, bag1, Singleton(Tuple("key" -> p1, "value" -> bag2)))
+      }
+      else ForeachUnion(x, bag1, BagIfThenElse(Cmp(OpEq, p1, p2), bag2, None))
+  })
 }

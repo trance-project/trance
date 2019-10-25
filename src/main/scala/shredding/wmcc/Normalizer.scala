@@ -47,7 +47,8 @@ trait BaseNormalizer extends BaseCompiler {
       case CNamed("M_ctx1", Sng(e1)) => CNamed(n+"__F", e1)
       case CNamed("M_flat1", Comprehension(InputRef("M_ctx1", BagCType(tp)), v1, p1, e2)) =>
         CNamed(n+"__D_1", Comprehension(Sng(InputRef(n+"__F", tp)), v1, p1, e2))
-      case _ => sys.error("further nested dictionaries not supported")
+      case CNamed("M_flat1", c) => CNamed(n+"__D_1", c)
+      case _ => sys.error(s"further nested dictionaries not supported $e")
     })
     case _ => super.named(n, e)
   }
@@ -126,8 +127,11 @@ trait BaseNormalizer extends BaseCompiler {
         //N8
         // { e(v) | v <- { e3 | v2 <- e2, p2 }, p(v) }
         // { { e(v) | v <- e3 } | v2 <- e2, p2 }
-        case _ => 
-          Comprehension(e2, v2, p2, comprehension(e3, p, e))
+        case _ =>
+          comprehension(e3, p, e) match {
+            case If(cond, e4, None) => Comprehension(e2, v2, And(p2, cond), e4)
+            case c => Comprehension(e2, v2, p2, c)
+          }
       }
       case c @ CLookup(flat, dict) =>
         val v1 = Variable.fresh(dict.tp.asInstanceOf[BagDictCType].flatTp.tp)

@@ -114,14 +114,14 @@ object TPCHQueries {
                               IfThenElse(Cmp(OpEq, lpr("l_orderkey"), or("o_orderkey")),
                                 Singleton(Tuple("p_name" -> lpr("p_name"), "l_qty" -> lpr("l_qty")))))))))))))
 
-  val query1 = ForeachUnion(c, relC, 
+  /**val query1 = ForeachUnion(c, relC, 
             Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(o, relO, 
               IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")), 
                 Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(l, relL, 
                   IfThenElse(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
                     ForeachUnion(p, relP, IfThenElse(
                       Cmp(OpEq, lr("l_partkey"), pr("p_partkey")), 
-                        Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))))))))))
+                        Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))))))))))**/
  
  // query 1 with extended schema for filtering in query 4 
  val query1b = ForeachUnion(c, relC, 
@@ -136,6 +136,24 @@ object TPCHQueries {
   val q1btype = TupleType("c_id" -> IntType, "c_name" -> StringType, "c_orders" ->
                           BagType(TupleType("o_id" -> IntType, "o_orderdate" -> StringType, "o_parts" ->
                             BagType(TupleType("p_name" -> StringType, "l_qty" -> DoubleType)))))
+
+  val query1 = ForeachUnion(c, relC,
+            Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(o, relO,
+              IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")),
+                Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(l, relL,
+                  ForeachUnion(p, relP, IfThenElse(
+                    And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")), Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
+                      Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity")))))))))))))
+
+  val query1_v2 = ForeachUnion(c, relC,
+    Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(o, relO,
+      IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")),
+        Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(l, relL,
+          IfThenElse(
+            Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
+            ForeachUnion(p, relP, IfThenElse(
+              Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
+              Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))))))))))
 
   val q1type = TupleType("c_name" -> StringType, "c_orders" ->
                           BagType(TupleType("o_orderdate" -> StringType, "o_parts" ->
