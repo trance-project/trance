@@ -22,6 +22,8 @@ trait Query extends NRCTranslator {
   def anf: CExpr = {
     val anfBase = new BaseANF{}
     val anfer = new Finalizer(anfBase)
+    println(Printer.quote(this.normalize))
+    println(Printer.quote(this.unnest))
     anfBase.anf(anfer.finalize(this.unnest).asInstanceOf[anfBase.Rep])
   }
 

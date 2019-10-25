@@ -77,10 +77,6 @@ object TPCHQuery1 extends TPCHBase {
   
   val (ljp, lp, lpr) = varset("ljp", "lp", query1_ljp)
 
-  //val ljp = VarDef("ljp", query1_ljp.tp)                  
-  //val lp = VarDef("lp", query1_ljp.tp.tp)
-  //val lpr = TupleVarRef(lp)
-  
   val query1 = ForeachUnion(c, relC, 
                 Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(o, relO, 
                   IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")), 
@@ -181,14 +177,33 @@ object TPCHQuery3 extends TPCHBase {
   
   val (psjs, pss, pssr) = varset("partsuppliers", "pss", partsuppliers)
 
-  val orders = ForeachUnion(o, relO,
+  val custorders = ForeachUnion(o, relO,
                 ForeachUnion(c, relC,
                   IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
                     Singleton(Tuple("o_orderkey" -> or("o_orderkey"), 
                                     "c_name" -> cr("c_name"), 
                                     "c_nationkey" -> cr("c_nationkey"))))))
+  
+  val (ojc, co, cor) = varset("custorders", "co", custorders)
 
-  val query = orders //TODO 
+  val cparts = ForeachUnion(co, BagVarRef(ojc), 
+                ForeachUnion(l, relL,
+                  IfThenElse(Cmp(OpEq, cor("o_orderkey"), lr("l_orderkey")),
+                    Singleton(Tuple("l_partkey" -> lr("l_partkey"), 
+                                    "c_name" -> cor("c_name"),
+                                    "c_nationkey" -> cor("c_nationkey"))))))
 
+  val (cpjl, cp, cpr) = varset("cparts", "cp", cparts)
+  val partscust = ForeachUnion(p, relP, 
+                Singleton(Tuple("p_name" -> pr("p_name"),
+                                "suppliers" -> ForeachUnion(pss, BagVarRef(psjs),
+                                                IfThenElse(Cmp(OpEq, pssr("ps_partkey"), pr("p_partkey")),
+                                                  Singleton(Tuple("s_name" -> pssr("s_name"),
+                                                                  "s_nationkey" -> pssr("s_nationkey"))))),
+                                "customers" -> ForeachUnion(cp, BagVarRef(cpjl), 
+                                                IfThenElse(Cmp(OpEq, cpr("l_partkey"), pr("p_partkey")),
+                                                  Singleton(Tuple("c_name" -> cpr("c_name"), 
+                                                                  "c_nationkey" -> cpr("c_nationkey"))))))))             
+  val query = Sequence(List(Named(psjs, partsuppliers), Named(ojc, custorders), Named(cpjl, cparts), partscust))              
 }
 
