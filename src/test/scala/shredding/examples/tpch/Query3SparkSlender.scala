@@ -17,7 +17,7 @@ case class Query3Out(p_name: String, suppliers: Iterable[Record1106], customers:
 object Query3SparkSlender {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
-   val conf = new SparkConf().setMaster(Config.master).setAppName("Query3SparkSlender"+sf)
+   val conf = new SparkConf().setMaster(Config.master).setAppName("Query3SparkJOSlender"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    
 val tpch = TPCHLoader(spark)
@@ -49,17 +49,21 @@ S.count
    val partsupp = PS.map(ps => ps.ps_suppkey -> ps.ps_partkey)
    val suppliers = S.map(s => s.s_suppkey -> (s.s_name, s.s_nationkey))
    val psjs = partsupp.joinSkewLeft(suppliers).map{ case (_, (ps_partkey, s_info)) => ps_partkey -> s_info }
-   val orders = O.map(o => o.o_custkey -> o.o_orderkey) 
+   val orders = O.map(o => o.o_orderkey -> o.o_custkey)//o.o_custkey -> o.o_orderkey) 
    val customers = C.map(c => c.c_custkey -> (c.c_name, c.c_nationkey))
    val lineitem = L.map(l => l.l_orderkey -> l.l_partkey)
-   val ojcjl = orders.joinSkewLeft(customers).map{ case (_, (o_orderkey, c_info)) => 
-                o_orderkey -> c_info }.join(lineitem).map{ case (_, (c_info, l_partkey)) => l_partkey -> c_info }
+
+   /**val ojcjl = orders.joinSkewLeft(customers).map{ case (_, (o_orderkey, c_info)) => 
+                o_orderkey -> c_info }.join(lineitem).map{ case (_, (c_info, l_partkey)) => l_partkey -> c_info }**/
+  val ojcjl = lineitem.join(orders).map{ case (_, (l_partkey, o_custkey)) => 
+                o_custkey -> l_partkey }.joinSkewLeft(customers).map{ case (_, (l_partkey, c_info)) => l_partkey -> c_info }  
+
    val parts = P.map(p => p.p_partkey -> p.p_name) 
    val result = parts.cogroup(psjs, ojcjl).flatMap{ case (_, (p_names, suppliers, customers)) => 
                   p_names.map(p_name => (p_name, suppliers.toArray, customers.toArray)) }
    result.count
    var end0 = System.currentTimeMillis() - start0
    //result.saveAsObjectFile("/nfs_qc4/query3/result")
-   println("Query3SparkSlender"+sf+","+Config.datapath+","+end0,spark.sparkContext.applicationId)
+   println("Query3SparkJOSlender"+sf+","+Config.datapath+","+end0,spark.sparkContext.applicationId)
  }
 }
