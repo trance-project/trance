@@ -165,7 +165,7 @@ x666
 } 
 val M_flat3 = x667
 val x668 = M_flat3
-M_flat3.collect.foreach(println(_))
+//M_flat3.collect.foreach(println(_))
 x668.count
 }
 var start0 = System.currentTimeMillis()
