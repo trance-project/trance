@@ -15,8 +15,8 @@ trait PipelineRunner extends Linearization
       case e1 => shredPipelineNew(e1, domains) 
     })
     case _ => 
-      //println("\nQuery:\n")
-      //println(quote(query))
+      println("\nQuery:\n")
+      println(quote(query))
       //val nq = nestingRewrite(query)
       //println("\nRewrite:\n")
       //println(quote(nq))

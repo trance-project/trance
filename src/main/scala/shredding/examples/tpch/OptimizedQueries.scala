@@ -135,15 +135,15 @@ object TPCHQuery2Full extends TPCHBase {
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
       List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
  
-  val query = ForeachUnion(s, relS,
+  /**val query = ForeachUnion(s, relS,
             Singleton(Tuple("s_name" -> sr("s_name"), "customers2" -> ForeachUnion(l, relL,
               IfThenElse(Cmp(OpEq, sr("s_suppkey"), lr("l_suppkey")),
                 ForeachUnion(o, relO,
                   IfThenElse(Cmp(OpEq, or("o_orderkey"), lr("l_orderkey")),
                     ForeachUnion(c, relC,
                       IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
-                        Singleton(Tuple("c_name2" -> cr("c_name"))))))))))))
-  /**val query = ForeachUnion(s, relS,
+                        Singleton(Tuple("c_name2" -> cr("c_name"))))))))))))**/
+  val query = ForeachUnion(s, relS,
                 Singleton(Tuple("s_name" -> sr("s_name"), "customers2" -> 
                     ForeachUnion(c, relC,
                       ForeachUnion(o, relO,
@@ -151,7 +151,7 @@ object TPCHQuery2Full extends TPCHBase {
                           ForeachUnion(l, relL,
                             IfThenElse(And(Cmp(OpEq, sr("s_suppkey"), lr("l_suppkey")),
                                            Cmp(OpEq, or("o_orderkey"), lr("l_orderkey"))),
-                              Singleton(Tuple("c_name2" -> cr("c_name")))))))))))**/
+                              Singleton(Tuple("c_name2" -> cr("c_name")))))))))))
 
 }
 
@@ -320,3 +320,25 @@ object TPCHQuery6Full extends TPCHBase {
 
 }
 
+/**object TPCHQuery7Full extends TPCHBase {
+
+  val name = "Query7Full"
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "P", "PS", "S", "N").contains(x._1)).values.toList.mkString("")}"
+
+  val (q3, co, cor) = varset(TPCHQuery3Full.name, "co", TPCHQuery3Full.query.asInstanceOf[BagExpr]) 
+   
+  val suppliersCond1 = ForeachUnion(sdef, rq3("suppliers").asInstanceOf[BagExpr],
+                        IfThenElse(Cmp(OpEq, sref("s_nationkey"), nref("n_nationkey")),
+                                   Singleton(Tuple("count" -> Const(1, IntType)))).asInstanceOf[BagExpr])
+
+  val customersCond1 = ForeachUnion(cdef, rq3("customers").asInstanceOf[BagExpr],
+                        IfThenElse(Cmp(OpEq, cref("c_nationkey"), nref("n_nationkey")),
+                                   Singleton(Tuple("count" -> Const(1, IntType)))).asInstanceOf[BagExpr])
+  
+  val query = ForeachUnion(n, relN, 
+                Singleton(Tuple("n_name" -> nr("n_name"), "parts" -> 
+                  ForeachUnion(co, BagVarRef(q3),
+                    Total(ForeachUnion           
+}**/
