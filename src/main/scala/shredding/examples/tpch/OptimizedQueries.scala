@@ -299,3 +299,24 @@ object TPCHQuery4 extends TPCHBase {
 
 }
 
+object TPCHQuery6Full extends TPCHBase {
+  val name = "Query6Full"
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
+ 
+  val (q2, co, cor) = varset(TPCHQuery2Full.name, "co", TPCHQuery2Full.query.asInstanceOf[BagExpr])
+
+  val cust = BagProject(cor, "customers2")
+  val co2 = VarDef("co2", cust.tp.tp)
+  val co2r = TupleVarRef(co2)
+
+  val query = ForeachUnion(c, relC, 
+                Singleton(Tuple("c_name" -> cr("c_name"), "suppliers" -> 
+                  ForeachUnion(co, BagVarRef(q2),
+                    ForeachUnion(co2, cust,
+                      IfThenElse(Cmp(OpEq, co2r("c_name2"), cr("c_name")),
+                        Singleton(Tuple("s_name" -> cor("s_name"))))))))) 
+
+}
+

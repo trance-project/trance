@@ -9,10 +9,10 @@ trait PipelineRunner extends Linearization
   with Optimizer 
   with NRCTranslator {
 
-  def shredPipelineNew(query: Expr): Expr = query match {
+  def shredPipelineNew(query: Expr, domains: Boolean = false): Expr = query match {
     case Sequence(fs) => Sequence(fs.map{
-      case Named(n, e1) => Named(n, shredPipelineNew(e1))
-      case e1 => shredPipelineNew(e1) 
+      case Named(n, e1) => Named(n, shredPipelineNew(e1, domains))
+      case e1 => shredPipelineNew(e1, domains) 
     })
     case _ => 
       //println("\nQuery:\n")
@@ -26,7 +26,7 @@ trait PipelineRunner extends Linearization
       //println("\nOptimized:\n")
       val sqo = optimize(sq)
       //println(quote(sqo))
-      val lsq = linearizeNoDomains(sqo)
+      val lsq = if (domains) linearize(sqo) else linearizeNoDomains(sqo)
       println("\nLinearized:\n")
       println(quote(lsq))
       lsq

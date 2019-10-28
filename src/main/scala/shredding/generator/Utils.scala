@@ -222,6 +222,7 @@ object Utils {
 
     val qname = if (shred) s"Shred${query.name}" else query.name
     val fname = pathout(qname+"Spark")
+    println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val finalc = writeSparkNew(qname+"Spark", query.inputs(if (shred) TPCHSchema.stblcmds else TPCHSchema.tblcmds), 
                   header, s"${inputs(inputQuery.name, inputCode)}\n${timed(gcode)}")
