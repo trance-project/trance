@@ -142,8 +142,41 @@ object TPCHQuery2Full extends TPCHBase {
                   IfThenElse(Cmp(OpEq, or("o_orderkey"), lr("l_orderkey")),
                     ForeachUnion(c, relC,
                       IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
-                        Singleton(Tuple("c_name2" -> cr("c_name")))))))))))) 
+                        Singleton(Tuple("c_name2" -> cr("c_name"))))))))))))
+  /**val query = ForeachUnion(s, relS,
+                Singleton(Tuple("s_name" -> sr("s_name"), "customers2" -> 
+                    ForeachUnion(c, relC,
+                      ForeachUnion(o, relO,
+                        IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
+                          ForeachUnion(l, relL,
+                            IfThenElse(And(Cmp(OpEq, sr("s_suppkey"), lr("l_suppkey")),
+                                           Cmp(OpEq, or("o_orderkey"), lr("l_orderkey"))),
+                              Singleton(Tuple("c_name2" -> cr("c_name")))))))))))**/
 
+}
+
+object TPCHQuery2 extends TPCHBase {
+
+  val name = "Query2"
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
+ 
+  val resultInner = ForeachUnion(c, relC, 
+                      ForeachUnion(o, relO, // skew join
+                        IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
+                          Singleton(Tuple("o_orderkey" -> or("o_orderkey"), "c_name" -> cr("c_name"))))))
+  val (ri, co, cor) = varset("resultInner", "co", resultInner)                     
+                       
+  val result = ForeachUnion(s, relS,
+            Singleton(Tuple("s_name" -> sr("s_name"), "customers2" -> 
+                ForeachUnion(l, relL,
+                  IfThenElse(Cmp(OpEq, sr("s_suppkey"), lr("l_suppkey")),
+                    ForeachUnion(co, BagVarRef(ri), 
+                      IfThenElse(Cmp(OpEq, cor("o_orderkey"), lr("l_orderkey")),
+                        Singleton(Tuple("c_name2" -> cor("c_name")))))))))) 
+
+  val query = Sequence(List(Named(ri, resultInner), result))
 }
 
 /**

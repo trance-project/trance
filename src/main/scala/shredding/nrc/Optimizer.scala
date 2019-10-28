@@ -94,29 +94,33 @@ trait Optimizer extends Extensions {
       else ForeachUnion(x, bag1, BagIfThenElse(Cmp(OpEq, p1, p2), bag2, None))
   })
 
-  def getEqualitySet(e: Cmp): (PrimitiveProject, TupleVarRef, PrimitiveVarRef) = e match {
-    case Cmp(OpEq, p1 @ PrimitiveProject(t1: TupleVarRef, f1), p2 @ PrimitiveVarRef(t2)) => (p1, t1, p2)
-    case Cmp(OpEq, p2 @ PrimitiveVarRef(t2), p1 @ PrimitiveProject(t1: TupleVarRef, f1)) => (p1, t1, p2)
-    case _ => sys.error("not supported")
+  def rewriteJoinOnLabel(ivars: Set[VarRef], x: VarDef, b1: Expr, b2: Expr, p1: TupleAttributeExpr, t1: VarRef, p2: TupleAttributeExpr, t2: VarRef): Expr = {
+    val bag1 = nestingRewrite(b1).asInstanceOf[BagExpr]
+    val bag2 = nestingRewrite(b2).asInstanceOf[BagExpr]
+
+    if (ivars.contains(t1) && !ivars.contains(t2)) {
+      ForeachUnion(x, bag1, Singleton(Tuple("key" -> p2, "value" -> bag2)))
+    }
+    else if (!ivars.contains(t1) && ivars.contains(t2)) {
+      ForeachUnion(x, bag1, Singleton(Tuple("key" -> p1, "value" -> bag2)))
+    }
+    else ForeachUnion(x, bag1, BagIfThenElse(Cmp(OpEq, p1, p2), bag2, None))
   }
 
+  /** 
+    * //TODO needs to be generic enough to extract label match from and conditions 
+    * 
+    */
   def nestingRewriteLossy(e: Expr): Expr = replace(e, {
-    case f @ ForeachUnion(x, b1,
-      BagIfThenElse(cmp @ Cmp(OpEq, _, _), b2, None)) =>
-          //p1 @ PrimitiveProject(t1: TupleVarRef, f1),
-          //p2 @ PrimitiveVarRef(t2)), // label has been replaced by it's variable representation
-        //b2, None)) =>
-      val (p1, t1, p2) = getEqualitySet(cmp)
-      val bag1 = nestingRewrite(b1).asInstanceOf[BagExpr]
-      val bag2 = nestingRewrite(b2).asInstanceOf[BagExpr]
-
-      val ivars = inputVars(f)
-      if (ivars.contains(t1) && !ivars.contains(p2)) {
-        ForeachUnion(x, bag1, Singleton(Tuple("key" -> p2, "value" -> bag2)))
-      }
-      else if (!ivars.contains(t1) && ivars.contains(p2)) {
-        ForeachUnion(x, bag1, Singleton(Tuple("key" -> p1, "value" -> bag2)))
-      }
-      else ForeachUnion(x, bag1, BagIfThenElse(Cmp(OpEq, p1, p2), bag2, None))
+    case f @ ForeachUnion(x, b1, BagIfThenElse(cond, b2, None)) => cond match {
+      case Cmp(OpEq, p1 @ PrimitiveProject(t1: TupleVarRef, f1), p2 @ PrimitiveProject(t2: TupleVarRef, f2)) =>
+        rewriteJoinOnLabel(inputVars(f), x, b1, b2, p1, t1, p2, t2)
+      case Cmp(OpEq, p1 @ PrimitiveProject(t1: TupleVarRef, f1), p2 @ PrimitiveVarRef(t2)) =>
+        rewriteJoinOnLabel(inputVars(f), x, b1, b2, p1, t1, p2, p2)
+      case Cmp(OpEq, p2 @ PrimitiveVarRef(t2), p1 @ PrimitiveProject(t1: TupleVarRef, f1)) =>
+        rewriteJoinOnLabel(inputVars(f), x, b1, b2, p1, t1, p2, p2)
+      /**case And(Cmp(OpEq, p2 @ PrimitiveVarRef(t2), p1 @ PrimitiveProject(t1: TupleVarRef, f1)), cmp2) =>
+        rewriteJoinOnLabel(inputVars(f), x, b1, BagIfThenElse(cmp2, b2, None), p1, t1, p2, p2)**/
+    }
   })
 }
