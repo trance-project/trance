@@ -187,11 +187,7 @@ object Utils {
         |}
         |var start0 = System.currentTimeMillis()
         |f
-<<<<<<< HEAD
         |var end0 = System.currentTimeMillis() - start0 """.stripMargin
-=======
-        |var end0 = System.currentTimeMillis() - start0""".stripMargin
->>>>>>> 772ef5f53e4765ff70e33c39fc4f1573252a21b6
 
   def runSparkNew(query: Query, shred: Boolean = false): Unit = {
     
