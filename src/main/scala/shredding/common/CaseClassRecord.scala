@@ -11,6 +11,7 @@ object Rec {
   def apply(vs: (String, Any)*): Rec = Rec(vs.toMap)
 }
 
+
 trait CaseClassRecord { self =>
   def uniqueId: Long
   override def equals(o: Any): Boolean = o match {

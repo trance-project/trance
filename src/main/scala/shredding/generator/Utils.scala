@@ -212,6 +212,16 @@ object Utils {
         |$n.cache
         |$n.count""".stripMargin
  
+  def shredInputs(ns: List[String]): String = { 
+    var cnt = 0
+    ns.map{ n => 
+      cnt += 1
+      s"""|val $n = M_flat$cnt
+          |$n.cache
+          |$n.count"""
+    }.mkString("\n").stripMargin
+  }
+
   def runSparkInputNew(inputQuery: Query, query: Query, shred: Boolean = false): Unit = {
     
     val codegen = new SparkNamedGenerator(inputQuery.inputTypes(shred))
@@ -224,8 +234,11 @@ object Utils {
     val fname = pathout(qname+"Spark")
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
+    val inputSection = 
+      if (shred) s"${inputCode.split("\n").dropRight(1).mkString("\n")}\n${shredInputs(inputQuery.indexedDict)}"
+      else s"${inputs(inputQuery.name, inputCode)}"
     val finalc = writeSparkNew(qname+"Spark", query.inputs(if (shred) TPCHSchema.stblcmds else TPCHSchema.tblcmds), 
-                  header, s"${inputs(inputQuery.name, inputCode)}\n${timed(gcode)}")
+                  header, s"$inputSection\n${timed(gcode)}")
     printer.println(finalc)
     printer.close 
   

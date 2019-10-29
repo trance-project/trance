@@ -131,19 +131,20 @@ object TPCHQuery3Full extends TPCHBase{
 object TPCHQuery2Full extends TPCHBase {
 
   val name = "Query2Full"
+  override def indexedDict: List[String] = List("Query2Full__D_1", "Query2Full__D_2customers2_1")
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
       List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
  
-  /**val query = ForeachUnion(s, relS,
+  val query = ForeachUnion(s, relS,
             Singleton(Tuple("s_name" -> sr("s_name"), "customers2" -> ForeachUnion(l, relL,
               IfThenElse(Cmp(OpEq, sr("s_suppkey"), lr("l_suppkey")),
                 ForeachUnion(o, relO,
                   IfThenElse(Cmp(OpEq, or("o_orderkey"), lr("l_orderkey")),
                     ForeachUnion(c, relC,
                       IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
-                        Singleton(Tuple("c_name2" -> cr("c_name"))))))))))))**/
-  val query = ForeachUnion(s, relS,
+                        Singleton(Tuple("c_name2" -> cr("c_name"))))))))))))
+  /**val query = ForeachUnion(s, relS,
                 Singleton(Tuple("s_name" -> sr("s_name"), "customers2" -> 
                     ForeachUnion(c, relC,
                       ForeachUnion(o, relO,
@@ -151,7 +152,7 @@ object TPCHQuery2Full extends TPCHBase {
                           ForeachUnion(l, relL,
                             IfThenElse(And(Cmp(OpEq, sr("s_suppkey"), lr("l_suppkey")),
                                            Cmp(OpEq, or("o_orderkey"), lr("l_orderkey"))),
-                              Singleton(Tuple("c_name2" -> cr("c_name")))))))))))
+                              Singleton(Tuple("c_name2" -> cr("c_name")))))))))))**/
 
 }
 

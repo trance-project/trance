@@ -262,13 +262,13 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Lookup(e1, e2, v1, p1, v2, p2, p3) =>
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       s"""|{ val out1 = ${generate(e1)}.map{${checkNull(v1)} case $vars => (${e1Key(p1, p3)}, $vars) }
-          |  val out2 = ${generate(e2)}${e2Key(v2, p2)}
+          |  val out2 = ${generate(e2)}${e2Key(e2, v2, p2)}
           |  out1.join(out2).map{ case (k, v) => v }
           |}""".stripMargin
     case OuterLookup(e1, e2, v1, p1, v2, p2, p3) =>      
 	  val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       s"""|{ val out1 = ${generate(e1)}.map{${checkNull(v1)} case $vars => (${e1Key(p1, p3)}, $vars) }
-          |  val out2 = ${generate(e2)}${e2Key(v2, p2)}
+          |  val out2 = ${generate(e2)}${e2Key(e2, v2, p2)}
           |  out1.outerLookup(out2)
           |}""".stripMargin
     case Select(x, v, p, e2) => 
@@ -344,11 +344,15 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case _ => s"({${generate(p1)}}, {${generate(p3)}})"
   }
 
-  def e2Key(v2: CExpr, p2: CExpr) = {
+  def e2Key(e2: CExpr, v2: CExpr, p2: CExpr) = {
     val gv2 = generate(v2)
+    val proj = e2 match {
+      case Variable(_, BagCType(TTupleType(List(IntType, BagCType(_))))) => s"$gv2._1"
+      case _ => s"$gv2._1.lbl"
+    }
     p2 match {
       // handle this differently for input dictionaries
-      case Constant(true) => s".flatMap($gv2 => $gv2._2.map{case v2 => ($gv2._1.lbl, v2)})"
+      case Constant(true) => s".flatMap($gv2 => $gv2._2.map{case v2 => ($proj, v2)})"
       case _ => s".flatMap(v2 => v2._2.map{case $gv2 => ((v2._1, {${generate(p2)}}), $gv2)})"
     }
   }
