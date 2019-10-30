@@ -126,9 +126,9 @@ val x1200 = x1197
 val x1204 = { val out1 = x1195.map{ case x1201 => ({val x1203 = x1201.customers2 
 x1203}, x1201) }
   val out2 = x1200.flatMap(x1202 => x1202._2.map{case v2 => (x1202._1, v2)})
-  out1.join(out2).map{ case (k, v) => v }
+  out2.joinSkewLeft(out1).map{ case (k, v) => v }
 } 
-val x1213 = x1204.map{ case (x1205, x1206) => 
+val x1213 = x1204.map{ case (x1206, x1205) => 
    val x1207 = x1206.c_name2 
 val x1208 = Record1219(x1207) 
 val x1209 = x1205.s_name 
@@ -139,7 +139,7 @@ x1212
 } 
 val M_flat2 = x1213
 val x1214 = M_flat2
-M_flat2.collect.foreach(println(_))
+//M_flat2.collect.foreach(println(_))
 x1214.count
 }
 var start0 = System.currentTimeMillis()
