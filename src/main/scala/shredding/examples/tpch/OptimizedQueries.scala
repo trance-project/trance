@@ -163,8 +163,8 @@ object TPCHQuery2 extends TPCHBase {
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
       List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
  
-  val resultInner = ForeachUnion(c, relC, 
-                      ForeachUnion(o, relO, // skew join
+  val resultInner = ForeachUnion(o, relO, 
+                      ForeachUnion(c, relC, // skew join
                         IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
                           Singleton(Tuple("o_orderkey" -> or("o_orderkey"), "c_name" -> cr("c_name"))))))
   val (ri, co, cor) = varset("resultInner", "co", resultInner)                     

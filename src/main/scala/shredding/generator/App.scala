@@ -49,8 +49,8 @@ object App {
     Utils.runSparkNew(TPCHQuery2Full)
     Utils.runSparkNew(TPCHQuery2Full, shred = true)
     
-    Utils.runSparkInputNew(TPCHQuery2Full, TPCHQuery6Full)
-    Utils.runSparkInputNew(TPCHQuery2Full, TPCHQuery6Full, shred = true)
+    Utils.runSparkInputNew(TPCHQuery2, TPCHQuery6Full)
+    Utils.runSparkInputNew(TPCHQuery2, TPCHQuery6Full, shred = true)
 
   }
 
