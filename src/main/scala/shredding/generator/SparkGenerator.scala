@@ -8,7 +8,7 @@ import shredding.utils.Utils.ind
   * Generates Scala code specific to Spark applications
   */
 
-class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
+class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean = false) {
 
   implicit def expToString(e: CExpr): String = generate(e)
 
@@ -102,6 +102,8 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
           case _ =>
             s"${generate(e1)}.flatMap($cur => { \n${ind(conditional(p, s"${generate(e)}", "Nil"))}})"
         }
+    case Record(fs) if (fs.keySet == Set("_1","_2") || fs.keySet == Set("key", "value")) => // fix this earlier in pipeline
+      s"""(${fs.map(f => { handleType(f._2.tp); generate(f._2) } ).mkString(", ") })"""
     case Record(fs) => {
       val tp = e.tp
       handleType(tp)
@@ -170,31 +172,29 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
           ).mkString("\n")
 		case _ => s"case (null) => Nil" //({${generate(f)}}, ${zero(e2)})"
       }
-      
-      // for now check if this is the shredded version
-      // could move a local option to the nest node
-      val gbfun = if (v1.head.tp match {
-        case r @ RecordCType(_) => r.attrTps.contains("lbl")
-        case _ => false
-      }) ".groupByLabel()" 
-      else ".groupByKey()"
-
-      (p, e2.tp) match {
-        case (Constant(true), RecordCType(_)) => 
+      val e2tp = e2.tp match {
+        case IntType => false
+        case DoubleType => false
+        case _ => true
+      } 
+      val gbfun = if (shredded) ".groupByLabel()" else ".groupByKey()"
+      p match {
+        case Constant(true) if e2tp => 
           s"""|${generate(e1)}.flatMap{ case $vars => ${generate(g)} match {
               |   $nonet 
               |   case $gv2 => List(({${generate(f)}}, {${generate(e2)}}))
               | }
               |}$gbfun""".stripMargin
-        case (Constant(true), _) => g match {
+        case Constant(true) => g match {
           case _ =>
+            println(s"in here with ${e2.tp}")
             s"""|${generate(e1)}.flatMap{ case $vars => ${generate(g)} match {
                 |   $nonet
                 |   case $gv2 => List(({${generate(f)}}, {${generate(e2)}}))
                 | }
                 |}.reduceByKey(_ + _)""".stripMargin
         }
-        case (_, RecordCType(_)) => 
+        case y if e2tp => 
           s"""|${generate(e1)}.flatMap{ case $vars => ${generate(g)} match {
               |   case $gv2 if {${generate(p)}} => List(({${generate(f)}}, {${generate(e2)}}))
               |   case $gv2 => List(({${generate(f)}}, ${zero(e2)}))
@@ -262,13 +262,13 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Lookup(e1, e2, v1, p1, v2, p2, p3) =>
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       s"""|{ val out1 = ${generate(e1)}.map{${checkNull(v1)} case $vars => (${e1Key(p1, p3)}, $vars) }
-          |  val out2 = ${generate(e2)}${e2Key(e2, v2, p2)}
-          |  out1.join(out2).map{ case (k, v) => v }
+          |  val out2 = ${generate(e2)}${e2Key(v2, p2)}
+          |  out1.lookup(out2)
           |}""".stripMargin
     case OuterLookup(e1, e2, v1, p1, v2, p2, p3) =>      
 	  val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       s"""|{ val out1 = ${generate(e1)}.map{${checkNull(v1)} case $vars => (${e1Key(p1, p3)}, $vars) }
-          |  val out2 = ${generate(e2)}${e2Key(e2, v2, p2)}
+          |  val out2 = ${generate(e2)}${e2Key(v2, p2)}
           |  out1.outerLookup(out2)
           |}""".stripMargin
     case Select(x, v, p, e2) => 
@@ -283,11 +283,11 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
         case _ => s"${generate(x)}.filter($gv => { ${generate(p)} })$proj"
       }
     // handle other types
-    case Reduce(e1, v, Bind(_, _, Bind(_, Record(fs), _)), p) if fs.keySet == Set("k", "v") && v.last.tp.isInstanceOf[PrimitiveType] =>
+    /**case Reduce(e1, v, Bind(_, _, Bind(_, Record(fs), _)), p) if fs.keySet == Set("key", "value") && v.last.tp.isInstanceOf[PrimitiveType] =>
       val vars = generateVars(v, e1.tp.asInstanceOf[BagCType].tp)
       s"""|${generate(e1)}.map{ case $vars => 
           |  (${generate(v.head)}, ${generate(Tuple(v.tail))})
-          |}.groupByLabel()""".stripMargin
+          |}.groupByLabel()""".stripMargin**/
     case Reduce(e1, v, f, p) =>
       val vars = generateVars(v, e1.tp.asInstanceOf[BagCType].tp)
       p match { case Constant(true) =>
@@ -344,16 +344,14 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case _ => s"({${generate(p1)}}, {${generate(p3)}})"
   }
 
-  def e2Key(e2: CExpr, v2: CExpr, p2: CExpr) = {
+  def e2Key(v2: CExpr, p2: CExpr) = {
     val gv2 = generate(v2)
-    val proj = e2 match {
-      case Variable(_, BagCType(TTupleType(List(IntType, BagCType(_))))) => s"$gv2._1"
-      case _ => s"$gv2._1.lbl"
-    }
     p2 match {
-      // handle this differently for input dictionaries
-      case Constant(true) => s".flatMap($gv2 => $gv2._2.map{case v2 => ($proj, v2)})"
-      case _ => s".flatMap(v2 => v2._2.map{case $gv2 => ((v2._1, {${generate(p2)}}), $gv2)})"
+      case Constant(true) => s".flatMapValues(identity)"
+      case _ => 
+      s"""
+        /** WHEN DOES THIS CASE HAPPEN **/
+        .flatMap(v2 => v2._2.map{case $gv2 => ((v2._1, {${generate(p2)}}), $gv2)})"""
     }
   }
 

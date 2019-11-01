@@ -97,7 +97,6 @@ trait BaseNormalizer extends BaseCompiler {
     case Sng(t) => sng(t)
     case _ => super.sng(x)
   }
-
  
   // { e(v) | v <- e1, p(v) }
   // where fegaras and maier does: { e | q, v <- e1, s }

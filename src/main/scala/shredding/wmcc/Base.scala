@@ -226,7 +226,7 @@ trait BaseCompiler extends Base {
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep = {
     val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
     val fv = f(v1) // groups
-    val ev = e(v1) // pattern
+    val ev = e(v1) 
     val v = ev.tp match {
       case p:PrimitiveType =>
         fv.tp match {

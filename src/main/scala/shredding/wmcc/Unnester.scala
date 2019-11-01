@@ -34,16 +34,19 @@ object Unnester {
     case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E)))
     case CGroupBy(e1, v1, grp, value) => unnest(e1)(u, w, E) match {
       case Reduce(e2, v2, e3 @ Record(fs), p2 @ Constant(true)) => 
-        val key = Record(fs.dropRight(1))
-        val value = fs.last._2 // should be of primitive type
+        val key = fs.dropRight(1).get("key") match {
+          case Some(a) => a
+          case _ => Record(fs.dropRight(1))
+        }
+        val value = fs.last._2 match { case Sng(t) => t; case t => t }
         val v = Variable.fresh(TTupleType(List(key.tp, value.tp)))
-		val g = Tuple(u ++ fs.dropRight(1).map(v => v._2 match { case Project(t, f) => t; case v3 => v3}).toList)
+		    val g = Tuple(u ++ fs.dropRight(1).map(v => v._2 match { case Project(t, f) => t; case v3 => v3}).toList)
         Nest(e2, v2, key, value, v, p2, g)
       case n @ Nest(e2, v2, f2, e3 @ Record(fs), v3, p2 @ Constant(true), g) => 
         val key = Tuple(u :+ Record(fs.dropRight(1)))
-        val value = fs.last._2 // shoud be of primitive type
+        val value = fs.last._2 match { case Sng(t) => t; case t => t }
         val v = Variable.fresh(TTupleType(List(Record(fs.dropRight(1)).tp, value.tp)))
-		val g = Tuple(u ++ fs.dropRight(1).map(v => v._2 match { case Project(t, f) => t; case v3 => v3}).toList)
+		    val g = Tuple(u ++ fs.dropRight(1).map(v => v._2 match { case Project(t, f) => t; case v3 => v3}).toList)
         Nest(e2, v2, key, value, v, p2, g)    
     }
     case Comprehension(e1, v, p, e2) if u.isEmpty && w.isEmpty && E.isEmpty =>

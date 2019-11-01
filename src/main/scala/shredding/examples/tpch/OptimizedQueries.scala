@@ -159,6 +159,7 @@ object TPCHQuery2Full extends TPCHBase {
 object TPCHQuery2 extends TPCHBase {
 
   val name = "Query2"
+  override def indexedDict: List[String] = List("Query2Full__D_1", "Query2Full__D_2customers2_1")
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
       List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
@@ -328,7 +329,7 @@ object TPCHQuery6Full extends TPCHBase {
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
       List("C", "O", "L", "P", "PS", "S", "N").contains(x._1)).values.toList.mkString("")}"
 
-  val (q3, co, cor) = varset(TPCHQuery3Full.name, "co", TPCHQuery3Full.query.asInstanceOf[BagExpr]) 
+  val (q3, co, cor) = varset(TPCHQuery3.name, "co", TPCHQuery3.query.asInstanceOf[BagExpr]) 
    
   val suppliersCond1 = ForeachUnion(sdef, rq3("suppliers").asInstanceOf[BagExpr],
                         IfThenElse(Cmp(OpEq, sref("s_nationkey"), nref("n_nationkey")),

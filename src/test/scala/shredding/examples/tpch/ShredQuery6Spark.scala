@@ -13,7 +13,7 @@ case class Record676(s_name: String, customers2: Record675)
 case class Record677(l_suppkey: Int, l_orderkey: Int)
 case class Record679(c_name2: String)
 //case class Record680(l__Fl_suppkey: Int)
-case class Record681(_1: Record675, _2: Iterable[Record679])
+case class Record681(_1: Record675, _2: Iterable[Record679]) 
 case class Record720(c_name: String)
 case class Record721(c__Fc_name: String)
 case class Record722(c_name: String, suppliers: Record721)
@@ -114,7 +114,7 @@ val x669 = M_flat2
 val Query2Full__D_1 = M_flat1
 Query2Full__D_1.cache
 Query2Full__D_1.count
-val Query2Full__D_2customers2_1 = M_flat2
+val Query2Full__D_2customers2_1 = M_flat2.map(r => (r._1, r._2))
 Query2Full__D_2customers2_1.cache
 Query2Full__D_2customers2_1.count
 
@@ -137,8 +137,8 @@ val x701 = Query2Full__D_2customers2_1
 val x704 = x701 
 val x708 = { val out1 = x699.map{ case x705 => ({val x707 = x705.customers2 
 x707}, x705) }
-  val out2 = x704.flatMap(x706 => x706._2.map{case v2 => (x706._1, v2)})
-  out2.joinSkewLeft(out1).map{ case (k, v) => v }
+  val out2 = x704.flatMapValues(x706 => x706)//._2.map{case v2 => (x706._1, v2)})
+  out2.lookupSkewLeft(out1)//.map{ case (k, v) => v }
 } 
 val x717 = x708.map{ case (x710, x709) => 
    val x711 = x710.c_name2 
@@ -151,7 +151,7 @@ x716
 }.groupByLabel()
 val M_flat2 = x717
 val x718 = M_flat2
-//M_flat2.collect.foreach(println(_))
+M_flat2.collect.foreach(println(_))
 x718.count
 }
 var start0 = System.currentTimeMillis()

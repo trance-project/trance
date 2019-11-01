@@ -108,4 +108,13 @@ trait Label {
     override def toString: String =
       s"Label(${(id :: vars.map(_.toString).toList).mkString(", ")}"
   }
+  
+  final case class GroupByLabel(bag: BagExpr) extends GroupBy {
+    val tp: BagType = bag.tp
+    def v: VarDef = VarDef.fresh(tp.tp)
+    val xr = TupleVarRef(v)
+    def grp: Expr = LabelProject(xr, "key")
+    def value: Expr = Tuple(Map("_2" -> xr("value")))
+  }
+
 }

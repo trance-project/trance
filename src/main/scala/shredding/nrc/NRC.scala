@@ -232,7 +232,7 @@ trait NRC extends BaseExpr {
 
   trait GroupBy extends BagExpr {
     def bag: BagExpr
-    def grp: TupleExpr
+    def grp: Expr
     def value: Expr
     def v: VarDef
   }
