@@ -18,10 +18,10 @@ case class Record1052(p__Fp_partkey: Int)
 case class Record1053(p_name: String, suppliers: Record1052, customers: Record1052)
 case class Record1054(s_name: String, s_nationkey: Int)
 case class Record1055(c_name: String, c_nationkey: Int)
-case class Record1109(n_name: String, n_nationkey: Int)
-case class Record1110(n__Fn_nationkey: Int)
-case class Record1111(n_name: String, parts: Record1110)
-case class Record1113(p_name: String)
+case class Record1123(n_name: String, n_nationkey: Int)
+case class Record1124(n__Fn_nationkey: Int)
+case class Record1125(n_name: String, parts: Record1124)
+case class Record1127(p_name: String)
 object ShredQuery7FullSpark {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
@@ -71,7 +71,7 @@ val x951 = { val out1 = x939.map{ case x947 => ({val x949 = x947.ps_suppkey
 x949}, x947) }
   val out2 = x946.map{ case x948 => ({val x950 = x948.s_suppkey 
 x950}, x948) }
-  out1.join(out2).map{ case (k,v) => v }
+  out1.joinSkewLeft(out2).map{ case (k,v) => v }
 } 
 val x958 = x951.map{ case (x952, x953) => 
    val x954 = x952.ps_partkey 
@@ -97,7 +97,7 @@ val x976 = { val out1 = x964.map{ case x972 => ({val x974 = x972.o_custkey
 x974}, x972) }
   val out2 = x971.map{ case x973 => ({val x975 = x973.c_custkey 
 x975}, x973) }
-  out1.join(out2).map{ case (k,v) => v }
+  out1.joinSkewLeft(out2).map{ case (k,v) => v }
 } 
 val x983 = x976.map{ case (x977, x978) => 
    val x979 = x977.o_orderkey 
@@ -155,7 +155,7 @@ val x1025 = Record1054(x1023, x1024)
 val x1026 = List(x1025) 
 val x1027 = (x1022, x1026) 
 x1027 
-} 
+}//.groupByLabel() 
 val M_flat2 = x1028
 val x1029 = M_flat2
 //M_flat2.collect.foreach(println(_))
@@ -169,7 +169,7 @@ val x1037 = Record1055(x1035, x1036)
 val x1038 = List(x1037) 
 val x1039 = (x1034, x1038) 
 x1039 
-} 
+}//.groupByLabel() 
 val M_flat3 = x1040
 val x1041 = M_flat3
 //M_flat3.collect.foreach(println(_))
@@ -185,18 +185,19 @@ Query3__D_2customers_1.count
 def f = { 
  val x1070 = N__D_1.map(x1066 => { val x1067 = x1066.n_name 
 val x1068 = x1066.n_nationkey 
-val x1069 = Record1109(x1067, x1068) 
+val x1069 = Record1123(x1067, x1068) 
 x1069 }) 
 val x1076 = x1070.map{ case x1071 => 
    val x1072 = x1071.n_name 
 val x1073 = x1071.n_nationkey 
-val x1074 = Record1110(x1073) 
-val x1075 = Record1111(x1072, x1074) 
+val x1074 = Record1124(x1073) 
+val x1075 = Record1125(x1072, x1074) 
 x1075 
 } 
 val M_flat1 = x1076
 val x1077 = M_flat1
-M_flat1.collect.foreach(println(_))
+M_flat1.count
+//M_flat1.collect.foreach(println(_))
 val x1079 = Query3__D_1 
 val x1081 = Query3__D_2suppliers_1 
 val x1084 = x1081 
@@ -205,33 +206,45 @@ x1087}, x1085) }
   val out2 = x1084.flatMapValues(identity)
   out1.lookup(out2)
 } 
-val x1094 = x1088.flatMap{ case (x1089, x1090) => 
-//val x1093 = () 
-//x1093 match {
-//   case (null) => Nil
-   //case x1092 =>
-   List(({val x1091 = (x1089,x1090) 
-x1091}, {0}))
- //}
-}.reduceByKey(_ + _) 
-val x1106 = x1094.map{ case ((x1095, x1096), x1097) => 
-   val x1098 = x1096.s_nationkey 
-val x1099 = Record1110(x1098) 
-val x1100 = x1097 == 0 
-val x1101 = x1095.p_name 
-val x1102 = Record1113(x1101) 
-val x1103 = List(x1102) 
-val x1104 = 
- if ({x1100})
- {  x1103}
- else Nil  
-val x1105 = (x1099, x1104) 
-x1105 
+val x1089 = Query3__D_2customers_1 
+val x1092 = x1089 
+val x1097 = { val out1 = x1088.map{ case (a, null) => (null, (a, null)); case (x1093, x1094) => ({val x1096 = x1093.customers 
+x1096}, (x1093, x1094)) }
+  val out2 = x1092.flatMapValues(identity)
+  out1.outerLookup(out2)
 } 
-val M_flat2 = x1106
-val x1107 = M_flat2
+val x1108 = x1097.flatMap{ case ((x1098, x1099), x1100) => val x1107 = (x1100) 
+x1107 match {
+   case (null) => Nil
+   case x1106 => List(({val x1101 = (x1098,x1099) 
+x1101}, {val x1102 = x1100.c_nationkey 
+val x1103 = x1099.s_nationkey 
+val x1104 = x1102 == x1103 
+val x1105 = 
+ if ({x1104})
+ {  1}
+ else 0  
+x1105}))
+ }
+}.reduceByKey(_ + _) 
+val x1120 = x1108.map{ case ((x1109, x1110), x1111) => 
+   val x1112 = x1110.s_nationkey 
+val x1113 = Record1124(x1112) 
+val x1114 = x1111 == 0 
+val x1115 = x1109.p_name 
+val x1116 = Record1127(x1115) 
+val x1117 = List(x1116) 
+val x1118 = 
+ if ({x1114})
+ {  x1117}
+ else Nil  
+val x1119 = (x1113, x1118) 
+x1119 
+}.groupByLabel() 
+val M_flat2 = x1120
+val x1121 = M_flat2
 M_flat2.collect.foreach(println(_))
-x1107.count
+x1121.count
 }
 var start0 = System.currentTimeMillis()
 f
