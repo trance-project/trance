@@ -43,6 +43,10 @@ trait TPCHBase extends Query {
   val ps = VarDef("ps", TPCHSchema.partsupptype.tp)
   val psr = TupleVarRef(ps)  
 
+  val relN = BagVarRef(VarDef("N", TPCHSchema.nationtype))
+  val n = VarDef("n", TPCHSchema.nationtype.tp)
+  val nr = TupleVarRef(n)  
+
 }
   
 object TPCHQuery1Full extends TPCHBase {
@@ -109,6 +113,9 @@ object TPCHQuery1 extends TPCHBase {
 
 object TPCHQuery3Full extends TPCHBase{
   val name = "Query3Full"
+  override def indexedDict: List[String] = 
+    List(s"${name}__D_1", s"${name}__D_2suppliers_1", s"${name}__D_2customers_1")
+
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
       List("C", "O", "L", "P", "PS", "S").contains(x._1)).values.toList.mkString("")}"
@@ -211,6 +218,9 @@ object TPCHQuery2 extends TPCHBase {
   **/
 object TPCHQuery3 extends TPCHBase {
   val name = "Query3"
+  override def indexedDict: List[String] = 
+    List(s"${name}__D_1", s"${name}__D_2suppliers_1", s"${name}__D_2customers_1")
+
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
       List("C", "O", "L", "P", "PS", "S").contains(x._1)).values.toList.mkString("")}"
@@ -322,25 +332,33 @@ object TPCHQuery6Full extends TPCHBase {
 
 }
 
-/**object TPCHQuery7Full extends TPCHBase {
+object TPCHQuery7Full extends TPCHBase {
 
   val name = "Query7Full"
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
       List("C", "O", "L", "P", "PS", "S", "N").contains(x._1)).values.toList.mkString("")}"
 
-  val (q3, co, cor) = varset(TPCHQuery3.name, "co", TPCHQuery3.query.asInstanceOf[BagExpr]) 
-   
-  val suppliersCond1 = ForeachUnion(sdef, rq3("suppliers").asInstanceOf[BagExpr],
-                        IfThenElse(Cmp(OpEq, sref("s_nationkey"), nref("n_nationkey")),
-                                   Singleton(Tuple("count" -> Const(1, IntType)))).asInstanceOf[BagExpr])
+  val (q3, co, cor) = varset(TPCHQuery3.name, "co", TPCHQuery3Full.query.asInstanceOf[BagExpr]) 
+  
+  val customers = BagProject(cor, "customers")
+  val c2 = VarDef.fresh(customers.tp.tp)
+  val c2r = TupleVarRef(c2)
 
-  val customersCond1 = ForeachUnion(cdef, rq3("customers").asInstanceOf[BagExpr],
-                        IfThenElse(Cmp(OpEq, cref("c_nationkey"), nref("n_nationkey")),
-                                   Singleton(Tuple("count" -> Const(1, IntType)))).asInstanceOf[BagExpr])
+  val suppliers = BagProject(cor, "suppliers")
+  val s2 = VarDef.fresh(suppliers.tp.tp)
+  val s2r = TupleVarRef(s2)
+
+  val custforall = ForeachUnion(c2, customers,
+                    IfThenElse(Cmp(OpEq, c2r("c_nationkey"), nr("n_nationkey")),
+                      Singleton(Tuple("count" -> Const(1, IntType)))))
   
   val query = ForeachUnion(n, relN, 
                 Singleton(Tuple("n_name" -> nr("n_name"), "parts" -> 
                   ForeachUnion(co, BagVarRef(q3),
-                    Total(ForeachUnion           
-}**/
+                    ForeachUnion(s2, suppliers, 
+                      IfThenElse(And(Cmp(OpEq, s2r("s_nationkey"), nr("n_nationkey")),
+                                     Cmp(OpEq, Total(custforall), Const(0, IntType))),
+                        Singleton(Tuple("p_name" -> cor("p_name")))))))))
+                              
+}

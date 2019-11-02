@@ -67,7 +67,7 @@ N.count
       suppliers.map(_._2).filter{ case s_nationkey => !customer_nations.contains(s_nationkey) }
       .map{ case s_nationkey => s_nationkey -> p_name }
    }.cogroup(nation).flatMap{
-    case (_, (n_name, parts)) => if (n_name.isEmpty) Nil else List((n_name, parts.toArray))
+    case (_, (n_name, parts)) => if (n_name.isEmpty) Nil else List((n_name.toArray, parts.toArray))
    }
    exportedparts.count
    var end0 = System.currentTimeMillis() - start0

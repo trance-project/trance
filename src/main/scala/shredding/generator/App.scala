@@ -52,6 +52,9 @@ object App {
     Utils.runSparkInputNew(TPCHQuery2, TPCHQuery6Full)
     Utils.runSparkInputNew(TPCHQuery2, TPCHQuery6Full, shred = true)
 
+    Utils.runSparkInputNew(TPCHQuery3, TPCHQuery7Full)
+    Utils.runSparkInputNew(TPCHQuery3, TPCHQuery7Full, shred = true)
+
   }
 
   def runSparkCalc(){

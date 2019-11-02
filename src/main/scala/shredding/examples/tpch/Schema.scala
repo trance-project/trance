@@ -271,13 +271,15 @@ object TPCHSchema {
                   "L" -> "val L = tpch.loadLineitem\nL.cache\nL.count\n",
                   "P" -> "val P = tpch.loadPart\nP.cache\nP.count\n",
                   "PS" -> "val PS = tpch.loadPartSupp\nPS.cache\nPS.count\n",
-                  "S" -> "val S = tpch.loadSupplier\nS.cache\nS.count\n")
+                  "S" -> "val S = tpch.loadSupplier\nS.cache\nS.count\n",
+                  "N" -> "val N = tpch.loadNation\nN.cache\nN.count\n")
 
   val stblcmds = Map("C" -> "val C__F = 1\nval C__D_1 = tpch.loadCustomers\nC__D_1.cache\nC__D_1.count\n",
                    "O" -> "val O__F = 2\nval O__D_1 = tpch.loadOrders\nO__D_1.cache\nO__D_1.count\n",
                    "L" -> "val L__F = 3\nval L__D_1 = tpch.loadLineitem\nL__D_1.cache\nL__D_1.count\n",
                    "P" -> "val P__F = 4\nval P__D_1 = tpch.loadPart\nP__D_1.cache\nP__D_1.count\n",
                    "PS" -> "val PS__F = 5\nval PS__D_1 = tpch.loadPartSupp\nPS__D_1.cache\nPS__D_1.count\n",
-                   "S" -> "val S__F = 6\nval S__D_1 = tpch.loadSupplier\nS__D_1.cache\nS__D_1.count\n")
+                   "S" -> "val S__F = 6\nval S__D_1 = tpch.loadSupplier\nS__D_1.cache\nS__D_1.count\n",
+                   "N" -> "val N__F = 6\nval N__D_1 = tpch.loadNation\nN__D_1.cache\nN__D_1.count\n")
 
 }

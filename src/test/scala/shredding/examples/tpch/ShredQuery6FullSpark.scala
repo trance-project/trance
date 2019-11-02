@@ -143,10 +143,10 @@ val x704 = Record713(x703)
 val x705 = List(x704) 
 val x706 = (x702, x705) 
 x706 
-}.groupByLabel() 
+} 
 val M_flat2 = x707
 val x708 = M_flat2
-M_flat2.collect.foreach(println(_))
+//M_flat2.collect.foreach(println(_))
 x708.count
 }
 var start0 = System.currentTimeMillis()

@@ -16,6 +16,7 @@ object Unnester {
 
   def isNestedComprehension(e: CExpr): Boolean = e match {
     case c:Comprehension => true
+    case If(Equals(c:Comprehension, _), _, None) => true
     case d:CDeDup => true
     case g:CGroupBy => true
     case _ => false
@@ -125,6 +126,10 @@ object Unnester {
             val v = Variable.fresh(TTupleType(et.tp.attrTps :+ BagCType(t.tp))) 
             Nest(E.get, w, et, t, v, Constant(true), gt)
           }
+        // address special case
+        case (key, value @ If(Equals(c1:Comprehension, c2), x1, None)) :: tail => 
+          val (nE, v2) = getNest(unnest(c2)((w, w, E)))
+          unnest(Sng(Record(fs + (key -> If(Equals(v2, c2), x1, None)))))((u, w :+ v2, nE))
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
 	        val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
@@ -180,6 +185,9 @@ object Unnester {
                 unnest(e3)((u, w :+ v2, nE))
              }
              case _ => if (u.isEmpty) {
+               println("some lookup")
+               println(e3)
+               println(getPM(p2))
                val nE = Some(Lookup(E.get, Select(e1, v, sp2s, v2), w, lbl1, v2, Constant(true), Constant(true)))
 	             unnest(pushPredicate(e3, p2))((u, w :+ v2, nE)) 
              }else{
