@@ -7,10 +7,10 @@ import shredding.wmcc._
 
 trait TPCHBase extends Query {
 
-  def varset(n1: String, n2: String, e: BagExpr): (VarDef, VarDef, TupleVarRef) = {
+  /**def varset(n1: String, n2: String, e: BagExpr): (VarDef, VarDef, TupleVarRef) = {
     val vd = VarDef(n2, e.tp.tp)
     (VarDef(n1, e.tp), vd, TupleVarRef(vd))
-  }
+  }**/
 
   // append other type maps
   def inputTypes(shred: Boolean = false): Map[Type, String] = 

@@ -21,10 +21,10 @@ case class Record255(o_orderdate: String, o_parts: List[Record253], uniqueId: Lo
 case class Record300(c_name: String, p_name: String, month: String, t_qty: Double, uniqueId: Long) extends CaseClassRecord
 case class Query1Out(c_name: String, c_orders: List[Record255], uniqueId: Long) extends CaseClassRecord
 
-object Query6SparkSlender {
+object Query6SparkUDFSlender {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
-   val conf = new SparkConf().setMaster(Config.master).setAppName("Query6SparkSlender"+sf)
+   val conf = new SparkConf().setMaster(Config.master).setAppName("Query6SparkUDFSlender"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
 
 val tpch = TPCHLoader(spark)
@@ -63,13 +63,18 @@ S.count
    result
  }
  var start0 = System.currentTimeMillis()
- val customers = C.map(c => c.c_name -> 1)
- val result = Q2.flatMap{
+ val customers = C.map(c => c.c_name)// -> 1)
+ def transposeCustomers(s: (String, List[String])): (String, String) = {
+   customers.flatMap{ c => s._2.withFilter(c2 => (c2 == c)).map( c2 => c2_name -> s_name) }
+ }
+ val result = Q2.flatMap{ case q2 => transposeCustomers(q2) }.groupByKey()
+ result.count
+ /**val result = Q2.flatMap{
     case (s_name, customers2) => customers2.map{ c_name => c_name -> s_name }
   }.cogroup(customers).map{ case (c_name, (s_nameSet, _)) => c_name -> s_nameSet.toArray}
- result.count 
+ result.count **/
  var end0 = System.currentTimeMillis() - start0
- println("Query6SparkSlender"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
+ println("Query6SparkUDFSlender"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
  }
 
 }

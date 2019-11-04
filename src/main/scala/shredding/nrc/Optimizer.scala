@@ -114,9 +114,9 @@ trait Optimizer extends Extensions {
       // with the variable name in the other label
       // so that their record types will later match
       val vd = VarDef(p2.asInstanceOf[PrimitiveVarRef].varDef.name, p1.tp)
-      val label = LabelLet(vd, p1, NewLabel(Set(VarRefLabelParameter(PrimitiveVarRef(vd)))))
-      ForeachUnion(x, bag1, Singleton(Tuple("key" -> 
-        label.asInstanceOf[TupleAttributeExpr], "value" -> bag2)))
+      val label = NewLabel(Set(VarRefLabelParameter(PrimitiveVarRef(vd))))
+      ForeachUnion(x, bag1, BagLet(vd, p1, Singleton(Tuple("key" -> 
+        label.asInstanceOf[TupleAttributeExpr], "value" -> bag2))))
     }
     else ForeachUnion(x, bag1, BagIfThenElse(Cmp(OpEq, 
         p1, p2.asInstanceOf[TupleAttributeExpr]), bag2, None))

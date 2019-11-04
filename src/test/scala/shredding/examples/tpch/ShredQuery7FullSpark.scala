@@ -71,7 +71,7 @@ val x951 = { val out1 = x939.map{ case x947 => ({val x949 = x947.ps_suppkey
 x949}, x947) }
   val out2 = x946.map{ case x948 => ({val x950 = x948.s_suppkey 
 x950}, x948) }
-  out1.joinSkewLeft(out2).map{ case (k,v) => v }
+  out1.join(out2).map{ case (k,v) => v }
 } 
 val x958 = x951.map{ case (x952, x953) => 
    val x954 = x952.ps_partkey 
@@ -97,7 +97,7 @@ val x976 = { val out1 = x964.map{ case x972 => ({val x974 = x972.o_custkey
 x974}, x972) }
   val out2 = x971.map{ case x973 => ({val x975 = x973.c_custkey 
 x975}, x973) }
-  out1.joinSkewLeft(out2).map{ case (k,v) => v }
+  out1.join(out2).map{ case (k,v) => v }
 } 
 val x983 = x976.map{ case (x977, x978) => 
    val x979 = x977.o_orderkey 
@@ -155,7 +155,7 @@ val x1025 = Record1054(x1023, x1024)
 val x1026 = List(x1025) 
 val x1027 = (x1022, x1026) 
 x1027 
-}//.groupByLabel() 
+} 
 val M_flat2 = x1028
 val x1029 = M_flat2
 //M_flat2.collect.foreach(println(_))
@@ -169,7 +169,7 @@ val x1037 = Record1055(x1035, x1036)
 val x1038 = List(x1037) 
 val x1039 = (x1034, x1038) 
 x1039 
-}//.groupByLabel() 
+} 
 val M_flat3 = x1040
 val x1041 = M_flat3
 //M_flat3.collect.foreach(println(_))
@@ -196,7 +196,6 @@ x1075
 } 
 val M_flat1 = x1076
 val x1077 = M_flat1
-M_flat1.count
 //M_flat1.collect.foreach(println(_))
 val x1079 = Query3__D_1 
 val x1081 = Query3__D_2suppliers_1 
@@ -240,10 +239,10 @@ val x1118 =
  else Nil  
 val x1119 = (x1113, x1118) 
 x1119 
-}.groupByLabel() 
+} 
 val M_flat2 = x1120
 val x1121 = M_flat2
-M_flat2.collect.foreach(println(_))
+//M_flat2.collect.foreach(println(_))
 x1121.count
 }
 var start0 = System.currentTimeMillis()

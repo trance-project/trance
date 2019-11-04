@@ -128,7 +128,7 @@ object Unnester {
           }
         // address special case
         case (key, value @ If(Equals(c1:Comprehension, c2), x1, None)) :: tail => 
-          val (nE, v2) = getNest(unnest(c2)((w, w, E)))
+          val (nE, v2) = getNest(unnest(c1)((w, w, E)))
           unnest(Sng(Record(fs + (key -> If(Equals(v2, c2), x1, None)))))((u, w :+ v2, nE))
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
 	        val (nE, v2) = getNest(unnest(value)((w, w, E)))

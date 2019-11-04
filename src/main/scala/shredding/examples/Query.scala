@@ -1,6 +1,6 @@
 package shredding.examples
 
-import shredding.core.Type
+import shredding.core.{Type, VarDef}
 import shredding.nrc.LinearizedNRC
 import shredding.wmcc._
 
@@ -54,4 +54,9 @@ trait Query extends NRCTranslator {
     anfBase.anf(anfer.finalize(this.sunnest).asInstanceOf[anfBase.Rep])
   }
 
+  /** misc utils **/
+  def varset(n1: String, n2: String, e: BagExpr): (VarDef, VarDef, TupleVarRef) = {
+    val vd = VarDef(n2, e.tp.tp)
+    (VarDef(n1, e.tp), vd, TupleVarRef(vd))
+  }
 }

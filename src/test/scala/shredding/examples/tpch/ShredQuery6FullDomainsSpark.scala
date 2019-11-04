@@ -241,9 +241,9 @@ val x1053 = x1050
 val x1058 = { val out1 = x1048.map{ case (a, null) => (null, (a, null)); case (x1054, x1055) => ({val x1057 = x1055.customers2 
 x1057}, (x1054, x1055)) }
   val out2 = x1053.flatMap{ v2 => v2._2.map{ case x => (v2._1.lbl, x) } }//.flatMapValues(identity)
-  out1.lookup(out2)
+  out2.lookupSkewLeft(out1)
 } 
-val x1071 = x1058.flatMap{ case ((x1059, x1060), x1061) => val x1070 = (x1060,x1061) 
+val x1071 = x1058.flatMap{ case (x1061, (x1059, x1060)) => val x1070 = (x1059,x1060) 
 x1070 match {
    case x1065 if {val x1066 = x1061.c_name2 
 val x1067 = x1059.lbl 
