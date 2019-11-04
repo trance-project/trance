@@ -5,6 +5,10 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
+case class Record667(s__Fs_suppkey: Int)
+case class Record668(s_name: String, customers2: Record667)
+case class Record671(c_name2: String)
+
 case class Record971(lbl: Unit)
 case class Record972(o_orderkey: Int, o_custkey: Int)
 case class Record973(c_name: String, c_custkey: Int)
@@ -31,15 +35,15 @@ object ShredQuery6FullDomainsSpark {
    val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery6FullDomainsSpark"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
-val L__F = 3
+/**val L__F = 3
 val L__D_1 = tpch.loadLineitem
 L__D_1.cache
-L__D_1.count
+L__D_1.count**/
 val C__F = 1
 val C__D_1 = tpch.loadCustomers
 C__D_1.cache
 C__D_1.count
-val O__F = 2
+/**val O__F = 2
 val O__D_1 = tpch.loadOrders
 O__D_1.cache
 O__D_1.count
@@ -176,11 +180,11 @@ x967
 } 
 val M_flat2 = x968
 val x969 = M_flat2
-//M_flat2.collect.foreach(println(_))
-val Query2Full__D_1 = M_flat1
+//M_flat2.collect.foreach(println(_))**/
+val Query2Full__D_1 = spark.sparkContext.objectFile[Record668]("/nfs_qc4/query3/Query2Full__D_1Skew")//M_flat1
 Query2Full__D_1.cache
 Query2Full__D_1.count
-val Query2Full__D_2customers2_1 = M_flat2
+val Query2Full__D_2customers2_1 = spark.sparkContext.objectFile[(Record667, Iterable[Record671])]("/nfs_qc4/query3/Query2Full__D_2customers2_1Skew")//M_flat2
 Query2Full__D_2customers2_1.cache
 Query2Full__D_2customers2_1.count
 def f = { 
@@ -233,15 +237,20 @@ val M_ctx2 = x1039
 val x1040 = M_ctx2
 //M_ctx2.collect.foreach(println(_))
 val x1042 = M_ctx2 
-val x1043 = Query2Full__D_1.flatMap{ r => r._2 }
+val x1043 = Query2Full__D_1//.flatMap{ r => r._2 }
 val x1045 = x1043 
 val x1048 = M_ctx2.cartesian(x1045)
 val x1050 = Query2Full__D_2customers2_1 
 val x1053 = x1050 
 val x1058 = { val out1 = x1048.map{ case (a, null) => (null, (a, null)); case (x1054, x1055) => ({val x1057 = x1055.customers2 
 x1057}, (x1054, x1055)) }
+<<<<<<< HEAD
   val out2 = x1053.flatMap{ v2 => v2._2.map{ case x => (v2._1.lbl, x) } }//.flatMapValues(identity)
   out2.lookupSkewLeft(out1)
+=======
+  val out2 = x1053.flatMap{ v2 => v2._2.map{ case x => (v2._1, x) } }//.flatMapValues(identity)
+  out1.lookup(out2)
+>>>>>>> 04e29ed2c68d15cdb3211cd4adecc6e321b323ae
 } 
 val x1071 = x1058.flatMap{ case (x1061, (x1059, x1060)) => val x1070 = (x1059,x1060) 
 x1070 match {
@@ -264,7 +273,7 @@ x1075
 } 
 val M_flat2 = x1076
 val x1077 = M_flat2
-M_flat2.collect.foreach(println(_))
+//M_flat2.collect.foreach(println(_))
 x1077.count
 }
 var start0 = System.currentTimeMillis()
