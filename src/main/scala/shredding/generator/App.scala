@@ -15,6 +15,10 @@ object App {
    def main(args: Array[String]){
     Utils.runSparkNew(AlleleCounts)
     Utils.runSparkNew(AlleleCounts, shred = true)
+    Utils.runSparkNew(AlleleCounts2)
+    Utils.runSparkNew(AlleleCounts2, shred = true)
+
+
     //runTPCH1()
     //runTPCH()
   }
