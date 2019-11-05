@@ -2,7 +2,7 @@ package shredding.generator
 
 import shredding.core._
 import shredding.wmcc._
-import shredding.examples.genomic.{GenomicTests, GenomicRelations}
+import shredding.examples.genomic._
 import shredding.examples.simple.{FlatTests, NestedTests, FlatRelations, NestedRelations}
 import shredding.examples.tpch._
 
@@ -13,7 +13,9 @@ import shredding.examples.tpch._
 object App {
  
    def main(args: Array[String]){
-    runTPCH1()
+    Utils.runSparkNew(AlleleCounts)
+    Utils.runSparkNew(AlleleCounts, shred = true)
+    //runTPCH1()
     //runTPCH()
   }
   
