@@ -44,7 +44,7 @@ trait Query extends NRCTranslator {
     norm
   }
   def sunnest: CExpr = {
-    val plan = Optimizer.applyAll(Unnester.unnest(this.snormalize)(Nil, Nil, None))
+    val plan = Optimizer.applyAll(DictUnnester.unnest(this.snormalize)(Nil, Nil, None))
     println(Printer.quote(plan))
     plan
   }
