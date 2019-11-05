@@ -3,6 +3,8 @@ package experiments
 /** Generated **/
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.rdd._
+import org.apache.spark.Partitioner.defaultPartitioner
 import sprkloader._
 import sprkloader.SkewPairRDD._
 case class Record127(ps_partkey: Int, ps_suppkey: Int)
@@ -18,10 +20,10 @@ case class Record136(p__Fp_partkey: Int)
 case class Record137(p_name: String, suppliers: Record136, customers: Record136)
 case class Record138(s_name: String, s_nationkey: Int)
 case class Record139(c_name: String, c_nationkey: Int)
-case class Record199(n_name: String, n_nationkey: Int)
-case class Record200(n__Fn_nationkey: Int)
-case class Record201(n_name: String, parts: Record200)
-case class Record202(p_name: String)
+case class Record207(n_name: String, n_nationkey: Int)
+case class Record208(n__Fn_nationkey: Int)
+case class Record209(n_name: String, parts: Record208)
+case class Record211(p_name: String)
 object ShredQuery7FullSpark {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
@@ -183,48 +185,48 @@ val Query3__D_2customers_1 = M_flat3
 Query3__D_2customers_1.cache
 Query3__D_2customers_1.count
 def f = { 
- val x153 = N__D_1.map(x149 => { val x150 = x149.n_name 
-val x151 = x149.n_nationkey 
-val x152 = Record199(x150, x151) 
-x152 }) 
-val x159 = x153.map{ case x154 => 
-   val x155 = x154.n_name 
-val x156 = x154.n_nationkey 
-val x157 = Record200(x156) 
-val x158 = Record201(x155, x157) 
-x158 
+ val x154 = N__D_1.map(x150 => { val x151 = x150.n_name 
+val x152 = x150.n_nationkey 
+val x153 = Record207(x151, x152) 
+x153 }) 
+val x160 = x154.map{ case x155 => 
+   val x156 = x155.n_name 
+val x157 = x155.n_nationkey 
+val x158 = Record208(x157) 
+val x159 = Record209(x156, x158) 
+x159 
 } 
-val M_flat1 = x159
-val x160 = M_flat1
+val M_flat1 = x160
+val x161 = M_flat1
 //M_flat1.collect.foreach(println(_))
-val x162 = Query3__D_1 
-val x164 = Query3__D_2suppliers_1 
-val x167 = x164 
-val x171 = { val out1 = x162.map{ case x168 => ({val x170 = x168.suppliers 
-x170}, x168) }
-  val out2 = x167.flatMapValues(identity)
-  out1.lookup(out2)
+val x163 = Query3__D_1 
+val x165 = Query3__D_2suppliers_1 
+val x168 = x165 
+val x173 = Query3__D_2customers_1 
+val x176 = x173 
+val x172 = { 
+  //
+  val out1 = x163.map{ case x169 => ({val x171 = x169.suppliers; x171}, x169) }
+  val out2 = x168//.flatMapValues(identity)s
+  val cg = new CoGroupedRDD(Seq(out1, out2), defaultPartitioner(out1, out2))
+  cg.mapValues{
+    case Array(vs, ws1) => (vs.asInstanceOf[Iterable[Record137]], ws1.asInstanceOf[Iterable[Record138]])
+  }
 } 
-val x196 = x171.map{ case (x172, x173) => 
-   val x174 = x173.s_nationkey 
-val x175 = Record200(x174) 
-val x177 = Query3__D_2customers_1 
-val x189 = x177 
-val x190 = x189 == 0 
-val x191 = x172.p_name 
-val x192 = Record202(x191) 
-val x193 = List(x192) 
-val x194 = 
- if ({x190})
- {  x193}
- else Nil  
-val x195 = (x175, x194) 
-x195 
-} 
-val M_flat2 = x196
-val x197 = M_flat2
+val x181 = {
+    //
+  val out1 = x172 // it's already keyed appropriately
+  val out2 = x176//.flatMapValues(identity)
+  out1.join(out2)
+}
+val x192 = x181.flatMap{ case (key, ((pnames, suppliers), customers)) => 
+  if (suppliers.filterNot(customers.contains).isEmpty) Nil
+  else List((key, pnames))
+}.groupByLabel()
+val M_flat2 = x192
+val x205 = M_flat2
 //M_flat2.collect.foreach(println(_))
-x197.count
+x205.count
 }
 var start0 = System.currentTimeMillis()
 f
