@@ -258,6 +258,8 @@ trait BaseCompiler extends Base {
     OuterJoin(e1, e2, v1, p1(v1), v2, p2(v2))
   }
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
+    println("working on this")
+    println(e1)
     val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
     val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
     Lookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))

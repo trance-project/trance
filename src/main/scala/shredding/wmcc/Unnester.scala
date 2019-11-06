@@ -184,15 +184,13 @@ object Unnester {
                 val nE = Some(Join(E.get, Select(e1, v2, sp2s, v2), w, p1s, v2, p2s))  
                 unnest(e3)((u, w :+ v2, nE))
              }
-             case _ => if (u.isEmpty) {
-               println("some lookup")
-               println(e3)
-               println(getPM(p2))
+             // change the definition of a lookup
+             case _ => if (u.isEmpty) {   
                val nE = Some(Lookup(E.get, Select(e1, v, sp2s, v2), w, lbl1, v2, Constant(true), Constant(true)))
 	             unnest(pushPredicate(e3, p2))((u, w :+ v2, nE)) 
              }else{
                val nE = Some(OuterLookup(E.get, Select(e1, v, sp2s, v2), w, lbl1, v2, Constant(true), Constant(true)))
-				 unnest(pushPredicate(e3, p2))((u, w :+ v2, nE))      
+				       unnest(pushPredicate(e3, p2))((u, w :+ v2, nE))      
 	           }
           }
 	      case (e4, be2) => 
@@ -203,7 +201,7 @@ object Unnester {
             case res => res
           }
       }
-    case Comprehension(e1, v, p, e) if !w.isEmpty =>
+   case Comprehension(e1, v, p, e) if !w.isEmpty =>
       val preds = ps(p, v, w)
       assert(!E.isEmpty)
       getPM(preds._1) match {

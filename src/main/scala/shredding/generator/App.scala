@@ -25,9 +25,9 @@ object App {
  
   def runTPCH1(){
 
-    /**println(" --------------------------- TPCH Query 1 Original ------------------------")
+    println(" --------------------------- TPCH Query 1 Original ------------------------")
     Utils.runSparkNew(TPCHQuery1Full)
-    Utils.runSparkNew(TPCHQuery1Full, shred = true)**/
+    Utils.runSparkNew(TPCHQuery1Full, shred = true)
 
 
     println(" --------------------------- TPCH Query 1 Optimized-------------------------")  
@@ -53,8 +53,7 @@ object App {
     Utils.runSparkInputNew(TPCHQuery2, TPCHQuery6Full, shred = true)
 
     Utils.runSparkInputNew(TPCHQuery3, TPCHQuery7Full)**/
-    Utils.runSparkInputNew(TPCHQuery3, TPCHQuery7Full, shred = true)
-
+    //Utils.runSparkInputNew(TPCHQuery3, TPCHQuery7Full, shred = true)
   }
 
   def runSparkCalc(){

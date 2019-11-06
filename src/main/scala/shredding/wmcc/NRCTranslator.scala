@@ -15,12 +15,15 @@ trait NRCTranslator extends LinearizedNRC {
   import compiler._
 
   def translate(e: Type): Type = e match {
-    case BagType(t @ TupleType(fs)) if fs.isEmpty => BagCType(EmptyCType)
+    case BagType(t @ TupleType(fs)) if (fs.isEmpty) => BagCType(EmptyCType)
+    case BagType(t @ TupleType(fs)) if (fs.keySet == Set("_1", "_2")) =>
+      BagDictCType(BagCType(TTupleType(List(
+        translate(fs.get("_1").get), translate(fs.get("_2").get)))), EmptyDictCType)
     case BagType(t) => BagCType(translate(t))
     case TupleType(fs) if fs.isEmpty => EmptyCType
     case TupleType(fs) => RecordCType(fs.map(f => f._1 -> translate(f._2)))
-    case BagDictType(f,d) =>
-      BagDictCType(BagCType(TTupleType(List(IntType, translate(f).asInstanceOf[BagCType]))), 
+    case BagDictType(f @ BagType(TupleType(fs)),d) =>
+      BagDictCType(BagCType(TTupleType(List(translate(f), translate(f).asInstanceOf[BagCType]))), 
         translate(d).asInstanceOf[TTupleDict]) 
     case EmptyDictType => EmptyDictCType
     case TupleDictType(ts) if ts.isEmpty => EmptyDictCType
@@ -69,12 +72,20 @@ trait NRCTranslator extends LinearizedNRC {
     case ForeachUnion(x, e1, e2) => translate(e2) match {
       case If(cond, e3, e4 @ None) => 
         Comprehension(translate(e1), translate(x).asInstanceOf[Variable], cond, e3)
-      case te2 => Comprehension(translate(e1), translate(x).asInstanceOf[Variable], constant(true), te2)
+      case te2 => 
+        println("now in for loop translating this")
+        println(translate(e1.tp))
+        Comprehension(translate(e1), translate(x).asInstanceOf[Variable], constant(true), te2)
     }
     case l:Let => Bind(translate(l.x), translate(l.e1), translate(l.e2))
     case g:GroupBy => 
       CGroupBy(translate(g.bag), translate(g.v).asInstanceOf[Variable], translate(g.grp), translate(g.value))
-    case Named(v, e) => CNamed(v.name, translate(e))
+    case Named(v, e) => 
+      println("translating this bag")
+      println(v.name)
+      println(e.tp)
+      println(translate(e.tp))
+      CNamed(v.name, translate(e))
     case Sequence(exprs) => LinearCSet(exprs.map(translate(_)))
     case v:VarRefLabelParameter => translateVar(v.v)
     case l @ NewLabel(vs) => 

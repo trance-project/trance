@@ -262,7 +262,8 @@ trait NRC extends BaseExpr {
   }
 
   case class Named(v: VarDef, e: Expr) extends Expr {
-    def tp: Type = TupleType()    // unit type
+    assert(v.tp == e.tp)
+    def tp: Type = e.tp//TupleType()    // unit type
   }
 
   case class Sequence(exprs: List[Expr]) extends Expr {
