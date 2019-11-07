@@ -218,7 +218,10 @@ trait BaseCompiler extends Base {
     Reduce(e1, v, f(v), p(v))
   }
   def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
+    val v1 = vars(e1.tp match {
+      case btp:BagDictCType => btp//._1.tp
+      case btp:BagCType => btp.tp
+    }) 
     val fv = f(v1) 
     val v = Variable.fresh(fv.tp.asInstanceOf[BagCType].tp)
     Unnest(e1, v1, fv, v, p(v1 :+ v))
@@ -247,7 +250,10 @@ trait BaseCompiler extends Base {
     Join(e1, e2, v1, p1(v1), v2, p2(v2))
   }
   def outerunnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
+    val v1 = vars(e1.tp match {
+      case btp:BagDictCType => btp//._1.tp
+      case btp:BagCType => btp.tp
+    }) 
     val fv = f(v1) 
     val v = Variable.fresh(fv.tp.asInstanceOf[BagCType].tp)
     OuterUnnest(e1, v1, fv, v, p(v1 :+ v))
@@ -258,15 +264,15 @@ trait BaseCompiler extends Base {
     OuterJoin(e1, e2, v1, p1(v1), v2, p2(v2))
   }
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
-    println("working on this")
-    println(e1)
     val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
-    val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
+    val v2 = Variable.fresh(e2.tp.asInstanceOf[BagDictCType].flat.tp)
+    //Variable.fresh(e2.tp.asInstanceOf[BagCType].tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
     Lookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
   }
   def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
     val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
-    val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
+    val v2 = Variable.fresh(e2.tp.asInstanceOf[BagDictCType].flat.tp)
+    //Variable.fresh(e2.tp.asInstanceOf[BagCType].tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
     OuterLookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
   }
 
@@ -274,7 +280,9 @@ trait BaseCompiler extends Base {
     * Why am I using this still??
     */
   def vars(e: Type): List[Variable] = e match {
-    case TTupleType(tps) if (tps.head == IntType) => List(Variable.fresh(e))
+    case BagDictCType(flat, dict) => List(Variable.fresh(flat.tp))
+    case TTupleType(tps) if (tps.head == EmptyCType || tps.head.isInstanceOf[LabelType]) => 
+      List(Variable.fresh(e)) // won't catch all cases
     case TTupleType(tps) if (tps.head.isInstanceOf[RecordCType] && tps.last.isInstanceOf[PrimitiveType] && tps.size == 2) => 
       List(Variable.fresh(e)) // fix this
     case TTupleType(tps) => tps.flatMap(vars(_)) 

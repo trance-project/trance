@@ -24,6 +24,10 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
   }
 
   def generateTypeDef(tp: Type): String = tp match {
+    case LabelType(fs) =>
+     val name = types(tp)
+     val fsize = fs.size
+      s"case class $name(${fs.map(x => s"${kvName(x._1)(fsize)}: ${generateType(x._2)}").mkString(", ")})"
     case RecordCType(fs) =>
      val name = types(tp)
      val fsize = fs.size
@@ -32,7 +36,11 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
   }
 
   def generateType(tp: Type): String = tp match {
+    case RecordCType(fs) if fs.isEmpty => "Unit"
+    case LabelType(fs) if fs.isEmpty => "Unit"
+    //case RecordCType(fs) if fs.keySet == Set("_1", "_2") => fs.generateType(fs._2).mkString("(",",",")")
     case RecordCType(_) if types.contains(tp) => types(tp)
+    case LabelType(_) if types.contains(tp) => types(tp)
     case IntType => "Int"
     case StringType => "String"
     case BoolType => "Boolean"
@@ -48,8 +56,6 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
       }
     case TupleDictCType(fs) if !fs.filter(_._2 != EmptyDictCType).isEmpty =>
       generateType(RecordCType(fs.filter(_._2 != EmptyDictCType)))
-    case RecordCType(fs) if fs.isEmpty => "Unit"
-    //case LabelType(fs) => generateType(RecordCType(fs))
     case EmptyCType => "Unit"
     case _ => sys.error("not supported type " + tp)
   }
@@ -71,8 +77,13 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
         case BagCType(tp) =>
           handleType(tp, givenName)
         case LabelType(fs) if !fs.isEmpty =>
+          fs.foreach(f => handleType(f._2))
           val name = givenName.getOrElse("Label" + Variable.newId)
-          handleType(RecordCType(fs), Some(name))
+          println("adding this")
+          println(tp)
+          println(name)
+          types = types + (tp -> name)
+          typelst = typelst :+ tp
         case BagDictCType(flat @ BagCType(TTupleType(fs)), dict) =>
           val nid = Variable.newId
           handleType(fs.last, Some(givenName.getOrElse("")))
@@ -208,7 +219,10 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
               |}.reduceByKey(_ + _)""".stripMargin
       }
     case Unnest(e1, v1, f, v2, p) => 
-      val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
+      val vars = generateVars(v1, e1.tp match {
+        case btp:BagDictCType => btp.flatTp.tp
+        case btp:BagCType => btp.tp
+      })
       val gv2 = generate(v2)
       val filt = p match {
         case Constant(true) => ""
@@ -314,19 +328,27 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
     case _ => sys.error(s"not supported $e")
   }
 
+  def validLabel(e: Type): Boolean = e match {
+    case EmptyCType => true
+    case LabelType(_) => true
+    case _ => false
+  }
+
   /**
     * Tuple vars based on type, for example (a,b,c) -> ((a,b),c)
     */
   def generateVars(e: List[Variable], tp: Type): String = tp match {
-    case TTupleType(seq) if (seq.size == 2 && seq.head == IntType) => s"${generate(e.head)}"
+    case TTupleType(seq) if (seq.size == 2 && validLabel(seq.head)) => s"${generate(e.head)}"
     case TTupleType(seq) if e.size == seq.size => e.map(generate).mkString("(", ", ", ")")
     case TTupleType(seq) if e.size > seq.size => {
       val en = e.dropRight(seq.size - 1)
       val rest = e.takeRight(seq.size - 1).map(generate).mkString(", ")
       s"(${generateVars(en, seq.head)}, $rest)"
     }
-    case TTupleType(seq) => sys.error(s"not supported ${e.size} ${seq.size} --> $e:\n ${generateType(tp)}")
-    case _ if e.size == 1 => s"${generate(e.head)}"
+    case y if e.size == 1 => s"${generate(e.head)}" 
+    //TTupleType(seq) if seq.size == 2 && e.size == 1 => e.map(generate).mkString("(", ",", ")")
+    case TTupleType(seq) => sys.error(s"not supported ${e.size} ${seq.size} --> $e:\n ")//${generateType(tp)}")
+    //case _ if e.size == 1 => s"${generate(e.head)}"
   }
 
   

@@ -1,7 +1,7 @@
 package shredding.wmcc
 
 import shredding.core._
-import shredding.nrc.LinearizedNRC
+import shredding.nrc.{LinearizedNRC, Printer => NRCPrinter}
 
 /**
   * Translate (source and target) NRC to WMCC
@@ -10,7 +10,7 @@ import shredding.nrc.LinearizedNRC
   * are bound by referencing and projecting on a label node
   */
 
-trait NRCTranslator extends LinearizedNRC {
+trait NRCTranslator extends LinearizedNRC with NRCPrinter {
   val compiler = new BaseCompiler{}
   import compiler._
 
@@ -22,14 +22,20 @@ trait NRCTranslator extends LinearizedNRC {
     case BagType(t) => BagCType(translate(t))
     case TupleType(fs) if fs.isEmpty => EmptyCType
     case TupleType(fs) => RecordCType(fs.map(f => f._1 -> translate(f._2)))
-    case BagDictType(f @ BagType(TupleType(fs)),d) =>
-      BagDictCType(BagCType(TTupleType(List(translate(f), translate(f).asInstanceOf[BagCType]))), 
-        translate(d).asInstanceOf[TTupleDict]) 
+    case BagDictType(f, d) => f match {
+      case BagType(t @ TupleType(fs)) if fs.keySet == Set("_1", "_2") =>
+       BagDictCType(BagCType(TTupleType(List(
+        translate(fs.get("_1").get), translate(fs.get("_2").get)))), 
+          translate(d).asInstanceOf[TTupleDict])     
+      case _ => 
+       BagDictCType(BagCType(TTupleType(List(EmptyCType,translate(f).asInstanceOf[BagCType]))), 
+        translate(d).asInstanceOf[TTupleDict])    
+    }
     case EmptyDictType => EmptyDictCType
     case TupleDictType(ts) if ts.isEmpty => EmptyDictCType
     case TupleDictType(ts) => TupleDictCType(ts.map(f => f._1 -> translate(f._2).asInstanceOf[TDict]))
     case LabelType(fs) if fs.isEmpty => EmptyCType
-    case LabelType(fs) => RecordCType(fs.map(f => translateName(f._1) -> translate(f._2)))
+    case LabelType(fs) => LabelType(fs.map(f => translateName(f._1) -> translate(f._2)))
     case _ => e
   }
   
@@ -73,18 +79,12 @@ trait NRCTranslator extends LinearizedNRC {
       case If(cond, e3, e4 @ None) => 
         Comprehension(translate(e1), translate(x).asInstanceOf[Variable], cond, e3)
       case te2 => 
-        println("now in for loop translating this")
-        println(translate(e1.tp))
         Comprehension(translate(e1), translate(x).asInstanceOf[Variable], constant(true), te2)
     }
     case l:Let => Bind(translate(l.x), translate(l.e1), translate(l.e2))
     case g:GroupBy => 
       CGroupBy(translate(g.bag), translate(g.v).asInstanceOf[Variable], translate(g.grp), translate(g.value))
     case Named(v, e) => 
-      println("translating this bag")
-      println(v.name)
-      println(e.tp)
-      println(translate(e.tp))
       CNamed(v.name, translate(e))
     case Sequence(exprs) => LinearCSet(exprs.map(translate(_)))
     case v:VarRefLabelParameter => translateVar(v.v)

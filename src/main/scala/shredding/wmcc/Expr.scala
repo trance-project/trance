@@ -221,7 +221,10 @@ case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CEx
 
 // { (v1, v2) | v1 <- e1, v2 <- e2(v1), p((v1, v2)) } 
 case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
-  def tp: Type = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  def tp: Type = e1.tp match {
+    case btp:BagDictCType => BagCType(TTupleType(List(btp.flatTp.tp, v2.tp)))
+    case btp:BagCType => BagCType(TTupleType(List(btp.tp, v2.tp)))
+  }
   // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = e1.wvars :+ v2
   override def equals(that: Any): Boolean = that match {
@@ -232,7 +235,10 @@ case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CEx
 }
 
 case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr { self =>
-  def tp: Type = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  def tp: Type = e1.tp match {
+    case btp:BagDictCType => BagCType(TTupleType(List(btp.flatTp.tp, v2.tp)))
+    case btp:BagCType => BagCType(TTupleType(List(btp.tp, v2.tp)))
+  }
   override def wvars = e1.wvars :+ v2
   // need to fix this to work with ANF
   override def equals(that: Any): Boolean = that match {
