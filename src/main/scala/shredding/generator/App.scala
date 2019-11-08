@@ -13,13 +13,13 @@ import shredding.examples.tpch._
 object App {
  
    def main(args: Array[String]){
-    Utils.runSparkNew(AlleleCounts)
-    Utils.runSparkNew(AlleleCounts, shred = true)
-    Utils.runSparkNew(AlleleCounts2)
-    Utils.runSparkNew(AlleleCounts2, shred = true)
+    //Utils.runSparkNew(AlleleCounts)
+    Utils.runSparkNew(AlleleCounts3, shred = true)
+    //Utils.runSparkNew(AlleleCountsGB)
+    Utils.runSparkNew(AlleleCountsGB3, shred = true)
 
 
-    //runTPCH1()
+    runTPCH1()
     //runTPCH()
   }
   
@@ -49,7 +49,7 @@ object App {
     Utils.runSparkNew(TPCHQuery3)
     Utils.runSparkNew(TPCHQuery3, shred = true)**/
 
-    Utils.runSparkNew(TPCHQuery2)
+    /**Utils.runSparkNew(TPCHQuery2)
     Utils.runSparkNew(TPCHQuery2, shred = true)
 
     Utils.runSparkNew(TPCHQuery2Full)
@@ -58,7 +58,7 @@ object App {
     Utils.runSparkInputNew(TPCHQuery2, TPCHQuery6Full)
     Utils.runSparkInputNew(TPCHQuery2, TPCHQuery6Full, shred = true)
 
-    Utils.runSparkInputNew(TPCHQuery3, TPCHQuery7Full)
+    Utils.runSparkInputNew(TPCHQuery3, TPCHQuery7Full)**/
     Utils.runSparkInputNew(TPCHQuery3, TPCHQuery7Full, shred = true)
 
   }

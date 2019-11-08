@@ -61,14 +61,21 @@ N.count
 
    var start0 = System.currentTimeMillis()
    val nation = N.map(n => n.n_nationkey -> n.n_name)
-   val exportedparts = result.flatMap{
+   /**val exportedparts = result.flatMap{
      case (p_name, suppliers, customers) => 
       val customer_nations = customers.map(_._2).toSet
       suppliers.map(_._2).filter{ case s_nationkey => !customer_nations.contains(s_nationkey) }
       .map{ case s_nationkey => s_nationkey -> p_name }
    }.cogroup(nation).flatMap{
     case (_, (n_name, parts)) => if (n_name.isEmpty) Nil else List((n_name.toArray, parts.toArray))
+   }**/
+   val exportedparts = result.flatMap{
+     case (p_name, suppliers, customers) => 
    }
+   exportedparts.foreach{ case (names, parts) => {
+     names.foreach(println(_))
+     parts.foreach(println(_)) 
+   }}
    exportedparts.count
    var end0 = System.currentTimeMillis() - start0
    //result.saveAsObjectFile("/nfs_qc4/query3/result")

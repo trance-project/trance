@@ -18,7 +18,7 @@ object GenomicRelations{
    val casetype = TupleType("iscase" -> StringType)
    val clintype = TupleType("sample" -> StringType, "iscase" -> StringType)
    val genotype = TupleType("sample" -> StringType, "call" -> IntType)
-   val varianttype = TupleType("contig" -> StringType, "start" -> IntType, "genotypes" -> BagType(genotype))
+   val varianttype = TupleType("contig" -> StringType, "start" -> IntType, "genotypes" -> BagType(genotype), "consequence" -> StringType)
    val genotype2 = TupleType("sample" -> StringType, "call" -> IntType, "allele1" -> StringType, "allele2" -> StringType)
    val varianttype2 = TupleType("contig" -> StringType, "start" -> IntType, "genotypes" -> BagType(genotype2))
 
