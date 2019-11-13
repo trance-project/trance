@@ -49,6 +49,42 @@ trait TPCHBase extends Query {
 
 }
   
+/**object TPCHSimple1 extends TPCHBase {
+
+  val name = "QuerySimple1"
+
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+
+  val query = 
+    ForeachUnion(l, relL,
+      Singleton(Tuple("lqty" -> lr("l_quantity"), "custord" -> ForeachUnion(c, relC, 
+                Singleton(Tuple("c_name" -> cr("c_name"), "orders" ->
+                  ForeachUnion(o, relO, 
+                    IfThenElse(And(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
+                                   Cmp(OpEq, lr("l_orderkey"), or("o_orderkey"))),
+                      Singleton(or)))))))))
+}
+
+object TPCHSimpleGB extends TPCHBase {
+
+  val name = "QuerySimpleGB"
+
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+
+  val query = ForeachUnion(l, relL,
+                Singleton(Tuple("lqty" -> lr("l_quantity"), "custord" -> GroupBy(ForeachUnion(c, relC, 
+                ForeachUnion(o, relO, 
+                  IfThenElse(And(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
+                                 Cmp(OpEq, lr("l_orderkey"), or("o_orderkey"))),
+                    Singleton(Tuple("c_name" -> cr("c_name"), "orders" -> Singleton(or)))))),
+                List("c_name"),
+                List("orders"),
+                BagType(or.tp)
+              ))))
+}**/
+
 object TPCHQuery1Full extends TPCHBase {
 
   val name = "Query1Full"
@@ -318,7 +354,6 @@ object TPCHQuery6Full extends TPCHBase {
       List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
  
   val (q2, co, cor) = varset(TPCHQuery2Full.name, "co", TPCHQuery2Full.query.asInstanceOf[BagExpr])
-
   val cust = BagProject(cor, "customers2")
   val co2 = VarDef("co2", cust.tp.tp)
   val co2r = TupleVarRef(co2)

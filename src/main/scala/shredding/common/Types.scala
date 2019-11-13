@@ -102,7 +102,7 @@ case class BagDictCType(flatTp: BagCType, dictTp: TTupleDict) extends TDict {
   def flat: BagCType = flatTp.tp match {
     case ttp @ TTupleType(List(IntType, RecordCType(_))) => BagCType(ttp)
     case TTupleType(fs) => fs(1).asInstanceOf[BagCType]
-    case _ => sys.error("type not supported in flat bag")
+    case _ => flatTp //sys.error("type not supported in flat bag")
   }
   def _1 = flatTp
   def _2 = dictTp

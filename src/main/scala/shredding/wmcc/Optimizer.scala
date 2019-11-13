@@ -21,6 +21,11 @@ object Optimizer {
   def printhm():Unit = proj.foreach(f => println(s"${f._1.asInstanceOf[Variable].name} -> ${f._2}"))  
 
   def push(e: CExpr): CExpr = e match {
+    case Reduce(Select(x, v, p, e2), v2, f2, p2) => x match {
+      case InputRef(n, BagDictCType(flat, tdict)) =>
+        Reduce(InputRef(n, flat), v2, f2, And(p, p2))
+      case _ => Reduce(x, v2, f2, And(p, p2))
+    }
     case Reduce(d, v, f, p) => 
       fields(f)
       Reduce(push(d), v, f, p)

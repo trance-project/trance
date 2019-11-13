@@ -260,7 +260,10 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
           |  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
           |}""".stripMargin
     case Join(e1, e2, v1, p1, v2, p2) => 
-      val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
+      val vars = e1.tp match {
+        case btp:BagCType => generateVars(v1, btp.tp)
+        case BagDictCType(flat, tdict) => generateVars(v1, flat.tp)
+      }
       val gv2 = generate(v2)
       (p1, p2) match {
         case (Constant(true), Constant(true)) =>

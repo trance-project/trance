@@ -2,7 +2,7 @@ package shredding.generator
 
 import shredding.core._
 import shredding.wmcc._
-import shredding.examples.genomic.{GenomicTests, GenomicRelations}
+import shredding.examples.genomic._
 import shredding.examples.simple.{FlatTests, NestedTests, FlatRelations, NestedRelations}
 import shredding.examples.tpch._
 
@@ -13,7 +13,8 @@ import shredding.examples.tpch._
 object App {
  
    def main(args: Array[String]){
-    runTPCH1()
+    Utils.runSparkNew(AlleleGroups, shred = true)
+    //runTPCH1()
     //runTPCH()
   }
   
@@ -31,13 +32,13 @@ object App {
 
 
     println(" --------------------------- TPCH Query 1 Optimized-------------------------")  
-    /**Utils.runSparkNew(TPCHQuery1)
+    Utils.runSparkNew(TPCHQuery1)
     Utils.runSparkNew(TPCHQuery1, shred = true)
 
-    Utils.runSparkInputNew(TPCHQuery4Inputs, TPCHQuery4)
-    Utils.runSparkInputNew(TPCHQuery4Inputs, TPCHQuery4, shred = true)
+    /**Utils.runSparkInputNew(TPCHQuery4Inputs, TPCHQuery4)
+    Utils.runSparkInputNew(TPCHQuery4Inputs, TPCHQuery4, shred = true)**/
   
-    Utils.runSparkNew(TPCHQuery3Full)
+    /**Utils.runSparkNew(TPCHQuery3Full)
     Utils.runSparkNew(TPCHQuery3Full, shred = true)
 
     Utils.runSparkNew(TPCHQuery3)

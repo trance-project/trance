@@ -95,11 +95,11 @@ case class Or(e1: CExpr, e2: CExpr) extends CExpr{
 case class Project(e1: CExpr, field: String) extends CExpr { self =>
   def tp: Type = e1.tp match {
     case t:RecordCType => t.attrTps(field)
-    case t @ TTupleType(List(IntType, RecordCType(fs))) if ( field != "_1" && field != "_2") => fs(field)
+    case t @ TTupleType(List(EmptyCType, RecordCType(fs))) if ( field != "_1" && field != "_2") => fs(field)
     case t:TTupleType => field match {
       case "_1" => t(0)
       case "_2" => t(1)
-      case  _ => t(field.toInt)
+      case  _ => { println(t); t(field.toInt) }
     }
     case t:LabelType => t(field)
     case t:TupleDictCType => t(field)
@@ -289,7 +289,10 @@ case class OuterLookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: 
 //case class CoGroup(e1: CExpr, e2: CExpr, v1: List[Variable], p1:
 
 case class Join(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
-  def tp: BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  def tp: BagCType = e1.tp match {
+    case btp:BagCType => BagCType(TTupleType(List(btp.tp, v2.tp)))
+    case BagDictCType(flat, tdict) => BagCType(TTupleType(List(flat.tp, v2.tp)))
+  } 
   override def wvars = e1.wvars :+ v2
 }
 

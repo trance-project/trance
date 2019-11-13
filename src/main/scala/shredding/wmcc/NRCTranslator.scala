@@ -60,7 +60,13 @@ trait NRCTranslator extends LinearizedNRC with NRCPrinter {
 
   def translateName(name: String): String = name.replace("^", "__").replace("'", "").replace(".", "")
   def translate(v: VarDef): CExpr = Variable(translateName(v.name), translate(v.tp))
-  def translateVar(v: VarRef): CExpr = translate(v.varDef)
+  def translateVar(v: VarRef): CExpr = v match {
+    case BagVarRef(VarDef(_, BagType(TupleType(fs)))) => fs.get("lbl") match {
+      case Some(LabelType(ms)) if ms.isEmpty => sng(record(Map("lbl" -> CUnit)))
+      case _ => translate(v.varDef)
+    }
+    case _ => translate(v.varDef)
+  }
   
   def translate(e: Expr): CExpr = e match {
     case Const(v, tp) => constant(v)
@@ -84,9 +90,9 @@ trait NRCTranslator extends LinearizedNRC with NRCPrinter {
     case l:Let => Bind(translate(l.x), translate(l.e1), translate(l.e2))
     case g:GroupBy => 
       CGroupBy(translate(g.bag), translate(g.v).asInstanceOf[Variable], translate(g.grp), translate(g.value))
-    case Named(v, e) => 
-      CNamed(v.name, translate(e))
-    case Sequence(exprs) => LinearCSet(exprs.map(translate(_)))
+    case Named(v, e) => CNamed(v.name, translate(e))
+    case Sequence(exprs) => 
+      LinearCSet(exprs.map(translate(_)))
     case v:VarRefLabelParameter => translateVar(v.v)
     case l @ NewLabel(vs) => 
       record(vs.map(v => v match {
