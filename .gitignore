@@ -1,4 +1,5 @@
 *DS_Store*
+experiments/*.scala
 project/
 target/
 .history
@@ -7,3 +8,4 @@ simple*
 compile.sh
 data.flat
 *.jar
+spark-warehouse

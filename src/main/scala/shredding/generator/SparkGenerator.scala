@@ -40,7 +40,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
     case LabelType(fs) if fs.isEmpty => "Unit"
     //case RecordCType(fs) if fs.keySet == Set("_1", "_2") => fs.generateType(fs._2).mkString("(",",",")")
     case RecordCType(_) if types.contains(tp) => types(tp)
-    case LabelType(_) if types.contains(tp) => types(tp)
+    case LabelType(fs) => generateType(RecordCType(fs))
     case IntType => "Int"
     case StringType => "String"
     case BoolType => "Boolean"
@@ -76,14 +76,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
           typelst = typelst :+ tp
         case BagCType(tp) =>
           handleType(tp, givenName)
-        case LabelType(fs) if !fs.isEmpty =>
-          fs.foreach(f => handleType(f._2))
-          val name = givenName.getOrElse("Label" + Variable.newId)
-          println("adding this")
-          println(tp)
-          println(name)
-          types = types + (tp -> name)
-          typelst = typelst :+ tp
+        case LabelType(fs) if !fs.isEmpty => handleType(RecordCType(fs))
         case BagDictCType(flat @ BagCType(TTupleType(fs)), dict) =>
           val nid = Variable.newId
           handleType(fs.last, Some(givenName.getOrElse("")))

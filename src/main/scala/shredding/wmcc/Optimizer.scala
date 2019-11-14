@@ -6,6 +6,9 @@ import scala.collection.mutable.HashMap
 
 object Optimizer {
 
+  val compiler = new BaseNormalizer{}
+  import compiler._
+
   val proj = HashMap[Variable, Set[String]]().withDefaultValue(Set())
  
   def applyAll(e: CExpr) = push(e)
@@ -23,8 +26,8 @@ object Optimizer {
   def push(e: CExpr): CExpr = e match {
     case Reduce(Select(x, v, p, e2), v2, f2, p2) => x match {
       case InputRef(n, BagDictCType(flat, tdict)) =>
-        Reduce(InputRef(n, flat), v2, f2, And(p, p2))
-      case _ => Reduce(x, v2, f2, And(p, p2))
+        Reduce(InputRef(n, flat), v2, f2, and(p, p2))
+      case _ => Reduce(x, v2, f2, and(p, p2))
     }
     case Reduce(d, v, f, p) => 
       fields(f)

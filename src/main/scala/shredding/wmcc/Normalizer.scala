@@ -40,7 +40,7 @@ trait BaseNormalizer extends BaseCompiler {
     case BagCDict(lbl2, flat2, dict2) if (lbl2.tp == lbl.tp) => flat2
     case _ => super.lookup(lbl, dict)
   }
-
+  
   /** need to update the types in a sequence **/
   override def linset(es: List[Rep]): Rep = {
     LinearCSet(es.flatMap{
