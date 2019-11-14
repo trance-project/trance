@@ -60,7 +60,7 @@ val x261 = { val out1 = x250.map{ case x257 => ({val x259 = x257.l_partkey
 x259}, x257) }
   val out2 = x256.map{ case x258 => ({val x260 = x258.p_partkey 
 x260}, x258) }
-  out1.join(out2).map{ case (k,v) => v }
+  out1.joinSkewLeft(out2).map{ case (k,v) => v }
 } 
 val x268 = x261.map{ case (x262, x263) => 
    val x264 = x262.l_orderkey 
