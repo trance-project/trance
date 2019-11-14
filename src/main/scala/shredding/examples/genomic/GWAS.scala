@@ -208,13 +208,14 @@ object AlleleGroups extends GenomicBase {
   val cr2 = TupleVarRef(c2)
   val query = ForeachUnion(vdef, relV,
                 Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
-                  DeDup(ForeachUnion(cdef, relC, 
+                  ForeachUnion(cdef, relC, 
                       Singleton(Tuple("case" -> cref("iscase"), "altcnt" -> 
                         ForeachUnion(c2, relC, 
                           IfThenElse(Cmp(OpEq, cref("iscase"), cr2("iscase")), 
                             ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                              IfThenElse(Cmp(OpEq, gref("sample"), cr2("sample")),
-                                Singleton(Tuple("sample" -> cr2("iscase"), "call" -> gref("call"))))))))))))))
+                              IfThenElse(And(Cmp(OpEq, gref("sample"), cr2("sample")), 
+                                             Not(Cmp(OpEq, gref("call"), Const(0, IntType)))),
+                                Singleton(Tuple("sample" -> cr2("iscase"), "call" -> gref("call")))))))))))))
 }
 
 object AlleleCounts extends GenomicBase {
