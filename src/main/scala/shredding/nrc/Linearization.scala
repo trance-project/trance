@@ -25,7 +25,7 @@ trait Linearization {
     val flatBagExprRewritten = nestingRewriteLossy(flatBagExpr)
     //println("after")
     //println(quote(flatBagExprRewritten))
-    val mFlatNamed = Named(VarDef(Symbol.fresh("M_flat"), flatBagExpr.tp), flatBagExprRewritten)
+    val mFlatNamed = Named(VarDef(Symbol.fresh("M_flat"), flatBagExprRewritten.tp), flatBagExprRewritten)
 
     val labelTps = dict.tp.flatTp.tp.attrTps.filter(_._2.isInstanceOf[LabelType]).toList
     mFlatNamed ::
