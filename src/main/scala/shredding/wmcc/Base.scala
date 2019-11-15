@@ -183,12 +183,6 @@ trait BaseCompiler extends Base {
   def not(e1: Rep): Rep = Not(e1)
   def or(e1: Rep, e2: Rep): Rep = Or(e1, e2)
   def project(e1: Rep, e2: String): Rep = Project(e1, e2)
-  /**e1 match {
-    case InputRef(n, BagDictCType(BagCType(TTupleType(List(EmptyCType, 
-      BagCType(tup)))), tdict)) if e2 == "_1" =>
-      Project(InputRef(n, 
-    case _ => Project(e1, e2)
-  }**/
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = If(cond, e1, e2)
   def merge(e1: Rep, e2: Rep): Rep = Merge(e1, e2)
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
@@ -215,13 +209,7 @@ trait BaseCompiler extends Base {
   def tupledict(fs: Map[String, Rep]): Rep = TupleCDict(fs)
   def dictunion(d1: Rep, d2: Rep): Rep = DictCUnion(d1, d2)
   def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
-    val v = x.tp match {
-      case BagDictCType(BagCType(TTupleType(List(EmptyCType, BagCType(tup)))), tdict) => Variable.fresh(tup)
-      case btp:BagDictCType => Variable.fresh(btp.flatTp.tp)
-      case BagCType(TTupleType(List(EmptyCType, BagCType(tup)))) => Variable.fresh(tup)
-      case btp:BagCType => Variable.fresh(btp.tp)
-      case t => sys.error(s"selection type not supported $t")
-    }
+    val v = Variable.freshFromBag(x.tp) 
     Select(x, v, p(v), e(v))
   }
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
@@ -232,12 +220,12 @@ trait BaseCompiler extends Base {
     Reduce(e1, v, f(v), p(v))
   }
   def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    val v1 = vars(e1.tp match {
-      case btp:BagDictCType => btp//._1.tp
-      case btp:BagCType => btp.tp
-    }) 
+    val v1 = e1.tp match {
+      case BagDictCType(flat, dict) => vars(flat.tp)//._1.tp
+      case btp:BagCType => vars(btp.tp)
+    }
     val fv = f(v1) 
-    val v = Variable.fresh(fv.tp.asInstanceOf[BagCType].tp)
+    val v = Variable.freshFromBag(fv.tp)
     Unnest(e1, v1, fv, v, p(v1 :+ v))
   }
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep = {
@@ -257,50 +245,43 @@ trait BaseCompiler extends Base {
   }
   def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
     val v1 = e1.tp match {
-      case btp:BagDictCType => vars(btp)
-      case _ => vars(e1.tp.asInstanceOf[BagCType].tp) 
+      case BagDictCType(flat, dict) => vars(flat.tp)
+      case BagCType(tup) => vars(tup) 
     }
-    val v2 = e2.tp.asInstanceOf[BagCType].tp match {
-      case TTupleType(List(IntType, BagCType(t))) => Variable.fresh(t)
-      case _ => Variable.fresh(e2.tp.asInstanceOf[BagCType].tp)
-    }
+    val v2 = Variable.freshFromBag(e2.tp)
     Join(e1, e2, v1, p1(v1), v2, p2(v2))
   }
   def outerunnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    val v1 = vars(e1.tp match {
-      case btp:BagDictCType => btp//._1.tp
-      case btp:BagCType => btp.tp
-    }) 
+    val v1 = e1.tp match {
+      case BagDictCType(flat, dict) => vars(flat.tp)//._1.tp
+      case btp:BagCType => vars(btp.tp)
+    }
     val fv = f(v1) 
-    val v = Variable.fresh(fv.tp.asInstanceOf[BagCType].tp)
+    val v = Variable.freshFromBag(fv.tp)
     OuterUnnest(e1, v1, fv, v, p(v1 :+ v))
   }
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
     val v1 = e1.tp match {
-      case btp:BagDictCType => vars(btp)
-      case _ => vars(e1.tp.asInstanceOf[BagCType].tp) 
+      case BagDictCType(flat, dict) => vars(flat.tp)
+      case BagCType(tup) => vars(tup) 
     }
-    val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp)
+    val v2 = Variable.freshFromBag(e2.tp)
     OuterJoin(e1, e2, v1, p1(v1), v2, p2(v2))
   }
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
-    val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
-    val v2 = e2.tp match {
-      case btp:BagDictCType => Variable.fresh(btp.flat.tp)
-      case btp:BagCType => Variable.fresh(btp.tp)
-      case _ => sys.error("unsupported lookup type")
+    val v1 = e1.tp match {
+      case BagDictCType(flat, dict) => vars(flat.tp) 
+      case BagCType(tup) => vars(tup) 
     }
-    //Variable.fresh(e2.tp.asInstanceOf[BagCType].tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
+    val v2 = Variable.freshFromBag(e2.tp) 
     Lookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
   }
   def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
-    val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
-    val v2 = e2.tp match {
-      case btp:BagDictCType => Variable.fresh(btp.flat.tp)
-      case btp:BagCType => Variable.fresh(btp.tp)
-      case _ => sys.error("unsupported lookup type")
+    val v1 = e1.tp match {
+      case BagDictCType(flat, dict) => vars(flat.tp) 
+      case BagCType(tup) => vars(tup) 
     }
-    //Variable.fresh(e2.tp.asInstanceOf[BagCType].tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
+    val v2 = Variable.freshFromBag(e2.tp) 
     OuterLookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
   }
 
@@ -308,8 +289,9 @@ trait BaseCompiler extends Base {
     * Why am I using this still??
     */
   def vars(e: Type): List[Variable] = e match {
-    case BagDictCType(flat, dict) => List(Variable.fresh(flat.tp))
-    case TTupleType(tps) if (tps.head == EmptyCType || tps.head.isInstanceOf[LabelType]) => 
+    case TTupleType(List(EmptyCType, BagCType(tup))) => List(Variable.fresh(tup))
+    //case BagDictCType(flat, dict) => List(Variable.fresh(flat.tp))
+    case TTupleType(tps) if tps.head.isInstanceOf[LabelType] => 
       List(Variable.fresh(e)) // won't catch all cases
     case TTupleType(tps) if (tps.head.isInstanceOf[RecordCType] && tps.last.isInstanceOf[PrimitiveType] && tps.size == 2) => 
       List(Variable.fresh(e)) // fix this

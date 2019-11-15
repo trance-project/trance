@@ -38,7 +38,13 @@ trait BaseNormalizer extends BaseCompiler {
 
   override def lookup(lbl: Rep, dict: Rep): Rep = dict match {
     case BagCDict(lbl2, flat2, dict2) if (lbl2.tp == lbl.tp) => flat2
-    case _ => super.lookup(lbl, dict)
+    case BagCDict(lbl2, flat2, dict2) =>
+      println("need to look into this")
+      println(lbl.tp)
+      println(lbl2.tp)
+      super.lookup(lbl,dict)
+    case _ => 
+      super.lookup(lbl, dict)
   }
   
   /** need to update the types in a sequence **/
@@ -88,6 +94,7 @@ trait BaseNormalizer extends BaseCompiler {
       case Some(CUnit) => fs.get("_2").get 
       case _ => super.sng(x)
     }
+    case c:CDeDup => c
     case c:Comprehension => c
     case Sng(t) => sng(t)
     case _ => super.sng(x)

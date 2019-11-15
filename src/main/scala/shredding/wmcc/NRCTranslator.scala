@@ -120,7 +120,7 @@ trait NRCTranslator extends LinearizedNRC with NRCPrinter {
     case Total(e1) => comprehension(translate(e1), x => constant(true), (i: CExpr) => constant(1))
     case DeDup(e1) => CDeDup(translate(e1)) 
     case WeightedSingleton(tup, qty) => WeightedSng(translate(tup), translate(qty))
-    case _ => sys.error("cannot translate "+e)
+    case _ => EmptyCDict //sys.error("cannot translate "+e)
   }
 
 }

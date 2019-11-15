@@ -39,6 +39,7 @@ case class LabelType(attrTps: Map[String, Type]) extends TupleAttributeType {
 
   override def equals(that: Any): Boolean = that match {
     case that: LabelType => this.attrTps == that.attrTps
+    case that:RecordCType => this.attrTps == that.attrTps
     case _ => false
   }
 
@@ -76,6 +77,12 @@ case object EmptyCType extends Type
 
 case class RecordCType(attrTps: Map[String, Type]) extends Type {
   def apply(n: String): Type = attrTps(n)
+  override def equals(that: Any): Boolean = that match {
+    case that: LabelType => this.attrTps == that.attrTps
+    case that:RecordCType => this.attrTps == that.attrTps
+    case _ => false
+  }
+
 }
 
 object RecordCType {

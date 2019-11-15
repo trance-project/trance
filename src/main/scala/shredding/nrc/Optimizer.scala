@@ -54,7 +54,9 @@ trait Optimizer extends Extensions {
         VarDef(Symbol.fresh("l"), TupleType("lbl" -> l1.tp)), Tuple("lbl" -> l1),
         betaReduce(flatBag).asInstanceOf[BagExpr])
 
-    /* TODO: Doesn't work nested lets */
+    /* TODO: Doesn't work nested lets 
+    Doesn't work with bag projection either
+    */
     case Lookup(l1, BagDictLet(x, e1, BagDict(l2, flatBag, _))) if l1.tp == l2.tp =>
       betaReduce(Let(x, e1, flatBag))
 

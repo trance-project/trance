@@ -99,7 +99,7 @@ case class Project(e1: CExpr, field: String) extends CExpr { self =>
     case t:TTupleType => field match {
       case "_1" => t(0)
       case "_2" => t(1)
-      case  _ => { println(t); t(field.toInt) }
+      case  _ => t(field.toInt)
     }
     case t:LabelType => t(field)
     case t:TupleDictCType => t(field)
@@ -341,6 +341,16 @@ object Variable {
   def fresh(tp: Type): Variable = {
     val id = newId()
     Variable(s"x$id", tp)
+  }
+  def freshFromBag(tp: Type): Variable = {
+    val id = newId()
+    tp match {
+      case BagDictCType(BagCType(TTupleType(List(EmptyCType, BagCType(tup)))), tdict) => Variable(s"x$id", tup)
+      case BagCType(TTupleType(List(EmptyCType, BagCType(tup)))) =>  Variable(s"x$id", tup)
+      case BagDictCType(flat, dict) => Variable(s"x$id",flat.tp)
+      case BagCType(tup) => Variable(s"x$id", tup)
+      case _ => Variable(s"x$id", tp)
+    }
   }
   def newId(): Int = {
     val id = lastId
