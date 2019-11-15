@@ -181,3 +181,15 @@ object AlleleFG2 extends GenomicBase {
 
 }
 
+object AlleleFG1 extends GenomicBase {
+  val name = "AlleleFG1"
+  def inputs(tmap: Map[String, String]): String = ""
+
+  val query = ForeachUnion(vdef, relV, 
+                Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "samples" ->
+                  ForeachUnion(gdef, BagProject(vref, "genotypes"),
+                    IfThenElse(Cmp(OpGt, gref("call"), Const(0, IntType)),
+                      ForeachUnion(cdef, relC,
+                        IfThenElse(Cmp(OpEq, cref("sample"), gref("sample")),
+                          Singleton(Tuple("pinfo" -> cref("iscase"), "sample" -> gref("sample"))))))))))
+}

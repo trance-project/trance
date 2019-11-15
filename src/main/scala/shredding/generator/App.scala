@@ -13,8 +13,8 @@ import shredding.examples.tpch._
 object App {
  
    def main(args: Array[String]){
-    Utils.runSparkNew(AlleleFG2, shred = true)
-    //runTPCH1()
+    //Utils.runSparkNew(AlleleFG1, shred = true)
+    runTPCH1()
     //runTPCH()
   }
   
