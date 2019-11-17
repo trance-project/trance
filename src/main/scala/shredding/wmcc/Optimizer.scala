@@ -5,13 +5,13 @@ import scala.collection.immutable.Set
 import scala.collection.mutable.HashMap
 
 object Optimizer {
-
+  val dictIndexer = new Finalizer(new BaseDictNameIndexer{})
   val compiler = new BaseNormalizer{}
   import compiler._
 
   val proj = HashMap[Variable, Set[String]]().withDefaultValue(Set())
  
-  def applyAll(e: CExpr) = push(e)
+  def applyAll(e: CExpr) = push(dictIndexer.finalize(e).asInstanceOf[CExpr])
 
   def fields(e: CExpr):Unit = e match {
     case Record(ms) => ms.foreach(f => fields(f._2))
@@ -22,6 +22,7 @@ object Optimizer {
   }
 
   def printhm():Unit = proj.foreach(f => println(s"${f._1.asInstanceOf[Variable].name} -> ${f._2}"))  
+
 
   def push(e: CExpr): CExpr = e match {
     case Reduce(Select(x, v, p, e2), v2, f2, p2) => x match {

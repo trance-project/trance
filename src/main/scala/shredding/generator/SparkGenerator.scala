@@ -260,8 +260,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
       val gv2 = generate(v2)
       (p1, p2) match {
         case (Constant(true), Constant(true)) =>
-          // this will override with actual cartesian product
-          s"${generate(e2)}.map{ case c => (${generate(e1)}.head, c) }"
+          s"${generate(e1)}.cartesian(${generate(e2)})"
         case _ => 
       // ${checkNull(v1)} in map below causes invariance issues in PairRDDFunctions
        s"""|{ val out1 = ${generate(e1)}.map{ case $vars => ({${generate(p1)}}, $vars) }
@@ -276,11 +275,11 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
           |  out1.lookup(out2)
           |}""".stripMargin
     case OuterLookup(e1, e2, v1, p1, v2, p2, p3) =>      
-	  val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
-      s"""|{ val out1 = ${generate(e1)}.map{${checkNull(v1)} case $vars => (${e1Key(p1, p3)}, $vars) }
-          |  val out2 = ${generate(e2)}${e2Key(v2, p2)}
-          |  out1.outerLookup(out2)
-          |}""".stripMargin
+      val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
+        s"""|{ val out1 = ${generate(e1)}.map{${checkNull(v1)} case $vars => (${e1Key(p1, p3)}, $vars) }
+            |  val out2 = ${generate(e2)}${e2Key(v2, p2)}
+            |  out1.outerLookup(out2)
+            |}""".stripMargin
     case Select(x, v, p, e2) => 
 	  val gv = generate(v)
       val proj = e2 match {
@@ -317,7 +316,9 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
     case Bind(x, e1 @ LinearCSet(rs), e2) =>
       // count will be called on the last item in the linear set
       s"${generate(rs.last)}"
-    case Bind(v, e1, e2) => sanitizeName(e) match {
+    case Bind(v, e1, e2) => 
+      //s"val ${generate(v)} = ${generate(e1)} \n${generate(e2)}"
+      sanitizeName(e) match {
         case Bind(v2, e3, e4) => s"val ${generate(v2)} = ${generate(e3)} \n${generate(e4)}"
       	case _ => sys.error(s"not support $e")
       }
@@ -384,10 +385,10 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
     case Bind(v @ Variable(_, TupleDictCType(_)), e1 @ Project(InputRef(dname, _), f), e2) => 
       dictref = dictref ++ Map(v -> s"$dname$f")
       sanitizeName(e2)
-    case Bind(v @ Variable(dname, BagDictCType(_,_)), Project(e1 @ Variable(vname, t), f1), Bind(Variable(_, BagCType(_)), Project(e2, f2), Bind(v3, _, e3))) =>
+    case Bind(v @ Variable(dname, BagDictCType(_,_)), Project(e1 @ Variable(vname, t), f1), Bind(v4 @ Variable(_, BagCType(_)), Project(e2, f2), Bind(v3, e4, e3))) =>
       val nv = dictref.getOrElse(e1, vname)
       if (f2 == "_1") { dictref = dictref ++ Map(v -> s"$nv$f1") }
-      sanitizeName(Bind(v, Project(Variable(nv, t), s"$f1$f2"), Bind(v3, v, e3)))
+      sanitizeName(Bind(v, Project(Variable(nv, t), s"$f1$f2"), Bind(v3, v, Bind(v4, e3, e4))))
     case Bind(v @ Variable(_, TupleDictCType(_)), Project(e1 @ Variable(vname, t), f1), Bind(Variable(_, BagDictCType(_,_)), Project(e2, f2), Bind(v3, _, e3))) => 
       val nv = dictref.getOrElse(e1, vname)
       sanitizeName(Bind(v, Project(Variable(nv, t), s"$f1$f2"), Bind(v3, v, e3))) 

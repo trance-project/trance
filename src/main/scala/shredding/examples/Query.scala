@@ -35,7 +35,7 @@ trait Query extends NRCTranslator {
   }
 
   /** shred query **/
-  def shred: Expr = runner.shredPipelineNew(query.asInstanceOf[runner.Expr]).asInstanceOf[Expr]
+  def shred: Expr = runner.shredPipelineNew(query.asInstanceOf[runner.Expr], true).asInstanceOf[Expr]
   def indexedDict: List[String] = Nil
   def scalculus: CExpr = { val q = translate(shred); println(Printer.quote(q)); q}
   def snormalize: CExpr = {

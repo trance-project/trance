@@ -202,7 +202,7 @@ object TPCHQuery2Full extends TPCHBase {
 object TPCHQuery2 extends TPCHBase {
 
   val name = "Query2"
-  override def indexedDict: List[String] = List("Query2Full__D_1", "Query2Full__D_2customers2_1")
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_2customers2_1")
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
       List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
@@ -353,7 +353,7 @@ object TPCHQuery6Full extends TPCHBase {
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
       List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
  
-  val (q2, co, cor) = varset(TPCHQuery2Full.name, "co", TPCHQuery2Full.query.asInstanceOf[BagExpr])
+  val (q2, co, cor) = varset(TPCHQuery2.name, "co", TPCHQuery2Full.query.asInstanceOf[BagExpr])
   val cust = BagProject(cor, "customers2")
   val co2 = VarDef("co2", cust.tp.tp)
   val co2r = TupleVarRef(co2)

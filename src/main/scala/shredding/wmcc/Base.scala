@@ -229,7 +229,10 @@ trait BaseCompiler extends Base {
     Unnest(e1, v1, fv, v, p(v1 :+ v))
   }
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep = {
-    val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
+    val v1 = e1.tp match {
+      case BagDictCType(flat, dict) => vars(flat.tp) 
+      case btp:BagCType => vars(btp.tp)
+    }
     val fv = f(v1) // groups
     val ev = e(v1) 
     val v = ev.tp match {
@@ -297,6 +300,29 @@ trait BaseCompiler extends Base {
       List(Variable.fresh(e)) // fix this
     case TTupleType(tps) => tps.flatMap(vars(_)) 
     case _ => List(Variable.fresh(e))
+  }
+
+}
+
+trait BaseDictNameIndexer extends BaseCompiler {
+
+  def isDictType(tp: Type): (Type, Boolean) = tp match {
+    case BagCType(TTupleType(List(EmptyCType, BagCType(tup)))) => (tup, true)
+    case BagDictCType(BagCType(rct @ RecordCType(_)), tdict) => (rct, true)
+    case BagDictCType(flat, dict) => isDictType(flat)
+    case _ => (tp, false)
+  }
+  
+  override def project(e1: Rep, f: String): Rep = e1 match {
+    // this case needs work
+    case Project(InputRef(n, BagDictCType(flat, TupleDictCType(fs))), "_2") => InputRef(n+"_2"+f, fs(f))
+    case InputRef(n, BagCType(TTupleType(List(EmptyCType, btp)))) => InputRef(n+f, btp)
+    case InputRef(n, BagDictCType(BagCType(TTupleType(List(EmptyCType, btp))), tdict)) => InputRef(n+f, btp)
+    case InputRef(n, BagDictCType(flat, dict)) => InputRef(n+f, flat)
+    case _ => 
+      println("skipping this one")
+      println(e1)
+      super.project(e1, f)
   }
 
 }
