@@ -315,14 +315,17 @@ trait BaseDictNameIndexer extends BaseCompiler {
   
   override def project(e1: Rep, f: String): Rep = e1 match {
     // this case needs work
-    case Project(InputRef(n, BagDictCType(flat, TupleDictCType(fs))), "_2") => InputRef(n+"_2"+f, fs(f))
-    case InputRef(n, BagCType(TTupleType(List(EmptyCType, btp)))) => InputRef(n+f, btp)
-    case InputRef(n, BagDictCType(BagCType(TTupleType(List(EmptyCType, btp))), tdict)) => InputRef(n+f, btp)
-    case InputRef(n, BagDictCType(flat, dict)) => InputRef(n+f, flat)
-    case _ => 
-      println("skipping this one")
-      println(e1)
-      super.project(e1, f)
+    case Project(InputRef(n, TupleDictCType(fs)), "_2") => 
+      InputRef(n+"_2"+f, fs(f))
+    case InputRef(n, BagCType(TTupleType(List(EmptyCType, btp)))) => 
+      InputRef(n+f, btp)
+    case InputRef(n, BagDictCType(BagCType(TTupleType(List(EmptyCType, btp))), tdict)) if f == "_1" => 
+      InputRef(n+f, btp)
+    case InputRef(n, BagDictCType(flat, dict)) => 
+      if (f == "_1") InputRef(n+f, flat)
+      else if (f == "_2") project(InputRef(n, dict), f)
+      else super.project(e1, f)
+    case _ => super.project(e1, f) 
   }
 
 }

@@ -11,7 +11,9 @@ object Optimizer {
 
   val proj = HashMap[Variable, Set[String]]().withDefaultValue(Set())
  
-  def applyAll(e: CExpr) = push(dictIndexer.finalize(e).asInstanceOf[CExpr])
+  def applyAll(e: CExpr) = {
+    dictIndexer.finalize(push(e)).asInstanceOf[CExpr]
+  }
 
   def fields(e: CExpr):Unit = e match {
     case Record(ms) => ms.foreach(f => fields(f._2))
