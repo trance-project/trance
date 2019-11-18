@@ -268,18 +268,20 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
            |  out1.join(out2).map{ case (k,v) => v }
            |}""".stripMargin
       }
+    // this only handles the case where there is no secondary join
+    // for instance, ( Mctx2 join top level dict ) join first level dict
     case Lookup(e1, e2, v1, p1, v2, p2, p3) =>
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
-      s"""|{ val out1 = ${generate(e1)}.map{${checkNull(v1)} case $vars => (${e1Key(p1, p3)}, $vars) }
+      s"""|{
+          | val out1 = ${generate(e1)}.map{case $vars => ({${generate(p1)}},$vars)}
+          | val out2 = ${generate(e2)}.flatMapValues(identity)
+          | out1.lookup(out2)
+          |}""".stripMargin
+      /***s"""|{ val out1 = ${generate(e1)}.map{${checkNull(v1)} case $vars => (${e1Key(p1, p3)}, $vars) }
           |  val out2 = ${generate(e2)}${e2Key(v2, p2)}
           |  out1.lookup(out2)
-          |}""".stripMargin
-    case OuterLookup(e1, e2, v1, p1, v2, p2, p3) =>      
-      val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
-        s"""|{ val out1 = ${generate(e1)}.map{${checkNull(v1)} case $vars => (${e1Key(p1, p3)}, $vars) }
-            |  val out2 = ${generate(e2)}${e2Key(v2, p2)}
-            |  out1.outerLookup(out2)
-            |}""".stripMargin
+          |}""".stripMargin**/
+    case OuterLookup(e1, e2, v1, p1, v2, p2, p3) => generate(Lookup(e1, e2, v1, p1, v2, p2, p3))
     case Select(x, v, p, e2) => 
 	  val gv = generate(v)
       val proj = e2 match {
@@ -317,11 +319,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
       // count will be called on the last item in the linear set
       s"${generate(rs.last)}"
     case Bind(v, e1, e2) => 
-      //s"val ${generate(v)} = ${generate(e1)} \n${generate(e2)}"
-      sanitizeName(e) match {
-        case Bind(v2, e3, e4) => s"val ${generate(v2)} = ${generate(e3)} \n${generate(e4)}"
-      	case _ => sys.error(s"not support $e")
-      }
+      s"val ${generate(v)} = ${generate(e1)} \n${generate(e2)}"
     case _ => sys.error(s"not supported $e")
   }
 
@@ -374,28 +372,5 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
     }
   }
 
-  var dictref = Map[Variable, String]()
-  /**
-    * Truncate a series of dictionary projections into the respective input name in IndicesOf format
-    * R__D._1 -> R__D_1, handled by generate(Project(...))
-    * R__D._2.field._1 -> R__D_2field_1
-    * R__D._2.field._2nextfield._1 -> R__D_2field_2nextfield_1
-    */
-  def sanitizeName(e: CExpr): CExpr = e match {
-    case Bind(v @ Variable(_, TupleDictCType(_)), e1 @ Project(InputRef(dname, _), f), e2) => 
-      dictref = dictref ++ Map(v -> s"$dname$f")
-      sanitizeName(e2)
-    case Bind(v @ Variable(dname, BagDictCType(_,_)), Project(e1 @ Variable(vname, t), f1), Bind(v4 @ Variable(_, BagCType(_)), Project(e2, f2), Bind(v3, e4, e3))) =>
-      val nv = dictref.getOrElse(e1, vname)
-      if (f2 == "_1") { dictref = dictref ++ Map(v -> s"$nv$f1") }
-      sanitizeName(Bind(v, Project(Variable(nv, t), s"$f1$f2"), Bind(v3, v, Bind(v4, e3, e4))))
-    case Bind(v @ Variable(_, TupleDictCType(_)), Project(e1 @ Variable(vname, t), f1), Bind(Variable(_, BagDictCType(_,_)), Project(e2, f2), Bind(v3, _, e3))) => 
-      val nv = dictref.getOrElse(e1, vname)
-      sanitizeName(Bind(v, Project(Variable(nv, t), s"$f1$f2"), Bind(v3, v, e3))) 
-    case Bind(v @ Variable(_, TupleDictCType(_)), Project(e1 @ Variable(vname, t), f1), Bind(Variable(_, BagCType(_)), Project(e2, f2), Bind(v3, _, e3))) =>
-      val nv = dictref.getOrElse(e1, vname)
-      sanitizeName(Bind(v, Project(Variable(nv, t), s"$f1$f2"), Bind(v3, v, e3)))
-    case _ => e 
-  }
 
 }
