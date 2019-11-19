@@ -183,9 +183,9 @@ x321}), (x315, x316)) }
   val out2 = Query2__D_2customers2_1
         .flatMap(v2 => v2._2.map{case x317 => ((v2._1, {val x319 = x317.c_name2 
 x319}), x317)})
-  out1.lookup(out2)
+  out2.lookupSkewLeft(out1)
 } 
-val x331 = x322.flatMap{ case ((x323, x324), x325) => val x330 = (x324,x325) 
+val x331 = x322.flatMap{ case (x325, (x323, x324)) => val x330 = (x324,x325) 
 x330 match {
    case (_,null) => Nil 
    case x329 => List(({val x326 = (x323) 
@@ -201,7 +201,7 @@ x335
 } 
 val M_flat2 = x336
 val x337 = M_flat2
-//M_flat2.collect.foreach(println(_))
+M_flat2.collect.foreach(println(_))
 x337.count
 }
 var start0 = System.currentTimeMillis()
