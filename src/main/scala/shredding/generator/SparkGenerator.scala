@@ -272,15 +272,11 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
     // for instance, ( Mctx2 join top level dict ) join first level dict
     case Lookup(e1, e2, v1, p1, v2, p2, p3) =>
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
-      s"""|{
-          | val out1 = ${generate(e1)}.map{case $vars => ({${generate(p1)}},$vars)}
-          | val out2 = ${generate(e2)}.flatMapValues(identity)
-          | out1.lookup(out2)
-          |}""".stripMargin
-      /***s"""|{ val out1 = ${generate(e1)}.map{${checkNull(v1)} case $vars => (${e1Key(p1, p3)}, $vars) }
+      //s"""|{ val out1 = ${generate(e1)}.map{${checkNull(v1)} case $vars => (${e1Key(p1, p3)}, $vars) }
+      s"""|{ val out1 = ${generate(e1)}.map{ case $vars => (${e1Key(p1, p3)}, $vars) }
           |  val out2 = ${generate(e2)}${e2Key(v2, p2)}
           |  out1.lookup(out2)
-          |}""".stripMargin**/
+          |}""".stripMargin
     case OuterLookup(e1, e2, v1, p1, v2, p2, p3) => generate(Lookup(e1, e2, v1, p1, v2, p2, p3))
     case Select(x, v, p, e2) => 
 	  val gv = generate(v)
