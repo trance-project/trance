@@ -280,6 +280,15 @@ case class Lookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Varia
   override def wvars = e1.wvars :+ v2
 }
 
+case class CoGroup(e1: CExpr, es: List[CExpr], vs: List[Variable], ps: CExpr) extends CExpr {
+  // assert es.size < 3 (cogroups with more than three not supported in spark)
+  def tp:BagCType = e1.tp match {
+    case BagCType(tup) => BagCType(TTupleType(tup +: vs.map(_.tp) ))
+    case btp:BagDictCType => BagCType(TTupleType(btp.flat +: vs.map(_.tp)))
+  }
+  override def wvars = e1.wvars
+}
+
 case class OuterLookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, p3: CExpr) extends CExpr {
   def tp:BagCType = e1.tp match {
     case BagCType(tup) => BagCType(TTupleType(List(tup, v2.tp)))

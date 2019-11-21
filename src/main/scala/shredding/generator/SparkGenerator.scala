@@ -278,6 +278,10 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
           |  out1.lookup(out2)
           |}""".stripMargin
     case OuterLookup(e1, e2, v1, p1, v2, p2, p3) => generate(Lookup(e1, e2, v1, p1, v2, p2, p3))
+    case CoGroup(e1, es, vs, ps) => /** TODO THIS IS NOT DONE **/
+      s"""|{ val out1 = ${generate(e1)}.map{ case v => (${generate(ps)}, v) }
+          | out.cogroup(${es.map{e2 => generate(e2)}.mkString(",")})
+          |}""".stripMargin
     case Select(x, v, p, e2) => 
 	  val gv = generate(v)
       val proj = e2 match {
@@ -289,12 +293,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
         case Constant(true) => s"${generate(x)}$proj"
         case _ => s"${generate(x)}.filter($gv => { ${generate(p)} })$proj"
       }
-    // handle other types
-    /**case Reduce(e1, v, Bind(_, _, Bind(_, Record(fs), _)), p) if fs.keySet == Set("key", "value") && v.last.tp.isInstanceOf[PrimitiveType] =>
-      val vars = generateVars(v, e1.tp.asInstanceOf[BagCType].tp)
-      s"""|${generate(e1)}.map{ case $vars => 
-          |  (${generate(v.head)}, ${generate(Tuple(v.tail))})
-          |}.groupByLabel()""".stripMargin**/
+
     case Reduce(e1, v, f, p) =>
       val vars = generateVars(v, e1.tp.asInstanceOf[BagCType].tp)
       p match { case Constant(true) =>

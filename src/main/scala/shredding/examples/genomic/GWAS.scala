@@ -57,13 +57,15 @@ object AlleleCounts extends GenomicBase {
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
   
   val query = ForeachUnion(vdef, relV,
-                IfThenElse(Not(Cmp(OpEq, vref("consequence"), Const("LOW IMPACT", StringType))),
-                  Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
-                    DeDup(ForeachUnion(cdef, relC, 
-                      Singleton(Tuple("case" -> cref("iscase"), "altcnt" -> 
-                        Total(ForeachUnion(gdef, BagProject(vref, "genotypes"),
+                //IfThenElse(Not(Cmp(OpEq, vref("consequence"), Const("LOW IMPACT", StringType))),
+                  Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cohorts" ->
+                    ForeachUnion(idef, relI, 
+                      Singleton(Tuple("iscase" -> iref("iscase"), "altcnt" ->
+                        Total(ForeachUnion(cdef, relC, 
+                          IfThenElse(Cmp(OpEq, iref("iscase"), cref("iscase")),
+                            ForeachUnion(gdef, BagProject(vref, "genotypes"),
                               IfThenElse(Cmp(OpEq, gref("sample"), cref("sample")),
-                                WeightedSingleton(Tuple("call" -> gref("call")), PrimitiveProject(gref, "call")))))))))))))
+                                WeightedSingleton(Tuple("cnt" -> gref("call")), PrimitiveProject(gref,"call")))))))))))))//)
 }
 
 object AlleleCounts2 extends GenomicBase {
@@ -73,14 +75,16 @@ object AlleleCounts2 extends GenomicBase {
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
   
   val query = ForeachUnion(vdef, relV,
-                Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
-                  ForeachUnion(idef, relI, 
-                    Singleton(Tuple("case" -> iref("iscase"), "altcnt" ->
-                      Total(ForeachUnion(cdef, relC,
-                              IfThenElse(Cmp(OpEq, iref("iscase"), cref("iscase")),
-                                ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                                  IfThenElse(Cmp(OpEq, gref("sample"), cref("sample")),
-                                    Singleton(Tuple("call" -> gref("call"))))))))))))))
+                //IfThenElse(Not(Cmp(OpEq, vref("consequence"), Const("LOW IMPACT", StringType))),
+                  Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cohorts" ->
+                    GroupBy(ForeachUnion(gdef, BagProject(vref, "genotypes"),
+                              ForeachUnion(cdef, relC, 
+                                IfThenElse(Cmp(OpEq, gref("sample"), cref("sample")),
+                                  Singleton(Tuple("pinfo" -> cref("iscase"), "cnt" -> gref("call")))))),
+                      List("pinfo"),
+                      List("cnt"),
+                      IntType
+                    ))))//)
 }
 
 object AlleleCounts3 extends GenomicBase {

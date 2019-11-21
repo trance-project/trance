@@ -125,6 +125,12 @@ trait Optimizer extends Extensions {
         p1, p2.asInstanceOf[TupleAttributeExpr]), bag2, None))
   }
 
+  // could validate right singleton with attribute names
+  def embedKey(key: Expr, e: Expr): Expr = replace(e, {
+    case Singleton(Tuple(fs)) => 
+      Singleton(Tuple(Map("key" -> key.asInstanceOf[TupleAttributeExpr]) ++ fs))
+  })
+
   /** 
     * //TODO needs to be generic enough to extract label match from and conditions 
     * 

@@ -101,7 +101,10 @@ case object EmptyDictCType extends TDict with TTupleDict
 case class BagDictCType(flatTp: BagCType, dictTp: TTupleDict) extends TDict {
   def apply(n: String): Type = n match {
     case "lbl" => flatTp.tp.asInstanceOf[TTupleType](0)
-    case "flat" => flatTp.tp.asInstanceOf[TTupleType](1)
+    case "flat" => flatTp.tp match {
+      case TTupleType(fs) => fs(1)
+      case _ => flatTp
+    }
     case "_1" => flatTp
     case "_2" => dictTp
   }

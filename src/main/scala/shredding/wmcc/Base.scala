@@ -50,6 +50,7 @@ trait Base {
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep
   def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep
+  def cogroup(e1: Rep, es: List[Rep], ps: List[Rep] => Rep):Rep
 }
 
 trait BaseStringify extends Base{
@@ -146,7 +147,9 @@ trait BaseStringify extends Base{
     s""" | (${e1}) OUTERLOOKUP[${p1(List(v1.quote))} = ${p2(v2.quote)}, ${p3(List(v1.quote, v2.quote))}](
          | ${ind(e2)})""".stripMargin
   }
-
+  def cogroup(e1: Rep, es: List[Rep], ps: List[Rep] => Rep): Rep = {
+    s"""| ($e1) LOOKUP(${es.mkString(",")})"""
+  }
 
 }
 
@@ -287,6 +290,13 @@ trait BaseCompiler extends Base {
     val v2 = Variable.freshFromBag(e2.tp) 
     OuterLookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
   }
+  def cogroup(e1: Rep, es: List[Rep], ps: List[Rep] => Rep): Rep = {
+    val vs = (e1.tp match {
+      case BagDictCType(flat, dict) => vars(flat.tp)
+      case BagCType(tup) => vars(tup)
+    }) ++ es.map(v => Variable.freshFromBag(v.tp))
+    CoGroup(e1, es, vs, ps(vs))
+  }
 
   /**
     * Why am I using this still??
@@ -304,6 +314,10 @@ trait BaseCompiler extends Base {
 
 }
 
+/**
+  * This is named the base indexer, but maybe I will make this the base 
+  * compiler for pre-anf'ed bottom up optimizations. 
+  */
 trait BaseDictNameIndexer extends BaseCompiler {
 
   def isDictType(tp: Type): (Type, Boolean) = tp match {
@@ -326,6 +340,16 @@ trait BaseDictNameIndexer extends BaseCompiler {
       else if (f == "_2") project(InputRef(n, dict), f)
       else super.project(e1, f)
     case _ => super.project(e1, f) 
+  }
+
+  override def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = e1 match {        
+      case OuterLookup(e3, e4, v1, pa, v2, pb, pc) => (e2, e4) match {
+        case (InputRef(n1, _), InputRef(n2, _)) if n1.split("_").size == n2.split("_").size =>
+          CoGroup(e3, List(e2, e4), v1 :+ v2, p1(v1 :+ v2))
+        case _ => super.outerlkup(e1, e2, p1, p2, p3)
+      } 
+    case _ => 
+      super.outerlkup(e1, e2, p1, p2, p3)
   }
 
 }
@@ -565,7 +589,8 @@ trait BaseScalaInterp extends Base{
                   case _ => Nil  
                 }})
   }
-
+  def cogroup(e1: Rep, es: List[Rep], ps: List[Rep] => Rep): Rep = e1
+  
   // keys and flattens input tuples
   def tupleVars(k: Any): List[Rep] = k match {
     case c:CaseClassRecord => List(k).asInstanceOf[List[Rep]]
@@ -708,6 +733,8 @@ trait BaseANF extends Base {
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep = compiler.nest(e1, f, e, p, g)
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = compiler.lkup(e1, e2, p1, p2, p3)
   def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = compiler.outerlkup(e1, e2, p1, p2, p3)
+  def cogroup(e1: Rep, es: List[Rep], ps: List[Rep] => Rep): Rep = compiler.cogroup(e1, es.map(defToExpr(_)), ps)
+  
   def vars(e: Type): List[Variable] = e match {
     case BagCType(tp:RecordCType) => List(Variable.fresh(tp))
     case BagCType(tp @ TTupleType(tps)) => tps.map(Variable.fresh(_))
@@ -807,6 +834,8 @@ class Finalizer(val target: Base){
     case OuterLookup(e1, e2, v, p1, v2, p2, p3) =>
       target.outerlkup(finalize(e1), finalize(e2), (r: List[target.Rep]) => withMapList(v zip r)(finalize(p1)),
         (r: target.Rep) => withMap(v2 -> r)(finalize(p2)), (r: List[target.Rep]) => withMapList((v :+ v2) zip r)(finalize(p3)))
+    case CoGroup(e1, es, vs, ps) => 
+      target.cogroup(finalize(e1), es.map(finalize(_)), (r: List[target.Rep]) => withMapList(vs zip r)(finalize(ps)))
     case v @ Variable(_, _) => variableMap.getOrElse(v, target.inputref(v.name, v.tp))
   }
 
