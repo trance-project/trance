@@ -94,9 +94,8 @@ trait BaseNormalizer extends BaseCompiler {
       case Some(CUnit) => fs.get("_2").get 
       case _ => super.sng(x)
     }
-    case c:CDeDup => c
-    case c:Comprehension => c
     case Sng(t) => sng(t)
+    case y if x.tp.isInstanceOf[BagCType] => x
     case _ => super.sng(x)
   }
  

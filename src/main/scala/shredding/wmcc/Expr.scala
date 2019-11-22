@@ -99,7 +99,7 @@ case class Project(e1: CExpr, field: String) extends CExpr { self =>
     case t:TTupleType => field match {
       case "_1" => t(0)
       case "_2" => t(1)
-      case  _ => t(field.toInt)
+      case  _ => println(t); t(field.toInt)
     }
     case t:LabelType => t(field)
     case t:TupleDictCType => t(field)

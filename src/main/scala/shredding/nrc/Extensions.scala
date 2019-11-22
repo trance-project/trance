@@ -34,6 +34,8 @@ trait Extensions extends LinearizedNRC with Printer {
       case BagDictProject(v, _) => collect(v, f)
       case TupleDictProject(d) => collect(d, f)
       case DictUnion(d1, d2) => collect(d1, f) ++ collect(d2, f)
+      case BagGroupBy(bag, v, grp, value) => collect(bag, f)
+      case PlusGroupBy(bag, v, grp, value) => collect(bag, f)
       case Named(_, e1) => collect(e1, f)
       case Sequence(ee) => ee.flatMap(collect(_, f))
       case _ => List()
@@ -117,7 +119,9 @@ trait Extensions extends LinearizedNRC with Printer {
         val r1 = replace(d1, f).asInstanceOf[DictExpr]
         val r2 = replace(d2, f).asInstanceOf[DictExpr]
         DictUnion(r1, r2)
-
+      case BagGroupBy(bag, v, grp, value) => BagGroupBy(replace(bag, f).asInstanceOf[BagExpr], v, grp, value)
+      case PlusGroupBy(bag, v, grp, value) => 
+        PlusGroupBy(replace(bag, f).asInstanceOf[BagExpr], v, grp, value)
       case Named(v, e1) => Named(v, replace(e1, f))
       case Sequence(ee) => Sequence(ee.map(replace(_, f)))
       case _ => ex

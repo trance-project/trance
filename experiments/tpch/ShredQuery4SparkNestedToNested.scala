@@ -8,9 +8,11 @@ import sprkloader.SkewPairRDD._
 case class Record23(c__Fc_custkey: Int)
 case class Record24(c_name: String, corders: Record23)
 case class Record25(o_orderkey: Int, o_orderdate: String)
-case class Record80(customer__Fcorders: Record23)
-case class Record81(c_name: String, partqty: Record80)
-case class Record83(orderdate: String, pname: String)
+case class Record87(customer__Fcorders: Record23)
+case class Record88(c_name: String, partqty: Record87)
+case class Record89(l_quantity: Double, l_orderkey: Int, l_partkey: Int)
+case class Record90(p_name: String, p_partkey: Int)
+case class Record92(orderdate: String, pname: String)
 object ShredQuery4SparkNestedToNested {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
@@ -67,45 +69,53 @@ def f = {
  val x49 = CustOrders__D_1.map{ case x44 => 
    val x45 = x44.c_name 
 val x46 = x44.corders 
-val x47 = Record80(x46) 
-val x48 = Record81(x45, x47) 
+val x47 = Record87(x46) 
+val x48 = Record88(x45, x47) 
 x48 
 } 
 val M_flat1 = x49
 val x50 = M_flat1
+M_flat1.count
 //M_flat1.collect.foreach(println(_))
-val x52 = L__D_1 
-val x54 = P__D_1 
-val x59 = { val out1 = x52.map{ case x55 => ({val x57 = x55.l_partkey 
-x57}, x55) }
-  val out2 = x54.map{ case x56 => ({val x58 = x56.p_partkey 
-x58}, x56) }
-  out1.joinSkewLeft(out2).map{ case (k,v) => v }
+val x56 = L__D_1.map(x51 => { val x52 = x51.l_quantity 
+val x53 = x51.l_orderkey 
+val x54 = x51.l_partkey 
+val x55 = Record89(x52, x53, x54) 
+x55 }) 
+val x61 = P__D_1.map(x57 => { val x58 = x57.p_name 
+val x59 = x57.p_partkey 
+val x60 = Record90(x58, x59) 
+x60 }) 
+val x66 = { val out1 = x56.map{ case x62 => ({val x64 = x62.l_partkey 
+x64}, x62) }
+  val out2 = x61.map{ case x63 => ({val x65 = x63.p_partkey 
+x65}, x63) }
+  out1.join(out2).map{ case (k,v) => v }
 } 
-val x60 = CustOrders__D_2corders_1 
-val x61 = x60
-val x67 = { val out1 = x59.map{ case (x62, x63) => (({val x66 = x62.l_orderkey 
-x66}), (x62, x63)) }
-  val out2 = x61
+val x67 = CustOrders__D_2corders_1
+val x68 = x67
+val x74 = { val out1 = x66.map{ case (x69, x70) => ({val x73 = x69.l_orderkey 
+x73}, (x69, x70)) }
+  val out2 = x68
         /** WHEN DOES THIS CASE HAPPEN **/
-        .flatMap(v2 => v2._2.map{case x64 => ({val x65 = x64.o_orderkey 
-x65}, x64)})
+        .flatMap(v2 => v2._2.map{case x71 => ({val x72 = x71.o_orderkey 
+x72}, x71)})
   out1.lookup(out2)
 } 
-val x77 = x67.flatMap{ case ((x68, x69), x70) => val x76 = (x70,x69) 
-x76 match {
+val x84 = x74.flatMap{ case ((x75, x76), x77) => val x83 = (x77,x76) 
+x83 match {
    case (_,null) => Nil
-   case x75 => List(({val x71 = x70.o_orderdate 
-val x72 = x69.p_name 
-val x73 = Record83(x71, x72) 
-x73}, {val x74 = x68.l_quantity 
-x74}))
+   case x82 => List(({val x78 = x77.o_orderdate 
+val x79 = x76.p_name 
+val x80 = Record92(x78, x79) 
+x80}, {val x81 = x75.l_quantity 
+x81}))
  }
 }.reduceByKey(_ + _) 
-val M_flat2 = x77
-val x78 = M_flat2
+val M_flat2 = x84
+val x85 = M_flat2
 //M_flat2.collect.foreach(println(_))
-x78.count
+x85.count
 }
 var start0 = System.currentTimeMillis()
 f
