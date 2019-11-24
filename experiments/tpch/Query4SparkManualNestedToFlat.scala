@@ -28,20 +28,24 @@ object Query4SparkManualNestedToFlat {
     P.cache
     P.count
 
-    val o = O.map(o => o.o_custkey -> (o.o_orderkey, o.o_orderdate))
-    val c = C.map(c => c.c_custkey -> c.c_name).join(o).map{ case (_, (c_name, orders)) => (c_name, orders) }.groupByKey()
-    c.cache
-    c.count
-    var start0 = System.currentTimeMillis()
-
     val l = L.map(l => l.l_partkey -> (l.l_orderkey, l.l_quantity))
     val p = P.map(p => p.p_partkey -> p.p_name)
     val lpj = l.joinSkewLeft(p).map{ case (_, ((lorderkey, lqty), pname)) => lorderkey -> (pname, lqty) }
+    val o = O.map(o => o.o_orderkey -> (o.o_custkey, o.o_orderdate))
 
-    val custords = c.flatMap{ case (cname, orders) => orders.map{ 
-                    case (orderkey, orderdate) => (orderkey -> (cname, orderdate))
-                   }}.join(lpj).map{ case (_, ((cname, orderdate), (pname, qty))) => 
-                     ((cname, orderdate, pname), qty)
+    val result = lpj.join(o).map{ case (_, ((pname, lqty), (ocust, orderdate))) => 
+                  (pname, lqty) -> (ocust, orderdate)}.groupByKey()
+
+    result.cache
+    result.count
+    var start0 = System.currentTimeMillis()
+
+    val c = C.map(c => c.c_custkey -> c.c_name)
+
+    val custords = result.flatMap{ case ((pname, lqty), orders) => orders.map{ 
+                    case (orderkey, orderdate) => orderkey -> (pname, lqty, orderdate)
+                   }}.join(c).map{ case (_, ((pname, qty, orderdate), cname)) => 
+                     ((cname, pname), qty)
                    }.reduceByKey(_ + _)
     custords.count
     var end0 = System.currentTimeMillis() - start0
