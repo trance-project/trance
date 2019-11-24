@@ -59,14 +59,14 @@ object Optimizer {
       val projs = proj(v)
       e2 match {
         case Variable(_, RecordCType(tfs)) if tfs.keySet != projs  && tfs.keySet != Set("lbl") =>
-          Select(push(d), v, f, Record(projs.map(f2 => f2 -> Project(v, f2)).toMap))
+           Select(push(d), v, f, Record(projs.map(f2 => f2 -> Project(v, f2)).toMap))
         case _ =>
           Select(push(d), v, f, e2)
       }
     case Lookup(e1, e2, v1, p1, v2, p2, p3) =>
       fields(p2)
       fields(p3)
-      Lookup(push(e1), push(e2), v1, p1, v2, p2, p3)
+      Lookup(e1, e2, v1, p1, v2, p2, p3)
     case CNamed(n, o) => CNamed(n, push(o))
     case LinearCSet(rs) => LinearCSet(rs.reverse.map(r => push(r)).reverse)
     case _ => e

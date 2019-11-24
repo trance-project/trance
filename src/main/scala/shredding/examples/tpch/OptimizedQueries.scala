@@ -317,6 +317,49 @@ object TPCHQuery4Inputs extends TPCHBase {
   
 }
 
+object TPCHQuery4Inputs2 extends TPCHBase {
+ 
+  val name = "OrderParts"
+ 
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+  override def indexedDict: List[String] = 
+    List(s"${name}__D_1", s"${name}__D_2orders_1")
+
+  // input data
+  val query = ForeachUnion(l, relL, 
+                ForeachUnion(p, relP,
+                  IfThenElse(Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
+                    Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"), "orders" -> 
+                      ForeachUnion(o, relO,
+                        IfThenElse(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
+                          Singleton(Tuple("o_custkey" -> or("o_custkey"), "orderdate" -> or("o_orderdate"))))))))))
+  
+}
+
+object TPCHQuery42 extends TPCHBase {
+  val name = "Query4"
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+  override def indexedDict: List[String] = 
+    List(s"${name}__D_1", s"${name}__D_2orders_1")
+
+  val (q1, co, cor) = varset(TPCHQuery4Inputs2.name, "part", TPCHQuery4Inputs2.query.asInstanceOf[BagExpr])
+  val co2 = VarDef("order", BagProject(cor, "orders").tp.tp)
+  val cor2 = TupleVarRef(co2)
+
+  val query = 
+      GroupBy(ForeachUnion(co, BagVarRef(q1), 
+              ForeachUnion(co2, BagProject(cor, "orders"),
+                ForeachUnion(c, relC, 
+                  IfThenElse(Cmp(OpEq, cr("c_custkey"), cor2("o_custkey")),
+                    Singleton(Tuple("c_name" -> cr("c_name"), "p_name" -> cor("p_name"), "l_qty" -> cor("l_qty"))))))),
+        List("c_name", "p_name"),
+        List("l_qty"),
+        DoubleType)
+  
+}
+
 object TPCHQuery4 extends TPCHBase {
   val name = "Query4"
   def inputs(tmap: Map[String, String]): String = 
