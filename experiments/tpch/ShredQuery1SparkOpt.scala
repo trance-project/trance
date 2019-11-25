@@ -87,6 +87,7 @@ x275
 } 
 val M_flat1 = x276
 val x277 = M_flat1
+M_flat1.count
 //M_flat1.collect.foreach(println(_))
 /**
 M_flat2 :=  REDUCE[ (key := (c__Fc_custkey := x242.o_custkey),value := { (o_orderdate := x242.o_orderdate,o_parts := (o__Fo_orderkey := x242.o_orderkey)) }) / true ](O__D._1)
@@ -106,6 +107,7 @@ x287
 } 
 val M_flat2 = x288
 val x289 = M_flat2
+M_flat2.count
 //M_flat2.collect.foreach(println(_))
 /**
 M_flat3 :=  REDUCE[ (key := (o__Fo_orderkey := x243.l_orderkey),value := { (p_name := x243.p_name,l_qty := x243.l_qty) }) / true ](ljp__D._1)
