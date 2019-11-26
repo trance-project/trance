@@ -127,9 +127,10 @@ M_flat1 :=   NEST[ U / x48.l_qty / (c_name := x46.c_name,orderdate := x47.o_orde
 val x75 = CustOrders__D_1 
 val x79 = { val out1 = x75.map{ case x76 => ({val x78 = x76.corders 
 x78}, x76) }
-  val out2 = CustOrders__D_2corders_1.flatMapValues(identity)
-  out1.lookup(out2)
-} 
+  //val out2 = CustOrders__D_2corders_1.flatMapValues(identity)
+  out1.cogroup(CustOrders__D_2corders_1)
+  //out1.lookup(out2)
+}
 val x81 = parts__D_1 
 val x87 = { val out1 = x79.map{ case (x82, x83) => ({val x85 = x83.o_orderkey 
 x85}, (x82, x83)) }

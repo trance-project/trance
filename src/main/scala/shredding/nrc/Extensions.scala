@@ -127,7 +127,16 @@ trait Extensions extends LinearizedNRC with Printer {
       case _ => ex
     })
   
-
+  def replaceBase(e: Expr): Expr = replace(e, {
+    case Singleton(Tuple(fs)) if fs.keySet != Set("_1", "_2") => 
+      println("replacing base with")
+      println(fs)
+      val s = Singleton(Tuple(fs.filter(_._2.tp.isInstanceOf[LabelType])))
+      println(s)
+      s
+  })
+  
+  
   def replaceLabelParams(e: Expr): Expr = replace(e, {
     case BagDict(lbl @ NewLabel(ps), flat, dict) =>
       BagDict(lbl, ps.foldRight(flat)((curr, acc) => curr match {

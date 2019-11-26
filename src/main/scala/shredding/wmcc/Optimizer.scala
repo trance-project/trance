@@ -20,6 +20,7 @@ object Optimizer {
     case Sng(r) => fields(r)
     case Tuple(fs) => fs.foreach( f => fields(f))
     case Project(v @ Variable(_,_), s) => proj(v) = proj(v) ++ Set(s)
+    case Equals(e1, e2) => fields(e1); fields(e2)
     case _ => Unit
   }
 
@@ -38,6 +39,7 @@ object Optimizer {
     case Nest(e1, v1, f, e, v, p, g) => 
       fields(e)
       fields(f)
+      fields(p)
       Nest(push(e1), v1, f, e, v, p, g)
     case Unnest(e1, v1, f, v2, p) =>
       fields(f)

@@ -135,7 +135,7 @@ trait Optimizer extends Extensions {
     * //TODO needs to be generic enough to extract label match from and conditions 
     * 
     */
-  def nestingRewriteLossy(e: Expr): Expr = replace(e, {
+  def nestingRewriteLossy(e: Expr): Expr = replace(e, { 
     case f @ ForeachUnion(x, b1, BagIfThenElse(cond, b2, None)) => cond match {
       /**case Cmp(OpEq, p1 @ PrimitiveProject(t1: TupleVarRef, f1), p2 @ PrimitiveProject(t2: TupleVarRef, f2)) =>
         rewriteJoinOnLabel(inputVars(f), x, b1, b2, p1, t1, p2, t2)**/

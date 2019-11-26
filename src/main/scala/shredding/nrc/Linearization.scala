@@ -7,7 +7,7 @@ import shredding.core._
   * Linearization of nested output queries
   */
 trait Linearization {
-  this: LinearizedNRC with Shredding with Optimizer with Printer =>
+  this: LinearizedNRC with Shredding with Optimizer with Printer with Extensions =>
 
   val initCtxName: String = "initCtx"
 
@@ -82,6 +82,62 @@ trait Linearization {
 
         bagDict match {
           case b: BagDictExpr => mCtxNamed :: linearize(b, mCtxRef)
+          case b => sys.error("Unknown dictionary " + b)
+        }
+      }
+  }
+
+  def linearizeCheney(e: ShredExpr): Sequence = e.dict match {
+    case d: BagDictExpr =>
+      Symbol.freshClear()
+
+      // Construct variable reference to the initial context
+      // that represents a bag containing e.flat.
+      //val bagFlat = Singleton(Tuple("lbl" -> e.flat.asInstanceOf[TupleAttributeExpr]))
+      val bagFlat = Singleton(Tuple("lbl" ->
+                      NewLabel(labelParameters(e.flat)).asInstanceOf[TupleAttributeExpr]))
+      
+      val initCtxNamed = Named(VarDef(Symbol.fresh("M_ctx"), bagFlat.tp), bagFlat)
+      val initCtxRef = BagVarRef(initCtxNamed.v)
+
+      // Let's roll
+      Sequence(initCtxNamed :: linearizeCheney(d, initCtxRef))
+
+    case _ => sys.error("Cannot linearize dict type " + e.dict)
+  }
+
+  private def linearizeCheney(dict: BagDictExpr, ctx: BagVarRef): List[Expr] = {
+    // 1. Iterate over ctx (bag of labels) and produce key-value pairs
+    //    consisting of labels from ctx and flat bags from dict
+    val ldef = VarDef(Symbol.fresh("l"), ctx.tp.tp)
+    val lbl = LabelProject(TupleVarRef(ldef), "lbl")
+    val kvpair = Tuple("_1" -> lbl, "_2" -> optimize(dict.lookup(lbl)).asInstanceOf[BagExpr])
+    val mFlat = ForeachUnion(ldef, ctx,
+      BagExtractLabel(LabelProject(TupleVarRef(ldef), "lbl"), Singleton(kvpair)))
+    val mFlatNamed = Named(VarDef(Symbol.fresh("M_flat"), mFlat.tp), mFlat)
+    val mFlatRef = BagVarRef(mFlatNamed.v)
+
+    // 2. For each label type in dict.flatBagTp.tp,
+    //    create the context (bag of labels) and recur
+    val labelTps = dict.tp.flatTp.tp.attrTps.filter(_._2.isInstanceOf[LabelType]).toList
+
+    // need to handle normalization here
+    mFlatNamed ::
+      labelTps.flatMap { case (n, _) =>
+        val mFlatRenamed = replaceBase(mFlat).asInstanceOf[BagExpr]
+        println(mFlatRenamed)
+        val kvDef = VarDef(Symbol.fresh("kv"), mFlatRenamed.tp.tp)
+        val xDef = VarDef(Symbol.fresh("xF"), BagProject(TupleVarRef(kvDef), "_2").tp.tp)
+        val mCtx =
+          ForeachUnion(kvDef, mFlatRenamed,
+            ForeachUnion(xDef, BagProject(TupleVarRef(kvDef), "_2"),
+              Singleton(Tuple("lbl" -> LabelProject(TupleVarRef(xDef), n)))))
+        val mCtxNamed = Named(VarDef(Symbol.fresh("M_ctx"), mCtx.tp), mCtx)
+        val mCtxRef = BagVarRef(mCtxNamed.v)
+        val bagDict = dict.tupleDict(n)
+
+        bagDict match {
+          case b: BagDictExpr => mCtxNamed :: linearizeCheney(b, mCtxRef)
           case b => sys.error("Unknown dictionary " + b)
         }
       }
