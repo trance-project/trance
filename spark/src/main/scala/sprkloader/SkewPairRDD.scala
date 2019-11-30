@@ -6,19 +6,20 @@ import org.apache.spark.broadcast.Broadcast
 import scala.reflect.ClassTag
 
 object SkewPairRDD {
-  
-  implicit class SkewPairRDDFunctions[K: ClassTag, V: ClassTag](lrdd: RDD[(K,V)]) extends Serializable {
 
-    val reducers = Config.minPartitions 
+   val reducers = Config.minPartitions 
 
-    def heavyKeys(): Set[K] = {
+   def heavyKeys[K: ClassTag, V: ClassTag](lrdd: RDD[(K,V)]): Set[K] = {
       lrdd.mapPartitions{ it => 
         Util.countDistinct(it).filter(_._2 > 1000).iterator }
       .reduceByKey(_ + _)
       .filter(_._2 >= reducers)
       .keys.collect.toSet
     }
-	
+	  
+  implicit class SkewPairRDDFunctions[K: ClassTag, V: ClassTag](lrdd: RDD[(K,V)]) extends Serializable {
+
+
 	  def balanceLeft[S](rrdd: RDD[(K, S)], hkeys: Broadcast[Set[K]]): (RDD[((K, Int), V)], RDD[((K, Int), S)]) = {
       val lrekey = lrdd.mapPartitions{ it =>
         it.zipWithIndex.map{ case ((k,v), i) => 
@@ -32,7 +33,7 @@ object SkewPairRDD {
     }
 
     def joinSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(K, (V, S))] = { 
-      val hk = heavyKeys
+      val hk = heavyKeys(lrdd)
       if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)
         val (rekey,dupp) = lrdd.balanceLeft(rrdd, hkeys)
@@ -57,8 +58,9 @@ object SkewPairRDD {
       }
     }
 
+    // (k,v) lookup (k,s) => (v, s)
     def lookupSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(V, S)] = {
-      val hk = heavyKeys
+      val hk = heavyKeys(lrdd)
       if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)
         val (rekey,dupp) = lrdd.balanceLeft(rrdd, hkeys)
@@ -68,8 +70,19 @@ object SkewPairRDD {
       } else lrdd.lookup(rrdd) 
     }
 
+    def lookupSkewRight[S: ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = {
+      val hk = heavyKeys(rrdd)
+      if (hk.nonEmpty) {
+        val hkeys = rrdd.sparkContext.broadcast(hk)
+        val (rekey,dupp) = rrdd.balanceLeft(lrdd, hkeys)
+        rekey.cogroup(dupp).flatMap{ pair =>
+          for ((w, _) <- pair._2._1.iterator; k <- pair._2._2.iterator) yield (k.asInstanceOf[V], w)
+        }
+      } else lrdd.lookup(rrdd) 
+    }
+
     def outerLookupSkewLeft[S >: Null](rrdd: RDD[(K, S)]): RDD[(V, S)] = {
-      val hk = heavyKeys
+      val hk = heavyKeys(lrdd)
       if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)
         val (rekey,dupp) = lrdd.balanceLeft(rrdd, hkeys)

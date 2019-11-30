@@ -127,6 +127,7 @@ x246
 } 
 val M_flat1 = x247
 val x248 = M_flat1
+M_flat1.count
 //M_flat1.collect.foreach(println(_))
 /**
 M_flat2 :=  REDUCE[ (key := (c__Fc_name := x242.c_name2),value := { (s_name := x241.s_name) }) / true ]( <-- (x238,x240) -- (
@@ -139,10 +140,10 @@ val x254 = {
  val out1 = x250.map{case x251 => ({val x253 = x251.customers2 
 x253},x251)}
  val out2 = Query2__D_2customers2_1.flatMapValues(identity)
- out2.lookupSkewLeft(out1)
+ out1.lookupSkewRight(out2)
 
 } 
-val x263 = x254.map{ case (x256, x255) => 
+val x263 = x254.map{ case (x255, x256) => 
    val x257 = x256.c_name2 
 val x258 = Record266(x257) 
 val x259 = x255.s_name 
@@ -150,7 +151,7 @@ val x260 = Record268(x259)
 val x261 = List(x260) 
 val x262 = (x258, x261) 
 x262 
-} 
+}.groupByLabel() 
 val M_flat2 = x263
 val x264 = M_flat2
 //M_flat2.collect.foreach(println(_))
