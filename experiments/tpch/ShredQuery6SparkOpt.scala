@@ -121,9 +121,9 @@ val x104 = Query2__D_1
 val x108 = { val out1 = x104.map{ case x105 => ({val x107 = x105.customers2 
 x107}, x105) }
   val out2 = Query2__D_2customers2_1.flatMapValues(identity)
-  out1.lookupSkewRight(out2)
+  out2.lookupSkewLeft(out1)
 } 
-val x117 = x108.map{ case (x109, x110) => 
+val x117 = x108.map{ case (x110, x109) => 
    val x111 = x110.c_name2 
 val x112 = Record120(x111) 
 val x113 = x109.s_name 
