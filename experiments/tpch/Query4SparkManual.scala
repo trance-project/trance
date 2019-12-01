@@ -38,13 +38,12 @@ object Query4SparkManual {
     val p = P.map(p => p.p_partkey -> p.p_name)
     val lpj = l.joinSkewLeft(p).map{ case (_, ((lorderkey, lqty), pname)) => lorderkey -> (pname, lqty) }
 
-    val custords = c.flatMap{ case (cname, orders) => orders.map{ 
-                    case (orderkey, orderdate) => (orderkey -> (cname, orderdate))
-                   }}.join(lpj).map{ case (_, ((cname, orderdate), (pname, qty))) => 
-                     ((cname, orderdate, pname), qty)
-                   }.reduceByKey(_ + _).map{
-                     case ((cname, orderdate, pname), tot) => cname -> (orderdate, pname, tot)
-                   }.groupByKey()
+    val custords = c.flatMap{ case (cname, orders) => 
+                    orders.map{ case (orderkey, orderdate) => orderkey -> (cname, orderdate) } 
+                  }.join(lpj)
+                    .map{ case (_, ((cname, orderdate), (pname, qty))) => 
+                      ((cname, orderdate, pname), qty)
+                   }.reduceByKey(_ + _)
     custords.count
     var end0 = System.currentTimeMillis() - start0
     println("Query4SparkManual"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
