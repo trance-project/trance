@@ -50,7 +50,7 @@ val x37 = { val out1 = x27.map{ case x33 => ({val x35 = x33.o_custkey
 x35}, x33) }
   val out2 = x32.map{ case x34 => ({val x36 = x34.c_custkey 
 x36}, x34) }
-  out1.join(out2).map{ case (k,v) => v }
+  out1.joinSkewLeft(out2).map{ case (k,v) => v }
 } 
 val x43 = x37.map{ case (x38, x39) => 
    val x40 = x38.o_orderkey 
