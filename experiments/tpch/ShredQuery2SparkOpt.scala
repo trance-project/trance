@@ -78,6 +78,7 @@ x151
 } 
 val M_flat1 = x152
 val x153 = M_flat1
+M_flat1.count
 //M_flat1.collect.foreach(println(_))
 val x161 = resultInner__D_1.map{ case x154 => 
    val x155 = x154.l_suppkey 
