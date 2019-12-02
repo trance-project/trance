@@ -9,10 +9,10 @@ import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
 
-object Query1SparkSlender {
+object Query1SparkManual {
   def main(args: Array[String]){
     val sf = Config.datapath.split("/").last
-    val conf = new SparkConf().setMaster(Config.master).setAppName("Query1SparkSlender"+sf)
+    val conf = new SparkConf().setMaster(Config.master).setAppName("Query1SparkManual"+sf)
     val spark = SparkSession.builder().config(conf).getOrCreate()
 
     val tpch = TPCHLoader(spark)
@@ -42,6 +42,6 @@ object Query1SparkSlender {
     val c = C.map(c => c.c_custkey -> c.c_name).join(CustomerOrders).map{ case (_, (c_name, orders)) => (c_name, orders) }
     c.count
     var end0 = System.currentTimeMillis() - start0
-    println("Query1SparkSlender"+sf+","+Config.datapath+","+end0)
+    println("Query1SparkManual"+sf+","+Config.datapath+","+end0)
   }
 }
