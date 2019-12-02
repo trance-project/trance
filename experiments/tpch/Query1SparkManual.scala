@@ -35,14 +35,11 @@ object Query1SparkSlender {
     val p = P.map(p => p.p_partkey -> p.p_name)
     val lpj = l.joinSkewLeft(p)
 
-    val OrderParts = lpj.map{ case (_, ((l_orderkey, l_quantity), p_name)) => l_orderkey -> (p_name, l_quantity) }
-    val CustomerOrders = O.map(o => o.o_orderkey -> (o.o_custkey, o.o_orderdate)).cogroup(OrderParts).flatMap{
-		case (_, (order, parts)) => order.map{ case (ock, od) => ock -> (od, parts.toArray) }
-	}
+    val OrderParts = lpj.map{ case (_, ((l_orderkey, l_quantity), p_name)) => (l_orderkey, (p_name, l_quantity)) }.groupByKey()
+    val o = O.map(o => o.o_orderkey -> (o.o_custkey, o.o_orderdate)).join(OrderParts)
 
-    val c = C.map(c => c.c_custkey -> c.c_name).cogroup(CustomerOrders).flatMap{ 
-	  			case (_, (c_name, orders)) => c_name.map(c => (c, orders.toArray)) 
-			}
+    val CustomerOrders = o.map{ case (_, ((o_custkey, o_orderdate), parts)) => (o_custkey, (o_orderdate, parts)) }.groupByKey()
+    val c = C.map(c => c.c_custkey -> c.c_name).join(CustomerOrders).map{ case (_, (c_name, orders)) => (c_name, orders) }
     c.count
     var end0 = System.currentTimeMillis() - start0
     println("Query1SparkSlender"+sf+","+Config.datapath+","+end0)
