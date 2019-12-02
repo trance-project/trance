@@ -104,7 +104,7 @@ val x285 = Record308(x282, x284)
 val x286 = List(x285) 
 val x287 = (x281, x286) 
 x287 
-} 
+}.groupByLabel() 
 val M_flat2 = x288
 val x289 = M_flat2
 M_flat2.count
@@ -123,7 +123,7 @@ val x296 = Record309(x294, x295)
 val x297 = List(x296) 
 val x298 = (x293, x297) 
 x298 
-} 
+}.groupByLabel() 
 val M_flat3 = x299
 val x300 = M_flat3
 //M_flat3.collect.foreach(println(_))
