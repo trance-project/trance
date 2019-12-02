@@ -5,14 +5,14 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
-case class Record302(l_orderkey: Int, l_quantity: Double, l_partkey: Int)
-case class Record303(p_name: String, p_partkey: Int)
-case class Record304(l_orderkey: Int, p_name: String, l_qty: Double)
-case class Record305(c__Fc_custkey: Int)
-case class Record306(c_name: String, c_orders: Record305)
-case class Record307(o__Fo_orderkey: Int)
-case class Record308(o_orderdate: String, o_parts: Record307)
-case class Record309(p_name: String, l_qty: Double)
+case class Record182(l_orderkey: Int, l_quantity: Double, l_partkey: Int)
+case class Record183(p_name: String, p_partkey: Int)
+case class Record184(l_orderkey: Int, p_name: String, l_qty: Double)
+case class Record185(c__Fc_custkey: Int)
+case class Record186(c_name: String, c_orders: Record185)
+case class Record187(o__Fo_orderkey: Int)
+case class Record188(o_orderdate: String, o_parts: Record187)
+case class Record189(p_name: String, l_qty: Double)
 object ShredQuery1SparkOpt {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
@@ -37,97 +37,71 @@ O__D_1.cache
 O__D_1.count
 
    def f = { 
-/**
-
-ljp__D_1 :=  REDUCE[ (l_orderkey := x239.l_orderkey,p_name := x240.p_name,l_qty := x239.l_quantity) / true ]( <-- (x239,x240) -- (
- <-- (x239) -- SELECT[ true, (l_orderkey := x239.l_orderkey,l_quantity := x239.l_quantity,l_partkey := x239.l_partkey) ](L__D._1)) JOIN[x239.l_partkey = x240.p_partkey](
-
-   <-- (x240) -- SELECT[ true, (p_name := x240.p_name,p_partkey := x240.p_partkey) ](P__D._1)))
-**/
-
- val x244 = L__D_1 
-val x250 = x244.map(x245 => { val x246 = x245.l_orderkey 
-val x247 = x245.l_quantity 
-val x248 = x245.l_partkey 
-val x249 = Record302(x246, x247, x248) 
-x249 }) 
-val x251 = P__D_1 
-val x256 = x251.map(x252 => { val x253 = x252.p_name 
-val x254 = x252.p_partkey 
-val x255 = Record303(x253, x254) 
-x255 }) 
-val x261 = { val out1 = x250.map{ case x257 => ({val x259 = x257.l_partkey 
-x259}, x257) }
-  val out2 = x256.map{ case x258 => ({val x260 = x258.p_partkey 
-x260}, x258) }
+ val x134 = L__D_1.map(x129 => { val x130 = x129.l_orderkey 
+val x131 = x129.l_quantity 
+val x132 = x129.l_partkey 
+val x133 = Record182(x130, x131, x132) 
+x133 }) 
+val x139 = P__D_1.map(x135 => { val x136 = x135.p_name 
+val x137 = x135.p_partkey 
+val x138 = Record183(x136, x137) 
+x138 }) 
+val x144 = { val out1 = x134.map{ case x140 => ({val x142 = x140.l_partkey 
+x142}, x140) }
+  val out2 = x139.map{ case x141 => ({val x143 = x141.p_partkey 
+x143}, x141) }
   out1.joinSkewLeft(out2).map{ case (k,v) => v }
 } 
-val x268 = x261.map{ case (x262, x263) => 
-   val x264 = x262.l_orderkey 
-val x265 = x263.p_name 
-val x266 = x262.l_quantity 
-val x267 = Record304(x264, x265, x266) 
-x267 
+val x151 = x144.map{ case (x145, x146) => 
+   val x147 = x145.l_orderkey 
+val x148 = x146.p_name 
+val x149 = x145.l_quantity 
+val x150 = Record184(x147, x148, x149) 
+x150 
 } 
-val ljp__D_1 = x268
-val x269 = ljp__D_1
+val ljp__D_1 = x151
+val x152 = ljp__D_1
 //ljp__D_1.collect.foreach(println(_))
-
-/**
-M_flat1 :=  REDUCE[ (c_name := x241.c_name,c_orders := (c__Fc_custkey := x241.c_custkey)) / true ](C__D._1)
-**/
-
-val x270 = C__D_1 
-val x276 = x270.map{ case x271 => 
-   val x272 = x271.c_name 
-val x273 = x271.c_custkey 
-val x274 = Record305(x273) 
-val x275 = Record306(x272, x274) 
-x275 
+val x158 = C__D_1.map{ case x153 => 
+   val x154 = x153.c_name 
+val x155 = x153.c_custkey 
+val x156 = Record185(x155) 
+val x157 = Record186(x154, x156) 
+x157 
 } 
-val M_flat1 = x276
-val x277 = M_flat1
+val M_flat1 = x158
+val x159 = M_flat1
 M_flat1.count
 //M_flat1.collect.foreach(println(_))
-/**
-M_flat2 :=  REDUCE[ (key := (c__Fc_custkey := x242.o_custkey),value := { (o_orderdate := x242.o_orderdate,o_parts := (o__Fo_orderkey := x242.o_orderkey)) }) / true ](O__D._1)
-**/
-
-val x278 = O__D_1 
-val x288 = x278.map{ case x279 => 
-   val x280 = x279.o_custkey 
-val x281 = Record305(x280) 
-val x282 = x279.o_orderdate 
-val x283 = x279.o_orderkey 
-val x284 = Record307(x283) 
-val x285 = Record308(x282, x284) 
-val x286 = List(x285) 
-val x287 = (x281, x286) 
-x287 
+val x169 = O__D_1.map{ case x160 => 
+   val x161 = x160.o_custkey 
+val x162 = Record185(x161) 
+val x163 = x160.o_orderdate 
+val x164 = x160.o_orderkey 
+val x165 = Record187(x164) 
+val x166 = Record188(x163, x165) 
+val x167 = x166//List(x166) 
+val x168 = (x162, x167) 
+x168 
 }.groupByLabel() 
-val M_flat2 = x288
-val x289 = M_flat2
+val M_flat2 = x169
+val x170 = M_flat2
 M_flat2.count
 //M_flat2.collect.foreach(println(_))
-/**
-M_flat3 :=  REDUCE[ (key := (o__Fo_orderkey := x243.l_orderkey),value := { (p_name := x243.p_name,l_qty := x243.l_qty) }) / true ](ljp__D._1)
-**/
-
-val x290 = ljp__D_1 
-val x299 = x290.map{ case x291 => 
-   val x292 = x291.l_orderkey 
-val x293 = Record307(x292) 
-val x294 = x291.p_name 
-val x295 = x291.l_qty 
-val x296 = Record309(x294, x295) 
-val x297 = List(x296) 
-val x298 = (x293, x297) 
-x298 
+val x179 = ljp__D_1.map{ case x171 => 
+   val x172 = x171.l_orderkey 
+val x173 = Record187(x172) 
+val x174 = x171.p_name 
+val x175 = x171.l_qty 
+val x176 = Record189(x174, x175) 
+val x177 = x176//List(x176) 
+val x178 = (x173, x177) 
+x178 
 }.groupByLabel() 
-val M_flat3 = x299
-val x300 = M_flat3
+val M_flat3 = x179
+val x180 = M_flat3
 //M_flat3.collect.foreach(println(_))
-x300.count
+x180.count
 }
 var start0 = System.currentTimeMillis()
 f
