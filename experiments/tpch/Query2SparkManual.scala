@@ -40,9 +40,12 @@ S.count
      case (_, (l_suppkey, o_custkey)) => o_custkey -> l_suppkey
   }.joinSkewLeft(customers).map(_._2)
 
-  val result = S.map(s => s.s_suppkey -> s.s_name).cogroup(resultInner).flatMap{
-     case (_, (itV, itW)) => itV.map(v => (v, itW.toArray))
-  }
+  val result = S.map(s => s.s_suppkey -> s.s_name).join(resultInner).map{
+    case (_, (sname, cname)) => sname -> cname
+  }.groupByKey()
+  //.cogroup(resultInner).flatMap{
+  //   case (_, (itV, itW)) => itV.map(v => (v, itW.toArray))
+  //}
   result.count
   var end0 = System.currentTimeMillis() - start0
   println("Query2SparkManual"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
