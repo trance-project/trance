@@ -44,6 +44,8 @@ S.count
    }
 
  }
+ Q2.cache
+ Q2.count
  var start0 = System.currentTimeMillis()
  val customers = C.map(c => c.c_name -> 1)
  val result = Q2.flatMap{
