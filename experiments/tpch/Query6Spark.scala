@@ -16,10 +16,10 @@ case class Record152(c_name: String, s_name: String)
 case class Record153(c_name: String)
 case class Record155(s_name: String)
 case class Record156(c_name: String, suppliers: Iterable[Record155])
-object Query6SparkUnnest {
+object Query6Spark {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
-   val conf = new SparkConf().setMaster(Config.master).setAppName("Query6SparkUnnest"+sf)
+   val conf = new SparkConf().setMaster(Config.master).setAppName("Query6Spark"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
 val L = tpch.loadLineitem
@@ -58,7 +58,7 @@ val x52 = { val out1 = x41.map{ case (x47, x48) => ({val x50 = x48.o_custkey
 x50}, (x47, x48)) }
   val out2 = x46.map{ case x49 => ({val x51 = x49.c_custkey 
 x51}, x49) }
-  out1.joinSkewLeft(out2).map{ case (k,v) => v }
+  out1.join(out2).map{ case (k,v) => v }
 } 
 val x59 = x52.map{ case ((x53, x54), x55) => 
    val x56 = x53.l_suppkey 
@@ -142,12 +142,12 @@ val x150 = x145.map{ case (x146, x147) =>
    val x148 = x146.c_name 
 val x149 = Record156(x148, x147) 
 x149 
-}
+} 
 x150.count
 }
 var start0 = System.currentTimeMillis()
 f
 var end0 = System.currentTimeMillis() - start0 
-   println("Query6SparkUnnest"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
+   println("Query6Spark"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
  }
 }
