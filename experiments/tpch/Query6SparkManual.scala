@@ -51,9 +51,8 @@ S.count
  val result = Q2.flatMap{
     case (s_name, customers2) => customers2.map{ c_name => c_name -> s_name }
   }.join(customers).map{
-    case (c_name, (one, (s_name))) => c_name -> s_name
+    case (c_name, (s_name, (_))) => c_name -> s_name
   }.groupByKey()
-  //.cogroup(customers).map{ case (c_name, (s_nameSet, _)) => c_name -> s_nameSet.toArray}
  result.count
  var end0 = System.currentTimeMillis() - start0
  println("Query6SparkManual"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
