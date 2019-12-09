@@ -91,10 +91,12 @@ val x161 = M_flat2
 //M_flat2.collect.foreach(println(_))
 x161.count
 var end0 = System.currentTimeMillis() - start0
+println("ShredQuery2SparkOpt2WUS"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 var start1 = System.currentTimeMillis()
 val firstlevel = M_flat1.map(m => (m.customers2, m.s_name)).cogroup(M_flat2).flatMap{
   case (_, (sn, custs)) => sn.map(s => (s, custs))
 }
+firstlevel.count
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery2SparkOpt2WUS"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 
