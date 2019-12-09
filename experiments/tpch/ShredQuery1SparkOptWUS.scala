@@ -108,7 +108,10 @@ var end0 = System.currentTimeMillis() - start0
 println("ShredQuery1SparkOptWUS"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 var start1 = System.currentTimeMillis()
 
-val firstlevel = M_flat2.flatMap(m => m._2.map(v => (v.o_parts, (v.o_orderdate, m._1)))).lookup(M_flat3.flatMapValues(identity)).groupByLabel().map{ case ((od, lbl), parts) => lbl -> (od, parts) }
+//val firstlevel = M_flat2.flatMap(m => m._2.map(v => (v.o_parts, (v.o_orderdate, m._1)))).lookup(M_flat3.flatMapValues(identity)).groupByLabel().map{ case ((od, lbl), parts) => lbl -> (od, parts) }
+val firstlevel = M_flat2.flatMap(m => m._2.map(v => (v.o_parts, (v.o_orderdate, m._1)))).cogroup(M_flat3).flatMap{
+  case (_, (odates, parts)) => odates.map{ case (od, lbl) => (lbl, (od, parts)) }
+}
 val secondlevel = M_flat1.map(m => (m.c_orders, m.c_name)).cogroup(firstlevel).flatMap{
   case (_, (c, o)) => c.map(c2 => (c2, o))
 }
