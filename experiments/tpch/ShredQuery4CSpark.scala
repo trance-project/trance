@@ -91,46 +91,31 @@ val parts__D_1 = x198
 val x199 = parts__D_1
 //parts__D_1.collect.foreach(println(_))
 val x201 = CustOrders__D_1 
-/**val x205 = { val out1 = x201.map{ case x202 => ({val x204 = x202.corders
+val x205 = { val out1 = x201.map{ case x202 => ({val x204 = x202.corders 
 x204}, x202) }
   val out2 = CustOrders__D_2corders_1.flatMapValues(identity)
-  out2.lookupSkewLeft(out1)
-}
-val x207 = parts__D_1
-val x213 = { val out1 = x205.map{ case (x209, x208) => ({val x211 = x209.o_orderkey
+  out1.lookup(out2)
+} 
+val x207 = parts__D_1 
+val x213 = { val out1 = x205.map{ case (x208, x209) => ({val x211 = x209.o_orderkey 
 x211}, (x208, x209)) }
-  val out2 = x207.map{ case x210 => ({val x212 = x210.l_orderkey
+  val out2 = x207.map{ case x210 => ({val x212 = x210.l_orderkey 
 x212}, x210) }
   out1.join(out2).map{ case (k,v) => v }
-} **/
-//val x205 = CustOrders__D_2corders_1
-val x207 = parts__D_1
-val x213 = { val out1 = CustOrders__D_2corders_1.flatMap{ case (x208, x209) => x209.map( v=> ({val x211 = v.o_orderkey
-x211}, (x208, v))) }
-  val out2 = x207.map{ case x210 => ({val x212 = x210.l_orderkey
-x212}, x210) }
-  out1.join(out2).map{ case (k,v) => v }
-}
+} 
 val x224 = x213.flatMap{ case ((x214, x215), x216) => val x223 = (x214,x215,x216) 
 x223 match {
    case (_,null,_) => Nil
 case (_,_,null) => Nil
-   case x222 => List(({val x217 = x214//.c_name 
+   case x222 => List(({val x217 = x214.c_name 
 val x218 = x215.o_orderdate 
 val x219 = x216.p_name 
-val x220 = (x217, x218, x219) 
+val x220 = Record231(x217, x218, x219) 
 x220}, {val x221 = x216.l_qty 
 x221}))
  }
 }.reduceByKey(_ + _) 
-val x205 = { val out1 = x201.map{ case x202 => ({val x204 = x202.corders
-x204}, x202) }
-  val out2 = x224.map{ case ((lbl, orderdate, pname), cnt) => (lbl, (orderdate, pname, cnt))}
-  out2.lookupSkewLeft(out1)
-}.map{
-  case ((orderdate, pname, cnt), cname) => (cname.c_name, orderdate, pname) -> cnt 
-}.reduceByKey(_ + _)
-val M_flat1 = x205
+val M_flat1 = x224
 val x225 = M_flat1
 //M_flat1.collect.foreach(println(_))
 x225.count

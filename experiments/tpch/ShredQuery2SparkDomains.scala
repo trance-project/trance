@@ -98,7 +98,8 @@ x178}, x175) }
   val out2 = x174.map{ case x176 => ({val x179 = x176.l_suppkey 
 x179}, x176) }
   out1.join(out2).map{ case (k,v) => v }
-} 
+}
+x180.collect.foreach(println(_)) 
 val x182 = resultInner__D_1 
 val x188 = { val out1 = x180.map{ case (x183, x184) => ({val x186 = x184.l_orderkey 
 x186}, (x183, x184)) }
@@ -122,7 +123,7 @@ x201
 } 
 val M_flat2 = x202
 val x203 = M_flat2
-//M_flat2.collect.foreach(println(_))
+M_flat2.collect.foreach(println(_))
 x203.count
 }
 var start0 = System.currentTimeMillis()

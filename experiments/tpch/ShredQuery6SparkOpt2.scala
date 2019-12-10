@@ -110,19 +110,19 @@ Query2__D_2customers2_1.count
 def f = { 
  val x246 = Query2__D_1 
 val x250 = { val out1 = x246.map{ case x247 => ({val x249 = x247.customers2 
-x249}, x247) }
+x249}, x247.s_name) }
   val out2 = Query2__D_2customers2_1.flatMapValues(identity)
   out2.lookupSkewLeft(out1)
 } 
 val x256 = x250.map{ case (x252, x251) => 
    val x253 = x252.c_name2 
-val x254 = x251.s_name 
+val x254 = x251//.s_name 
 val x255 = Record274(x253, x254) 
 x255 
 } 
 val cflat__D_1 = x256
 val x257 = cflat__D_1
-//cflat__D_1.collect.foreach(println(_))
+cflat__D_1.collect.foreach(println(_))
 val x262 = C__D_1.map{ case x258 => 
    val x259 = x258.c_name 
 val x260 = Record275(x259) 
