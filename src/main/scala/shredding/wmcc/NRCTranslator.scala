@@ -91,10 +91,10 @@ trait NRCTranslator extends LinearizedNRC with NRCPrinter {
     case g:GroupBy => 
       CGroupBy(translate(g.bag), translate(g.v).asInstanceOf[Variable], translate(g.grp), translate(g.value))
     case Named(v, e) => e match {
-      case Sequence(fs) => LinearCSet(fs.map{
+      /**case Sequence(fs) => LinearCSet(fs.map{
         case Named(VarDef(n1, tp), e1) if n1 == "M_flat1" => CNamed(v.name+"__D_1", translate(e1))
         case nd => translate(nd)
-      })
+      })**/
       case _ => CNamed(v.name, translate(e))
     }
     case Sequence(exprs) => 

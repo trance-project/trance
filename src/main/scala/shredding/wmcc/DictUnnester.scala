@@ -103,6 +103,15 @@ object DictUnnester {
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case _ => sys.error("not supported")
       }
+    case p @ Project(v, f) if !w.isEmpty => // from unshredding
+      assert(!E.isEmpty)
+      if (u.isEmpty) Reduce(E.get, w, p, Constant(true))
+      else {
+        val et = Tuple(u)
+        val gt = Tuple((w.toSet -- u).toList)
+        val v2 = Variable.fresh(TTupleType(et.tp.attrTps :+ p.tp))
+        Nest(E.get, w, et, p, v2, Constant(true), gt)
+      }
     case s @ Sng(v @ Variable(_,_)) if !w.isEmpty =>
       assert(!E.isEmpty)
       if (u.isEmpty) Reduce(E.get, w, v, Constant(true))
@@ -194,8 +203,6 @@ object DictUnnester {
               //case Project(v1, "_2") if v1 == v => unnest(e3)((u, w :+ v2, Some(Select(e1, v2, p2, v2))))
               case _ =>
                 val nE = Some(Join(E.get, Select(e1, v, sp2s, v), w, p1s, v2, p2s))  
-                println("this is it")
-                println(nE)
                 unnest(e4)((u, w :+ v2, nE))
              }
              case _ => if (u.isEmpty) {
@@ -216,8 +223,6 @@ object DictUnnester {
       }
     case Comprehension(e1, v, p, e) if !w.isEmpty =>
       val preds = ps(p, v, w)
-      println("in here with")
-      println(preds)
       assert(!E.isEmpty)
       getPM(preds._1) match {
         case (Constant(false), _) => 

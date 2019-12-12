@@ -38,10 +38,7 @@ trait BaseNormalizer extends BaseCompiler {
 
   override def lookup(lbl: Rep, dict: Rep): Rep = dict match {
     case BagCDict(lbl2, flat2, dict2) if (lbl2.tp == lbl.tp) => flat2
-    case BagCDict(lbl2, flat2, dict2) =>
-      println("need to look into this")
-      println(lbl.tp)
-      println(lbl2.tp)
+    case BagCDict(lbl2, flat2, dict2) =>///???
       super.lookup(lbl,dict)
     case _ => 
       super.lookup(lbl, dict)
@@ -147,11 +144,11 @@ trait BaseNormalizer extends BaseCompiler {
           case _ =>
             Comprehension(e1, v, p(v), e(v))
         }
-      case InputRef("M_flat1", tp) => 
+      case InputRef(n, tp @ BagCType(RecordCType(fs))) if !n.contains("ctx") =>
         val v = Variable.fresh(TTupleType(List(EmptyCType,tp)))
         e(v) match {
           case Comprehension(Project(_,"_2"), v2, p2, e3) =>
-            Comprehension(InputRef("M_flat1", tp), v2, p2, e3)  
+            Comprehension(InputRef(n, tp), v2, p2, e3)  
           case _ => sys.error("case should not be hit")
         }
       case _ => // standard case (return self)

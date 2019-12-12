@@ -9,7 +9,7 @@ import shredding.examples.tpch._
 object Utils {
 
   val normalizer = new Finalizer(new BaseNormalizer{})
-  val pathout = (outf: String) => s"experiments/tpch/$outf.scala"
+  def pathout(outf: String, sub: String = ""): String = s"experiments/tpch/$sub/$outf.scala"
   //val pathout = (outf: String) => s"src/test/scala/shredding/examples/simple/$outf.scala"
 
   /**
@@ -180,14 +180,32 @@ object Utils {
     * Produces an ouptut spark application 
     * (either shredded or not shredded) that does unnesting
     */
+  def timeOp(appname: String, e: String, i: Int = 0): String = {
+    val query = if (i > 0) "unshredding" else "query"
+    s"""
+      |var start$i = System.currentTimeMillis()
+      |$e.count
+      |var end$i = System.currentTimeMillis() - start$i
+      |println("$appname,"+sf+","+Config.datapath+","+end$i+",$query,"+spark.sparkContext.applicationId)
+    """.stripMargin
+  }
+
+  def timed(appname: String, e: List[String]): String =
+    s"""| def f = {
+        | ${e.zipWithIndex.map{ case (e1,i) => timeOp(appname, e1, i) }.mkString("\n")}
+        |}
+        |var start = System.currentTimeMillis()
+        |f
+        |var end = System.currentTimeMillis() - start
+    """.stripMargin
    
   def timed(e: String): String = 
     s"""|def f = { 
         | $e.count
         |}
-        |var start0 = System.currentTimeMillis()
+        |var start = System.currentTimeMillis()
         |f
-        |var end0 = System.currentTimeMillis() - start0 """.stripMargin
+        |var end = System.currentTimeMillis() - start """.stripMargin
 
   def runSparkNew(query: Query, shred: Boolean = false): Unit = {
     
@@ -200,6 +218,23 @@ object Utils {
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val finalc = writeSparkNew(qname+"Spark", query.inputs(if (shred) TPCHSchema.stblcmds else TPCHSchema.tblcmds), header, timed(gcode))
+    printer.println(finalc)
+    printer.close 
+  
+  }
+
+  def runSparkShred(query: Query): Unit = {
+    
+    val codegen = new SparkNamedGenerator(query.inputTypes(true), true)
+    val gcode1 = codegen.generate(query.shredANF)
+    val gcode2 = codegen.generate(query.unshredANF)
+    val header = codegen.generateHeader(query.headerTypes(true))
+   
+    val qname = s"Shred${query.name}Spark"
+    val fname = pathout(qname, "unshred") 
+    println(s"Writing out $qname to $fname")
+    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
+    val finalc = writeSparkNew(qname, query.inputs(TPCHSchema.stblcmds), header, timed(qname, List(gcode1, gcode2)))
     printer.println(finalc)
     printer.close 
   
@@ -323,7 +358,7 @@ object Utils {
       |   val spark = SparkSession.builder().config(conf).getOrCreate()
       |   $data
       |   $gcode
-      |   println("$appname"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
+      |   println("$appname"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
       | }
       |}""".stripMargin
   }

@@ -260,10 +260,12 @@ trait NRC extends BaseExpr {
   final case class PlusGroupBy(bag: BagExpr, v: VarDef, grp: TupleExpr, value: PrimitiveExpr) extends GroupBy {
     val tp: BagType = BagType(TupleType(grp.tp.attrTps + ("_2" -> value.tp)))
   }
-
-  case class Named(v: VarDef, e: Expr) extends Expr {
+  
+  // enforcing this to be a named bag expression
+  // may need to expand later if this is too restrictive
+  case class Named(v: VarDef, e: BagExpr) extends BagExpr {
     assert(v.tp == e.tp)
-    def tp: Type = e.tp//TupleType()    // unit type
+    val tp: BagType = e.tp//TupleType()    // unit type
   }
 
   case class Sequence(exprs: List[Expr]) extends Expr {

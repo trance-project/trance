@@ -27,10 +27,10 @@ object App {
  
   def runTPCH1(){
 
-    /**
-    Utils.runSparkNew(TPCHQuery1Full)
-    Utils.runSparkNew(TPCHQuery1Full, shred = true)
-    **/
+    //Utils.runSparkNew(TPCHQuery1Full)
+    //Utils.runSparkNew(TPCHQuery1Full, shred = true)
+    Utils.runSparkShred(TPCHQuery1)
+    //println(Printer.quote(runner.unshredPipeline(TPCHQuery1Full.query.asInstanceOf[runner.Expr])))
     //Utils.runSparkNew(TPCHQuery1)
     //Utils.runSparkNew(TPCHQuery1, shred = true)
 
@@ -39,8 +39,8 @@ object App {
     /**Utils.runSparkInputNew(TPCHQuery3, TPCHQuery7A)
     Utils.runSparkInputNew(TPCHQuery3, TPCHQuery7A, shred = true)**/
  
-    Utils.runSparkNew(TPCHQuery2)
-    Utils.runSparkNew(TPCHQuery2, shred = true)
+    //Utils.runSparkNew(TPCHQuery2)
+    //Utils.runSparkNew(TPCHQuery2, shred = true)
     /**Utils.runSparkNew(TPCHQuery2Full)
     Utils.runSparkNew(TPCHQuery2Full, shred = true)**/
  
@@ -50,8 +50,8 @@ object App {
     Utils.runSparkNew(TPCHQuery3, shred = true)**/
  
     //Utils.runSparkInputNew(TPCHQuery2, TPCHQuery6Full)
-    Utils.runSparkInputNew(TPCHQuery2, TPCHQuery6)
-    Utils.runSparkInputNew(TPCHQuery2, TPCHQuery6, shred = true)
+    //Utils.runSparkInputNew(TPCHQuery2, TPCHQuery6)
+    //Utils.runSparkInputNew(TPCHQuery2, TPCHQuery6, shred = true)
 
     // This includes a cogroup optimization that 
     // isn't ready yet, so ignoring

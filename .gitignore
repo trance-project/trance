@@ -1,5 +1,5 @@
 *DS_Store*
-experiments/*.scala
+experiments/*
 project/
 target/
 .history

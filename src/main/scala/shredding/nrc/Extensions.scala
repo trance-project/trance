@@ -122,7 +122,7 @@ trait Extensions extends LinearizedNRC with Printer {
       case BagGroupBy(bag, v, grp, value) => BagGroupBy(replace(bag, f).asInstanceOf[BagExpr], v, grp, value)
       case PlusGroupBy(bag, v, grp, value) => 
         PlusGroupBy(replace(bag, f).asInstanceOf[BagExpr], v, grp, value)
-      case Named(v, e1) => Named(v, replace(e1, f))
+      case Named(v, e1) => Named(v, replace(e1, f).asInstanceOf[BagExpr])
       case Sequence(ee) => Sequence(ee.map(replace(_, f)))
       case _ => ex
     })

@@ -47,10 +47,10 @@ object TestApp extends App
       val q1shred = optimize(q1shredraw)
       println("[Ex1] Shredded Q1 Optimized: " + quote(q1shred))
 
-//      val q1trans = unshred(q1shred)
-//      println("[Ex1] Unshredded shredded Q1: " + quote(q1trans))
-//      println("[Ex1] Same as original Q1: " + q1trans.equals(q1))
-      
+      //      val q1trans = unshred(q1shred)
+      //      println("[Ex1] Unshredded shredded Q1: " + quote(q1trans))
+      //      println("[Ex1] Same as original Q1: " + q1trans.equals(q1))
+
       val shredR = shred(relationRValue, relationR.tp)
 
       ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
@@ -81,13 +81,23 @@ object TestApp extends App
       val q2shred = optimize(q2shredraw)
       println("[Ex1] Shredded Q2 Optimized: " + quote(q2shred))
 
-//      val q2trans = unshred(q2shred)
-//      println("[Ex1] Unshredded shredded Q2: " + quote(q2trans))
-//      println("[Ex1] Same as original Q2: " + q2trans.equals(q2))
+      //      val q2trans = unshred(q2shred)
+      //      println("[Ex1] Unshredded shredded Q2: " + quote(q2trans))
+      //      println("[Ex1] Same as original Q2: " + q2trans.equals(q2))
 
       val q2lin = linearize(q2shred)
       println("[Ex1] Linearized Q2: " + quote(q2lin))
-      println("[Ex1] Linearized Q2 eval: " + eval(q2lin, ctx).asInstanceOf[List[Any]].mkString("\n\n"))
+      println("[Ex1] Linearized Q2 eval: " + eval(q2lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+
+      val q1mat = materialize(q1shred)
+      println("[Ex1] Materialized strategy Q1: " + quote(q1mat.seq))
+      val q1unshred = unshred(q1shred, q1mat.dictMapper)
+      println("[Ex1] Unshredded expression Q1: " + quote(q1unshred))
+
+      val q2mat = materialize(q2shred)
+      println("[Ex2] Materialized strategy Q2: " + quote(q2mat.seq))
+      val q2unshred = unshred(q2shred, q2mat.dictMapper)
+      println("[Ex2] Unshredded expression Q2: " + quote(q2unshred))
     }
   }
 
@@ -1098,7 +1108,7 @@ object TestApp extends App
     }
   }
 
-//  Example1.run()
+  Example1.run()
 //  Example2.run()
 //  Example3.run()
 //  Example4.run()
@@ -1118,6 +1128,6 @@ object TestApp extends App
 //
 //  Example_Slender_Query1.run()
 
-  Example_Nesting_Rewrite.run()
+//  Example_Nesting_Rewrite.run()
 }
 
