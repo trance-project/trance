@@ -8,7 +8,7 @@ import shredding.utils.Utils.ind
   * Generates Scala code specific to Spark applications
   */
 
-class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean = false) {
+class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
 
   implicit def expToString(e: CExpr): String = generate(e)
 
@@ -180,8 +180,14 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), shredded: Boolean =
         case IntType => false
         case DoubleType => false
         case _ => true
+      }
+      def isLabel(tp: Type): Boolean = tp match {
+        case RecordCType(fs) if fs.keySet == Set("lbl") => true
+        case LabelType(fs) => true
+        case _ => false
       } 
-      val gbfun = if (shredded) ".groupByLabel()" else ".groupByKey()"
+      val gbfun = if (isLabel(f.tp)) ".groupByLabel()" else ".groupByKey()"
+      //if (shredded) ".groupByLabel()" else ".groupByKey()"
       p match {
         case Constant(true) if e2tp => 
           s"""|${generate(e1)}.flatMap{ case $vars => ${generate(g)} match {

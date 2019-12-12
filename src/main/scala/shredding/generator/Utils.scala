@@ -209,7 +209,7 @@ object Utils {
 
   def runSparkNew(query: Query, shred: Boolean = false): Unit = {
     
-    val codegen = new SparkNamedGenerator(query.inputTypes(shred), shred)
+    val codegen = new SparkNamedGenerator(query.inputTypes(shred))
     val gcode = if (shred) codegen.generate(query.sanf) else codegen.generate(query.anf)
     val header = codegen.generateHeader(query.headerTypes(shred))
    
@@ -225,7 +225,7 @@ object Utils {
 
   def runSparkShred(query: Query): Unit = {
     
-    val codegen = new SparkNamedGenerator(query.inputTypes(true), true)
+    val codegen = new SparkNamedGenerator(query.inputTypes(true))
     val gcode1 = codegen.generate(query.shredANF)
     val gcode2 = codegen.generate(query.unshredANF)
     val header = codegen.generateHeader(query.headerTypes(true))
@@ -259,7 +259,7 @@ object Utils {
 
   def runSparkInputNew(inputQuery: Query, query: Query, shred: Boolean = false): Unit = {
     
-    val codegen = new SparkNamedGenerator(inputQuery.inputTypes(shred), shred)
+    val codegen = new SparkNamedGenerator(inputQuery.inputTypes(shred))
     val (inputCode, gcode) = 
       if (shred) (codegen.generate(inputQuery.sanf), codegen.generate(query.sanf))
       else (codegen.generate(inputQuery.anf), codegen.generate(query.anf))
