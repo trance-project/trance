@@ -182,6 +182,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
         case _ => true
       }
       def isLabel(tp: Type): Boolean = tp match {
+        case TTupleType(fs) => isLabel(fs.head)
         case RecordCType(fs) if fs.keySet == Set("lbl") => true
         case LabelType(fs) => true
         case _ => false

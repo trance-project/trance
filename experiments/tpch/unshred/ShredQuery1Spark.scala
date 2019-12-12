@@ -122,7 +122,7 @@ val x109 = Record168(x108)
 val x110 = Record169(x107, x109) 
 x110}))
  }
-}.groupByKey() 
+}.groupByLabel() 
 val x118 = x113.map{ case (x114, x115) => 
    val x116 = x114.lbl 
 val x117 = (x116, x115) 
@@ -167,7 +167,7 @@ val x147 = x144.l_qty
 val x148 = Record172(x146, x147) 
 x148}))
  }
-}.groupByKey() 
+}.groupByLabel() 
 val x156 = x151.map{ case (x152, x153) => 
    val x154 = x152.lbl 
 val x155 = (x154, x153) 
