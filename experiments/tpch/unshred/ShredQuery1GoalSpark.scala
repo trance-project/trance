@@ -180,13 +180,21 @@ x157.count
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery1GoalSpark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
     
-
 var start1 = System.currentTimeMillis()
 val x205 = M__D_1 
-val x207 = c_orders__D_1.flatMap{
+// with cogroups
+/**val x207 = c_orders__D_1.flatMap{
   case (lbl, bag) => bag.map( d => d.o_parts -> (d.o_orderdate, lbl) ) 
 }.cogroup(o_parts__D_1).flatMap{
   case (_, (dates, parts)) => dates.map{ case (date, lbl) => lbl -> (date, parts)} 
+}.cogroup(M__D_1.map{c => c.c_orders -> c.c_name}).flatMap{
+  case (_, (dates, names)) => names.map(n => (n, dates))
+}**/
+// with join and cogroup
+val x207 = c_orders__D_1.flatMap{
+  case (lbl, bag) => bag.map( d => d.o_parts -> (d.o_orderdate, lbl) ) 
+}.join(o_parts__D_1).map{
+  case (_, ((date, lbl), parts)) => lbl -> (date, parts) 
 }.cogroup(M__D_1.map{c => c.c_orders -> c.c_name}).flatMap{
   case (_, (dates, names)) => names.map(n => (n, dates))
 }
