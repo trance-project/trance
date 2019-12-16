@@ -17,8 +17,8 @@ case class Record168(o__Fo_orderkey: Int)
 case class Record169(o_orderdate: String, o_parts: Record168)
 case class Record170(lbl: Record168)
 case class Record172(p_name: String, l_qty: Double)
-case class Record253(o_orderdate: String, o_parts: Iterable[Iterable[Record172]])
-case class Record254(c_name: String, c_orders: Iterable[Record253])
+case class Record231(o_orderdate: String, o_parts: Iterable[Record172])
+case class Record232(c_name: String, c_orders: Iterable[Record231])
 object ShredQuery1Spark {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
@@ -64,7 +64,7 @@ val x65 = { val out1 = x55.map{ case x61 => ({val x63 = x61.l_partkey
 x63}, x61) }
   val out2 = x60.map{ case x62 => ({val x64 = x62.p_partkey 
 x64}, x62) }
-  out1.joinSkewLeft(out2).map{ case (k,v) => v }
+  out1.join(out2).map{ case (k,v) => v }
 } 
 val x72 = x65.map{ case (x66, x67) => 
    val x68 = x66.l_orderkey 
@@ -182,56 +182,37 @@ println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.spar
     
 
 var start1 = System.currentTimeMillis()
-val x205 = M__D_1 
-val x207 = c_orders__D_1 
-val x212 = { val out1 = x205.map{ case x208 => ({val x210 = x208.c_orders 
-x210}, x208) }
-  val out2 = x207.map{ case x209 => ({val x211 = x209._1 
-x211}, x209) }
-  out1.join(out2).map{ case (k,v) => v }
-  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
+val x196 = M__D_1_1 
+val x200 = { val out1 = x196.map{ case x197 => ({val x199 = x197.c_orders 
+x199}, x197) }
+  val out2 = c_orders__D_1_1.flatMapValues(identity)
+  out1.lookup(out2)
 } 
-val x217 = x212.flatMap{ case (x213, x214) => (x213, x214) match {
-   case (_, null) => List(((x213, x214), null))
-   case _ => 
-   {val x215 = x214._2 
-x215} match {
-     case Nil => List(((x213, x214), null))
-     case lst => lst.map{ case x216 => ((x213, x214), x216) }
-  }
- }} 
-val x219 = o_parts__D_1 
-val x226 = { val out1 = x217.map{ case ((x220, x221), x222) => ({val x224 = x222.o_parts 
-x224}, ((x220, x221), x222)) }
-  val out2 = x219.map{ case x223 => ({val x225 = x223._1 
-x225}, x223) }
-  out1.join(out2).map{ case (k,v) => v }
-  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
-} 
-val x235 = x226.flatMap{ case (((x227, x228), x229), x230) => val x234 = (x230) 
-x234 match {
+val x203 = o_parts__D_1_1.map(x201 => { val x202 = () 
+x202 }) 
+val x207 = x200.cartesian(x203) 
+val x214 = x207.flatMap{ case ((x208, x209), x210) => val x213 = (x210) 
+x213 match {
    case (null) => Nil 
-   case x233 => List(({val x231 = (x227,x228,x229) 
-x231}, {val x232 = x230._2 
-x232}))
+   case x212 => List(({val x211 = (x208,x209) 
+x211}, {x210}))
  }
 }.groupByKey() 
-val x245 = x235.flatMap{ case ((x236, x237, x238), x239) => val x244 = (x237,x238,x239) 
-x244 match {
-   case (_,null,_) => Nil
-case (_,_,null) => Nil 
-   case x243 => List(({val x240 = (x236) 
-x240}, {val x241 = x238.o_orderdate 
-val x242 = Record253(x241, x239) 
-x242}))
+val x223 = x214.flatMap{ case ((x215, x216), x217) => val x222 = (x216,x217) 
+x222 match {
+   case (_,null) => Nil 
+   case x221 => List(({val x218 = (x215) 
+x218}, {val x219 = x216.o_orderdate 
+val x220 = Record231(x219, x217) 
+x220}))
  }
 }.groupByKey() 
-val x250 = x245.map{ case (x246, x247) => 
-   val x248 = x246.c_name 
-val x249 = Record254(x248, x247) 
-x249 
+val x228 = x223.map{ case (x224, x225) => 
+   val x226 = x224.c_name 
+val x227 = Record232(x226, x225) 
+x227 
 } 
-x250.count
+x228.count
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
     

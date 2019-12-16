@@ -27,15 +27,15 @@ object App {
  
   def runTPCH1(){
 
-    //Utils.runSparkNew(TPCHQuery1Full)
-    //Utils.runSparkNew(TPCHQuery1Full, shred = true)
-    Utils.runSparkShred(TPCHQuery1)
+    Utils.runSparkInputNew(TPCHQuery1, TPCHQuery4New)
+    //Utils.runSparkInputNew(TPCHQuery1, TPCHQuery4New, shred = true)
+    //Utils.runSparkShred(TPCHQuery2)
     //println(Printer.quote(runner.unshredPipeline(TPCHQuery1Full.query.asInstanceOf[runner.Expr])))
     //Utils.runSparkNew(TPCHQuery1)
     //Utils.runSparkNew(TPCHQuery1, shred = true)
 
     //Utils.runSparkInputNew(TPCHQuery1, TPCHQuery4Full)
-    //Utils.runSparkInputNew(TPCHQuery1, TPCHQuery4Full, shred = true)
+    //Utils.runSparkInputNew(TPCHQuery1, TPCHQuery4New, shred = true)
     /**Utils.runSparkInputNew(TPCHQuery3, TPCHQuery7A)
     Utils.runSparkInputNew(TPCHQuery3, TPCHQuery7A, shred = true)**/
  

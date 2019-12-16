@@ -223,40 +223,6 @@ object Utils {
   
   }
 
-  def runSparkShred(query: Query): Unit = {
-    
-    val codegen = new SparkNamedGenerator(query.inputTypes(true))
-    val gcode1 = codegen.generate(query.shredANF)
-    val gcode2 = codegen.generate(query.unshredANF)
-    val header = codegen.generateHeader(query.headerTypes(true))
-   
-    val qname = s"Shred${query.name}Spark"
-    val fname = pathout(qname, "unshred") 
-    println(s"Writing out $qname to $fname")
-    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val finalc = writeSparkNew(qname, query.inputs(TPCHSchema.stblcmds), header, timed(qname, List(gcode1, gcode2)))
-    printer.println(finalc)
-    printer.close 
-  
-  }
-
-  def inputs(n: String, e: String): String = 
-    s"""|val $n = {
-        | $e
-        |}
-        |$n.cache
-        |$n.count""".stripMargin
- 
-  def shredInputs(ns: List[String]): String = { 
-    var cnt = 0
-    ns.map{ n => 
-      cnt += 1
-      s"""|val $n = M_flat$cnt
-          |$n.cache
-          |$n.count"""
-    }.mkString("\n").stripMargin
-  }
-
   def runSparkInputNew(inputQuery: Query, query: Query, shred: Boolean = false): Unit = {
     
     val codegen = new SparkNamedGenerator(inputQuery.inputTypes(shred))
@@ -277,6 +243,40 @@ object Utils {
     printer.println(finalc)
     printer.close 
   
+  }
+
+  def runSparkShred(query: Query, unshred: Boolean = false): Unit = {
+    
+    val codegen = new SparkNamedGenerator(query.inputTypes(true))
+    val gcode1 = codegen.generate(query.shredANF)
+    val gcodeSet = if (unshred) List(gcode1, codegen.generate(query.unshredANF)) else List(gcode1)
+    val header = codegen.generateHeader(query.headerTypes(true))
+   
+    val qname = s"Shred${query.name}Spark"
+    val fname = if (unshred) pathout(qname, "unshred") else pathout(qname)
+    println(s"Writing out $qname to $fname")
+    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
+    val finalc = writeSparkNew(qname, query.inputs(TPCHSchema.stblcmds), header, timed(qname, gcodeSet))
+    printer.println(finalc)
+    printer.close 
+  
+  }
+
+  def inputs(n: String, e: String): String = 
+    s"""|val $n = {
+        | $e
+        |}
+        |$n.cache
+        |$n.count""".stripMargin
+ 
+  def shredInputs(ns: List[String]): String = { 
+    var cnt = 0
+    ns.map{ n => 
+      cnt += 1
+      s"""|val $n = M_flat$cnt
+          |$n.cache
+          |$n.count"""
+    }.mkString("\n").stripMargin
   }
  
   def runSpark(qInfo: (CExpr, String, String), inputM: Map[Type, String], 

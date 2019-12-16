@@ -182,16 +182,16 @@ println("ShredQuery1GoalSpark,"+sf+","+Config.datapath+","+end0+",query,"+spark.
     
 var start1 = System.currentTimeMillis()
 val x205 = M__D_1 
-// with cogroups
-/**val x207 = c_orders__D_1.flatMap{
+val x207 = c_orders__D_1.flatMap{
   case (lbl, bag) => bag.map( d => d.o_parts -> (d.o_orderdate, lbl) ) 
 }.cogroup(o_parts__D_1).flatMap{
   case (_, (dates, parts)) => dates.map{ case (date, lbl) => lbl -> (date, parts)} 
 }.cogroup(M__D_1.map{c => c.c_orders -> c.c_name}).flatMap{
   case (_, (dates, names)) => names.map(n => (n, dates))
-}**/
+}
+x207.count
 // with join and cogroup
-val x207 = c_orders__D_1.flatMap{
+/**val x207 = c_orders__D_1.flatMap{
   case (lbl, bag) => bag.map( d => d.o_parts -> (d.o_orderdate, lbl) ) 
 }.join(o_parts__D_1).map{
   case (_, ((date, lbl), parts)) => lbl -> (date, parts) 
@@ -199,6 +199,7 @@ val x207 = c_orders__D_1.flatMap{
   case (_, (dates, names)) => names.map(n => (n, dates))
 }
 x207.count
+**/
 //x207.collect.foreach(println(_))
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery1GoalSpark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
@@ -207,7 +208,21 @@ println("ShredQuery1GoalSpark,"+sf+","+Config.datapath+","+end1+",unshredding,"+
 var start = System.currentTimeMillis()
 f
 var end = System.currentTimeMillis() - start
-    
+/**
+the plan from unnesting never finishes
+cogroups
+ShredQuery1GoalSpark,sfs100,/nfs_qc4/tpch/sfs100/,361986,query,app-20191212132126-0063
+ShredQuery1GoalSpark,sfs100,/nfs_qc4/tpch/sfs100/,224174,unshredding,app-20191212132126-0063
+ShredQuery1GoalSparksfs100,/nfs_qc4/tpch/sfs100/,586165,total,app-20191212132126-0063
+cogroups with caching
+ShredQuery1GoalSpark,sfs100,/nfs_qc4/tpch/sfs100/,353017,query,app-20191212134149-0064
+ShredQuery1GoalSpark,sfs100,/nfs_qc4/tpch/sfs100/,261554,unshredding,app-20191212134149-0064
+ShredQuery1GoalSparksfs100,/nfs_qc4/tpch/sfs100/,722424,total,app-20191212134149-0064
+cogroup with the join
+ShredQuery1GoalSpark,sfs100,/nfs_qc4/tpch/sfs100/,324945,query,app-20191213010258-0065
+ShredQuery1GoalSpark,sfs100,/nfs_qc4/tpch/sfs100/,281501,unshredding,app-20191213010258-0065
+ShredQuery1GoalSparksfs100,/nfs_qc4/tpch/sfs100/,606450,total,app-20191213010258-0065
+**/   
    println("ShredQuery1GoalSpark"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
  }
 }
