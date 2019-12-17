@@ -166,6 +166,7 @@ object Loader {
             //case DateType       => ldr.next_date
             //case VarCharType(len) => //loadString(len, ldr)
             //  ldr.next_string
+            case dt => sys.error(s"$dt not matched")
           })
 
         classMirror.reflectConstructor(constr).apply(values: _*) match {

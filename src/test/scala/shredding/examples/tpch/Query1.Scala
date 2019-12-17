@@ -3,11 +3,10 @@ package experiments
 /** Generated code **/
 object Query1 {
  
-import shredding.examples.tpch._
-val C = TPCHLoader.loadCustomer.toList
-val O = TPCHLoader.loadOrders.toList
-val L = TPCHLoader.loadLineitem.toList
-val P = TPCHLoader.loadPart.toList
+val C = TPCHLoader.loadCustomer[Customer].toList
+val O = TPCHLoader.loadOrders[Orders].toList
+val L = TPCHLoader.loadLineitem[Lineitem].toList
+val P = TPCHLoader.loadPart[Part].toList
  case class Record33(p_name: String, l_qty: Double)
 case class Record34(o_orderdate: String, o_parts: List[Record33])
 case class Record35(c_name: String, c_orders: List[Record34])

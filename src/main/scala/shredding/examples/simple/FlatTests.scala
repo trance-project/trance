@@ -24,4 +24,12 @@ object FlatTests {
   val q3 = ForeachUnion(x, relR, 
             IfThenElse(Cmp(OpGt, TupleVarRef(x)("a"), Const(40, IntType)),
               Singleton(Tuple("o1" -> TupleVarRef(x)("b")))))
+  
+  val y = VarDef("y", FlatRelations.type1a)
+  val q4 = ForeachUnion(x, relR, 
+            ForeachUnion(y, relR, 
+              IfThenElse(Cmp(OpEq, TupleVarRef(x)("a"), TupleVarRef(y)("a")), 
+                Singleton(Tuple("a" -> TupleVarRef(x)("a"), 
+                  "b1" -> TupleVarRef(x)("b"), "b2" -> TupleVarRef(y)("b")))))) 
+
 }

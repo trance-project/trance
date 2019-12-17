@@ -69,8 +69,8 @@ object NestedTests {
     
    // michael's filter inner bag example
    val q8 = ForeachUnion(x3, relR2,
-              Singleton(Tuple("a'" -> TupleVarRef(x3)("a"),
-                "s1'" -> ForeachUnion(x5, BagProject(TupleVarRef(x3), "b"),
+              Singleton(Tuple("a" -> TupleVarRef(x3)("a"),
+                "s1" -> ForeachUnion(x5, BagProject(TupleVarRef(x3), "b"),
                  IfThenElse(Cmp(OpGt, Const(2, IntType), TupleVarRef(x5)("c")), Singleton(TupleVarRef(x5)))))))
    // Relation 3
   
@@ -86,4 +86,58 @@ object NestedTests {
                 "s2'" -> ForeachUnion(x7, BagProject(TupleVarRef(x6), "s2"),
                           IfThenElse(Cmp(OpGt, TupleVarRef(x7)("c"), Const(6, IntType)),
                             Singleton(TupleVarRef(x7)))))))
+    
+
+
+    val q10name = "Test"
+    val relR4 = BagVarRef(VarDef("R", BagType(NestedRelations.type4a)))
+    val x8 = VarDef("x", NestedRelations.type4a)
+    val rx8 = TupleVarRef(x8)
+    val x9 = VarDef("y", NestedRelations.type4b)
+    val rx9 = TupleVarRef(x9)
+    val x10 = VarDef("z", NestedRelations.type4e)
+    val rx10 = TupleVarRef(x10)
+    val q10 = ForeachUnion(x8, relR4, 
+                Singleton(Tuple("o1" -> rx8("a"), "o2" -> 
+                  Total(ForeachUnion(x9, BagProject(rx8, "b"),
+                          IfThenElse(Cmp(OpEq, 
+                                         Total(ForeachUnion(x10, BagProject(rx8, "e"),
+                                                IfThenElse(Cmp(OpEq, rx9("d"), rx10("g")), 
+                                                  Singleton(Tuple("flag" -> Const("exists", StringType)))))),
+                                          Const(0, IntType)),
+                                      Singleton(Tuple("o3" -> rx8("a"))))))))) 
+
+    val q11name = "Query5Test"
+    val relP = BagVarRef(VarDef("P", BagType(NestedRelations.typeP)))
+    val p = VarDef("p", NestedRelations.typeP)
+    val pr = TupleVarRef(p)
+    val relPS = BagVarRef(VarDef("PS", BagType(NestedRelations.typePS)))
+    val ps = VarDef("ps", NestedRelations.typePS)
+    val psr = TupleVarRef(ps)
+    val relS = BagVarRef(VarDef("S", BagType(NestedRelations.typeS)))
+    val s = VarDef("s", NestedRelations.typeS)
+    val sr = TupleVarRef(s)
+    val relL = BagVarRef(VarDef("L", BagType(NestedRelations.typeL)))
+    val l = VarDef("l", NestedRelations.typeL)
+    val lr = TupleVarRef(l)
+    val relO = BagVarRef(VarDef("O", BagType(NestedRelations.typeO)))
+    val o = VarDef("o", NestedRelations.typeO)
+    val or = TupleVarRef(o)
+    val relC = BagVarRef(VarDef("C", BagType(NestedRelations.typeC)))
+    val c = VarDef("c", NestedRelations.typeC)
+    val cr = TupleVarRef(c)
+
+    val q11 = ForeachUnion(p, relP,
+                Singleton(Tuple("p_name" -> pr("p_name"), "suppliers" -> ForeachUnion(ps, relPS,
+                  IfThenElse(Cmp(OpEq, psr("ps_partkey"), pr("p_partkey")),
+                    ForeachUnion(s, relS,
+                      IfThenElse(Cmp(OpEq, sr("s_suppkey"), psr("ps_suppkey")),
+                        Singleton(Tuple("s_name" -> sr("s_name"), "s_nationkey" -> sr("s_nationkey"))))))),
+                  "customers" -> ForeachUnion(l, relL,
+                    IfThenElse(Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
+                      ForeachUnion(o, relO,
+                        IfThenElse(Cmp(OpEq, or("o_orderkey"), lr("l_orderkey")),
+                          ForeachUnion(c, relC,
+                            IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
+                              Singleton(Tuple("c_name" -> cr("c_name"), "c_nationkey" -> cr("c_nationkey"))))))))))))
 }

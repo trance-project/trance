@@ -42,6 +42,7 @@ trait NRC extends BaseExpr {
     def name: String = varDef.name
 
     def tp: Type = varDef.tp
+
   }
 
   case object VarRef {
@@ -80,6 +81,8 @@ trait NRC extends BaseExpr {
       case Tuple(fs) => fs(field)
       case TupleLet(x, e1, Tuple(fs)) =>
         Let(x, e1, fs(field)).asInstanceOf[TupleAttributeExpr]
+      case TupleIfThenElse(c, Tuple(fs1), Tuple(fs2)) =>
+        IfThenElse(c, fs1(field), fs2(field)).asInstanceOf[TupleAttributeExpr]
       case _ => tuple.tp(field) match {
         case _: PrimitiveType => PrimitiveProject(tuple, field)
         case _: BagType => BagProject(tuple, field)
@@ -224,6 +227,39 @@ trait NRC extends BaseExpr {
     assert(e2.isEmpty || e1.tp == e2.get.tp)
 
     val tp: BagType = e1.tp
+  }
+
+
+  trait GroupBy extends BagExpr {
+    def bag: BagExpr
+    def grp: Expr
+    def value: Expr
+    def v: VarDef
+  }
+
+  object GroupBy {
+    def apply(bag: BagExpr, grp: List[String], ins: List[String], tp: Type): BagExpr = { 
+      val x = VarDef.fresh(bag.tp.tp)
+      val xr = TupleVarRef(x)
+      tp match {
+        case p:PrimitiveType => 
+          assert(ins.size == 1)
+          PlusGroupBy(bag, x, Tuple(grp.map{g => (g -> xr(g))}.toMap), 
+            xr(ins.head).asInstanceOf[PrimitiveExpr])
+        case b:BagType => 
+          BagGroupBy(bag, x, Tuple(grp.map{g => (g -> xr(g))}.toMap), 
+            Tuple(ins.map{g => (g -> xr(g))}.toMap))      
+        case _ => sys.error("unsupported groupby type")
+      }
+    }
+  }
+
+  final case class BagGroupBy(bag: BagExpr, v: VarDef, grp: TupleExpr, value: TupleExpr) extends GroupBy {
+    val tp: BagType = BagType(TupleType(grp.tp.attrTps + ("_2" -> BagType(value.tp))))
+  }
+
+  final case class PlusGroupBy(bag: BagExpr, v: VarDef, grp: TupleExpr, value: PrimitiveExpr) extends GroupBy {
+    val tp: BagType = BagType(TupleType(grp.tp.attrTps + ("_2" -> value.tp)))
   }
 
 }

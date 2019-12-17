@@ -232,14 +232,6 @@ trait BaseCompiler extends Base {
   }
 }
 
-trait CaseClassRecord
-case class RecordValue(map: Map[String, Any]) {
-  override def toString(): String = map.map(x => s"${x._1}:${x._2}").mkString("Rec(", ",", ")")
-}
-object RecordValue {
-  def apply(vs: (String, Any)*): RecordValue = RecordValue(vs.toMap)
-}
-
 /**
   * Scala evaluation 
   */
@@ -274,7 +266,7 @@ trait BaseScalaInterp extends Base{
         val field = c.getClass.getDeclaredFields.find(_.getName == f).get
         field.setAccessible(true)
         field.get(c)
-      case m:HashMap[String,_] => m(f)
+      //case m:HashMap[Any,_] => m(f.asInstanceof[Any])
       case l:List[_] => l.map(project(_,f))
       case p:Product => p.productElement(f.toInt)
       case t => sys.error(s"unsupported projection type ${t.getClass} for object:\n$t") 
@@ -307,7 +299,7 @@ trait BaseScalaInterp extends Base{
   def bind(e1: Rep, e: Rep => Rep): Rep = ctx.getOrElseUpdate(e1.asInstanceOf[String], e(e1))
   def lookup(lbl: Rep, dict: Rep): Rep = dict match {
     case (flat, tdict) => flat match {
-      case (head:Map[String,Rep]) :: tail => flat
+      case (head:Map[_,_]) :: tail => flat
       case _ => flat.asInstanceOf[List[(_,_)]].withFilter(_._1 == lbl).map(_._2)
     }
     case _ => dict // (flat, ())

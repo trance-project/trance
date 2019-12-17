@@ -3,6 +3,7 @@ package shredding.nrc
 import shredding.core._
 import shredding.examples.tpch.{TPCHQueries, TPCHSchema}
 import shredding.runtime.{Context, Evaluator, ScalaPrinter, ScalaShredding}
+import shredding.examples.optimize._
 
 object TestApp extends App
   with NRC
@@ -1107,7 +1108,31 @@ object TestApp extends App
     }
   }
 
-  Example1.run()
+  // DomainOptExample6 will hit an error since BagDictLet 
+  // is not handled in the accessible linearizeNoDomains
+  object DomainExamples{
+    def run(): Unit = {
+
+      val q1 = DomainOptExample1.query.asInstanceOf[Expr]
+      println("[Nesting rewrite] Q1: " + quote(q1))
+
+      val q1opt = nestingRewrite(q1)
+
+      println("[Nesting rewrite] Q1 rewritten: " + quote(q1opt))
+
+      val q1fullshredraw = shred(q1)
+      println("[Nesting rewrite] Shredded Full Q1: " + quote(q1fullshredraw))
+
+      val q1fullshred = optimize(q1fullshredraw)
+      println("[Nesting rewrite] Shredded Q1 Optimized: " + quote(q1fullshred))
+
+      val q1fulllin = linearizeNoDomains(q1fullshred)
+      println("[Nesting rewrite] Linearized Q1: " + quote(q1fulllin))
+
+    }
+  }
+  DomainExamples.run()
+//  Example1.run()
 //  Example2.run()
 //  Example3.run()
 //  Example4.run()
@@ -1128,5 +1153,6 @@ object TestApp extends App
 //  Example_Slender_Query1.run()
 
 //  Example_Nesting_Rewrite.run()
+
 }
 

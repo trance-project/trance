@@ -33,6 +33,7 @@ object Unnester {
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
           val (nE, v2) = getNest(unnest(value)((w, w, E)))
           Bind(value, v2, unnest(If(cond, Sng(Record(fs + (key -> v2))), None))((u, w :+ v2, nE)))
+        case _ => ???
       }
     case s @ Sng(t @ Record(fs)) if !w.isEmpty =>
       assert(!E.isEmpty)
@@ -47,6 +48,7 @@ object Unnester {
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
           val (nE, v2) = getNest(unnest(value)((w, w, E)))
           Bind(value, v2, unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE)))
+        case _ => ???
       }
     case c @ Constant(_) if !w.isEmpty =>
       assert(!E.isEmpty)
@@ -87,6 +89,7 @@ object Unnester {
   def getNest(e: CExpr): (Option[CExpr], Variable) = e match {
     case Bind(nval, nv @ Variable(_,_), e1) => (Some(e), nv)
     case Nest(_,_,_,_,v2 @ Variable(_,_),_) => (Some(e), v2)
+    case _ => ???
   }
 
   // filtering conditions

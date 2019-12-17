@@ -1,5 +1,7 @@
 package shredding.examples.tpch
 
+import scala.reflect._
+import scala.reflect.runtime.universe._
 import shredding.loader.csv._
 
 object TPCHLoader {
@@ -11,20 +13,20 @@ object TPCHLoader {
 
   import Loader.loadTable
 
-  def loadRegion() = loadTable[Region](getTable("REGION"))
+  def loadRegion[T](implicit c: ClassTag[T]) = loadTable[T](getTable("REGION"))
 
-  def loadPartsupp() = loadTable[PartSupp](getTable("PARTSUPP"))
+  def loadPartSupp[T: TypeTag](implicit c: ClassTag[T]) = loadTable[T](getTable("PARTSUPP"))
 
-  def loadPart() = loadTable[Part](getTable("PART"))
+  def loadPart[T: TypeTag](implicit c: ClassTag[T]) = loadTable[T](getTable("PART"))
 
-  def loadNation() = loadTable[Nation](getTable("NATION"))
+  def loadNation[T: TypeTag](implicit c: ClassTag[T]) = loadTable[T](getTable("NATION"))
 
-  def loadSupplier() = loadTable[Supplier](getTable("SUPPLIER"))
+  def loadSupplier[T: TypeTag](implicit c: ClassTag[T]) = loadTable[T](getTable("SUPPLIER"))
 
-  def loadLineitem() = loadTable[Lineitem](getTable("LINEITEM"))
+  def loadLineitem[T: TypeTag](implicit c: ClassTag[T]) = loadTable[T](getTable("LINEITEM"))
 
-  def loadOrders() = loadTable[Orders](getTable("ORDERS"))
+  def loadOrders[T: TypeTag](implicit c: ClassTag[T]) = loadTable[T](getTable("ORDERS"))
 
-  def loadCustomer() = loadTable[Customer](getTable("CUSTOMER"))
+  def loadCustomer[T: TypeTag](implicit c: ClassTag[T]) = loadTable[T](getTable("CUSTOMER"))
 }
 
