@@ -176,29 +176,20 @@ x155
 val o_parts__D_1 = x156
 val x157 = o_parts__D_1
 //o_parts__D_1.collect.foreach(println(_))
-x157.count
+o_parts__D_1.count
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery1GoalSpark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
     
 var start1 = System.currentTimeMillis()
-val x205 = M__D_1 
 // with cogroups
-/**val x207 = c_orders__D_1.flatMap{
+val unshred = c_orders__D_1.flatMap{
   case (lbl, bag) => bag.map( d => d.o_parts -> (d.o_orderdate, lbl) ) 
 }.cogroup(o_parts__D_1).flatMap{
   case (_, (dates, parts)) => dates.map{ case (date, lbl) => lbl -> (date, parts)} 
 }.cogroup(M__D_1.map{c => c.c_orders -> c.c_name}).flatMap{
   case (_, (dates, names)) => names.map(n => (n, dates))
-}**/
-// with join and cogroup
-val x207 = c_orders__D_1.flatMap{
-  case (lbl, bag) => bag.map( d => d.o_parts -> (d.o_orderdate, lbl) ) 
-}.join(o_parts__D_1).map{
-  case (_, ((date, lbl), parts)) => lbl -> (date, parts) 
-}.cogroup(M__D_1.map{c => c.c_orders -> c.c_name}).flatMap{
-  case (_, (dates, names)) => names.map(n => (n, dates))
 }
-x207.count
+unshred.count
 //x207.collect.foreach(println(_))
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery1GoalSpark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
