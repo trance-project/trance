@@ -43,7 +43,6 @@ S__D_1.cache
 S__D_1.count
 
    val x403 = () 
-var start0 = System.currentTimeMillis()
 val x404 = Record481(x403) 
 val x405 = List(x404) 
 val M_ctx1 = x405
@@ -135,7 +134,8 @@ val Query2__D_2customers2_1 = M_flat2
 Query2__D_2customers2_1.cache
 Query2__D_2customers2_1.count
 def f = { 
- val x516 = () 
+var start0 = System.currentTimeMillis()
+val x516 = () 
 val x517 = Record481(x516) 
 val x518 = List(x517) 
 val M_ctx1 = x518
@@ -209,7 +209,7 @@ var start1 = System.currentTimeMillis()
 val unshred = M_flat1.map(m => m.suppliers -> m.c_name).join(M_flat2).map{ case (k,v) => v }
 unshred.count
 var end1 = System.currentTimeMillis() - start1
-println("ShredQuery6SparkDomains"+sf+","+Config.datapath+","+end0+",unshredding,"+spark.sparkContext.applicationId)
+println("ShredQuery6SparkDomains"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 
 }
 var start = System.currentTimeMillis()

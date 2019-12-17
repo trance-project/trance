@@ -72,6 +72,7 @@ x157
 } 
 val M_flat1 = x158
 val x159 = M_flat1
+//M_flat1.cache
 M_flat1.count
 //M_flat1.collect.foreach(println(_))
 val x169 = O__D_1.map{ case x160 => 
@@ -87,6 +88,7 @@ x168
 }.groupByLabel() 
 val M_flat2 = x169
 val x170 = M_flat2
+//M_flat2.cache
 M_flat2.count
 //M_flat2.collect.foreach(println(_))
 val x179 = ljp__D_1.map{ case x171 => 
@@ -102,16 +104,18 @@ x178
 val M_flat3 = x179
 val x180 = M_flat3
 //M_flat3.collect.foreach(println(_))
+//M_flat3.cache
 M_flat3.count
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery1SparkOpt"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
 var start1 = System.currentTimeMillis()
+val top = M_flat1.map{ c => c.c_orders -> c.c_name }
 val x207 = M_flat2.flatMap{
   case (lbl, bag) => bag.map( d => d.o_parts -> (d.o_orderdate, lbl) )
 }.cogroup(M_flat3).flatMap{
   case (_, (dates, parts)) => dates.map{ case (date, lbl) => lbl -> (date, parts)}
-}.cogroup(M_flat1.map{c => c.c_orders -> c.c_name}).flatMap{
+}.cogroup(top).flatMap{
   case (_, (dates, names)) => names.map(n => (n, dates))
 }
 x207.count

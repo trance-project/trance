@@ -100,7 +100,6 @@ println("ShredQuery2SparkOpt"+sf+","+Config.datapath+","+end0+",query,"+spark.sp
 
 var start1 = System.currentTimeMillis()
 val unshred = M_flat1.map{m => (m.customers2) -> m.s_name }.join(M_flat2).map{ case (k,v) => v }
-unshred.collect.foreach(println(_))
 unshred.count
 var end1 = System.currentTimeMillis() - start1 
 println("ShredQuery2SparkOpt"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)

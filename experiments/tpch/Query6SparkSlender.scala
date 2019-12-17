@@ -39,7 +39,7 @@ S.count
      case (_, (l_suppkey, o_custkey)) => o_custkey -> l_suppkey
    }.joinSkewLeft(customers).map(_._2)
 
-   S.map(s => s.s_suppkey -> s.s_name).cogroup(resultInner, new HashPartitioner(Config.minPartitions)).flatMap{
+   S.map(s => s.s_suppkey -> s.s_name).cogroup(resultInner).flatMap{
      case (_, (itV, itW)) => itV.map(v => (v, itW.toArray))
    }
 

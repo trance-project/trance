@@ -114,7 +114,22 @@ trait Linearization {
     val valueTp = kvref.tp.attrTps("_2").asInstanceOf[BagType]
     val labelTypeExist = valueTp.tp.attrTps.exists(_._2.isInstanceOf[LabelType])
 
-    val bagExpr = if (!labelTypeExist) BagProject(kvref, "_2")
+    val bag = BagProject(kvref, "_2")
+    val tdef = VarDef(Symbol.fresh("t"), bag.tp.tp)
+    val tref = TupleVarRef(tdef)
+
+    val bagExpr = if (!labelTypeExist) Singleton(tref)
+    else{
+        Singleton(Tuple(
+          tref.tp.attrTps.map {
+            case (n, _: LabelType) =>
+              n-> unshred(LabelProject(tref, n), dict.tupleDict(n).asInstanceOf[BagDictExpr], dictMapper)
+            case (n, _) => n -> tref(n)
+          }
+        ))
+    }
+    ForeachUnion(tdef, Lookup(lbl, BagDictVarRef(VarDef(matDict.varDef.name, dict.tp))), bagExpr)
+    /**val bagExpr = if (!labelTypeExist) BagProject(kvref, "_2")
     else {
       val bag = BagProject(kvref, "_2")
       val tdef = VarDef(Symbol.fresh("t"), bag.tp.tp)
@@ -130,9 +145,10 @@ trait Linearization {
         )))
     }
 
-    // this should be a lookup
     ForeachUnion(kvdef, matDict,
       BagIfThenElse(Cmp(OpEq, lbl, LabelProject(kvref, "_1")), bagExpr, None))
+    **/
+
   }
 
   /* Old linearization approach w/o unshredding */

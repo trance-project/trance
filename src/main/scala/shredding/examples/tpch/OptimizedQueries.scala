@@ -248,3 +248,29 @@ object TPCHQuery7A extends TPCHBase {
                           Singleton(Tuple("c_name" -> c2r("c_name")))))))))))
 
 }
+
+object TPCHQuery4New extends TPCHBase {
+  val name = "Query4New"
+  def inputs(tmap: Map[String, String]): String =
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+
+  val (q1, co, cor) = varset(TPCHQuery1.name, "c2", TPCHQuery1Full.query.asInstanceOf[BagExpr])
+  val orders = BagProject(cor, "c_orders")
+  val co2 = VarDef("o2", orders.tp.tp)
+  val co2r = TupleVarRef(co2)
+
+  val parts = BagProject(co2r, "o_parts")
+  val co3 = VarDef("p2", parts.tp.tp)
+  val co3r = TupleVarRef(co3)
+
+  val query = ForeachUnion(co, BagVarRef(q1),
+                Singleton(Tuple("c_name" -> cor("c_name"), "totals" ->
+                  GroupBy(
+                    ForeachUnion(co2, orders,
+                      ForeachUnion(co3, parts,
+                        Singleton(Tuple("c_name" -> cor("c_name"), "orderdate" -> co2r("o_orderdate"),
+                          "pname" -> co3r("p_name"), "qty" -> co3r("l_qty"))))),
+                 List("orderdate", "pname"),
+                 List("qty"),
+                 DoubleType))))
+}

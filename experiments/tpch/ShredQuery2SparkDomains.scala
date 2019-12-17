@@ -38,6 +38,7 @@ S__D_1.cache
 S__D_1.count
 
    def f = { 
+var start0 = System.currentTimeMillis()
  val x127 = () 
 val x128 = Record205(x127) 
 val x129 = List(x128) 
@@ -123,12 +124,20 @@ x201
 } 
 val M_flat2 = x202
 val x203 = M_flat2
-M_flat2.collect.foreach(println(_))
-x203.count
-}
-var start0 = System.currentTimeMillis()
-f
+//M_flat2.collect.foreach(println(_))
+M_flat2.count
 var end0 = System.currentTimeMillis() - start0 
-   println("ShredQuery2SparkDomains"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
+   println("ShredQuery2SparkDomains"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
+var start1 = System.currentTimeMillis()
+val unshred = M_flat2.join(M_flat1.map(s => s.customers2 -> s.s_name)).map{ case (k,v) => v }
+unshred.count
+var end1 = System.currentTimeMillis() - start1
+   println("ShredQuery2SparkDomains"+sf+","+Config.datapath+","+end0+",unshredding,"+spark.sparkContext.applicationId)
+
+}
+var start = System.currentTimeMillis()
+f
+var end = System.currentTimeMillis() - start
+   println("ShredQuery2SparkDomains"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
  }
 }

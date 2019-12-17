@@ -27,15 +27,16 @@ trait Query extends Linearization
     norm
   }
   def unnest: CExpr = {
-    val plan = Optimizer.applyAll(Unnester.unnest(this.normalize)(Nil, Nil, None))
+    val plan = Optimizer.applyAll(DictUnnester.unnest(this.normalize)(Nil, Nil, None))
     println(Printer.quote(plan))
     plan
   }
   def anf: CExpr = {
     val anfBase = new BaseANF{}
     val anfer = new Finalizer(anfBase)
-    //println(Printer.quote(this.normalize))
-    anfBase.anf(anfer.finalize(this.unnest).asInstanceOf[anfBase.Rep])
+    val plan = anfBase.anf(anfer.finalize(this.unnest).asInstanceOf[anfBase.Rep])
+    println(plan)
+    plan
   }
 
   /** shred query **/

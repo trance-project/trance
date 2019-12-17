@@ -198,7 +198,21 @@ println("ShredQuery1GoalSpark,"+sf+","+Config.datapath+","+end1+",unshredding,"+
 var start = System.currentTimeMillis()
 f
 var end = System.currentTimeMillis() - start
-    
+/**
+the plan from unnesting never finishes
+cogroups
+ShredQuery1GoalSpark,sfs100,/nfs_qc4/tpch/sfs100/,361986,query,app-20191212132126-0063
+ShredQuery1GoalSpark,sfs100,/nfs_qc4/tpch/sfs100/,224174,unshredding,app-20191212132126-0063
+ShredQuery1GoalSparksfs100,/nfs_qc4/tpch/sfs100/,586165,total,app-20191212132126-0063
+cogroups with caching
+ShredQuery1GoalSpark,sfs100,/nfs_qc4/tpch/sfs100/,353017,query,app-20191212134149-0064
+ShredQuery1GoalSpark,sfs100,/nfs_qc4/tpch/sfs100/,261554,unshredding,app-20191212134149-0064
+ShredQuery1GoalSparksfs100,/nfs_qc4/tpch/sfs100/,722424,total,app-20191212134149-0064
+cogroup with the join
+ShredQuery1GoalSpark,sfs100,/nfs_qc4/tpch/sfs100/,324945,query,app-20191213010258-0065
+ShredQuery1GoalSpark,sfs100,/nfs_qc4/tpch/sfs100/,281501,unshredding,app-20191213010258-0065
+ShredQuery1GoalSparksfs100,/nfs_qc4/tpch/sfs100/,606450,total,app-20191213010258-0065
+**/   
    println("ShredQuery1GoalSpark"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
  }
 }

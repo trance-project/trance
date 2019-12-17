@@ -149,10 +149,13 @@ trait BaseNormalizer extends BaseCompiler {
         e(v) match {
           case Comprehension(Project(_,"_2"), v2, p2, e3) =>
             Comprehension(InputRef(n, tp), v2, p2, e3)  
-          case _ => sys.error("case should not be hit")
+          case _ => 
+            val v2 = Variable.fresh(tp.tp)
+            Comprehension(e1, v2, p(v2), e(v2))
         }
       case _ => // standard case (return self)
         val v = e1.tp match {
+          case TTupleType(List(EmptyCType, BagCType(fs))) => Variable.fresh(fs)
           case btp @ BagDictCType(BagCType(TTupleType(fs)),tdict) => Variable.fresh(btp._1.tp)
           case _ => Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
         }
