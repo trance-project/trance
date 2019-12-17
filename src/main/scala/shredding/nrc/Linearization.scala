@@ -7,7 +7,7 @@ import shredding.core._
   * Linearization of nested output queries
   */
 trait Linearization {
-  this: LinearizedNRC with Shredding with Optimizer with Printer =>
+  this: LinearizedNRC with Shredding with Optimizer with Printer with Extensions =>
 
   val initCtxName: String = "initCtx"
 
@@ -20,18 +20,15 @@ trait Linearization {
 
   def linearizeNoDomains(dict: BagDict): List[Expr] = {
     val flatBagExpr = dict.flat
-    //println("before")
-    //println(flatBagExpr)
     val flatBagExprRewritten = nestingRewriteLossy(flatBagExpr)
-    //println("after")
-    //println(quote(flatBagExprRewritten))
-    val mFlatNamed = Named(VarDef(Symbol.fresh("M_flat"), flatBagExpr.tp), flatBagExprRewritten)
+    val mFlatNamed = Named(VarDef(Symbol.fresh("M_flat"), flatBagExprRewritten.tp), flatBagExprRewritten)
 
     val labelTps = dict.tp.flatTp.tp.attrTps.filter(_._2.isInstanceOf[LabelType]).toList
     mFlatNamed ::
       labelTps.flatMap { case (n, _) =>
         dict.tupleDict(n) match {
           case b: BagDict => linearizeNoDomains(b)
+          case b: BagDictLet => linearizeNoDomains(b.e2.asInstanceOf[BagDict])
           case b => sys.error("Unknown dictionary " + b)
         }
       }
@@ -61,7 +58,7 @@ trait Linearization {
     //    consisting of labels from ctx and flat bags from dict
     val ldef = VarDef(Symbol.fresh("l"), ctx.tp.tp)
     val lbl = LabelProject(TupleVarRef(ldef), "lbl")
-    val kvpair = Tuple("k" -> lbl, "v" -> optimize(dict.lookup(lbl)).asInstanceOf[BagExpr])
+    val kvpair = Tuple("_1" -> lbl, "_2" -> optimize(dict.lookup(lbl)).asInstanceOf[BagExpr])
     val mFlat = ForeachUnion(ldef, ctx,
       BagExtractLabel(LabelProject(TupleVarRef(ldef), "lbl"), Singleton(kvpair)))
     val mFlatNamed = Named(VarDef(Symbol.fresh("M_flat"), mFlat.tp), mFlat)
@@ -77,7 +74,7 @@ trait Linearization {
         val xDef = VarDef(Symbol.fresh("xF"), dict.tp.flatTp.tp)
         val mCtx =
           DeDup(ForeachUnion(kvDef, mFlatRef,
-            ForeachUnion(xDef, BagProject(TupleVarRef(kvDef), "v"),
+            ForeachUnion(xDef, BagProject(TupleVarRef(kvDef), "_2"),
               Singleton(Tuple("lbl" -> LabelProject(TupleVarRef(xDef), n))))))
         val mCtxNamed = Named(VarDef(Symbol.fresh("M_ctx"), mCtx.tp), mCtx)
         val mCtxRef = BagVarRef(mCtxNamed.v)
@@ -89,5 +86,6 @@ trait Linearization {
         }
       }
   }
+
 
 }

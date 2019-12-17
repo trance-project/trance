@@ -29,6 +29,8 @@ trait GenomicBase extends Query {
 
 }
 
+
+
 object AltCounts extends GenomicBase {
 
   val name = "AltCounts"
@@ -55,13 +57,15 @@ object AlleleCounts extends GenomicBase {
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
   
   val query = ForeachUnion(vdef, relV,
-                IfThenElse(Not(Cmp(OpEq, vref("consequence"), Const("LOW IMPACT", StringType))),
-                  Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
-                    DeDup(ForeachUnion(cdef, relC, 
-                      Singleton(Tuple("case" -> cref("iscase"), "altcnt" -> 
-                        Total(ForeachUnion(gdef, BagProject(vref, "genotypes"),
+                //IfThenElse(Not(Cmp(OpEq, vref("consequence"), Const("LOW IMPACT", StringType))),
+                  Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cohorts" ->
+                    ForeachUnion(idef, relI, 
+                      Singleton(Tuple("iscase" -> iref("iscase"), "altcnt" ->
+                        Total(ForeachUnion(cdef, relC, 
+                          IfThenElse(Cmp(OpEq, iref("iscase"), cref("iscase")),
+                            ForeachUnion(gdef, BagProject(vref, "genotypes"),
                               IfThenElse(Cmp(OpEq, gref("sample"), cref("sample")),
-                                WeightedSingleton(Tuple("call" -> gref("call")), PrimitiveProject(gref, "call")))))))))))))
+                                WeightedSingleton(Tuple("cnt" -> gref("call")), PrimitiveProject(gref,"call")))))))))))))//)
 }
 
 object AlleleCounts2 extends GenomicBase {
@@ -71,14 +75,16 @@ object AlleleCounts2 extends GenomicBase {
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
   
   val query = ForeachUnion(vdef, relV,
-                Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
-                  ForeachUnion(idef, relI, 
-                    Singleton(Tuple("case" -> iref("iscase"), "altcnt" ->
-                      Total(ForeachUnion(cdef, relC,
-                              IfThenElse(Cmp(OpEq, iref("iscase"), cref("iscase")),
-                                ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                                  IfThenElse(Cmp(OpEq, gref("sample"), cref("sample")),
-                                    Singleton(Tuple("call" -> gref("call"))))))))))))))
+                //IfThenElse(Not(Cmp(OpEq, vref("consequence"), Const("LOW IMPACT", StringType))),
+                  Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cohorts" ->
+                    GroupBy(ForeachUnion(gdef, BagProject(vref, "genotypes"),
+                              ForeachUnion(cdef, relC, 
+                                IfThenElse(Cmp(OpEq, gref("sample"), cref("sample")),
+                                  Singleton(Tuple("pinfo" -> cref("iscase"), "cnt" -> gref("call")))))),
+                      List("pinfo"),
+                      List("cnt"),
+                      IntType
+                    ))))//)
 }
 
 object AlleleCounts3 extends GenomicBase {
@@ -137,4 +143,57 @@ object AlleleCountsGB3 extends GenomicBase {
                    List("case"),
                    List("altcnt"),
                    IntType)))))
+}
+
+object AlleleFG extends GenomicBase {
+  val name = "AlleleFG"
+  def inputs(tmap: Map[String, String]): String = ""
+  val keys = DeDup(ForeachUnion(cdef, relC, Singleton(Tuple("pinfo" -> cref("iscase")))))
+  val k = VarDef("k", keys.tp.asInstanceOf[BagType].tp)
+  val kr = TupleVarRef(k)
+  val query = Sequence(List(Named(VarDef("keys", keys.tp), keys),
+                ForeachUnion(k, BagVarRef(VarDef("keys", keys.tp)),
+                  Singleton(Tuple("case" -> kr("pinfo"), "variants" ->
+                    ForeachUnion(vdef, relV, 
+                      Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "genotypes" ->
+                        ForeachUnion(cdef, relC, 
+                          IfThenElse(Cmp(OpEq, cref("iscase"), kr("pinfo")), 
+                            ForeachUnion(gdef, BagProject(vref, "genotypes"),
+                              IfThenElse(And(Cmp(OpEq, cref("sample"), gref("sample")),
+                                           Cmp(OpGt, gref("call"), Const(0, IntType))),
+                                Singleton(Tuple("sample" -> cref("sample")))))))))))))))
+
+}
+
+object AlleleFG2 extends GenomicBase {
+  val name = "AlleleFG2"
+  def inputs(tmap: Map[String, String]): String = ""
+  val keys = DeDup(ForeachUnion(cdef, relC, Singleton(Tuple("pinfo" -> cref("iscase")))))
+  val k = VarDef("k", keys.tp.asInstanceOf[BagType].tp)
+  val kr = TupleVarRef(k)
+  val query = Sequence(List(Named(VarDef("keys", keys.tp), keys),
+                ForeachUnion(vdef, relV, 
+                  Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "genotypes" ->
+                  ForeachUnion(k, BagVarRef(VarDef("keys", keys.tp)),
+                    Singleton(Tuple("case" -> kr("pinfo"), "samples" ->
+                      ForeachUnion(cdef, relC, 
+                        IfThenElse(Cmp(OpEq, cref("iscase"), kr("pinfo")), 
+                          ForeachUnion(gdef, BagProject(vref, "genotypes"),
+                            IfThenElse(And(Cmp(OpEq, cref("sample"), gref("sample")),
+                                           Cmp(OpGt, gref("call"), Const(0, IntType))),
+                              Singleton(Tuple("sample" -> cref("sample")))))))))))))))
+
+}
+
+object AlleleFG1 extends GenomicBase {
+  val name = "AlleleFG1"
+  def inputs(tmap: Map[String, String]): String = ""
+
+  val query = ForeachUnion(vdef, relV, 
+                Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "samples" ->
+                  ForeachUnion(gdef, BagProject(vref, "genotypes"),
+                    IfThenElse(Cmp(OpGt, gref("call"), Const(0, IntType)),
+                      ForeachUnion(cdef, relC,
+                        IfThenElse(Cmp(OpEq, cref("sample"), gref("sample")),
+                          Singleton(Tuple("pinfo" -> cref("iscase"), "sample" -> gref("sample"))))))))))
 }
