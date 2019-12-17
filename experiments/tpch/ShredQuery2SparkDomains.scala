@@ -100,7 +100,6 @@ x178}, x175) }
 x179}, x176) }
   out1.join(out2).map{ case (k,v) => v }
 }
-x180.collect.foreach(println(_)) 
 val x182 = resultInner__D_1 
 val x188 = { val out1 = x180.map{ case (x183, x184) => ({val x186 = x184.l_orderkey 
 x186}, (x183, x184)) }
