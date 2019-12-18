@@ -268,7 +268,7 @@ object TPCHQuery4New extends TPCHBase {
                   GroupBy(
                     ForeachUnion(co2, orders,
                       ForeachUnion(co3, parts,
-                        Singleton(Tuple("c_name" -> cor("c_name"), "orderdate" -> co2r("o_orderdate"),
+                        Singleton(Tuple("orderdate" -> co2r("o_orderdate"),
                           "pname" -> co3r("p_name"), "qty" -> co3r("l_qty"))))),
                  List("orderdate", "pname"),
                  List("qty"),

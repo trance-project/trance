@@ -144,18 +144,17 @@ trait BaseNormalizer extends BaseCompiler {
           case _ =>
             Comprehension(e1, v, p(v), e(v))
         }
-      case InputRef(n, tp @ BagCType(RecordCType(fs))) if !n.contains("ctx") =>
+      // this will break this for the shredded case...
+      case InputRef(n, tp @ BagDictCType(BagCType(RecordCType(fs)), EmptyDictCType)) if !n.contains("ctx") =>
         val v = Variable.fresh(TTupleType(List(EmptyCType,tp)))
         e(v) match {
           case Comprehension(Project(_,"_2"), v2, p2, e3) =>
             Comprehension(InputRef(n, tp), v2, p2, e3)  
-          case _ => 
-            val v2 = Variable.fresh(tp.tp)
-            Comprehension(e1, v2, p(v2), e(v2))
+          case _ => ??? 
         }
       case _ => // standard case (return self)
         val v = e1.tp match {
-          case TTupleType(List(EmptyCType, BagCType(fs))) => Variable.fresh(fs)
+          //case TTupleType(List(EmptyCType, BagCType(fs))) => Variable.fresh(fs)
           case btp @ BagDictCType(BagCType(TTupleType(fs)),tdict) => Variable.fresh(btp._1.tp)
           case _ => Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
         }

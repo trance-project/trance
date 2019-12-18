@@ -35,7 +35,7 @@ trait Query extends Linearization
     val anfBase = new BaseANF{}
     val anfer = new Finalizer(anfBase)
     val plan = anfBase.anf(anfer.finalize(this.unnest).asInstanceOf[anfBase.Rep])
-    println(plan)
+    //println(Printer.quote(plan))
     plan
   }
 
