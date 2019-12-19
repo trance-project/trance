@@ -1,7 +1,7 @@
 package shredding.nrc
 
 import shredding.core._
-import shredding.examples.tpch.{TPCHQueries, TPCHSchema}
+import shredding.examples.tpch._//{TPCHQueries, TPCHSchema}
 import shredding.runtime.{Context, Evaluator, ScalaPrinter, ScalaShredding}
 
 object TestApp extends App
@@ -1108,7 +1108,32 @@ object TestApp extends App
     }
   }
 
-  Example1.run()
+  object Example_Unshredding {
+
+    def run(): Unit = {
+      val query = TPCHQuery1.query.asInstanceOf[Expr]
+      val (shredded:ShredExpr, materialized:MaterializationInfo) = query match {
+        case Sequence(fs) =>
+          val exprs = fs.map(expr => optimize(shred(expr)))
+          (exprs.last.asInstanceOf[ShredExpr], materialize(exprs))
+      case _ =>
+        val expr = optimize(shred(query))
+        (expr, materialize(expr))
+      }
+      println("Shredded: ")
+      println(quote(shredded)+"\n")
+      println("Materialized: ")
+      println(quote(materialized.seq)+"\n")
+      
+      val unshredded = unshred(shredded, materialized.dictMapper)
+      println("Unshredded: ")
+      println(quote(unshredded))
+     
+    }
+  }
+
+    Example_Unshredding.run()
+//  Example1.run()
 //  Example2.run()
 //  Example3.run()
 //  Example4.run()

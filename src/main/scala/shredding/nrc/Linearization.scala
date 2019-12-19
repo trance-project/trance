@@ -101,54 +101,51 @@ trait Linearization {
     (matStrategy :: childMatStrategies).reduce(_ append _)
   }
 
-  def unshred(e: ShredExpr, dictMapper: Map[BagDictExpr, BagVarRef]): BagExpr = e.dict match {
-    case d: BagDictExpr => unshred(e.flat.asInstanceOf[LabelExpr], d, dictMapper)
-    case _ => sys.error("Cannot linearize dict type " + e.dict)
+  def unshred(e: ShredExpr, dictMapper: Map[BagDictExpr, BagVarRef]): Expr = {
+    e.dict match {
+      case d: BagDictExpr =>         
+        val (exps, lkup) = unshred(e.flat.asInstanceOf[LabelExpr], d, dictMapper)
+        Sequence(exps)
+      case _ => sys.error("Cannot linearize dict type " + e.dict)
+    }
   }
 
-  private def unshred(lbl: LabelExpr, dict: BagDictExpr, dictMapper: Map[BagDictExpr, BagVarRef]): BagExpr = {
-    val matDict = dictMapper(dict)
-    val kvdef = VarDef(Symbol.fresh("kv"), matDict.tp.tp)
+  /**
+    Unshred: given n levels of nesting, will build a sequence: 
+      at the lowest level:
+         newdict_n = lookup on dict_n
+      recursive step:
+        newdict_n-1 := dict_n-1 join newdict_n
+      base case:
+        dict_0 = dict0 join newdict_n-1
+   */
+  private def unshred(lbl: LabelExpr, dict: BagDictExpr, dictMapper: Map[BagDictExpr, BagVarRef]): (List[BagExpr], BagExpr) = {
+    val top = dictMapper(dict)
+    val kvdef = VarDef(Symbol.fresh("kv"), top.tp.tp)
     val kvref = TupleVarRef(kvdef)
-
-    val valueTp = kvref.tp.attrTps("_2").asInstanceOf[BagType]
-    val labelTypeExist = valueTp.tp.attrTps.exists(_._2.isInstanceOf[LabelType])
-
+    
     val bag = BagProject(kvref, "_2")
     val tdef = VarDef(Symbol.fresh("t"), bag.tp.tp)
     val tref = TupleVarRef(tdef)
 
-    val bagExpr = if (!labelTypeExist) Singleton(tref)
-    else{
-        Singleton(Tuple(
-          tref.tp.attrTps.map {
-            case (n, _: LabelType) =>
-              n-> unshred(LabelProject(tref, n), dict.tupleDict(n).asInstanceOf[BagDictExpr], dictMapper)
-            case (n, _) => n -> tref(n)
-          }
-        ))
+    if (!dict.tupleDict.asInstanceOf[TupleDict].fields.exists{ case (k,v) => v != EmptyDict }){
+      (Nil, Lookup(lbl, BagDictVarRef(VarDef(top.varDef.name, dict.tp))))
+    }else{
+      var nseqs = List[BagExpr]()
+
+      val bagExpr = ForeachUnion(kvdef, top,
+        Singleton(Tuple("_1" -> LabelProject(kvref, "_1"), "_2" -> 
+          ForeachUnion(tdef, bag,  
+            Singleton(Tuple(tref.tp.attrTps.map{
+              case (n, _:LabelType) =>
+                val (bexp, lkup) = unshred(LabelProject(tref, n), dict.tupleDict(n).asInstanceOf[BagDictExpr], dictMapper)
+                nseqs = bexp
+                n -> lkup
+              case (n, _) => n -> tref(n)
+          }))))))
+        val bvr = VarDef(top.varDef.name, dict.tp)
+        (nseqs :+ Named(VarDef(top.varDef.name, bagExpr.tp), bagExpr), Lookup(lbl, BagDictVarRef(bvr)))
     }
-    ForeachUnion(tdef, Lookup(lbl, BagDictVarRef(VarDef(matDict.varDef.name, dict.tp))), bagExpr)
-    /**val bagExpr = if (!labelTypeExist) BagProject(kvref, "_2")
-    else {
-      val bag = BagProject(kvref, "_2")
-      val tdef = VarDef(Symbol.fresh("t"), bag.tp.tp)
-      val tref = TupleVarRef(tdef)
-
-      ForeachUnion(tdef, bag,
-        Singleton(Tuple(
-          tref.tp.attrTps.map {
-            case (n, _: LabelType) =>
-              n-> unshred(LabelProject(tref, n), dict.tupleDict(n).asInstanceOf[BagDictExpr], dictMapper)
-            case (n, _) => n -> tref(n)
-          }
-        )))
-    }
-
-    ForeachUnion(kvdef, matDict,
-      BagIfThenElse(Cmp(OpEq, lbl, LabelProject(kvref, "_1")), bagExpr, None))
-    **/
-
   }
 
   /* Old linearization approach w/o unshredding */
