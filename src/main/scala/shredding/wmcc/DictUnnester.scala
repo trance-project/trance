@@ -19,6 +19,7 @@ object DictUnnester {
     case If(Equals(c:Comprehension, _), _, None) => true
     case d:CDeDup => true
     case g:CGroupBy => true
+    case l:CLookup => true
     case _ => false
   }
 
@@ -133,6 +134,8 @@ object DictUnnester {
       Reduce(nE.get, vars, Record(Map("k" -> vars.head, "v" -> Tuple(vars.tail))), Constant(true))
     case s @ Sng(t @ Record(fs)) if !w.isEmpty =>
       assert(!E.isEmpty)
+      println("in here???")
+      println(t)
       fs.filter(f => isNestedComprehension(f._2)).toList match {
         case Nil =>
           if (u.isEmpty) { 
@@ -160,6 +163,8 @@ object DictUnnester {
         case (key, value @ CGroupBy(e1, v1, grp, value2)) :: tail =>
 	        val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
+        case (key, value @ CLookup(lbl, dict)) :: Nil =>
+          CoGroup(dict, )
         case head @ (key, value) :: tail => sys.error(s"not supported ${Printer.quote(value)}")
      }
     case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !isDictType(e0.tp) && !w.isEmpty =>

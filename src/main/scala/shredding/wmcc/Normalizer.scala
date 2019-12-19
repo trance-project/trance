@@ -145,21 +145,40 @@ trait BaseNormalizer extends BaseCompiler {
             Comprehension(e1, v, p(v), e(v))
         }
       // this will break this for the shredded case...
-      case InputRef(n, tp @ BagDictCType(BagCType(RecordCType(fs)), EmptyDictCType)) if !n.contains("ctx") =>
-        val v = Variable.fresh(TTupleType(List(EmptyCType,tp)))
+      case InputRef(n, tp) if isTopLevelDict(tp) =>
+        val v = topLevelVar(tp)
         e(v) match {
           case Comprehension(Project(_,"_2"), v2, p2, e3) =>
             Comprehension(InputRef(n, tp), v2, p2, e3)  
-          case _ => ??? 
+          case Sng(Record(fs)) if fs.keySet == Set("_1", "_2") => fs("_2") match {
+            case Comprehension(Project(_,"_2"), v2, p2, e3) => 
+              Comprehension(InputRef(n, tp), v2, p2, e3)  
+            case _ => ???
+          }
+          case et => ???
         }
-      case _ => // standard case (return self)
+       case _ => // standard case (return self)
         val v = e1.tp match {
-          //case TTupleType(List(EmptyCType, BagCType(fs))) => Variable.fresh(fs)
           case btp @ BagDictCType(BagCType(TTupleType(fs)),tdict) => Variable.fresh(btp._1.tp)
           case _ => Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
         }
         Comprehension(e1, v, p(v), e(v))
       }
     }
+
+  def isTopLevelDict(tp: Type): Boolean = tp match {
+    case BagDictCType(BagCType(RecordCType(fs)), EmptyDictCType) => true
+    case BagCType(RecordCType(fs)) if fs.keySet == Set("lbl") => false
+    case BagCType(RecordCType(fs)) if fs.exists(_._2.isInstanceOf[LabelType]) => true
+    case _ => false
+  }
+
+  def topLevelVar(tp: Type): Variable = tp match {
+    case BagDictCType(BagCType(RecordCType(fs)), EmptyDictCType) => 
+      Variable.fresh(TTupleType(List(EmptyCType,tp)))
+    case BagCType(rs @ RecordCType(fs)) if fs.exists(_._2.isInstanceOf[LabelType]) => 
+      Variable.fresh(TTupleType(List(EmptyCType, tp)))
+    case _ => ???
+  }
 
 }

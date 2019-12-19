@@ -143,8 +143,8 @@ trait Linearization {
                 n -> lkup
               case (n, _) => n -> tref(n)
           }))))))
-        val bvr = VarDef(top.varDef.name, dict.tp)
-        (nseqs :+ Named(VarDef(top.varDef.name, bagExpr.tp), bagExpr), Lookup(lbl, BagDictVarRef(bvr)))
+        val bvr = VarDef("new"+top.varDef.name, dict.tp)
+        (nseqs :+ Named(VarDef("new"+top.varDef.name, bagExpr.tp), bagExpr), Lookup(lbl, BagDictVarRef(bvr)))
     }
   }
 

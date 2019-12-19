@@ -27,9 +27,9 @@ object App {
  
   def runTPCH1(){
 
-    Utils.runSparkInputNew(TPCHQuery1, TPCHQuery4New)
-    Utils.runSparkInputNew(TPCHQuery1, TPCHQuery4New, shred = true)
-    //Utils.runSparkShred(TPCHQuery2)
+    //Utils.runSparkInputNew(TPCHQuery1, TPCHQuery4New)
+    //Utils.runSparkInputNew(TPCHQuery1, TPCHQuery4New, shred = true)
+    Utils.runSparkShred(TPCHQuery1, true)
     //println(Printer.quote(runner.unshredPipeline(TPCHQuery1Full.query.asInstanceOf[runner.Expr])))
     //Utils.runSparkNew(TPCHQuery1)
     //Utils.runSparkNew(TPCHQuery1, shred = true)
