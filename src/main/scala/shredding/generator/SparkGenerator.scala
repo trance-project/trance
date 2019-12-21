@@ -218,6 +218,19 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
               | }
               |}.reduceByKey(_ + _)""".stripMargin
       }
+    // experimental unnesting that is closer to the functionality of flatmap
+    // since it is a dictionary we do not need the outer functionality
+    case Unnest(e1 @ Variable(_, BagDictCType(flat, dict)), v1, f, v2, p) => 
+      val vars = generateVars(v1, flat.tp)
+      val gv2 = generate(v2)
+      val filt = p match {
+        case Constant(true) => s"($vars, $gv2)"
+        case _ => s"if ({${generate(p)}}) { ($vars, $gv2) } else { ($vars, null) }"
+      }
+      s"""|${generate(e1)}.flatMap{ 
+          | case $vars => {${generate(f)}}.map{ case v2 => ($vars._1, v2) }
+          |}
+        """.stripMargin
     case Unnest(e1, v1, f, v2, p) => 
       val vars = generateVars(v1, e1.tp match {
         case btp:BagDictCType => btp.flatTp.tp
@@ -235,7 +248,9 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
           |     case $gv2 => $gv2.map{ case v2 => ($vars, v2) }
           |  }
           | }}$filt""".stripMargin
+    case OuterUnnest(e1 @ Variable(_, BagDictCType(flat, dict)), v1, f, v2, p) => generate(Unnest(e1, v1, f, v2, p)) 
     case OuterUnnest(e1, v1, f, v2, p) => 
+      println(e1)
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 = generate(v2)
       val filt = p match {
@@ -279,11 +294,13 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     // for instance, ( Mctx2 join top level dict ) join first level dict
     case Lookup(e1, e2, v1, p1, v2, p2, p3) =>
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
-      //s"""|{ val out1 = ${generate(e1)}.map{${checkNull(v1)} case $vars => (${e1Key(p1, p3)}, $vars) }
-      s"""|{ val out1 = ${generate(e1)}.map{ case $vars => (${e1Key(p1, p3)}, $vars) }
-          |  val out2 = ${generate(e2)}${e2Key(v2, p2)}
-          |  out1.lookup(out2)
-          |}""".stripMargin
+      val gv2 = generate(v2)
+      val flatten = e2 match { case InputRef(n, _) if !n.contains("new") => ".flatten"; case _ => "" }
+      s"""|{ val out1 = ${generate(e1)}.map{ case $vars => (${e1Key(p1, Constant(true))}, $vars) }
+          |out1.cogroup(${generate(e2)}).flatMap{
+          | case (_, (left, $gv2)) => left.map{ case $vars => ($vars, $gv2$flatten) }
+          |}}
+        """.stripMargin
     case OuterLookup(e1, e2, v1, p1, v2, p2, p3) => generate(Lookup(e1, e2, v1, p1, v2, p2, p3))
     case CoGroup(e1, es, vs, ps) => /** TODO THIS IS NOT DONE **/
       s"""|{ val out1 = ${generate(e1)}.map{ case v => (${generate(ps)}, v) }

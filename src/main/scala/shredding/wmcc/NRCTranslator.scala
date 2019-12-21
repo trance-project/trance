@@ -74,7 +74,11 @@ trait NRCTranslator extends LinearizedNRC with NRCPrinter {
     case Singleton(e1 @ Tuple(fs)) if fs.isEmpty => emptysng
     case Singleton(e1) => sng(translate(e1))
     case Tuple(fs) if fs.isEmpty => unit
-    case Tuple(fs) => record(fs.map(f => translateName(f._1) -> translate(f._2)))
+    case Tuple(fs) => record(fs.map(f => f._2 match {
+      // lifting alternating restriction in calculus
+      case Singleton(r @ Tuple(_)) => translateName(f._1) -> translate(r)
+      case _ => translateName(f._1) -> translate(f._2)
+    }))
     case p:Project => project(translate(p.tuple), p.field)
     case ift:IfThenElse => ift.e2 match {
       case Some(a) => ifthen(translate(ift.cond), translate(ift.e1), Option(translate(a)))

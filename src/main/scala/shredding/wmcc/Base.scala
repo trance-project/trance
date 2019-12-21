@@ -640,6 +640,10 @@ trait BaseANF extends Base {
           case Constant(_) | InputRef(_, _) => Def(e)
 	  case _ => 
             val v = Variable.fresh(e.tp)
+            /**v match {
+              case Variable(_, RecordCType(fs)) if fs.contains("c_name") => {println(e); println(v)}
+              case _ => Unit
+            }**/
             vars = vars :+ v
             state = state + (e -> v)
             stateInv = stateInv + (v -> e)

@@ -15,12 +15,9 @@ object DictUnnester {
   @inline def E(implicit ctx: Ctx): Option[CExpr] = ctx._3
 
   def isNestedComprehension(e: CExpr): Boolean = e match {
-    case c:Comprehension => true
-    case If(Equals(c:Comprehension, _), _, None) => true
-    case d:CDeDup => true
-    case g:CGroupBy => true
-    case l:CLookup => true
-    case _ => false
+    case Record(fs) => fs.filter(c => isNestedComprehension(c._2)).nonEmpty
+    case Variable(_, BagCType(_)) => false
+    case _ => e.tp.isInstanceOf[BagCType] || e.tp.isInstanceOf[BagDictCType]
   }
 
   def isDictType(e: Type): Boolean = e match { 
@@ -51,6 +48,9 @@ object DictUnnester {
 		    val g = Tuple(u ++ fs.dropRight(1).map(v => v._2 match { case Project(t, f) => t; case v3 => v3}).toList)
         Nest(e2, v2, key, value, v, p2, g)    
     }
+    case CLookup(lbl, dict) => 
+      val v2 = Variable.fresh(dict.tp.asInstanceOf[BagDictCType].flatTp)
+      Lookup(E.get, dict, w, lbl, v2, Constant(true), v2)
     case Comprehension(lu @ CLookup(lbl, dict), v, p, e2) =>
       val (sp2s, p1s, p2s) = ps(p, v, w)
       if (!w.isEmpty) {
@@ -134,14 +134,14 @@ object DictUnnester {
       Reduce(nE.get, vars, Record(Map("k" -> vars.head, "v" -> Tuple(vars.tail))), Constant(true))
     case s @ Sng(t @ Record(fs)) if !w.isEmpty =>
       assert(!E.isEmpty)
-      println("in here???")
-      println(t)
       fs.filter(f => isNestedComprehension(f._2)).toList match {
         case Nil =>
-          if (u.isEmpty) { 
+          if (u.isEmpty) {
             t match {
-              case Record(ms) if ms.keySet == Set("k", "v") =>
-                Reduce(E.get, w, Record(Map("k" -> w.head, "v" -> Tuple(w.tail))), Constant(true))
+              case Record(ms) if (ms.keySet == Set("k", "v") || ms.keySet == Set("_1", "_2"))  =>
+                val lbl = fs("_1") match { case Project(t1,"_1") => t1; case t1 => t1 }
+                println(fs("_2"))
+                Reduce(E.get, w, Record(Map("_1" -> lbl, "_2" -> fs("_2"))), Constant(true))
               case _ => Reduce(E.get, w, t, Constant(true)) 
             }
           }else {
@@ -163,8 +163,14 @@ object DictUnnester {
         case (key, value @ CGroupBy(e1, v1, grp, value2)) :: tail =>
 	        val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
-        case (key, value @ CLookup(lbl, dict)) :: Nil =>
-          CoGroup(dict, )
+        case (key, value @ Record(r)) :: tail =>
+          val lkup = r.filter(c => isNestedComprehension(c._2))
+          assert(lkup.size == 1)
+          val (nE, v2) = getNest(unnest(lkup.head._2)((w, w, E)))
+          unnest(Sng(Record(fs + (key -> Record(r + (lkup.head._1 -> v2))))))((u, w :+ v2, nE)) 
+        case (key, value @ CLookup(lbl, dict)) :: tail => 
+          val (nE, v2) = getNest(unnest(value)((w, w, E)))
+          unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case head @ (key, value) :: tail => sys.error(s"not supported ${Printer.quote(value)}")
      }
     case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !isDictType(e0.tp) && !w.isEmpty =>
@@ -172,7 +178,8 @@ object DictUnnester {
       val (p1, p2) = ps1(p,v)
       getPM(p) match {
         case (Constant(false), _) => u.isEmpty match {
-          case true => unnest(pushPredicate(e, p2))((u, w :+ v, Some(Unnest(E.get, w, e1, v, p1))))
+          case true => 
+            unnest(pushPredicate(e, p2))((u, w :+ v, Some(Unnest(E.get, w, e1, v, p1))))
           case _ => unnest(pushPredicate(e, p2))((u, w :+ v, Some(OuterUnnest(E.get, w, e1, v, p1))))
         }
         case (e2, be2) => 
@@ -258,6 +265,7 @@ object DictUnnester {
       case Sng(Record(lbl)) => CNamed(n, exp)
       case _ => CNamed(n, unnest(exp)((Nil, Nil, None)))
     }
+    case Record(fs) => unnest(Sng(Record(fs)))((u, w, E))
     case Bind(e1, e2, e3) => Bind(e1, e2, unnest(e3)((u, w, E)))
     case _ => sys.error(s"not supported ${Printer.quote(e)} \n $w")
   }
@@ -271,6 +279,12 @@ object DictUnnester {
   def getNest(e: CExpr): (Option[CExpr], Variable) = e match {
     case Bind(nval, nv @ Variable(_,_), e1) => (Some(e), nv)
     case Nest(_,_,_,_,v2 @ Variable(_,_),_,_) => (Some(e), v2)
+    case Reduce(lu @ Lookup(e1,e2,v1,p1, v2 @ Variable(_,_),p2,_),v3,p3,p4) => 
+      val v3 = Variable.fresh(e.tp.asInstanceOf[BagCType].tp)
+      (Some(e), v3)
+      //val v3 = Variable.fresh(p3.tp)
+      //(Some(Lookup(e1, e2, v1, p1, v2, p2, p3)), v3)
+    case Lookup(_,_,_,_, v2 @ Variable(_,_),_,_) => (Some(e), v2)
     case _ => sys.error(s"not supported $e")
   }
 

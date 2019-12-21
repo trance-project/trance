@@ -148,14 +148,12 @@ trait BaseNormalizer extends BaseCompiler {
       case InputRef(n, tp) if isTopLevelDict(tp) =>
         val v = topLevelVar(tp)
         e(v) match {
+          // top level dictionary case from unshredding
+          case Comprehension(Project(_,"_2"), v2, p2, Sng(Record(fs))) if fs.keySet == Set("_1", "_2") =>
+            Comprehension(InputRef(n, tp), v2, p2, fs.get("_2").get)  
           case Comprehension(Project(_,"_2"), v2, p2, e3) =>
             Comprehension(InputRef(n, tp), v2, p2, e3)  
-          case Sng(Record(fs)) if fs.keySet == Set("_1", "_2") => fs("_2") match {
-            case Comprehension(Project(_,"_2"), v2, p2, e3) => 
-              Comprehension(InputRef(n, tp), v2, p2, e3)  
-            case _ => ???
-          }
-          case et => ???
+          case _ => ???
         }
        case _ => // standard case (return self)
         val v = e1.tp match {

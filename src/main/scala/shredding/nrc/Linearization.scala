@@ -127,23 +127,28 @@ trait Linearization {
     val bag = BagProject(kvref, "_2")
     val tdef = VarDef(Symbol.fresh("t"), bag.tp.tp)
     val tref = TupleVarRef(tdef)
-
+   
     if (!dict.tupleDict.asInstanceOf[TupleDict].fields.exists{ case (k,v) => v != EmptyDict }){
       (Nil, Lookup(lbl, BagDictVarRef(VarDef(top.varDef.name, dict.tp))))
     }else{
       var nseqs = List[BagExpr]()
-
       val bagExpr = ForeachUnion(kvdef, top,
-        Singleton(Tuple("_1" -> LabelProject(kvref, "_1"), "_2" -> 
+        //Singleton(Tuple("_1" -> LabelProject(kvref, "_1"), "_2" -> 
           ForeachUnion(tdef, bag,  
-            Singleton(Tuple(tref.tp.attrTps.map{
+            Singleton(Tuple("_1" -> LabelProject(kvref, "_1"), 
+            "_2" -> Singleton(Tuple(tref.tp.attrTps.map{
               case (n, _:LabelType) =>
                 val (bexp, lkup) = unshred(LabelProject(tref, n), dict.tupleDict(n).asInstanceOf[BagDictExpr], dictMapper)
                 nseqs = bexp
                 n -> lkup
               case (n, _) => n -> tref(n)
           }))))))
-        val bvr = VarDef("new"+top.varDef.name, dict.tp)
+        val bagtype = bagExpr.tp match {
+          case BagType(TupleType(fs)) => fs("_2")
+          case _ => ???
+        }
+        val bvr = VarDef("new"+top.varDef.name, BagDictType(bagtype.asInstanceOf[BagType], 
+          TupleDictType(Map("nil" -> EmptyDictType))))
         (nseqs :+ Named(VarDef("new"+top.varDef.name, bagExpr.tp), bagExpr), Lookup(lbl, BagDictVarRef(bvr)))
     }
   }
