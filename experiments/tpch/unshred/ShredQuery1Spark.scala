@@ -17,9 +17,8 @@ case class Record168(o__Fo_orderkey: Int)
 case class Record169(o_orderdate: String, o_parts: Record168)
 case class Record170(lbl: Record168)
 case class Record172(p_name: String, l_qty: Double)
-case class Record225(o_orderdate: String, o_parts: Record172)
-case class Record226(o_orderdate: String, o_parts: Iterable[Record172])
-case class Record227(c_name: String, c_orders: Iterable[Record226])
+case class Record225(o_orderdate: String, o_parts: Iterable[Record172])
+case class Record226(c_name: String, c_orders: Iterable[Record225])
 object ShredQuery1Spark {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
@@ -194,7 +193,7 @@ out1.cogroup(o_parts__D_1).flatMap{
          
 val x210 = x203.map{ case ((x204, x205), x206) => 
    val x207 = x205.o_orderdate 
-val x208 = Record226(x207, x206) 
+val x208 = Record225(x207, x206) 
 val x209 = (x204, x208) 
 x209 
 } 
@@ -210,7 +209,7 @@ out1.cogroup(newc_orders__D_1).flatMap{
          
 val x222 = x217.map{ case (x218, x219) => 
    val x220 = x218.c_name 
-val x221 = Record227(x220, x219) 
+val x221 = Record226(x220, x219) 
 x221 
 } 
 val newM__D_1 = x222

@@ -273,9 +273,10 @@ case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Va
 
 // unnests an inner bag, without unnesting before a downstream join
 case class Lookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, p3: CExpr) extends CExpr {
+  val v2tp = p3 match { case v:Variable => BagCType(v2.tp); case _ => v2.tp }
   def tp:BagCType = e1.tp match {
-    case BagCType(tup) => BagCType(TTupleType(List(tup, v2.tp)))
-    case btp:BagDictCType => BagCType(TTupleType(List(btp.flat, v2.tp)))
+    case BagCType(tup) => BagCType(TTupleType(List(tup, v2tp)))
+    case btp:BagDictCType => BagCType(TTupleType(List(btp.flat, v2tp)))
   }
   override def wvars = e1.wvars :+ v2
 }

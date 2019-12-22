@@ -130,7 +130,7 @@ trait Linearization {
    
     if (!dict.tupleDict.asInstanceOf[TupleDict].fields.exists{ case (k,v) => v != EmptyDict }){
       (Nil, Lookup(lbl, BagDictVarRef(VarDef(top.varDef.name, dict.tp))))
-    }else{
+   }else{
       var nseqs = List[BagExpr]()
       val bagExpr = ForeachUnion(kvdef, top,
         //Singleton(Tuple("_1" -> LabelProject(kvref, "_1"), "_2" -> 

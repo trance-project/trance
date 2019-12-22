@@ -198,7 +198,6 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
               |}$gbfun""".stripMargin
         case Constant(true) => g match {
           case _ =>
-            println(s"in here with ${e2.tp}")
             s"""|${generate(e1)}.flatMap{ case $vars => ${generate(g)} match {
                 |   $nonet
                 |   case $gv2 => List(({${generate(f)}}, {${generate(e2)}}))
@@ -250,7 +249,6 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
           | }}$filt""".stripMargin
     case OuterUnnest(e1 @ Variable(_, BagDictCType(flat, dict)), v1, f, v2, p) => generate(Unnest(e1, v1, f, v2, p)) 
     case OuterUnnest(e1, v1, f, v2, p) => 
-      println(e1)
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 = generate(v2)
       val filt = p match {
@@ -295,6 +293,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Lookup(e1, e2, v1, p1, v2, p2, p3) =>
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 = generate(v2)
+      // need to fix this
       val flatten = e2 match { case InputRef(n, _) if !n.contains("new") => ".flatten"; case _ => "" }
       s"""|{ val out1 = ${generate(e1)}.map{ case $vars => (${e1Key(p1, Constant(true))}, $vars) }
           |out1.cogroup(${generate(e2)}).flatMap{

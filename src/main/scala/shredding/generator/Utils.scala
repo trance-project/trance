@@ -245,6 +245,24 @@ object Utils {
   
   }
 
+  def runSparkShredInput(inputQuery: Query, query: Query, unshred: Boolean = false): Unit = {
+    
+    val codegen = new SparkNamedGenerator(query.inputTypes(true))
+    val (inputCode, gcode1) = (codegen.generate(inputQuery.shredANF), codegen.generate(query.shredANF))
+    val gcodeSet = if (unshred) List(gcode1, codegen.generate(query.unshredANF)) else List(gcode1)
+    val header = codegen.generateHeader(query.headerTypes(true))
+   
+    val qname = s"Shred${query.name}Spark"
+    val fname = if (unshred) pathout(qname, "unshred") else pathout(qname)
+    println(s"Writing out $qname to $fname")
+    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
+    val inputSection = s"${inputCode.split("\n").dropRight(1).mkString("\n")}\n${shredInputs(inputQuery.indexedDict)}"
+    val finalc = writeSparkNew(qname, query.inputs(TPCHSchema.stblcmds), header, s"$inputSection\n${timed(qname, gcodeSet)}")
+    printer.println(finalc)
+    printer.close 
+  
+  }
+
   def runSparkShred(query: Query, unshred: Boolean = false): Unit = {
     
     val codegen = new SparkNamedGenerator(query.inputTypes(true))

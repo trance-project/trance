@@ -30,6 +30,8 @@ object App {
     //Utils.runSparkInputNew(TPCHQuery1, TPCHQuery4New)
     //Utils.runSparkInputNew(TPCHQuery1, TPCHQuery4New, shred = true)
     Utils.runSparkShred(TPCHQuery1, true)
+    //Utils.runSparkShred(TPCHQuery2, true)
+    Utils.runSparkShredInput(TPCHQuery2, TPCHQuery6, true)
     //println(Printer.quote(runner.unshredPipeline(TPCHQuery1Full.query.asInstanceOf[runner.Expr])))
     //Utils.runSparkNew(TPCHQuery1)
     //Utils.runSparkNew(TPCHQuery1, shred = true)

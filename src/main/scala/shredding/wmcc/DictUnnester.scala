@@ -48,7 +48,8 @@ object DictUnnester {
 		    val g = Tuple(u ++ fs.dropRight(1).map(v => v._2 match { case Project(t, f) => t; case v3 => v3}).toList)
         Nest(e2, v2, key, value, v, p2, g)    
     }
-    case CLookup(lbl, dict) => 
+    case CLookup(lbl, dict) =>
+      // the last position is the identity function (do not flatten the bag)
       val v2 = Variable.fresh(dict.tp.asInstanceOf[BagDictCType].flatTp)
       Lookup(E.get, dict, w, lbl, v2, Constant(true), v2)
     case Comprehension(lu @ CLookup(lbl, dict), v, p, e2) =>
@@ -59,9 +60,10 @@ object DictUnnester {
           case BagDictCType(BagCType(RecordCType(_)), EmptyDictCType) =>
             unnest(e2)((u, w :+ v, Some(Join(E.get, Select(Project(dict, "_1"), v, sp2s, v), w, p1s, v, p2s))))
           case _ =>
-            if (u.isEmpty) 
+            if (u.isEmpty) { 
+               // this should flatten the bag
                unnest(e2)((u, w :+ v, Some(Lookup(E.get, Project(dict, "_1"), w, lbl, v, p2s, p1s))))
-            else
+            } else {
               // todo move out to all cases
               getPM(sp2s) match {
                 case (Constant(false), _) =>  
@@ -73,7 +75,8 @@ object DictUnnester {
                     case Nest(e4, w4, f4, t4, v4, p4, g4) => Nest(e4, w4, f4, t4, nv, be2(nv), g4)
                     case res => res
                   }
-              }      
+              }
+            }      
         } 
       }
       else unnest(e2)((u, w :+ v, Some(Select(Project(dict, "_1"), v, p, v))))
@@ -140,7 +143,6 @@ object DictUnnester {
             t match {
               case Record(ms) if (ms.keySet == Set("k", "v") || ms.keySet == Set("_1", "_2"))  =>
                 val lbl = fs("_1") match { case Project(t1,"_1") => t1; case t1 => t1 }
-                println(fs("_2"))
                 Reduce(E.get, w, Record(Map("_1" -> lbl, "_2" -> fs("_2"))), Constant(true))
               case _ => Reduce(E.get, w, t, Constant(true)) 
             }
@@ -163,7 +165,7 @@ object DictUnnester {
         case (key, value @ CGroupBy(e1, v1, grp, value2)) :: tail =>
 	        val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
-        case (key, value @ Record(r)) :: tail =>
+        case (key, value @ Sng(Record(r))) :: tail =>
           val lkup = r.filter(c => isNestedComprehension(c._2))
           assert(lkup.size == 1)
           val (nE, v2) = getNest(unnest(lkup.head._2)((w, w, E)))
@@ -284,7 +286,7 @@ object DictUnnester {
       (Some(e), v3)
       //val v3 = Variable.fresh(p3.tp)
       //(Some(Lookup(e1, e2, v1, p1, v2, p2, p3)), v3)
-    case Lookup(_,_,_,_, v2 @ Variable(_,_),_,_) => (Some(e), v2)
+    case Lookup(_,_,_,_, v2 @ Variable(n,tp),_,_) => (Some(e), Variable(n, BagCType(tp)))
     case _ => sys.error(s"not supported $e")
   }
 
