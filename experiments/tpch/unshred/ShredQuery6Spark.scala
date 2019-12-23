@@ -61,7 +61,7 @@ val x277 = { val out1 = x267.map{ case x273 => ({val x275 = x273.o_custkey
 x275}, x273) }
   val out2 = x272.map{ case x274 => ({val x276 = x274.c_custkey 
 x276}, x274) }
-  out1.join(out2).map{ case (k,v) => v }
+  out1.joinSkewLeft(out2).map{ case (k,v) => v }
 } 
 val x283 = x277.map{ case (x278, x279) => 
    val x280 = x278.o_orderkey 
@@ -149,12 +149,13 @@ val x376 = cflat_ctx1
 val x378 = Query2__D_1 
 val x382 = { val out1 = x378.map{ case x379 => ({val x381 = x379.customers2 
 x381}, x379) }
-out1.cogroup(Query2__D_2customers2_1.flatMapValues(identity)).flatMap{ pair =>
+Query2__D_2customers2_1.flatMapValues(identity).lookupSkewLeft(out1)
+/**out1.cogroup(Query2__D_2customers2_1.flatMapValues(identity)).flatMap{ pair =>
  for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
-}
+}**/
 }
          
-val x388 = x382.map{ case (x383, x384) => 
+val x388 = x382.map{ case (x384, x383) => 
    val x385 = x384.c_name2 
 val x386 = x383.s_name 
 val x387 = Record430(x385, x386) 
