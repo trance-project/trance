@@ -293,12 +293,25 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
     case Lookup(e1, e2, v1, p1, v2, p2, p3) =>
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 = generate(v2)
-      // need to fix this
       val flatten = e2 match { case InputRef(n, _) if !n.contains("new") => ".flatten"; case _ => "" }
+      // move this to the implementation of lookup
+      val map2lookup = p3 match {
+        case v:Variable => 
+          s"""|out1.cogroup(${generate(e2)}).flatMap{
+              | case (_, (left, $gv2)) => left.map{ case $vars => ($vars, $gv2$flatten) }}""" 
+        case Constant(true) => 
+          s"""|out1.cogroup(${generate(e2)}.flatMapValues(identity)).flatMap{ pair =>
+              | for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
+              |}"""
+        case _ =>
+          s"""|out1.cogroup(${generate(e2)}.flatMapValues(${gv2} => 
+              | ${generate(p3)})).flatMapValues(identity)).flatMap{ pair =>
+              |   for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
+              |}"""
+      }
       s"""|{ val out1 = ${generate(e1)}.map{ case $vars => (${e1Key(p1, Constant(true))}, $vars) }
-          |out1.cogroup(${generate(e2)}).flatMap{
-          | case (_, (left, $gv2)) => left.map{ case $vars => ($vars, $gv2$flatten) }
-          |}}
+          | $map2lookup
+          |}
         """.stripMargin
     case OuterLookup(e1, e2, v1, p1, v2, p2, p3) => generate(Lookup(e1, e2, v1, p1, v2, p2, p3))
     case CoGroup(e1, es, vs, ps) => /** TODO THIS IS NOT DONE **/
