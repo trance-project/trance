@@ -3,6 +3,7 @@ package shredding.nrc
 import shredding.core._
 import shredding.examples.tpch.{TPCHQueries, TPCHSchema}
 import shredding.runtime.{Context, Evaluator, ScalaPrinter, ScalaShredding}
+import shredding.examples.simple._
 import shredding.examples.optimize._
 
 object TestApp extends App
@@ -1131,7 +1132,21 @@ object TestApp extends App
 
     }
   }
-  DomainExamples.run()
+
+  object ExtractExamples {
+    def run(): Unit = {
+      val q1 = ExtractExample.query.asInstanceOf[Expr]
+      println(quote(q1))
+
+      val sq1 = optimize(shred(q1))
+      val q1mat = materialize(sq1)
+      println(quote(q1mat.seq))
+      val q1unshred = unshred(sq1, q1mat.dictMapper)
+      println(quote(q1unshred))
+
+    }
+  }
+  ExtractExamples.run()
 //  Example1.run()
 //  Example2.run()
 //  Example3.run()

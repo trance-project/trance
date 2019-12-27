@@ -1,7 +1,49 @@
 package shredding.examples.simple
 
+import shredding.examples.Query
 import shredding.core._
 import shredding.nrc.LinearizedNRC
+
+trait ExtractTest extends Query {
+  def inputTypes(shred: Boolean = false): Map[Type, String] = Map[Type,String]()
+  def headerTypes(shred: Boolean = false): List[String] = List[String]()
+
+  def typeR = TupleType("a" -> BagType(TupleType("d" -> IntType)))
+  def typeS = TupleType("b" -> IntType)
+  def typeT = TupleType("d" -> IntType)
+
+  val relR = BagVarRef(VarDef("R", BagType(typeR)))
+  val r = VarDef("x", typeR)
+  val rr = TupleVarRef(r)
+
+  val r2 = VarDef("t", typeT)
+  val r2r = TupleVarRef(r2)
+
+  val relS = BagVarRef(VarDef("S", BagType(typeS)))
+  val s = VarDef("s", typeS)
+  val sr = TupleVarRef(s)
+
+  val relT = BagVarRef(VarDef("T", BagType(typeT)))
+  val t = VarDef("y", typeT)
+  val tr = TupleVarRef(t)
+}
+
+object ExtractExample extends ExtractTest {
+
+  val name = "ExtractExample"
+  def inputs(tmap: Map[String,String]): String = ""
+
+  val query = Union(
+    ForeachUnion(r, relR, 
+      Singleton(Tuple("myatt" -> 
+        ForeachUnion(r2, BagProject(rr, "a"),
+          IfThenElse(Cmp(OpEq, r2r("d"), Const(5, IntType)),
+            Singleton(r2r)))))),
+    ForeachUnion(s, relS, 
+      Singleton(Tuple("myatt" -> ForeachUnion(t, relT, 
+        IfThenElse(Cmp(OpEq, tr("d"), sr("b")),
+          Singleton(tr)))))))
+}
 
 object NestedTests {
 
