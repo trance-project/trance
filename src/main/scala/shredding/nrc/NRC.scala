@@ -106,6 +106,8 @@ trait NRC extends BaseExpr {
   }
 
   final case class Union(e1: BagExpr, e2: BagExpr) extends BagExpr {
+    println(e1.tp)
+    println(e2.tp)
     assert(e1.tp == e2.tp)
 
     val tp: BagType = e1.tp

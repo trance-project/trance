@@ -64,7 +64,7 @@ val x65 = { val out1 = x55.map{ case x61 => ({val x63 = x61.l_partkey
 x63}, x61) }
   val out2 = x60.map{ case x62 => ({val x64 = x62.p_partkey 
 x64}, x62) }
-  out1.join(out2).map{ case (k,v) => v }
+  out1.joinSkewLeft(out2).map{ case (k,v) => v }
 } 
 val x72 = x65.map{ case (x66, x67) => 
    val x68 = x66.l_orderkey 
@@ -188,8 +188,8 @@ x196}.map{ case v2 => (x195._1, v2) }
 val x203 = { val out1 = x198.map{ case (x199, x200) => ({val x202 = x200.o_parts 
 x202}, (x199, x200)) }
 out1.cogroup(o_parts__D_1).flatMap{
- case (_, (left, x201)) => left.map{ case (x199, x200) => ((x199, x200), x201.flatten) }
-}}
+ case (_, (left, x201)) => left.map{ case (x199, x200) => ((x199, x200), x201.flatten) }}
+}
          
 val x210 = x203.map{ case ((x204, x205), x206) => 
    val x207 = x205.o_orderdate 
@@ -204,8 +204,8 @@ val x213 = M__D_1
 val x217 = { val out1 = x213.map{ case x214 => ({val x216 = x214.c_orders 
 x216}, x214) }
 out1.cogroup(newc_orders__D_1).flatMap{
- case (_, (left, x215)) => left.map{ case x214 => (x214, x215) }
-}}
+ case (_, (left, x215)) => left.map{ case x214 => (x214, x215) }}
+}
          
 val x222 = x217.map{ case (x218, x219) => 
    val x220 = x218.c_name 

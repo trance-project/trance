@@ -305,7 +305,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
               |}"""
         case _ =>
           s"""|out1.cogroup(${generate(e2)}.flatMapValues(${gv2} => 
-              | ${generate(p3)})).flatMapValues(identity)).flatMap{ pair =>
+              | ${generate(p3)})).flatMap{ pair =>
               |   for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
               |}"""
       }

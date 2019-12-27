@@ -46,6 +46,7 @@ trait Query extends Linearization
       val exprs = fs.map(expr => optimize(shred(expr)))
       (exprs.last.asInstanceOf[ShredExpr], materialize(exprs))
     case _ => 
+      println(quote(query))
       val expr = optimize(shred(query))
       (expr, materialize(expr))
   }
