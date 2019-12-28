@@ -56,6 +56,7 @@ trait TPCHBase extends Query {
 object TPCHQuery1Full extends TPCHBase {
 
   val name = "Query1Full"
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_2customers2_1")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
@@ -94,6 +95,7 @@ object TPCHQuery1 extends TPCHBase {
   val name = "Query1"
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_2c_orders_1", s"${name}__D_2c_orders_2o_parts_1")
 
   val query1_ljp = ForeachUnion(l, relL,
                      ForeachUnion(p, relP, 

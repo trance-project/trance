@@ -127,10 +127,11 @@ trait Linearization {
     val bag = BagProject(kvref, "_2")
     val tdef = VarDef(Symbol.fresh("t"), bag.tp.tp)
     val tref = TupleVarRef(tdef)
-   
-    if (!dict.tupleDict.asInstanceOf[TupleDict].fields.exists{ case (k,v) => v != EmptyDict }){
+    
+    val labelTypeExist = bag.tp.tp.attrTps.exists(_._2.isInstanceOf[LabelType])
+    if (!labelTypeExist){
       (Nil, Lookup(lbl, BagDictVarRef(VarDef(top.varDef.name, dict.tp))))
-   }else{
+    }else{
       var nseqs = List[BagExpr]()
       val bagExpr = ForeachUnion(kvdef, top,
         //Singleton(Tuple("_1" -> LabelProject(kvref, "_1"), "_2" -> 

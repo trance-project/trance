@@ -26,10 +26,10 @@ object App {
   val tpchShredM = tpchInputM ++ TPCHSchema.tpchShredInputs
  
   def runTPCH1(){
-    Utils.runSparkShred(ExtractExample)
-    //Utils.runSparkInputNew(TPCHQuery1, TPCHQuery4New)
-    //Utils.runSparkInputNew(TPCHQuery1, TPCHQuery4New, shred = true)
-    //Utils.runSparkShred(TPCHQuery1, true)
+    //Utils.runSparkShred(ExtractExample)
+    Utils.runSparkInputNew(TPCHQuery1, TPCHQuery4New)
+    Utils.runSparkShredInput(TPCHQuery1, TPCHQuery4New, true)
+    //Utils.runSparkShred(TPCHQuery1)
     //Utils.runSparkShred(TPCHQuery2, true)
     //Utils.runSparkShredInput(TPCHQuery2, TPCHQuery6, true)
     //println(Printer.quote(runner.unshredPipeline(TPCHQuery1Full.query.asInstanceOf[runner.Expr])))

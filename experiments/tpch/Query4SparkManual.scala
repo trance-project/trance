@@ -43,7 +43,9 @@ object Query4SparkManual {
                   }.join(lpj)
                     .map{ case (_, ((cname, orderdate), (pname, qty))) => 
                       ((cname, orderdate, pname), qty)
-                   }.reduceByKey(_ + _)
+                   }.reduceByKey(_ + _).map{
+                      case ((cname, orderdate, pname), qty) => (cname, (orderdate, pname, qty))
+                   }.groupByKey()  
     custords.count
     var end0 = System.currentTimeMillis() - start0
     println("Query4SparkManual"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)

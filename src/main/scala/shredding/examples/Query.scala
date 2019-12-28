@@ -43,6 +43,7 @@ trait Query extends Linearization
 
   def shred: (ShredExpr, MaterializationInfo) = query match {
     case Sequence(fs) => 
+      println(quote(query))
       val exprs = fs.map(expr => optimize(shred(expr)))
       (exprs.last.asInstanceOf[ShredExpr], materialize(exprs))
     case _ => 
@@ -65,7 +66,7 @@ trait Query extends Linearization
     val seq = this.shred._2.seq
     println(quote(seq))
     val ctrans = translate(seq)
-    //println(Printer.quote(ctrans))
+    println(Printer.quote(ctrans))
     val shredded = normalizer.finalize(ctrans).asInstanceOf[CExpr] 
     println(Printer.quote(shredded))
     val initPlan = DictUnnester.unnest(shredded)(Nil, Nil, None)
