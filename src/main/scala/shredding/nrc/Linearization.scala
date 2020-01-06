@@ -105,7 +105,11 @@ trait Linearization {
     e.dict match {
       case d: BagDictExpr =>         
         val (exps, lkup) = unshred(e.flat.asInstanceOf[LabelExpr], d, dictMapper)
-        Sequence(exps)
+        if (exps.nonEmpty) Sequence(exps)
+        else lkup match { // this is the case where no unshredding will happen
+          case Lookup(lbl, bd) => bd
+          case _ => ???
+        }
       case _ => sys.error("Cannot linearize dict type " + e.dict)
     }
   }
@@ -221,13 +225,15 @@ trait Linearization {
   def linearizeNoDomains(dict: BagDict): List[Expr] = {
     val flatBagExpr = dict.flat
     val flatBagExprRewritten = nestingRewriteLossy(flatBagExpr)
-    val mFlatNamed = Named(VarDef(Symbol.fresh("M_dict"), flatBagExpr.tp), flatBagExprRewritten.asInstanceOf[BagExpr])
+    val mFlatNamed = Named(VarDef(Symbol.fresh("M_dict"), flatBagExprRewritten.tp), 
+      flatBagExprRewritten.asInstanceOf[BagExpr])
 
     val labelTps = dict.tp.flatTp.tp.attrTps.filter(_._2.isInstanceOf[LabelType]).toList
     mFlatNamed ::
       labelTps.flatMap { case (n, _) =>
         dict.tupleDict(n) match {
           case b: BagDict => linearizeNoDomains(b)
+          case b: BagDictLet => linearizeNoDomains(b.e2.asInstanceOf[BagDict])
           case b => sys.error("Unknown dictionary " + b)
         }
       }

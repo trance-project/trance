@@ -356,6 +356,30 @@ object TPCHQuery6 extends TPCHBase {
 
 }
 
+object TPCHQuery6New extends TPCHBase {
+  val name = "Query6New"
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
+ 
+  val (q2, co, cor) = varset(TPCHQuery2.name, "co", TPCHQuery2Full.query.asInstanceOf[BagExpr])
+  val cust = BagProject(cor, "customers2")
+  val co2 = VarDef("co2", cust.tp.tp)
+  val co2r = TupleVarRef(co2)
+  
+  val flat = ForeachUnion(co, BagVarRef(q2),
+              ForeachUnion(co2, cust,
+                Singleton(Tuple("c_name" -> co2r("c_name2"), "s_name" -> cor("s_name")))))
+  val (cflat, cf, cfr) = varset("cflat", "cf", flat.asInstanceOf[BagExpr])
+  val query = Sequence(List(Named(cflat, flat),
+    ForeachUnion(c, relC, 
+                Singleton(Tuple("c_name" -> cr("c_name"), "suppliers" -> 
+                  Total(ForeachUnion(cf, BagVarRef(cflat),
+                    IfThenElse(Cmp(OpEq, cfr("c_name"), cr("c_name")),
+                      Singleton(Tuple("s_name" -> cfr("s_name")))))))))))
+
+}
+
 /**
 For n in N Union
   Sng((n_name := n.n_name, parts := For co in Query3 Union
@@ -403,6 +427,37 @@ object TPCHQuery7Full extends TPCHBase {
 object TPCHQuery7 extends TPCHBase {
 
   val name = "Query7"
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "P", "PS", "S", "N").contains(x._1)).values.toList.mkString("")}"
+
+  val (q3, co, cor) = varset(TPCHQuery3.name, "co", TPCHQuery3Full.query.asInstanceOf[BagExpr]) 
+  
+  val customers = BagProject(cor, "customers")
+  val c2 = VarDef.fresh(customers.tp.tp)
+  val c2r = TupleVarRef(c2)
+
+  val suppliers = BagProject(cor, "suppliers")
+  val s2 = VarDef.fresh(suppliers.tp.tp)
+  val s2r = TupleVarRef(s2)
+
+  val custforall = ForeachUnion(c2, customers,
+                    IfThenElse(Cmp(OpEq, c2r("c_nationkey"), nr("n_nationkey")),
+                      Singleton(Tuple("count" -> Const(1, IntType)))))
+  
+  val query = ForeachUnion(n, relN, 
+                Singleton(Tuple("n_name" -> nr("n_name"), "parts" -> 
+                  ForeachUnion(co, BagVarRef(q3),
+                    ForeachUnion(s2, suppliers, 
+                      IfThenElse(And(Cmp(OpEq, s2r("s_nationkey"), nr("n_nationkey")),
+                                     Cmp(OpEq, Total(custforall), Const(0, IntType))),
+                        Singleton(Tuple("p_name" -> cor("p_name")))))))))
+                              
+}
+
+object TPCHQuery72 extends TPCHBase {
+
+  val name = "Query72"
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
       List("C", "O", "L", "P", "PS", "S", "N").contains(x._1)).values.toList.mkString("")}"

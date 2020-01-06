@@ -17,6 +17,7 @@ object DictUnnester {
   def isNestedComprehension(e: CExpr): Boolean = e match {
     case Record(fs) => fs.filter(c => isNestedComprehension(c._2)).nonEmpty
     case Variable(_, BagCType(_)) => false
+    case c:Comprehension if c.tp.isInstanceOf[PrimitiveType] => true
     case _ => e.tp.isInstanceOf[BagCType] || e.tp.isInstanceOf[BagDictCType]
   }
 
@@ -132,6 +133,7 @@ object DictUnnester {
           val (nE1, v21) = getNest(unnest(value)((w, w, E)))
           (Some(CDeDup(nE1.get)), v21)
         case value @ CGroupBy(e1, v1, grp, value2) => getNest(unnest(value)((w, w, E)))
+        case _ => ???
       }
       val vars = w :+ v2
       Reduce(nE.get, vars, Record(Map("k" -> vars.head, "v" -> Tuple(vars.tail))), Constant(true))
