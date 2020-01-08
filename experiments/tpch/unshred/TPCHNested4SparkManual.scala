@@ -41,16 +41,24 @@ object TPCHNested4SparkManual {
     val c = C.map(c => c.c_custkey -> c.c_name).join(CustomerOrders).map{ case (_, (c_name, orders)) => (c_name, orders) }
     c.count
     var start0 = System.currentTimeMillis()
-	  val result = c.flatMap{ 
+	  val custords = C.map{ c => c.c_custkey -> c.c_name }.join(O.map{o => o.o_custkey -> o.o_orderdate}).map{
+      case (_, (cname, date)) => (cname, date) -> 1
+    }
+    val result = c.flatMap{ 
       case (cname, orders) => orders.flatMap{ case (date, parts) => 
         parts.map{ case (part, qty) => part -> (cname, date, qty)}}
     }.join(P.map(p => p.p_name -> p.p_retailprice)).map{
       case (pname, ((cname, date, qty), price)) => (cname, date, pname) -> qty*price
     }.reduceByKey(_ + _).map{
       case ((cname, date, pname), total) =>  (cname, date) -> (pname, total)
-    }.groupByKey().map{ // note that this doesn't preserve bag semantics
+    }.cogroup(custords).map{
+      case ((cname, date), (bag, _)) => cname -> (date, bag)
+    }.cogroup(C.map{c => c.c_name -> 1}).map{
+      case (cname, (bag, _)) => cname -> bag
+    }
+    /**.groupByKey().map{ // note that this doesn't preserve bag semantics
       case ((cname, date), bag) => cname -> (date, bag)
-    }.groupByKey()
+    }.groupByKey()**/
     //result.collect.foreach(println(_))
     result.count
 	var end0 = System.currentTimeMillis() - start0
