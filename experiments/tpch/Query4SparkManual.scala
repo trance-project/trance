@@ -54,7 +54,7 @@ object Query4SparkManual {
                    }}}.reduceByKey(_+_).map{
                       case ((cname, orderdate, pname), qty) => (cname, (orderdate, pname, qty))
                    }.cogroup(C.map{ c => c.c_name -> 1 }).map{
-                      case (cname, (_, infos)) => cname -> infos.toArrays
+                      case (cname, (infos, _)) => cname -> infos.toArray
                    }
     custords.count
     var end0 = System.currentTimeMillis() - start0
