@@ -42,12 +42,20 @@ object Query4SparkManual {
 
     var start0 = System.currentTimeMillis()
 
-    val custords = c.flatMap{ case (cname, orders) => 
+    /**val custords = c.flatMap{ case (cname, orders) => 
                     orders.flatMap{ case (orderdate, parts) => parts.map{
                       case (pname, lqty) => ((cname, orderdate, pname), lqty)
                    }}}.reduceByKey(_+_).map{
                     case ((cname, orderdate, pname), qty) => (cname, (orderdate, pname, qty))
-                   }.groupByKey() 
+                   }.groupByKey() **/
+    val custords = c.flatMap{ case (cname, orders) => 
+                    orders.flatMap{ case (orderdate, parts) => parts.map{
+                      case (pname, lqty) => ((cname, orderdate, pname), lqty)
+                   }}}.reduceByKey(_+_).map{
+                      case ((cname, orderdate, pname), qty) => (cname, (orderdate, pname, qty))
+                   }.cogroup(C.map{ c => c.c_name -> 1 }).map{
+                      case (cname, (_, infos)) => cname -> infos.toArrays
+                   }
     custords.count
     var end0 = System.currentTimeMillis() - start0
     println("Query4SparkManual"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
