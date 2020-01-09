@@ -61,7 +61,7 @@ val x65 = { val out1 = x55.map{ case x61 => ({val x63 = x61.l_partkey
 x63}, x61) }
   val out2 = x60.map{ case x62 => ({val x64 = x62.p_partkey 
 x64}, x62) }
-  out1.join(out2).map{ case (k,v) => v }
+  out1.joinSkewLeft(out2).map{ case (k,v) => v }
 } 
 val x72 = x65.map{ case (x66, x67) => 
    val x68 = x66.l_orderkey 
@@ -198,9 +198,10 @@ out1.cogroup(Query1__D_2c_orders_1.flatMapValues(identity)).flatMap{ pair =>
          
 val x209 = { val out1 = x204.map{ case (x205, x206) => ({val x208 = x206.o_parts 
 x208}, (x205, x206)) }
-out1.cogroup(Query1__D_2c_orders_2o_parts_1.flatMapValues(identity)).flatMap{ pair =>
+out1.lookupSkewLeft(Query1__D_2c_orders_2o_parts_1.flatMapValues(identity))
+/**.flatMap{ pair =>
  for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
-}
+}**/
 }
          
 val x214 = P__D_1.map(x210 => { val x211 = x210.p_retailprice 
@@ -211,7 +212,7 @@ val x221 = { val out1 = x209.map{ case ((x215, x216), x217) => ({val x219 = x217
 x219}, ((x215, x216), x217)) }
   val out2 = x214.map{ case x218 => ({val x220 = x218.p_name 
 x220}, x218) }
-  out1.join(out2).map{ case (k,v) => v }
+  out1.joinSkewLeft(out2).map{ case (k,v) => v }
 } 
 val x234 = x221.flatMap{ case (((x222, x223), x224), x225) => val x233 = (x222,x225) 
 x233 match {
