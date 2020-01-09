@@ -80,8 +80,8 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
       evalTupleDict(t, ctx).fields(f)
     case TupleDictProject(b) =>
       evalBagDict(b, ctx).dict
-    case DictUnion(d1, d2) =>
-      evalDict(d1, ctx).union(evalDict(d2, ctx))
+    case d: DictUnion =>
+      evalDict(d.dict1, ctx).union(evalDict(d.dict2, ctx))
 
     case Named(v, e1) =>
       val b = eval(e1, ctx)

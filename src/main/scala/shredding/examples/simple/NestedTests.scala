@@ -8,7 +8,7 @@ trait ExtractTest extends Query {
   def inputTypes(shred: Boolean = false): Map[Type, String] = Map[Type,String]()
   def headerTypes(shred: Boolean = false): List[String] = List[String]()
 
-  def typeR = TupleType("a" -> BagType(TupleType("d" -> IntType)))
+  def typeR = TupleType("a" -> BagType(TupleType("d" -> IntType)), "c" -> IntType)
   def typeS = TupleType("b" -> IntType)
   def typeT = TupleType("d" -> IntType)
 
@@ -33,16 +33,45 @@ object ExtractExample extends ExtractTest {
   val name = "ExtractExample"
   def inputs(tmap: Map[String,String]): String = ""
 
-  val query = Union(
-    ForeachUnion(r, relR, 
-      Singleton(Tuple("myatt" -> 
-        ForeachUnion(r2, BagProject(rr, "a"),
-          IfThenElse(Cmp(OpEq, r2r("d"), Const(5, IntType)),
-            Singleton(r2r)))))),
-    ForeachUnion(s, relS, 
-      Singleton(Tuple("myatt" -> ForeachUnion(t, relT, 
-        IfThenElse(Cmp(OpEq, tr("d"), sr("b")),
-          Singleton(tr)))))))
+  val query =
+    Union(
+      ForeachUnion(r, relR,
+        Singleton(Tuple("myatt" ->
+          ForeachUnion(r2, BagProject(rr, "a"),
+            IfThenElse(Cmp(OpEq, r2r("d"), Const(5, IntType)),
+              Singleton(r2r))))))
+      ,
+      ForeachUnion(s, relS,
+        Singleton(Tuple("myatt" -> ForeachUnion(t, relT,
+          IfThenElse(Cmp(OpEq, tr("d"), sr("b")),
+            Singleton(tr))))))
+    )
+
+  val query2 =
+    ForeachUnion(r, relR,
+      Singleton(Tuple(
+        "x" -> PrimitiveProject(rr, "c"),
+        "y" -> Union(
+          ForeachUnion(s, relS, Singleton(Tuple("myattr" -> sr("b")))),
+          ForeachUnion(t, relT, Singleton(Tuple("myattr" -> tr("d"))))
+        )))
+    )
+
+  val query3 =
+    ForeachUnion(r, relR,
+      Singleton(Tuple(
+        "x" -> PrimitiveProject(rr, "c"),
+        "y" -> Union(
+          ForeachUnion(r2, BagProject(rr, "a"),
+            IfThenElse(Cmp(OpEq, r2r("d"), Const(5, IntType)),
+              Singleton(Tuple("myattr" -> r2r("d"))))),
+          ForeachUnion(r2, BagProject(rr, "a"),
+            ForeachUnion(s, relS,
+              IfThenElse(Cmp(OpEq, r2r("d"), sr("b")),
+                Singleton(Tuple("myattr" -> sr("b"))))))
+        )))
+    )
+
 }
 
 object NestedTests {

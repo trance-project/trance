@@ -83,10 +83,10 @@ trait Shredding extends BaseShredding with Extensions {
     case Union(e1, e2) =>
       val ShredExpr(l1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
       val ShredExpr(l2: LabelExpr, dict2: BagDictExpr) = shred(e2, ctx)
-      val dict = dict1.union(dict2).asInstanceOf[BagDictExpr]
-      val flat = Union(dict1.lookup(l1), dict2.lookup(l2))
+      val flat = Union(dict1.lookup(l1), dict2.lookup(l2))  // could be a heterogeneous union where labels in e1 and e2
+                                                            // for one attribute encapsulate different input variables
       val lbl = NewLabel(labelVars(flat))
-      ShredExpr(lbl, BagDict(lbl, flat, dict.tupleDict))
+      ShredExpr(lbl, BagDict(lbl, flat, TupleDictUnion(dict1.tupleDict, dict2.tupleDict)))
 
     case Singleton(e1) =>
       val ShredExpr(flat: TupleExpr, dict: TupleDictExpr) = shred(e1, ctx)

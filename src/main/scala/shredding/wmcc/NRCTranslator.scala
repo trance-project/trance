@@ -90,7 +90,7 @@ trait NRCTranslator extends LinearizedNRC {
     case BagDictProject(dict, field) => project(translate(dict), field)
     case TupleDict(fs) => TupleCDict(fs.map(f => f._1 -> translate(f._2)))
     case TupleDictProject(dict) => project(translate(dict), "_2")
-    case DictUnion(d1, d2) => DictCUnion(translate(d1), translate(d2))
+    case d: DictUnion => DictCUnion(translate(d.dict1), translate(d.dict2))
     case Total(e1) => comprehension(translate(e1), x => constant(true), (i: CExpr) => constant(1))
     case DeDup(e1) => CDeDup(translate(e1)) 
     case WeightedSingleton(tup, qty) => WeightedSng(translate(tup), translate(qty))

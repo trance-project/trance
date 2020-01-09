@@ -33,7 +33,7 @@ trait Extensions extends LinearizedNRC {
       case TupleDict(fs) => fs.flatMap(x => collect(x._2, f)).toList
       case BagDictProject(v, _) => collect(v, f)
       case TupleDictProject(d) => collect(d, f)
-      case DictUnion(d1, d2) => collect(d1, f) ++ collect(d2, f)
+      case d: DictUnion => collect(d.dict1, f) ++ collect(d.dict2, f)
       case Named(_, e1) => collect(e1, f)
       case Sequence(ee) => ee.flatMap(collect(_, f))
       case _ => List()
@@ -113,11 +113,10 @@ trait Extensions extends LinearizedNRC {
         BagDictProject(replace(v, f).asInstanceOf[TupleDictExpr], n)
       case TupleDictProject(d) =>
         TupleDictProject(replace(d, f).asInstanceOf[BagDictExpr])
-      case DictUnion(d1, d2) =>
-        val r1 = replace(d1, f).asInstanceOf[DictExpr]
-        val r2 = replace(d2, f).asInstanceOf[DictExpr]
+      case d: DictUnion =>
+        val r1 = replace(d.dict1, f).asInstanceOf[DictExpr]
+        val r2 = replace(d.dict2, f).asInstanceOf[DictExpr]
         DictUnion(r1, r2)
-
       case Named(v, e1) => Named(v, replace(e1, f))
       case Sequence(ee) => Sequence(ee.map(replace(_, f)))
 

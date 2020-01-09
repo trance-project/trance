@@ -1135,15 +1135,15 @@ object TestApp extends App
 
   object ExtractExamples {
     def run(): Unit = {
-      val q1 = ExtractExample.query.asInstanceOf[Expr]
+      val q1 = ExtractExample.query3.asInstanceOf[Expr]
       println(quote(q1))
 
       val sq1 = optimize(shred(q1))
+      println(quote(sq1))
       val q1mat = materialize(sq1)
       println(quote(q1mat.seq))
       val q1unshred = unshred(sq1, q1mat.dictMapper)
       println(quote(q1unshred))
-
     }
   }
   ExtractExamples.run()

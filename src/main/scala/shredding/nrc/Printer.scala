@@ -17,7 +17,10 @@ trait Printer extends LinearizedNRC {
     case ForeachUnion(x, e1, e2) =>
       s"""|For ${x.name} in ${quote(e1)} Union
           |${ind(quote(e2))}""".stripMargin
-    case Union(e1, e2) => s"(${quote(e1)}) Union (${quote(e2)})"
+    case Union(e1, e2) =>
+      s"""|(${quote(e1)})
+          |Union
+          |(${quote(e2)})""".stripMargin
     case Singleton(e1) => s"Sng(${quote(e1)})"
     case WeightedSingleton(e1, w1) =>
       s"WeightedSng(${quote(e1)}, ${quote(w1)})"
@@ -51,7 +54,7 @@ trait Printer extends LinearizedNRC {
     case x: ExtractLabel =>
       val tuple = x.lbl.tp.attrTps.keys.mkString(", ")
       s"""|Extract ${quote(x.lbl)} as ($tuple) In
-          |${quote(x.e)}"""".stripMargin
+          |${quote(x.e)}""".stripMargin
     case l: NewLabel =>
       s"NewLabel(${(l.id :: l.vars.toList.map(_.name)).mkString(", ")})"
     case Lookup(lbl, dict) =>
@@ -69,7 +72,10 @@ trait Printer extends LinearizedNRC {
       s"(${fs.map { case (k, v) => k + " := " + quote(v) }.mkString(", ")})"
     case BagDictProject(v, f) => quote(v) + "." + f
     case TupleDictProject(v) => quote(v) + ".tupleDict"
-    case DictUnion(d1, d2) => s"(${quote(d1)}) DictUnion (${quote(d2)})"
+    case d: DictUnion =>
+      s"""|(${quote(d.dict1)})
+          |DictUnion
+          |(${quote(d.dict2)})""".stripMargin
 
     case Named(v, e1) => s"${v.name} := ${quote(e1)}"
     case Sequence(ee) => ee.map(quote).mkString("\n")

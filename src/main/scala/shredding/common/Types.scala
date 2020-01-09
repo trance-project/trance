@@ -41,7 +41,6 @@ case class LabelType(attrTps: Map[String, Type]) extends TupleAttributeType {
     case that: LabelType => this.attrTps == that.attrTps
     case _ => false
   }
-
 }
 
 object LabelType {
