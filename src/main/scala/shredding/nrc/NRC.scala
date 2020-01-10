@@ -35,7 +35,7 @@ trait BaseExpr {
 trait NRC extends BaseExpr {
 
   final case class Const(v: Any, tp: PrimitiveType) extends PrimitiveExpr
-
+ 
   trait VarRef {
     def varDef: VarDef
 
@@ -171,7 +171,7 @@ trait NRC extends BaseExpr {
   final case class DeDup(e: BagExpr) extends BagExpr {
     val tp: BagType = e.tp
   }
-
+  
   trait Cond extends PrimitiveExpr {
     def tp: PrimitiveType = BoolType
   }
@@ -183,6 +183,21 @@ trait NRC extends BaseExpr {
   final case class Or(e1: Cond, e2: Cond) extends Cond
 
   final case class Not(c: Cond) extends Cond
+
+  final case class PrimitiveOp(op: PrimOp, e1: PrimitiveExpr, e2: PrimitiveExpr) extends PrimitiveExpr {
+    def tp: PrimitiveType = (e1.tp, e2.tp) match {
+      case (DoubleType, _) => DoubleType
+      case (_, DoubleType) => DoubleType
+      case (IntType, _) => IntType
+      case _ => sys.error("unsupported type")
+    }
+  }
+  
+  object PrimitiveOp {
+    def apply(op: PrimOp, e1: TupleAttributeExpr, e2: TupleAttributeExpr): PrimitiveExpr = {
+      PrimitiveOp(op, e1.asInstanceOf[PrimitiveExpr], e2.asInstanceOf[PrimitiveExpr])
+    }
+  }
 
   trait IfThenElse {
     def cond: Cond

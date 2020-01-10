@@ -26,22 +26,22 @@ object App {
   val tpchShredM = tpchInputM ++ TPCHSchema.tpchShredInputs
  
   def runTPCH1(){
-    //Utils.runSparkShred(ExtractExample)
-    //Utils.runSparkInputNew(TPCHQuery1, TPCHQuery4New2, true)
-    Utils.runSparkShredInput(TPCHQuery1, TPCHNested1)
+    //Utils.runSparkShred(TPCHQuery1Filter, true)
+    //Utils.runSparkInputNew(TPCHQuery2, TPCHQuery6)
+    //Utils.runSparkShredInput(TPCHQuery2, TPCHQuery6New)
     //Utils.runSparkShred(TPCHQuery1)
     //Utils.runSparkShred(TPCHQuery3, true)
     //Utils.runSparkShredInput(TPCHQuery2, TPCHQuery6New) // doesn't need to unshred
     //println(Printer.quote(runner.unshredPipeline(TPCHQuery1Full.query.asInstanceOf[runner.Expr])))
-    //Utils.runSparkNew(TPCHQuery1)
+    Utils.runSparkNew(TPCHQuery1Filter)
     //Utils.runSparkNew(TPCHQuery1, shred = true)
 
-    //Utils.runSparkInputNew(TPCHQuery1, TPCHQuery4Full)
+    //Utils.runSparkInputNew(TPCHQuery1, TPCHNested4)
     //Utils.runSparkInputNew(TPCHQuery1, TPCHQuery4New, shred = true)
     /**Utils.runSparkInputNew(TPCHQuery3, TPCHQuery7A)
     Utils.runSparkInputNew(TPCHQuery3, TPCHQuery7A, shred = true)**/
  
-    //Utils.runSparkNew(TPCHQuery2)
+    //Utils.runSparkNew(TPCHQuery2, shred = true)
     //Utils.runSparkNew(TPCHQuery2, shred = true)
     /**Utils.runSparkNew(TPCHQuery2Full)
     Utils.runSparkNew(TPCHQuery2Full, shred = true)**/

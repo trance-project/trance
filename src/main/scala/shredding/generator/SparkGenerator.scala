@@ -1,6 +1,7 @@
 package shredding.generator
 
 import shredding.core._
+import shredding.wmcc.{Multiply => CMultiply}
 import shredding.wmcc._
 import shredding.utils.Utils.ind
 
@@ -121,6 +122,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       case RecordCType(fs) => s"${generate(e2)}.${kvName(field)(fs.size)}"
       case _ => s"${generate(e2)}.${kvName(field)}"
     }
+    case CMultiply(e1, e2) => s"${generate(e1)} * ${generate(e2)}"
     case Equals(e1, e2) => s"${generate(e1)} == ${generate(e2)}"
     case Lt(e1, e2) => s"${generate(e1)} < ${generate(e2)}"
     case Gt(e1, e2) => s"${generate(e1)} > ${generate(e2)}"

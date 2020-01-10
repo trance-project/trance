@@ -92,6 +92,15 @@ case class Or(e1: CExpr, e2: CExpr) extends CExpr{
   def tp: PrimitiveType = BoolType
 }
 
+case class Multiply(e1: CExpr, e2: CExpr) extends CExpr{
+  def tp: PrimitiveType = (e1.tp, e2.tp) match {
+    case (DoubleType, _) => DoubleType
+    case (_, DoubleType) => DoubleType
+    case (IntType, _) => IntType
+    case _ => sys.error("type not supported")
+  }
+}
+
 case class Project(e1: CExpr, field: String) extends CExpr { self =>
   def tp: Type = e1.tp match {
     case t:RecordCType => t.attrTps(field)

@@ -38,6 +38,7 @@ trait Printer extends LinearizedNRC {
       case Not(e1) =>
         s"NOT ${quote(e1)}"
     }
+    case PrimitiveOp(Multiply, e1, e2) => s"(${quote(e1)} * ${quote(e2)})"
     case i: IfThenElse =>
       if (i.e2.isDefined)
         s"""|If (${quote(i.cond)})

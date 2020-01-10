@@ -80,7 +80,9 @@ object DictUnnester {
             }      
         } 
       }
-      else unnest(e2)((u, w :+ v, Some(Select(Project(dict, "_1"), v, p, v))))
+      else {
+        unnest(e2)((u, w :+ v, Some(Select(Project(dict, "_1"), v, p, v))))
+      }
     case Comprehension(e1, v, p, e2) if u.isEmpty && w.isEmpty && E.isEmpty =>
       unnest(e2)((Nil, List(v), Some(Select(e1, v, p, v))))
     case Comprehension(e1 @ Comprehension(_, _, _, _), v, p, e) if !w.isEmpty => // C11 (relaxed)

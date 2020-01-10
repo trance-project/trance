@@ -20,7 +20,10 @@ object Optimizer {
     case Sng(r) => fields(r)
     case Tuple(fs) => fs.foreach( f => fields(f))
     case Project(v @ Variable(_,_), s) => proj(v) = proj(v) ++ Set(s)
+    case Gte(e1, e2) => fields(e1); fields(e2);
     case Equals(e1, e2) => fields(e1); fields(e2)
+    case Multiply(e1, e2) => fields(e1); fields(e2);
+    case And(e1, e2) => fields(e1); fields(e2);
     case _ => Unit
   }
 
@@ -30,11 +33,16 @@ object Optimizer {
   def push(e: CExpr): CExpr = e match {
     case Reduce(Select(x, v, p, e2), v2, f2, p2) => x match {
       case InputRef(n, BagDictCType(flat, tdict)) =>
-        Reduce(InputRef(n, flat), v2, f2, and(p, p2))
-      case _ => Reduce(x, v2, f2, and(p, p2))
+        push(Reduce(InputRef(n, flat), v2, f2, and(p, p2)))
+      case _ => 
+        fields(p)
+        fields(p2)
+        fields(f2)
+        Reduce(push(Select(x, v, p, e2)), v2, f2, p2)
     }
     case Reduce(d, v, f, p) => 
       fields(f)
+      fields(p)
       Reduce(push(d), v, f, p)
     case Nest(e1, v1, f, e, v, p, g) => 
       fields(e)

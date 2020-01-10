@@ -237,7 +237,7 @@ val x247 = { val out1 = x236.map{ case (x242, x243) => ({val x245 = x243.p_name
 x245}, (x242, x243)) }
   val out2 = x241.map{ case x244 => ({val x246 = x244.p_name 
 x246}, x244) }
-  out1.join(out2).map{ case (k,v) => v }
+  out1.joinSkewLeft(out2).map{ case (k,v) => v }
 } 
 val x262 = x247.flatMap{ case ((x248, x249), x250) => val x260 = x248//.lbl 
 val x261 = (x248,x260,x250) 
@@ -263,8 +263,8 @@ val parts__D_1 = x268
 val x269 = parts__D_1
 //parts__D_1.collect.foreach(println(_))
 val result = parts__D_1.joinSkewLeft(M__D_1).map{
-  case (lbl, ((pname, tot), cname)) => (cname, pname, tot)
-}
+  case (lbl, ((pname, tot), cname)) => ((cname, pname), tot)
+}.reduceByKey(_+_)
 result.count
 var end0 = System.currentTimeMillis() - start0
 println("ShredTPCHNested2Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)

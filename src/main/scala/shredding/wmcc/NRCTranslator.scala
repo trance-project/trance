@@ -71,6 +71,7 @@ trait NRCTranslator extends LinearizedNRC with NRCPrinter {
   def translate(e: Expr): CExpr = e match {
     case Const(v, tp) => constant(v)
     case v:VarRef => translateVar(v)
+    case PrimitiveOp(op, e1, e2) => mult(translate(e1), translate(e2))
     case Singleton(e1 @ Tuple(fs)) if fs.isEmpty => emptysng
     case Singleton(e1) => sng(translate(e1))
     case Tuple(fs) if fs.isEmpty => unit

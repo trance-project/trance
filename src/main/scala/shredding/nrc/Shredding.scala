@@ -154,7 +154,10 @@ trait Shredding extends BaseShredding with Extensions {
         val ShredExpr(c1: Cond, EmptyDict) = shred(e1, ctx)
         ShredExpr(Not(c1), EmptyDict)
     }
-
+    case PrimitiveOp(Multiply, e1, e2) => 
+      val ShredExpr(c1:PrimitiveExpr, EmptyDict) = shred(e1, ctx)
+      val ShredExpr(c2:PrimitiveExpr, EmptyDict) = shred(e2, ctx)
+      ShredExpr(PrimitiveOp(Multiply, c1, c2), EmptyDict)
     case i: IfThenElse =>
       val ShredExpr(c: Cond, EmptyDict) = shred(i.cond, ctx)
       val se1 = shred(i.e1, ctx)

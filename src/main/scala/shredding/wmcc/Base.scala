@@ -19,6 +19,7 @@ trait Base {
   def weightedsng(x: Rep, q: Rep): Rep
   def tuple(fs: List[Rep]): Rep
   def record(fs: Map[String, Rep]): Rep
+  def mult(e1: Rep, e2: Rep): Rep
   def equals(e1: Rep, e2: Rep): Rep
   def lt(e1: Rep, e2: Rep): Rep
   def gt(e1: Rep, e2: Rep): Rep
@@ -65,6 +66,7 @@ trait BaseStringify extends Base{
   def tuple(fs: List[Rep]) = s"(${fs.mkString(",")})"
   def record(fs: Map[String, Rep]): Rep = 
     s"(${fs.map(f => f._1 + " := " + f._2).mkString(",")})"
+  def mult(e1: Rep, e2: Rep): Rep = s"(${e1} * ${e2})" 
   def equals(e1: Rep, e2: Rep): Rep = s"${e1} == ${e2}"
   def lt(e1: Rep, e2: Rep): Rep = s"${e1} < ${e2}"
   def gt(e1: Rep, e2: Rep): Rep = s"${e1} > ${e2}"
@@ -177,6 +179,7 @@ trait BaseCompiler extends Base {
   def weightedsng(x: Rep, q: Rep): Rep = WeightedSng(x, q)
   def tuple(fs: List[Rep]): Rep = Tuple(fs)
   def record(fs: Map[String, Rep]): Rep = Record(fs)
+  def mult(e1: Rep, e2: Rep): Rep = Multiply(e1, e2)
   def equals(e1: Rep, e2: Rep): Rep = Equals(e1, e2)
   def lt(e1: Rep, e2: Rep): Rep = Lt(e1, e2)
   def gt(e1: Rep, e2: Rep): Rep = Gt(e1, e2)
@@ -417,6 +420,7 @@ trait BaseScalaInterp extends Base{
     if (doteq) RecordValue(fs.asInstanceOf[Map[String, Rep]], RecordValue.newId)
     else Rec(fs.asInstanceOf[Map[String, Rep]])
   }
+  def mult(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Double] * e2.asInstanceOf[Double]
   def equals(e1: Rep, e2: Rep): Rep = e1 == e2
   def lt(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Int] < e2.asInstanceOf[Int]
   def gt(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Int] > e2.asInstanceOf[Int]
@@ -693,6 +697,7 @@ trait BaseANF extends Base {
   }
   def tuple(fs: List[Rep]): Rep = compiler.tuple(fs.map(defToExpr(_)))
   def record(fs: Map[String, Rep]): Rep = compiler.record(fs.map(x => (x._1, defToExpr(x._2))))
+  def mult(e1: Rep, e2: Rep): Rep = compiler.mult(e1, e2)
   def equals(e1: Rep, e2: Rep): Rep = compiler.equals(e1, e2)
   def lt(e1: Rep, e2: Rep): Rep = compiler.lt(e1, e2)
   def gt(e1: Rep, e2: Rep): Rep = compiler.gt(e1, e2)
@@ -773,6 +778,7 @@ class Finalizer(val target: Base){
     case Tuple(fs) => target.tuple(fs.map(f => finalize(f)))
     case Record(fs) if fs.isEmpty => target.unit
     case Record(fs) => target.record(fs.map(f => f._1 -> finalize(f._2)))
+    case Multiply(e1, e2) => target.mult(finalize(e1), finalize(e2))
     case Equals(e1, e2) => target.equals(finalize(e1), finalize(e2))
     case Lt(e1, e2) => target.lt(finalize(e1), finalize(e2))
     case Gt(e1, e2) => target.gt(finalize(e1), finalize(e2))

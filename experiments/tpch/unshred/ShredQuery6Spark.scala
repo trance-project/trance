@@ -61,7 +61,7 @@ val x51 = { val out1 = x41.map{ case x47 => ({val x49 = x47.o_custkey
 x49}, x47) }
   val out2 = x46.map{ case x48 => ({val x50 = x48.c_custkey 
 x50}, x48) }
-  out1.join(out2).map{ case (k,v) => v }
+  out1.joinSkewLeft(out2).map{ case (k,v) => v }
 } 
 val x57 = x51.map{ case (x52, x53) => 
    val x54 = x52.o_orderkey 
@@ -131,10 +131,10 @@ x108
 val customers2__D_1 = x109
 val x110 = customers2__D_1
 //customers2__D_1.collect.foreach(println(_))
-val Query2__D_1 = M_flat1
+val Query2__D_1 = M__D_1//M_flat1
 Query2__D_1.cache
 Query2__D_1.count
-val Query2__D_2customers2_1 = M_flat2
+val Query2__D_2customers2_1 = customers2__D_1//M_flat2
 Query2__D_2customers2_1.cache
 Query2__D_2customers2_1.count
  def f = {
@@ -149,9 +149,10 @@ val x150 = cflat_ctx1
 val x152 = Query2__D_1 
 val x156 = { val out1 = x152.map{ case x153 => ({val x155 = x153.customers2 
 x155}, x153) }
-out1.cogroup(Query2__D_2customers2_1.flatMapValues(identity)).flatMap{ pair =>
+out1.lookupSkewLeft(Query2__D_2customers2_1.flatMapValues(identity))
+/**.flatMap{ pair =>
  for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
-}
+}**/
 }
          
 val x162 = x156.map{ case (x157, x158) => 
@@ -175,7 +176,7 @@ x168
 val M__D_1 = x169
 val x170 = M__D_1
 //M__D_1.collect.foreach(println(_))
-val x172 = M__D_1 
+/**val x172 = M__D_1 
 val x176 = x172.map{ case x173 => 
    val x174 = x173.suppliers 
 val x175 = Record207(x174) 
@@ -193,7 +194,8 @@ x186}, x183) }
   val out2 = x182.map{ case x184 => ({val x187 = x184.c_name 
 x187}, x184) }
   out1.join(out2).map{ case (k,v) => v }
-} 
+} **/
+val x188 = cflat__D_1
 val x196 = x188.flatMap{ case (x189, x190) => val x195 = (x190) 
 x195 match {
    case (null) => Nil 
@@ -231,7 +233,7 @@ x227
 } 
 val newM__D_1 = x228
 val x229 = newM__D_1
-//newM__D_1.collect.foreach(println(_))
+newM__D_1.collect.foreach(println(_))
 x229.count
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery6Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
