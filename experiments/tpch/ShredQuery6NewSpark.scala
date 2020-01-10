@@ -128,10 +128,10 @@ x108
 val customers2__D_1 = x109
 val x110 = customers2__D_1
 //customers2__D_1.collect.foreach(println(_))
-val Query2__D_1 = M__D_1
+val Query2__D_1 = M__D_1//M_flat1
 Query2__D_1.cache
 Query2__D_1.count
-val Query2__D_2customers2_1 = customers2__D_1
+val Query2__D_2customers2_1 = customers2__D_1//M_flat2
 Query2__D_2customers2_1.cache
 Query2__D_2customers2_1.count
  def f = {
@@ -146,12 +146,7 @@ val x145 = cflat_ctx1
 val x147 = Query2__D_1 
 val x151 = { val out1 = x147.map{ case x148 => ({val x150 = x148.customers2 
 x150}, x148) }
-val out2 = Query2__D_2customers2_1.flatMapValues(identity)
-out2.lookupSkewLeft(out1)
-/**cogroup(Query2__D_2customers2_1.flatMapValues(identity)).flatMap{ pair =>
- for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
-}**/
-}
+Query2__D_2customers2_1.flatMapValues(identity).lookupSkewLeft(out1)
          
 val x157 = x151.map{ case (x153, x152) => 
    val x154 = x153.c_name2 
@@ -168,9 +163,7 @@ val x159 = M_ctx1
 val x163 = C__D_1.map(x160 => { val x161 = x160.c_name 
 val x162 = Record187(x161) 
 x162 }) 
-val x167 = cflat__D_1.map(x164 => { val x165 = x164.c_name 
-val x166 = Record187(x165) 
-x166 }) 
+val x167 = cflat__D_1
 val x172 = { val out1 = x163.map{ case x168 => ({val x170 = x168.c_name 
 x170}, x168) }
   val out2 = x167.map{ case x169 => ({val x171 = x169.c_name 
@@ -195,7 +188,7 @@ val x184 = M__D_1
 x184.count
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery6NewSpark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
-   
+    
 }
 var start = System.currentTimeMillis()
 f
