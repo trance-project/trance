@@ -196,10 +196,10 @@ x187}, x184) }
   out1.join(out2).map{ case (k,v) => v }
 } **/
 val x188 = cflat__D_1
-val x196 = x188.flatMap{ case (x189, x190) => val x195 = (x190) 
+val x196 = x188.flatMap{ case (x190) => val x195 = (x190) 
 x195 match {
    case (null) => Nil 
-   case x194 => List(({val x191 = (x189) 
+   case x194 => List(({val x191 = Record207(Record205(x190.c_name)) 
 x191}, {val x192 = x190.s_name 
 val x193 = Record209(x192) 
 x193}))
@@ -233,7 +233,7 @@ x227
 } 
 val newM__D_1 = x228
 val x229 = newM__D_1
-newM__D_1.collect.foreach(println(_))
+//newM__D_1.collect.foreach(println(_))
 x229.count
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery6Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
