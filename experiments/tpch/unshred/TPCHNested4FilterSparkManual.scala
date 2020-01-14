@@ -34,22 +34,22 @@ object TPCHNested4FilterSparkManual {
     val p = P.map(p => p.p_partkey -> p.p_name)
     val lpj = l.joinSkewLeft(p)
 
-    val OrderParts = lpj.map{ case (_, ((l_orderkey, l_quantity), p_name)) => (l_orderkey, (p_name, l_quantity)) }.groupByKey()
-    val o = O.map(o => o.o_orderkey -> (o.o_custkey, o.o_orderdate)).join(OrderParts)
-
-    val CustomerOrders = o.map{ case (_, ((o_custkey, o_orderdate), parts)) => (o_custkey, (o_orderdate, parts)) }.groupByKey()
-    val c = C.map(c => c.c_custkey -> c.c_name).join(CustomerOrders).map{ case (_, (c_name, orders)) => (c_name, orders) }
+    val OrderParts = lpj.map{ case (_, ((l_orderkey, l_quantity), p_name)) => (l_orderkey, (p_name, l_quantity)) }
+    val CustomerOrders = O.map(o => o.o_orderkey -> (o.o_custkey, o.o_orderdate)).cogroup(OrderParts).flatMap{
+      case (ok, (order, parts)) => order.map{ case (ock, od) => ock -> (ok, od, parts.toArray) }
+    }
+    val c = C.map(c => c.c_custkey -> c.c_name).cogroup(CustomerOrders).flatMap{ 
+      case (c_custkey, (c_name, orders)) => c_name.map(c => (c_custkey, c, orders.toArray))
+    }
     c.count
-    val cnames = C.filter(c => c.c_custkey <= 1500000).map(c => c.c_name).collect.toList
-    val dates = O.filter(o => o.o_orderkey <= 150000000).map(o => o.o_orderdate).collect.toList
     var start0 = System.currentTimeMillis()
-	  val custords = C.filter(c => cnames.contains(c.c_name)).map{ c => 
+	  val custords = C.filter(c => c.c_custkey <= 1500000).map{ c => 
       c.c_custkey -> c.c_name }.join(O.filter(o => 
-        dates.contains(o.o_orderdate)).map{o => o.o_custkey -> o.o_orderdate}).map{
+        o.o_orderkey <= 150000000).map{o => o.o_custkey -> o.o_orderdate}).map{
       case (_, (cname, date)) => (cname, date) -> 1
     }
-    val result = c.flatMap{ 
-      case (cname, orders) => orders.flatMap{ case (date, parts) => 
+    val result = c.filter(_._1 <= 1500000).flatMap{ 
+      case (ck, cname, orders) => orders.filter(_._1 <= 150000000).flatMap{ case (ok, date, parts) => 
         parts.map{ case (part, qty) => part -> (cname, date, qty)}}
     }.join(P.map(p => p.p_name -> p.p_retailprice)).map{
       case (pname, ((cname, date, qty), price)) => (cname, date, pname) -> qty*price
@@ -60,10 +60,6 @@ object TPCHNested4FilterSparkManual {
     }.cogroup(C.map{c => c.c_name -> 1}).map{
       case (cname, (bag, _)) => cname -> bag
     }
-    /**.groupByKey().map{ // note that this doesn't preserve bag semantics
-      case ((cname, date), bag) => cname -> (date, bag)
-    }.groupByKey()**/
-    //result.collect.foreach(println(_))
     result.count
 	var end0 = System.currentTimeMillis() - start0
     println("TPCHNested4FilterSparkManual"+sf+","+Config.datapath+","+end0)
