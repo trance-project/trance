@@ -236,7 +236,13 @@ out1.cogroup(Query1WK__D_2c_orders_1.flatMapValues(identity)).flatMap{ pair =>
  for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
 }
 }**/
-val x257 = Query1WK__D_2c_orders_1.flatMapValues(identity)     
+//val x257 = Query1WK__D_2c_orders_1.flatMapValues(identity)     
+val x257 = Query1WK__D_2c_orders_1.flatMap{
+  case (lbl, obag) => obag.flatMap{
+    o => if (o.o_orderkey <= 150000000) List((lbl, o))
+    else Nil
+  }
+}
 val x267 = x257.flatMap{ case (x258, x259) => val x266 = (x259) 
 x266 match {
    case (null) => Nil 
@@ -289,7 +295,7 @@ val x304 = { val out1 = x293.map{ case (x299, x300) => ({val x302 = x300.p_name
 x302}, (x299, x300)) }
   val out2 = x298.map{ case x301 => ({val x303 = x301.p_name 
 x303}, x301) }
-  out1.join(out2).map{ case (k,v) => v }
+  out1.joinSkewLeft(out2).map{ case (k,v) => v }
 } 
 val x316 = x304.flatMap{ case ((x305, x306), x307) => val x315 = (x305,x307) 
 x315 match {
