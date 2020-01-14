@@ -41,11 +41,11 @@ object TPCHNested4FilterSparkManual {
     val c = C.map(c => c.c_custkey -> c.c_name).cogroup(CustomerOrders).flatMap{ 
       case (c_custkey, (c_name, orders)) => c_name.map(c => (c_custkey, c, orders.toArray))
     }
+    c.cache
     c.count
     var start0 = System.currentTimeMillis()
-	  val custords = C.filter(c => c.c_custkey <= 1500000).map{ c => 
-      c.c_custkey -> c.c_name }.join(O.filter(o => 
-        o.o_orderkey <= 150000000).map{o => o.o_custkey -> o.o_orderdate}).map{
+	  val custords = C.map{ c => 
+      c.c_custkey -> c.c_name }.join(O.map(o => o.o_custkey -> o.o_orderdate)).map{
       case (_, (cname, date)) => (cname, date) -> 1
     }
     val result = c.filter(_._1 <= 1500000).flatMap{ 
