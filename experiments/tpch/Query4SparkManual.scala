@@ -28,16 +28,25 @@ object Query4SparkManual {
     P.cache
     P.count
 
+	var start = System.currentTimeMillis()
     val l = L.map(l => l.l_partkey -> (l.l_orderkey, l.l_quantity))
     val p = P.map(p => p.p_partkey -> p.p_name)
     val lpj = l.joinSkewLeft(p)
 
-    val OrderParts = lpj.map{ case (_, ((l_orderkey, l_quantity), p_name)) => (l_orderkey, (p_name, l_quantity)) }.groupByKey()
-    val o = O.map(o => o.o_orderkey -> (o.o_custkey, o.o_orderdate)).join(OrderParts)
+    val OrderParts = lpj.map{ case (_, ((l_orderkey, l_quantity), p_name)) => 
+		(l_orderkey, (p_name, l_quantity)) }
+    
+	val CustomerOrders = O.map(o => o.o_orderkey -> (o.o_custkey, o.o_orderdate)).cogroup(OrderParts).flatMap{
+	        	case (_, (order, parts)) => order.map{ case (ock, od) => ock -> (od, parts.toArray) }
+			}
 
-    val CustomerOrders = o.map{ case (_, ((o_custkey, o_orderdate), parts)) => (o_custkey, (o_orderdate, parts)) }.groupByKey()
-    val c = C.map(c => c.c_custkey -> c.c_name).join(CustomerOrders).map{ case (_, (c_name, orders)) => (c_name, orders) }
-    c.cache
+    val c = C.map(c => c.c_custkey -> c.c_name).cogroup(CustomerOrders).flatMap{
+	                case (_, (c_name, orders)) => c_name.map(c => (c, orders.toArray))
+			}
+	c.count
+	var end = System.currentTimeMillis() - start
+    println("Query1SparkManual"+sf+","+Config.datapath+","+end+",query,"+spark.sparkContext.applicationId)
+	c.cache
     c.count
 
     var start0 = System.currentTimeMillis()
@@ -58,6 +67,6 @@ object Query4SparkManual {
                    }
     custords.count
     var end0 = System.currentTimeMillis() - start0
-    println("Query4SparkManual"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
+	println("Query4SparkManual"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
   }
 }
