@@ -35,7 +35,7 @@ trait BaseExpr {
 trait NRC extends BaseExpr {
 
   final case class Const(v: Any, tp: PrimitiveType) extends PrimitiveExpr
-
+ 
   trait VarRef {
     def varDef: VarDef
 
@@ -106,6 +106,8 @@ trait NRC extends BaseExpr {
   }
 
   final case class Union(e1: BagExpr, e2: BagExpr) extends BagExpr {
+    println(e1.tp)
+    println(e2.tp)
     assert(e1.tp == e2.tp)
 
     val tp: BagType = e1.tp
@@ -169,7 +171,7 @@ trait NRC extends BaseExpr {
   final case class DeDup(e: BagExpr) extends BagExpr {
     val tp: BagType = e.tp
   }
-
+  
   trait Cond extends PrimitiveExpr {
     def tp: PrimitiveType = BoolType
   }
@@ -181,6 +183,21 @@ trait NRC extends BaseExpr {
   final case class Or(e1: Cond, e2: Cond) extends Cond
 
   final case class Not(c: Cond) extends Cond
+
+  final case class PrimitiveOp(op: PrimOp, e1: PrimitiveExpr, e2: PrimitiveExpr) extends PrimitiveExpr {
+    def tp: PrimitiveType = (e1.tp, e2.tp) match {
+      case (DoubleType, _) => DoubleType
+      case (_, DoubleType) => DoubleType
+      case (IntType, _) => IntType
+      case _ => sys.error("unsupported type")
+    }
+  }
+  
+  object PrimitiveOp {
+    def apply(op: PrimOp, e1: TupleAttributeExpr, e2: TupleAttributeExpr): PrimitiveExpr = {
+      PrimitiveOp(op, e1.asInstanceOf[PrimitiveExpr], e2.asInstanceOf[PrimitiveExpr])
+    }
+  }
 
   trait IfThenElse {
     def cond: Cond
@@ -249,6 +266,7 @@ trait NRC extends BaseExpr {
         case b:BagType => 
           BagGroupBy(bag, x, Tuple(grp.map{g => (g -> xr(g))}.toMap), 
             Tuple(ins.map{g => (g -> xr(g))}.toMap))      
+        case _ => ???
       }
     }
   }
@@ -260,9 +278,12 @@ trait NRC extends BaseExpr {
   final case class PlusGroupBy(bag: BagExpr, v: VarDef, grp: TupleExpr, value: PrimitiveExpr) extends GroupBy {
     val tp: BagType = BagType(TupleType(grp.tp.attrTps + ("_2" -> value.tp)))
   }
-
-  case class Named(v: VarDef, e: Expr) extends Expr {
-    def tp: Type = TupleType()    // unit type
+  
+  // enforcing this to be a named bag expression
+  // may need to expand later if this is too restrictive
+  case class Named(v: VarDef, e: BagExpr) extends BagExpr {
+    assert(v.tp == e.tp)
+    val tp: BagType = e.tp//TupleType()    // unit type
   }
 
   case class Sequence(exprs: List[Expr]) extends Expr {

@@ -1,5 +1,6 @@
 package shredding.wmcc
 
+import shredding.core._
 import shredding.utils.Utils.ind
 
 /**
@@ -20,6 +21,7 @@ object Printer {
     case WeightedSng(e1, qt) => weightedsng(quote(e1), quote(qt))
     case Tuple(fs) => tuple(fs.map(quote(_)))
     case Record(fs) => record(fs.map(f => f._1 -> quote(f._2)))
+    case Multiply(e1, e2) => compiler.mult(quote(e1), quote(e2))
     case Equals(e1, e2) => compiler.equals(quote(e1), quote(e2))
     case Lt(e1, e2) => lt(quote(e1), quote(e2))
     case Lte(e1, e2) => lte(quote(e1), quote(e2))
@@ -60,7 +62,7 @@ object Printer {
     case OuterUnnest(e1, v1, e2, v2, p) =>
       s""" |  <-- (${e.wvars.map(_.quote).mkString(",")}) -- OUTERUNNEST[ ${quote(e2)} / ${quote(p)} ](${quote(e1)})""".stripMargin
     case Nest(e1, v1, f, e3, v2, p, g) =>
-      val acc = e match { case Constant(1) => "+"; case _ => "U" }
+      val acc = e3.tp match { case IntType => "+"; case _ => "U" }
       val outs = if (e.wvars.size == 1) "" else s"<-- (${e.wvars.map(_.quote).mkString(",")}) --"
       s""" | $outs NEST[ ${acc} / ${quote(e3)} / ${quote(f)}, ${quote(p)} / ${quote(g)} ](${quote(e1)})""".stripMargin
     case Join(e1, e2, v1, p1, v2, p2) =>
@@ -75,6 +77,8 @@ object Printer {
     case OuterLookup(e1, e2, v1, p1, v2, p2, p3) =>
       s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) OUTERLOOKUP[${quote(p1)}, ${quote(p2)} = ${quote(p3)}](
            | ${ind(quote(e2))})""".stripMargin
+    case CoGroup(e1, es, vs, ps) =>
+      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) COGROUP[${quote(ps)}] (${es.map(quote(_)).mkString(",")})"""
     case Variable(n, tp) => n
   }
 }

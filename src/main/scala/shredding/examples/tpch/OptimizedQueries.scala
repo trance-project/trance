@@ -248,3 +248,125 @@ object TPCHQuery7A extends TPCHBase {
                           Singleton(Tuple("c_name" -> c2r("c_name")))))))))))
 
 }
+
+/**
+ShredQuery4NewSpark,sfs100,/nfs_qc4/tpch/sfs100/,233259,query,app-20191228053552-0143
+ShredQuery4NewSpark,sfs100,/nfs_qc4/tpch/sfs100/,34609,unshredding,app-20191228053552-0143
+ShredQuery4NewSparksfs100,/nfs_qc4/tpch/sfs100/,267874,total,app-20191228053552-0143
+ShredQuery4NewSpark,sfs100,/nfs_qc4/tpch/sfs100/,328660,query,app-20191228055403-0144
+ShredQuery4NewSpark,sfs100,/nfs_qc4/tpch/sfs100/,34901,unshredding,app-20191228055403-0144
+ShredQuery4NewSparksfs100,/nfs_qc4/tpch/sfs100/,363565,total,app-20191228055403-0144
+ShredQuery4NewSpark,sfs100,/nfs_qc4/tpch/sfs100/,267758,query,app-20191228061328-0145
+ShredQuery4NewSpark,sfs100,/nfs_qc4/tpch/sfs100/,34509,unshredding,app-20191228061328-0145
+ShredQuery4NewSparksfs100,/nfs_qc4/tpch/sfs100/,302271,total,app-20191228061328-0145
+ShredQuery4NewSpark,sfs100,/nfs_qc4/tpch/sfs100/,238968,query,app-20191228063300-0146
+ShredQuery4NewSpark,sfs100,/nfs_qc4/tpch/sfs100/,34586,unshredding,app-20191228063300-0146
+ShredQuery4NewSparksfs100,/nfs_qc4/tpch/sfs100/,273559,total,app-20191228063300-0146
+Query4SparkManualsfs100,/nfs_qc4/tpch/sfs100/,283293,app-20191229044744-0147
+Query4SparkManualsfs100,/nfs_qc4/tpch/sfs100/,245365,app-20191229050034-0148
+Query4SparkManualsfs100,/nfs_qc4/tpch/sfs100/,261253,app-20191229051229-0149
+Query4SparkManualsfs100,/nfs_qc4/tpch/sfs100/,284540,app-20191229052404-0150
+**/
+object TPCHQuery4New extends TPCHBase {
+  val name = "Query4New"
+  def inputs(tmap: Map[String, String]): String =
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+
+  val (q1, co, cor) = varset(TPCHQuery1.name, "c2", TPCHQuery1Full.query.asInstanceOf[BagExpr])
+  val orders = BagProject(cor, "c_orders")
+  val co2 = VarDef("o2", orders.tp.tp)
+  val co2r = TupleVarRef(co2)
+
+  val parts = BagProject(co2r, "o_parts")
+  val co3 = VarDef("p2", parts.tp.tp)
+  val co3r = TupleVarRef(co3)
+
+  val query = ForeachUnion(co, BagVarRef(q1),
+                Singleton(Tuple("c_name" -> cor("c_name"), "totals" ->
+                  GroupBy(
+                    ForeachUnion(co2, orders,
+                      ForeachUnion(co3, parts,
+                        Singleton(Tuple("orderdate" -> co2r("o_orderdate"),
+                          "pname" -> co3r("p_name"), "qty" -> co3r("l_qty"))))),
+                 List("orderdate", "pname"),
+                 List("qty"),
+                 DoubleType))))
+}
+
+object TPCHQuery4New2 extends TPCHBase {
+  val name = "Query4New2"
+  def inputs(tmap: Map[String, String]): String =
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+
+  val (q1, co, cor) = varset(TPCHQuery1.name, "c2", TPCHQuery1Full.query.asInstanceOf[BagExpr])
+  val orders = BagProject(cor, "c_orders")
+  val co2 = VarDef("o2", orders.tp.tp)
+  val co2r = TupleVarRef(co2)
+
+  val parts = BagProject(co2r, "o_parts")
+  val co3 = VarDef("p2", parts.tp.tp)
+  val co3r = TupleVarRef(co3)
+
+  val query = 
+    ForeachUnion(co, BagVarRef(q1),
+      ForeachUnion(co2, orders, 
+        Singleton(Tuple("orders" -> co2r("o_orderdate"), "customers" ->
+          ForeachUnion(c, relC,
+            IfThenElse(Cmp(OpEq, cr("c_name"), cor("c_name")),
+              Singleton(Tuple("name" -> cr("c_name"), "address" -> cr("c_address")))))))))            
+}
+
+object TPCHQuery4New3 extends TPCHBase {
+  val name = "Query4New3"
+  def inputs(tmap: Map[String, String]): String =
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+
+  val (q1, co, cor) = varset(TPCHQuery1.name, "c2", TPCHQuery1Full.query.asInstanceOf[BagExpr])
+  val orders = BagProject(cor, "c_orders")
+  val co2 = VarDef("o2", orders.tp.tp)
+  val co2r = TupleVarRef(co2)
+
+  val parts = BagProject(co2r, "o_parts")
+  val co3 = VarDef("p2", parts.tp.tp)
+  val co3r = TupleVarRef(co3)
+
+  val query = 
+    GroupBy(
+      ForeachUnion(co, BagVarRef(q1),
+        ForeachUnion(co2, orders, 
+          ForeachUnion(co3, parts, 
+            ForeachUnion(p, relP, 
+              IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
+                Singleton(Tuple("c_name" -> cor("c_name"), "p_name" -> pr("p_name"), 
+                                "qty" -> co3r("l_qty"), "price" -> pr("p_retailprice")))))))),
+      List("c_name", "p_name", "qty"),
+      List("price"),
+      DoubleType)
+              
+}
+
+// transpose on the third level
+object TPCHQuery4New4 extends TPCHBase {
+  val name = "Query4New3"
+  def inputs(tmap: Map[String, String]): String =
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+
+  val (q1, co, cor) = varset(TPCHQuery1.name, "c2", TPCHQuery1Full.query.asInstanceOf[BagExpr])
+  val orders = BagProject(cor, "c_orders")
+  val co2 = VarDef("o2", orders.tp.tp)
+  val co2r = TupleVarRef(co2)
+
+  val parts = BagProject(co2r, "o_parts")
+  val co3 = VarDef("p2", parts.tp.tp)
+  val co3r = TupleVarRef(co3)
+
+  val query = 
+    ForeachUnion(co, BagVarRef(q1),
+      ForeachUnion(co2, orders, 
+        ForeachUnion(co3, parts, 
+          Singleton(Tuple("p_name" -> co3r("p_name"), "customers" -> 
+            ForeachUnion(c, relC,
+              IfThenElse(Cmp(OpEq, cr("c_name"), cor("c_name")),
+                Singleton(Tuple("customer" -> cr("c_name"), "address" -> cr("c_address"))))))))))              
+}
+

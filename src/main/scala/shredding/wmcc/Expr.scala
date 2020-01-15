@@ -92,14 +92,23 @@ case class Or(e1: CExpr, e2: CExpr) extends CExpr{
   def tp: PrimitiveType = BoolType
 }
 
+case class Multiply(e1: CExpr, e2: CExpr) extends CExpr{
+  def tp: PrimitiveType = (e1.tp, e2.tp) match {
+    case (DoubleType, _) => DoubleType
+    case (_, DoubleType) => DoubleType
+    case (IntType, _) => IntType
+    case _ => sys.error("type not supported")
+  }
+}
+
 case class Project(e1: CExpr, field: String) extends CExpr { self =>
   def tp: Type = e1.tp match {
     case t:RecordCType => t.attrTps(field)
-    case t @ TTupleType(List(IntType, RecordCType(fs))) if ( field != "_1" && field != "_2") => fs(field)
+    case t @ TTupleType(List(EmptyCType, RecordCType(fs))) if ( field != "_1" && field != "_2") => fs(field)
     case t:TTupleType => field match {
       case "_1" => t(0)
       case "_2" => t(1)
-      case  _ => t(field.toInt)
+      case  _ => println(t); t(field.toInt)
     }
     case t:LabelType => t(field)
     case t:TupleDictCType => t(field)
@@ -221,7 +230,11 @@ case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CEx
 
 // { (v1, v2) | v1 <- e1, v2 <- e2(v1), p((v1, v2)) } 
 case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
-  def tp: Type = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  def tp: Type = e1.tp match {
+    case btp:BagDictCType => BagCType(TTupleType(List(btp.flatTp.tp, v2.tp)))
+    case btp:BagCType => BagCType(TTupleType(List(btp.tp, v2.tp)))
+    case _ => ???
+  }
   // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = e1.wvars :+ v2
   override def equals(that: Any): Boolean = that match {
@@ -232,7 +245,11 @@ case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CEx
 }
 
 case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr { self =>
-  def tp: Type = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  def tp: Type = e1.tp match {
+    case btp:BagDictCType => BagCType(TTupleType(List(btp.flatTp.tp, v2.tp)))
+    case btp:BagCType => BagCType(TTupleType(List(btp.tp, v2.tp)))
+    case _ => ???
+  }
   override def wvars = e1.wvars :+ v2
   // need to fix this to work with ANF
   override def equals(that: Any): Boolean = that match {
@@ -267,21 +284,42 @@ case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Va
 
 // unnests an inner bag, without unnesting before a downstream join
 case class Lookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, p3: CExpr) extends CExpr {
-  def tp:BagCType = v2.tp match {
-    // this is a fix for a join on a top level flat bag
-    //case TTupleType(List(IntType, rt)) => BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, rt)))
-    case _ => BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  val v2tp = p3 match { case v:Variable => BagCType(v2.tp); case _ => v2.tp }
+  def tp:BagCType = e1.tp match {
+    case BagCType(tup) => BagCType(TTupleType(List(tup, v2tp)))
+    case btp:BagDictCType => BagCType(TTupleType(List(btp.flat, v2tp)))
+    case _ => ???
   }
   override def wvars = e1.wvars :+ v2
 }
 
+case class CoGroup(e1: CExpr, es: List[CExpr], vs: List[Variable], ps: CExpr) extends CExpr {
+  // assert es.size < 3 (cogroups with more than three not supported in spark)
+  def tp:BagCType = e1.tp match {
+    case BagCType(tup) => BagCType(TTupleType(tup +: vs.map(_.tp) ))
+    case btp:BagDictCType => BagCType(TTupleType(btp.flat +: vs.map(_.tp)))
+    case _ => ???
+  }
+  override def wvars = e1.wvars
+}
+
 case class OuterLookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, p3: CExpr) extends CExpr {
-  def tp:BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  def tp:BagCType = e1.tp match {
+    case BagCType(tup) => BagCType(TTupleType(List(tup, v2.tp)))
+    case btp:BagDictCType => BagCType(TTupleType(List(btp.flat, v2.tp)))
+    case _ => ???
+  }
   override def wvars = e1.wvars :+ v2
 }
 
+//case class CoGroup(e1: CExpr, e2: CExpr, v1: List[Variable], p1:
+
 case class Join(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
-  def tp: BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  def tp: BagCType = e1.tp match {
+    case btp:BagCType => BagCType(TTupleType(List(btp.tp, v2.tp)))
+    case BagDictCType(flat, tdict) => BagCType(TTupleType(List(flat.tp, v2.tp)))
+    case _ => ???
+  } 
   override def wvars = e1.wvars :+ v2
 }
 
@@ -330,6 +368,16 @@ object Variable {
   def fresh(tp: Type): Variable = {
     val id = newId()
     Variable(s"x$id", tp)
+  }
+  def freshFromBag(tp: Type): Variable = {
+    val id = newId()
+    tp match {
+      case BagDictCType(BagCType(TTupleType(List(EmptyCType, BagCType(tup)))), tdict) => Variable(s"x$id", tup)
+      case BagCType(TTupleType(List(EmptyCType, BagCType(tup)))) =>  Variable(s"x$id", tup)
+      case BagDictCType(flat, dict) => Variable(s"x$id",flat.tp)
+      case BagCType(tup) => Variable(s"x$id", tup)
+      case _ => Variable(s"x$id", tp)
+    }
   }
   def newId(): Int = {
     val id = lastId

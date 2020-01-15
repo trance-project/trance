@@ -36,22 +36,21 @@ trait BaseNormalizer extends BaseCompiler {
     case _ => super.or(e1, e2)
   }
 
-  override def linset(es: List[Rep]): Rep = 
-    super.linset(es.flatMap{
+  override def lookup(lbl: Rep, dict: Rep): Rep = dict match {
+    case BagCDict(lbl2, flat2, dict2) if (lbl2.tp == lbl.tp) => flat2
+    case BagCDict(lbl2, flat2, dict2) =>///???
+      super.lookup(lbl,dict)
+    case _ => 
+      super.lookup(lbl, dict)
+  }
+  
+  /** need to update the types in a sequence **/
+  override def linset(es: List[Rep]): Rep = {
+    LinearCSet(es.flatMap{
       case LinearCSet(fs) => fs
       case fs => List(fs)
     })
-
-  override def named(n: String, e: Rep): Rep = e match {
-    case LinearCSet(fs) => LinearCSet(fs.map{ 
-      case CNamed("M_ctx1", Sng(e1)) => CNamed(n+"__F", e1)
-      case CNamed("M_flat1", Comprehension(InputRef("M_ctx1", BagCType(tp)), v1, p1, e2)) =>
-        CNamed(n+"__D_1", Comprehension(Sng(InputRef(n+"__F", tp)), v1, p1, e2))
-      case CNamed("M_flat1", c) => CNamed(n+"__D_1", c)
-      case _ => sys.error(s"further nested dictionaries not supported $e")
-    })
-    case _ => super.named(n, e)
-  }
+  } 
 
   // N1, N2
   override def bind(e1: Rep, e: Rep => Rep): Rep = e(e1)
@@ -87,14 +86,13 @@ trait BaseNormalizer extends BaseCompiler {
     }
   }
 
-  override def lookup(lbl: Rep, dict: Rep): Rep = dict match {
-    case BagCDict(lbl2, flat2, dict2) if (lbl2.tp == lbl.tp) => flat2
-    case _ => super.lookup(lbl, dict)
-  }
-
   override def sng(x: Rep): Rep = x match {
-    case c:Comprehension => c
+    case Record(fs) => fs.get("_1") match {
+      case Some(CUnit) => fs.get("_2").get 
+      case _ => super.sng(x)
+    }
     case Sng(t) => sng(t)
+    case y if x.tp.isInstanceOf[BagCType] => x
     case _ => super.sng(x)
   }
  
@@ -133,15 +131,52 @@ trait BaseNormalizer extends BaseCompiler {
             case c => Comprehension(e2, v2, p2, c)
           }
       }
-      case c @ CLookup(flat, dict) =>
-        val v1 = Variable.fresh(dict.tp.asInstanceOf[BagDictCType].flatTp.tp)
-        val v2 = Variable.fresh(c.tp.tp)
-        Comprehension(Project(dict, "_1"), v1, equals(flat, Project(v1, "_1")), 
-          Comprehension(Project(v1, "_2"), v2, p(v2), e(v2)))
-      case _ => // standard case (return self)
-        val v = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
+      case c @ CLookup(flat, dict) => 
+        val v = dict.tp match {
+          case BagCType(tup) => Variable.fresh(tup)
+          case BagDictCType(BagCType(TTupleType(List(EmptyCType, BagCType(tup)))), tdict) =>
+            Variable.fresh(tup)
+          case _ => Variable.fresh(dict.tp.asInstanceOf[BagDictCType].flat.tp)
+        }
+        flat.tp match {
+          /**case EmptyCType => 
+            Comprehension(Project(dict, "_1"), v, p(v), e(v)) **/
+          case _ =>
+            Comprehension(e1, v, p(v), e(v))
+        }
+      // this will break this for the shredded case...
+      case InputRef(n, tp) if isTopLevelDict(tp) =>
+        val v = topLevelVar(tp)
+        e(v) match {
+          // top level dictionary case from unshredding
+          case Comprehension(Project(_,"_2"), v2, p2, Sng(Record(fs))) if fs.keySet == Set("_1", "_2") =>
+            Comprehension(InputRef(n, tp), v2, p2, fs.get("_2").get)  
+          case Comprehension(Project(_,"_2"), v2, p2, e3) =>
+            Comprehension(InputRef(n, tp), v2, p2, e3)  
+          case _ => ???
+        }
+       case _ => // standard case (return self)
+        val v = e1.tp match {
+          case btp @ BagDictCType(BagCType(TTupleType(fs)),tdict) => Variable.fresh(btp._1.tp)
+          case _ => Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
+        }
         Comprehension(e1, v, p(v), e(v))
       }
     }
+
+  def isTopLevelDict(tp: Type): Boolean = tp match {
+    case BagDictCType(BagCType(RecordCType(fs)), EmptyDictCType) => true
+    case BagCType(RecordCType(fs)) if fs.keySet == Set("lbl") => false
+    case BagCType(RecordCType(fs)) if fs.exists(_._2.isInstanceOf[LabelType]) => true
+    case _ => false
+  }
+
+  def topLevelVar(tp: Type): Variable = tp match {
+    case BagDictCType(BagCType(RecordCType(fs)), EmptyDictCType) => 
+      Variable.fresh(TTupleType(List(EmptyCType,tp)))
+    case BagCType(rs @ RecordCType(fs)) if fs.exists(_._2.isInstanceOf[LabelType]) => 
+      Variable.fresh(TTupleType(List(EmptyCType, tp)))
+    case _ => ???
+  }
 
 }

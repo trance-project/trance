@@ -286,7 +286,8 @@ object App {
     println(evaluator.finalize(anfExp1.asInstanceOf[CExpr]))**/
 
     println("\n---------------------------------------- QUERY 1 JOIN ORDER -----------------------\n")
-    val qa = nrceval.Named(VarDef("Query4", TPCHQueries.query1a.tp), TPCHQueries.query1a.asInstanceOf[nrceval.Expr])
+    val qa = nrceval.Named(VarDef("Query4", TPCHQueries.query1a.tp), 
+      TPCHQueries.query1a.asInstanceOf[nrceval.BagExpr])
     println(nrcprinter.quote(qa.asInstanceOf[nrcprinter.Expr]))
 
     ctx.add(VarDef("C", TPCHSchema.customertype), TPCHLoader.loadCustomer[Customer].toList.map(getCCParams(_))) 
@@ -297,7 +298,7 @@ object App {
     println(nrceval.eval(qa, ctx))
   
     val q2a = translator.translate(translator.Named(VarDef("Query4", TPCHQueries.query1a.tp), 
-              TPCHQueries.query1a.asInstanceOf[translator.Expr]))
+              TPCHQueries.query1a.asInstanceOf[translator.BagExpr]))
     
    
     val normq2a = normalizer.finalize(q2a).asInstanceOf[CExpr]
@@ -322,7 +323,8 @@ object App {
     //println(evaluator.finalize(anfExp2.asInstanceOf[CExpr]))
 
     println("\n---------------------------------------- QUERY 1 -----------------------\n")
-    val q = nrceval.Named(VarDef("Query4", TPCHQueries.query1.tp), TPCHQueries.query1.asInstanceOf[nrceval.Expr])
+    val q = nrceval.Named(VarDef("Query4", TPCHQueries.query1.tp), 
+      TPCHQueries.query1.asInstanceOf[nrceval.BagExpr])
  
     ctx.add(VarDef("C", TPCHSchema.customertype), TPCHLoader.loadCustomer[Customer].toList.map(getCCParams(_))) 
     ctx.add(VarDef("O", TPCHSchema.orderstype), TPCHLoader.loadOrders[Orders].toList.map(getCCParams(_)))
@@ -332,7 +334,7 @@ object App {
     println(nrceval.eval(q, ctx))
   
     val q2 = translator.translate(translator.Named(VarDef("Query4", TPCHQueries.query1.tp), 
-              TPCHQueries.query1.asInstanceOf[translator.Expr]))
+              TPCHQueries.query1.asInstanceOf[translator.BagExpr]))
     
    
     val normq2 = normalizer.finalize(q2).asInstanceOf[CExpr]

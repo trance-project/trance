@@ -3,7 +3,7 @@ package shredding.generator
 import shredding.core._
 import shredding.wmcc._
 import shredding.examples.genomic._
-import shredding.examples.simple.{FlatTests, NestedTests, FlatRelations, NestedRelations}
+import shredding.examples.simple._
 import shredding.examples.tpch._
 
 /**
@@ -12,15 +12,8 @@ import shredding.examples.tpch._
 
 object App {
  
-   def main(args: Array[String]){
-    //Utils.runSparkNew(AlleleCounts)
-    Utils.runSparkNew(AlleleCounts3, shred = true)
-    //Utils.runSparkNew(AlleleCountsGB)
-    Utils.runSparkNew(AlleleCountsGB3, shred = true)
-
-
+  def main(args: Array[String]){
     runTPCH1()
-    //runTPCH()
   }
   
   val runner = new PipelineRunner{}
@@ -29,38 +22,21 @@ object App {
   val tpchInputM = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2)
   val tpchShredM = tpchInputM ++ TPCHSchema.tpchShredInputs
  
-  def runTPCH1(){
+  def runTPCH1(){   
 
-    /**println(" --------------------------- TPCH Query 1 Original ------------------------")
-    Utils.runSparkNew(TPCHQuery1Full)
-    Utils.runSparkNew(TPCHQuery1Full, shred = true)**/
+    // Run unnesting only
+    //Utils.runSparkNew(TPCHQuery1)
 
+    // Run shred without domains, cannot do unshredding
+    //Utils.runSparkNew(TPCHQuery1, shred = true)
 
-    println(" --------------------------- TPCH Query 1 Optimized-------------------------")  
-    Utils.runSparkNew(TPCHQuery1)
-    Utils.runSparkNew(TPCHQuery1, shred = true)
+    // Run shred with domains
+    // the true adds unshredding
+    Utils.runSparkShred(TPCHQuery1, true)
 
-    /**Utils.runSparkInputNew(TPCHQuery4Inputs, TPCHQuery4)
-    Utils.runSparkInputNew(TPCHQuery4Inputs, TPCHQuery4, shred = true)**/
-  
-    /**Utils.runSparkNew(TPCHQuery3Full)
-    Utils.runSparkNew(TPCHQuery3Full, shred = true)
-
-    Utils.runSparkNew(TPCHQuery3)
-    Utils.runSparkNew(TPCHQuery3, shred = true)**/
-
-    /**Utils.runSparkNew(TPCHQuery2)
-    Utils.runSparkNew(TPCHQuery2, shred = true)
-
-    Utils.runSparkNew(TPCHQuery2Full)
-    Utils.runSparkNew(TPCHQuery2Full, shred = true)
-    
-    Utils.runSparkInputNew(TPCHQuery2, TPCHQuery6Full)
-    Utils.runSparkInputNew(TPCHQuery2, TPCHQuery6Full, shred = true)
-
-    Utils.runSparkInputNew(TPCHQuery3, TPCHQuery7Full)**/
-    Utils.runSparkInputNew(TPCHQuery3, TPCHQuery7Full, shred = true)
-
+    // Run shred with domains when a query is used as input for another
+    // the true adds unshredding
+    //Utils.runSparkShredInput(TPCHQuery1, TPCHNested1, true)
   }
 
   def runSparkCalc(){

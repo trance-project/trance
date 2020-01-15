@@ -7,7 +7,7 @@ import shredding.core._
   */
 trait BaseShredding extends Printer {
 
-  def flatName(s: String): String = s + "^F"
+  def flatName(s: String): String = s + "__F"
 
   def flatTp(tp: Type): Type = tp match {
     case _: PrimitiveType => tp
@@ -17,7 +17,7 @@ trait BaseShredding extends Printer {
     case _ => sys.error("Unknown flat type of " + tp)
   }
 
-  def dictName(s: String): String = s + "^D"
+  def dictName(s: String): String = s + "__D"
 
   def dictTp(tp: Type): DictType = tp match {
     case _: PrimitiveType => EmptyDictType
@@ -154,7 +154,10 @@ trait Shredding extends BaseShredding with Extensions {
         val ShredExpr(c1: Cond, EmptyDict) = shred(e1, ctx)
         ShredExpr(Not(c1), EmptyDict)
     }
-
+    case PrimitiveOp(Multiply, e1, e2) => 
+      val ShredExpr(c1:PrimitiveExpr, EmptyDict) = shred(e1, ctx)
+      val ShredExpr(c2:PrimitiveExpr, EmptyDict) = shred(e2, ctx)
+      ShredExpr(PrimitiveOp(Multiply, c1, c2), EmptyDict)
     case i: IfThenElse =>
       val ShredExpr(c: Cond, EmptyDict) = shred(i.cond, ctx)
       val se1 = shred(i.e1, ctx)
@@ -164,6 +167,11 @@ trait Shredding extends BaseShredding with Extensions {
       }
       else
         ShredExpr(ShredIfThenElse(c, se1.flat), se1.dict)
+
+    case Named(VarDef(n, _), e1:BagExpr) => 
+      val ShredExpr(lbl: LabelExpr, dict: BagDictExpr) = shred(e1, ctx)
+      val dlu = dict.lookup(lbl)
+      ShredExpr(lbl, BagDict(lbl, Named(VarDef(n, dlu.tp), dlu), dict.tupleDict)) 
 
     case _ => sys.error("Cannot shred expr " + e)
   }

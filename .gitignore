@@ -1,4 +1,5 @@
 *DS_Store*
+experiments/*
 project/
 target/
 .history
@@ -7,3 +8,11 @@ simple*
 compile.sh
 data.flat
 *.jar
+spark-warehouse
+cspark.sh
+run.sh
+spark/annot.example
+spark/c2.cp.v7.0.symbols.gmt
+spark/example.json
+spark/format.py
+spark/run.sh

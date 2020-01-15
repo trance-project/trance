@@ -143,7 +143,7 @@ trait Dictionary {
         val attrTps = l1.tp.attrTps ++ l2.tp.attrTps
         val vars = attrTps.map { case (n, t) => ShredVarRef(VarDef(n, t)).asInstanceOf[VarRef] }.toSet
         val lbl = NewLabel(vars.map(VarRefLabelParameter(_)))
-        BagDict(lbl, Union(f1, f2), d1.union(d2).asInstanceOf[TupleDictExpr])
+        BagDict(lbl, Union(f1, f2), dict1.union(dict2).asInstanceOf[TupleDictExpr])
       case (d1: BagDictExpr, d2: BagDictExpr) =>
         DictUnion(d1, d2)
       case (TupleDict(fields1), TupleDict(fields2)) =>
@@ -152,7 +152,7 @@ trait Dictionary {
           k1 -> d1.union(fields2(k1)).asInstanceOf[TupleDictAttributeExpr]
         })
       case (d1: TupleDictExpr, d2: TupleDictExpr) =>
-        DictUnion(d1, d2)
+        TupleDictUnion(d1, d2)
       case _ => sys.error("Illegal dictionary union " + dict1 + " and " + dict2)
     }
   }
@@ -161,6 +161,12 @@ trait Dictionary {
     assert(dict1.tp == dict2.tp)
 
     val tp: DictType = dict1.tp
+  }
+
+  case class TupleDictUnion(dict1: TupleDictExpr, dict2: TupleDictExpr) extends TupleDictExpr {
+    assert(dict1.tp == dict2.tp)
+
+    val tp: TupleDictType = dict1.tp
   }
 
 }

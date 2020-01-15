@@ -19,6 +19,7 @@ trait Base {
   def weightedsng(x: Rep, q: Rep): Rep
   def tuple(fs: List[Rep]): Rep
   def record(fs: Map[String, Rep]): Rep
+  def mult(e1: Rep, e2: Rep): Rep
   def equals(e1: Rep, e2: Rep): Rep
   def lt(e1: Rep, e2: Rep): Rep
   def gt(e1: Rep, e2: Rep): Rep
@@ -50,6 +51,7 @@ trait Base {
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep
   def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep
+  def cogroup(e1: Rep, es: List[Rep], ps: List[Rep] => Rep):Rep
 }
 
 trait BaseStringify extends Base{
@@ -64,6 +66,7 @@ trait BaseStringify extends Base{
   def tuple(fs: List[Rep]) = s"(${fs.mkString(",")})"
   def record(fs: Map[String, Rep]): Rep = 
     s"(${fs.map(f => f._1 + " := " + f._2).mkString(",")})"
+  def mult(e1: Rep, e2: Rep): Rep = s"(${e1} * ${e2})" 
   def equals(e1: Rep, e2: Rep): Rep = s"${e1} == ${e2}"
   def lt(e1: Rep, e2: Rep): Rep = s"${e1} < ${e2}"
   def gt(e1: Rep, e2: Rep): Rep = s"${e1} > ${e2}"
@@ -146,7 +149,9 @@ trait BaseStringify extends Base{
     s""" | (${e1}) OUTERLOOKUP[${p1(List(v1.quote))} = ${p2(v2.quote)}, ${p3(List(v1.quote, v2.quote))}](
          | ${ind(e2)})""".stripMargin
   }
-
+  def cogroup(e1: Rep, es: List[Rep], ps: List[Rep] => Rep): Rep = {
+    s"""| ($e1) LOOKUP(${es.mkString(",")})"""
+  }
 
 }
 
@@ -156,7 +161,16 @@ trait BaseStringify extends Base{
 
 trait BaseCompiler extends Base {
   type Rep = CExpr 
-  def inputref(x: String, tp: Type): Rep = InputRef(x, tp)
+  def inputref(x: String, tp: Type): Rep = tp match {
+    case BagDictCType(BagCType(TTupleType(List(EmptyCType, BagCType(tup)))), tdict) =>
+      tdict match {
+        case EmptyDictCType => InputRef(x, BagCType(tup))
+        case TupleDictCType(fs) if fs.values.toSet == Set(EmptyDictCType) => 
+          InputRef(x, BagDictCType(BagCType(tup), EmptyDictCType))
+        case _ => InputRef(x, tp)
+      }
+    case _ => InputRef(x, tp)
+  }
   def input(x: List[Rep]): Rep = Input(x)
   def constant(x: Any): Rep = Constant(x)
   def emptysng: Rep = EmptySng
@@ -165,6 +179,7 @@ trait BaseCompiler extends Base {
   def weightedsng(x: Rep, q: Rep): Rep = WeightedSng(x, q)
   def tuple(fs: List[Rep]): Rep = Tuple(fs)
   def record(fs: Map[String, Rep]): Rep = Record(fs)
+  def mult(e1: Rep, e2: Rep): Rep = Multiply(e1, e2)
   def equals(e1: Rep, e2: Rep): Rep = Equals(e1, e2)
   def lt(e1: Rep, e2: Rep): Rep = Lt(e1, e2)
   def gt(e1: Rep, e2: Rep): Rep = Gt(e1, e2)
@@ -200,38 +215,39 @@ trait BaseCompiler extends Base {
   def tupledict(fs: Map[String, Rep]): Rep = TupleCDict(fs)
   def dictunion(d1: Rep, d2: Rep): Rep = DictCUnion(d1, d2)
   def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
-    val v = x.tp match {
-      case btp:BagDictCType => Variable.fresh(btp.flatTp.tp)      
-      case BagCType(TTupleType(List(IntType, BagCType(rt)))) => Variable.fresh(rt) 
-      case btp:BagCType => Variable.fresh(btp.tp)
-      case _ => sys.error("selection type not supported")
-    }
-    val (p2, e2) = v.tp match {
-      case TTupleType(List(IntType, RecordCType(_))) => 
-        (p(Project(v, "_2")), e(Project(v, "_2")))
-      case _ => (p(v), e(v))
-    }
-    Select(x, v, p2, e2)
+    val v = Variable.freshFromBag(x.tp) 
+    Select(x, v, p(v), e(v))
   }
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    val v = vars(e1.tp.asInstanceOf[BagCType].tp)
+    val v = e1.tp match {
+      case BagDictCType(flat, tdict) => vars(flat.tp)
+      case _ => vars(e1.tp.asInstanceOf[BagCType].tp)
+    }
     Reduce(e1, v, f(v), p(v))
   }
   def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
+    val v1 = e1.tp match {
+      case BagDictCType(flat, dict) => vars(flat.tp)//._1.tp
+      case btp:BagCType => vars(btp.tp)
+      case _ => ???
+    }
     val fv = f(v1) 
-    val v = Variable.fresh(fv.tp.asInstanceOf[BagCType].tp)
+    val v = Variable.freshFromBag(fv.tp)
     Unnest(e1, v1, fv, v, p(v1 :+ v))
   }
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep = {
-    val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
+    val v1 = e1.tp match {
+      case BagDictCType(flat, dict) => vars(flat.tp) 
+      case btp:BagCType => vars(btp.tp)
+      case _ => ???
+    }
     val fv = f(v1) // groups
     val ev = e(v1) 
     val v = ev.tp match {
       case p:PrimitiveType =>
         fv.tp match {
           case RecordCType(fs) => Variable.fresh(RecordCType(fs + ("_2" -> ev.tp)))
-          case fvtp =>Variable.fresh(TTupleType(List(fvtp, ev.tp)))
+          case fvtp => Variable.fresh(TTupleType(List(fvtp, ev.tp)))
         }
       case _ => 
         Variable.fresh(TTupleType(List(fv.tp, BagCType(ev.tp))))
@@ -239,44 +255,112 @@ trait BaseCompiler extends Base {
     Nest(e1, v1, fv, ev, v, p(v1:+v), g(v1))
   }
   def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
-    val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
-    val v2 = e2.tp.asInstanceOf[BagCType].tp match {
-      case TTupleType(List(IntType, BagCType(t))) => Variable.fresh(t)
-      case _ => Variable.fresh(e2.tp.asInstanceOf[BagCType].tp)
+    val v1 = e1.tp match {
+      case BagDictCType(flat, dict) => vars(flat.tp)
+      case BagCType(tup) => vars(tup) 
+      case _ => ???
     }
+    val v2 = Variable.freshFromBag(e2.tp)
     Join(e1, e2, v1, p1(v1), v2, p2(v2))
   }
   def outerunnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
+    val v1 = e1.tp match {
+      case BagDictCType(flat, dict) => vars(flat.tp)//._1.tp
+      case btp:BagCType => vars(btp.tp)
+      case _ => ???
+    }
     val fv = f(v1) 
-    val v = Variable.fresh(fv.tp.asInstanceOf[BagCType].tp)
+    val v = Variable.freshFromBag(fv.tp)
     OuterUnnest(e1, v1, fv, v, p(v1 :+ v))
   }
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep): Rep = {
-    val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
-    val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp)
+    val v1 = e1.tp match {
+      case BagDictCType(flat, dict) => vars(flat.tp)
+      case BagCType(tup) => vars(tup) 
+      case _ => ???
+    }
+    val v2 = Variable.freshFromBag(e2.tp)
     OuterJoin(e1, e2, v1, p1(v1), v2, p2(v2))
   }
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
-    val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
-    val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
+    val v1 = e1.tp match {
+      case BagDictCType(flat, dict) => vars(flat.tp) 
+      case BagCType(tup) => vars(tup) 
+      case _ => ???
+    }
+    val v2 = Variable.freshFromBag(e2.tp) 
     Lookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
   }
   def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
-    val v1 = vars(e1.tp.asInstanceOf[BagCType].tp) 
-    val v2 = Variable.fresh(e2.tp.asInstanceOf[BagCType].tp.asInstanceOf[TTupleType](1).asInstanceOf[BagCType].tp)
+    val v1 = e1.tp match {
+      case BagDictCType(flat, dict) => vars(flat.tp) 
+      case BagCType(tup) => vars(tup) 
+      case _ => ???
+    }
+    val v2 = Variable.freshFromBag(e2.tp) 
     OuterLookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
+  }
+  def cogroup(e1: Rep, es: List[Rep], ps: List[Rep] => Rep): Rep = {
+    val vs = (e1.tp match {
+      case BagDictCType(flat, dict) => vars(flat.tp)
+      case BagCType(tup) => vars(tup)
+      case _ => ???
+    }) ++ es.map(v => Variable.freshFromBag(v.tp))
+    CoGroup(e1, es, vs, ps(vs))
   }
 
   /**
     * Why am I using this still??
     */
   def vars(e: Type): List[Variable] = e match {
-    case TTupleType(tps) if (tps.head == IntType) => List(Variable.fresh(e))
+    case TTupleType(List(EmptyCType, BagCType(tup))) => List(Variable.fresh(tup))
+    //case BagDictCType(flat, dict) => List(Variable.fresh(flat.tp))
+    case TTupleType(tps) if tps.head.isInstanceOf[LabelType] => 
+      List(Variable.fresh(e)) // won't catch all cases
     case TTupleType(tps) if (tps.head.isInstanceOf[RecordCType] && tps.last.isInstanceOf[PrimitiveType] && tps.size == 2) => 
       List(Variable.fresh(e)) // fix this
     case TTupleType(tps) => tps.flatMap(vars(_)) 
     case _ => List(Variable.fresh(e))
+  }
+
+}
+
+/**
+  * This is named the base indexer, but maybe I will make this the base 
+  * compiler for pre-anf'ed bottom up optimizations. 
+  */
+trait BaseDictNameIndexer extends BaseCompiler {
+
+  def isDictType(tp: Type): (Type, Boolean) = tp match {
+    case BagCType(TTupleType(List(EmptyCType, BagCType(tup)))) => (tup, true)
+    case BagDictCType(BagCType(rct @ RecordCType(_)), tdict) => (rct, true)
+    case BagDictCType(flat, dict) => isDictType(flat)
+    case _ => (tp, false)
+  }
+  
+  override def project(e1: Rep, f: String): Rep = e1 match {
+    // this case needs work
+    case Project(InputRef(n, TupleDictCType(fs)), "_2") => 
+      InputRef(n+"_2"+f, fs(f))
+    case InputRef(n, BagCType(TTupleType(List(EmptyCType, btp)))) => 
+      InputRef(n+f, btp)
+    case InputRef(n, BagDictCType(BagCType(TTupleType(List(EmptyCType, btp))), tdict)) if f == "_1" => 
+      InputRef(n+f, btp)
+    case InputRef(n, BagDictCType(flat, dict)) => 
+      if (f == "_1") InputRef(n+f, flat)
+      else if (f == "_2") project(InputRef(n, dict), f)
+      else super.project(e1, f)
+    case _ => super.project(e1, f) 
+  }
+
+  override def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = e1 match {        
+      case OuterLookup(e3, e4, v1, pa, v2, pb, pc) => (e2, e4) match {
+        case (InputRef(n1, _), InputRef(n2, _)) if n1.split("_").size == n2.split("_").size =>
+          CoGroup(e3, List(e2, e4), v1 :+ v2, p1(v1 :+ v2))
+        case _ => super.outerlkup(e1, e2, p1, p2, p3)
+      } 
+    case _ => 
+      super.outerlkup(e1, e2, p1, p2, p3)
   }
 
 }
@@ -344,6 +428,7 @@ trait BaseScalaInterp extends Base{
     if (doteq) RecordValue(fs.asInstanceOf[Map[String, Rep]], RecordValue.newId)
     else Rec(fs.asInstanceOf[Map[String, Rep]])
   }
+  def mult(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Double] * e2.asInstanceOf[Double]
   def equals(e1: Rep, e2: Rep): Rep = e1 == e2
   def lt(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Int] < e2.asInstanceOf[Int]
   def gt(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Int] > e2.asInstanceOf[Int]
@@ -516,7 +601,8 @@ trait BaseScalaInterp extends Base{
                   case _ => Nil  
                 }})
   }
-
+  def cogroup(e1: Rep, es: List[Rep], ps: List[Rep] => Rep): Rep = e1
+  
   // keys and flattens input tuples
   def tupleVars(k: Any): List[Rep] = k match {
     case c:CaseClassRecord => List(k).asInstanceOf[List[Rep]]
@@ -619,6 +705,7 @@ trait BaseANF extends Base {
   }
   def tuple(fs: List[Rep]): Rep = compiler.tuple(fs.map(defToExpr(_)))
   def record(fs: Map[String, Rep]): Rep = compiler.record(fs.map(x => (x._1, defToExpr(x._2))))
+  def mult(e1: Rep, e2: Rep): Rep = compiler.mult(e1, e2)
   def equals(e1: Rep, e2: Rep): Rep = compiler.equals(e1, e2)
   def lt(e1: Rep, e2: Rep): Rep = compiler.lt(e1, e2)
   def gt(e1: Rep, e2: Rep): Rep = compiler.gt(e1, e2)
@@ -659,6 +746,8 @@ trait BaseANF extends Base {
   def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep = compiler.nest(e1, f, e, p, g)
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = compiler.lkup(e1, e2, p1, p2, p3)
   def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = compiler.outerlkup(e1, e2, p1, p2, p3)
+  def cogroup(e1: Rep, es: List[Rep], ps: List[Rep] => Rep): Rep = compiler.cogroup(e1, es.map(defToExpr(_)), ps)
+  
   def vars(e: Type): List[Variable] = e match {
     case BagCType(tp:RecordCType) => List(Variable.fresh(tp))
     case BagCType(tp @ TTupleType(tps)) => tps.map(Variable.fresh(_))
@@ -697,6 +786,7 @@ class Finalizer(val target: Base){
     case Tuple(fs) => target.tuple(fs.map(f => finalize(f)))
     case Record(fs) if fs.isEmpty => target.unit
     case Record(fs) => target.record(fs.map(f => f._1 -> finalize(f._2)))
+    case Multiply(e1, e2) => target.mult(finalize(e1), finalize(e2))
     case Equals(e1, e2) => target.equals(finalize(e1), finalize(e2))
     case Lt(e1, e2) => target.lt(finalize(e1), finalize(e2))
     case Gt(e1, e2) => target.gt(finalize(e1), finalize(e2))
@@ -758,6 +848,8 @@ class Finalizer(val target: Base){
     case OuterLookup(e1, e2, v, p1, v2, p2, p3) =>
       target.outerlkup(finalize(e1), finalize(e2), (r: List[target.Rep]) => withMapList(v zip r)(finalize(p1)),
         (r: target.Rep) => withMap(v2 -> r)(finalize(p2)), (r: List[target.Rep]) => withMapList((v :+ v2) zip r)(finalize(p3)))
+    case CoGroup(e1, es, vs, ps) => 
+      target.cogroup(finalize(e1), es.map(finalize(_)), (r: List[target.Rep]) => withMapList(vs zip r)(finalize(ps)))
     case v @ Variable(_, _) => variableMap.getOrElse(v, target.inputref(v.name, v.tp))
   }
 

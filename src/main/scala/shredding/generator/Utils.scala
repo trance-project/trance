@@ -9,7 +9,7 @@ import shredding.examples.tpch._
 object Utils {
 
   val normalizer = new Finalizer(new BaseNormalizer{})
-  val pathout = (outf: String) => s"experiments/$outf.scala"
+  def pathout(outf: String, sub: String = ""): String = s"experiments/tpch/$sub/$outf.scala"
   //val pathout = (outf: String) => s"src/test/scala/shredding/examples/simple/$outf.scala"
 
   /**
@@ -180,18 +180,36 @@ object Utils {
     * Produces an ouptut spark application 
     * (either shredded or not shredded) that does unnesting
     */
+  def timeOp(appname: String, e: String, i: Int = 0): String = {
+    val query = if (i > 0) "unshredding" else "query"
+    s"""
+      |var start$i = System.currentTimeMillis()
+      |$e.count
+      |var end$i = System.currentTimeMillis() - start$i
+      |println("$appname,"+sf+","+Config.datapath+","+end$i+",$query,"+spark.sparkContext.applicationId)
+    """.stripMargin
+  }
+
+  def timed(appname: String, e: List[String]): String =
+    s"""| def f = {
+        | ${e.zipWithIndex.map{ case (e1,i) => timeOp(appname, e1, i) }.mkString("\n")}
+        |}
+        |var start = System.currentTimeMillis()
+        |f
+        |var end = System.currentTimeMillis() - start
+    """.stripMargin
    
   def timed(e: String): String = 
     s"""|def f = { 
         | $e.count
         |}
-        |var start0 = System.currentTimeMillis()
+        |var start = System.currentTimeMillis()
         |f
-        |var end0 = System.currentTimeMillis() - start0 """.stripMargin
+        |var end = System.currentTimeMillis() - start """.stripMargin
 
   def runSparkNew(query: Query, shred: Boolean = false): Unit = {
     
-    val codegen = new SparkNamedGenerator(query.inputTypes(shred), shred)
+    val codegen = new SparkNamedGenerator(query.inputTypes(shred))
     val gcode = if (shred) codegen.generate(query.sanf) else codegen.generate(query.anf)
     val header = codegen.generateHeader(query.headerTypes(shred))
    
@@ -200,6 +218,63 @@ object Utils {
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val finalc = writeSparkNew(qname+"Spark", query.inputs(if (shred) TPCHSchema.stblcmds else TPCHSchema.tblcmds), header, timed(gcode))
+    printer.println(finalc)
+    printer.close 
+  
+  }
+
+  def runSparkInputNew(inputQuery: Query, query: Query, shred: Boolean = false): Unit = {
+    
+    val codegen = new SparkNamedGenerator(inputQuery.inputTypes(shred))
+    val (inputCode, gcode) = 
+      if (shred) (codegen.generate(inputQuery.sanf), codegen.generate(query.sanf))
+      else (codegen.generate(inputQuery.anf), codegen.generate(query.anf))
+    val header = codegen.generateHeader(inputQuery.headerTypes(shred))
+
+    val qname = if (shred) s"Shred${query.name}" else query.name
+    val fname = pathout(qname+"Spark")
+    println(s"Writing out $qname to $fname")
+    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
+    val inputSection = 
+      if (shred) s"${inputCode.split("\n").dropRight(1).mkString("\n")}\n${shredInputs(inputQuery.indexedDict)}"
+      else s"${inputs(inputQuery.name, inputCode)}"
+    val finalc = writeSparkNew(qname+"Spark", query.inputs(if (shred) TPCHSchema.stblcmds else TPCHSchema.tblcmds), 
+                  header, s"$inputSection\n${timed(gcode)}")
+    printer.println(finalc)
+    printer.close 
+  
+  }
+
+  def runSparkShredInput(inputQuery: Query, query: Query, unshred: Boolean = false): Unit = {
+    
+    val codegen = new SparkNamedGenerator(query.inputTypes(true))
+    val (inputCode, gcode1) = (codegen.generate(inputQuery.shredANF), codegen.generate(query.shredANF))
+    val gcodeSet = if (unshred) List(gcode1, codegen.generate(query.unshredANF)) else List(gcode1)
+    val header = codegen.generateHeader(query.headerTypes(true))
+   
+    val qname = s"Shred${query.name}Spark"
+    val fname = if (unshred) pathout(qname, "unshred") else pathout(qname)
+    println(s"Writing out $qname to $fname")
+    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
+    val inputSection = s"${inputCode.split("\n").dropRight(1).mkString("\n")}\n${shredInputs(inputQuery.indexedDict)}"
+    val finalc = writeSparkNew(qname, query.inputs(TPCHSchema.stblcmds), header, s"$inputSection\n${timed(qname, gcodeSet)}")
+    printer.println(finalc)
+    printer.close 
+  
+  }
+
+  def runSparkShred(query: Query, unshred: Boolean = false): Unit = {
+    
+    val codegen = new SparkNamedGenerator(query.inputTypes(true))
+    val gcode1 = codegen.generate(query.shredANF)
+    val gcodeSet = if (unshred) List(gcode1, codegen.generate(query.unshredANF)) else List(gcode1)
+    val header = codegen.generateHeader(query.headerTypes(true))
+   
+    val qname = s"Shred${query.name}Spark"
+    val fname = if (unshred) pathout(qname, "unshred") else pathout(qname)
+    println(s"Writing out $qname to $fname")
+    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
+    val finalc = writeSparkNew(qname, query.inputs(TPCHSchema.stblcmds), header, timed(qname, gcodeSet))
     printer.println(finalc)
     printer.close 
   
@@ -220,28 +295,6 @@ object Utils {
           |$n.cache
           |$n.count"""
     }.mkString("\n").stripMargin
-  }
-
-  def runSparkInputNew(inputQuery: Query, query: Query, shred: Boolean = false): Unit = {
-    
-    val codegen = new SparkNamedGenerator(inputQuery.inputTypes(shred), shred)
-    val (inputCode, gcode) = 
-      if (shred) (codegen.generate(inputQuery.sanf), codegen.generate(query.sanf))
-      else (codegen.generate(inputQuery.anf), codegen.generate(query.anf))
-    val header = codegen.generateHeader(inputQuery.headerTypes(shred))
-
-    val qname = if (shred) s"Shred${query.name}" else query.name
-    val fname = pathout(qname+"Spark")
-    println(s"Writing out $qname to $fname")
-    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val inputSection = 
-      if (shred) s"${inputCode.split("\n").dropRight(1).mkString("\n")}\n${shredInputs(inputQuery.indexedDict)}"
-      else s"${inputs(inputQuery.name, inputCode)}"
-    val finalc = writeSparkNew(qname+"Spark", query.inputs(if (shred) TPCHSchema.stblcmds else TPCHSchema.tblcmds), 
-                  header, s"$inputSection\n${timed(gcode)}")
-    printer.println(finalc)
-    printer.close 
-  
   }
  
   def runSpark(qInfo: (CExpr, String, String), inputM: Map[Type, String], 
@@ -323,7 +376,7 @@ object Utils {
       |   val spark = SparkSession.builder().config(conf).getOrCreate()
       |   $data
       |   $gcode
-      |   println("$appname"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
+      |   println("$appname"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
       | }
       |}""".stripMargin
   }

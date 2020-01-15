@@ -54,13 +54,16 @@ trait Optimizer extends Extensions {
         VarDef(Symbol.fresh("l"), TupleType("lbl" -> l1.tp)), Tuple("lbl" -> l1),
         betaReduce(flatBag).asInstanceOf[BagExpr])
 
-    /* TODO: Doesn't work nested lets */
+    /* TODO: Doesn't work nested lets 
+    Doesn't work with bag projection either
+    */
     case Lookup(l1, BagDictLet(x, e1, BagDict(l2, flatBag, _))) if l1.tp == l2.tp =>
       betaReduce(Let(x, e1, flatBag))
 
     case Lookup(l1, BagDictIfThenElse(c, BagDict(l2, f2, _), BagDict(l3, f3, _)))
         if l1.tp == l2.tp && l1.tp == l3.tp =>
       betaReduce(BagIfThenElse(c, f2, Some(f3)))
+
   })
 
   def nestingRewrite(e: Expr): Expr = replace(e, {
@@ -122,11 +125,17 @@ trait Optimizer extends Extensions {
         p1, p2.asInstanceOf[TupleAttributeExpr]), bag2, None))
   }
 
+  // could validate right singleton with attribute names
+  def embedKey(key: Expr, e: Expr): Expr = replace(e, {
+    case Singleton(Tuple(fs)) => 
+      Singleton(Tuple(Map("key" -> key.asInstanceOf[TupleAttributeExpr]) ++ fs))
+  })
+
   /** 
     * //TODO needs to be generic enough to extract label match from and conditions 
     * 
     */
-  def nestingRewriteLossy(e: Expr): Expr = replace(e, {
+  def nestingRewriteLossy(e: Expr): Expr = replace(e, { 
     case f @ ForeachUnion(x, b1, BagIfThenElse(cond, b2, None)) => cond match {
       /**case Cmp(OpEq, p1 @ PrimitiveProject(t1: TupleVarRef, f1), p2 @ PrimitiveProject(t2: TupleVarRef, f2)) =>
         rewriteJoinOnLabel(inputVars(f), x, b1, b2, p1, t1, p2, t2)**/
