@@ -7,7 +7,7 @@ import shredding.core._
   * Linearization of nested output queries
   */
 trait Linearization {
-  this: LinearizedNRC with Shredding with Optimizer =>
+  this: LinearizedNRC with Shredding with Optimizer with Printer with Extensions =>
 
   type DictMapper = Map[BagDictExpr, BagVarRef]
 
@@ -22,24 +22,42 @@ trait Linearization {
       MaterializationInfo(Sequence(e :: seq.exprs), dictMapper)
   }
 
-  def materialize(e: ShredExpr): MaterializationInfo = e.dict match {
+  /**
+    * Assumes that a pipeline query will be
+    * some Sequence of named NRC expressions
+    * followed by an unnamed query in the 
+    * flavor of Let named queries .... in unnamed query
+    * then the only materialization info we care about is the 
+    * unnamed query which uses named queries defined in the Let
+    */
+  def materialize(e: List[ShredExpr]): MaterializationInfo = {
+    val mats = e.map{ sexpr => sexpr match {
+        case ShredExpr(lbl1, BagDict(lbl2, Named(VarDef(n, _), e1), tdict)) => 
+          materialize(ShredExpr(lbl1, BagDict(lbl2, e1.asInstanceOf[BagExpr], tdict)), n)
+        case _ => materialize(sexpr) 
+      }
+    }
+    MaterializationInfo(Sequence(mats.map(m => m.seq.exprs).flatten), mats.last.dictMapper)
+  }
+
+  def materialize(e: ShredExpr, n: String = "M"): MaterializationInfo = e.dict match {
     case d: BagDictExpr =>
       Symbol.freshClear()
 
       // Construct initial context containing e.flat
-      val bagFlat = Singleton(Tuple("lbl" -> e.flat.asInstanceOf[TupleAttributeExpr]))
-      val initCtxNamed = Named(VarDef(Symbol.fresh("M_ctx"), bagFlat.tp), bagFlat)
+      val bagFlat = Singleton(Tuple("lbl" -> NewLabel(Set.empty)))//e.flat.asInstanceOf[TupleAttributeExpr]))
+      val initCtxNamed = Named(VarDef(Symbol.fresh(s"${n}_ctx"), bagFlat.tp), bagFlat)
       val initCtxRef = BagVarRef(initCtxNamed.v)
 
       // Recur
-      val matInfo = materializeDomains(d, initCtxRef)
+      val matInfo = materializeDomains(d, initCtxRef, n)
 
       matInfo.prepend(initCtxNamed)
 
     case _ => sys.error("Cannot linearize dict type " + e.dict)
   }
 
-  private def materializeDomains(dict: BagDictExpr, ctx: BagVarRef): MaterializationInfo = {
+  private def materializeDomains(dict: BagDictExpr, ctx: BagVarRef, name: String = "M"): MaterializationInfo = {
     val ldef = VarDef(Symbol.fresh("l"), ctx.tp.tp)
     val lbl = LabelProject(TupleVarRef(ldef), "lbl")
 
@@ -48,11 +66,11 @@ trait Linearization {
       ForeachUnion(ldef, ctx,
         BagExtractLabel(
           LabelProject(TupleVarRef(ldef), "lbl"),
-          Singleton(Tuple("k" -> lbl, "v" -> b))))
+          Singleton(Tuple("_1" -> lbl, "_2" -> b))))
 
     def materializeDictionary(kvPairs: BagExpr, dict: BagDictExpr): MaterializationInfo = {
       // 1. Create named materialized expression
-      val mDictNamed = Named(VarDef(Symbol.fresh("M_dict"), kvPairs.tp), kvPairs)
+      val mDictNamed = Named(VarDef(Symbol.fresh(name+"__D_"), kvPairs.tp), kvPairs)
       val mDictRef = BagVarRef(mDictNamed.v)
 
       // 2. Associate dict with its materialized expression
@@ -81,9 +99,9 @@ trait Linearization {
             val xDef = VarDef(Symbol.fresh("xF"), dict.tp.flatTp.tp)
             val mCtx =
               DeDup(ForeachUnion(kvDef, mDictRef,
-                ForeachUnion(xDef, BagProject(TupleVarRef(kvDef), "v"),
+                ForeachUnion(xDef, BagProject(TupleVarRef(kvDef), "_2"),
                   Singleton(Tuple("lbl" -> LabelProject(TupleVarRef(xDef), n))))))
-            val mCtxNamed = Named(VarDef(Symbol.fresh("M_ctx"), mCtx.tp), mCtx)
+            val mCtxNamed = Named(VarDef(Symbol.fresh(s"${name}_ctx"), mCtx.tp), mCtx)
             val mCtxRef = BagVarRef(mCtxNamed.v)
 
             dict.tupleDict(n) match {
@@ -122,12 +140,12 @@ trait Linearization {
       val kvdef = VarDef(Symbol.fresh("kv"), matDict.tp.tp)
       val kvref = TupleVarRef(kvdef)
 
-      val valueTp = kvref.tp.attrTps("v").asInstanceOf[BagType]
+      val valueTp = kvref.tp.attrTps("_2").asInstanceOf[BagType]
       val labelTypeExist = valueTp.tp.attrTps.exists(_._2.isInstanceOf[LabelType])
 
-      val bagExpr = if (!labelTypeExist) BagProject(kvref, "v")
+      val bagExpr = if (!labelTypeExist) BagProject(kvref, "_2")
       else {
-        val bag = BagProject(kvref, "v")
+        val bag = BagProject(kvref, "_2")
         val tdef = VarDef(Symbol.fresh("t"), bag.tp.tp)
         val tref = TupleVarRef(tdef)
 
@@ -141,7 +159,7 @@ trait Linearization {
           )))
       }
       ForeachUnion(kvdef, matDict,
-        BagIfThenElse(Cmp(OpEq, lbl, LabelProject(kvref, "k")), bagExpr, None))
+        BagIfThenElse(Cmp(OpEq, lbl, LabelProject(kvref, "_1")), bagExpr, None))
     }
 
     dict match {
@@ -154,6 +172,63 @@ trait Linearization {
     }
   }
 
+  def unshredNew(e: ShredExpr, dictMapper: Map[BagDictExpr, BagVarRef]): Expr = {
+    e.dict match {
+      case d: BagDictExpr =>         
+        val (exps, lkup) = unshredNew(e.flat.asInstanceOf[LabelExpr], d, dictMapper)
+        if (exps.nonEmpty) Sequence(exps)
+        else lkup match { // this is the case where no unshredding will happen
+          case Lookup(lbl, bd) => bd
+          case _ => ???
+        }
+      case _ => sys.error("Cannot linearize dict type " + e.dict)
+    }
+  }
+
+  /**
+    Unshred: given n levels of nesting, will build a sequence: 
+      at the lowest level:
+         newdict_n = lookup on dict_n
+      recursive step:
+        newdict_n-1 := dict_n-1 join newdict_n
+      base case:
+        dict_0 = dict0 join newdict_n-1
+   */
+  private def unshredNew(lbl: LabelExpr, dict: BagDictExpr, dictMapper: Map[BagDictExpr, BagVarRef]): (List[BagExpr], BagExpr) = {
+    val top = dictMapper(dict)
+    val kvdef = VarDef(Symbol.fresh("kv"), top.tp.tp)
+    val kvref = TupleVarRef(kvdef)
+    
+    val bag = BagProject(kvref, "_2")
+    val tdef = VarDef(Symbol.fresh("t"), bag.tp.tp)
+    val tref = TupleVarRef(tdef)
+    
+    val labelTypeExist = bag.tp.tp.attrTps.exists(_._2.isInstanceOf[LabelType])
+    if (!labelTypeExist){
+      (Nil, Lookup(lbl, BagDictVarRef(VarDef(top.varDef.name, dict.tp))))
+    }else{
+      var nseqs = List[BagExpr]()
+      val bagExpr = ForeachUnion(kvdef, top,
+        //Singleton(Tuple("_1" -> LabelProject(kvref, "_1"), "_2" -> 
+          ForeachUnion(tdef, bag,  
+            Singleton(Tuple("_1" -> LabelProject(kvref, "_1"), 
+            "_2" -> Singleton(Tuple(tref.tp.attrTps.map{
+              case (n, _:LabelType) =>
+                val (bexp, lkup) = unshredNew(LabelProject(tref, n), dict.tupleDict(n).asInstanceOf[BagDictExpr], dictMapper)
+                nseqs = bexp
+                n -> lkup
+              case (n, _) => n -> tref(n)
+          }))))))
+        val bagtype = bagExpr.tp match {
+          case BagType(TupleType(fs)) => fs("_2")
+          case _ => ???
+        }
+        val bvr = VarDef("new"+top.varDef.name, BagDictType(bagtype.asInstanceOf[BagType], 
+          TupleDictType(Map("nil" -> EmptyDictType))))
+        (nseqs :+ Named(VarDef("new"+top.varDef.name, bagExpr.tp), bagExpr), Lookup(lbl, BagDictVarRef(bvr)))
+    }
+  }
+
   /* Old linearization approach w/o unshredding */
 
   def linearize(e: ShredExpr): Sequence = e.dict match {
@@ -162,7 +237,10 @@ trait Linearization {
 
       // Construct variable reference to the initial context
       // that represents a bag containing e.flat.
-      val bagFlat = Singleton(Tuple("lbl" -> e.flat.asInstanceOf[TupleAttributeExpr]))
+      //val bagFlat = Singleton(Tuple("lbl" -> e.flat.asInstanceOf[TupleAttributeExpr]))
+      val bagFlat = Singleton(Tuple("lbl" ->
+                      NewLabel(labelParameters(e.flat)).asInstanceOf[TupleAttributeExpr]))
+      
       val initCtxNamed = Named(VarDef(Symbol.fresh("M_ctx"), bagFlat.tp), bagFlat)
       val initCtxRef = BagVarRef(initCtxNamed.v)
 
@@ -177,10 +255,10 @@ trait Linearization {
     //    consisting of labels from ctx and flat bags from dict
     val ldef = VarDef(Symbol.fresh("l"), ctx.tp.tp)
     val lbl = LabelProject(TupleVarRef(ldef), "lbl")
-    val kvpair = Tuple("k" -> lbl, "v" -> optimize(dict.lookup(lbl)).asInstanceOf[BagExpr])
+    val kvpair = Tuple("_1" -> lbl, "_2" -> optimize(dict.lookup(lbl)).asInstanceOf[BagExpr])
     val mFlat = ForeachUnion(ldef, ctx,
       BagExtractLabel(LabelProject(TupleVarRef(ldef), "lbl"), Singleton(kvpair)))
-    val mFlatNamed = Named(VarDef(Symbol.fresh("M_flat"), mFlat.tp), mFlat)
+    val mFlatNamed = Named(VarDef(Symbol.fresh("M_dict"), mFlat.tp), mFlat)
     val mFlatRef = BagVarRef(mFlatNamed.v)
 
     // 2. For each label type in dict.flatBagTp.tp,
@@ -193,7 +271,7 @@ trait Linearization {
         val xDef = VarDef(Symbol.fresh("xF"), dict.tp.flatTp.tp)
         val mCtx =
           DeDup(ForeachUnion(kvDef, mFlatRef,
-            ForeachUnion(xDef, BagProject(TupleVarRef(kvDef), "v"),
+            ForeachUnion(xDef, BagProject(TupleVarRef(kvDef), "_2"),
               Singleton(Tuple("lbl" -> LabelProject(TupleVarRef(xDef), n))))))
         val mCtxNamed = Named(VarDef(Symbol.fresh("M_ctx"), mCtx.tp), mCtx)
         val mCtxRef = BagVarRef(mCtxNamed.v)
@@ -217,13 +295,15 @@ trait Linearization {
   def linearizeNoDomains(dict: BagDict): List[Expr] = {
     val flatBagExpr = dict.flat
     val flatBagExprRewritten = nestingRewriteLossy(flatBagExpr)
-    val mFlatNamed = Named(VarDef(Symbol.fresh("M_flat"), flatBagExpr.tp), flatBagExprRewritten)
+    val mFlatNamed = Named(VarDef(Symbol.fresh("M_dict"), flatBagExprRewritten.tp), 
+      flatBagExprRewritten.asInstanceOf[BagExpr])
 
     val labelTps = dict.tp.flatTp.tp.attrTps.filter(_._2.isInstanceOf[LabelType]).toList
     mFlatNamed ::
       labelTps.flatMap { case (n, _) =>
         dict.tupleDict(n) match {
           case b: BagDict => linearizeNoDomains(b)
+          case b: BagDictLet => linearizeNoDomains(b.e2.asInstanceOf[BagDict])
           case b => sys.error("Unknown dictionary " + b)
         }
       }

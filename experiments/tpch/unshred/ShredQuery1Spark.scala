@@ -1,0 +1,247 @@
+
+package experiments
+/** Generated **/
+import org.apache.spark.SparkConf
+import org.apache.spark.sql.SparkSession
+import sprkloader._
+import sprkloader.SkewPairRDD._
+case class Record165(lbl: Unit)
+case class Record166(l_orderkey: Int, l_quantity: Double, l_partkey: Int)
+case class Record167(p_name: String, p_partkey: Int)
+case class Record168(l_orderkey: Int, p_name: String, l_qty: Double)
+case class Record169(c_name: String, c_custkey: Int)
+case class Record170(c__Fc_custkey: Int)
+case class Record171(c_name: String, c_orders: Record170)
+case class Record172(lbl: Record170)
+case class Record173(o_orderdate: String, o_orderkey: Int, o_custkey: Int)
+case class Record175(o__Fo_orderkey: Int)
+case class Record176(o_orderdate: String, o_parts: Record175)
+case class Record177(lbl: Record175)
+case class Record179(p_name: String, l_qty: Double)
+case class Record260(o_orderdate: String, o_parts: Iterable[Iterable[Record179]])
+case class Record261(c_name: String, c_orders: Iterable[Record260])
+object ShredQuery1Spark {
+ def main(args: Array[String]){
+   val sf = Config.datapath.split("/").last
+   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery1Spark"+sf)
+   val spark = SparkSession.builder().config(conf).getOrCreate()
+   val tpch = TPCHLoader(spark)
+val L__F = 3
+val L__D_1 = tpch.loadLineitem
+L__D_1.cache
+L__D_1.count
+val P__F = 4
+val P__D_1 = tpch.loadPart
+P__D_1.cache
+P__D_1.count
+val C__F = 1
+val C__D_1 = tpch.loadCustomers
+C__D_1.cache
+C__D_1.count
+val O__F = 2
+val O__D_1 = tpch.loadOrders
+O__D_1.cache
+O__D_1.count
+
+    def f = {
+ 
+var start0 = System.currentTimeMillis()
+val x47 = () 
+val x48 = Record165(x47) 
+val x49 = List(x48) 
+val ljp_ctx1 = x49
+val x50 = ljp_ctx1
+//ljp_ctx1.collect.foreach(println(_))
+val x56 = L__D_1.map(x51 => { val x52 = x51.l_orderkey 
+val x53 = x51.l_quantity 
+val x54 = x51.l_partkey 
+val x55 = Record166(x52, x53, x54) 
+x55 }) 
+val x61 = P__D_1.map(x57 => { val x58 = x57.p_name 
+val x59 = x57.p_partkey 
+val x60 = Record167(x58, x59) 
+x60 }) 
+val x66 = { val out1 = x56.map{ case x62 => ({val x64 = x62.l_partkey 
+x64}, x62) }
+  val out2 = x61.map{ case x63 => ({val x65 = x63.p_partkey 
+x65}, x63) }
+  out1.join(out2).map{ case (k,v) => v }
+} 
+val x73 = x66.map{ case (x67, x68) => 
+   val x69 = x67.l_orderkey 
+val x70 = x68.p_name 
+val x71 = x67.l_quantity 
+val x72 = Record168(x69, x70, x71) 
+x72 
+} 
+val ljp__D_1 = x73
+val x74 = ljp__D_1
+//ljp__D_1.collect.foreach(println(_))
+val M_ctx1 = x49
+val x75 = M_ctx1
+//M_ctx1.collect.foreach(println(_))
+val x80 = C__D_1.map(x76 => { val x77 = x76.c_name 
+val x78 = x76.c_custkey 
+val x79 = Record169(x77, x78) 
+x79 }) 
+val x86 = x80.map{ case x81 => 
+   val x82 = x81.c_name 
+val x83 = x81.c_custkey 
+val x84 = Record170(x83) 
+val x85 = Record171(x82, x84) 
+x85 
+} 
+val M__D_1 = x86
+val x87 = M__D_1
+//M__D_1.collect.foreach(println(_))
+val x89 = M__D_1 
+val x93 = x89.map{ case x90 => 
+   val x91 = x90.c_orders 
+val x92 = Record172(x91) 
+x92 
+} 
+val x94 = x93.distinct 
+val M_ctx2 = x94
+val x95 = M_ctx2
+//M_ctx2.collect.foreach(println(_))
+val x97 = M_ctx2 
+val x103 = O__D_1.map(x98 => { val x99 = x98.o_orderdate 
+val x100 = x98.o_orderkey 
+val x101 = x98.o_custkey 
+val x102 = Record173(x99, x100, x101) 
+x102 }) 
+val x109 = { val out1 = x97.map{ case x104 => ({val x106 = x104.lbl 
+val x107 = x106.c__Fc_custkey 
+x107}, x104) }
+  val out2 = x103.map{ case x105 => ({val x108 = x105.o_custkey 
+x108}, x105) }
+  out1.join(out2).map{ case (k,v) => v }
+} 
+val x119 = x109.flatMap{ case (x110, x111) => val x118 = (x111) 
+x118 match {
+   case (null) => Nil 
+   case x117 => List(({val x112 = (x110) 
+x112}, {val x113 = x111.o_orderdate 
+val x114 = x111.o_orderkey 
+val x115 = Record175(x114) 
+val x116 = Record176(x113, x115) 
+x116}))
+ }
+}.groupByLabel() 
+val x124 = x119.map{ case (x120, x121) => 
+   val x122 = x120.lbl 
+val x123 = (x122, x121) 
+x123 
+} 
+val M__D_2 = x124
+val x125 = M__D_2
+//M__D_2.collect.foreach(println(_))
+val x127 = M__D_2 
+val x131 = x127.flatMap{ 
+ case x128 => {val x129 = x128._2 
+x129}.map{ case v2 => (x128._1, v2) }
+}
+         
+val x136 = x131.map{ case (x132, x133) => 
+   val x134 = x133.o_parts 
+val x135 = Record177(x134) 
+x135 
+} 
+val x137 = x136.distinct 
+val M_ctx3 = x137
+val x138 = M_ctx3
+//M_ctx3.collect.foreach(println(_))
+val x140 = M_ctx3 
+val x142 = ljp__D_1 
+val x148 = { val out1 = x140.map{ case x143 => ({val x145 = x143.lbl 
+val x146 = x145.o__Fo_orderkey 
+x146}, x143) }
+  val out2 = x142.map{ case x144 => ({val x147 = x144.l_orderkey 
+x147}, x144) }
+  out1.join(out2).map{ case (k,v) => v }
+} 
+val x157 = x148.flatMap{ case (x149, x150) => val x156 = (x150) 
+x156 match {
+   case (null) => Nil 
+   case x155 => List(({val x151 = (x149) 
+x151}, {val x152 = x150.p_name 
+val x153 = x150.l_qty 
+val x154 = Record179(x152, x153) 
+x154}))
+ }
+}.groupByLabel() 
+val x162 = x157.map{ case (x158, x159) => 
+   val x160 = x158.lbl 
+val x161 = (x160, x159) 
+x161 
+} 
+val M__D_3 = x162
+val x163 = M__D_3
+//M__D_3.collect.foreach(println(_))
+x163.count
+var end0 = System.currentTimeMillis() - start0
+println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
+    
+
+var start1 = System.currentTimeMillis()
+val x212 = M__D_1 
+val x214 = M__D_2 
+val x219 = { val out1 = x212.map{ case x215 => ({val x217 = x215.c_orders 
+x217}, x215) }
+  val out2 = x214.map{ case x216 => ({val x218 = x216._1 
+x218}, x216) }
+  out1.join(out2).map{ case (k,v) => v }
+  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
+} 
+val x224 = x219.flatMap{ case (x220, x221) => (x220, x221) match {
+   case (_, null) => List(((x220, x221), null))
+   case _ => 
+   {val x222 = x221._2 
+x222} match {
+     case Nil => List(((x220, x221), null))
+     case lst => lst.map{ case x223 => ((x220, x221), x223) }
+  }
+ }} 
+val x226 = M__D_3 
+val x233 = { val out1 = x224.map{ case ((x227, x228), x229) => ({val x231 = x229.o_parts 
+x231}, ((x227, x228), x229)) }
+  val out2 = x226.map{ case x230 => ({val x232 = x230._1 
+x232}, x230) }
+  out1.join(out2).map{ case (k,v) => v }
+  //out1.leftOuterJoin(out2).map{ case (k, (a, Some(v))) => (a, v); case (k, (a, None)) => (a, null) }
+} 
+val x242 = x233.flatMap{ case (((x234, x235), x236), x237) => val x241 = (x237) 
+x241 match {
+   case (null) => Nil 
+   case x240 => List(({val x238 = (x234,x235,x236) 
+x238}, {val x239 = x237._2 
+x239}))
+ }
+}.groupByKey() 
+val x252 = x242.flatMap{ case ((x243, x244, x245), x246) => val x251 = (x244,x245,x246) 
+x251 match {
+   case (_,null,_) => Nil
+case (_,_,null) => Nil 
+   case x250 => List(({val x247 = (x243) 
+x247}, {val x248 = x245.o_orderdate 
+val x249 = Record260(x248, x246) 
+x249}))
+ }
+}.groupByKey() 
+val x257 = x252.map{ case (x253, x254) => 
+   val x255 = x253.c_name 
+val x256 = Record261(x255, x254) 
+x256 
+} 
+x257.count
+var end1 = System.currentTimeMillis() - start1
+println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
+    
+}
+var start = System.currentTimeMillis()
+f
+var end = System.currentTimeMillis() - start
+    
+   println("ShredQuery1Spark"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
+ }
+}

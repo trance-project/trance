@@ -1,7 +1,7 @@
 package shredding.nrc
 
 import shredding.core._
-import shredding.examples.tpch.{TPCHQueries, TPCHSchema}
+import shredding.examples.tpch._//{TPCHQueries, TPCHSchema}
 import shredding.runtime.{Context, Evaluator, ScalaPrinter, ScalaShredding}
 import shredding.examples.simple._
 import shredding.examples.optimize._
@@ -42,6 +42,7 @@ object TestApp extends App
       ctx.add(relationR.varDef, relationRValue)
       println("[Ex1] Q1 eval: " + eval(q1, ctx))
 
+      // pass inputs to avoid them going into labels?
       val q1shredraw = shred(q1)
       println("[Ex1] Shredded Q1: " + quote(q1shredraw))
 
@@ -59,7 +60,7 @@ object TestApp extends App
 
       val q1lin = linearize(q1shred)
       println("[Ex1] Linearized Q1: " + quote(q1lin))
-      println("[Ex1] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+      println("[Ex1] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n\n"))
 
       val ydef = VarDef("y", itemTp)
       val yref = TupleVarRef(ydef)
@@ -1146,7 +1147,33 @@ object TestApp extends App
       println(quote(q1unshred))
     }
   }
-  ExtractExamples.run()
+
+  object Example_Unshredding {
+
+    def run(): Unit = {
+      val query = TPCHQuery1.query.asInstanceOf[Expr]
+      val (shredded:ShredExpr, materialized:MaterializationInfo) = query match {
+        case Sequence(fs) =>
+          val exprs = fs.map(expr => optimize(shred(expr)))
+          (exprs.last.asInstanceOf[ShredExpr], materialize(exprs))
+      case _ =>
+        val expr = optimize(shred(query))
+        (expr, materialize(expr))
+      }
+      println("Shredded: ")
+      println(quote(shredded)+"\n")
+      println("Materialized: ")
+      println(quote(materialized.seq)+"\n")
+      
+      val unshredded = unshred(shredded, materialized.dictMapper)
+      println("Unshredded: ")
+      println(quote(unshredded))
+     
+    }
+  }
+
+    ExtractExamples.run()
+//  Example_Unshredding.run()
 //  Example1.run()
 //  Example2.run()
 //  Example3.run()

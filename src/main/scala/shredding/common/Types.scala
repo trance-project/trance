@@ -39,6 +39,7 @@ case class LabelType(attrTps: Map[String, Type]) extends TupleAttributeType {
 
   override def equals(that: Any): Boolean = that match {
     case that: LabelType => this.attrTps == that.attrTps
+    case that:RecordCType => this.attrTps == that.attrTps
     case _ => false
   }
 }
@@ -75,6 +76,12 @@ case object EmptyCType extends Type
 
 case class RecordCType(attrTps: Map[String, Type]) extends Type {
   def apply(n: String): Type = attrTps(n)
+  override def equals(that: Any): Boolean = that match {
+    case that: LabelType => this.attrTps == that.attrTps
+    case that:RecordCType => this.attrTps == that.attrTps
+    case _ => false
+  }
+
 }
 
 object RecordCType {
@@ -93,7 +100,10 @@ case object EmptyDictCType extends TDict with TTupleDict
 case class BagDictCType(flatTp: BagCType, dictTp: TTupleDict) extends TDict {
   def apply(n: String): Type = n match {
     case "lbl" => flatTp.tp.asInstanceOf[TTupleType](0)
-    case "flat" => flatTp.tp.asInstanceOf[TTupleType](1)
+    case "flat" => flatTp.tp match {
+      case TTupleType(fs) => fs(1)
+      case _ => flatTp
+    }
     case "_1" => flatTp
     case "_2" => dictTp
   }
@@ -101,7 +111,7 @@ case class BagDictCType(flatTp: BagCType, dictTp: TTupleDict) extends TDict {
   def flat: BagCType = flatTp.tp match {
     case ttp @ TTupleType(List(IntType, RecordCType(_))) => BagCType(ttp)
     case TTupleType(fs) => fs(1).asInstanceOf[BagCType]
-    case _ => sys.error("type not supported in flat bag")
+    case _ => flatTp //sys.error("type not supported in flat bag")
   }
   def _1 = flatTp
   def _2 = dictTp

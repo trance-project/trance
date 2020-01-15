@@ -10,6 +10,7 @@ trait ShredNRC extends NRC with Label with Dictionary {
   /**
     * Shredded expression E is a pair of E^flat and E^dict
     */
+
   final case class ShredExpr(flat: Expr, dict: DictExpr)
 
   final case class Lookup(lbl: LabelExpr, dict: BagDictExpr) extends BagExpr {
@@ -68,5 +69,6 @@ trait ShredNRC extends NRC with Label with Dictionary {
       case _ => IfThenElse(c, e1)
     }
   }
+
 
 }

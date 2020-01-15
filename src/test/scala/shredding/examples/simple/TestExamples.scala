@@ -48,10 +48,10 @@ class TestExamples extends FunSuite
     val evaluator = new Finalizer(eval)
 
     val data = List(
-      RecordValue("b" -> "b1", "a" -> List(1, 2, 3), "d" -> "d1"),
-      RecordValue("b" -> "b2", "a" -> List(11, 22, 33), "d" -> "d2"),
-      RecordValue("b" -> "b3", "a" -> List(111, 222, 333), "d" -> "d3"),
-      RecordValue("b" -> "b4", "a" -> List(1111, 2222, 3333), "d" -> "d4"),
+      Rec("b" -> "b1", "a" -> List(1, 2, 3), "d" -> "d1"),
+      Rec("b" -> "b2", "a" -> List(11, 22, 33), "d" -> "d2"),
+      Rec("b" -> "b3", "a" -> List(111, 222, 333), "d" -> "d3"),
+      Rec("b" -> "b4", "a" -> List(1111, 2222, 3333), "d" -> "d4"),
     )
 
     eval.ctx("R") = data
@@ -59,8 +59,8 @@ class TestExamples extends FunSuite
     val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr])
     println("[TEST_1] EVAL:" + evaluated)
 
-    val expected = List(RecordValue("E" -> List(1, 2, 3)), RecordValue("E" -> List(11, 22, 33)),
-      RecordValue("E" -> List(111, 222, 333)), RecordValue("E" -> List(1111, 2222, 3333)))
+    val expected = List(Rec("E" -> List(1, 2, 3)), Rec("E" -> List(11, 22, 33)),
+      Rec("E" -> List(111, 222, 333)), Rec("E" -> List(1111, 2222, 3333)))
     assert(evaluated == expected)
 
   }
@@ -93,10 +93,10 @@ class TestExamples extends FunSuite
     val evaluator = new Finalizer(eval)
 
     val data = List(
-      RecordValue("b" -> "b1", "a" -> List(1, 2, 3), "d" -> "d1"),
-      RecordValue("b" -> "b2", "a" -> List(11, 22, 33), "d" -> "d2"),
-      RecordValue("b" -> "b3", "a" -> List(111, 222, 333), "d" -> "d3"),
-      RecordValue("b" -> "b4", "a" -> List(1111, 2222, 3333), "d" -> "d4"),
+      Rec("b" -> "b1", "a" -> List(1, 2, 3), "d" -> "d1"),
+      Rec("b" -> "b2", "a" -> List(11, 22, 33), "d" -> "d2"),
+      Rec("b" -> "b3", "a" -> List(111, 222, 333), "d" -> "d3"),
+      Rec("b" -> "b4", "a" -> List(1111, 2222, 3333), "d" -> "d4"),
     )
 
     eval.ctx("R") = data
@@ -104,8 +104,8 @@ class TestExamples extends FunSuite
     val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr])
     println("[TEST_2] EVAL:" + evaluated)
 
-    val expected = List(RecordValue("E" -> List(1, 2, 3)), RecordValue("E" -> List(11, 22, 33)),
-      RecordValue("E" -> List(111, 222, 333)), RecordValue("E" -> List(1111, 2222, 3333)))
+    val expected = List(Rec("E" -> List(1, 2, 3)), Rec("E" -> List(11, 22, 33)),
+      Rec("E" -> List(111, 222, 333)), Rec("E" -> List(1111, 2222, 3333)))
     assert(evaluated == expected)
 
 
@@ -138,10 +138,10 @@ class TestExamples extends FunSuite
     val evaluator = new Finalizer(eval)
 
     val data = List(
-      RecordValue("b" -> "b1", "a" -> List(1, 2, 3), "d" -> "d1"),
-      RecordValue("b" -> "b2", "a" -> List(11, 22, 33), "d" -> "d2"),
-      RecordValue("b" -> "b3", "a" -> List(111, 222, 333), "d" -> "d3"),
-      RecordValue("b" -> "b4", "a" -> List(1111, 2222, 3333), "d" -> "d4"),
+      Rec("b" -> "b1", "a" -> List(1, 2, 3), "d" -> "d1"),
+      Rec("b" -> "b2", "a" -> List(11, 22, 33), "d" -> "d2"),
+      Rec("b" -> "b3", "a" -> List(111, 222, 333), "d" -> "d3"),
+      Rec("b" -> "b4", "a" -> List(1111, 2222, 3333), "d" -> "d4"),
     )
 
     eval.ctx("R") = data
@@ -149,8 +149,8 @@ class TestExamples extends FunSuite
     val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr])
     println("[TEST_3] EVAL:" + evaluated)
 
-    val expected = List(RecordValue("a" -> List(RecordValue("E" -> List(1, 2, 3)), RecordValue("E" -> List(11, 22, 33)),
-      RecordValue("E" -> List(111, 222, 333)), RecordValue("E" -> List(1111, 2222, 3333)))))
+    val expected = List(Rec("a" -> List(Rec("E" -> List(1, 2, 3)), Rec("E" -> List(11, 22, 33)),
+      Rec("E" -> List(111, 222, 333)), Rec("E" -> List(1111, 2222, 3333)))))
     assert(evaluated == expected)
   }
 
@@ -186,19 +186,19 @@ class TestExamples extends FunSuite
     val evaluator = new Finalizer(eval)
 
     val data = List(
-      RecordValue("a" -> 1, "c" -> 11),
-      RecordValue("a" -> 2, "c" -> 22),
-      RecordValue("a" -> 3, "c" -> 33),
-      RecordValue("a" -> 4, "c" -> 44)
+      Rec("a" -> 1, "c" -> 11),
+      Rec("a" -> 2, "c" -> 22),
+      Rec("a" -> 3, "c" -> 33),
+      Rec("a" -> 4, "c" -> 44)
     )
 
     eval.ctx("R") = data
-    eval.ctx("x") = RecordValue("a" -> 4, "c" -> 44)
+    eval.ctx("x") = Rec("a" -> 4, "c" -> 44)
     println("[TEST_4] input data :" + data)
     val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr])
     println("[TEST_4] EVAL:" + evaluated)
 
-    val expected = RecordValue("a" -> 44, "b" -> List(RecordValue("b'" -> 4)))
+    val expected = Rec("a" -> 44, "b" -> List(Rec("b'" -> 4)))
     assert(evaluated == expected)
   }
 
@@ -239,29 +239,29 @@ class TestExamples extends FunSuite
     val evaluator = new Finalizer(eval)
 
     val dataR = List(
-      RecordValue("a" -> 1, "c" -> 11),
-      RecordValue("a" -> 2, "c" -> 22),
-      RecordValue("a" -> 3, "c" -> 33),
-      RecordValue("a" -> 4, "c" -> 44)
+      Rec("a" -> 1, "c" -> 11),
+      Rec("a" -> 2, "c" -> 22),
+      Rec("a" -> 3, "c" -> 33),
+      Rec("a" -> 4, "c" -> 44)
     )
     val dataS = List(
-      RecordValue("a" -> 1000, "c" -> 11000),
-      RecordValue("a" -> 2000, "c" -> 22000),
-      RecordValue("a" -> 3000, "c" -> 33000),
-      RecordValue("a" -> 4000, "c" -> 44)
+      Rec("a" -> 1000, "c" -> 11000),
+      Rec("a" -> 2000, "c" -> 22000),
+      Rec("a" -> 3000, "c" -> 33000),
+      Rec("a" -> 4000, "c" -> 44)
     )
 
     eval.ctx("R") = dataR
     eval.ctx("S") = dataS
-    eval.ctx("x") = RecordValue("a" -> 4, "c" -> 44)
+    eval.ctx("x") = Rec("a" -> 4, "c" -> 44)
     //println("[TEST_5] input data :" + data)
     val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr])
     println("[TEST_5] EVAL:" + evaluated)
 
-    val expected = List(RecordValue("a" -> 11000,"b" -> List()),
-        RecordValue("a" -> 22000,"b" -> List()),
-        RecordValue("a" -> 33000,"b" -> List()),
-        RecordValue("a" -> 44,"b" -> List(RecordValue("a'" -> 4))))
+    val expected = List(Rec("a" -> 11000,"b" -> List()),
+        Rec("a" -> 22000,"b" -> List()),
+        Rec("a" -> 33000,"b" -> List()),
+        Rec("a" -> 44,"b" -> List(Rec("a'" -> 4))))
     assert(evaluated == expected)
 
 
@@ -321,10 +321,10 @@ class TestExamples extends FunSuite
     val evaluator = new Finalizer(eval)
 
     val data = List(
-      RecordValue("a" -> 101, "b" -> 102, "c" -> 103),
-      RecordValue("a" -> 201, "b" -> 102, "c" -> 203),
-      RecordValue("a" -> 301, "b" -> 102, "c" -> 303),
-      RecordValue("a" -> 401, "b" -> 102, "c" -> 403)
+      Rec("a" -> 101, "b" -> 102, "c" -> 103),
+      Rec("a" -> 201, "b" -> 102, "c" -> 203),
+      Rec("a" -> 301, "b" -> 102, "c" -> 303),
+      Rec("a" -> 401, "b" -> 102, "c" -> 403)
     )
 
     eval.ctx("R") = data
@@ -332,10 +332,10 @@ class TestExamples extends FunSuite
     val evaluated = evaluator.finalize(normq1.asInstanceOf[CExpr])
     println("[TEST_2] EVAL:" + evaluated)
     val expected = List(
-      RecordValue("c'" -> 103), RecordValue("c'" -> 203), RecordValue("c'" -> 303), RecordValue("c'" -> 403),
-      RecordValue("c'" -> 103), RecordValue("c'" -> 203), RecordValue("c'" -> 303), RecordValue("c'" -> 403),
-      RecordValue("c'" -> 103), RecordValue("c'" -> 203), RecordValue("c'" -> 303), RecordValue("c'" -> 403),
-      RecordValue("c'" -> 103), RecordValue("c'" -> 203), RecordValue("c'" -> 303), RecordValue("c'" -> 403))
+      Rec("c'" -> 103), Rec("c'" -> 203), Rec("c'" -> 303), Rec("c'" -> 403),
+      Rec("c'" -> 103), Rec("c'" -> 203), Rec("c'" -> 303), Rec("c'" -> 403),
+      Rec("c'" -> 103), Rec("c'" -> 203), Rec("c'" -> 303), Rec("c'" -> 403),
+      Rec("c'" -> 103), Rec("c'" -> 203), Rec("c'" -> 303), Rec("c'" -> 403))
     assert(evaluated == expected)
   }
 
@@ -355,15 +355,6 @@ class TestExamples extends FunSuite
 
 */
   test("test7") {
-
-    println()
-    println("[TEST_7]     For x In R Union\n    " +
-      "Let Z :=\n    For y In x.a Union\n      " +
-      "sng(o1 = y.b, o2 = For q In x.c Union If (q.e = y.b) Then (o3 = q.h, o4 = q.j) )\n    " +
-      "In\n    " +
-      "sng (o5 = x.h, o6 = For w In Z Union sng(o7 = w.o1, o8 = Mult(w.o1, Z)))")
-
-    // printQuery("TEST_7", results)
 
   }
 
@@ -396,9 +387,50 @@ class TestExamples extends FunSuite
   test("test8") {
     println()
     println("[TEST_8] A portion of the alele count example")
-    val results = null
-    //printQuery("TEST_8", results)
 
+    val bagV = BagType(TupleType("contig" -> StringType, "start"->IntType,
+        "genotypes" -> BagType(TupleType("sample" -> StringType, "call"->IntType))))
+    val bagC = BagType(TupleType("sample" -> StringType, "iscase"->DoubleType))
+
+
+    val relationV = BagVarRef(VarDef("V", bagV))
+    val vdef = VarDef("v", bagV.tp)
+    val vref = TupleVarRef(vdef)
+
+//    val gdef = VarDef("g", tuple)
+
+//    val tuple_x = TupleType("a" -> IntType, "b" -> IntType, "c" -> IntType)
+//    val relationR = BagVarRef(VarDef("R", BagType(tuple_x)))
+//    val xdef = VarDef("x", tuple_x)
+//    val zdef = VarDef("z", tuple_x)
+//    val ydef = VarDef("y", tuple_x)
+//    val xref = TupleVarRef(xdef)
+//    val yref = TupleVarRef(ydef)
+//    val zref = TupleVarRef(zdef)
+
+
+
+//    val results = ForeachUnion(vdef, relationV,
+//          Singleton(Tuple("contig" -> vref("contig"), "start"->vref("start")),
+//            "alleleCnts" -> Let(
+//
+//            )//let
+//          )//Singleton
+//        )//foreachu
+
+//      ForeachUnion(ydef, relationR, IfThenElse(Cmp(OpEq, xref("a"), yref("a")),
+//        //{b' = y.b, s2 =
+//        //  For z In R Union If z.a == x.a ∧ z.b == y.b Then
+//        //    {c' = z.ci}
+//        ForeachUnion(zdef, relationR,
+//          IfThenElse(
+//            Or(Cmp(OpEq, zref("a"), xref("a")), Cmp(OpEq, zref("b"), yref("b"))),
+//            Singleton(Tuple("c'" -> zref("c"))))
+//        ),
+//      )
+//      ))
+
+ //   printQuery("TEST_8", results)
   }
 
 }

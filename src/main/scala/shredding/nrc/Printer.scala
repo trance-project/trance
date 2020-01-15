@@ -41,6 +41,7 @@ trait Printer extends LinearizedNRC {
       case Not(e1) =>
         s"NOT ${quote(e1)}"
     }
+    case PrimitiveOp(Multiply, e1, e2) => s"(${quote(e1)} * ${quote(e2)})"
     case i: IfThenElse =>
       if (i.e2.isDefined)
         s"""|If (${quote(i.cond)})
@@ -49,7 +50,10 @@ trait Printer extends LinearizedNRC {
       else
         s"""|If (${quote(i.cond)})
             |Then ${quote(i.e1)}""".stripMargin
-
+    case g:GroupBy => g.value.tp match {
+      case b:BagType => s"(${quote(g.bag)}).groupBy(${quote(g.grp)}), ${quote(g.value)})"
+      case _ => s"(${quote(g.bag)}).groupBy+(${quote(g.grp)}), ${quote(g.value)})"
+    }
     // Label cases
     case x: ExtractLabel =>
       val tuple = x.lbl.tp.attrTps.keys.mkString(", ")
@@ -79,6 +83,7 @@ trait Printer extends LinearizedNRC {
 
     case Named(v, e1) => s"${v.name} := ${quote(e1)}"
     case Sequence(ee) => ee.map(quote).mkString("\n")
+
 
     case _ => sys.error("Cannot print unknown expression " + e)
   }

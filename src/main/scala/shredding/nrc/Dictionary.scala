@@ -53,6 +53,10 @@ trait Dictionary {
 
   case class TupleDict(fields: Map[String, TupleDictAttributeExpr]) extends TupleDictExpr {
     val tp: TupleDictType = TupleDictType(fields.map(f => f._1 -> f._2.tp))
+    def lastExpr: Boolean = { 
+      val vals = fields.values.toSet
+      (vals.size == 1 && vals.head == EmptyDict)
+    }
   }
 
   implicit class TupleDictExprOps(d: TupleDictExpr) {
@@ -158,27 +162,5 @@ trait Dictionary {
 
     val tp: TupleDictType = dict1.tp
   }
-
-  //  implicit class DictExprOps(dict1: DictExpr) {
-  //    def union(dict2: DictExpr): DictExpr = (dict1, dict2) match {
-  //      case (EmptyDict, EmptyDict) =>
-  //        EmptyDict
-  ////      case (BagDict(l1, f1, d1), BagDict(l2, f2, d2)) =>
-  ////        val attrTps = l1.tp.attrTps ++ l2.tp.attrTps
-  ////        val vars = attrTps.map { case (n, t) => ShredVarRef(VarDef(n, t)).asInstanceOf[VarRef] }.toSet
-  ////        val lbl = NewLabel(vars)
-  ////        BagDict(lbl, Union(f1, f2), TupleDictUnion(d1, d2))
-  //      case (d1: BagDictExpr, d2: BagDictExpr) =>
-  //        BagDictUnion(d1, d2)
-  ////      case (TupleDict(fields1), TupleDict(fields2)) =>
-  ////        assert(fields1.keySet == fields2.keySet)
-  ////        TupleDict(fields1.map { case (k1, d1) =>
-  ////          k1 -> d1.union(fields2(k1)).asInstanceOf[TupleDictAttributeExpr]
-  ////        })
-  //      case (d1: TupleDictExpr, d2: TupleDictExpr) =>
-  //        TupleDictUnion(d1, d2)
-  //      case _ => sys.error("Illegal dictionary union " + dict1 + " and " + dict2)
-  //    }
-  //  }
 
 }

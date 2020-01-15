@@ -5,9 +5,9 @@ import shredding.core._
 /**
   * Common shredding methods
   */
-trait BaseShredding {
+trait BaseShredding extends Printer {
 
-  def flatName(s: String): String = s + "^F"
+  def flatName(s: String): String = s + "__F"
 
   def flatTp(tp: Type): Type = tp match {
     case _: PrimitiveType => tp
@@ -17,7 +17,7 @@ trait BaseShredding {
     case _ => sys.error("Unknown flat type of " + tp)
   }
 
-  def dictName(s: String): String = s + "^D"
+  def dictName(s: String): String = s + "__D"
 
   def dictTp(tp: Type): DictType = tp match {
     case _: PrimitiveType => EmptyDictType
@@ -36,10 +36,14 @@ trait BaseShredding {
 trait Shredding extends BaseShredding with Extensions {
   this: ShredNRC =>
 
+  // deprecated
   def labelVars(e: Expr): Set[VarRef] = inputVars(e).filterNot(_.isInstanceOf[DictExpr])
+   
+  def substituteLabelParameters(e: ShredExpr): ShredExpr = 
+    ShredExpr(e.flat, replaceLabelParams(e.dict).asInstanceOf[DictExpr])
 
-  def shred(e: Expr): ShredExpr = shred(e, Map.empty)
-
+  def shred(e: Expr): ShredExpr = substituteLabelParameters(shred(e, Map.empty)) 
+    
   def shred(e: Expr, ctx: Map[String, ShredExpr]): ShredExpr = e match {
     case Const(_, _) => ShredExpr(e, EmptyDict)
 
@@ -76,28 +80,30 @@ trait Shredding extends BaseShredding with Extensions {
       val flat =
         BagLet(xDict, dict1.tupleDict,
           ForeachUnion(xFlat, resolved1, resolved2))
-      val lbl = NewLabel(labelVars(flat))
+
+      val lbl = NewLabel(labelParameters(flat))  
       val outputDict = TupleDictLet(xDict, dict1.tupleDict, dict2.tupleDict)
-      ShredExpr(lbl, BagDict(lbl, flat, outputDict))
+      val bagdict = BagDict(lbl, flat, outputDict)
+      ShredExpr(lbl, bagdict)
 
     case Union(e1, e2) =>
       val ShredExpr(l1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
       val ShredExpr(l2: LabelExpr, dict2: BagDictExpr) = shred(e2, ctx)
       val flat = Union(dict1.lookup(l1), dict2.lookup(l2))  // could be a heterogeneous union where labels in e1 and e2
                                                             // for one attribute encapsulate different input variables
-      val lbl = NewLabel(labelVars(flat))
+      val lbl = NewLabel(labelParameters(flat))
       ShredExpr(lbl, BagDict(lbl, flat, TupleDictUnion(dict1.tupleDict, dict2.tupleDict)))
 
     case Singleton(e1) =>
       val ShredExpr(flat: TupleExpr, dict: TupleDictExpr) = shred(e1, ctx)
-      val lbl = NewLabel(labelVars(flat))
+      val lbl = NewLabel(labelParameters(flat))
       ShredExpr(lbl, BagDict(lbl, Singleton(flat), dict))
 
     case WeightedSingleton(e1, w1) =>
       val ShredExpr(flat1: TupleExpr, dict: TupleDictExpr) = shred(e1, ctx)
       val ShredExpr(flat2: PrimitiveExpr, EmptyDict) = shred(w1, ctx)
       val flat = WeightedSingleton(flat1, flat2)
-      val lbl = NewLabel(labelVars(flat))
+      val lbl = NewLabel(labelParameters(flat))
       ShredExpr(lbl, BagDict(lbl, flat, dict))
 
     case Tuple(fs) =>
@@ -123,6 +129,14 @@ trait Shredding extends BaseShredding with Extensions {
       val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
       ShredExpr(lbl, BagDict(lbl, DeDup(dict1.lookup(lbl)), dict1.tupleDict))
 
+    case BagGroupBy(e1, v1, grp, value) => 
+      val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      ShredExpr(lbl, BagDict(lbl, BagGroupBy(dict1.lookup(lbl), v1, grp, value), dict1.tupleDict))
+
+    case PlusGroupBy(e1, v1, grp, value) => 
+      val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      ShredExpr(lbl, BagDict(lbl, PlusGroupBy(dict1.lookup(lbl), v1, grp, value), dict1.tupleDict))
+
     case c: Cond => c match {
       case Cmp(op, e1, e2) =>
         val ShredExpr(c1: TupleAttributeExpr, _: DictExpr) = shred(e1, ctx)
@@ -140,7 +154,10 @@ trait Shredding extends BaseShredding with Extensions {
         val ShredExpr(c1: Cond, EmptyDict) = shred(e1, ctx)
         ShredExpr(Not(c1), EmptyDict)
     }
-
+    case PrimitiveOp(Multiply, e1, e2) => 
+      val ShredExpr(c1:PrimitiveExpr, EmptyDict) = shred(e1, ctx)
+      val ShredExpr(c2:PrimitiveExpr, EmptyDict) = shred(e2, ctx)
+      ShredExpr(PrimitiveOp(Multiply, c1, c2), EmptyDict)
     case i: IfThenElse =>
       val ShredExpr(c: Cond, EmptyDict) = shred(i.cond, ctx)
       val se1 = shred(i.e1, ctx)
@@ -150,6 +167,11 @@ trait Shredding extends BaseShredding with Extensions {
       }
       else
         ShredExpr(ShredIfThenElse(c, se1.flat), se1.dict)
+
+    case Named(VarDef(n, _), e1:BagExpr) => 
+      val ShredExpr(lbl: LabelExpr, dict: BagDictExpr) = shred(e1, ctx)
+      val dlu = dict.lookup(lbl)
+      ShredExpr(lbl, BagDict(lbl, Named(VarDef(n, dlu.tp), dlu), dict.tupleDict)) 
 
     case _ => sys.error("Cannot shred expr " + e)
   }
