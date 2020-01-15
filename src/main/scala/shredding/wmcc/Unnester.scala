@@ -273,6 +273,7 @@ object Unnester {
       case Sng(Record(lbl)) => CNamed(n, exp)
       case _ => CNamed(n, unnest(exp)((Nil, Nil, None)))
     }
+    case InputRef(_,_) => e
     case Record(fs) => unnest(Sng(Record(fs)))((u, w, E))
     case Bind(e1, e2, e3) => Bind(e1, e2, unnest(e3)((u, w, E)))
     case _ => sys.error(s"not supported ${Printer.quote(e)} \n $w")
