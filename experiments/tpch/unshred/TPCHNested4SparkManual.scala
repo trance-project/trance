@@ -40,8 +40,12 @@ object TPCHNested4SparkManual {
     val CustomerOrders = o.map{ case (_, ((o_custkey, o_orderdate), parts)) => (o_custkey, (o_orderdate, parts)) }.groupByKey()
     val c = C.map(c => c.c_custkey -> c.c_name).join(CustomerOrders).map{ case (_, (c_name, orders)) => (c_name, orders) }
     c.count
+    val cnames = C.filter(c => c.c_custkey <= 1500000).map(c => c.c_name).collect.toList
+    val dates = O.filter(o => o.o_orderkey <= 150000000).map(o => o.o_orderdate).collect.toList
     var start0 = System.currentTimeMillis()
-	  val custords = C.map{ c => c.c_custkey -> c.c_name }.join(O.map{o => o.o_custkey -> o.o_orderdate}).map{
+	  val custords = C.filter(c => cnmames.contains(c.c_name)).map{ c => 
+      c.c_custkey -> c.c_name }.join(O.filter(o => 
+        dates.cntains(o.o_orderdate)).map{o => o.o_custkey -> o.o_orderdate}).map{
       case (_, (cname, date)) => (cname, date) -> 1
     }
     val result = c.flatMap{ 
@@ -59,7 +63,7 @@ object TPCHNested4SparkManual {
     /**.groupByKey().map{ // note that this doesn't preserve bag semantics
       case ((cname, date), bag) => cname -> (date, bag)
     }.groupByKey()**/
-    //result.collect.foreach(println(_))
+    result.collect.foreach(println(_))
     result.count
 	var end0 = System.currentTimeMillis() - start0
     println("TPCHNested4SparkManual"+sf+","+Config.datapath+","+end0)

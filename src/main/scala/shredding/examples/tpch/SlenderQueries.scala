@@ -116,6 +116,31 @@ object TPCHQuery1 extends TPCHBase {
   val query = Sequence(List(Named(ljp, query1_ljp), query1))
 }
 
+object TPCHQuery1WK extends TPCHBase {
+  val name = "Query1WK"
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_2c_orders_1", s"${name}__D_2c_orders_2o_parts_1")
+
+  val query1_ljp = ForeachUnion(l, relL,
+                     ForeachUnion(p, relP, 
+                       IfThenElse(Cmp(OpEq, lr("l_partkey"), pr("p_partkey")), 
+                         Singleton(Tuple("l_orderkey" -> lr("l_orderkey"), 
+                                         "p_name" -> pr("p_name"), 
+                                         "l_qty" -> lr("l_quantity"))))))
+  
+  val (ljp, lp, lpr) = varset("ljp", "lp", query1_ljp)
+
+  val query1 = ForeachUnion(c, relC, 
+                Singleton(Tuple("c_custkey" -> cr("c_custkey"), "c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(o, relO, 
+                  IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")), 
+                    Singleton(Tuple("o_orderkey" -> or("o_orderkey"), "o_orderdate" -> or("o_orderdate"), "o_parts" -> 
+                      ForeachUnion(lp, BagVarRef(ljp),
+                        IfThenElse(Cmp(OpEq, lpr("l_orderkey"), or("o_orderkey")),
+                          Singleton(Tuple("p_name" -> lpr("p_name"), "l_qty" -> lpr("l_qty"))))))))))))
+  val query = Sequence(List(Named(ljp, query1_ljp), query1))
+}
+
 object TPCHQuery1Filter extends TPCHBase {
   val name = "Query1Filter"
   def inputs(tmap: Map[String, String]): String = 
