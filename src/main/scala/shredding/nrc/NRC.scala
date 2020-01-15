@@ -266,6 +266,7 @@ trait NRC extends BaseExpr {
         case b:BagType => 
           BagGroupBy(bag, x, Tuple(grp.map{g => (g -> xr(g))}.toMap), 
             Tuple(ins.map{g => (g -> xr(g))}.toMap))      
+        case _ => ???
       }
     }
   }

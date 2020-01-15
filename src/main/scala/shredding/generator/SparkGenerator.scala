@@ -236,6 +236,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       val vars = generateVars(v1, e1.tp match {
         case btp:BagDictCType => btp.flatTp.tp
         case btp:BagCType => btp.tp
+        case _ => ???
       })
       val gv2 = generate(v2)
       val filt = p match {
@@ -278,6 +279,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) {
       val vars = e1.tp match {
         case btp:BagCType => generateVars(v1, btp.tp)
         case BagDictCType(flat, tdict) => generateVars(v1, flat.tp)
+        case _ => ???
       }
       val gv2 = generate(v2)
       (p1, p2) match {

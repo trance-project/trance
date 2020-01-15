@@ -27,7 +27,7 @@ trait Query extends Linearization
     norm
   }
   def unnest: CExpr = {
-    val plan = Optimizer.applyAll(DictUnnester.unnest(this.normalize)(Nil, Nil, None))
+    val plan = Optimizer.applyAll(Unnester.unnest(this.normalize)(Nil, Nil, None))
     println(Printer.quote(plan))
     plan
   }
@@ -69,7 +69,7 @@ trait Query extends Linearization
     println(Printer.quote(ctrans))
     val shredded = normalizer.finalize(ctrans).asInstanceOf[CExpr] 
     println(Printer.quote(shredded))
-    val initPlan = DictUnnester.unnest(shredded)(Nil, Nil, None)
+    val initPlan = Unnester.unnest(shredded)(Nil, Nil, None)
     //println(Printer.quote(initPlan))
     val plan = Optimizer.applyAll(initPlan)
     println(Printer.quote(plan))
@@ -85,7 +85,7 @@ trait Query extends Linearization
   def unshredPlan: CExpr = {
     val unshredded = normalizer.finalize(translate(this.unshred)).asInstanceOf[CExpr] 
     println(Printer.quote(unshredded))
-    val initPlan = DictUnnester.unnest(unshredded)(Nil, Nil, None)
+    val initPlan = Unnester.unnest(unshredded)(Nil, Nil, None)
     //println(Printer.quote(initPlan))
     val plan = Optimizer.applyAll(initPlan)
     println(Printer.quote(plan))
@@ -107,7 +107,7 @@ trait Query extends Linearization
     norm
   }
   def sunnest: CExpr = {
-    val initPlan = DictUnnester.unnest(this.snormalize)(Nil, Nil, None)
+    val initPlan = Unnester.unnest(this.snormalize)(Nil, Nil, None)
     println(Printer.quote(initPlan))
     val plan = Optimizer.applyAll(initPlan)
     println(Printer.quote(plan))

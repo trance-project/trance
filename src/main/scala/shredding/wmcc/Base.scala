@@ -229,6 +229,7 @@ trait BaseCompiler extends Base {
     val v1 = e1.tp match {
       case BagDictCType(flat, dict) => vars(flat.tp)//._1.tp
       case btp:BagCType => vars(btp.tp)
+      case _ => ???
     }
     val fv = f(v1) 
     val v = Variable.freshFromBag(fv.tp)
@@ -238,6 +239,7 @@ trait BaseCompiler extends Base {
     val v1 = e1.tp match {
       case BagDictCType(flat, dict) => vars(flat.tp) 
       case btp:BagCType => vars(btp.tp)
+      case _ => ???
     }
     val fv = f(v1) // groups
     val ev = e(v1) 
@@ -245,7 +247,7 @@ trait BaseCompiler extends Base {
       case p:PrimitiveType =>
         fv.tp match {
           case RecordCType(fs) => Variable.fresh(RecordCType(fs + ("_2" -> ev.tp)))
-          case fvtp =>Variable.fresh(TTupleType(List(fvtp, ev.tp)))
+          case fvtp => Variable.fresh(TTupleType(List(fvtp, ev.tp)))
         }
       case _ => 
         Variable.fresh(TTupleType(List(fv.tp, BagCType(ev.tp))))
@@ -256,6 +258,7 @@ trait BaseCompiler extends Base {
     val v1 = e1.tp match {
       case BagDictCType(flat, dict) => vars(flat.tp)
       case BagCType(tup) => vars(tup) 
+      case _ => ???
     }
     val v2 = Variable.freshFromBag(e2.tp)
     Join(e1, e2, v1, p1(v1), v2, p2(v2))
@@ -264,6 +267,7 @@ trait BaseCompiler extends Base {
     val v1 = e1.tp match {
       case BagDictCType(flat, dict) => vars(flat.tp)//._1.tp
       case btp:BagCType => vars(btp.tp)
+      case _ => ???
     }
     val fv = f(v1) 
     val v = Variable.freshFromBag(fv.tp)
@@ -273,6 +277,7 @@ trait BaseCompiler extends Base {
     val v1 = e1.tp match {
       case BagDictCType(flat, dict) => vars(flat.tp)
       case BagCType(tup) => vars(tup) 
+      case _ => ???
     }
     val v2 = Variable.freshFromBag(e2.tp)
     OuterJoin(e1, e2, v1, p1(v1), v2, p2(v2))
@@ -281,6 +286,7 @@ trait BaseCompiler extends Base {
     val v1 = e1.tp match {
       case BagDictCType(flat, dict) => vars(flat.tp) 
       case BagCType(tup) => vars(tup) 
+      case _ => ???
     }
     val v2 = Variable.freshFromBag(e2.tp) 
     Lookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
@@ -289,6 +295,7 @@ trait BaseCompiler extends Base {
     val v1 = e1.tp match {
       case BagDictCType(flat, dict) => vars(flat.tp) 
       case BagCType(tup) => vars(tup) 
+      case _ => ???
     }
     val v2 = Variable.freshFromBag(e2.tp) 
     OuterLookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
@@ -297,6 +304,7 @@ trait BaseCompiler extends Base {
     val vs = (e1.tp match {
       case BagDictCType(flat, dict) => vars(flat.tp)
       case BagCType(tup) => vars(tup)
+      case _ => ???
     }) ++ es.map(v => Variable.freshFromBag(v.tp))
     CoGroup(e1, es, vs, ps(vs))
   }

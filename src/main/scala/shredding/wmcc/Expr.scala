@@ -233,6 +233,7 @@ case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CEx
   def tp: Type = e1.tp match {
     case btp:BagDictCType => BagCType(TTupleType(List(btp.flatTp.tp, v2.tp)))
     case btp:BagCType => BagCType(TTupleType(List(btp.tp, v2.tp)))
+    case _ => ???
   }
   // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = e1.wvars :+ v2
@@ -247,6 +248,7 @@ case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p
   def tp: Type = e1.tp match {
     case btp:BagDictCType => BagCType(TTupleType(List(btp.flatTp.tp, v2.tp)))
     case btp:BagCType => BagCType(TTupleType(List(btp.tp, v2.tp)))
+    case _ => ???
   }
   override def wvars = e1.wvars :+ v2
   // need to fix this to work with ANF
@@ -286,6 +288,7 @@ case class Lookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Varia
   def tp:BagCType = e1.tp match {
     case BagCType(tup) => BagCType(TTupleType(List(tup, v2tp)))
     case btp:BagDictCType => BagCType(TTupleType(List(btp.flat, v2tp)))
+    case _ => ???
   }
   override def wvars = e1.wvars :+ v2
 }
@@ -295,6 +298,7 @@ case class CoGroup(e1: CExpr, es: List[CExpr], vs: List[Variable], ps: CExpr) ex
   def tp:BagCType = e1.tp match {
     case BagCType(tup) => BagCType(TTupleType(tup +: vs.map(_.tp) ))
     case btp:BagDictCType => BagCType(TTupleType(btp.flat +: vs.map(_.tp)))
+    case _ => ???
   }
   override def wvars = e1.wvars
 }
@@ -303,6 +307,7 @@ case class OuterLookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: 
   def tp:BagCType = e1.tp match {
     case BagCType(tup) => BagCType(TTupleType(List(tup, v2.tp)))
     case btp:BagDictCType => BagCType(TTupleType(List(btp.flat, v2.tp)))
+    case _ => ???
   }
   override def wvars = e1.wvars :+ v2
 }
@@ -313,6 +318,7 @@ case class Join(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variabl
   def tp: BagCType = e1.tp match {
     case btp:BagCType => BagCType(TTupleType(List(btp.tp, v2.tp)))
     case BagDictCType(flat, tdict) => BagCType(TTupleType(List(flat.tp, v2.tp)))
+    case _ => ???
   } 
   override def wvars = e1.wvars :+ v2
 }
