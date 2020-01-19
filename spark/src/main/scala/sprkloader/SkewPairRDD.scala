@@ -31,6 +31,16 @@ object SkewPairRDD {
       (lrekey, rdupp)
     }
 
+    def cogroupSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(K, (Iterable[V], Iterable[S]))] = { 
+      val hk = heavyKeys
+      if (hk.nonEmpty) {
+        val hkeys = lrdd.sparkContext.broadcast(hk)
+        val (rekey,dupp) = lrdd.balanceLeft(rrdd, hkeys)
+        rekey.cogroup(dupp).map{ case ((k, _), v) => k -> v }
+      }
+      else lrdd.cogroup(rrdd) 
+    }
+
     def joinSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(K, (V, S))] = { 
       val hk = heavyKeys
       if (hk.nonEmpty) {
