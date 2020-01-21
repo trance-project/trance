@@ -216,12 +216,13 @@ val x382 = totals_ctx1
 val x387 = { val out1 = x382.map{ case x383 => ({val x385 = x383.lbl 
 val x386 = x385.c2__Fc_orders 
 x386}, x383) }
-out1.cogroup(Query1__D_2c_orders_1.flatMapValues(identity)).flatMap{ pair =>
+Query1__D_2c_orders_1.flatMapValues(identity).lookupSkewLeft(out1)
+/**.flatMap{ pair =>
  for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
-}
+}**/
 }
          
-val x392 = { val out1 = x387.map{ case (x388, x389) => ({val x391 = x389.o_parts 
+val x392 = { val out1 = x387.map{ case (x389, x388) => ({val x391 = x389.o_parts 
 x391}, (x388, x389)) }
 out1.cogroup(Query1__D_2c_orders_2o_parts_1.flatMapValues(identity)).flatMap{ pair =>
  for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
