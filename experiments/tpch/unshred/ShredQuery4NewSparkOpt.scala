@@ -245,7 +245,7 @@ val x409 = x403.map{ case ((x404, x405), x406) =>
    val x407 = Record412(x404)//.lbl 
 val x408 = (x407, Record438(x405.pname, x405.orderdate, x406)) 
 x408 
-} 
+}.groupByLabel() 
 val totals__D_1 = x409
 val x410 = totals__D_1
 //totals__D_1.collect.foreach(println(_))
@@ -259,7 +259,7 @@ val x426 = M__D_1
 val x430 = { val out1 = x426.map{ case x427 => ({val x429 = x427.totals 
 x429}, x427) }
 out1.cogroup(totals__D_1).flatMap{
- case (_, (left, x428)) => left.map{ case x427 => (x427, x428) }}
+ case (_, (left, x428)) => left.map{ case x427 => (x427, x428.flatten) }}
 }
          
 val x435 = x430.map{ case (x431, x432) => 
