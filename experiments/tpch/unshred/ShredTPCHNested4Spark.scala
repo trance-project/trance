@@ -221,12 +221,7 @@ val x238 = c_orders_ctx1
 val x243 = { val out1 = x238.map{ case x239 => ({val x241 = x239.lbl 
 val x242 = x241.c2__Fc_orders 
 x242}, x239) }
-val out2 = Query1__D_2c_orders_1.flatMap{
-  case (lbl, obag) => obag.map{o =>
-    if (o.o_orderkey <= 150000000) (lbl, o)
-    else Nil
-  }
-}
+val out2 = Query1__D_2c_orders_1.flatMapValues(identity)
 out1.cogroup(out2).flatMap{ pair =>
  for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
 }
@@ -270,7 +265,7 @@ val x274 = o_parts_ctx1
 val x279 = { val out1 = x274.map{ case x275 => ({val x277 = x275.lbl 
 val x278 = x277.o2__Fo_parts 
 x278}, x275) }
-out1.cogroup(Query1WK__D_2c_orders_2o_parts_1.flatMapValues(identity)).flatMap{ pair =>
+out1.cogroup(Query1__D_2c_orders_2o_parts_1.flatMapValues(identity)).flatMap{ pair =>
  for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
 }
 }
