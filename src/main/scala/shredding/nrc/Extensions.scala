@@ -186,19 +186,24 @@ trait Extensions {
   // Replace label parameter projections with variable references
   def replaceLabelParams(e: Expr): Expr = replace(e, {
     case BagDict(lbl, flat, dict) =>
-      val rflat = lbl.params.foldRight(flat) {
+      val flat2 = lbl.params.foldRight(flat) {
         case (p: ProjectLabelParameter, acc) =>
           substitute(acc, VarDef(p.name, p.tp)).asInstanceOf[BagExpr]
         case (_, acc) => acc
       }
-      val rdict = replaceLabelParams(dict).asInstanceOf[TupleDictExpr]
-      BagDict(lbl, rflat, rdict)
+      val dict2 = replaceLabelParams(dict).asInstanceOf[TupleDictExpr]
+      BagDict(lbl, flat2, dict2)
   })
 
   // Substitute label projections with their variable counterpart
   protected def substitute(e: Expr, v: VarDef): Expr = replace(e, {
-    case p: Project if v.name == p.tuple.name + "." + p.field => VarRef(v)
+    case p: Project if v.name == p.tuple.name + "." + p.field =>
+      // Sanity check
+      assert(v.tp == p.tp, "Types differ: " + v.tp + " and " + p.tp)
+      VarRef(v)
     case p: ProjectLabelParameter if v.name == p.name =>
+      // Sanity check
+      assert(v.tp == p.tp, "Types differ: " + v.tp + " and " + p.tp)
       VarRefLabelParameter(VarRef(v).asInstanceOf[Expr with VarRef])
   })
 
@@ -254,6 +259,7 @@ trait Extensions {
   protected def filterByScope(v: VarRef, scope: Map[String, VarDef]): Option[VarRef] =
     scope.get(v.name) match {
       case Some(v2) =>
+        // Sanity check
         assert(v.tp == v2.tp, "Types differ: " + v.tp + " and " + v2.tp)
         None
       case None => Some(v)
