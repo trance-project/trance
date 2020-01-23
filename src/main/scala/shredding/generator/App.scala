@@ -19,7 +19,7 @@ object App {
   def runTPCH1(){   
 
     // Run unnesting only
-    Utils.runSparkNoDomains(TPCHQuery1)
+    //Utils.runSparkNoDomains(TPCHQuery1)
 
     // Run shred without domains, cannot do unshredding
     // this has a conflict with some changes in the unnesting algorithm
@@ -32,7 +32,7 @@ object App {
 
     // Run shred with domains when a query is used as input for another
     // the true adds unshredding
-    //Utils.runSparkInputDomains(, TPCHNested2, true)
+    Utils.runSparkInputDomains(Query1, Query2)
   }
 
   /**

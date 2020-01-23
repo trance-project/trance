@@ -62,7 +62,7 @@ trait Linearization {
     val lbl = LabelProject(TupleVarRef(ldef), "lbl")
 
     // Return expr creating pairs of labels from ctx and flat bags from dict
-    def kvPairs(b: BagExpr) =
+    def kvPairs(b: BagExpr) = 
       ForeachUnion(ldef, ctx,
         BagExtractLabel(
           LabelProject(TupleVarRef(ldef), "lbl"),
@@ -70,6 +70,8 @@ trait Linearization {
 
     def materializeDictionary(kvPairs: BagExpr, dict: BagDictExpr): MaterializationInfo = {
       // 1. Create named materialized expression
+      /**println(kvPairs)
+      println(kvPairs.tp)**/
       val mDictNamed = Named(VarDef(Symbol.fresh(name+"__D_"), kvPairs.tp), kvPairs)
       val mDictRef = BagVarRef(mDictNamed.v)
 
@@ -122,6 +124,11 @@ trait Linearization {
         val dict2 = BagDict(null, b2, d2)
         materializeDictionary(kvPairs(b1), dict1) append
           materializeDictionary(kvPairs(b2), dict2)
+      case BagDictLet(x, e1, e2) =>
+        println("here")
+        println(lbl) 
+        val b = optimize(e2.lookup(lbl)).asInstanceOf[BagExpr]
+        materializeDictionary(kvPairs(b), e2)
       case _ =>
         val b = optimize(dict.lookup(lbl)).asInstanceOf[BagExpr]
         materializeDictionary(kvPairs(b), dict)

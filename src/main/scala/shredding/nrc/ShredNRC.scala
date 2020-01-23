@@ -22,7 +22,8 @@ trait ShredNRC extends NRC with Label with Dictionary {
       case LabelIfThenElse(c, l1, l2) =>
         BagIfThenElse(c, d.lookup(l1), l2.map(d.lookup))
       case _ => d match {
-        case b: BagDict if b.lbl.tp == lbl.tp => b.flat
+        case b: BagDict if b.lbl.tp == lbl.tp => 
+          b.flat
         case _ => Lookup(lbl, d)
       }
     }

@@ -95,15 +95,8 @@ trait NRCTranslator extends LinearizedNRC with NRCPrinter {
     case l:Let => Bind(translate(l.x), translate(l.e1), translate(l.e2))
     case g:GroupBy => 
       CGroupBy(translate(g.bag), translate(g.v).asInstanceOf[Variable], translate(g.grp), translate(g.value))
-    case Named(v, e) => e match {
-      /**case Sequence(fs) => LinearCSet(fs.map{
-        case Named(VarDef(n1, tp), e1) if n1 == "M_flat1" => CNamed(v.name+"__D_1", translate(e1))
-        case nd => translate(nd)
-      })**/
-      case _ => CNamed(v.name, translate(e))
-    }
-    case Sequence(exprs) => 
-      LinearCSet(exprs.map(translate(_)))
+    case Named(v, e) => CNamed(v.name, translate(e))
+    case Sequence(exprs) => LinearCSet(exprs.map(translate(_)))
     case v:VarRefLabelParameter => translateVar(v.v)
     case l @ NewLabel(vs) => 
       record(vs.map(v => v match {

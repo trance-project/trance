@@ -9,7 +9,7 @@ import shredding.examples.tpch._
 object Utils {
 
   val normalizer = new Finalizer(new BaseNormalizer{})
-  def pathout(outf: String, sub: String = ""): String = s"experiments/tpch/$sub/$outf.scala"
+  def pathout(outf: String, sub: String = ""): String = s"experiments/tpch/$sub/test/$outf.scala"
   //val pathout = (outf: String) => s"src/test/scala/shredding/examples/simple/$outf.scala"
 
   /**
@@ -235,7 +235,7 @@ object Utils {
     var cnt = 0
     ns.map{ n => 
       cnt += 1
-      s"""|val $n = M_flat$cnt
+      s"""|val $n = M__D_$cnt
           |$n.cache
           |$n.count"""
     }.mkString("\n").stripMargin
