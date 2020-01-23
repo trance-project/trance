@@ -11,7 +11,7 @@ trait BaseShredding extends Printer {
 
   def flatTp(tp: Type): Type = tp match {
     case _: PrimitiveType => tp
-    case _: BagType => LabelType()
+    case bt: BagType => LabelType()
     case TupleType(as) =>
       TupleType(as.map { case (n, t) => n -> flatTp(t).asInstanceOf[TupleAttributeType] })
     case _ => sys.error("Unknown flat type of " + tp)

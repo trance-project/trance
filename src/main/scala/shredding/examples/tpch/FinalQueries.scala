@@ -98,7 +98,9 @@ object Query2 extends TPCHBase {
   val co3 = VarDef("p2", parts.tp.tp)
   val co3r = TupleVarRef(co3)
 
-  val query = ForeachUnion(co, BagVarRef(q1),
+  val query = 
+    Let(q1, Query1.query1.asInstanceOf[BagExpr],
+    ForeachUnion(co, BagVarRef(q1),
                 Singleton(Tuple("c_name" -> cor("c_name"), "totals" ->
                   GroupBy(
                     ForeachUnion(co2, orders,
@@ -107,7 +109,7 @@ object Query2 extends TPCHBase {
                           "pname" -> co3r("p_name"), "qty" -> co3r("l_qty"))))),
                  List("orderdate", "pname"),
                  List("qty"),
-                 DoubleType))))
+                 DoubleType)))))
 }
 
 /**
