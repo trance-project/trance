@@ -37,8 +37,11 @@ trait BaseNormalizer extends BaseCompiler {
   }
 
   override def lookup(lbl: Rep, dict: Rep): Rep = dict match {
-    case BagCDict(lbl2, flat2, dict2) if (lbl2.tp == lbl.tp) => flat2
-    case BagCDict(lbl2, flat2, dict2) =>///???
+    case BagCDict(lbl2, flat2, dict2) if (lbl2.tp == lbl.tp) => 
+      println("getting here")
+      println(flat2)
+      flat2
+    case BagCDict(lbl2, flat2, dict2) =>
       super.lookup(lbl,dict)
     case _ => 
       super.lookup(lbl, dict)

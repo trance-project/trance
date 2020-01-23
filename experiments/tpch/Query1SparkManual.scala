@@ -43,5 +43,6 @@ object Query1SparkManual {
     c.count
     var end0 = System.currentTimeMillis() - start0
     println("Query1SparkManual"+sf+","+Config.datapath+","+end0)
+    c.saveAsObjectFile("/Users/jac/shredder/Query1sfs200")
   }
 }

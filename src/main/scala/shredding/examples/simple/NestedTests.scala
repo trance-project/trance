@@ -13,7 +13,7 @@ trait ExtractTest extends Query {
   def typeT = TupleType("d" -> IntType)
 
   val relR = BagVarRef(VarDef("R", BagType(typeR)))
-  val r = VarDef("x", typeR)
+  val r = VarDef("r", typeR)
   val rr = TupleVarRef(r)
 
   val r2 = VarDef("t", typeT)
@@ -27,6 +27,41 @@ trait ExtractTest extends Query {
   val t = VarDef("y", typeT)
   val tr = TupleVarRef(t)
 }
+
+object LetExample extends ExtractTest {
+
+  val name = "LetExample"
+  def inputs(tmap: Map[String,String]): String = ""
+
+  val letx = ForeachUnion(r, relR,
+              IfThenElse(Cmp(OpEq, rr("c"), sr("b")),
+                Singleton(Tuple("a1" -> sr("b"), "b1" -> rr("a")))))
+  val X = VarDef("X", letx.tp)
+  val x = VarDef("x", letx.tp.tp)
+  val y = VarDef("y", x.tp)
+  val xr = TupleVarRef(x)
+  val yr = TupleVarRef(y)
+  val x2 = VarDef("x2", BagProject(xr, "b1").tp.tp)
+  val x2r = TupleVarRef(x2)
+  val y2 = VarDef("y2", BagProject(yr, "b1").tp.tp)
+  val y2r = TupleVarRef(y2)
+
+  val query = ForeachUnion(s, relS,
+                BagLet(VarDef("X", letx.tp), letx, 
+                  ForeachUnion(x, BagVarRef(X),
+                    Singleton(Tuple(
+                      "a1" -> xr("a1"), 
+                      "a2" -> ForeachUnion(x2, BagProject(xr, "b1"),
+                        Singleton(Tuple("a3" -> x2r("d")))),
+                      "a4" -> ForeachUnion(y, BagVarRef(X),
+                        IfThenElse(Cmp(OpEq, yr("a1"), sr("b")),
+                          Singleton(Tuple("a5" -> yr("a1"), "a6" -> 
+                            ForeachUnion(y2, BagProject(yr, "b1"),
+                              Singleton(Tuple("a7" -> y2r("d"))))
+                              )))))))))                
+
+}
+
 
 object ExtractExample extends ExtractTest {
 
@@ -72,6 +107,7 @@ object ExtractExample extends ExtractTest {
         )))
     )
 
+  
 }
 
 object NestedTests {

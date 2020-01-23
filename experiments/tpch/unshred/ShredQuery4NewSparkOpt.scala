@@ -224,9 +224,10 @@ val x387 = Query1__D_2c_orders_1.flatMapValues(identity)
          
 val x392 = { val out1 = x387.map{ case (x388, x389) => ({val x391 = x389.o_parts 
 x391}, (x388, x389)) }
-out1.cogroup(Query1__D_2c_orders_2o_parts_1.flatMapValues(identity)).flatMap{ pair =>
+out1.lookupSkewLeft(Query1__D_2c_orders_2o_parts_1.flatMapValues(identity))
+/**out1.cogroup(Query1__D_2c_orders_2o_parts_1.flatMapValues(identity)).flatMap{ pair =>
  for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
-}
+}**/
 }
          
 val x403 = x392.flatMap{ case ((x393, x394), x395) => val x402 = (x393,x394,x395) 
@@ -269,7 +270,7 @@ x434
 } 
 val newM__D_1 = x435
 val x436 = newM__D_1
-//newM__D_1.collect.foreach(println(_))
+newM__D_1.collect.foreach(println(_))
 x436.count
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery4NewSparkOpt,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
