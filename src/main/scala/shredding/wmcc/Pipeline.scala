@@ -3,7 +3,8 @@ package shredding.wmcc
 import shredding.core._
 import shredding.nrc._
 
-trait PipelineRunner extends Linearization 
+trait PipelineRunner extends ShredNRC
+  with Linearization
   with Shredding
   with Printer
   with Optimizer 
@@ -11,13 +12,13 @@ trait PipelineRunner extends Linearization
 
   def shredPipelineNew(query: Expr, domains: Boolean = false): Expr = query match {
     case Sequence(fs) => Sequence(fs.map{
-      case Named(VarDef(n, _), e1) => 
-        val sp = shredPipelineNew(e1, domains) match {
+      case n: Named =>
+        val sp = shredPipelineNew(n.e, domains) match {
           case Sequence(nes) => nes.head
           case ne => ne
         }
         // explore why the types wouldn't be the same here in the first place
-        Named(VarDef(n, sp.tp), sp.asInstanceOf[BagExpr])
+        Named(VarDef(n.name, sp.tp), sp.asInstanceOf[BagExpr])
       case e1 => shredPipelineNew(e1, domains) 
     })
     case _ => 

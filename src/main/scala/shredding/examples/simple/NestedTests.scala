@@ -2,7 +2,7 @@ package shredding.examples.simple
 
 import shredding.examples.Query
 import shredding.core._
-import shredding.nrc.LinearizedNRC
+import shredding.nrc.ShredNRC
 
 trait ExtractTest extends Query {
   def inputTypes(shred: Boolean = false): Map[Type, String] = Map[Type,String]()
@@ -76,7 +76,7 @@ object ExtractExample extends ExtractTest {
 
 object NestedTests {
 
-  val nrc = new LinearizedNRC{}
+  val nrc = new ShredNRC{}
   import nrc._
   
   // Relation 1

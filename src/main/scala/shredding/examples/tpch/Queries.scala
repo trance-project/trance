@@ -1,10 +1,10 @@
 package shredding.examples.tpch
 
 import shredding.core._
-import shredding.nrc.LinearizedNRC
+import shredding.nrc.ShredNRC
 
 object TPCHQueries { 
-  val nrc = new LinearizedNRC {}
+  val nrc = new ShredNRC{}
   import nrc._
   
   /**
@@ -254,7 +254,7 @@ object TPCHQueries {
                         "t_qty" -> Total(ForeachUnion(pq2, BagProject(cq1r, "o_parts"), 
                                   	IfThenElse(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")),
                                     		WeightedSingleton(Tuple("l_qty" -> pq1r("l_qty")), 
-                                      		TupleVarRef(pq2)("l_qty").asInstanceOf[PrimitiveExpr])))))))))
+                                      		TupleVarRef(pq2)("l_qty").asInstanceOf[NumericExpr])))))))))
 
   val vd = VarDef("x", 
             TupleType("c_name" -> StringType, "p_name" -> StringType, 
@@ -299,7 +299,7 @@ object TPCHQueries {
                         "t_qty" -> Total(ForeachUnion(pq2, BagProject(cq1r, "o_parts"), 
                                   	IfThenElse(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")),
                                     		WeightedSingleton(Tuple("l_qty" -> pq1r("l_qty")), 
-                                      		TupleVarRef(pq2)("l_qty").asInstanceOf[PrimitiveExpr]))))))))))
+                                      		TupleVarRef(pq2)("l_qty").asInstanceOf[NumericExpr]))))))))))
   // Query 2
 
   val relS = BagVarRef(VarDef("S", TPCHSchema.suppliertype))

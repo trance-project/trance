@@ -8,6 +8,3 @@ case object OpEq extends OpCmp { override def toString = "=" }
 case object OpNe extends OpCmp { override def toString = "!=" }
 case object OpGt extends OpCmp { override def toString = ">" }
 case object OpGe extends OpCmp { override def toString = ">=" }
-
-trait PrimOp
-case object Multiply extends PrimOp

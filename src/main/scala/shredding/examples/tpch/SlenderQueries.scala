@@ -2,8 +2,6 @@ package shredding.examples.tpch
 
 import shredding.core._
 import shredding.examples.Query
-import shredding.nrc.LinearizedNRC
-import shredding.wmcc._
 
 /**
   

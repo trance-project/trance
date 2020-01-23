@@ -1,7 +1,7 @@
 package shredding.examples.genomic
 
 import shredding.core._
-import shredding.nrc.LinearizedNRC
+import shredding.nrc.ShredNRC
 
 case class Clinical(sample: String, iscase: String)
 case class Genotype(sample: String, call: Int)
@@ -13,7 +13,7 @@ case class Genotype2(sample: String, call: Int, allele1: String, allele2: String
 case class Variant2(contig: String, start: Int, genotypes: List[Genotype2])
 
 
-object GenomicRelations{
+object GenomicRelations {
 
    val casetype = TupleType("iscase" -> StringType)
    val clintype = TupleType("sample" -> StringType, "iscase" -> StringType)
@@ -101,7 +101,7 @@ object GenomicRelations{
 
 object GenomicTests {
 
-  val nrc = new LinearizedNRC{}
+  val nrc = new ShredNRC{}
   import nrc._
 
   val relI = BagVarRef(VarDef("cases", BagType(GenomicRelations.casetype)))
@@ -127,7 +127,7 @@ object GenomicTests {
               "dataset" -> ForeachUnion(idef, relI, 
                   Singleton(Tuple("label" -> iref("iscase"), "features" ->
                     ForeachUnion(cdef, relC, 
-                      IfThenElse(Cmp(OpEq, cref("iscase"), iref("iscase")), 
+                      IfThenElse(Cmp(OpEq, cref("iscase"), iref("iscase")),
                         ForeachUnion(gdef, BagProject(vref, "genotypes"),
                           IfThenElse(Cmp(OpEq, cref("sample"), gref("sample")),
                             Singleton(Tuple("call" -> gref("call"))))))))))))) 
@@ -139,11 +139,11 @@ object GenomicTests {
                   Total(ForeachUnion(cdef, relC, 
                     IfThenElse(Cmp(OpEq, cref("iscase"), iref("iscase")),
                       ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                        IfThenElse(Cmp(OpEq, cref("sample"), gref("sample")), 
-                          IfThenElse(Cmp(OpEq, gref("call"), Const(1, IntType)), 
+                        IfThenElse(Cmp(OpEq, cref("sample"), gref("sample")),
+                          IfThenElse(Cmp(OpEq, gref("call"), Const(1, IntType)),
                             Singleton(Tuple("count" -> Const("alt", StringType))), 
-                            IfThenElse(Cmp(OpEq, gref("call"), Const(2, IntType)), 
-                              WeightedSingleton(Tuple("count" -> Const("alt", StringType)), Const(2, IntType)))))))))))))))  
+                            IfThenElse(Cmp(OpEq, gref("call"), Const(2, IntType)),
+                              WeightedSingleton(Tuple("count" -> Const("alt", StringType)), NumericConst(2, IntType))))).asInstanceOf[BagExpr]))))))))))
 
   // count the number of genotypes
   val q2 = ForeachUnion(vdef, relV,
@@ -167,7 +167,7 @@ object GenomicTests {
   val q4 = ForeachUnion(vdef, relV,
             Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"),
               "counts" -> Total(ForeachUnion(gdef, BagProject(vref, "genotypes"), 
-                                  IfThenElse(Cmp(OpGt, gref("call"), Const(0, IntType)), 
+                                  IfThenElse(Cmp(OpGt, gref("call"), Const(0, IntType)),
                                     ForeachUnion(cdef, relC, 
                                       IfThenElse(
                                         And(Cmp(OpEq, cref("sample"), gref("sample")),
@@ -177,7 +177,7 @@ object GenomicTests {
   val q5 = ForeachUnion(vdef, relV,
             Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"),
               "counts" -> Total(ForeachUnion(gdef, BagProject(vref, "genotypes"), 
-                                  IfThenElse(Cmp(OpGt, gref("call"), Const(0, IntType)), 
+                                  IfThenElse(Cmp(OpGt, gref("call"), Const(0, IntType)),
                                     ForeachUnion(cdef, relC, 
                                       IfThenElse(
                                         And(Cmp(OpEq, cref("sample"), gref("sample")),
@@ -185,7 +185,7 @@ object GenomicTests {
                                         IfThenElse(
                                           Cmp(OpEq, gref("call"), Const(1, IntType)),
                                           Singleton(Tuple("alt" -> Const("alt", StringType))),
-                                          WeightedSingleton(Tuple("alt" -> Const("alt", StringType)), Const(2, IntType)))))))))))
+                                          WeightedSingleton(Tuple("alt" -> Const("alt", StringType)), NumericConst(2, IntType)))).asInstanceOf[BagExpr])))))))
 
 
 

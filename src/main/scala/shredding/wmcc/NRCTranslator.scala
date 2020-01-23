@@ -1,7 +1,7 @@
 package shredding.wmcc
 
 import shredding.core._
-import shredding.nrc.{LinearizedNRC, Printer => NRCPrinter}
+import shredding.nrc.{Printer => NRCPrinter, ShredNRC}
 
 /**
   * Translate (source and target) NRC to WMCC
@@ -10,7 +10,7 @@ import shredding.nrc.{LinearizedNRC, Printer => NRCPrinter}
   * are bound by referencing and projecting on a label node
   */
 
-trait NRCTranslator extends LinearizedNRC with NRCPrinter {
+trait NRCTranslator extends ShredNRC with NRCPrinter {
   val compiler = new BaseCompiler{}
   import compiler._
 
@@ -39,16 +39,16 @@ trait NRCTranslator extends LinearizedNRC with NRCPrinter {
     case _ => e
   }
   
-  def translate(e: Cond): CExpr = e match {
-    case Cmp(op, e1, e2) => op match {
+  def translate(e: CondExpr): CExpr = e match {
+    case cmp: Cmp => cmp.op match {
       case OpEq => 
-        compiler.equals(translate(e1), translate(e2))
-      case OpNe => not(compiler.equals(translate(e1), translate(e2)))
-      case OpGt => (translate(e1), translate(e2)) match {
+        compiler.equals(translate(cmp.e1), translate(cmp.e2))
+      case OpNe => not(compiler.equals(translate(cmp.e1), translate(cmp.e2)))
+      case OpGt => (translate(cmp.e1), translate(cmp.e2)) match {
         case (te1 @ Constant(_), te2:CExpr) =>  lt(te2, te1) // 5 > x
         case (te1:CExpr, te2:CExpr) => gt(te1, te2)
       }
-      case OpGe => (translate(e1), translate(e2)) match {
+      case OpGe => (translate(cmp.e1), translate(cmp.e2)) match {
         case (te1 @ Constant(_), te2:CExpr) => lte(te2, te1)
         case (te1:CExpr, te2:CExpr) => gte(te1, te2)
       }
@@ -69,10 +69,13 @@ trait NRCTranslator extends LinearizedNRC with NRCPrinter {
   }
   
   def translate(e: Expr): CExpr = e match {
-    case Const(v, tp) => constant(v)
-    case v:VarRef => translateVar(v)
-    case PrimitiveOp(op, e1, e2) => mult(translate(e1), translate(e2))
-    case Singleton(e1 @ Tuple(fs)) if fs.isEmpty => emptysng
+    case c: Const => constant(c.v)
+    case v: VarRef => translateVar(v)
+    case ArithmeticExpr(op, e1, e2) => op match {
+      case OpMultiply => mult(translate(e1), translate(e2))
+      case _ => sys.error("Not supported")
+    }
+    case Singleton(Tuple(fs)) if fs.isEmpty => emptysng
     case Singleton(e1) => sng(translate(e1))
     case Tuple(fs) if fs.isEmpty => unit
     case Tuple(fs) => record(fs.map(f => f._2 match {
@@ -80,8 +83,8 @@ trait NRCTranslator extends LinearizedNRC with NRCPrinter {
       //case Singleton(r @ Tuple(_)) => translateName(f._1) -> translate(r)
       case _ => translateName(f._1) -> translate(f._2)
     }))
-    case p:Project => project(translate(p.tuple), p.field)
-    case ift:IfThenElse => ift.e2 match {
+    case p: Project => project(translate(p.tuple), p.field)
+    case ift: IfThenElse => ift.e2 match {
       case Some(a) => ifthen(translate(ift.cond), translate(ift.e1), Option(translate(a)))
       case _ => ifthen(translate(ift.cond), translate(ift.e1))
     }
@@ -95,21 +98,20 @@ trait NRCTranslator extends LinearizedNRC with NRCPrinter {
     case l:Let => Bind(translate(l.x), translate(l.e1), translate(l.e2))
     case g:GroupBy => 
       CGroupBy(translate(g.bag), translate(g.v).asInstanceOf[Variable], translate(g.grp), translate(g.value))
-    case Named(v, e) => e match {
+    case n: Named => e match {
       /**case Sequence(fs) => LinearCSet(fs.map{
         case Named(VarDef(n1, tp), e1) if n1 == "M_flat1" => CNamed(v.name+"__D_1", translate(e1))
         case nd => translate(nd)
       })**/
-      case _ => CNamed(v.name, translate(e))
+      case _ => CNamed(n.name, translate(e))
     }
-    case Sequence(exprs) => 
-      LinearCSet(exprs.map(translate(_)))
-    case v:VarRefLabelParameter => translateVar(v.v)
-    case l @ NewLabel(vs) => 
-      record(vs.map(v => v match {
-        case v2:VarRefLabelParameter => translateName(v2.name) -> translateVar(v2.v)
-        case v2:ProjectLabelParameter => translateName(v2.name) -> translate(v2.p.asInstanceOf[Expr])
-      }).toMap)
+    case Sequence(ee) => LinearCSet(ee.map(translate))
+    case v: VarRefLabelParameter => translateVar(v.e)
+    case NewLabel(vs) =>
+      record(vs.map {
+        case v2: VarRefLabelParameter => translateName(v2.name) -> translateVar(v2.e)
+        case v2: ProjectLabelParameter => translateName(v2.name) -> translate(v2.e)
+      }.toMap)
     case e:ExtractLabel =>  
       val lbl = translate(e.lbl)
       val bindings = e.lbl.tp.attrTps.map(k => 

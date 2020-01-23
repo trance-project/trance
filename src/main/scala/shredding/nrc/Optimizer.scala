@@ -69,7 +69,7 @@ trait Optimizer extends Extensions {
   def nestingRewrite(e: Expr): Expr = replace(e, {
     case f @ ForeachUnion(x, b1,
       BagIfThenElse(
-        Cmp(OpEq,
+        PrimitiveCmp(OpEq,
           p1 @ PrimitiveProject(t1: TupleVarRef, f1),
           p2 @ PrimitiveProject(t2: TupleVarRef, f2)),
         b2, None)) =>
@@ -96,7 +96,7 @@ trait Optimizer extends Extensions {
       }
       else ForeachUnion(x, bag1, BagIfThenElse(Cmp(OpEq, p1, p2), bag2, None))
     case f @ ForeachUnion(x, b1, BagIfThenElse(And(cond1, cond2), b2, None)) => cond1 match {
-      case Cmp(OpEq, p1 @ PrimitiveProject(t1: TupleVarRef, f1), p2 @ PrimitiveVarRef(t2)) =>
+      case PrimitiveCmp(OpEq, p1 @ PrimitiveProject(t1: TupleVarRef, f1), p2 @ PrimitiveVarRef(t2)) =>
         rewriteJoinOnLabel(inputVars(f), x, b1, 
           BagIfThenElse(cond2, nestingRewrite(b2).asInstanceOf[BagExpr], None), p1, t1, p2, p2) 
       case _ => f
@@ -110,7 +110,7 @@ trait Optimizer extends Extensions {
 
     if (ivars.contains(t1) && !ivars.contains(t2)) {
       ForeachUnion(x, bag1, Singleton(Tuple("key" -> 
-        NewLabel(Set(VarRefLabelParameter(p2.asInstanceOf[VarRef]))), "value" -> bag2))) 
+        NewLabel(Set(VarRefLabelParameter(p2.asInstanceOf[Expr with VarRef]))), "value" -> bag2)))
     }
     else if (!ivars.contains(t1) && ivars.contains(t2)) {
       // substitute the new projection 
@@ -139,14 +139,14 @@ trait Optimizer extends Extensions {
     case f @ ForeachUnion(x, b1, BagIfThenElse(cond, b2, None)) => cond match {
       /**case Cmp(OpEq, p1 @ PrimitiveProject(t1: TupleVarRef, f1), p2 @ PrimitiveProject(t2: TupleVarRef, f2)) =>
         rewriteJoinOnLabel(inputVars(f), x, b1, b2, p1, t1, p2, t2)**/
-      case Cmp(OpEq, p1 @ PrimitiveProject(t1: TupleVarRef, f1), p2 @ PrimitiveVarRef(t2)) =>
+      case PrimitiveCmp(OpEq, p1 @ PrimitiveProject(t1: TupleVarRef, f1), p2 @ PrimitiveVarRef(t2)) =>
         rewriteJoinOnLabel(inputVars(f), x, b1, b2, p1, t1, p2, p2)
-      case Cmp(OpEq, p2 @ PrimitiveVarRef(t2), p1 @ PrimitiveProject(t1: TupleVarRef, f1)) =>
+      case PrimitiveCmp(OpEq, p2 @ PrimitiveVarRef(t2), p1 @ PrimitiveProject(t1: TupleVarRef, f1)) =>
         rewriteJoinOnLabel(inputVars(f), x, b1, b2, p1, t1, p2, p2)
-      case And(Cmp(OpEq, p1 @ PrimitiveProject(t1: TupleVarRef, f1), p2 @ PrimitiveVarRef(t2)), cond2) =>
+      case And(PrimitiveCmp(OpEq, p1 @ PrimitiveProject(t1: TupleVarRef, f1), p2 @ PrimitiveVarRef(t2)), cond2) =>
         rewriteJoinOnLabel(inputVars(f), x, b1, 
           BagIfThenElse(cond2, nestingRewrite(b2).asInstanceOf[BagExpr], None), p1, t1, p2, p2) 
-      case And(Cmp(OpEq, p2 @ PrimitiveVarRef(t2), p1 @ PrimitiveProject(t1: TupleVarRef, f1)), cond2) =>
+      case And(PrimitiveCmp(OpEq, p2 @ PrimitiveVarRef(t2), p1 @ PrimitiveProject(t1: TupleVarRef, f1)), cond2) =>
         rewriteJoinOnLabel(inputVars(f), x, b1, 
           BagIfThenElse(cond2, nestingRewrite(b2).asInstanceOf[BagExpr], None), p1, t1, p2, p2) 
       case _ => f

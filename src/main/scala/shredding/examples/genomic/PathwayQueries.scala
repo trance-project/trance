@@ -1,7 +1,7 @@
 package shredding.examples.genomic
 
 import shredding.core._
-import shredding.nrc.LinearizedNRC
+import shredding.nrc.ShredNRC
 
 case class Gene(name: String, contig: String, start: Int, end: Int)
 case class Pathway(name: String, description: String, genes: List[Gene])
@@ -17,9 +17,9 @@ object PathwayRelations{
   
 }
 
-object PathwayTests{
+object PathwayTests {
  
- val nrc = new LinearizedNRC{}
+ val nrc = new ShredNRC{}
  import nrc._
  
 
@@ -58,7 +58,8 @@ object PathwayTests{
                   IfThenElse(And(Cmp(OpGe, vref("start"), gref("end")),
                              Cmp(OpGe, gref("start"), vref("start"))),
                     ForeachUnion(adef, relA, 
-                      IfThenElse(And(Cmp(OpEq, aref("contig"), vref("contig")), Cmp(OpEq, aref("start"), vref("start"))),
+                      IfThenElse(And(Cmp(OpEq, aref("contig"), vref("contig")),
+                                 Cmp(OpEq, aref("start"), vref("start"))),
                         ForeachUnion(sdef, aref("transcript_consequences").asInstanceOf[BagExpr], 
                           IfThenElse(Not(Cmp(OpEq, sref("impact"), Const("LOW", StringType))),
                             ForeachUnion(idef, relI, 
@@ -77,7 +78,8 @@ object PathwayTests{
                   IfThenElse(And(Cmp(OpGe, vref("start"), gref("end")),
                              Cmp(OpGe, gref("start"), vref("start"))),
                     ForeachUnion(adef, relA, 
-                      IfThenElse(And(Cmp(OpEq, aref("contig"), vref("contig")), Cmp(OpEq, aref("start"), vref("start"))),
+                      IfThenElse(And(Cmp(OpEq, aref("contig"), vref("contig")),
+                                 Cmp(OpEq, aref("start"), vref("start"))),
                         ForeachUnion(sdef, aref("transcript_consequences").asInstanceOf[BagExpr], 
                           IfThenElse(Not(Cmp(OpEq, sref("impact"), Const("LOW", StringType))),
                             ForeachUnion(idef, relI, 
@@ -86,8 +88,8 @@ object PathwayTests{
                                   IfThenElse(Cmp(OpEq, cref("iscase"), iref("iscase")),
                                     ForeachUnion(g2def, vref("genotypes").asInstanceOf[BagExpr],
                                       IfThenElse(And(Cmp(OpEq, g2ref("sample"), cref("sample")),
-                                                  Cmp(OpGt, g2ref("call"), Const(0, IntType))),
-                                        Singleton(Tuple("call" -> Const(1, IntType)))))))))))))))))))))
+                                                  Cmp(OpGt, g2ref("call"), NumericConst(0, IntType))),
+                                        Singleton(Tuple("call" -> NumericConst(1, IntType)))))))))))))))))))))
                                        
 
   // annotated variants

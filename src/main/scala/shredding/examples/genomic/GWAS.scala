@@ -2,7 +2,7 @@ package shredding.examples.genomic
 
 import shredding.core._
 import shredding.examples.Query
-import shredding.nrc.LinearizedNRC
+import shredding.nrc.ShredNRC
 import shredding.wmcc._
 
 trait GenomicBase extends Query {
@@ -11,7 +11,7 @@ trait GenomicBase extends Query {
     // todo handle shredded case, and organize genomic relations object
     GenomicRelations.q1inputs
   
-  def headerTypes(shred: Boolean = false): List[String] = inputTypes(shred).map(f => f._2).toList
+  def headerTypes(shred: Boolean = false): List[String] = inputTypes(shred).values.toList
   
   val relI = BagVarRef(VarDef("cases", BagType(GenomicRelations.casetype)))
   val idef = VarDef("i", GenomicRelations.casetype)
@@ -43,7 +43,7 @@ object AltCounts extends GenomicBase {
   val query = GroupBy(ForeachUnion(vdef, relV,
                 ForeachUnion(gdef, BagProject(vref, "genotypes"),
                   ForeachUnion(cdef, relC,
-                    IfThenElse(Cmp(OpEq, gref("sample"), cref("sample")),
+                    IfThenElse(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
                       Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "altcnt" -> gref("call"))))))),
               List("contig", "start"),
               List("altcnt"),
@@ -62,10 +62,10 @@ object AlleleCounts extends GenomicBase {
                     ForeachUnion(idef, relI, 
                       Singleton(Tuple("iscase" -> iref("iscase"), "altcnt" ->
                         Total(ForeachUnion(cdef, relC, 
-                          IfThenElse(Cmp(OpEq, iref("iscase"), cref("iscase")),
+                          IfThenElse(Cmp(OpEq, PrimitiveProject(iref, "iscase"), PrimitiveProject(cref, "iscase")),
                             ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                              IfThenElse(Cmp(OpEq, gref("sample"), cref("sample")),
-                                WeightedSingleton(Tuple("cnt" -> gref("call")), PrimitiveProject(gref,"call")))))))))))))//)
+                              IfThenElse(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
+                                WeightedSingleton(Tuple("cnt" -> gref("call")), NumericProject(gref,"call")))))))))))))//)
 }
 
 object AlleleCounts2 extends GenomicBase {
@@ -79,7 +79,7 @@ object AlleleCounts2 extends GenomicBase {
                   Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cohorts" ->
                     GroupBy(ForeachUnion(gdef, BagProject(vref, "genotypes"),
                               ForeachUnion(cdef, relC, 
-                                IfThenElse(Cmp(OpEq, gref("sample"), cref("sample")),
+                                IfThenElse(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
                                   Singleton(Tuple("pinfo" -> cref("iscase"), "cnt" -> gref("call")))))),
                       List("pinfo"),
                       List("cnt"),
@@ -96,16 +96,16 @@ object AlleleCounts3 extends GenomicBase {
   val cdef2 = VarDef("c2", cdef.tp)
   val cref2 = TupleVarRef(cdef2)
   val query = ForeachUnion(vdef, relV,
-                IfThenElse(Not(Cmp(OpEq, vref("consequence"), Const("LOW IMPACT", StringType))),
+                IfThenElse(Not(Cmp(OpEq, PrimitiveProject(vref, "consequence"), Const("LOW IMPACT", StringType))),
                   Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
                     ForeachUnion(idef, relI, 
                       Singleton(Tuple("case" -> iref("iscase"), "altcnt" -> 
                         Total(
                           ForeachUnion(cdef, relC,
-                            IfThenElse(Cmp(OpEq, iref("iscase"), cref("iscase")),
+                            IfThenElse(Cmp(OpEq, PrimitiveProject(iref, "iscase"), PrimitiveProject(cref, "iscase")),
                             ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                              IfThenElse(And(Cmp(OpEq, gref("sample"), cref("sample")),
-                                             Cmp(OpGt, gref("call"), Const(0, IntType))),
+                              IfThenElse(And(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
+                                             Cmp(OpGt, PrimitiveProject(gref, "call"), Const(0, IntType))),
                                 Singleton(Tuple("call" -> gref("call")))))))))))))))
 }
 
@@ -119,7 +119,7 @@ object AlleleCountsGB extends GenomicBase {
                 Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
                   GroupBy(ForeachUnion(gdef, BagProject(vref, "genotypes"),
                     ForeachUnion(cdef, relC,
-                      IfThenElse(Cmp(OpEq, gref("sample"), cref("sample")),
+                      IfThenElse(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
                         Singleton(Tuple("case" -> cref("iscase"), "genotype" -> gref("call")))))),
                    List("case"),
                    List("genotype"),
@@ -133,12 +133,12 @@ object AlleleCountsGB3 extends GenomicBase {
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
   
   val query = ForeachUnion(vdef, relV,
-                IfThenElse(Cmp(OpEq, vref("consequence"), Const("LOW IMPACT", StringType)),
+                IfThenElse(Cmp(OpEq, PrimitiveProject(vref, "consequence"), Const("LOW IMPACT", StringType)),
                   Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
                     GroupBy(ForeachUnion(gdef, BagProject(vref, "genotypes"),
                       ForeachUnion(cdef, relC,
-                        IfThenElse(And(Cmp(OpEq, gref("sample"), cref("sample")),
-                                      Cmp(OpGt, gref("call"), Const(0, IntType))),
+                        IfThenElse(And(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
+                                      Cmp(OpGt, NumericProject(gref, "call"), Const(0, IntType))),
                         Singleton(Tuple("case" -> cref("iscase"), "altcnt" -> Const(1, IntType)))))),
                    List("case"),
                    List("altcnt"),
@@ -157,10 +157,10 @@ object AlleleFG extends GenomicBase {
                     ForeachUnion(vdef, relV, 
                       Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "genotypes" ->
                         ForeachUnion(cdef, relC, 
-                          IfThenElse(Cmp(OpEq, cref("iscase"), kr("pinfo")), 
+                          IfThenElse(Cmp(OpEq, PrimitiveProject(cref, "iscase"), PrimitiveProject(kr, "pinfo")),
                             ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                              IfThenElse(And(Cmp(OpEq, cref("sample"), gref("sample")),
-                                           Cmp(OpGt, gref("call"), Const(0, IntType))),
+                              IfThenElse(And(Cmp(OpEq, PrimitiveProject(cref, "sample"), PrimitiveProject(gref, "sample")),
+                                           Cmp(OpGt, NumericProject(gref, "call"), Const(0, IntType))),
                                 Singleton(Tuple("sample" -> cref("sample")))))))))))))))
 
 }
@@ -177,10 +177,10 @@ object AlleleFG2 extends GenomicBase {
                   ForeachUnion(k, BagVarRef(VarDef("keys", keys.tp)),
                     Singleton(Tuple("case" -> kr("pinfo"), "samples" ->
                       ForeachUnion(cdef, relC, 
-                        IfThenElse(Cmp(OpEq, cref("iscase"), kr("pinfo")), 
+                        IfThenElse(Cmp(OpEq, PrimitiveProject(cref, "iscase"), PrimitiveProject(kr, "pinfo")),
                           ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                            IfThenElse(And(Cmp(OpEq, cref("sample"), gref("sample")),
-                                           Cmp(OpGt, gref("call"), Const(0, IntType))),
+                            IfThenElse(And(Cmp(OpEq, PrimitiveProject(cref, "sample"), PrimitiveProject(gref, "sample")),
+                                           Cmp(OpGt, NumericProject(gref, "call"), Const(0, IntType))),
                               Singleton(Tuple("sample" -> cref("sample")))))))))))))))
 
 }
@@ -192,8 +192,8 @@ object AlleleFG1 extends GenomicBase {
   val query = ForeachUnion(vdef, relV, 
                 Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "samples" ->
                   ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                    IfThenElse(Cmp(OpGt, gref("call"), Const(0, IntType)),
+                    IfThenElse(Cmp(OpGt, NumericProject(gref, "call"), Const(0, IntType)),
                       ForeachUnion(cdef, relC,
-                        IfThenElse(Cmp(OpEq, cref("sample"), gref("sample")),
-                          Singleton(Tuple("pinfo" -> cref("iscase"), "sample" -> gref("sample"))))))))))
+                        IfThenElse(Cmp(OpEq, PrimitiveProject(cref, "sample"), PrimitiveProject(gref, "sample")),
+                          Singleton(Tuple("pinfo" -> PrimitiveProject(cref, "iscase"), "sample" -> PrimitiveProject(gref, "sample"))))))))))
 }

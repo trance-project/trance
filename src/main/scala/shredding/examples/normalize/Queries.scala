@@ -1,11 +1,11 @@
 package shredding.examples.normalize
 
 import shredding.core._
-import shredding.nrc.LinearizedNRC
+import shredding.nrc.ShredNRC
 
 object NormalizationTests {
   
-  val nrc = new LinearizedNRC{}
+  val nrc = new ShredNRC{}
   val itemTp = TupleType("a" -> IntType, "b" -> StringType)
 
   // N3

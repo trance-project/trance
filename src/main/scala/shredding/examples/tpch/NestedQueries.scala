@@ -2,8 +2,6 @@ package shredding.examples.tpch
 
 import shredding.core._
 import shredding.examples.Query
-import shredding.nrc.LinearizedNRC
-//import shredding.wmcc._
 
 /**
 For c2 in Query1 Union
@@ -84,7 +82,7 @@ object TPCHNested2 extends TPCHBase {
             ForeachUnion(p, relP, 
               IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
                 Singleton(Tuple("c_name" -> cor("c_name"), "p_name" -> pr("p_name"), 
-                                "total" -> PrimitiveOp(Multiply, co3r("l_qty"), pr("p_retailprice"))))))))),
+                                "total" -> co3r("l_qty").asNumeric * pr("p_retailprice").asNumeric))))))),
       List("c_name", "p_name"),
       List("total"),
       DoubleType)
@@ -169,7 +167,7 @@ object TPCHNested4 extends TPCHBase {
                 ForeachUnion(p, relP, 
                   IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
                     Singleton(Tuple("p_name" -> pr("p_name"), "total" -> 
-                      PrimitiveOp(Multiply, co3r("l_qty"), pr("p_retailprice"))))))),
+                      co3r("l_qty").asNumeric * pr("p_retailprice").asNumeric))))),
       List("p_name"),
       List("total"),
       DoubleType)))))))          
@@ -201,7 +199,7 @@ object TPCHNested4Filter extends TPCHBase {
                   ForeachUnion(p, relP, 
                     IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
                         Singleton(Tuple("p_name" -> pr("p_name"), "total" -> 
-                          PrimitiveOp(Multiply, co3r("l_qty"), pr("p_retailprice"))))))),
+                          co3r("l_qty").asNumeric * pr("p_retailprice").asNumeric))))),
         List("p_name"),
         List("total"),
         DoubleType)))))))))          

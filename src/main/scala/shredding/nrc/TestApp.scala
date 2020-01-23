@@ -7,12 +7,10 @@ import shredding.examples.simple._
 import shredding.examples.optimize._
 
 object TestApp extends App
-  with NRC
   with ShredNRC
   with Shredding
   with ScalaShredding
   with ScalaPrinter
-  with LinearizedNRC
   with Linearization
   with Printer
   with Evaluator

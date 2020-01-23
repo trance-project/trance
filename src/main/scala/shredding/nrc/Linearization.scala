@@ -7,7 +7,7 @@ import shredding.core._
   * Linearization of nested output queries
   */
 trait Linearization {
-  this: LinearizedNRC with Shredding with Optimizer with Printer with Extensions =>
+  this: ShredNRC with Shredding with Optimizer with Printer with Extensions =>
 
   type DictMapper = Map[BagDictExpr, BagVarRef]
 
@@ -16,10 +16,10 @@ trait Linearization {
     def this(e: Expr, d: DictMapper) = this(Sequence(List(e)), d)
 
     def append(m: MaterializationInfo): MaterializationInfo =
-      MaterializationInfo(Sequence(seq.exprs ++ m.seq.exprs), dictMapper ++ m.dictMapper)
+      MaterializationInfo(Sequence(seq.ee ++ m.seq.ee), dictMapper ++ m.dictMapper)
 
     def prepend(e: Expr): MaterializationInfo =
-      MaterializationInfo(Sequence(e :: seq.exprs), dictMapper)
+      MaterializationInfo(Sequence(e :: seq.ee), dictMapper)
   }
 
   /**
@@ -31,13 +31,12 @@ trait Linearization {
     * unnamed query which uses named queries defined in the Let
     */
   def materialize(e: List[ShredExpr]): MaterializationInfo = {
-    val mats = e.map{ sexpr => sexpr match {
-        case ShredExpr(lbl1, BagDict(lbl2, Named(VarDef(n, _), e1), tdict)) => 
-          materialize(ShredExpr(lbl1, BagDict(lbl2, e1.asInstanceOf[BagExpr], tdict)), n)
-        case _ => materialize(sexpr) 
-      }
+    val mats = e.map {
+      case ShredExpr(lbl1, BagDict(lbl2, BagNamed(VarDef(n, _), e1), tdict)) =>
+        materialize(ShredExpr(lbl1, BagDict(lbl2, e1.asInstanceOf[BagExpr], tdict)), n)
+      case e1 => materialize(e1)
     }
-    MaterializationInfo(Sequence(mats.map(m => m.seq.exprs).flatten), mats.last.dictMapper)
+    MaterializationInfo(Sequence(mats.map(m => m.seq.ee).flatten), mats.last.dictMapper)
   }
 
   def materialize(e: ShredExpr, n: String = "M"): MaterializationInfo = e.dict match {
@@ -46,7 +45,7 @@ trait Linearization {
 
       // Construct initial context containing e.flat
       val bagFlat = Singleton(Tuple("lbl" -> NewLabel(Set.empty)))//e.flat.asInstanceOf[TupleAttributeExpr]))
-      val initCtxNamed = Named(VarDef(Symbol.fresh(s"${n}_ctx"), bagFlat.tp), bagFlat)
+      val initCtxNamed = BagNamed(VarDef(Symbol.fresh(s"${n}_ctx"), bagFlat.tp), bagFlat)
       val initCtxRef = BagVarRef(initCtxNamed.v)
 
       // Recur
@@ -70,7 +69,7 @@ trait Linearization {
 
     def materializeDictionary(kvPairs: BagExpr, dict: BagDictExpr): MaterializationInfo = {
       // 1. Create named materialized expression
-      val mDictNamed = Named(VarDef(Symbol.fresh(name+"__D_"), kvPairs.tp), kvPairs)
+      val mDictNamed = BagNamed(VarDef(Symbol.fresh(name+"__D_"), kvPairs.tp), kvPairs)
       val mDictRef = BagVarRef(mDictNamed.v)
 
       // 2. Associate dict with its materialized expression
@@ -101,7 +100,7 @@ trait Linearization {
               DeDup(ForeachUnion(kvDef, mDictRef,
                 ForeachUnion(xDef, BagProject(TupleVarRef(kvDef), "_2"),
                   Singleton(Tuple("lbl" -> LabelProject(TupleVarRef(xDef), n))))))
-            val mCtxNamed = Named(VarDef(Symbol.fresh(s"${name}_ctx"), mCtx.tp), mCtx)
+            val mCtxNamed = BagNamed(VarDef(Symbol.fresh(s"${name}_ctx"), mCtx.tp), mCtx)
             val mCtxRef = BagVarRef(mCtxNamed.v)
 
             dict.tupleDict(n) match {
@@ -117,7 +116,7 @@ trait Linearization {
     }
 
     dict match {
-      case BagDict(l, Union(b1, b2), TupleDictUnion(d1, d2)) if lbl.tp == l.tp =>
+      case BagDict(l, ShredUnion(b1, b2), TupleDictUnion(d1, d2)) if lbl.tp == l.tp =>
         val dict1 = BagDict(null, b1, d1)
         val dict2 = BagDict(null, b2, d2)
         materializeDictionary(kvPairs(b1), dict1) append
@@ -182,12 +181,12 @@ trait Linearization {
         }
         val bvr = VarDef("new"+matDict.varDef.name, BagDictType(bagtype.asInstanceOf[BagType], 
           TupleDictType(Map("nil" -> EmptyDictType))))
-        (nseqs :+ Named(VarDef("new"+matDict.varDef.name, bagExpr.tp), bagExpr), Lookup(lbl, BagDictVarRef(bvr)))
+        (nseqs :+ BagNamed(VarDef("new"+matDict.varDef.name, bagExpr.tp), bagExpr), Lookup(lbl, BagDictVarRef(bvr)))
       }
     }
 
     dict match {
-      case BagDict(_, Union(b1, b2), TupleDictUnion(d1, d2)) =>
+      case BagDict(_, ShredUnion(b1, b2), TupleDictUnion(d1, d2)) =>
         val dict1 = BagDict(null, b1, d1)
         val dict2 = BagDict(null, b2, d2)
         val (seqs1, lkup1) = unshredDictionary(dict1) 
@@ -210,7 +209,7 @@ trait Linearization {
       val bagFlat = Singleton(Tuple("lbl" ->
                       NewLabel(labelParameters(e.flat)).asInstanceOf[TupleAttributeExpr]))
       
-      val initCtxNamed = Named(VarDef(Symbol.fresh("M_ctx"), bagFlat.tp), bagFlat)
+      val initCtxNamed = BagNamed(VarDef(Symbol.fresh("M_ctx"), bagFlat.tp), bagFlat)
       val initCtxRef = BagVarRef(initCtxNamed.v)
 
       // Let's roll
@@ -227,7 +226,7 @@ trait Linearization {
     val kvpair = Tuple("_1" -> lbl, "_2" -> optimize(dict.lookup(lbl)).asInstanceOf[BagExpr])
     val mFlat = ForeachUnion(ldef, ctx,
       BagExtractLabel(LabelProject(TupleVarRef(ldef), "lbl"), Singleton(kvpair)))
-    val mFlatNamed = Named(VarDef(Symbol.fresh("M_dict"), mFlat.tp), mFlat)
+    val mFlatNamed = BagNamed(VarDef(Symbol.fresh("M_dict"), mFlat.tp), mFlat)
     val mFlatRef = BagVarRef(mFlatNamed.v)
 
     // 2. For each label type in dict.flatBagTp.tp,
@@ -242,7 +241,7 @@ trait Linearization {
           DeDup(ForeachUnion(kvDef, mFlatRef,
             ForeachUnion(xDef, BagProject(TupleVarRef(kvDef), "_2"),
               Singleton(Tuple("lbl" -> LabelProject(TupleVarRef(xDef), n))))))
-        val mCtxNamed = Named(VarDef(Symbol.fresh("M_ctx"), mCtx.tp), mCtx)
+        val mCtxNamed = BagNamed(VarDef(Symbol.fresh("M_ctx"), mCtx.tp), mCtx)
         val mCtxRef = BagVarRef(mCtxNamed.v)
 
         dict.tupleDict(n) match {
@@ -253,6 +252,19 @@ trait Linearization {
   }
 
   /* Experimental */
+
+//  def materializerX(e: ShredExpr): (Sequence, Expr) = e match {
+//
+//    case ShredExpr(l: LabelExpr, d: BagDictExpr) =>
+//
+//    case ShredExpr(t: TupleExpr, d: TupleDictExpr) =>
+//
+//
+//    case ShredExpr(p: PrimitiveExpr, EmptyDict) => (Sequence(Nil), p)
+//
+//    case _ => sys.error("Cannot materialize shredded expr " + quote(e))
+//  }
+
 
   def linearizeNoDomains(e: ShredExpr): Sequence = e.dict match {
     case d: BagDict =>

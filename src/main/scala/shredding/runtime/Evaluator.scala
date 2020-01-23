@@ -1,15 +1,15 @@
 package shredding.runtime
 
 import shredding.core._
-import shredding.nrc.{LinearizedNRC, Printer}
+import shredding.nrc.ShredNRC
 
 /**
   * Simple Scala evaluator
   */
-trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
+trait Evaluator extends ShredNRC with ScalaRuntime {
 
   def eval(e: Expr, ctx: Context): Any = e match {
-    case Const(v, _) => v
+    case c: Const => c.v
     case v: VarRef => ctx(v.varDef)
     case p: Project =>
       try{ 
@@ -37,11 +37,11 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
       v
     case Total(e1) => evalBag(e1, ctx).size
     case DeDup(e1) => evalBag(e1, ctx).distinct
-    case c: Cond => c match {
-      case Cmp(op, e1, e2) => op match {
-        case OpEq => eval(e1, ctx) == eval(e2, ctx)
-        case OpNe => eval(e1, ctx) != eval(e2, ctx)
-        case _ => sys.error("Unsupported comparison operator: " + op)
+    case c: CondExpr => c match {
+      case cmp: Cmp => cmp.op match {
+        case OpEq => eval(cmp.e1, ctx) == eval(cmp.e2, ctx)
+        case OpNe => eval(cmp.e1, ctx) != eval(cmp.e2, ctx)
+        case _ => sys.error("Unsupported comparison operator: " + cmp.op)
       }
       case And(e1, e2) => evalBool(e1, ctx) && evalBool(e2, ctx)
       case Or(e1, e2) => evalBool(e1, ctx) || evalBool(e2, ctx)
@@ -71,13 +71,13 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
       }
       v
     case NewLabel(as) =>
-      ROutLabel(as.map(a => a match { 
-        case l:VarRefLabelParameter => 
-          l.v.varDef -> ctx(l.v.varDef)
-        case l:ProjectLabelParameter => 
+      ROutLabel(as.map {
+        case l: VarRefLabelParameter =>
+          l.e.varDef -> ctx(l.e.varDef)
+        case l: ProjectLabelParameter =>
           val v1 = VarDef(l.name, l.tp)
-          v1 -> eval(l.p.asInstanceOf[Expr], ctx)
-      }).toMap)
+          v1 -> eval(l.e.asInstanceOf[Expr], ctx)
+      }.toMap)
     case Lookup(l, BagDict(_, f, _)) =>
       val dictFn = new DictFn(ctx, c => evalBag(f, c))
       ROutBagDict(dictFn, f.tp, null)(evalLabel(l, ctx))
@@ -96,9 +96,9 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
     case d: DictUnion =>
       evalDict(d.dict1, ctx).union(evalDict(d.dict2, ctx))
 
-    case Named(v, e1) =>
-      val b = eval(e1, ctx)
-      ctx.add(v, b)
+    case n: Named =>
+      val b = eval(n.e, ctx)
+      ctx.add(n.v, b)
       b
     case Sequence(ee) => ee.map(eval(_, ctx))
 
@@ -106,10 +106,12 @@ trait Evaluator extends LinearizedNRC with ScalaRuntime with Printer {
   }
 
   protected def evalBag(e: Expr, ctx: Context): List[_] =
-    try{
+    try {
       eval(e, ctx).asInstanceOf[List[_]]
-    }catch{
-      case ex:Exception => eval(e, ctx).asInstanceOf[Vector[_]].toList
+    }
+    catch {
+      // TODO: why Vector?
+      case ex: Exception => eval(e, ctx).asInstanceOf[Vector[_]].toList
     }
 
   protected def evalTuple(e: Expr, ctx: Context): Map[String, _] =

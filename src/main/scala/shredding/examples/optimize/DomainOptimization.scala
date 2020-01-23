@@ -1,11 +1,8 @@
 package shredding.examples.optimize
 
 import shredding.core._
-import shredding.examples.Query
 import shredding.examples.tpch.TPCHBase
 import shredding.examples.genomic.GenomicBase
-import shredding.nrc.LinearizedNRC
-import shredding.wmcc._
 
 /**
   All label extractions are at top level
@@ -40,7 +37,8 @@ object DomainOptExample2 extends TPCHBase {
       IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")),
         Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(l, relL,
             ForeachUnion(p, relP, IfThenElse(
-              And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
+              And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
+                Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
               Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity")))))))))))))
 }
 
@@ -54,7 +52,8 @@ object DomainOptExample3 extends TPCHBase {
     ForeachUnion(o, relO,
       Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(l, relL,
         ForeachUnion(p, relP, IfThenElse(
-          And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
+          And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
+              Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
             Singleton(Tuple("p_name" -> pr("p_name"), "customers" ->
               ForeachUnion(c, relC, IfThenElse(
                 Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
@@ -71,7 +70,8 @@ object DomainOptExample4 extends TPCHBase {
     ForeachUnion(o, relO,
       Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(p, relP, 
         ForeachUnion(l, relL, IfThenElse(
-          And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")), Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
+          And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
+              Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
             Singleton(Tuple("p_name" -> pr("p_name"), "customers" ->
               ForeachUnion(c, relC, IfThenElse(
                 Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
@@ -92,7 +92,8 @@ object DomainOptExample5 extends TPCHBase {
           IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
             ForeachUnion(p, relP, 
               ForeachUnion(l, relL, 
-                IfThenElse(And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")), Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
+                IfThenElse(And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
+                            Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
                   Singleton(Tuple("c_name" -> cr("c_name"), "p_name" -> pr("p_name")))))))))))
 }
 

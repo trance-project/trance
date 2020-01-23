@@ -5,12 +5,12 @@ import shredding.examples.genomic._
 import shredding.examples.tpch._
 import shredding.examples.simple._
 import shredding.runtime.{Context, Evaluator}
-import shredding.nrc.{Printer => NRCPrinter}
+import shredding.nrc.{Printer => NRCPrinter, ShredNRC}
 
 object App {
   
   val nrceval = new Evaluator{}
-  val nrcprinter = new NRCPrinter{}
+  val nrcprinter = new NRCPrinter with ShredNRC{}
   val ctx = new Context()
 
   val translator = new NRCTranslator{}

@@ -50,7 +50,8 @@ case class Q3Flat2(N__F: Int, Query7__F: Q3Flat, uniqueId: Long)
 case class Q3Flat3(Query7__F: Q3Flat, N__F: Int, uniqueId: Long)
 
 object TPCHSchema {
-  val folderLocation = Config.datapath
+//  val folderLocation = Config.datapath
+  val folderLocation = "/"
   val scalingFactor = 1
   val lineItemTable = {
     val L_ORDERKEY: Attribute = "L_ORDERKEY" -> IntType

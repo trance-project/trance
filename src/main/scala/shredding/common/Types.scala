@@ -10,19 +10,21 @@ trait TupleAttributeType extends Type
 
 trait PrimitiveType extends TupleAttributeType
 
-case object BoolType extends PrimitiveType
+trait NumericType extends PrimitiveType
 
-case object IntType extends PrimitiveType
+case object BoolType extends PrimitiveType
 
 case object StringType extends PrimitiveType
 
-case object DoubleType extends PrimitiveType
+case object IntType extends NumericType
 
-case object LongType extends PrimitiveType
+case object LongType extends NumericType
 
-case class BagType(tp: TupleType) extends TupleAttributeType
+case object DoubleType extends NumericType
 
-case class TupleType(attrTps: Map[String, TupleAttributeType]) extends Type {
+final case class BagType(tp: TupleType) extends TupleAttributeType
+
+final case class TupleType(attrTps: Map[String, TupleAttributeType]) extends Type {
   def apply(n: String): TupleAttributeType = attrTps(n)
 }
 
@@ -34,7 +36,7 @@ object TupleType {
   * Shredding type extensions: label type and dictionary type
   *
   */
-case class LabelType(attrTps: Map[String, Type]) extends TupleAttributeType {
+final case class LabelType(attrTps: Map[String, Type]) extends TupleAttributeType {
   def apply(n: String): Type = attrTps(n)
 
   override def equals(that: Any): Boolean = that match {
@@ -54,9 +56,9 @@ trait TupleDictAttributeType extends DictType
 
 case object EmptyDictType extends TupleDictAttributeType
 
-case class BagDictType(flatTp: BagType, dictTp: TupleDictType) extends TupleDictAttributeType
+final case class BagDictType(flatTp: BagType, dictTp: TupleDictType) extends TupleDictAttributeType
 
-case class TupleDictType(attrTps: Map[String, TupleDictAttributeType]) extends DictType {
+final case class TupleDictType(attrTps: Map[String, TupleDictAttributeType]) extends DictType {
   def apply(n: String): TupleDictAttributeType = attrTps(n)
 }
 
@@ -65,7 +67,9 @@ object TupleDictType {
 }
 
 /**
-  * Types used for WMCC 
+  * Types used for WMCC
+  *
+  * TODO: move elsewhere?
   */
 
 case class TypeSet(tp: Map[Type, String]) extends Type 

@@ -1,10 +1,10 @@
 package shredding.examples.simple
 
 import shredding.core._
-import shredding.nrc.LinearizedNRC
+import shredding.nrc.ShredNRC
 
 object FlatTests {
-  val nrc = new LinearizedNRC{}
+  val nrc = new ShredNRC{}
   import nrc._
 
   // source NRC reference format

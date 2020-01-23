@@ -5,13 +5,14 @@ import shredding.core._
 /**
   * Print of NRC expressions
   */
-trait Printer extends LinearizedNRC {
+trait Printer {
+  this: ShredNRC with BaseShredding =>
 
   import shredding.utils.Utils.ind
 
   def quote(e: Expr): String = e match {
-    case Const(v, StringType) => "\"" + v + "\""
-    case Const(v, _) => v.toString
+    case c: Const if c.tp == StringType => "\"" + c.v + "\""
+    case c: Const => c.v.toString
     case v: VarRef => v.name
     case p: Project => quote(p.tuple) + "." + p.field
     case ForeachUnion(x, e1, e2) =>
@@ -22,8 +23,6 @@ trait Printer extends LinearizedNRC {
           |Union
           |(${quote(e2)})""".stripMargin
     case Singleton(e1) => s"Sng(${quote(e1)})"
-    case WeightedSingleton(e1, w1) =>
-      s"WeightedSng(${quote(e1)}, ${quote(w1)})"
     case Tuple(fs) =>
       s"(${fs.map { case (k, v) => k + " := " + quote(v) }.mkString(", ")})"
     case l: Let =>
@@ -31,9 +30,9 @@ trait Printer extends LinearizedNRC {
           |${quote(l.e2)}""".stripMargin
     case Total(e1) => s"Total(${quote(e1)})"
     case DeDup(e1) => s"DeDup(${quote(e1)})"
-    case c: Cond => c match {
-      case Cmp(op, e1, e2) =>
-        s"${quote(e1)} $op ${quote(e2)}"
+    case c: CondExpr => c match {
+      case cmp: Cmp =>
+        s"${quote(cmp.e1)} ${cmp.op} ${quote(cmp.e2)}"
       case And(e1, e2) =>
         s"${quote(e1)} AND ${quote(e2)}"
       case Or(e1, e2) =>
@@ -41,7 +40,6 @@ trait Printer extends LinearizedNRC {
       case Not(e1) =>
         s"NOT ${quote(e1)}"
     }
-    case PrimitiveOp(Multiply, e1, e2) => s"(${quote(e1)} * ${quote(e2)})"
     case i: IfThenElse =>
       if (i.e2.isDefined)
         s"""|If (${quote(i.cond)})
@@ -50,20 +48,16 @@ trait Printer extends LinearizedNRC {
       else
         s"""|If (${quote(i.cond)})
             |Then ${quote(i.e1)}""".stripMargin
-    case g:GroupBy => g.value.tp match {
-      case b:BagType => s"(${quote(g.bag)}).groupBy(${quote(g.grp)}), ${quote(g.value)})"
-      case _ => s"(${quote(g.bag)}).groupBy+(${quote(g.grp)}), ${quote(g.value)})"
-    }
-    // Label cases
+    case ArithmeticExpr(op, e1, e2) =>
+      s"(${quote(e1)} $op ${quote(e2)})"
+    // Label extensions
     case x: ExtractLabel =>
       val tuple = x.lbl.tp.attrTps.keys.mkString(", ")
       s"""|Extract ${quote(x.lbl)} as ($tuple) In
           |${quote(x.e)}""".stripMargin
     case l: NewLabel =>
-      s"NewLabel(${(l.id :: l.vars.toList.map(_.name)).mkString(", ")})"
-    case Lookup(lbl, dict) =>
-      s"Lookup(lbl := ${quote(lbl)}, dict := ${quote(dict)})"
-    // Dictionary cases
+      s"NewLabel(${(l.id :: l.params.map(_.name).toList).mkString(", ")})"
+    // Dictionary extensions
     case EmptyDict => "Nil"
     case BagDict(lbl, flat, dict) =>
       s"""|(${quote(lbl)} ->
@@ -80,16 +74,50 @@ trait Printer extends LinearizedNRC {
       s"""|(${quote(d.dict1)})
           |DictUnion
           |(${quote(d.dict2)})""".stripMargin
+    // Shredding extensions
+    case ShredUnion(e1, e2) =>
+      s"""|(${quote(e1)})
+          |ShredUnion
+          |(${quote(e2)})""".stripMargin
+    case Lookup(lbl, dict) =>
+      s"Lookup(lbl := ${quote(lbl)}, dict := ${quote(dict)})"
 
-    case Named(v, e1) => s"${v.name} := ${quote(e1)}"
+    /////////////////
+    //
+    //
+    // UNSTABLE BELOW
+    //
+    //
+    /////////////////
+
+
+    case WeightedSingleton(e1, w1) =>
+      s"WeightedSng(${quote(e1)}, ${quote(w1)})"
+
+    case g: GroupBy => g.value.tp match {
+      case b: BagType => s"(${quote(g.bag)}).groupBy(${quote(g.grp)}), ${quote(g.value)})"
+      case _ => s"(${quote(g.bag)}).groupBy+(${quote(g.grp)}), ${quote(g.value)})"
+    }
+
+    case n: Named => s"${n.name} := ${quote(n.e)}"
     case Sequence(ee) => ee.map(quote).mkString("\n")
 
 
     case _ => sys.error("Cannot print unknown expression " + e)
   }
 
+  def quote(a: Assignment): String = s"${a.name} := ${quote(a.rhs)}"
+
+  def quote(p: Program): String = p.statements.map(quote).mkString("\n")
+
   def quote(e: ShredExpr): String =
     s"""|Flat: ${quote(e.flat)}
         |Dict: ${quote(e.dict)}""".stripMargin
+
+  def quote(a: ShredAssignment): String =
+    s"""|${flatName(a.name)} := ${quote(a.rhs.flat)}
+        |${dictName(a.name)} := ${quote(a.rhs.dict)}""".stripMargin
+
+  def quote(p: ShredProgram): String = p.statements.map(quote).mkString("\n")
 
 }

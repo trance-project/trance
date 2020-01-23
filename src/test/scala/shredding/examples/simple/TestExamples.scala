@@ -13,7 +13,7 @@ class TestExamples extends FunSuite
   June 6, 2019
   */
   def printQuery(test: String, query: Expr): Unit = {
-    val printer = new Printer {}
+    val printer = new Printer with ShredNRC {}
     println("[" + test + "] print: \n" + printer.quote(query.asInstanceOf[printer.Expr]))
     val translator = new NRCTranslator {}
     val normalizer = new Finalizer(new BaseNormalizer {})
