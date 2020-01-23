@@ -227,7 +227,7 @@ Query1__D_2c_orders_1.flatMapValues(identity).lookupSkewLeft(out1)
 }**/
 }
          
-val x253 = x243.flatMap{ case (x244, x245) => val x252 = (x245) 
+val x253 = x243.flatMap{ case (x245, x244) => val x252 = (x245) 
 x252 match {
    case (null) => Nil 
    case x251 => List(({val x246 = (x244) 
