@@ -34,11 +34,11 @@ object App {
 
     // Run shred with domains
     // the true adds unshredding
-    Utils.runSparkShred(Query5, true)
+    //Utils.runSparkShred(Query5, true)
 
     // Run shred with domains when a query is used as input for another
     // the true adds unshredding
-    //Utils.runSparkShredInput(, TPCHNested2, true)
+    Utils.runSparkShredInput(Query1Extended, Query4Filter2, true)
   }
 
   def runSparkCalc(){

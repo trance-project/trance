@@ -228,7 +228,7 @@ object Query4Filter1 extends TPCHBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
 
-  val (q1, co, cor) = varset(TPCHQuery1WK.name, "c2", TPCHQuery1WK.query1.asInstanceOf[BagExpr])
+  val (q1, co, cor) = varset(TPCHQuery1WK.name, "c2", Query1Extended.query1.asInstanceOf[BagExpr])
   val orders = BagProject(cor, "c_orders")
   val co2 = VarDef("o2", orders.tp.tp)
   val co2r = TupleVarRef(co2)
@@ -260,7 +260,7 @@ object Query4Filter2 extends TPCHBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
 
-  val (q1, co, cor) = varset(TPCHQuery1WK.name, "c2", TPCHQuery1WK.query1.asInstanceOf[BagExpr])
+  val (q1, co, cor) = varset(Query1Extended.name, "c2", Query1Extended.query1.asInstanceOf[BagExpr])
   val orders = BagProject(cor, "c_orders")
   val co2 = VarDef("o2", orders.tp.tp)
   val co2r = TupleVarRef(co2)
@@ -269,7 +269,8 @@ object Query4Filter2 extends TPCHBase {
   val co3 = VarDef("p2", parts.tp.tp)
   val co3r = TupleVarRef(co3)
 
-  val query = 
+  val query =
+    Let(q1, Query1Extended.query1.asInstanceOf[BagExpr], 
     ForeachUnion(co, BagVarRef(q1),
       IfThenElse(Cmp(OpGe, Const(1500000, IntType), cr("c_custkey")),
         Singleton(Tuple("c_name" -> cor("c_name"), "c_orders" ->
@@ -284,7 +285,7 @@ object Query4Filter2 extends TPCHBase {
                           PrimitiveOp(Multiply, co3r("l_qty"), pr("p_retailprice"))))))),
         List("p_name"),
         List("total"),
-        DoubleType)))))))))          
+        DoubleType))))))))))          
 }
 
 /**
