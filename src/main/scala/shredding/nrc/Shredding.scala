@@ -113,8 +113,10 @@ trait Shredding extends BaseShredding with Extensions {
       ShredExpr(Total(dict1.lookup(lbl)), EmptyDict)
 
     case DeDup(e1) =>
-      val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
-      ShredExpr(lbl, BagDict(lbl, DeDup(dict1.lookup(lbl)), dict1.tupleDict))
+      val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      val flat = DeDup(dict1.lookup(lbl1))
+      val lbl = NewLabel(labelParameters(flat))
+      ShredExpr(lbl, BagDict(lbl, flat, dict1.tupleDict))
 
     case c: Cmp =>
       val ShredExpr(c1: PrimitiveExpr, EmptyDict) = shred(c.e1, ctx)
@@ -167,17 +169,23 @@ trait Shredding extends BaseShredding with Extensions {
       ShredExpr(lbl, BagDict(lbl, flat, dict))
 
     case BagGroupBy(e1, v1, grp, value) =>
-      val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
-      ShredExpr(lbl, BagDict(lbl, BagGroupBy(dict1.lookup(lbl), v1, grp, value), dict1.tupleDict))
+      val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      val flat = BagGroupBy(dict1.lookup(lbl1), v1, grp, value)
+      val lbl = NewLabel(labelParameters(flat))
+      ShredExpr(lbl, BagDict(lbl, flat, dict1.tupleDict))
 
     case PlusGroupBy(e1, v1, grp, value) =>
-      val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
-      ShredExpr(lbl, BagDict(lbl, PlusGroupBy(dict1.lookup(lbl), v1, grp, value), dict1.tupleDict))
+      val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      val flat = PlusGroupBy(dict1.lookup(lbl1), v1, grp, value)
+      val lbl = NewLabel(labelParameters(flat))
+      ShredExpr(lbl, BagDict(lbl, flat, dict1.tupleDict))
 
     case n: Named =>
-      val ShredExpr(lbl: LabelExpr, dict: BagDictExpr) = shred(n.e, ctx)
-      val dlu = dict.lookup(lbl)
-      ShredExpr(lbl, BagDict(lbl, BagNamed(VarDef(n.v.name, dlu.tp), dlu), dict.tupleDict))
+      val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(n.e, ctx)
+      val dlu = dict1.lookup(lbl1)
+      val flat = BagNamed(VarDef(n.v.name, dlu.tp), dlu)
+      val lbl = NewLabel(labelParameters(flat))
+      ShredExpr(lbl, BagDict(lbl, flat, dict1.tupleDict))
 
     case _ => sys.error("Cannot shred expr " + e)
   }

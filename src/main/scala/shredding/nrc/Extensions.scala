@@ -131,7 +131,7 @@ trait Extensions {
 
       // Dictionary extensions
       case BagDict(l, b, d) =>
-        val rl = replace(l, f).asInstanceOf[LabelExpr]
+        val rl = replace(l, f).asInstanceOf[NewLabel]
         val rb = replace(b, f).asInstanceOf[BagExpr]
         val rd = replace(d, f).asInstanceOf[TupleDictExpr]
         BagDict(rl, rb, rd)
@@ -185,8 +185,8 @@ trait Extensions {
 
   // Replace label parameter projections with variable references
   def replaceLabelParams(e: Expr): Expr = replace(e, {
-    case BagDict(lbl @ NewLabel(params), flat, dict) =>
-      val rflat = params.foldRight(flat) {
+    case BagDict(lbl, flat, dict) =>
+      val rflat = lbl.params.foldRight(flat) {
         case (p: ProjectLabelParameter, acc) =>
           substitute(acc, VarDef(p.name, p.tp)).asInstanceOf[BagExpr]
         case (_, acc) => acc
