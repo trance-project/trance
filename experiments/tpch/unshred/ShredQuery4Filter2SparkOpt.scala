@@ -312,7 +312,7 @@ val x386 = newM__D_1
 //newM__D_1.collect.foreach(println(_))
 x386.count
 var end1 = System.currentTimeMillis() - start1
-println("ShredTPCHNested4FilterSpark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
+println("ShredQuery4Filter2SparkOpt,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
     
 }
 var start = System.currentTimeMillis()
