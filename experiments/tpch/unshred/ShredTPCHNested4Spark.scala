@@ -221,10 +221,10 @@ val x238 = c_orders_ctx1
 val x243 = { val out1 = x238.map{ case x239 => ({val x241 = x239.lbl 
 val x242 = x241.c2__Fc_orders 
 x242}, x239) }
-val out2 = Query1__D_2c_orders_1.flatMapValues(identity)
-out1.cogroup(out2).flatMap{ pair =>
+Query1__D_2c_orders_1.flatMapValues(identity).lookupSkewLeft(out1)
+/**.flatMap{ pair =>
  for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
-}
+}**/
 }
          
 val x253 = x243.flatMap{ case (x244, x245) => val x252 = (x245) 
