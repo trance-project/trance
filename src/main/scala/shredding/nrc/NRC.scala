@@ -228,8 +228,15 @@ trait NRC extends BaseExpr {
 
   final case class Assignment(name: String, rhs: Expr)
 
-  final case class Program(statements: List[Assignment])
+  final case class Program(statements: List[Assignment]) {
+    def append(p: Program): Program = Program(statements ++ p.statements)
 
+    def append(a: Assignment): Program = Program(statements :+ a)
+  }
+
+  object Program {
+    def apply(statements: Assignment*): Program = Program(List(statements: _*))
+  }
 
   /////////////////
   //

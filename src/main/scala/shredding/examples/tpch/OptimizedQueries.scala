@@ -20,7 +20,9 @@ object TPCHQueryCustOrders extends TPCHBase {
   val query = ForeachUnion(c, relC,
                 Singleton(Tuple("c_name" -> cr("c_name"), "corders" -> ForeachUnion(o, relO,
                   IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")),
-                    Singleton(Tuple("o_orderkey" -> or("o_orderkey"), "o_orderdate" -> or("o_orderdate")))))))) 
+                    Singleton(Tuple("o_orderkey" -> or("o_orderkey"), "o_orderdate" -> or("o_orderdate"))))))))
+
+  val program = Program(Assignment("Q", query))
   
 }
 
@@ -40,9 +42,7 @@ object TPCHQuery4A extends TPCHBase {
                   IfThenElse(Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
                     Singleton(Tuple("l_orderkey" -> lr("l_orderkey"), "p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))
   val (p1, co1, cor1) = varset("parts", "part", parts.asInstanceOf[BagExpr])
-  val query = Sequence(List(
-    Named(p1, parts),
-    ForeachUnion(co, BagVarRef(q1),
+  val query = ForeachUnion(co, BagVarRef(q1),
                 Singleton(Tuple("c_name" -> cor("c_name"), "partqty" ->
                   GroupBy(
                        ForeachUnion(co2, BagProject(cor, "corders"),
@@ -53,8 +53,9 @@ object TPCHQuery4A extends TPCHBase {
                     List("orderdate", "pname"),
                     List("l_qty"),
                     DoubleType
-                   ))))))
+                   ))))
 
+  val program = Program(Assignment(p1.name, parts), Assignment("Q", query))
 }
 
 object TPCHQuery4PartOrders extends TPCHBase {
@@ -74,6 +75,8 @@ object TPCHQuery4PartOrders extends TPCHBase {
                       ForeachUnion(o, relO,
                         IfThenElse(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
                           Singleton(Tuple("o_custkey" -> or("o_custkey"), "orderdate" -> or("o_orderdate"))))))))))
+
+  val program = Program(Assignment("Q", query))
   
 }
 
@@ -97,6 +100,8 @@ object TPCHQuery4B extends TPCHBase {
         List("c_name", "p_name"),
         List("l_qty"),
         DoubleType)
+
+  val program = Program(Assignment("Q", query))
   
 }
 
@@ -118,9 +123,7 @@ object TPCHQuery4C extends TPCHBase {
                   IfThenElse(Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
                     Singleton(Tuple("l_orderkey" -> lr("l_orderkey"), "p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))
   val (p1, co1, cor1) = varset("parts", "part", parts.asInstanceOf[BagExpr])
-  val query = Sequence(List(
-    Named(p1, parts),
-    GroupBy(ForeachUnion(co, BagVarRef(q1), 
+  val query = GroupBy(ForeachUnion(co, BagVarRef(q1),
                     ForeachUnion(co2, BagProject(cor, "corders"),
                       ForeachUnion(co1, BagVarRef(p1),
                         IfThenElse(Cmp(OpEq, cor2("o_orderkey"), cor1("l_orderkey")),
@@ -128,8 +131,9 @@ object TPCHQuery4C extends TPCHBase {
                           "pname" -> cor1("p_name"), "l_qty" -> cor1("l_qty"))))))),
       List("c_name", "orderdate", "pname"), 
       List("l_qty"),
-      DoubleType
-    )))
+      DoubleType)
+
+  val program = Program(Assignment(p1.name, parts), Assignment("Q", query))
 }
 
 object TPCHQuery4D extends TPCHBase {
@@ -148,9 +152,7 @@ object TPCHQuery4D extends TPCHBase {
                   IfThenElse(Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
                     Singleton(Tuple("l_orderkey" -> lr("l_orderkey"), "p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))
   val (p1, co1, cor1) = varset("parts", "part", parts.asInstanceOf[BagExpr])
-  val query = Sequence(List(
-    Named(p1, parts),
-    GroupBy(ForeachUnion(co, BagVarRef(q1), 
+  val query = GroupBy(ForeachUnion(co, BagVarRef(q1),
               ForeachUnion(co2, BagProject(cor, "corders"),
                 ForeachUnion(co1, BagVarRef(p1),
                   IfThenElse(Cmp(OpEq, cor2("o_orderkey"), cor1("l_orderkey")),
@@ -158,8 +160,9 @@ object TPCHQuery4D extends TPCHBase {
                           "pname" -> cor1("p_name"), "l_qty" -> cor1("l_qty"))))))),
       List("orderdate", "pname"), 
       List("l_qty"),
-      DoubleType
-    )))
+      DoubleType)
+
+  val program = Program(Assignment(p1.name, parts), Assignment("Q", query))
 }
 
 object TPCHQueryInputs extends TPCHBase {
@@ -177,13 +180,13 @@ object TPCHQueryInputs extends TPCHBase {
                       IfThenElse(Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
                         Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))))
   val (p1, co2, cor2) = varset("parts", "part", parts.asInstanceOf[BagExpr])
-  val cust = ForeachUnion(c, relC,
+  val query = ForeachUnion(c, relC,
                 Singleton(Tuple("c_name" -> cr("c_name"), "corders" -> ForeachUnion(o, relO,
                   IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")),
                     Singleton(Tuple("o_orderkey" -> or("o_orderkey"), "o_orderdate" -> or("o_orderdate")))))))) 
 
   // input data
-  val query = Sequence(List(Named(p1, parts),cust))
+  val program = Program(Assignment(p1.name, parts), Assignment("Q", query))
 }
 
 object TPCHQuery4E extends TPCHBase {
@@ -193,7 +196,7 @@ object TPCHQuery4E extends TPCHBase {
   override def indexedDict: List[String] = 
     List(s"${name}__D_1", s"${name}__D_2corders_1")
 
-  val (q1, co, cor) = varset("CustOrders", "customer", TPCHQueryInputs.cust.asInstanceOf[BagExpr])
+  val (q1, co, cor) = varset("CustOrders", "customer", TPCHQueryInputs.query.asInstanceOf[BagExpr])
   val co1 = VarDef("order", BagProject(cor, "corders").tp.tp)
   val cor1 = TupleVarRef(co1)
 
@@ -215,6 +218,8 @@ object TPCHQuery4E extends TPCHBase {
       List("l_qty"),
       DoubleType
     )
+
+  val program = Program(Assignment("Q", query))
 }
 
 object TPCHQuery7A extends TPCHBase {
@@ -244,6 +249,8 @@ object TPCHQuery7A extends TPCHBase {
                       ForeachUnion(c2, customers,
                         IfThenElse(Cmp(OpEq, c2r("c_nationkey"), nr("n_nationkey")),
                           Singleton(Tuple("c_name" -> c2r("c_name")))))))))))
+
+  val program = Program(Assignment("Q", query))
 
 }
 
@@ -289,6 +296,8 @@ object TPCHQuery4New extends TPCHBase {
                  List("orderdate", "pname"),
                  List("qty"),
                  DoubleType))))
+
+  val program = Program(Assignment("Q", query))
 }
 
 object TPCHQuery4New2 extends TPCHBase {
@@ -311,7 +320,9 @@ object TPCHQuery4New2 extends TPCHBase {
         Singleton(Tuple("orders" -> co2r("o_orderdate"), "customers" ->
           ForeachUnion(c, relC,
             IfThenElse(Cmp(OpEq, cr("c_name"), cor("c_name")),
-              Singleton(Tuple("name" -> cr("c_name"), "address" -> cr("c_address")))))))))            
+              Singleton(Tuple("name" -> cr("c_name"), "address" -> cr("c_address")))))))))
+
+  val program = Program(Assignment("Q", query))
 }
 
 object TPCHQuery4New3 extends TPCHBase {
@@ -340,6 +351,8 @@ object TPCHQuery4New3 extends TPCHBase {
       List("c_name", "p_name", "qty"),
       List("price"),
       DoubleType)
+
+  val program = Program(Assignment("Q", query))
               
 }
 
@@ -365,7 +378,9 @@ object TPCHQuery4New4 extends TPCHBase {
           Singleton(Tuple("p_name" -> co3r("p_name"), "customers" -> 
             ForeachUnion(c, relC,
               IfThenElse(Cmp(OpEq, cr("c_name"), cor("c_name")),
-                Singleton(Tuple("customer" -> cr("c_name"), "address" -> cr("c_address"))))))))))              
+                Singleton(Tuple("customer" -> cr("c_name"), "address" -> cr("c_address"))))))))))
+
+  val program = Program(Assignment("Q", query))
 }
 
 

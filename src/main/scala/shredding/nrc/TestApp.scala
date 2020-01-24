@@ -11,7 +11,7 @@ object TestApp extends App
   with Shredding
   with ScalaShredding
   with ScalaPrinter
-  with Linearization
+  with Materializer
   with Printer
   with Evaluator
   with Optimizer {
@@ -90,12 +90,12 @@ object TestApp extends App
       println("[Ex1] Linearized Q2 eval: " + eval(q2lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
 
       val q1mat = materialize(q1shred)
-      println("[Ex1] Materialized strategy Q1: " + quote(q1mat.seq))
+      println("[Ex1] Materialized strategy Q1: " + quote(q1mat.program))
       val q1unshred = unshred(q1shred, q1mat.dictMapper)
       println("[Ex1] Unshredded expression Q1: " + quote(q1unshred))
 
       val q2mat = materialize(q2shred)
-      println("[Ex2] Materialized strategy Q2: " + quote(q2mat.seq))
+      println("[Ex2] Materialized strategy Q2: " + quote(q2mat.program))
       val q2unshred = unshred(q2shred, q2mat.dictMapper)
       println("[Ex2] Unshredded expression Q2: " + quote(q2unshred))
     }
@@ -1140,7 +1140,7 @@ object TestApp extends App
       val sq1 = optimize(shred(q1))
       println(quote(sq1))
       val q1mat = materialize(sq1)
-      println(quote(q1mat.seq))
+      println(quote(q1mat.program))
       val q1unshred = unshred(sq1, q1mat.dictMapper)
       println(quote(q1unshred))
     }
@@ -1149,20 +1149,13 @@ object TestApp extends App
   object Example_Unshredding {
 
     def run(): Unit = {
-      val query = TPCHQuery1.query.asInstanceOf[Expr]
-      val (shredded:ShredExpr, materialized:MaterializationInfo) = query match {
-        case Sequence(fs) =>
-          val exprs = fs.map(expr => optimize(shred(expr)))
-          (exprs.last.asInstanceOf[ShredExpr], materialize(exprs))
-      case _ =>
-        val expr = optimize(shred(query))
-        (expr, materialize(expr))
-      }
+      val program = TPCHQuery1.program.asInstanceOf[Program]
+      val shredded = shred(program)
+      val materialized = materialize(shredded)
       println("Shredded: ")
-      println(quote(shredded)+"\n")
+      println(quote(shredded) + "\n")
       println("Materialized: ")
-      println(quote(materialized.seq)+"\n")
-      
+      println(quote(materialized.program) + "\n")
       val unshredded = unshred(shredded, materialized.dictMapper)
       println("Unshredded: ")
       println(quote(unshredded))
@@ -1170,8 +1163,8 @@ object TestApp extends App
     }
   }
 
-    ExtractExamples.run()
-//  Example_Unshredding.run()
+  ExtractExamples.run()
+  Example_Unshredding.run()
 //  Example1.run()
 //  Example2.run()
 //  Example3.run()

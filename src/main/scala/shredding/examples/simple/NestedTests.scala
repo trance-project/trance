@@ -2,6 +2,7 @@ package shredding.examples.simple
 
 import shredding.examples.Query
 import shredding.core._
+import shredding.examples.genomic.AltCounts.query
 import shredding.nrc.ShredNRC
 
 trait ExtractTest extends Query {
@@ -47,6 +48,8 @@ object ExtractExample extends ExtractTest {
             Singleton(tr))))))
     )
 
+  val program = Program(Assignment("Q", query))
+
   val query2 =
     ForeachUnion(r, relR,
       Singleton(Tuple(
@@ -56,6 +59,8 @@ object ExtractExample extends ExtractTest {
           ForeachUnion(t, relT, Singleton(Tuple("myattr" -> tr("d"))))
         )))
     )
+
+  val program2 = Program(Assignment("Q", query2))
 
   val query3 =
     ForeachUnion(r, relR,
@@ -72,6 +77,7 @@ object ExtractExample extends ExtractTest {
         )))
     )
 
+  val program3 = Program(Assignment("Q", query3))
 }
 
 object NestedTests {

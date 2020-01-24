@@ -130,4 +130,8 @@ trait NRCTranslator extends ShredNRC with NRCPrinter {
     case _ => EmptyCDict //sys.error("cannot translate "+e)
   }
 
+  def translate(a: Assignment): CExpr = CNamed(a.name, translate(a.rhs))
+
+  def translate(p: Program): LinearCSet = LinearCSet(p.statements.map(translate))
+
 }

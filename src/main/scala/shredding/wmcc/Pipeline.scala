@@ -4,7 +4,7 @@ import shredding.core._
 import shredding.nrc._
 
 trait PipelineRunner extends ShredNRC
-  with Linearization
+  with Materializer
   with Shredding
   with Printer
   with Optimizer 

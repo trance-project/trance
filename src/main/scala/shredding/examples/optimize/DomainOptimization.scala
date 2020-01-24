@@ -1,6 +1,7 @@
 package shredding.examples.optimize
 
 import shredding.core._
+import shredding.examples.genomic.AltCounts.query
 import shredding.examples.tpch.TPCHBase
 import shredding.examples.genomic.GenomicBase
 
@@ -23,6 +24,8 @@ object DomainOptExample1 extends TPCHBase {
             ForeachUnion(p, relP, IfThenElse(
               Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
               Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))))))))))
+
+  val program = Program(Assignment("Q", query))
 }
 
 object DomainOptExample2 extends TPCHBase {
@@ -40,6 +43,8 @@ object DomainOptExample2 extends TPCHBase {
               And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
                 Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
               Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity")))))))))))))
+
+  val program = Program(Assignment("Q", query))
 }
 
 object DomainOptExample3 extends TPCHBase {
@@ -58,6 +63,8 @@ object DomainOptExample3 extends TPCHBase {
               ForeachUnion(c, relC, IfThenElse(
                 Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
                   Singleton(Tuple("c_name" -> cr("c_name")))))))))))))
+
+  val program = Program(Assignment("Q", query))
 }
 
 object DomainOptExample4 extends TPCHBase {
@@ -77,6 +84,7 @@ object DomainOptExample4 extends TPCHBase {
                 Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
                   Singleton(Tuple("c_name" -> cr("c_name")))))))))))))
 
+  val program = Program(Assignment("Q", query))
 }
 
 object DomainOptExample5 extends TPCHBase {
@@ -95,6 +103,8 @@ object DomainOptExample5 extends TPCHBase {
                 IfThenElse(And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
                             Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
                   Singleton(Tuple("c_name" -> cr("c_name"), "p_name" -> pr("p_name")))))))))))
+
+  val program = Program(Assignment("Q", query))
 }
 
 object DomainOptExample6 extends GenomicBase {
@@ -113,4 +123,6 @@ object DomainOptExample6 extends GenomicBase {
                    List("case"),
                    List("genotype"),
                    IntType))))
+
+  val program = Program(Assignment("Q", query))
 }

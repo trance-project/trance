@@ -4,7 +4,7 @@ import shredding.core.{Type, VarDef}
 import shredding.nrc._
 import shredding.wmcc._
 
-trait Query extends Linearization
+trait Query extends Materializer
   with Shredding 
   with Printer
   with Optimizer 
@@ -20,6 +20,7 @@ trait Query extends Linearization
 
   /** standard query **/
   val query: Expr
+  val program: Program
   def calculus: CExpr = {val q = translate(query); println(Printer.quote(q)); q}
   def normalize: CExpr = {
     val norm = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
@@ -41,20 +42,26 @@ trait Query extends Linearization
 
   /** shred query **/
 
-  def shred: (ShredExpr, MaterializationInfo) = query match {
-    case Sequence(fs) => 
-      println(quote(query))
-      val exprs = fs.map(expr => optimize(shred(expr)))
-      (exprs.last.asInstanceOf[ShredExpr], materialize(exprs))
-    case _ => 
-      println(quote(query))
-      val expr = optimize(shred(query))
-      (expr, materialize(expr))
+  def shred: (ShredExpr, MaterializedProgram) = {
+    println(quote(query))
+    val expr = optimize(shred(query))
+    (expr, materialize(expr))
   }
+
+//  def shred: (ShredExpr, MaterializationInfo) = query match {
+//    case Sequence(fs) =>
+//      println(quote(query))
+//      val exprs = fs.map(expr => optimize(shred(expr)))
+//      (exprs.last.asInstanceOf[ShredExpr], materialize(exprs))
+//    case _ =>
+//      println(quote(query))
+//      val expr = optimize(shred(query))
+//      (expr, materialize(expr))
+//  }
 
   def shredNoDomains: Expr = runner.shredPipelineNew(query.asInstanceOf[runner.Expr]).asInstanceOf[Expr]
 
-  def unshred: Expr = {
+  def unshred: Program = {
     val shredset = this.shred
     val res = unshred(shredset._1, shredset._2.dictMapper)
     println(quote(res))
@@ -63,7 +70,7 @@ trait Query extends Linearization
 
   // with domains
   def shredPlan: CExpr = {
-    val seq = this.shred._2.seq
+    val seq = this.shred._2.program
     println(quote(seq))
     val ctrans = translate(seq)
     println(Printer.quote(ctrans))

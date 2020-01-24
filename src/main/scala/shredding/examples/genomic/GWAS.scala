@@ -2,8 +2,6 @@ package shredding.examples.genomic
 
 import shredding.core._
 import shredding.examples.Query
-import shredding.nrc.ShredNRC
-import shredding.wmcc._
 
 trait GenomicBase extends Query {
   
@@ -47,7 +45,9 @@ object AltCounts extends GenomicBase {
                       Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "altcnt" -> gref("call"))))))),
               List("contig", "start"),
               List("altcnt"),
-              IntType)  
+              IntType)
+
+  val program = Program(Assignment("Q", query))
 }
 
 object AlleleCounts extends GenomicBase {
@@ -66,6 +66,8 @@ object AlleleCounts extends GenomicBase {
                             ForeachUnion(gdef, BagProject(vref, "genotypes"),
                               IfThenElse(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
                                 WeightedSingleton(Tuple("cnt" -> gref("call")), NumericProject(gref,"call")))))))))))))//)
+
+  val program = Program(Assignment("Q", query))
 }
 
 object AlleleCounts2 extends GenomicBase {
@@ -85,6 +87,8 @@ object AlleleCounts2 extends GenomicBase {
                       List("cnt"),
                       IntType
                     ))))//)
+
+  val program = Program(Assignment("Q", query))
 }
 
 object AlleleCounts3 extends GenomicBase {
@@ -107,6 +111,8 @@ object AlleleCounts3 extends GenomicBase {
                               IfThenElse(And(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
                                              Cmp(OpGt, PrimitiveProject(gref, "call"), Const(0, IntType))),
                                 Singleton(Tuple("call" -> gref("call")))))))))))))))
+
+  val program = Program(Assignment("Q", query))
 }
 
 object AlleleCountsGB extends GenomicBase {
@@ -124,6 +130,8 @@ object AlleleCountsGB extends GenomicBase {
                    List("case"),
                    List("genotype"),
                    IntType))))
+
+  val program = Program(Assignment("Q", query))
 }
 
 object AlleleCountsGB3 extends GenomicBase {
@@ -143,6 +151,8 @@ object AlleleCountsGB3 extends GenomicBase {
                    List("case"),
                    List("altcnt"),
                    IntType)))))
+
+  val program = Program(Assignment("Q", query))
 }
 
 object AlleleFG extends GenomicBase {
@@ -163,6 +173,7 @@ object AlleleFG extends GenomicBase {
                                            Cmp(OpGt, NumericProject(gref, "call"), Const(0, IntType))),
                                 Singleton(Tuple("sample" -> cref("sample")))))))))))))))
 
+  val program = Program(Assignment("Q", query))
 }
 
 object AlleleFG2 extends GenomicBase {
@@ -183,6 +194,7 @@ object AlleleFG2 extends GenomicBase {
                                            Cmp(OpGt, NumericProject(gref, "call"), Const(0, IntType))),
                               Singleton(Tuple("sample" -> cref("sample")))))))))))))))
 
+  val program = Program(Assignment("Q", query))
 }
 
 object AlleleFG1 extends GenomicBase {
@@ -196,4 +208,6 @@ object AlleleFG1 extends GenomicBase {
                       ForeachUnion(cdef, relC,
                         IfThenElse(Cmp(OpEq, PrimitiveProject(cref, "sample"), PrimitiveProject(gref, "sample")),
                           Singleton(Tuple("pinfo" -> PrimitiveProject(cref, "iscase"), "sample" -> PrimitiveProject(gref, "sample"))))))))))
+
+  val program = Program(Assignment("Q", query))
 }
