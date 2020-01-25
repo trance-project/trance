@@ -41,24 +41,26 @@ object Query4SparkManual {
     val c = C.map(c => c.c_custkey -> c.c_name).cogroup(CustomerOrders).flatMap{
       case (_, (c_name, orders)) => c_name.map(c => (c, orders.toArray))
     }
-    c.cache
-    spark.sparkContext.runJob(c,  (iter: Iterator[_]) => {})
-    
+    val indexed = c.zipWithIndex.map{
+      case ((cname, orders), id1) => (id1, cname, orders.zipWithIndex.map{
+        case ((date, parts), id2) => (id2, date, parts) })
+      }
+    indexed.cache
+    spark.sparkContext.runJob(indexed,  (iter: Iterator[_]) => {})
+
     var start0 = System.currentTimeMillis()
-    val cflat = c.zipWithIndex.flatMap{
-      case ((cname, orders), id1) => orders.zipWithIndex.flatMap{
-        case ((date, parts), id2) => parts.zipWithIndex.map{
-          case ((pname, qty), id3) => pname -> (id1, cname, id2, date, id3, qty) 
+    val cflat = indexed.flatMap{
+      case (id1, cname, orders) => orders.flatMap{
+        case (id2, date, parts) => parts.map{
+          case (pname, qty) => pname -> (id1, cname, id2, date, qty) 
         }
       }
-    }
-    val agg = 
-    cflat.joinSkewLeft(P.map(p => p.p_name -> p.p_retailprice)).map{
-      case (pname, ((id1, cname, id2, date, id3, qty), price)) => (id1, cname, id2, date, pname) -> qty*price
+    }.joinSkewLeft(P.map(p => p.p_name -> p.p_retailprice)).map{
+      case (pname, ((id1, cname, id2, date, qty), price)) => (id1, cname, id2, date, pname) -> qty*price
     }.reduceByKey(_ + _).map{
       case ((id1, cname, id2, date, pname), total) => (id1, cname, id2, date) -> (pname, total)
     }
-    val ogroup = cflat.map{ case (pname, (id1, cname, id2, date, id3, qty)) => 
+    val ogroup = cflat.map{ case (pname, (id1, cname, id2, date, qty)) => 
       (id1, cname, id2, date) -> 1 }
     val cgroup = ogroup.map{ case ((id1, cname, id2, date), _) => (id1, cname) -> 1 }
     val result = agg.cogroup(ogroup).map{
