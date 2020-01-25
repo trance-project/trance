@@ -182,13 +182,13 @@ val x157 = o_parts__D_1
 //o_parts__D_1.collect.foreach(println(_))
 val Query1__D_1 = M__D_1//M_flat1
 Query1__D_1.cache
-Query1__D_1.count
+spark.sparkContext.runJob(Query1__D_1, (iter: Iterator[_]) => {})
 val Query1__D_2c_orders_1 = c_orders__D_1//M_flat2
 Query1__D_2c_orders_1.cache
-Query1__D_2c_orders_1.count
+spark.sparkContext.runJob(Query1__D_2c_orders_1, (iter: Iterator[_]) => {})
 val Query1__D_2c_orders_2o_parts_1 = o_parts__D_1//M_flat3
 Query1__D_2c_orders_2o_parts_1.cache
-Query1__D_2c_orders_2o_parts_1.count
+spark.sparkContext.runJob(Query1__D_2c_orders_2o_parts_1, (iter: Iterator[_]) => {})
  def f = {
  
 var start0 = System.currentTimeMillis()
@@ -301,7 +301,7 @@ x307
 val o_parts__D_1 = x308
 val x309 = o_parts__D_1
 //o_parts__D_1.collect.foreach(println(_))
-x309.count
+spark.sparkContext.runJob(x309, (iter: Iterator[_]) => {})//.count
 var end0 = System.currentTimeMillis() - start0
 println("ShredTPCHNested4Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
     
@@ -343,7 +343,7 @@ x369
 val newM__D_1 = x370
 val x371 = newM__D_1
 //newM__D_1.collect.foreach(println(_))
-x371.count
+spark.sparkContext.runJob(x371, (iter: Iterator[_]) => {})//.count
 var end1 = System.currentTimeMillis() - start1
 println("ShredTPCHNested4Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
     
