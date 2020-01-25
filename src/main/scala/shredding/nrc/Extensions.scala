@@ -53,8 +53,6 @@ trait Extensions {
       case WeightedSingleton(e1, w1) => collect(e1, f) ++ collect(w1, f)
       case BagGroupBy(bag, _, _, _) => collect(bag, f)
       case PlusGroupBy(bag, _, _, _) => collect(bag, f)
-      case n: Named => collect(n.e, f)
-      case Sequence(ee) => ee.flatMap(collect(_, f))
       case _ => List()
     })
 
@@ -172,8 +170,6 @@ trait Extensions {
         BagGroupBy(replace(bag, f).asInstanceOf[BagExpr], v, grp, value)
       case PlusGroupBy(bag, v, grp, value) => 
         PlusGroupBy(replace(bag, f).asInstanceOf[BagExpr], v, grp, value)
-      case n: Named => Named(n.v, replace(n.e, f))
-      case Sequence(ee) => Sequence(ee.map(replace(_, f)))
       case _ => ex
     })
 
@@ -227,10 +223,6 @@ trait Extensions {
       val lblVars = inputVars(l, Map.empty)
       val lblScope = scope ++ lblVars.map(v => v.name -> v.varDef).toMap
       labelParameters(f, lblScope) ++ labelParameters(d, scope)
-
-    // TODO: remove Named
-    case n: Named =>
-      labelParameters(n.e, scope + (n.v.name -> n.v))
   })
 
   // Input labels and dictionaries are invalid in labels
@@ -251,9 +243,6 @@ trait Extensions {
       val lblVars = inputVars(l, Map.empty)
       val lblScope = scope ++ lblVars.map(v => v.name -> v.varDef).toMap
       inputVars(f, lblScope) ++ inputVars(d, scope)
-
-    // TODO: remove Named
-    case n: Named => inputVars(n.e, scope + (n.v.name -> n.v))
   })
 
   protected def filterByScope(v: VarRef, scope: Map[String, VarDef]): Option[VarRef] =

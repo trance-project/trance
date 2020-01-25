@@ -162,13 +162,13 @@ object TPCHQueries {
   
   val inputq4a = ForeachUnion(c, relC, 
                   Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> cr("c_custkey"))))
-  val input4a = Named(VarDef("Q1Flat1", inputq4a.tp), inputq4a)
+  val input4a = Assignment("Q1Flat1", inputq4a)
 
   val inputq4b = ForeachUnion(c, relC, 
                   Singleton(Tuple("_1" -> cr("c_custkey"), "_2" -> ForeachUnion(o, relO, 
                     Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> 
                       Singleton(Tuple("a" -> cr("c_custkey"), "b" -> or("o_orderkey")))))))))
-  val input4b = Named(VarDef("Q1Flat2", inputq4b.tp), inputq4b)
+  val input4b = Assignment("Q1Flat2", inputq4b)
 
   val inputq4c = ForeachUnion(c, relC, 
                   ForeachUnion(o, relO, 
@@ -178,9 +178,9 @@ object TPCHQueries {
                           ForeachUnion(p, relP, IfThenElse(
                             Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
                               Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity")))))))))))
-  val input4c = Named(VarDef("Q1Flat3", inputq4c.tp), inputq4c)
+  val input4c = Assignment("Q1Flat3", inputq4c)
   
-  val input4 = Sequence(List(input4a, input4b, input4c))
+  val input4 = Program(input4a, input4b, input4c)
   
   val q4name = "Query4"
 

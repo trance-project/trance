@@ -37,16 +37,14 @@ trait Evaluator extends ShredNRC with ScalaRuntime {
       v
     case Total(e1) => evalBag(e1, ctx).size
     case DeDup(e1) => evalBag(e1, ctx).distinct
-    case c: CondExpr => c match {
-      case cmp: Cmp => cmp.op match {
-        case OpEq => eval(cmp.e1, ctx) == eval(cmp.e2, ctx)
-        case OpNe => eval(cmp.e1, ctx) != eval(cmp.e2, ctx)
-        case _ => sys.error("Unsupported comparison operator: " + cmp.op)
-      }
-      case And(e1, e2) => evalBool(e1, ctx) && evalBool(e2, ctx)
-      case Or(e1, e2) => evalBool(e1, ctx) || evalBool(e2, ctx)
-      case Not(e1) => !evalBool(e1, ctx)
+    case c: Cmp => c.op match {
+      case OpEq => eval(c.e1, ctx) == eval(c.e2, ctx)
+      case OpNe => eval(c.e1, ctx) != eval(c.e2, ctx)
+      case _ => sys.error("Unsupported comparison operator: " + c.op)
     }
+    case And(e1, e2) => evalBool(e1, ctx) && evalBool(e2, ctx)
+    case Or(e1, e2) => evalBool(e1, ctx) || evalBool(e2, ctx)
+    case Not(e1) => !evalBool(e1, ctx)
     case i: IfThenElse =>
       if (evalBool(i.cond, ctx)) eval(i.e1, ctx)
       else i.e2.map(eval(_, ctx)).getOrElse(Nil)
@@ -56,7 +54,6 @@ trait Evaluator extends ShredNRC with ScalaRuntime {
       val newBoundVars = las.filterNot { case (n2, t2) =>
         ctx.contains(VarDef(n2, t2))
       }
-      var expression = x.e
       eval(x.lbl, ctx) match {
         case ROutLabel(fs) =>
           newBoundVars.foreach { case (n2, t2) =>
@@ -96,14 +93,14 @@ trait Evaluator extends ShredNRC with ScalaRuntime {
     case d: DictUnion =>
       evalDict(d.dict1, ctx).union(evalDict(d.dict2, ctx))
 
-    case n: Named =>
-      val b = eval(n.e, ctx)
-      ctx.add(n.v, b)
-      b
-    case Sequence(ee) => ee.map(eval(_, ctx))
-
     case _ => sys.error("Cannot evaluate unknown expression " + e)
   }
+
+  def eval(a: Assignment, ctx: Context): Unit =
+    ctx.add(VarDef(a.name, a.rhs.tp), eval(a.rhs, ctx))
+
+  def eval(p: Program, ctx: Context): Unit =
+    p.statements.foreach(eval(_, ctx))
 
   protected def evalBag(e: Expr, ctx: Context): List[_] =
     try {
@@ -111,7 +108,7 @@ trait Evaluator extends ShredNRC with ScalaRuntime {
     }
     catch {
       // TODO: why Vector?
-      case ex: Exception => eval(e, ctx).asInstanceOf[Vector[_]].toList
+      case _: Exception => eval(e, ctx).asInstanceOf[Vector[_]].toList
     }
 
   protected def evalTuple(e: Expr, ctx: Context): Map[String, _] =

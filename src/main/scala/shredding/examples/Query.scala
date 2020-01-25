@@ -59,7 +59,8 @@ trait Query extends Materializer
 //      (expr, materialize(expr))
 //  }
 
-  def shredNoDomains: Expr = runner.shredPipelineNew(query.asInstanceOf[runner.Expr]).asInstanceOf[Expr]
+  def shredNoDomains: Program =
+    runner.shredPipelineNew(program.asInstanceOf[runner.Program]).program.asInstanceOf[Program]
 
   def unshred: Program = {
     val shredset = this.shred

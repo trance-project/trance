@@ -161,19 +161,18 @@ object AlleleFG extends GenomicBase {
   val keys = DeDup(ForeachUnion(cdef, relC, Singleton(Tuple("pinfo" -> cref("iscase")))))
   val k = VarDef("k", keys.tp.asInstanceOf[BagType].tp)
   val kr = TupleVarRef(k)
-  val query = Sequence(List(Named(VarDef("keys", keys.tp), keys),
-                ForeachUnion(k, BagVarRef(VarDef("keys", keys.tp)),
-                  Singleton(Tuple("case" -> kr("pinfo"), "variants" ->
-                    ForeachUnion(vdef, relV, 
-                      Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "genotypes" ->
-                        ForeachUnion(cdef, relC, 
-                          IfThenElse(Cmp(OpEq, PrimitiveProject(cref, "iscase"), PrimitiveProject(kr, "pinfo")),
-                            ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                              IfThenElse(And(Cmp(OpEq, PrimitiveProject(cref, "sample"), PrimitiveProject(gref, "sample")),
-                                           Cmp(OpGt, NumericProject(gref, "call"), Const(0, IntType))),
-                                Singleton(Tuple("sample" -> cref("sample")))))))))))))))
+  val query = ForeachUnion(k, BagVarRef(VarDef("keys", keys.tp)),
+                Singleton(Tuple("case" -> kr("pinfo"), "variants" ->
+                  ForeachUnion(vdef, relV,
+                    Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "genotypes" ->
+                      ForeachUnion(cdef, relC,
+                        IfThenElse(Cmp(OpEq, PrimitiveProject(cref, "iscase"), PrimitiveProject(kr, "pinfo")),
+                          ForeachUnion(gdef, BagProject(vref, "genotypes"),
+                            IfThenElse(And(Cmp(OpEq, PrimitiveProject(cref, "sample"), PrimitiveProject(gref, "sample")),
+                                         Cmp(OpGt, NumericProject(gref, "call"), Const(0, IntType))),
+                              Singleton(Tuple("sample" -> cref("sample")))))))))))))
 
-  val program = Program(Assignment("Q", query))
+  val program = Program(Assignment("keys", keys), Assignment("Q", query))
 }
 
 object AlleleFG2 extends GenomicBase {
@@ -182,19 +181,18 @@ object AlleleFG2 extends GenomicBase {
   val keys = DeDup(ForeachUnion(cdef, relC, Singleton(Tuple("pinfo" -> cref("iscase")))))
   val k = VarDef("k", keys.tp.asInstanceOf[BagType].tp)
   val kr = TupleVarRef(k)
-  val query = Sequence(List(Named(VarDef("keys", keys.tp), keys),
-                ForeachUnion(vdef, relV, 
-                  Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "genotypes" ->
-                  ForeachUnion(k, BagVarRef(VarDef("keys", keys.tp)),
-                    Singleton(Tuple("case" -> kr("pinfo"), "samples" ->
-                      ForeachUnion(cdef, relC, 
-                        IfThenElse(Cmp(OpEq, PrimitiveProject(cref, "iscase"), PrimitiveProject(kr, "pinfo")),
-                          ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                            IfThenElse(And(Cmp(OpEq, PrimitiveProject(cref, "sample"), PrimitiveProject(gref, "sample")),
-                                           Cmp(OpGt, NumericProject(gref, "call"), Const(0, IntType))),
-                              Singleton(Tuple("sample" -> cref("sample")))))))))))))))
+  val query = ForeachUnion(vdef, relV,
+                Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "genotypes" ->
+                ForeachUnion(k, BagVarRef(VarDef("keys", keys.tp)),
+                  Singleton(Tuple("case" -> kr("pinfo"), "samples" ->
+                    ForeachUnion(cdef, relC,
+                      IfThenElse(Cmp(OpEq, PrimitiveProject(cref, "iscase"), PrimitiveProject(kr, "pinfo")),
+                        ForeachUnion(gdef, BagProject(vref, "genotypes"),
+                          IfThenElse(And(Cmp(OpEq, PrimitiveProject(cref, "sample"), PrimitiveProject(gref, "sample")),
+                                         Cmp(OpGt, NumericProject(gref, "call"), Const(0, IntType))),
+                            Singleton(Tuple("sample" -> cref("sample")))))))))))))
 
-  val program = Program(Assignment("Q", query))
+  val program = Program(Assignment("keys", keys), Assignment("Q", query))
 }
 
 object AlleleFG1 extends GenomicBase {

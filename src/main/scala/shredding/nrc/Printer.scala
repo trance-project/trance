@@ -99,10 +99,6 @@ trait Printer {
       case _ => s"(${quote(g.bag)}).groupBy+(${quote(g.grp)}), ${quote(g.value)})"
     }
 
-    case n: Named => s"${n.name} := ${quote(n.e)}"
-    case Sequence(ee) => ee.map(quote).mkString("\n")
-
-
     case _ => sys.error("Cannot print unknown expression " + e)
   }
 

@@ -10,34 +10,59 @@ trait PipelineRunner extends ShredNRC
   with Optimizer 
   with NRCTranslator {
 
-  def shredPipelineNew(query: Expr, domains: Boolean = false): Expr = query match {
-    case Sequence(fs) => Sequence(fs.map{
-      case n: Named =>
-        val sp = shredPipelineNew(n.e, domains) match {
-          case Sequence(nes) => nes.head
-          case ne => ne
-        }
-        // explore why the types wouldn't be the same here in the first place
-        Named(VarDef(n.name, sp.tp), sp.asInstanceOf[BagExpr])
-      case e1 => shredPipelineNew(e1, domains) 
-    })
-    case _ => 
-      println("\nQuery:\n")
-      println(quote(query))
-      //val nq = nestingRewrite(query)
-      //println("\nRewrite:\n")
-      //println(quote(nq))
-      val sq = shred(query)
-      //println("\nShredded:\n")
-      //println(quote(sq))
-      //println("\nOptimized:\n")
-      val sqo = optimize(sq)
-      //println(quote(sqo))
-      val lsq = if (domains) linearize(sqo) else linearizeNoDomains(sqo)
-      println("\nLinearized:\n")
-      println(quote(lsq))
-      lsq
+  def shredPipelineNew(program: Program, domains: Boolean = false): MaterializedProgram =
+    program.statements.map(shredPipelineNew(_, domains)).reduce(_ append _)
+
+  def shredPipelineNew(a: Assignment, domains: Boolean): MaterializedProgram =
+    shredPipelineNew(a.rhs, domains)
+
+  def shredPipelineNew(query: Expr, domains: Boolean): MaterializedProgram = {
+    println("\nQuery:\n")
+    println(quote(query))
+    //val nq = nestingRewrite(query)
+    //println("\nRewrite:\n")
+    //println(quote(nq))
+    val sq = shred(query)
+    //println("\nShredded:\n")
+    //println(quote(sq))
+    //println("\nOptimized:\n")
+    val sqo = optimize(sq)
+    //println(quote(sqo))
+    val lsq = if (domains) materialize(sqo) else materializeNoDomains(sqo)
+    println("\nMaterialized:\n")
+    println(quote(lsq.program))
+    lsq
+
   }
+
+//  def shredPipelineNew(query: Expr, domains: Boolean = false): Expr = query match {
+//    case Sequence(fs) => Sequence(fs.map{
+//      case n: Named =>
+//        val sp = shredPipelineNew(n.e, domains) match {
+//          case Sequence(nes) => nes.head
+//          case ne => ne
+//        }
+//        // explore why the types wouldn't be the same here in the first place
+//        Named(VarDef(n.name, sp.tp), sp.asInstanceOf[BagExpr])
+//      case e1 => shredPipelineNew(e1, domains)
+//    })
+//    case _ =>
+//      println("\nQuery:\n")
+//      println(quote(query))
+//      //val nq = nestingRewrite(query)
+//      //println("\nRewrite:\n")
+//      //println(quote(nq))
+//      val sq = shred(query)
+//      //println("\nShredded:\n")
+//      //println(quote(sq))
+//      //println("\nOptimized:\n")
+//      val sqo = optimize(sq)
+//      //println(quote(sqo))
+//      val lsq = if (domains) linearize(sqo) else linearizeNoDomains(sqo)
+//      println("\nLinearized:\n")
+//      println(quote(lsq))
+//      lsq
+//  }
 
   def shredPipeline(query: Expr): CExpr = {
       println("\nQuery:\n")
@@ -48,10 +73,10 @@ trait PipelineRunner extends ShredNRC
       //println("\nOptimized:\n")
       val sqo = optimize(sq)
       //println(quote(sqo))
-      val lsq = linearize(sqo)
-      println("\nLinearized:\n")
-      println(quote(lsq))
-      translate(lsq)
+      val lsq = materialize(sqo)
+      println("\nMaterialized:\n")
+      println(quote(lsq.program))
+      translate(lsq.program)
   }
 
   /**

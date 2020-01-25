@@ -180,13 +180,6 @@ trait Shredding extends BaseShredding with Extensions {
       val lbl = NewLabel(labelParameters(flat))
       ShredExpr(lbl, BagDict(lbl, flat, dict1.tupleDict))
 
-    case n: Named =>
-      val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(n.e, ctx)
-      val dlu = dict1.lookup(lbl1)
-      val flat = BagNamed(VarDef(n.v.name, dlu.tp), dlu)
-      val lbl = NewLabel(labelParameters(flat))
-      ShredExpr(lbl, BagDict(lbl, flat, dict1.tupleDict))
-
     case _ => sys.error("Cannot shred expr " + e)
   }
 

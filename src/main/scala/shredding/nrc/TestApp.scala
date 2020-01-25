@@ -56,9 +56,9 @@ object TestApp extends App
       ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
       ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
 
-      val q1lin = linearize(q1shred)
-      println("[Ex1] Linearized Q1: " + quote(q1lin))
-      println("[Ex1] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n\n"))
+      val q1lin = materialize(q1shred)
+      println("[Ex1] Materialized Q1: " + quote(q1lin.program))
+      println("[Ex1] Materialized Q1 eval: " + eval(q1lin.program, ctx).asInstanceOf[List[Any]].mkString("\n\n"))
 
       val ydef = VarDef("y", itemTp)
       val yref = TupleVarRef(ydef)
@@ -85,9 +85,9 @@ object TestApp extends App
       //      println("[Ex1] Unshredded shredded Q2: " + quote(q2trans))
       //      println("[Ex1] Same as original Q2: " + q2trans.equals(q2))
 
-      val q2lin = linearize(q2shred)
-      println("[Ex1] Linearized Q2: " + quote(q2lin))
-      println("[Ex1] Linearized Q2 eval: " + eval(q2lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+      val q2lin = materialize(q2shred)
+      println("[Ex1] Materialized Q2: " + quote(q2lin.program))
+      println("[Ex1] Materialized Q2 eval: " + eval(q2lin.program, ctx).asInstanceOf[List[Any]].mkString("\n"))
 
       val q1mat = materialize(q1shred)
       println("[Ex1] Materialized strategy Q1: " + quote(q1mat.program))
@@ -211,9 +211,9 @@ object TestApp extends App
       ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
       ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
 
-      val q1lin = linearize(q1shred)
-      println("[Ex2] Linearized Q1: " + quote(q1lin))
-      println("[Ex2] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+      val q1lin = materialize(q1shred)
+      println("[Ex2] Materialized Q1: " + quote(q1lin.program))
+      println("[Ex2] Materialized Q1 eval: " + eval(q1lin.program, ctx).asInstanceOf[List[Any]].mkString("\n"))
 
       // Buggy query reported by Jaclyn
       val q2 = ForeachUnion(xdef, relationR,
@@ -241,9 +241,9 @@ object TestApp extends App
 //      println("[Ex2] Unshredded shredded Q2: " + quote(q2trans))
 //      println("[Ex2] Same as original Q2: " + q2trans.equals(q2))
 
-      val q2lin = linearize(q2shred)
-      println("[Ex2] Linearized Q2: " + quote(q2lin))
-      println("[Ex2] Linearized Q2 eval: " + eval(q2lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+      val q2lin = materialize(q2shred)
+      println("[Ex2] Materialized Q2: " + quote(q2lin.program))
+      println("[Ex2] Materialized Q2 eval: " + eval(q2lin.program, ctx).asInstanceOf[List[Any]].mkString("\n"))
     }
   }
 
@@ -312,9 +312,9 @@ object TestApp extends App
       ctx.add(VarDef(flatName(employees.name), shredEmployees.flatTp), shredEmployees.flat)
       ctx.add(VarDef(dictName(employees.name), shredEmployees.dict.tp), shredEmployees.dict)
 
-      val q1lin = linearize(q1shred)
-      println("[Ex3] Linearized Q1: " + quote(q1lin))
-      println("[Ex3] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+      val q1lin = materialize(q1shred)
+      println("[Ex3] Materialized Q1: " + quote(q1lin.program))
+      println("[Ex3] Materialized Q1 eval: " + eval(q1lin.program, ctx).asInstanceOf[List[Any]].mkString("\n"))
 
     }
   }
@@ -376,9 +376,9 @@ object TestApp extends App
       ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
       ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
 
-      val q1lin = linearize(q1shred)
-      println("[Ex4] Linearized Q1: " + quote(q1lin))
-      println("[Ex4] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+      val q1lin = materialize(q1shred)
+      println("[Ex4] Materialized Q1: " + quote(q1lin.program))
+      println("[Ex4] Materialized Q1 eval: " + eval(q1lin.program, ctx).asInstanceOf[List[Any]].mkString("\n"))
 
     }
   }
@@ -442,9 +442,9 @@ object TestApp extends App
       ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
       ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
 
-      val q1lin = linearize(q1shred)
-      println("[Ex5] Linearized Q1: " + quote(q1lin))
-      println("[Ex5] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+      val q1lin = materialize(q1shred)
+      println("[Ex5] Materialized Q1: " + quote(q1lin.program))
+      println("[Ex5] Materialized Q1 eval: " + eval(q1lin.program, ctx).asInstanceOf[List[Any]].mkString("\n"))
 
     }
   }
@@ -523,9 +523,9 @@ object TestApp extends App
       ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
       ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
 
-      val q1lin = linearize(q1shred)
-      println("[Ex6] Linearized Q1: " + quote(q1lin))
-      println("[Ex6] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+      val q1lin = materialize(q1shred)
+      println("[Ex6] Materialized Q1: " + quote(q1lin.program))
+      println("[Ex6] Materialized Q1 eval: " + eval(q1lin.program, ctx).asInstanceOf[List[Any]].mkString("\n"))
 
     }
   }
@@ -603,9 +603,9 @@ object TestApp extends App
       ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
       ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
 
-      val q1lin = linearize(q1shred)
-      println("[Ex7] Linearized Q1: " + quote(q1lin))
-      println("[Ex7] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+      val q1lin = materialize(q1shred)
+      println("[Ex7] Materialized Q1: " + quote(q1lin.program))
+      println("[Ex7] Materialized Q1 eval: " + eval(q1lin.program, ctx).asInstanceOf[List[Any]].mkString("\n"))
 
     }
   }
@@ -681,9 +681,9 @@ object TestApp extends App
       ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
       ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
 
-      val q1lin = linearize(q1shred)
-      println("[Ex8] Linearized Q1: " + quote(q1lin))
-      println("[Ex8] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+      val q1lin = materialize(q1shred)
+      println("[Ex8] Materialized Q1: " + quote(q1lin.program))
+      println("[Ex8] Materialized Q1 eval: " + eval(q1lin.program, ctx).asInstanceOf[List[Any]].mkString("\n"))
     }
   }
 
@@ -747,9 +747,9 @@ object TestApp extends App
       ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
       ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
 
-      val q1lin = linearize(q1shred)
-      println("[Ex9] Linearized Q1: " + quote(q1lin))
-      println("[Ex9] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+      val q1lin = materialize(q1shred)
+      println("[Ex9] Materialized Q1: " + quote(q1lin.program))
+      println("[Ex9] Materialized Q1 eval: " + eval(q1lin.program, ctx).asInstanceOf[List[Any]].mkString("\n"))
     }
   }
 
@@ -923,9 +923,9 @@ object TestApp extends App
       ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
       ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
 
-      val q1lin = linearize(q1shred)
-      println("[Ex10] Linearized Q1: " + quote(q1lin))
-      println("[Ex10] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+      val q1lin = materialize(q1shred)
+      println("[Ex10] Materialized Q1: " + quote(q1lin.program))
+      println("[Ex10] Materialized Q1 eval: " + eval(q1lin.program, ctx).asInstanceOf[List[Any]].mkString("\n"))
     }
   }
 
@@ -1000,17 +1000,17 @@ object TestApp extends App
       ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
       ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
 
-      val q1lin = linearize(q1shred)
-      println("[Ex11] Linearized Q1: " + quote(q1lin))
-      println("[Ex11] Linearized Q1 eval: " + eval(q1lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+      val q1lin = materialize(q1shred)
+      println("[Ex11] Materialized Q1: " + quote(q1lin.program))
+      println("[Ex11] Materialized Q1 eval: " + eval(q1lin.program, ctx).asInstanceOf[List[Any]].mkString("\n"))
 
-      val q2lin = linearize(q2shred)
-      println("[Ex11] Linearized Q2: " + quote(q2lin))
-      println("[Ex11] Linearized Q2 eval: " + eval(q2lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+      val q2lin = materialize(q2shred)
+      println("[Ex11] Materialized Q2: " + quote(q2lin.program))
+      println("[Ex11] Materialized Q2 eval: " + eval(q2lin.program, ctx).asInstanceOf[List[Any]].mkString("\n"))
 
-      val q3lin = linearize(q3shred)
-      println("[Ex11] Linearized Q3: " + quote(q3lin))
-      println("[Ex11] Linearized Q3 eval: " + eval(q3lin, ctx).asInstanceOf[List[Any]].mkString("\n"))
+      val q3lin = materialize(q3shred)
+      println("[Ex11] Materialized Q3: " + quote(q3lin.program))
+      println("[Ex11] Materialized Q3 eval: " + eval(q3lin.program, ctx).asInstanceOf[List[Any]].mkString("\n"))
     }
   }
 
@@ -1031,8 +1031,8 @@ object TestApp extends App
       val q1shred = optimize(q1shredraw)
       println("[Ex12] Shredded Q1 Optimized: " + quote(q1shred))
 
-      val q1lin = linearize(q1shred)
-      println("[Ex12] Linearized Q1: " + quote(q1lin))
+      val q1lin = materialize(q1shred)
+      println("[Ex12] Materialized Q1: " + quote(q1lin.program))
     }
   }
 
@@ -1052,8 +1052,8 @@ object TestApp extends App
       val q1shred = optimize(q1shredraw)
       println("[Ex13] Shredded Q1 Optimized: " + quote(q1shred))
 
-      val q1lin = linearize(q1shred)
-      println("[Ex13] Linearized Q1: " + quote(q1lin))
+      val q1lin = materialize(q1shred)
+      println("[Ex13] Materialized Q1: " + quote(q1lin.program))
     }
   }
 
@@ -1102,8 +1102,8 @@ object TestApp extends App
       val q1fullshred = optimize(q1fullshredraw)
       println("[Nesting rewrite] Shredded Q1 Optimized: " + quote(q1fullshred))
 
-      val q1fulllin = linearizeNoDomains(q1fullshred)
-      println("[Nesting rewrite] Linearized Q1: " + quote(q1fulllin))
+//      val q1fulllin = linearizeNoDomains(q1fullshred)
+//      println("[Nesting rewrite] Linearized Q1: " + quote(q1fulllin))
 
     }
   }
@@ -1126,8 +1126,8 @@ object TestApp extends App
       val q1fullshred = optimize(q1fullshredraw)
       println("[Nesting rewrite] Shredded Q1 Optimized: " + quote(q1fullshred))
 
-      val q1fulllin = linearizeNoDomains(q1fullshred)
-      println("[Nesting rewrite] Linearized Q1: " + quote(q1fulllin))
+//      val q1fulllin = linearizeNoDomains(q1fullshred)
+//      println("[Nesting rewrite] Linearized Q1: " + quote(q1fulllin))
 
     }
   }
