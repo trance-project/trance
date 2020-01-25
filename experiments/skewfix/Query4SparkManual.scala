@@ -9,10 +9,10 @@ import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
 
-object TPCHNested4SparkManual {
+object Query4SparkManual {
   def main(args: Array[String]){
     val sf = Config.datapath.split("/").last
-    val conf = new SparkConf().setMaster(Config.master).setAppName("TPCHNested4SparkManual"+sf)
+    val conf = new SparkConf().setMaster(Config.master).setAppName("Query4SparkManual"+sf)
     val spark = SparkSession.builder().config(conf).getOrCreate()
 
     val tpch = TPCHLoader(spark)
@@ -64,6 +64,6 @@ object TPCHNested4SparkManual {
     }
     spark.sparkContext.runJob(result,  (iter: Iterator[_]) => {})
   	var end0 = System.currentTimeMillis() - start0
-    println("TPCHNested4SparkManual"+sf+","+Config.datapath+","+end0)
+    println("Query4SparkManual"+sf+","+Config.datapath+","+end0)
   }
 }

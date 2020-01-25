@@ -32,7 +32,7 @@ object App {
 
     // Run shred with domains when a query is used as input for another
     // the true adds unshredding
-    Utils.runSparkInputDomains(Query1Extended, Query4Filter2)
+    Utils.runSparkInputDomains(Query1, Query4, true)
   }
 
   /**

@@ -28,28 +28,29 @@ case class Record320(p_name: String)
 case class Record373(p_name: String, _2: Double)
 case class Record374(o_orderdate: String, o_parts: Iterable[Record373])
 case class Record375(c_name: String, c_orders: Iterable[Record374])
-object ShredTPCHNested4Spark {
+object ShredQuery4Spark {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
-   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredTPCHNested4Spark"+sf)
+   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery4Spark"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
+
 val L__F = 3
 val L__D_1 = tpch.loadLineitem
 L__D_1.cache
-L__D_1.count
+spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
 val P__D_1 = tpch.loadPart
 P__D_1.cache
-P__D_1.count
+spark.sparkContext.runJob(P__D_1, (iter: Iterator[_]) => {})
 val C__F = 1
 val C__D_1 = tpch.loadCustomers
 C__D_1.cache
-C__D_1.count
+spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
 val O__F = 2
 val O__D_1 = tpch.loadOrders
 O__D_1.cache
-O__D_1.count
+spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
    val x46 = () 
 val x47 = Record159(x46) 
@@ -70,7 +71,7 @@ val x65 = { val out1 = x55.map{ case x61 => ({val x63 = x61.l_partkey
 x63}, x61) }
   val out2 = x60.map{ case x62 => ({val x64 = x62.p_partkey 
 x64}, x62) }
-  out1.joinSkewLeft(out2).map{ case (k,v) => v }
+  out1.lookupSkewLeft(out2)
 } 
 val x72 = x65.map{ case (x66, x67) => 
    val x68 = x66.l_orderkey 
@@ -116,7 +117,7 @@ val x101 = x100.c__Fc_custkey
 x101}, x98) }
   val out2 = x97.map{ case x99 => ({val x102 = x99.o_custkey 
 x102}, x99) }
-  out2.lookupSkewLeft(out1)//.map{ case (k,v) => v }
+  out2.lookupSkewLeft(out1)
 } 
 val x113 = x103.flatMap{ case (x105, x104) => val x112 = (x105) 
 x112 match {
@@ -159,10 +160,9 @@ val x140 = x139.o__Fo_orderkey
 x140}, x137) }
   val out2 = x136.map{ case x138 => ({val x141 = x138.l_orderkey 
 x141}, x138) }
-  //out1.join(out2).map{ case (k,v) => v }
-	out1.lookup(out2)
+	out2.lookupSkewLeft(out1)
 } 
-val x151 = x142.flatMap{ case (x143, x144) => val x150 = (x144) 
+val x151 = x142.flatMap{ case (x144, x143) => val x150 = (x144) 
 x150 match {
    case (null) => Nil 
    case x149 => List(({val x145 = (x143) 
@@ -223,9 +223,6 @@ val x243 = { val out1 = x238.map{ case x239 => ({val x241 = x239.lbl
 val x242 = x241.c2__Fc_orders 
 x242}, x239) }
 Query1__D_2c_orders_1.flatMapValues(identity).lookupSkewLeft(out1)
-/**.flatMap{ pair =>
- for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
-}**/
 }
          
 val x253 = x243.flatMap{ case (x245, x244) => val x252 = (x245) 
@@ -266,20 +263,18 @@ val x274 = o_parts_ctx1
 val x279 = { val out1 = x274.map{ case x275 => ({val x277 = x275.lbl 
 val x278 = x277.o2__Fo_parts 
 x278}, x275) }
-out1.cogroup(Query1__D_2c_orders_2o_parts_1.flatMapValues(identity)).flatMap{ pair =>
- for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
-}
+Query1__D_2c_orders_2o_parts_1.flatMapValues(identity).lookupSkewLeft(out1)
 }
          
 val x284 = P__D_1.map(x280 => { val x281 = x280.p_retailprice 
 val x282 = x280.p_name 
 val x283 = Record318(x281, x282) 
 x283 }) 
-val x290 = { val out1 = x279.map{ case (x285, x286) => ({val x288 = x286.p_name 
+val x290 = { val out1 = x279.map{ case (x286, x285) => ({val x288 = x286.p_name 
 x288}, (x285, x286)) }
   val out2 = x284.map{ case x287 => ({val x289 = x287.p_name 
 x289}, x287) }
-  out1.joinSkewLeft(out2).map{ case (k,v) => v }
+  out1.lookupSkewLeft(out2)
 } 
 val x302 = x290.flatMap{ case ((x291, x292), x293) => val x301 = (x291,x293) 
 x301 match {
@@ -303,7 +298,7 @@ val x309 = o_parts__D_1
 //o_parts__D_1.collect.foreach(println(_))
 spark.sparkContext.runJob(x309, (iter: Iterator[_]) => {})//.count
 var end0 = System.currentTimeMillis() - start0
-println("ShredTPCHNested4Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
+println("ShredQuery4Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
     
 
 var start1 = System.currentTimeMillis()
@@ -343,15 +338,15 @@ x369
 val newM__D_1 = x370
 val x371 = newM__D_1
 //newM__D_1.collect.foreach(println(_))
-spark.sparkContext.runJob(x371, (iter: Iterator[_]) => {})//.count
+spark.sparkContext.runJob(x371, (iter: Iterator[_]) => {})
 var end1 = System.currentTimeMillis() - start1
-println("ShredTPCHNested4Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
+println("ShredQuery4Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
     
 }
 var start = System.currentTimeMillis()
 f
 var end = System.currentTimeMillis() - start
     
-   println("ShredTPCHNested4Spark"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
+   println("ShredQuery4Spark"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
  }
 }
