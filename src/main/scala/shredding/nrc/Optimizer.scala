@@ -18,8 +18,20 @@ import shredding.utils.Utils.Symbol
 trait Optimizer extends Extensions {
   this: ShredNRC =>
 
+  def optimize(p: ShredProgram): ShredProgram =
+    ShredProgram(p.statements.map(optimize))
+
+  def optimize(a: ShredAssignment): ShredAssignment =
+    ShredAssignment(a.name, optimize(a.rhs))
+
   def optimize(e: ShredExpr): ShredExpr =
     ShredExpr(optimize(e.flat), optimize(e.dict).asInstanceOf[DictExpr])
+
+  def optimize(p: Program): Program =
+    Program(p.statements.map(optimize))
+
+  def optimize(a: Assignment): Assignment =
+    Assignment(a.name, optimize(a.rhs))
 
   def optimize(e: Expr): Expr = inline(deadCodeElimination(betaReduce(e)))
 

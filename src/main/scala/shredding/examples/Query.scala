@@ -18,10 +18,9 @@ trait Query extends Materializer
   def inputTypes(shred: Boolean = false): Map[Type, String]
   def headerTypes(shred: Boolean = false): List[String]
 
-  /** standard query **/
-  val query: Expr
+  /** standard query program **/
   val program: Program
-  def calculus: CExpr = {val q = translate(query); println(Printer.quote(q)); q}
+  def calculus: CExpr = {val q = translate(program); println(Printer.quote(q)); q}
   def normalize: CExpr = {
     val norm = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
     println(Printer.quote(norm))
@@ -42,10 +41,10 @@ trait Query extends Materializer
 
   /** shred query **/
 
-  def shred: (ShredExpr, MaterializedProgram) = {
-    println(quote(query))
-    val expr = optimize(shred(query))
-    (expr, materialize(expr))
+  def shred: (ShredProgram, MaterializedProgram) = {
+    println(quote(program))
+    val sprog = optimize(shred(program))
+    (sprog, materialize(sprog))
   }
 
 //  def shred: (ShredExpr, MaterializationInfo) = query match {
