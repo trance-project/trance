@@ -8,61 +8,55 @@ import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
 
-object Query4SparkManual {
+object Query2SparkManual {
   def main(args: Array[String]){
     val sf = Config.datapath.split("/").last
-    val conf = new SparkConf().setMaster(Config.master).setAppName("Query4SparkManual"+sf)
+    val conf = new SparkConf().setMaster(Config.master).setAppName("Query2SparkManual"+sf)
     val spark = SparkSession.builder().config(conf).getOrCreate()
 
     val tpch = TPCHLoader(spark)
     val C = tpch.loadCustomers
     C.cache
-    C.count
+    spark.sparkContext.runJob(C, (iter: Iterator[_]) => {})
     val O = tpch.loadOrders
     O.cache
-    O.count
+    spark.sparkContext.runJob(O, (iter: Iterator[_]) => {})
     val L = tpch.loadLineitem
     L.cache
-    L.count
+    spark.sparkContext.runJob(L, (iter: Iterator[_]) => {})
     val P = tpch.loadPart
     P.cache
-    P.count
+    spark.sparkContext.runJob(P, (iter: Iterator[_]) => {})
 
     val l = L.map(l => l.l_partkey -> (l.l_orderkey, l.l_quantity))
     val p = P.map(p => p.p_partkey -> p.p_name)
     val lpj = l.joinSkewLeft(p)
 
-    val OrderParts = lpj.map{ case (_, ((l_orderkey, l_quantity), p_name)) => 
-		(l_orderkey, (p_name, l_quantity)) }
-    
-	val CustomerOrders = O.map(o => o.o_orderkey -> (o.o_custkey, o.o_orderdate)).cogroup(OrderParts).flatMap{
-	        	case (_, (order, parts)) => order.map{ case (ock, od) => ock -> (od, parts.toArray) }
-			}
+    val OrderParts = lpj.map{ case (_, ((l_orderkey, l_quantity), p_name)) => l_orderkey -> (p_name, l_quantity) }
+    val CustomerOrders = O.map(o => o.o_orderkey -> (o.o_custkey, o.o_orderdate)).cogroup(OrderParts).flatMap{
+      case (_, (order, parts)) => order.map{ case (ock, od) => ock -> (od, parts.toArray) }
+    }
 
     val c = C.map(c => c.c_custkey -> c.c_name).cogroup(CustomerOrders).flatMap{
-	                case (_, (c_name, orders)) => c_name.map(c => (c, orders.toArray))
-			}
-	c.cache
-    c.count
+      case (_, (c_name, orders)) => c_name.map(c => (c, orders.toArray))
+    }
+    c.cache
+    spark.sparkContext.runJob(c, (iter: Iterator[_]) => {})
 
     var start0 = System.currentTimeMillis()
-
-    /**val custords = c.flatMap{ case (cname, orders) => 
-                    orders.flatMap{ case (orderdate, parts) => parts.map{
-                      case (pname, lqty) => ((cname, orderdate, pname), lqty)
-                   }}}.reduceByKey(_+_).map{
-                    case ((cname, orderdate, pname), qty) => (cname, (orderdate, pname, qty))
-                   }.groupByKey() **/
-    val custords = c.flatMap{ case (cname, orders) => 
-                    orders.flatMap{ case (orderdate, parts) => parts.map{
-                      case (pname, lqty) => ((cname, orderdate, pname), lqty)
-                   }}}.reduceByKey(_+_).map{
-                      case ((cname, orderdate, pname), qty) => (cname, (orderdate, pname, qty))
-                   }.cogroup(C.map{ c => c.c_name -> 1 }).map{
-                      case (cname, (infos, _)) => cname -> infos.toArray
-                   }
-    custords.count
+    val cflat = c.zipWithIndex.flatMap{
+      case ((cname, orders), id1) => orders.zipWithIndex.flatMap{
+        case ((date, parts), id2) => parts.zipWithIndex.map{ case ((pname, lqty), id3) => 
+          (id1, cname, date, pname) -> lqty}
+      }
+    }
+    val result = cflat.reduceByKey(_+_).map{
+      case ((id1, cname, date, pname), total) => (id1, cname) -> (date, pname, total)
+    }.cogroup(cflat.map{ case ((id1, cname, date, pname), lqty) => (id1, cname) -> 1 }).map{
+      case ((id1, cname), (bag, _)) => cname -> bag
+    }
+    spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
     var end0 = System.currentTimeMillis() - start0
-	println("Query4SparkManual"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
+	  println("Query2SparkManual"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
   }
 }
