@@ -116,9 +116,9 @@ val x101 = x100.c__Fc_custkey
 x101}, x98) }
   val out2 = x97.map{ case x99 => ({val x102 = x99.o_custkey 
 x102}, x99) }
-  out1.join(out2).map{ case (k,v) => v }
+  out2.lookupSkewLeft(out1)//.map{ case (k,v) => v }
 } 
-val x113 = x103.flatMap{ case (x104, x105) => val x112 = (x105) 
+val x113 = x103.flatMap{ case (x105, x104) => val x112 = (x105) 
 x112 match {
    case (null) => Nil 
    case x111 => List(({val x106 = (x104) 
@@ -159,7 +159,8 @@ val x140 = x139.o__Fo_orderkey
 x140}, x137) }
   val out2 = x136.map{ case x138 => ({val x141 = x138.l_orderkey 
 x141}, x138) }
-  out1.join(out2).map{ case (k,v) => v }
+  //out1.join(out2).map{ case (k,v) => v }
+	out1.lookup(out2)
 } 
 val x151 = x142.flatMap{ case (x143, x144) => val x150 = (x144) 
 x150 match {
