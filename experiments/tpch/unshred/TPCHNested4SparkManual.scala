@@ -18,16 +18,16 @@ object TPCHNested4SparkManual {
     val tpch = TPCHLoader(spark)
     val C = tpch.loadCustomers
     C.cache
-    C.count
+    spark.sparkContext.runJob(C,  (iter: Iterator[_]) => {})
     val O = tpch.loadOrders
     O.cache
-    O.count
+    spark.sparkContext.runJob(O,  (iter: Iterator[_]) => {})
     val L = tpch.loadLineitem
     L.cache
-    L.count
+    spark.sparkContext.runJob(L,  (iter: Iterator[_]) => {})
     val P = tpch.loadPart
     P.cache
-    P.count
+    spark.sparkContext.runJob(P,  (iter: Iterator[_]) => {})
        
 
     val l = L.map(l => l.l_partkey -> (l.l_orderkey, l.l_quantity))
@@ -39,30 +39,31 @@ object TPCHNested4SparkManual {
 
     val CustomerOrders = o.map{ case (_, ((o_custkey, o_orderdate), parts)) => (o_custkey, (o_orderdate, parts)) }.groupByKey()
     val c = C.map(c => c.c_custkey -> c.c_name).join(CustomerOrders).map{ case (_, (c_name, orders)) => (c_name, orders) }
-    c.count
+    c.cache
+    spark.sparkContext.runJob(c,  (iter: Iterator[_]) => {})
     var start0 = System.currentTimeMillis()
-	  val custords = C.map{ c => 
-      c.c_custkey -> c.c_name }.join(O.map{o => o.o_custkey -> o.o_orderdate}).map{
-      case (_, (cname, date)) => (cname, date) -> 1
+    val custords = c.flatMap{ case (cname, orders) => orders.flatMap{
+        case (odate, parts) => parts.map{
+          case (pname, lqty) => (cname, odate, pname) -> 1
+        }
+      }
+    }
+    val custdate = c.flatMap{ case (cname, orders) => orders.map{
+        case (odate, parts) => (cname, odate) -> 1
+      }
     }
     val result = c.flatMap{ 
       case (cname, orders) => orders.flatMap{ case (date, parts) => 
         parts.map{ case (part, qty) => part -> (cname, date, qty)}}
     }.joinSkewLeft(P.map(p => p.p_name -> p.p_retailprice)).map{
       case (pname, ((cname, date, qty), price)) => (cname, date, pname) -> qty*price
-    }.reduceByKey(_ + _).map{
-      case ((cname, date, pname), total) =>  (cname, date) -> (pname, total)
-    }.cogroup(custords).map{
-      case ((cname, date), (bag, _)) => cname -> (date, bag)
-    }.cogroup(C.map{c => c.c_name -> 1}).map{
-      case (cname, (bag, _)) => cname -> bag
+    }.reduceByKey(_ + _).cogroup(custords).map{
+      case ((cname, date, pname), (bag, _)) => (cname, date) -> bag.map{ t => (pname, t) } 
+    }.cogroup(custdate).map{
+      case ((cname, date), (bag, _)) =>  cname -> bag.map{ p => (date, p) }
     }
-    /**.groupByKey().map{ // note that this doesn't preserve bag semantics
-      case ((cname, date), bag) => cname -> (date, bag)
-    }.groupByKey()**/
-    //result.collect.foreach(println(_))
-    result.count
-	var end0 = System.currentTimeMillis() - start0
+    spark.sparkContext.runJob(result,  (iter: Iterator[_]) => {})
+  	var end0 = System.currentTimeMillis() - start0
     println("TPCHNested4SparkManual"+sf+","+Config.datapath+","+end0)
   }
 }
