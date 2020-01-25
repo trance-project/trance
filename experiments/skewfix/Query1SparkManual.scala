@@ -45,6 +45,6 @@ object Query1SparkManual {
 			}
     spark.sparkContext.runJob(c, (iter: Iterator[_]) => {})
     var end0 = System.currentTimeMillis() - start0
-    println("Query1SparkManual"+sf+","+Config.datapath+","+end0)
+    println("Query1SparkManual"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
   }
 }

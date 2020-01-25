@@ -35,11 +35,11 @@ object Query4SparkManual {
 
     val OrderParts = lpj.map{ case (_, ((l_orderkey, l_quantity), p_name)) => l_orderkey -> (p_name, l_quantity) }
     val CustomerOrders = O.map(o => o.o_orderkey -> (o.o_custkey, o.o_orderdate)).cogroup(OrderParts).flatMap{
-      case (_, (order, parts)) => order.map{ case (ock, od) => ock -> (od, parts.toList) }
+      case (_, (order, parts)) => order.map{ case (ock, od) => ock -> (od, parts.toArray) }
     }
 
     val c = C.map(c => c.c_custkey -> c.c_name).cogroup(CustomerOrders).flatMap{
-      case (_, (c_name, orders)) => c_name.map(c => (c, orders.toList))
+      case (_, (c_name, orders)) => c_name.map(c => (c, orders.toArray))
     }
     c.cache
     spark.sparkContext.runJob(c,  (iter: Iterator[_]) => {})
