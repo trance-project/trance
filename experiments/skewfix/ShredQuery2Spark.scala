@@ -23,28 +23,29 @@ case class Record414(lbl: Record412)
 case class Record416(orderdate: String, pname: String)
 case class Record438(orderdate: String, pname: String, _2: Double)
 case class Record439(c_name: String, totals: Iterable[Record438])
-object ShredQuery4NewSpark {
+object ShredQuery2Spark {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
-   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery4NewSpark"+sf)
+   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery2Spark"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
+
 val L__F = 3
 val L__D_1 = tpch.loadLineitem
 L__D_1.cache
-L__D_1.count
+spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
 val P__D_1 = tpch.loadPart
 P__D_1.cache
-P__D_1.count
+spark.sparkContext.runJob(P__D_1, (iter: Iterator[_]) => {})
 val C__F = 1
 val C__D_1 = tpch.loadCustomers
 C__D_1.cache
-C__D_1.count
+spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
 val O__F = 2
 val O__D_1 = tpch.loadOrders
 O__D_1.cache
-O__D_1.count
+spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
    val x210 = () 
 val x211 = Record323(x210) 
@@ -65,7 +66,7 @@ val x229 = { val out1 = x219.map{ case x225 => ({val x227 = x225.l_partkey
 x227}, x225) }
   val out2 = x224.map{ case x226 => ({val x228 = x226.p_partkey 
 x228}, x226) }
-  out1.joinSkewLeft(out2).map{ case (k,v) => v }
+  out1.lookupSkewLeft(out2)
 } 
 val x236 = x229.map{ case (x230, x231) => 
    val x232 = x230.l_orderkey 
@@ -111,9 +112,9 @@ val x265 = x264.c__Fc_custkey
 x265}, x262) }
   val out2 = x261.map{ case x263 => ({val x266 = x263.o_custkey 
 x266}, x263) }
-  out1.join(out2).map{ case (k,v) => v }
+  out2.lookupSkewLeft(out1)
 } 
-val x277 = x267.flatMap{ case (x268, x269) => val x276 = (x269) 
+val x277 = x267.flatMap{ case (x269, x268) => val x276 = (x269) 
 x276 match {
    case (null) => Nil 
    case x275 => List(({val x270 = (x268) 
@@ -154,9 +155,9 @@ val x304 = x303.o__Fo_orderkey
 x304}, x301) }
   val out2 = x300.map{ case x302 => ({val x305 = x302.l_orderkey 
 x305}, x302) }
-  out1.join(out2).map{ case (k,v) => v }
+  out2.lookupSkewLeft(out1)
 } 
-val x315 = x306.flatMap{ case (x307, x308) => val x314 = (x308) 
+val x315 = x306.flatMap{ case (x308, x307) => val x314 = (x308) 
 x314 match {
    case (null) => Nil 
    case x313 => List(({val x309 = (x307) 
@@ -176,13 +177,14 @@ val x321 = o_parts__D_1
 //o_parts__D_1.collect.foreach(println(_))
 val Query1__D_1 = M__D_1
 Query1__D_1.cache
-Query1__D_1.count
+spark.sparkContext.runJob(Query1__D_1, (iter: Iterator[_]) => {})
 val Query1__D_2c_orders_1 = c_orders__D_1
 Query1__D_2c_orders_1.cache
-Query1__D_2c_orders_1.count
+spark.sparkContext.runJob(Query1__D_2c_orders_1, (iter: Iterator[_]) => {})
 val Query1__D_2c_orders_2o_parts_1 = o_parts__D_1
 Query1__D_2c_orders_2o_parts_1.cache
-Query1__D_2c_orders_2o_parts_1.count
+spark.sparkContext.runJob(Query1__D_2c_orders_2o_parts_1, (iter: Iterator[_]) => {})
+
  def f = {
  
 var start0 = System.currentTimeMillis()
@@ -217,19 +219,14 @@ val x387 = { val out1 = x382.map{ case x383 => ({val x385 = x383.lbl
 val x386 = x385.c2__Fc_orders 
 x386}, x383) }
 Query1__D_2c_orders_1.flatMapValues(identity).lookupSkewLeft(out1)
-/**.flatMap{ pair =>
- for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
-}**/
 }
          
 val x392 = { val out1 = x387.map{ case (x389, x388) => ({val x391 = x389.o_parts 
 x391}, (x388, x389)) }
-out1.cogroup(Query1__D_2c_orders_2o_parts_1.flatMapValues(identity)).flatMap{ pair =>
- for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
-}
+Query1__D_2c_orders_2o_parts_1.flatMapValues(identity).lookupSkewLeft(out1)
 }
          
-val x403 = x392.flatMap{ case ((x393, x394), x395) => val x402 = (x393,x394,x395) 
+val x403 = x392.flatMap{ case (x395, (x393, x394)) => val x402 = (x393,x394,x395) 
 x402 match {
    case (_,null,_) => Nil
 case (_,_,null) => Nil
@@ -249,9 +246,9 @@ x408
 val totals__D_1 = x409
 val x410 = totals__D_1
 //totals__D_1.collect.foreach(println(_))
-x410.count
+spark.sparkContext.runJob(totals__D_1, (iter: Iterator[_]) => {})
 var end0 = System.currentTimeMillis() - start0
-println("ShredQuery4NewSpark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
+println("ShredQuery2Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
     
 
 var start1 = System.currentTimeMillis()
@@ -270,15 +267,15 @@ x434
 val newM__D_1 = x435
 val x436 = newM__D_1
 //newM__D_1.collect.foreach(println(_))
-x436.count
+spark.sparkContext.runJob(newM__D_1, (iter: Iterator[_]) => {})
 var end1 = System.currentTimeMillis() - start1
-println("ShredQuery4NewSpark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
+println("ShredQuery2Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
     
 }
 var start = System.currentTimeMillis()
 f
 var end = System.currentTimeMillis() - start
     
-   println("ShredQuery4NewSpark"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
+   println("ShredQuery2Spark"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
  }
 }

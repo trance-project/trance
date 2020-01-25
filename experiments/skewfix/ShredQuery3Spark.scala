@@ -203,14 +203,14 @@ Query1__D_2c_orders_1.flatMapValues(identity).lookupSkewLeft(out1)
          
 val x216 = { val out1 = x211.map{ case (x213, x212) => ({val x215 = x213.o_parts 
 x215}, (x212, x213)) }
-Query1__D_2c_orders_2o_parts_1.flatMapValues(identity).lookupSkewLeft(out1)
+out1.lookupSkewLeft(Query1__D_2c_orders_2o_parts_1.flatMapValues(identity))
 }
          
 val x221 = P__D_1.map(x217 => { val x218 = x217.p_retailprice 
 val x219 = x217.p_name 
 val x220 = Record244(x218, x219) 
 x220 }) 
-val x228 = { val out1 = x216.map{ case (x224, (x222, x223)) => ({val x226 = x224.p_name 
+val x228 = { val out1 = x216.map{ case ((x222, x223), x224) => ({val x226 = x224.p_name 
 x226}, ((x222, x223), x224)) }
   val out2 = x221.map{ case x225 => ({val x227 = x225.p_name 
 x227}, x225) }
