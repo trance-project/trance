@@ -9,25 +9,25 @@ import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
 
-object Query1SparkSlender {
+object Query1SparkManual {
   def main(args: Array[String]){
     val sf = Config.datapath.split("/").last
-    val conf = new SparkConf().setMaster(Config.master).setAppName("Query1SparkSlender"+sf)
+    val conf = new SparkConf().setMaster(Config.master).setAppName("Query1SparkManual"+sf)
     val spark = SparkSession.builder().config(conf).getOrCreate()
 
     val tpch = TPCHLoader(spark)
     val C = tpch.loadCustomers
     C.cache
-    C.count
+    spark.sparkContext.runJob(C, (iter: Iterator[_]) => {})
     val O = tpch.loadOrders
     O.cache
-    O.count
+    spark.sparkContext.runJob(O, (iter: Iterator[_]) => {})
     val L = tpch.loadLineitem
     L.cache
-    L.count
+    spark.sparkContext.runJob(L, (iter: Iterator[_]) => {})
     val P = tpch.loadPart
     P.cache
-    P.count
+    spark.sparkContext.runJob(P, (iter: Iterator[_]) => {})
        
     var start0 = System.currentTimeMillis()
 
@@ -37,14 +37,14 @@ object Query1SparkSlender {
 
     val OrderParts = lpj.map{ case (_, ((l_orderkey, l_quantity), p_name)) => l_orderkey -> (p_name, l_quantity) }
     val CustomerOrders = O.map(o => o.o_orderkey -> (o.o_custkey, o.o_orderdate)).cogroup(OrderParts).flatMap{
-		case (_, (order, parts)) => order.map{ case (ock, od) => ock -> (od, parts.toArray) }
-	}
+		  case (_, (order, parts)) => order.map{ case (ock, od) => ock -> (od, parts.toArray) }
+	  }
 
     val c = C.map(c => c.c_custkey -> c.c_name).cogroup(CustomerOrders).flatMap{ 
 	  			case (_, (c_name, orders)) => c_name.map(c => (c, orders.toArray)) 
 			}
-    c.count
+    spark.sparkContext.runJob(c, (iter: Iterator[_]) => {})
     var end0 = System.currentTimeMillis() - start0
-    println("Query1SparkSlender"+sf+","+Config.datapath+","+end0)
+    println("Query1SparkManual"+sf+","+Config.datapath+","+end0)
   }
 }
