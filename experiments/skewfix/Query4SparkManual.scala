@@ -55,7 +55,8 @@ object Query4SparkManual {
           case (pname, qty) => pname -> (id1, cname, id2, date, qty) 
         }
       }
-    }.joinSkewLeft(P.map(p => p.p_name -> p.p_retailprice)).map{
+    }
+    val agg = cflat.joinSkewLeft(P.map(p => p.p_name -> p.p_retailprice)).map{
       case (pname, ((id1, cname, id2, date, qty), price)) => (id1, cname, id2, date, pname) -> qty*price
     }.reduceByKey(_ + _).map{
       case ((id1, cname, id2, date, pname), total) => (id1, cname, id2, date) -> (pname, total)
