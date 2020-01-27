@@ -30,6 +30,5 @@ object FlatTests {
             ForeachUnion(y, relR, 
               IfThenElse(Cmp(OpEq, TupleVarRef(x)("a"), TupleVarRef(y)("a")), 
                 Singleton(Tuple("a" -> TupleVarRef(x)("a"), 
-                  "b1" -> TupleVarRef(x)("b"), "b2" -> TupleVarRef(y)("b")))))) 
-
+                  "b1" -> TupleVarRef(x)("b"), "b2" -> TupleVarRef(y)("b"))))))
 }

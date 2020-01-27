@@ -27,7 +27,9 @@ object TestMaterialization extends App
 //          (expr, materialize(expr))
 //      }
 
-      val q = shredding.examples.optimize.DomainOptExample1.query.asInstanceOf[Expr]
+      import shredding.examples.optimize.DomainOptExample1
+
+      val q = DomainOptExample1.program(DomainOptExample1.name).rhs.asInstanceOf[Expr]
       val shredded = shred(q)
 
       println("Query: " + quote(q))

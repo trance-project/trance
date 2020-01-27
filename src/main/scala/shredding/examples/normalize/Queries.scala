@@ -55,6 +55,4 @@ object NormalizationTests {
                 Singleton(Tuple("o1" -> TupleVarRef(xdef)("a"), "o2" -> TupleVarRef(ydef)("a")))))
   }
 
-
-
 }

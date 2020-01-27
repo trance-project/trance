@@ -229,9 +229,22 @@ trait NRC extends BaseExpr {
   final case class Assignment(name: String, rhs: Expr)
 
   final case class Program(statements: List[Assignment]) {
+    assert(statements.map(_.name).distinct.size == statements.map(_.name).size)
+
     def append(p: Program): Program = Program(statements ++ p.statements)
 
     def append(a: Assignment): Program = Program(statements :+ a)
+
+    def get(n: String): Option[Assignment] = statements.filter(_.name == n) match {
+      case Nil => None
+      case hd :: Nil => Some(hd)
+      case _ => sys.error("Multiple assignments with the same name")
+    }
+
+    def apply(n: String): Assignment = get(n) match {
+      case Some(a) => a
+      case None => throw new NoSuchElementException
+    }
   }
 
   object Program {

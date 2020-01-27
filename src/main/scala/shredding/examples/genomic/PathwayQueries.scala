@@ -21,7 +21,6 @@ object PathwayTests {
  
  val nrc = new ShredNRC{}
  import nrc._
- 
 
  val relP = BagVarRef(VarDef("pathways", BagType(PathwayRelations.pathtype)))
  val pdef = VarDef("p", PathwayRelations.pathtype)
@@ -111,7 +110,5 @@ object PathwayTests {
             ForeachUnion(g3def, vref("genotypes").asInstanceOf[BagExpr],
               IfThenElse(Cmp(OpGt, g3ref("call"), Const(0, IntType)),
                 ForeachUnion(adef, relA, **/
-                  
-          
  
 } 

@@ -88,4 +88,8 @@ trait Implicits {
     }
   }
 
+  implicit class AssignmentOps(a: Assignment) {
+    def varRef: Expr = VarRef(a.name, a.rhs.tp)
+  }
+
 }

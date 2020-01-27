@@ -187,6 +187,4 @@ object GenomicTests {
                                           Singleton(Tuple("alt" -> Const("alt", StringType))),
                                           WeightedSingleton(Tuple("alt" -> Const("alt", StringType)), NumericConst(2, IntType)))).asInstanceOf[BagExpr])))))))
 
-
-
 }

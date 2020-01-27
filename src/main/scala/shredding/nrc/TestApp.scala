@@ -1113,7 +1113,7 @@ object TestApp extends App
   object DomainExamples{
     def run(): Unit = {
 
-      val q1 = DomainOptExample1.query.asInstanceOf[Expr]
+      val q1 = DomainOptExample1.program(DomainOptExample1.name).rhs.asInstanceOf[Expr]
       println("[Nesting rewrite] Q1: " + quote(q1))
 
       val q1opt = nestingRewrite(q1)

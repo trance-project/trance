@@ -51,7 +51,7 @@ trait Materializer {
   }
 
   def materialize(e: ShredExpr): MaterializedProgram =
-    materialize(ShredAssignment("Q", e))
+    materialize(ShredAssignment(Symbol.fresh("Q"), e))
 
   private def materializeDomains(dict: BagDictExpr, ctx: BagVarRef, prefix: String): MaterializedProgram = {
     val ldef = VarDef(Symbol.fresh("l"), ctx.tp.tp)
@@ -125,7 +125,7 @@ trait Materializer {
   }
 
   def unshred(e: ShredExpr, dictMapper: DictMapper): Program =
-    unshred(ShredAssignment("Q", e), dictMapper)
+    unshred(ShredAssignment(Symbol.fresh("Q"), e), dictMapper)
 
   private def unshred(lbl: LabelExpr, dict: BagDictExpr, dictMapper: DictMapper): (Program, BagExpr) = {
 
