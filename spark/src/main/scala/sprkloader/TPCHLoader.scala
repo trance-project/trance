@@ -5,29 +5,33 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.types.{IntegerType, StringType, DoubleType, StructField, StructType}
 
-case class PartSupp(ps_partkey: Int, ps_suppkey: Int, ps_availqty: Int, ps_supplycost: Double, ps_comment: String, uniqueId: Long) extends CaseClassRecord
+case class PartSupp(ps_partkey: Int, ps_suppkey: Int, ps_availqty: Int, ps_supplycost: Double, ps_comment: String)
 
-case class Part2(p_partkey: Int, p_name: String, p_mfgr: String, p_brand: String, p_type: String, p_size: Int, p_container: String, p_retailprice: Double, p_comment: String)
+case class Part(p_partkey: Int, p_name: String, p_mfgr: String, p_brand: String, p_type: String, p_size: Int, p_container: String, p_retailprice: Double, p_comment: String)
 
-case class Part(p_partkey: Int, p_name: String, p_mfgr: String, p_brand: String, p_type: String, p_size: Int, p_container: String, p_retailprice: Double, p_comment: String, uniqueId: Long) extends CaseClassRecord
+case class Customer(c_custkey: Int, c_name: String, c_address: String, c_nationkey: Int, c_phone: String, c_acctbal: Double, c_mktsegment: String, c_comment: String)
 
-case class Customer2(c_custkey: Int, c_name: String, c_address: String, c_nationkey: Int, c_phone: String, c_acctbal: Double, c_mktsegment: String, c_comment: String)
+case class Orders(o_orderkey: Int, o_custkey: Int, o_orderstatus: String, o_totalprice: Double, o_orderdate: String, o_orderpriority: String, o_clerk: String, o_shippriority: Int, o_comment: String)
 
-case class Customer(c_custkey: Int, c_name: String, c_address: String, c_nationkey: Int, c_phone: String, c_acctbal: Double, c_mktsegment: String, c_comment: String, uniqueId: Long) extends CaseClassRecord
+case class Lineitem(l_orderkey: Int, l_partkey: Int, l_suppkey: Int, l_linenumber: Int, l_quantity: Double, l_extendedprice: Double, l_discount: Double, l_tax: Double, l_returnflag: String, l_linestatus: String, l_shipdate: String, l_commitdate: String, l_receiptdate: String, l_shipinstruct: String, l_shipmode: String, l_comment: String)
 
-case class Orders2(o_orderkey: Int, o_custkey: Int, o_orderstatus: String, o_totalprice: Double, o_orderdate: String, o_orderpriority: String, o_clerk: String, o_shippriority: Int, o_comment: String)
+object Lineitem{
+  	val LineRegex = "Lineitem\\((\\d+),(\\d+),(\\d+),(\\d+),(\\d+\\.\\d+),(\\d+\\.\\d+),(\\d+\\.\\d+),(\\d+\\.\\d+),(.*),(.*),(.*),(.*),(.*),(.*),(.*),(.*)\\)".r
+	def unapply(str: String): Lineitem = { 
+		str match { 
+		  case LineRegex(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p) => 
+			Lineitem(a.toInt, b.toInt, c.toInt, d.toInt, e.toDouble, f.toDouble, 
+				g.toDouble, h.toDouble, i, j, k, l, m, n, o, p)
+			case _ => ???
+		}
+	}
+}
 
-case class Orders(o_orderkey: Int, o_custkey: Int, o_orderstatus: String, o_totalprice: Double, o_orderdate: String, o_orderpriority: String, o_clerk: String, o_shippriority: Int, o_comment: String, uniqueId: Long) extends CaseClassRecord
+case class Supplier(s_suppkey: Int, s_name: String, s_address: String, s_nationkey: Int, s_phone: String, s_acctbal: Double, s_comment: String)
 
-case class Lineitem2(l_orderkey: Int, l_partkey: Int, l_suppkey: Int, l_linenumber: Int, l_quantity: Double, l_extendedprice: Double, l_discount: Double, l_tax: Double, l_returnflag: String, l_linestatus: String, l_shipdate: String, l_commitdate: String, l_receiptdate: String, l_shipinstruct: String, l_shipmode: String, l_comment: String)
+case class Region(r_regionkey: Int, r_name: String, r_comment: String)
 
-case class Lineitem(l_orderkey: Int, l_partkey: Int, l_suppkey: Int, l_linenumber: Int, l_quantity: Double, l_extendedprice: Double, l_discount: Double, l_tax: Double, l_returnflag: String, l_linestatus: String, l_shipdate: String, l_commitdate: String, l_receiptdate: String, l_shipinstruct: String, l_shipmode: String, l_comment: String, uniqueId: Long) extends CaseClassRecord
-
-case class Supplier(s_suppkey: Int, s_name: String, s_address: String, s_nationkey: Int, s_phone: String, s_acctbal: Double, s_comment: String, uniqueId: Long) extends CaseClassRecord
-
-case class Region(r_regionkey: Int, r_name: String, r_comment: String, uniqueId: Long) extends CaseClassRecord
-
-case class Nation(n_nationkey: Int, n_name: String, n_regionkey: Int, n_comment: String, uniqueId: Long) extends CaseClassRecord
+case class Nation(n_nationkey: Int, n_name: String, n_regionkey: Int, n_comment: String)
 
 case class Q1Flat(P__F: Int, C__F: Int, L__F: Int, O__F: Int, uniqueId: Long) extends CaseClassRecord
 case class Q1Flat2(Query4__F: Q1Flat, uniqueId: Long) extends CaseClassRecord
@@ -59,10 +63,10 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   def loadCustomers():RDD[Customer] = {
     spark.sparkContext.textFile(s"file:///$datapath/customer.tbl", minPartitions = parts).map(line => {
                     val l = line.split("\\|")
-                    Customer(l(0).toInt, l(1), l(2), l(3).toInt, l(4), l(5).toDouble, l(6), l(7), l(0).toLong)})
+                    Customer(l(0).toInt, l(1), l(2), l(3).toInt, l(4), l(5).toDouble, l(6), l(7))})
   }
 
-  def loadCustomersDF():Dataset[Customer2] = { 
+  def loadCustomersDF():Dataset[Customer] = { 
     val schema = StructType(Array(
                       StructField("c_custkey", IntegerType), 
                       StructField("c_name", StringType),
@@ -76,34 +80,22 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
     spark.read.schema(schema)
       .option("delimiter", "|")
       .csv(s"file:///$datapath/customer.tbl")
-      .as[Customer2]
+      .as[Customer]
   }
 
-  def loadShredCustomers(flat: Int):RDD[(Int, Customer)] = {
-    spark.sparkContext.textFile(s"file:///$datapath/customer.tbl").map(line => {
-                    val l = line.split("\\|")
-                    (flat, Customer(l(0).toInt, l(1), l(2), l(3).toInt, l(4), l(5).toDouble, l(6), l(7), l(0).toLong))})
-  }
- 
   def loadPartSupp():RDD[PartSupp] = {
     spark.sparkContext.textFile(s"file:///$datapath/partsupp.tbl", minPartitions = parts).map(line => {
                     val l = line.split("\\|")
-                    PartSupp(l(0).toInt, l(1).toInt, l(2).toInt, l(3).toDouble, l(4), l(0).toLong)})
-  }
-
-  def loadShredPartSupp(flat: Int):RDD[(Int, PartSupp)] = {
-    spark.sparkContext.textFile(s"file:///$datapath/partsupp.tbl").map(line => {
-                    val l = line.split("\\|")
-                    (flat, PartSupp(l(0).toInt, l(1).toInt, l(2).toInt, l(3).toDouble, l(4), l(0).toLong))})
+                    PartSupp(l(0).toInt, l(1).toInt, l(2).toInt, l(3).toDouble, l(4))})
   }
 
   def loadPart():RDD[Part] = {
     spark.sparkContext.textFile(s"file:///$datapath/part.tbl", minPartitions = parts).map(line => {
                     val l = line.split("\\|")
-                    Part(l(0).toInt, l(1), l(2), l(3), l(4), l(5).toInt, l(6), l(7).toDouble, l(8), l(0).toLong)})
+                    Part(l(0).toInt, l(1), l(2), l(3), l(4), l(5).toInt, l(6), l(7).toDouble, l(8))})
   }
 
-  def loadPartDF():Dataset[Part2] = {
+  def loadPartDF():Dataset[Part] = {
     val schema = StructType(Array(
                       StructField("p_partkey", IntegerType), 
                       StructField("p_name", StringType), 
@@ -118,25 +110,18 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
     spark.read.schema(schema)
       .option("delimiter", "|")
       .csv(s"file:///$datapath/part.tbl")
-      .as[Part2]
+      .as[Part]
   }
-
-  def loadShredPart(flat: Int):RDD[(Int, Part)] = {
-    spark.sparkContext.textFile(s"file:///$datapath/part.tbl").map(line => {
-                    val l = line.split("\\|")
-                    (flat, Part(l(0).toInt, l(1), l(2), l(3), l(4), l(5).toInt, l(6), l(7).toDouble, l(8), l(0).toLong))})
-  }
-
 
   def loadOrders():RDD[Orders] = {
     val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
     spark.sparkContext.textFile(s"file:///$datapath/$ofile",minPartitions = parts).map(line => {
                     val l = line.split("\\|")
-                    Orders(parseBigInt(l(0)), l(1).toInt, l(2), l(3).toDouble, l(4), l(5), l(6), l(7).toInt, l(8), l(0).toLong)})
+                    Orders(parseBigInt(l(0)), l(1).toInt, l(2), l(3).toDouble, l(4), l(5), l(6), l(7).toInt, l(8))})
   }
 
 
-  def loadOrdersDF():Dataset[Orders2] = {
+  def loadOrdersDF():Dataset[Orders] = {
 
     val schema = StructType(Array(
                   StructField("o_orderkey", IntegerType), 
@@ -153,31 +138,20 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
     spark.read.schema(schema)
       .option("delimiter", "|")
       .csv(s"file:///$datapath/$ofile")
-      .as[Orders2]
+      .as[Orders]
   }
 
-  def loadShredOrders(flat: Int):RDD[(Int, Orders)] = {
-    val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
-    spark.sparkContext.textFile(s"file:///$datapath/$ofile").map(line => {
-                    val l = line.split("\\|")
-                    (flat, Orders(l(0).toInt, l(1).toInt, l(2), l(3).toDouble, l(4), l(5), l(6), l(7).toInt, l(8), l(0).toLong))})
-  }
-
+  // this is hard coded directory of files split with bash
+  // split --line-bytes=797780948 --filter='gzip > $FILE.gz' /path/to/input /path/to/output
   def loadLineitem():RDD[Lineitem] = {
-    var id = 0L
-    def newId: Long = {
-      val prevId = id
-      id += 1
-      prevId
-    }
-
-    spark.sparkContext.textFile(s"file:///$datapath/lineitem.tbl",minPartitions = parts).map(line => {
-                    val l = line.split("\\|")
-                    Lineitem(parseBigInt(l(0)), l(1).toInt, l(2).toInt, l(3).toInt, l(4).toDouble, l(5).toDouble, l(6).toDouble, 
-                      l(7).toDouble, l(8), l(9), l(10), l(11), l(12), l(13), l(14), l(15), newId)})
+    //spark.sparkContext.textFile(s"file:///$datapath/lineitem.tbl",minPartitions = parts).map(line => {
+    spark.sparkContext.textFile(s"file:///nfs_qc4/tpch/li100").map(line => {
+		val l = line.split("\\|")
+        Lineitem(parseBigInt(l(0)), l(1).toInt, l(2).toInt, l(3).toInt, l(4).toDouble, l(5).toDouble, 
+			l(6).toDouble, l(7).toDouble, l(8), l(9), l(10), l(11), l(12), l(13), l(14), l(15))})
   }
   
-  def loadLineitemDF():Dataset[Lineitem2] = {
+  def loadLineitemDF():Dataset[Lineitem] = {
     val schema = StructType(Array(
                    StructField("l_orderkey", IntegerType), 
                    StructField("l_partkey", IntegerType),
@@ -199,60 +173,26 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
     spark.read.schema(schema)
       .option("delimiter", "|")
       .csv(s"file:///$datapath/lineitem.tbl")
-      .as[Lineitem2]
+      .as[Lineitem]
 
-  }
-
-
-
-  def loadShredLineitem(flat: Int):RDD[(Int, Lineitem)] = {
-    var id = 0L
-    def newId: Long = {
-      val prevId = id
-      id += 1
-      prevId
-    }
-
-    spark.sparkContext.textFile(s"file:///$datapath/lineitem.tbl").map(line => {
-                    val l = line.split("\\|")
-                    (flat, Lineitem(l(0).toInt, l(1).toInt, l(2).toInt, l(3).toInt, l(4).toDouble, l(5).toDouble, l(6).toDouble, 
-                      l(7).toDouble, l(8), l(9), l(10), l(11), l(12), l(13), l(14), l(15), newId))})
   }
 
   def loadSupplier():RDD[Supplier] = {
     spark.sparkContext.textFile(s"file:///$datapath/supplier.tbl",minPartitions = parts).map(line => {
                     val l = line.split("\\|")
-                    Supplier(l(0).toInt, l(1), l(2), l(3).toInt, l(4), l(5).toDouble, l(6), l(0).toLong)})
-  }
-
-  def loadShredSupplier(flat: Int):RDD[(Int, Supplier)] = {
-    spark.sparkContext.textFile(s"file:///$datapath/supplier.tbl").map(line => {
-                    val l = line.split("\\|")
-                    (flat, Supplier(l(0).toInt, l(1), l(2), l(3).toInt, l(4), l(5).toDouble, l(6), l(0).toLong))})
+                    Supplier(l(0).toInt, l(1), l(2), l(3).toInt, l(4), l(5).toDouble, l(6))})
   }
 
   def loadRegion():RDD[Region] = {
     spark.sparkContext.textFile(s"file:///$datapath/region.tbl",minPartitions = parts).map(line => {
                     val l = line.split("\\|")
-                    Region(l(0).toInt, l(1), l(2), l(0).toLong)})
-  }
-
-  def loadShredRegion(flat: Int):RDD[(Int, Region)] = {
-    spark.sparkContext.textFile(s"file:///$datapath/region.tbl").map(line => {
-                    val l = line.split("\\|")
-                    (flat, Region(l(0).toInt, l(1), l(2), l(0).toLong))})
+                    Region(l(0).toInt, l(1), l(2))})
   }
 
   def loadNation():RDD[Nation] = {
     spark.sparkContext.textFile(s"file:///$datapath/nation.tbl",minPartitions = parts).map(line => {
                     val l = line.split("\\|")
-                    Nation(l(0).toInt, l(1), l(2).toInt, l(3), l(0).toLong)})
-  }
-
-  def loadShredNation(flat: Int):RDD[(Int, Nation)] = {
-    spark.sparkContext.textFile(s"file:///$datapath/nation.tbl").map(line => {
-                    val l = line.split("\\|")
-                    (flat, Nation(l(0).toInt, l(1), l(2).toInt, l(3), l(0).toLong))})
+                    Nation(l(0).toInt, l(1), l(2).toInt, l(3))})
   }
 
 }
