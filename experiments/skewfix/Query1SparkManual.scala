@@ -29,6 +29,8 @@ object Query1SparkManual {
     P.cache
     spark.sparkContext.runJob(P, (iter: Iterator[_]) => {})
        
+	tpch.triggerGC
+
     var start0 = System.currentTimeMillis()
 
     val l = L.map(l => l.l_partkey -> (l.l_orderkey, l.l_quantity))

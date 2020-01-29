@@ -5,7 +5,6 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
-import org.apache.hadoop.io.compress.GzipCodec
 case class Record165(lbl: Unit)
 case class Record166(l_orderkey: Int, l_quantity: Double, l_partkey: Int)
 case class Record167(p_name: String, p_partkey: Int)
@@ -32,21 +31,20 @@ val L__D_1 = tpch.loadLineitem
 L__D_1.cache
 spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
-val P__D_1 = tpch.loadPart//.repartition(100)
+val P__D_1 = tpch.loadPart
 P__D_1.cache
 spark.sparkContext.runJob(P__D_1, (iter: Iterator[_]) => {})
 val C__F = 1
-val C__D_1 = tpch.loadCustomers//.repartition(100)
+val C__D_1 = tpch.loadCustomers
 C__D_1.cache
 spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
 val O__F = 2
-val O__D_1 = tpch.loadOrders//.repartition(100)
+val O__D_1 = tpch.loadOrders
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
-spark.sparkContext.parallelize((1 to 20)).repartition(20).foreach(x => System.gc())
-System.gc()
-  
+tpch.triggerGC
+
 	def f = {
  
 var start0 = System.currentTimeMillis()
@@ -229,9 +227,6 @@ var end1 = System.currentTimeMillis() - start1
 println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
     
 }
-var start = System.currentTimeMillis()
 f
-var end = System.currentTimeMillis() - start
-   println("ShredQuery1Spark"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
   }
 }

@@ -36,6 +36,8 @@ val O__D_1 = tpch.loadOrders
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
+tpch.triggerGC
+
    def f = { 
 var start0 = System.currentTimeMillis()
  val x134 = L__D_1.map(x129 => { val x130 = x129.l_orderkey 
@@ -118,9 +120,6 @@ var end1 = System.currentTimeMillis() - start1
 println("ShredQuery1SparkOpt"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 
 }
-var start = System.currentTimeMillis()
 f
-var end = System.currentTimeMillis() - start
-   println("ShredQuery1SparkOpt"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
  }
 }
