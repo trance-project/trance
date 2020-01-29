@@ -115,6 +115,22 @@ object SkewPairRDD {
       }
       lrdd.mapPartitions(groupBy)
     }
+  
+    def groupBySkew(): RDD[(K, Iterable[V])] = {
+      val hk = heavyKeys 
+      if (hk.nonEmpty){
+        val hkeys = lrdd.sparkContext.broadcast(hk)
+        val rekey = lrdd.mapPartitions{ it =>
+          it.zipWithIndex.map{ case ((k,v), i) => 
+            (k, { if (hkeys.value(k)) i % reducers else 0 }) -> v
+          }
+        }
+        rekey.groupByKey().map{ case ((k, _), v) => k -> v }
+      }
+      else groupByLabel() 
+    }
+
+  
   }
 
 }
