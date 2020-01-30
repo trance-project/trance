@@ -8,7 +8,8 @@ import sprkloader.SkewPairRDD._
 case class Record159(lbl: Unit)
 case class Record160(l_orderkey: Int, l_quantity: Double, l_partkey: Int)
 case class Record161(p_name: String, p_partkey: Int)
-case class Record162(l_orderkey: Int, p_name: String, l_qty: Double)
+//case class Record162(l_orderkey: Int, p_name: String, l_qty: Double)
+case class Record162(l_orderkey: Int, p_partkey: Int, l_qty: Double)
 case class Record163(c__Fc_custkey: Int)
 case class Record164(c_name: String, c_orders: Record163)
 case class Record165(lbl: Record163)
@@ -16,14 +17,15 @@ case class Record166(o_orderdate: String, o_orderkey: Int, o_custkey: Int)
 case class Record168(o__Fo_orderkey: Int)
 case class Record169(o_orderdate: String, o_parts: Record168)
 case class Record170(lbl: Record168)
-case class Record172(p_name: String, l_qty: Double)
+//case class Record172(p_name: String, l_qty: Double)
+case class Record172(p_partkey: Int, l_qty: Double)
 case class Record311(c2__Fc_orders: Record163)
 case class Record312(c_name: String, c_orders: Record311)
 case class Record313(lbl: Record311)
 case class Record315(o2__Fo_parts: Record168)
 case class Record316(o_orderdate: String, o_parts: Record315)
 case class Record317(lbl: Record315)
-case class Record318(p_retailprice: Double, p_name: String)
+case class Record318(p_partkey: Int, p_retailprice: Double, p_name: String)
 case class Record320(p_name: String)
 case class Record373(p_name: String, _2: Double)
 case class Record374(o_orderdate: String, o_parts: Iterable[Record373])
@@ -75,7 +77,7 @@ x64}, x62) }
 } 
 val x72 = x65.map{ case (x66, x67) => 
    val x68 = x66.l_orderkey 
-val x69 = x67.p_name 
+val x69 = x67.p_partkey 
 val x70 = x66.l_quantity 
 val x71 = Record162(x68, x69, x70) 
 x71 
@@ -166,7 +168,7 @@ val x151 = x142.flatMap{ case (x144, x143) => val x150 = (x144)
 x150 match {
    case (null) => Nil 
    case x149 => List(({val x145 = (x143) 
-x145}, {val x146 = x144.p_name 
+x145}, {val x146 = x144.p_partkey
 val x147 = x144.l_qty 
 val x148 = Record172(x146, x147) 
 x148}))
@@ -190,11 +192,7 @@ val Query1__D_2c_orders_2o_parts_1 = o_parts__D_1//M_flat3
 Query1__D_2c_orders_2o_parts_1.cache
 spark.sparkContext.runJob(Query1__D_2c_orders_2o_parts_1, (iter: Iterator[_]) => {})
 
-  L__D_1.unpersist()
-  C__D_1.unpersist()
-  O__D_1.unpersist()
-
-  tpch.triggerGC
+tpch.triggerGC
 
  def f = {
  
@@ -219,16 +217,22 @@ spark.sparkContext.runJob(c_orders__D_1, (iter: Iterator[_]) => {})
 //c_orders__D_1.collect.foreach(println(_))
 val x261 = c_orders__D_1 
 
-val x279 = Query1__D_2c_orders_2o_parts_1.flatMapValues(identity)     
+val x279 = Query1__D_2c_orders_2o_parts_1.flatMap{
+	case (lbl, bag) => bag.map(b => (b.p_partkey, (lbl, b.l_qty)))
+}.groupByLabel()
 val x284 = P__D_1.map(x280 => { val x281 = x280.p_retailprice 
 val x282 = x280.p_name 
-val x283 = Record318(x281, x282) 
+val x283 = Record318(x280.p_partkey, x281, x282) 
 x283 }) 
-val x290_out1 = x279.map{ case (x285, x286) => ({val x288 = x286.p_name 
-x288}, (x285, x286)) }
-val x290_out2 = x284.map{ case x287 => ({val x289 = x287.p_name 
+//val x290_out1 = x279.map{ case (x285, x286) => ({val x288 = x286.p_partkey
+//x288}, (x285, x286)) }
+val x290_out1 = x279
+val x290_out2 = x284.map{ case x287 => ({val x289 = x287.p_partkey
 x289}, x287) }
-val x290 = x290_out1.joinSkewLeft(x290_out2)
+//val x290 = x290_out1.joinSkewLeft(x290_out2)
+val x290 = x290_out1.joinSkewLeft(x290_out2).flatMap{
+	case (bag, part) => bag.map{ b => (b, part) }
+}
 
 val x302 = x290.flatMap{ case ((x291, x292), x293) => val x301 = (x291,x293) 
 x301 match {
@@ -236,7 +240,7 @@ x301 match {
    case x300 => List(({val x294 = x293.p_name 
 val x295 = Record320(x294) 
 val x296 = (x291,x295) 
-x296}, {val x297 = x292.l_qty 
+x296}, {val x297 = x292//.l_qty 
 val x298 = x293.p_retailprice 
 val x299 = x297 * x298 
 x299}))
