@@ -80,7 +80,7 @@ object SkewPairRDD {
         val (rekey,dupp) = lrdd.balanceLeft(rrdd, hkeys)
         rekey.cogroup(dupp).map{ case ((k, _), v) => v }
       }
-      else lrdd.cogroup(rrdd).map{ case ((k,_), v) => v } 
+      else lrdd.cogroup(rrdd).map{ case (k, v) => v } 
     }
 
     def joinSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
