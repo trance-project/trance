@@ -221,19 +221,19 @@ val x234 = x230.map{ case x231 =>
 val x233 = Record313(x232) 
 x233 
 } 
-val x235 = x234.distinct 
+val x235 = x234//.distinct 
 val c_orders_ctx1 = x235
 val x236 = c_orders_ctx1
 //c_orders_ctx1.collect.foreach(println(_))
 val x238 = c_orders_ctx1 
-val x243 = { val out1 = x238.map{ case x239 => ({val x241 = x239.lbl 
+val x243_out1 = x238.map{ case x239 => ({val x241 = x239.lbl 
 val x242 = x241.c2__Fc_orders 
 x242}, x239) }
-val out2 = Query1__D_2c_orders_1
-out2.lookupSkewLeft(out1)
-}.map{
-  case (lbl, bag) => (lbl.lbl, bag.map{o => Record316(o.o_orderdate, Record315(o.o_parts))})
-}//.groupByLabel() might still need to do this
+val x243_out2 = Query1__D_2c_orders_1
+val x243a = x243_out2.lookupSkewLeft(x243_out1)
+val x243 = x243a.mapPartitions(it =>
+  it.map{ case (lbl, bag) => (lbl.lbl, bag.map{o => Record316(o.o_orderdate, Record315(o.o_parts))}) },
+true)//.groupByLabel() might still need to do this
 
 val c_orders__D_1 = x243
 val x259 = c_orders__D_1
@@ -249,30 +249,27 @@ val x270 = x265.map{ case (x266, x267) =>
 val x269 = Record317(x268) 
 x269 
 } 
-val x271 = x270.distinct 
+val x271 = x270//.distinct 
 val o_parts_ctx1 = x271
 val x272 = o_parts_ctx1
 //o_parts_ctx1.collect.foreach(println(_))
 val x274 = o_parts_ctx1 
-val x279 = { val out1 = x274.map{ case x275 => ({val x277 = x275.lbl 
+val x279_out1 = x274.map{ case x275 => ({val x277 = x275.lbl 
 val x278 = x277.o2__Fo_parts 
 x278}, x275) }
-val out2 = Query1__D_2c_orders_2o_parts_1
-out2.lookupSkewLeft(out1)
-}.flatMap{
-  case (lbl, bag) =>  bag.map(b => (lbl, b))
-}
+val x279_out2 = Query1__D_2c_orders_2o_parts_1.flatMapValues(identity)
+val x279 = x279_out2.joinSkewLeft(x279_out1)
          
 val x284 = P__D_1.map(x280 => { val x281 = x280.p_retailprice 
 val x282 = x280.p_name 
 val x283 = Record318(x281, x282) 
 x283 }) 
-val x290 = { val out1 = x279.map{ case (x285, x286) => ({val x288 = x286.p_name 
+val x290_out1 = x279.map{ case (x286, x285) => ({val x288 = x286.p_name 
 x288}, (x285, x286)) }
-  val out2 = x284.map{ case x287 => ({val x289 = x287.p_name 
+val x290_out2 = x284.map{ case x287 => ({val x289 = x287.p_name 
 x289}, x287) }
-  out1.joinSkewLeft(out2)
-} 
+val x290 = x290_out1.joinSkewLeft(x290_out2)
+
 val x302 = x290.flatMap{ case ((x291, x292), x293) => val x301 = (x291,x293) 
 x301 match {
    case (_,null) => Nil
