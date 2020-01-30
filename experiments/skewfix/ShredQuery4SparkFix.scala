@@ -73,7 +73,7 @@ val x65 = { val out1 = x55.map{ case x61 => ({val x63 = x61.l_partkey
 x63}, x61) }
   val out2 = x60.map{ case x62 => ({val x64 = x62.p_partkey 
 x64}, x62) }
-  out1.lookupSkewLeft(out2)
+  out1.joinSkewLeft(out2)
 } 
 val x72 = x65.map{ case (x66, x67) => 
    val x68 = x66.l_orderkey 
@@ -119,7 +119,7 @@ val x101 = x100.c__Fc_custkey
 x101}, x98) }
   val out2 = x97.map{ case x99 => ({val x102 = x99.o_custkey 
 x102}, x99) }
-  out2.lookupSkewLeft(out1)
+  out2.joinSkewLeft(out1)
 } 
 val x113 = x103.flatMap{ case (x105, x104) => val x112 = (x105) 
 x112 match {
@@ -162,7 +162,7 @@ val x140 = x139.o__Fo_orderkey
 x140}, x137) }
   val out2 = x136.map{ case x138 => ({val x141 = x138.l_orderkey 
 x141}, x138) }
-	out2.lookupSkewLeft(out1)
+	out2.joinSkewLeft(out1)
 } 
 val x151 = x142.flatMap{ case (x144, x143) => val x150 = (x144) 
 x150 match {
@@ -194,6 +194,7 @@ spark.sparkContext.runJob(Query1__D_2c_orders_2o_parts_1, (iter: Iterator[_]) =>
  C__D_1.unpersist()
  O__D_1.unpersist()
  L__D_1.unpersist()
+ tpch.triggerGC
 
  def f = {
  
@@ -228,9 +229,10 @@ val x238 = c_orders_ctx1
 val x243 = { val out1 = x238.map{ case x239 => ({val x241 = x239.lbl 
 val x242 = x241.c2__Fc_orders 
 x242}, x239) }
-Query1__D_2c_orders_1.lookupSkewLeft(out1)
+val out2 = Query1__D_2c_orders_1
+out2.lookupSkewLeft(out1)
 }.map{
-  case (bag, lbl) => (lbl.lbl, bag.map{o => Record316(o.o_orderdate, Record315(o.o_parts))})
+  case (lbl, bag) => (lbl.lbl, bag.map{o => Record316(o.o_orderdate, Record315(o.o_parts))})
 }//.groupByLabel() might still need to do this
 
 val c_orders__D_1 = x243
@@ -255,9 +257,10 @@ val x274 = o_parts_ctx1
 val x279 = { val out1 = x274.map{ case x275 => ({val x277 = x275.lbl 
 val x278 = x277.o2__Fo_parts 
 x278}, x275) }
-Query1__D_2c_orders_2o_parts_1.lookupSkewLeft(out1)
+val out2 = Query1__D_2c_orders_2o_parts_1
+out2.lookupSkewLeft(out1)
 }.flatMap{
-  case (bag, lbl) =>  bag.map(b => (lbl, b))
+  case (lbl, bag) =>  bag.map(b => (lbl, b))
 }
          
 val x284 = P__D_1.map(x280 => { val x281 = x280.p_retailprice 
@@ -268,7 +271,7 @@ val x290 = { val out1 = x279.map{ case (x285, x286) => ({val x288 = x286.p_name
 x288}, (x285, x286)) }
   val out2 = x284.map{ case x287 => ({val x289 = x287.p_name 
 x289}, x287) }
-  out1.lookupSkewLeft(out2)
+  out1.joinSkewLeft(out2)
 } 
 val x302 = x290.flatMap{ case ((x291, x292), x293) => val x301 = (x291,x293) 
 x301 match {
@@ -331,7 +334,6 @@ x369
 } 
 val newM__D_1 = x370
 val x371 = newM__D_1
-newM__D_1.collect.foreach(println(_))
 spark.sparkContext.runJob(x371, (iter: Iterator[_]) => {})
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery4SparkFix,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)

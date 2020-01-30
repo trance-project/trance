@@ -7,11 +7,55 @@ import scala.reflect.ClassTag
 
 object SkewPairRDD {
   
+  implicit class SkewPairDictFunctions[K: ClassTag, V: ClassTag](lrdd: RDD[(K,Iterable[V])]) extends Serializable {
+
+    val reducers = Config.minPartitions 
+
+    def heavyKeys(): Set[K] = {
+      println("in this heavy keys!!")
+      lrdd.mapPartitions{ it => 
+        it.foldLeft(HashMap.empty[K, Int].withDefaultValue(0))((acc, c) =>
+          { acc(c._1) += c._2.size; acc } ) .filter(_._2 > 1000).iterator 
+      }.reduceByKey(_ + _).filter(_._2 >= reducers).keys.collect.toSet
+    }
+ 
+ 	  def balanceLeft[S](rrdd: RDD[(K, S)], hkeys: Broadcast[Set[K]]): (RDD[((K, Int), Iterable[V])], RDD[((K, Int), S)]) = {
+      val lrekey = lrdd.mapPartitions{ it =>
+        it.zipWithIndex.map{ case ((k,v), i) => 
+          (k, { if (hkeys.value(k)) i % reducers else 0 }) -> v
+        }
+      }
+      val rdupp = rrdd.flatMap{ case (k,v) =>
+        Range(0, {if (hkeys.value(k)) reducers else 1 }).map(id => (k, id) -> v) 
+      }
+      (lrekey, rdupp)
+    }
+
+    def lookup[S](rrdd: RDD[(K,S)]): RDD[(S, Iterable[V])] = {
+      lrdd.cogroup(rrdd).flatMap{ pair =>
+        for (b <- pair._2._1.iterator; l <- pair._2._2.iterator) yield (l, b)
+      }
+    }
+
+    def lookupSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(S, Iterable[V])] = {
+      val hk = heavyKeys
+      if (hk.nonEmpty) {
+        val hkeys = lrdd.sparkContext.broadcast(hk)
+        val (rekey,dupp) = lrdd.balanceLeft(rrdd, hkeys)
+	 	    rekey.cogroup(dupp).flatMap{ pair =>
+          for (b <- pair._2._1.iterator; l <- pair._2._2.iterator) yield (l, b)
+        }
+      } else lrdd.lookup(rrdd) 
+    }
+
+  }
+
   implicit class SkewPairRDDFunctions[K: ClassTag, V: ClassTag](lrdd: RDD[(K,V)]) extends Serializable {
 
     val reducers = Config.minPartitions 
 
     def heavyKeys(): Set[K] = {
+      println("nope in these one mert")
       lrdd.mapPartitions{ it => 
         Util.countDistinct(it).filter(_._2 > 1000).iterator }
       .reduceByKey(_ + _)
@@ -31,67 +75,31 @@ object SkewPairRDD {
       (lrekey, rdupp)
     }
 
-    def cogroupSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(K, (Iterable[V], Iterable[S]))] = { 
+    def cogroupSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(Iterable[V], Iterable[S])] = { 
       val hk = heavyKeys
       if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)
         val (rekey,dupp) = lrdd.balanceLeft(rrdd, hkeys)
-        rekey.cogroup(dupp).map{ case ((k, _), v) => k -> v }
+        rekey.cogroup(dupp).map{ case ((k, _), v) => v }
       }
-      else lrdd.cogroup(rrdd) 
+      else lrdd.cogroup(rrdd).map{ case (k,v) => v } 
     }
 
-    def joinSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(K, (V, S))] = { 
+    def joinSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
       val hk = heavyKeys
       if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)
         val (rekey,dupp) = lrdd.balanceLeft(rrdd, hkeys)
-        rekey.join(dupp).map{ case ((k, _), v) => k -> v }
-      }
-      else lrdd.join(rrdd) 
-    }
-
-    def outerLookup[S >: Null](rrdd: RDD[(K,S)]): RDD[(V,S)] = {
-      lrdd.cogroup(rrdd).flatMap{ pair =>
-        if (pair._2._2.isEmpty) {
-          pair._2._1.iterator.map(k => (k, null))
-        } else {
-          for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k, w)
-        }
-      }
-    }
-
-    def lookup[S](rrdd: RDD[(K,S)]): RDD[(V,S)] = {
-      lrdd.cogroup(rrdd).flatMap{ pair =>
-        for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k, w)
-      }
-    }
-
-    def lookupSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(V, S)] = {
-      val hk = heavyKeys
-      if (hk.nonEmpty) {
-        val hkeys = lrdd.sparkContext.broadcast(hk)
-        val (rekey,dupp) = lrdd.balanceLeft(rrdd, hkeys)
-	 	    rekey.cogroup(dupp).flatMap{ pair =>
-          for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k, w)
-        }
-      } else lrdd.lookup(rrdd) 
-    }
-
-    def outerLookupSkewLeft[S >: Null](rrdd: RDD[(K, S)]): RDD[(V, S)] = {
-      val hk = heavyKeys
-      if (hk.nonEmpty) {
-        val hkeys = lrdd.sparkContext.broadcast(hk)
-        val (rekey,dupp) = lrdd.balanceLeft(rrdd, hkeys)
+        //rekey.cogroup(dupp).flatMap{ case ((k, _), v) => v }
         rekey.cogroup(dupp).flatMap{ pair =>
-          if (pair._2._2.isEmpty) {
-            pair._2._1.iterator.map{ case (k,_) => (k.asInstanceOf[V], null) }
-          } else {
-            for ((k, _) <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k.asInstanceOf[V], w)
-          }
+          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
         }
-      } else lrdd.outerLookup(rrdd) 
+      }
+      else lrdd.cogroup(rrdd).flatMap{ pair =>
+        for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
+      }
     }
+
 
     def groupByLabel(): RDD[(K, Iterable[V])] = {
       val groupBy = (i: Iterator[(K,V)]) => {
