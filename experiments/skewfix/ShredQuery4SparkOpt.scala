@@ -218,8 +218,8 @@ spark.sparkContext.runJob(c_orders__D_1, (iter: Iterator[_]) => {})
 val x261 = c_orders__D_1 
 
 val x279 = Query1__D_2c_orders_2o_parts_1.flatMap{
-	case (lbl, bag) => bag.map(b => (b.p_partkey, (lbl, b.l_qty)))
-}.groupByLabel()
+  case (lbl, bag) => bag.map(b => b.p_partkey -> lbl )
+}.groupByLabelSet()
 val x284 = P__D_1.map(x280 => { val x281 = x280.p_retailprice 
 val x282 = x280.p_name 
 val x283 = Record318(x280.p_partkey, x281, x282) 
@@ -231,9 +231,14 @@ val x290_out2 = x284.map{ case x287 => ({val x289 = x287.p_partkey
 x289}, x287) }
 //val x290 = x290_out1.joinSkewLeft(x290_out2)
 val x290 = x290_out1.joinSkewLeft(x290_out2).flatMap{
-	case (bag, part) => bag.map{ b => (b, part) }
-}
-
+  case (lbls, info) => lbls.map(lbl => lbl -> info)
+}.join(Query1__D_2c_orders_2o_parts_1).map{
+  case (lbl, (part, opart)) => 
+    (lbl, part.p_name) -> opart.foldLeft(0.0)((acc, c) => acc + part.p_retailprice*c.l_qty) 
+}.map{
+  case ((lbl, pname), total) => Record315(lbl) -> Record373(pname, total)
+}.groupByLabel()
+/**
 val x302 = x290.flatMap{ case ((x291, x292), x293) => val x301 = (x291,x293) 
 x301 match {
    case (_,null) => Nil
@@ -251,7 +256,8 @@ val x308 = x302.map{ case ((x303, x304), x305) =>
 val x307 = (Record315(x306), Record373(x304.p_name, x305)) 
 x307 
 }.groupByLabel() 
-val o_parts__D_1 = x308
+val o_parts__D_1 = x308**/
+val o_parts__D_1 = x290
 val x309 = o_parts__D_1
 //o_parts__D_1.collect.foreach(println(_))
 spark.sparkContext.runJob(o_parts__D_1, (iter: Iterator[_]) => {})
@@ -299,7 +305,6 @@ val x371 = newM__D_1
 spark.sparkContext.runJob(x371, (iter: Iterator[_]) => {})
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery4SparkOpt,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
-    
 }
 var start = System.currentTimeMillis()
 f
