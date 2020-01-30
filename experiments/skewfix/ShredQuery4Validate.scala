@@ -230,12 +230,6 @@ val x242 = x241.c2__Fc_orders
 x242}, x239) }
 Query1__D_2c_orders_1.flatMapValues(identity).lookupSkewLeft(out1)
 }
-println("before join on domain")
-Query1__D_2c_orders_1.take(10).foreach(println(_))
-println("after join on domain")
-x243.take(10).foreach(println(_))
-
-
 val x253 = x243.flatMap{ case (x245, x244) => val x252 = (x245) 
 x252 match {
    case (null) => Nil 
@@ -311,8 +305,6 @@ spark.sparkContext.runJob(x309, (iter: Iterator[_]) => {})//.count
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery4Validate,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
-c_orders__D_1.collect.foreach(println(_))
-
 var start1 = System.currentTimeMillis()
 val x342 = c_orders__D_1 
 val x346 = x342.flatMap{ 
@@ -354,7 +346,7 @@ val x371 = newM__D_1
 spark.sparkContext.runJob(x371, (iter: Iterator[_]) => {})
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery4Validate,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
-//x371.map(x => (x._1, x._2.size)).collect.foreach(println(_))
+x371.take(100).foreach(println(_))
 }
 f
  }

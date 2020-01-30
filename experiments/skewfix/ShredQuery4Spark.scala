@@ -52,6 +52,8 @@ val O__D_1 = tpch.loadOrders
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
+tpch.triggerGC
+
    val x46 = () 
 val x47 = Record159(x46) 
 val x48 = List(x47) 
@@ -189,6 +191,10 @@ spark.sparkContext.runJob(Query1__D_2c_orders_1, (iter: Iterator[_]) => {})
 val Query1__D_2c_orders_2o_parts_1 = o_parts__D_1//M_flat3
 Query1__D_2c_orders_2o_parts_1.cache
 spark.sparkContext.runJob(Query1__D_2c_orders_2o_parts_1, (iter: Iterator[_]) => {})
+ C__D_1.unpersist()
+ O__D_1.unpersist()
+ L__D_1.unpersist()
+
  def f = {
  
 var start0 = System.currentTimeMillis()
@@ -341,12 +347,8 @@ val x371 = newM__D_1
 spark.sparkContext.runJob(x371, (iter: Iterator[_]) => {})
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery4Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
-    
+
 }
-var start = System.currentTimeMillis()
 f
-var end = System.currentTimeMillis() - start
-    
-   println("ShredQuery4Spark"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
  }
 }

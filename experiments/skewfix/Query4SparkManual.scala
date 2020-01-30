@@ -28,7 +28,9 @@ object Query4SparkManual {
     val P = tpch.loadPart
     P.cache
     spark.sparkContext.runJob(P,  (iter: Iterator[_]) => {})
-       
+
+	tpch.triggerGC
+
     val l = L.map(l => l.l_partkey -> (l.l_orderkey, l.l_quantity))
     val p = P.map(p => p.p_partkey -> p.p_name)
     val lpj = l.joinSkewLeft(p)
@@ -43,7 +45,10 @@ object Query4SparkManual {
     }
 	c.cache
 	spark.sparkContext.runJob(c,  (iter: Iterator[_]) => {})
-	
+	C.unpersist()
+	O.unpersist()
+	L.unpersist()
+
     var start0 = System.currentTimeMillis()
     val result = c.zipWithIndex.flatMap{
       case ((cname, orders), id1) => orders.zipWithIndex.flatMap{
@@ -62,6 +67,6 @@ object Query4SparkManual {
 	}
     spark.sparkContext.runJob(result,  (iter: Iterator[_]) => {})
   	var end0 = System.currentTimeMillis() - start0
-    println("Query4SparkManual"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
+    println("Query4SparkManual,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
   }
 }
