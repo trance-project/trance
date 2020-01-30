@@ -72,7 +72,7 @@ object SkewPairRDD {
       if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)
         val (rekey,dupp) = lrdd.balanceLeft(rrdd, hkeys)
-	 	rekey.cogroup(dupp).flatMap{ pair =>
+	 	    rekey.cogroup(dupp).flatMap{ pair =>
           for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k, w)
         }
       } else lrdd.lookup(rrdd) 
