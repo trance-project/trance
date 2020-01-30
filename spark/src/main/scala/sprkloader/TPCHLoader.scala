@@ -61,14 +61,22 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   
 
   def triggerGC = {
-	val partitioner = new HashPartitioner(parts)
-	spark.sparkContext.parallelize((1 until parts), parts).map(x => (x,x)).partitionBy(partitioner).foreach(x => System.gc())
-	System.gc()
+	  val partitioner = new HashPartitioner(parts)
+	  spark.sparkContext.parallelize((1 until parts), parts).map(x => (x,x)).partitionBy(partitioner).foreach(x => System.gc())
+	  System.gc()
   }
 
   import spark.implicits._
 
   def loadCustomers():RDD[Customer] = {
+    spark.sparkContext.textFile(s"file:///$datapath/customer.tbl", minPartitions = parts).mapPartitions(it =>
+		it.map(line => {
+        	val l = line.split("\\|")
+            Customer(l(0).toInt, l(1), l(2), l(3).toInt, l(4), l(5).toDouble, l(6), l(7))
+		}), true)
+  }
+
+  def loadCustomersDict():RDD[Customer] = {
     spark.sparkContext.textFile(s"file:///$datapath/customer.tbl", minPartitions = parts).repartition(parts).mapPartitions(it =>
 		it.map(line => {
         	val l = line.split("\\|")
@@ -127,6 +135,15 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 
   def loadOrders():RDD[Orders] = {
     val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
+    spark.sparkContext.textFile(s"file:///$datapath/$ofile",minPartitions = parts).mapPartitions(it => 
+		it.map(line => {
+      		val l = line.split("\\|")
+            Orders(parseBigInt(l(0)), l(1).toInt, l(2), l(3).toDouble, l(4), l(5), l(6), l(7).toInt, l(8))
+  		}), true)
+  }
+
+  def loadOrdersDict():RDD[Orders] = {
+    val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
     spark.sparkContext.textFile(s"file:///$datapath/$ofile",minPartitions = parts).repartition(parts).mapPartitions(it => 
 		it.map(line => {
       		val l = line.split("\\|")
@@ -158,6 +175,15 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   // this is hard coded directory of files split with bash
   // split --line-bytes=797780948 --filter='gzip > $FILE.gz' /path/to/input /path/to/output
   def loadLineitem():RDD[Lineitem] = {
+  	spark.sparkContext.textFile(s"file:///$datapath/lineitem.tbl",minPartitions = parts).mapPartitions(it => 
+		it.map(line => {
+			val l = line.split("\\|")
+        	Lineitem(parseBigInt(l(0)), l(1).toInt, l(2).toInt, l(3).toInt, l(4).toDouble, l(5).toDouble, 
+				l(6).toDouble, l(7).toDouble, l(8), l(9), l(10), l(11), l(12), l(13), l(14), l(15))
+		}), true)
+  }
+ 
+  def loadLineitemDict():RDD[Lineitem] = {
   	spark.sparkContext.textFile(s"file:///$datapath/lineitem.tbl",minPartitions = parts).repartition(parts).mapPartitions(it => 
 		it.map(line => {
 			val l = line.split("\\|")
@@ -165,7 +191,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 				l(6).toDouble, l(7).toDouble, l(8), l(9), l(10), l(11), l(12), l(13), l(14), l(15))
 		}), true)
   }
-  
+ 
   def loadLineitemDF():Dataset[Lineitem] = {
     val schema = StructType(Array(
                    StructField("l_orderkey", IntegerType), 
