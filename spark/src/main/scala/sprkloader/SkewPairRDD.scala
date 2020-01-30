@@ -12,7 +12,6 @@ object SkewPairRDD {
     val reducers = Config.minPartitions 
 
     def heavyKeys(): Set[K] = {
-      println("in this heavy keys!!")
       lrdd.mapPartitions{ it => 
         it.foldLeft(HashMap.empty[K, Int].withDefaultValue(0))((acc, c) =>
           { acc(c._1) += c._2.size; acc } ) .filter(_._2 > 1000).iterator 
@@ -55,7 +54,6 @@ object SkewPairRDD {
     val reducers = Config.minPartitions 
 
     def heavyKeys(): Set[K] = {
-      println("nope in these one mert")
       lrdd.mapPartitions{ it => 
         Util.countDistinct(it).filter(_._2 > 1000).iterator }
       .reduceByKey(_ + _)
@@ -82,7 +80,7 @@ object SkewPairRDD {
         val (rekey,dupp) = lrdd.balanceLeft(rrdd, hkeys)
         rekey.cogroup(dupp).map{ case ((k, _), v) => v }
       }
-      else lrdd.cogroup(rrdd).map{ case (k,v) => v } 
+      else lrdd.cogroup(rrdd).map{ case ((k,_), v) => v } 
     }
 
     def joinSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
