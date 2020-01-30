@@ -121,7 +121,18 @@ object SkewPairRDD {
       }
       lrdd.mapPartitions(groupBy)
     }
-  
+ 
+    def groupByLabelSet(): RDD[(K, Iterable[V])] = {
+      val groupBy = (i: Iterator[(K,V)]) => {
+        val hm = HashMap[K, Set[V]]()
+        i.foreach{ v =>
+          hm(v._1) = hm.getOrElse(v._1, Set()) + v._2
+        }
+        hm.iterator
+      }
+      lrdd.mapPartitions(groupBy)
+    }
+ 
     def groupBySkew(): RDD[(K, Iterable[V])] = {
       val hk = heavyKeys 
       if (hk.nonEmpty){
