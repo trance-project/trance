@@ -4,6 +4,7 @@ import scala.collection.mutable.HashMap
 import org.apache.spark.rdd.RDD
 import org.apache.spark.broadcast.Broadcast
 import scala.reflect.ClassTag
+import org.apache.spark.Partitioner
 
 object SkewPairRDD {
   
@@ -137,17 +138,32 @@ object SkewPairRDD {
       val hk = heavyKeys 
       if (hk.nonEmpty){
         val hkeys = lrdd.sparkContext.broadcast(hk)
-        val rekey = lrdd.mapPartitions{ it =>
+        val rekey = lrdd.mapPartitionsWithIndex( (index, it) =>
           it.zipWithIndex.map{ case ((k,v), i) => 
-            (k, { if (hkeys.value(k)) i % reducers else 0 }) -> v
-          }
-        }
-        rekey.groupByKey().map{ case ((k, _), v) => k -> v }
+            (k, { if (hkeys.value(k)) i % reducers else index }) -> v
+          }, true)
+        rekey.groupByKey(new SkewPartitioner(reducers)).map{ case ((k, _), v) => k -> v }
       }
       else groupByLabel() 
     }
 
   
+  }
+
+}
+
+class SkewPartitioner(override val numPartitions: Int) extends Partitioner {
+
+  override def getPartition(key: Any): Int = {
+    val k = key.asInstanceOf[(Int, Int)]
+    return k._2
+  }
+
+  override def equals(that: Any): Boolean = {
+    that match {
+      case sp:SkewPartitioner => sp.numPartitions == numPartitions
+      case _ => false
+    }
   }
 
 }

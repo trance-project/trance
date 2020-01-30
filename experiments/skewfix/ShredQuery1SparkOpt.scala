@@ -53,7 +53,7 @@ val x144 = { val out1 = x134.map{ case x140 => ({val x142 = x140.l_partkey
 x142}, x140) }
   val out2 = x139.map{ case x141 => ({val x143 = x141.p_partkey 
 x143}, x141) }
-  out1.lookupSkewLeft(out2)
+  out1.joinSkewLeft(out2)
 } 
 val x151 = x144.map{ case (x145, x146) => 
    val x147 = x145.l_orderkey 
