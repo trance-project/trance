@@ -49,12 +49,12 @@ val x139 = P__D_1.map(x135 => { val x136 = x135.p_name
 val x137 = x135.p_partkey 
 val x138 = Record183(x136, x137) 
 x138 }) 
-val x144 = { val out1 = x134.map{ case x140 => ({val x142 = x140.l_partkey 
+val x144_out1 = x134.map{ case x140 => ({val x142 = x140.l_partkey 
 x142}, x140) }
-  val out2 = x139.map{ case x141 => ({val x143 = x141.p_partkey 
+val x144_out2 = x139.map{ case x141 => ({val x143 = x141.p_partkey 
 x143}, x141) }
-  out1.joinSkewLeft(out2)
-} 
+val x144 = x144_out1.joinSkewLeft(x144_out2)
+
 val x151 = x144.map{ case (x145, x146) => 
    val x147 = x145.l_orderkey 
 val x148 = x146.p_name 
@@ -98,7 +98,7 @@ val x176 = Record189(x174, x175)
 val x177 = x176//List(x176) 
 val x178 = (x173, x177) 
 x178 
-}.groupBySkew() 
+}.groupByLabel() 
 val M_flat3 = x179
 val x180 = M_flat3
 spark.sparkContext.runJob(M_flat3, (iter: Iterator[_]) => {})
@@ -106,7 +106,7 @@ var end0 = System.currentTimeMillis() - start0
 println("ShredQuery1SparkOpt"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
 var start1 = System.currentTimeMillis()
-val top = M_flat1.map{ c => c.c_orders -> c.c_name }
+/**val top = M_flat1.map{ c => c.c_orders -> c.c_name }
 val x207 = M_flat2.flatMap{
   case (lbl, bag) => bag.map( d => d.o_parts -> (d.o_orderdate, lbl) )
 }.cogroup(M_flat3).flatMap{
@@ -115,7 +115,7 @@ val x207 = M_flat2.flatMap{
   case (_, (dates, names)) => names.map(n => (n, dates))
 }
 spark.sparkContext.runJob(x207,(iter: Iterator[_]) => {})
-//x207.collect.foreach(println(_))
+//x207.collect.foreach(println(_))**/
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery1SparkOpt"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 

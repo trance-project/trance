@@ -13,18 +13,17 @@ object SkewPairRDD {
     val reducers = Config.minPartitions 
 
     def heavyKeys(): Set[K] = {
-      lrdd.mapPartitions{ it => 
+      lrdd.mapPartitions( it => 
         it.foldLeft(HashMap.empty[K, Int].withDefaultValue(0))((acc, c) =>
-          { acc(c._1) += c._2.size; acc } ) .filter(_._2 > 1000).iterator 
-      }.reduceByKey(_ + _).filter(_._2 >= reducers).keys.collect.toSet
+          { acc(c._1) += c._2.size; acc } ) .filter(_._2 > 1000).iterator,
+      true).reduceByKey(_ + _).filter(_._2 >= reducers).keys.collect.toSet
     }
  
- 	  def balanceLeft[S](rrdd: RDD[(K, S)], hkeys: Broadcast[Set[K]]): (RDD[((K, Int), Iterable[V])], RDD[((K, Int), S)]) = {
-      val lrekey = lrdd.mapPartitions{ it =>
+ 	def balanceLeft[S](rrdd: RDD[(K, S)], hkeys: Broadcast[Set[K]]): (RDD[((K, Int), Iterable[V])], RDD[((K, Int), S)]) = {
+      val lrekey = lrdd.mapPartitionsWithIndex( (index, it) =>
         it.zipWithIndex.map{ case ((k,v), i) => 
           (k, { if (hkeys.value(k)) i % reducers else 0 }) -> v
-        }
-      }
+        }, true)
       val rdupp = rrdd.flatMap{ case (k,v) =>
         Range(0, {if (hkeys.value(k)) reducers else 1 }).map(id => (k, id) -> v) 
       }
@@ -55,19 +54,18 @@ object SkewPairRDD {
     val reducers = Config.minPartitions 
 
     def heavyKeys(): Set[K] = {
-      lrdd.mapPartitions{ it => 
-        Util.countDistinct(it).filter(_._2 > 1000).iterator }
+      lrdd.mapPartitions( it => 
+        Util.countDistinct(it).filter(_._2 > 1000).iterator, true )
       .reduceByKey(_ + _)
       .filter(_._2 >= reducers)
       .keys.collect.toSet
     }
 	
-	  def balanceLeft[S](rrdd: RDD[(K, S)], hkeys: Broadcast[Set[K]]): (RDD[((K, Int), V)], RDD[((K, Int), S)]) = {
-      val lrekey = lrdd.mapPartitions{ it =>
+	def balanceLeft[S](rrdd: RDD[(K, S)], hkeys: Broadcast[Set[K]]): (RDD[((K, Int), V)], RDD[((K, Int), S)]) = {
+      val lrekey = lrdd.mapPartitions( it =>
         it.zipWithIndex.map{ case ((k,v), i) => 
           (k, { if (hkeys.value(k)) i % reducers else 0 }) -> v
-        }
-      }
+        }, true)
       val rdupp = rrdd.flatMap{ case (k,v) =>
         Range(0, {if (hkeys.value(k)) reducers else 1 }).map(id => (k, id) -> v) 
       }
@@ -89,7 +87,6 @@ object SkewPairRDD {
       if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)
         val (rekey,dupp) = lrdd.balanceLeft(rrdd, hkeys)
-        //rekey.cogroup(dupp).flatMap{ case ((k, _), v) => v }
         rekey.cogroup(dupp).flatMap{ pair =>
           for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
         }
@@ -108,7 +105,7 @@ object SkewPairRDD {
         }
         hm.iterator
       }
-      lrdd.mapPartitions(groupBy)
+      lrdd.mapPartitions(groupBy, true)
     }
 
     def groupByLabel[R: ClassTag,S: ClassTag](f: (K,V) => (R,S)): RDD[(R, Iterable[S])] = {
@@ -120,7 +117,7 @@ object SkewPairRDD {
         }
         hm.iterator
       }
-      lrdd.mapPartitions(groupBy)
+      lrdd.mapPartitions(groupBy, true)
     }
  
     def groupByLabelSet(): RDD[(K, Iterable[V])] = {
@@ -131,7 +128,7 @@ object SkewPairRDD {
         }
         hm.iterator
       }
-      lrdd.mapPartitions(groupBy)
+      lrdd.mapPartitions(groupBy, true)
     }
  
     def groupBySkew(): RDD[(K, Iterable[V])] = {

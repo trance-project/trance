@@ -63,12 +63,12 @@ val x61 = P__D_1.map(x57 => { val x58 = x57.p_name
 val x59 = x57.p_partkey 
 val x60 = Record167(x58, x59) 
 x60 }) 
-val x66 = { val out1 = x56.map{ case x62 => ({val x64 = x62.l_partkey 
+val x66_out1 = x56.map{ case x62 => ({val x64 = x62.l_partkey 
 x64}, x62) }
-  val out2 = x61.map{ case x63 => ({val x65 = x63.p_partkey 
+val x66_out2 = x61.map{ case x63 => ({val x65 = x63.p_partkey 
 x65}, x63) }
-  out1.joinSkewLeft(out2)
-} 
+val x66 =  x66_out1.joinSkewLeft(x66_out2)
+
 val x73 = x66.map{ case (x67, x68) => 
    val x69 = x67.l_orderkey 
 val x70 = x68.p_name 
@@ -112,13 +112,12 @@ val x100 = x98.o_orderkey
 val x101 = x98.o_custkey 
 val x102 = Record173(x99, x100, x101) 
 x102 }) 
-val x109 = { val out1 = x97.map{ case x104 => ({val x106 = x104.lbl 
+val x109_out1 = x97.map{ case x104 => ({val x106 = x104.lbl 
 val x107 = x106.c__Fc_custkey 
 x107}, x104) }
-  val out2 = x103.map{ case x105 => ({val x108 = x105.o_custkey 
+val x109_out2 = x103.map{ case x105 => ({val x108 = x105.o_custkey 
 x108}, x105) }
-  out2.joinSkewLeft(out1)
-} 
+val x109 = x109_out2.joinSkewLeft(x109_out1)
 val x119 = x109.flatMap{ case (x111, x110) => val x118 = (x111) 
 x118 match {
    case (null) => Nil 
@@ -155,13 +154,13 @@ val x138 = M_ctx3
 //M_ctx3.collect.foreach(println(_))
 val x140 = M_ctx3 
 val x142 = ljp__D_1 
-val x148 = { val out1 = x140.map{ case x143 => ({val x145 = x143.lbl 
+val x148_out1 = x140.map{ case x143 => ({val x145 = x143.lbl 
 val x146 = x145.o__Fo_orderkey 
 x146}, x143) }
-  val out2 = x142.map{ case x144 => ({val x147 = x144.l_orderkey 
+val x148_out2 = x142.map{ case x144 => ({val x147 = x144.l_orderkey 
 x147}, x144) }
-  out2.joinSkewLeft(out1)
-} 
+val x148 = x148_out2.joinSkewLeft(x148_out1)
+
 val x157 = x148.flatMap{ case (x150, x149) => val x156 = (x150) 
 x156 match {
    case (null) => Nil 
@@ -186,7 +185,7 @@ println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.spar
     
 
 var start1 = System.currentTimeMillis()
-val x201 = M__D_2 
+/**val x201 = M__D_2 
 val x205 = x201.flatMap{ 
  case x202 => {val x203 = x202._2 
 x203}.map{ case v2 => (x202._1, v2) }
@@ -222,7 +221,7 @@ x228
 val newM__D_1 = x229
 val x230 = newM__D_1
 //newM__D_1.collect.foreach(println(_))
-spark.sparkContext.runJob(x230, (iter: Iterator[_]) => {})
+spark.sparkContext.runJob(x230, (iter: Iterator[_]) => {})**/
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
     
