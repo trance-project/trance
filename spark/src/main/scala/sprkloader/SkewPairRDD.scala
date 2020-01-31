@@ -16,7 +16,7 @@ object SkewPairRDD {
       lrdd.mapPartitions( it => 
         it.foldLeft(HashMap.empty[K, Int].withDefaultValue(0))((acc, c) =>
           { acc(c._1) += c._2.size; acc } ) .filter(_._2 > 1000).iterator,
-      true).reduceByKey(_ + _).filter(_._2 >= reducers).keys.collect.toSet
+      true).reduceByKey(_ + _)/**.filter(_._2 >= reducers)**/.keys.collect.toSet
     }
  
  	def balanceLeft[S](rrdd: RDD[(K, S)], hkeys: Broadcast[Set[K]]): (RDD[((K, Int), Iterable[V])], RDD[((K, Int), S)]) = {

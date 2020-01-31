@@ -10,11 +10,19 @@ case class PartSupp(ps_partkey: Int, ps_suppkey: Int, ps_availqty: Int, ps_suppl
 
 case class Part(p_partkey: Int, p_name: String, p_mfgr: String, p_brand: String, p_type: String, p_size: Int, p_container: String, p_retailprice: Double, p_comment: String)
 
+case class PartProj(p_partkey: Int, p_name: String)
+
 case class Customer(c_custkey: Int, c_name: String, c_address: String, c_nationkey: Int, c_phone: String, c_acctbal: Double, c_mktsegment: String, c_comment: String)
+
+case class CustomerProj(c_custkey: Int, c_name: String)
 
 case class Orders(o_orderkey: Int, o_custkey: Int, o_orderstatus: String, o_totalprice: Double, o_orderdate: String, o_orderpriority: String, o_clerk: String, o_shippriority: Int, o_comment: String)
 
+case class OrdersProj(o_orderkey: Int, o_custkey: Int, o_orderdate: String)
+
 case class Lineitem(l_orderkey: Int, l_partkey: Int, l_suppkey: Int, l_linenumber: Int, l_quantity: Double, l_extendedprice: Double, l_discount: Double, l_tax: Double, l_returnflag: String, l_linestatus: String, l_shipdate: String, l_commitdate: String, l_receiptdate: String, l_shipinstruct: String, l_shipmode: String, l_comment: String)
+
+case class LineitemProj(l_orderkey: Int, l_partkey: Int, l_quantity: Double)
 
 object Lineitem{
   	val LineRegex = "Lineitem\\((\\d+),(\\d+),(\\d+),(\\d+),(\\d+\\.\\d+),(\\d+\\.\\d+),(\\d+\\.\\d+),(\\d+\\.\\d+),(.*),(.*),(.*),(.*),(.*),(.*),(.*),(.*)\\)".r
@@ -76,6 +84,14 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 		}), true)
   }
 
+  def loadCustomersProj():RDD[CustomerProj] = {
+    spark.sparkContext.textFile(s"file:///$datapath/customer.tbl", minPartitions = parts).mapPartitions(it =>
+		it.map(line => {
+        	val l = line.split("\\|")
+            CustomerProj(l(0).toInt, l(1))
+		}), true).repartition(parts)
+  }
+
   def loadCustomersDF():Dataset[Customer] = { 
     val schema = StructType(Array(
                       StructField("c_custkey", IntegerType), 
@@ -107,6 +123,14 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   		}), true)
   }
 
+  def loadPartProj():RDD[PartProj] = {
+    spark.sparkContext.textFile(s"file:///$datapath/part.tbl", minPartitions = parts).mapPartitions(it =>
+		it.map(line => {
+        	val l = line.split("\\|")
+            PartProj(l(0).toInt, l(1))
+  		}), true).repartition(parts)
+  }
+
   def loadPartDF():Dataset[Part] = {
     val schema = StructType(Array(
                       StructField("p_partkey", IntegerType), 
@@ -134,6 +158,14 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   		}), true)
   }
 
+  def loadOrdersProj():RDD[OrdersProj] = {
+    val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
+    spark.sparkContext.textFile(s"file:///$datapath/$ofile",minPartitions = parts).mapPartitions(it => 
+		it.map(line => {
+      		val l = line.split("\\|")
+            OrdersProj(parseBigInt(l(0)), l(1).toInt, l(4))
+  		}), true).repartition(parts)
+  }
 
   def loadOrdersDF():Dataset[Orders] = {
 
@@ -166,6 +198,14 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 		}), true)
   }
  
+  def loadLineitemProj():RDD[LineitemProj] = {
+  	spark.sparkContext.textFile(s"file:///$datapath/lineitem.tbl",minPartitions = parts).mapPartitions(it => 
+		it.map(line => {
+			val l = line.split("\\|")
+        	LineitemProj(parseBigInt(l(0)), l(1).toInt, l(4).toDouble)
+		}), true).repartition(parts)
+  }
+
   def loadLineitemDF():Dataset[Lineitem] = {
     val schema = StructType(Array(
                    StructField("l_orderkey", IntegerType), 

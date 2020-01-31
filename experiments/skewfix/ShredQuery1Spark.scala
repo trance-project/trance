@@ -27,19 +27,19 @@ object ShredQuery1Spark {
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
 val L__F = 3
-val L__D_1 = tpch.loadLineitem
+val L__D_1 = tpch.loadLineitemProj
 L__D_1.cache
 spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
-val P__D_1 = tpch.loadPart
+val P__D_1 = tpch.loadPartProj
 P__D_1.cache
 spark.sparkContext.runJob(P__D_1, (iter: Iterator[_]) => {})
 val C__F = 1
-val C__D_1 = tpch.loadCustomers
+val C__D_1 = tpch.loadCustomersProj
 C__D_1.cache
 spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
 val O__F = 2
-val O__D_1 = tpch.loadOrders
+val O__D_1 = tpch.loadOrdersProj
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
@@ -54,15 +54,15 @@ val x49 = List(x48)
 val ljp_ctx1 = x49
 val x50 = ljp_ctx1
 //ljp_ctx1.collect.foreach(println(_))
-val x56 = L__D_1.map(x51 => { val x52 = x51.l_orderkey 
+val x56 = L__D_1/**.map(x51 => { val x52 = x51.l_orderkey 
 val x53 = x51.l_quantity 
 val x54 = x51.l_partkey 
 val x55 = Record166(x52, x53, x54) 
-x55 }) 
-val x61 = P__D_1.map(x57 => { val x58 = x57.p_name 
+x55 }) **/
+val x61 = P__D_1/**.map(x57 => { val x58 = x57.p_name 
 val x59 = x57.p_partkey 
 val x60 = Record167(x58, x59) 
-x60 }) 
+x60 }) **/
 val x66_out1 = x56.map{ case x62 => ({val x64 = x62.l_partkey 
 x64}, x62) }
 val x66_out2 = x61.map{ case x63 => ({val x65 = x63.p_partkey 
@@ -82,10 +82,10 @@ val x74 = ljp__D_1
 val M_ctx1 = x49
 val x75 = M_ctx1
 //M_ctx1.collect.foreach(println(_))
-val x80 = C__D_1.map(x76 => { val x77 = x76.c_name 
+val x80 = C__D_1/**.map(x76 => { val x77 = x76.c_name 
 val x78 = x76.c_custkey 
 val x79 = Record169(x77, x78) 
-x79 }) 
+x79 }) **/
 val x86 = x80.map{ case x81 => 
    val x82 = x81.c_name 
 val x83 = x81.c_custkey 
@@ -107,11 +107,11 @@ val M_ctx2 = x94
 val x95 = M_ctx2
 //M_ctx2.collect.foreach(println(_))
 val x97 = M_ctx2 
-val x103 = O__D_1.map(x98 => { val x99 = x98.o_orderdate 
+val x103 = O__D_1/**.map(x98 => { val x99 = x98.o_orderdate 
 val x100 = x98.o_orderkey 
 val x101 = x98.o_custkey 
 val x102 = Record173(x99, x100, x101) 
-x102 }) 
+x102 }) **/
 val x109_out1 = x97.map{ case x104 => ({val x106 = x104.lbl 
 val x107 = x106.c__Fc_custkey 
 x107}, x104) }
