@@ -1,6 +1,5 @@
 package shredding.nrc
 
-//import shredding.examples.tpch.TPCHQuery1
 import shredding.runtime.{Evaluator, ScalaPrinter, ScalaShredding}
 
 object TestMaterialization extends App
@@ -16,33 +15,20 @@ object TestMaterialization extends App
   object Example1 {
 
     def run(): Unit = {
-//      val q = shredding.examples.tpch.Query1.query.asInstanceOf[Expr]
+      val program = shredding.examples.tpch.Query1.program.asInstanceOf[Program]
+      println("Program: \n" + quote(program) + "\n")
 
-//      val (shredded:ShredExpr, materialized: MaterializationInfo) = q match {
-//        case Sequence(fs) =>
-//          val exprs = fs.map(expr => optimize(shred(expr)))
-//          (exprs.last, materialize(exprs))
-//        case _ =>
-//          val expr = optimize(shred(q))
-//          (expr, materialize(expr))
-//      }
+      val shredded = shred(program)
+      println("Shredded program: \n" + quote(shredded) + "\n")
+      println("Shredded program optimized: \n" + quote(optimize(shredded)) + "\n")
 
-      import shredding.examples.optimize.DomainOptExample1
+      val materializedProgram = materialize(shredded)
+      println("Materialized program: \n" + quote(materializedProgram.program) + "\n")
+      println("Materialized program optimized: \n" + quote(optimize(materializedProgram.program)) + "\n")
 
-      val q = DomainOptExample1.program(DomainOptExample1.name).rhs.asInstanceOf[Expr]
-      val shredded = shred(q)
-
-      println("Query: " + quote(q))
-      println("Shredded: " + quote(shredded) + "\n")
-
-      println("Shredded optimized: " + quote(optimize(shredded)) + "\n")
-//      println("Materialized: ")
-//      println(quote(materialized.seq)+"\n")
-
-//      val unshredded = unshred(shredded, materialized.dictMapper)
-//      println("Unshredded: ")
-//      println(quote(unshredded))
-
+      val unshredded = unshred(shredded, materializedProgram.dictMapper)
+      println("Unshredded program: \n" + quote(unshredded) + "\n")
+      println("Unshredded program optimized: \n" + quote(optimize(unshredded)) + "\n")
     }
   }
 

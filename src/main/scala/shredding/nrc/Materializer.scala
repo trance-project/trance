@@ -156,8 +156,9 @@ trait Materializer {
 
         val kvPairsNested =
           ForeachUnion(kvdef, matDictVarRef,
-            ForeachUnion(tdef, bag,
-              Singleton(Tuple(KEY_ATTR_NAME -> key, VALUE_ATTR_NAME -> value))))
+            Singleton(Tuple(
+              KEY_ATTR_NAME -> key,
+              VALUE_ATTR_NAME -> ForeachUnion(tdef, bag, value))))
 
         val newDictAssignment = Assignment("new" + matDictVarRef.name, kvPairsNested)
         val newProgram = childPrograms.reduce(_ append _) append newDictAssignment

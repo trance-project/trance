@@ -65,8 +65,7 @@ trait Extensions {
   def replace(e: Expr, f: PartialFunction[Expr, Expr]): Expr =
     f.applyOrElse(e, (ex: Expr) => ex match {
       case p: Project =>
-        val r = replace(p.tuple, f).asInstanceOf[TupleExpr]
-        Project(r, p.field)
+        replace(p.tuple, f).asInstanceOf[TupleExpr].apply(p.field)
       case ForeachUnion(x, e1, e2) =>
         val r1 = replace(e1, f).asInstanceOf[BagExpr]
         val xd = VarDef(x.name, r1.tp.tp)
@@ -136,9 +135,9 @@ trait Extensions {
       case TupleDict(fs) =>
         TupleDict(fs.map(x => x._1 -> replace(x._2, f).asInstanceOf[TupleDictAttributeExpr]))
       case BagDictProject(v, n) =>
-        BagDictProject(replace(v, f).asInstanceOf[TupleDictExpr], n)
+        replace(v, f).asInstanceOf[TupleDictExpr].apply(n)
       case TupleDictProject(d) =>
-        TupleDictProject(replace(d, f).asInstanceOf[BagDictExpr])
+        replace(d, f).asInstanceOf[BagDictExpr].tupleDict
       case d: DictUnion =>
         val r1 = replace(d.dict1, f).asInstanceOf[DictExpr]
         val r2 = replace(d.dict2, f).asInstanceOf[DictExpr]
@@ -152,7 +151,7 @@ trait Extensions {
       case Lookup(l, d) =>
         val rl = replace(l, f).asInstanceOf[LabelExpr]
         val rd = replace(d, f).asInstanceOf[BagDictExpr]
-        Lookup(rl, rd)
+        rd.lookup(rl)
 
       /////////////////
       //
