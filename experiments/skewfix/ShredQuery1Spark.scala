@@ -67,7 +67,7 @@ val x66 = { val out1 = x56.map{ case x62 => ({val x64 = x62.l_partkey
 x64}, x62) }
   val out2 = x61.map{ case x63 => ({val x65 = x63.p_partkey 
 x65}, x63) }
-  out1.lookupSkewLeft(out2)
+  out1.joinSkewLeft(out2)
 } 
 val x73 = x66.map{ case (x67, x68) => 
    val x69 = x67.l_orderkey 
@@ -117,7 +117,7 @@ val x107 = x106.c__Fc_custkey
 x107}, x104) }
   val out2 = x103.map{ case x105 => ({val x108 = x105.o_custkey 
 x108}, x105) }
-  out2.lookupSkewLeft(out1)
+  out2.joinSkewLeft(out1)
 } 
 val x119 = x109.flatMap{ case (x111, x110) => val x118 = (x111) 
 x118 match {
@@ -160,7 +160,7 @@ val x146 = x145.o__Fo_orderkey
 x146}, x143) }
   val out2 = x142.map{ case x144 => ({val x147 = x144.l_orderkey 
 x147}, x144) }
-  out2.lookupSkewLeft(out1)
+  out2.joinSkewLeft(out1)
 } 
 val x157 = x148.flatMap{ case (x150, x149) => val x156 = (x150) 
 x156 match {
