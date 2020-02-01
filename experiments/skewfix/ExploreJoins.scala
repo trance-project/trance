@@ -93,10 +93,13 @@ val (rekey, dupp) = lheavy.rekeyBySet(rheavy, hkey)
 val heavy = rekey.joinDropKey(dupp)
 spark.sparkContext.runJob(heavy, (iter: Iterator[_]) => {})
 
+val cartheavy = lheavy.cartesian(rheavy)
+spark.sparkContext.runJob(cartheavy, (iter: Iterator[_]) => {})
+
 // just some random downstream job
 light.heavyKeys()
 heavy.heavyKeys()
-
+cartheavy.heavyKeys()
 var end0 = System.currentTimeMillis() - start0
 println("ExploreJoins,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)    
 
