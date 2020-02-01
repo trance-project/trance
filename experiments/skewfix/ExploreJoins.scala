@@ -87,19 +87,41 @@ val hkey = x66_out1.sparkContext.broadcast(heavykeys)
 val (llight, rlight) = x66_out1.filterLight(x66_out2, hkey)
 val light = llight.joinDropKey(rlight)
 spark.sparkContext.runJob(light, (iter: Iterator[_]) => {})
+val light_x73 = x66.map{ case (x67, x68) => 
+   val x69 = x67.l_orderkey 
+val x70 = x68.p_name 
+val x71 = x67.l_quantity 
+val x72 = Record168(x69, x70, x71) 
+x72 
+} 
+spark.sparkContext.runJob(light_x73, (iter: Iterator[_]) => {})
 
 val (lheavy, rheavy) = x66_out1.filterHeavy(x66_out2, hkey)
 val (rekey, dupp) = lheavy.rekeyBySet(rheavy, hkey)
 val heavy = rekey.joinDropKey(dupp)
 spark.sparkContext.runJob(heavy, (iter: Iterator[_]) => {})
+val heavy_x73 = x66.map{ case (x67, x68) => 
+   val x69 = x67.l_orderkey 
+val x70 = x68.p_name 
+val x71 = x67.l_quantity 
+val x72 = Record168(x69, x70, x71) 
+x72 
+} 
+spark.sparkContext.runJob(heavy_x73, (iter: Iterator[_]) => {})
 
 val cartheavy = lheavy.cartesian(rheavy)
 spark.sparkContext.runJob(cartheavy, (iter: Iterator[_]) => {})
+val cart_x73 = x66.map{ case (x67, x68) => 
+   val x69 = x67.l_orderkey 
+val x70 = x68.p_name 
+val x71 = x67.l_quantity 
+val x72 = Record168(x69, x70, x71) 
+x72 
+} 
+spark.sparkContext.runJob(cart_x73, (iter: Iterator[_]) => {})
 
 // just some random downstream job
-light.heavyKeys()
-heavy.heavyKeys()
-cartheavy.heavyKeys()
+
 var end0 = System.currentTimeMillis() - start0
 println("ExploreJoins,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)    
 
