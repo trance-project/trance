@@ -45,7 +45,7 @@ object SkewPairRDD {
       if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)
         val (rekey,dupp) = lrdd.balanceLeft(rrdd, hkeys)
-	 	    rekey.cogroup(dupp).flatMap{ pair =>
+	 	rekey.cogroup(dupp).flatMap{ pair =>
           for (b <- pair._2._1.iterator; l <- pair._2._2.iterator) yield (l, b)
         }
       } else lrdd.lookup(rrdd) 
@@ -113,7 +113,10 @@ object SkewPairRDD {
       if (hk.nonEmpty) {
         //val hkeys = lrdd.sparkContext.broadcast(hk)
         //val (rekey, dupp) = lrdd.rekeyBySet(rrdd, hkeys)
-        lrdd.cogroup(rrdd, new SkewPartitioner2(reducers, hk.asInstanceOf[Set[Any]])).flatMap{ pair =>
+      	val rdupp = rrdd.flatMap{ case (k,v) =>
+       	  Range(0, {if (hk(k)) reducers else 1 }).map(id => k -> v) 
+      	}
+		lrdd.cogroup(rdupp, new SkewPartitioner2(reducers, hk.asInstanceOf[Set[Any]])).flatMap{ pair =>
           for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
         }
       }
@@ -207,11 +210,11 @@ import scala.util.Random
 
 class SkewPartitioner2(override val numPartitions: Int, hkeys: Set[Any]) extends Partitioner {
 
-  val assign = Random.shuffle(0 to numPartitions)
+  val assign = Random.shuffle(0 to numPartitions-1)
   val rand = new Random(System.currentTimeMillis()) 
   
   override def getPartition(key: Any): Int = {
-    if (hkeys(key)) assign(rand.nextInt(numPartitions)) 
+    if (hkeys(key)) assign(rand.nextInt(numPartitions-1)) 
     else { 
       val hcmod = key.hashCode % numPartitions
       hcmod + (if (hcmod < 0) numPartitions else 0)

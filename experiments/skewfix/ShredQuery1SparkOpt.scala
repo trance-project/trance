@@ -20,19 +20,19 @@ object ShredQuery1SparkOpt {
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
 val L__F = 3
-val L__D_1 = tpch.loadLineitem
+val L__D_1 = tpch.loadLineitemProj
 L__D_1.cache
 spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
-val P__D_1 = tpch.loadPart
+val P__D_1 = tpch.loadPartProj
 P__D_1.cache
 spark.sparkContext.runJob(P__D_1, (iter: Iterator[_]) => {})
 val C__F = 1
-val C__D_1 = tpch.loadCustomers
+val C__D_1 = tpch.loadCustomersProj
 C__D_1.cache
 spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
 val O__F = 2
-val O__D_1 = tpch.loadOrders
+val O__D_1 = tpch.loadOrdersProj
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
@@ -40,15 +40,15 @@ tpch.triggerGC
 
    def f = { 
 var start0 = System.currentTimeMillis()
- val x134 = L__D_1.map(x129 => { val x130 = x129.l_orderkey 
+ val x134 = L__D_1/**.map(x129 => { val x130 = x129.l_orderkey 
 val x131 = x129.l_quantity 
 val x132 = x129.l_partkey 
 val x133 = Record182(x130, x131, x132) 
-x133 }) 
-val x139 = P__D_1.map(x135 => { val x136 = x135.p_name 
+x133 }) **/
+val x139 = P__D_1/**.map(x135 => { val x136 = x135.p_name 
 val x137 = x135.p_partkey 
 val x138 = Record183(x136, x137) 
-x138 }) 
+x138 }) **/
 val x144_out1 = x134.map{ case x140 => ({val x142 = x140.l_partkey 
 x142}, x140) }
 val x144_out2 = x139.map{ case x141 => ({val x143 = x141.p_partkey 

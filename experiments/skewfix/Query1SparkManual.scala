@@ -9,6 +9,8 @@ import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
 
+case class Record167(p_name: String, p_partkey: Int)
+
 object Query1SparkManual {
   def main(args: Array[String]){
     val sf = Config.datapath.split("/").last
@@ -33,8 +35,8 @@ object Query1SparkManual {
 
     var start0 = System.currentTimeMillis()
 
-    val l = L.map(l => l.l_partkey -> (l.l_orderkey, l.l_quantity))
-    val p = P.map(p => p.p_partkey -> p.p_name)
+    val l = L.map(l => l.l_partkey -> Record166(l.l_orderkey, l.l_quantity, l.l_partkey))
+    val p = P.map(p => p.p_partkey -> Record167(p.p_name, p.p_partkey))
     val lpj = l.joinSkewLeft(p)
 
     val OrderParts = lpj.map{ case (_, ((l_orderkey, l_quantity), p_name)) => l_orderkey -> (p_name, l_quantity) }

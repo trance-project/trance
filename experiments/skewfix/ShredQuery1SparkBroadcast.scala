@@ -120,7 +120,7 @@ val x124 = x109_out2.flatMap{ case (key, value) =>
 	domain1.value.get(key).map{
 		lbl => (lbl.lbl, Record176(value.o_orderdate, Record175(value.o_orderkey)))
 	}
-}//.groupByLabel()
+}.groupByLabel()
 /**val x119 = x109_2.flatMap{ case (x111, x110) => val x118 = (x111) 
 x118 match {
    case (null) => Nil 
@@ -136,7 +136,7 @@ val x124 = x119.map{ case (x120, x121) =>
    val x122 = x120.lbl 
 val x123 = (x122, x121) 
 x123 
-}
+}**/
 val M__D_2 = x124
 val x125 = M__D_2
 //M__D_2.collect.foreach(println(_))
@@ -144,34 +144,37 @@ val x127 = M__D_2
 val x131 = x127.flatMap{ 
  case x128 => {val x129 = x128._2 
 x129}.map{ case v2 => (x128._1, v2) }
-}**/
+}
          
-val x136 = x124.map{ case (x132, x133) => 
+val x136 = x131.map{ case (x132, x133) => 
    val x134 = x133.o_parts 
 val x135 = Record177(x134) 
 x135 
 }
-val M__D_2 = x124.groupByLabel()
+/**val M__D_2 = x124.groupByLabel()
 val x125 = M__D_2
-val x127 = M__D_2
+val x127 = M__D_2**/
 val x137 = x136//.distinct 
 val M_ctx3 = x137
 val x138 = M_ctx3
 //M_ctx3.collect.foreach(println(_))
 val x140 = M_ctx3 
-val domain2 = x140.sparkContext.broadcast(x140.map{ case x143 => ({val x145 = x143.lbl 
+/**val domain2 = x140.sparkContext.broadcast(x140.map{ case x143 => ({val x145 = x143.lbl 
 val x146 = x145.o__Fo_orderkey 
-x146}, x143) }.collect.toMap)
+x146}, x143) }.collect.toMap)**/
 val x142 = ljp__D_1 
 val x148_out2 = x142.map{ case x144 => ({val x147 = x144.l_orderkey 
 x147}, x144) }
-val x162 = x148_out2.flatMap{ case (key, value) =>
+/**val x162 = x148_out2.flatMap{ case (key, value) =>
 	domain2.value.get(key).map{
 		lbl => (lbl.lbl, Record179(value.p_name, value.l_qty))
 	}
-}.groupByLabel()
-/**val x148 = x148_out2.joinSkewLeft(x148_out1)
-val x157 = x148.flatMap{ case (x150, x149) => val x156 = (x150) 
+}.groupByLabel()**/
+val x148_out1 = x140.map{ case x143 => ({val x145 = x143.lbl
+val x146 = x145.o__Fo_orderkey
+x146}, x143) }
+val x148 = x148_out2.join(x148_out1)
+val x157 = x148.flatMap{ case (kewy, (x150, x149)) => val x156 = (x150) 
 x156 match {
    case (null) => Nil 
    case x155 => List(({val x151 = (x149) 
@@ -185,7 +188,7 @@ val x162 = x157.map{ case (x158, x159) =>
    val x160 = x158.lbl 
 val x161 = (x160, x159) 
 x161 
-} **/
+}
 val M__D_3 = x162
 val x163 = M__D_3
 //M__D_3.collect.foreach(println(_))

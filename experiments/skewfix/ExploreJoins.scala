@@ -5,6 +5,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
+import org.apache.spark.RangePartitioner
 case class Record165(lbl: Unit)
 case class Record166(l_orderkey: Int, l_quantity: Double, l_partkey: Int)
 case class Record167(p_name: String, p_partkey: Int)
@@ -62,7 +63,7 @@ x55 }) **/
 val x61 = P__D_1/**.map(x57 => { val x58 = x57.p_name 
 val x59 = x57.p_partkey 
 val x60 = Record167(x58, x59) 
-x60 }) **/
+x60 })**/
 val x66_out1 = x56.map{ case x62 => ({val x64 = x62.l_partkey 
 x64}, x62) }
 val x66_out2 = x61.map{ case x63 => ({val x65 = x63.p_partkey 
@@ -87,7 +88,7 @@ val hkey = x66_out1.sparkContext.broadcast(heavykeys)
 val (llight, rlight) = x66_out1.filterLight(x66_out2, hkey)
 val light = llight.joinDropKey(rlight)
 spark.sparkContext.runJob(light, (iter: Iterator[_]) => {})
-val light_x73 = x66.map{ case (x67, x68) => 
+val light_x73 = light.map{ case (x67, x68) => 
    val x69 = x67.l_orderkey 
 val x70 = x68.p_name 
 val x71 = x67.l_quantity 
@@ -100,7 +101,7 @@ val (lheavy, rheavy) = x66_out1.filterHeavy(x66_out2, hkey)
 val (rekey, dupp) = lheavy.rekeyBySet(rheavy, hkey)
 val heavy = rekey.joinDropKey(dupp)
 spark.sparkContext.runJob(heavy, (iter: Iterator[_]) => {})
-val heavy_x73 = x66.map{ case (x67, x68) => 
+val heavy_x73 = heavy.map{ case (x67, x68) => 
    val x69 = x67.l_orderkey 
 val x70 = x68.p_name 
 val x71 = x67.l_quantity 
@@ -109,9 +110,9 @@ x72
 } 
 spark.sparkContext.runJob(heavy_x73, (iter: Iterator[_]) => {})
 
-val cartheavy = lheavy.cartesian(rheavy)
+/**val cartheavy = lheavy.cartesian(rheavy).map{ case ((_, v1), (_, v2)) => (v1, v2) }
 spark.sparkContext.runJob(cartheavy, (iter: Iterator[_]) => {})
-val cart_x73 = x66.map{ case (x67, x68) => 
+val cart_x73 = cartheavy.map{ case (x67, x68) => 
    val x69 = x67.l_orderkey 
 val x70 = x68.p_name 
 val x71 = x67.l_quantity 
@@ -119,6 +120,18 @@ val x72 = Record168(x69, x70, x71)
 x72 
 } 
 spark.sparkContext.runJob(cart_x73, (iter: Iterator[_]) => {})
+
+val unioned = cartheavy union light
+spark.sparkContext.runJob(unioned, (iter: Iterator[_]) => {})
+
+val union_x73 = unioned.map{ case (x67, x68) => 
+   val x69 = x67.l_orderkey 
+val x70 = x68.p_name 
+val x71 = x67.l_quantity 
+val x72 = Record168(x69, x70, x71) 
+x72 
+} 
+union_x73.count**/
 
 // just some random downstream job
 

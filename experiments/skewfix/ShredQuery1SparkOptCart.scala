@@ -58,21 +58,27 @@ val hkeys = x144_out1.sparkContext.broadcast(heavykeys)
 val (llight, rlight) = x144_out1.filterLight(x144_out2, hkeys)
 val light = llight.joinDropKey(rlight)
 val (lheavy, rheavy) = x144_out1.filterHeavy(x144_out2, hkeys)
-val heavy = lheavy.cartesian(rheavy).map{
-  case ((_, v1), (_, v2)) => (v1, v2)
-}
-val x144 = heavy union light
+val heavy = lheavy.cartesian(rheavy)
+//val x144 = heavy union light
 //val x144 = x144_out1.joinSkewLeft(x144_out2)
 
-val x151 = x144.map{ case (x145, x146) => 
+val x151 = light.map{ case (x145, x146) => 
    val x147 = x145.l_orderkey 
 val x148 = x146.p_name 
 val x149 = x145.l_quantity 
 val x150 = Record184(x147, x148, x149) 
 x150 
 } 
-val ljp__D_1 = x151
-val x152 = ljp__D_1
+val x152 = heavy.map{ case ((_,x145), (_,x146)) => 
+   val x147 = x145.l_orderkey 
+val x148 = x146.p_name 
+val x149 = x145.l_quantity 
+val x150 = Record184(x147, x148, x149) 
+x150 
+} 
+
+val ljp__D_1_light = x151
+val ljp__D_1_heavy = x152
 //ljp__D_1.collect.foreach(println(_))
 val x158 = C__D_1.map{ case x153 => 
    val x154 = x153.c_name 
@@ -98,7 +104,7 @@ x168
 val M_flat2 = x169
 val x170 = M_flat2
 spark.sparkContext.runJob(M_flat2, (iter: Iterator[_]) => {})
-val x179 = ljp__D_1.map{ case x171 => 
+val x179_light = ljp__D_1_light.map{ case x171 => 
    val x172 = x171.l_orderkey 
 val x173 = Record187(x172) 
 val x174 = x171.p_name 
@@ -108,10 +114,22 @@ val x177 = x176//List(x176)
 val x178 = (x173, x177) 
 x178 
 }.groupByLabel() 
-val M_flat3 = x179
-val x180 = M_flat3
+val x179_heavy = ljp__D_1_heavy.map{ case x171 => 
+   val x172 = x171.l_orderkey 
+val x173 = Record187(x172) 
+val x174 = x171.p_name 
+val x175 = x171.l_qty 
+val x176 = Record189(x174, x175) 
+val x177 = x176//List(x176) 
+val x178 = (x173, x177) 
+x178 
+}.groupByLabel() 
+
+val M_flat3_light = x179_light
+val M_flat3_heavy = x179_heavy
 //M_flat3.collect.foreach(println(_))
-spark.sparkContext.runJob(M_flat3, (iter: Iterator[_]) => {})
+spark.sparkContext.runJob(M_flat3_light, (iter: Iterator[_]) => {})
+spark.sparkContext.runJob(M_flat3_heavy, (iter: Iterator[_]) => {})
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery1SparkOptCart"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
