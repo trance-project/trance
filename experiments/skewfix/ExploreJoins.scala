@@ -89,7 +89,8 @@ val light = llight.joinDropKey(rlight)
 spark.sparkContext.runJob(light, (iter: Iterator[_]) => {})
 
 val (lheavy, rheavy) = x66_out1.filterHeavy(x66_out2, hkey)
-val heavy = lheavy.joinDropKey(rheavy)
+val (rekey, dupp) = lheavy.rekeyBySet(rheavy, hkey)
+val heavy = rekey.joinDropKey(dupp)
 spark.sparkContext.runJob(heavy, (iter: Iterator[_]) => {})
 
 // just some random downstream job
