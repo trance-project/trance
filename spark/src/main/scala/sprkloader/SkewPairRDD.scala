@@ -68,9 +68,9 @@ object SkewPairRDD {
       val rekey = 
         lrdd.mapPartitions( it => {
           var cnt:Int = -1
-          it.map{ case (k,v) => 
+          it.toArray.sortBy(_._1.asInstanceOf[Int]).map{ case (k,v) => 
             (k, { if (keyset.value(k)) {cnt+=1; cnt} % reducers else 0 }) -> v
-          }}, true)
+          }.iterator}, true)
 
       val dupp = 
         rrdd.flatMap{ case (k,v) =>
@@ -79,6 +79,20 @@ object SkewPairRDD {
       (rekey, dupp)
     }
 	
+    def rekeyByIndex[S](rrdd: RDD[(K, S)], keyset: Broadcast[Set[K]]): (RDD[((K, Int), V)], RDD[((K, Int), S)]) = {
+      // tell each heavy partition to stay where it is
+      val rekey = 
+        lrdd.mapPartitionsWithIndex( (index, it) => it.map{ case (k,v) => 
+          ((k, { if (keyset.value(k)) index else 0 }), v) 
+        }, true)
+
+      val dupp = 
+        rrdd.flatMap{ case (k,v) =>
+          Range(0, {if (keyset.value(k)) reducers else 1 }).map(id => (k, id) -> v) 
+        }
+      (rekey, dupp)
+    }
+
 	  def filterHeavy[S](rrdd: RDD[(K, S)], hkeys: Broadcast[Set[K]]): (RDD[(K, V)],RDD[(K, S)])  = {
       val lheavy = lrdd.filterPartitions((i: (K,V)) => hkeys.value(i._1))
       val rheavy = rrdd.filterPartitions((i: (K,S)) => hkeys.value(i._1))
@@ -109,12 +123,30 @@ object SkewPairRDD {
           for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (pair._1._1, (v, s))
        }
        println("after join")
-       result.heavyKeysByPartition[K](0).foreach(println(_))
+       result.heavyKeysByPartition[K](10).foreach(println(_))
        result 
       }
       else lrdd.join(rrdd)
     }
 
+    def joinSkewLeft2[S](rrdd: RDD[(K, S)]): RDD[(K, (V, S))] = { 
+      val hk = heavyKeys(10)
+      val hkm = lrdd.heavyKeysByPartition[K](10)
+      if (hk.nonEmpty) {
+       val hkeys = lrdd.sparkContext.broadcast(hk)
+       //val (rekey, dupp) = lrdd.rekeyBySet(rrdd, hkeys)
+       val (rekey, dupp) = lrdd.rekeyByIndex(rrdd, hkeys)
+       println("before join")
+       hkm.foreach(println(_))
+       val result = lrdd.cogroup(rrdd, new SkewPartitioner(100)).flatMap{ pair =>
+          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (pair._1, (v, s))
+       }
+       println("after join")
+       result.heavyKeysByPartition[K](10).foreach(println(_))
+       result 
+      }
+      else lrdd.join(rrdd)
+    }
 
     /**def joinSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
       val hk = heavyKeys
