@@ -83,12 +83,14 @@ object SkewPairRDD {
       // tell each heavy partition to stay where it is
       val rekey = 
         lrdd.mapPartitionsWithIndex( (index, it) => it.map{ case (k,v) => 
-          ((k, { if (keyset.value(k)) index else 0 }), v) 
+          ((k, { if (keyset.value(k)) index else -1 }), v) 
         }, true)
 
+      val reducerSet = Range(0, reducers)
       val dupp = 
-        rrdd.flatMap{ case (k,v) =>
-          Range(0, {if (keyset.value(k)) reducers else 1 }).map(id => (k, id) -> v) 
+        rrdd.flatMap{ case (k,v) => 
+          if (keyset.value(k)) reducerSet.map(id => (k, id) -> v)
+          else List(((k, -1),v)) 
         }
       (rekey, dupp)
     }
@@ -112,8 +114,8 @@ object SkewPairRDD {
     }
 
     def joinSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(K, (V, S))] = { 
-      val hk = heavyKeys(10)
-      val hkm = lrdd.heavyKeysByPartition[K](10)
+      val hk = heavyKeys()
+      val hkm = lrdd.heavyKeysByPartition[K]()
       if (hk.nonEmpty) {
        val hkeys = lrdd.sparkContext.broadcast(hk)
        val (rekey, dupp) = lrdd.rekeyBySet(rrdd, hkeys)
@@ -123,26 +125,26 @@ object SkewPairRDD {
           for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (pair._1._1, (v, s))
        }
        println("after join")
-       result.heavyKeysByPartition[K](10).foreach(println(_))
+       result.heavyKeysByPartition[K]().foreach(println(_))
        result 
       }
       else lrdd.join(rrdd)
     }
 
     def joinSkewLeft2[S](rrdd: RDD[(K, S)]): RDD[(K, (V, S))] = { 
-      val hk = heavyKeys(10)
-      val hkm = lrdd.heavyKeysByPartition[K](10)
+      val hk = heavyKeys(0)
+      val hkm = lrdd.heavyKeysByPartition[K](0)
       if (hk.nonEmpty) {
        val hkeys = lrdd.sparkContext.broadcast(hk)
        //val (rekey, dupp) = lrdd.rekeyBySet(rrdd, hkeys)
        val (rekey, dupp) = lrdd.rekeyByIndex(rrdd, hkeys)
        println("before join")
        hkm.foreach(println(_))
-       val result = lrdd.cogroup(rrdd, new SkewPartitioner(100)).flatMap{ pair =>
-          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (pair._1, (v, s))
+       val result = rekey.cogroup(dupp, new SkewPartitioner(reducers)).flatMap{ pair =>
+          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (pair._1._1, (v, s))
        }
        println("after join")
-       result.heavyKeysByPartition[K](10).foreach(println(_))
+       result.heavyKeysByPartition[K](0).foreach(println(_))
        result 
       }
       else lrdd.join(rrdd)
@@ -216,38 +218,20 @@ object SkewPairRDD {
 
 class SkewPartitioner(override val numPartitions: Int) extends Partitioner {
 
+  def defaultPartitionAssignment(key:Any): Int = {
+    val hcmod = key.hashCode % numPartitions
+    hcmod + (if (hcmod < 0) numPartitions else 0)
+  }
+  
   override def getPartition(key: Any): Int = {
-    val k = key.asInstanceOf[(Int, Int)]
-    return k._2
+    val k = key.asInstanceOf[(Any, Int)]
+    if (k._2 != -1) k._2
+    else defaultPartitionAssignment(key)
   }
 
   override def equals(that: Any): Boolean = {
     that match {
       case sp:SkewPartitioner => sp.numPartitions == numPartitions
-      case _ => false
-    }
-  }
-
-}
-
-import scala.util.Random
-
-class SkewPartitioner2(override val numPartitions: Int, hkeys: Set[Any]) extends Partitioner {
-
-  val assign = Random.shuffle(0 to numPartitions-1)
-  val rand = new Random(System.currentTimeMillis()) 
-  
-  override def getPartition(key: Any): Int = {
-    if (hkeys(key)) assign(rand.nextInt(numPartitions-1)) 
-    else { 
-      val hcmod = key.hashCode % numPartitions
-      hcmod + (if (hcmod < 0) numPartitions else 0)
-    }
-  }
-
-  override def equals(that: Any): Boolean = {
-    that match {
-      case sp:SkewPartitioner2 => sp.numPartitions == numPartitions
       case _ => false
     }
   }

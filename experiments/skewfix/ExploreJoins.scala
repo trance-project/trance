@@ -83,8 +83,9 @@ val x74 = ljp__D_1
 //ljp__D_1.collect.foreach(println(_))
 spark.sparkContext.runJob(ljp__D_1, (iter: Iterator[_]) => {})
 
-/**val heavykeys = x66_out1.heavyKeys(0)
-val hkey = x66_out1.sparkContext.broadcast(heavykeys)
+//val heavykeys = x66_out1.heavyKeys(0)
+//heavykeys.foreach(println(_))
+/**val hkey = x66_out1.sparkContext.broadcast(heavykeys)
 
 val (llight, rlight) = x66_out1.filterLight(x66_out2, hkey)
 val light = llight.joinDropKey(rlight)
