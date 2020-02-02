@@ -70,19 +70,20 @@ val x66_out2 = x61.map{ case x63 => ({val x65 = x63.p_partkey
 x65}, x63) }
 val x66 =  x66_out1.joinSkewLeft(x66_out2)
 
-val x73 = x66.map{ case (x67, x68) => 
+/**val x73 = x66.map{ case (x67, x68) => 
    val x69 = x67.l_orderkey 
 val x70 = x68.p_name 
 val x71 = x67.l_quantity 
 val x72 = Record168(x69, x70, x71) 
 x72 
-} 
-val ljp__D_1 = x73
+} **/
+val ljp__D_1 = x66
 val x74 = ljp__D_1
-
+//println("the skew join")
+//ljp__D_1.collect.foreach(println(_))
 spark.sparkContext.runJob(ljp__D_1, (iter: Iterator[_]) => {})
 
-val heavykeys = x66_out1.heavyKeys()
+/**val heavykeys = x66_out1.heavyKeys(0)
 val hkey = x66_out1.sparkContext.broadcast(heavykeys)
 
 val (llight, rlight) = x66_out1.filterLight(x66_out2, hkey)
@@ -95,6 +96,8 @@ val x71 = x67.l_quantity
 val x72 = Record168(x69, x70, x71) 
 x72 
 } 
+println("joining the light keys")
+light_x73.collect.foreach(println(_))
 spark.sparkContext.runJob(light_x73, (iter: Iterator[_]) => {})
 
 val (lheavy, rheavy) = x66_out1.filterHeavy(x66_out2, hkey)
@@ -108,7 +111,9 @@ val x71 = x67.l_quantity
 val x72 = Record168(x69, x70, x71) 
 x72 
 } 
-spark.sparkContext.runJob(heavy_x73, (iter: Iterator[_]) => {})
+println("joining the heavy keys")
+heavy_x73.collect.foreach(println(_))
+spark.sparkContext.runJob(heavy_x73, (iter: Iterator[_]) => {})**/
 
 /**val cartheavy = lheavy.cartesian(rheavy).map{ case ((_, v1), (_, v2)) => (v1, v2) }
 spark.sparkContext.runJob(cartheavy, (iter: Iterator[_]) => {})

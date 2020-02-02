@@ -13,6 +13,12 @@ object UtilPairRDD {
         it.flatMap{ v => if (cond(v)) List(v) else Nil }, true)
     }
 
+    def heavyKeysByPartition[R](threshold: Int = 1000): Map[(R, Int), Int] = {
+      val hkeys = lrdd.mapPartitionsWithIndex( (index, it) =>
+        Util.countDistinctByPartition(it.asInstanceOf[Iterator[(R,Any)]], index).filter(_._2 > threshold).iterator,true)
+      hkeys.collect.toMap
+    }
+  
   }
 
 }

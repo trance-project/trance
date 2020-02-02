@@ -60,7 +60,6 @@ object SkewPairRDD {
     def heavyKeys(threshold: Int = 1000): Set[K] = {
       val hkeys = lrdd.mapPartitions( it => 
         Util.countDistinct(it).filter(_._2 > threshold).iterator,true).reduceByKey(_ + _)
-      
       if (reducers > threshold) hkeys.filter(_._2 >= reducers).keys.collect.toSet
       else hkeys.keys.collect.toSet
     }
@@ -92,35 +91,28 @@ object SkewPairRDD {
       (llight, rlight)
     }
 
-    def cogroupSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(Iterable[V], Iterable[S])] = { 
-      val hk = heavyKeys()
-      if (hk.nonEmpty) {
-        val hkeys = lrdd.sparkContext.broadcast(hk)
-        val (rekey, dupp) = lrdd.rekeyBySet(rrdd, hkeys)
-        rekey.cogroup(dupp).map{ case ((k, _), v) => v }
-      }
-      else lrdd.cogroup(rrdd).map{ case (k, v) => v } 
-    }
-
     def joinDropKey[S](rrdd: RDD[(K,S)]): RDD[(V,S)] = {
       lrdd.cogroup(rrdd).flatMap{ pair =>
         for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
       }
     }
 
-    def joinSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
-      val hk = heavyKeys()
+    def joinSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(K, (V, S))] = { 
+      val hk = heavyKeys(10)
+      val hkm = lrdd.heavyKeysByPartition[K](10)
       if (hk.nonEmpty) {
-        //val hkeys = lrdd.sparkContext.broadcast(hk)
-        //val (rekey, dupp) = lrdd.rekeyBySet(rrdd, hkeys)
-      	val rdupp = rrdd.flatMap{ case (k,v) =>
-       	  Range(0, {if (hk(k)) reducers else 1 }).map(id => k -> v) 
-      	}
-		lrdd.cogroup(rdupp, new SkewPartitioner2(reducers, hk.asInstanceOf[Set[Any]])).flatMap{ pair =>
-          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
-        }
+       val hkeys = lrdd.sparkContext.broadcast(hk)
+       val (rekey, dupp) = lrdd.rekeyBySet(rrdd, hkeys)
+       println("before join")
+       hkm.foreach(println(_))
+       val result = rekey.cogroup(dupp).flatMap{ pair =>
+          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (pair._1._1, (v, s))
+       }
+       println("after join")
+       result.heavyKeysByPartition[K](0).foreach(println(_))
+       result 
       }
-      else joinDropKey(rrdd)
+      else lrdd.join(rrdd)
     }
 
 
