@@ -44,11 +44,11 @@ var start0 = System.currentTimeMillis()
 val x131 = x129.l_quantity 
 val x132 = x129.l_partkey 
 val x133 = Record182(x130, x131, x132) 
-x133 }) **/
+x133 })**/
 val x139 = P__D_1/**.map(x135 => { val x136 = x135.p_name 
 val x137 = x135.p_partkey 
 val x138 = Record183(x136, x137) 
-x138 }) **/
+x138 })**/
 val x144_out1 = x134.map{ case x140 => ({val x142 = x140.l_partkey 
 x142}, x140) }
 val x144_out2 = x139.map{ case x141 => ({val x143 = x141.p_partkey 

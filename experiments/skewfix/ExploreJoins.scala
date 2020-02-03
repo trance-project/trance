@@ -68,7 +68,7 @@ val x66_out1 = x56.map{ case x62 => ({val x64 = x62.l_partkey
 x64}, x62) }
 val x66_out2 = x61.map{ case x63 => ({val x65 = x63.p_partkey 
 x65}, x63) }
-val x66 =  x66_out1.joinSkewLeft2(x66_out2)
+val x66 =  x66_out1.joinSkewLeft(x66_out2)
 
 /**val x73 = x66.map{ case (x67, x68) => 
    val x69 = x67.l_orderkey 

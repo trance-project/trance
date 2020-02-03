@@ -22,7 +22,7 @@ case class OrdersProj(o_orderkey: Int, o_custkey: Int, o_orderdate: String)
 
 case class Lineitem(l_orderkey: Int, l_partkey: Int, l_suppkey: Int, l_linenumber: Int, l_quantity: Double, l_extendedprice: Double, l_discount: Double, l_tax: Double, l_returnflag: String, l_linestatus: String, l_shipdate: String, l_commitdate: String, l_receiptdate: String, l_shipinstruct: String, l_shipmode: String, l_comment: String)
 
-case class LineitemProj(l_orderkey: Int, l_partkey: Int, l_quantity: Double)
+case class LineitemProj(l_orderkey: Int, l_partkey: Int, l_quantity: Double) 
 
 object Lineitem{
   	val LineRegex = "Lineitem\\((\\d+),(\\d+),(\\d+),(\\d+),(\\d+\\.\\d+),(\\d+\\.\\d+),(\\d+\\.\\d+),(\\d+\\.\\d+),(.*),(.*),(.*),(.*),(.*),(.*),(.*),(.*)\\)".r
@@ -199,11 +199,16 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   }
  
   def loadLineitemProj():RDD[LineitemProj] = {
-  	spark.sparkContext.textFile(s"file:///$datapath/lineitem.tbl",minPartitions = parts).mapPartitions(it => 
+  	object LineitemOrdering extends Ordering[LineitemProj] {
+	    def compare(a: LineitemProj, b: LineitemProj) = a.l_partkey compare b.l_partkey
+	}
+	implicit val lordering:Ordering[LineitemProj] = LineitemOrdering
+	//spark.sparkContext.textFile(s"file:///$datapath/lineitem.tbl",minPartitions = parts).mapPartitions(it => 
+	spark.sparkContext.textFile(s"/nfs_qc4/tpch/li1000", minPartitions = 1000).mapPartitions(it =>
 		it.map(line => {
 			val l = line.split("\\|")
         	LineitemProj(parseBigInt(l(0)), l(1).toInt, l(4).toDouble)
-		}), true).repartition(parts)
+		}), true)//.repartition(parts)
   }
 
   def loadLineitemDF():Dataset[Lineitem] = {
