@@ -53,7 +53,6 @@ val O__D_1 = tpch.loadOrdersProj
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
-tpch.triggerGC
 
    val x46 = () 
 val x47 = Record159(x46) 
@@ -193,10 +192,15 @@ val Query1__D_2c_orders_2o_parts_1 = o_parts__D_1//M_flat3
 Query1__D_2c_orders_2o_parts_1.cache
 spark.sparkContext.runJob(Query1__D_2c_orders_2o_parts_1, (iter: Iterator[_]) => {})
 
+L__D_1.unpersist()
+O__D_1.unpersist()
+C__D_1.unpersist()
 P__D_1.unpersist()
 val P4__D_1 = tpch.loadPartProj4
 P4__D_1.cache
 spark.sparkContext.runJob(P4__D_1, (iter: Iterator[_]) => {})
+
+tpch.triggerGC
 
  def f = {
  
