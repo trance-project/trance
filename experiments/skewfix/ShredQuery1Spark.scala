@@ -27,7 +27,7 @@ object ShredQuery1Spark {
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
 val L__F = 3
-val L__D_1 = tpch.loadLineitemProj
+val L__D_1 = tpch.loadLineitemProj//Bzip
 L__D_1.cache
 spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
@@ -179,13 +179,13 @@ x161
 val M__D_3 = x162
 val x163 = M__D_3
 //M__D_3.collect.foreach(println(_))
-spark.sparkContext.runJob(x163, (iter: Iterator[_]) => {})
+//spark.sparkContext.runJob(x163, (iter: Iterator[_]) => {})
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
     
 
 var start1 = System.currentTimeMillis()
-/**val x201 = M__D_2 
+val x201 = M__D_2 
 val x205 = x201.flatMap{ 
  case x202 => {val x203 = x202._2 
 x203}.map{ case v2 => (x202._1, v2) }
@@ -221,8 +221,10 @@ x228
 val newM__D_1 = x229
 val x230 = newM__D_1
 //newM__D_1.collect.foreach(println(_))
-spark.sparkContext.runJob(x230, (iter: Iterator[_]) => {})**/
+spark.sparkContext.runJob(x230, (iter: Iterator[_]) => {})
+var end = System.currentTimeMillis() - start0
 var end1 = System.currentTimeMillis() - start1
+println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
 println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
     
 }

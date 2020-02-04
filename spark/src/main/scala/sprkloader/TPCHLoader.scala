@@ -11,6 +11,7 @@ case class PartSupp(ps_partkey: Int, ps_suppkey: Int, ps_availqty: Int, ps_suppl
 case class Part(p_partkey: Int, p_name: String, p_mfgr: String, p_brand: String, p_type: String, p_size: Int, p_container: String, p_retailprice: Double, p_comment: String)
 
 case class PartProj(p_partkey: Int, p_name: String)
+case class PartProj4(p_partkey: Int, p_name: String, p_retailprice: Double)
 
 case class Customer(c_custkey: Int, c_name: String, c_address: String, c_nationkey: Int, c_phone: String, c_acctbal: Double, c_mktsegment: String, c_comment: String)
 
@@ -131,6 +132,14 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   		}), true).repartition(parts)
   }
 
+  def loadPartProj4():RDD[PartProj4] = {
+    spark.sparkContext.textFile(s"file:///$datapath/part.tbl", minPartitions = parts).mapPartitions(it =>
+		it.map(line => {
+        	val l = line.split("\\|")
+            PartProj4(l(0).toInt, l(1), l(7).toDouble)
+  		}), true).repartition(parts)
+  }
+
   def loadPartDF():Dataset[Part] = {
     val schema = StructType(Array(
                       StructField("p_partkey", IntegerType), 
@@ -203,12 +212,19 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 	    def compare(a: LineitemProj, b: LineitemProj) = a.l_partkey compare b.l_partkey
 	}
 	implicit val lordering:Ordering[LineitemProj] = LineitemOrdering
-	//spark.sparkContext.textFile(s"file:///$datapath/lineitem.tbl",minPartitions = parts).mapPartitions(it => 
+	spark.sparkContext.textFile(s"file:///$datapath/lineitem.tbl",minPartitions = parts).mapPartitions(it => 
+		it.map(line => {
+			val l = line.split("\\|")
+        	LineitemProj(parseBigInt(l(0)), l(1).toInt, l(4).toDouble)
+		}), true).repartition(parts)
+  }
+
+  def loadLineitemProjBzip():RDD[LineitemProj] = {
 	spark.sparkContext.textFile(s"/nfs_qc4/tpch/li1000", minPartitions = 1000).mapPartitions(it =>
 		it.map(line => {
 			val l = line.split("\\|")
         	LineitemProj(parseBigInt(l(0)), l(1).toInt, l(4).toDouble)
-		}), true)//.repartition(parts)
+		}), true)
   }
 
   def loadLineitemDF():Dataset[Lineitem] = {

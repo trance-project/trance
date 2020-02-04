@@ -14,8 +14,8 @@ object SkewPairRDD {
 
     val reducers = Config.minPartitions
 	  val partitions = lrdd.getNumPartitions
-
-    def heavyKeys(threshold: Int = 1000): Set[K] = {
+ 	
+	def heavyKeys(threshold: Int = 1000): Set[K] = {
       val hkeys = lrdd.mapPartitions( it => 
         Util.countDistinct(it).filter(_._2 > threshold).iterator,true)
       if (reducers > threshold) hkeys.filter(_._2 >= reducers).keys.collect.toSet
@@ -178,28 +178,6 @@ object SkewPairRDD {
     }
 
   
-  }
-
-}
-
-class SkewPartitioner(override val numPartitions: Int) extends Partitioner {
-
-  def defaultPartitionAssignment(key:Any): Int = {
-    val hcmod = key.hashCode % numPartitions
-    hcmod + (if (hcmod < 0) numPartitions else 0)
-  }
-  
-  override def getPartition(key: Any): Int = {
-    val k = key.asInstanceOf[(Any, Int)]
-    if (k._2 != -1) k._2
-    else defaultPartitionAssignment(key)
-  }
-
-  override def equals(that: Any): Boolean = {
-    that match {
-      case sp:SkewPartitioner => sp.numPartitions == numPartitions
-      case _ => false
-    }
   }
 
 }
