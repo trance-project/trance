@@ -6,7 +6,7 @@ import shredding.core._
   * Extension methods for NRC expressions
   */
 trait Extensions {
-  this: ShredNRC =>
+  this: MaterializeNRC =>
 
   def collect[A](e: Expr, f: PartialFunction[Expr, List[A]]): List[A] =
     f.applyOrElse(e, (ex: Expr) => ex match {
@@ -28,7 +28,7 @@ trait Extensions {
 
       // Label extensions
       case el: ExtractLabel => collect(el.lbl, f) ++ collect(el.e, f)
-      case NewLabel(pp) => pp.toList.flatMap(collect(_, f))
+      case l: NewLabel => l.params.toList.flatMap(collect(_, f))
       case p: LabelParameter => collect(p.e, f)
 
       // Dictionary extensions
@@ -41,6 +41,9 @@ trait Extensions {
       // Shredding extensions
       case ShredUnion(e1, e2) => collect(e1, f) ++ collect(e2, f)
       case Lookup(l, d) => collect(l, f) ++ collect(d, f)
+
+      // Materialization extensions
+      case MatDictLookup(l, b) => collect(l, f) ++ collect(b, f)
 
       /////////////////
       //
@@ -119,8 +122,8 @@ trait Extensions {
         val rl = replace(x.lbl, f).asInstanceOf[LabelExpr]
         val re = replace(x.e, f)
         ExtractLabel(rl, re)
-      case NewLabel(pp) =>
-        NewLabel(pp.map(replace(_, f).asInstanceOf[LabelParameter]))
+      case l: NewLabel =>
+        NewLabel(l.params.map(replace(_, f).asInstanceOf[LabelParameter]), l.id)
       case VarRefLabelParameter(v) =>
         VarRefLabelParameter(replace(v, f).asInstanceOf[Expr with VarRef])
       case ProjectLabelParameter(p) =>
@@ -152,6 +155,12 @@ trait Extensions {
         val rl = replace(l, f).asInstanceOf[LabelExpr]
         val rd = replace(d, f).asInstanceOf[BagDictExpr]
         rd.lookup(rl)
+
+      // Materialization extensions
+      case MatDictLookup(l, b) =>
+        val rl = replace(l, f).asInstanceOf[LabelExpr]
+        val rb = replace(b, f).asInstanceOf[BagExpr]
+        MatDictLookup(rl, rb)
 
       /////////////////
       //
@@ -219,7 +228,7 @@ trait Extensions {
     case p: ProjectLabelParameter =>
       filterByScope(p.e.tuple, scope).map(_ => p).toList
     case BagDict(l, f, d) =>
-      val lblVars = inputVars(l, Map.empty)
+      val lblVars = inputVars(l, Map.empty[String, VarDef])
       val lblScope = scope ++ lblVars.map(v => v.name -> v.varDef).toMap
       labelParameters(f, lblScope) ++ labelParameters(d, scope)
   })
@@ -230,7 +239,8 @@ trait Extensions {
     case _ => e.tp.isInstanceOf[DictType]
   }
 
-  def inputVars(e: Expr): Set[VarRef] = inputVars(e, Map.empty).toSet
+  def inputVars(e: Expr): Set[VarRef] =
+    inputVars(e, Map.empty[String, VarDef]).toSet
 
   protected def inputVars(e: Expr, scope: Map[String, VarDef]): List[VarRef] = collect(e, {
     case v: VarRef => filterByScope(v, scope).toList
@@ -239,7 +249,7 @@ trait Extensions {
     case l: Let =>
       inputVars(l.e1, scope) ++ inputVars(l.e2, scope + (l.x.name -> l.x))
     case BagDict(l, f, d) =>
-      val lblVars = inputVars(l, Map.empty)
+      val lblVars = inputVars(l, Map.empty[String, VarDef])
       val lblScope = scope ++ lblVars.map(v => v.name -> v.varDef).toMap
       inputVars(f, lblScope) ++ inputVars(d, scope)
   })
@@ -252,5 +262,39 @@ trait Extensions {
         None
       case None => Some(v)
     }
+
+  def inputVars(a: Assignment): Set[VarRef] = inputVars(a.rhs)
+
+  protected def inputVars(a: Assignment, scope: Map[String, VarDef]): List[VarRef] =
+    inputVars(a.rhs, scope)
+
+  def inputVars(p: Program): Set[VarRef] =
+    p.statements.foldLeft (Map.empty[String, VarDef], Set.empty[VarRef]) {
+      case ((scope, ivars), s) =>
+        (scope + (s.name -> VarDef(s.name, s.rhs.tp)),
+          ivars ++ inputVars(s.rhs, scope).toSet)
+    }._2
+
+  def inputVars(e: ShredExpr): Set[VarRef] =
+    inputVars(e, Map.empty[String, VarDef]).toSet
+
+  protected def inputVars(e: ShredExpr, scope: Map[String, VarDef]): List[VarRef] =
+    inputVars(e.flat, scope) ++ inputVars(e.dict, scope)
+
+  def inputVars(a: ShredAssignment): Set[VarRef] =
+    inputVars(a, Map.empty[String, VarDef])
+
+  protected def inputVars(a: ShredAssignment, scope: Map[String, VarDef]): Set[VarRef] =
+    inputVars(a.rhs.flat, scope).toSet ++ inputVars(a.rhs.dict, scope).toSet
+
+  def inputVars(p: ShredProgram): Set[VarRef] =
+    p.statements.foldLeft (Map.empty[String, VarDef], Set.empty[VarRef]) {
+      case ((scope, ivars), s) =>
+        ( scope ++ Map(
+            flatName(s.name) -> VarDef(flatName(s.name), s.rhs.flat.tp),
+            dictName(s.name) -> VarDef(dictName(s.name), s.rhs.dict.tp)
+          ),
+          ivars ++ inputVars(s.rhs, scope).toSet )
+    }._2
 
 }

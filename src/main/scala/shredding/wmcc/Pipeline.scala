@@ -3,7 +3,7 @@ package shredding.wmcc
 import shredding.core._
 import shredding.nrc._
 
-trait PipelineRunner extends ShredNRC
+trait PipelineRunner extends MaterializeNRC
   with Materializer
   with Shredding
   with Printer
@@ -97,7 +97,7 @@ trait PipelineRunner extends ShredNRC
     val ttype = BagType(r1type)
     val r = VarDef("R", ttype)
     
-    val rflat = NewLabel()
+    val rflat = NewLabel(Set.empty)
     val bagdict = 
     BagDict(
       rflat,

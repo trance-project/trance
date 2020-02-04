@@ -231,7 +231,7 @@ trait NRC extends BaseExpr {
   final case class Program(statements: List[Assignment]) {
     assert(statements.map(_.name).distinct.size == statements.map(_.name).size)
 
-    def append(p: Program): Program = Program(statements ++ p.statements)
+    def ++(p: Program): Program = Program(statements ++ p.statements)
 
     def append(a: Assignment): Program = Program(statements :+ a)
 

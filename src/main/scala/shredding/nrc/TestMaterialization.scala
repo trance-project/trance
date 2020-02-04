@@ -3,7 +3,7 @@ package shredding.nrc
 import shredding.runtime.{Evaluator, ScalaPrinter, ScalaShredding}
 
 object TestMaterialization extends App
-  with ShredNRC
+  with MaterializeNRC
   with Shredding
   with ScalaShredding
   with ScalaPrinter
@@ -12,25 +12,22 @@ object TestMaterialization extends App
   with Evaluator
   with Optimizer {
 
-  object Example1 {
+  def run(program: Program): Unit = {
+    println("Program: \n" + quote(program) + "\n")
 
-    def run(): Unit = {
-      val program = shredding.examples.tpch.Query1.program.asInstanceOf[Program]
-      println("Program: \n" + quote(program) + "\n")
+    val shredded = shred(program)
+//    println("Shredded program: \n" + quote(shredded) + "\n")
+    println("Shredded program optimized: \n" + quote(optimize(shredded)) + "\n")
 
-      val shredded = shred(program)
-      println("Shredded program: \n" + quote(shredded) + "\n")
-      println("Shredded program optimized: \n" + quote(optimize(shredded)) + "\n")
+    val materializedProgram = materialize(shredded)
+//    println("Materialized program: \n" + quote(materializedProgram.program) + "\n")
+    println("Materialized program optimized: \n" + quote(optimize(materializedProgram.program)) + "\n")
 
-      val materializedProgram = materialize(shredded)
-      println("Materialized program: \n" + quote(materializedProgram.program) + "\n")
-      println("Materialized program optimized: \n" + quote(optimize(materializedProgram.program)) + "\n")
-
-      val unshredded = unshred(shredded, materializedProgram.dictMapper)
-      println("Unshredded program: \n" + quote(unshredded) + "\n")
-      println("Unshredded program optimized: \n" + quote(optimize(unshredded)) + "\n")
-    }
+    val unshredded = unshred(shredded, materializedProgram.dictMapper)
+//    println("Unshredded program: \n" + quote(unshredded) + "\n")
+    println("Unshredded program optimized: \n" + quote(optimize(unshredded)) + "\n")
   }
 
-  Example1.run()
+//  run(shredding.examples.tpch.Query1.program.asInstanceOf[Program])
+  run(shredding.examples.tpch.Query4.program.asInstanceOf[Program])
 }

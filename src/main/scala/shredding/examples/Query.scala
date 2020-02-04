@@ -5,6 +5,7 @@ import shredding.nrc._
 import shredding.wmcc._
 
 trait Query extends Materializer
+  with MaterializeNRC
   with Shredding 
   with Printer
   with Optimizer 

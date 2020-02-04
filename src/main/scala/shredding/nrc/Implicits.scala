@@ -1,6 +1,6 @@
 package shredding.nrc
 
-import shredding.core.{OpDivide, OpEq, OpGe, OpGt, OpMinus, OpMod, OpMultiply, OpNe, OpPlus}
+import shredding.core.{OpDivide, OpEq, OpGe, OpGt, OpMinus, OpMod, OpMultiply, OpNe, OpPlus, Type, VarDef}
 
 trait Implicits {
   this: ShredNRC =>
@@ -70,7 +70,12 @@ trait Implicits {
   implicit class BagDictExprOps(d: BagDictExpr) {
     def tupleDict: TupleDictExpr = d match {
       case b: BagDict => b.dict
-      case BagDictUnion(d1, d2) => TupleDictUnion(d1.tupleDict, d2.tupleDict)
+      case BagDictLet(x, e1, e2) =>
+        DictLet(x, e1, e2.tupleDict).asInstanceOf[TupleDictExpr]
+      case BagDictIfThenElse(c, e1, e2) =>
+        DictIfThenElse(c, e1.tupleDict, e2.tupleDict).asInstanceOf[TupleDictExpr]
+      case BagDictUnion(d1, d2) =>
+        TupleDictUnion(d1.tupleDict, d2.tupleDict)
       case _ => TupleDictProject(d)
     }
   }
@@ -82,7 +87,11 @@ trait Implicits {
       case LabelIfThenElse(c, l1, l2) =>
         BagIfThenElse(c, d.lookup(l1), l2.map(d.lookup))
       case _ => d match {
-        case b: BagDict if b.lbl.tp == lbl.tp => b.flat
+        case BagDictLet(x, e1, e2) =>
+          BagLet(x, e1, e2.lookup(lbl))
+        case BagDictIfThenElse(c, e1, e2) =>
+          BagIfThenElse(c, e1.lookup(lbl), Some(e2.lookup(lbl)))
+        case BagDict(l, flat, _) if l.tp == lbl.tp => flat
         case _ => Lookup(lbl, d)
       }
     }

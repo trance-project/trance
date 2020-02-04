@@ -34,7 +34,7 @@ trait BaseShredding {
   * Shredding transformation
   */
 trait Shredding extends BaseShredding with Extensions {
-  this: ShredNRC =>
+  this: ShredNRC with MaterializeNRC =>
 
   def shred(e: Expr): ShredExpr = substituteLabelParams(shred(e, Map.empty))
 

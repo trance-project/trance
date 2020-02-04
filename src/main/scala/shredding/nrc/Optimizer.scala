@@ -16,7 +16,7 @@ import shredding.utils.Utils.Symbol
   *         Lookup + BagDict => flatBag
   */
 trait Optimizer extends Extensions {
-  this: ShredNRC =>
+  this: MaterializeNRC =>
 
   def optimize(p: ShredProgram): ShredProgram =
     ShredProgram(p.statements.map(optimize))
@@ -50,7 +50,7 @@ trait Optimizer extends Extensions {
       !ivars.contains (l.x.name) ||
         {
           // Sanity check
-          assert (ivars (l.x.name) == l.x.tp)
+//          assert (ivars (l.x.name) == l.x.tp)
           false
         }
     } => deadCodeElimination(l.e2)

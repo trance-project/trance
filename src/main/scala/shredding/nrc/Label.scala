@@ -85,9 +85,7 @@ trait Label {
     implicit def orderingById: Ordering[NewLabel] = Ordering.by(e => e.id)
   }
 
-  final case class NewLabel(params: Set[LabelParameter] = Set.empty) extends LabelExpr {
-    val id: Int = NewLabel.getNextId
-
+  final case class NewLabel(params: Set[LabelParameter], id: Int = NewLabel.getNextId) extends LabelExpr {
     val tp: LabelType = LabelType(params.map(p => p.name -> p.tp).toMap)
 
     override def equals(that: Any): Boolean = that match {

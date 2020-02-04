@@ -41,10 +41,10 @@ trait Factory {
     def apply(t: TupleExpr, field: String): TupleAttributeExpr = t match {
       case Tuple(fs) =>
         fs(field)
-      case TupleLet(x, e1, Tuple(fs)) =>
-        Let(x, e1, fs(field)).asInstanceOf[TupleAttributeExpr]
-      case TupleIfThenElse(c, Tuple(fs1), Tuple(fs2)) =>
-        IfThenElse(c, fs1(field), fs2(field)).asInstanceOf[TupleAttributeExpr]
+      case TupleLet(x, e1, e2) =>
+        Let(x, e1, e2(field)).asInstanceOf[TupleAttributeExpr]
+      case TupleIfThenElse(c, e1, e2) =>
+        IfThenElse(c, e1(field), e2(field)).asInstanceOf[TupleAttributeExpr]
       case v: TupleVarRef => t.tp(field) match {
         case _: NumericType => NumericProject(v, field)
         case _: PrimitiveType => PrimitiveProject(v, field)
@@ -57,12 +57,12 @@ trait Factory {
     def apply(t: TupleDictExpr, field: String): TupleDictAttributeExpr = t match {
       case TupleDict(fs) =>
         fs(field)
-      case TupleDictLet(x, e1, TupleDict(fs)) =>
-        DictLet(x, e1, fs(field)).asInstanceOf[TupleDictAttributeExpr]
+      case TupleDictLet(x, e1, e2) =>
+        DictLet(x, e1, e2(field)).asInstanceOf[TupleDictAttributeExpr]
+      case TupleDictIfThenElse(c, e1, e2) =>
+        DictIfThenElse(c, e1(field), e2(field)).asInstanceOf[TupleDictAttributeExpr]
       case TupleDictUnion(d1, d2) =>
         DictUnion(d1(field), d2(field)).asInstanceOf[TupleDictAttributeExpr]
-      case TupleDictIfThenElse(c, TupleDict(fs1), TupleDict(fs2)) =>
-        DictIfThenElse(c, fs1(field), fs2(field)).asInstanceOf[TupleDictAttributeExpr]
       case _ => t.tp(field) match {
         case EmptyDictType => EmptyDict
         case _: BagDictType => BagDictProject(t, field)

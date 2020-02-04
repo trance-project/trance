@@ -95,8 +95,8 @@ object Query2 extends TPCHBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
 
-  val (q1, co, cor) = varset(TPCHQuery1.name, "c2",
-    TPCHQuery1Full.program(TPCHQuery1Full.name).varRef.asInstanceOf[BagExpr])
+  val (q1, co, cor) = varset(Query1.name, "c2",
+    Query1.program(Query1.name).varRef.asInstanceOf[BagExpr])
 
   val orders = BagProject(cor, "c_orders")
   val co2 = VarDef("o2", orders.tp.tp)
@@ -117,7 +117,9 @@ object Query2 extends TPCHBase {
                  List("qty"),
                  DoubleType))))
 
-  val program = Program(Assignment(name, query2))
+  val program =
+    Query1.program.asInstanceOf[Program] ++
+      Program(Assignment(name, query2))
 }
 
 /**
@@ -135,8 +137,8 @@ object Query3 extends TPCHBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
 
-  val (q1, co, cor) = varset(TPCHQuery1.name, "c2",
-    TPCHQuery1Full.program(TPCHQuery1Full.name).varRef.asInstanceOf[BagExpr])
+  val (q1, co, cor) = varset(Query1.name, "c2",
+    Query1.program(Query1.name).varRef.asInstanceOf[BagExpr])
 
   val orders = BagProject(cor, "c_orders")
   val co2 = VarDef("o2", orders.tp.tp)
@@ -159,7 +161,9 @@ object Query3 extends TPCHBase {
       List("total"),
       DoubleType)
 
-  val program = Program(Assignment(name, query3))
+  val program =
+    Query1.program.asInstanceOf[Program] ++
+      Program(Assignment(name, query3))
 }
 
 /**
@@ -179,8 +183,8 @@ object Query4 extends TPCHBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
 
-  val (q1, co, cor) = varset(TPCHQuery1.name, "c2",
-    TPCHQuery1Full.program(TPCHQuery1Full.name).varRef.asInstanceOf[BagExpr])
+  val (q1, co, cor) = varset(Query1.name, "c2",
+    Query1.program(Query1.name).varRef.asInstanceOf[BagExpr])
 
   val orders = BagProject(cor, "c_orders")
   val co2 = VarDef("o2", orders.tp.tp)
@@ -205,7 +209,9 @@ object Query4 extends TPCHBase {
       List("total"),
       DoubleType)))))))
 
-  val program = Program(Assignment(name, query4))
+  val program =
+    Query1.program.asInstanceOf[Program] ++
+      Program(Assignment(name, query4))
 }
 
 /** 
@@ -248,8 +254,8 @@ object Query4Filter1 extends TPCHBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
 
-  val (q1, co, cor) = varset(TPCHQuery1WK.name, "c2",
-    TPCHQuery1WK.program(TPCHQuery1WK.name).varRef.asInstanceOf[BagExpr])
+  val (q1, co, cor) = varset(Query1Extended.name, "c2",
+    Query1Extended.program(Query1Extended.name).varRef.asInstanceOf[BagExpr])
 
   val orders = BagProject(cor, "c_orders")
   val co2 = VarDef("o2", orders.tp.tp)
@@ -275,7 +281,9 @@ object Query4Filter1 extends TPCHBase {
         List("total"),
         DoubleType))))))))
 
-  val program = Program(Assignment(name, query4))
+  val program =
+    Query1Extended.program.asInstanceOf[Program] ++
+      Program(Assignment(name, query4))
 }
 
 object Query4Filter2 extends TPCHBase {
@@ -284,8 +292,8 @@ object Query4Filter2 extends TPCHBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
 
-  val (q1, co, cor) = varset(TPCHQuery1WK.name, "c2",
-    TPCHQuery1WK.program(TPCHQuery1WK.name).varRef.asInstanceOf[BagExpr])
+  val (q1, co, cor) = varset(Query1Extended.name, "c2",
+    Query1Extended.program(Query1Extended.name).varRef.asInstanceOf[BagExpr])
 
   val orders = BagProject(cor, "c_orders")
   val co2 = VarDef("o2", orders.tp.tp)
@@ -312,7 +320,9 @@ object Query4Filter2 extends TPCHBase {
         List("total"),
         DoubleType)))))))))
 
-  val program = Program(Assignment(name, query4))
+  val program =
+    Query1Extended.program.asInstanceOf[Program] ++
+      Program(Assignment(name, query4))
 }
 
 /**
@@ -365,7 +375,7 @@ optimal for the version of the query that does
 not apply the optimization.
 
 For c in C Union
-  Sng((c_name := c.c_name, suppliers := For co in Query2Full Union
+  Sng((c_name := c.c_name, suppliers := For co in Query2 Union
     For co2 in co.customers2 Union
       If (co2.c_name2 = c.c_name)
       Then Sng((s_name := co.s_name))))
@@ -377,8 +387,8 @@ object Query6Full extends TPCHBase {
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
       List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
  
-  val (q2, co, cor) = varset(TPCHQuery2Full.name, "co",
-    TPCHQuery2Full.program(TPCHQuery2Full.name).varRef.asInstanceOf[BagExpr])
+  val (q2, co, cor) = varset(Query2.name, "co",
+    Query2.program(Query2.name).varRef.asInstanceOf[BagExpr])
 
   val cust = BagProject(cor, "customers2")
   val co2 = VarDef("co2", cust.tp.tp)
@@ -391,7 +401,9 @@ object Query6Full extends TPCHBase {
                       IfThenElse(Cmp(OpEq, co2r("c_name2"), cr("c_name")),
                         Singleton(Tuple("s_name" -> cor("s_name")))))))))
 
-  val program = Program(Assignment(name, query6))
+  val program =
+    Query2.program.asInstanceOf[Program] ++
+      Program(Assignment(name, query6))
 }
 
 /**
@@ -414,8 +426,8 @@ object Query6 extends TPCHBase {
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
       List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
  
-  val (q2, co, cor) = varset(TPCHQuery2Full.name, "co",
-    TPCHQuery2Full.program(TPCHQuery2Full.name).varRef.asInstanceOf[BagExpr])
+  val (q2, co, cor) = varset(Query2.name, "co",
+    Query2.program(Query2.name).varRef.asInstanceOf[BagExpr])
 
   val cust = BagProject(cor, "customers2")
   val co2 = VarDef("co2", cust.tp.tp)
@@ -431,7 +443,9 @@ object Query6 extends TPCHBase {
                     IfThenElse(Cmp(OpEq, cfr("c_name"), cr("c_name")),
                       Singleton(Tuple("s_name" -> cfr("s_name"))))))))
 
-  val program = Program(Assignment(cflat.name, flat), Assignment(name, query6))
+  val program =
+    Query2.program.asInstanceOf[Program] ++
+      Program(Assignment(cflat.name, flat), Assignment(name, query6))
 }
 
 /**
@@ -450,8 +464,8 @@ object Query7 extends TPCHBase {
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
  
-  val (q2, co, cor) = varset(TPCHQuery2Full.name, "co",
-    TPCHQuery2Full.program(TPCHQuery2Full.name).varRef.asInstanceOf[BagExpr])
+  val (q2, co, cor) = varset(Query2.name, "co",
+    Query2.program(Query2.name).varRef.asInstanceOf[BagExpr])
 
   val cust = BagProject(cor, "customers2")
   val co2 = VarDef("co2", cust.tp.tp)
@@ -467,5 +481,7 @@ object Query7 extends TPCHBase {
                     IfThenElse(Cmp(OpEq, cfr("c_name"), cr("c_name")),
                       Singleton(Tuple("s_name" -> cfr("s_name")))))))))
 
-  val program = Program(Assignment(cflat.name, flat), Assignment(name, query7))
+  val program =
+    Query2.program.asInstanceOf[Program] ++
+      Program(Assignment(cflat.name, flat), Assignment(name, query7))
 }

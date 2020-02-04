@@ -6,7 +6,7 @@ import shredding.core._
   * Print of NRC expressions
   */
 trait Printer {
-  this: ShredNRC with BaseShredding =>
+  this: MaterializeNRC with BaseShredding =>
 
   import shredding.utils.Utils.ind
 
@@ -81,6 +81,8 @@ trait Printer {
           |(${quote(e2)})""".stripMargin
     case Lookup(lbl, dict) =>
       s"Lookup(lbl := ${quote(lbl)}, dict := ${quote(dict)})"
+    case MatDictLookup(lbl, bag) =>
+      s"MatDictLookup(lbl := ${quote(lbl)}, dict := ${quote(bag)})"
 
     /////////////////
     //
@@ -96,7 +98,7 @@ trait Printer {
 
     case g: GroupBy => g.value.tp match {
       case b: BagType => s"(${quote(g.bag)}).groupBy(${quote(g.grp)}), ${quote(g.value)})"
-      case _ => s"(${quote(g.bag)}).groupBy+(${quote(g.grp)}), ${quote(g.value)})"
+      case _ => s"(${quote(g.bag)}).groupBy+(${quote(g.grp)}, ${quote(g.value)})"
     }
 
     case _ => sys.error("Cannot print unknown expression " + e)
