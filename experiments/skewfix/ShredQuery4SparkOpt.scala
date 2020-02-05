@@ -38,7 +38,7 @@ object ShredQuery4SparkOpt {
    val tpch = TPCHLoader(spark)
 
 val L__F = 3
-val L__D_1 = tpch.loadLineitemProj
+val L__D_1 = tpch.loadLineitemProjBzip
 L__D_1.cache
 spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
