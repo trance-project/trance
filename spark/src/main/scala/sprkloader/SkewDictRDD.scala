@@ -7,6 +7,7 @@ import scala.reflect.ClassTag
 import org.apache.spark.Partitioner
 import SkewPairRDD._
 import UtilPairRDD._
+import DomainRDD._
 
 object SkewDictRDD {
   
@@ -19,16 +20,29 @@ object SkewDictRDD {
 			it.map{ case (lbl, bag) => (lbl, index) -> bag.size }, true)	
 	}
 	
-	def lookup[S](rrdd: RDD[(K,S)]): RDD[(S, Iterable[V])] = {
-      lrdd.cogroup(rrdd).flatMap{ pair =>
-        for (b <- pair._2._1.iterator; l <- pair._2._2.iterator) yield (l, b)
-      }
-    }
+	def lookup(rrdd: RDD[K]): RDD[(K, Iterable[V])] = {
+      val domain = rrdd.toLocalIterator.toSet
+      lrdd.mapPartitions(it => 
+        it.flatMap{ case (key, value) => if (domain(key)) Iterator((key, value)) else Iterator()})
+  }
 
-    /**
+	def lookup[S](rrdd: RDD[K], bagop: V => S): RDD[(K, Iterable[S])] = {
+      val domain = rrdd.toLocalIterator.toSet
+      lrdd.mapPartitions(it => 
+        it.flatMap{ case (key, value) => 
+          if (domain(key)) Iterator((key, value.map(bagop))) else Iterator()})
+  }
+
+	/**def lookupFlatten[S](rrdd: RDD[K], bagop: V => S): RDD[(K, Iterable[S])] = {
+      val domain = rrdd.toLocalIterator.toSet
+      lrdd.mapPartitions(it => 
+        it.flatMap{ case (key, value) => 
+          if (domain(key)) Iterator((key, value.map(bagop))) else Iterator()})
+  }**/
+
+  /**
 		Given a balanced dictionary, doing a lookup that maintains partitioning of 
 		parent label (local filtering) will result in skewed partitions. 
-	  **/
 	def lookupSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(S, Iterable[V])] = {
       val hk = lrdd.heavyKeys()
       if (hk.nonEmpty) {
@@ -38,7 +52,7 @@ object SkewDictRDD {
           for (b <- pair._2._1.iterator; l <- pair._2._2.iterator) yield (l, b)
         }
       } else lrdd.lookup(rrdd) // maybe this could do local filtering
-    }
+    }**/
 
   }
 
