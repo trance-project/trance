@@ -54,6 +54,15 @@ object SkewDictRDD {
     }
   }
 
+  def lookupSkewLeftFlat[L: ClassTag,S](rrdd: RDD[L], domop: L => K, bagop: V => S): RDD[(S, (K, V))] = {
+    val tagDict = lrdd.mapPartitionsWithIndex((index, it) =>
+      it.map{case (k,v) => (k, index) -> v}, true)
+    val tagDomain = rrdd.extractDistinctRekey(domop, partitions)
+    tagDict.cogroup(tagDomain, new SkewPartitioner(partitions)).flatMap{ pair =>
+      for (b <- pair._2._1.flatten.iterator) yield (bagop(b), (pair._1._1, b))
+    }
+  }
+
   def lookupSkewLeft[L:ClassTag](rrdd: RDD[L], domop: L => K): RDD[(K, Iterable[V])] = {
       val tagDict = lrdd.mapPartitionsWithIndex((index, it) =>
         it.map{case (k,v) => (k, index) -> v}, true)

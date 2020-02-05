@@ -275,17 +275,17 @@ val x274 = o_parts_ctx1
 //val x279_out1 = x274.extractDistinct(l => l.lbl.o2__Fo_parts)
 val x275 = Query1__D_2c_orders_2o_parts_1
 // explore flatMap version here
-val x279 = x275.lookupSkewLeft(x274, (l:Record317) => l.lbl.o2__Fo_parts)
+val x279 = x275.lookupSkewLeftFlat(x274, (l:Record317) => l.lbl.o2__Fo_parts, (p: Record172) => p.p_name)
          
 val x284 = P4__D_1/**.map(x280 => { val x281 = x280.p_retailprice 
 val x282 = x280.p_name 
 val x283 = Record318(x281, x282) 
 x283 }) **/
-val x290_out1 = x279.flatMap{ case (lbl, bag) => bag.map{ case x286 => ({val x288 = x286.p_name 
-x288}, (lbl, x286)) }}
+//val x290_out1 = x279.flatMap{ case (lbl, bag) => bag.map{ case x286 => ({val x288 = x286.p_name 
+//x288}, (lbl, x286)) }}
 val x290_out2 = x284.map{ case x287 => ({val x289 = x287.p_name 
 x289}, x287) }
-val x290 = x290_out1.joinSkewLeft(x290_out2)
+val x290 = x279.joinSkewLeft(x290_out2)
 val x302 = x290.flatMap{ case ((x291, x292), x293) => val x301 = (x291,x293) 
 x301 match {
    case (_,null) => Nil
