@@ -20,39 +20,53 @@ object SkewDictRDD {
 			it.map{ case (lbl, bag) => (lbl, index) -> bag.size }, true)	
 	}
 	
-	def lookup(rrdd: RDD[K]): RDD[(K, Iterable[V])] = {
-      val domain = rrdd.collect.toSet
+	def lookup[L: ClassTag](rrdd: RDD[L], domop: L => K): RDD[(K, Iterable[V])] = {
+      val domain = rrdd.extractDistinct(domop) 
       lrdd.mapPartitions(it => 
-        it.flatMap{ case (key, value) => if (domain(key)) Iterator((key, value)) else Iterator()})
+        it.flatMap{ case (key, value) => if (domain(key)) Iterator((key, value)) else Iterator()}, true)
   }
 
-	def lookup[S](rrdd: RDD[K], bagop: V => S): RDD[(K, Iterable[S])] = {
-      val domain = rrdd.collect.toSet
+	def lookup[L: ClassTag,S](rrdd: RDD[L], domop: L => K, bagop: V => S): RDD[(K, Iterable[S])] = {
+      val domain = rrdd.extractDistinct(domop)
       lrdd.mapPartitions(it => 
         it.flatMap{ case (key, value) => 
-          if (domain(key)) Iterator((key, value.map(bagop))) else Iterator()})
+          if (domain(key)) Iterator((key, value.map(bagop))) else Iterator()}, true)
   }
 
-	/**def lookupFlatten[S](rrdd: RDD[K], bagop: V => S): RDD[(K, Iterable[S])] = {
-      val domain = rrdd.toLocalIterator.toSet
-      lrdd.mapPartitions(it => 
-        it.flatMap{ case (key, value) => 
-          if (domain(key)) Iterator((key, value.map(bagop))) else Iterator()})
-  }**/
 
-  /**
-		Given a balanced dictionary, doing a lookup that maintains partitioning of 
-		parent label (local filtering) will result in skewed partitions. 
-	def lookupSkewLeft[S](rrdd: RDD[(K, S)]): RDD[(S, Iterable[V])] = {
+  def lookupSkewLeft[L: ClassTag,S](rrdd: RDD[L], domop: L => K, bagop: V => S): RDD[(K, Iterable[S])] = {
       val hk = lrdd.heavyKeys()
       if (hk.nonEmpty) {
-        val hkeys = lrdd.sparkContext.broadcast(hk)
-        val (rekey,dupp) = lrdd.rekeyBySet(rrdd, hkeys)
-    	rekey.cogroup(dupp).flatMap{ pair =>
-          for (b <- pair._2._1.iterator; l <- pair._2._2.iterator) yield (l, b)
-        }
-      } else lrdd.lookup(rrdd) // maybe this could do local filtering
-    }**/
+        val domain = rrdd.extractDistinctHeavy(domop, hk)
+        val hkeys = lrdd.sparkContext.broadcast(domain)
+        lrdd.mapPartitions(it => 
+          it.flatMap{ case (key, value) => 
+            if (hkeys.value(key)) Iterator((key, value.map(bagop))) else Iterator()}, true)
+      } else lookup(rrdd, domop, bagop)      
+    }
+
+  def lookupSkewLeft[L:ClassTag](rrdd: RDD[L], domop: L => K): RDD[(K, Iterable[V])] = {
+      val hk = lrdd.heavyKeys()
+      if (hk.nonEmpty) {
+        val domain = rrdd.extractDistinctHeavy(domop, hk)
+        val hkeys = lrdd.sparkContext.broadcast(domain)
+        lrdd.mapPartitions(it => 
+          it.flatMap{ case (key, value) => 
+            if (hkeys.value(key)) Iterator((key, value)) else Iterator()}, true)
+      } else lookup(rrdd, domop)      
+    }
+
+  /**def lookupJoin[S](rrdd: RDD[(K, S)]): RDD[(S, Iterable[V])] = {
+    lrdd.cogroup(rrdd).flatMap{ pair =>
+      for (b <- pair._2._1.iterator; l <- pair._2._2.iterator) yield (l, b)
+    }
+  }
+
+  def lookupJoin[S, T](rrdd: RDD[(K, S)], bagop: V => T): RDD[(S, Iterable[T])] = {
+    lrdd.cogroup(rrdd).flatMap{ pair =>
+      for (b <- pair._2._1.iterator.map(bagop); l <- pair._2._2.iterator) yield (l, b)
+    }
+  }**/
 
   }
 

@@ -239,10 +239,11 @@ val x238 = c_orders_ctx1
 //val x243_out1 = x238.map{ case x239 => ({val x241 = x239.lbl 
 //val x242 = x241.c2__Fc_orders 
 //x242}, x239) }
-val x243_out1 = x238.extractDistinct(l => l.lbl.c2__Fc_orders)
-val x243_out2 = Query1__D_2c_orders_1
+//val x243_out1 = x238.extractDistinct(l => l.lbl.c2__Fc_orders)
+//val x243_out2 = Query1__D_2c_orders_1
+val x243 = Query1__D_2c_orders_1
 // remove this label of labels
-val x244 = x243_out2.lookup(x243_out1, o => Record316(o.o_orderdate, Record315(o.o_parts)))
+val x244 = x243.lookupSkewLeft(x238, (l:Record313) => l.lbl.c2__Fc_orders, o => Record316(o.o_orderdate, Record315(o.o_parts)))
 // this is a function that can be pushed to the lookup 
 //val x244 = x243.map{
 //  case (lbl, bag) => (lbl, bag.map{o => Record316(o.o_orderdate, Record315(o.o_parts))})
@@ -270,9 +271,10 @@ val x274 = o_parts_ctx1
 //val x279_out1 = x274.map{ case x275 => ({val x277 = x275.lbl 
 //val x278 = x277.o2__Fo_parts 
 //x278}, x275) }
-val x279_out1 = x274.extractDistinct(l => l.lbl.o2__Fo_parts)
-val x279_out2 = Query1__D_2c_orders_2o_parts_1
-val x279 = x279_out2.lookup(x279_out1)
+//val x279_out1 = x274.extractDistinct(l => l.lbl.o2__Fo_parts)
+val x275 = Query1__D_2c_orders_2o_parts_1
+// explore flatMap version here
+val x279 = x275.lookupSkewLeft(x274, (l:Record317) => l.lbl.o2__Fo_parts)
          
 val x284 = P4__D_1/**.map(x280 => { val x281 = x280.p_retailprice 
 val x282 = x280.p_name 
@@ -306,7 +308,6 @@ val x309 = o_parts__D_1
 spark.sparkContext.runJob(x309, (iter: Iterator[_]) => {})//.count
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery4Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
-    
 
 var start1 = System.currentTimeMillis()
 /**val x342 = c_orders__D_1 
@@ -345,7 +346,7 @@ x369
 val newM__D_1 = x370
 val x371 = newM__D_1
 newM__D_1.collect.foreach(println(_))
-//spark.sparkContext.runJob(x371, (iter: Iterator[_]) => {})**/
+spark.sparkContext.runJob(x371, (iter: Iterator[_]) => {})**/
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery4Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 

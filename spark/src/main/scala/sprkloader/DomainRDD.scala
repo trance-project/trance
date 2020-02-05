@@ -21,12 +21,17 @@ object DomainRDD{
       part.collect    
     }
   
-    def extractDistinct[K: ClassTag](f: L => K): RDD[K] = {
+    def extractDistinct[K: ClassTag](f: L => K): Set[K] = {
       domain.mapPartitions(it => it.foldLeft(Set.empty[K])(
         (acc, l) => acc + f(l)  
-      ).iterator, true)
+      ).iterator, true).collect.toSet
     }
 
+    def extractDistinctHeavy[K: ClassTag](f: L => K, hkeys: Set[K]): Set[K] = {
+      domain.mapPartitions(it => it.flatMap( lbl => {
+        val key = f(lbl); if (hkeys(key)) Iterator(key) else Iterator()
+      }), true).collect.toSet
+    }
   }
 
 }
