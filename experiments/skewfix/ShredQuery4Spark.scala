@@ -345,8 +345,8 @@ x369
 val newM__D_1 = x370
 val x371 = newM__D_1
 newM__D_1.collect.foreach(println(_))
-//spark.sparkContext.runJob(x371, (iter: Iterator[_]) => {})
-var end1 = System.currentTimeMillis() - start1**/
+//spark.sparkContext.runJob(x371, (iter: Iterator[_]) => {})**/
+var end1 = System.currentTimeMillis() - start1
 println("ShredQuery4Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 
 }

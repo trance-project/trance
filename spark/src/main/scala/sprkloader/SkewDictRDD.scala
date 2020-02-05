@@ -21,13 +21,13 @@ object SkewDictRDD {
 	}
 	
 	def lookup(rrdd: RDD[K]): RDD[(K, Iterable[V])] = {
-      val domain = rrdd.toLocalIterator.toSet
+      val domain = rrdd.collect.toSet
       lrdd.mapPartitions(it => 
         it.flatMap{ case (key, value) => if (domain(key)) Iterator((key, value)) else Iterator()})
   }
 
 	def lookup[S](rrdd: RDD[K], bagop: V => S): RDD[(K, Iterable[S])] = {
-      val domain = rrdd.toLocalIterator.toSet
+      val domain = rrdd.collect.toSet
       lrdd.mapPartitions(it => 
         it.flatMap{ case (key, value) => 
           if (domain(key)) Iterator((key, value.map(bagop))) else Iterator()})
