@@ -6,6 +6,7 @@ import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
 import sprkloader.SkewDictRDD._
+import sprkloader.DomainRDD._
 case class Record159(lbl: Unit)
 case class Record160(l_orderkey: Int, l_quantity: Double, l_partkey: Int)
 case class Record161(p_name: String, p_partkey: Int)
@@ -230,20 +231,22 @@ val x234 = x230.map{ case x231 =>
 val x233 = Record313(x232) 
 x233 
 } 
-val x235 = x234.distinct 
+val x235 = x234//.distinctPartitions
 val c_orders_ctx1 = x235
 val x236 = c_orders_ctx1
 //c_orders_ctx1.collect.foreach(println(_))
 val x238 = c_orders_ctx1 
-val x243_out1 = x238.map{ case x239 => ({val x241 = x239.lbl 
-val x242 = x241.c2__Fc_orders 
-x242}, x239) }
+//val x243_out1 = x238.map{ case x239 => ({val x241 = x239.lbl 
+//val x242 = x241.c2__Fc_orders 
+//x242}, x239) }
+val x243_out1 = x238.extractDistinct(l => l.lbl.c2__Fc_orders)
 val x243_out2 = Query1__D_2c_orders_1
-val x243 = x243_out2.lookupSkewLeft(x243_out1)
+// remove this label of labels
+val x244 = x243_out2.lookup(x243_out1, o => Record316(o.o_orderdate, Record315(o.o_parts)))
 // this is a function that can be pushed to the lookup 
-val x244 = x243.map{
-  case (lbl, bag) => (lbl.lbl, bag.map{o => Record316(o.o_orderdate, Record315(o.o_parts))})
-}
+//val x244 = x243.map{
+//  case (lbl, bag) => (lbl, bag.map{o => Record316(o.o_orderdate, Record315(o.o_parts))})
+//}
 
 val c_orders__D_1 = x244
 val x259 = c_orders__D_1
@@ -259,17 +262,17 @@ val x270 = x265.map{ case (x266, x267) =>
 val x269 = Record317(x268) 
 x269 
 } 
-val x271 = x270.distinct 
+val x271 = x270 
 val o_parts_ctx1 = x271
 val x272 = o_parts_ctx1
 //o_parts_ctx1.collect.foreach(println(_))
 val x274 = o_parts_ctx1 
-val x279_out1 = x274.map{ case x275 => ({val x277 = x275.lbl 
-val x278 = x277.o2__Fo_parts 
-x278}, x275) }
+//val x279_out1 = x274.map{ case x275 => ({val x277 = x275.lbl 
+//val x278 = x277.o2__Fo_parts 
+//x278}, x275) }
+val x279_out1 = x274.extractDistinct(l => l.lbl.o2__Fo_parts)
 val x279_out2 = Query1__D_2c_orders_2o_parts_1
-val x279 = x279_out2.lookupSkewLeft(x279_out1)
-//.flatMapValues(identity)
+val x279 = x279_out2.lookup(x279_out1)
          
 val x284 = P4__D_1/**.map(x280 => { val x281 = x280.p_retailprice 
 val x282 = x280.p_name 
@@ -293,8 +296,8 @@ x299}))
  }
 }.reduceByKey(_ + _) 
 val x308 = x302.map{ case ((x303, x304), x305) => 
-   val x306 = x303.lbl 
-val x307 = (x306, Record373(x304.p_name, x305)) 
+   val x306 = x303//.lbl 
+val x307 = (Record315(x306), Record373(x304.p_name, x305)) 
 x307 
 }.groupByLabel() 
 val o_parts__D_1 = x308
@@ -321,7 +324,7 @@ out1.cogroup(o_parts__D_1).flatMap{
 val x358 = x351.map{ case ((x352, x353), x354) => 
    val x355 = x353.o_orderdate 
 val x356 = Record374(x355, x354) 
-val x357 = (x352, x356) 
+val x357 = (Record311(x352), x356) 
 x357 
 } 
 val newc_orders__D_1 = x358
@@ -341,9 +344,9 @@ x369
 } 
 val newM__D_1 = x370
 val x371 = newM__D_1
-//newM__D_1.collect.foreach(println(_))
-spark.sparkContext.runJob(x371, (iter: Iterator[_]) => {})**/
-var end1 = System.currentTimeMillis() - start1
+newM__D_1.collect.foreach(println(_))
+//spark.sparkContext.runJob(x371, (iter: Iterator[_]) => {})
+var end1 = System.currentTimeMillis() - start1**/
 println("ShredQuery4Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 
 }
