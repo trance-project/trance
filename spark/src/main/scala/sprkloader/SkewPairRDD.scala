@@ -15,7 +15,7 @@ object SkewPairRDD {
     val reducers = Config.minPartitions
 	  val partitions = lrdd.getNumPartitions
  	
-	def heavyKeys(threshold: Int = 1000): Set[K] = {
+	  def heavyKeys(threshold: Int = 1000): Set[K] = {
       val hkeys = lrdd.mapPartitions( it => 
         Util.countDistinct(it).filter(_._2 > threshold).iterator,true)
       if (reducers > threshold) hkeys.filter(_._2 >= reducers).keys.collect.toSet

@@ -243,7 +243,8 @@ val x238 = c_orders_ctx1
 //val x243_out2 = Query1__D_2c_orders_1
 val x243 = Query1__D_2c_orders_1
 // remove this label of labels
-val x244 = x243.lookupSkewLeft(x238, (l:Record313) => l.lbl.c2__Fc_orders, o => Record316(o.o_orderdate, Record315(o.o_parts)))
+// probably need to call group by skew if filtering on domain creates imbalance
+val x244 = x243.lookup(x238, (l:Record313) => l.lbl.c2__Fc_orders, o => Record316(o.o_orderdate, Record315(o.o_parts)))
 // this is a function that can be pushed to the lookup 
 //val x244 = x243.map{
 //  case (lbl, bag) => (lbl, bag.map{o => Record316(o.o_orderdate, Record315(o.o_parts))})
