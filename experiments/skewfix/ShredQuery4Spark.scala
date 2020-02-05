@@ -183,14 +183,17 @@ val x157 = o_parts__D_1
 val Query1__D_1 = M__D_1//M_flat1
 Query1__D_1.cache
 spark.sparkContext.runJob(Query1__D_1, (iter: Iterator[_]) => {})
+//Query1__D_1.count
 
 val Query1__D_2c_orders_1 = c_orders__D_1//M_flat2
 Query1__D_2c_orders_1.cache
 spark.sparkContext.runJob(Query1__D_2c_orders_1, (iter: Iterator[_]) => {})
+//Query1__D_2c_orders_1.count
 
 val Query1__D_2c_orders_2o_parts_1 = o_parts__D_1//M_flat3
 Query1__D_2c_orders_2o_parts_1.cache
 spark.sparkContext.runJob(Query1__D_2c_orders_2o_parts_1, (iter: Iterator[_]) => {})
+//Query1__D_2c_orders_2o_parts_1.count
 
 L__D_1.unpersist()
 O__D_1.unpersist()
