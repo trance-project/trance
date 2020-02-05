@@ -51,7 +51,7 @@ object Query4SparkManual {
     val O = tpch.loadOrdersProj
     O.cache
     spark.sparkContext.runJob(O,  (iter: Iterator[_]) => {})
-    val L = tpch.loadLineitemProj
+    val L = tpch.loadLineitemProjBzip
     L.cache
     spark.sparkContext.runJob(L,  (iter: Iterator[_]) => {})
     val P = tpch.loadPartProj
@@ -73,15 +73,13 @@ object Query4SparkManual {
 
 	  c.cache
 	  spark.sparkContext.runJob(c,  (iter: Iterator[_]) => {})
-    C.unpersist()
-    O.unpersist()
-    L.unpersist()
-    P.unpersist()
+
+	P.unpersist()
     val P4 = tpch.loadPartProj4
     P4.cache
     spark.sparkContext.runJob(P4,  (iter: Iterator[_]) => {})
 
-	  tpch.triggerGC
+	tpch.triggerGC
 
     var start0 = System.currentTimeMillis()
     val result = c.zipWithIndex.flatMap{

@@ -176,6 +176,14 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   		}), true).repartition(parts)
   }
 
+  def loadOrdersProjBzip():RDD[OrdersProj] = {
+    spark.sparkContext.textFile(s"file:///nfs_qc4/tpch/o500/",minPartitions = 500).mapPartitions(it => 
+		it.map(line => {
+      		val l = line.split("\\|")
+            OrdersProj(parseBigInt(l(0)), l(1).toInt, l(4))
+  		}), true).repartition(500)
+  }
+
   def loadOrdersDF():Dataset[Orders] = {
 
     val schema = StructType(Array(
@@ -224,7 +232,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 		it.map(line => {
 			val l = line.split("\\|")
         	LineitemProj(parseBigInt(l(0)), l(1).toInt, l(4).toDouble)
-		}), true)
+		}), true).repartition(1000)
   }
 
   def loadLineitemDF():Dataset[Lineitem] = {
