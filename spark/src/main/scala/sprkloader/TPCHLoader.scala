@@ -56,6 +56,7 @@ object Config {
   val datapath = prop.getProperty("datapath")
   val master = prop.getProperty("master")
   val minPartitions = prop.getProperty("minPartitions").toInt
+  val threshold = prop.getProperty("threshold").toInt
 }
 
 class TPCHLoader(spark: SparkSession) extends Serializable {

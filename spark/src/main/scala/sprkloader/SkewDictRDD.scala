@@ -14,6 +14,7 @@ object SkewDictRDD {
   implicit class SkewDictFunctions[K: ClassTag, V: ClassTag](lrdd: RDD[(K,Iterable[V])]) extends Serializable {
 
   val reducers = Config.minPartitions
+  //val threshold = Config.threshold
   val partitions = lrdd.getNumPartitions
 
   /**def heavyKeys(threshold: Int = 1000): Set[K] = {
@@ -27,16 +28,24 @@ object SkewDictRDD {
 		lrdd.mapPartitionsWithIndex((index, it) => 
 			it.map{ case (lbl, bag) => (lbl, index) -> bag.size }, true)	
 	}
+
+  def createDomain[C: ClassTag](f: V => C): RDD[C] = {
+     lrdd.flatMap{
+       case (lbl, bag) => bag.foldLeft(Set.empty[C])(
+        (acc, v) => acc + f(v)
+       )
+     }
+  }
 	
-	def lookup[L: ClassTag](rrdd: RDD[L], domop: L => K): RDD[(K, Iterable[V])] = {
-      val domPrep = rrdd.extractDistinct(domop) 
+  def lookup[L: ClassTag](rrdd: RDD[L], domop: L => K): RDD[(K, Iterable[V])] = {
+      val domPrep = rrdd.createDomainSet(domop) 
       val domain = lrdd.sparkContext.broadcast(domPrep)
       lrdd.mapPartitions(it => 
         it.flatMap{ case (key, value) => if (domain.value(key)) Iterator((key, value)) else Iterator()}, true)
   }
 
 	def lookup[L: ClassTag,S](rrdd: RDD[L], domop: L => K, bagop: V => S): RDD[(K, Iterable[S])] = {
-      val domPrep = rrdd.extractDistinct(domop)
+      val domPrep = rrdd.createDomainSet(domop)
       val domain = lrdd.sparkContext.broadcast(domPrep)
       lrdd.mapPartitions(it => 
         it.flatMap{ case (key, value) => 
@@ -62,6 +71,15 @@ object SkewDictRDD {
       for (b <- pair._2._1.flatten.iterator) yield (bagop(b), (pair._1._1, b))
     }
   }
+
+  /**def lookupSkewLeftPlusJoin[L: ClassTag,S](rrdd: RDD[L], domop: L => K, bagop: V => S): RDD[(S, (K, V))] = {
+    val tagDict = lrdd.mapPartitionsWithIndex((index, it) =>
+      it.map{case (k,v) => (k, index) -> v}, true)
+    val tagDomain = rrdd.extractDistinctRekey(domop, partitions)
+    tagDict.cogroup(tagDomain, new SkewPartitioner(partitions)).flatMap{ pair =>
+      for (b <- pair._2._1.flatten.iterator) yield (bagop(b), (pair._1._1, b))
+    }
+  }**/
 
   def lookupSkewLeft[L:ClassTag](rrdd: RDD[L], domop: L => K): RDD[(K, Iterable[V])] = {
       val tagDict = lrdd.mapPartitionsWithIndex((index, it) =>

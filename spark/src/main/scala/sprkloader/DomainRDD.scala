@@ -26,6 +26,18 @@ object DomainRDD{
         (acc, l) => acc + f(l)  
       ).iterator, true).collect.toSet
     }
+ 
+    def createDomain[K: ClassTag](f: L => K): RDD[K] = {
+      domain.mapPartitions(it => it.foldLeft(Set.empty[K])(
+        (acc, l) => acc + f(l)  
+      ).iterator, true)
+    }
+
+    def createDomainSet[K: ClassTag](f: L => K): Set[K] = {
+      domain.mapPartitions(it => it.foldLeft(Set.empty[K])(
+        (acc, l) => acc + f(l)  
+      ).iterator, true).collect.toSet
+    }
 
     def extractDistinctHeavy[K: ClassTag](f: L => K, hkeys: Set[K]): Set[K] = { 
       domain.mapPartitions(it => it.flatMap( lbl => {
@@ -33,6 +45,7 @@ object DomainRDD{
       }), true).collect.toSet
     }
 
+    // check performance with createDomainRekey
     def extractDistinctRekey[K: ClassTag](f: L => K, numPartitions: Int): RDD[((K, Int), Int)] = { 
       val partitions = Range(0, numPartitions)
       domain.flatMap(lbl => 
