@@ -182,7 +182,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 		it.map(line => {
       		val l = line.split("\\|")
             OrdersProj(parseBigInt(l(0)), l(1).toInt, l(4))
-  		}), true).repartition(500)
+  		}), true)//.repartition(500)
   }
 
   def loadOrdersDF():Dataset[Orders] = {
@@ -233,7 +233,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 		it.map(line => {
 			val l = line.split("\\|")
         	LineitemProj(parseBigInt(l(0)), l(1).toInt, l(4).toDouble)
-		}), true).repartition(1000)
+		}), true)//.repartition(1000)
   }
 
   def loadLineitemDF():Dataset[Lineitem] = {

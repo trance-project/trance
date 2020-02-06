@@ -244,7 +244,7 @@ val x238 = c_orders_ctx1 **/
 val x243 = Query1__D_2c_orders_1
 // remove this label of labels
 // probably need to call group by skew if filtering on domain creates imbalance
-val x244 = x243.lookup(x230, (l:Record312) => l.c_orders.c2__Fc_orders, o => Record316(o.o_orderdate, Record315(o.o_parts)))
+val x244 = x243.lookupSkewLeft(x230, (l:Record312) => l.c_orders.c2__Fc_orders, o => Record316(o.o_orderdate, Record315(o.o_parts)))
 //val x244 = x243.lookup(x238, (l:Record313) => l.lbl.c2__Fc_orders, o => Record316(o.o_orderdate, Record315(o.o_parts)))
 // this is a function that can be pushed to the lookup 
 //val x244 = x243.map{
@@ -253,8 +253,9 @@ val x244 = x243.lookup(x230, (l:Record312) => l.c_orders.c2__Fc_orders, o => Rec
 
 val c_orders__D_1 = x244
 val x259 = c_orders__D_1
+c_orders__D_1.count
 //c_orders__D_1.collect.foreach(println(_))
-val x261 = c_orders__D_1
+//val x261 = c_orders__D_1
 /**val x265 = x261.flatMap{ 
  case x262 => {val x263 = x262._2 
 x263}.map{ case v2 => (x262._1, v2) }
@@ -270,7 +271,7 @@ val o_parts_ctx1 = x271
 val x272 = o_parts_ctx1
 //o_parts_ctx1.collect.foreach(println(_))
 val x274 = o_parts_ctx1**/ 
-val o_parts_ctx1 = c_orders__D_1.createDomain(l => l.o_parts)
+/**val o_parts_ctx1 = c_orders__D_1.createDomain(l => l.o_parts)
 val x274 = o_parts_ctx1
 //val x279_out1 = x274.map{ case x275 => ({val x277 = x275.lbl 
 //val x278 = x277.o2__Fo_parts 
@@ -280,13 +281,14 @@ val x275 = Query1__D_2c_orders_2o_parts_1
 // explore flatMap version here
 val x279 = x275.lookupSkewLeftFlat(x274, (l:Record315) => l.o2__Fo_parts, (p: Record172) => p.p_name)
          
-val x284 = P4__D_1/**.map(x280 => { val x281 = x280.p_retailprice 
+val x284 = P4__D_1**/
+/**.map(x280 => { val x281 = x280.p_retailprice 
 val x282 = x280.p_name 
 val x283 = Record318(x281, x282) 
 x283 }) **/
 //val x290_out1 = x279.flatMap{ case (lbl, bag) => bag.map{ case x286 => ({val x288 = x286.p_name 
 //x288}, (lbl, x286)) }}
-val x290_out2 = x284.map{ case x287 => ({val x289 = x287.p_name 
+/**val x290_out2 = x284.map{ case x287 => ({val x289 = x287.p_name 
 x289}, x287) }
 val x290 = x279.joinSkewLeft(x290_out2)
 val x302 = x290.flatMap{ case ((x291, x292), x293) => val x301 = (x291,x293) 
@@ -309,12 +311,12 @@ x307
 val o_parts__D_1 = x308
 val x309 = o_parts__D_1
 //o_parts__D_1.collect.foreach(println(_))
-spark.sparkContext.runJob(x309, (iter: Iterator[_]) => {})//.count
+spark.sparkContext.runJob(x309, (iter: Iterator[_]) => {})//.count**/
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery4Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
 var start1 = System.currentTimeMillis()
-val x342 = c_orders__D_1 
+/**val x342 = c_orders__D_1 
 val x346 = x342.flatMap{ 
  case x343 => {val x344 = x343._2 
 x344}.map{ case v2 => (x343._1, v2) }
@@ -350,7 +352,7 @@ x369
 val newM__D_1 = x370
 val x371 = newM__D_1
 newM__D_1.collect.foreach(println(_))
-spark.sparkContext.runJob(x371, (iter: Iterator[_]) => {})
+spark.sparkContext.runJob(x371, (iter: Iterator[_]) => {})**/
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery4Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 

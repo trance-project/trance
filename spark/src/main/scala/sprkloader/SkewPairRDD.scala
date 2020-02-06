@@ -13,7 +13,7 @@ object SkewPairRDD {
   implicit class SkewPairRDDFunctions[K: ClassTag, V: ClassTag](lrdd: RDD[(K,V)]) extends Serializable {
 
     val reducers = Config.minPartitions
-	  val threshold = Config.threshold
+	val threshold = Config.threshold
     val partitions = lrdd.getNumPartitions
  	
 	  def heavyKeys(threshold: Int = threshold): Set[K] = {
