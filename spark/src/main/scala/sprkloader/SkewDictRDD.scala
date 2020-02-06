@@ -48,22 +48,30 @@ object SkewDictRDD {
     * this could create skew in partition size.
     */
   def lookup(rrdd: RDD[K]): RDD[(K, Iterable[V])] = {
-      val domPrep = rrdd.collect.toSet
+      /**val domPrep = rrdd.collect.toSet
       val domain = lrdd.sparkContext.broadcast(domPrep)
       lrdd.mapPartitions(it => 
         it.flatMap{ case (key, value) => 
-          if (domain.value(key)) Iterator((key, value)) else Iterator()}, true)
+          if (domain.value(key)) Iterator((key, value)) else Iterator()}, true)**/
+      lrdd.cogroup(rrdd.map(l => l -> 1)).map{
+        case (l, (bags, _)) => l -> bags.flatten
+      }
   }
   
   /**
     * Same as above, but in step 5 map bagop over the values in the dictionary
     */	
   def lookup[S: ClassTag](rrdd: RDD[K], bagop: V => S): RDD[(K, Iterable[S])] = {
-      val domPrep = rrdd.collect.toSet
+      /**val domPrep = rrdd.collect.toSet
       val domain = lrdd.sparkContext.broadcast(domPrep)
       lrdd.mapPartitions(it => 
         it.flatMap{ case (key, value) => 
           if (domain.value(key)) Iterator((key, value.map(bagop))) else Iterator()}, true)
+      **/
+      lrdd.cogroup(rrdd.map(l => l -> 1)).map{
+        case (l, (bags, _)) => l -> bags.flatMap(b => b.map(bagop))
+      }
+
   }
 
   /**def lookup[L: ClassTag](rrdd: RDD[L], domop: L => K): RDD[(K, Iterable[V])] = {
