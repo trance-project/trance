@@ -29,7 +29,7 @@ object ShredQuery1Spark {
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
 val L__F = 3
-val L__D_1 = tpch.loadLineitemProj//Bzip
+val L__D_1 = tpch.loadLineitemProjBzip
 L__D_1.cache
 spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
@@ -41,7 +41,7 @@ val C__D_1 = tpch.loadCustomersProj
 C__D_1.cache
 spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
 val O__F = 2
-val O__D_1 = tpch.loadOrdersProj//Bzip
+val O__D_1 = tpch.loadOrdersProjBzip
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
@@ -82,7 +82,7 @@ val M__D_1 = x86
 val x87 = M__D_1
 val x89 = M__D_1
 
-val M_ctx2 = x89.map(l => Record172(l.c_orders))
+val M_ctx2 = x89.createDomain(l => Record172(l.c_orders)).distinct
 val x95 = M_ctx2
 
 val x97 = M_ctx2 
@@ -107,7 +107,7 @@ val M__D_2 = x124
 val x125 = M__D_2
 val x127 = M__D_2 
 
-val x137 = M__D_2.flatMap(l => l._2.map(v => Record177(v.o_parts)))
+val x137 = M__D_2.createDomain( v => Record177(v.o_parts)).distinct
 val M_ctx3 = x137
 val x138 = M_ctx3
 

@@ -95,14 +95,13 @@ object SkewPairRDD {
     }
     
     // removing distribution check for now
-  	def joinSkewLeft[S:ClassTag](rrdd: RDD[(K, S)], distinctDomain: Boolean = true): RDD[(V, S)] = { 
+  	def joinSkewLeft[S:ClassTag](rrdd: RDD[(K, S)], distinctDomain: Boolean = false): RDD[(V, S)] = { 
   		val hk = heavyKeys()
   	  if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)
         val (rekey, dupp) = lrdd.rekeyByIndex(rrdd, hkeys, distinctDomain)
         rekey.joinDropKey(dupp, Some(new SkewPartitioner(partitions)))
   		}else 
-        // need to look at effect here
         if (distinctDomain) joinDropKey(rrdd.distinct)
         else joinDropKey(rrdd)
     }
