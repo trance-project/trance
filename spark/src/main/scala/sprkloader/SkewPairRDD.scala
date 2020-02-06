@@ -37,24 +37,32 @@ object SkewPairRDD {
         }
       (rekey, dupp)
     }
-    
-    def rekeyByIndex[S: ClassTag](rrdd: RDD[(K, S)], keyset: Broadcast[Set[K]], distinctDomain: Boolean = false): (RDD[((K, Int), V)], RDD[((K, Int), S)]) = {
-      // tell each heavy partition to stay where it is
+ 
+    def rekeyByIndex[S: ClassTag](rrdd: RDD[S], keyset: Broadcast[Set[K]], f: S => K): 
+      (RDD[((K, Int), V)], RDD[((K, Int), S)]) = {
       val rekey = 
         lrdd.mapPartitionsWithIndex( (index, it) => it.map{ case (k,v) => 
           ((k, { if (keyset.value(k)) index else -1 }), v) 
         }, true)
 
       val partitionRange = Range(0, partitions)
-      val dupp = if (distinctDomain) {
-        val accum1 = (acc: Set[S], lbl: S) => acc + lbl
-        val accum2 = (acc1: Set[S], acc2: Set[S]) => acc1 ++ acc2
-        rrdd.aggregateByKey(Set.empty[S])(accum1, accum2).flatMap{
-          case (key, cbuf) => cbuf.flatMap{ lbl =>
-            if (keyset.value(key)) partitionRange.map(id => (key, id) -> lbl) else List((key, -1) -> lbl)
-          }
+      val dupp = rrdd.flatMap{ case v => 
+          val k = f(v)
+          if (keyset.value(k)) partitionRange.map(id => (k, id) -> v)
+          else List(((k, -1),v)) 
         }
-       } else rrdd.flatMap{ case (k,v) => 
+      (rekey, dupp)
+    }
+   
+    def rekeyByIndex[S: ClassTag](rrdd: RDD[(K, S)], keyset: Broadcast[Set[K]]): 
+      (RDD[((K, Int), V)], RDD[((K, Int), S)]) = {
+      val rekey = 
+        lrdd.mapPartitionsWithIndex( (index, it) => it.map{ case (k,v) => 
+          ((k, { if (keyset.value(k)) index else -1 }), v) 
+        }, true)
+
+      val partitionRange = Range(0, partitions)
+      val dupp = rrdd.flatMap{ case (k,v) => 
           if (keyset.value(k)) partitionRange.map(id => (k, id) -> v)
           else List(((k, -1),v)) 
         }
@@ -73,16 +81,6 @@ object SkewPairRDD {
       (llight, rlight)
     }
 
-    def joinDropKey[S:ClassTag](rrdd: RDD[(K,S)], partitioner: Option[Partitioner] = None): RDD[(V,S)] = {
-	    val cgrp = partitioner match {
-		    case Some(p) => lrdd.cogroup(rrdd, p)
-		    case _ => lrdd.cogroup(rrdd)
-	    }
-	    cgrp.flatMap{ pair =>
-        for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
-      }
-    }
-
     def joinSaltLeft[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
       val hk = heavyKeys()
       if (hk.nonEmpty) {
@@ -91,20 +89,37 @@ object SkewPairRDD {
         rekey.cogroup(dupp).flatMap{ pair =>
           for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
         }
-      } else joinDropKey(rrdd)
+      } else 
+        lrdd.cogroup(rrdd).flatMap{ pair =>
+          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
+        }
     }
     
-    // removing distribution check for now
-  	def joinSkewLeft[S:ClassTag](rrdd: RDD[(K, S)], distinctDomain: Boolean = true): RDD[(V, S)] = { 
+  	def joinSkewLeft[S:ClassTag](rrdd: RDD[S], f: S => K): RDD[(V, S)] = { 
   		val hk = heavyKeys()
   	  if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)
-        val (rekey, dupp) = lrdd.rekeyByIndex(rrdd, hkeys, distinctDomain)
-        rekey.joinDropKey(dupp, Some(new SkewPartitioner(partitions)))
+        val (rekey, dupp) = lrdd.rekeyByIndex(rrdd, hkeys, f)
+        rekey.cogroup(dupp, new SkewPartitioner(partitions)).flatMap{ pair =>
+          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
+        }
+  		}else lrdd.cogroup(rrdd.map(v => f(v) -> v)).flatMap{ pair =>
+          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
+        }
+    }
+
+  	def joinSkewLeft[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
+  		val hk = heavyKeys()
+  	  if (hk.nonEmpty) {
+        val hkeys = lrdd.sparkContext.broadcast(hk)
+        val (rekey, dupp) = lrdd.rekeyByIndex(rrdd, hkeys)
+	      rekey.cogroup(dupp, new SkewPartitioner(partitions)).flatMap{ pair =>
+          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
+        }
   		}else 
-        // need to look at effect here
-        if (distinctDomain) joinDropKey(rrdd.distinct)
-        else joinDropKey(rrdd)
+ 	      lrdd.cogroup(rrdd).flatMap{ pair =>
+          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
+        }
     }
 
 	  /**def joinSkewLeftPrintDist[S: ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
