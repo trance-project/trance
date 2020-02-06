@@ -29,7 +29,7 @@ object ShredQuery1Spark {
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
 val L__F = 3
-val L__D_1 = tpch.loadLineitemProjBzip
+val L__D_1 = tpch.loadLineitemProj//Bzip
 L__D_1.cache
 spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
@@ -41,7 +41,7 @@ val C__D_1 = tpch.loadCustomersProj
 C__D_1.cache
 spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
 val O__F = 2
-val O__D_1 = tpch.loadOrdersProjBzip
+val O__D_1 = tpch.loadOrdersProj//Bzip
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
@@ -82,7 +82,7 @@ val M__D_1 = x86
 val x87 = M__D_1
 val x89 = M__D_1
 
-val M_ctx2 = x89.createDomain(l => Record172(l.c_orders))
+val M_ctx2 = x89.map(l => Record172(l.c_orders))
 val x95 = M_ctx2
 
 val x97 = M_ctx2 
@@ -92,6 +92,7 @@ val x107 = x106.c__Fc_custkey
 x107}, x104) }
 val x109_out2 = x103.map{ case x105 => ({val x108 = x105.o_custkey 
 x108}, x105) }
+
 val x109 = x109_out2.joinSkewLeft(x109_out1)
 val x119 = x109.map{ case (x111, x110) =>
   ({val x112 = (x110) 
@@ -106,7 +107,7 @@ val M__D_2 = x124
 val x125 = M__D_2
 val x127 = M__D_2 
 
-val x137 = M__D_2.createDomain(l => Record177(l.o_parts)) 
+val x137 = M__D_2.flatMap(l => l._2.map(v => Record177(v.o_parts)))
 val M_ctx3 = x137
 val x138 = M_ctx3
 
@@ -128,6 +129,7 @@ x154})
 }.groupByLabel() 
 val M__D_3 = x157
 val x163 = M__D_3
+
 spark.sparkContext.runJob(M__D_3, (iter: Iterator[_]) => {})
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)

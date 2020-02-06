@@ -26,7 +26,8 @@ object DomainRDD{
         (acc, l) => acc + f(l)  
       ).iterator, true).collect.toSet
     }
- 
+
+    // local distinct 
     def createDomain[K: ClassTag](f: L => K): RDD[K] = {
       domain.mapPartitions(it => it.foldLeft(Set.empty[K])(
         (acc, l) => acc + f(l)  
@@ -50,6 +51,12 @@ object DomainRDD{
       val partitions = Range(0, numPartitions)
       domain.flatMap(lbl => 
         partitions.foldLeft(Set.empty[((K,Int), Int)])((acc, i) => acc + { (f(lbl), i) -> 1 }))
+    }
+
+    // extract when the domain alreay consists of local sets
+    def extractRekey[K: ClassTag](f: L => K, numPartitions: Int): RDD[((K, Int), Int)] = {
+      val partitions = Range(0, numPartitions)
+      domain.flatMap(lbl => partitions.map(i => (f(lbl), i) -> 1))
     }
 
   }

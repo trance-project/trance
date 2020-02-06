@@ -53,6 +53,7 @@ object Query1SparkManual {
     val lpj = l.joinSkewLeft(p)
 
     val OrderParts = lpj.map{ case (l, p) => l.l_orderkey -> Record179(p.p_name, l.l_quantity) }
+
     val CustomerOrders = O.map(o => o.o_orderkey -> Record173(o.o_orderdate, o.o_orderkey, o.o_custkey)).cogroup(OrderParts).flatMap{
 		  case (_, (orders, parts)) => orders.map(order => order.o_custkey -> Record232(order.o_orderdate, parts))
 	  }
@@ -61,7 +62,6 @@ object Query1SparkManual {
 	  			case (_, (cnames, orders)) => cnames.map(c => Record233(c.c_name, orders)) 
 			}
     spark.sparkContext.runJob(c, (iter: Iterator[_]) => {})
-    //c.collect.foreach(println(_))
     var end0 = System.currentTimeMillis() - start0
     println("Query1SparkManual"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
   }
