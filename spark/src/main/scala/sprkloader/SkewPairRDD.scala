@@ -104,7 +104,8 @@ object SkewPairRDD {
         rekey.cogroup(dupp, new SkewPartitioner(partitions)).flatMap{ pair =>
           for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
         }
-  		}else lrdd.cogroup(rrdd.map(v => f(v) -> v)).flatMap{ pair =>
+  		}else 
+        lrdd.cogroup(rrdd.map(v => (f(v),v))).flatMap{ pair =>
           for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
         }
     }

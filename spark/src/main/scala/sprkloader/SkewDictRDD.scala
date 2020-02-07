@@ -113,14 +113,44 @@ object SkewDictRDD {
   }
 
   // an option to push the flattening to the lookup process
-  /**def lookupSkewLeftFlat[L: ClassTag,S](rrdd: RDD[L], domop: L => K, bagop: V => S): RDD[(S, (K, V))] = {
-    val tagDict = lrdd.mapPartitionsWithIndex((index, it) =>
-      it.map{case (k,v) => (k, index) -> v}, true)
-    val tagDomain = rrdd.extractDistinctRekey(domop, partitions)
-    tagDict.cogroup(tagDomain, new SkewPartitioner(partitions)).flatMap{ pair =>
-      for (b <- pair._2._1.flatten.iterator) yield (bagop(b), (pair._1._1, b))
+  def lookupSkewLeftFlat[L: ClassTag,S:ClassTag](rrdd: RDD[L], domop: L => K): RDD[(K, V)] = {
+    val hk = lrdd.heavyDictKeys() 
+    if (hk.nonEmpty){
+      // if keys are associated to heavy bags then keep them where they are
+      val hkeys = lrdd.sparkContext.broadcast(hk)
+      val tagDict = lrdd.mapPartitionsWithIndex((index, it) =>
+        it.map{case (k,v) => if (hkeys.value(k)) (k, index) -> v else (k, -1) -> v}, true)
+      val tagDomain = rrdd.extractRekey(domop, partitions, hkeys)
+      tagDict.cogroup(tagDomain, new SkewPartitioner(partitions)).flatMapValues{ pair => 
+        pair._1.flatten }.mapPartitions(it => it.map{ case ((k,id), v) => k -> v }, true)
+    }else{
+      // check if small enough to broadcast
+      // if not then just do a normal join
+      val domain = rrdd.distinct.mapPartitions(it => it.map(lbl => domop(lbl) -> 1))
+      lrdd.cogroup(domain).flatMapValues{ pair => pair._1.flatten }
     }
-  }**/
+  }
+
+  def lookupSkewLeftFlat[L: ClassTag,S:ClassTag](rrdd: RDD[L], domop: L => K, bagop: V => S): RDD[(S, (K, V))] = {
+    val hk = lrdd.heavyDictKeys() 
+    if (hk.nonEmpty){
+      // if keys are associated to heavy bags then keep them where they are
+      val hkeys = lrdd.sparkContext.broadcast(hk)
+      val tagDict = lrdd.mapPartitionsWithIndex((index, it) =>
+        it.map{case (k,v) => if (hkeys.value(k)) (k, index) -> v else (k, -1) -> v}, true)
+      val tagDomain = rrdd.extractRekey(domop, partitions, hkeys)
+      tagDict.cogroup(tagDomain, new SkewPartitioner(partitions)).flatMapValues{ 
+        pair => pair._1.flatMap(b => b.map(v => (bagop(v), v))) }.mapPartitions(it => 
+          it.map{ case ((k,id), (k1, v)) => k1 -> (k, v) }, true)
+    }else{
+      // check if small enough to broadcast
+      // if not then just do a normal join
+      val domain = rrdd.distinct.mapPartitions(it => it.map(lbl => (domop(lbl),1)))
+      lrdd.cogroup(domain).flatMapValues{ pair => 
+        pair._1.flatten}.mapPartitions(it =>
+          it.map{ case (k, v) => (bagop(v),(k, v))}, true)
+    }
+  }
 
 
   }

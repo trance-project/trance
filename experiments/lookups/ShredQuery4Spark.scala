@@ -9,8 +9,8 @@ import sprkloader.SkewDictRDD._
 import sprkloader.DomainRDD._
 case class Record159(lbl: Unit)
 case class Record160(l_orderkey: Int, l_quantity: Double, l_partkey: Int)
-case class Record161(p_name: String, p_partkey: Int)
-case class Record162(l_orderkey: Int, p_name: String, l_qty: Double)
+case class Record161(p_pname: Int, p_partkey: Int)
+case class Record162(l_orderkey: Int, p_partkey: Int, l_qty: Double)
 case class Record163(c__Fc_custkey: Int)
 case class Record164(c_name: String, c_orders: Record163)
 case class Record165(lbl: Record163)
@@ -18,7 +18,7 @@ case class Record166(o_orderdate: String, o_orderkey: Int, o_custkey: Int)
 case class Record168(o__Fo_orderkey: Int)
 case class Record169(o_orderdate: String, o_parts: Record168)
 case class Record170(lbl: Record168)
-case class Record172(p_name: String, l_qty: Double)
+case class Record172(p_partkey: Int, l_qty: Double)
 case class Record311(c2__Fc_orders: Record163)
 case class Record312(c_name: String, c_orders: Record311)
 case class Record313(lbl: Record311)
@@ -66,7 +66,7 @@ val x65 = x65_out1.joinSkewLeft(x65_out2)
 
 val x72 = x65.map{ case (x66, x67) => 
    val x68 = x66.l_orderkey 
-val x69 = x67.p_name 
+val x69 = x67.p_partkey
 val x70 = x66.l_quantity 
 val x71 = Record162(x68, x69, x70) 
 x71 
@@ -127,7 +127,7 @@ x141}, x138) }
 val x142 = x142_out2.joinSkewLeft(x142_out1)
 val x151 = x142.map{ case (x144, x143) => 
   ({val x145 = (x143) 
-  x145.lbl}, {val x146 = x144.p_name 
+  x145.lbl}, {val x146 = x144.p_partkey
 val x147 = x144.l_qty 
 val x148 = Record172(x146, x147) 
 x148})
@@ -189,16 +189,14 @@ x278}, x275) }**/
 
 val x277 = Query1__D_2c_orders_2o_parts_1
 val x279 = x277.lookupSkewLeft(x275, (l: Record317) => l.lbl.o2__Fo_parts)
-//val x279 = x275.lookupSkewLeftFlat(x274, (l:Record315) => l.o2__Fo_parts, (p: Record172) => p.p_name)
-         
+//val x279 = x277.lookupSkewLeft(x275, (l:Record317) => l.lbl.o2__Fo_parts, (p: Record172) => p.p_partkey)
 val x284 = P__D_1
-// this won't preserve partitioning
-val x285 = x279.flatMap{ case (lbl, bag) => bag.map{ case x286 => ({val x288 = x286.p_name 
+//val x285 = x279
+val x285 = x279.flatMap{ case (lbl, bag) => bag.map{ case x286 => ({val x288 = x286.p_partkey 
 x288}, (lbl, x286)) }}
-//x285.count
 /**val x291 = x284.map{ case x287 => ({val x289 = x287.p_name 
 x289}, x287) }**/
-val x290 = x285.joinSkewLeft(x284, (p: PartProj4) => p.p_name)
+val x290 = x285.joinSkewLeft(x284, (p: PartProj4) => p.p_partkey)
 val x302 = x290.map{ case ((x291, x292), x293) => 
   ({val x294 = x293.p_name 
   val x295 = Record320(x294) 
