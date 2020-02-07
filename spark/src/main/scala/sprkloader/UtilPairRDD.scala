@@ -23,7 +23,17 @@ object UtilPairRDD {
       lrdd.mapPartitionsWithIndex( (index, it) => 
         it.map(v => (index, v)), true)
     }
-  
+ 
+    def rekeyByIndex[K](f: W => K): RDD[((K, Int), W)] = {
+      lrdd.mapPartitionsWithIndex( (index, it) =>
+        it.map(v => ((f(v), index), v)), true)
+    }
+ 
+    def duplicate[K](f: W => K, numPartitions: Int): RDD[((K, Int), W)] = {
+      val range = Range(0, numPartitions)
+      lrdd.mapPartitions(it =>
+        it.flatMap( v => range.map(id => ((f(v), id), v))), true)
+    }
   }
 
 }

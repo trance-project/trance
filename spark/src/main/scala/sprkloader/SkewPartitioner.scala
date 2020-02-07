@@ -2,6 +2,22 @@ package sprkloader
 
 import org.apache.spark.Partitioner
 
+
+class BalancePartitioner(override val numPartitions: Int) extends Partitioner {
+  
+  def getPartition(k: Any): Int = {
+    return k.asInstanceOf[Int]
+  }
+
+  override def equals(that: Any): Boolean = {
+	  that match {
+	    case bp:BalancePartitioner => bp.numPartitions == numPartitions
+	    case _ => false
+	  }
+  }
+
+}
+
 class SkewPartitioner(override val numPartitions: Int) extends Partitioner {
 
   def defaultPartitionAssignment(key:Any): Int = {

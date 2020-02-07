@@ -127,9 +127,8 @@ object SkewPairRDD {
           for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
         }
     }
- 
-   
-  	def joinSkewLeft[S:ClassTag](rrdd: RDD[S], f: S => K): RDD[(V, S)] = { 
+    
+    def joinSkewLeft[S:ClassTag](rrdd: RDD[S], f: S => K): RDD[(V, S)] = { 
   		val hk = heavyKeys()
   	  if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)
