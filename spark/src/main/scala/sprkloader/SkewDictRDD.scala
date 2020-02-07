@@ -14,10 +14,10 @@ object SkewDictRDD {
   implicit class SkewDictFunctions[K: ClassTag, V: ClassTag](lrdd: RDD[(K,Iterable[V])]) extends Serializable {
 
   val reducers = Config.minPartitions
-  //val threshold = Config.threshold
+  val threshold = Config.threshold
   val partitions = lrdd.getNumPartitions
 
-  def heavyDictKeys(threshold: Int = 1000): Set[K] = {
+  def heavyDictKeys(): Set[K] = {
     val hkeys = lrdd.mapPartitions( it =>
       it.foldLeft(HashMap.empty[K, Int].withDefaultValue(0))((acc, c) =>
         { acc(c._1) += c._2.size; acc } ).filter(_._2 > threshold).iterator, true)
@@ -47,7 +47,7 @@ object SkewDictRDD {
     * 5) Filter each dictionary partition based on values in the domain (note that 
     * this could create skew in partition size.
     */
-  def lookup(rrdd: RDD[K]): RDD[(K, Iterable[V])] = {
+  def broadcastLookup(rrdd: RDD[K]): RDD[(K, Iterable[V])] = {
       val domPrep = rrdd.collect.toSet
       val domain = lrdd.sparkContext.broadcast(domPrep)
       lrdd.mapPartitions(it => 
@@ -58,7 +58,7 @@ object SkewDictRDD {
   /**
     * Same as above, but in step 5 map bagop over the values in the dictionary
     */	
-  def lookup[S: ClassTag](rrdd: RDD[K], bagop: V => S): RDD[(K, Iterable[S])] = {
+  def broadcastLookup[S: ClassTag](rrdd: RDD[K], bagop: V => S): RDD[(K, Iterable[S])] = {
       val domPrep = rrdd.collect.toSet
       val domain = lrdd.sparkContext.broadcast(domPrep)
       lrdd.mapPartitions(it => 
@@ -75,18 +75,24 @@ object SkewDictRDD {
     * 2) 
     */
   def lookupSkewLeft[L:ClassTag](rrdd: RDD[L], domop: L => K): RDD[(K, Iterable[V])] = {
-    val hk = lrdd.heavyDictKeys() 
+    val hk = lrdd.heavyDictKeys()
     if (hk.nonEmpty){
       // if keys are associated to heavy bags then keep them where they are
       val hkeys = lrdd.sparkContext.broadcast(hk)
       val tagDict = lrdd.mapPartitionsWithIndex((index, it) =>
         it.map{case (k,v) => if (hkeys.value(k)) (k, index) -> v else (k, -1) -> v}, true)
-      val tagDomain = rrdd.extractRekey(domop, partitions, hkeys)
+      val tagDomain = rrdd.extractDistinctRekey(domop, partitions, hkeys)
       tagDict.cogroup(tagDomain, new SkewPartitioner(partitions)).mapPartitions(it =>
         it.map{ case ((k, id), (bag, _)) => k -> bag.flatten}, true)
-    }else lookup(rrdd.map(domop))
-  }    
-
+    }else{
+      // check if small enough to broadcast
+      // if not then just do a normal join
+      val domain = rrdd.distinct.mapPartitions(it => it.map(lbl => domop(lbl) -> 1))
+      lrdd.cogroup(domain).mapPartitions(it =>
+        it.map{ case (k, (bag, _)) => k -> bag.flatten}, true)
+    }
+  }      
+  
   def lookupSkewLeft[L: ClassTag,S:ClassTag](rrdd: RDD[L], domop: L => K, bagop: V => S): RDD[(K, Iterable[S])] = {
     val hk = lrdd.heavyDictKeys() 
     if (hk.nonEmpty){
@@ -97,7 +103,13 @@ object SkewDictRDD {
       val tagDomain = rrdd.extractRekey(domop, partitions, hkeys)
       tagDict.cogroup(tagDomain, new SkewPartitioner(partitions)).mapPartitions(it =>
         it.map{ case ((k, id), (bag, _)) => k -> bag.flatMap(b => b.map(bagop))}, true)
-    }else lookup(rrdd.map(domop), bagop)
+    }else{
+      // check if small enough to broadcast
+      // if not then just do a normal join
+      val domain = rrdd.distinct.mapPartitions(it => it.map(lbl => domop(lbl) -> 1))
+      lrdd.cogroup(domain).mapPartitions(it =>
+        it.map{ case (k, (bag, _)) => k -> bag.flatMap(b => b.map(bagop))}, true)
+    }
   }
 
   // an option to push the flattening to the lookup process

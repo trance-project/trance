@@ -47,10 +47,12 @@ object DomainRDD{
     }
 
     // check performance with createDomainRekey
-    def extractDistinctRekey[K: ClassTag](f: L => K, numPartitions: Int): RDD[((K, Int), Int)] = { 
+    def extractDistinctRekey[K: ClassTag](extract: L => K, numPartitions: Int, hkeys: Broadcast[Set[K]]): RDD[((K, Int), Int)] = { 
       val partitions = Range(0, numPartitions)
-      domain.flatMap(lbl => 
-        partitions.foldLeft(Set.empty[((K,Int), Int)])((acc, i) => acc + { (f(lbl), i) -> 1 }))
+      domain.flatMap(lbl => {
+        val nlbl = extract(lbl)
+        if (hkeys.value(nlbl)) partitions.foldLeft(Set.empty[((K,Int), Int)])((acc, i) => acc + { (nlbl, i) -> 1 })
+        else List(((nlbl, -1), 1))})
     }
 
     // extract when the domain alreay consists of local sets

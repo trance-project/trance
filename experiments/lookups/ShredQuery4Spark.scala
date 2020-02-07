@@ -165,7 +165,7 @@ val x228 = M__D_1
 
 val x230 = M__D_1
 
-val x235 = x230.createDomain(l => Record313(l.c_orders)).distinct
+val x235 = x230.createDomain(l => Record313(l.c_orders))//.distinct
 val c_orders_ctx1 = x235
 val x236 = c_orders_ctx1
 
@@ -179,7 +179,7 @@ val x244 = x243.lookupSkewLeft(x238, (l: Record313) => l.lbl.c2__Fc_orders, (o: 
 val c_orders__D_1 = x244
 val x259 = c_orders__D_1
 
-val o_parts_ctx1 = c_orders__D_1.createDomain(v => Record317(v.o_parts)).distinct
+val o_parts_ctx1 = c_orders__D_1.createDomain(v => Record317(v.o_parts))//.distinct
 val x274 = o_parts_ctx1
 
 val x275 = o_parts_ctx1
@@ -192,6 +192,7 @@ val x279 = x277.lookupSkewLeft(x275, (l: Record317) => l.lbl.o2__Fo_parts)
 //val x279 = x275.lookupSkewLeftFlat(x274, (l:Record315) => l.o2__Fo_parts, (p: Record172) => p.p_name)
          
 val x284 = P__D_1
+// this won't preserve partitioning
 val x285 = x279.flatMap{ case (lbl, bag) => bag.map{ case x286 => ({val x288 = x286.p_name 
 x288}, (lbl, x286)) }}
 //x285.count
