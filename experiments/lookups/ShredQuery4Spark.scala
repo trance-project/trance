@@ -147,16 +147,11 @@ val Query1__D_2c_orders_2o_parts_1 = o_parts__D_1
 Query1__D_2c_orders_2o_parts_1.cache
 spark.sparkContext.runJob(Query1__D_2c_orders_2o_parts_1, (iter: Iterator[_]) => {})
 
-L__D_1.unpersist()
-O__D_1.unpersist()
-C__D_1.unpersist()
-P__D_1.unpersist()
-
 val P4__D_1 = tpch.loadPartProj4
 P4__D_1.cache
 spark.sparkContext.runJob(P4__D_1, (iter: Iterator[_]) => {})
 
-tpch.triggerGC
+//tpch.triggerGC
 
  def f = {
  
@@ -174,33 +169,32 @@ val x228 = M__D_1
 
 val x230 = M__D_1
 
-// local distinct 
-val x235 = x230.createDomain(l => Record313(l.c_orders))//.distinct
+val x235 = x230.map(l => Record313(l.c_orders)).distinct
+
+//.createDomain(l => Record313(l.c_orders))//.distinct
 val c_orders_ctx1 = x235
 val x236 = c_orders_ctx1
 
-// extract locally distinct labels
 val x238 = c_orders_ctx1
 val x239 = x238.map{ case x239 => {val x241 = x239.lbl 
 val x242 = x241.c2__Fc_orders 
 x242}}
 
 val x243 = Query1__D_2c_orders_1
-// global distinct happens everything is collected
-// broadcast the domain, an filter locally
 val x244 = x243.lookup(x239, (o: Record169) => Record316(o.o_orderdate, Record315(o.o_parts)))
 val c_orders__D_1 = x244
 val x259 = c_orders__D_1
+c_orders__D_1.count
 
-val o_parts_ctx1 = c_orders__D_1.createDomain(l => Record317(l.o_parts)).distinct
+val o_parts_ctx1 = c_orders__D_1.flatMap(l => l._2.map(v => Record317(v.o_parts))).distinct
 val x274 = o_parts_ctx1
-
+o_parts_ctx1.count
 val x275 = o_parts_ctx1
 /**val x276 = x275.map{ case x275 => ({val x277 = x275.lbl 
 val x278 = x277.o2__Fo_parts 
 x278}, x275) }**/
 
-val x277 = Query1__D_2c_orders_2o_parts_1
+/**val x277 = Query1__D_2c_orders_2o_parts_1
 val x279 = x277.lookupSkewLeft(x275, (l: Record317) => l.lbl.o2__Fo_parts)
 //val x279 = x275.lookupSkewLeftFlat(x274, (l:Record315) => l.o2__Fo_parts, (p: Record172) => p.p_name)
          
@@ -227,7 +221,7 @@ x307
 val o_parts__D_1 = x308
 val x309 = o_parts__D_1
 //o_parts__D_1.collect.foreach(println(_))
-spark.sparkContext.runJob(x309, (iter: Iterator[_]) => {})//.count
+spark.sparkContext.runJob(x309, (iter: Iterator[_]) => {})//.count**/
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery4Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 

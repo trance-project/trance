@@ -50,7 +50,7 @@ object Query1SparkManual {
 
     val l = L.map(l => l.l_partkey -> Record166(l.l_orderkey, l.l_quantity, l.l_partkey))
     val p = P.map(p => p.p_partkey -> Record167(p.p_name, p.p_partkey))
-    val lpj = l.joinSkewLeft(p)
+    val lpj = l.joinSaltLeft(p)
 
     val OrderParts = lpj.map{ case (l, p) => l.l_orderkey -> Record179(p.p_name, l.l_quantity) }
 
