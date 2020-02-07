@@ -178,7 +178,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   }
 
   def loadOrdersProjBzip():RDD[OrdersProj] = {
-    spark.sparkContext.textFile(s"file:///nfs_qc4/tpch/o500/",minPartitions = 500).mapPartitions(it => 
+    spark.sparkContext.textFile(s"file:///nfs_qc4/tpch/o500/", minPartitions=500).mapPartitions(it => 
 		it.map(line => {
       		val l = line.split("\\|")
             OrdersProj(parseBigInt(l(0)), l(1).toInt, l(4))
@@ -229,7 +229,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   }
 
   def loadLineitemProjBzip():RDD[LineitemProj] = {
-	spark.sparkContext.textFile(s"/nfs_qc4/tpch/li1000", minPartitions = 1000).mapPartitions(it =>
+	spark.sparkContext.textFile(s"/nfs_qc4/tpch/li1000", minPartitions=1000).mapPartitions(it =>
 		it.map(line => {
 			val l = line.split("\\|")
         	LineitemProj(parseBigInt(l(0)), l(1).toInt, l(4).toDouble)
