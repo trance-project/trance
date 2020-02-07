@@ -18,6 +18,11 @@ object UtilPairRDD {
         Util.countDistinctByPartition(it.asInstanceOf[Iterator[(R,Any)]], 
 			index).filter(_._2 > threshold).iterator,true)
     }
+
+    def rekeyByPartition(): RDD[(Int, W)] = {
+      lrdd.mapPartitionsWithIndex( (index, it) => 
+        it.map(v => (index, v)), true)
+    }
   
   }
 

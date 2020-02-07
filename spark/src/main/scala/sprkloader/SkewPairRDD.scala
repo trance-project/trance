@@ -5,11 +5,44 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.broadcast.Broadcast
 import scala.reflect.ClassTag
 import org.apache.spark.Partitioner
+import org.apache.spark.rdd.CoGroupedRDD
 import UtilPairRDD._
 import UtilSkewDistribution._
 
 object SkewPairRDD {
- 
+  
+  /**
+    Assume each dictionary element is tagged with partition information
+    **/
+  implicit class DictRDDFunctions[V: ClassTag](dict: RDD[(Int,V)]) extends Serializable {
+    
+    def indexKeyBy[K](f: V => K): RDD[((K, Int), V)] = {
+      dict.mapPartitions(it =>
+        it.map{ case (index, v) => ((f(v), index), v)}, true)
+    }
+
+    def duplicate[K](f: V => K, numPartitions: Int): RDD[((K, Int), V)] = {
+      val range = Range(0, numPartitions)
+      dict.mapPartitions(it =>
+        it.flatMap{ case (index, v) => range.map(id => ((f(v), id), v))}, true)
+    }
+
+  }
+
+  implicit class IndexJoinFunctions[K: ClassTag, V: ClassTag](dict: RDD[((K, Int), V)]) extends Serializable {
+    
+    val numPartitions = dict.getNumPartitions
+
+   	def joinIndexed[S:ClassTag](rrdd: RDD[(Int, S)], f: S => K): RDD[(Int, (V, S))] = { 
+      val dupp = rrdd.duplicate(f, numPartitions)
+      val partitioner = new SkewPartitioner(numPartitions)
+      dict.cogroup(dupp, partitioner).flatMapValues{ pair =>
+        for (v <- pair._1.iterator; w <- pair._2.iterator) yield (v,w)
+      }.mapPartitions( it => it.map{ case ((k,id), (v,w)) => (id, (v,w)) }, true)
+    }
+  
+  }
+  
   implicit class SkewPairRDDFunctions[K: ClassTag, V: ClassTag](lrdd: RDD[(K,V)]) extends Serializable {
 
     val reducers = Config.minPartitions
@@ -23,7 +56,7 @@ object SkewPairRDD {
       //else hkeys.keys.collect.toSet
       hkeys.keys.collect.toSet
     }
-
+  
     def rekeyBySet[S](rrdd: RDD[(K, S)], keyset: Broadcast[Set[K]]): (RDD[((K, Int), V)], RDD[((K, Int), S)]) = {
       val rekey = 
         lrdd.mapPartitions( it => {
@@ -94,7 +127,8 @@ object SkewPairRDD {
           for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
         }
     }
-    
+ 
+   
   	def joinSkewLeft[S:ClassTag](rrdd: RDD[S], f: S => K): RDD[(V, S)] = { 
   		val hk = heavyKeys()
   	  if (hk.nonEmpty) {
