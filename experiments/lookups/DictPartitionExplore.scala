@@ -6,6 +6,7 @@ import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
 import sprkloader.UtilPairRDD._
+import sprkloader.BalancePartitioner
 //import sprkloader.DomainRDD._
 //import sprkloader.SkewDictRDD._
 case class Record165(lbl: Unit)
@@ -48,25 +49,17 @@ val O__D_1 = tpch.loadOrdersProjBzip.rekeyByPartition()
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})**/
 
-val L__ID = L__D_1.rekeyByPartition()
-L__ID.cache
-spark.sparkContext.runJob(L__ID, (iter: Iterator[_]) => {})
-
-val P__ID = P__D_1.rekeyByPartition()
-P__ID.cache
-spark.sparkContext.runJob(P__ID, (iter: Iterator[_]) => {})
-
 //tpch.triggerGC
 
 	def f = {
  
 var start0 = System.currentTimeMillis()
 
-val x56 = L__ID
-val x61 = P__ID
-
-val x66_out1 = x56.indexKeyBy(l => l.l_partkey)
-val x66 =  x66_out1.joinIndexed(x61, (l: PartProj) => l.p_partkey)
+val x57 = L__D_1.rekeyByIndex(_.l_partkey)
+val x58 = P__D_1.duplicate(_.p_partkey, x57.getNumPartitions)
+val x66 = x57.cogroup(x58, new SkewPartitioner(100)).flatMapValues{ pair =>
+  for (v <- pair._1.iterator; w <- pair._2.iterator) yield (v,w)
+}
 x66.count
 var end0 = System.currentTimeMillis() - start0
 println("DictPartitionExplore,"+sf+","+Config.datapath+","+end0+",idjoin,"+spark.sparkContext.applicationId)
