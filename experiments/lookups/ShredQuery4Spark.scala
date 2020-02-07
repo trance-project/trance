@@ -170,12 +170,12 @@ val c_orders_ctx1 = x235
 val x236 = c_orders_ctx1
 
 val x238 = c_orders_ctx1
-val x239 = x238.map{ case x239 => {val x241 = x239.lbl 
+/**val x239 = x238.map{ case x239 => {val x241 = x239.lbl 
 val x242 = x241.c2__Fc_orders 
-x242}}
+x242}}**/
 
 val x243 = Query1__D_2c_orders_1
-val x244 = x243.lookup(x239, (o: Record169) => Record316(o.o_orderdate, Record315(o.o_parts)))
+val x244 = x243.lookupSkewLeft(x238, (l: Record313) => l.lbl.c2__Fc_orders, (o: Record169) => Record316(o.o_orderdate, Record315(o.o_parts)))
 val c_orders__D_1 = x244
 val x259 = c_orders__D_1
 
@@ -194,10 +194,10 @@ val x279 = x277.lookupSkewLeft(x275, (l: Record317) => l.lbl.o2__Fo_parts)
 val x284 = P__D_1
 val x285 = x279.flatMap{ case (lbl, bag) => bag.map{ case x286 => ({val x288 = x286.p_name 
 x288}, (lbl, x286)) }}
-x285.count
+//x285.count
 /**val x291 = x284.map{ case x287 => ({val x289 = x287.p_name 
 x289}, x287) }**/
-/**val x290 = x285.joinSkewLeft(x284, (p: PartProj4) => p.p_name)
+val x290 = x285.joinSkewLeft(x284, (p: PartProj4) => p.p_name)
 val x302 = x290.map{ case ((x291, x292), x293) => 
   ({val x294 = x293.p_name 
   val x295 = Record320(x294) 
@@ -215,7 +215,7 @@ x307
 val o_parts__D_1 = x308
 val x309 = o_parts__D_1
 //o_parts__D_1.collect.foreach(println(_))
-spark.sparkContext.runJob(x309, (iter: Iterator[_]) => {})//.count**/
+spark.sparkContext.runJob(x309, (iter: Iterator[_]) => {})
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery4Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 

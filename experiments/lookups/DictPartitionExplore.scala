@@ -6,7 +6,8 @@ import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
 import sprkloader.UtilPairRDD._
-import sprkloader.BalancePartitioner
+import sprkloader.Balancer
+import org.apache.spark.broadcast.Broadcast
 //import sprkloader.DomainRDD._
 //import sprkloader.SkewDictRDD._
 case class Record165(lbl: Unit)
@@ -55,12 +56,15 @@ spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})**/
  
 var start0 = System.currentTimeMillis()
 
-val x57 = L__D_1.rekeyByIndex(_.l_partkey)
-val x58 = P__D_1.duplicate(_.p_partkey, x57.getNumPartitions)
-val x66 = x57.cogroup(x58, new SkewPartitioner(100)).flatMapValues{ pair =>
-  for (v <- pair._1.iterator; w <- pair._2.iterator) yield (v,w)
+val (x57, hkeys) = L__D_1.rekeyHeavyByIndex(_.l_partkey)
+val hk = x57.sparkContext.broadcast(hkeys)
+val x58 = P__D_1.duplicate(_.p_partkey, x57.getNumPartitions, hk)
+val x66 = x57.cogroup(x58, new Balancer(x57.getNumPartitions, hk.asInstanceOf[Broadcast[Set[Any]]])).flatMapValues{ pair =>
+    for (v <- pair._1.iterator; w <- pair._2.iterator) yield (v,w)
 }
+println(x66.partitioner)
 x66.count
+x66.collect.foreach(println(_))
 var end0 = System.currentTimeMillis() - start0
 println("DictPartitionExplore,"+sf+","+Config.datapath+","+end0+",idjoin,"+spark.sparkContext.applicationId)
 

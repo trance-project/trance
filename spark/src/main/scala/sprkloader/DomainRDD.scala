@@ -54,9 +54,13 @@ object DomainRDD{
     }
 
     // extract when the domain alreay consists of local sets
-    def extractRekey[K: ClassTag](f: L => K, numPartitions: Int): RDD[((K, Int), Int)] = {
+    def extractRekey[K: ClassTag](extract: L => K, numPartitions: Int, hkeys: Broadcast[Set[K]]): RDD[((K, Int), Int)] = {
       val partitions = Range(0, numPartitions)
-      domain.flatMap(lbl => partitions.map(i => (f(lbl), i) -> 1))
+      domain.flatMap(lbl => {
+        val nlbl = extract(lbl) 
+        if (hkeys.value(nlbl)) partitions.map(i => (nlbl, i) -> 1)
+        else List(((nlbl, -1),1))
+      })
     }
 
   }

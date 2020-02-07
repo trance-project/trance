@@ -3,10 +3,13 @@ package sprkloader
 import org.apache.spark.rdd.RDD
 import org.apache.spark.broadcast.Broadcast
 import scala.reflect.ClassTag
+import SkewPairRDD._
 
 object UtilPairRDD {
 
   implicit class RDDUtils[W: ClassTag](lrdd: RDD[W]) extends Serializable {
+
+    val threshold = Config.threshold
 
     def filterPartitions(cond: W => Boolean): RDD[W] = {
       lrdd.mapPartitions(it => 
@@ -28,11 +31,14 @@ object UtilPairRDD {
       lrdd.mapPartitionsWithIndex( (index, it) =>
         it.map(v => ((f(v), index), v)), true)
     }
- 
-    def duplicate[K](f: W => K, numPartitions: Int): RDD[((K, Int), W)] = {
+
+    def duplicate[K](f: W => K, numPartitions: Int, hkeys: Broadcast[Set[K]]): RDD[((K, Int), W)] = {
       val range = Range(0, numPartitions)
-      lrdd.mapPartitions(it =>
-        it.flatMap( v => range.map(id => ((f(v), id), v))), true)
+      lrdd.flatMap( v => { 
+        val k = f(v)
+        if (hkeys.value(k)) range.map(id => ((k, id),v))
+        else List(((k, -1), v))
+      })
     }
   }
 
