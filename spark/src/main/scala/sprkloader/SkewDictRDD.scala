@@ -81,15 +81,17 @@ object SkewDictRDD {
       val hkeys = lrdd.sparkContext.broadcast(hk)
       val tagDict = lrdd.mapPartitionsWithIndex((index, it) =>
         it.map{case (k,v) => if (hkeys.value(k)) (k, index) -> v else (k, -1) -> v}, true)
-      val tagDomain = rrdd.extractDistinctRekey(domop, partitions, hkeys)
-      tagDict.cogroup(tagDomain, new SkewPartitioner(partitions)).mapPartitions(it =>
-        it.map{ case ((k, id), (bag, _)) => k -> bag.flatten}, true)
+      val partitioner = new SkewPartitioner(partitions)
+      val tagDomain = rrdd.extractDistinctRekey(domop, partitioner, hkeys)
+      tagDict.cogroup(tagDomain, partitioner).mapPartitions(it =>
+        // note bag is a Iterable[Iterable[V]]
+        it.flatMap{ case ((k, id), (bag, _)) => bag.map(b => k -> b)}, true)
     }else{
       // check if small enough to broadcast
       // if not then just do a normal join
       val domain = rrdd.distinct.mapPartitions(it => it.map(lbl => domop(lbl) -> 1))
       lrdd.cogroup(domain).mapPartitions(it =>
-        it.map{ case (k, (bag, _)) => k -> bag.flatten}, true)
+        it.flatMap{ case (k, (bag, _)) => bag.map(b => k -> b)}, true)
     }
   }      
   
@@ -100,15 +102,17 @@ object SkewDictRDD {
       val hkeys = lrdd.sparkContext.broadcast(hk)
       val tagDict = lrdd.mapPartitionsWithIndex((index, it) =>
         it.map{case (k,v) => if (hkeys.value(k)) (k, index) -> v else (k, -1) -> v}, true)
-      val tagDomain = rrdd.extractRekey(domop, partitions, hkeys)
-      tagDict.cogroup(tagDomain, new SkewPartitioner(partitions)).mapPartitions(it =>
-        it.map{ case ((k, id), (bag, _)) => k -> bag.flatMap(b => b.map(bagop))}, true)
+      val partitioner = new SkewPartitioner(partitions)
+      val tagDomain = rrdd.extractDistinctRekey(domop, partitioner, hkeys)
+      tagDict.cogroup(tagDomain, partitioner).mapPartitions(it =>
+        // bag is an Iterable[Iterable[V]]
+        it.flatMap{ case ((k, id), (bag, _)) => bag.map(b => k -> b.map(bagop))}, true)
     }else{
       // check if small enough to broadcast
       // if not then just do a normal join
       val domain = rrdd.distinct.mapPartitions(it => it.map(lbl => domop(lbl) -> 1))
       lrdd.cogroup(domain).mapPartitions(it =>
-        it.map{ case (k, (bag, _)) => k -> bag.flatMap(b => b.map(bagop))}, true)
+        it.flatMap{ case (k, (bag, _)) => bag.map(b => k -> b.map(bagop))}, true)
     }
   }
 
@@ -120,8 +124,9 @@ object SkewDictRDD {
       val hkeys = lrdd.sparkContext.broadcast(hk)
       val tagDict = lrdd.mapPartitionsWithIndex((index, it) =>
         it.map{case (k,v) => if (hkeys.value(k)) (k, index) -> v else (k, -1) -> v}, true)
-      val tagDomain = rrdd.extractRekey(domop, partitions, hkeys)
-      tagDict.cogroup(tagDomain, new SkewPartitioner(partitions)).flatMapValues{ pair => 
+      val partitioner = new SkewPartitioner(partitions)
+      val tagDomain = rrdd.extractDistinctRekey(domop, partitioner, hkeys)
+      tagDict.cogroup(tagDomain, partitioner).flatMapValues{ pair => 
         pair._1.flatten }.mapPartitions(it => it.map{ case ((k,id), v) => k -> v }, true)
     }else{
       // check if small enough to broadcast
@@ -138,8 +143,9 @@ object SkewDictRDD {
       val hkeys = lrdd.sparkContext.broadcast(hk)
       val tagDict = lrdd.mapPartitionsWithIndex((index, it) =>
         it.map{case (k,v) => if (hkeys.value(k)) (k, index) -> v else (k, -1) -> v}, true)
-      val tagDomain = rrdd.extractRekey(domop, partitions, hkeys)
-      tagDict.cogroup(tagDomain, new SkewPartitioner(partitions)).flatMapValues{ 
+      val partitioner = new SkewPartitioner(partitions)
+      val tagDomain = rrdd.extractDistinctRekey(domop, partitioner, hkeys)
+      tagDict.cogroup(tagDomain, partitioner).flatMapValues{ 
         pair => pair._1.flatMap(b => b.map(v => (bagop(v), v))) }.mapPartitions(it => 
           it.map{ case ((k,id), (k1, v)) => k1 -> (k, v) }, true)
     }else{
