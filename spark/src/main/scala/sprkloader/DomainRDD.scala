@@ -47,15 +47,37 @@ object DomainRDD{
     }
 
     // map(x => (x, null)).reduceByKey((x, y) => x, numPartitions).map(_._1) (distinct)
-    def extractDistinctRekey[K: ClassTag](extract: L => K, partitioner: Partitioner, hkeys: Broadcast[Set[K]]): RDD[((K, Int), Int)] = { 
-      val partitions = Range(0, partitioner.numPartitions)
-      domain.flatMap(lbl => {
-        val nlbl = extract(lbl) 
-        if (hkeys.value(nlbl)) partitions.map(i => ((nlbl, i), null)) else List(((nlbl, -1),null))
-      }).reduceByKey(partitioner, (x,y) => x).map(x => (x._1, 1))
+    // this is an optimization for the case Label(InputLabel(...))
+    // For label in Domain union 
+    //  (label.lbl, For value in Lookup((label.lbl, dictionary)
+    //    Sng(...)
+    def extractDistinctLabelRekey[K: ClassTag](extract: L => K, partitioner: Partitioner, 
+      hkeys: Broadcast[Set[K]]): RDD[((K, Int), Int)] = { 
+        val partitions = Range(0, partitioner.numPartitions)
+        domain.flatMap(lbl => {
+          val nlbl = extract(lbl) 
+          if (hkeys.value(nlbl)) partitions.map(i => ((nlbl, i), null)) else List(((nlbl, -1),null))
+        }).reduceByKey(partitioner, (x,y) => x).map(x => (x._1, 1))
+      }
+
+    // This is an extract function that will support lookups on domains 
+    // that contain labels with more than just an input label 
+    // ie. Label(1, InputLabel()) 
+    // For l in domain union 
+    //  (l.lbl, For value in Lookup(extract_label(l.lbl), dictionary) union 
+    //    For s in S union 
+    //      If extract_a(l.lbl) == s.a 
+    //      Then (value.b, s.c))
+    def extractDistinctRekey[K: ClassTag](extract: L => K, partitioner: Partitioner, 
+      hkeys: Broadcast[Set[K]]): RDD[((K, Int), Iterable[L])] = { 
+        val partitions = Range(0, partitioner.numPartitions)
+        domain.flatMap(lbl => {
+          val nlbl = extract(lbl) 
+          if (hkeys.value(nlbl)) partitions.map(i => ((nlbl, i), lbl)) else List(((nlbl, -1), lbl))
+        }).groupByKey(partitioner)
     }
 
-    // extract when the domain alreay consists of local sets
+    // extract and do no distinct
     def extractRekey[K: ClassTag](extract: L => K, numPartitions: Int, hkeys: Broadcast[Set[K]]): RDD[((K, Int), Int)] = {
       val partitions = Range(0, numPartitions)
       domain.flatMap(lbl => {

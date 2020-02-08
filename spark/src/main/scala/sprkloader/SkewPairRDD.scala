@@ -39,6 +39,16 @@ object SkewPairRDD {
       (rekey, dupp)
     }
  
+    def rekeyByIndex[S: ClassTag](rrdd: RDD[S], keyset: Broadcast[Set[K]], f: S => K, partitioner: Partitioner): 
+      (RDD[((K, Int), V)], RDD[((K, Int), Set[S])]) = {
+      val rekey = 
+        lrdd.mapPartitionsWithIndex( (index, it) => it.map{ case (k,v) => 
+          ((k, { if (keyset.value(k)) index else -1 }), v) 
+        }, true)
+      val dupp = rrdd.duplicateDistinct(f, partitioner, keyset)
+      (rekey, dupp)
+    }
+
     def rekeyByIndex[S: ClassTag](rrdd: RDD[S], keyset: Broadcast[Set[K]], f: S => K): 
       (RDD[((K, Int), V)], RDD[((K, Int), S)]) = {
       val rekey = 
@@ -47,11 +57,11 @@ object SkewPairRDD {
         }, true)
 
       val partitionRange = Range(0, partitions)
-      val dupp = rrdd.flatMap{ case v => 
+      val dupp = rrdd.flatMap{ v => { 
           val k = f(v)
           if (keyset.value(k)) partitionRange.map(id => (k, id) -> v)
           else List(((k, -1),v)) 
-        }
+        }}
       (rekey, dupp)
     }
    
@@ -82,65 +92,72 @@ object SkewPairRDD {
       (llight, rlight)
     }
 
+    def joinDropKey[S:ClassTag](rrdd: RDD[S], fkey: S => K): RDD[(V, S)] = {
+      lrdd.cogroup(rrdd.map(v => (fkey(v),v))).flatMap{ pair =>
+        for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)}
+    }
+
+    def joinDropKey[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = {
+      lrdd.cogroup(rrdd).flatMap{ pair =>
+        for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)}
+    }
+
+    def joinDropKey[S:ClassTag](rrdd: RDD[S], fkey: S => K, partitioner: Partitioner): RDD[(V, S)] = {
+      lrdd.cogroup(rrdd.map(v => (fkey(v),v)), partitioner).flatMap{ pair =>
+        for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)}
+    }
+
+    def joinDropKey[S:ClassTag](rrdd: RDD[(K, S)], partitioner: Partitioner): RDD[(V, S)] = {
+      lrdd.cogroup(rrdd, partitioner).flatMap{ pair =>
+        for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)}
+    }
+
     def joinSaltLeft[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
       val hk = heavyKeys()
       if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)
         val (rekey, dupp) = lrdd.rekeyBySet(rrdd, hkeys)
-        rekey.cogroup(dupp).flatMap{ pair =>
-          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
-        }
-      } else 
-        lrdd.cogroup(rrdd).flatMap{ pair =>
-          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
-        }
+        rekey.joinDropKey(dupp)
+      } else lrdd.joinDropKey(rrdd)
+    }
+
+    def joinDomain[S:ClassTag](rrdd: RDD[S], extract: S => K): RDD[(V, S)] = {
+      val domain = rrdd.distinct.map(v => (extract(v),v)) 
+      lrdd.cogroup(domain).flatMap{ pair =>
+        for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)}
     }
     
-    def joinSkewLeft[S:ClassTag](rrdd: RDD[S], f: S => K): RDD[(V, S)] = { 
+    def joinDomainSkew[S:ClassTag](rrdd: RDD[S], extract: S => K): RDD[(V, S)] = { 
   		val hk = heavyKeys()
   	  if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)
-        val (rekey, dupp) = lrdd.rekeyByIndex(rrdd, hkeys, f)
-        rekey.cogroup(dupp, new SkewPartitioner(partitions)).flatMap{ pair =>
-          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
+        val partitioner = new SkewPartitioner(partitions)
+        val (rekey, dupp) = lrdd.rekeyByIndex(rrdd, hkeys, extract, partitioner)
+        rekey.cogroup(dupp, partitioner).flatMap{ pair =>
+          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator.flatten) yield (v, s)
         }
-  		}else 
-        lrdd.cogroup(rrdd.map(v => (f(v),v))).flatMap{ pair =>
-          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
-        }
+  		}else lrdd.joinDomain(rrdd, extract)
     }
 
-  	def joinSkewLeft[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
+    def joinSkew[S:ClassTag](rrdd: RDD[S], fkey: S => K): RDD[(V, S)] = { 
   		val hk = heavyKeys()
   	  if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)
+        val partitioner = new SkewPartitioner(partitions)
+        val (rekey, dupp) = lrdd.rekeyByIndex(rrdd, hkeys, fkey)
+        rekey.joinDropKey(dupp, partitioner)
+  		}else lrdd.joinDropKey(rrdd, fkey)
+    }
+
+  	def joinSkew[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
+  		val hk = heavyKeys()
+  	  if (hk.nonEmpty) {
+        val hkeys = lrdd.sparkContext.broadcast(hk)
+        val partitioner = new SkewPartitioner(partitions)
         val (rekey, dupp) = lrdd.rekeyByIndex(rrdd, hkeys)
-	      rekey.cogroup(dupp, new SkewPartitioner(partitions)).flatMap{ pair =>
-          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
-        }
-  		}else 
- 	      lrdd.cogroup(rrdd).flatMap{ pair =>
-          for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
-        }
+	      rekey.joinDropKey(dupp, partitioner)
+  		}else lrdd.joinDropKey(rrdd) 
     }
-
-	  /**def joinSkewLeftPrintDist[S: ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
-      val hkm = lrdd.heavyKeysByPartition[K]()
-  	  val hk = hkm.getKeys()
-      if (hk.nonEmpty) {
-         val hkeys = lrdd.sparkContext.broadcast(hk)
-         val (rekey, dupp) = lrdd.rekeyByIndex(rrdd, hkeys)
-         println("before join")
-         hkm.foreach(println(_))
-         val result = rekey.cogroup(dupp, new SkewPartitioner(lrdd.partitions.size)).flatMap{ pair =>
-            for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)
-         }
-         println("after join")
-         result.heavyKeysByPartition[K]().foreach(println(_))
-         result 
-      }
-      else joinDropKey(rrdd)
-    }**/
 
     def groupByLabel(): RDD[(K, Iterable[V])] = {
       val groupBy = (i: Iterator[(K,V)]) => {
@@ -176,7 +193,6 @@ object SkewPairRDD {
       lrdd.mapPartitions(groupBy, true)
     }
  
-    // this needs more thought
 	 def groupBySkew(): RDD[(K, Iterable[V])] = {
       val hk = heavyKeys()
       if (hk.nonEmpty){

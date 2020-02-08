@@ -4,7 +4,9 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.broadcast.Broadcast
 import scala.reflect.ClassTag
 import SkewPairRDD._
+import org.apache.spark.Partitioner
 
+// rename
 object UtilPairRDD {
 
   implicit class RDDUtils[W: ClassTag](lrdd: RDD[W]) extends Serializable {
@@ -30,6 +32,18 @@ object UtilPairRDD {
     def rekeyByIndex[K](f: W => K): RDD[((K, Int), W)] = {
       lrdd.mapPartitionsWithIndex( (index, it) =>
         it.map(v => ((f(v), index), v)), true)
+    }
+    
+    // map(x => (x, null)).reduceByKey((x, y) => x, numPartitions).map(_._1) (distinct)
+    def duplicateDistinct[K: ClassTag](fkey: W => K, partitioner: Partitioner, 
+      hkeys: Broadcast[Set[K]]): RDD[((K, Int), Set[W])] = {
+        val accum1 = (acc: Set[W], w: W) => acc + w
+        val accum2 = (acc1: Set[W], acc2: Set[W]) => acc1 ++ acc2
+        val partitions = Range(0, partitioner.numPartitions)
+        lrdd.flatMap(v => {
+          val k = fkey(v)
+          if (hkeys.value(k)) partitions.map(i => ((k, i), v)) else List(((k, -1), v))
+        }).aggregateByKey(Set.empty[W], partitioner)(accum1, accum2) 
     }
 
     def duplicate[K](f: W => K, numPartitions: Int, hkeys: Broadcast[Set[K]]): RDD[((K, Int), W)] = {
