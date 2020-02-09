@@ -178,11 +178,37 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   }
 
   def loadOrdersProjBzip():RDD[OrdersProj] = {
-    spark.sparkContext.textFile(s"file:///nfs_qc4/tpch/o500/", minPartitions=500).mapPartitions(it => 
-		it.map(line => {
+    def load(label: String): RDD[OrdersProj] = {
+      spark.sparkContext.textFile(s"file:///nfs_qc4/tpch/o500$label/", minPartitions=500).mapPartitions(it => 
+		  it.map(line => {
       		val l = line.split("\\|")
             OrdersProj(parseBigInt(l(0)), l(1).toInt, l(4))
-  		}), true)//.repartition(500)
+  		  }), true)//.repartition(500)
+    }
+    val a = load("a")
+    a.cache
+    spark.sparkContext.runJob(a, (iter: Iterator[_]) => {})
+    val b = load("b")
+    b.cache
+    spark.sparkContext.runJob(b, (iter: Iterator[_]) => {})
+    val c = load("c")
+    c.cache
+    spark.sparkContext.runJob(c, (iter: Iterator[_]) => {})
+    val d = load("d")
+    d.cache
+    spark.sparkContext.runJob(d, (iter: Iterator[_]) => {})
+    val e = load("e")
+    e.cache
+    spark.sparkContext.runJob(e, (iter: Iterator[_]) => {})
+    val O__D_1 = a union b union c union d union e
+    O__D_1.cache
+    spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
+    a.unpersist()
+    b.unpersist()
+    c.unpersist()
+    d.unpersist()
+    e.unpersist()
+    O__D_1
   }
 
   def loadOrdersDF():Dataset[Orders] = {
