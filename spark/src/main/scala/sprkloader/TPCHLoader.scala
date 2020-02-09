@@ -255,11 +255,40 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   }
 
   def loadLineitemProjBzip():RDD[LineitemProj] = {
-	spark.sparkContext.textFile(s"/nfs_qc4/tpch/li1000", minPartitions=1000).mapPartitions(it =>
-		it.map(line => {
-			val l = line.split("\\|")
-        	LineitemProj(parseBigInt(l(0)), l(1).toInt, l(4).toDouble)
-		}), true)//.repartition(1000)
+    def load(label: String): RDD[LineitemProj] = {
+	    val tmp = spark.sparkContext.textFile(s"/nfs_qc4/tpch/li1000$label").mapPartitions(it =>
+		    it.map(line => {
+			    val l = line.split("\\|")
+        	  LineitemProj(parseBigInt(l(0)), l(1).toInt, l(4).toDouble)
+		    }), true)
+      tmp.cache
+      spark.sparkContext.runJob(tmp, (iter: Iterator[_]) => {})
+      tmp
+    }
+    val a = load("a")
+    val b = load("b")
+    val c = load("c")
+    val d = load("d")
+    val e = load("e")
+    val f = load("f")
+    val g = load("g")
+    val h = load("h")
+    val i = load("i")
+    val j = load("j")
+    val L__D_1 = a union b union c union d union e union f union g union h union i union j
+    L__D_1.cache
+    spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
+    a.unpersist()
+    b.unpersist()
+    c.unpersist()
+    d.unpersist()
+    e.unpersist()
+    f.unpersist()
+    g.unpersist()
+    h.unpersist()
+    i.unpersist()
+    j.unpersist()
+    L__D_1
   }
 
   def loadLineitemDF():Dataset[Lineitem] = {
