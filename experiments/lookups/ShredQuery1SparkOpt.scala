@@ -108,8 +108,8 @@ val x207 = M_flat2.flatMap{
 }.cogroup(top).flatMap{
   case (_, (dates, names)) => names.map(n => (n, dates))
 }
-spark.sparkContext.runJob(x207,(iter: Iterator[_]) => {})**/
-//x207.collect.foreach(println(_))
+spark.sparkContext.runJob(x207,(iter: Iterator[_]) => {})
+x207.collect.foreach(println(_))**/
 var end = System.currentTimeMillis() - start0
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery1SparkOpt"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
