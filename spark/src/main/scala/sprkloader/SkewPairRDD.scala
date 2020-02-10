@@ -224,9 +224,9 @@ object SkewPairRDD {
         val hkeys = lrdd.sparkContext.broadcast(hk)
         val rekey = lrdd.mapPartitionsWithIndex( (index, it) =>
           it.zipWithIndex.map{ case ((k,v), i) => 
-            (k, { if (hkeys.value(k)) i % reducers else index }) -> v
+            (k, { if (hkeys.value(k)) i % partitions else index }) -> v
           }, true)
-        rekey.groupByKey(new SkewPartitioner(reducers)).map{ case ((k, _), v) => k -> v }
+        rekey.groupByKey(new SkewPartitioner(partitions)).map{ case ((k, _), v) => k -> v }
       }
       else groupByLabel() 
     }
