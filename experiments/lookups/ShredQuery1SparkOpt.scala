@@ -7,12 +7,12 @@ import sprkloader._
 import sprkloader.SkewPairRDD._
 case class Record182(l_orderkey: Int, l_quantity: Double, l_partkey: Int)
 case class Record183(p_name: String, p_partkey: Int)
-case class Record184(l_orderkey: Int, p_name: String, l_qty: Double)
+case class Record184(l_orderkey: Int, p_partkey: Int, l_qty: Double)
 case class Record185(c__Fc_custkey: Int)
 case class Record186(c_name: String, c_orders: Record185)
 case class Record187(o__Fo_orderkey: Int)
 case class Record188(o_orderdate: String, o_parts: Record187)
-case class Record189(p_name: String, l_qty: Double)
+case class Record189(p_partkey: Int, l_qty: Double)
 object ShredQuery1SparkOpt {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
@@ -20,7 +20,7 @@ object ShredQuery1SparkOpt {
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
 val L__F = 3
-val L__D_1 = tpch.loadLineitemProjBzip
+val L__D_1 = tpch.loadLineitemProj//Bzip
 //L__D_1.cache
 //spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
@@ -32,7 +32,7 @@ val C__D_1 = tpch.loadCustomersProj
 C__D_1.cache
 spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
 val O__F = 2
-val O__D_1 = tpch.loadOrdersProjBzip
+val O__D_1 = tpch.loadOrdersProj//Bzip
 //O__D_1.cache
 //spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
@@ -48,7 +48,7 @@ val x144 = x141.joinSkew(x139, (p:PartProj4) => p.p_partkey)
 
 val x151 = x144.map{ case (x145, x146) => 
    val x147 = x145.l_orderkey 
-val x148 = x146.p_name 
+val x148 = x146.p_partkey 
 val x149 = x145.l_quantity 
 val x150 = Record184(x147, x148, x149) 
 x150 
@@ -86,7 +86,7 @@ spark.sparkContext.runJob(M_flat2, (iter: Iterator[_]) => {})
 val x179 = ljp__D_1.map{ case x171 => 
    val x172 = x171.l_orderkey 
 val x173 = Record187(x172) 
-val x174 = x171.p_name 
+val x174 = x171.p_partkey 
 val x175 = x171.l_qty 
 val x176 = Record189(x174, x175) 
 val x177 = x176//List(x176) 
