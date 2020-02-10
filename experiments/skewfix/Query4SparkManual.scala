@@ -74,7 +74,7 @@ object Query4SparkManual {
 	  c.cache
 	  spark.sparkContext.runJob(c,  (iter: Iterator[_]) => {})
 
-	P.unpersist()
+	  P.unpersist()
     val P4 = tpch.loadPartProj4
     P4.cache
     spark.sparkContext.runJob(P4,  (iter: Iterator[_]) => {})

@@ -102,6 +102,21 @@ object SkewPairRDD {
         for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)}
     }
 
+    def outerJoinDropKey[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, Option[S])] = {
+      lrdd.cogroup(rrdd).flatMap{
+        case (key, (vs, Seq())) => vs.iterator.map(v => (v, None))
+        case (key, (vs, ss)) => 
+          for (v <- vs.iterator; s <- ss.iterator) yield (v, Some(s))}
+    }
+
+    // left
+    def outerJoinDropKey[S:ClassTag](rrdd: RDD[(K, S)], partitioner: Partitioner): RDD[(V, Option[S])] = {
+      lrdd.cogroup(rrdd, partitioner).flatMap{
+        case (key, (vs, Seq())) => vs.iterator.map(v => (v, None))
+        case (key, (vs, ss)) => 
+          for (v <- vs.iterator; s <- ss.iterator) yield (v, Some(s))}
+    }
+
     def joinDropKey[S:ClassTag](rrdd: RDD[S], fkey: S => K, partitioner: Partitioner): RDD[(V, S)] = {
       lrdd.cogroup(rrdd.map(v => (fkey(v),v)), partitioner).flatMap{ pair =>
         for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)}
@@ -157,6 +172,16 @@ object SkewPairRDD {
         val (rekey, dupp) = lrdd.rekeyByIndex(rrdd, hkeys)
 	      rekey.joinDropKey(dupp, partitioner)
   		}else lrdd.joinDropKey(rrdd) 
+    }
+
+  	def outerJoinSkew[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, Option[S])] = { 
+  		val hk = heavyKeys()
+  	  if (hk.nonEmpty) {
+        val hkeys = lrdd.sparkContext.broadcast(hk)
+        val partitioner = new SkewPartitioner(partitions)
+        val (rekey, dupp) = lrdd.rekeyByIndex(rrdd, hkeys)
+	      rekey.outerJoinDropKey(dupp, partitioner)
+  		}else lrdd.outerJoinDropKey(rrdd) 
     }
 
     def groupByLabel(): RDD[(K, Iterable[V])] = {

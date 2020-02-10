@@ -117,6 +117,7 @@ object SkewDictRDD {
       val partitioner = new SkewPartitioner(partitions)
       val tagDomain = rrdd.extractDistinctRekey(extract, partitioner, hkeys)
       tagDict.cogroup(tagDomain, partitioner).mapPartitions(it => // Iterable[Iterable[L]]
+        // remove labels associated with empty bags NOTE and in above as well
         it.flatMap{ case ((k, id), (bag, labels)) => labels.flatMap(lbl => lbl.map(l => l -> bag.flatten))}, true)
     }else lrdd.lookup(rrdd, extract)
   }      
