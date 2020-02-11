@@ -33,9 +33,13 @@ class SkewPartitioner(override val numPartitions: Int) extends Partitioner {
   }
 
   override def getPartition(key: Any): Int = {
-	  val k = key.asInstanceOf[(Any, Int)]
-	  if (k._2 != -1) k._2
-	  else defaultPartitionAssignment(key)
+    try{
+      val k = key.asInstanceOf[(Any, Int)]
+	    if (k._2 != -1) k._2
+	    else defaultPartitionAssignment(key)
+    }catch{
+      case _:Throwable => defaultPartitionAssignment(key)
+    }
   }
 
   override def equals(that: Any): Boolean = {
