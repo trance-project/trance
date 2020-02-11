@@ -48,16 +48,18 @@ object Query4SparkManual {
     val C = tpch.loadCustomersProj
     C.cache
     spark.sparkContext.runJob(C,  (iter: Iterator[_]) => {})
-    val O = tpch.loadOrdersProj
+    val O = tpch.loadOrdersProjBzip
     O.cache
     spark.sparkContext.runJob(O,  (iter: Iterator[_]) => {})
-    val L = tpch.loadLineitemProj
+    val L = tpch.loadLineitemProjBzip
     L.cache
     spark.sparkContext.runJob(L,  (iter: Iterator[_]) => {})
     val P = tpch.loadPartProj4
     P.cache
     spark.sparkContext.runJob(P,  (iter: Iterator[_]) => {})
-    
+ 
+ 	tpch.triggerGC
+   
     val l = L.map(l => l.l_partkey -> Record160(l.l_orderkey, l.l_quantity, l.l_partkey))
     val p = P.map(p => p.p_partkey -> Record161(p.p_name, p.p_partkey))
     val lpj = l.joinSkew(p)
@@ -74,7 +76,6 @@ object Query4SparkManual {
 	  c.cache
 	  spark.sparkContext.runJob(c,  (iter: Iterator[_]) => {})
 
-	  tpch.triggerGC
 
     var start0 = System.currentTimeMillis()
     val accum1 = (acc: List[Record373], v: Record373) => v match {
@@ -109,6 +110,7 @@ object Query4SparkManual {
 	  }
     spark.sparkContext.runJob(result,  (iter: Iterator[_]) => {})
   	var end0 = System.currentTimeMillis() - start0
-    println("Query4SparkManual,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
+    println(result.count)
+	println("Query4SparkManual,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
   }
 }
