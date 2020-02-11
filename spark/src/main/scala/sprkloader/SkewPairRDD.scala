@@ -127,13 +127,22 @@ object SkewPairRDD {
         for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)}
     }
 
-    def joinSaltLeft[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
+    def joinSalt[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
       val hk = heavyKeys()
       if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)
         val (rekey, dupp) = lrdd.rekeyBySet(rrdd, hkeys)
         rekey.joinDropKey(dupp)
       } else lrdd.joinDropKey(rrdd)
+    }
+
+    def outerJoinSalt[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, Option[S])] = { 
+      val hk = heavyKeys()
+      if (hk.nonEmpty) {
+        val hkeys = lrdd.sparkContext.broadcast(hk)
+        val (rekey, dupp) = lrdd.rekeyBySet(rrdd, hkeys)
+        rekey.outerJoinDropKey(dupp)
+      } else lrdd.outerJoinDropKey(rrdd)
     }
 
     def joinDomain[S:ClassTag](rrdd: RDD[S], extract: S => K): RDD[(V, S)] = {
