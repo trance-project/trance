@@ -69,12 +69,13 @@ object DomainRDD{
     //      If extract_a(l.lbl) == s.a 
     //      Then (value.b, s.c))
     def extractDistinctRekey[K: ClassTag](extract: L => K, partitioner: Partitioner, 
-      hkeys: Broadcast[Set[K]]): RDD[((K, Int), Iterable[L])] = { 
+      hkeys: Broadcast[Set[K]]): RDD[((K, Int), Set[L])] = { 
         val partitions = Range(0, partitioner.numPartitions)
         domain.flatMap(lbl => {
           val nlbl = extract(lbl) 
           if (hkeys.value(nlbl)) partitions.map(i => ((nlbl, i), lbl)) else List(((nlbl, -1), lbl))
-        }).groupByKey(partitioner)
+        }).aggregateByKey(Set.empty[L], partitioner)(
+          (acc: Set[L], l: L) => acc + l, (acc1: Set[L], acc2: Set[L]) => acc1 ++ acc2)
     }
 
     // extract and do no distinct

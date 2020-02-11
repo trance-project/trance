@@ -54,6 +54,7 @@ val O__D_1 = tpch.loadOrdersProj//Bzip
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
+tpch.triggerGC
 
 val x55 = L__D_1
 val x60 = P__D_1
@@ -204,7 +205,7 @@ val x302 = x290.map{ case ((x291, x292), x293) =>
 val x298 = x293.p_retailprice 
 val x299 = x297 * x298 
 x299})
-}.reduceByKey(_ + _) 
+}.reduceByKey(_ + _)
 val x308 = x302.map{ case ((x303, x304), x305) => 
    val x306 = x303 
 val x307 = (x306, Record373(x304.p_name, x305)) 
@@ -218,43 +219,16 @@ var end0 = System.currentTimeMillis() - start0
 println("ShredQuery4Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
 var start1 = System.currentTimeMillis()
-/**val x342 = c_orders__D_1 
-val x346 = x342.flatMap{ 
- case x343 => {val x344 = x343._2 
-x344}.map{ case v2 => (x343._1, v2) }
+val x342 = c_orders__D_1.flatMap(
+    v => v._2.map(o => (o.o_parts, (v._1, o.o_orderdate)))
+  ).cogroup(o_parts__D_1).flatMap{
+    case (_, (left, x349)) => left.map{ case (lbl, date) => (lbl, (date, x349.flatten)) }
+  }
+val result = M__D_1.map(c => c.c_orders -> c.c_name).cogroup(x342).flatMap{
+  case (_, (left, x349)) => left.map(cname => cname -> x349)
 }
-         
-val x351 = { val out1 = x346.map{ case (x347, x348) => ({val x350 = x348.o_parts 
-x350}, (x347, x348)) }
-out1.cogroup(o_parts__D_1).flatMap{
- case (_, (left, x349)) => left.map{ case (x347, x348) => ((x347, x348), x349.flatten) }}
-}
-         
-val x358 = x351.map{ case ((x352, x353), x354) => 
-   val x355 = x353.o_orderdate 
-val x356 = Record374(x355, x354) 
-val x357 = (x352, x356) 
-x357 
-} 
-val newc_orders__D_1 = x358
-val x359 = newc_orders__D_1
-//newc_orders__D_1.collect.foreach(println(_))
-val x361 = M__D_1 
-val x365 = { val out1 = x361.map{ case x362 => ({val x364 = x362.c_orders 
-x364}, x362) }
-out1.cogroup(newc_orders__D_1).flatMap{
- case (_, (left, x363)) => left.map{ case x362 => (x362, x363) }}
-}
-         
-val x370 = x365.map{ case (x366, x367) => 
-   val x368 = x366.c_name 
-val x369 = Record375(x368, x367) 
-x369 
-} 
-val newM__D_1 = x370
-val x371 = newM__D_1
-newM__D_1.collect.foreach(println(_))
-spark.sparkContext.runJob(x371, (iter: Iterator[_]) => {})**/
+//result.collect.foreach(println(_))
+spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery4Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 
