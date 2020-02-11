@@ -160,14 +160,14 @@ x226
 } 
 val M__D_1 = x227
 val x228 = M__D_1
-spark.sparkContext.runJob(M__D_1, (iter: Iterator[_]) => {})
+//spark.sparkContext.runJob(M__D_1, (iter: Iterator[_]) => {})
 
 val x258 = Query1__D_2c_orders_1.map{
   case (lbl, bag) => (Record311(lbl.lbl), bag.map{ v => Record316(v.o_orderdate, Record315(v.o_parts)) }) 
 } 
 val c_orders__D_1 = x258
 val x259 = c_orders__D_1
-spark.sparkContext.runJob(c_orders__D_1, (iter: Iterator[_]) => {})
+//spark.sparkContext.runJob(c_orders__D_1, (iter: Iterator[_]) => {})
 
 val x279 = Query1__D_2c_orders_2o_parts_1
 
@@ -197,28 +197,27 @@ x307
 val o_parts__D_1 = x308
 val x309 = o_parts__D_1
 //o_parts__D_1.collect.foreach(println(_))
-spark.sparkContext.runJob(o_parts__D_1, (iter: Iterator[_]) => {})
+//spark.sparkContext.runJob(o_parts__D_1, (iter: Iterator[_]) => {})
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery4SparkOpt,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
     
 
 var start1 = System.currentTimeMillis()
-val x342 = c_orders__D_1.flatMap(
-  c => c._2.map(o => (o.o_parts, (c._1, o.o_orderdate)))
+val x342 = c_orders__D_1.mapPartitions(
+  it => it.flatMap( c => c._2.map(o => (o.o_parts, (c._1, o.o_orderdate)))), true
 ).cogroup(o_parts__D_1).flatMap{
   case (_, (left, x349)) => left.map{ case (x347, x348) => (x347, Record374(x348, x349.flatten)) }
 }
 val result = M__D_1.map(c => c.c_orders -> c.c_name).cogroup(x342).flatMap{
   case (_, (left, x349)) => left.map{ c => Record375(c, x349) }
 }
+//result.collect.foreach(println(_))
 spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
+var end = System.currentTimeMillis() - start0
 var end1 = System.currentTimeMillis() - start1
+println("ShredQuery4SparkOpt,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
 println("ShredQuery4SparkOpt,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 }
-var start = System.currentTimeMillis()
 f
-var end = System.currentTimeMillis() - start
-    
-   println("ShredQuery4SparkOpt"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
  }
 }
