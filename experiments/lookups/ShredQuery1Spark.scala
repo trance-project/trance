@@ -130,49 +130,21 @@ x154})
 val M__D_3 = x157
 val x163 = M__D_3
 
-spark.sparkContext.runJob(M__D_3, (iter: Iterator[_]) => {})
+//spark.sparkContext.runJob(M__D_3, (iter: Iterator[_]) => {})
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
     
 
 var start1 = System.currentTimeMillis()
-/**val x201 = M__D_2 
-val x205 = x201.flatMap{ 
- case x202 => {val x203 = x202._2 
-x203}.map{ case v2 => (x202._1, v2) }
-}
-         
-val x210 = { val out1 = x205.map{ case (x206, x207) => ({val x209 = x207.o_parts 
-x209}, (x206, x207)) }
-out1.cogroup(M__D_3).flatMap{
- case (_, (left, x208)) => left.map{ case (x206, x207) => ((x206, x207), x208.flatten) }}
-}
-         
-val x217 = x210.map{ case ((x211, x212), x213) => 
-   val x214 = x212.o_orderdate 
-val x215 = Record232(x214, x213) 
-val x216 = (x211, x215) 
-x216 
-} 
-val newM__D_2 = x217
-val x218 = newM__D_2
-//newM__D_2.collect.foreach(println(_))
-val x220 = M__D_1 
-val x224 = { val out1 = x220.map{ case x221 => ({val x223 = x221.c_orders 
-x223}, x221) }
-out1.cogroup(newM__D_2).flatMap{
- case (_, (left, x222)) => left.map{ case x221 => (x221, x222) }}
-}
-         
-val x229 = x224.map{ case (x225, x226) => 
-   val x227 = x225.c_name 
-val x228 = Record233(x227, x226) 
-x228 
-} 
-val newM__D_1 = x229
-val x230 = newM__D_1
-newM__D_1.collect.foreach(println(_))
-spark.sparkContext.runJob(x230, (iter: Iterator[_]) => {})**/
+val x201 = M__D_2.mapPartitions(
+  it => it.flatMap(v => v._2.map(o => (o.o_parts, (v._1, o.o_orderdate)))), false
+).cogroup(M__D_3).mapPartitions(
+  it => it.flatMap{ case (_, (left, x208)) => left.map{ case (x206, x207) => (x206, (x207, x208.flatten)) }}, false
+)
+val result = M__D_1.map(c => c.c_orders -> c.c_name).cogroup(x201).mapPartitions(
+  it => it.flatMap{ case (_, (left, x208)) => left.map( cname => cname -> x208)}, false
+)
+spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
 var end = System.currentTimeMillis() - start0
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
