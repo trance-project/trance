@@ -20,7 +20,7 @@ object ShredQuery1SparkOpt {
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
 val L__F = 3
-val L__D_1 = tpch.loadLineitemProjBzip
+val L__D_1 = tpch.loadLineitemProj//Bzip
 //L__D_1.cache
 //spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
@@ -32,7 +32,7 @@ val C__D_1 = tpch.loadCustomersProj
 C__D_1.cache
 spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
 val O__F = 2
-val O__D_1 = tpch.loadOrdersProjBzip
+val O__D_1 = tpch.loadOrdersProj//Bzip
 //O__D_1.cache
 //spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
@@ -110,7 +110,7 @@ val result = top.cogroup(x207).flatMap{
   case (_, (names, dates)) => names.map(n => (n, dates))
 }
 spark.sparkContext.runJob(result,(iter: Iterator[_]) => {})
-//x207.collect.foreach(println(_))
+//result.collect.foreach(println(_))
 var end = System.currentTimeMillis() - start0
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery1SparkOpt"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)

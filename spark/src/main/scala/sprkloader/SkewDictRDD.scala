@@ -178,5 +178,30 @@ object SkewDictRDD {
     }else lrdd.lookupIterator(rrdd, extract, fkey)
   }      
 
+  /** need non-iterator version of this to use in unshredding **/
+  def dictLookupIterator[L:ClassTag, S](rrdd: RDD[(K, (L, S))]): RDD[(L, (V, S))] = {
+    lrdd.cogroup(rrdd).flatMap{ pair =>
+      for (v <- pair._2._1.iterator.flatten; (l,s) <- pair._2._2.iterator) yield (l, (v, s))
+    }
+  }
+
+  def dictLookupSkewIterator[L:ClassTag, S](rrdd: RDD[(K, (L, S))]): RDD[(L, (V, S))] = {
+    val hk = lrdd.heavyDictKeys()
+    if (hk.nonEmpty){
+      val hkeys = lrdd.sparkContext.broadcast(hk)
+      val tagDict = lrdd.mapPartitionsWithIndex((index, it) =>
+        it.map{ case (k, v) => if (hkeys.value(k)) (k, index) -> v else (k, -1) -> v}, true)
+      val partitioner = new SkewPartitioner(partitions)
+      val parts = Range(0, partitions)
+      val tagRdict = rrdd.flatMap{ case (k,v) =>
+        if (hkeys.value(k)) parts.map(i => ((k, i), v)) else List(((k, -1), v))
+      }
+      tagDict.cogroup(tagRdict).flatMap{ pair =>
+        for (v <- pair._2._1.iterator.flatten; (l, s) <- pair._2._2.iterator) yield (l, (v,s))
+      }
+    }else dictLookupIterator(rrdd)
+  }
+
+
   }
 }
