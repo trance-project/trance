@@ -118,7 +118,10 @@ object SkewDictRDD {
       val tagDomain = rrdd.extractDistinctRekey(extract, partitioner, hkeys)
       tagDict.cogroup(tagDomain, partitioner).mapPartitions(it => // Iterable[Iterable[L]]
         // remove labels associated with empty bags NOTE and in above as well
-        it.flatMap{ case ((k, id), (bag, labels)) => labels.flatMap(lbl => lbl.map(l => l -> bag.flatten))}, true)
+        it.flatMap{ case ((k, id), (bag, labels)) => {
+          val bflat = bag.flatten 
+          if (bflat.isEmpty) Nil
+          else labels.flatMap(lbl => lbl.map(l => l -> bflat))}}, true)
     }else lrdd.lookup(rrdd, extract)
   }      
   
@@ -197,7 +200,7 @@ object SkewDictRDD {
         if (hkeys.value(k)) parts.map(i => ((k, i), v)) else List(((k, -1), v))
       }
       tagDict.cogroup(tagRdict).flatMap{ pair =>
-        for (v <- pair._2._1.iterator.flatten; (l, s) <- pair._2._2.iterator) yield (l, (v,s))
+        for (v <- pair._2._1.iterator.flatten; (l,s) <- pair._2._2.iterator) yield (l, (v, s))
       }
     }else dictLookupIterator(rrdd)
   }

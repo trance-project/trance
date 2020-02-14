@@ -33,7 +33,7 @@ object ShredQuery2Spark {
    val tpch = TPCHLoader(spark)
 
 val L__F = 3
-val L__D_1 = tpch.loadLineitemProjBzip
+val L__D_1 = tpch.loadLineitemProj//Bzip
 L__D_1.cache
 spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
@@ -45,7 +45,7 @@ val C__D_1 = tpch.loadCustomersProj
 C__D_1.cache
 spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
 val O__F = 2
-val O__D_1 = tpch.loadOrdersProjBzip
+val O__D_1 = tpch.loadOrdersProj//Bzip
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
@@ -64,7 +64,6 @@ x235
 } 
 val ljp__D_1 = x236
 val x237 = ljp__D_1
-
 
 val x244 = C__D_1.map{ case x239 => 
    val x240 = x239.c_name 
@@ -126,9 +125,11 @@ val x321 = o_parts__D_1
 val Query1__D_1 = M__D_1
 Query1__D_1.cache
 spark.sparkContext.runJob(Query1__D_1, (iter: Iterator[_]) => {})
+
 val Query1__D_2c_orders_1 = c_orders__D_1
 Query1__D_2c_orders_1.cache
 spark.sparkContext.runJob(Query1__D_2c_orders_1, (iter: Iterator[_]) => {})
+
 val Query1__D_2c_orders_2o_parts_1 = o_parts__D_1
 Query1__D_2c_orders_2o_parts_1.cache
 spark.sparkContext.runJob(Query1__D_2c_orders_2o_parts_1, (iter: Iterator[_]) => {})
@@ -154,12 +155,27 @@ val x380 = totals_ctx1
 val x382 = totals_ctx1
 // (opartsLabel, (label, o))
 val x383 = Query1__D_2c_orders_1
-val x384 = x383.lookupSkewIterator(x382, (l: Record412) => l.c2__Fc_orders, (o: Record333) => o.o_parts) 
+val x384 = x383.lookupSkew(x382, (l: Record412) => l.c2__Fc_orders).flatMap{
+  case (lbl, bag) => bag.map(o => (o.o_parts, (lbl, o.o_orderdate)))
+}
 val x385 = Query1__D_2c_orders_2o_parts_1
-val x386 = x385.dictLookupSkewIterator(x384)
+val x386 = x384.cogroup(x385).mapPartitions{
+  it => it.flatMap{ case ((opl, (dates, parts))) => 
+    dates.flatMap{ case (lbl, date) => parts.flatten.map(p => (lbl, date, p.p_partkey) -> p.l_qty) }}
+}.reduceByKey(_+_).map{
+  case ((lbl, date, pk), total) => (lbl, (date, pk, total))
+}.groupByLabel()
+val totals__D_1 = x386
+spark.sparkContext.runJob(totals__D_1, (iter: Iterator[_]) => {})
+var end0 = System.currentTimeMillis() - start0
+println("ShredQuery2Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
+
+//val x384 = x383.lookupSkewIterator(x382, (l: Record412) => l.c2__Fc_orders, (o: Record333) => o.o_parts) 
+//val x386 = x385.dictLookupSkewIterator(x384)
+//x386.collect.foreach(println(_))
 
 // (label, (part, odate))                  
-val x403 = x386.map{ case (x393, (x395, x394)) => 
+/**val x403 = x386.map{ case (x393, (x395, x394)) => 
   ({val x396 = x394.o_orderdate 
 val x397 = x395.p_partkey 
 val x398 = Record416(x396, x397) 
@@ -177,21 +193,24 @@ val x410 = totals__D_1
 //totals__D_1.collect.foreach(println(_))
 spark.sparkContext.runJob(totals__D_1, (iter: Iterator[_]) => {})
 var end0 = System.currentTimeMillis() - start0
-println("ShredQuery2Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
-    
+println("ShredQuery2Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)**/
 
 var start1 = System.currentTimeMillis()
-/**val x426 = M__D_1.map(c => c.totals -> c.c_name).cogroup(totals__D_1).flatMap{
+val x426 = M__D_1.map(c => c.totals -> c.c_name).cogroup(totals__D_1).flatMap{
   case (_, (left, x428)) => left.map( x427 => (x427, x428.flatten))
 }
 val newM__D_1 = x426
 val x436 = newM__D_1
-newM__D_1.collect.foreach(println(_))
-spark.sparkContext.runJob(newM__D_1, (iter: Iterator[_]) => {})**/
+//newM__D_1.collect.foreach(println(_))
+spark.sparkContext.runJob(newM__D_1, (iter: Iterator[_]) => {})
 var end = System.currentTimeMillis() - start0
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery2Spark,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
 println("ShredQuery2Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
+
+/**newM__D_1.flatMap{ case (cname, totals) =>
+  if (totals.isEmpty) List((cname, null, null, null))
+  else totals.map(t => (cname, t.orderdate, t.partkey, t._2)) }.sortBy(_._1).collect.foreach(println(_))**/
     
 }
 f
