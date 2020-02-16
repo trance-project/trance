@@ -142,7 +142,7 @@ val partialLevel2 = Query1__D_2c_orders_1.mapPartitions{
     case (_, (dates, parts)) => dates.map{ case (lbl, date) => lbl -> (date, parts.flatten)}
   }).groupByLabel()
 partialLevel2.cache
-spark.sparkContext.runJob(Query1__D_2c_orders_2o_parts_1, (iter: Iterator[_]) => {})
+spark.sparkContext.runJob(partialLevel2, (iter: Iterator[_]) => {})
 
  def f = {
 
