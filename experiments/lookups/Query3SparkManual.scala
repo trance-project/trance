@@ -36,10 +36,10 @@ object Query3SparkManual {
     val C = tpch.loadCustomersProj
     C.cache
     spark.sparkContext.runJob(C, (iter: Iterator[_]) => {})
-    val O = tpch.loadOrdersProj
+    val O = tpch.loadOrdersProjBzip
     O.cache
     spark.sparkContext.runJob(O, (iter: Iterator[_]) => {})
-    val L = tpch.loadLineitemProj
+    val L = tpch.loadLineitemProjBzip
     L.cache
     spark.sparkContext.runJob(L, (iter: Iterator[_]) => {})
     val P = tpch.loadPartProj4
@@ -71,11 +71,10 @@ object Query3SparkManual {
             case ptup => ptup.p_partkey -> (id1, ctup.c_name, ptup.l_qty)
         }
       }
-    }.outerJoinSkew(P.map(p => p.p_partkey -> Record318(p.p_retailprice, p.p_name))).map{
-      case ((id1, cname, qty), Some(p)) => (id1, cname, p.p_name) -> qty*p.p_retailprice
-      case ((id1, cname, qty), _) => (id1, cname, null) -> 0.0
+    }.joinSkew(P.map(p => p.p_partkey -> Record318(p.p_retailprice, p.p_name))).map{
+      case ((id1, cname, qty), p) => (cname, p.p_name) -> qty*p.p_retailprice
     }.reduceByKey(_+_).map{
-      case ((id1, cname, pname), total) => Record438(cname, pname.asInstanceOf[String], total)
+      case ((cname, pname), total) => Record438(cname, pname.asInstanceOf[String], total)
     }
     //result.collect.foreach(println(_))
     spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
