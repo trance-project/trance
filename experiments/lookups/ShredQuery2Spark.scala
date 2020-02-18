@@ -26,10 +26,10 @@ case class Record414(lbl: Record412)
 case class Record416(orderdate: String, partkey: Int)
 case class Record438(orderdate: String, partkey: Int, _2: Double)
 case class Record439(c_name: String, totals: Iterable[Record438])
-object ShredQuery2Spark {
+object ShredQuery2SparkInterm2 {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
-   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery2Spark"+sf)
+   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery2SparkInterm2"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
 
@@ -156,21 +156,25 @@ val x380 = totals_ctx1
 val x382 = totals_ctx1
 // (opartsLabel, (label, o))
 val x383 = Query1__D_2c_orders_1
-val x384 = x383.lookupSkew(x382, (l: Record412) => l.c2__Fc_orders).flatMap{
-  case (lbl, bag) => bag.map(o => (o.o_parts, (lbl, o.o_orderdate)))
-}
-val x385 = Query1__D_2c_orders_2o_parts_1
+val x384 = x383.lookupSkew(x382, (l: Record412) => l.c2__Fc_orders).mapPartitions( it =>
+  it.flatMap{ case (lbl, bag) => bag.map(o => (o.o_parts, (lbl, o.o_orderdate))) }, true)
 
-val x386 = x384.cogroup(x385).mapPartitions{
-  it => it.flatMap{ case ((opl, (dates, parts))) => 
-    dates.flatMap{ case (lbl, date) => parts.flatMap(part => part.map(p => (lbl, date, p.p_partkey) -> p.l_qty)) }}
+// map partitions has no affect here
+val x385 = Query1__D_2c_orders_2o_parts_1.flatMap{ case (lbl, bag) => 
+		bag.map(p => (lbl, p.p_partkey) -> p.l_qty) 
 }.reduceByKey(_+_).map{
-  case ((lbl, date, pk), total) => (lbl, (date, pk, total))
+  case ((lbl, pk), tot) => lbl -> (pk, tot)
+}
+
+val x386 = x384.cogroup(x385).flatMap( pair =>
+  for ((lbl, date) <- pair._2._1.iterator; (pk,tot) <- pair._2._2.iterator) yield (lbl, date, pk) -> tot
+).reduceByKey(_+_).map{
+  case ((lbl, date, pk), tot) => lbl -> (date, pk, tot)
 }.groupByLabel()
 val totals__D_1 = x386
 spark.sparkContext.runJob(totals__D_1, (iter: Iterator[_]) => {})
 var end0 = System.currentTimeMillis() - start0
-println("ShredQuery2Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
+println("ShredQuery2SparkInterm2,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
 var start1 = System.currentTimeMillis()
 /**val x426 = M__D_1.map(c => c.totals -> c.c_name).cogroup(totals__D_1).flatMap{
@@ -182,8 +186,8 @@ newM__D_1.collect.foreach(println(_))
 spark.sparkContext.runJob(newM__D_1, (iter: Iterator[_]) => {})**/
 var end = System.currentTimeMillis() - start0
 var end1 = System.currentTimeMillis() - start1
-println("ShredQuery2Spark,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
-println("ShredQuery2Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
+println("ShredQuery2SparkInterm2,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
+println("ShredQuery2SparkInterm2,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 
 /**newM__D_1.flatMap{ case (cname, totals) =>
   if (totals.isEmpty) List((cname, null, null, null))
