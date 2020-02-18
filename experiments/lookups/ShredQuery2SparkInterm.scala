@@ -165,9 +165,9 @@ val x385 = Query1__D_2c_orders_2o_parts_1.mapPartitions{
     (acc, p) => {acc(p.p_partkey) += p.l_qty; acc})) }
 }
 
-val x386 = x384.cogroup(x385).mapPartitions{
-  it => it.flatMap{ case ((opl, (dates, parts))) => 
-    dates.flatMap{ case (lbl, date) => parts.flatMap(part => part.map(p => (lbl, date, p._1) -> p._2)) }}
+val x386 = x384.joinSkew(x385).mapPartitions{
+  it => it.flatMap{ case ((lbl, date), parts) => 
+    parts.flatMap(part => parts.map(p => (lbl, date, p._1) -> p._2)) }
 }.reduceByKey(_+_).map{
   case ((lbl, date, pk), total) => (lbl, (date, pk, total))
 }.groupByLabel()
