@@ -138,15 +138,25 @@ spark.sparkContext.runJob(Query1__D_2c_orders_2o_parts_1, (iter: Iterator[_]) =>
 var start0 = System.currentTimeMillis()
 val x207 = Query1__D_1 
 val x209 = Query1__D_2c_orders_1
+val x210 = Query1__D_2c_orders_2o_parts_1
 val x221 = P__D_1
-val x241 = x207.map(c => c.c_orders -> c.c_name).joinSkew(x209).mapPartitions(
-  it => it.flatMap{ case (cname, orders) => orders.map(o => (o.o_parts) -> cname)}
-).joinSkew(Query1__D_2c_orders_2o_parts_1).mapPartitions(
-  it => it.flatMap{ case (cname, parts) => parts.map(p => p.p_partkey -> (cname, p.l_qty)) }
-).joinSkew(x221, (p: PartProj4) => p.p_partkey).map{
-  case ((cname, qty), p) => ((cname, p.p_name), qty*p.p_retailprice)
-}.reduceByKey(_+_)
-val M__D_1 = x241
+val x222 = Query1__D_2c_orders_2o_parts_1.flatMap{
+  case (lbl, bag) => bag.map(p => p.p_partkey -> (lbl, p.l_qty))
+}.joinSkew(P__D_1, (p: PartProj4) => p.p_partkey).mapPartitions(
+  it => it.map{ case ((lbl, qty), p) => (lbl, p.p_name) -> qty*p.p_retailprice }, true
+).reduceByKey(_+_).map{
+  case ((lbl, pname), tot) => lbl -> (pname, tot)
+}
+
+val x223 = Query1__D_2c_orders_1.mapPartitions( it =>
+  it.flatMap{ case (lbl, bag) => bag.map(b => (b.o_parts, (lbl, b.o_orderdate))) }, true)
+val x224 = x223.cogroup(x222).flatMap{ pair => 
+  for ((lbl, date) <- pair._2._1.iterator; (pname, tot) <- pair._2._2.iterator) yield lbl -> (pname, tot)
+}
+
+val x225 = x207.map(c => c.c_orders -> c.c_name).joinSkew(x224).mapPartitions(
+  it => it.map{ case (cname, (pname, tot)) => (cname, pname) -> tot}, true).reduceByKey(_+_)
+val M__D_1 = x225
 val x242 = M__D_1
 //M__D_1.collect.foreach(println(_))
 spark.sparkContext.runJob(M__D_1, (iter: Iterator[_]) => {})
