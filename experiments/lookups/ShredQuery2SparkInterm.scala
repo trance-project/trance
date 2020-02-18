@@ -156,18 +156,17 @@ val x380 = totals_ctx1
 val x382 = totals_ctx1
 // (opartsLabel, (label, o))
 val x383 = Query1__D_2c_orders_1
-val x384 = x383.lookupSkew(x382, (l: Record412) => l.c2__Fc_orders).flatMap{
-  case (lbl, bag) => bag.map(o => (o.o_parts, (lbl, o.o_orderdate)))
-}
+val x384 = x383.lookupSkew(x382, (l: Record412) => l.c2__Fc_orders).mapPartitions(it => 
+	it.flatMap{ case (lbl, bag) => bag.map(o => (o.o_parts, (lbl, o.o_orderdate))) }, true)
 
 val x385 = Query1__D_2c_orders_2o_parts_1.mapPartitions{
   it => it.map{ case (lbl, bag) => (lbl, bag.foldLeft(HashMap.empty[Int, Double].withDefaultValue(0))(
     (acc, p) => {acc(p.p_partkey) += p.l_qty; acc})) }
 }
 
-val x386 = x384.joinSkew(x385).mapPartitions{
-  it => it.flatMap{ case ((lbl, date), parts) => 
-    parts.flatMap(part => parts.map(p => (lbl, date, p._1) -> p._2)) }
+val x386 = x384.join(x385).mapPartitions{
+  it => it.flatMap{ case (_, ((lbl, date), parts)) => 
+    parts.map(p => (lbl, date, p._1) -> p._2) }
 }.reduceByKey(_+_).map{
   case ((lbl, date, pk), total) => (lbl, (date, pk, total))
 }.groupByLabel()
