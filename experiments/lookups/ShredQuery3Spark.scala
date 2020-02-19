@@ -143,8 +143,8 @@ val x221 = P__D_1
 val x222 = x210.flatMap{
   case (lbl, bag) => bag.map(p => p.p_partkey -> (lbl, p.l_qty))
 }.joinSkew(x221, (p: PartProj4) => p.p_partkey).mapPartitions(
-  it => it.map{ case ((lbl, qty), p) => (lbl, p.p_name) -> qty*p.p_retailprice }, true
-).reduceByKey(_+_).map{
+  it => it.map{ case ((lbl, qty), p) => (lbl, p.p_name) -> qty*p.p_retailprice}
+ ).reduceByKey(_+_).map{
   case ((lbl, pname), tot) => lbl -> (pname, tot)
 }
 
@@ -154,8 +154,8 @@ val x224 = x223.cogroup(x222).flatMap{ pair =>
   for ((lbl, date) <- pair._2._1.iterator; (pname, tot) <- pair._2._2.iterator) yield lbl -> (pname, tot)
 }
 
-val x225 = x207.map(c => c.c_orders -> c.c_name).joinSkew(x224).mapPartitions(
-  it => it.map{ case (cname, (pname, tot)) => (cname, pname) -> tot}, true).reduceByKey(_+_)
+val x225 = x207.map(c => c.c_orders -> c.c_name).join(x224).mapPartitions(
+  it => it.map{ case (_, (cname, (pname, tot))) => (cname, pname) -> tot}, true).reduceByKey(_+_)
 val M__D_1 = x225
 val x242 = M__D_1
 //M__D_1.collect.foreach(println(_))
