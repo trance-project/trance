@@ -147,21 +147,27 @@ x370
 } 
 val M__D_1 = x371
 val x372 = M__D_1
+//spark.sparkContext.runJob(M__D_1, (iter: Iterator[_]) => {})
 
-val x385 = Query1__D_2c_orders_2o_parts_1
 val x383 = Query1__D_2c_orders_1
+val x384 = x383.mapPartitions( it =>
+  it.flatMap{ case (lbl, bag) => bag.map(o => (o.o_parts, (lbl, o.o_orderdate))) }, true)
 
-val x386 = x383.mapPartitions{
-  it => it.flatMap{ case (lbl, bag) => bag.map(o => (o.o_parts, (lbl, o.o_orderdate))) }
-}.cogroup(x385).mapPartitions{
-  it => it.flatMap{ case (opl, (dates, parts)) => dates.flatMap{ case (lbl, date) => 
-    parts.flatten.map(p => (lbl, date, p.p_partkey) -> p.l_qty) }}
+// map partitions has no affect here
+val x385 = Query1__D_2c_orders_2o_parts_1.flatMap{ case (lbl, bag) => 
+		bag.map(p => (lbl, p.p_partkey) -> p.l_qty) 
 }.reduceByKey(_+_).map{
+  case ((lbl, pk), tot) => lbl -> (pk, tot)
+}
+
+val x386 = x384.cogroup(x385).flatMap( pair =>
+  for ((lbl, date) <- pair._2._1.iterator; 
+  	(pk,tot) <- pair._2._2.iterator) yield (lbl, date, pk) -> tot
+).reduceByKey(_+_).map{
   case ((lbl, date, pk), tot) => Record412(lbl) -> (date, pk, tot)
 }.groupByLabel()
 val totals__D_1 = x386
-//totals__D_1.collect.foreach(println(_))
-spark.sparkContext.runJob(totals__D_1, (iter: Iterator[_]) => {})
+//spark.sparkContext.runJob(totals__D_1, (iter: Iterator[_]) => {})
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery2SparkOpt,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
