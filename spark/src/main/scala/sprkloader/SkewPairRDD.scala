@@ -8,6 +8,7 @@ import org.apache.spark.Partitioner
 import org.apache.spark.rdd.CoGroupedRDD
 import UtilPairRDD._
 import UtilSkewDistribution._
+import DomainRDD._
 
 object SkewPairRDD {
     
@@ -86,9 +87,25 @@ object SkewPairRDD {
       (lheavy, rheavy)
     }
 
+	  def filterHeavy[S:ClassTag](rrdd: RDD[S], hkeys: Broadcast[Set[K]], extract: S => K): (RDD[(K, V)], Map[K, Set[S]])  = {
+      val lheavy = lrdd.filterPartitions((i: (K,V)) => hkeys.value(i._1))
+      val rheavy = rrdd.extractDistinctHeavyMap(extract, hkeys.value)
+      (lheavy, rheavy)
+    }
+
 	  def filterLight[S](rrdd: RDD[(K, S)], hkeys: Broadcast[Set[K]]): (RDD[(K, V)],RDD[(K, S)]) = {
       val llight = lrdd.filterPartitions((i: (K,V)) => !hkeys.value(i._1))
       val rlight = rrdd.filterPartitions((i: (K,S)) => !hkeys.value(i._1))
+      (llight, rlight)
+    }
+
+    def filterLight[S](rrdd: RDD[S], hkeys: Broadcast[Set[K]], extract: S => K): (RDD[(K, V)], RDD[(K, S)]) = {
+      val llight = lrdd.filterPartitions((i: (K,V)) => !hkeys.value(i._1))
+      val rlight = rrdd.mapPartitions(it =>
+        it.flatMap{ v => {
+          val nlbl = extract(v)
+          if (!hkeys.value(nlbl)) List((nlbl, v)) else Nil 
+         }}, true)
       (llight, rlight)
     }
 
@@ -146,12 +163,30 @@ object SkewPairRDD {
     }
 
     def joinDomain[S:ClassTag](rrdd: RDD[S], extract: S => K): RDD[(V, S)] = {
-      val domain = rrdd.distinct.map(v => (extract(v),v)) 
+      val domain = rrdd.map(l => (extract(l), l))
       lrdd.cogroup(domain).flatMap{ pair =>
-        for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)}
+        for (v <- pair._2._1.iterator; l:S <- pair._2._2.toSet.iterator) yield (v, l) }
     }
-    
+ 
     def joinDomainSkew[S:ClassTag](rrdd: RDD[S], extract: S => K): RDD[(V, S)] = { 
+  		val hk = heavyKeys()
+  	  if (hk.nonEmpty) {
+        val hkeys = lrdd.sparkContext.broadcast(hk)
+        val (llrdd, ldomain) = lrdd.filterLight(rrdd, hkeys, extract)
+        val (hlrdd, hdomain) = lrdd.filterHeavy(rrdd, hkeys, extract)
+        val light = llrdd.cogroup(ldomain).flatMap{ pair =>
+          for (v <- pair._2._1.iterator; l:S <- pair._2._2.toSet.iterator) yield (v, l)}
+        val heavyDomain = hlrdd.sparkContext.broadcast(hdomain).value
+        val heavy = hlrdd.mapPartitions(it =>
+          it.flatMap{ case (k,v) => heavyDomain get k match {
+            case Some(ls) => ls.map(l => (v, l))
+            case None => Nil
+          }}, true)
+        light union heavy
+  		}else lrdd.joinDomain(rrdd, extract)
+    }
+   
+    def joinDomainSkewTag[S:ClassTag](rrdd: RDD[S], extract: S => K): RDD[(V, S)] = { 
   		val hk = heavyKeys()
   	  if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)
@@ -167,13 +202,51 @@ object SkewPairRDD {
   		val hk = heavyKeys()
   	  if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)
+        // todo push this
+        val rkeyed = rrdd.map(r => (fkey(r), r))
+        val (llrdd, lrrdd) = lrdd.filterLight(rkeyed, hkeys)
+        val (hlrdd, hrrdd) = lrdd.filterHeavy(rkeyed, hkeys)
+        val light = llrdd.joinDropKey(lrrdd)
+        val heavyRight = hlrdd.sparkContext.broadcast(hrrdd.collect.toMap).value
+        val heavy = hlrdd.mapPartitions(it =>
+          it.flatMap{ case (k,v) => heavyRight get k match {
+            case Some(r) => List((v, r))
+            case None => Nil
+          }}, true)
+        // maybe we don't want to union these yet?
+  		  light union heavy
+      }else lrdd.joinDropKey(rrdd, fkey)
+    }
+
+    def joinSkew[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
+  		val hk = heavyKeys()
+  	  if (hk.nonEmpty) {
+        val hkeys = lrdd.sparkContext.broadcast(hk)
+        val (llrdd, lrrdd) = lrdd.filterLight(rrdd, hkeys)
+        val (hlrdd, hrrdd) = lrdd.filterHeavy(rrdd, hkeys)
+        val light = llrdd.joinDropKey(lrrdd)
+        val heavyRight = hlrdd.sparkContext.broadcast(hrrdd.collect.toMap).value
+        val heavy = hlrdd.mapPartitions(it =>
+          it.flatMap{ case (k,v) => heavyRight get k match {
+            case Some(r) => List((v, r))
+            case None => Nil
+          }}, true)
+        // maybe we don't want to union these yet?
+  		  light union heavy
+      }else lrdd.joinDropKey(rrdd)
+    }
+
+    def joinSkewTag[S:ClassTag](rrdd: RDD[S], fkey: S => K): RDD[(V, S)] = { 
+  		val hk = heavyKeys()
+  	  if (hk.nonEmpty) {
+        val hkeys = lrdd.sparkContext.broadcast(hk)
         val partitioner = new SkewPartitioner(partitions)
         val (rekey, dupp) = lrdd.rekeyByIndex(rrdd, hkeys, fkey)
         rekey.joinDropKey(dupp, partitioner)
   		}else lrdd.joinDropKey(rrdd, fkey)
     }
 
-  	def joinSkew[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
+  	def joinSkewTag[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
   		val hk = heavyKeys()
   	  if (hk.nonEmpty) {
         val hkeys = lrdd.sparkContext.broadcast(hk)

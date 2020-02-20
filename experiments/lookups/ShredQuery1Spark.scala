@@ -136,7 +136,7 @@ println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.spar
     
 
 var start1 = System.currentTimeMillis()
-val x201 = M__D_2.mapPartitions(
+/**val x201 = M__D_2.mapPartitions(
   it => it.flatMap(v => v._2.map(o => (o.o_parts, (v._1, o.o_orderdate)))), false
 ).cogroup(M__D_3).mapPartitions(
   it => it.flatMap{ case (_, (left, x208)) => left.map{ case (x206, x207) => (x206, (x207, x208.flatten)) }}, false
@@ -144,7 +144,8 @@ val x201 = M__D_2.mapPartitions(
 val result = M__D_1.map(c => c.c_orders -> c.c_name).cogroup(x201).mapPartitions(
   it => it.flatMap{ case (_, (left, x208)) => left.map( cname => cname -> x208)}, false
 )
-spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
+result.collect.foreach(println(_))
+spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})**/
 var end = System.currentTimeMillis() - start0
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)

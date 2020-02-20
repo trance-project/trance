@@ -148,9 +148,12 @@ object SkewDictRDD {
 
   def lookupIterator[L:ClassTag, S](rrdd: RDD[L], extract: L => K, fkey: V => S): RDD[(S, (L, V))] = {
     val domain = rrdd.distinct.mapPartitions(it => it.map(lbl => extract(lbl) -> lbl))
-    lrdd.cogroup(domain).flatMap{ pair => // check partitioning
+    lrdd.cogroup(domain).mapPartitions( it =>
+      it.flatMap{ case (_, (bag, labels)) => bag.flatMap( b => 
+        b.flatMap(v => labels.map(l => (fkey(v), (l, v)))))}, true)
+    /**lrdd.cogroup(domain).flatMap{ pair => // check partitioning
       for (v <- pair._2._1.iterator.flatten; l <- pair._2._2.iterator) yield (fkey(v), (l, v))
-    }
+    }**/
   }
 
   def lookupSkewIterator[L:ClassTag](rrdd: RDD[L], extract: L => K): RDD[(L, V)] = {
