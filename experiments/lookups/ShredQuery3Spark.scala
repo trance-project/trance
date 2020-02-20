@@ -7,6 +7,7 @@ import sprkloader._
 import sprkloader.SkewPairRDD._
 import sprkloader.SkewDictRDD._
 import sprkloader.DomainRDD._
+import scala.collection.mutable.HashMap
 case class Record165(lbl: Unit)
 case class Record166(l_orderkey: Int, l_quantity: Double, l_partkey: Int)
 case class Record167(p_name: String, p_partkey: Int)
@@ -140,39 +141,33 @@ val x207 = Query1__D_1
 val x209 = Query1__D_2c_orders_1
 val x210 = Query1__D_2c_orders_2o_parts_1
 val x221 = P__D_1
+
+val x208 = x207.map(c => c.c_orders -> c.c_name)
 val x222 = x209.mapPartitions( it =>
   it.flatMap{ case (lbl, bag) => bag.map(b => (b.o_parts, lbl)) }, true)
 
-val x223 = x210.flatMap{
-  case (lbl, bag) => bag.map(p => (lbl, p.p_partkey) -> p.l_qty)
-}.reduceByKey(_+_).map{
-  case ((lbl, pk), tot) => lbl -> (pk, tot)
+val x223 = Query1__D_2c_orders_2o_parts_1.mapPartitions{
+      it => it.map{ case (lbl, bag) => (lbl, bag.foldLeft(HashMap.empty[Int, Double].withDefaultValue(0))(
+	          (acc, p) => {acc(p.p_partkey) += p.l_qty; acc})) }
 }
-val x224 = x222.cogroup(x223).flatMap{pair =>
-  for (l <- pair._2._1.iterator; (pk, tot) <- pair._2._2.iterator) yield (pk, (l, tot))
-}
-val x225 = x224.joinSkew(x221, (p: PartProj4) => p.p_partkey).map{
+
+val x224 = x223.flatMap{
+  case (lbl, bag) => bag.map(p => p._1 -> (lbl, p._2))
+}.joinSkew(x221, (p: PartProj4) => p.p_partkey).map{ 
   case ((lbl, tot), p) => (lbl, p.p_name) -> tot*p.p_retailprice
-}.reduceByKey(_+_).map{
-  case ((lbl, pname), tot) => lbl -> (pname, tot)
-}
-/**val x222 = x210.flatMap{
-  case (lbl, bag) => bag.map(p => p.p_partkey -> (lbl, p.l_qty))
-}.joinSkew(x221, (p: PartProj4) => p.p_partkey).mapPartitions(
-  it => it.map{ case ((lbl, qty), p) => (lbl, p.p_name) -> qty*p.p_retailprice}
- ).reduceByKey(_+_).map{
+}.map{
   case ((lbl, pname), tot) => lbl -> (pname, tot)
 }
 
-val x223 = x209.mapPartitions( it =>
-  it.flatMap{ case (lbl, bag) => bag.map(b => (b.o_parts, (lbl, b.o_orderdate))) }, true)
-val x224 = x223.cogroup(x222).flatMap{ pair => 
-  for ((lbl, date) <- pair._2._1.iterator; (pname, tot) <- pair._2._2.iterator) yield lbl -> (pname, tot)
-}**/
+val x226 = x224.joinSkew(x222).map{
+  case ((pname, tot), lbl) => lbl -> (pname, tot)
+}
 
-val x226 = x207.map(c => c.c_orders -> c.c_name).join(x225).mapPartitions(
-  it => it.map{ case (_, (cname, (pname, tot))) => (cname, pname) -> tot}, true).reduceByKey(_+_)
-val M__D_1 = x226
+val x227 = x226.joinSkew(x208).mapPartitions(
+	it => it.map{ case ((pname, tot), cname) => (cname, pname) -> tot }, true
+).reduceByKey(_+_)
+
+val M__D_1 = x227
 val x242 = M__D_1
 //M__D_1.collect.foreach(println(_))
 spark.sparkContext.runJob(M__D_1, (iter: Iterator[_]) => {})
