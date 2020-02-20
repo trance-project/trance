@@ -300,7 +300,20 @@ object SkewPairRDD {
       lrdd.mapPartitions(groupBy, true)
     }
  
-	 def groupBySkew(): RDD[(K, Iterable[V])] = {
+ 	 def groupBySkew(): RDD[(K, Iterable[V])] = {
+      val hk = heavyKeys()
+      if (hk.nonEmpty){
+        val hkeys = lrdd.sparkContext.broadcast(hk).value
+        val llrdd = lrdd.filterPartitions((i: (K,V)) => !hkeys(i._1))
+        val hlrdd = lrdd.filterPartitions((i: (K,V)) => hkeys(i._1))
+        val light = llrdd.groupByKey()
+        val heavy = hlrdd.groupByLabel()
+        light union heavy
+      }
+      else lrdd.groupByKey() 
+    }
+
+	 def groupBySkewTag(): RDD[(K, Iterable[V])] = {
       val hk = heavyKeys()
       if (hk.nonEmpty){
         val hkeys = lrdd.sparkContext.broadcast(hk)
