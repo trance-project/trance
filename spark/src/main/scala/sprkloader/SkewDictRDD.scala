@@ -17,10 +17,11 @@ object SkewDictRDD {
   val threshold = Config.threshold
   val partitions = lrdd.getNumPartitions
 
+  // need to change this
   def heavyDictKeys(): Set[K] = {
     val hkeys = lrdd.mapPartitions( it =>
       it.foldLeft(HashMap.empty[K, Int].withDefaultValue(0))((acc, c) =>
-        { acc(c._1) += c._2.size; acc } ).filter(_._2 > threshold).iterator, true)
+        { acc(c._1) += c._2.size; acc } ).filter(_._2 > threshold*partitions).iterator, true)
     hkeys.keys.collect.toSet
   }
   
@@ -66,32 +67,14 @@ object SkewDictRDD {
           if (domain.value(key)) Iterator((key, value.map(bagop))) else Iterator()}, true)
   }
 
-  /**
-    * When the domain is too large and/or there are heavy keys in the dictionary
-    * cogroup the values with the partitioning strategy of the dictionary (that is 
-    * assumed to be balanced). 
-    * 1) tag each label in the dictionary with it's partition id - note this could 
-    * be an attribute of the label to avoid having to key
-    * 2) 
-    */
-
-  /**
-    Possibly some extrat trait that would support the inverse K => L, 
-    for now just explicitly state
-    object extract {
-      def apply(l: Record313) = l.lbl.c2__Fc_orders
-      def unapply(k: Record168) = Record311(k)
-    }
-  **/
-
   // LabelType: Label(...)
   // For label in domain
   //  (label.lbl, Lookup(extract_label(label.lbl), dictionary)
   // this will preserve Label -> {} for unshredding
   def lookup[L:ClassTag](rrdd: RDD[L], extract: L => K): RDD[(L, Iterable[V])] = {
-    val domain = rrdd.distinct.mapPartitions(it => it.map(lbl => extract(lbl) -> lbl))
+    val domain = rrdd.mapPartitions(it => it.map(lbl => extract(lbl) -> lbl))
     lrdd.cogroup(domain).mapPartitions(it =>
-      it.flatMap{ case (k, (bag, labels)) => labels.map(l => l -> bag.flatten)}, true)
+      it.flatMap{ case (k, (bag, labels)) => labels.toSet[L].map(l => l -> bag.flatten)}, true)
   } 
 
   // LabelType: InputLabel(...)
@@ -99,15 +82,34 @@ object SkewDictRDD {
   //  (label.lbl, For value in Lookup(extract_label(label.lbl), dictionary) subexpr
   // This is an optimization for simple operations over dictionaries
   def lookup[L:ClassTag,S](rrdd: RDD[L], extract: L => K, domlabel: K => L, subexpr: V => S): RDD[(L, Iterable[S])] = {
-    val domain = rrdd.distinct.mapPartitions(it => it.map(lbl => extract(lbl) -> 1))
+    val domain = rrdd.mapPartitions(it => it.map(lbl => extract(lbl) -> 1))
     lrdd.cogroup(domain).mapPartitions(it => // bag is Iterable[Iterable[V]]
       it.flatMap{ case (k, (bag, _)) => bag.map(b => domlabel(k) -> b.map(subexpr))}, true)
   } 
 
+  def lookupSkew[L:ClassTag](rrdd: RDD[L], extract: L => K): RDD[(L, Iterable[V])] = {
+    val hk = lrdd.heavyDictKeys()
+    if (hk.nonEmpty){
+      // if keys are associated to heavy bags then keep them where they are
+      val hkeys = lrdd.sparkContext.broadcast(hk)
+      val (ldict, ldomain) = lrdd.filterLight(rrdd, hkeys, extract)
+      val (hdict, hdomain) = lrdd.filterHeavy(rrdd, hkeys, extract)
+      val light = ldict.cogroup(ldomain).mapPartitions(it =>
+        it.flatMap{ case (k, (bag, labels)) => labels.toSet[L].map(l => l -> bag.flatten)}, true)
+      val heavyDomain = hdict.sparkContext.broadcast(hdomain).value 
+      val heavy = hdict.mapPartitions(it =>
+        it.flatMap{ case (k,v) => heavyDomain get k match {
+          case Some(ls) => ls.map(l => (l, v))
+          case None => Nil
+       }}, true)
+      light.zipPartitions(heavy, true)((l: Iterator[(L,Iterable[V])], r: Iterator[(L,Iterable[V])]) => l ++ r)
+    }else lrdd.lookup(rrdd, extract)
+  }      
+
   // For label in domain 
   //  (label.lbl, Lookup(extract_label(label.lbl), dictionary)
   // check for skew
-  def lookupSkew[L:ClassTag](rrdd: RDD[L], extract: L => K): RDD[(L, Iterable[V])] = {
+  def lookupSkewTag[L:ClassTag](rrdd: RDD[L], extract: L => K): RDD[(L, Iterable[V])] = {
     val hk = lrdd.heavyDictKeys()
     if (hk.nonEmpty){
       // if keys are associated to heavy bags then keep them where they are
@@ -125,7 +127,7 @@ object SkewDictRDD {
     }else lrdd.lookup(rrdd, extract)
   }      
   
-  def lookupSkew[L: ClassTag,S:ClassTag](rrdd: RDD[L], extract: L => K, domlabel: K => L, subexpr: V => S): RDD[(L, Iterable[S])] = {
+  def lookupSkewTag[L: ClassTag,S:ClassTag](rrdd: RDD[L], extract: L => K, domlabel: K => L, subexpr: V => S): RDD[(L, Iterable[S])] = {
     val hk = lrdd.heavyDictKeys() 
     if (hk.nonEmpty){
       // if keys are associated to heavy bags then keep them where they are
@@ -140,23 +142,20 @@ object SkewDictRDD {
   }
 
   def lookupIterator[L:ClassTag](rrdd: RDD[L], extract: L => K): RDD[(L, V)] = {
-    val domain = rrdd.distinct.mapPartitions(it => it.map(lbl => extract(lbl) -> lbl))
+    val domain = rrdd.mapPartitions(it => it.map(lbl => extract(lbl) -> lbl))
     lrdd.cogroup(domain).flatMap{ pair => // check partitioning
-      for (v <- pair._2._1.iterator.flatten; l <- pair._2._2.iterator) yield (l, v)
+      for (v <- pair._2._1.iterator.flatten; l:L <- pair._2._2.toSet.iterator) yield (l, v)
     }
   }
 
   def lookupIterator[L:ClassTag, S](rrdd: RDD[L], extract: L => K, fkey: V => S): RDD[(S, (L, V))] = {
-    val domain = rrdd.distinct.mapPartitions(it => it.map(lbl => extract(lbl) -> lbl))
+    val domain = rrdd.mapPartitions(it => it.map(lbl => extract(lbl) -> lbl))
     lrdd.cogroup(domain).mapPartitions( it =>
       it.flatMap{ case (_, (bag, labels)) => bag.flatMap( b => 
-        b.flatMap(v => labels.map(l => (fkey(v), (l, v)))))}, true)
-    /**lrdd.cogroup(domain).flatMap{ pair => // check partitioning
-      for (v <- pair._2._1.iterator.flatten; l <- pair._2._2.iterator) yield (fkey(v), (l, v))
-    }**/
+        b.flatMap(v => labels.toSet[L].map(l => (fkey(v), (l, v)))))}, true)
   }
 
-  def lookupSkewIterator[L:ClassTag](rrdd: RDD[L], extract: L => K): RDD[(L, V)] = {
+  def lookupSkewIteratorTag[L:ClassTag](rrdd: RDD[L], extract: L => K): RDD[(L, V)] = {
     val hk = lrdd.heavyDictKeys()
     if (hk.nonEmpty){
       val hkeys = lrdd.sparkContext.broadcast(hk)
@@ -170,7 +169,7 @@ object SkewDictRDD {
     }else lrdd.lookupIterator(rrdd, extract)
   }      
 
-  def lookupSkewIterator[L:ClassTag,S](rrdd: RDD[L], extract: L => K, fkey: V => S): RDD[(S, (L, V))] = {
+  def lookupSkewIteratorTag[L:ClassTag,S](rrdd: RDD[L], extract: L => K, fkey: V => S): RDD[(S, (L, V))] = {
     val hk = lrdd.heavyDictKeys()
     if (hk.nonEmpty){
       val hkeys = lrdd.sparkContext.broadcast(hk)
@@ -191,7 +190,7 @@ object SkewDictRDD {
     }
   }
 
-  def dictLookupSkewIterator[L:ClassTag, S](rrdd: RDD[(K, (L, S))]): RDD[(L, (V, S))] = {
+  def dictLookupSkewIteratorTag[L:ClassTag, S](rrdd: RDD[(K, (L, S))]): RDD[(L, (V, S))] = {
     val hk = lrdd.heavyDictKeys()
     if (hk.nonEmpty){
       val hkeys = lrdd.sparkContext.broadcast(hk)
