@@ -41,154 +41,56 @@ val P__F = 4
 val P__D_1 = tpch.loadPartProj
 P__D_1.cache
 spark.sparkContext.runJob(P__D_1, (iter: Iterator[_]) => {})
-/**val C__F = 1
-val C__D_1 = tpch.loadCustomersProj.rekeyByPartition()
-C__D_1.cache
-spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
-val O__F = 2
-val O__D_1 = tpch.loadOrdersProjBzip.rekeyByPartition()
-O__D_1.cache
-spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})**/
-
-//tpch.triggerGC
 
 	def f = {
  
 var start0 = System.currentTimeMillis()
 
-val (x57, hkeys) = L__D_1.rekeyHeavyByIndex(_.l_partkey)
-val hk = x57.sparkContext.broadcast(hkeys)
-val x58 = P__D_1.duplicate(_.p_partkey, x57.getNumPartitions, hk)
-val x66 = x57.cogroup(x58, new Balancer(x57.getNumPartitions, hk.asInstanceOf[Broadcast[Set[Any]]])).flatMapValues{ pair =>
-    for (v <- pair._1.iterator; w <- pair._2.iterator) yield (v,w)
-}
-println(x66.partitioner)
-x66.count
-x66.collect.foreach(println(_))
-var end0 = System.currentTimeMillis() - start0
-println("DictPartitionExplore,"+sf+","+Config.datapath+","+end0+",idjoin,"+spark.sparkContext.applicationId)
 
-var start1 = System.currentTimeMillis()
+val start1 = System.currentTimeMillis()
 val x67 = L__D_1
 val x68 = P__D_1
 
 val x69 = x67.map(l => (l.l_partkey, l))
-val x70 = x69.joinSkewLeft(x68, (p: PartProj) => p.p_partkey)
-x70.count
-var end1 = System.currentTimeMillis() - start1
-println("DictPartitionExplore,"+sf+","+Config.datapath+","+end1+",join,"+spark.sparkContext.applicationId)
+val x71 = x68.map(p => (p.p_partkey, p))
+val x70 = x69.joinSkew(x71)
+spark.sparkContext.runJob(x70, (iter: Iterator[_]) => {})
+val end1 = System.currentTimeMillis() - start1
+//x70.collect.foreach(println(_))
+println("DictPartitionExplore,"+sf+","+Config.datapath+","+end1+",standard skew,"+spark.sparkContext.applicationId)
 
-/**val x73 = x66.map{ case (x67, x68) => 
-   val x69 = x67.l_orderkey 
-val x70 = x68.p_name 
-val x71 = x67.l_quantity 
-val x72 = Record168(x69, x70, x71) 
-x72 
-} 
-val ljp__D_1 = x73
-val x74 = ljp__D_1
 
-val x80 = C__D_1
-val x86 = x80.map{ case x81 => 
-   val x82 = x81.c_name 
-val x83 = x81.c_custkey 
-val x84 = Record170(x83) 
-val x85 = Record171(x82, x84) 
-x85 
-} 
-val M__D_1 = x86
-val x87 = M__D_1
-val x89 = M__D_1
+val start2 = System.currentTimeMillis()
+val hkeys = x69.sparkContext.broadcast(x69.heavyKeys())
+val end2 = System.currentTimeMillis() - start2
+//println("DictPartitionExplore,"+sf+","+Config.datapath+","+end2+",bc heavy keys,"+spark.sparkContext.applicationId)
 
-val M_ctx2 = x89.createDomain(l => Record172(l.c_orders)).distinct
-val x95 = M_ctx2
+val start3 = System.currentTimeMillis()
+val (ll, lp) = x69.filterLight(x71, hkeys)
+val (hl, hp) = x69.filterHeavy(x71, hkeys)
+val end3 = System.currentTimeMillis() - start3
+//println("DictPartitionExplore,"+sf+","+Config.datapath+","+end3+",split time,"+spark.sparkContext.applicationId)
 
-val x97 = M_ctx2 
-val x103 = O__D_1
-val x109_out2 = x103.map{ case x105 => ({val x108 = x105.o_custkey 
-x108}, x105) }
+val start4 = System.currentTimeMillis()
+val standard = ll.joinDropKey(lp)
+spark.sparkContext.runJob(standard, (iter: Iterator[_]) => {})
+val end4 = System.currentTimeMillis() - start4
+//standard.collect.foreach(println(_))
+println("DictPartitionExplore,"+sf+","+Config.datapath+","+end2+",join light,"+spark.sparkContext.applicationId)
 
-val x109 = x109_out2.joinSkewLeft(x97, (l: Record172) => l.lbl.c__Fc_custkey)
-val x119 = x109.map{ case (x111, x110) =>
-  ({val x112 = (x110) 
-  x112.lbl}, {val x113 = x111.o_orderdate 
-val x114 = x111.o_orderkey 
-val x115 = Record175(x114) 
-val x116 = Record176(x113, x115) 
-x116})
-}.groupByLabel() 
-val x124 = x119
-val M__D_2 = x124
-val x125 = M__D_2
-val x127 = M__D_2 
+val start5 = System.currentTimeMillis()
+val heavyParts = hl.sparkContext.broadcast(hp.collect.toMap).value
+val heavyJoin = 
+  hl.mapPartitions(it => 
+    it.flatMap{ case (k,v) => heavyParts get k match {
+      case Some(p) => List((v, p))
+      case None => Nil
+    }}, true)
+spark.sparkContext.runJob(heavyJoin, (iter: Iterator[_]) => {})
+//heavyJoin.collect.foreach(println(_))
+val end5 = System.currentTimeMillis() - start5
+println("DictPartitionExplore,"+sf+","+Config.datapath+","+end2+",join heavy,"+spark.sparkContext.applicationId)
 
-val x137 = M__D_2.createDomain(v => Record177(v.o_parts)).distinct
-val M_ctx3 = x137
-val x138 = M_ctx3
-
-val x140 = M_ctx3 
-val x142 = ljp__D_1 
-val x148_out2 = x142.map{ case x144 => ({val x147 = x144.l_orderkey 
-x147}, x144) }
-val x148 = x148_out2.joinSkewLeft(x140, (l: Record177) => l.lbl.o__Fo_orderkey)
-
-val x157 = x148.map{ case (x150, x149) =>
-  ({val x151 = (x149) 
-x151.lbl}, {val x152 = x150.p_name 
-val x153 = x150.l_qty 
-val x154 = Record179(x152, x153) 
-x154})
-}.groupByLabel() 
-val M__D_3 = x157
-val x163 = M__D_3
-
-spark.sparkContext.runJob(M__D_3, (iter: Iterator[_]) => {})
-var end0 = System.currentTimeMillis() - start0
-println("DictPartitionExplore,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
-    
-
-var start1 = System.currentTimeMillis()
-val x201 = M__D_2 
-val x205 = x201.flatMap{ 
- case x202 => {val x203 = x202._2 
-x203}.map{ case v2 => (x202._1, v2) }
-}
-         
-val x210 = { val out1 = x205.map{ case (x206, x207) => ({val x209 = x207.o_parts 
-x209}, (x206, x207)) }
-out1.cogroup(M__D_3).flatMap{
- case (_, (left, x208)) => left.map{ case (x206, x207) => ((x206, x207), x208.flatten) }}
-}
-         
-val x217 = x210.map{ case ((x211, x212), x213) => 
-   val x214 = x212.o_orderdate 
-val x215 = Record232(x214, x213) 
-val x216 = (x211, x215) 
-x216 
-} 
-val newM__D_2 = x217
-val x218 = newM__D_2
-//newM__D_2.collect.foreach(println(_))
-val x220 = M__D_1 
-val x224 = { val out1 = x220.map{ case x221 => ({val x223 = x221.c_orders 
-x223}, x221) }
-out1.cogroup(newM__D_2).flatMap{
- case (_, (left, x222)) => left.map{ case x221 => (x221, x222) }}
-}
-         
-val x229 = x224.map{ case (x225, x226) => 
-   val x227 = x225.c_name 
-val x228 = Record233(x227, x226) 
-x228 
-} 
-val newM__D_1 = x229
-val x230 = newM__D_1
-newM__D_1.collect.foreach(println(_))
-spark.sparkContext.runJob(x230, (iter: Iterator[_]) => {})
-var end = System.currentTimeMillis() - start0
-var end1 = System.currentTimeMillis() - start1
-println("DictPartitionExplore,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
-println("DictPartitionExplore,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)**/
     
 }
 f
