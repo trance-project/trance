@@ -165,9 +165,7 @@ val x385 = Query1__D_2c_orders_2o_parts_1.mapPartitions{
 }
 
 val x386 = x385.joinSkew(x384).flatMap{
-  case ((parts), (lbl, date)) => parts.map(p => (lbl, date, p._1) -> p._2)
-}.reduceByKey(_+_).map{
-  case ((lbl, date, pk), tot) => lbl -> (date, pk, tot)
+  case ((parts), (lbl, date)) => parts.map(p => lbl -> (date, p._1, p._2))
 }.groupByLabel()
 val totals__D_1 = x386
 spark.sparkContext.runJob(totals__D_1, (iter: Iterator[_]) => {})
