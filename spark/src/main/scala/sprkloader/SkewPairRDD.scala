@@ -182,8 +182,8 @@ object SkewPairRDD {
             case Some(ls) => ls.map(l => (v, l))
             case None => Nil
           }}, true)
-        light union heavy
-  		}else lrdd.joinDomain(rrdd, extract)
+		light.zipPartitions(heavy, true)((l: Iterator[(V,S)], r: Iterator[(V,S)]) => l ++ r)
+	  }else lrdd.joinDomain(rrdd, extract)
     }
    
     def joinDomainSkewTag[S:ClassTag](rrdd: RDD[S], extract: S => K): RDD[(V, S)] = { 
@@ -213,8 +213,7 @@ object SkewPairRDD {
             case Some(r) => List((v, r))
             case None => Nil
           }}, true)
-        // maybe we don't want to union these yet?
-  		  light union heavy
+		light.zipPartitions(heavy, true)((l: Iterator[(V,S)], r: Iterator[(V,S)]) => l ++ r)
       }else lrdd.joinDropKey(rrdd, fkey)
     }
 
@@ -231,9 +230,8 @@ object SkewPairRDD {
             case Some(r) => List((v, r))
             case None => Nil
           }}, true)
-        // maybe we don't want to union these yet?
-  		  light union heavy
-      }else lrdd.joinDropKey(rrdd)
+		light.zipPartitions(heavy, true)((l: Iterator[(V,S)], r: Iterator[(V,S)]) => l ++ r)
+	  }else lrdd.joinDropKey(rrdd)
     }
 
     def joinSkewTag[S:ClassTag](rrdd: RDD[S], fkey: S => K): RDD[(V, S)] = { 
@@ -308,7 +306,8 @@ object SkewPairRDD {
         val hlrdd = lrdd.filterPartitions((i: (K,V)) => hkeys(i._1))
         val light = llrdd.groupByKey()
         val heavy = hlrdd.groupByLabel()
-        light union heavy
+		light.zipPartitions(heavy, true)(
+			(l: Iterator[(K,Iterable[V])], r: Iterator[(K,Iterable[V])]) => l ++ r)
       }
       else lrdd.groupByKey() 
     }
