@@ -34,7 +34,7 @@ object DictPartitionExplore {
    val tpch = TPCHLoader(spark)
 
 val L__F = 3
-val L__D_1 = tpch.loadLineitemProj
+val L__D_1 = tpch.loadLineitemProjBzip
 L__D_1.cache
 spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
@@ -54,43 +54,64 @@ val x68 = P__D_1
 val x69 = x67.map(l => (l.l_partkey, l))
 val x71 = x68.map(p => (p.p_partkey, p))
 val x70 = x69.joinSkew(x71)
-spark.sparkContext.runJob(x70, (iter: Iterator[_]) => {})
+//spark.sparkContext.runJob(x70, (iter: Iterator[_]) => {})
 val end1 = System.currentTimeMillis() - start1
+println("skew join part")
+println(x70.count)
 //x70.collect.foreach(println(_))
 println("DictPartitionExplore,"+sf+","+Config.datapath+","+end1+",standard skew,"+spark.sparkContext.applicationId)
 
 
 val start2 = System.currentTimeMillis()
 val hkeys = x69.sparkContext.broadcast(x69.heavyKeys())
+println("heavy keys size")
+println(hkeys.value.size)
 val end2 = System.currentTimeMillis() - start2
-//println("DictPartitionExplore,"+sf+","+Config.datapath+","+end2+",bc heavy keys,"+spark.sparkContext.applicationId)
+println("DictPartitionExplore,"+sf+","+Config.datapath+","+end2+",bc heavy keys,"+spark.sparkContext.applicationId)
 
 val start3 = System.currentTimeMillis()
 val (ll, lp) = x69.filterLight(x71, hkeys)
+println("light lineitem size")
+println(ll.count)
+println("light part size")
+println(lp.count)
 val (hl, hp) = x69.filterHeavy(x71, hkeys)
+println("heavy lineitme size")
+println(hl.count)
+println("heavy part size")
+println(hp.count)
 val end3 = System.currentTimeMillis() - start3
-//println("DictPartitionExplore,"+sf+","+Config.datapath+","+end3+",split time,"+spark.sparkContext.applicationId)
+println("DictPartitionExplore,"+sf+","+Config.datapath+","+end3+",split time,"+spark.sparkContext.applicationId)
 
 val start4 = System.currentTimeMillis()
 val standard = ll.joinDropKey(lp)
-spark.sparkContext.runJob(standard, (iter: Iterator[_]) => {})
+//spark.sparkContext.runJob(standard, (iter: Iterator[_]) => {})
+println("join light count")
+println(standard.count)
 val end4 = System.currentTimeMillis() - start4
 //standard.collect.foreach(println(_))
-println("DictPartitionExplore,"+sf+","+Config.datapath+","+end2+",join light,"+spark.sparkContext.applicationId)
+println("DictPartitionExplore,"+sf+","+Config.datapath+","+end4+",join light,"+spark.sparkContext.applicationId)
 
 val start5 = System.currentTimeMillis()
 val heavyParts = hl.sparkContext.broadcast(hp.collect.toMap).value
+println("broadcast parts size")
+println(heavyParts.size)
+val end5 = System.currentTimeMillis() - start5
+println("DictPartitionExplore,"+sf+","+Config.datapath+","+end5+",broadcast part,"+spark.sparkContext.applicationId)
+
+val start6 = System.currentTimeMillis()
 val heavyJoin = 
   hl.mapPartitions(it => 
     it.flatMap{ case (k,v) => heavyParts get k match {
       case Some(p) => List((v, p))
       case None => Nil
     }}, true)
-spark.sparkContext.runJob(heavyJoin, (iter: Iterator[_]) => {})
+val end6 = System.currentTimeMillis() - start6
+println("heavy join count")
+println(heavyJoin.count)
+//spark.sparkContext.runJob(heavyJoin, (iter: Iterator[_]) => {})
 //heavyJoin.collect.foreach(println(_))
-val end5 = System.currentTimeMillis() - start5
-println("DictPartitionExplore,"+sf+","+Config.datapath+","+end2+",join heavy,"+spark.sparkContext.applicationId)
-
+println("DictPartitionExplore,"+sf+","+Config.datapath+","+end6+",join heavy,"+spark.sparkContext.applicationId)
     
 }
 f
