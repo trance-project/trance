@@ -84,7 +84,7 @@ object SkewDictRDD {
   def lookup[L:ClassTag,S](rrdd: RDD[L], extract: L => K, domlabel: K => L, subexpr: V => S): RDD[(L, Iterable[S])] = {
     val domain = rrdd.mapPartitions(it => it.map(lbl => extract(lbl) -> 1))
     lrdd.cogroup(domain).mapPartitions(it => // bag is Iterable[Iterable[V]]
-      it.flatMap{ case (k, (bag, _)) => bag.map(b => domlabel(k) -> b.map(subexpr))}, true)
+      it.flatMap{ case (k, (bag, _)) => bag.map(b => domlabel(k) -> b.map(subexpr))})
   } 
 
   def lookupSkew[L:ClassTag](rrdd: RDD[L], extract: L => K): RDD[(L, Iterable[V])] = {

@@ -15,7 +15,7 @@ object UtilPairRDD {
 
     def filterPartitions(cond: W => Boolean): RDD[W] = {
       lrdd.mapPartitions(it => 
-        it.flatMap{ v => if (cond(v)) List(v) else Nil }, true)
+        it.flatMap{ v => if (cond(v)) List(v) else Nil })
     }
 
     def heavyKeysByPartition[R: ClassTag](threshold: Int = 1000): RDD[((R, Int), Int)] = {

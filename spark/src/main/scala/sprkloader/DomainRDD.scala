@@ -31,7 +31,7 @@ object DomainRDD{
     def createDomain[K: ClassTag](f: L => K): RDD[K] = {
       domain.mapPartitions(it => it.foldLeft(Set.empty[K])(
         (acc, l) => acc + f(l)  
-      ).iterator, true)
+      ).iterator)
     }
 
     def createDomainSet[K: ClassTag](f: L => K): Set[K] = {

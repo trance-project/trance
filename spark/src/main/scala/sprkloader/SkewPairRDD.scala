@@ -5,7 +5,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.broadcast.Broadcast
 import scala.reflect.ClassTag
 import org.apache.spark.Partitioner
-import org.apache.spark.rdd.CoGroupedRDD
+import org.apache.spark.HashPartitioner
 import UtilPairRDD._
 import UtilSkewDistribution._
 import DomainRDD._
@@ -182,8 +182,8 @@ object SkewPairRDD {
             case Some(ls) => ls.map(l => (v, l))
             case None => Nil
           }}, true)
-		light.zipPartitions(heavy, true)((l: Iterator[(V,S)], r: Iterator[(V,S)]) => l ++ r)
-	  }else lrdd.joinDomain(rrdd, extract)
+		    light.zipPartitions(heavy, true)((l: Iterator[(V,S)], r: Iterator[(V,S)]) => l ++ r)
+	    }else lrdd.joinDomain(rrdd, extract)
     }
    
     def joinDomainSkewTag[S:ClassTag](rrdd: RDD[S], extract: S => K): RDD[(V, S)] = { 
