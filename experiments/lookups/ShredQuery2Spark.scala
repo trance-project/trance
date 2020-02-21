@@ -159,15 +159,15 @@ val x383 = Query1__D_2c_orders_1
 val x384 = x383.lookupSkew(x382, (l: Record412) => l.c2__Fc_orders).mapPartitions( it =>
   it.flatMap{ case (lbl, bag) => bag.map(o => (o.o_parts, (lbl, o.o_orderdate))) })
 
-val x385 = Query1__D_2c_orders_2o_parts_1.mapPartitions(it =>
-  it.flatMap{ case (lbl, bag) => bag.map(b => (lbl, b.p_partkey) -> b.l_qty) }
-).reduceByKey(_+_).map{
-  case ((lbl, pk), tot) => lbl -> (pk, tot)
-}
+val x385 = Query1__D_2c_orders_2o_parts_1.mapPartitions(
+    it => it.map{ case (lbl, bag) => (lbl, bag.foldLeft(HashMap.empty[Int, Double].withDefaultValue(0))(
+	    (acc, p) => {acc(p.p_partkey) += p.l_qty; acc})) }, true)
 
 // another reduce by key here?
-val x386 = x384.joinSkew(x385).map{
-  case ((lbl, date), (pk, tot)) => lbl -> (date, pk, tot)
+val x386 = x385.joinSkew(x384).flatMap{
+  case (parts, (lbl, date)) => parts.map{ case (pk, tot) => (lbl, date, pk) -> tot }
+}.reduceByKey(_+_).map{
+  case ((lbl, date, pk), tot) => lbl -> (date, pk, tot)
 }.groupByLabel()
 val totals__D_1 = x386
 spark.sparkContext.runJob(totals__D_1, (iter: Iterator[_]) => {})
@@ -175,26 +175,21 @@ var end0 = System.currentTimeMillis() - start0
 println("ShredQuery2Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
 var start1 = System.currentTimeMillis()
-/**val x425 = totals__D_1.flatMap{ 
-  case (lbl, bag) => bag.map{ case (date, pk, tot) => (lbl, date, pk) -> tot }
-}.reduceByKey(_+_).map{
-  case ((lbl, date, pk), tot) => lbl -> (date, pk, tot)
-}.groupByLabel()
-val x426 = M__D_1.map(c => c.totals -> c.c_name).cogroup(x425).flatMap{
+val x426 = M__D_1.map(c => c.totals -> c.c_name).cogroup(totals__D_1).flatMap{
   case (_, (left, x428)) => left.map( x427 => (x427, x428.flatten))
 }
 val newM__D_1 = x426
 val x436 = newM__D_1
 //newM__D_1.collect.foreach(println(_))
-spark.sparkContext.runJob(newM__D_1, (iter: Iterator[_]) => {})**/
+spark.sparkContext.runJob(newM__D_1, (iter: Iterator[_]) => {})
 var end = System.currentTimeMillis() - start0
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery2Spark,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
 println("ShredQuery2Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 
-/**newM__D_1.flatMap{ case (cname, totals) =>
+newM__D_1.flatMap{ case (cname, totals) =>
   if (totals.isEmpty) List((cname, null, null, null))
-  else totals.map(t => (cname, t._1, t._2, t._3)) }.sortBy(_._1).collect.foreach(println(_))**/
+  else totals.map(t => (cname, t._1, t._2, t._3)) }.sortBy(_._1).collect.foreach(println(_))
 
 }
 f
