@@ -21,7 +21,7 @@ object SkewDictRDD {
   def heavyDictKeys(): Set[K] = {
     val hkeys = lrdd.mapPartitions( it =>
       it.foldLeft(HashMap.empty[K, Int].withDefaultValue(0))((acc, c) =>
-        { acc(c._1) += c._2.size; acc } ).filter(_._2 > threshold*partitions).iterator, true)
+        { acc(c._1) += c._2.size; acc } ).filter(_._2 > threshold).iterator, true)
     hkeys.keys.collect.toSet
   }
   
