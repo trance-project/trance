@@ -38,6 +38,39 @@ object SkewDictRDD {
      }
   }
 
+  def splitDict(): (RDD[(K, Iterable[V])], RDD[(K, Iterable[V])], Set[K])  = {
+      val hkeys = lrdd.heavyDictKeys()
+      if (hkeys.nonEmpty){
+        val heavyKeys = lrdd.sparkContext.broadcast(hkeys).value
+        val light = lrdd.filterPartitions((i: (K,Iterable[V])) => !heavyKeys(i._1))
+        val heavy = lrdd.filterPartitions((i: (K,Iterable[V])) => heavyKeys(i._1))
+        (light, heavy, hkeys)
+      }else (lrdd, lrdd.sparkContext.emptyRDD[(K,Iterable[V])], Set.empty[K])
+    }
+
+  def lookupSplit[L:ClassTag](heavy: RDD[(K, Iterable[V])], domain: RDD[L], extract: L => K, hkeys: Set[K]):
+      (RDD[(L, Iterable[V])], RDD[(L, Iterable[V])]) = {
+
+       if (hkeys.nonEmpty){
+         
+         val domainLight = domain.extractLight(extract, hkeys)
+         val ldict = lrdd.cogroup(domainLight).mapPartitions(it =>
+            it.flatMap{ case (k, (bag, labels)) => 
+              val fbag = bag.flatten
+              if (fbag.nonEmpty) labels.toSet[L].map(l => l -> bag.flatten)
+              else Nil}, true) 
+
+          val hdomain = domain.extractDistinctHeavyMap(extract, hkeys)
+          val heavyDomain = heavy.sparkContext.broadcast(hdomain).value 
+          val hdict = heavy.mapPartitions(it =>
+            it.flatMap{ case (k,v) => heavyDomain get k match {
+              case Some(ls) => ls.map(l => (l, v))
+              case None => Nil
+            }}, true)
+         (ldict, hdict)
+       }else
+         (lrdd.lookup(domain, extract), lrdd.sparkContext.emptyRDD[(L, Iterable[V])])
+    }
   
   /**
     * 1) Build up a domain of labels from the parent dictionary 
@@ -67,6 +100,11 @@ object SkewDictRDD {
           if (domain.value(key)) Iterator((key, value.map(bagop))) else Iterator()}, true)
   }
 
+  def lookup[L:ClassTag](rrdd: RDD[(K, L)]): RDD[(L, Iterable[V])] = {
+    lrdd.cogroup(rrdd).mapPartitions(it =>
+      it.flatMap{ case (k, (bag, labels)) => labels.toSet[L].map(l => l -> bag.flatten)}, true)
+  } 
+
   // LabelType: Label(...)
   // For label in domain
   //  (label.lbl, Lookup(extract_label(label.lbl), dictionary)
@@ -86,6 +124,8 @@ object SkewDictRDD {
     lrdd.cogroup(domain).mapPartitions(it => // bag is Iterable[Iterable[V]]
       it.flatMap{ case (k, (bag, _)) => bag.map(b => domlabel(k) -> b.map(subexpr))})
   } 
+
+
 
   def lookupSkew[L:ClassTag](rrdd: RDD[L], extract: L => K): RDD[(L, Iterable[V])] = {
     val hk = lrdd.heavyDictKeys()

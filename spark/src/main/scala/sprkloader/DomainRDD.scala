@@ -11,7 +11,10 @@ import UtilPairRDD._
 object DomainRDD{
 
   implicit class DomainFunctions[L: ClassTag](domain: RDD[L]) extends Serializable {
-    
+
+    // top level 
+    def splitDict(): (RDD[L], RDD[L])  = (domain, domain.sparkContext.emptyRDD[L])
+
     /**
       Gets a single domain partition, not using currently since local filtering 
       could result in data loss 
@@ -21,6 +24,11 @@ object DomainRDD{
       part.collect    
     }
   
+    def extractLight[K:ClassTag](extract: L => K, hkeys: Set[K]): RDD[(K, L)] = 
+      domain.flatMap( v => {
+        val extracted = extract(v)
+        if (!hkeys(extracted)) List((extracted, v)) else Nil})
+
     def extractDistinct[K: ClassTag](f: L => K): Set[K] = {
       domain.mapPartitions(it => it.foldLeft(Set.empty[K])(
         (acc, l) => acc + f(l)  

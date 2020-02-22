@@ -13,9 +13,20 @@ object UtilPairRDD {
 
     val threshold = Config.threshold
 
+    def unionPartitions(rrdd: RDD[W]): RDD[W] =
+      if (rrdd.isEmpty) lrdd
+      else if (lrdd.isEmpty) { /**println("WARNING: no light keys")**/; rrdd }
+      else lrdd.zipPartitions(rrdd, true)((l: Iterator[W], r: Iterator[W]) => l ++ r)
+
+    def unionFilterPartitions(rrdd: RDD[W], cond: W => Boolean): RDD[W] = 
+      if (rrdd.isEmpty) lrdd.filterPartitions(cond)
+      else if (lrdd.isEmpty) { /**println("WARNING: no light keys")**/; rrdd.filterPartitions(cond) }
+      else lrdd.zipPartitions(rrdd, true)((l: Iterator[W], r: Iterator[W]) => 
+          l.filter(cond) ++ r.filter(cond))
+
     def filterPartitions(cond: W => Boolean): RDD[W] = {
       lrdd.mapPartitions(it => 
-        it.flatMap{ v => if (cond(v)) List(v) else Nil })
+        it.flatMap{ v => if (cond(v)) List(v) else Nil }, true)
     }
 
     def heavyKeysByPartition[R: ClassTag](threshold: Int = 1000): RDD[((R, Int), Int)] = {
