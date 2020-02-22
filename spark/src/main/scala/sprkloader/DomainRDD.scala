@@ -70,10 +70,11 @@ object DomainRDD{
     }
 
     def extractDistinctHeavyMap[K: ClassTag](f: L => K, hkeys: Set[K]): Map[K, Set[L]] = { 
+      val accum1 = (acc: Set[L], l: L) => acc + l
+      val accum2 = (acc1: Set[L], acc2: Set[L]) => acc1 ++ acc2
       domain.mapPartitions(it => it.flatMap( lbl => {
         val key = f(lbl); if (hkeys(key)) Iterator((key, lbl)) else Iterator()
-      }), true).collect.foldLeft(HashMap.empty[K, Set[L]].withDefaultValue(Set.empty[L]))((acc, c) =>
-        { acc(c._1) = acc(c._1) + c._2; acc }).toMap
+      }), true).aggregateByKey(Set.empty[L])(accum1, accum2).collect.toMap
     }
 
     // map(x => (x, null)).reduceByKey((x, y) => x, numPartitions).map(_._1) (distinct)
