@@ -14,7 +14,8 @@ object UtilPairRDD {
     val threshold = Config.threshold
 
     def unionPartitions(rrdd: RDD[W]): RDD[W] =
-      if (rrdd.isEmpty) lrdd
+      if (rrdd.getNumPartitions == 0) lrdd
+      // this should only happen in testing
       else if (lrdd.isEmpty) { 
         //println("WARNING: no light keys")
         rrdd 
@@ -23,7 +24,8 @@ object UtilPairRDD {
       //lrdd union rrdd
 
     def unionFilterPartitions(rrdd: RDD[W], cond: W => Boolean): RDD[W] = 
-      if (rrdd.isEmpty) lrdd.filterPartitions(cond)
+      if (rrdd.getNumPartitions == 0) lrdd.filterPartitions(cond)
+      // this should only happen in testing
       else if (lrdd.isEmpty) { 
         //println("WARNING: no light keys")
         rrdd.filterPartitions(cond) 

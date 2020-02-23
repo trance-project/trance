@@ -65,7 +65,7 @@ object SkewPairRDD {
           }}, true)
         (lightJoin, heavyJoin)
       }else {
-        val rrdd = if (rheavy.isEmpty) rlight else rlight.unionPartitions(rheavy)
+        val rrdd = rlight.unionPartitions(rheavy)
         (lrdd.joinDropKey(rrdd), lrdd.sparkContext.emptyRDD[(V,S)])
       }
     }
