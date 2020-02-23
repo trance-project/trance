@@ -70,6 +70,23 @@ object SkewPairRDD {
       }else (unioned.joinDropKey(rrdd, new HashPartitioner(partitions)), lrdd.sparkContext.emptyRDD[(V,S)], Set.empty[K])
     }
 
+    def joinSplit[S:ClassTag](heavy: RDD[(K,V)], rrdd: RDD[(K,S)], hkeys: Set[K]): (RDD[(V, S)], RDD[(V,S)]) = {
+      if (hkeys.nonEmpty){
+        val rlight = rrdd.filterPartitions((i: (K, S)) => !hkeys(i._1))
+        val llight = lrdd.filterPartitions((i: (K, V)) => !hkeys(i._1))
+        val light = llight.joinDropKey(rlight)
+
+        val rheavy = rrdd.filterPartitions((i: (K, S)) => hkeys(i._1)).groupByKey().collect.toMap
+        val heavyRights = heavy.sparkContext.broadcast(rheavy).value
+        val lheavy = heavy.mapPartitions(it =>
+          it.flatMap{ case (k,v) => heavyRights get k match {
+            case Some(ls) => ls.map(s => (v,s))
+            case None => Nil
+          }}, true)
+        (light, lheavy)
+      }else (lrdd.joinDropKey(rrdd), lrdd.sparkContext.emptyRDD[(V,S)])
+    }
+
     def joinSplit[S:ClassTag](heavy: RDD[(K, V)], rlight: RDD[(K, S)], rheavy: RDD[(K, S)], hkeys: Set[K]):
       (RDD[(V, S)], RDD[(V, S)]) = {
       if (hkeys.nonEmpty){
