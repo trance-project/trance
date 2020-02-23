@@ -35,7 +35,7 @@ object SkewPairRDD {
         val hkeys = lrdd.sparkContext.broadcast(hk).value
         val rlight = rrdd.filterPartitions((i: (K, S)) => !hkeys(i._1))
         val llight = lrdd.filterPartitions((i: (K, V)) => !hkeys(i._1))
-        val light = llight.joinDropKey(rlight)
+        val light = llight.joinDropKey(rlight, new HashPartitioner(partitions))
 
         val rheavy = rrdd.filterPartitions((i: (K, S)) => hkeys(i._1)).groupByKey().collect.toMap
         val heavyRights = lrdd.sparkContext.broadcast(rheavy).value
@@ -46,17 +46,14 @@ object SkewPairRDD {
             case None => Nil
           }}, true)
         (light, heavy, hkeys)
-      }else (lrdd.joinDropKey(rrdd), lrdd.sparkContext.emptyRDD[(V,S)], Set.empty[K])
+      }else (lrdd.joinDropKey(rrdd, new HashPartitioner(partitions)), lrdd.sparkContext.emptyRDD[(V,S)], Set.empty[K])
     }
 
     def joinSplit[S:ClassTag](heavy: RDD[(K, V)], rlight: RDD[(K, S)], rheavy: RDD[(K, S)], hkeys: Set[K]):
       (RDD[(V, S)], RDD[(V, S)]) = {
       if (hkeys.nonEmpty){
         val rfilterLight = rlight.unionFilterPartitions(rheavy, (i: (K, S)) => !hkeys(i._1))
-        val lightJoin = lrdd.partitioner match {
-		  case Some(p) => joinDropKey(rfilterLight)
-		  case _ => joinDropKey(rfilterLight, new HashPartitioner(partitions))
-		}
+        val lightJoin = joinDropKey(rfilterLight, new HashPartitioner(partitions))
 
         val rfilterHeavy = rlight.unionFilterPartitions(rheavy, (i: (K, S)) => 
           hkeys(i._1)).groupByKey().collect.toMap
@@ -69,11 +66,8 @@ object SkewPairRDD {
         (lightJoin, heavyJoin)
       }else {
         val rrdd = rlight.unionPartitions(rheavy)
-		lrdd.partitioner match {
-		  case Some(p) => (lrdd.joinDropKey(rrdd), lrdd.sparkContext.emptyRDD[(V,S)])
-      	  case _ => (lrdd.joinDropKey(rrdd, new HashPartitioner(partitions)), lrdd.sparkContext.emptyRDD[(V,S)])
-	  	}
-	  }
+		    (lrdd.joinDropKey(rrdd, new HashPartitioner(partitions)), lrdd.sparkContext.emptyRDD[(V,S)])
+	    }
     }
     
   // for domains

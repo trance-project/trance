@@ -163,14 +163,14 @@ query1__D_1_H.cache
 spark.sparkContext.runJob(query1__D_1_L, (iter: Iterator[_]) => {})
 spark.sparkContext.runJob(query1__D_1_H, (iter: Iterator[_]) => {})
 
-val query1__D_2c_orders_1_L = c_orders__D_1_L
+val query1__D_2c_orders_1_L = c_orders__D_1_L.map(l => l)
 val query1__D_2c_orders_1_H = c_orders__D_1_H
 query1__D_2c_orders_1_L.cache
 query1__D_2c_orders_1_H.cache
 spark.sparkContext.runJob(query1__D_2c_orders_1_L, (iter: Iterator[_]) => {})
 spark.sparkContext.runJob(query1__D_2c_orders_1_H, (iter: Iterator[_]) => {})
 
-val query1__D_2c_orders_2o_parts_1_L = o_parts__D_1_L
+val query1__D_2c_orders_2o_parts_1_L = o_parts__D_1_L.map(l => l)
 val query1__D_2c_orders_2o_parts_1_H = o_parts__D_1_H
 query1__D_2c_orders_2o_parts_1_L.cache
 query1__D_2c_orders_2o_parts_1_H.cache

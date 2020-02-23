@@ -5,6 +5,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.broadcast.Broadcast
 import scala.reflect.ClassTag
 import org.apache.spark.Partitioner
+import org.apache.spark.HashPartitioner
 import SkewPairRDD._
 import UtilPairRDD._
 import DomainRDD._
@@ -82,7 +83,7 @@ object SkewDictRDD {
        if (hkeys.nonEmpty){
          
          val domainLight = domain.extractLight(extract, hkeys)
-         val ldict = lrdd.cogroup(domainLight).mapPartitions(it =>
+         val ldict = lrdd.cogroup(domainLight, new HashPartitioner(partitions)).mapPartitions(it =>
             it.flatMap{ case (k, (bag, labels)) => 
               val fbag = bag.flatten
               if (fbag.nonEmpty) labels.toSet[L].map(l => l -> bag.flatten)
@@ -142,7 +143,7 @@ object SkewDictRDD {
   // this will preserve Label -> {} for unshredding
   def lookup[L:ClassTag](rrdd: RDD[L], extract: L => K): RDD[(L, Iterable[V])] = {
     val domain = rrdd.mapPartitions(it => it.map(lbl => extract(lbl) -> lbl))
-    lrdd.cogroup(domain).mapPartitions(it =>
+    lrdd.cogroup(domain, new HashPartitioner(partitions)).mapPartitions(it =>
       it.flatMap{ case (k, (bag, labels)) => 
 	  	val fbag = bag.flatten
 		if (fbag.nonEmpty) labels.toSet[L].map(l => l -> bag.flatten)
