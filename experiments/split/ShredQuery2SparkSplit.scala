@@ -33,15 +33,15 @@ case class Record414(lbl: Int)
 case class Record416(orderdate: String, partkey: Int)
 case class Record438(orderdate: String, partkey: Int, _2: Double)
 case class Record439(c_name: String, totals: Iterable[Record438])
-object ShredQuery2SparkSplitOpt {
+object ShredQuery2SparkSplit {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
-   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery2SparkSplitOpt"+sf)
+   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery2SparkSplit"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
 
 val L__F = 3
-val L__D_1 = tpch.loadLineitemProj//Bzip
+val L__D_1 = tpch.loadLineitemProjBzip
 L__D_1.cache
 spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
@@ -53,7 +53,7 @@ val C__D_1 = tpch.loadCustomersProj
 C__D_1.cache
 spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
 val O__F = 2
-val O__D_1 = tpch.loadOrdersProj//Bzip
+val O__D_1 = tpch.loadOrdersProjBzip
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
@@ -237,7 +237,7 @@ val totals__D_1_H = x391_H
 spark.sparkContext.runJob(totals__D_1_L, (iter: Iterator[_]) => {})
 spark.sparkContext.runJob(totals__D_1_H, (iter: Iterator[_]) => {})
 var end0 = System.currentTimeMillis() - start0
-println("ShredQuery2SparkSplitOpt,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
+println("ShredQuery2SparkSplit,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
 var start1 = System.currentTimeMillis()
 /**val totals__D_1 = totals__D_1_L.unionPartitions(totals__D_1_H)
@@ -251,8 +251,8 @@ val x436 = newM__D_1
 spark.sparkContext.runJob(newM__D_1, (iter: Iterator[_]) => {})**/
 var end = System.currentTimeMillis() - start0
 var end1 = System.currentTimeMillis() - start1
-println("ShredQuery2SparkSplitOpt,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
-println("ShredQuery2SparkSplitOpt,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
+println("ShredQuery2SparkSplit,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
+println("ShredQuery2SparkSplit,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 
 /**newM__D_1.flatMap{ case (cname, totals) =>
   if (totals.isEmpty) List((cname, null, null, null))
