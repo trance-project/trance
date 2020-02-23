@@ -53,7 +53,7 @@ object SkewPairRDD {
       (RDD[(V, S)], RDD[(V, S)]) = {
       if (hkeys.nonEmpty){
         val rfilterLight = rlight.unionFilterPartitions(rheavy, (i: (K, S)) => !hkeys(i._1))
-        val lightJoin = joinDropKey(rfilterLight, new HashPartitioner(partitions))
+        val lightJoin = joinDropKey(rfilterLight)
 
         val rfilterHeavy = rlight.unionFilterPartitions(rheavy, (i: (K, S)) => 
           hkeys(i._1)).groupByKey().collect.toMap
@@ -66,7 +66,7 @@ object SkewPairRDD {
         (lightJoin, heavyJoin)
       }else {
         val rrdd = rlight.unionPartitions(rheavy)
-		    (lrdd.joinDropKey(rrdd, new HashPartitioner(partitions)), lrdd.sparkContext.emptyRDD[(V,S)])
+		    (lrdd.joinDropKey(rrdd), lrdd.sparkContext.emptyRDD[(V,S)])
 	    }
     }
     
