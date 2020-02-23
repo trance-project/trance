@@ -81,8 +81,5 @@ object Query3SparkManual {
     var end0 = System.currentTimeMillis() - start0
 	  println("Query3SparkManual"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
   
-    /**result.flatMap(r => if (r.totals.isEmpty) List((r.c_name, null, null, null))
-      else r.totals.map(o => (r.c_name, o.orderdate, o.partkey, o._2))
-    ).sortBy(_._1).collect.foreach(println(_))**/
   }
 }

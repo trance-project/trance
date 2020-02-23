@@ -89,5 +89,6 @@ object Query2SparkManual {
     /**result.flatMap(r => if (r.totals.isEmpty) List((r.c_name, null, null, null))
       else r.totals.map(o => (r.c_name, o.orderdate, o.partkey, o._2))
     ).sortBy(_._1).collect.foreach(println(_))**/
+
   }
 }
