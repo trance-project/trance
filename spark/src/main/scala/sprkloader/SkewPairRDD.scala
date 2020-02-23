@@ -111,7 +111,17 @@ object SkewPairRDD {
         (lset.groupByKey(new HashPartitioner(partitions)), hset.groupByLabel(), hkeys) 
       }else (unioned.groupByKey(new HashPartitioner(partitions)), lrdd.sparkContext.emptyRDD[(K,Iterable[V])], Set.empty[K])
     }
-    
+ 
+    def groupBySplit(): (RDD[(K, Iterable[V])], RDD[(K, Iterable[V])], Set[K]) = {
+      val hkeys = lrdd.heavyKeys()
+      if (hkeys.nonEmpty){
+        val heavyKeys = lrdd.sparkContext.broadcast(hkeys).value
+        val lset = lrdd.filterPartitions((i: (K,V)) => !hkeys(i._1))
+        val hset = lrdd.filterPartitions((i: (K,V)) => hkeys(i._1))
+        (lset.groupByKey(new HashPartitioner(partitions)), hset.groupByLabel(), hkeys) 
+      }else (lrdd.groupByKey(new HashPartitioner(partitions)), lrdd.sparkContext.emptyRDD[(K,Iterable[V])], Set.empty[K])
+    }
+   
     // known heavy keys split by light and heavy
     def groupBySplit(heavy: RDD[(K,V)], hkeys: Set[K]): (RDD[(K, Iterable[V])], RDD[(K, Iterable[V])]) = 
       lrdd.partitioner match {
