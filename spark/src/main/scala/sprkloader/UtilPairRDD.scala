@@ -15,21 +15,11 @@ object UtilPairRDD {
 
     def unionPartitions(rrdd: RDD[W]): RDD[W] =
       if (rrdd.getNumPartitions == 0) lrdd
-      // this should only happen in testing
-      else if (lrdd.isEmpty) { 
-        //println("WARNING: no light keys")
-        rrdd 
-      }
       else lrdd.zipPartitions(rrdd, true)((l: Iterator[W], r: Iterator[W]) => l ++ r)
       //lrdd union rrdd
 
     def unionFilterPartitions(rrdd: RDD[W], cond: W => Boolean): RDD[W] = 
       if (rrdd.getNumPartitions == 0) lrdd.filterPartitions(cond)
-      // this should only happen in testing
-      else if (lrdd.isEmpty) { 
-        //println("WARNING: no light keys")
-        rrdd.filterPartitions(cond) 
-      }
       else lrdd.zipPartitions(rrdd, true)((l: Iterator[W], r: Iterator[W]) => 
           l.filter(cond) ++ r.filter(cond))
       //lrdd.filterPartitions(cond) union rrdd.filterPartitions(cond)
