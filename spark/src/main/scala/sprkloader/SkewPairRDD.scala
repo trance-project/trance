@@ -80,8 +80,9 @@ object SkewPairRDD {
       val domainLight = domain.extractLight(extract, hkeys)
       val light = lrdd.filterPartitions((i: (K,V)) => !hkeys(i._1))
       // fix this to not lose partitioning info
-      val ldict = lrdd.cogroup(domainLight, new HashPartitioner(partitions)).flatMap{ pair =>
-        for (v <- pair._2._1.iterator; l:L <- pair._2._2.toSet.iterator) yield (v, l) }
+      val ldict = lrdd.cogroup(domainLight, new HashPartitioner(partitions)).mapPartitions(it =>
+        it.flatMap{ case (lbl, (vs, ls)) =>
+          for (v <- vs.iterator; l:L <- ls.toSet.iterator) yield (v, l) }, true)
 
       val hdomain = domain.extractDistinctHeavyMap(extract, hkeys)
       val heavy = lrdd.filterPartitions((i: (K,V)) => hkeys(i._1))
@@ -112,13 +113,11 @@ object SkewPairRDD {
     }
     
     // known heavy keys split by light and heavy
-    def groupBySplit(heavy: RDD[(K,V)], hkeys: Set[K]): (RDD[(K, Iterable[V])], RDD[(K, Iterable[V])]) = lrdd.partitioner match {
-	  case Some(p) => 
-	  	println("known partitioner!")
-		(lrdd.groupByKey(), heavy.groupByLabel())
-	  case _ => 
-	  	(lrdd.groupByKey(new HashPartitioner(partitions)), heavy.groupByLabel()) 
-    }
+    def groupBySplit(heavy: RDD[(K,V)], hkeys: Set[K]): (RDD[(K, Iterable[V])], RDD[(K, Iterable[V])]) = 
+      lrdd.partitioner match {
+	      case Some(p) => (lrdd.groupByKey(), heavy.groupByLabel())
+	      case _ => (lrdd.groupByKey(new HashPartitioner(partitions)), heavy.groupByLabel()) 
+      }
 
     def rekeyBySet[S](rrdd: RDD[(K, S)], keyset: Broadcast[Set[K]]): (RDD[((K, Int), V)], RDD[((K, Int), S)]) = {
       val rekey = 
@@ -268,8 +267,9 @@ object SkewPairRDD {
 
     def joinDomain[S:ClassTag](rrdd: RDD[S], extract: S => K): RDD[(V, S)] = {
       val domain = rrdd.map(l => (extract(l), l))
-      lrdd.cogroup(domain, new HashPartitioner(1000)).flatMap{ pair =>
-        for (v <- pair._2._1.iterator; l:S <- pair._2._2.toSet.iterator) yield (v, l) }
+      lrdd.cogroup(domain, new HashPartitioner(partitions)).mapPartitions(it =>
+        it.flatMap{ case (lbl, (vs, ss)) =>
+          for (v <- vs.iterator; s:S <- ss.toSet.iterator) yield (v, s) }, true)
     }
  
     def joinDomainSkew[S:ClassTag](rrdd: RDD[S], extract: S => K): RDD[(V, S)] = { 
