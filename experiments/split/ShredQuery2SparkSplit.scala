@@ -9,7 +9,6 @@ import sprkloader.SkewDictRDD._
 import sprkloader.DomainRDD._
 import sprkloader.UtilPairRDD._
 import scala.collection.mutable.HashMap
-import org.apache.spark.HashPartitioner
 case class Record323(lbl: Unit)
 case class Record324(l_orderkey: Int, l_quantity: Double, l_partkey: Int)
 case class Record325(p_name: String, p_partkey: Int)
@@ -36,7 +35,7 @@ object ShredQuery2SparkSplit {
    val tpch = TPCHLoader(spark)
 
 val L__F = 3
-val L__D_1 = tpch.loadLineitemProj//Bzip
+val L__D_1 = tpch.loadLineitemProjBzip
 L__D_1.cache
 spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
@@ -48,7 +47,7 @@ val C__D_1 = tpch.loadCustomersProj
 C__D_1.cache
 spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
 val O__F = 2
-val O__D_1 = tpch.loadOrdersProj//Bzip
+val O__D_1 = tpch.loadOrdersProjBzip
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
@@ -134,7 +133,7 @@ val x303_H = x236_H.mapPartitions( it =>
 x305}, x302) })
 
 // need a case for this
-val (x304_L, x304_H, hoks) = (x303_L union x303_H).joinSplit(x285_L union x285_H, (l: Record334) => l.lbl.o__Fo_orderkey)
+val (x304_L, x304_H, hoks) = (x303_L.unionPartitions(x303_H)).joinSplit(x285_L.unionPartitions(x285_H), (l: Record334) => l.lbl.o__Fo_orderkey)
 val hkeys2 = hoks.map(l => Record332(l))
 
 val x315_L = x304_L.mapPartitions(it =>
@@ -144,7 +143,7 @@ x309.lbl}, {val x310 = x308.p_partkey
 val x311 = x308.l_qty 
 val x312 = Record336(x310, x311) 
 x312})
-})
+}, true)
 
 val x315_H = x304_H.mapPartitions(it =>
   it.map{ case (x308, x307) =>
@@ -153,7 +152,7 @@ x309.lbl}, {val x310 = x308.p_partkey
 val x311 = x308.l_qty
 val x312 = Record336(x310, x311)
 x312})
-})
+}, true)
 
 val (o_parts__D_1_L, o_parts__D_1_H) = x315_L.groupBySplit(x315_H, hkeys2)
 
@@ -240,7 +239,7 @@ var end0 = System.currentTimeMillis() - start0
 println("ShredQuery2SparkSplit,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
 var start1 = System.currentTimeMillis()
-val totals__D_1 = totals__D_1_L.unionPartitions(totals__D_1_H)
+/**val totals__D_1 = totals__D_1_L.unionPartitions(totals__D_1_H)
 //totals__D_1.collect.foreach(println(_))
 val x426 = m__D_1.map(c => c.totals -> c.c_name).cogroup(totals__D_1).flatMap{
   case (_, (left, x428)) => left.map( x427 => (x427, x428.flatten))
@@ -248,15 +247,15 @@ val x426 = m__D_1.map(c => c.totals -> c.c_name).cogroup(totals__D_1).flatMap{
 val newM__D_1 = x426
 val x436 = newM__D_1
 //newM__D_1.collect.foreach(println(_))
-spark.sparkContext.runJob(newM__D_1, (iter: Iterator[_]) => {})
+spark.sparkContext.runJob(newM__D_1, (iter: Iterator[_]) => {})**/
 var end = System.currentTimeMillis() - start0
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery2SparkSplit,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
 println("ShredQuery2SparkSplit,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 
-newM__D_1.flatMap{ case (cname, totals) =>
+/**newM__D_1.flatMap{ case (cname, totals) =>
   if (totals.isEmpty) List((cname, null, null, null))
-  else totals.map(t => (cname, t._1, t._2, t._3)) }.sortBy(_._1).collect.foreach(println(_))
+  else totals.map(t => (cname, t._1, t._2, t._3)) }.sortBy(_._1).collect.foreach(println(_))**/
 
 }
 f

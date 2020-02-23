@@ -53,7 +53,10 @@ object SkewPairRDD {
       (RDD[(V, S)], RDD[(V, S)]) = {
       if (hkeys.nonEmpty){
         val rfilterLight = rlight.unionFilterPartitions(rheavy, (i: (K, S)) => !hkeys(i._1))
-        val lightJoin = lrdd.joinDropKey(rfilterLight)
+        val lightJoin = lrdd.partitioner match {
+		  case Some(p) => joinDropKey(rfilterLight)
+		  case _ => joinDropKey(rfilterLight, new HashPartitioner(partitions))
+		}
 
         val rfilterHeavy = rlight.unionFilterPartitions(rheavy, (i: (K, S)) => 
           hkeys(i._1)).groupByKey().collect.toMap
@@ -66,8 +69,11 @@ object SkewPairRDD {
         (lightJoin, heavyJoin)
       }else {
         val rrdd = rlight.unionPartitions(rheavy)
-        (lrdd.joinDropKey(rrdd), lrdd.sparkContext.emptyRDD[(V,S)])
-      }
+		lrdd.partitioner match {
+		  case Some(p) => (lrdd.joinDropKey(rrdd), lrdd.sparkContext.emptyRDD[(V,S)])
+      	  case _ => (lrdd.joinDropKey(rrdd, new HashPartitioner(partitions)), lrdd.sparkContext.emptyRDD[(V,S)])
+	  	}
+	  }
     }
     
   // for domains
@@ -213,13 +219,15 @@ object SkewPairRDD {
     }
 
     def joinDropKey[S:ClassTag](rrdd: RDD[S], fkey: S => K): RDD[(V, S)] = {
-      lrdd.cogroup(rrdd.map(v => (fkey(v),v))).flatMap{ pair =>
-        for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)}
+      lrdd.cogroup(rrdd.map(v => (fkey(v),v))).mapPartitions( it =>
+	  	it.flatMap{ case (key, (vs, ss)) =>
+          for (v <- vs.iterator; s <- ss.iterator) yield (v, s)}, true)
     }
 
     def joinDropKey[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = {
-      lrdd.cogroup(rrdd).flatMap{ pair =>
-        for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)}
+      lrdd.cogroup(rrdd).mapPartitions( it =>
+	  	it.flatMap{ case (key, (vs, ss)) =>
+          for (v <- vs.iterator; s <- ss.iterator) yield (v, s)}, true)
     }
 
     def outerJoinDropKey[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, Option[S])] = {
@@ -238,13 +246,15 @@ object SkewPairRDD {
     }
 
     def joinDropKey[S:ClassTag](rrdd: RDD[S], fkey: S => K, partitioner: Partitioner): RDD[(V, S)] = {
-      lrdd.cogroup(rrdd.map(v => (fkey(v),v)), partitioner).flatMap{ pair =>
-        for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)}
+      lrdd.cogroup(rrdd.map(v => (fkey(v),v)), partitioner).mapPartitions( it =>
+	          it.flatMap{ case (key, (vs, ss)) =>
+			            for (v <- vs.iterator; s <- ss.iterator) yield (v, s)}, true)
     }
 
     def joinDropKey[S:ClassTag](rrdd: RDD[(K, S)], partitioner: Partitioner): RDD[(V, S)] = {
-      lrdd.cogroup(rrdd, partitioner).flatMap{ pair =>
-        for (v <- pair._2._1.iterator; s <- pair._2._2.iterator) yield (v, s)}
+      lrdd.cogroup(rrdd, partitioner).mapPartitions( it =>
+	          it.flatMap{ case (key, (vs, ss)) =>
+			            for (v <- vs.iterator; s <- ss.iterator) yield (v, s)}, true)
     }
 
     def joinSalt[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = { 
