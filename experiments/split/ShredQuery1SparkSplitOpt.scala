@@ -82,6 +82,7 @@ x243
 } 
 val M__D_1 = x244
 val x245 = M__D_1
+spark.sparkContext.runJob(M__D_1, (iter: Iterator[_]) => {})
 
 val (c_orders__D_1_L, c_orders__D_1_H, hkeys1) = 
   O__D_1.mapPartitions(it =>
@@ -92,6 +93,8 @@ val (c_orders__D_1_L, c_orders__D_1_H, hkeys1) =
       val x274 = Record333(x271, x273) 
       x274})
     }).groupBySplit()
+spark.sparkContext.runJob(c_orders__D_1_L, (iter: Iterator[_]) => {})
+spark.sparkContext.runJob(c_orders__D_1_H, (iter: Iterator[_]) => {})
 
 
 val x315_L = x236_L.mapPartitions(it =>
