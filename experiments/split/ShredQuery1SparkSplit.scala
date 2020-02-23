@@ -139,7 +139,7 @@ x309.lbl}, {val x310 = x308.p_partkey
 val x311 = x308.l_qty 
 val x312 = Record336(x310, x311) 
 x312})
-})
+}, true)
 
 val x315_H = x304_H.mapPartitions(it =>
   it.map{ case (x308, x307) =>
@@ -148,7 +148,7 @@ x309.lbl}, {val x310 = x308.p_partkey
 val x311 = x308.l_qty
 val x312 = Record336(x310, x311)
 x312})
-})
+}, true)
 
 val (o_parts__D_1_L, o_parts__D_1_H) = x315_L.groupBySplit(x315_H, hkeys2)
 spark.sparkContext.runJob(o_parts__D_1_L, (iter: Iterator[_]) => {})
