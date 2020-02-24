@@ -76,8 +76,7 @@ val x277 = O__D_1.mapPartitions(it =>
    (x269.o_custkey, {val x271 = x269.o_orderdate 
 val x272 = x269.o_orderkey 
 val x274 = Record333(x271, x272) 
-x274})
-}, true).groupByKey(new HashPartitioner(400))
+x274})}).groupByKey(new HashPartitioner(400))
 
 val c_orders__D_1 = x277
 
@@ -86,8 +85,7 @@ val x315 = x236.mapPartitions(it =>
   (x308.l_orderkey, {val x310 = x308.p_partkey 
 val x311 = x308.l_qty 
 val x312 = Record336(x310, x311) 
-x312})
-}, true).groupByKey()
+x312})}).groupByKey(new HashPartitioner(1000))
 
 val o_parts__D_1 = x315
 spark.sparkContext.runJob(o_parts__D_1, (iter: Iterator[_]) => {})
