@@ -62,10 +62,12 @@ val x235 = RecordLP(x233, x232, x234)
 x235}, true) 
 
 val M__D_1 = C__D_1
+spark.sparkContext.runJob(M__D_1, (iter: Iterator[_]) => {})
 
 val c_orders__D_1 = O__D_1.mapPartitions(it =>
   it.map{ case x269 => (x269.o_custkey, x269) }
 ).groupByKey(new HashPartitioner(400))
+spark.sparkContext.runJob(c_orders__D_1, (iter: Iterator[_]) => {})
 
 val o_parts__D_1 = x236.mapPartitions(it =>
   it.map{ case x308 => 
