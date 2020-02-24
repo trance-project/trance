@@ -57,12 +57,14 @@ object Config {
   val master = prop.getProperty("master")
   val minPartitions = prop.getProperty("minPartitions").toInt
   val threshold = prop.getProperty("threshold").toInt
+  val goalParts = prop.getProperty("goalParts")
 }
 
 class TPCHLoader(spark: SparkSession) extends Serializable {
 
   val datapath = Config.datapath
   val parts = Config.minPartitions
+  val goalParts = Config.goalParts
 
   def parseBigInt(n: String): Int = {
     val b = BigInt(n).intValue()
@@ -78,16 +80,108 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 
   import spark.implicits._
 
-  def loadCustomers():RDD[Customer] = {
-    spark.sparkContext.textFile(s"file:///$datapath/customer.tbl", minPartitions = parts).repartition(parts).mapPartitions(it =>
+  def loadOrdersProj400():RDD[OrdersProj] = {
+    val a = loadOrdersProj(s"file:///$datapath/o$goalParts/aa")
+    a.cache
+    spark.sparkContext.runJob(a, (iter: Iterator[_]) => {})
+    val b = loadOrdersProj(s"file:///$datapath/o$goalParts/ab")
+    b.cache
+    spark.sparkContext.runJob(b, (iter: Iterator[_]) => {})
+    val c = loadOrdersProj(s"file:///$datapath/o$goalParts/ac")
+    c.cache
+    spark.sparkContext.runJob(c, (iter: Iterator[_]) => {})
+    val d = loadOrdersProj(s"file:///$datapath/o$goalParts/ad")
+    d.cache
+    spark.sparkContext.runJob(d, (iter: Iterator[_]) => {})
+    val O__D_1 = a union b union c union d
+    O__D_1.cache
+    spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
+    a.unpersist()
+    b.unpersist()
+    c.unpersist()
+    d.unpersist()
+    O__D_1
+  }
+
+  def loadCustomersProj400():RDD[CustomerProj] = {
+    val a = loadCustomersProj(s"file:///$datapath/c$goalParts/aa")
+    a.cache
+    spark.sparkContext.runJob(a, (iter: Iterator[_]) => {})
+    val b = loadCustomersProj(s"file:///$datapath/c$goalParts/ab")
+    b.cache
+    spark.sparkContext.runJob(b, (iter: Iterator[_]) => {})
+    val c = loadCustomersProj(s"file:///$datapath/c$goalParts/ac")
+    c.cache
+    spark.sparkContext.runJob(c, (iter: Iterator[_]) => {})
+    val d = loadCustomersProj(s"file:///$datapath/c$goalParts/ad")
+    d.cache
+    spark.sparkContext.runJob(d, (iter: Iterator[_]) => {})
+    val C__D_1 = a union b union c union d
+    C__D_1.cache
+    spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
+    a.unpersist()
+    b.unpersist()
+    c.unpersist()
+    d.unpersist()
+    C__D_1
+  }
+
+  def loadPartsProj400():RDD[PartProj] = {
+    val a = loadPartProj(s"file:///$datapath/p$goalParts/aa")
+    a.cache
+    spark.sparkContext.runJob(a, (iter: Iterator[_]) => {})
+    val b = loadPartProj(s"file:///$datapath/p$goalParts/ab")
+    b.cache
+    spark.sparkContext.runJob(b, (iter: Iterator[_]) => {})
+    val c = loadPartProj(s"file:///$datapath/p$goalParts/ac")
+    c.cache
+    spark.sparkContext.runJob(c, (iter: Iterator[_]) => {})
+    val d = loadPartProj(s"file:///$datapath/p$goalParts/ad")
+    d.cache
+    spark.sparkContext.runJob(d, (iter: Iterator[_]) => {})
+    val P__D_1 = a union b union c union d
+    P__D_1.cache
+    spark.sparkContext.runJob(P__D_1, (iter: Iterator[_]) => {})
+    a.unpersist()
+    b.unpersist()
+    c.unpersist()
+    d.unpersist()
+    P__D_1
+  }
+
+  def loadLineitemProj400():RDD[LineitemProj] = {
+    val a = loadLineitemProj(s"file:///$datapath/l$goalParts/aa")
+    a.cache
+    spark.sparkContext.runJob(a, (iter: Iterator[_]) => {})
+    val b = loadLineitemProj(s"file:///$datapath/l$goalParts/ab")
+    b.cache
+    spark.sparkContext.runJob(b, (iter: Iterator[_]) => {})
+    val c = loadLineitemProj(s"file:///$datapath/l$goalParts/ac")
+    c.cache
+    spark.sparkContext.runJob(c, (iter: Iterator[_]) => {})
+    val d = loadLineitemProj(s"file:///$datapath/l$goalParts/ad")
+    d.cache
+    spark.sparkContext.runJob(d, (iter: Iterator[_]) => {})
+    val L__D_1 = a union b union c union d
+    L__D_1.cache
+    spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
+    a.unpersist()
+    b.unpersist()
+    c.unpersist()
+    d.unpersist()
+    L__D_1
+  }
+
+  def loadCustomers(path: String = s"file:///$datapath/customer.tbl"):RDD[Customer] = {
+    spark.sparkContext.textFile(path, minPartitions = parts).mapPartitions(it =>
 		it.map(line => {
         	val l = line.split("\\|")
             Customer(l(0).toInt, l(1), l(2), l(3).toInt, l(4), l(5).toDouble, l(6), l(7))
-		}), true)
+		}), true).repartition(parts)
   }
 
-  def loadCustomersProj():RDD[CustomerProj] = {
-    spark.sparkContext.textFile(s"file:///$datapath/customer.tbl", minPartitions = parts).mapPartitions(it =>
+  def loadCustomersProj(path: String = s"file:///$datapath/customer.tbl"):RDD[CustomerProj] = {
+    spark.sparkContext.textFile(path, minPartitions = parts).mapPartitions(it =>
 		it.map(line => {
         	val l = line.split("\\|")
             CustomerProj(l(0).toInt, l(1))
@@ -117,24 +211,24 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
                     PartSupp(l(0).toInt, l(1).toInt, l(2).toInt, l(3).toDouble, l(4))})
   }
 
-  def loadPart():RDD[Part] = {
-    spark.sparkContext.textFile(s"file:///$datapath/part.tbl", minPartitions = parts).repartition(parts).mapPartitions(it =>
+  def loadPart(path: String = s"file:///$datapath/part.tbl"):RDD[Part] = {
+    spark.sparkContext.textFile(path, minPartitions = parts).mapPartitions(it =>
 		it.map(line => {
         	val l = line.split("\\|")
             Part(l(0).toInt, l(1), l(2), l(3), l(4), l(5).toInt, l(6), l(7).toDouble, l(8))
-  		}), true)
+  		}), true).repartition(parts)
   }
 
-  def loadPartProj():RDD[PartProj] = {
-    spark.sparkContext.textFile(s"file:///$datapath/part.tbl", minPartitions = parts).mapPartitions(it =>
+  def loadPartProj(path: String = s"file:///$datapath/part.tbl"):RDD[PartProj] = {
+    spark.sparkContext.textFile(path, minPartitions = parts).mapPartitions(it =>
 		it.map(line => {
         	val l = line.split("\\|")
             PartProj(l(0).toInt, l(1))
   		}), true).repartition(parts)
   }
 
-  def loadPartProj4():RDD[PartProj4] = {
-    spark.sparkContext.textFile(s"file:///$datapath/part.tbl", minPartitions = parts).mapPartitions(it =>
+  def loadPartProj4(path: String = s"file:///$datapath/part.tbl"):RDD[PartProj4] = {
+    spark.sparkContext.textFile(path, minPartitions = parts).mapPartitions(it =>
 		it.map(line => {
         	val l = line.split("\\|")
             PartProj4(l(0).toInt, l(1), l(7).toDouble)
@@ -159,23 +253,24 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
       .as[Part]
   }
 
-  def loadOrders():RDD[Orders] = {
-    val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
-    spark.sparkContext.textFile(s"file:///$datapath/$ofile",minPartitions = parts).repartition(parts).mapPartitions(it => 
+  def loadOrders(path: String = s"file:///$datapath/order.tbl"):RDD[Orders] = {
+    //val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
+    spark.sparkContext.textFile(path ,minPartitions = parts).mapPartitions(it => 
 		it.map(line => {
       		val l = line.split("\\|")
             Orders(parseBigInt(l(0)), l(1).toInt, l(2), l(3).toDouble, l(4), l(5), l(6), l(7).toInt, l(8))
-  		}), true)
+  		}), true).repartition(parts)
   }
 
-  def loadOrdersProj():RDD[OrdersProj] = {
-    val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
-    spark.sparkContext.textFile(s"file:///$datapath/$ofile",minPartitions = parts).mapPartitions(it => 
+  def loadOrdersProj(path: String = s"file:///$datapath/order.tbl"):RDD[OrdersProj] = {
+    //val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
+    spark.sparkContext.textFile(path, minPartitions = parts).mapPartitions(it => 
 		it.map(line => {
       		val l = line.split("\\|")
             OrdersProj(parseBigInt(l(0)), l(1).toInt, l(4))
   		}), true).repartition(parts)
   }
+
 
   def loadOrdersProjBzip():RDD[OrdersProj] = {
     def load(label: String): RDD[OrdersProj] = {
@@ -234,24 +329,20 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   // this is hard coded directory of files split with bash
   // split --line-bytes=797780948 --filter='gzip > $FILE.gz' /path/to/input /path/to/output
   def loadLineitem():RDD[Lineitem] = {
-  	spark.sparkContext.textFile(s"file:///$datapath/lineitem.tbl",minPartitions = parts).repartition(parts).mapPartitions(it => 
+  	spark.sparkContext.textFile(s"file:///$datapath/lineitem.tbl",minPartitions = 1000).mapPartitions(it => 
 		it.map(line => {
 			val l = line.split("\\|")
         	Lineitem(parseBigInt(l(0)), l(1).toInt, l(2).toInt, l(3).toInt, l(4).toDouble, l(5).toDouble, 
 				l(6).toDouble, l(7).toDouble, l(8), l(9), l(10), l(11), l(12), l(13), l(14), l(15))
-		}), true)
+		}), true).repartition(1000)
   }
  
-  def loadLineitemProj():RDD[LineitemProj] = {
-  	object LineitemOrdering extends Ordering[LineitemProj] {
-	    def compare(a: LineitemProj, b: LineitemProj) = a.l_partkey compare b.l_partkey
-	}
-	implicit val lordering:Ordering[LineitemProj] = LineitemOrdering
-	spark.sparkContext.textFile(s"file:///$datapath/lineitem.tbl",minPartitions = parts).mapPartitions(it => 
+  def loadLineitemProj(path: String = s"file:///$datapath/lineitem.tbl"):RDD[LineitemProj] = {
+	spark.sparkContext.textFile(path, minPartitions = 1000).mapPartitions(it => 
 		it.map(line => {
 			val l = line.split("\\|")
         	LineitemProj(parseBigInt(l(0)), l(1).toInt, l(4).toDouble)
-		}), true).repartition(parts)
+		}), true).repartition(1000)
   }
 
   def loadLineitemProjBzip():RDD[LineitemProj] = {
