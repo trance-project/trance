@@ -31,20 +31,20 @@ object Query1SparkManualProj {
     val spark = SparkSession.builder().config(conf).getOrCreate()
 
     val tpch = TPCHLoader(spark)
-    val C = tpch.loadCustomersProj
+    val C = tpch.loadCustomers
     C.cache
     spark.sparkContext.runJob(C, (iter: Iterator[_]) => {})
-    val O = tpch.loadOrdersProj
+    val O = tpch.loadOrders
     O.cache
     spark.sparkContext.runJob(O, (iter: Iterator[_]) => {})
-    val L = tpch.loadLineitemProj
+    val L = tpch.loadLineitem
     L.cache
     spark.sparkContext.runJob(L, (iter: Iterator[_]) => {})
-    val P = tpch.loadPartProj
+    val P = tpch.loadPart
     P.cache
     spark.sparkContext.runJob(P, (iter: Iterator[_]) => {})
        
-	  //tpch.triggerGC
+	  tpch.triggerGC
 
     var start0 = System.currentTimeMillis()
     val accum1 = (acc: List[Record232], v: Record232) => v match {
@@ -57,18 +57,18 @@ object Query1SparkManualProj {
       case _ => acc :+ v
     }
     val accum4 = (acc1: List[Record179], acc2: List[Record179]) => acc1 ++ acc2
-    val customers = C.zipWithIndex.map{ case (c, id) => c.c_custkey -> (c, id) }
-    val orders = O.zipWithIndex.map{ case (o, id) => o.o_custkey -> (o, id) }
+    val customers = C.zipWithIndex.map{ case (c, id) => (c.c_custkey, (CustomerProj(c.c_custkey, c.c_name), id)) }
+    val orders = O.zipWithIndex.map{ case (o, id) => (o.o_custkey, (OrdersProj(o.o_orderkey, o.o_custkey, o.o_orderdate), id)) }
     val co = customers.leftOuterJoin(orders).map{
       case (ck, (c, Some(o))) => o._1.o_orderkey -> (c, o)
       case (ck, (c, None)) => -1 -> (c, null)
     }
-    val lineitem = L.zipWithIndex.map{ case (l,id)  => l.l_orderkey -> (l, id) }
+    val lineitem = L.zipWithIndex.map{ case (l,id)  => (l.l_orderkey, (LineitemProj(l.l_orderkey, l.l_partkey, l.l_quantity), id)) }
     val col = co.leftOuterJoin(lineitem).map{
       case (ok, ((c,o), Some(l))) => l._1.l_partkey -> ((c, o), l)
       case (ok, ((c,o), None)) => -1 -> ((c, o), null)
     }
-    val parts = P.zipWithIndex.map{ case (p, id) => p.p_partkey -> (p, id) }
+    val parts = P.zipWithIndex.map{ case (p, id) => (p.p_partkey, (PartProj(p.p_partkey, p.p_name), id)) }
     val colp = col.leftOuterJoin(parts).map{
       case (pk, (((c,o), l), Some(p))) => (c, o) -> Record179(p._1.p_name, l._1.l_quantity)
       case (pk, (((c,o), null), None)) => (c, o) -> Record179(null, 0.0)
