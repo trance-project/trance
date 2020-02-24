@@ -18,10 +18,10 @@ case class Record330(o_orderdate: String, o_orderkey: Int, o_custkey: Int)
 case class Record333(o_orderdate: String, o_parts: Int)
 case class Record336(p_name: Int, l_qty: Double)
 case class RecordLP(p: Part, l_orderkey: Int, l_qty: Double)
-object ShredQuery1SparkOpt {
+object ShredQuery1SparkOptWide {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
-   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery1SparkOpt"+sf)
+   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery1SparkOptWide"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
 
@@ -74,7 +74,7 @@ val o_parts__D_1 = x236.mapPartitions(it =>
 spark.sparkContext.runJob(o_parts__D_1, (iter: Iterator[_]) => {})
 
 var end0 = System.currentTimeMillis() - start0
-println("ShredQuery1SparkOpt,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
+println("ShredQuery1SparkOptWide,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
 var start1 = System.currentTimeMillis()
 /**val x201 = c_orders__D_1.mapPartitions(
@@ -89,8 +89,8 @@ val result = M__D_1.map(c => c.c_custkey -> c.c_name).cogroup(x201).mapPartition
 spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})**/
 var end = System.currentTimeMillis() - start0
 var end1 = System.currentTimeMillis() - start1
-println("ShredQuery1SparkOpt,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
-println("ShredQuery1SparkOpt,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
+println("ShredQuery1SparkOptWide,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
+println("ShredQuery1SparkOptWide,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 
 /**result.flatMap{ case (cname, orders) =>
   if (orders.isEmpty) List((cname, null, null, null))
