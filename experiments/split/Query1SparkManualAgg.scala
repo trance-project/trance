@@ -31,20 +31,20 @@ object Query1SparkManualAgg {
     val spark = SparkSession.builder().config(conf).getOrCreate()
 
     val tpch = TPCHLoader(spark)
-    val C = tpch.loadCustomersProj()
+    val C = tpch.loadCustomers
     C.cache
     spark.sparkContext.runJob(C, (iter: Iterator[_]) => {})
-    val O = tpch.loadOrdersProj()
+    val O = tpch.loadOrders
     O.cache
     spark.sparkContext.runJob(O, (iter: Iterator[_]) => {})
-    val L = tpch.loadLineitemProj()
+    val L = tpch.loadLineitem
     L.cache
     spark.sparkContext.runJob(L, (iter: Iterator[_]) => {})
-    val P = tpch.loadPartProj()
+    val P = tpch.loadPart
     P.cache
     spark.sparkContext.runJob(P, (iter: Iterator[_]) => {})
        
-	  //tpch.triggerGC
+	  tpch.triggerGC
 
     var start0 = System.currentTimeMillis()
 
