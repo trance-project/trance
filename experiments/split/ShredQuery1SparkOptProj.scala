@@ -8,17 +8,14 @@ import sprkloader.SkewPairRDD._
 import sprkloader.SkewDictRDD._
 import sprkloader.DomainRDD._
 import sprkloader.UtilPairRDD._
+import org.apache.spark.HashPartitioner
 case class Record323(lbl: Unit)
 case class Record324(l_orderkey: Int, l_quantity: Double, l_partkey: Int)
 case class Record325(p_name: String, p_partkey: Int)
 case class Record326(l_orderkey: Int, p_partkey: Int, l_qty: Double)
-case class Record327(c__Fc_custkey: Int)
-case class Record328(c_name: String, c_orders: Record327)
-case class Record329(lbl: Record327)
+case class Record328(c_name: String, c_orders: Int)
 case class Record330(o_orderdate: String, o_orderkey: Int, o_custkey: Int)
-case class Record332(o__Fo_orderkey: Int)
-case class Record333(o_orderdate: String, o_parts: Record332)
-case class Record334(lbl: Record332)
+case class Record333(o_orderdate: String, o_parts: Int)
 case class Record336(p_partkey: Int, l_qty: Double)
 object ShredQuery1SparkOptProj {
  def main(args: Array[String]){
@@ -68,8 +65,7 @@ x235
 val x244 = C__D_1.map{ case x239 => 
    val x240 = x239.c_name 
 val x241 = x239.c_custkey 
-val x242 = Record327(x241) 
-val x243 = Record328(x240, x242) 
+val x243 = Record328(x240, x241) 
 x243 
 } 
 val M__D_1 = x244
@@ -77,18 +73,17 @@ val x245 = M__D_1
 
 val x277 = O__D_1.mapPartitions(it =>
   it.map{ case x269 => 
-   (Record327(x269.o_custkey), {val x271 = x269.o_orderdate 
+   (x269.o_custkey, {val x271 = x269.o_orderdate 
 val x272 = x269.o_orderkey 
-val x273 = Record332(x272) 
-val x274 = Record333(x271, x273) 
+val x274 = Record333(x271, x272) 
 x274})
-}, true).groupByKey()
+}, true).groupByKey(new HashPartitioner(400))
 
 val c_orders__D_1 = x277
 
 val x315 = x236.mapPartitions(it =>
   it.map{ case x308 => 
-  (Record332(x308.l_orderkey), {val x310 = x308.p_partkey 
+  (x308.l_orderkey, {val x310 = x308.p_partkey 
 val x311 = x308.l_qty 
 val x312 = Record336(x310, x311) 
 x312})
@@ -103,7 +98,7 @@ println("ShredQuery1SparkOptProj,"+sf+","+Config.datapath+","+end0+",query,"+spa
 var start1 = System.currentTimeMillis()
 /**val x201 = c_orders__D_1.mapPartitions(
   it => it.flatMap(v => v._2.map(o => (o.o_parts, (v._1, o.o_orderdate)))), false
-).cogroup(o_parts__D_1.map(l => l)).mapPartitions(
+).cogroup(o_parts__D_1).mapPartitions(
   it => it.flatMap{ case (_, (left, x208)) => left.map{ case (x206, x207) => (x206, (x207, x208.flatten)) }}, false
 )
 val result = M__D_1.map(c => c.c_orders -> c.c_name).cogroup(x201).mapPartitions(
