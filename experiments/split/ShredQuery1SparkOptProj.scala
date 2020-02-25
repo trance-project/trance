@@ -62,14 +62,15 @@ x235
 }, true) 
 
 // top level stays light
-val x244 = C__D_1.map{ case x239 => 
+val x244 = C__D_1.mapPartitions(it => it.map{ case x239 => 
    val x240 = x239.c_name 
 val x241 = x239.c_custkey 
 val x243 = Record328(x240, x241) 
 x243 
-} 
+}, true) 
 val M__D_1 = x244
 val x245 = M__D_1
+M__D_1.cache
 spark.sparkContext.runJob(M__D_1, (iter: Iterator[_]) => {})
 
 val x277 = O__D_1.mapPartitions(it =>
@@ -80,6 +81,7 @@ val x274 = Record333(x271, x272)
 x274})}).groupByKey(new HashPartitioner(400))
 
 val c_orders__D_1 = x277
+c_orders__D_1.cache
 spark.sparkContext.runJob(c_orders__D_1, (iter: Iterator[_]) => {})
 
 val x315 = x236.mapPartitions(it =>
@@ -90,22 +92,20 @@ val x312 = Record336(x310, x311)
 x312})}).groupByKey(new HashPartitioner(1000))
 
 val o_parts__D_1 = x315
+o_parts__D_1.cache
 spark.sparkContext.runJob(o_parts__D_1, (iter: Iterator[_]) => {})
 
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery1SparkOptProj,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
 var start1 = System.currentTimeMillis()
-/**val x201 = c_orders__D_1.mapPartitions(
-  it => it.flatMap(v => v._2.map(o => (o.o_parts, (v._1, o.o_orderdate)))), false
-).cogroup(o_parts__D_1).mapPartitions(
-  it => it.flatMap{ case (_, (left, x208)) => left.map{ case (x206, x207) => (x206, (x207, x208.flatten)) }}, false
-)
-val result = M__D_1.map(c => c.c_orders -> c.c_name).cogroup(x201).mapPartitions(
-  it => it.flatMap{ case (_, (left, x208)) => left.map( cname => cname -> x208)}, false
-)
+val x201 = c_orders__D_1.flatMap{
+  case (lbl, bag) => bag.map(o => (o.o_parts, (lbl, o.o_orderdate))) }.cogroup(o_parts__D_1).flatMap{
+    case (_, (dates, parts)) => dates.map{ case (lbl, date) => (lbl, (date, parts.flatten)) } }
+val result = M__D_1.mapPartitions(it => it.map(c => c.c_orders -> c.c_name), true).cogroup(x201).flatMap{
+  case (_, (cnames, dates)) => cnames.map( cname => cname -> dates)}
 //result.collect.foreach(println(_))
-spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})**/
+spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
 var end = System.currentTimeMillis() - start0
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery1SparkOptProj,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)

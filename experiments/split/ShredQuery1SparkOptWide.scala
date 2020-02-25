@@ -62,43 +62,43 @@ val x235 = RecordLP(x233, x232, x234)
 x235}, true) 
 
 val M__D_1 = C__D_1
+M__D_1.cache
 spark.sparkContext.runJob(M__D_1, (iter: Iterator[_]) => {})
 
 val c_orders__D_1 = O__D_1.mapPartitions(it =>
   it.map{ case x269 => (x269.o_custkey, x269) }
 ).groupByKey(new HashPartitioner(400))
+c_orders__D_1.cache
 spark.sparkContext.runJob(c_orders__D_1, (iter: Iterator[_]) => {})
 
 val o_parts__D_1 = x236.mapPartitions(it =>
   it.map{ case x308 => 
   (x308.l_orderkey, x308)}).groupByKey(new HashPartitioner(1000))
-
+o_parts__D_1.cache
 spark.sparkContext.runJob(o_parts__D_1, (iter: Iterator[_]) => {})
 
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery1SparkOptWide,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
 var start1 = System.currentTimeMillis()
-/**val x201 = c_orders__D_1.mapPartitions(
-  it => it.flatMap(v => v._2.map(o => (o.o_orderkey, (v._1, o.o_orderdate)))), false
-).cogroup(o_parts__D_1).mapPartitions(
-  it => it.flatMap{ case (_, (left, x208)) => left.map{ case (x206, x207) => (x206, (x207, x208.flatten)) }}, false
-)
-val result = M__D_1.map(c => c.c_custkey -> c.c_name).cogroup(x201).mapPartitions(
-  it => it.flatMap{ case (_, (left, x208)) => left.map( cname => cname -> x208)}, false
-)
+val x201 = c_orders__D_1.flatMap{
+  case (lbl, bag) => bag.map(order => (order.o_orderkey, (lbl, order))) }.cogroup(o_parts__D_1).flatMap{
+    case (_, (dates, parts)) => dates.map{ case (lbl, order) => (lbl, (order, parts.flatten)) }}
+val result = M__D_1.mapPartitions(it => it.map(c => c.c_custkey -> c), true).cogroup(x201).flatMap{ 
+  case (_, (left, x208)) => left.map( cname => cname -> x208)
+}
 //result.collect.foreach(println(_))
-spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})**/
+spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
 var end = System.currentTimeMillis() - start0
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery1SparkOptWide,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
 println("ShredQuery1SparkOptWide,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 
-/**result.flatMap{ case (cname, orders) =>
-  if (orders.isEmpty) List((cname, null, null, null))
+result.flatMap{ case (cname, orders) =>
+  if (orders.isEmpty) List((cname.c_name, null, null, null))
   else orders.flatMap{ case (date, parts) =>
-    if (parts.isEmpty) List((cname, date, null, null))
-    else parts.map(p => (cname, date, p.p.p_name, p.l_qty)) } }.collect.foreach(println(_))**/
+    if (parts.isEmpty) List((cname.c_name, date.o_orderdate, null, null))
+    else parts.map(p => (cname.c_name, date.o_orderdate, p.p.p_name, p.l_qty)) } }.collect.foreach(println(_))
 }
 f
  }
