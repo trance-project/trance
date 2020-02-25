@@ -51,6 +51,8 @@ val O__D_1 = tpch.loadOrders()
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
+tpch.triggerGC
+
 val x219 = L__D_1
 val x224 = P__D_1
 val x225 = x224.map{ case x225 => ({val x227 = x225.p_partkey

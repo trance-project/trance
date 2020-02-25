@@ -24,25 +24,25 @@ case class Record312(c_name: String, c_orders: Int)
 case class Record319(o_orderdate: String, o_parts: List[Record172])
 case class Record321(c_name: String, c_orders: List[Record319])
 case class Record416(orderdate: String, partkey: Int)
-case class Record438(orderdate: String, partkey: Int, _2: Double)
-case class Record439(c_name: String, totals: List[Record438])
-object Query2SparkManual {
+case class Record438(c_name: String, pname: String, totals: Double)
+case class Record318(p_retailprice: Double, p_name: String)
+object Query3SparkManualPush {
   def main(args: Array[String]){
     val sf = Config.datapath.split("/").last
-    val conf = new SparkConf().setMaster(Config.master).setAppName("Query2SparkManual"+sf)
+    val conf = new SparkConf().setMaster(Config.master).setAppName("Query3SparkManualPush"+sf)
     val spark = SparkSession.builder().config(conf).getOrCreate()
 
     val tpch = TPCHLoader(spark)
-    val C = tpch.loadCustomers
+    val C = tpch.loadCustomersProj
     C.cache
     spark.sparkContext.runJob(C, (iter: Iterator[_]) => {})
-    val O = tpch.loadOrders
+    val O = tpch.loadOrdersProjBzip
     O.cache
     spark.sparkContext.runJob(O, (iter: Iterator[_]) => {})
-    val L = tpch.loadLineitem
+    val L = tpch.loadLineitemProjBzip
     L.cache
     spark.sparkContext.runJob(L, (iter: Iterator[_]) => {})
-    val P = tpch.loadPartProj
+    val P = tpch.loadPartProj4
     P.cache
     spark.sparkContext.runJob(P, (iter: Iterator[_]) => {})
 
@@ -63,32 +63,23 @@ object Query2SparkManual {
     spark.sparkContext.runJob(c, (iter: Iterator[_]) => {})
 
     var start0 = System.currentTimeMillis()
-    val accum1 = (acc: List[Record438], v: Record438) => v match {
-      case Record438(_, 0, 0.0) => acc
-      case _ => acc :+ v 
-    }
-    val accum2 = (acc1: List[Record438], acc2: List[Record438]) => acc1 ++ acc2
     val result = c.zipWithIndex.flatMap{
-      case (ctup, id1) => if (ctup.c_orders.isEmpty) List(((id1, ctup.c_name, null, null),0.0))
+      case (ctup, id1) => if (ctup.c_orders.isEmpty) List((-1, (id1, ctup.c_name, 0.0)))
         else ctup.c_orders.zipWithIndex.flatMap{
-        case (otup, id2) => if (otup.o_parts.isEmpty) List(((id1, ctup.c_name, otup.o_orderdate, null),0.0))
-          else otup.o_parts.map{
-            case ptup => (id1, ctup.c_name, otup.o_orderdate, ptup.p_partkey) -> ptup.l_qty
-        }
+        case (otup, id2) => if (otup.o_parts.isEmpty) List((-1, (id1, ctup.c_name, 0.0)))
+          else otup.o_parts.foldLeft(HashMap.empty[(Long, String, Int), Double].withDefaultValue(0))(
+            (acc, p) => {acc((id1, ctup.c_name, otup.o_orderdate, p.p_partkey)) += p.l_qty; acc}).toList
+          }
       }
+    }.joinSkew(P.map(p => p.p_partkey -> Record318(p.p_retailprice, p.p_name))).map{
+      case ((id1, cname, qty), p) => (cname, p.p_name) -> qty*p.p_retailprice
     }.reduceByKey(_+_).map{
-      case ((id1, cname, date, pk), total) => (id1, date) -> Record438(cname, pk.asInstanceOf[Int], total)
-    }.aggregateByKey(List.empty[Record438])(accum1, accum2).map{
-      case ((id1, cname), totals) => Record439(cname, totals)
+      case ((cname, pname), total) => Record438(cname, pname.asInstanceOf[String], total)
     }
-    //result.collect.foreach(println(_))
+    result.collect.foreach(println(_))
     spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
     var end0 = System.currentTimeMillis() - start0
-	  println("Query2SparkManual"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
+	  println("Query3SparkManualPush"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
   
-    result.flatMap(r => if (r.totals.isEmpty) List((r.c_name, null, null, null))
-      else r.totals.map(o => (r.c_name, o.orderdate, o.partkey, o._2))
-    ).sortBy(_._1).collect.foreach(println(_))
-
   }
 }

@@ -58,6 +58,7 @@ object Config {
   val minPartitions = prop.getProperty("minPartitions").toInt
   val threshold = prop.getProperty("threshold").toInt
   val goalParts = prop.getProperty("goalParts")
+  val lparts = prop.getProperty("lineitem")
 }
 
 class TPCHLoader(spark: SparkSession) extends Serializable {
@@ -80,104 +81,12 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 
   import spark.implicits._
 
-  def loadOrdersProj400():RDD[OrdersProj] = {
-    val a = loadOrdersProj(s"file:///$datapath/o$goalParts/aa")
-    a.cache
-    spark.sparkContext.runJob(a, (iter: Iterator[_]) => {})
-    val b = loadOrdersProj(s"file:///$datapath/o$goalParts/ab")
-    b.cache
-    spark.sparkContext.runJob(b, (iter: Iterator[_]) => {})
-    val c = loadOrdersProj(s"file:///$datapath/o$goalParts/ac")
-    c.cache
-    spark.sparkContext.runJob(c, (iter: Iterator[_]) => {})
-    val d = loadOrdersProj(s"file:///$datapath/o$goalParts/ad")
-    d.cache
-    spark.sparkContext.runJob(d, (iter: Iterator[_]) => {})
-    val O__D_1 = a union b union c union d
-    O__D_1.cache
-    spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
-    a.unpersist()
-    b.unpersist()
-    c.unpersist()
-    d.unpersist()
-    O__D_1
-  }
-
-  def loadCustomersProj400():RDD[CustomerProj] = {
-    val a = loadCustomersProj(s"file:///$datapath/c$goalParts/aa")
-    a.cache
-    spark.sparkContext.runJob(a, (iter: Iterator[_]) => {})
-    val b = loadCustomersProj(s"file:///$datapath/c$goalParts/ab")
-    b.cache
-    spark.sparkContext.runJob(b, (iter: Iterator[_]) => {})
-    val c = loadCustomersProj(s"file:///$datapath/c$goalParts/ac")
-    c.cache
-    spark.sparkContext.runJob(c, (iter: Iterator[_]) => {})
-    val d = loadCustomersProj(s"file:///$datapath/c$goalParts/ad")
-    d.cache
-    spark.sparkContext.runJob(d, (iter: Iterator[_]) => {})
-    val C__D_1 = a union b union c union d
-    C__D_1.cache
-    spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
-    a.unpersist()
-    b.unpersist()
-    c.unpersist()
-    d.unpersist()
-    C__D_1
-  }
-
-  def loadPartsProj400():RDD[PartProj] = {
-    val a = loadPartProj(s"file:///$datapath/p$goalParts/aa")
-    a.cache
-    spark.sparkContext.runJob(a, (iter: Iterator[_]) => {})
-    val b = loadPartProj(s"file:///$datapath/p$goalParts/ab")
-    b.cache
-    spark.sparkContext.runJob(b, (iter: Iterator[_]) => {})
-    val c = loadPartProj(s"file:///$datapath/p$goalParts/ac")
-    c.cache
-    spark.sparkContext.runJob(c, (iter: Iterator[_]) => {})
-    val d = loadPartProj(s"file:///$datapath/p$goalParts/ad")
-    d.cache
-    spark.sparkContext.runJob(d, (iter: Iterator[_]) => {})
-    val P__D_1 = a union b union c union d
-    P__D_1.cache
-    spark.sparkContext.runJob(P__D_1, (iter: Iterator[_]) => {})
-    a.unpersist()
-    b.unpersist()
-    c.unpersist()
-    d.unpersist()
-    P__D_1
-  }
-
-  def loadLineitemProj400():RDD[LineitemProj] = {
-    val a = loadLineitemProj(s"file:///$datapath/l$goalParts/aa")
-    a.cache
-    spark.sparkContext.runJob(a, (iter: Iterator[_]) => {})
-    val b = loadLineitemProj(s"file:///$datapath/l$goalParts/ab")
-    b.cache
-    spark.sparkContext.runJob(b, (iter: Iterator[_]) => {})
-    val c = loadLineitemProj(s"file:///$datapath/l$goalParts/ac")
-    c.cache
-    spark.sparkContext.runJob(c, (iter: Iterator[_]) => {})
-    val d = loadLineitemProj(s"file:///$datapath/l$goalParts/ad")
-    d.cache
-    spark.sparkContext.runJob(d, (iter: Iterator[_]) => {})
-    val L__D_1 = a union b union c union d
-    L__D_1.cache
-    spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
-    a.unpersist()
-    b.unpersist()
-    c.unpersist()
-    d.unpersist()
-    L__D_1
-  }
-
   def loadCustomers(path: String = s"file:///$datapath/customer.tbl"):RDD[Customer] = {
     spark.sparkContext.textFile(path, minPartitions = parts).mapPartitions(it =>
 		it.map(line => {
         	val l = line.split("\\|")
             Customer(l(0).toInt, l(1), l(2), l(3).toInt, l(4), l(5).toDouble, l(6), l(7))
-		}), true).repartition(parts)
+		}), true).repartiton(parts)
   }
 
   def loadCustomersProj(path: String = s"file:///$datapath/customer.tbl"):RDD[CustomerProj] = {
@@ -272,40 +181,6 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   }
 
 
-  def loadOrdersProjBzip():RDD[OrdersProj] = {
-    def load(label: String): RDD[OrdersProj] = {
-      spark.sparkContext.textFile(s"file:///nfs_qc4/tpch/o500$label/", minPartitions=500).mapPartitions(it => 
-		  it.map(line => {
-      		val l = line.split("\\|")
-            OrdersProj(parseBigInt(l(0)), l(1).toInt, l(4))
-  		  }), true)//.repartition(500)
-    }
-    val a = load("a")
-    a.cache
-    spark.sparkContext.runJob(a, (iter: Iterator[_]) => {})
-    val b = load("b")
-    b.cache
-    spark.sparkContext.runJob(b, (iter: Iterator[_]) => {})
-    val c = load("c")
-    c.cache
-    spark.sparkContext.runJob(c, (iter: Iterator[_]) => {})
-    val d = load("d")
-    d.cache
-    spark.sparkContext.runJob(d, (iter: Iterator[_]) => {})
-    val e = load("e")
-    e.cache
-    spark.sparkContext.runJob(e, (iter: Iterator[_]) => {})
-    val O__D_1 = a union b union c union d union e
-    O__D_1.cache
-    spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
-    a.unpersist()
-    b.unpersist()
-    c.unpersist()
-    d.unpersist()
-    e.unpersist()
-    O__D_1
-  }
-
   def loadOrdersDF():Dataset[Orders] = {
 
     val schema = StructType(Array(
@@ -343,43 +218,6 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 			val l = line.split("\\|")
         	LineitemProj(parseBigInt(l(0)), l(1).toInt, l(4).toDouble)
 		}), true).repartition(1000)
-  }
-
-  def loadLineitemProjBzip():RDD[LineitemProj] = {
-    def load(label: String): RDD[LineitemProj] = {
-	    val tmp = spark.sparkContext.textFile(s"/nfs_qc4/tpch/li1000$label").mapPartitions(it =>
-		    it.map(line => {
-			    val l = line.split("\\|")
-        	  LineitemProj(parseBigInt(l(0)), l(1).toInt, l(4).toDouble)
-		    }), true)
-      tmp.cache
-      spark.sparkContext.runJob(tmp, (iter: Iterator[_]) => {})
-      tmp
-    }
-    val a = load("a")
-    val b = load("b")
-    val c = load("c")
-    val d = load("d")
-    val e = load("e")
-    val f = load("f")
-    val g = load("g")
-    val h = load("h")
-    val i = load("i")
-    val j = load("j")
-    val L__D_1 = a union b union c union d union e union f union g union h union i union j
-    L__D_1.cache
-    spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
-    a.unpersist()
-    b.unpersist()
-    c.unpersist()
-    d.unpersist()
-    e.unpersist()
-    f.unpersist()
-    g.unpersist()
-    h.unpersist()
-    i.unpersist()
-    j.unpersist()
-    L__D_1
   }
 
   def loadLineitemDF():Dataset[Lineitem] = {

@@ -222,7 +222,7 @@ println("ShredQuery4Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.spar
 var start1 = System.currentTimeMillis()
 val x342 = c_orders__D_1.mapPartitions(
     it => it.flatMap(v => v._2.map(o => (o.o_parts, (v._1, o.o_orderdate)))), false
-  ).cogroup(o_parts__D_1/**, new HashPartitioner(500)**/).flatMap{
+  ).cogroup(o_parts__D_1).flatMap{
     case (_, (left, x349)) => left.map{ case (lbl, date) => (lbl, (date, x349.flatten)) }
   }
 val result = M__D_1.map(c => c.c_orders -> c.c_name).cogroup(x342).flatMap{

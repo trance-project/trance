@@ -12,7 +12,7 @@ import sprkloader.SkewPairRDD._
 case class Record165(lbl: Unit)
 case class Record166(l_orderkey: Int, l_quantity: Double, l_partkey: Int)
 case class Record167(p_name: String, p_partkey: Int)
-case class Record168(l_orderkey: Int, p_partkey: Int, l_qty: Double)
+case class Record168(l_orderkey: Int, p_name: String, l_qty: Double)
 case class Record169(c_name: String, c_custkey: Int)
 case class Record170(c__Fc_custkey: Int)
 case class Record171(c_name: String, c_orders: Record170)
@@ -21,7 +21,7 @@ case class Record173(o_orderdate: String, o_orderkey: Int, o_custkey: Int)
 case class Record175(o__Fo_orderkey: Int)
 case class Record176(o_orderdate: String, o_parts: Record175)
 case class Record177(lbl: Record175)
-case class Record179(p_partkey: Int, l_qty: Double)
+case class Record179(p_name: String, l_qty: Double)
 case class Record232(o_orderdate: String, o_parts: Iterable[Record179])
 case class Record233(c_name: String, c_orders: Iterable[Record232])
 object Query1SparkManual {
@@ -34,10 +34,10 @@ object Query1SparkManual {
     val C = tpch.loadCustomersProj
     C.cache
     spark.sparkContext.runJob(C, (iter: Iterator[_]) => {})
-    val O = tpch.loadOrdersProjBzip
+    val O = tpch.loadOrdersProj//Bzip
     O.cache
     spark.sparkContext.runJob(O, (iter: Iterator[_]) => {})
-    val L = tpch.loadLineitemProjBzip
+    val L = tpch.loadLineitemProj//Bzip
     L.cache
     spark.sparkContext.runJob(L, (iter: Iterator[_]) => {})
     val P = tpch.loadPartProj
@@ -52,7 +52,7 @@ object Query1SparkManual {
     val p = P.map(p => p.p_partkey -> Record167(p.p_name, p.p_partkey))
     val lpj = l.joinSkew(p)
 
-    val OrderParts = lpj.map{ case (l, p) => l.l_orderkey -> Record179(p.p_partkey, l.l_quantity) }
+    val OrderParts = lpj.map{ case (l, p) => l.l_orderkey -> Record179(p.p_name, l.l_quantity) }
 
     val CustomerOrders = O.map(o => o.o_orderkey -> Record173(o.o_orderdate, o.o_orderkey, o.o_custkey)).cogroup(OrderParts).flatMap{
 		  case (_, (orders, parts)) => orders.map(order => order.o_custkey -> Record232(order.o_orderdate, parts))
@@ -65,10 +65,10 @@ object Query1SparkManual {
     var end0 = System.currentTimeMillis() - start0
     println("Query1SparkManual"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
   
-    /**c.flatMap(c => 
+    c.flatMap(c => 
       if (c.c_orders.isEmpty) List((c.c_name, null, null, null))
       else c.c_orders.flatMap(o => if (o.o_parts.isEmpty) List((c.c_name, o.o_orderdate, null, null))
-         else o.o_parts.map(p => (c.c_name, o.o_orderdate, p.p_partkey, p.l_qty)))).sortBy(_._1).collect.foreach(println(_))**/
+         else o.o_parts.map(p => (c.c_name, o.o_orderdate, p.p_name, p.l_qty)))).sortBy(_._1).collect.foreach(println(_))
 
   }
 }

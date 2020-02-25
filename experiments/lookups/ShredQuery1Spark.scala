@@ -29,7 +29,7 @@ object ShredQuery1Spark {
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
 val L__F = 3
-val L__D_1 = tpch.loadLineitemProjBzip
+val L__D_1 = tpch.loadLineitemProj//Bzip
 L__D_1.cache
 spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
@@ -41,7 +41,7 @@ val C__D_1 = tpch.loadCustomersProj
 C__D_1.cache
 spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
 val O__F = 2
-val O__D_1 = tpch.loadOrdersProjBzip
+val O__D_1 = tpch.loadOrdersProj//Bzip
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
@@ -136,7 +136,7 @@ println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.spar
     
 
 var start1 = System.currentTimeMillis()
-/**val x201 = M__D_2.mapPartitions(
+val x201 = M__D_2.mapPartitions(
   it => it.flatMap(v => v._2.map(o => (o.o_parts, (v._1, o.o_orderdate)))), false
 ).cogroup(M__D_3).mapPartitions(
   it => it.flatMap{ case (_, (left, x208)) => left.map{ case (x206, x207) => (x206, (x207, x208.flatten)) }}, false
@@ -144,13 +144,18 @@ var start1 = System.currentTimeMillis()
 val result = M__D_1.map(c => c.c_orders -> c.c_name).cogroup(x201).mapPartitions(
   it => it.flatMap{ case (_, (left, x208)) => left.map( cname => cname -> x208)}, false
 )
-result.collect.foreach(println(_))
-spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})**/
+//result.collect.foreach(println(_))
+spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
 var end = System.currentTimeMillis() - start0
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
 println("ShredQuery1Spark,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
     
+result.flatMap{ case (cname, orders) => 
+  if (orders.isEmpty) List((cname, null, null, null))
+  else orders.flatMap{ case (date, parts) => 
+    if (parts.isEmpty) List((cname, date, null, null))
+    else parts.map(p => (cname, date, p.p_name, p.l_qty)) } }.collect.foreach(println(_))
 }
 f
   }

@@ -45,16 +45,16 @@ object Query4SparkManual {
     val spark = SparkSession.builder().config(conf).getOrCreate()
 
     val tpch = TPCHLoader(spark)
-    val C = tpch.loadCustomersProj
+    val C = tpch.loadCustomers()
     C.cache
     spark.sparkContext.runJob(C,  (iter: Iterator[_]) => {})
-    val O = tpch.loadOrdersProjBzip
+    val O = tpch.loadOrders()
     O.cache
     spark.sparkContext.runJob(O,  (iter: Iterator[_]) => {})
-    val L = tpch.loadLineitemProjBzip
+    val L = tpch.loadLineitem()
     L.cache
     spark.sparkContext.runJob(L,  (iter: Iterator[_]) => {})
-    val P = tpch.loadPartProj4
+    val P = tpch.loadPart()
     P.cache
     spark.sparkContext.runJob(P,  (iter: Iterator[_]) => {})
  
@@ -112,7 +112,7 @@ object Query4SparkManual {
   	var end0 = System.currentTimeMillis() - start0
 	  println("Query4SparkManual,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
     
-    /**result.flatMap{
+    result.flatMap{
       c =>
         if (c.c_orders.isEmpty) List((c.c_name, null, null, null))
         else c.c_orders.flatMap{
@@ -120,7 +120,7 @@ object Query4SparkManual {
             if (o.o_parts.isEmpty) List((c.c_name, o.o_orderdate, null, null))
             else o.o_parts.map(p => (c.c_name, o.o_orderdate, p.p_name, p._2))
          }
-      }.sortBy(_._1).collect.foreach(println(_))**/
+      }.sortBy(_._1).collect.foreach(println(_))
   
   }
 }

@@ -7,6 +7,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
+import scala.collection.mutable.HashMap
 case class Record159(lbl: Unit)
 case class Record160(l_orderkey: Int, l_quantity: Double, l_partkey: Int)
 case class Record161(p_name: String, p_partkey: Int)
@@ -42,15 +43,15 @@ object Query2SparkManual {
     val L = tpch.loadLineitem
     L.cache
     spark.sparkContext.runJob(L, (iter: Iterator[_]) => {})
-    val P = tpch.loadPartProj
+    val P = tpch.loadPart
     P.cache
     spark.sparkContext.runJob(P, (iter: Iterator[_]) => {})
 
     val l = L.map(l => l.l_partkey -> Record160(l.l_orderkey, l.l_quantity, l.l_partkey))
     val p = P.map(p => p.p_partkey -> Record161(p.p_name, p.p_partkey))
-    val lpj = l.joinSkew(p)
+    val lpj = l.join(p)
 
-    val OrderParts = lpj.map{ case (l, p) => 
+    val OrderParts = lpj.map{ case (k, (l, p)) => 
       l.l_orderkey -> Record172(p.p_partkey, l.l_quantity) }
     val CustomerOrders = O.map(o => o.o_orderkey -> Record166(o.o_orderdate, o.o_orderkey, o.o_custkey)).cogroup(OrderParts).flatMap{
       case (_, (orders, parts)) => orders.map( order => order.o_custkey -> Record319(order.o_orderdate, parts.toList)) 
@@ -63,32 +64,24 @@ object Query2SparkManual {
     spark.sparkContext.runJob(c, (iter: Iterator[_]) => {})
 
     var start0 = System.currentTimeMillis()
-    val accum1 = (acc: List[Record438], v: Record438) => v match {
-      case Record438(_, 0, 0.0) => acc
-      case _ => acc :+ v 
-    }
-    val accum2 = (acc1: List[Record438], acc2: List[Record438]) => acc1 ++ acc2
     val result = c.zipWithIndex.flatMap{
-      case (ctup, id1) => if (ctup.c_orders.isEmpty) List(((id1, ctup.c_name, null, null),0.0))
+      case (ctup, id1) => if (ctup.c_orders.isEmpty) List(((id1, ctup.c_name, null, null, null),0.0))
         else ctup.c_orders.zipWithIndex.flatMap{
-        case (otup, id2) => if (otup.o_parts.isEmpty) List(((id1, ctup.c_name, otup.o_orderdate, null),0.0))
-          else otup.o_parts.map{
-            case ptup => (id1, ctup.c_name, otup.o_orderdate, ptup.p_partkey) -> ptup.l_qty
-        }
-      }
+        case (otup, id2) => if (otup.o_parts.isEmpty) List(((id1, ctup.c_name, id2, otup.o_orderdate, null),0.0))
+          else otup.o_parts.foldLeft(HashMap.empty[(Long, String, Int, String, Int), Double].withDefaultValue(0))(
+            (acc, p) => {acc((id1, ctup.c_name, id2, otup.o_orderdate, p.p_partkey)) += p.l_qty; acc}).toList
+          }
     }.reduceByKey(_+_).map{
-      case ((id1, cname, date, pk), total) => (id1, date) -> Record438(cname, pk.asInstanceOf[Int], total)
-    }.aggregateByKey(List.empty[Record438])(accum1, accum2).map{
-      case ((id1, cname), totals) => Record439(cname, totals)
+      case ((id1, cname, id2, date, pk), total) => cname -> Record438(date, pk.asInstanceOf[Int], total)
     }
-    //result.collect.foreach(println(_))
+    result.collect.foreach(println(_))
     spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
     var end0 = System.currentTimeMillis() - start0
 	  println("Query2SparkManual"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
   
-    result.flatMap(r => if (r.totals.isEmpty) List((r.c_name, null, null, null))
+    /**result.flatMap(r => if (r.totals.isEmpty) List((r.c_name, null, null, null))
       else r.totals.map(o => (r.c_name, o.orderdate, o.partkey, o._2))
-    ).sortBy(_._1).collect.foreach(println(_))
+    ).sortBy(_._1).collect.foreach(println(_))**/
 
   }
 }

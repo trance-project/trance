@@ -34,7 +34,7 @@ object DictPartitionExplore {
    val tpch = TPCHLoader(spark)
 
 val L__F = 3
-val L__D_1 = tpch.loadLineitemProjBzip
+val L__D_1 = tpch.loadLineitemProj//Bzip
 L__D_1.cache
 spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
@@ -112,7 +112,15 @@ println(heavyJoin.count)
 //spark.sparkContext.runJob(heavyJoin, (iter: Iterator[_]) => {})
 //heavyJoin.collect.foreach(println(_))
 println("DictPartitionExplore,"+sf+","+Config.datapath+","+end6+",join heavy,"+spark.sparkContext.applicationId)
-    
+
+val start7 = System.currentTimeMillis()
+val skew = x69.joinSkew(x71)
+println("skew implementation")
+println(skew.count)
+//skew.collect.foreach(println(_))
+val end7 = System.currentTimeMillis() - start7 
+println("DictPartitionExplore,"+sf+","+Config.datapath+","+end7+",consol imp,"+spark.sparkContext.applicationId)
+
 }
 f
   }

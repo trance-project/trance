@@ -42,6 +42,8 @@ val O__D_1 = tpch.loadOrders()
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
+tpch.triggerGC
+
  def f = {
 var start0 = System.currentTimeMillis() 
 
