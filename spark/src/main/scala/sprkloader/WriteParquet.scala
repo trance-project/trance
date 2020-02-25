@@ -24,7 +24,7 @@ case class Record233(c_name: String, c_orders: Array[Record232])
 
 object WriteParquet extends App{
  
- object Query1{ 
+/** object Query1{ 
   def run(){
     val sf = Config.datapath.split("/").last
     val conf = new SparkConf().setMaster(Config.master).setAppName("Query1SparkDataset"+sf)
@@ -71,5 +71,5 @@ object WriteParquet extends App{
   }
   }
   Query1.run()
-
+**/
 }
