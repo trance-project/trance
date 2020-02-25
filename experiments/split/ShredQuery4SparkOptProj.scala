@@ -21,6 +21,7 @@ case class Record336(p_name: Int, l_qty: Double)
 case class PartTrunc(p_partkey: Int, p_mfgr: String, p_brand: String, p_type: String, p_size: Int, p_container: String, p_comment: String)
 case class RecordLP(p: PartTrunc, l_orderkey: Int, l_qty: Double)
 case class Record318(p_retailprice: Double, p_name: String)
+case class Record319(p: PartTrunc, l_qty: Double)
 
 case class Record373(p_name: String, _2: Double)
 case class Record374(o_orderdate: String, o_parts: Iterable[Record373])
@@ -95,27 +96,23 @@ spark.sparkContext.runJob(query1__D_2c_orders_2o_parts_1, (iter: Iterator[_]) =>
  def f = {
  
 var start0 = System.currentTimeMillis()
-val m__D_1 = query1__D_1.mapPartitions(it => it.map{ case x239 => 
-   val x240 = x239.c_name 
-val x241 = x239.c_custkey 
-val x243 = Record328(x240, x241) 
-x243 
-}, true) 
+val m__D_1 = query1__D_1.map{ case x239 =>
+   val x240 = x239.c_name
+val x241 = x239.c_custkey
+val x243 = Record328(x240, x241)
+x243
+}
 spark.sparkContext.runJob(m__D_1, (iter: Iterator[_]) => {})
 
-val c_orders__D_1 = query1__D_2c_orders_1.mapPartitions(it =>
-  it.map{ case (lbl, bag) => (lbl, bag.map( x269 =>
-   {val x271 = x269.o_orderdate 
-    val x272 = x269.o_orderkey 
-    val x274 = Record333(x271, x272) 
-    x274}))}, true)
+val c_orders__D_1 = query1__D_2c_orders_1.mapPartitions( it => it.map{ case (lbl, bag) => 
+  (lbl, bag.map(x263 => Record333(x263.o_orderdate, x263.o_orderkey))) }, true)
 spark.sparkContext.runJob(c_orders__D_1, (iter: Iterator[_]) => {})
 
 val x223 = query1__D_2c_orders_2o_parts_1.mapPartitions( it =>
       it.map{ case (lbl, bag) => (lbl, bag.foldLeft(HashMap.empty[Int, Double].withDefaultValue(0))(
             (acc, p) => {acc(p.p.p_partkey) += p.l_qty; acc})) }, true)
 
-val x284 = P__D_1.map(p => p.p_partkey -> Record318(p.p_retailprice,p.p_name))
+val x284 = P__D_1.map(p => p.p_partkey -> Record318(p.p_retailprice, p.p_name))
 
 val x224 = x223.flatMap{
   case (lbl, bag) => bag.map(p => p._1 -> (lbl, p._2))
@@ -130,7 +127,7 @@ val x226 = x290.map{
 val x227 = x226.reduceByKey(_+_)
 
 val x390 = x227.mapPartitions(it => 
-  it.map{ case ((lbl, pname), tot) => (lbl, (pname, tot))})
+  it.map{ case ((lbl, pname), tot) => (lbl, Record373(pname, tot))})
 
 val o_parts__D_1 = x390.groupByKey()
 //o_parts__D_1.collect.foreach(println(_))
@@ -157,7 +154,7 @@ println("ShredQuery4SparkOptProj,"+sf+","+Config.datapath+","+end1+",unshredding
     else corders.flatMap{
       case (date, parts) => 
         if (parts.isEmpty) List((cname, date, null, null))
-        else parts.map(p => (cname, date, p._1, p._2))
+        else parts.map(p => (cname, date, p.p_name, p._2))
     }
 }.sortBy(_._1).collect.foreach(println(_))**/
 

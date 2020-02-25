@@ -58,7 +58,7 @@ object Config {
   val minPartitions = prop.getProperty("minPartitions").toInt
   val threshold = prop.getProperty("threshold").toInt
   val goalParts = prop.getProperty("goalParts")
-  val lparts = prop.getProperty("lineitem")
+  val lparts = prop.getProperty("lineitem").toInt
 }
 
 class TPCHLoader(spark: SparkSession) extends Serializable {
@@ -66,6 +66,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   val datapath = Config.datapath
   val parts = Config.minPartitions
   val goalParts = Config.goalParts
+  val lparts = Config.lparts
 
   def parseBigInt(n: String): Int = {
     val b = BigInt(n).intValue()
@@ -86,7 +87,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 		it.map(line => {
         	val l = line.split("\\|")
             Customer(l(0).toInt, l(1), l(2), l(3).toInt, l(4), l(5).toDouble, l(6), l(7))
-		}), true).repartiton(parts)
+		}), true).repartition(parts)
   }
 
   def loadCustomersProj(path: String = s"file:///$datapath/customer.tbl"):RDD[CustomerProj] = {
@@ -204,20 +205,20 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   // this is hard coded directory of files split with bash
   // split --line-bytes=797780948 --filter='gzip > $FILE.gz' /path/to/input /path/to/output
   def loadLineitem():RDD[Lineitem] = {
-  	spark.sparkContext.textFile(s"file:///$datapath/lineitem.tbl",minPartitions = 1000).mapPartitions(it => 
+  	spark.sparkContext.textFile(s"file:///$datapath/lineitem.tbl",minPartitions = lparts).mapPartitions(it => 
 		it.map(line => {
 			val l = line.split("\\|")
         	Lineitem(parseBigInt(l(0)), l(1).toInt, l(2).toInt, l(3).toInt, l(4).toDouble, l(5).toDouble, 
 				l(6).toDouble, l(7).toDouble, l(8), l(9), l(10), l(11), l(12), l(13), l(14), l(15))
-		}), true).repartition(1000)
+		}), true).repartition(lparts)
   }
  
   def loadLineitemProj(path: String = s"file:///$datapath/lineitem.tbl"):RDD[LineitemProj] = {
-	spark.sparkContext.textFile(path, minPartitions = 1000).mapPartitions(it => 
+	spark.sparkContext.textFile(path, minPartitions = lparts).mapPartitions(it => 
 		it.map(line => {
 			val l = line.split("\\|")
         	LineitemProj(parseBigInt(l(0)), l(1).toInt, l(4).toDouble)
-		}), true).repartition(1000)
+		}), true).repartition(lparts)
   }
 
   def loadLineitemDF():Dataset[Lineitem] = {
