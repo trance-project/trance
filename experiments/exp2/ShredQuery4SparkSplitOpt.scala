@@ -36,19 +36,19 @@ object ShredQuery4SparkSplitOpt {
    val tpch = TPCHLoader(spark)
 
 val L__F = 3
-val L__D_1 = tpch.loadLineitemProj//Bzip
+val L__D_1 = tpch.loadLineitemProj()
 L__D_1.cache
 spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
-val P__D_1 = tpch.loadPartProj4
+val P__D_1 = tpch.loadPartProj4()
 P__D_1.cache
 spark.sparkContext.runJob(P__D_1, (iter: Iterator[_]) => {})
 val C__F = 1
-val C__D_1 = tpch.loadCustomersProj
+val C__D_1 = tpch.loadCustomersProj()
 C__D_1.cache
 spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
 val O__F = 2
-val O__D_1 = tpch.loadOrdersProj//Bzip
+val O__D_1 = tpch.loadOrdersProj()
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
@@ -181,12 +181,12 @@ spark.sparkContext.runJob(query1__D_2c_orders_2o_parts_1_H, (iter: Iterator[_]) 
 var start0 = System.currentTimeMillis()
 val x227 = query1__D_1_L
 val m__D_1 = x227
-
-val x235 = m__D_1.createDomain(l => l.c_orders)
-val c_orders_ctx1 = x235
+spark.sparkContext.runJob(query1__D_1_L, (iter: Iterator[_]) => {})
 
 val c_orders__D_1_L = query1__D_2c_orders_1_L
 val c_orders__D_1_H = query1__D_2c_orders_1_H
+spark.sparkContext.runJob(c_orders__D_1_L, (iter: Iterator[_]) => {})
+spark.sparkContext.runJob(c_orders__D_1_H, (iter: Iterator[_]) => {})
 
 val x223_L = query1__D_2c_orders_2o_parts_1_L.mapPartitions( it =>
       it.map{ case (lbl, bag) => (lbl, bag.foldLeft(HashMap.empty[Int, Double].withDefaultValue(0))(

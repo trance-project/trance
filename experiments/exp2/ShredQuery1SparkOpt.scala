@@ -25,19 +25,19 @@ object ShredQuery1SparkOpt {
    val tpch = TPCHLoader(spark)
 
 val L__F = 3
-val L__D_1 = tpch.loadLineitem()
+val L__D_1 = tpch.loadLineitemProj()
 L__D_1.cache
 spark.sparkContext.runJob(L__D_1, (iter: Iterator[_]) => {})
 val P__F = 4
-val P__D_1 = tpch.loadPart()
+val P__D_1 = tpch.loadPartProj()
 P__D_1.cache
 spark.sparkContext.runJob(P__D_1, (iter: Iterator[_]) => {})
 val C__F = 1
-val C__D_1 = tpch.loadCustomers()
+val C__D_1 = tpch.loadCustomersProj()
 C__D_1.cache
 spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
 val O__F = 2
-val O__D_1 = tpch.loadOrders()
+val O__D_1 = tpch.loadOrdersProj()
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
@@ -49,9 +49,9 @@ var start0 = System.currentTimeMillis()
 val x219 = L__D_1
 val x224 = P__D_1
 val x225 = x224.map{ case x225 => ({val x227 = x225.p_partkey
-x227}, PartProj(x225.p_partkey, x225.p_name)) }
+x227}, x225) }
 val x226 = x219.map{ case x225 => ({val x227 = x225.l_partkey 
-x227}, LineitemProj(x225.l_orderkey, x225.l_partkey, x225.l_quantity)) }
+x227}, x225) }
 val x227 = x226.joinDropKey(x225)
  
 val x236 = x227.mapPartitions( it =>
