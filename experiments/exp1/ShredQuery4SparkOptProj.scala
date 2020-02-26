@@ -102,10 +102,12 @@ val x241 = x239.c_custkey
 val x243 = Record328(x240, x241)
 x243
 }
+m__D_1.cache
 spark.sparkContext.runJob(m__D_1, (iter: Iterator[_]) => {})
 
 val c_orders__D_1 = query1__D_2c_orders_1.mapPartitions( it => it.map{ case (lbl, bag) => 
   (lbl, bag.map(x263 => Record333(x263.o_orderdate, x263.o_orderkey))) }, true)
+c_orders__D_1.cache
 spark.sparkContext.runJob(c_orders__D_1, (iter: Iterator[_]) => {})
 
 val x223 = query1__D_2c_orders_2o_parts_1.mapPartitions( it =>
@@ -131,20 +133,21 @@ val x390 = x227.mapPartitions(it =>
 
 val o_parts__D_1 = x390.groupByKey()
 //o_parts__D_1.collect.foreach(println(_))
+o_parts__D_1.cache
 spark.sparkContext.runJob(o_parts__D_1, (iter: Iterator[_]) => {})
 var end0 = System.currentTimeMillis() - start0
 println("ShredQuery4SparkOptProj,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
 var start1 = System.currentTimeMillis()
-/**val x342 = c_orders__D_1.mapPartitions(
-    it => it.flatMap{ case (lbl, bag) => bag.map(o => (o.o_parts, (lbl, o.o_orderdate)))}, false
-  ).cogroup(o_parts__D_1).flatMap{
+val x342 = c_orders__D_1.flatMap{ 
+  case (lbl, bag) => bag.map(o => (o.o_parts, (lbl, o.o_orderdate)))
+}.cogroup(o_parts__D_1).flatMap{
     case (_, (left, x349)) => left.map{ case (lbl, date) => (lbl, (date, x349.flatten)) }
   }
 val result = m__D_1.map(c => c.c_orders -> c.c_name).cogroup(x342).flatMap{
   case (_, (left, x349)) => left.map(cname => cname -> x349)
 }
-spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})**/
+spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery4SparkOptProj,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 
