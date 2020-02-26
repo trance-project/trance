@@ -31,16 +31,16 @@ object Query1SparkManualAgg {
     val spark = SparkSession.builder().config(conf).getOrCreate()
 
     val tpch = TPCHLoader(spark)
-    val C = tpch.loadCustomers
+    val C = tpch.loadCustomers()
     C.cache
     spark.sparkContext.runJob(C, (iter: Iterator[_]) => {})
-    val O = tpch.loadOrders
+    val O = tpch.loadOrders()
     O.cache
     spark.sparkContext.runJob(O, (iter: Iterator[_]) => {})
-    val L = tpch.loadLineitem
+    val L = tpch.loadLineitem()
     L.cache
     spark.sparkContext.runJob(L, (iter: Iterator[_]) => {})
-    val P = tpch.loadPart
+    val P = tpch.loadPart()
     P.cache
     spark.sparkContext.runJob(P, (iter: Iterator[_]) => {})
        
@@ -54,11 +54,11 @@ object Query1SparkManualAgg {
 
     val OrderParts = lpj.map{ case (k, (l, p)) => l.l_orderkey -> Record179(p.p_name, l.l_quantity) }
 
-    val CustomerOrders = O.zipWithIndex.map{ case (o, id) => o.o_orderkey -> (o, id) }.cogroup(OrderParts).flatMap{
-      case (ok, (orders, parts)) => orders.map{ case (o, id) => o.o_custkey -> Record232(o.o_orderdate, parts) }}
+    val CustomerOrders = O.zipWithIndex.map{ case (o, id) => o.o_orderkey -> (o.o_orderdate, id) }.cogroup(OrderParts).flatMap{
+      case (ok, (orders, parts)) => orders.map{ case (o, id) => o.o_custkey -> Record232(o, parts) }}
 
-    val result = C.zipWithIndex.map{ case (c, id) => c.c_custkey -> (c, id) }.cogroup(CustomerOrders).flatMap{
-      case (ck, (custs, orders)) => custs.map{ case (c, id) => Record233(c.c_name, orders) }
+    val result = C.zipWithIndex.map{ case (c, id) => c.c_custkey -> (c.c_name, id) }.cogroup(CustomerOrders).flatMap{
+      case (ck, (custs, orders)) => custs.map{ case (c, id) => Record233(c, orders) }
     }
     spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
     var end0 = System.currentTimeMillis() - start0
