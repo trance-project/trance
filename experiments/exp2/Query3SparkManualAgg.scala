@@ -36,16 +36,16 @@ object Query3SparkManualAgg {
     val spark = SparkSession.builder().config(conf).getOrCreate()
 
     val tpch = TPCHLoader(spark)
-    val C = tpch.loadCustomers()
+    val C = tpch.loadCustomersProj()
     C.cache
     spark.sparkContext.runJob(C, (iter: Iterator[_]) => {})
-    val O = tpch.loadOrders()
+    val O = tpch.loadOrdersProj()
     O.cache
     spark.sparkContext.runJob(O, (iter: Iterator[_]) => {})
-    val L = tpch.loadLineitem()
+    val L = tpch.loadLineitemProj()
     L.cache
     spark.sparkContext.runJob(L, (iter: Iterator[_]) => {})
-    val P = tpch.loadPart()
+    val P = tpch.loadPartProj4()
     P.cache
     spark.sparkContext.runJob(P, (iter: Iterator[_]) => {})
 
@@ -79,7 +79,7 @@ object Query3SparkManualAgg {
     }.reduceByKey(_+_).map{
       case ((id1, c, p), total) => (c, p, total)
     }
-    // result.collect.foreach(println(_))
+    //result.collect.foreach(println(_))
     spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
     var end0 = System.currentTimeMillis() - start0
 	  println("Query3SparkManualAgg"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)

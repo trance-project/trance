@@ -37,16 +37,16 @@ object Query4SparkManualAggSkew {
     val spark = SparkSession.builder().config(conf).getOrCreate()
 
     val tpch = TPCHLoader(spark)
-    val C = tpch.loadCustomers()
+    val C = tpch.loadCustomersProj()
     C.cache
     spark.sparkContext.runJob(C,  (iter: Iterator[_]) => {})
-    val O = tpch.loadOrders()
+    val O = tpch.loadOrdersProj()
     O.cache
     spark.sparkContext.runJob(O,  (iter: Iterator[_]) => {})
-    val L = tpch.loadLineitem()
+    val L = tpch.loadLineitemProj()
     L.cache
     spark.sparkContext.runJob(L,  (iter: Iterator[_]) => {})
-    val P = tpch.loadPart()
+    val P = tpch.loadPartProj()
     P.cache
     spark.sparkContext.runJob(P,  (iter: Iterator[_]) => {})
  
