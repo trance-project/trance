@@ -17,7 +17,7 @@ case class Record169(c_name: String, c_custkey: Int)
 case class Record170(c__Fc_custkey: Int)
 case class Record171(c_name: String, c_orders: Record170)
 case class Record172(lbl: Record170)
-case class Record173(o_orderdate: String, o_orderkey: Int, o_custkey: Int)
+case class Record173(o_orderdate: String, o_custkey: Int)
 case class Record175(o__Fo_orderkey: Int)
 case class Record176(o_orderdate: String, o_parts: Record175)
 case class Record177(lbl: Record175)
@@ -54,8 +54,8 @@ object Query1SparkManualAgg {
 
     val OrderParts = lpj.map{ case (k, (l, p)) => l.l_orderkey -> Record179(p.p_name, l.l_quantity) }
 
-    val CustomerOrders = O.zipWithIndex.map{ case (o, id) => o.o_orderkey -> (o.o_orderdate, id) }.cogroup(OrderParts).flatMap{
-      case (ok, (orders, parts)) => orders.map{ case (o, id) => o.o_custkey -> Record232(o, parts) }}
+    val CustomerOrders = O.zipWithIndex.map{ case (o, id) => o.o_orderkey -> (Record173(o.o_orderdate, o.o_custkey), id) }.cogroup(OrderParts).flatMap{
+      case (ok, (orders, parts)) => orders.map{ case (o, id) => o.o_custkey -> Record232(o.o_orderdate, parts) }}
 
     val result = C.zipWithIndex.map{ case (c, id) => c.c_custkey -> (c.c_name, id) }.cogroup(CustomerOrders).flatMap{
       case (ck, (custs, orders)) => custs.map{ case (c, id) => Record233(c, orders) }
