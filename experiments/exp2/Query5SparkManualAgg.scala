@@ -10,6 +10,7 @@ import sprkloader.SkewPairRDD._
 
 case class RecordC(c_name: String, c_nationkey: Int)
 case class RecordS(s_name: String, s_nationkey: Int)
+case class RecordSC(s: RecordS, customers: Iterable[RecordC])
 
 object Query5SparkManualAgg {
  def main(args: Array[String]){
@@ -35,7 +36,7 @@ object Query5SparkManualAgg {
   
   val lineitem = L.zipWithIndex.map{ case (l,id) => l.l_orderkey -> l.l_suppkey }
   val orders = O.zipWithIndex.map{ case (o, id) => o.o_custkey -> o.o_orderkey }
-  val customers = C.zipWithIndex.map{ case (c, id) => c.c_custkey -> (RecordC(c.c_name, c.c_nationkey), id) }
+  val customers = C.zipWithIndex.map{ case (c, id) => c.c_custkey -> RecordC(c.c_name, c.c_nationkey) }
   val resultInner = orders.join(customers).map{
 	  case (_, (o_orderkey, c_info)) => o_orderkey -> c_info
   }.join(lineitem).map{
@@ -43,20 +44,18 @@ object Query5SparkManualAgg {
   }
 
   val result = S.zipWithIndex.map{ case (s, id) => 
-      s.s_suppkey -> (RecordS(s.s_name, s.s_nationkey), id)
-    }.join(resultInner).map{
-      case (_, ((s, id), (c, id2))) => (s, id) -> c
-    }.groupByKey().map{
-      case ((s, id), customers) => s -> customers
+      s.s_suppkey -> RecordS(s.s_name, s.s_nationkey)
+    }.cogroup(resultInner).flatMap{
+      case (_, (supps, custs)) => supps.map(s => RecordSC(s, custs))
     }
   spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
   var end0 = System.currentTimeMillis() - start0
   println("Query5SparkManualAgg"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
   
   /**result.flatMap{ 
-    case (s, customers) => if (customers.isEmpty) List((s.s_name, s.s_nationkey, null, null))
-      else customers.map(c => (s.s_name, s.s_nationkey, c.c_name, c.c_nationkey))
-    }.sortBy(_._1).collect.foreach(println(_))**/
+    case supp => if (supp.customers.isEmpty) List((supp.s.s_name, supp.s.s_nationkey, null))
+      else supp.customers.map(c => (supp.s.s_name, supp.s.s_nationkey, c.c_name, c.c_nationkey))
+    }.collect.foreach(println(_))**/
 
   }
 }
