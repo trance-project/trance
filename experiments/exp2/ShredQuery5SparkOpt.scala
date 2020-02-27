@@ -69,17 +69,17 @@ var end0 = System.currentTimeMillis() - start0
 println("ShredQuery5SparkOpt,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
 var start = System.currentTimeMillis()
-val result = m__D_1.map(s => s.customers -> RecordS(s.s_name, s.s_nationkey)).cogroup(customers__D_1).flatMap{
+/**val result = m__D_1.map(s => s.customers -> RecordS(s.s_name, s.s_nationkey)).cogroup(customers__D_1).flatMap{
   case (_, (supps, custs)) => supps.map(s => (s, custs.flatten))
 }
-spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
+spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})**/
 var end = System.currentTimeMillis() - start
 println("ShredQuery5SparkOpt,"+sf+","+Config.datapath+","+end+",unshredding,"+spark.sparkContext.applicationId)
    
-result.flatMap{
+/**result.flatMap{
   case (s, custs) => if (custs.isEmpty) List((s.s_name, s.s_nationkey, null, null))
     else custs.map(c => (s.s_name, s.s_nationkey, c.c_name, c.c_nationkey))
-}.collect.foreach(println(_))
+}.collect.foreach(println(_))**/
 
 }
 f
