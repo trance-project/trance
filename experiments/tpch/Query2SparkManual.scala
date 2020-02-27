@@ -36,10 +36,7 @@ S.count
   val lineitem = L.map(l => l.l_orderkey -> l.l_suppkey)
   val orders = O.map(o => o.o_custkey -> o.o_orderkey) //o.o_custkey -> o.o_orderkey)
   val customers = C.map(c => c.c_custkey -> c.c_name)
-  /**val resultInner = lineitem.join(orders).map{
-     case (_, (l_suppkey, o_custkey)) => o_custkey -> l_suppkey
-  }.joinSkewLeft(customers).map(_._2)**/
-  val resultInner = orders.joinSkewLeft(customers).map{
+  val resultInner = orders.join(customers).map{
 	case (_, (o_orderkey, c_info)) => o_orderkey -> c_info
   }.join(lineitem).map(_._2.swap)
 
