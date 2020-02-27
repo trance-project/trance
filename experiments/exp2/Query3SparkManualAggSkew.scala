@@ -66,7 +66,7 @@ object Query3SparkManualAggSkew {
     spark.sparkContext.runJob(cop, (iter: Iterator[_]) => {})
 
     var start0 = System.currentTimeMillis()
-    val result = cop.zipWithIndex.flatMap{
+    val cflat = cop.zipWithIndex.flatMap{
       case (ctup, id1) => if (ctup.c_orders.isEmpty) List((-1, (id1, ctup.c_name, 0.0)))
         else ctup.c_orders.zipWithIndex.flatMap{
          case (otup, id2) => if (otup.o_parts.isEmpty) List((-1, (id1, ctup.c_name, 0.0)))         
@@ -74,9 +74,19 @@ object Query3SparkManualAggSkew {
             (acc, p) => {acc(p.p_partkey) += p.l_qty; acc}).map{ case (pk, tot) => 
               pk -> (id1, ctup.c_name, tot) }
         }
-    }.joinSkew(P.map(p => p.p_partkey -> Record318(p.p_name, p.p_retailprice))).map{
+    }
+    val ps = P.map(p => p.p_partkey -> Record318(p.p_name, p.p_retailprice))
+    val (j_L, j_H, hkeys1) = cflat.joinSplit(ps)
+    val mj_L = j_L.map{
       case ((id1, cname, qty), p) => (id1, cname, p.p_name) -> qty*p.p_retailprice
-    }.reduceByKey(_+_).map{
+    }
+    val mj_H = j_H.map{
+      case ((id1, cname, qty), p) => (id1, cname, p.p_name) -> qty*p.p_retailprice
+    }
+
+    val (r_L, r_H) = mj_L.reduceBySplit(mj_H, _+_)
+
+    val result = r_L.map{
       case ((id1, c, p), total) => (c, p, total)
     }
     // result.collect.foreach(println(_))
