@@ -8,6 +8,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
+import sprkloader.UtilPairRDD._
 import scala.collection.mutable.HashMap
 case class Record165(lbl: Unit)
 case class Record166(l_orderkey: Int, l_quantity: Double, l_partkey: Int)
@@ -46,7 +47,7 @@ object Query4SparkManualAggSkew {
     val L = tpch.loadLineitemProj()
     L.cache
     spark.sparkContext.runJob(L,  (iter: Iterator[_]) => {})
-    val P = tpch.loadPartProj()
+    val P = tpch.loadPartProj4()
     P.cache
     spark.sparkContext.runJob(P,  (iter: Iterator[_]) => {})
  
@@ -70,17 +71,7 @@ object Query4SparkManualAggSkew {
 
 
     var start0 = System.currentTimeMillis()
-    val accum1 = (acc: List[Record373], v: Record373) => v match {
-      case Record373(null, _) => acc
-      case _ => acc :+ v
-    }
-    val accum2 = (acc1: List[Record373], acc2: List[Record373]) => acc1 ++ acc2
-    val accum3 = (acc: List[Record374], v: Record374) => v match {
-      case Record374(null, _) => acc
-      case _ => acc :+ v
-    }
-    val accum4 = (acc1: List[Record374], acc2: List[Record374]) => acc1 ++ acc2
-    val result = cop.zipWithIndex.flatMap{
+    val cflat = cop.zipWithIndex.flatMap{
       case (ctup, id1) => if (ctup.c_orders.isEmpty) List((-1, (id1, ctup.c_name, null, null, 0.0)))
         else ctup.c_orders.zipWithIndex.flatMap{
         case (otup, id2) => if (otup.o_parts.isEmpty) List((-1, (id1, ctup.c_name, id2, otup.o_orderdate, 0.0)))
@@ -88,18 +79,53 @@ object Query4SparkManualAggSkew {
             (acc, p) => {acc(p.p_partkey) += p.l_qty; acc}).map{ case (pk, tot) => 
               pk -> (id1, ctup.c_name, id2, otup.o_orderdate, tot) }
         }
-    }.outerJoinSkew(P.map(p => p.p_partkey -> Record318(p.p_retailprice, p.p_name))).map{
+    }
+    val ps = P.map(p => p.p_partkey -> Record318(p.p_retailprice, p.p_name))
+    val (j_L, j_H, hkeys1) = cflat.outerJoinSplit(ps)
+
+    val mj_L = j_L.map{
       case ((id1, cust, id2, order, qty), Some(pinfo)) =>
         (id1, cust, id2, order, pinfo.p_name) -> qty*pinfo.p_retailprice
       case ((id1, cust, id2, order, qty), _) => (id1, cust, id2, order, null) -> 0.0
-    }.reduceByKey(_ + _).map{
+    }
+
+    val mj_H = j_H.map{
+      case ((id1, cust, id2, order, qty), Some(pinfo)) =>
+        (id1, cust, id2, order, pinfo.p_name) -> qty*pinfo.p_retailprice
+      case ((id1, cust, id2, order, qty), _) => (id1, cust, id2, order, null) -> 0.0
+    }
+
+    val (rb_L, rb_H) = mj_L.reduceBySplit(mj_H, _+_)
+
+    val mr_L = rb_L.map{
       case ((id1, cust, id2, order, pname), total) => 
         (id1, cust, id2, order) -> Record373(pname, total)
-    }.aggregateByKey(List.empty[Record373])(accum1, accum2).map{
+    }
+
+    val mr_H = rb_H.map{
+      case ((id1, cust, id2, order, pname), total) => 
+        (id1, cust, id2, order) -> Record373(pname, total)
+    }
+
+    val (ag1_L, ag1_H, hkeys2) = mr_L.aggregateBySplit(mr_H, Record373(null, 0.0))
+
+    val mag1_L = ag1_L.map{
 		  case ((id1, cust, id2, order), bag) => (id1, cust) -> Record374(order, bag)
-	  }.aggregateByKey(List.empty[Record374])(accum3, accum4).map{
+	  }
+
+    val mag1_H = ag1_H.map{
+      case ((id1, cust, id2, order), bag) => (id1, cust) -> Record374(order, bag)
+    }
+
+    val (ag2_L, ag2_H, hkeys3) = mag1_L.aggregateBySplit(mag1_H, Record374(null, Iterable()))
+
+    val res1_L = ag2_L.map{
 		  case ((id1, cust), bag) => Record375(cust, bag)
 	  }
+    val res1_H = ag2_H.map{
+      case ((id1, cust), bag) => Record375(cust, bag)
+    }
+    val result = res1_L.unionPartitions(res1_H)
     spark.sparkContext.runJob(result,  (iter: Iterator[_]) => {})
   	var end0 = System.currentTimeMillis() - start0
 	  println("Query4SparkManualAggSkew,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
