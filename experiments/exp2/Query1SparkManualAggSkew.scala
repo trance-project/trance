@@ -8,6 +8,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
+import sprkloader.UtilPairRDD._
 /** Inherit same case class from generated code **/
 case class Record165(lbl: Unit)
 case class Record166(l_orderkey: Int, l_quantity: Double, l_partkey: Int)
@@ -50,16 +51,34 @@ object Query1SparkManualAggSkew {
 
     val l = L.map(l => l.l_partkey -> Record166(l.l_orderkey, l.l_quantity, l.l_partkey))
     val p = P.map(p => p.p_partkey -> Record167(p.p_name, p.p_partkey))
-    val lpj = l.joinSkew(p)
+    val (lpj_L, lpj_H, hkeys1) = l.joinSplit(p)
 
-    val OrderParts = lpj.map{ case (l, p) => l.l_orderkey -> Record179(p.p_name, l.l_quantity) }
+    val op_L = lpj_L.map{ case (l, p) => 
+      l.l_orderkey -> Record179(p.p_name, l.l_quantity) }
+    val op_H = lpj_H.map{ case (l, p) => 
+      l.l_orderkey -> Record179(p.p_name, l.l_quantity) }
 
-    val CustomerOrders = O.zipWithIndex.map{ case (o, id) => o.o_orderkey -> (o, id) }.cogroup(OrderParts).flatMap{
-      case (ok, (orders, parts)) => orders.map{ case (o, id) => o.o_custkey -> Record232(o.o_orderdate, parts) }}
+    val orders = O.zipWithIndex.map{ case (o, id) => o.o_orderkey -> (o, id) }
 
-    val result = C.zipWithIndex.map{ case (c, id) => c.c_custkey -> (c, id) }.cogroup(CustomerOrders).flatMap{
-      case (ck, (custs, orders)) => custs.map{ case (c, id) => Record233(c.c_name, orders) }
-    }
+    val (oparts_L, oparts_H, hkeys2) = orders.cogroupSplit(op_L.unionPartitions(op_H))
+    
+    val cokey_L = oparts_L.map{
+      case ((o,id), parts) => o.o_custkey -> Record232(o.o_orderdate, parts) }
+
+    val cokey_H = oparts_H.map{
+      case ((o,id), parts) => o.o_custkey -> Record232(o.o_orderdate, parts) }
+
+    val custs = C.zipWithIndex.map{ case (c, id) => c.c_custkey -> (c, id) }
+
+    val (customerOrders_L, customerOrders_H, hkeys3) = custs.cogroupSplit(cokey_L.unionPartitions(cokey_H))
+
+    val result_L = customerOrders_L.mapPartitions(
+      it => it.map{ case ((c, id), orders) => Record233(c.c_name, orders)}, true)
+
+    val result_H = customerOrders_H.mapPartitions(
+      it => it.map{ case ((c, id), orders) => Record233(c.c_name, orders)}, true)
+
+    val result = result_L.unionPartitions(result_H)    
     spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
     var end0 = System.currentTimeMillis() - start0
     println("Query1SparkManualAggSkew"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
