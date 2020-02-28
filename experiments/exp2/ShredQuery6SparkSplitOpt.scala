@@ -50,18 +50,14 @@ val x41 = O__D_1.map{ case x47 => (x47.o_custkey, x47.o_orderkey) }
 val x46 = C__D_1.map{ case x48 => (x48.c_custkey, RecordC(x48.c_custkey, x48.c_nationkey)) }
 val (x51_L, x51_H, hkeys1) = x41.joinSplit(x46)
 
-// partitioning bug
-val x52_L = x51_L.map(l => l)
-val x52_H = x51_H.map(l => l)
-
-val resultInner__D_1_L = x52_L
-val resultInner__D_1_H = x52_H
+val resultInner__D_1_L = x51_L
+val resultInner__D_1_H = x51_H
 
 //resultInner__D_1.collect.foreach(println(_))
 
 val x81 = L__D_1.map{ case x83 => (x83.l_orderkey, x83.l_suppkey) }
 
-val (x83_L, x83_H, hkeys2) = resultInner__D_1_L.unionPartitions(resultInner__D_1_H).joinSplit(x81)
+val (x83_L, x83_H, hkeys2) = resultInner__D_1_L.unionPartitions(resultInner__D_1_H, false).joinSplit(x81)
 
 val x84_L = x83_L.map{
   case (c, lbl) => lbl -> c
