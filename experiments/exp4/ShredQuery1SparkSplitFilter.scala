@@ -73,12 +73,8 @@ x235
 }, true) 
 
 // top level stays light
-val x244 = C__D_1.map{ case x239 => 
-   val x240 = x239.c_name 
-val x241 = x239.c_custkey 
-val x243 = Record328(x240, x241) 
-x243 
-} 
+val x244 = C__D_1.flatMap{ case x239 => 
+  if (x239.c_nationkey < 13) List(Record328(x239.c_name, x239.c_custkey)) else Nil }
 val M__D_1 = x244
 val x245 = M__D_1
 
