@@ -36,7 +36,7 @@ val C__D_1 = tpch.loadCustomersProj5()
 C__D_1.cache
 spark.sparkContext.runJob(C__D_1, (iter: Iterator[_]) => {})
 val O__F = 2
-val O__D_1 = tpch.loadOrdersProj()
+val O__D_1 = tpch.loadOrdersProj4()
 O__D_1.cache
 spark.sparkContext.runJob(O__D_1, (iter: Iterator[_]) => {})
 
@@ -46,19 +46,15 @@ var start0 = System.currentTimeMillis()
 
 // top level stays light
 val x244 = C__D_1.flatMap{ case x239 => 
-  if (x239.c_nationkey < 13) List(Record328(x239.c_name, x239.c_custkey)) else Nil }
+  if (x239.c_nationkey < 20) List(Record328(x239.c_name, x239.c_custkey)) else Nil }
 val M__D_1 = x244
 val x245 = M__D_1
 spark.sparkContext.runJob(M__D_1, (iter: Iterator[_]) => {})
 
 val (c_orders__D_1_L, c_orders__D_1_H, hkeys1) = 
-  O__D_1.mapPartitions(it =>
-    it.map{ case x268 => 
-      (x268.o_custkey, {val x271 = x268.o_orderdate 
-      val x272 = x268.o_orderkey 
-      val x274 = Record333(x271, x272) 
-      x274})
-    }).groupBySplit()
+  O__D_1.flatMap{ case x268 => 
+    if (x268.o_priority.contains("HIGH")) List((x268.o_custkey, Record333(x268.o_orderdate, x268.o_orderkey))) 
+    else Nil }.groupBySplit()
 spark.sparkContext.runJob(c_orders__D_1_L, (iter: Iterator[_]) => {})
 spark.sparkContext.runJob(c_orders__D_1_H, (iter: Iterator[_]) => {})
 
