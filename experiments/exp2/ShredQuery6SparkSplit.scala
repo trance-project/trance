@@ -123,19 +123,19 @@ def f = {
     var end0 = System.currentTimeMillis() - start0
     println("ShredQuery6SparkSplit,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
     var start = System.currentTimeMillis()
-    val suppliers__D_1 = suppliers__D_1_L.unionPartitions(suppliers__D_1_H).map(l => l)
+    /**val suppliers__D_1 = suppliers__D_1_L.unionPartitions(suppliers__D_1_H).map(l => l)
     val result = m__D_1.map(c => c.suppliers -> (c.c_name, c.c_nationkey)).join(suppliers__D_1).map{
       case (_, (c, supps)) => RecordSCR(c._1, c._2, supps.flatten)
     }
-    spark.sparkContext.runJob(result,  (iter: Iterator[_]) => {})
+    spark.sparkContext.runJob(result,  (iter: Iterator[_]) => {})**/
     var end = System.currentTimeMillis() - start
       
     println("ShredQuery6SparkSplit"+sf+","+Config.datapath+","+end+",unshredding,"+spark.sparkContext.applicationId)
 
-    result.flatMap{
+    /**result.flatMap{
       case cs => if (cs.suppliers.isEmpty) List((cs.c_name, cs.c_nationkey, null, null))
         else cs.suppliers.map( s => (cs.c_name, cs.c_nationkey, s.s_name, s.s_nationkey))
-    }.collect.foreach(println(_))
+    }.collect.foreach(println(_))**/
   }
   f
  }
