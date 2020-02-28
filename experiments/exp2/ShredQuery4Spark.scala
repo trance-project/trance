@@ -182,7 +182,7 @@ var end0 = System.currentTimeMillis() - start0
 println("ShredQuery4Spark,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
 var start1 = System.currentTimeMillis()
-/*8val x342 = c_orders__D_1.flatMap{ case (lbl, bag) => 
+/**val x342 = c_orders__D_1.flatMap{ case (lbl, bag) => 
   bag.map(o => (o.o_parts, (lbl, o.o_orderdate)))
 }.cogroup(o_parts__D_1).flatMap{
     case (_, (left, x349)) => left.map{ case (lbl, date) => (lbl, (date, x349.flatten)) }
