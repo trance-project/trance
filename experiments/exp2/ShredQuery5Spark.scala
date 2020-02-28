@@ -47,27 +47,26 @@ val m__D_1 = x65
 
 val customers_ctx1 = m__D_1.createDomain(l => l.customers)
 
+
 val x41 = O__D_1.map{ case x47 => (x47.o_custkey, x47.o_orderkey) }
-val x46 = C__D_1.map{ case x48 => (x48.c_custkey, x48) }
-val x51 = x41.join(x46).values.map{
-  case (ok, c) => ok -> RecordC(c.c_name, c.c_nationkey)
-}
+val x46 = C__D_1.map{ case x48 => (x48.c_custkey, RecordC(x48.c_name, x48.c_nationkey)) }
+val x51 = x41.join(x46).values
 
 val resultInner__D_1 = x51
 
 //resultInner__D_1.collect.foreach(println(_))
 
 val x81 = L__D_1.map{ case x83 => (x83.l_suppkey, x83.l_orderkey) }
-val x82 = x81.joinDomain(customers_ctx1, (l:Int) => l).map{
-  case (lbl, ok) => ok -> lbl
-}
+val x82 = x81.joinDomain(customers_ctx1, (l: Int) => l)
 
-val x83 = resultInner__D_1.joinDropKey(x82)
+val x83 = resultInner__D_1.join(x82).values
 
 val x84 = x83.map{
   case (c, lbl) => lbl -> c
 }.groupByKey(new HashPartitioner(400))
+// customers__D_1.cache
 val customers__D_1 = x84
+
 
 // customers__D_1.cache
 spark.sparkContext.runJob(customers__D_1, (iter: Iterator[_]) => {})

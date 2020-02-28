@@ -416,8 +416,8 @@ object SkewPairRDD {
 
     def joinDropKey[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = {
       lrdd.cogroup(rrdd).mapPartitions( it =>
-	  	it.flatMap{ case (key, (vs, ss)) =>
-          for (v <- vs.iterator; s <- ss.iterator) yield (v, s)}, true)
+  	  	it.flatMap{ case (key, (vs, ss)) =>
+            for (v <- vs.iterator; s <- ss.iterator) yield (v, s)}, true)
     }
 
     def outerJoinDropKey[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, Option[S])] = {
@@ -472,11 +472,27 @@ object SkewPairRDD {
       } else lrdd.outerJoinDropKey(rrdd)
     }
 
+    // joining on a domain can never preserve partitioning
+    // due to behavior of mapPartitions and projecting away the join key
+    def joinDomain[S:ClassTag](rrdd: RDD[(K,S)]): RDD[(V, S)] = {
+      lrdd.cogroup(rrdd).flatMapValues{
+        case (vs, ss) =>
+          for (v <- vs.iterator; s:S <- ss.toSet.iterator) yield (v, s)
+      }.values
+      /**.mapPartitions(it =>
+        it.flatMap{ case (lbl, (vs, ss)) =>
+          for (v <- vs.iterator; s:S <- ss.toSet.iterator) yield (v, s) }, preservePartitioning)**/
+    }
+
     def joinDomain[S:ClassTag](rrdd: RDD[S], extract: S => K): RDD[(V, S)] = {
       val domain = rrdd.map(l => (extract(l), l))
-      lrdd.cogroup(domain, new HashPartitioner(partitions)).mapPartitions(it =>
+      lrdd.cogroup(domain).flatMapValues{
+        case (vs, ss) =>
+          for (v <- vs.iterator; s:S <- ss.toSet.iterator) yield (v, s)
+      }.values
+      /**new HashPartitioner(partitions)).mapPartitions(it =>
         it.flatMap{ case (lbl, (vs, ss)) =>
-          for (v <- vs.iterator; s:S <- ss.toSet.iterator) yield (v, s) }, true)
+          for (v <- vs.iterator; s:S <- ss.toSet.iterator) yield (v, s) }, true)**/
     }
  
     def joinDomainSkew[S:ClassTag](rrdd: RDD[S], extract: S => K): RDD[(V, S)] = { 
