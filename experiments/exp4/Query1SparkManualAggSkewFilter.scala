@@ -35,7 +35,7 @@ object Query1SparkManualAggSkewFilter {
     val C = tpch.loadCustomersProj5()
     C.cache
     spark.sparkContext.runJob(C, (iter: Iterator[_]) => {})
-    val O = tpch.loadOrdersProj()
+    val O = tpch.loadOrdersProj4()
     O.cache
     spark.sparkContext.runJob(O, (iter: Iterator[_]) => {})
     val L = tpch.loadLineitemProj()
@@ -58,7 +58,8 @@ object Query1SparkManualAggSkewFilter {
     val op_H = lpj_H.map{ case (l, p) => 
       l.l_orderkey -> Record179(p.p_name, l.l_quantity) }
 
-    val orders = O.zipWithIndex.map{ case (o, id) => o.o_orderkey -> (o, id) }
+    val orders = O.zipWithIndex.flatMap{ case (o, id) => 
+      if (o.o_priority.contains("HIGH")) List((o.o_orderkey,(o, id))) else Nil }
 
     val (oparts_L, oparts_H, hkeys2) = orders.cogroupSplit(op_L.unionPartitions(op_H))
     
@@ -69,7 +70,7 @@ object Query1SparkManualAggSkewFilter {
       case ((o,id), parts) => o.o_custkey -> Record232(o.o_orderdate, parts) }
 
     val custs = C.zipWithIndex.flatMap{ case (c, id) => 
-      if (c.c_nationkey < 13) List((c.c_custkey,(c, id))) else Nil }
+      if (c.c_nationkey < 20) List((c.c_custkey,(c, id))) else Nil }
 
     val (customerOrders_L, customerOrders_H, hkeys3) = custs.cogroupSplit(cokey_L.unionPartitions(cokey_H))
 
