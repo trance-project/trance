@@ -35,7 +35,7 @@ object SkewPairRDD {
         val hkeys = lrdd.sparkContext.broadcast(hk).value
         val rlight = rrdd.filterPartitions((i: (K, S)) => !hkeys(i._1))
         val llight = lrdd.filterPartitions((i: (K, V)) => !hkeys(i._1))
-        val light = llight.joinDropKey(rlight, new HashPartitioner(partitions))
+        val light = llight.join(rlight).values
 
         val rheavy = rrdd.filterPartitions((i: (K, S)) => hkeys(i._1)).groupByKey().collect.toMap
         val heavyRights = lrdd.sparkContext.broadcast(rheavy).value
@@ -44,9 +44,9 @@ object SkewPairRDD {
           it.flatMap{ case (k,v) => heavyRights get k match {
             case Some(ls) => ls.map(s => (v,s))
             case None => Nil
-          }}, true)
+          }})
         (light, heavy, hkeys)
-      }else (lrdd.joinDropKey(rrdd, new HashPartitioner(partitions)), lrdd.sparkContext.emptyRDD[(V,S)], Set.empty[K])
+      }else (lrdd.join(rrdd).values, lrdd.sparkContext.emptyRDD[(V,S)], Set.empty[K])
     }
 
     def joinKeySplit[S:ClassTag](rrdd: RDD[(K,S)]): (RDD[(K, (V, S))], RDD[(K, (V,S))], Set[K]) = {
