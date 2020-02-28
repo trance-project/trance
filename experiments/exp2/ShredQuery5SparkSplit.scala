@@ -52,10 +52,6 @@ val x41 = O__D_1.map{ case x47 => (x47.o_custkey, x47.o_orderkey) }
 val x46 = C__D_1.map{ case x48 => (x48.c_custkey, RecordC(x48.c_name, x48.c_nationkey)) }
 val (x51_L, x51_H, hkeys1) = x41.joinSplit(x46)
 
-// partitioning bug
-val x52_L = x51_L.map(l => l)
-val x52_H = x51_H.map(l => l)
-
 val resultInner__D_1_L = x52_L
 val resultInner__D_1_H = x52_H
 
@@ -70,7 +66,7 @@ val x84_H = x83_H.map{
   case (c, sk) => sk -> c
 }
 
-val (x82_L, x82_H, hkeys2) = x84_L.unionPartitions(x84_H).joinDomainSplit(customers_ctx1)
+val (x82_L, x82_H, hkeys2) = x84_L.unionPartitions(x84_H, false).joinDomainSplit(customers_ctx1)
 
 val (x85_L, x85_H) = x82_L.groupBySplit(x82_H, hkeys2)
 
@@ -86,7 +82,7 @@ var end0 = System.currentTimeMillis() - start0
 println("ShredQuery5SparkSplit,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
 var start = System.currentTimeMillis()
-/**val customers__D_1 = customers__D_1_L.unionPartitions(customers__D_1_H)
+/**val customers__D_1 = customers__D_1_L.unionPartitions(customers__D_1_H, false)
 val result = m__D_1.map(s => s.customers -> RecordS(s.s_name, s.s_nationkey)).cogroup(customers__D_1).flatMap{
   case (_, (supps, custs)) => supps.map(s => (s, custs.flatten))
 }
