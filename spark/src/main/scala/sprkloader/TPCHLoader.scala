@@ -23,6 +23,8 @@ case class Orders(o_orderkey: Int, o_custkey: Int, o_orderstatus: String, o_tota
 
 case class OrdersProj(o_orderkey: Int, o_custkey: Int, o_orderdate: String)
 
+case class OrdersProj4(o_orderkey: Int, o_custkey: Int, o_orderdate: String, o_priority: String)
+
 case class Lineitem(l_orderkey: Int, l_partkey: Int, l_suppkey: Int, l_linenumber: Int, l_quantity: Double, l_extendedprice: Double, l_discount: Double, l_tax: Double, l_returnflag: String, l_linestatus: String, l_shipdate: String, l_commitdate: String, l_receiptdate: String, l_shipinstruct: String, l_shipmode: String, l_comment: String)
 
 case class LineitemProj(l_orderkey: Int, l_partkey: Int, l_quantity: Double) 
@@ -195,6 +197,14 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   		}), true).repartition(parts)
   }
 
+  def loadOrdersProj4(path: String = s"file:///$datapath/order.tbl"):RDD[OrdersProj4] = {
+    //val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
+    spark.sparkContext.textFile(path, minPartitions = parts).mapPartitions(it => 
+		it.map(line => {
+      		val l = line.split("\\|")
+            OrdersProj4(parseBigInt(l(0)), l(1).toInt, l(4), l(5))
+  		}), true).repartition(parts)
+  }
 
   def loadOrdersDF():Dataset[Orders] = {
 
