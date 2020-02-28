@@ -144,7 +144,7 @@ var end0 = System.currentTimeMillis() - start0
 println("ShredQuery1SparkSplitFilter,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
 var start1 = System.currentTimeMillis()
-val x201 = c_orders__D_1_L.unionPartitions(c_orders__D_1_H, false).flatMap{
+/**val x201 = c_orders__D_1_L.unionPartitions(c_orders__D_1_H, false).flatMap{
   case (lbl, bag) => bag.map(o => (o.o_parts, (lbl, o.o_orderdate)))
 }.cogroup(o_parts__D_1_L.unionPartitions(o_parts__D_1_H)).flatMap{ 
   case (_, (left, x208)) => left.map{ case (x206, x207) => (x206, (x207, x208.flatten)) }
@@ -153,17 +153,17 @@ val result = M__D_1.map(c => c.c_orders -> c.c_name).cogroup(x201).flatMap{
   case (_, (left, x208)) => left.map( cname => cname -> x208)
 }
 //result.collect.foreach(println(_))
-spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
+spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})**/
 var end = System.currentTimeMillis() - start0
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery1SparkSplitFilter,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
 println("ShredQuery1SparkSplitFilter,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
 
-result.flatMap{ case (cname, orders) =>
+/**result.flatMap{ case (cname, orders) =>
   if (orders.isEmpty) List((cname, null, null, null))
   else orders.flatMap{ case (date, parts) =>
     if (parts.isEmpty) List((cname, date, null, null))
-    else parts.map(p => (cname, date, p.p_partkey, p.l_qty)) } }.collect.foreach(println(_))
+    else parts.map(p => (cname, date, p.p_partkey, p.l_qty)) } }.collect.foreach(println(_))**/
 }
 f
  }
