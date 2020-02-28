@@ -75,8 +75,8 @@ val (x82_L, x82_H, hkeys2) = x84_L.unionPartitions(x84_H).joinDomainSplit(custom
 val (x85_L, x85_H) = x82_L.groupBySplit(x82_H, hkeys2)
 
 // customers__D_1.cache
-val customers__D_1_L = x84_L
-val customers__D_1_H = x84_H
+val customers__D_1_L = x85_L
+val customers__D_1_H = x85_H
 
 
 // customers__D_1.cache
@@ -88,7 +88,7 @@ println("ShredQuery5SparkSplit,"+sf+","+Config.datapath+","+end0+",query,"+spark
 var start = System.currentTimeMillis()
 /**val customers__D_1 = customers__D_1_L.unionPartitions(customers__D_1_H)
 val result = m__D_1.map(s => s.customers -> RecordS(s.s_name, s.s_nationkey)).cogroup(customers__D_1).flatMap{
-  case (_, (supps, custs)) => supps.map(s => (s, custs))
+  case (_, (supps, custs)) => supps.map(s => (s, custs.flatten))
 }
 spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})**/
 var end = System.currentTimeMillis() - start
