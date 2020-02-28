@@ -12,10 +12,10 @@ case class RecordS(s_name: String, s_nationkey: Int)
 case class RecordSC(s_name: String, s_nationkey: Int, customers: Int)
 case class RecordC(c_name: String, c_nationkey: Int)
 case class RecordSCR(s_name: String, s_nationkey: Int, customers: Iterable[RecordC])
-object ShredQuery5SparkSplitOpt {
+object ShredQuery5SparkSplit {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
-   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery5SparkSplitOpt"+sf)
+   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery5SparkSplit"+sf)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    
    val tpch = TPCHLoader(spark)
@@ -44,8 +44,9 @@ object ShredQuery5SparkSplitOpt {
 val x65 = S__D_1.map(s => RecordSC(s.s_name, s.s_nationkey, s.s_suppkey))
 val m__D_1 = x65
 // m__D_1.cache
-spark.sparkContext.runJob(m__D_1, (iter: Iterator[_]) => {})
 
+
+val customers_ctx1 = m__D_1.createDomain(l => l.customers)
 
 val x41 = O__D_1.map{ case x47 => (x47.o_custkey, x47.o_orderkey) }
 val x46 = C__D_1.map{ case x48 => (x48.c_custkey, RecordC(x48.c_name, x48.c_nationkey)) }
@@ -58,37 +59,40 @@ val x52_H = x51_H.map(l => l)
 val resultInner__D_1_L = x52_L
 val resultInner__D_1_H = x52_H
 
-//resultInner__D_1.collect.foreach(println(_))
-
 val x81 = L__D_1.map{ case x83 => (x83.l_orderkey, x83.l_suppkey) }
-
-val (x83_L, x83_H, hkeys2) = resultInner__D_1_L.unionPartitions(resultInner__D_1_H).joinSplit(x81)
+val (x83_L, x83_H, hkeys3) = resultInner__D_1_L.joinSplit(resultInner__D_1_H, x81)
 
 val x84_L = x83_L.map{
-  case (c, lbl) => lbl -> c
-}
-val x84_H = x83_H.map{
-  case (c, lbl) => lbl -> c
+  case (c, sk) => sk -> c
 }
 
-val (x85_L, x85_H, hkeys3) = x84_L.groupBySplit(x84_H)
+val x84_H = x83_H.map{
+  case (c, sk) => sk -> c
+}
+
+val (x82_L, x82_H, hkeys2) = x84_L.unionPartitions(x84_H).joinDomainSplit(customers_ctx1)
+
+val (x85_L, x85_H) = x82_L.groupBySplit(x82_H, hkeys2)
+
+// customers__D_1.cache
 val customers__D_1_L = x84_L
 val customers__D_1_H = x84_H
+
 
 // customers__D_1.cache
 spark.sparkContext.runJob(customers__D_1_L, (iter: Iterator[_]) => {})
 spark.sparkContext.runJob(customers__D_1_H, (iter: Iterator[_]) => {})
 var end0 = System.currentTimeMillis() - start0
-println("ShredQuery5SparkSplitOpt,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
+println("ShredQuery5SparkSplit,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
 var start = System.currentTimeMillis()
 /**val customers__D_1 = customers__D_1_L.unionPartitions(customers__D_1_H)
 val result = m__D_1.map(s => s.customers -> RecordS(s.s_name, s.s_nationkey)).cogroup(customers__D_1).flatMap{
   case (_, (supps, custs)) => supps.map(s => (s, custs))
-}
-spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})**/
+}**/
+spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
 var end = System.currentTimeMillis() - start
-println("ShredQuery5SparkSplitOpt,"+sf+","+Config.datapath+","+end+",unshredding,"+spark.sparkContext.applicationId)
+println("ShredQuery5SparkSplit,"+sf+","+Config.datapath+","+end+",unshredding,"+spark.sparkContext.applicationId)
    
 /**result.flatMap{
   case (s, custs) => if (custs.isEmpty) List((s.s_name, s.s_nationkey, null, null))

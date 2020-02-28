@@ -202,6 +202,7 @@ object SkewPairRDD {
             it.flatMap{ case (_, (left, right)) => left.map(l => (l, right)) }, true)
         (cg, lrdd.sparkContext.emptyRDD[(V,Iterable[S])], Set.empty[K])
       }
+           
     }
 
 
@@ -267,6 +268,55 @@ object SkewPairRDD {
        }else
          (lrdd.joinDomain(domain, extract), lrdd.sparkContext.emptyRDD[(V, L)], Set.empty[K])
     }
+
+    def joinDomainSplit(domain: RDD[K]): (RDD[(K, V)], RDD[(K, V)], Set[K]) = {
+      val hk = lrdd.heavyKeys()
+      if (hk.nonEmpty){
+        val hkeys = lrdd.sparkContext.broadcast(hk).value
+        val domainLight = domain.flatMap( l => if (!hkeys(l)) List((l,1)) else Nil )
+        val light = lrdd.filterPartitions((i: (K,V)) => !hkeys(i._1))
+        // fix this to not lose partitioning info
+        val ldict = lrdd.partitioner match {
+          case Some(p) => 
+            lrdd.cogroup(domainLight).mapPartitions(it =>
+              it.flatMap{ case (lbl, (vs, _)) => vs.map(v => lbl -> v) }, true)
+          case None =>
+            lrdd.cogroup(domainLight, new HashPartitioner(partitions)).mapPartitions(it =>
+              it.flatMap{ case (lbl, (vs, _)) => vs.map(v => lbl -> v) }, true)
+        }
+
+        val hdomain = domain.filter(l => hkeys(l)).collect.toSet
+        val heavy = lrdd.filterPartitions((i: (K,V)) => hkeys(i._1))
+        val heavyDomain = heavy.sparkContext.broadcast(hdomain).value
+        val hdict = heavy.mapPartitions(it =>
+          it.filter{ case (k,v) => heavyDomain(k)}, true)
+           (ldict, hdict, hkeys)
+         }else
+           (lrdd.joinDomain(domain), lrdd.sparkContext.emptyRDD[(K, V)], Set.empty[K])
+    }
+
+    // def cogroupDomainSplit[L:ClassTag](domain: RDD[L]): (RDD[(L, Iterable[V])], RDD[(L, Iterable[V])], Set[K]) = {
+    //   val hk = lrdd.heavyKeys()
+    //   if (hk.nonEmpty){
+    //     val hkeys = lrdd.sparkContext.broadcast(hk).value
+    //     val domainLight = domain.flatMap( l => if !hkeys(l) l -> 1 else Nil )
+    //     val light = lrdd.filterPartitions((i: (K,V)) => !hkeys(i._1))
+    //     // fix this to not lose partitioning info
+    //     val ldict = lrdd.cogroup(domainLight, new HashPartitioner(partitions)).mapPartitions(it =>
+    //       it.flatMap{ case (lbl, (vs, _)) => if (vs.nonEmpty) lbl -> vs else Nil}, true)
+
+    //     val hdomain = domain.filter(l => hkeys(l)).collect.toSet
+    //     val heavy = lrdd.filterPartitions((i: (K,V)) => hkeys(i._1))
+    //     val heavyDomain = heavy.sparkContext.broadcast(hdomain).value
+    //     val hdict = heavy.mapPartitions(it =>
+    //       it.flatMap{ case (k,v) => heavyDomain get k match {
+    //         case Some(ls) => if (ls.nonEmpty) ls.map(l => (l, l))
+    //         case None => Nil
+    //        }}, true)
+    //        (ldict, hdict, hkeys)
+    //      }else
+    //        (lrdd.cogroupDomain(domain), lrdd.sparkContext.emptyRDD[(L, Iterable[V])], Set.empty[K])
+    // }
 
     def reduceBySplit(heavy: RDD[(K, V)], f: (V, V) => V): (RDD[(K, V)], RDD[(K, V)]) =
       (lrdd.unionPartitions(heavy).reduceByKey(f), lrdd.sparkContext.emptyRDD[(K,V)])
@@ -414,6 +464,7 @@ object SkewPairRDD {
           for (v <- vs.iterator; s <- ss.iterator) yield (v, s)}, true)
     }
 
+    // fix bug here
     def joinDropKey[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, S)] = {
       lrdd.cogroup(rrdd).mapPartitions( it =>
   	  	it.flatMap{ case (key, (vs, ss)) =>
@@ -475,24 +526,30 @@ object SkewPairRDD {
     // joining on a domain can never preserve partitioning
     // due to behavior of mapPartitions and projecting away the join key
     def joinDomain[S:ClassTag](rrdd: RDD[(K,S)]): RDD[(V, S)] = {
-      lrdd.cogroup(rrdd).flatMapValues{
-        case (vs, ss) =>
+      lrdd.cogroup(rrdd).flatMap{
+        case (_, (vs, ss)) =>
           for (v <- vs.iterator; s:S <- ss.toSet.iterator) yield (v, s)
-      }.values
-      /**.mapPartitions(it =>
-        it.flatMap{ case (lbl, (vs, ss)) =>
-          for (v <- vs.iterator; s:S <- ss.toSet.iterator) yield (v, s) }, preservePartitioning)**/
+      }
     }
 
     def joinDomain[S:ClassTag](rrdd: RDD[S], extract: S => K): RDD[(V, S)] = {
       val domain = rrdd.map(l => (extract(l), l))
-      lrdd.cogroup(domain).flatMapValues{
-        case (vs, ss) =>
+      lrdd.cogroup(domain).flatMap{
+        case (_, (vs, ss)) =>
           for (v <- vs.iterator; s:S <- ss.toSet.iterator) yield (v, s)
-      }.values
-      /**new HashPartitioner(partitions)).mapPartitions(it =>
-        it.flatMap{ case (lbl, (vs, ss)) =>
-          for (v <- vs.iterator; s:S <- ss.toSet.iterator) yield (v, s) }, true)**/
+      }
+    }
+
+    def joinDomain(rrdd: RDD[K]): RDD[(K, V)] = {
+      val domain = rrdd.map(l => l -> 1)
+      lrdd.partitioner match {
+          case Some(p) => 
+            lrdd.cogroup(domain).mapPartitions(it =>
+              it.flatMap{ case (lbl, (vs, _)) => vs.map(v => lbl -> v) }, true)
+          case None =>
+            lrdd.cogroup(domain, new HashPartitioner(partitions)).mapPartitions(it =>
+              it.flatMap{ case (lbl, (vs, _)) => vs.map(v => lbl -> v) }, true)
+        }
     }
  
     def joinDomainSkew[S:ClassTag](rrdd: RDD[S], extract: S => K): RDD[(V, S)] = { 
