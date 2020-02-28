@@ -89,8 +89,8 @@ var start = System.currentTimeMillis()
 /**val customers__D_1 = customers__D_1_L.unionPartitions(customers__D_1_H)
 val result = m__D_1.map(s => s.customers -> RecordS(s.s_name, s.s_nationkey)).cogroup(customers__D_1).flatMap{
   case (_, (supps, custs)) => supps.map(s => (s, custs))
-}**/
-spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
+}
+spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})**/
 var end = System.currentTimeMillis() - start
 println("ShredQuery5SparkSplit,"+sf+","+Config.datapath+","+end+",unshredding,"+spark.sparkContext.applicationId)
    
