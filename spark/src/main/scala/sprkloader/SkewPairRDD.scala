@@ -134,8 +134,7 @@ object SkewPairRDD {
     def cogroupSplit[S:ClassTag](heavy: RDD[(K,V)], rrdd: RDD[(K,S)], hkeys: Set[K]): (RDD[(V, Iterable[S])], RDD[(V,Iterable[S])]) = {
       if (hkeys.nonEmpty){
         val rlight = rrdd.filterPartitions((i: (K, S)) => !hkeys(i._1))
-        val llight = lrdd.filterPartitions((i: (K, V)) => !hkeys(i._1))
-        val light = llight.cogroup(rlight).mapPartitions(it =>
+        val light = lrdd.cogroup(rlight).mapPartitions(it =>
             it.flatMap{ case (_, (left, right)) => left.map(l => (l, right)) }, true)
 
         val rheavy = rrdd.filterPartitions((i: (K, S)) => hkeys(i._1)).groupByKey().collect.toMap
@@ -239,8 +238,7 @@ object SkewPairRDD {
     def joinSplit[S:ClassTag](heavy: RDD[(K,V)], rrdd: RDD[(K,S)], hkeys: Set[K]): (RDD[(V, S)], RDD[(V,S)]) = {
       if (hkeys.nonEmpty){
         val rlight = rrdd.filterPartitions((i: (K, S)) => !hkeys(i._1))
-        val llight = lrdd.filterPartitions((i: (K, V)) => !hkeys(i._1))
-        val light = llight.joinDropKey(rlight)
+        val light = lrdd.joinDropKey(rlight)
 
         val rheavy = rrdd.filterPartitions((i: (K, S)) => hkeys(i._1)).groupByKey().collect.toMap
         val heavyRights = heavy.sparkContext.broadcast(rheavy).value
@@ -248,7 +246,7 @@ object SkewPairRDD {
           it.flatMap{ case (k,v) => heavyRights get k match {
             case Some(ls) => ls.map(s => (v,s))
             case None => Nil
-          }}, true)
+          }})
         (light, lheavy)
       }else (lrdd.joinDropKey(rrdd), lrdd.sparkContext.emptyRDD[(V,S)])
     }
@@ -331,13 +329,14 @@ object SkewPairRDD {
         val hkeys = lrdd.sparkContext.broadcast(hk).value
         val domainLight = domain.flatMap( l => if (!hkeys(l)) List((l -> 1)) else Nil )
         val light = lrdd.filterPartitions((i: (K,V)) => !hkeys(i._1))
-        // fix this to not lose partitioning info
+
         val ldict = light.cogroup(domainLight, new HashPartitioner(partitions)).mapPartitions(it =>
           it.flatMap{ case (lbl, (vs, _)) => if (vs.nonEmpty) List((lbl -> vs)) else Nil}, true)
 
         val hdomain = domain.filter(l => hkeys(l)).collect.toSet
         val heavy = lrdd.filterPartitions((i: (K,V)) => hkeys(i._1))
         val heavyDomain = heavy.sparkContext.broadcast(hdomain).value
+        // if there are a lot of heavy keys this method is not ideal
         val groupBy = (i: Iterator[(K,V)], hks: Set[K]) => {
           val hm = HashMap[K, Iterable[V]]()
             i.foreach{ v =>
@@ -386,8 +385,8 @@ object SkewPairRDD {
       val hkeys = lrdd.heavyKeys()
       if (hkeys.nonEmpty){
         val heavyKeys = lrdd.sparkContext.broadcast(hkeys).value
-        val lset = lrdd.filterPartitions((i: (K,V)) => !hkeys(i._1))
-        val hset = lrdd.filterPartitions((i: (K,V)) => hkeys(i._1))
+        val lset = lrdd.filter(i => !hkeys(i._1))
+        val hset = lrdd.filter(i => hkeys(i._1))
         (lset.groupByKey(new HashPartitioner(partitions)), hset.groupByLabel(), hkeys) 
       }else (lrdd.groupByKey(new HashPartitioner(partitions)), lrdd.sparkContext.emptyRDD[(K,Iterable[V])], Set.empty[K])
     }
@@ -725,7 +724,7 @@ object SkewPairRDD {
         }
         hm.iterator
       }
-      lrdd.mapPartitions(groupBy, true)
+      lrdd.mapPartitions(groupBy, false)
     }
 
     def aggregateByLabel(nulls: V): RDD[(K, Iterable[V])] = {
