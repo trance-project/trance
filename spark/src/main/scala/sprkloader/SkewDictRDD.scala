@@ -49,6 +49,25 @@ object SkewDictRDD {
       }else (lrdd, lrdd.sparkContext.emptyRDD[(K,Iterable[V])], Set.empty[K])
     }
 
+    // unshredding, uses known partitioning information for light keys 
+  def rightLookup[S:ClassTag](heavy: RDD[(K,Iterable[V])], rrdd: RDD[(K,S)], hkeys: Set[K]): RDD[(S, Iterable[V])] = {
+    if (hkeys.nonEmpty){
+      val rlight = rrdd.filter(i => !hkeys(i._1))
+      val light = rlight.cogroup(lrdd).flatMap{
+        case (_, (parDict, chiDict)) => parDict.map(s => s -> chiDict.flatten)
+      }
+
+      val rheavy = rrdd.filter(i => hkeys(i._1))
+      val lheavy = rheavy.cogroup(heavy).flatMap{
+        case (_, (parDict, chiDict)) => parDict.map(s => s -> chiDict.flatten)
+      }
+      light.unionPartitions(lheavy, false)
+    }else
+      rrdd.cogroup(lrdd).flatMap{
+        case (_, (parDict, chiDict)) => parDict.map(s => s -> chiDict.flatten)
+      }
+  }
+
   def lookupSplit[L:ClassTag](heavy: RDD[(K, Iterable[V])], domain: RDD[L], extract: L => K, hkeys: Set[K]):
       (RDD[(L, Iterable[V])], RDD[(L, Iterable[V])]) = {
 

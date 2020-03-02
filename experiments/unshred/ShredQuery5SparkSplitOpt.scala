@@ -5,6 +5,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import sprkloader._
 import sprkloader.SkewPairRDD._
+import sprkloader.SkewDictRDD._
 import sprkloader.DomainRDD._
 import sprkloader.UtilPairRDD._
 import org.apache.spark.HashPartitioner
@@ -80,14 +81,7 @@ println("ShredQuery5SparkSplitOpt,"+sf+","+Config.datapath+","+end0+",query,"+sp
 
 var start = System.currentTimeMillis()
 val top = m__D_1.map(s => s.customers -> RecordS(s.s_name, s.s_nationkey))
-val (resultgrp_L, resultgrp_H) = customers__D_1_L.joinSplit(customers__D_1_H, top, hkeys3)
-val result_L = resultgrp_L.map{
-  case (custs, s) => s -> custs
-}
-val result_H = resultgrp_H.map{
-  case (custs, s) => s -> custs
-}
-val result = result_L.unionPartitions(result_H, false)
+val result = customers__D_1_L.rightLookup(customers__D_1_H, top, hkeys3)
 spark.sparkContext.runJob(result, (iter: Iterator[_]) => {})
 var end = System.currentTimeMillis() - start
 println("ShredQuery5SparkSplitOpt,"+sf+","+Config.datapath+","+end+",unshredding,"+spark.sparkContext.applicationId)
