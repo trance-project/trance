@@ -7,6 +7,7 @@ import scala.reflect.ClassTag
 import org.apache.spark.Partitioner
 import org.apache.spark.HashPartitioner
 import UtilPairRDD._
+import scala.util.Random
 import UtilSkewDistribution._
 import DomainRDD._
 
@@ -18,12 +19,22 @@ object SkewPairRDD {
 	  val threshold = Config.threshold
     val partitions = lrdd.getNumPartitions
  	
-	  def heavyKeys(threshold: Int = threshold): Set[K] = {
-      val hkeys = lrdd.mapPartitions( it => 
-        Util.countDistinct(it).filter(_._2 > threshold).iterator,true)
-      //if (reducers > threshold) hkeys.filter(_._2 >= reducers).keys.collect.toSet
-      //else hkeys.keys.collect.toSet
-      hkeys.keys.collect.toSet
+	  def heavyKeysStatic(threshold: Int = threshold): Set[K] = {
+      lrdd.mapPartitions( it => 
+        Util.countDistinct(it).filter(_._2 > threshold).iterator,true).keys.collect.toSet
+    }
+    
+    def heavyKeys(): Set[K] = {
+      val samples = lrdd.sample(false, .1)
+      val cntApprx = samples.countApprox(500).getFinalValue.high
+      val thresh = ((cntApprx)/partitions)*0.05
+      if (thresh < 1){
+        Set.empty[K]
+      }else{
+        samples.mapPartitions(it => {
+          Util.countDistinct(it).filter(_._2 > thresh).iterator
+        }).keys.collect.toSet
+      }
     }
 
     /** SPLIT OPS **/
