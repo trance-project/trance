@@ -27,17 +27,14 @@ object SkewPairRDD {
     }
     
     def heavyKeys(): Set[K] = {
-      val samples = lrdd.sample(false, .1)
-      val cnts = samples.mapPartitionsWithIndex((index, it) => 
-        Iterator((index -> it.size*0.05))).collect.toMap
-      cnts get 0 match { 
-        case Some(y) if y < 1 => Set.empty[K]
-        case _ =>
-          val thresh = samples.sparkContext.broadcast(cnts).value
-          samples.mapPartitionsWithIndex((index, it) => {
-            Util.countDistinct(it).filter(_._2 > thresh(index)).iterator
-          }).keys.collect.toSet
-        }
+      val samples = lrdd.sample(false, .05)
+      val thresh = (samples.countApprox(1).getFinalValue().low/partitions)*0.05
+      if (thresh < 1) Set.empty[K]
+      else {
+        samples.mapPartitionsWithIndex((index, it) => {
+          Util.countDistinct(it).filter(_._2 > thresh).iterator
+        }).keys.collect.toSet
+      }
     }
 
     /** SPLIT OPS **/
