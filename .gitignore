@@ -23,3 +23,5 @@ spark/format.py
 spark/run.sh
 experiments/sqlexample
 .gitignore
+experiments/*/results.csv
+plots*
