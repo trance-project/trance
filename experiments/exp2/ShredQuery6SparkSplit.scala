@@ -119,7 +119,7 @@ def f = {
     var end0 = System.currentTimeMillis() - start0
     println("ShredQuery6SparkSplit,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
     var start = System.currentTimeMillis()
-    /**val suppliers__D_1 = suppliers__D_1_L.unionPartitions(suppliers__D_1_H).map(l => l)
+    /**val suppliers__D_1 = suppliers__D_1_L.unionPartitions(suppliers__D_1_H)
     val result = m__D_1.map(c => c.suppliers -> (c.c_name, c.c_nationkey)).join(suppliers__D_1).map{
       case (_, (c, supps)) => RecordSCR(c._1, c._2, supps.flatten)
     }
