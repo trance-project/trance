@@ -50,7 +50,10 @@ trait BaseNormalizer extends BaseCompiler {
     LinearCSet(es.flatMap{
       case LinearCSet(fs) => fs
       case fs => List(fs)
-    })
+    }.filter(f => f match {
+      case CNamed("M_ctx1", _) => false
+      case _ => true
+      }))
   } 
 
   // N1, N2

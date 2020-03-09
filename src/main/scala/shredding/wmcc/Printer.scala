@@ -50,17 +50,20 @@ object Printer {
     case BagCDict(lbl, flat, dict) => bagdict(quote(lbl), quote(flat), quote(dict))
     case TupleCDict(fs) => tupledict(fs.map(f => f._1 -> quote(f._2)))
     case DictCUnion(e1, e2) => dictunion(quote(e1), quote(e2))
-    case Select(x, v, p, e) => quote(p) match {
-      //case "true" => quote(x)
-      case _ => s""" 
-        | <-- (${quote(v)}) -- SELECT[ ${quote(p)}, ${quote(e)} ](${quote(x)})""".stripMargin
-    }
+    case Select(x, v, p, e) => 
+      s"""| <-- (${quote(v)}) -- SELECT[ ${quote(p)}, ${quote(e)} ](${quote(x)})""".stripMargin
+    case Reduce(e1, v, e2:Variable, Constant(true)) =>
+      s""" | ${quote(e1)}""".stripMargin
+    case Reduce(e1, v, e2, Constant(true)) =>
+      s""" | PROJECT[ ${quote(e2)} ](${quote(e1)})""".stripMargin
     case Reduce(e1, v, e2, p) =>
-      s""" | REDUCE[ ${quote(e2)} / ${quote(p)} ](${quote(e1)})""".stripMargin
-    case Unnest(e1, v1, e2, v2, p) =>
-      s""" |  <-- (${e.wvars.map(_.quote).mkString(",")}) -- UNNEST[ ${quote(e2)} / ${quote(p)} ](${quote(e1)})""".stripMargin
-    case OuterUnnest(e1, v1, e2, v2, p) =>
-      s""" |  <-- (${e.wvars.map(_.quote).mkString(",")}) -- OUTERUNNEST[ ${quote(e2)} / ${quote(p)} ](${quote(e1)})""".stripMargin
+      s""" | SELECT[ ${quote(e2)} / ${quote(p)} ](${quote(e1)})""".stripMargin
+    case Unnest(e1, v1, e2, v2, p, value) =>
+      s""" |  <-- (${e.wvars.map(_.quote).mkString(",")}) --
+           | UNNEST[ ${quote(e2)} / ${quote(p)} / ${quote(value)} ](${quote(e1)})""".stripMargin
+    case OuterUnnest(e1, v1, e2, v2, p, value) =>
+      s""" |  <-- (${e.wvars.map(_.quote).mkString(",")}) -- 
+           | OUTERUNNEST[ ${quote(e2)} / ${quote(p)} / ${quote(value)}  ](${quote(e1)})""".stripMargin
     case Nest(e1, v1, f, e3, v2, p, g) =>
       val acc = e3.tp match { case IntType => "+"; case _ => "U" }
       val outs = if (e.wvars.size == 1) "" else s"<-- (${e.wvars.map(_.quote).mkString(",")}) --"
@@ -77,8 +80,10 @@ object Printer {
     case OuterLookup(e1, e2, v1, p1, v2, p2, p3) =>
       s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) OUTERLOOKUP[${quote(p1)}, ${quote(p2)} = ${quote(p3)}](
            | ${ind(quote(e2))})""".stripMargin
-    case CoGroup(e1, es, vs, ps) =>
-      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) COGROUP[${quote(ps)}] (${es.map(quote(_)).mkString(",")})"""
+    case CoGroup(e1, e2, vs, v, k1, k2, value) =>
+      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) COGROUP[${quote(k1)} = ${quote(k2)}, 
+           | ${quote(value)}] (
+           |  ${ind(quote(e2))})""".stripMargin
     case Variable(n, tp) => n
   }
 }

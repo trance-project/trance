@@ -5,14 +5,21 @@ import scala.collection.immutable.Set
 import scala.collection.mutable.HashMap
 
 object Optimizer {
+
   val dictIndexer = new Finalizer(new BaseDictNameIndexer{})
+
   val compiler = new BaseNormalizer{}
   import compiler._
+
+  val extensions = new Extensions{}
+  import extensions._
 
   val proj = HashMap[Variable, Set[String]]().withDefaultValue(Set())
  
   def applyAll(e: CExpr) = {
-    dictIndexer.finalize(push(e)).asInstanceOf[CExpr]
+    val projectionsPushed = push(e)
+    val merged = mergeOps(projectionsPushed)
+    dictIndexer.finalize(merged).asInstanceOf[CExpr]
   }
 
   def fields(e: CExpr):Unit = e match {
@@ -27,9 +34,39 @@ object Optimizer {
     case _ => Unit
   }
 
-  def printhm():Unit = proj.foreach(f => println(s"${f._1.asInstanceOf[Variable].name} -> ${f._2}"))  
+  def printhm():Unit = proj.foreach(f => println(s"${f._1.asInstanceOf[Variable].name} -> ${f._2}")) 
 
-
+  def mergeOps(e: CExpr): CExpr = fapply(e, {
+    // cast domains
+    case CNamed(n, CDeDup(r @ Reduce(Unnest(e1, _, _, _, _,_), v2, f2, p2))) if n.contains("M_ctx") =>
+      CNamed(n, mergeOps(Reduce(e1, v2, f2, p2)))
+    // recurse?
+    case CNamed(n, CDeDup(r @ Reduce(e1, v2, f2, p2))) if n.contains("M_ctx") =>
+      CNamed(n, mergeOps(Reduce(e1, v2, f2, p2)))
+    case Reduce(Nest(Join(e1:Select, e2, e1s, key1, e2s, key2),
+     vs, key, value, nv, np, ng), vr, fr, pr) => 
+      CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
+    // analyze this case
+    case Reduce(Nest(Lookup(e1:Select, e2, e1s, key1, e2s, key2, key3),
+     vs, key, value, nv, np, ng), vr, fr, pr) => 
+      CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
+    case Reduce(CoGroup(e1, e2, e1s, e2s, key1, key2, value), vr, fr, pr) => 
+      CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, fr)
+    // todo push record type projection into lookup
+    // case Reduce(Nest(e1, vs, key, value, nv, np, ng), v2, e2, p2) => 
+    //   Nest(mergeOps(e1), vs, key, value, nv, np, ng)
+    case Reduce(Select(x, v, p, e2:Variable), v2, f2, p2) => 
+      Reduce(x, List(v), f2, compiler.and(p, p2))
+    case Reduce(Select(x, v, p, e2), v2, f2:Variable, p2) =>
+      Reduce(x, List(v), e2, compiler.and(p, p2))
+    case Reduce(Reduce(x, v, e2, p), v2, f2:Variable, p2) => 
+      Reduce(x, v2, e2, compiler.and(p, p2))
+    case Select(x, v, Constant(true), e2) => 
+      Reduce(x, List(v), e2, Constant(true))
+    case Select(x, v, p, e2) => 
+      Reduce(x, List(v), e2, p)
+  })
+ 
   def push(e: CExpr): CExpr = e match {
     case Reduce(Select(x, v, p, e2), v2, f2, p2) => x match {
       case InputRef(n, BagDictCType(flat, tdict)) =>
@@ -49,12 +86,12 @@ object Optimizer {
       fields(f)
       fields(p)
       Nest(push(e1), v1, f, e, v, p, g)
-    case Unnest(e1, v1, f, v2, p) =>
+    case Unnest(e1, v1, f, v2, p, value) =>
       fields(f)
-      Unnest(push(e1), v1, f, v2, p)
-    case OuterUnnest(e1, v1, f, v2, p) =>
+      Unnest(push(e1), v1, f, v2, p, value)
+    case OuterUnnest(e1, v1, f, v2, p, value) =>
       fields(f)
-      OuterUnnest(push(e1), v1, f, v2, p)
+      OuterUnnest(push(e1), v1, f, v2, p, value)
     case Join(e1, e2, v1, p1, v2, p2) =>   
       fields(p1)
       fields(p2)

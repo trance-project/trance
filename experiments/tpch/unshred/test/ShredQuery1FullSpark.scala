@@ -143,6 +143,7 @@ val x141 = x145.cogroup(newM__D_2).flatMap{
 val newM__D_1 = x141
 val x142 = newM__D_1
 //newM__D_1.cache
+newM__D_1.collect.foreach(println(_))
 spark.sparkContext.runJob(newM__D_1, (iter: Iterator[_]) => {})
 
 

@@ -128,7 +128,7 @@ object Utils {
     val query = if (i > 0) "unshredding" else "query"
     s"""
       |var start$i = System.currentTimeMillis()
-      |$e.count
+      |$e
       |var end$i = System.currentTimeMillis() - start$i
       |println("$appname,"+sf+","+Config.datapath+","+end$i+",$query,"+spark.sparkContext.applicationId)
     """.stripMargin
@@ -145,7 +145,7 @@ object Utils {
    
   def timed(e: String): String = 
     s"""|def f = { 
-        | $e.count
+        | $e
         |}
         |var start = System.currentTimeMillis()
         |f
@@ -253,6 +253,8 @@ object Utils {
       |import org.apache.spark.sql.SparkSession
       |import sprkloader._
       |import sprkloader.SkewPairRDD._
+      |import sprkloader.SkewDictRDD._
+      |import sprkloader.DomainRDD._
       |$header
       |object $appname {
       | def main(args: Array[String]){

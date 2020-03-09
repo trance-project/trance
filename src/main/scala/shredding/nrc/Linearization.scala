@@ -125,8 +125,6 @@ trait Linearization {
         materializeDictionary(kvPairs(b1), dict1) append
           materializeDictionary(kvPairs(b2), dict2)
       case BagDictLet(x, e1, e2) =>
-        println("here")
-        println(lbl) 
         val b = optimize(e2.lookup(lbl)).asInstanceOf[BagExpr]
         materializeDictionary(kvPairs(b), e2)
       case _ =>

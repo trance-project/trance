@@ -607,6 +607,16 @@ object SkewPairRDD {
         }
     }
 
+    // def cogroupDomain(domain: RDD[(K, V)]): RDD[(K, Iterable[V])] = {
+    //   lrdd.partitioner match {
+    //       case Some(p) => 
+    //         lrdd.cogroup(domain).mapPartitions(it =>
+    //           it.flatMap{ case (lbl, (vs, _)) => if (vs.nonEmpty) List((lbl -> vs)) else Nil}, true)
+    //       case None =>
+    //         lrdd.cogroup(domain, new HashPartitioner(partitions)).mapPartitions(it =>
+    //           it.flatMap{ case (lbl, (vs, _)) => if (vs.nonEmpty) List((lbl -> vs)) else Nil}, true)
+    //     }
+    // }
 
  
     def joinDomainSkew[S:ClassTag](rrdd: RDD[S], extract: S => K): RDD[(V, S)] = { 

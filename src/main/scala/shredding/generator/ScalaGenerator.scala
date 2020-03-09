@@ -156,7 +156,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     }
     case Reduce(e1, v, f, p) => 
       s"${generate(e1)}.map{ case ${generateVars(v, e1.tp.asInstanceOf[BagCType].tp)} => { \n${ind(generate(f))} }}"
-    case Unnest(e1, v1, f, v2, p) => 
+    case Unnest(e1, v1, f, v2, p, _) => 
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 = generate(v2)
       s"""|${generate(e1)}.flatMap{ case $vars => 
@@ -269,7 +269,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
             |}) }""".stripMargin
        }
     case OuterJoin(e1, e2, v1, p1, v2, p2) => generate(Join(e1, e2, v1, p1, v2, p2))
-    case OuterUnnest(e1, v1, f, v2, p) => //generate(Unnest(e1, v1, f, v2, p))
+    case OuterUnnest(e1, v1, f, v2, p,_) => //generate(Unnest(e1, v1, f, v2, p))
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 = generate(v2)
       s"""|${generate(e1)}.flatMap{ case $vars => 

@@ -10,6 +10,16 @@ import shredding.core._
 
 sealed trait CExpr {
   def tp: Type
+  def nullValue: CExpr = tp match {
+    case IntType => Constant(-1)
+    case DoubleType => Constant(-1.0)
+    case _ => Null
+  }
+  def zero: String = tp match {
+    case IntType => "0"
+    case DoubleType => "0.0"
+    case _ => "Iterable()"
+  }
   def wvars: List[Variable] = List() // remove this, only using for printing
 }
 
@@ -28,6 +38,10 @@ case class Constant(data: Any) extends CExpr{
     case _:String => StringType
     case _:Boolean => BoolType
   }
+}
+
+case object Null extends CExpr {
+  def tp: Type = EmptyCType
 }
 
 case object EmptySng extends CExpr {
@@ -223,44 +237,64 @@ case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
 case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CExpr {
   def tp: Type = e2.tp match {
     case t:RecordCType => BagCType(t)
+    case t:TTupleType => BagCType(t)
     case t => t
   }
   override def wvars = e1.wvars
 }
 
 // { (v1, v2) | v1 <- e1, v2 <- e2(v1), p((v1, v2)) } 
-case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr {
+case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr, value: CExpr) extends CExpr {
+  val bagproj = e2 match {
+    case Project(_, field) => field
+    case Bind(_, Project(_, field), _) => field
+    case _ => ???
+  }
   def tp: Type = e1.tp match {
-    case btp:BagDictCType => BagCType(TTupleType(List(btp.flatTp.tp, v2.tp)))
-    case btp:BagCType => BagCType(TTupleType(List(btp.tp, v2.tp)))
+    case btp:BagDictCType => 
+      val ntp = RecordCType(btp.flatTp.tp.asInstanceOf[TTupleType].attrTps.last.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps - bagproj)
+      BagCType(TTupleType(List(ntp, v2.tp)))
+    case btp:BagCType => 
+      val ntp = RecordCType(btp.tp.asInstanceOf[TTupleType].attrTps.last.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps - bagproj)
+      BagCType(TTupleType(List(ntp, v2.tp)))
     case _ => ???
   }
   // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = e1.wvars :+ v2
-  override def equals(that: Any): Boolean = that match {
-    case Unnest(e11, v11, e21, v21, p1) => e21 == e2
-    case OuterUnnest(e11, v11, e21, v21, p1) => e21 == e2
-    case e => false
-  }
+  // override def equals(that: Any): Boolean = that match {
+  //   case Unnest(e11, v11, e21, v21, p1) => e21 == e2
+  //   case OuterUnnest(e11, v11, e21, v21, p1) => e21 == e2
+  //   case e => false
+  // }
 }
 
-case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr) extends CExpr { self =>
+case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr, value: CExpr) extends CExpr { self =>
+  val bagproj = e2 match {
+    case Project(_, field) => field
+    case Bind(_, Project(_, field), _) => field
+    case _ => ???
+  }
   def tp: Type = e1.tp match {
-    case btp:BagDictCType => BagCType(TTupleType(List(btp.flatTp.tp, v2.tp)))
-    case btp:BagCType => BagCType(TTupleType(List(btp.tp, v2.tp)))
+    case btp:BagDictCType => 
+      // val ntp = RecordCType(btp.flatTp.tp.asInstanceOf[TTupleType].attrTps.last.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps - bagproj)
+      // BagCType(TTupleType(List(ntp, v2.tp)))
+      BagCType(TTupleType(List(btp.flatTp.tp, v2.tp)))
+    case btp:BagCType => 
+      //val ntp = RecordCType(btp.tp.asInstanceOf[TTupleType].attrTps.last.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps - bagproj)
+      BagCType(TTupleType(List(btp.tp, v2.tp)))
     case _ => ???
   }
   override def wvars = e1.wvars :+ v2
   // need to fix this to work with ANF
-  override def equals(that: Any): Boolean = that match {
-    case Unnest(e11, v11, e21, v21, p1) if e21 == e2 => true
-    case OuterUnnest(e11, v11, e21, v21, p1) if e21 == e2 => true
-    case e => false
-  }
+  // override def equals(that: Any): Boolean = that match {
+  //   case Unnest(e11, v11, e21, v21, p1) if e21 == e2 => true
+  //   case OuterUnnest(e11, v11, e21, v21, p1) if e21 == e2 => true
+  //   case e => false
+  // }
 }
 
 case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr, g: CExpr) extends CExpr {
-  def tp: Type = BagCType(v2.tp) // check 
+  def tp: Type = BagCType(v2.tp)
   // only using this for printing, consider removing
   override def wvars = { 
     val uvars = f match {
@@ -293,14 +327,24 @@ case class Lookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Varia
   override def wvars = e1.wvars :+ v2
 }
 
-case class CoGroup(e1: CExpr, es: List[CExpr], vs: List[Variable], ps: CExpr) extends CExpr {
-  // assert es.size < 3 (cogroups with more than three not supported in spark)
+// case class CoGroup(e1: CExpr, es: List[CExpr], vs: List[Variable], ps: CExpr) extends CExpr {
+//   // assert es.size < 3 (cogroups with more than three not supported in spark)
+//   def tp:BagCType = e1.tp match {
+//     case BagCType(tup) => BagCType(TTupleType(tup +: vs.map(_.tp) ))
+//     case btp:BagDictCType => BagCType(TTupleType(btp.flat +: vs.map(_.tp)))
+//     case _ => ???
+//   }
+//   override def wvars = e1.wvars
+// }
+
+// omitting filter for now
+// and nulls
+case class CoGroup(e1: CExpr, e2: CExpr, v1: List[Variable], v2: Variable, k1: CExpr, 
+  k2: CExpr, value: CExpr) extends CExpr {
   def tp:BagCType = e1.tp match {
-    case BagCType(tup) => BagCType(TTupleType(tup +: vs.map(_.tp) ))
-    case btp:BagDictCType => BagCType(TTupleType(btp.flat +: vs.map(_.tp)))
+    case BagCType(tup) => BagCType(TTupleType(List(tup, BagCType(value.tp))))
     case _ => ???
   }
-  override def wvars = e1.wvars
 }
 
 case class OuterLookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, p3: CExpr) extends CExpr {
@@ -379,6 +423,7 @@ object Variable {
       case _ => Variable(s"x$id", tp)
     }
   }
+  def fresh(n: String = "x"): String = s"$n${newId()}"
   def newId(): Int = {
     val id = lastId
     lastId += 1
@@ -386,4 +431,33 @@ object Variable {
   }
 }
 
+/** Optimizer Extensions **/
+
+trait Extensions {
+
+  def substitute(e: CExpr, vold: Variable, vnew: Variable): CExpr = e match {
+    case Record(fs) => Record(fs.map{ 
+      case (attr, e2) => attr -> substitute(e2, vold, vnew)})
+    case Project(v, f) => 
+      Project(substitute(v, vold, vnew), f)
+    case v @ Variable(_,_) => 
+      if (v == vold) Variable(vnew.name, v.tp) else v
+    case _ => e
+  }
+
+  def fapply(e: CExpr, funct: PartialFunction[CExpr, CExpr]): CExpr = 
+    funct.applyOrElse(e, (ex: CExpr) => ex match {
+      case Reduce(d, v, f, p) => Reduce(fapply(d, funct), v, f, p)
+      case Nest(e1, v1, f, e, v, p, g) => Nest(fapply(e1, funct), v1, f, e, v, p, g)
+      case Unnest(e1, v1, f, v2, p, value) => Unnest(fapply(e1, funct), v1, f, v2, p, value)
+      case OuterUnnest(e1, v1, f, v2, p, value) => OuterUnnest(fapply(e1, funct), v1, f, v2, p, value)
+      case Join(e1, e2, v1, p1, v2, p2) => Join(fapply(e1, funct), fapply(e2, funct), v1, p1, v2, p2)
+      case OuterJoin(e1, e2, v1, p1, v2, p2) => OuterJoin(fapply(e1, funct), fapply(e2, funct), v1, p1, v2, p2)
+      case Lookup(e1, e2, v1, p1, v2, p2, p3) => Lookup(fapply(e1, funct), e2, v1, p1, v2, p2, p3)
+      case CDeDup(e1) => CDeDup(fapply(e1, funct))
+      case CNamed(n, e1) => CNamed(n, fapply(e1, funct))
+      case LinearCSet(es) => LinearCSet(es.map(e1 => fapply(e1, funct)))
+      case _ => ex
+    })
+}
 

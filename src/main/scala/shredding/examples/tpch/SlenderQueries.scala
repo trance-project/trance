@@ -3,7 +3,7 @@ package shredding.examples.tpch
 import shredding.core._
 import shredding.examples.Query
 import shredding.nrc.LinearizedNRC
-import shredding.wmcc._
+// import shredding.wmcc._
 
 /**
   
@@ -56,7 +56,7 @@ trait TPCHBase extends Query {
 object TPCHQuery1Full extends TPCHBase {
 
   val name = "Query1Full"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_2customers2_1")
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"c2__Dc_orders_1", s"o2__Do_parts_1")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
@@ -67,10 +67,64 @@ object TPCHQuery1Full extends TPCHBase {
         Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(l, relL,
           IfThenElse(
             Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
-            ForeachUnion(p, relP, IfThenElse(
-              Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
-              Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))))))))))
+            //ForeachUnion(p, relP, IfThenElse(
+              //Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
+              Singleton(Tuple("l_partkey" -> lr("l_partkey"), "l_qty" -> lr("l_quantity"))))))))))))
 
+}
+
+object TPCHQuery4Full extends TPCHBase {
+  val name = "Query4Full"
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+
+  val (q1, co, cor) = varset(TPCHQuery1Full.name, "c2", TPCHQuery1Full.query.asInstanceOf[BagExpr])
+  val orders = BagProject(cor, "c_orders")
+  val co2 = VarDef("o2", orders.tp.tp)
+  val co2r = TupleVarRef(co2)
+
+  val lines = BagProject(co2r, "o_parts")
+  val co3 = VarDef("p2", lines.tp.tp)
+  val co3r = TupleVarRef(co3)
+
+  val query = 
+    Let(q1, TPCHQuery1Full.query.asInstanceOf[BagExpr],
+    ForeachUnion(co, BagVarRef(q1), 
+                Singleton(Tuple("c_name" -> cor("c_name"), "c_orders" -> 
+                  ForeachUnion(co2, orders, 
+                    Singleton(Tuple("o_orderdate" -> co2r("o_orderdate"), "o_parts" ->
+                      ForeachUnion(co3, lines, 
+                        ForeachUnion(p, relP, 
+                          IfThenElse(Cmp(OpEq, co3r("l_partkey"), pr("p_partkey")),
+                            Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> co3r("l_qty")))))))))))))
+}
+
+object TPCHQuery4FullAgg extends TPCHBase {
+  val name = "Query4FullAgg"
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+
+  val (q1, co, cor) = varset(TPCHQuery1Full.name, "c2", TPCHQuery1Full.query.asInstanceOf[BagExpr])
+  val orders = BagProject(cor, "c_orders")
+  val co2 = VarDef("o2", orders.tp.tp)
+  val co2r = TupleVarRef(co2)
+
+  val lines = BagProject(co2r, "o_parts")
+  val co3 = VarDef("p2", lines.tp.tp)
+  val co3r = TupleVarRef(co3)
+
+  val query = 
+    Let(q1, TPCHQuery1Full.query.asInstanceOf[BagExpr],
+    ForeachUnion(co, BagVarRef(q1), 
+                Singleton(Tuple("c_name" -> cor("c_name"), "c_orders" -> 
+                  ForeachUnion(co2, orders, 
+                    Singleton(Tuple("o_orderdate" -> co2r("o_orderdate"), "o_parts" ->
+                      GroupBy(ForeachUnion(co3, lines, 
+                        ForeachUnion(p, relP, 
+                          IfThenElse(Cmp(OpEq, co3r("l_partkey"), pr("p_partkey")),
+                            Singleton(Tuple("p_name" -> pr("p_name"), "total" -> 
+                              PrimitiveOp(Multiply, co3r("l_qty"), pr("p_retailprice"))))))),
+                      List("p_name"), List("total"), DoubleType))))))))
 }
 
 /**
@@ -331,7 +385,8 @@ object TPCHQuery3 extends TPCHBase {
 }
 
 
-object TPCHQuery4Full extends TPCHBase {
+
+object TPCHQuery4Agg extends TPCHBase {
   val name = "Query4Full"
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"

@@ -20,14 +20,22 @@ trait Query extends Linearization
 
   /** standard query **/
   val query: Expr
-  def calculus: CExpr = {val q = translate(query); println(Printer.quote(q)); q}
+  def calculus: CExpr = query match {
+    case l:Let => 
+      println(quote(l.e2))
+      translate(l.e2)
+    case _ => translate(query)
+  }
   def normalize: CExpr = {
     val norm = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
     println(Printer.quote(norm))
     norm
   }
+  def unnestOnly: CExpr = {
+    Unnester.unnest(this.normalize)(Nil, Nil, None)
+  }
   def unnest: CExpr = {
-    val plan = Optimizer.applyAll(Unnester.unnest(this.normalize)(Nil, Nil, None))
+    val plan = Optimizer.applyAll(unnestOnly)
     println(Printer.quote(plan))
     plan
   }
@@ -35,7 +43,7 @@ trait Query extends Linearization
     val anfBase = new BaseANF{}
     val anfer = new Finalizer(anfBase)
     val plan = anfBase.anf(anfer.finalize(this.unnest).asInstanceOf[anfBase.Rep])
-    //println(Printer.quote(plan))
+    // println(Printer.quote(plan))
     plan
   }
 
@@ -70,10 +78,20 @@ trait Query extends Linearization
     val shredded = normalizer.finalize(ctrans).asInstanceOf[CExpr] 
     println(Printer.quote(shredded))
     val initPlan = Unnester.unnest(shredded)(Nil, Nil, None)
-    //println(Printer.quote(initPlan))
     val plan = Optimizer.applyAll(initPlan)
     println(Printer.quote(plan))
     plan
+  }
+
+  def shredPlanNoOpt: CExpr = {
+    val seq = this.shred._2.seq
+    println(quote(seq))
+    val ctrans = translate(seq)
+    println(Printer.quote(ctrans))
+    val shredded = normalizer.finalize(ctrans).asInstanceOf[CExpr] 
+    println(Printer.quote(shredded))
+    val initPlan = Unnester.unnest(shredded)(Nil, Nil, None)
+    initPlan
   }
  
   def shredANF: CExpr = {
@@ -86,7 +104,6 @@ trait Query extends Linearization
     val unshredded = normalizer.finalize(translate(this.unshred)).asInstanceOf[CExpr] 
     println(Printer.quote(unshredded))
     val initPlan = Unnester.unnest(unshredded)(Nil, Nil, None)
-    //println(Printer.quote(initPlan))
     val plan = Optimizer.applyAll(initPlan)
     println(Printer.quote(plan))
     plan

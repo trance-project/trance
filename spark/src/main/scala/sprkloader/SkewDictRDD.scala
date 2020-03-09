@@ -49,6 +49,18 @@ object SkewDictRDD {
       }else (lrdd, lrdd.sparkContext.emptyRDD[(K,Iterable[V])], Set.empty[K])
     }
 
+  def lookupIteratorDomain(rrdd: RDD[K]): RDD[(K, V)] = {
+      val domain = rrdd.map(l => l -> 1)
+      lrdd.partitioner match {
+          case Some(p) => 
+            lrdd.cogroup(domain).mapPartitions(it =>
+              it.flatMap{ case (lbl, (vs, _)) => vs.flatten.map(v => lbl -> v) }, true)
+          case None =>
+            lrdd.cogroup(domain, new HashPartitioner(partitions)).mapPartitions(it =>
+              it.flatMap{ case (lbl, (vs, _)) => vs.flatten.map(v => lbl -> v) }, true)
+      }
+  }
+
     // unshredding, uses known partitioning information for light keys 
   def rightLookup[S:ClassTag](heavy: RDD[(K,Iterable[V])], rrdd: RDD[(K,S)], hkeys: Set[K]): RDD[(S, Iterable[V])] = {
     if (hkeys.nonEmpty){
@@ -119,6 +131,22 @@ object SkewDictRDD {
         it.flatMap{ case (key, value) => 
           if (domain.value(key)) Iterator((key, value.map(bagop))) else Iterator()}, true)
   }
+
+  def lookup(rrdd: RDD[K]): RDD[(K, Iterable[V])] = {
+      val domain = rrdd.map(l => l -> 1)
+      lrdd.partitioner match {
+          case Some(p) => 
+            lrdd.cogroup(domain).mapPartitions(it =>
+              it.flatMap{ case (lbl, (vs, _)) => {
+                val fvs = vs.flatten
+                if (fvs.nonEmpty) List((lbl -> fvs)) else Nil}}, true)
+          case None =>
+            lrdd.cogroup(domain, new HashPartitioner(partitions)).mapPartitions(it =>
+              it.flatMap{ case (lbl, (vs, _)) => {
+                val fvs = vs.flatten
+                if (fvs.nonEmpty) List((lbl -> fvs)) else Nil}}, true)
+        }
+    }
 
   def lookup[L:ClassTag](rrdd: RDD[(K, L)]): RDD[(L, Iterable[V])] = {
     lrdd.cogroup(rrdd).mapPartitions(it =>
