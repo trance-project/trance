@@ -87,4 +87,15 @@ trait SparkUtils {
           |${fcomment}spark.sparkContext.runJob($n, (iter: Iterator[_]) => {})"""
     }else ""
   }
+  def runJobSplit(n: String, last:Boolean = false): String = {
+    if (!n.contains("ctx")){
+      val fcomment = if (last) "" else "//"
+      s"""|//${n}_L.cache
+          |//${n}_L.collect.foreach(println(_))
+          |//${n}_H.cache
+          |//${n}_H.collect.foreach(println(_))
+          |${fcomment}spark.sparkContext.runJob(${n}_L, (iter: Iterator[_]) => {})
+          |${fcomment}spark.sparkContext.runJob(${n}_H, (iter: Iterator[_]) => {})"""
+    }else ""
+  }
 }

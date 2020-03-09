@@ -28,7 +28,7 @@ object App {
 
     // Run shred with domains
     // the true adds unshredding
-    Utils.runSparkDomains(TPCHQuery1Full, true)
+    Utils.runSparkDomains(TPCHQuery1Full, false, true)
 
     // Run shred with domains when a query is used as input for another
     // the true adds unshredding

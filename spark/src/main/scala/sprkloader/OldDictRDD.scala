@@ -6,11 +6,11 @@ import org.apache.spark.broadcast.Broadcast
 import scala.reflect.ClassTag
 import org.apache.spark.Partitioner
 import org.apache.spark.HashPartitioner
-import SkewPairRDD._
+import OldSkewPairRDD._
 import UtilPairRDD._
 import DomainRDD._
 
-object SkewDictRDD {
+object OldSkewDictRDD {
   
   implicit class SkewDictFunctions[K: ClassTag, V: ClassTag](lrdd: RDD[(K,Iterable[V])]) extends Serializable {
 

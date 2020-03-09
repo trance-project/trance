@@ -20,7 +20,7 @@ case class Customer(c_custkey: Int, c_name: String, c_address: String, c_nationk
   def uniqueId: Long = c_custkey.toLong
 }
 
-case class Orders(o_orderkey: Int, o_custkey: Int, o_orderstatus: String, o_totalprice: Double, o_orderdate: String, o_orderpriority: String, o_clerk: String, o_shippriority: Int, o_comment: String) extends CaseClassRecord{
+case class Order(o_orderkey: Int, o_custkey: Int, o_orderstatus: String, o_totalprice: Double, o_orderdate: String, o_orderpriority: String, o_clerk: String, o_shippriority: Int, o_comment: String) extends CaseClassRecord{
   def uniqueId: Long = o_orderkey.toLong
 }
 
@@ -266,20 +266,71 @@ object TPCHSchema {
     BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(nationtype.tp.attrTps))))), EmptyDictCType) -> "ND",
     BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(regiontype.tp.attrTps))))), EmptyDictCType) -> "RD")
 
-  val tblcmds = Map("C" -> "val C = tpch.loadCustomers()\nC.cache\nC.count\n",
-                  "O" -> "val O = tpch.loadOrders()\nO.cache\nO.count\n",
-                  "L" -> "val L = tpch.loadLineitem()\nL.cache\nL.count\n",
-                  "P" -> "val P = tpch.loadPart()\nP.cache\nP.count\n",
-                  "PS" -> "val PS = tpch.loadPartSupp()\nPS.cache\nPS.count\n",
-                  "S" -> "val S = tpch.loadSupplier()\nS.cache\nS.count\n",
-                  "N" -> "val N = tpch.loadNation()\nN.cache\nN.count\n")
+  def loadLine(tbl: String, tblname: String): String = 
+    s"""|val $tbl = tpch.load$tblname()
+        |$tbl.cache
+        |spark.sparkContext.runJob($tbl, (iter: Iterator[_]) => {})
+        |""".stripMargin
 
-  val stblcmds = Map("C" -> "val C__F = 1\nval C__D_1 = tpch.loadCustomers()\nC__D_1.cache\nC__D_1.count\n",
-                   "O" -> "val O__F = 2\nval O__D_1 = tpch.loadOrders()\nO__D_1.cache\nO__D_1.count\n",
-                   "L" -> "val L__F = 3\nval L__D_1 = tpch.loadLineitem()\nL__D_1.cache\nL__D_1.count\n",
-                   "P" -> "val P__F = 4\nval P__D_1 = tpch.loadPart()\nP__D_1.cache\nP__D_1.count\n",
-                   "PS" -> "val PS__F = 5\nval PS__D_1 = tpch.loadPartSupp()\nPS__D_1.cache\nPS__D_1.count\n",
-                   "S" -> "val S__F = 6\nval S__D_1 = tpch.loadSupplier()\nS__D_1.cache\nS__D_1.count\n",
-                   "N" -> "val N__F = 6\nval N__D_1 = tpch.loadNation()\nN__D_1.cache\nN__D_1.count\n")
+  def loadLineSkew(tbl: String, tblname: String): String = 
+    s"""|val ${tbl}_L = tpch.load$tblname()
+        |${tbl}_L.cache
+        |spark.sparkContext.runJob(${tbl}_L, (iter: Iterator[_]) => {})
+        |val ${tbl}_H = spark.sparkContext.emptyRDD[$tblname]
+        |""".stripMargin
+
+
+  val tblcmds = 
+    Map("C" -> loadLine("C", "Customer"),
+        "O" -> loadLine("O", "Order"),
+        "L" -> loadLine("L", "Lineitem"),
+        "P" -> loadLine("P", "Part"),
+        "PS" -> loadLine("PS", "PartSupp"),
+        "S" -> loadLine("S", "Supplier"),
+        "N" -> loadLine("N", "Nation"),
+        "R" -> loadLine("R", "Region"))
+
+  val skewcmds = 
+    Map("C" -> loadLineSkew("C", "Customer"),
+        "O" -> loadLineSkew("O", "Order"),
+        "L" -> loadLineSkew("L", "Lineitem"),
+        "P" -> loadLineSkew("P", "Part"),
+        "PS" -> loadLineSkew("PS", "PartSupp"),
+        "S" -> loadLineSkew("S", "Supplier"),
+        "N" -> loadLineSkew("N", "Nation"),
+        "R" -> loadLineSkew("R", "Region"))
+
+  def loadDict(tbl: String, tblname: String): String = 
+    s"""|val ${tbl}__D_1 = tpch.load$tblname()
+        |${tbl}__D_1.cache
+        |spark.sparkContext.runJob(${tbl}__D_1, (iter: Iterator[_]) => {})
+        |""".stripMargin
+
+  def loadDictSkew(tbl: String, tblname: String): String = 
+    s"""|val ${tbl}__D_1_L = tpch.load$tblname()
+        |${tbl}__D_1_L.cache
+        |spark.sparkContext.runJob(${tbl}__D_1_L, (iter: Iterator[_]) => {})
+        |val ${tbl}__D_1_H = spark.sparkContext.emptyRDD[$tblname]
+        |""".stripMargin
+
+  val stblcmds =     
+    Map("C" -> loadDict("C", "Customer"),
+        "O" -> loadDict("O", "Order"),
+        "L" -> loadDict("L", "Lineitem"),
+        "P" -> loadDict("P", "Part"),
+        "PS" -> loadDict("PS", "PartSupp"),
+        "S" -> loadDict("S", "Supplier"),
+        "N" -> loadDict("N", "Nation"),
+        "R" -> loadDict("R", "Region"))
+
+  val sskewcmds = 
+    Map("C" -> loadDictSkew("C", "Customer"),
+        "O" -> loadDictSkew("O", "Order"),
+        "L" -> loadDictSkew("L", "Lineitem"),
+        "P" -> loadDictSkew("P", "Part"),
+        "PS" -> loadDictSkew("PS", "PartSupp"),
+        "S" -> loadDictSkew("S", "Supplier"),
+        "N" -> loadDictSkew("N", "Nation"),
+        "R" -> loadDictSkew("R", "Region"))
 
 }

@@ -19,7 +19,7 @@ case class CustomerProj(c_custkey: Int, c_name: String)
 
 case class CustomerProj5(c_custkey: Int, c_name: String, c_nationkey: Int)
 
-case class Orders(o_orderkey: Int, o_custkey: Int, o_orderstatus: String, o_totalprice: Double, o_orderdate: String, o_orderpriority: String, o_clerk: String, o_shippriority: Int, o_comment: String)
+case class Order(o_orderkey: Int, o_custkey: Int, o_orderstatus: String, o_totalprice: Double, o_orderdate: String, o_orderpriority: String, o_clerk: String, o_shippriority: Int, o_comment: String)
 
 case class OrdersProj(o_orderkey: Int, o_custkey: Int, o_orderdate: String)
 
@@ -90,7 +90,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 
   import spark.implicits._
 
-  def loadCustomers(path: String = s"file:///$datapath/customer.tbl"):RDD[Customer] = {
+  def loadCustomer(path: String = s"file:///$datapath/customer.tbl"):RDD[Customer] = {
     spark.sparkContext.textFile(path, minPartitions = parts).mapPartitions(it =>
 		it.map(line => {
         	val l = line.split("\\|")
@@ -179,12 +179,12 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
       .as[Part]
   }
 
-  def loadOrders(path: String = s"file:///$datapath/order.tbl"):RDD[Orders] = {
+  def loadOrder(path: String = s"file:///$datapath/order.tbl"):RDD[Order] = {
     //val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
     spark.sparkContext.textFile(path ,minPartitions = parts).mapPartitions(it => 
 		it.map(line => {
       		val l = line.split("\\|")
-            Orders(parseBigInt(l(0)), l(1).toInt, l(2), l(3).toDouble, l(4), l(5), l(6), l(7).toInt, l(8))
+            Order(parseBigInt(l(0)), l(1).toInt, l(2), l(3).toDouble, l(4), l(5), l(6), l(7).toInt, l(8))
   		}), true).repartition(parts)
   }
 
@@ -206,7 +206,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   		}), true).repartition(parts)
   }
 
-  def loadOrdersDF():Dataset[Orders] = {
+  def loadOrdersDF():Dataset[Order] = {
 
     val schema = StructType(Array(
                   StructField("o_orderkey", IntegerType), 
@@ -223,7 +223,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
     spark.read.schema(schema)
       .option("delimiter", "|")
       .csv(s"file:///$datapath/$ofile")
-      .as[Orders]
+      .as[Order]
   }
 
   // this is hard coded directory of files split with bash

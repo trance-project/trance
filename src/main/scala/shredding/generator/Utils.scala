@@ -189,36 +189,45 @@ object Utils {
   
   }
 
-  def runSparkInputDomains(inputQuery: Query, query: Query, unshred: Boolean = false): Unit = {
+  def runSparkInputDomains(inputQuery: Query, query: Query, unshred: Boolean = false, skew: Boolean = false): Unit = {
     
     val codegen = new SparkNamedGenerator(query.inputTypes(true))
-    val (inputCode, gcode1) = (codegen.generate(inputQuery.shredANF), codegen.generate(query.shredANF))
-    val gcodeSet = if (unshred) List(gcode1, codegen.generate(query.unshredANF)) else List(gcode1)
+    val inputCode = if (skew) codegen.generateSkew(inputQuery.shredANF) else codegen.generate(inputQuery.shredANF)
+    val gcode1 = if (skew) codegen.generateSkew(query.shredANF) else codegen.generate(query.shredANF)
+    val gcodeSet = if (unshred) {
+      List(gcode1, if (skew) codegen.generateSkew(query.unshredANF) else codegen.generate(query.unshredANF)) 
+      }else List(gcode1)
     val header = codegen.generateHeader(query.headerTypes(true))
    
-    val qname = s"Shred${query.name}Spark"
+    val qname = if (skew) s"Shred${query.name}SparkSkew" else s"Shred${query.name}Spark"
     val fname = if (unshred) pathout(qname, "unshred") else pathout(qname)
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val inputSection = s"${inputCode.split("\n").dropRight(1).mkString("\n")}\n${shredInputs(inputQuery.indexedDict)}"
-    val finalc = writeSpark(qname, query.inputs(TPCHSchema.stblcmds), header, s"$inputSection\n${timed(qname, gcodeSet)}")
+    val finalc = 
+      if (skew) writeSpark(qname, query.inputs(TPCHSchema.sskewcmds), header, s"$inputSection\n${timed(qname, gcodeSet)}")
+      else writeSpark(qname, query.inputs(TPCHSchema.stblcmds), header, s"$inputSection\n${timed(qname, gcodeSet)}")
     printer.println(finalc)
     printer.close 
   
   }
 
-  def runSparkDomains(query: Query, unshred: Boolean = false): Unit = {
+  def runSparkDomains(query: Query, unshred: Boolean = false, skew: Boolean = false): Unit = {
     
     val codegen = new SparkNamedGenerator(query.inputTypes(true))
-    val gcode1 = codegen.generate(query.shredANF)
-    val gcodeSet = if (unshred) List(gcode1, codegen.generate(query.unshredANF)) else List(gcode1)
+    val gcode1 = if (skew) codegen.generateSkew(query.shredANF) else codegen.generate(query.shredANF)
+    val gcodeSet = if (unshred) {
+        List(gcode1, if (skew) codegen.generateSkew(query.unshredANF) else codegen.generate(query.unshredANF)) 
+      }else List(gcode1)
     val header = codegen.generateHeader(query.headerTypes(true))
    
-    val qname = s"Shred${query.name}Spark"
+    val qname = if (skew) s"Shred${query.name}SparkSkew" else s"Shred${query.name}Spark"
     val fname = if (unshred) pathout(qname, "unshred") else pathout(qname)
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val finalc = writeSpark(qname, query.inputs(TPCHSchema.stblcmds), header, timed(qname, gcodeSet))
+    val finalc = 
+      if (skew) writeSparkSkew(qname, query.inputs(TPCHSchema.sskewcmds), header, timed(qname, gcodeSet))
+      else writeSpark(qname, query.inputs(TPCHSchema.stblcmds), header, timed(qname, gcodeSet))
     printer.println(finalc)
     printer.close 
   
@@ -268,6 +277,28 @@ object Utils {
       |}""".stripMargin
   }
 
+  def writeSparkSkew(appname: String, data: String, header: String, gcode: String): String  = {
+    s"""
+      |package experiments
+      |/** Generated **/
+      |import org.apache.spark.SparkConf
+      |import org.apache.spark.sql.SparkSession
+      |import sprkloader._
+      |import sprkloader.SkewPairRDD._
+      |import sprkloader.DictRDDOperations._
+      |import sprkloader.DomainRDD._
+      |$header
+      |object $appname {
+      | def main(args: Array[String]){
+      |   val sf = Config.datapath.split("/").last
+      |   val conf = new SparkConf().setMaster(Config.master).setAppName(\"$appname\"+sf)
+      |   val spark = SparkSession.builder().config(conf).getOrCreate()
+      |   $data
+      |   $gcode
+      |   println("$appname"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
+      | }
+      |}""".stripMargin
+  }
 
 
   /**

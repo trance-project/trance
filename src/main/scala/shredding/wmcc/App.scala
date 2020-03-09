@@ -291,7 +291,7 @@ object App {
     println(nrcprinter.quote(qa.asInstanceOf[nrcprinter.Expr]))
 
     ctx.add(VarDef("C", TPCHSchema.customertype), TPCHLoader.loadCustomer[Customer].toList.map(getCCParams(_))) 
-    ctx.add(VarDef("O", TPCHSchema.orderstype), TPCHLoader.loadOrders[Orders].toList.map(getCCParams(_)))
+    ctx.add(VarDef("O", TPCHSchema.orderstype), TPCHLoader.loadOrders[Order].toList.map(getCCParams(_)))
     ctx.add(VarDef("L", TPCHSchema.lineittype), TPCHLoader.loadLineitem[Lineitem].toList.map(getCCParams(_)))
     ctx.add(VarDef("P", TPCHSchema.parttype), TPCHLoader.loadPart[Part].toList.map(getCCParams(_)))
     println("\nNRC EVALUATED:\n")
@@ -304,7 +304,7 @@ object App {
     val normq2a = normalizer.finalize(q2a).asInstanceOf[CExpr]
     println(s"\n${Printer.quote(normq2a)}\n")
     eval.ctx("C") = TPCHLoader.loadCustomer[Customer].toList 
-    eval.ctx("O") = TPCHLoader.loadOrders[Orders].toList 
+    eval.ctx("O") = TPCHLoader.loadOrders[Order].toList 
     eval.ctx("L") = TPCHLoader.loadLineitem[Lineitem].toList 
     eval.ctx("P") = TPCHLoader.loadPart[Part].toList 
 
@@ -327,7 +327,7 @@ object App {
       TPCHQueries.query1.asInstanceOf[nrceval.BagExpr])
  
     ctx.add(VarDef("C", TPCHSchema.customertype), TPCHLoader.loadCustomer[Customer].toList.map(getCCParams(_))) 
-    ctx.add(VarDef("O", TPCHSchema.orderstype), TPCHLoader.loadOrders[Orders].toList.map(getCCParams(_)))
+    ctx.add(VarDef("O", TPCHSchema.orderstype), TPCHLoader.loadOrders[Order].toList.map(getCCParams(_)))
     ctx.add(VarDef("L", TPCHSchema.lineittype), TPCHLoader.loadLineitem[Lineitem].toList.map(getCCParams(_)))
     ctx.add(VarDef("P", TPCHSchema.parttype), TPCHLoader.loadPart[Part].toList.map(getCCParams(_)))
     println("\nNRC EVALUATED:\n")
@@ -340,7 +340,7 @@ object App {
     val normq2 = normalizer.finalize(q2).asInstanceOf[CExpr]
     println(s"\n${Printer.quote(normq2)}\n")
     eval.ctx("C") = TPCHLoader.loadCustomer[Customer].toList 
-    eval.ctx("O") = TPCHLoader.loadOrders[Orders].toList 
+    eval.ctx("O") = TPCHLoader.loadOrders[Order].toList 
     eval.ctx("L") = TPCHLoader.loadLineitem[Lineitem].toList 
     eval.ctx("P") = TPCHLoader.loadPart[Part].toList 
     //eval.ctx("PS") = TPCHLoader.loadPartSupp[PartSupp].toList 
