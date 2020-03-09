@@ -132,7 +132,7 @@ object SkewDictRDD {
           if (domain.value(key)) Iterator((key, value.map(bagop))) else Iterator()}, true)
   }
 
-  def lookup(rrdd: RDD[K]): RDD[(K, Iterable[V])] = {
+  def cogroupDomain(rrdd: RDD[K]): RDD[(K, Iterable[V])] = {
       val domain = rrdd.map(l => l -> 1)
       lrdd.partitioner match {
           case Some(p) => 

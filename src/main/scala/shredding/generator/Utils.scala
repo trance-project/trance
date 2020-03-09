@@ -252,8 +252,8 @@ object Utils {
       |import org.apache.spark.SparkConf
       |import org.apache.spark.sql.SparkSession
       |import sprkloader._
-      |import sprkloader.SkewPairRDD._
-      |import sprkloader.SkewDictRDD._
+      |import sprkloader.PairRDDOperations._
+      |import sprkloader.DictRDDOperations._
       |import sprkloader.DomainRDD._
       |$header
       |object $appname {

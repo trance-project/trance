@@ -239,28 +239,6 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
     
     /** LOOKUPS **/
 
-    // LOOKUP ITERATOR (unshredding)
-    case Bind(unv, Unnest(dict1, v1, bag, v2, filt, value), 
-      Bind(luv, Lookup(_, dict2, _, Bind(_, Project(_, key1), _), v3, key2, key3), e2)) =>
-      val vars = generateVars(v1, dict1.tp)
-      val undict1 = generate(unv)
-      val gv2 = generate(v2)
-      val gluv = generate(luv)
-      val nv2 = v2.tp match {
-        case RecordCType(ms) => generate(Record((ms - key1).map(f => f._1 -> Project(v2, f._1))))
-        case _ => ???
-      }
-      val flatten = dict2 match { case InputRef(n, _) if !n.contains("new") => ".flatten"; case _ => "" }
-      s"""|val $undict1 = ${generate(dict1)}.flatMap{
-          | case $vars => {${generate(bag)}}.map{case $gv2 => 
-          |   ($gv2.$key1, ($vars._1, $nv2))}
-          |}
-          |val $gluv = $undict1.cogroup(${generate(dict2)}).flatMap{
-          | case (_, (dict1, dict2)) => dict1.map{ case (lbl, d) => lbl -> (d, dict2$flatten) }
-          |}
-          |${generate(e2)}
-          |""".stripMargin
-    
     // DOMAIN LOOKUP ITERATOR 
     case Bind(luv, Lookup(e1, e2, vs, k1, v2, k2, Constant(true)), e3) if isDomain(e1) =>
       val ve1 = "x" + Variable.newId()
@@ -287,24 +265,40 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
           | ${generate(e3)}
         """.stripMargin
 
-    // STANDARD LOOKUP
-    case Bind(luv, Lookup(e1, e2, v1, p1 @ Bind(_, Project(v3, key1), _), v2, p2, Variable(_,_)), e3) =>
+    // Non-domain lookup that requires flattening one of the dictionaires
+    // ie. (parent dictionary).map(child label -> parent bag).lookup(child dictionary)
+    // drops the partitioner of the parent dictionary, uses partitioning information 
+    // of the child dictionary, then drops the child partitioner to rekey by 
+    // the parent label.
+    case Bind(unv, Unnest(dict1, v1, bag, v2:Variable, filt, value), 
+      Bind(luv, Lookup(_, dict2, _, Bind(_, Project(_, key1), _), v3, key2, key3), e2)) =>
+      val vars = generateVars(v1, dict1.tp)
+      val fdict = generate(unv)
+      val gv2 = generate(v2)
+      val gluv = generate(luv)
+      val nv2 = generate(drop(v2.tp, v2, key1))
+      s"""|val $fdict = ${generate(dict1)}.flatMap{
+          | case $vars => {${generate(bag)}}.map{case $gv2 => 
+          |   ($gv2.$key1, ($vars._1, $nv2))}
+          |}
+          |val $gluv = ${generate(dict2)}.rightCoGroupDropKey($fdict)
+          |${generate(e2)}
+          |""".stripMargin
+
+    // Non-domain lookup that does not require flattening one of the dictionaries
+    // ie. (top level bag).lookup(lower level dictionary)
+    case Bind(luv, Lookup(e1, e2, v1, p1 @ Bind(_, Project(v3:Variable, key1), _), v2, p2, Variable(_,_)), e3) =>
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 = generate(v2)
       val gluv = generate(luv)
       val ve1 = "x" + Variable.newId()
-      val flatten = e2 match { case InputRef(n, _) if !n.contains("new") => ".flatten"; case _ => "" }
       // move this to the implementation of lookup
-      val nv2 = v3.tp match {
-        case RecordCType(ms) => generate(Record((ms - key1).map(f => f._1 -> Project(v3, f._1))))
-        case _ => ???
-      }
+      val nv2 = generate(drop(v3.tp, v3, key1))
       s"""|val $ve1 = ${generate(e1)}.map{ case $vars => (${generate(v3)}.$key1, $nv2)}
-          |val $gluv = $ve1.cogroup(${generate(e2)}).flatMap{
-          | case (_, (dict1, dict2)) => dict1.map{ case $vars => ($vars, dict2$flatten) }}
+          |val $gluv = $ve1.cogroupDropKey(${generate(e2)})
           |${generate(e3)}
           |""".stripMargin 
-
+    
     /** COMBINE JOIN / NEST OPERATORS **/
 
     // MERGE JOIN DOMAIN + GROUP BY KEY; LOOKUP DOMAIN
@@ -312,24 +306,31 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
       val ve1 = "x" + Variable.newId()
       val ve2 = "x" + Variable.newId()
       val vars = generateVars(vs, e1.tp.asInstanceOf[BagCType].tp)
+
       val domain = e1.tp match {
         case BagCType(RecordCType(ms)) if ms.size == 1 => generate(e1)
         case _ => s"${generate(e1)}.map{ case $vars => ({${generate(k1)}}, $vars)}"
       }
+
+      // cast a label to match a single label domain
+      // needs to be tested for non-single label domains
       val tp = e1.tp.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps("lbl")
+      //maybe the type has already been handled in domain above?
       handleType(tp)
       val label = generateType(tp)
       val e1key = k2 match {
         case Constant(true) => s"$label(lbl)"
         case _ => s"$label({${generate(k2)}})"
       }
-      val (gv2, funct) = e2.tp match {
-        case BagCType(RecordCType(_)) => (s"${generate(v2)} => ($e1key, {${generate(value)}})", "cogroupDomain")
-        case _ => (s"(lbl, bag) => ($e1key, bag.map(${generate(v2)} => {${generate(value)}}))", "lookup")
+
+      val mapBagValues = e2.tp match {
+        case BagCType(RecordCType(_)) => s"${generate(v2)} => ($e1key, {${generate(value)}})"
+        case _ => s"(lbl, bag) => ($e1key, bag.map(${generate(v2)} => {${generate(value)}}))"
       }
+
       s"""| val $ve1 = $domain
-          | val $ve2 = ${generate(e2)}.map{ case $gv2 }
-          | val ${generate(cv)} = $ve2.$funct($ve1)
+          | val $ve2 = ${generate(e2)}.map{ case $mapBagValues }
+          | val ${generate(cv)} = $ve2.cogroupDomain($ve1)
           | ${generate(e3)}
         """.stripMargin
 
@@ -341,9 +342,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
       val gv2 = generate(v2)
       s"""| val $ve1 = ${generate(e1)}.map{ case $vars => ({${generate(k1)}}, $vars)}
           | val $ve2 = ${generate(e2)}.map{ case $gv2 => ({${generate(k2)}}, {${generate(value)}})}
-          | val ${generate(cv)} = $ve1.cogroup($ve2).flatMap{
-          |  case (_, (e1, e2)) => e1.map(v => v -> e2)
-          |}
+          | val ${generate(cv)} = $ve1.cogroupDropKey($ve2)
           | ${generate(e3)}
         """.stripMargin
 
