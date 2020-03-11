@@ -1,12 +1,12 @@
 package shredding.runtime
 
 import shredding.core._
-import shredding.nrc.ShredNRC
+import shredding.nrc.MaterializeNRC
 
 /**
   * Simple Scala evaluator
   */
-trait Evaluator extends ShredNRC with ScalaRuntime {
+trait Evaluator extends MaterializeNRC with ScalaRuntime {
 
   def eval(e: Expr, ctx: Context): Any = e match {
     case c: Const => c.v
@@ -80,6 +80,7 @@ trait Evaluator extends ShredNRC with ScalaRuntime {
           op,
           eval(a1, ctx).asInstanceOf[Double],
           eval(a2, ctx).asInstanceOf[Double])
+      case _ => sys.error("Arithmetic type not supported " + e.tp)
     }
     case Count(e1) =>
       evalBag(e1, ctx).size
@@ -106,6 +107,7 @@ trait Evaluator extends ShredNRC with ScalaRuntime {
         k ++ vs.map(v => v -> sumAggregate(b, v, e1.tp.tp(v))).toMap
       }.toList
 
+    // Label extensions
     case x: ExtractLabel =>
       val las = x.lbl.tp.attrTps
       val newBoundVars = las.filterNot { case (n2, t2) =>
@@ -132,11 +134,8 @@ trait Evaluator extends ShredNRC with ScalaRuntime {
           val v1 = VarDef(l.name, l.tp)
           v1 -> eval(l.e.asInstanceOf[Expr], ctx)
       }.toMap)
-    case Lookup(l, BagDict(_, f, _)) =>
-      val dictFn = new DictFn(ctx, c => evalBag(f, c))
-      ROutBagDict(dictFn, f.tp, null)(evalLabel(l, ctx))
-    case Lookup(l, d) =>
-      evalBagDict(d, ctx)(evalLabel(l, ctx))
+
+    // Dictionary extensions
     case EmptyDict => REmptyDict
     case BagDict(_, flat, dict) =>
       val dictFn = new DictFn(ctx, c => evalBag(flat, c))
@@ -149,6 +148,19 @@ trait Evaluator extends ShredNRC with ScalaRuntime {
       evalBagDict(b, ctx).dict
     case d: DictUnion =>
       evalDict(d.dict1, ctx).union(evalDict(d.dict2, ctx))
+
+    // Shredding extensions
+    case ShredUnion(e1, e2) =>
+      sys.error("Not implemented")
+    case Lookup(l, BagDict(_, f, _)) =>
+      val dictFn = new DictFn(ctx, c => evalBag(f, c))
+      ROutBagDict(dictFn, f.tp, null)(evalLabel(l, ctx))
+    case Lookup(l, d) =>
+      evalBagDict(d, ctx)(evalLabel(l, ctx))
+
+    // Materialization extensions
+    case MatDictLookup(l, b) =>
+      sys.error("Not implemented")
 
     case _ => sys.error("Cannot evaluate unknown expression " + e)
   }

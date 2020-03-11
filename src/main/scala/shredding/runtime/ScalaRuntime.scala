@@ -54,7 +54,7 @@ trait ScalaRuntime {
   class DictFn(init: Context, val f: Context => List[Any]) {
     // Store context when DictFn was created. Need only
     // input values to be stored but we keep entire context.
-    val ctx = Context(init.ctx.toList: _*)
+    val ctx: Context = Context(init.ctx.toList: _*)
   }
 
   final case class ROutBagDict(dictFn: DictFn, flatBagTp: BagType, dict: RTupleDict) extends RBagDict {

@@ -7,7 +7,7 @@ import shredding.core._
   */
 trait BaseExpr {
 
-  trait Expr extends Serializable {
+  trait Expr {
     def tp: Type
   }
 
