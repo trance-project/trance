@@ -22,6 +22,15 @@ case object LongType extends NumericType
 
 case object DoubleType extends NumericType
 
+object NumericType {
+  def resolve(tp1: NumericType, tp2: NumericType): NumericType = (tp1, tp2) match {
+    case (DoubleType, _) | (_, DoubleType) => DoubleType
+    case (LongType, _) | (_, LongType) => LongType
+    case (IntType, _) | (_, IntType) => IntType
+    case _ => sys.error("Cannot resolve types " + tp1 + " and " + tp2)
+  }
+}
+
 final case class BagType(tp: TupleType) extends TupleAttributeType
 
 final case class TupleType(attrTps: Map[String, TupleAttributeType]) extends Type {

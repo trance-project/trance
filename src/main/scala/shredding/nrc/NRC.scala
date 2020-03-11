@@ -213,13 +213,7 @@ trait NRC extends BaseExpr {
   }
 
   final case class ArithmeticExpr(op: OpArithmetic, e1: NumericExpr, e2: NumericExpr) extends NumericExpr {
-    val tp: NumericType = (e1.tp, e2.tp) match {
-      case (DoubleType, _) | (_, DoubleType) => DoubleType
-      case (LongType, _) | (_, LongType) => LongType
-      case (IntType, _) | (_, IntType) => IntType
-      case (tp1, tp2) if tp1 == tp2 => tp1
-      case _ => sys.error("Cannot create arithmetic expression between types " + e1.tp + " and " + e2.tp)
-    }
+    val tp: NumericType = NumericType.resolve(e1.tp, e2.tp)
   }
 
   final case class Count(e: BagExpr) extends NumericExpr {
