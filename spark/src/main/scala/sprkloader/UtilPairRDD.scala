@@ -3,7 +3,6 @@ package sprkloader
 import org.apache.spark.rdd.RDD
 import org.apache.spark.broadcast.Broadcast
 import scala.reflect.ClassTag
-import SkewPairRDD._
 import org.apache.spark.Partitioner
 
 // rename

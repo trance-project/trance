@@ -6,33 +6,36 @@ import org.apache.spark.HashPartitioner
 
 object DictRDDOperations {
 
-  implicit class SkewDictFunctions[K: ClassTag, V: ClassTag](lrdd: RDD[(K,Iterable[V])]) extends Serializable {
+  implicit class DictRDDOps[K: ClassTag, V: ClassTag](lrdd: RDD[(K,Vector[V])]) extends Serializable {
 
     val partitions = lrdd.getNumPartitions
 
-    def createDomain[L: ClassTag](f: V => L): RDD[L] = {
-      lrdd.flatMap{
-        case (lbl, bag) => bag.foldLeft(Set.empty[L])(
-          (acc, v) => acc + f(v))
-      }
+    def empty: RDD[(K,Vector[V])] = lrdd.sparkContext.emptyRDD[(K,Vector[V])]
+
+    def createDomain[C: ClassTag](f: V => C): RDD[C] = {
+       lrdd.flatMap{
+         case (lbl, bag) => bag.foldLeft(Set.empty[C])(
+          (acc, v) => acc + f(v)
+         )
+       }
     }
 
     /**
       leftOuterJoin + group by, drops the key and therefore the 
       partitioner in the process; this is unshredding
     **/
-    def cogroupDropKey[S:ClassTag](rrdd: RDD[(K, Iterable[S])]): RDD[(V, Iterable[S])] = {
+    def cogroupDropKey[S:ClassTag](rrdd: RDD[(K, Vector[S])]): RDD[(V, Vector[S])] = {
       lrdd.cogroup(rrdd).flatMap{
-        case (_, (e1, e2)) => e1.flatten.map{ v => v -> e2.flatten }
+        case (_, (e1, e2)) => e1.toVector.flatten.map{ v => v -> e2.toVector.flatten }
       }
     }
 
     /**
       rightOuterJoin + group by, drops the key; this is unshredding
     **/
-    def rightCoGroupDropKey[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(S, Iterable[V])] = {
+    def rightCoGroupDropKey[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(S, Vector[V])] = {
       lrdd.cogroup(rrdd).flatMap{
-        case (_, (e1, e2)) => e2.map{ v => v -> e1.flatten }
+        case (_, (e1, e2)) => e2.toVector.map{ v => v -> e1.toVector.flatten }
       }
     }
 
@@ -45,10 +48,10 @@ object DictRDDOperations {
       lrdd.partitioner match {
           case Some(p) => 
             lrdd.cogroup(domain).mapPartitions(it =>
-              it.flatMap{ case (lbl, (vs, _)) => vs.flatten.map(v => lbl -> v) }, true)
+              it.flatMap{ case (lbl, (vs, _)) => vs.toVector.flatten.map(v => lbl -> v) }, true)
           case None =>
             lrdd.cogroup(domain, new HashPartitioner(partitions)).mapPartitions(it =>
-              it.flatMap{ case (lbl, (vs, _)) => vs.flatten.map(v => lbl -> v) }, true)
+              it.flatMap{ case (lbl, (vs, _)) => vs.toVector.flatten.map(v => lbl -> v) }, true)
       }
     }  
 
@@ -56,19 +59,19 @@ object DictRDDOperations {
       CoGroup a dictionary with a single element domain (ie. Label(childLabel))
       This is a standard lookup
     **/
-    def cogroupDomain(rrdd: RDD[K]): RDD[(K, Iterable[V])] = {
+    def cogroupDomain(rrdd: RDD[K]): RDD[(K, Vector[V])] = {
       val domain = rrdd.map(l => l -> 1)
       lrdd.partitioner match {
           case Some(p) => 
             lrdd.cogroup(domain).mapPartitions(it =>
               it.flatMap{ case (lbl, (vs, _)) => {
-                val fvs = vs.flatten
-                if (fvs.nonEmpty) List((lbl -> fvs)) else Nil}}, true)
+                val fvs = vs.toVector.flatten
+                if (fvs.nonEmpty) Vector((lbl -> fvs)) else Nil}}, true)
           case None =>
             lrdd.cogroup(domain, new HashPartitioner(partitions)).mapPartitions(it =>
               it.flatMap{ case (lbl, (vs, _)) => {
-                val fvs = vs.flatten
-                if (fvs.nonEmpty) List((lbl -> fvs)) else Nil}}, true)
+                val fvs = vs.toVector.flatten
+                if (fvs.nonEmpty) Vector((lbl -> fvs)) else Nil}}, true)
         }
     }
 

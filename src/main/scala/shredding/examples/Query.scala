@@ -99,6 +99,13 @@ trait Query extends Linearization
     val anfer = new Finalizer(anfBase)
     anfBase.anf(anfer.finalize(this.shredPlan).asInstanceOf[anfBase.Rep])
   }
+
+  def skewPlan: CExpr = {
+    // val skewplanner = new Finalizer(new BaseSkewCompiler{})
+    // val skewplan = skewplanner.finalize(this.shredANF).asInstanceOf[CExpr]
+    // println(Printer.quote(skewplan))
+    this.shredANF
+  }
  
   def unshredPlan: CExpr = {
     val unshredded = normalizer.finalize(translate(this.unshred)).asInstanceOf[CExpr] 

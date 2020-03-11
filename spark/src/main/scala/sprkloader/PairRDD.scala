@@ -10,6 +10,8 @@ object PairRDDOperations {
     
     val partitions = lrdd.getNumPartitions
 
+    def empty: RDD[(K,V)] = lrdd.sparkContext.emptyRDD[(K,V)]
+
     /** 
       Join two keyed RDDs dropping the key and therefore the 
       partitioner in the process
@@ -24,9 +26,9 @@ object PairRDDOperations {
       leftOuterJoin + group by, drops the key and therefore the 
       partitioner in the process
     **/
-    def cogroupDropKey[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, Iterable[S])] = {
+    def cogroupDropKey[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, Vector[S])] = {
       lrdd.cogroup(rrdd).flatMap{
-        case (_, (e1, e2)) => e1.map{ v => v -> e2 }
+        case (_, (e1, e2)) => e1.map{ v => v -> e2.toVector }
       }
     }
 
@@ -51,17 +53,17 @@ object PairRDDOperations {
       CoGroup a top-level bag (dict) with a single element domain (ie. Label(childLabel))
       This is joinDomain + group by (pushed group by before the join)
     **/
-    def cogroupDomain(rrdd: RDD[K]): RDD[(K, Iterable[V])] = {
+    def cogroupDomain(rrdd: RDD[K]): RDD[(K, Vector[V])] = {
       val domain = rrdd.map(l => l -> 1)
       lrdd.partitioner match {
           case Some(p) => 
             lrdd.cogroup(domain).mapPartitions(it =>
               it.flatMap{ case (lbl, (vs, _)) => 
-                if (vs.nonEmpty) List((lbl -> vs)) else Nil}, true)
+                if (vs.nonEmpty) Vector((lbl -> vs.toVector)) else Nil}, true)
           case None =>
             lrdd.cogroup(domain, new HashPartitioner(partitions)).mapPartitions(it =>
               it.flatMap{ case (lbl, (vs, _)) => 
-                if (vs.nonEmpty) List((lbl -> vs)) else Nil}, true)
+                if (vs.nonEmpty) Vector((lbl -> vs.toVector)) else Nil}, true)
         }
     }
 

@@ -5,8 +5,6 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.broadcast.Broadcast
 import scala.reflect.ClassTag
 import org.apache.spark.Partitioner
-import SkewPairRDD._
-import UtilPairRDD._
 
 object DomainRDD{
 
@@ -33,13 +31,6 @@ object DomainRDD{
       domain.mapPartitions(it => it.foldLeft(Set.empty[K])(
         (acc, l) => acc + f(l)  
       ).iterator, true).collect.toSet
-    }
-
-    // local distinct 
-    def createDomain[K: ClassTag](f: L => K): RDD[K] = {
-      domain.mapPartitions(it => it.foldLeft(Set.empty[K])(
-        (acc, l) => acc + f(l)  
-      ).iterator)
     }
 
     def createDomainSet[K: ClassTag](f: L => K): Set[K] = {

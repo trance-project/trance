@@ -39,133 +39,12 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
     case _ => generate(e)
   }
 
-  def generateSkew(e: CExpr): String = e match {
-        /** DEDUPLICATION **/
-    case Bind(sv, CDeDup(e1), e2) => 
-      val gsv = generateSkew(sv)
-      s"""|val ${gsv}_L = ${generateSkew(e1)}_L.distinct
-          |val ${gsv}_H = ${generateSkew(e1)}_H.distinct
-          |${generateSkew(e2)}
-          |""".stripMargin
-
-    /** DOMAIN CREATION **/
-    case Bind(sv, r @ Reduce(e1, v, f @ Bind(_, Project(_, labelField), _), Constant(true)), e2) if isDomain(r) =>  
-      val gsv = generate(sv)
-      s"""|val ${gsv}_L = ${generateSkew(e1)}_L.createDomain(l => l.$labelField)
-          |val ${gsv}_H = ${generateSkew(e1)}_H.createDomain(l => l.$labelField)
-          |${generateSkew(e2)}""".stripMargin
-
-    /** IDENTITY **/
-    case Bind(sv, Reduce(InputRef(n, _), v, Variable(_,_), Constant(true)), e2) => 
-      val gsv = generateSkew(sv)
-      s"val ${gsv}_L = ${n}_L\n val ${gsv}_H = ${n}_H\n ${generateSkew(e2)}"
-    case Bind(sv, Reduce(Variable(n, _), v, Variable(_,_), Constant(true)), e2) =>
-      val gsv = generateSkew(sv)
-      s"val ${gsv}_L = ${n}_L\n val ${gsv}_H = ${n}_H\n ${generateSkew(e2)}"
-
-    /** PROJECT **/
-    case Bind(sv, Reduce(e1, v, f, Constant(true)), e2) => 
-      val vars = generateVars(v, e1.tp)
-      val gsv = generateSkew(sv)
-      s"""|val ${gsv}_L = ${generateSkew(e1)}_L.map{ case $vars => 
-          |   ${generate(f)}
-          |}
-          |val ${gsv}_H = ${generateSkew(e1)}_H.map{ case $vars => 
-          |   ${generate(f)}
-          |}
-          |${generateSkew(e2)}""".stripMargin
-
-    case Bind(sv, Reduce(e1, v, f, Constant("null")), e2) => 
-      val vars = generateVars(v, e1.tp)
-      val gsv = generateSkew(sv)
-      s"""|val ${gsv}_L = ${generateSkew(e1)}_L.map{ case $vars => 
-          |   ${nullProject(f)}
-          |}
-          |val ${gsv}_H = ${generateSkew(e1)}_H.map{ case $vars => 
-          |   ${nullProject(f)}
-          |}
-          |${generateSkew(e2)}""".stripMargin
-
-    /** SELECT **/
-    case Bind(sv, Reduce(e1, v, f, p), e2) => 
-      val vars = generateVars(v, e1.tp)
-      val gsv = generateSkew(sv)
-      s"""|val ${gsv}_L = ${generate(e1)}_L.map{ case $vars => 
-          |   ${generate(f)}
-          |}.filter($vars => {${generate(p)}})
-          |val ${gsv}_H = ${generate(e1)}_H.map{ case $vars => 
-          |   ${generate(f)}
-          |}.filter($vars => {${generate(p)}})
-          |${generateSkew(e2)}""".stripMargin
-    // catch all
-    case Select(x, v, p, e2) => generateSkew(Reduce(x, List(v), e2, p))
-
-    // MERGE JOIN DOMAIN + GROUP BY KEY; LOOKUP DOMAIN
-    case Bind(cv, CoGroup(e1, e2, vs, v2, k1, k2, value), e3) if isDomain(e1) =>
-      val ve1 = "x" + Variable.newId()
-      val ve2 = "x" + Variable.newId()
-      val vars = generateVars(vs, e1.tp.asInstanceOf[BagCType].tp)
-
-      val keyDomain = e1.tp match {
-        case BagCType(RecordCType(ms)) if ms.size == 1 => ""
-        case _ => s".map{ case $vars => ({${generate(k1)}}, $vars)}"
-      }
-
-      // cast a label to match a single label domain
-      // needs to be tested for non-single label domains
-      val tp = e1.tp.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps("lbl")
-      //maybe the type has already been handled in domain above?
-      handleType(tp)
-      val label = generateType(tp)
-      val e1key = k2 match {
-        case Constant(true) => s"$label(lbl)"
-        case _ => s"$label({${generate(k2)}})"
-      }
-
-      val mapBagValues = e2.tp match {
-        case BagCType(RecordCType(_)) => s"${generate(v2)} => ($e1key, {${generate(value)}})"
-        case _ => s"(lbl, bag) => ($e1key, bag.map(${generate(v2)} => {${generate(value)}}))"
-      }
-
-      s"""| val ${ve1}_L = ${generateSkew(e1)}_L$keyDomain
-          | val ${ve1}_H = ${generateSkew(e1)}_H$keyDomain
-          | val ${ve2}_L = ${generate(e2)}_L.map{ case $mapBagValues }
-          | val ${ve2}_H = ${generate(e2)}_H.map{ case $mapBagValues }
-          | val (${generate(cv)}_L, ${generate(cv)}_H, ${generate(cv)}_keys) = (${ve2}_L, ${ve2}_H).cogroupDomain((${ve1}_L, ${ve1}_H))
-          | ${generateSkew(e3)}
-        """.stripMargin
-    
-
-    /** SEQUENCE OF PLAN HANDLING **/
-
-    case Bind(x, CNamed(n, e1), Bind(_, LinearCSet(_), _)) => 
-      s"""|val ${n}_L = ${generateSkew(e1)}_L
-          |val ${n}_H = ${generateSkew(e1)}_H
-          |val ${generateSkew(x)}_L = ${n}_L
-          |val ${generateSkew(x)}_H = ${n}_H
-          |${runJobSplit(n, true)}""".stripMargin
-
-    case Bind(x, CNamed(n, e1), e2) =>
-      s"""|val ${n}_L = ${generateSkew(e1)}_L
-          |val ${n}_H = ${generateSkew(e1)}_H
-          |val ${generateSkew(x)}_L = ${n}_L
-          |val ${generateSkew(x)}_H = ${n}_H
-          |${runJobSplit(n)}
-          |${generateSkew(e2)}""".stripMargin
-
-    /** ANF BASE CASE **/
-    case Bind(v, e1, e2) => 
-      s"val ${generateSkew(v)} = ${generateSkew(e1)} \n${generateSkew(e2)}"
-
-    case _ => generate(e)
-  }
-
   def generate(e: CExpr): String = e match {
 
     /** ZEROS **/
     case Null => "null"
     case CUnit => "()"
-    case EmptySng => "Iterable()"
+    case EmptySng => "Vector()"
     case EmptyCDict => s"()"
     
     /** BASIC CONSTRUCTS **/
@@ -173,7 +52,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
     case InputRef(name, tp) => name
     case Constant(s:String) => "\"" + s + "\""
     case Constant(x) => x.toString
-    case Sng(e) => s"Iterable(${generate(e)})"
+    case Sng(e) => s"Vector(${generate(e)})"
     case Record(fs) if isDictRecord(e) => 
       s"(${fs.map(f => { handleType(f._2.tp); generate(f._2) } ).mkString(", ") })"
     case Record(fs) => {
@@ -255,19 +134,19 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
               | $v.$attr.map{ $gv2 => ($nvars, ${generate(value)})}
               |}.filter{ case ($vars, $gv2) => {${generate(p)}} }""".stripMargin
       }
-    // TODO
+
     case OuterUnnest(e1, v1, f, v2, p, value) => 
       val vars = generateVars(v1, e1.tp)
       val gv2 = generate(v2)
       val (v, attr, vs1, vs2) = projectBag(f, v1)
       val nvars = generateVars(vs1, e1.tp)
       val nullvars = if (v1.size == 1) "" 
-        else s"case null => Iterable((${generateVars(vs2, e1.tp)}, null))"
+        else s"case null => Vector((${generateVars(vs2, e1.tp)}, null))"
       p match {
         case Constant(true) =>
           s"""|${generate(e1)}.flatMap{ case $vars => 
               |  $v match { $nullvars
-              |    case _ => if ($v.$attr.isEmpty) Iterable(($nvars, null))
+              |    case _ => if ($v.$attr.isEmpty) Vector(($nvars, null))
               |     else $v.$attr.map{ $gv2 => ($nvars, ${generate(value)})}
               |}}""".stripMargin
         case _ => 
@@ -340,7 +219,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
         case _ => s"{${generate(f)}}"
       }
       //s"{${generate(f)}}"
-      val value = if (!emptyType.contains("0")) s"Iterable({${generate(e2)}})" else s"{${generate(e2)}}"
+      val value = if (!emptyType.contains("0")) s"Vector({${generate(e2)}})" else s"{${generate(e2)}}"
       val nonet = g match {
         case Bind(_, Tuple(fs), _) if fs.size > 1 => 
           ((2 to fs.size).map(i => 

@@ -36,7 +36,7 @@ trait SparkUtils {
   def empty(e: CExpr): String = e.tp match {
     case IntType => "0"
     case DoubleType => "0.0"
-    case _ => "Iterable()"
+    case _ => "Vector()"
   }
 
   def agg(e: CExpr): String = e.tp match {
@@ -48,7 +48,7 @@ trait SparkUtils {
   def drop(tp: Type, v: Variable, field: String): CExpr = tp match {
     case RecordCType(fs) => 
       Record((fs - field).map{ case (attr, atp) => attr -> Project(v, attr)})
-    case _ => sys.error("unsupported type")
+    case _ => sys.error(s"unsupported type $tp")
   }
 
   def projectBag(e: CExpr, vs: List[Variable]): (String, String, List[CExpr], List[CExpr]) = e match {
@@ -83,19 +83,9 @@ trait SparkUtils {
     if (!n.contains("ctx")){
       val fcomment = if (last) "" else "//"
       s"""|//$n.cache
-          |//$n.collect.foreach(println(_))
-          |${fcomment}spark.sparkContext.runJob($n, (iter: Iterator[_]) => {})"""
+          |//$n.print
+          |${fcomment}$n.evaluate"""
     }else ""
   }
-  def runJobSplit(n: String, last:Boolean = false): String = {
-    if (!n.contains("ctx")){
-      val fcomment = if (last) "" else "//"
-      s"""|//${n}_L.cache
-          |//${n}_L.collect.foreach(println(_))
-          |//${n}_H.cache
-          |//${n}_H.collect.foreach(println(_))
-          |${fcomment}spark.sparkContext.runJob(${n}_L, (iter: Iterator[_]) => {})
-          |${fcomment}spark.sparkContext.runJob(${n}_H, (iter: Iterator[_]) => {})"""
-    }else ""
-  }
+
 }

@@ -42,12 +42,12 @@ trait SparkTypeHandler {
     case DoubleType => "Double"
     case LongType => "Long"
     case TTupleType(fs) => s"(${fs.map(generateType(_)).mkString(",")})"
-    case BagCType(tp) => s"Iterable[${generateType(tp)}]" //combineByKey, etc. may need this to be iterable
+    case BagCType(tp) => s"Vector[${generateType(tp)}]" //combineByKey, etc. may need this to be iterable
     case BagDictCType(flat @ BagCType(TTupleType(fs)), dict) =>
       dict match {
         case TupleDictCType(ds) if !ds.filter(_._2 != EmptyDictCType).isEmpty =>
-          s"(List[(${generateType(fs.head)}, ${generateType(fs.last)})], ${generateType(dict)})"
-        case _ => s"(List[(${generateType(fs.head)}, ${generateType(fs.last)})], Unit)"
+          s"(Vector[(${generateType(fs.head)}, ${generateType(fs.last)})], ${generateType(dict)})"
+        case _ => s"(Vector[(${generateType(fs.head)}, ${generateType(fs.last)})], Unit)"
       }
     case TupleDictCType(fs) if !fs.filter(_._2 != EmptyDictCType).isEmpty =>
       generateType(RecordCType(fs.filter(_._2 != EmptyDictCType)))

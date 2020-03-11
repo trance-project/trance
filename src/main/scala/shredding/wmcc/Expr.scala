@@ -8,7 +8,7 @@ import shredding.core._
   * algebra data operators for translating WMCC to plans 
   */
 
-sealed trait CExpr {
+trait CExpr {
   def tp: Type
   def nullValue: CExpr = tp match {
     case IntType => Constant(-1)
