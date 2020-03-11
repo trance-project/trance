@@ -132,23 +132,28 @@ object GenomicTests {
                           IfThenElse(Cmp(OpEq, cref("sample"), gref("sample")),
                             Singleton(Tuple("call" -> gref("call"))))))))))))) 
 
-  val q1 = ForeachUnion(vdef, relV,
-            Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), 
-              "counts" -> ForeachUnion(idef, relI, 
-                Singleton(Tuple("iscase" -> iref("iscase"), "altcnt" -> 
-                  Total(ForeachUnion(cdef, relC, 
-                    IfThenElse(Cmp(OpEq, cref("iscase"), iref("iscase")),
-                      ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                        IfThenElse(Cmp(OpEq, cref("sample"), gref("sample")),
-                          IfThenElse(Cmp(OpEq, gref("call"), Const(1, IntType)),
-                            Singleton(Tuple("count" -> Const("alt", StringType))), 
-                            IfThenElse(Cmp(OpEq, gref("call"), Const(2, IntType)),
-                              WeightedSingleton(Tuple("count" -> Const("alt", StringType)), NumericConst(2, IntType))))).asInstanceOf[BagExpr]))))))))))
+  val q1 =
+    ForeachUnion(vdef, relV,
+      Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "counts" ->
+        ForeachUnion(idef, relI,
+          Singleton(Tuple("iscase" -> iref("iscase"), "altcnt" ->
+            Sum(ForeachUnion(cdef, relC,
+              IfThenElse(Cmp(OpEq, cref("iscase"), iref("iscase")),
+                ForeachUnion(gdef, BagProject(vref, "genotypes"),
+                  IfThenElse(Cmp(OpEq, cref("sample"), gref("sample")),
+                    IfThenElse(Cmp(OpEq, gref("call"), Const(1, IntType)),
+                      Singleton(Tuple("count" -> NumericConst(1, IntType))),
+                      IfThenElse(Cmp(OpEq, gref("call"), Const(2, IntType)),
+                        Singleton(Tuple("count" -> NumericConst(2, IntType)))))
+                  ).asInstanceOf[BagExpr]))),
+              List("count")
+            )("count")
+          ))))))
 
   // count the number of genotypes
   val q2 = ForeachUnion(vdef, relV,
             Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"),
-              "counts" -> Total(ForeachUnion(gdef, BagProject(vref, "genotypes"), 
+              "counts" -> Count(ForeachUnion(gdef, BagProject(vref, "genotypes"),
                                   ForeachUnion(cdef, relC, 
                                     IfThenElse(Cmp(OpEq, cref("sample"), gref("sample")),
                                       Singleton(Tuple("alt" -> Const("alt", StringType))))))))))
@@ -156,7 +161,7 @@ object GenomicTests {
   // count the number of genotypes for case, but not control 
   val q3 = ForeachUnion(vdef, relV,
             Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"),
-              "counts" -> Total(ForeachUnion(gdef, BagProject(vref, "genotypes"), 
+              "counts" -> Count(ForeachUnion(gdef, BagProject(vref, "genotypes"),
                                   ForeachUnion(cdef, relC, 
                                     IfThenElse(
                                       And(Cmp(OpEq, cref("sample"), gref("sample")),
@@ -166,7 +171,7 @@ object GenomicTests {
   // count the number of mutations that have at least one alternate allele for case, but not control 
   val q4 = ForeachUnion(vdef, relV,
             Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"),
-              "counts" -> Total(ForeachUnion(gdef, BagProject(vref, "genotypes"), 
+              "counts" -> Count(ForeachUnion(gdef, BagProject(vref, "genotypes"),
                                   IfThenElse(Cmp(OpGt, gref("call"), Const(0, IntType)),
                                     ForeachUnion(cdef, relC, 
                                       IfThenElse(
@@ -174,17 +179,22 @@ object GenomicTests {
                                           Cmp(OpEq, cref("iscase"), Const("case", StringType))),
                                         Singleton(Tuple("alt" -> Const("alt", StringType)))))))))))
 
-  val q5 = ForeachUnion(vdef, relV,
-            Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"),
-              "counts" -> Total(ForeachUnion(gdef, BagProject(vref, "genotypes"), 
-                                  IfThenElse(Cmp(OpGt, gref("call"), Const(0, IntType)),
-                                    ForeachUnion(cdef, relC, 
-                                      IfThenElse(
-                                        And(Cmp(OpEq, cref("sample"), gref("sample")),
-                                          Cmp(OpEq, cref("iscase"), Const("case", StringType))),
-                                        IfThenElse(
-                                          Cmp(OpEq, gref("call"), Const(1, IntType)),
-                                          Singleton(Tuple("alt" -> Const("alt", StringType))),
-                                          WeightedSingleton(Tuple("alt" -> Const("alt", StringType)), NumericConst(2, IntType)))).asInstanceOf[BagExpr])))))))
+  val q5 =
+    ForeachUnion(vdef, relV,
+      Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "counts" ->
+        Sum(ForeachUnion(gdef, BagProject(vref, "genotypes"),
+          IfThenElse(Cmp(OpGt, gref("call"), Const(0, IntType)),
+            ForeachUnion(cdef, relC,
+              IfThenElse(
+                And(Cmp(OpEq, cref("sample"), gref("sample")),
+                  Cmp(OpEq, cref("iscase"), Const("case", StringType))),
+                IfThenElse(
+                  Cmp(OpEq, gref("call"), Const(1, IntType)),
+                  Singleton(Tuple("alt" -> NumericConst(1, IntType))),
+                  Singleton(Tuple("alt" -> NumericConst(2, IntType)))
+                )).asInstanceOf[BagExpr]))),
+          List("alt")
+        )("alt")
+      )))
 
 }

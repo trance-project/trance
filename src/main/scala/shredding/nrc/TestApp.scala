@@ -133,7 +133,7 @@ object TestApp extends App
             ForeachUnion(wdef, BagProject(xref, "j"),
               Singleton(Tuple(
                 "o7" -> wref("m"),
-                "o8" -> Total(BagProject(wref, "k"))
+                "o8" -> Count(BagProject(wref, "k"))
               ))
             )
         )))

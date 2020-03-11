@@ -3,7 +3,7 @@ package shredding.core
 /**
   * Arithmetic operators
   */
-trait OpArithmetic
+sealed trait OpArithmetic
 case object OpPlus extends OpArithmetic { override def toString = "+" }
 case object OpMinus extends OpArithmetic { override def toString = "-" }
 case object OpMultiply extends OpArithmetic { override def toString = "*" }

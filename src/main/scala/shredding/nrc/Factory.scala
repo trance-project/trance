@@ -156,22 +156,4 @@ trait Factory {
     }
   }
 
-  // TODO: needs to be checked
-  object GroupBy {
-    def apply(bag: BagExpr, grp: List[String], ins: List[String], tp: Type): BagExpr = {
-      val x = VarDef.fresh(bag.tp.tp)
-      val xr = TupleVarRef(x)
-      tp match {
-        case _: PrimitiveType =>
-          assert(ins.size == 1)
-          PlusGroupBy(bag, x, Tuple(grp.map { g => g -> xr(g) }.toMap),
-            xr(ins.head).asInstanceOf[PrimitiveExpr])
-        case _: BagType =>
-          BagGroupBy(bag, x, Tuple(grp.map { g => g -> xr(g) }.toMap),
-            Tuple(ins.map { g => g -> xr(g) }.toMap))
-        case _ => sys.error("unsupported groupby type")
-      }
-    }
-  }
-
 }

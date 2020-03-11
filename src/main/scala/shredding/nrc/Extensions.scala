@@ -14,10 +14,9 @@ trait Extensions {
       case ForeachUnion(_, e1, e2) => collect(e1, f) ++ collect(e2, f)
       case Union(e1, e2) => collect(e1, f) ++ collect(e2, f)
       case Singleton(e1) => collect(e1, f)
+      case DeDup(e1) => collect(e1, f)
       case Tuple(fs) => fs.flatMap(x => collect(x._2, f)).toList
       case l: Let => collect(l.e1, f) ++ collect(l.e2, f)
-      case Total(e1) => collect(e1, f)
-      case DeDup(e1) => collect(e1, f)
       case c: Cmp => collect(c.e1, f) ++ collect(c.e2, f)
       case And(e1, e2) => collect(e1, f) ++ collect(e2, f)
       case Or(e1, e2) => collect(e1, f) ++ collect(e2, f)
@@ -25,6 +24,10 @@ trait Extensions {
       case i: IfThenElse =>
         collect(i.cond, f) ++ collect(i.e1, f) ++ i.e2.map(collect(_, f)).getOrElse(Nil)
       case ArithmeticExpr(_, e1, e2) => collect(e1, f) ++ collect(e2, f)
+      case Count(e1) => collect(e1, f)
+      case Sum(e1, _) => collect(e1, f)
+      case GroupByKey(e, _, _) => collect(e, f)
+      case SumByKey(e, _, _) => collect(e, f)
 
       // Label extensions
       case el: ExtractLabel => collect(el.lbl, f) ++ collect(el.e, f)
@@ -45,17 +48,6 @@ trait Extensions {
       // Materialization extensions
       case MatDictLookup(l, b) => collect(l, f) ++ collect(b, f)
 
-      /////////////////
-      //
-      //
-      // UNSTABLE BELOW
-      //
-      //
-      /////////////////
-
-      case WeightedSingleton(e1, w1) => collect(e1, f) ++ collect(w1, f)
-      case BagGroupBy(bag, _, _, _) => collect(bag, f)
-      case PlusGroupBy(bag, _, _, _) => collect(bag, f)
       case _ => List()
     })
 
@@ -80,6 +72,8 @@ trait Extensions {
         Union(r1, r2)
       case Singleton(e1) =>
         Singleton(replace(e1, f).asInstanceOf[TupleExpr])
+      case DeDup(e1) =>
+        DeDup(replace(e1, f).asInstanceOf[BagExpr])
       case Tuple(fs) =>
         Tuple(fs.map(x => x._1 -> replace(x._2, f).asInstanceOf[TupleAttributeExpr]))
       case l: Let =>
@@ -87,10 +81,6 @@ trait Extensions {
         val xd = VarDef(l.x.name, r1.tp)
         val r2 = replace(l.e2, f)
         Let(xd, r1, r2)
-      case Total(e1) =>
-        Total(replace(e1, f).asInstanceOf[BagExpr])
-      case DeDup(e1) =>
-        DeDup(replace(e1, f).asInstanceOf[BagExpr])
       case c: Cmp =>
         val c1 = replace(c.e1, f).asInstanceOf[PrimitiveExpr]
         val c2 = replace(c.e2, f).asInstanceOf[PrimitiveExpr]
@@ -116,6 +106,14 @@ trait Extensions {
         val n1 = replace(e1, f).asInstanceOf[NumericExpr]
         val n2 = replace(e2, f).asInstanceOf[NumericExpr]
         ArithmeticExpr(op, n1, n2)
+      case Count(e1) =>
+        Count(replace(e1, f).asInstanceOf[BagExpr])
+      case Sum(e1, fs) =>
+        Sum(replace(e1, f).asInstanceOf[BagExpr], fs)
+      case GroupByKey(e1, ks, vs) =>
+        GroupByKey(replace(e1, f).asInstanceOf[BagExpr], ks, vs)
+      case SumByKey(e1, ks, vs) =>
+        SumByKey(replace(e1, f).asInstanceOf[BagExpr], ks, vs)
 
       // Label extensions
       case x: ExtractLabel =>
@@ -162,22 +160,6 @@ trait Extensions {
         val rb = replace(b, f).asInstanceOf[BagExpr]
         MatDictLookup(rl, rb)
 
-      /////////////////
-      //
-      //
-      // UNSTABLE BELOW
-      //
-      //
-      /////////////////
-
-      case WeightedSingleton(e1, w1) =>
-        WeightedSingleton(
-          replace(e1, f).asInstanceOf[TupleExpr],
-          replace(w1, f).asInstanceOf[NumericExpr])
-      case BagGroupBy(bag, v, grp, value) =>
-        BagGroupBy(replace(bag, f).asInstanceOf[BagExpr], v, grp, value)
-      case PlusGroupBy(bag, v, grp, value) => 
-        PlusGroupBy(replace(bag, f).asInstanceOf[BagExpr], v, grp, value)
       case _ => ex
     })
 

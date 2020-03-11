@@ -16,7 +16,7 @@ object FlatTests {
             Singleton(Tuple("o1" -> TupleVarRef(x)("a"))))
 
   // TotalMult(For x in R union { x }
-  val q2 = Total(ForeachUnion(x, relR, Singleton(TupleVarRef(x))))
+  val q2 = Count(ForeachUnion(x, relR, Singleton(TupleVarRef(x))))
 
   // For x in R union
   //  if x.a > 40 

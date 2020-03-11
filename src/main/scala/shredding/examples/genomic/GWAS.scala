@@ -33,17 +33,15 @@ object AltCounts extends GenomicBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
   
-  // for v in Variants union 
-  //     (v.contig, v.start, 
-
-  val queryAC = GroupBy(ForeachUnion(vdef, relV,
-                ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                  ForeachUnion(cdef, relC,
-                    IfThenElse(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
-                      Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "altcnt" -> gref("call"))))))),
-              List("contig", "start"),
-              List("altcnt"),
-              IntType)
+  val queryAC =
+    SumByKey(
+      ForeachUnion(vdef, relV,
+        ForeachUnion(gdef, BagProject(vref, "genotypes"),
+          ForeachUnion(cdef, relC,
+            IfThenElse(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
+              Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "altcnt" -> gref("call"))))))),
+      List("contig", "start"),
+      List("altcnt"))
 
   val program = Program(Assignment(name, queryAC))
 }
@@ -54,16 +52,21 @@ object AlleleCounts extends GenomicBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
   
-  val queryAC = ForeachUnion(vdef, relV,
-                //IfThenElse(Not(Cmp(OpEq, vref("consequence"), Const("LOW IMPACT", StringType))),
-                  Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cohorts" ->
-                    ForeachUnion(idef, relI, 
-                      Singleton(Tuple("iscase" -> iref("iscase"), "altcnt" ->
-                        Total(ForeachUnion(cdef, relC, 
-                          IfThenElse(Cmp(OpEq, PrimitiveProject(iref, "iscase"), PrimitiveProject(cref, "iscase")),
-                            ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                              IfThenElse(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
-                                WeightedSingleton(Tuple("cnt" -> gref("call")), NumericProject(gref,"call")))))))))))))//)
+  val queryAC =
+    ForeachUnion(vdef, relV,
+      //IfThenElse(Not(Cmp(OpEq, vref("consequence"), Const("LOW IMPACT", StringType))),
+      Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cohorts" ->
+        ForeachUnion(idef, relI,
+          Singleton(Tuple("iscase" -> iref("iscase"), "altcnt" ->
+            Sum(
+              ForeachUnion(cdef, relC,
+                IfThenElse(Cmp(OpEq, PrimitiveProject(iref, "iscase"), PrimitiveProject(cref, "iscase")),
+                  ForeachUnion(gdef, BagProject(vref, "genotypes"),
+                    IfThenElse(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
+                      Singleton(Tuple("cnt" -> gref("call"))))))),
+              List("cnt")
+            )("cnt")
+          ))))))//)
 
   val program = Program(Assignment(name, queryAC))
 }
@@ -74,17 +77,19 @@ object AlleleCounts2 extends GenomicBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
   
-  val queryAC2 = ForeachUnion(vdef, relV,
-                //IfThenElse(Not(Cmp(OpEq, vref("consequence"), Const("LOW IMPACT", StringType))),
-                  Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cohorts" ->
-                    GroupBy(ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                              ForeachUnion(cdef, relC, 
-                                IfThenElse(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
-                                  Singleton(Tuple("pinfo" -> cref("iscase"), "cnt" -> gref("call")))))),
-                      List("pinfo"),
-                      List("cnt"),
-                      IntType
-                    ))))//)
+  val queryAC2 =
+    ForeachUnion(vdef, relV,
+      //IfThenElse(Not(Cmp(OpEq, vref("consequence"), Const("LOW IMPACT", StringType))),
+      Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cohorts" ->
+        SumByKey(
+          ForeachUnion(gdef, BagProject(vref, "genotypes"),
+            ForeachUnion(cdef, relC,
+              IfThenElse(
+                Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
+                Singleton(Tuple("pinfo" -> cref("iscase"), "cnt" -> gref("call")))))),
+          List("pinfo"),
+          List("cnt")
+        ))))//)
 
   val program = Program(Assignment(name, queryAC2))
 }
@@ -102,7 +107,7 @@ object AlleleCounts3 extends GenomicBase {
                   Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
                     ForeachUnion(idef, relI, 
                       Singleton(Tuple("case" -> iref("iscase"), "altcnt" -> 
-                        Total(
+                        Count(
                           ForeachUnion(cdef, relC,
                             IfThenElse(Cmp(OpEq, PrimitiveProject(iref, "iscase"), PrimitiveProject(cref, "iscase")),
                             ForeachUnion(gdef, BagProject(vref, "genotypes"),
@@ -119,15 +124,17 @@ object AlleleCountsGB extends GenomicBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
   
-  val queryACGB = ForeachUnion(vdef, relV,
-                Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
-                  GroupBy(ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                    ForeachUnion(cdef, relC,
-                      IfThenElse(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
-                        Singleton(Tuple("case" -> cref("iscase"), "genotype" -> gref("call")))))),
-                   List("case"),
-                   List("genotype"),
-                   IntType))))
+  val queryACGB =
+    ForeachUnion(vdef, relV,
+      Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
+        SumByKey(
+          ForeachUnion(gdef, BagProject(vref, "genotypes"),
+            ForeachUnion(cdef, relC,
+              IfThenElse(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
+                Singleton(Tuple("case" -> cref("iscase"), "genotype" -> gref("call")))))),
+          List("case"),
+          List("genotype")
+        ))))
 
   val program = Program(Assignment(name, queryACGB))
 }
@@ -138,17 +145,19 @@ object AlleleCountsGB3 extends GenomicBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
   
-  val queryACGB3 = ForeachUnion(vdef, relV,
-                IfThenElse(Cmp(OpEq, PrimitiveProject(vref, "consequence"), Const("LOW IMPACT", StringType)),
-                  Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
-                    GroupBy(ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                      ForeachUnion(cdef, relC,
-                        IfThenElse(And(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
-                                      Cmp(OpGt, NumericProject(gref, "call"), Const(0, IntType))),
-                        Singleton(Tuple("case" -> cref("iscase"), "altcnt" -> Const(1, IntType)))))),
-                   List("case"),
-                   List("altcnt"),
-                   IntType)))))
+  val queryACGB3 =
+    ForeachUnion(vdef, relV,
+      IfThenElse(Cmp(OpEq, PrimitiveProject(vref, "consequence"), Const("LOW IMPACT", StringType)),
+        Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
+          SumByKey(
+            ForeachUnion(gdef, BagProject(vref, "genotypes"),
+              ForeachUnion(cdef, relC,
+                IfThenElse(And(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
+                  Cmp(OpGt, NumericProject(gref, "call"), Const(0, IntType))),
+                  Singleton(Tuple("case" -> cref("iscase"), "altcnt" -> Const(1, IntType)))))),
+            List("case"),
+            List("altcnt")
+          )))))
 
   val program = Program(Assignment(name, queryACGB3))
 }

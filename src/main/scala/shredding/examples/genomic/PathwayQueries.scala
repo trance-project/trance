@@ -83,7 +83,7 @@ object PathwayTests {
                           IfThenElse(Not(Cmp(OpEq, sref("impact"), Const("LOW", StringType))),
                             ForeachUnion(idef, relI, 
                               Singleton(Tuple("case" -> iref("iscase"), "mutation_burden" ->
-                                Total(ForeachUnion(cdef, relC, 
+                                Count(ForeachUnion(cdef, relC,
                                   IfThenElse(Cmp(OpEq, cref("iscase"), iref("iscase")),
                                     ForeachUnion(g2def, vref("genotypes").asInstanceOf[BagExpr],
                                       IfThenElse(And(Cmp(OpEq, g2ref("sample"), cref("sample")),

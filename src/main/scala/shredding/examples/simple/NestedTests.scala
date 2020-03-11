@@ -100,13 +100,13 @@ object NestedTests {
               "o6" -> ForeachUnion(wdef, BagProject(xref, "j"),
                         Singleton(Tuple(
                           "o7" -> wref("m"),
-                          "o8" -> Total(BagProject(wref, "k"))))))))
+                          "o8" -> Count(BagProject(wref, "k"))))))))
   
   // shallow version of q1
   val q2 = ForeachUnion(xdef, relR,
             Singleton(Tuple(
               "o5" -> xref("h"), 
-              "o6" -> Total(xref("j").asInstanceOf[BagExpr]))))
+              "o6" -> Count(xref("j").asInstanceOf[BagExpr]))))
   
   // filter at top level
   val q3 = ForeachUnion(xdef, relR,
@@ -116,7 +116,7 @@ object NestedTests {
   // filter at top level and take multiplicity
   val q4 = ForeachUnion(xdef, relR,
             IfThenElse(Cmp(OpGt, TupleVarRef(xdef)("h"), Const(60, IntType)),
-              Singleton(Tuple("w" -> Total(TupleVarRef(xdef)("j").asInstanceOf[BagExpr])))))
+              Singleton(Tuple("w" -> Count(TupleVarRef(xdef)("j").asInstanceOf[BagExpr])))))
   
   // self join and project to a bag  
   val x2def = VarDef("x2", NestedRelations.type1a)
@@ -135,13 +135,13 @@ object NestedTests {
   // filter and multiplicity
   val q6 = ForeachUnion(x3, relR2,
             IfThenElse(Cmp(OpGt, TupleVarRef(x3)("a"), Const(40, IntType)),
-              Singleton(Tuple("o1" -> TupleVarRef(x3)("a"), "o2" -> Total(BagProject(TupleVarRef(x3), "b"))))))      
+              Singleton(Tuple("o1" -> TupleVarRef(x3)("a"), "o2" -> Count(BagProject(TupleVarRef(x3), "b"))))))
 
   // self join, and loop over a bag project 
   val q7 = ForeachUnion(x3, relR2,
             ForeachUnion(x4, relR2,
               ForeachUnion(x5, BagProject(TupleVarRef(x3), "b"),
-                Singleton(Tuple("o1" -> TupleVarRef(x3)("a"), "o2" -> Total(BagProject(TupleVarRef(x3), "b")))))))
+                Singleton(Tuple("o1" -> TupleVarRef(x3)("a"), "o2" -> Count(BagProject(TupleVarRef(x3), "b")))))))
     
    // michael's filter inner bag example
    val q8 = ForeachUnion(x3, relR2,
@@ -175,9 +175,9 @@ object NestedTests {
     val rx10 = TupleVarRef(x10)
     val q10 = ForeachUnion(x8, relR4, 
                 Singleton(Tuple("o1" -> rx8("a"), "o2" -> 
-                  Total(ForeachUnion(x9, BagProject(rx8, "b"),
+                  Count(ForeachUnion(x9, BagProject(rx8, "b"),
                           IfThenElse(Cmp(OpEq, 
-                                         Total(ForeachUnion(x10, BagProject(rx8, "e"),
+                                         Count(ForeachUnion(x10, BagProject(rx8, "e"),
                                                 IfThenElse(Cmp(OpEq, rx9("d"), rx10("g")), 
                                                   Singleton(Tuple("flag" -> Const("exists", StringType)))))),
                                           Const(0, IntType)),

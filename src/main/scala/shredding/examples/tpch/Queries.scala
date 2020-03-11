@@ -247,14 +247,18 @@ object TPCHQueries {
                                     WeightedSingleton(Tuple("l_qty" -> pq1r("l_qty")), 
                                       TupleVarRef(pq2)("l_qty").asInstanceOf[PrimitiveExpr])))))))))))   **/
 
-  val query4a = ForeachUnion(q1, BagVarRef(Q1), 
-                  ForeachUnion(cq1, BagProject(q1r, "c_orders"), 
-                    ForeachUnion(pq1, BagProject(cq1r, "o_parts"), 
-                      Singleton(Tuple("c_name" -> q1r("c_name"), "p_name" -> pq1r("p_name"), "month" -> cq1r("o_orderdate"), 
-                        "t_qty" -> Total(ForeachUnion(pq2, BagProject(cq1r, "o_parts"), 
-                                  	IfThenElse(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")),
-                                    		WeightedSingleton(Tuple("l_qty" -> pq1r("l_qty")), 
-                                      		TupleVarRef(pq2)("l_qty").asInstanceOf[NumericExpr])))))))))
+  val query4a =
+    ForeachUnion(q1, BagVarRef(Q1),
+      ForeachUnion(cq1, BagProject(q1r, "c_orders"),
+        ForeachUnion(pq1, BagProject(cq1r, "o_parts"),
+          Singleton(Tuple("c_name" -> q1r("c_name"), "p_name" -> pq1r("p_name"), "month" -> cq1r("o_orderdate"),
+            "t_qty" ->
+              Sum(ForeachUnion(pq2, BagProject(cq1r, "o_parts"),
+                IfThenElse(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")),
+                  Singleton(Tuple("l_qty" -> TupleVarRef(pq2)("l_qty").asInstanceOf[NumericExpr])))),
+                List("l_qty")
+              )("l_qty")
+          )))))
 
   val vd = VarDef("x", 
             TupleType("c_name" -> StringType, "p_name" -> StringType, 
@@ -267,39 +271,51 @@ object TPCHQueries {
   val cq1b = VarDef("c1", TupleType("o_id" -> IntType, "o_orderdate" -> StringType, "o_parts" -> BagType(TupleType("p_name" -> StringType, "l_qty" -> DoubleType))))
   val cq1br = TupleVarRef(cq1b)
 
-  val query4c = GroupBy(
-                  ForeachUnion(q1b, BagVarRef(Q1b),
-                    IfThenElse(Cmp(OpGt, Const(1000, IntType), q1br("c_id")),  
-                      ForeachUnion(cq1b, BagProject(q1br, "c_orders"), 
-                        IfThenElse(Cmp(OpGt, Const(1000, IntType), cq1br("o_id")),
-                          ForeachUnion(pq1, BagProject(cq1br, "o_parts"), 
-                            Singleton(Tuple("c_name" -> q1br("c_name"), 
-                                        "p_name" -> pq1r("p_name"), 
-                                        "month" -> cq1br("o_orderdate"), 
-                                        "t_qty" -> pq1r("l_qty")))))))),
-                   List("c_name", "p_name", "month"),
-                   List("t_qty"), DoubleType)
+  val query4c =
+    SumByKey(
+      ForeachUnion(q1b, BagVarRef(Q1b),
+        IfThenElse(
+          Cmp(OpGt, Const(1000, IntType), q1br("c_id")),
+          ForeachUnion(cq1b, BagProject(q1br, "c_orders"),
+            IfThenElse(
+              Cmp(OpGt, Const(1000, IntType), cq1br("o_id")),
+              ForeachUnion(pq1, BagProject(cq1br, "o_parts"),
+                Singleton(Tuple(
+                  "c_name" -> q1br("c_name"),
+                  "p_name" -> pq1r("p_name"),
+                  "month" -> cq1br("o_orderdate"),
+                  "t_qty" -> pq1r("l_qty")))))))),
+      List("c_name", "p_name", "month"),
+      List("t_qty")
+    )
 
   // query4 like with filter
-  val query4b = GroupBy(
-                  ForeachUnion(q1, BagVarRef(Q1), 
-                    ForeachUnion(cq1, BagProject(q1r, "c_orders"), 
-                      ForeachUnion(pq1, BagProject(cq1r, "o_parts"), 
-                        Singleton(Tuple("c_name" -> q1r("c_name"), 
-                                        "p_name" -> pq1r("p_name"), 
-                                        "month" -> cq1r("o_orderdate"), 
-                                        "t_qty" -> pq1r("l_qty")))))),
-                   List("c_name", "p_name", "month"),
-                   List("t_qty"), DoubleType)
+  val query4b =
+    SumByKey(
+      ForeachUnion(q1, BagVarRef(Q1),
+        ForeachUnion(cq1, BagProject(q1r, "c_orders"),
+          ForeachUnion(pq1, BagProject(cq1r, "o_parts"),
+            Singleton(Tuple(
+              "c_name" -> q1r("c_name"),
+              "p_name" -> pq1r("p_name"),
+              "month" -> cq1r("o_orderdate"),
+              "t_qty" -> pq1r("l_qty")))))),
+      List("c_name", "p_name", "month"),
+      List("t_qty")
+    )
 
-  val query4 = DeDup(ForeachUnion(q1, BagVarRef(Q1), 
-                  ForeachUnion(cq1, BagProject(q1r, "c_orders"), 
-                    ForeachUnion(pq1, BagProject(cq1r, "o_parts"), 
-                      Singleton(Tuple("c_name" -> q1r("c_name"), "p_name" -> pq1r("p_name"), "month" -> cq1r("o_orderdate"), 
-                        "t_qty" -> Total(ForeachUnion(pq2, BagProject(cq1r, "o_parts"), 
-                                  	IfThenElse(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")),
-                                    		WeightedSingleton(Tuple("l_qty" -> pq1r("l_qty")), 
-                                      		TupleVarRef(pq2)("l_qty").asInstanceOf[NumericExpr]))))))))))
+  val query4 =
+    DeDup(ForeachUnion(q1, BagVarRef(Q1),
+      ForeachUnion(cq1, BagProject(q1r, "c_orders"),
+        ForeachUnion(pq1, BagProject(cq1r, "o_parts"),
+          Singleton(Tuple("c_name" -> q1r("c_name"), "p_name" -> pq1r("p_name"), "month" -> cq1r("o_orderdate"),
+            "t_qty" ->
+              Sum(ForeachUnion(pq2, BagProject(cq1r, "o_parts"),
+                IfThenElse(Cmp(OpEq, TupleVarRef(pq2)("p_name"), pq1r("p_name")),
+                  Singleton(Tuple("l_qty" -> TupleVarRef(pq2)("l_qty").asInstanceOf[NumericExpr])))),
+                List("l_qty")
+              )("l_qty")
+          ))))))
   // Query 2
 
   val relS = BagVarRef(VarDef("S", TPCHSchema.suppliertype))
@@ -437,9 +453,9 @@ object TPCHQueries {
 
   val query5 = ForeachUnion(q3, BagVarRef(Q3), 
                 Singleton(Tuple("p_name" -> rq3("p_name"), "cnt" -> 
-                  Total(ForeachUnion(c5, BagProject(rq3, "customers"),
+                  Count(ForeachUnion(c5, BagProject(rq3, "customers"),
                     IfThenElse(Cmp(OpEq, 
-                      Total(ForeachUnion(s5, BagProject(rq3, "suppliers"), 
+                      Count(ForeachUnion(s5, BagProject(rq3, "suppliers"),
                               IfThenElse(Cmp(OpEq, rc5("c_nationkey"), rs5("s_nationkey")), 
                                 Singleton(Tuple("flag" -> Const(true, BoolType)))))),
                       Const(0, IntType)),
@@ -477,7 +493,7 @@ object TPCHQueries {
                                   "part_names" -> ForeachUnion(q3, BagVarRef(Q37),
                                                     ForeachUnion(sdef, rq3("suppliers").asInstanceOf[BagExpr], 
                                                       IfThenElse(And(Cmp(OpEq, sref("s_nationkey"), nref("n_nationkey")),
-                                                                     Cmp(OpEq, Total(customersCond1), Const(0, IntType))),
+                                                                     Cmp(OpEq, Count(customersCond1), Const(0, IntType))),
                                                                   Singleton(Tuple("p_name" -> rq3("p_name")))))))))
 
 }

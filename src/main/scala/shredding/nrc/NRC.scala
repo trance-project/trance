@@ -112,6 +112,10 @@ trait NRC extends BaseExpr {
     val tp: BagType = BagType(e.tp)
   }
 
+  final case class DeDup(e: BagExpr) extends BagExpr {
+    val tp: BagType = e.tp
+  }
+
   final case class Tuple(fields: Map[String, TupleAttributeExpr]) extends TupleExpr {
     val tp: TupleType = TupleType(fields.map(f => f._1 -> f._2.tp))
   }
@@ -152,14 +156,6 @@ trait NRC extends BaseExpr {
     val tp: TupleType = e2.tp
   }
 
-  final case class Total(e: BagExpr) extends NumericExpr {
-    val tp: NumericType = IntType
-  }
-
-  final case class DeDup(e: BagExpr) extends BagExpr {
-    val tp: BagType = e.tp
-  }
-  
   sealed trait Cmp {
     def op: OpCmp
 
@@ -226,6 +222,55 @@ trait NRC extends BaseExpr {
     }
   }
 
+  final case class Count(e: BagExpr) extends NumericExpr {
+    val tp: NumericType = IntType
+  }
+
+  final case class Sum(e: BagExpr, fields: List[String]) extends TupleExpr {
+    assert(fields.forall(n => e.tp.tp(n).isInstanceOf[NumericType]),
+      "Sum over non-numeric attributes")
+
+    val tp: TupleType =
+      TupleType(fields.map(n => n -> e.tp.tp(n)).toMap)
+  }
+
+  trait GroupByExpr extends BagExpr {
+    def e: BagExpr
+
+    def keys: List[String]
+
+    def keysTp: TupleType
+
+    def values: List[String]
+
+    def valuesTp: Type
+  }
+
+  final case class GroupByKey(e: BagExpr, keys: List[String], values: List[String]) extends GroupByExpr {
+    val keysTp: TupleType =
+      TupleType(keys.map(n => n -> e.tp.tp(n)).toMap)
+
+    val valuesTp: BagType =
+      BagType(TupleType(values.map(n => n -> e.tp.tp(n)).toMap))
+
+    val tp: BagType =
+      BagType(TupleType(keysTp.attrTps ++ Map("_GROUP" -> valuesTp)))
+  }
+
+  final case class SumByKey(e: BagExpr, keys: List[String], values: List[String]) extends GroupByExpr {
+    assert(values.forall(n => e.tp.tp(n).isInstanceOf[NumericType]),
+      "ReduceByKey over non-numeric attributes")
+
+    val keysTp: TupleType =
+      TupleType(keys.map(n => n -> e.tp.tp(n)).toMap)
+
+    val valuesTp: TupleType =
+      TupleType(values.map(n => n -> e.tp.tp(n)).toMap)
+
+    val tp: BagType =
+      BagType(TupleType(keysTp.attrTps ++ valuesTp.attrTps))
+  }
+
   final case class Assignment(name: String, rhs: Expr)
 
   final case class Program(statements: List[Assignment]) {
@@ -249,47 +294,6 @@ trait NRC extends BaseExpr {
 
   object Program {
     def apply(statements: Assignment*): Program = Program(List(statements: _*))
-  }
-
-  /////////////////
-  //
-  //
-  // UNSTABLE BELOW
-  //
-  //
-  /////////////////
-
-  final case class WeightedSingleton(e: TupleExpr, w: NumericExpr) extends BagExpr {
-    val tp: BagType = BagType(e.tp)
-  }
-
-//  final case class GroupByKey(e: BagExpr, keyFn: TupleExpr => TupleExpr, valueFn: TupleExpr => TupleExpr = identity) extends BagExpr {
-//    val tp: BagType = {
-//      val t = TupleVarRef(VarDef.fresh(e.tp.tp))
-//      BagType(TupleType(keyFn(t).tp.attrTps + "_2" -> BagType(valueFn(t).tp)))
-//    }
-//  }
-//
-//  final case class ReduceByKey(e: BagExpr, keyFn: TupleExpr => TupleExpr, valueFn: TupleExpr => PrimitiveExpr) extends BagExpr {
-//    val tp: BagType = {
-//      val t = TupleVarRef(VarDef.fresh(e.tp.tp))
-//      BagType(TupleType(keyFn(t).tp.attrTps + "_2" -> valueFn(t).tp))
-//    }
-//  }
-
-  trait GroupBy extends BagExpr {
-    def bag: BagExpr
-    def grp: Expr
-    def value: Expr
-    def v: VarDef
-  }
-
-  final case class BagGroupBy(bag: BagExpr, v: VarDef, grp: TupleExpr, value: TupleExpr) extends GroupBy {
-    val tp: BagType = BagType(TupleType(grp.tp.attrTps + ("_2" -> BagType(value.tp))))
-  }
-
-  final case class PlusGroupBy(bag: BagExpr, v: VarDef, grp: TupleExpr, value: PrimitiveExpr) extends GroupBy {
-    val tp: BagType = BagType(TupleType(grp.tp.attrTps + ("_2" -> value.tp)))
   }
 
 }

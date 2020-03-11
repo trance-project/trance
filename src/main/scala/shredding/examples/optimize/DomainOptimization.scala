@@ -112,15 +112,17 @@ object DomainOptExample6 extends GenomicBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
 
-  val query6 = ForeachUnion(vdef, relV,
-                Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
-                  GroupBy(ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                    ForeachUnion(cdef, relC,
-                      IfThenElse(Cmp(OpEq, gref("sample"), cref("sample")),
-                        Singleton(Tuple("case" -> cref("iscase"), "genotype" -> gref("call")))))),
-                   List("case"),
-                   List("genotype"),
-                   IntType))))
+  val query6 =
+    ForeachUnion(vdef, relV,
+      Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
+        SumByKey(
+          ForeachUnion(gdef, BagProject(vref, "genotypes"),
+            ForeachUnion(cdef, relC,
+              IfThenElse(Cmp(OpEq, gref("sample"), cref("sample")),
+                Singleton(Tuple("case" -> cref("iscase"), "genotype" -> gref("call")))))),
+          List("case"),
+          List("genotype")
+        ))))
 
   val program = Program(Assignment(name, query6))
 }

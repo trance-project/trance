@@ -23,13 +23,12 @@ trait Printer {
           |Union
           |(${quote(e2)})""".stripMargin
     case Singleton(e1) => s"Sng(${quote(e1)})"
+    case DeDup(e1) => s"DeDup(${quote(e1)})"
     case Tuple(fs) =>
       s"(${fs.map { case (k, v) => k + " := " + quote(v) }.mkString(", ")})"
     case l: Let =>
       s"""|Let ${l.x.name} = ${quote(l.e1)} In
           |${quote(l.e2)}""".stripMargin
-    case Total(e1) => s"Total(${quote(e1)})"
-    case DeDup(e1) => s"DeDup(${quote(e1)})"
     case c: CondExpr => c match {
       case cmp: Cmp =>
         s"${quote(cmp.e1)} ${cmp.op} ${quote(cmp.e2)}"
@@ -50,6 +49,14 @@ trait Printer {
             |Then ${quote(i.e1)}""".stripMargin
     case ArithmeticExpr(op, e1, e2) =>
       s"(${quote(e1)} $op ${quote(e2)})"
+    case Count(e1) => s"Count(${quote(e1)})"
+    case Sum(e1, fs) =>
+      s"Sum(${quote(e1)}, (${fs.mkString(", ")}))"
+    case GroupByKey(e, ks, vs) =>
+      s"(${quote(e)}).groupBy((${ks.mkString(", ")}), (${vs.mkString(", ")}))"
+    case SumByKey(e, ks, vs) =>
+      s"(${quote(e)}).reduceBy((${ks.mkString(", ")}), (${vs.mkString(", ")}))"
+
     // Label extensions
     case x: ExtractLabel =>
       val tuple = x.lbl.tp.attrTps.keys.mkString(", ")
@@ -57,6 +64,7 @@ trait Printer {
           |${quote(x.e)}""".stripMargin
     case l: NewLabel =>
       s"NewLabel(${(l.id :: l.params.map(_.name).toList).mkString(", ")})"
+
     // Dictionary extensions
     case EmptyDict => "Nil"
     case BagDict(lbl, flat, dict) =>
@@ -74,6 +82,7 @@ trait Printer {
       s"""|(${quote(d.dict1)})
           |DictUnion
           |(${quote(d.dict2)})""".stripMargin
+
     // Shredding extensions
     case ShredUnion(e1, e2) =>
       s"""|(${quote(e1)})
@@ -83,23 +92,6 @@ trait Printer {
       s"Lookup(lbl := ${quote(lbl)}, dict := ${quote(dict)})"
     case MatDictLookup(lbl, bag) =>
       s"MatDictLookup(lbl := ${quote(lbl)}, dict := ${quote(bag)})"
-
-    /////////////////
-    //
-    //
-    // UNSTABLE BELOW
-    //
-    //
-    /////////////////
-
-
-    case WeightedSingleton(e1, w1) =>
-      s"WeightedSng(${quote(e1)}, ${quote(w1)})"
-
-    case g: GroupBy => g.value.tp match {
-      case b: BagType => s"(${quote(g.bag)}).groupBy(${quote(g.grp)}), ${quote(g.value)})"
-      case _ => s"(${quote(g.bag)}).groupBy+(${quote(g.grp)}, ${quote(g.value)})"
-    }
 
     case _ => sys.error("Cannot print unknown expression " + e)
   }

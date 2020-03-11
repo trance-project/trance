@@ -106,16 +106,17 @@ object Query2 extends TPCHBase {
   val co3 = VarDef("p2", parts.tp.tp)
   val co3r = TupleVarRef(co3)
 
-  val query2 = ForeachUnion(co, BagVarRef(q1),
-                Singleton(Tuple("c_name" -> cor("c_name"), "totals" ->
-                  GroupBy(
-                    ForeachUnion(co2, orders,
-                      ForeachUnion(co3, parts,
-                        Singleton(Tuple("orderdate" -> co2r("o_orderdate"),
-                          "pname" -> co3r("p_name"), "qty" -> co3r("l_qty"))))),
-                 List("orderdate", "pname"),
-                 List("qty"),
-                 DoubleType))))
+  val query2 =
+    ForeachUnion(co, BagVarRef(q1),
+      Singleton(Tuple("c_name" -> cor("c_name"), "totals" ->
+        SumByKey(
+          ForeachUnion(co2, orders,
+            ForeachUnion(co3, parts,
+              Singleton(Tuple("orderdate" -> co2r("o_orderdate"),
+                "pname" -> co3r("p_name"), "qty" -> co3r("l_qty"))))),
+          List("orderdate", "pname"),
+          List("qty")
+        ))))
 
   val program =
     Query1.program.asInstanceOf[Program] ++
@@ -149,7 +150,7 @@ object Query3 extends TPCHBase {
   val co3r = TupleVarRef(co3)
 
   val query3 =
-    GroupBy(
+    SumByKey(
       ForeachUnion(co, BagVarRef(q1),
         ForeachUnion(co2, orders, 
           ForeachUnion(co3, parts, 
@@ -158,8 +159,8 @@ object Query3 extends TPCHBase {
                 Singleton(Tuple("c_name" -> cor("c_name"), "p_name" -> pr("p_name"), 
                                 "total" ->  co3r("l_qty").asNumeric * pr("p_retailprice").asNumeric))))))),
       List("c_name", "p_name"),
-      List("total"),
-      DoubleType)
+      List("total")
+    )
 
   val program =
     Query1.program.asInstanceOf[Program] ++
@@ -199,15 +200,15 @@ object Query4 extends TPCHBase {
       Singleton(Tuple("c_name" -> cor("c_name"), "c_orders" ->
         ForeachUnion(co2, orders, 
           Singleton(Tuple("o_orderdate" -> co2r("o_orderdate"), "o_parts" ->
-            GroupBy(
+            SumByKey(
               ForeachUnion(co3, parts, 
                 ForeachUnion(p, relP, 
                   IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
                     Singleton(Tuple("p_name" -> pr("p_name"), "total" -> 
                       co3r("l_qty").asNumeric * pr("p_retailprice").asNumeric))))),
-      List("p_name"),
-      List("total"),
-      DoubleType)))))))
+              List("p_name"),
+              List("total")
+            )))))))
 
   val program =
     Query1.program.asInstanceOf[Program] ++
@@ -271,15 +272,15 @@ object Query4Filter1 extends TPCHBase {
         Singleton(Tuple("c_name" -> cor("c_name"), "c_orders" ->
           ForeachUnion(co2, orders, 
             Singleton(Tuple("o_orderdate" -> co2r("o_orderdate"), "o_parts" ->
-              GroupBy(
+              SumByKey(
                 ForeachUnion(co3, parts, 
                   ForeachUnion(p, relP, 
                     IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
                         Singleton(Tuple("p_name" -> pr("p_name"), "total" -> 
                           co3r("l_qty").asNumeric * pr("p_retailprice").asNumeric))))),
-        List("p_name"),
-        List("total"),
-        DoubleType))))))))
+                List("p_name"),
+                List("total")
+              ))))))))
 
   val program =
     Query1Extended.program.asInstanceOf[Program] ++
@@ -310,15 +311,15 @@ object Query4Filter2 extends TPCHBase {
           ForeachUnion(co2, orders, 
             IfThenElse(Cmp(OpGe, Const(150000000, IntType), or("o_orderkey")),
             Singleton(Tuple("o_orderdate" -> co2r("o_orderdate"), "o_parts" ->
-              GroupBy(
+              SumByKey(
                 ForeachUnion(co3, parts, 
                   ForeachUnion(p, relP, 
                     IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
                         Singleton(Tuple("p_name" -> pr("p_name"), "total" -> 
                           co3r("l_qty").asNumeric * pr("p_retailprice").asNumeric))))),
-        List("p_name"),
-        List("total"),
-        DoubleType)))))))))
+                List("p_name"),
+                List("total")
+              )))))))))
 
   val program =
     Query1Extended.program.asInstanceOf[Program] ++
@@ -477,7 +478,7 @@ object Query7 extends TPCHBase {
   val (cflat, cf, cfr) = varset("cflat", "cf", flat.asInstanceOf[BagExpr])
   val query7 = ForeachUnion(c, relC,
                 Singleton(Tuple("c_name" -> cr("c_name"), "suppliers" -> 
-                  Total(ForeachUnion(cf, BagVarRef(cflat),
+                  Count(ForeachUnion(cf, BagVarRef(cflat),
                     IfThenElse(Cmp(OpEq, cfr("c_name"), cr("c_name")),
                       Singleton(Tuple("s_name" -> cfr("s_name")))))))))
 

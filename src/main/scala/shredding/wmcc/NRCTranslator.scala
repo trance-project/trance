@@ -1,7 +1,7 @@
 package shredding.wmcc
 
 import shredding.core._
-import shredding.nrc.{Printer => NRCPrinter, ShredNRC}
+import shredding.nrc.{Printer => NRCPrinter, MaterializeNRC}
 
 /**
   * Translate (source and target) NRC to WMCC
@@ -10,7 +10,7 @@ import shredding.nrc.{Printer => NRCPrinter, ShredNRC}
   * are bound by referencing and projecting on a label node
   */
 
-trait NRCTranslator extends ShredNRC with NRCPrinter {
+trait NRCTranslator extends MaterializeNRC with NRCPrinter {
   val compiler = new BaseCompiler{}
   import compiler._
 
@@ -96,11 +96,14 @@ trait NRCTranslator extends ShredNRC with NRCPrinter {
         Comprehension(translate(e1), translate(x).asInstanceOf[Variable], constant(true), te2)
     }
     case l:Let => Bind(translate(l.x), translate(l.e1), translate(l.e2))
-    case g:GroupBy => 
-      CGroupBy(translate(g.bag), translate(g.v).asInstanceOf[Variable], translate(g.grp), translate(g.value))
+
+    // TODO: adapt to new GroupByKey/ReduceByKey
+//    case g: GroupBy =>
+//      CGroupBy(translate(g.bag), translate(g.v).asInstanceOf[Variable], translate(g.grp), translate(g.value))
+
     case v: VarRefLabelParameter => translateVar(v.e)
-    case NewLabel(vs) =>
-      record(vs.map {
+    case l: NewLabel =>
+      record(l.params.map {
         case v2: VarRefLabelParameter => translateName(v2.name) -> translateVar(v2.e)
         case v2: ProjectLabelParameter => translateName(v2.name) -> translate(v2.e)
       }.toMap)
@@ -116,9 +119,8 @@ trait NRCTranslator extends ShredNRC with NRCPrinter {
     case TupleDict(fs) => TupleCDict(fs.map(f => f._1 -> translate(f._2)))
     case TupleDictProject(dict) => project(translate(dict), "_2")
     case d: DictUnion => DictCUnion(translate(d.dict1), translate(d.dict2))
-    case Total(e1) => comprehension(translate(e1), x => constant(true), (i: CExpr) => constant(1))
+    case Count(e1) => comprehension(translate(e1), x => constant(true), (i: CExpr) => constant(1))
     case DeDup(e1) => CDeDup(translate(e1)) 
-    case WeightedSingleton(tup, qty) => WeightedSng(translate(tup), translate(qty))
     case _ => EmptyCDict //sys.error("cannot translate "+e)
   }
 

@@ -12,42 +12,99 @@ trait Evaluator extends ShredNRC with ScalaRuntime {
     case c: Const => c.v
     case v: VarRef => ctx(v.varDef)
     case p: Project =>
-      try{ 
-        evalTuple(p.tuple, ctx)(p.field)
-      }catch{
-        case e:Exception => ctx(VarDef(p.tuple.asInstanceOf[TupleVarRef].varDef.name+"."+p.field, p.tp))
-      }
+      evalTuple(p.tuple, ctx)(p.field)
     case ForeachUnion(x, e1, e2) =>
       val v1 = evalBag(e1, ctx)
       val v = v1.flatMap { xv => ctx.add(x, xv); evalBag(e2, ctx) }
       ctx.remove(x)
       v
-    case Union(e1, e2) => evalBag(e1, ctx) ++ evalBag(e2, ctx)
-    case Singleton(e1) => List(evalTuple(e1, ctx))
-    case WeightedSingleton(e1, w1) => w1.tp match {
-      case IntType => (1 to eval(w1, ctx).asInstanceOf[Int]).map(w => evalTuple(e1, ctx))
-      case DoubleType => (1 to eval(w1, ctx).asInstanceOf[Double].toInt).map(w => evalTuple(e1, ctx))
-    }
-      //sys.error("Unsupported evaluation of WeightedSingleton")
-    case Tuple(fs) => fs.map(x => x._1 -> eval(x._2, ctx))
+    case Union(e1, e2) =>
+      evalBag(e1, ctx) ++ evalBag(e2, ctx)
+    case Singleton(e1) =>
+      List(evalTuple(e1, ctx))
+    case DeDup(e1) =>
+      evalBag(e1, ctx).distinct
+    case Tuple(fs) =>
+      fs.map(x => x._1 -> eval(x._2, ctx))
     case l: Let =>
       ctx.add(l.x, eval(l.e1, ctx))
       val v = eval(l.e2, ctx)
       ctx.remove(l.x)
       v
-    case Total(e1) => evalBag(e1, ctx).size
-    case DeDup(e1) => evalBag(e1, ctx).distinct
-    case c: Cmp => c.op match {
-      case OpEq => eval(c.e1, ctx) == eval(c.e2, ctx)
-      case OpNe => eval(c.e1, ctx) != eval(c.e2, ctx)
-      case _ => sys.error("Unsupported comparison operator: " + c.op)
+    case c: Cmp => (c.e1.tp, c.e2.tp) match {
+      case (StringType, StringType) =>
+        evalCmp(
+          c.op,
+          eval(c.e1, ctx).asInstanceOf[String],
+          eval(c.e2, ctx).asInstanceOf[String])
+      case (IntType, IntType) =>
+        evalCmp(
+          c.op,
+          eval(c.e1, ctx).asInstanceOf[Int],
+          eval(c.e2, ctx).asInstanceOf[Int])
+      case (LongType, LongType) =>
+        evalCmp(
+          c.op,
+          eval(c.e1, ctx).asInstanceOf[Long],
+          eval(c.e2, ctx).asInstanceOf[Long])
+      case (DoubleType, DoubleType) =>
+        evalCmp(
+          c.op,
+          eval(c.e1, ctx).asInstanceOf[Double],
+          eval(c.e2, ctx).asInstanceOf[Double])
+      case (t1, t2) =>
+        sys.error("Cannot compare values of type " + t1 + " and " + t2)
     }
-    case And(e1, e2) => evalBool(e1, ctx) && evalBool(e2, ctx)
-    case Or(e1, e2) => evalBool(e1, ctx) || evalBool(e2, ctx)
-    case Not(e1) => !evalBool(e1, ctx)
+    case And(e1, e2) =>
+      evalBool(e1, ctx) && evalBool(e2, ctx)
+    case Or(e1, e2) =>
+      evalBool(e1, ctx) || evalBool(e2, ctx)
+    case Not(e1) =>
+      !evalBool(e1, ctx)
     case i: IfThenElse =>
       if (evalBool(i.cond, ctx)) eval(i.e1, ctx)
       else i.e2.map(eval(_, ctx)).getOrElse(Nil)
+    case ArithmeticExpr(op, a1, a2) => e.tp match {
+      case IntType =>
+        evalArithmeticIntegral(
+          op,
+          eval(a1, ctx).asInstanceOf[Int],
+          eval(a2, ctx).asInstanceOf[Int])
+      case LongType =>
+        evalArithmeticIntegral(
+          op,
+          eval(a1, ctx).asInstanceOf[Long],
+          eval(a2, ctx).asInstanceOf[Long])
+      case DoubleType =>
+        evalArithmeticFractional(
+          op,
+          eval(a1, ctx).asInstanceOf[Double],
+          eval(a2, ctx).asInstanceOf[Double])
+    }
+    case Count(e1) =>
+      evalBag(e1, ctx).size
+    case Sum(e1, fs) =>
+      val b = evalBag(e1, ctx)
+      fs.map { f => f -> sumAggregate(b, f, e1.tp.tp(f)) }.toMap
+    case GroupByKey(e1, ks, vs) =>
+      evalBag(e1, ctx).map { t =>
+        val tuple = t.asInstanceOf[Map[String, _]]
+        val keys = ks.map(k => k -> tuple(k)).toMap
+        val values = vs.map(v => v -> tuple(v)).toMap
+        (keys, values)
+      }.groupBy(_._1).map { case (k, v) =>
+        k ++ Map("group" -> v.map(_._2))
+      }.toList
+    case SumByKey(e1, ks, vs) =>
+      evalBag(e1, ctx).map { t =>
+        val tuple = t.asInstanceOf[Map[String, _]]
+        val keys = ks.map(k => k -> tuple(k)).toMap
+        val values = vs.map(v => v -> tuple(v)).toMap
+        (keys, values)
+      }.groupBy(_._1).map { case (k, v) =>
+        val b = v.map(_._2)
+        k ++ vs.map(v => v -> sumAggregate(b, v, e1.tp.tp(v))).toMap
+      }.toList
 
     case x: ExtractLabel =>
       val las = x.lbl.tp.attrTps
@@ -67,8 +124,8 @@ trait Evaluator extends ShredNRC with ScalaRuntime {
         ctx.remove(VarDef(n2, tp2))
       }
       v
-    case NewLabel(as) =>
-      ROutLabel(as.map {
+    case l: NewLabel =>
+      ROutLabel(l.params.map {
         case l: VarRefLabelParameter =>
           l.e.varDef -> ctx(l.e.varDef)
         case l: ProjectLabelParameter =>
@@ -103,13 +160,7 @@ trait Evaluator extends ShredNRC with ScalaRuntime {
     p.statements.foreach(eval(_, ctx))
 
   protected def evalBag(e: Expr, ctx: Context): List[_] =
-    try {
-      eval(e, ctx).asInstanceOf[List[_]]
-    }
-    catch {
-      // TODO: why Vector?
-      case _: Exception => eval(e, ctx).asInstanceOf[Vector[_]].toList
-    }
+    eval(e, ctx).asInstanceOf[List[_]]
 
   protected def evalTuple(e: Expr, ctx: Context): Map[String, _] =
     eval(e, ctx).asInstanceOf[Map[String, _]]
@@ -128,5 +179,41 @@ trait Evaluator extends ShredNRC with ScalaRuntime {
 
   protected def evalBool(e: Expr, ctx: Context): Boolean =
     eval(e, ctx).asInstanceOf[Boolean]
+
+  protected def evalCmp[T](op: OpCmp, v1: T, v2: T)
+                          (implicit o: Ordering[T]): Boolean = op match {
+    case OpEq => o.eq(v1, v2)
+    case OpNe => o.ne(v1, v2)
+    case OpGt => o.gt(v1, v2)
+    case OpGe => o.gteq(v1, v2)
+  }
+
+  protected def evalArithmeticIntegral[T](op: OpArithmetic, a1: T, a2: T)
+                                         (implicit i: Integral[T]): T = op match {
+    case OpPlus => i.plus(a1, a2)
+    case OpMinus => i.minus(a1, a2)
+    case OpMultiply => i.times(a1, a2)
+    case OpDivide => i.quot(a1, a2)
+    case OpMod => i.rem(a1, a2)
+  }
+
+  protected def evalArithmeticFractional[T](op: OpArithmetic, a1: T, a2: T)
+                                           (implicit f: Fractional[T]): T = op match {
+    case OpPlus => f.plus(a1, a2)
+    case OpMinus => f.minus(a1, a2)
+    case OpMultiply => f.times(a1, a2)
+    case OpDivide => f.div(a1, a2)
+    case OpMod => sys.error("Modulo over fractional values")
+  }
+
+  protected def sumAggregate(b: List[_], f: String, tp: Type): AnyVal = tp match {
+    case IntType =>
+      b.map(_.asInstanceOf[Map[String, Int]](f)).sum
+    case LongType =>
+      b.map(_.asInstanceOf[Map[String, Long]](f)).sum
+    case DoubleType =>
+      b.map(_.asInstanceOf[Map[String, Double]](f)).sum
+    case _ => sys.error("Aggregation over non-numeric values of type " + tp)
+  }
 }
 

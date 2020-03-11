@@ -2,18 +2,18 @@ package shredding.examples.simple
 
 import org.scalatest.FunSuite
 import shredding.core._
-import shredding.nrc.{NRC, Printer, ShredNRC}
+import shredding.nrc.{NRC, Printer, MaterializeNRC}
 import shredding.wmcc._
 
 class TestExamples extends FunSuite
   with NRC
-  with ShredNRC
+  with MaterializeNRC
   with Printer {
   /*Examples
   June 6, 2019
   */
   def printQuery(test: String, query: Expr): Unit = {
-    val printer = new Printer with ShredNRC {}
+    val printer = new Printer with MaterializeNRC {}
     println("[" + test + "] print: \n" + printer.quote(query.asInstanceOf[printer.Expr]))
     val translator = new NRCTranslator {}
     val normalizer = new Finalizer(new BaseNormalizer {})

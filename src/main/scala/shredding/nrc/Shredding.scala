@@ -93,6 +93,12 @@ trait Shredding extends BaseShredding with Extensions {
       val lbl = NewLabel(labelParameters(flat))
       ShredExpr(lbl, BagDict(lbl, Singleton(flat), dict))
 
+    case DeDup(e1) =>
+      val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      val flat = DeDup(dict1.lookup(lbl1))
+      val lbl = NewLabel(labelParameters(flat))
+      ShredExpr(lbl, BagDict(lbl, flat, dict1.tupleDict))
+
     case Tuple(fs) =>
       val shredFs = fs.map(f => f._1 -> shred(f._2, ctx))
       val flatFs = shredFs.map(f => f._1 -> f._2.flat.asInstanceOf[TupleAttributeExpr])
@@ -107,16 +113,6 @@ trait Shredding extends BaseShredding with Extensions {
       val flat = Let(xDict, se1.dict, Let(xFlat, se1.flat, se2.flat))
       val dict = DictLet(xDict, se1.dict, se2.dict)
       ShredExpr(flat, dict)
-
-    case Total(e1) =>
-      val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
-      ShredExpr(Total(dict1.lookup(lbl)), EmptyDict)
-
-    case DeDup(e1) =>
-      val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
-      val flat = DeDup(dict1.lookup(lbl1))
-      val lbl = NewLabel(labelParameters(flat))
-      ShredExpr(lbl, BagDict(lbl, flat, dict1.tupleDict))
 
     case c: Cmp =>
       val ShredExpr(c1: PrimitiveExpr, EmptyDict) = shred(c.e1, ctx)
@@ -152,31 +148,23 @@ trait Shredding extends BaseShredding with Extensions {
       val ShredExpr(n2: NumericExpr, EmptyDict) = shred(a.e2, ctx)
       ShredExpr(ArithmeticExpr(a.op, n1, n2), EmptyDict)
 
+    case Count(e1) =>
+      val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      ShredExpr(Count(dict1.lookup(lbl)), EmptyDict)
 
-    /////////////////
-    //
-    //
-    // UNSTABLE BELOW
-    //
-    //
-    /////////////////
+    case Sum(e1, fs) =>
+      val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      ShredExpr(Sum(dict1.lookup(lbl), fs), EmptyDict)
 
-    case WeightedSingleton(e1, w1) =>
-      val ShredExpr(flat1: TupleExpr, dict: TupleDictExpr) = shred(e1, ctx)
-      val ShredExpr(flat2: NumericExpr, EmptyDict) = shred(w1, ctx)
-      val flat = WeightedSingleton(flat1, flat2)
-      val lbl = NewLabel(labelParameters(flat))
-      ShredExpr(lbl, BagDict(lbl, flat, dict))
-
-    case BagGroupBy(e1, v1, grp, value) =>
+    case GroupByKey(e1, ks, vs) =>
       val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
-      val flat = BagGroupBy(dict1.lookup(lbl1), v1, grp, value)
+      val flat = GroupByKey(dict1.lookup(lbl1), ks, vs)
       val lbl = NewLabel(labelParameters(flat))
       ShredExpr(lbl, BagDict(lbl, flat, dict1.tupleDict))
 
-    case PlusGroupBy(e1, v1, grp, value) =>
+    case SumByKey(e1, ks, vs) =>
       val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
-      val flat = PlusGroupBy(dict1.lookup(lbl1), v1, grp, value)
+      val flat = SumByKey(dict1.lookup(lbl1), ks, vs)
       val lbl = NewLabel(labelParameters(flat))
       ShredExpr(lbl, BagDict(lbl, flat, dict1.tupleDict))
 

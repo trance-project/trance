@@ -45,18 +45,18 @@ object TPCHQuery4A extends TPCHBase {
                   IfThenElse(Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
                     Singleton(Tuple("l_orderkey" -> lr("l_orderkey"), "p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))
   val (p1, co1, cor1) = varset("parts", "part", parts.asInstanceOf[BagExpr])
-  val query4 = ForeachUnion(co, BagVarRef(q1),
-                Singleton(Tuple("c_name" -> cor("c_name"), "partqty" ->
-                  GroupBy(
-                       ForeachUnion(co2, BagProject(cor, "corders"),
-                        ForeachUnion(co1, BagVarRef(p1),
-                            IfThenElse(Cmp(OpEq, cor2("o_orderkey"), cor1("l_orderkey")),
-                              Singleton(Tuple("orderdate" -> cor2("o_orderdate"),
-                                "pname" -> cor1("p_name"), "l_qty" -> cor1("l_qty")))))),
-                    List("orderdate", "pname"),
-                    List("l_qty"),
-                    DoubleType
-                   ))))
+  val query4 =
+    ForeachUnion(co, BagVarRef(q1),
+      Singleton(Tuple("c_name" -> cor("c_name"), "partqty" ->
+        SumByKey(
+          ForeachUnion(co2, BagProject(cor, "corders"),
+            ForeachUnion(co1, BagVarRef(p1),
+              IfThenElse(Cmp(OpEq, cor2("o_orderkey"), cor1("l_orderkey")),
+                Singleton(Tuple("orderdate" -> cor2("o_orderdate"),
+                  "pname" -> cor1("p_name"), "l_qty" -> cor1("l_qty")))))),
+          List("orderdate", "pname"),
+          List("l_qty")
+        ))))
 
   val program = Program(Assignment(p1.name, parts), Assignment(name, query4))
 }
@@ -98,14 +98,16 @@ object TPCHQuery4B extends TPCHBase {
   val cor2 = TupleVarRef(co2)
 
   val query4 =
-      GroupBy(ForeachUnion(co, BagVarRef(q1), 
-              ForeachUnion(co2, BagProject(cor, "orders"),
-                ForeachUnion(c, relC, 
-                  IfThenElse(Cmp(OpEq, cr("c_custkey"), cor2("o_custkey")),
-                    Singleton(Tuple("c_name" -> cr("c_name"), "p_name" -> cor("p_name"), "l_qty" -> cor("l_qty"))))))),
+      SumByKey(
+        ForeachUnion(co, BagVarRef(q1),
+          ForeachUnion(co2, BagProject(cor, "orders"),
+            ForeachUnion(c, relC,
+              IfThenElse(
+                Cmp(OpEq, cr("c_custkey"), cor2("o_custkey")),
+                Singleton(Tuple("c_name" -> cr("c_name"), "p_name" -> cor("p_name"), "l_qty" -> cor("l_qty"))))))),
         List("c_name", "p_name"),
-        List("l_qty"),
-        DoubleType)
+        List("l_qty")
+      )
 
   val program = Program(Assignment(name, query4))
 }
@@ -132,15 +134,18 @@ object TPCHQuery4C extends TPCHBase {
                   IfThenElse(Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
                     Singleton(Tuple("l_orderkey" -> lr("l_orderkey"), "p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))
   val (p1, co1, cor1) = varset("parts", "part", parts.asInstanceOf[BagExpr])
-  val query4 = GroupBy(ForeachUnion(co, BagVarRef(q1),
-                    ForeachUnion(co2, BagProject(cor, "corders"),
-                      ForeachUnion(co1, BagVarRef(p1),
-                        IfThenElse(Cmp(OpEq, cor2("o_orderkey"), cor1("l_orderkey")),
-                          Singleton(Tuple("c_name" -> cor("c_name"), "orderdate" -> cor2("o_orderdate"), 
-                          "pname" -> cor1("p_name"), "l_qty" -> cor1("l_qty"))))))),
+  val query4 =
+    SumByKey(
+      ForeachUnion(co, BagVarRef(q1),
+        ForeachUnion(co2, BagProject(cor, "corders"),
+          ForeachUnion(co1, BagVarRef(p1),
+            IfThenElse(
+              Cmp(OpEq, cor2("o_orderkey"), cor1("l_orderkey")),
+              Singleton(Tuple("c_name" -> cor("c_name"), "orderdate" -> cor2("o_orderdate"),
+                "pname" -> cor1("p_name"), "l_qty" -> cor1("l_qty"))))))),
       List("c_name", "orderdate", "pname"), 
-      List("l_qty"),
-      DoubleType)
+      List("l_qty")
+    )
 
   val program = Program(Assignment(p1.name, parts), Assignment(name, query4))
 }
@@ -166,15 +171,18 @@ object TPCHQuery4D extends TPCHBase {
                     Singleton(Tuple("l_orderkey" -> lr("l_orderkey"), "p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))
   val (p1, co1, cor1) = varset("parts", "part", parts.asInstanceOf[BagExpr])
 
-  val query4 = GroupBy(ForeachUnion(co, BagVarRef(q1),
-              ForeachUnion(co2, BagProject(cor, "corders"),
-                ForeachUnion(co1, BagVarRef(p1),
-                  IfThenElse(Cmp(OpEq, cor2("o_orderkey"), cor1("l_orderkey")),
-                    Singleton(Tuple("orderdate" -> cor2("o_orderdate"), 
+  val query4 =
+    SumByKey(
+      ForeachUnion(co, BagVarRef(q1),
+        ForeachUnion(co2, BagProject(cor, "corders"),
+          ForeachUnion(co1, BagVarRef(p1),
+            IfThenElse(
+              Cmp(OpEq, cor2("o_orderkey"), cor1("l_orderkey")),
+              Singleton(Tuple("orderdate" -> cor2("o_orderdate"),
                           "pname" -> cor1("p_name"), "l_qty" -> cor1("l_qty"))))))),
       List("orderdate", "pname"), 
-      List("l_qty"),
-      DoubleType)
+      List("l_qty")
+    )
 
   val program = Program(Assignment(p1.name, parts), Assignment(name, query4))
 }
@@ -225,7 +233,8 @@ object TPCHQuery4E extends TPCHBase {
 
   //val query = Sequence(List(
  //   Named(p1, parts),
-  val query4 = GroupBy(
+  val query4 =
+    SumByKey(
       ForeachUnion(co, BagVarRef(q1),
         ForeachUnion(co1, BagProject(cor, "corders"),
           ForeachUnion(co2, BagVarRef(p1),
@@ -234,8 +243,7 @@ object TPCHQuery4E extends TPCHBase {
               Singleton(Tuple("c_name" -> cor("c_name"), "orderdate" -> cor1("o_orderdate"), 
               "pname" -> cor3("p_name"), "l_qty" -> cor3("l_qty")))))))),
       List("c_name", "orderdate", "pname"), 
-      List("l_qty"),
-      DoubleType
+      List("l_qty")
     )
 
   val program = Program(Assignment(name, query4))
@@ -310,14 +318,14 @@ object TPCHQuery4New extends TPCHBase {
 
   val query4 = ForeachUnion(co, BagVarRef(q1),
                 Singleton(Tuple("c_name" -> cor("c_name"), "totals" ->
-                  GroupBy(
+                  SumByKey(
                     ForeachUnion(co2, orders,
                       ForeachUnion(co3, parts,
                         Singleton(Tuple("orderdate" -> co2r("o_orderdate"),
                           "pname" -> co3r("p_name"), "qty" -> co3r("l_qty"))))),
-                 List("orderdate", "pname"),
-                 List("qty"),
-                 DoubleType))))
+                    List("orderdate", "pname"),
+                    List("qty")
+                  ))))
 
   val program = Program(Assignment(name, query4))
 }
@@ -368,7 +376,7 @@ object TPCHQuery4New3 extends TPCHBase {
   val co3r = TupleVarRef(co3)
 
   val query4 =
-    GroupBy(
+    SumByKey(
       ForeachUnion(co, BagVarRef(q1),
         ForeachUnion(co2, orders, 
           ForeachUnion(co3, parts, 
@@ -377,8 +385,8 @@ object TPCHQuery4New3 extends TPCHBase {
                 Singleton(Tuple("c_name" -> cor("c_name"), "p_name" -> pr("p_name"), 
                                 "qty" -> co3r("l_qty"), "price" -> pr("p_retailprice")))))))),
       List("c_name", "p_name", "qty"),
-      List("price"),
-      DoubleType)
+      List("price")
+    )
 
   val program = Program(Assignment(name, query4))
 }
