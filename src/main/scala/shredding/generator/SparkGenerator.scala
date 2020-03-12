@@ -196,15 +196,10 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
     // Nest for dictionaries, use groupByKey to remove lbl -> {} pairs
     case Nest(e1, v1, f, e2, v2, p, g) if hasLabel(f.tp) =>
       val vars = generateVars(v1, e1.tp)
-      val agg = e2.tp match {
-        case IntType => "reduceByKey(_+_)"
-        case DoubleType => "reduceByKey(_+_)"
-        case _ => "groupByKey()"
-      } 
       val acc = "acc"+Variable.newId
       s"""|${generate(e1)}.map{ case $vars => 
           |   ({${generate(f)}}, {${generate(e2)}})
-          | }.$agg""".stripMargin
+          | }.${agg(e2)}""".stripMargin
 
     /** NEST **/
     // TODO add filter
@@ -212,7 +207,6 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
       val vars = generateVars(v1, e1.tp)
       val acc = "acc"+Variable.newId
       val emptyType = empty(e2)
-      val aggType = agg(e2)
       val gv2 = generate(v2)
       val key = f match {
         case Bind(bv, Project(v, field), _) => nullProject(f)
@@ -229,13 +223,13 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
               s"case (${fs.slice(1, i).map(e => "_").mkString(",")},${zero(fs.last)}) => ($key, $emptyType)" //({${generate(f)}}, ${zero(e2)})" 
             }
           ) :+ s"case (null, ${(2 to fs.size).map(i => "_").mkString(",")}) => ($key, $emptyType)").mkString("\n")
-        case _ => s"case (null) => ($key, $emptyType)" //({${generate(f)}}, ${zero(e2)})"
+        case _ => s"case (null) => ($key, $emptyType)"
       }
       s"""|${generate(e1)}.map{ case $vars => {${generate(g)}} match {
           |   $nonet
           |   case $gv2 => ({${generate(f)}}, $value)
           | }
-          |}.reduceByKey(_ $aggType _)""".stripMargin
+          |}.${agg(e2)}""".stripMargin
     
     /** LOOKUPS **/
 

@@ -22,7 +22,7 @@ object Util{
     i.foldLeft(HashMap.empty[(K, Int), Int].withDefaultValue(0))((acc, c) =>
       { acc((c._1, index)) += 1; acc } )
   }
-
+  
   def cogroupBy[K,V,S](i: Iterator[(K,V)], hks: Broadcast[Map[K, Vector[S]]]): Iterator[(V, Vector[S])] = {
     val hm = HashMap[V, Vector[S]]()
       i.foreach{ case (k,v) =>

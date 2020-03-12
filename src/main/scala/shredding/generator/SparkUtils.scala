@@ -40,9 +40,9 @@ trait SparkUtils {
   }
 
   def agg(e: CExpr): String = e.tp match {
-    case IntType => "+"
-    case DoubleType => "+"
-    case _ => "++"
+    case IntType => "nestReduce(_+_)"
+    case DoubleType => "nestReduce(_+_)"
+    case _ => "nestGroup"
   } 
 
   def drop(tp: Type, v: Variable, field: String): CExpr = tp match {

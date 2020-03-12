@@ -256,7 +256,7 @@ object Utils {
         | $e
         |}
         |$n.cache
-        |$n.count""".stripMargin
+        |$n.evaluate""".stripMargin
  
   def shredInputs(ns: List[String]): String = { 
     var cnt = 0
@@ -264,7 +264,7 @@ object Utils {
       cnt += 1
       s"""|val $n = M__D_$cnt
           |$n.cache
-          |$n.count"""
+          |$n.evaluate"""
     }.mkString("\n").stripMargin
   }
 

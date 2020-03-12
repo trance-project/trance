@@ -20,10 +20,12 @@ object SkewPairRDD {
 
     def print: Unit = (light, heavy).print
     def evaluate: Unit = (light, heavy).evaluate
+    def union: RDD[(K,V)] = (light, heavy).union
+    def cache: Unit = (light, heavy).cache
 
     // non key altering map
-    def map[S:ClassTag](f: ((K,V)) => (K, S)): (RDD[(K,S)], RDD[(K,S)], Broadcast[Set[K]]) = {
-      val (l, h) = (light, heavy).map(f)
+    def mapPartitions[S:ClassTag](f: ((K,V)) => (K, S)): (RDD[(K,S)], RDD[(K,S)], Broadcast[Set[K]]) = {
+      val (l, h) = (light, heavy).mapPartitions(f, true)
       (l, h, heavyKeys)
     }
 
@@ -38,7 +40,7 @@ object SkewPairRDD {
     }
 
     // non key altering flatmap
-    def flatMap[S:ClassTag](f: ((K,V)) => Vector[(K, S)]): (RDD[(K, S)], RDD[(K, S)], Broadcast[Set[K]]) = {
+    def flatMapPartitions[S:ClassTag](f: ((K,V)) => Vector[(K, S)]): (RDD[(K, S)], RDD[(K, S)], Broadcast[Set[K]]) = {
       val (l, h) = (light, heavy).flatMap(f)
       (l, h, heavyKeys)
     }
@@ -48,11 +50,53 @@ object SkewPairRDD {
 
     def createDomain[L: ClassTag](f: ((K, V)) => L): (RDD[L], RDD[L]) = (light, heavy).createDomain(f)
 
-    // def joinDropKey[S:ClassTag](rrdd: (RDD[(K, S)], RDD[(K, S)])): (RDD[(V, S)], RDD[(V, S)]) = {
-    //   if (heavyKeys.value.nonEmpty){
+    def join[S:ClassTag](rrdd: (RDD[(K, S)], RDD[(K, S)])): (RDD[(K, (V, S))], RDD[(K, (V, S))], Broadcast[Set[K]]) = {
+      val runion = rrdd.union
+      if (heavyKeys.value.nonEmpty){
+        val rlight = runion.filter(i => !heavyKeys.value(i._1))
+        val lresult = light.join(rlight)
 
-    //   }else (light.joinDropKey(rrdd.union), light.empty)
-    // }
+        val rheavy = runion.toHeavyMap(heavyKeys)
+        val heavyRights = heavy.sparkContext.broadcast(rheavy)
+        val hresult = heavy.broadcastJoin(heavyRights)
+        (lresult, hresult, heavyKeys)
+      } else {
+        val result = light.join(runion)
+        (result, result.empty, heavyKeys)
+      }
+    }
+
+    def joinDropKey[S:ClassTag](rrdd: (RDD[(K, S)], RDD[(K, S)])): (RDD[(V, S)], RDD[(V, S)]) = {
+      val runion = rrdd.union
+      if (heavyKeys.value.nonEmpty){
+        val rlight = runion.filter(i => !heavyKeys.value(i._1))
+        val lresult = light.joinDropKey(rlight)
+
+        val rheavy = runion.toHeavyMap(heavyKeys)
+        val heavyRights = heavy.sparkContext.broadcast(rheavy)
+        val hresult = heavy.broadcastJoinDropKey(heavyRights)
+        (lresult, hresult)
+      }else{
+        val result = light.joinDropKey(runion)
+        (result, result.empty)
+      }
+    }
+
+    def joinDomain(dom: (RDD[K], RDD[K])): (RDD[(K, V)], RDD[(K, V)], Broadcast[Set[K]]) = {
+      val domain = dom.union
+      if (heavyKeys.value.nonEmpty){
+        val ldomain = domain.filter(l => !heavyKeys.value(l))
+        val lresult = light.joinDomain(ldomain)
+
+        val hdomain = domain.filter(l => heavyKeys.value(l)).collect.toSet
+        val heavyDomain = heavy.sparkContext.broadcast(hdomain)
+        val hresult = heavy.broadcastJoinDomain(heavyDomain)
+        (lresult, hresult, heavyKeys)
+      }else{
+        val result = light.joinDomain(domain)
+        (result, result.empty, heavyKeys)
+      }
+    }
 
     def cogroupDropKey[S:ClassTag](rrdd:(RDD[(K,S)], RDD[(K,S)])): (RDD[(V, Vector[S])], RDD[(V, Vector[S])]) = {
       val runion = rrdd.union
@@ -90,6 +134,21 @@ object SkewPairRDD {
         }
       }
 
+    def nestReduce(f: (V,V) => V): (RDD[(K,V)], RDD[(K,V)]) = {
+      (lrdd.union.nestReduce(f), light.empty)
+    }
+
+    def nestGroup: (RDD[(K,Vector[V])], RDD[(K,Vector[V])], Broadcast[Set[K]]) = {
+      if (heavyKeys.value.nonEmpty){
+        val lresult = light.nestGroup
+        val hresult = heavy.mapPartitions(it => groupBy(it, heavyKeys))
+        (lresult, hresult, heavyKeys)
+      } else {
+        val result = lrdd.union.nestGroup
+        (result, result.empty, heavyKeys)
+      }
+    }
+
   }
 
   implicit class SkewPairFunctions[K: ClassTag, V: ClassTag](lrdd: (RDD[(K,V)], RDD[(K, V)])) extends Serializable {
@@ -117,11 +176,48 @@ object SkewPairRDD {
     //   }
     // }
 
+    def join[S:ClassTag](rrdd: (RDD[(K, S)], RDD[(K, S)])): (RDD[(K, (V, S))], RDD[(K, (V, S))], Broadcast[Set[K]]) = {
+      val (lunion, hk) = lrdd.heavyKeys
+      val hkeys = lunion.sparkContext.broadcast(hk)
+      if (hkeys.value.nonEmpty){
+        (lunion.filter(i => !hkeys.value(i._1)), 
+          lunion.filter(i => hkeys.value(i._1)), hkeys).join(rrdd)
+      }else {
+        val result = lunion.join(rrdd.union)
+        (result, result.empty, hkeys)
+      }
+    }
+
+    def joinDropKey[S:ClassTag](rrdd: (RDD[(K, S)], RDD[(K, S)])): (RDD[(V, S)], RDD[(V, S)]) = {
+      val (lunion, hk) = lrdd.heavyKeys
+      val hkeys = lunion.sparkContext.broadcast(hk)
+      if (hkeys.value.nonEmpty){
+        (lunion.filter(i => !hkeys.value(i._1)), 
+          lunion.filter(i => hkeys.value(i._1)), hkeys).joinDropKey(rrdd)
+      }else {
+        val result = lunion.joinDropKey(rrdd.union)
+        (result, result.empty)
+      }
+    }
+
+    def joinDomain(dom: (RDD[K], RDD[K])): (RDD[(K, V)], RDD[(K, V)], Broadcast[Set[K]]) = {
+      val (lunion, hk) = lrdd.heavyKeys
+      val hkeys = lunion.sparkContext.broadcast(hk)
+      if (hkeys.value.nonEmpty){
+        (lunion.filter(i => !hkeys.value(i._1)), 
+          lunion.filter(i => hkeys.value(i._1)), hkeys).joinDomain(dom)
+      }else{
+        val result = light.joinDomain(dom.union)
+        (result, result.empty, hkeys)
+      }
+    }
+
     def cogroupDropKey[S:ClassTag](rrdd:(RDD[(K,S)], RDD[(K,S)])): (RDD[(V, Vector[S])], RDD[(V, Vector[S])]) = {
       val (lunion, hk) = lrdd.heavyKeys
       val hkeys = lunion.sparkContext.broadcast(hk)
       if (hkeys.value.nonEmpty){
-        (lunion.filter(i => !hkeys.value(i._1)), lunion.filter(i => hkeys.value(i._1)), hkeys).cogroupDropKey(rrdd)
+        (lunion.filter(i => !hkeys.value(i._1)), 
+          lunion.filter(i => hkeys.value(i._1)), hkeys).cogroupDropKey(rrdd)
       }else {
         val result = lunion.cogroupDropKey(rrdd.union)
         (result, result.empty)
@@ -133,11 +229,28 @@ object SkewPairRDD {
         val (lunion, hk) = lrdd.heavyKeys
         val hkeys = lunion.sparkContext.broadcast(hk)
         if (hkeys.value.nonEmpty){
-          (lunion.filter(i => !hkeys.value(i._1)), lunion.filter(i => hkeys.value(i._1)), hkeys).cogroupDomain(dom)
+          (lunion.filter(i => !hkeys.value(i._1)), 
+            lunion.filter(i => hkeys.value(i._1)), hkeys).cogroupDomain(dom)
         }else {
           val result = lunion.cogroupDomain(dom.union)
           (result, result.empty, hkeys) 
         }
+    }
+
+    def nestReduce(f: (V,V) => V): (RDD[(K,V)], RDD[(K,V)]) = {
+      (lrdd.union.nestReduce(f), light.empty)
+    }
+
+    def nestGroup: (RDD[(K,Vector[V])], RDD[(K,Vector[V])], Broadcast[Set[K]]) = {
+      val (lunion, hk) = lrdd.heavyKeys
+      val hkeys = lunion.sparkContext.broadcast(hk)
+      if (hkeys.value.nonEmpty){
+        (lunion.filter(i => !hkeys.value(i._1)), 
+          lunion.filter(i => hkeys.value(i._1)), hkeys).nestGroup
+      }else{
+        val result = lrdd.union.nestGroup
+        (result, result.empty, hkeys)
+      }
     }
 
   }

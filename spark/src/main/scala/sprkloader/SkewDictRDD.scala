@@ -20,6 +20,8 @@ object SkewDictRDD {
 
     def print: Unit = (light, heavy).print
     def evaluate: Unit = (light, heavy).evaluate
+    def union: RDD[(K, Vector[V])] = (light, heavy).union
+    def cache: Unit = (light, heavy).cache
 
     def createDomain[C: ClassTag](f: V => C): (RDD[C], RDD[C]) = {
       (light.createDomain(f), heavy.createDomain(f))
@@ -28,6 +30,44 @@ object SkewDictRDD {
     def flatMap[S:ClassTag](f: ((K, Vector[V])) => Vector[S]): (RDD[S], RDD[S]) = {
       (light.flatMap(f), heavy.flatMap(f))
     }
+
+    def lookupIteratorDomain(rrdd: (RDD[K], RDD[K])): 
+      (RDD[(K,V)], RDD[(K,V)], Broadcast[Set[K]]) = {
+        val runion = rrdd.union
+        if (heavyKeys.value.nonEmpty){
+          val rlight = runion.filter(i => !heavyKeys.value(i))
+          val lresult = light.lookupIteratorDomain(rlight)
+
+          val rheavy = runion.filter(i => !heavyKeys.value(i)).collect.toSet
+          val heavyRight = heavy.sparkContext.broadcast(rheavy)
+          val hresult = heavy.mapPartitions(it =>
+            it.flatMap{ case (k,v) => 
+              if (heavyRight.value(k)) v.map( v1 => (k,v1))
+              else Vector()
+            }, true)
+          (lresult, hresult, heavyKeys)
+        }else{
+          val result = lrdd.union.lookupIteratorDomain(runion)
+          (result, result.sparkContext.emptyRDD[(K,V)], heavyKeys)
+        }
+      }
+
+    def cogroupDomain(dom: (RDD[K], RDD[K])): 
+      (RDD[(K, Vector[V])], RDD[(K, Vector[V])], Broadcast[Set[K]]) = {
+        val domain = dom.union
+        if (heavyKeys.value.nonEmpty){
+          val ldomain = domain.filter(i => !heavyKeys.value(i))
+          val lresult = light.cogroupDomain(ldomain)
+
+          val hdomain = domain.filter(i => heavyKeys.value(i)).collect.toSet
+          val heavyDomain = heavy.sparkContext.broadcast(hdomain)
+          val hresult = heavy.filter{ case (k,v) => heavyDomain.value(k)}
+          (lresult, hresult, heavyKeys)
+        }else{
+          val result = light.cogroupDomain(domain)
+          (result, result.empty, heavyKeys)
+        }
+      }
 
     // should only be used in unshredding right now...
     def rightCoGroupDropKey[S:ClassTag](rrdd:(RDD[(K,S)], RDD[(K,S)])): (RDD[(S, Vector[V])], RDD[(S, Vector[V])]) = {
@@ -68,11 +108,38 @@ object SkewDictRDD {
       (light.createDomain(f), heavy.createDomain(f))
     }
 
+    def lookupIteratorDomain(rrdd: (RDD[K], RDD[K])): 
+      (RDD[(K,V)], RDD[(K,V)], Broadcast[Set[K]]) = {
+        val (lunion, hk) = lrdd.heavyKeys
+        val hkeys = lunion.sparkContext.broadcast(hk)
+        if (hkeys.value.nonEmpty){
+          (lunion.filter(i => !hkeys.value(i._1)), 
+            lunion.filter(i => hkeys.value(i._1)), hkeys).lookupIteratorDomain(rrdd)
+        }else{
+          val result = lunion.lookupIteratorDomain(rrdd.union)
+          (result, result.sparkContext.emptyRDD[(K,V)], hkeys)
+        }
+      }
+
+    def cogroupDomain(dom: (RDD[K], RDD[K])): 
+      (RDD[(K, Vector[V])], RDD[(K, Vector[V])], Broadcast[Set[K]]) = {
+        val (lunion, hk) = lrdd.heavyKeys
+        val hkeys = lunion.sparkContext.broadcast(hk)
+        if (hkeys.value.nonEmpty){
+          (lunion.filter(i => !hkeys.value(i._1)), 
+            lunion.filter(i => hkeys.value(i._1)), hkeys).cogroupDomain(dom)
+        }else{
+          val result = lunion.cogroupDomain(dom.union)
+          (result, result.empty, hkeys)
+        }
+      }
+
     def rightCoGroupDropKey[S:ClassTag](rrdd:(RDD[(K,S)], RDD[(K,S)])): (RDD[(S, Vector[V])], RDD[(S, Vector[V])]) = {
       val (lunion, hk) = heavyKeys
       val hkeys = lunion.sparkContext.broadcast(hk) 
       if (hkeys.value.nonEmpty){
-        (lunion.filter(i => !hkeys.value(i._1)), lunion.filter(i => hkeys.value(i._1)), hkeys).rightCoGroupDropKey(rrdd)
+        (lunion.filter(i => !hkeys.value(i._1)), 
+          lunion.filter(i => hkeys.value(i._1)), hkeys).rightCoGroupDropKey(rrdd)
       }else{
         val result = lunion.rightCoGroupDropKey(rrdd.union)
         (result, result.empty)

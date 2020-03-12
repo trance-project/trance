@@ -24,6 +24,10 @@ object SkewTopRDD{
     def map[S:ClassTag](f: K => S): (RDD[S], RDD[S]) = 
       (light.map(k => f(k)), heavy.map(k => f(k)))
 
+    def mapPartitions[S:ClassTag](f: K => S, preserve: Boolean = false): (RDD[S], RDD[S]) = 
+      (light.mapPartitions(it => it.map(k => f(k)), preserve), 
+       heavy.mapPartitions(it => it.map(k => f(k)), preserve))
+
     def filter(p: K => Boolean): (RDD[K], RDD[K]) = 
       (light.filter(k => p(k)), heavy.filter(k => p(k)))
 
@@ -33,6 +37,11 @@ object SkewTopRDD{
 
     def createDomain[L: ClassTag](f: K => L): (RDD[L], RDD[L]) = 
       (light.createDomain(f), heavy.createDomain(f))
+
+    def cache: Unit = {
+      light.cache
+      heavy.cache
+    }
 
     def evaluate: Unit = {
       light.evaluate

@@ -33,7 +33,8 @@ object App {
 
     // Run shred with domains when a query is used as input for another
     // the true adds unshredding
-    // Utils.runSparkInputDomains(TPCHQuery1Full, TPCHQuery4FullAgg)
+    Utils.runSparkInputDomains(TPCHQuery1Full, TPCHQuery4FullAgg, false, true)
+    Utils.runSparkInputDomains(TPCHQuery1Full, TPCHQuery4FullAgg, false, false)
   }
 
   /**
