@@ -164,17 +164,17 @@ object SkewPairRDD {
         Util.countDistinct(it).filter(_._2 > threshold).iterator,true).keys.collect.toSet)
     }
     
-    // def heavyKeys: (RDD[(K,V)], Set[K]) = {
-    //   val lunion = lrdd.union
-    //   val samples = lunion.sample(false, .05)
-    //   val thresh = (samples.countApprox(1).getFinalValue().low/partitions)*0.05
-    //   if (thresh < 1) (lunion, Set.empty[K])
-    //   else {
-    //     (lunion, samples.mapPartitionsWithIndex((index, it) => {
-    //       Util.countDistinct(it).filter(_._2 > thresh).iterator
-    //     }).keys.collect.toSet)
-    //   }
-    // }
+    /**def heavyKeys: (RDD[(K,V)], Set[K]) = {
+      val lunion = lrdd.union
+      val samples = lunion.sample(false, .05)
+      val thresh = (samples.countApprox(1).getFinalValue().low/partitions)*0.05
+      if (thresh < 1) (lunion, Set.empty[K])
+      else {
+        (lunion, samples.mapPartitionsWithIndex((index, it) => {
+          Util.countDistinct(it).filter(_._2 > thresh).iterator
+        }).keys.collect.toSet)
+      }
+    }**/
 
     def join[S:ClassTag](rrdd: (RDD[(K, S)], RDD[(K, S)])): (RDD[(K, (V, S))], RDD[(K, (V, S))], Broadcast[Set[K]]) = {
       val (lunion, hk) = lrdd.heavyKeys

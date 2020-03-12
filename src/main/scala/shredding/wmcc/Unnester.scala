@@ -309,14 +309,12 @@ object Unnester {
   def getNest(e: CExpr): (Option[CExpr], Variable) = e match {
     case Bind(nval, nv @ Variable(_,_), e1) => (Some(e), nv)
     case Nest(_,_,_,_,v2 @ Variable(_,_),_,_) => (Some(e), v2)
-    case Reduce(e1, v1, e2, p2) => 
-      val v3 = Variable.fresh(e.tp.asInstanceOf[BagCType].tp)
-      (Some(e), v3)
     case Reduce(lu @ Lookup(e1,e2,v1,p1, v2 @ Variable(_,_),p2,_),v3,p3,p4) => 
       val v3 = Variable.fresh(e.tp.asInstanceOf[BagCType].tp)
       (Some(e), v3)
-      //val v3 = Variable.fresh(p3.tp)
-      //(Some(Lookup(e1, e2, v1, p1, v2, p2, p3)), v3)
+    case Reduce(e1, v1, e2, p2) => 
+      val v3 = Variable.fresh(e.tp.asInstanceOf[BagCType].tp)
+      (Some(e), v3)
     case Lookup(_,_,_,_, v2 @ Variable(n,tp),_,_) => (Some(e), Variable(n, BagCType(tp)))
     case _ => sys.error(s"not supported $e")
   }
