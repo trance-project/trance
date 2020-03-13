@@ -53,9 +53,13 @@ trait Printer {
     case Sum(e1, fs) =>
       s"Sum(${quote(e1)}, (${fs.mkString(", ")}))"
     case GroupByKey(e, ks, vs) =>
-      s"(${quote(e)}).groupBy((${ks.mkString(", ")}), (${vs.mkString(", ")}))"
+      s"""|GroupByKey([${ks.mkString(", ")}], [${vs.mkString(", ")}],
+          |${ind(quote(e))}
+          |)""".stripMargin
     case SumByKey(e, ks, vs) =>
-      s"(${quote(e)}).reduceBy((${ks.mkString(", ")}), (${vs.mkString(", ")}))"
+      s"""|ReduceByKey([${ks.mkString(", ")}], [${vs.mkString(", ")}],
+          |${ind(quote(e))}
+          |)""".stripMargin
 
     // Label extensions
     case x: ExtractLabel =>
