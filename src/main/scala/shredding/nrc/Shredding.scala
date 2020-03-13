@@ -81,6 +81,15 @@ trait Shredding extends BaseShredding with Extensions {
       val lbl = NewLabel(labelParameters(flat))
 //      val tupleDict = TupleDictLet(xDict, dict1.tupleDict, dict2.tupleDict)
       val tupleDict = dict2.tupleDict
+
+println("------")
+println("FOR: " + quote(e))
+println("xDict: " + xDict.name)
+println("FLAT: " + quote(flat))
+println("DICT: " + quote(tupleDict))
+println("NEW LABEL: " + quote(lbl))
+println("------")
+
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), tupleDict))
 
     case Union(e1, e2) =>
@@ -169,7 +178,7 @@ trait Shredding extends BaseShredding with Extensions {
     case SumByKey(e1, ks, vs) =>
       val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
       val flat = SumByKey(dict1.lookup(lbl1), ks, vs)
-      val lbl = NewLabel(labelParameters(dict1.tupleDict))
+      val lbl = NewLabel(labelParameters(flat))
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict1.tupleDict))
 
     case _ => sys.error("Cannot shred expr " + e)
