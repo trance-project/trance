@@ -3,7 +3,7 @@ package shredding.nrc
 import shredding.core._
 
 trait Factory {
-  this: NRC with Label with Dictionary with Implicits =>
+  this: MaterializeNRC with Implicits =>
 
   object Const {
     def apply(v: Any, tp: PrimitiveType): PrimitiveExpr = tp match {
@@ -38,6 +38,12 @@ trait Factory {
   }
 
   object Project {
+    def apply(t: AbstractTuple, field: String): Expr = t match {
+      case e: TupleExpr => apply(e, field)
+      case e: TupleDictExpr => apply(e, field)
+      case _ => sys.error("Cannot create Project for tuple " + t)
+    }
+
     def apply(t: TupleExpr, field: String): TupleAttributeExpr = t match {
       case Tuple(fs) =>
         fs(field)
@@ -45,12 +51,12 @@ trait Factory {
         Let(x, e1, e2(field)).asInstanceOf[TupleAttributeExpr]
       case TupleIfThenElse(c, e1, e2) =>
         IfThenElse(c, e1(field), e2(field)).asInstanceOf[TupleAttributeExpr]
-      case v: TupleVarRef => t.tp(field) match {
+      case v: TupleVarRef => v.tp(field) match {
         case _: NumericType => NumericProject(v, field)
         case _: PrimitiveType => PrimitiveProject(v, field)
         case _: BagType => BagProject(v, field)
         case _: LabelType => LabelProject(v, field)
-        case t => sys.error("Cannot create Project for type " + t)
+        case tp => sys.error("Cannot create Project for tuple type " + tp)
       }
     }
 
@@ -58,14 +64,15 @@ trait Factory {
       case TupleDict(fs) =>
         fs(field)
       case TupleDictLet(x, e1, e2) =>
-        DictLet(x, e1, e2(field)).asInstanceOf[TupleDictAttributeExpr]
+        DictLet(x, e1, e2(field).asInstanceOf[DictExpr]).asInstanceOf[TupleDictAttributeExpr]
       case TupleDictIfThenElse(c, e1, e2) =>
         DictIfThenElse(c, e1(field), e2(field)).asInstanceOf[TupleDictAttributeExpr]
       case TupleDictUnion(d1, d2) =>
         DictUnion(d1(field), d2(field)).asInstanceOf[TupleDictAttributeExpr]
-      case _ => t.tp(field) match {
+      case v: TupleDictVarRef => v.tp(field) match {
         case EmptyDictType => EmptyDict
-        case _: BagDictType => BagDictProject(t, field)
+        case _: BagDictType => BagDictProject(v, field)
+        case tp => sys.error("Cannot create Project for dictionary type " + tp)
       }
     }
   }

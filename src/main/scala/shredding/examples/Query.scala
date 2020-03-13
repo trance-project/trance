@@ -6,9 +6,8 @@ import shredding.wmcc._
 
 trait Query extends Materializer
   with MaterializeNRC
-  with Shredding 
   with Printer
-  with Optimizer 
+  with Shredding
   with NRCTranslator {
 
   val runner = new PipelineRunner{}

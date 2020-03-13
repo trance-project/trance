@@ -1,9 +1,9 @@
 package shredding.nrc
 
-import shredding.core.{OpDivide, OpEq, OpGe, OpGt, OpMinus, OpMod, OpMultiply, OpNe, OpPlus, Type, VarDef}
+import shredding.core.{OpDivide, OpEq, OpGe, OpGt, OpMinus, OpMod, OpMultiply, OpNe, OpPlus}
 
 trait Implicits {
-  this: ShredNRC with Extensions =>
+  this: MaterializeNRC with Factory with Extensions =>
 
   implicit class ExprOps(e: Expr) {
     def asPrimitive: PrimitiveExpr = e.asInstanceOf[PrimitiveExpr]

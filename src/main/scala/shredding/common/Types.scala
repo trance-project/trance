@@ -9,17 +9,12 @@ sealed trait Type
 trait TupleAttributeType extends Type
 
 trait PrimitiveType extends TupleAttributeType
-
-trait NumericType extends PrimitiveType
-
 case object BoolType extends PrimitiveType
-
 case object StringType extends PrimitiveType
 
+trait NumericType extends PrimitiveType
 case object IntType extends NumericType
-
 case object LongType extends NumericType
-
 case object DoubleType extends NumericType
 
 object NumericType {
@@ -48,9 +43,10 @@ object TupleType {
 final case class LabelType(attrTps: Map[String, Type]) extends TupleAttributeType {
   def apply(n: String): Type = attrTps(n)
 
+  // TODO: Remove this method
   override def equals(that: Any): Boolean = that match {
     case that: LabelType => this.attrTps == that.attrTps
-    case that:RecordCType => this.attrTps == that.attrTps
+    case that: RecordCType => this.attrTps == that.attrTps
     case _ => false
   }
 }

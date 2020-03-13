@@ -6,7 +6,7 @@ import shredding.core._
   * Print of NRC expressions
   */
 trait Printer {
-  this: MaterializeNRC with BaseShredding =>
+  this: MaterializeNRC =>
 
   import shredding.utils.Utils.ind
 

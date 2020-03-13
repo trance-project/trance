@@ -2,7 +2,7 @@ package shredding.nrc
 
 import shredding.core.BagType
 
-trait MaterializeNRC extends ShredNRC {
+trait MaterializeNRC extends ShredNRC with Optimizer {
 
   val KEY_ATTR_NAME: String = "_KEY"
 

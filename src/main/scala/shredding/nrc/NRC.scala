@@ -31,7 +31,9 @@ trait BaseExpr {
     def tp: BagType
   }
 
-  trait TupleExpr extends Expr {
+  trait AbstractTuple
+
+  trait TupleExpr extends Expr with AbstractTuple {
     def tp: TupleType
   }
 
@@ -79,6 +81,14 @@ trait NRC extends BaseExpr {
   }
 
   trait Project {
+    def tuple: VarRef with Expr
+
+    def field: String
+
+    def tp: Type
+  }
+
+  trait TupleProject extends Project {
     def tuple: TupleVarRef
 
     def field: String
@@ -86,15 +96,15 @@ trait NRC extends BaseExpr {
     def tp: TupleAttributeType = tuple.tp(field)
   }
 
-  final case class NumericProject(tuple: TupleVarRef, field: String) extends NumericExpr with Project {
+  final case class NumericProject(tuple: TupleVarRef, field: String) extends NumericExpr with TupleProject {
     override def tp: NumericType = super.tp.asInstanceOf[NumericType]
   }
 
-  final case class PrimitiveProject(tuple: TupleVarRef, field: String) extends PrimitiveExpr with Project {
+  final case class PrimitiveProject(tuple: TupleVarRef, field: String) extends PrimitiveExpr with TupleProject {
     override def tp: PrimitiveType = super.tp.asInstanceOf[PrimitiveType]
   }
 
-  final case class BagProject(tuple: TupleVarRef, field: String) extends BagExpr with Project {
+  final case class BagProject(tuple: TupleVarRef, field: String) extends BagExpr with TupleProject {
     override def tp: BagType = super.tp.asInstanceOf[BagType]
   }
 

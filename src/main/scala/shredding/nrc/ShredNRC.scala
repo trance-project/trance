@@ -5,7 +5,7 @@ import shredding.core._
 /**
   * Shredding NRC extension
   */
-trait ShredNRC extends NRC with BaseShredding with Label with Dictionary with Factory with Implicits {
+trait ShredNRC extends NRC with BaseShredding with Label with Dictionary {
 
   /**
     * Shredded expression E is a pair of E^flat and E^dict

@@ -13,7 +13,7 @@ import shredding.utils.Utils.Symbol
   *         let X = e1 in e2 => e2 if not using X
   *
   */
-trait Optimizer extends Extensions {
+trait Optimizer extends Extensions with Implicits with Factory {
   this: MaterializeNRC =>
 
   def optimize(p: ShredProgram): ShredProgram =

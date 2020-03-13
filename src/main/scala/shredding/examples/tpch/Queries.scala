@@ -1,10 +1,11 @@
 package shredding.examples.tpch
 
 import shredding.core._
-import shredding.nrc.ShredNRC
+import shredding.nrc.MaterializeNRC
 
-object TPCHQueries { 
-  val nrc = new ShredNRC{}
+object TPCHQueries {
+
+  val nrc = new MaterializeNRC{}
   import nrc._
   
   /**

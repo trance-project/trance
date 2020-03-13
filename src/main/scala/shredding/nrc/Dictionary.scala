@@ -6,7 +6,7 @@ import shredding.core._
   * Dictionary extensions
   */
 trait Dictionary {
-  this: ShredNRC =>
+  this: NRC =>
 
   sealed trait DictExpr extends Expr {
     def tp: DictType
@@ -24,7 +24,7 @@ trait Dictionary {
     def tp: BagDictType
   }
 
-  trait TupleDictExpr extends DictExpr {
+  trait TupleDictExpr extends DictExpr with AbstractTuple {
     def tp: TupleDictType
   }
 
@@ -44,8 +44,16 @@ trait Dictionary {
     val tp: TupleDictType = TupleDictType(fields.map(f => f._1 -> f._2.tp))
   }
 
-  final case class BagDictProject(dict: TupleDictExpr, field: String) extends BagDictExpr {
-    val tp: BagDictType = dict.tp(field).asInstanceOf[BagDictType]
+  trait DictProject extends Project { this: Expr =>
+    def tuple: TupleDictVarRef
+
+    def field: String
+
+    def tp: TupleDictAttributeType = tuple.tp(field)
+  }
+
+  final case class BagDictProject(tuple: TupleDictVarRef, field: String) extends BagDictExpr with DictProject {
+    override def tp: BagDictType = super.tp.asInstanceOf[BagDictType]
   }
 
   final case class TupleDictProject(dict: BagDictExpr) extends TupleDictExpr {

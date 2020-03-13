@@ -7,7 +7,7 @@ import shredding.core._
   * Materialization of nested output queries
   */
 trait Materializer {
-  this: MaterializeNRC with Shredding with Optimizer with Printer with Extensions =>
+  this: MaterializeNRC with Optimizer with Printer =>
 
   case class MaterializedProgram(program: Program, dictMapper: DictionaryMapper) {
 

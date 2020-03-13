@@ -38,7 +38,7 @@ trait BaseShredding {
   * Shredding transformation
   */
 trait Shredding extends BaseShredding with Extensions {
-  this: ShredNRC with MaterializeNRC =>
+  this: MaterializeNRC with Printer =>
 
   def shred(e: Expr): ShredExpr = shred(e, Map.empty)
 
@@ -79,15 +79,16 @@ trait Shredding extends BaseShredding with Extensions {
         BagLet(xDict, dict1.tupleDict,
           ForeachUnion(xFlat, resolved1, resolved2))
       val lbl = NewLabel(labelParameters(flat))
-      val tupleDict = TupleDictLet(xDict, dict1.tupleDict, dict2.tupleDict)
+//      val tupleDict = TupleDictLet(xDict, dict1.tupleDict, dict2.tupleDict)
+      val tupleDict = dict2.tupleDict
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), tupleDict))
 
     case Union(e1, e2) =>
       val ShredExpr(l1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
       val ShredExpr(l2: LabelExpr, dict2: BagDictExpr) = shred(e2, ctx)
       val flat = ShredUnion(dict1.lookup(l1), dict2.lookup(l2))
-      val lbl = NewLabel(labelParameters(flat))
       val dictUnion = TupleDictUnion(dict1.tupleDict, dict2.tupleDict)
+      val lbl = NewLabel(labelParameters(flat))
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dictUnion))
 
     case Singleton(e1) =>
@@ -168,7 +169,7 @@ trait Shredding extends BaseShredding with Extensions {
     case SumByKey(e1, ks, vs) =>
       val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
       val flat = SumByKey(dict1.lookup(lbl1), ks, vs)
-      val lbl = NewLabel(labelParameters(flat))
+      val lbl = NewLabel(labelParameters(dict1.tupleDict))
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict1.tupleDict))
 
     case _ => sys.error("Cannot shred expr " + e)

@@ -1,7 +1,7 @@
 package shredding.examples.genomic
 
 import shredding.core._
-import shredding.nrc.ShredNRC
+import shredding.nrc.MaterializeNRC
 
 case class Clinical(sample: String, iscase: String)
 case class Genotype(sample: String, call: Int)
@@ -101,7 +101,7 @@ object GenomicRelations {
 
 object GenomicTests {
 
-  val nrc = new ShredNRC{}
+  val nrc = new MaterializeNRC{}
   import nrc._
 
   val relI = BagVarRef(VarDef("cases", BagType(GenomicRelations.casetype)))

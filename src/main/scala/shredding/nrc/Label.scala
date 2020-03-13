@@ -6,7 +6,7 @@ import shredding.core._
   * Label extensions
   */
 trait Label {
-  this: ShredNRC =>
+  this: NRC =>
 
   sealed trait LabelExpr extends TupleAttributeExpr {
     def tp: LabelType
@@ -16,7 +16,7 @@ trait Label {
     override def tp: LabelType = super.tp.asInstanceOf[LabelType]
   }
 
-  final case class LabelProject(tuple: TupleVarRef, field: String) extends LabelExpr with Project {
+  final case class LabelProject(tuple: TupleVarRef, field: String) extends LabelExpr with TupleProject {
     override def tp: LabelType = super.tp.asInstanceOf[LabelType]
   }
 

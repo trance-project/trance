@@ -1,7 +1,7 @@
 package shredding.examples.genomic
 
 import shredding.core._
-import shredding.nrc.ShredNRC
+import shredding.nrc.MaterializeNRC
 
 case class Gene(name: String, contig: String, start: Int, end: Int)
 case class Pathway(name: String, description: String, genes: List[Gene])
@@ -19,7 +19,7 @@ object PathwayRelations{
 
 object PathwayTests {
  
- val nrc = new ShredNRC{}
+ val nrc = new MaterializeNRC{}
  import nrc._
 
  val relP = BagVarRef(VarDef("pathways", BagType(PathwayRelations.pathtype)))

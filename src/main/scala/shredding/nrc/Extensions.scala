@@ -6,7 +6,7 @@ import shredding.core._
   * Extension methods for NRC expressions
   */
 trait Extensions {
-  this: MaterializeNRC =>
+  this: MaterializeNRC with Factory with Implicits =>
 
   def collect[A](e: Expr, f: PartialFunction[Expr, List[A]]): List[A] =
     f.applyOrElse(e, (ex: Expr) => ex match {
@@ -58,8 +58,6 @@ trait Extensions {
         collect(b, f) ++ collect(d, f)
       case TupleDict(fs) =>
         fs.flatMap(x => collect(x._2, f)).toList
-      case BagDictProject(v, _) =>
-        collect(v, f)
       case TupleDictProject(d) =>
         collect(d, f)
       case d: DictUnion =>
@@ -87,7 +85,7 @@ trait Extensions {
   def replace(e: Expr, f: PartialFunction[Expr, Expr]): Expr =
     f.applyOrElse(e, (ex: Expr) => ex match {
       case p: Project =>
-        replace(p.tuple, f).asInstanceOf[TupleExpr].apply(p.field)
+        Project(replace(p.tuple, f).asInstanceOf[AbstractTuple], p.field)
       case ForeachUnion(x, e1, e2) =>
         val r1 = replace(e1, f).asInstanceOf[BagExpr]
         val xd = VarDef(x.name, r1.tp.tp)
@@ -161,8 +159,6 @@ trait Extensions {
         BagDict(tp, rb, rd)
       case TupleDict(fs) =>
         TupleDict(fs.map(x => x._1 -> replace(x._2, f).asInstanceOf[TupleDictAttributeExpr]))
-      case BagDictProject(v, n) =>
-        replace(v, f).asInstanceOf[TupleDictExpr].apply(n)
       case TupleDictProject(d) =>
         replace(d, f).asInstanceOf[BagDictExpr].tupleDict
       case d: DictUnion =>
