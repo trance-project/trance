@@ -100,7 +100,7 @@ trait PipelineRunner extends MaterializeNRC
     val rflat = NewLabel(Set.empty)
     val bagdict = 
     BagDict(
-      rflat,
+      rflat.tp,
       ForeachUnion(r1, BagVarRef(r), 
         Singleton(Tuple("h" -> tr1("h"), "j" -> 
           NewLabel(Set(ProjectLabelParameter(PrimitiveProject(tr1, "index"))))))),
@@ -110,7 +110,7 @@ trait PipelineRunner extends MaterializeNRC
         // we do not have to do this
         // this extra iteration is what linearization (ie. materialization helps us avoid)
         BagDict(
-          rflat, // just another dummy label (i think ???)
+          rflat.tp, // just another dummy label (i think ???)
           ForeachUnion(r1, BagVarRef(r),
             ForeachUnion(r2, tr1("j").asInstanceOf[BagExpr],
               Singleton(Tuple("m" -> tr2("m"), "n" -> tr2("n"), "k" -> 

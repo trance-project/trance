@@ -63,12 +63,14 @@ trait Printer {
       s"""|Extract ${quote(x.lbl)} as ($tuple) In
           |${quote(x.e)}""".stripMargin
     case l: NewLabel =>
-      s"NewLabel(${(l.id :: l.params.map(_.name).toList).mkString(", ")})"
+      val ps = l.params.map(p => p.name + " := " + quote(p.e)).toList
+      s"NewLabel(${(l.id :: ps).mkString(", ")})"
 
     // Dictionary extensions
     case EmptyDict => "Nil"
-    case BagDict(lbl, flat, dict) =>
-      s"""|(${quote(lbl)} ->
+    case BagDict(tp, flat, dict) =>
+      val params = tp.attrTps.map(x => x._1 + ": " + quote(x._2)).mkString(", ")
+      s"""|(($params) ->
           |  flat :=
           |${ind(quote(flat), 2)},
           |  tupleDict :=
@@ -110,4 +112,32 @@ trait Printer {
 
   def quote(p: ShredProgram): String = p.statements.map(quote).mkString("\n")
 
+  def quote(tp: Type): String = tp match {
+    case BoolType =>
+      "BoolType"
+    case StringType =>
+      "StringType"
+    case IntType =>
+      "IntType"
+    case LongType =>
+      "LongType"
+    case DoubleType =>
+      "DoubleType"
+    case t: BagType =>
+      s"BagType(${quote(t)})"
+    case t: TupleType =>
+      s"TupleType(${quote(t.attrTps)})"
+    case t: LabelType =>
+      s"LabelType(${quote(t.attrTps)})"
+    case EmptyDictType =>
+      "EmptyDictType"
+    case t: BagDictType =>
+      s"BagDictType(${quote(t.lblTp)}, flatTp := ${quote(t.flatTp)}, dictTp := ${quote(t.dictTp)})"
+    case t: TupleDictType =>
+      s"TupleDictType(${quote(t.attrTps)})"
+    case _ => sys.error("Cannot print unknown type " + tp)
+  }
+
+  protected def quote(m: Map[String, Type]): String =
+    m.map { case (k, v) => k + " := " + quote(v) }.mkString(", ")
 }

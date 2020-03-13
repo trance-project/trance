@@ -65,7 +65,7 @@ trait TupleDictAttributeType extends DictType
 
 case object EmptyDictType extends TupleDictAttributeType
 
-final case class BagDictType(flatTp: BagType, dictTp: TupleDictType) extends TupleDictAttributeType
+final case class BagDictType(lblTp: LabelType, flatTp: BagType, dictTp: TupleDictType) extends TupleDictAttributeType
 
 final case class TupleDictType(attrTps: Map[String, TupleDictAttributeType]) extends DictType {
   def apply(n: String): TupleDictAttributeType = attrTps(n)

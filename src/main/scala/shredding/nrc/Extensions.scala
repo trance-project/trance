@@ -10,43 +10,70 @@ trait Extensions {
 
   def collect[A](e: Expr, f: PartialFunction[Expr, List[A]]): List[A] =
     f.applyOrElse(e, (ex: Expr) => ex match {
-      case p: Project => collect(p.tuple, f)
-      case ForeachUnion(_, e1, e2) => collect(e1, f) ++ collect(e2, f)
-      case Union(e1, e2) => collect(e1, f) ++ collect(e2, f)
-      case Singleton(e1) => collect(e1, f)
-      case DeDup(e1) => collect(e1, f)
-      case Tuple(fs) => fs.flatMap(x => collect(x._2, f)).toList
-      case l: Let => collect(l.e1, f) ++ collect(l.e2, f)
-      case c: Cmp => collect(c.e1, f) ++ collect(c.e2, f)
-      case And(e1, e2) => collect(e1, f) ++ collect(e2, f)
-      case Or(e1, e2) => collect(e1, f) ++ collect(e2, f)
-      case Not(e1) => collect(e1, f)
+      case p: Project =>
+        collect(p.tuple, f)
+      case ForeachUnion(_, e1, e2) =>
+        collect(e1, f) ++ collect(e2, f)
+      case Union(e1, e2) =>
+        collect(e1, f) ++ collect(e2, f)
+      case Singleton(e1) =>
+        collect(e1, f)
+      case DeDup(e1) =>
+        collect(e1, f)
+      case Tuple(fs) =>
+        fs.flatMap(x => collect(x._2, f)).toList
+      case l: Let =>
+        collect(l.e1, f) ++ collect(l.e2, f)
+      case c: Cmp =>
+        collect(c.e1, f) ++ collect(c.e2, f)
+      case And(e1, e2) =>
+        collect(e1, f) ++ collect(e2, f)
+      case Or(e1, e2) =>
+        collect(e1, f) ++ collect(e2, f)
+      case Not(e1) =>
+        collect(e1, f)
       case i: IfThenElse =>
         collect(i.cond, f) ++ collect(i.e1, f) ++ i.e2.map(collect(_, f)).getOrElse(Nil)
-      case ArithmeticExpr(_, e1, e2) => collect(e1, f) ++ collect(e2, f)
-      case Count(e1) => collect(e1, f)
-      case Sum(e1, _) => collect(e1, f)
-      case GroupByKey(e, _, _) => collect(e, f)
-      case SumByKey(e, _, _) => collect(e, f)
+      case ArithmeticExpr(_, e1, e2) =>
+        collect(e1, f) ++ collect(e2, f)
+      case Count(e1) =>
+        collect(e1, f)
+      case Sum(e1, _) =>
+        collect(e1, f)
+      case GroupByKey(e, _, _) =>
+        collect(e, f)
+      case SumByKey(e, _, _) =>
+        collect(e, f)
 
       // Label extensions
-      case el: ExtractLabel => collect(el.lbl, f) ++ collect(el.e, f)
-      case l: NewLabel => l.params.toList.flatMap(collect(_, f))
-      case p: LabelParameter => collect(p.e, f)
+      case l: ExtractLabel =>
+        collect(l.lbl, f) ++ collect(l.e, f)
+      case l: NewLabel =>
+        l.params.toList.flatMap(collect(_, f))
+      case p: LabelParameter =>
+        collect(p.e, f)
 
       // Dictionary extensions
-      case BagDict(l, b, d) => collect(l, f) ++ collect(b, f) ++ collect(d, f)
-      case TupleDict(fs) => fs.flatMap(x => collect(x._2, f)).toList
-      case BagDictProject(v, _) => collect(v, f)
-      case TupleDictProject(d) => collect(d, f)
-      case d: DictUnion => collect(d.dict1, f) ++ collect(d.dict2, f)
+      case BagDict(_, b, d) =>
+        collect(b, f) ++ collect(d, f)
+      case TupleDict(fs) =>
+        fs.flatMap(x => collect(x._2, f)).toList
+      case BagDictProject(v, _) =>
+        collect(v, f)
+      case TupleDictProject(d) =>
+        collect(d, f)
+      case d: DictUnion =>
+        collect(d.dict1, f) ++ collect(d.dict2, f)
 
       // Shredding extensions
-      case ShredUnion(e1, e2) => collect(e1, f) ++ collect(e2, f)
-      case Lookup(l, d) => collect(l, f) ++ collect(d, f)
+      case ShredUnion(e1, e2) =>
+        collect(e1, f) ++ collect(e2, f)
+      case Lookup(l, d) =>
+        collect(l, f) ++ collect(d, f)
 
       // Materialization extensions
-      case MatDictLookup(l, b) => collect(l, f) ++ collect(b, f)
+      case MatDictLookup(l, b) =>
+        collect(l, f) ++ collect(b, f)
 
       case _ => List()
     })
@@ -128,11 +155,10 @@ trait Extensions {
         ProjectLabelParameter(replace(p, f).asInstanceOf[Expr with Project])
 
       // Dictionary extensions
-      case BagDict(l, b, d) =>
-        val rl = replace(l, f).asInstanceOf[NewLabel]
+      case BagDict(tp, b, d) =>
         val rb = replace(b, f).asInstanceOf[BagExpr]
         val rd = replace(d, f).asInstanceOf[TupleDictExpr]
-        BagDict(rl, rb, rd)
+        BagDict(tp, rb, rd)
       case TupleDict(fs) =>
         TupleDict(fs.map(x => x._1 -> replace(x._2, f).asInstanceOf[TupleDictAttributeExpr]))
       case BagDictProject(v, n) =>
@@ -170,27 +196,45 @@ trait Extensions {
     Program(p.statements.map(replaceAssignment(_, f)))
 
   // Replace label parameter projections with variable references
-  def replaceLabelParams(e: Expr): Expr = replace(e, {
-    case BagDict(lbl, flat, dict) =>
-      val flat2 = lbl.params.foldRight(flat) {
-        case (p: ProjectLabelParameter, acc) =>
-          substitute(acc, VarDef(p.name, p.tp)).asInstanceOf[BagExpr]
-        case (_, acc) => acc
-      }
-      val dict2 = replaceLabelParams(dict).asInstanceOf[TupleDictExpr]
-      BagDict(lbl, flat2, dict2)
+  def createLambda(lbl: NewLabel, e: BagExpr): BagExpr =
+    lbl.params.foldRight(e) {
+      case (l: ProjectLabelParameter, acc) =>
+        projectionToVar(acc, l).asInstanceOf[BagExpr]
+      case (_, acc) =>
+        acc
+    }
+
+  // Replace projection with a variable reference
+  protected def projectionToVar(e: Expr, l: ProjectLabelParameter): Expr = replace(e, {
+    case p: Project if p.tuple.name == l.e.tuple.name && p.field == l.e.field =>
+      // Sanity check
+      assert(p.tp == l.tp, "[projectionToVar] Types differ: " + p.tp + " and " + l.tp)
+      VarRef(l.name, l.tp)
+    case p: ProjectLabelParameter if p.name == l.name =>
+      // Sanity check
+      assert(p.tp == l.tp, "[projectionToVar] Types differ: " + p.tp + " and " + l.tp)
+      VarRefLabelParameter(VarRef(l.name, l.tp).asInstanceOf[Expr with VarRef])
   })
 
-  // Substitute label projections with their variable counterpart
-  protected def substitute(e: Expr, v: VarDef): Expr = replace(e, {
-    case p: Project if v.name == p.tuple.name + "." + p.field =>
+  // Replace variable references with projections
+  def applyLambda(lbl: NewLabel, e: BagExpr): BagExpr =
+    lbl.params.foldRight(e) {
+      case (l: ProjectLabelParameter, acc) =>
+        varToProjection(acc, l).asInstanceOf[BagExpr]
+      case (_, acc) =>
+        acc
+    }
+
+  // Replace variable reference with a projection
+  protected def varToProjection(e: Expr, l: ProjectLabelParameter): Expr = replace(e, {
+    case v: VarRef if v.name == l.name =>
       // Sanity check
-      assert(v.tp == p.tp, "Types differ: " + v.tp + " and " + p.tp)
-      VarRef(v)
-    case p: ProjectLabelParameter if v.name == p.name =>
+      assert(v.tp == l.tp, "[varToProjection] Types differ: " + v.tp + " and " + l.tp)
+      l.e
+    case p: VarRefLabelParameter if p.name == l.name =>
       // Sanity check
-      assert(v.tp == p.tp, "Types differ: " + v.tp + " and " + p.tp)
-      VarRefLabelParameter(VarRef(v).asInstanceOf[Expr with VarRef])
+      assert(p.tp == l.tp, "[varToProjection] Types differ: " + p.tp + " and " + l.tp)
+      l
   })
 
   def labelParameters(e: Expr): Set[LabelParameter] = 
@@ -209,10 +253,8 @@ trait Extensions {
       filterByScope(p.e, scope).map(_ => p).toList
     case p: ProjectLabelParameter =>
       filterByScope(p.e.tuple, scope).map(_ => p).toList
-    case BagDict(l, f, d) =>
-      val lblVars = inputVars(l, Map.empty[String, VarDef])
-      val lblScope = scope ++ lblVars.map(v => v.name -> v.varDef).toMap
-      labelParameters(f, lblScope) ++ labelParameters(d, scope)
+    case _: DictExpr =>
+      List()
   })
 
   // Input labels and dictionaries are invalid in labels
@@ -230,10 +272,8 @@ trait Extensions {
       inputVars(e1, scope) ++ inputVars(e2, scope + (x.name -> x))
     case l: Let =>
       inputVars(l.e1, scope) ++ inputVars(l.e2, scope + (l.x.name -> l.x))
-    case BagDict(l, f, d) =>
-      val lblVars = inputVars(l, Map.empty[String, VarDef])
-      val lblScope = scope ++ lblVars.map(v => v.name -> v.varDef).toMap
-      inputVars(f, lblScope) ++ inputVars(d, scope)
+    case _: DictExpr =>
+      List()
   })
 
   protected def filterByScope(v: VarRef, scope: Map[String, VarDef]): Option[VarRef] =

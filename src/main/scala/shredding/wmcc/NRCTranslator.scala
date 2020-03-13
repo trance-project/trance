@@ -22,7 +22,7 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
     case BagType(t) => BagCType(translate(t))
     case TupleType(fs) if fs.isEmpty => EmptyCType
     case TupleType(fs) => RecordCType(fs.map(f => f._1 -> translate(f._2)))
-    case BagDictType(f, d) => f match {
+    case BagDictType(_, f, d) => f match {
       case BagType(t @ TupleType(fs)) if fs.keySet == Set("_1", "_2") =>
        BagDictCType(BagCType(TTupleType(List(
         translate(fs.get("_1").get), translate(fs.get("_2").get)))), 
@@ -114,7 +114,7 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
       bindings.foldRight(translate(e.e))((cur, acc) => Bind(cur._1, cur._2, acc))
     case Lookup(lbl, dict) => CLookup(translate(lbl), translate(dict)) 
     case EmptyDict => emptydict
-    case BagDict(lbl, flat, dict) => BagCDict(translate(lbl), translate(flat), translate(dict))
+    case BagDict(ltp, flat, dict) => BagCDict(ltp, translate(flat), translate(dict))
     case BagDictProject(dict, field) => project(translate(dict), field)
     case TupleDict(fs) => TupleCDict(fs.map(f => f._1 -> translate(f._2)))
     case TupleDictProject(dict) => project(translate(dict), "_2")

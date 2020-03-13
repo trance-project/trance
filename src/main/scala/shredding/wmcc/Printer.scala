@@ -47,7 +47,7 @@ object Printer {
     case LinearCSet(exprs) => linset(exprs.map(quote(_)))
     case CLookup(lbl, dict) => lookup(quote(lbl), quote(dict))
     case EmptyCDict => emptydict
-    case BagCDict(lbl, flat, dict) => bagdict(quote(lbl), quote(flat), quote(dict))
+    case BagCDict(lblTp, flat, dict) => bagdict(lblTp, quote(flat), quote(dict))
     case TupleCDict(fs) => tupledict(fs.map(f => f._1 -> quote(f._2)))
     case DictCUnion(e1, e2) => dictunion(quote(e1), quote(e2))
     case Select(x, v, p, e) => quote(p) match {

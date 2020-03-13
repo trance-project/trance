@@ -137,9 +137,9 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
 
     // Dictionary extensions
     case EmptyDict => REmptyDict
-    case BagDict(_, flat, dict) =>
+    case BagDict(lblTp, flat, dict) =>
       val dictFn = new DictFn(ctx, c => evalBag(flat, c))
-      ROutBagDict(dictFn, flat.tp, evalTupleDict(dict, ctx))
+      ROutBagDict(dictFn, lblTp, flat.tp, evalTupleDict(dict, ctx))
     case TupleDict(fs) =>
       RTupleDict(fs.map(f => f._1 -> eval(f._2, ctx).asInstanceOf[RTupleDictAttribute]))
     case BagDictProject(t, f) =>
@@ -152,9 +152,9 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
     // Shredding extensions
     case ShredUnion(e1, e2) =>
       sys.error("Not implemented")
-    case Lookup(l, BagDict(_, f, _)) =>
+    case Lookup(l, BagDict(lblTp, f, _)) =>
       val dictFn = new DictFn(ctx, c => evalBag(f, c))
-      ROutBagDict(dictFn, f.tp, null)(evalLabel(l, ctx))
+      ROutBagDict(dictFn, lblTp, f.tp, null)(evalLabel(l, ctx))
     case Lookup(l, d) =>
       evalBagDict(d, ctx)(evalLabel(l, ctx))
 

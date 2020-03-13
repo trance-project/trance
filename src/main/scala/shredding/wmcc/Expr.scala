@@ -181,11 +181,11 @@ case object EmptyCDict extends CExpr {
   def tp: TDict = EmptyDictCType
 }
 
-case class BagCDict(lbl: CExpr, flat: CExpr, dict: CExpr) extends CExpr {
+case class BagCDict(lblTp: LabelType, flat: CExpr, dict: CExpr) extends CExpr {
   def tp: BagDictCType = 
-    BagDictCType(BagCType(TTupleType(List(lbl.tp, flat.tp))), dict.tp.asInstanceOf[TTupleDict])
+    BagDictCType(BagCType(TTupleType(List(lblTp, flat.tp))), dict.tp.asInstanceOf[TTupleDict])
   def apply(n: String) = n match {
-    case "lbl" => lbl
+//    case "lbl" => lbl
     case "flat" => flat
     //case "_1" => List(lbl, flat)
     case "_2" => dict

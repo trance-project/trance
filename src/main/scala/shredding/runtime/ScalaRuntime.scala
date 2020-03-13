@@ -38,9 +38,11 @@ trait ScalaRuntime {
   }
 
   trait RBagDict extends RTupleDictAttribute {
-    def tp: BagDictType = BagDictType(flatBagTp, dict.tp)
+    def tp: BagDictType = BagDictType(lblTp, flatBagTp, dict.tp)
 
     def apply(l: RLabel): List[Any]
+
+    def lblTp: LabelType
 
     def flatBagTp: BagType
 
@@ -49,6 +51,8 @@ trait ScalaRuntime {
 
   final case class RInBagDict(f: Map[RLabel, List[Any]], flatBagTp: BagType, dict: RTupleDict) extends RBagDict {
     def apply(l: RLabel): List[Any] = f(l)
+
+    val lblTp: LabelType = LabelType("id" -> IntType)
   }
 
   class DictFn(init: Context, val f: Context => List[Any]) {
@@ -57,7 +61,7 @@ trait ScalaRuntime {
     val ctx: Context = Context(init.ctx.toList: _*)
   }
 
-  final case class ROutBagDict(dictFn: DictFn, flatBagTp: BagType, dict: RTupleDict) extends RBagDict {
+  final case class ROutBagDict(dictFn: DictFn, lblTp: LabelType, flatBagTp: BagType, dict: RTupleDict) extends RBagDict {
     def apply(l: RLabel): List[Any] = l match {
       case ROutLabel(vs) =>
         val ctx = dictFn.ctx
@@ -75,9 +79,9 @@ trait ScalaRuntime {
     def union(dict2: RDict): RDict = (dict1, dict2) match {
       case (REmptyDict, REmptyDict) =>
         REmptyDict
-      case (RInBagDict(f1, tp1, d1), RInBagDict(f2, tp2, d2)) =>
-        assert(tp1 == tp2)
-        RInBagDict(f1 ++ f2, tp1, d1.union(d2).asInstanceOf[RTupleDict])
+      case (d1: RInBagDict, d2: RInBagDict) =>
+        assert(d1.lblTp == d2.lblTp && d1.flatBagTp == d2.flatBagTp)
+        RInBagDict(d1.f ++ d2.f, d1.flatBagTp, d1.union(d2).asInstanceOf[RTupleDict])
       case (RTupleDict(fields1), RTupleDict(fields2)) =>
         assert(fields1.keySet == fields2.keySet)
         RTupleDict(fields1.map { case (k1, d1) =>

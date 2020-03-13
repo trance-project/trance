@@ -168,7 +168,7 @@ trait Materializer {
     }
 
     dict match {
-      case BagDict(l, ShredUnion(b1, b2), TupleDictUnion(d1, d2)) if lbl.tp == l.tp =>
+      case BagDict(tp, ShredUnion(b1, b2), TupleDictUnion(d1, d2)) if lbl.tp == tp =>
         val dict1 = BagDict(null, b1, d1)
         val dict2 = BagDict(null, b2, d2)
         materializeDictionary(kvPairs(b1), dict1) append
@@ -230,7 +230,7 @@ trait Materializer {
 
         val newDictAssignment = Assignment("new" + matDictVarRef.name, kvPairsNested)
         val newProgram = childPrograms.reduce(_ ++ _) append newDictAssignment
-        val newDictVarRef = BagDictVarRef(VarDef(newDictAssignment.name, BagDictType(value.tp, null)))
+        val newDictVarRef = BagDictVarRef(VarDef(newDictAssignment.name, BagDictType(lbl.tp, value.tp, null)))
         (newProgram, newDictVarRef.lookup(lbl))
       }
     }

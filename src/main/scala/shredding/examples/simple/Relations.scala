@@ -162,8 +162,20 @@ object NestedRelations{
     val type22a = TupleType("c" -> IntType) 
     val type21a = TupleType("a" -> IntType, "b" -> BagType(type22a))
     
-    val nested2Inputs:Map[Type, String] = Map(type22a -> "InputRB1", type21a -> "InputRB2")
-    val nested2SInputs:Map[Type, String] = Map(type22a -> "InputRB1", TupleType("a" -> IntType, "b" -> IntType) -> "IntputRB1F", BagDictType(BagType(TupleType("c" -> IntType)), TupleDictType(Map[String, TupleDictAttributeType]())) -> "InputRB1D")
+    val nested2Inputs: Map[Type, String] =
+      Map(type22a -> "InputRB1", type21a -> "InputRB2")
+
+    // TODO: check LabelType()
+    val nested2SInputs: Map[Type, String] =
+      Map(
+        type22a -> "InputRB1",
+        TupleType("a" -> IntType, "b" -> IntType) -> "IntputRB1F",
+        BagDictType(
+          LabelType(),
+          BagType(TupleType("c" -> IntType)),
+          TupleDictType(Map[String, TupleDictAttributeType]())
+        ) -> "InputRB1D"
+      )
    
     val format2a = List(RecordValue("a" -> 42, "b" -> List(RecordValue("c" -> 1), RecordValue("c" -> 2), RecordValue("c" -> 4))),
                               RecordValue("a" -> 49, "b" -> List(RecordValue("c" -> 3), RecordValue("c" -> 2))),

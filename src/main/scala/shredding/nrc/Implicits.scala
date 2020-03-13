@@ -3,7 +3,7 @@ package shredding.nrc
 import shredding.core.{OpDivide, OpEq, OpGe, OpGt, OpMinus, OpMod, OpMultiply, OpNe, OpPlus, Type, VarDef}
 
 trait Implicits {
-  this: ShredNRC =>
+  this: ShredNRC with Extensions =>
 
   implicit class ExprOps(e: Expr) {
     def asPrimitive: PrimitiveExpr = e.asInstanceOf[PrimitiveExpr]
@@ -91,7 +91,8 @@ trait Implicits {
           BagLet(x, e1, e2.lookup(lbl))
         case BagDictIfThenElse(c, e1, e2) =>
           BagIfThenElse(c, e1.lookup(lbl), Some(e2.lookup(lbl)))
-        case BagDict(l, flat, _) if l.tp == lbl.tp => flat
+        case BagDict(tp, flat, _) if tp == lbl.tp =>
+          applyLambda(lbl.asInstanceOf[NewLabel], flat)
         case _ => Lookup(lbl, d)
       }
     }

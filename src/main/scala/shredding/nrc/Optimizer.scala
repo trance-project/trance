@@ -58,7 +58,7 @@ trait Optimizer extends Extensions {
 
   def betaReduce(e: Expr): Expr = replace(e, {
     
-    case Lookup(l1, BagDict(l2, flatBag, _)) if l1.tp == l2.tp =>
+    case Lookup(l1, BagDict(ltp, flatBag, _)) if l1.tp == ltp =>
       betaReduce(flatBag)
 
     case Lookup(l1, BagDict(_, flatBag, _)) /* if l1 != l2 */ =>
@@ -69,11 +69,11 @@ trait Optimizer extends Extensions {
     /* TODO: Doesn't work nested lets 
     Doesn't work with bag projection either
     */
-    case Lookup(l1, BagDictLet(x, e1, BagDict(l2, flatBag, _))) if l1.tp == l2.tp =>
+    case Lookup(l1, BagDictLet(x, e1, BagDict(ltp2, flatBag, _))) if l1.tp == ltp2 =>
       betaReduce(Let(x, e1, flatBag))
 
-    case Lookup(l1, BagDictIfThenElse(c, BagDict(l2, f2, _), BagDict(l3, f3, _)))
-        if l1.tp == l2.tp && l1.tp == l3.tp =>
+    case Lookup(l1, BagDictIfThenElse(c, BagDict(ltp2, f2, _), BagDict(ltp3, f3, _)))
+        if l1.tp == ltp2 && l1.tp == ltp3 =>
       betaReduce(BagIfThenElse(c, f2, Some(f3)))
 
   })

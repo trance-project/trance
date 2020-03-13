@@ -36,8 +36,8 @@ trait Dictionary {
     override def tp: TupleDictType = super.tp.asInstanceOf[TupleDictType]
   }
 
-  final case class BagDict(lbl: NewLabel, flat: BagExpr, dict: TupleDictExpr) extends BagDictExpr {
-    val tp: BagDictType = BagDictType(flat.tp, dict.tp)
+  final case class BagDict(lblTp: LabelType, flat: BagExpr, dict: TupleDictExpr) extends BagDictExpr {
+    val tp: BagDictType = BagDictType(lblTp, flat.tp, dict.tp)
   }
 
   final case class TupleDict(fields: Map[String, TupleDictAttributeExpr]) extends TupleDictExpr {

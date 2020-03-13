@@ -71,7 +71,7 @@ trait Label {
   }
 
   final case class ProjectLabelParameter(e: Expr with Project) extends LabelParameter {
-    def name: String = e.tuple.name + "." + e.field
+    def name: String = e.tuple.name + "_" + e.field
   }
 
   object NewLabel {
@@ -98,14 +98,5 @@ trait Label {
     override def toString: String =
       s"Label(${(id :: params.map(_.name).toList).mkString(", ")}"
   }
-
-//  // TODO: Check GroupByLabel
-//  final case class GroupByLabel(bag: BagExpr) extends GroupBy {
-//    val tp: BagType = bag.tp
-//    def v: VarDef = VarDef.fresh(tp.tp)
-//    val xr = TupleVarRef(v)
-//    def grp: Expr = LabelProject(xr, "key")
-//    def value: Expr = Tuple(Map("_2" -> xr("value")))
-//  }
 
 }
