@@ -12,8 +12,6 @@ import shredding.utils.Utils.Symbol
   *   - dead code elimination
   *         let X = e1 in e2 => e2 if not using X
   *
-  *   - beta reduction
-  *         Lookup + BagDict => flatBag
   */
 trait Optimizer extends Extensions {
   this: MaterializeNRC =>
@@ -33,7 +31,7 @@ trait Optimizer extends Extensions {
   def optimize(a: Assignment): Assignment =
     Assignment(a.name, optimize(a.rhs))
 
-  def optimize(e: Expr): Expr = inline(deadCodeElimination(betaReduce(e)))
+  def optimize(e: Expr): Expr = inline(deadCodeElimination(e))
 
   def inline(e: Expr): Expr = replace(e, {
     // let X = e1 in X => e1
@@ -46,36 +44,14 @@ trait Optimizer extends Extensions {
   def deadCodeElimination(e: Expr): Expr = replace(e, {
     // let X = e1 in e2 => e2 if not using X
     case l: Let if {
-      val ivars = inputVars (l.e2).map (v => v.name -> v.tp).toMap
-      !ivars.contains (l.x.name) ||
-        {
-          // Sanity check
-//          assert (ivars (l.x.name) == l.x.tp)
-          false
-        }
+      val im = inputVars(l.e2).map(v => v.name -> v.tp).toMap
+      // Sanity check
+      im.get(l.x.name).foreach { tp =>
+        assert(tp == l.x.tp,
+          "[deadCodeElimination] Type differs " + tp + " and " + l.x.tp)
+      }
+      !im.contains(l.x.name)
     } => deadCodeElimination(l.e2)
-  })
-
-  def betaReduce(e: Expr): Expr = replace(e, {
-    
-    case Lookup(l1, BagDict(ltp, flatBag, _)) if l1.tp == ltp =>
-      betaReduce(flatBag)
-
-    case Lookup(l1, BagDict(_, flatBag, _)) /* if l1 != l2 */ =>
-      BagLet(
-        VarDef(Symbol.fresh("l"), TupleType("lbl" -> l1.tp)), Tuple("lbl" -> l1),
-        betaReduce(flatBag).asInstanceOf[BagExpr])
-
-    /* TODO: Doesn't work nested lets 
-    Doesn't work with bag projection either
-    */
-    case Lookup(l1, BagDictLet(x, e1, BagDict(ltp2, flatBag, _))) if l1.tp == ltp2 =>
-      betaReduce(Let(x, e1, flatBag))
-
-    case Lookup(l1, BagDictIfThenElse(c, BagDict(ltp2, f2, _), BagDict(ltp3, f3, _)))
-        if l1.tp == ltp2 && l1.tp == ltp3 =>
-      betaReduce(BagIfThenElse(c, f2, Some(f3)))
-
   })
 
   def nestingRewrite(e: Expr): Expr = replace(e, {

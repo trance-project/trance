@@ -112,7 +112,7 @@ trait Printer {
 
   def quote(p: ShredProgram): String = p.statements.map(quote).mkString("\n")
 
-  def quote(tp: Type): String = tp match {
+  def quote(tp: Type, verbose: Boolean = false): String = tp match {
     case BoolType =>
       "BoolType"
     case StringType =>
@@ -124,20 +124,25 @@ trait Printer {
     case DoubleType =>
       "DoubleType"
     case t: BagType =>
-      s"BagType(${quote(t)})"
+      s"BagType(${quote(t.tp, verbose)})"
     case t: TupleType =>
-      s"TupleType(${quote(t.attrTps)})"
+      s"TupleType(${quote(t.attrTps, verbose)})"
     case t: LabelType =>
-      s"LabelType(${quote(t.attrTps)})"
+      s"LabelType(${quote(t.attrTps, verbose)})"
     case EmptyDictType =>
       "EmptyDictType"
     case t: BagDictType =>
-      s"BagDictType(${quote(t.lblTp)}, flatTp := ${quote(t.flatTp)}, dictTp := ${quote(t.dictTp)})"
+      s"BagDictType(${quote(t.lblTp, verbose)}, " +
+        s"flatTp := ${quote(t.flatTp, verbose)}, " +
+        s"dictTp := ${quote(t.dictTp, verbose)})"
     case t: TupleDictType =>
-      s"TupleDictType(${quote(t.attrTps)})"
+        s"TupleDictType(${quote(t.attrTps, verbose)})"
     case _ => sys.error("Cannot print unknown type " + tp)
   }
 
-  protected def quote(m: Map[String, Type]): String =
-    m.map { case (k, v) => k + " := " + quote(v) }.mkString(", ")
+  protected def quote(m: Map[String, Type], verbose: Boolean): String =
+    if (verbose)
+      m.map { case (k, v) => k + " := " + quote(v) }.mkString(", ")
+    else
+      m.keys.mkString(", ")
 }

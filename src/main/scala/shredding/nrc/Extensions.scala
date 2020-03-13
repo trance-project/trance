@@ -238,7 +238,7 @@ trait Extensions {
   })
 
   def labelParameters(e: Expr): Set[LabelParameter] = 
-    labelParameters(e, Map.empty).filterNot(invalidLabelElement).toSet
+    labelParameters(e, Map.empty).toSet //filterNot(invalidLabelElement).toSet
 
   protected def labelParameters(e: Expr, scope: Map[String, VarDef]): List[LabelParameter] = collect(e, {
     case v: VarRef =>
@@ -253,8 +253,9 @@ trait Extensions {
       filterByScope(p.e, scope).map(_ => p).toList
     case p: ProjectLabelParameter =>
       filterByScope(p.e.tuple, scope).map(_ => p).toList
-    case _: DictExpr =>
-      List()
+    case BagDict(ltp, f, d) =>
+      val params = ltp.attrTps.map(v => v._1 -> VarDef(v._1, v._2))
+      labelParameters(f, scope ++ params) ++ labelParameters(d, scope)
   })
 
   // Input labels and dictionaries are invalid in labels
@@ -263,32 +264,20 @@ trait Extensions {
     case _ => e.tp.isInstanceOf[DictType]
   }
 
-  def inputVars(e: Expr): Set[VarRef] =
-    inputVars(e, Map.empty[String, VarDef]).toSet
-
-  protected def inputVars(e: Expr, scope: Map[String, VarDef]): List[VarRef] = collect(e, {
-    case v: VarRef => filterByScope(v, scope).toList
-    case ForeachUnion(x, e1, e2) => 
-      inputVars(e1, scope) ++ inputVars(e2, scope + (x.name -> x))
-    case l: Let =>
-      inputVars(l.e1, scope) ++ inputVars(l.e2, scope + (l.x.name -> l.x))
-    case _: DictExpr =>
-      List()
-  })
-
   protected def filterByScope(v: VarRef, scope: Map[String, VarDef]): Option[VarRef] =
     scope.get(v.name) match {
       case Some(v2) =>
         // Sanity check
-        assert(v.tp == v2.tp, "Types differ: " + v.tp + " and " + v2.tp)
+        assert(v.tp == v2.tp, "[filterByScope] Types differ: " + v.tp + " and " + v2.tp)
         None
       case None => Some(v)
     }
 
-  def inputVars(a: Assignment): Set[VarRef] = inputVars(a.rhs)
+  def inputVars(e: Expr): Set[VarRef] =
+    inputVars(e, Map.empty[String, VarDef]).toSet
 
-  protected def inputVars(a: Assignment, scope: Map[String, VarDef]): List[VarRef] =
-    inputVars(a.rhs, scope)
+  def inputVars(a: Assignment): Set[VarRef] =
+    inputVars(a.rhs)
 
   def inputVars(p: Program): Set[VarRef] =
     p.statements.foldLeft (Map.empty[String, VarDef], Set.empty[VarRef]) {
@@ -300,23 +289,37 @@ trait Extensions {
   def inputVars(e: ShredExpr): Set[VarRef] =
     inputVars(e, Map.empty[String, VarDef]).toSet
 
-  protected def inputVars(e: ShredExpr, scope: Map[String, VarDef]): List[VarRef] =
-    inputVars(e.flat, scope) ++ inputVars(e.dict, scope)
-
   def inputVars(a: ShredAssignment): Set[VarRef] =
     inputVars(a, Map.empty[String, VarDef])
-
-  protected def inputVars(a: ShredAssignment, scope: Map[String, VarDef]): Set[VarRef] =
-    inputVars(a.rhs.flat, scope).toSet ++ inputVars(a.rhs.dict, scope).toSet
 
   def inputVars(p: ShredProgram): Set[VarRef] =
     p.statements.foldLeft (Map.empty[String, VarDef], Set.empty[VarRef]) {
       case ((scope, ivars), s) =>
         ( scope ++ Map(
-            flatName(s.name) -> VarDef(flatName(s.name), s.rhs.flat.tp),
-            dictName(s.name) -> VarDef(dictName(s.name), s.rhs.dict.tp)
-          ),
+          flatName(s.name) -> VarDef(flatName(s.name), s.rhs.flat.tp),
+          dictName(s.name) -> VarDef(dictName(s.name), s.rhs.dict.tp)
+        ),
           ivars ++ inputVars(s.rhs, scope).toSet )
     }._2
+
+  protected def inputVars(e: Expr, scope: Map[String, VarDef]): List[VarRef] = collect(e, {
+    case v: VarRef => filterByScope(v, scope).toList
+    case ForeachUnion(x, e1, e2) =>
+      inputVars(e1, scope) ++ inputVars(e2, scope + (x.name -> x))
+    case l: Let =>
+      inputVars(l.e1, scope) ++ inputVars(l.e2, scope + (l.x.name -> l.x))
+    case BagDict(ltp, f, d) =>
+      val params = ltp.attrTps.map(v => v._1 -> VarDef(v._1, v._2))
+      inputVars(f, scope ++ params) ++ inputVars(d, scope)
+  })
+
+  protected def inputVars(a: Assignment, scope: Map[String, VarDef]): List[VarRef] =
+    inputVars(a.rhs, scope)
+
+  protected def inputVars(e: ShredExpr, scope: Map[String, VarDef]): List[VarRef] =
+    inputVars(e.flat, scope) ++ inputVars(e.dict, scope)
+
+  protected def inputVars(a: ShredAssignment, scope: Map[String, VarDef]): Set[VarRef] =
+    inputVars(a.rhs.flat, scope).toSet ++ inputVars(a.rhs.dict, scope).toSet
 
 }
