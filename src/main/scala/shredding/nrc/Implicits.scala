@@ -91,9 +91,11 @@ trait Implicits {
           BagLet(x, e1, e2.lookup(lbl))
         case BagDictIfThenElse(c, e1, e2) =>
           BagIfThenElse(c, e1.lookup(lbl), Some(e2.lookup(lbl)))
-        case BagDict(tp, flat, _)
-          if lbl.isInstanceOf[NewLabel] && tp == lbl.tp =>
-          applyLambda(lbl.asInstanceOf[NewLabel], flat)
+        case BagDict(tp, flat, _) if tp == lbl.tp =>
+          lbl match {
+            case l: NewLabel => applyLambda(l, flat)
+            case _ => BagExtractLabel(lbl, flat)
+          }
         case _ => Lookup(lbl, d)
       }
     }

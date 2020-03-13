@@ -109,9 +109,9 @@ trait Materializer {
     // Return expr creating pairs of labels from ctx and flat bags from dict
     def kvPairs(b: BagExpr) =
       ForeachUnion(ldef, ctx,
-        BagExtractLabel(
-          LabelProject(TupleVarRef(ldef), LABEL_ATTR_NAME),
-          Singleton(Tuple(KEY_ATTR_NAME -> lbl, VALUE_ATTR_NAME -> b))))
+//        BagExtractLabel(
+//          LabelProject(TupleVarRef(ldef), LABEL_ATTR_NAME),
+          Singleton(Tuple(KEY_ATTR_NAME -> lbl, VALUE_ATTR_NAME -> b)))
 
     def materializeDictionary(kvPairs: BagExpr, dict: BagDictExpr): MaterializedProgram = {
       // 1. Create assignment statement
@@ -174,7 +174,7 @@ trait Materializer {
         materializeDictionary(kvPairs(b1), dict1) append
           materializeDictionary(kvPairs(b2), dict2)
       case _ =>
-        val b = optimize(dict.lookup(lbl)).asInstanceOf[BagExpr]
+        val b = dict.lookup(lbl)
         materializeDictionary(kvPairs(b), dict)
     }
   }

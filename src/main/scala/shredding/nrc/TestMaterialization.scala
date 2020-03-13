@@ -19,8 +19,8 @@ object TestMaterialization extends App
     println("Shredded program: \n" + quote(shredded) + "\n")
     println("Shredded program optimized: \n" + quote(optimize(shredded)) + "\n")
 
-//    val materializedProgram = materialize(shredded)
-////    println("Materialized program: \n" + quote(materializedProgram.program) + "\n")
+    val materializedProgram = materialize(shredded)
+    println("Materialized program: \n" + quote(materializedProgram.program) + "\n")
 //    println("Materialized program optimized: \n" + quote(optimize(materializedProgram.program)) + "\n")
 //
 //    val unshredded = unshred(shredded, materializedProgram.dictMapper)

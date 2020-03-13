@@ -22,10 +22,10 @@ trait Printer {
       s"""|(${quote(e1)})
           |Union
           |(${quote(e2)})""".stripMargin
-    case Singleton(e1) => s"Sng(${quote(e1)})"
+    case Singleton(e1) => s"{${quote(e1)}}"
     case DeDup(e1) => s"DeDup(${quote(e1)})"
     case Tuple(fs) =>
-      s"(${fs.map { case (k, v) => k + " := " + quote(v) }.mkString(", ")})"
+      s"( ${fs.map { case (k, v) => k + " := " + quote(v) }.mkString(",\n   ")} )"
     case l: Let =>
       s"""|Let ${l.x.name} = ${quote(l.e1)} In
           |${quote(l.e2)}""".stripMargin
@@ -41,12 +41,13 @@ trait Printer {
     }
     case i: IfThenElse =>
       if (i.e2.isDefined)
-        s"""|If (${quote(i.cond)})
-            |Then ${quote(i.e1)}
-            |Else ${quote(i.e2.get)}""".stripMargin
+        s"""|If (${quote(i.cond)}) Then
+            |${ind(quote(i.e1))}
+            |Else
+            |${ind(quote(i.e2.get))}""".stripMargin
       else
-        s"""|If (${quote(i.cond)})
-            |Then ${quote(i.e1)}""".stripMargin
+        s"""|If (${quote(i.cond)}) Then
+            |${ind(quote(i.e1))}""".stripMargin
     case ArithmeticExpr(op, e1, e2) =>
       s"(${quote(e1)} $op ${quote(e2)})"
     case Count(e1) => s"Count(${quote(e1)})"
@@ -73,7 +74,8 @@ trait Printer {
     // Dictionary extensions
     case EmptyDict => "Nil"
     case BagDict(tp, flat, dict) =>
-      val params = tp.attrTps.map(x => x._1 + ": " + quote(x._2)).mkString(", ")
+//      val params = tp.attrTps.map(x => x._1 + ": " + quote(x._2)).mkString(", ")
+      val params = tp.attrTps.keys.mkString(", ")
       s"""|(($params) ->
           |  flat :=
           |${ind(quote(flat), 2)},
@@ -81,8 +83,7 @@ trait Printer {
           |${ind(quote(dict), 2)}
           |)""".stripMargin
     case TupleDict(fs) =>
-      s"(${fs.map { case (k, v) => k + " := " + quote(v) }.mkString(", ")})"
-    case BagDictProject(v, f) => quote(v) + "." + f
+      s"( ${fs.map { case (k, v) => k + " := " + quote(v) }.mkString(",\n   ")} )"
     case TupleDictProject(v) => quote(v) + ".tupleDict"
     case d: DictUnion =>
       s"""|(${quote(d.dict1)})
@@ -95,9 +96,9 @@ trait Printer {
           |ShredUnion
           |(${quote(e2)})""".stripMargin
     case Lookup(lbl, dict) =>
-      s"Lookup(lbl := ${quote(lbl)}, dict := ${quote(dict)})"
+      s"Lookup(${quote(lbl)}, ${quote(dict)})"
     case MatDictLookup(lbl, bag) =>
-      s"MatDictLookup(lbl := ${quote(lbl)}, dict := ${quote(bag)})"
+      s"MatDictLookup(${quote(lbl)}, ${quote(bag)})"
 
     case _ => sys.error("Cannot print unknown expression " + e)
   }
