@@ -40,12 +40,15 @@ trait SparkUtils {
   }
 
   def agg(e: CExpr): String = e.tp match {
-    case IntType => "nestReduce(_+_)"
-    case DoubleType => "nestReduce(_+_)"
-    case _ => "nestGroup"
+    case IntType => "reduce(_+_)"
+    case DoubleType => "reduce(_+_)"
+    case _ => "group(_++_)"
   } 
 
   def drop(tp: Type, v: Variable, field: String): CExpr = tp match {
+    case TTupleType(fs) => 
+      Tuple(fs.drop((field.replace("_", "").toInt-1)).zipWithIndex.map{ case (t, i) 
+        => Project(v, "_"+i) })
     case RecordCType(fs) => 
       Record((fs - field).map{ case (attr, atp) => attr -> Project(v, attr)})
     case _ => sys.error(s"unsupported type $tp")

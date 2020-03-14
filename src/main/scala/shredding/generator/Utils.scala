@@ -151,17 +151,30 @@ object Utils {
         |f
         |var end = System.currentTimeMillis() - start """.stripMargin
 
-  def runSparkNoDomains(query: Query, shred: Boolean = false): Unit = {
+  def runSparkNoDomains(query: Query, shred: Boolean = false, skew: Boolean = false): Unit = {
     
     val codegen = new SparkNamedGenerator(query.inputTypes(shred))
     val gcode = if (shred) codegen.generate(query.sanf) else codegen.generate(query.anf)
-    val header = codegen.generateHeader(query.headerTypes(shred))
+    val header = if (skew) {
+        s"""|import sprkloader.SkewPairRDD._
+            ${if (shred) "|import sprkload.SkewDictRDD._" else ""}
+            |import sprkloader.SkewTopRDD._
+            |${codegen.generateHeader(query.headerTypes(shred))}""".stripMargin
+      } else {
+        s"""|import sprkloader.PairRDDOperations._
+            ${if (shred) "|import sprkload.DictRDDOperations._" else ""}
+            |import sprkloader.TopRDD._
+            |${codegen.generateHeader(query.headerTypes(shred))}""".stripMargin
+      }
    
-    val qname = if (shred) s"Shred${query.name}" else query.name
-    val fname = pathout(qname+"Spark") 
+    val qname1 = if (shred) s"Shred${query.name}Spark" else s"${query.name}Spark"
+    val qname = if (skew) s"${qname1}Skew" else qname1
+    val fname = pathout(qname) 
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val finalc = writeSpark(qname+"Spark", query.inputs(if (shred) TPCHSchema.stblcmds else TPCHSchema.tblcmds), header, timed(gcode))
+    val inputs = if (skew) query.inputs(if (shred) TPCHSchema.sskewcmds else TPCHSchema.skewcmds)
+      else query.inputs(if (shred) TPCHSchema.stblcmds else TPCHSchema.tblcmds)
+    val finalc = writeSpark(qname, inputs, header, timed(gcode))
     printer.println(finalc)
     printer.close 
   

@@ -277,6 +277,7 @@ object TPCHSchema {
         |${tbl}_L.cache
         |spark.sparkContext.runJob(${tbl}_L, (iter: Iterator[_]) => {})
         |val ${tbl}_H = spark.sparkContext.emptyRDD[$tblname]
+        |val ${tbl} = (${tbl}_L, ${tbl}_H)
         |""".stripMargin
 
 

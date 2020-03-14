@@ -98,6 +98,23 @@ object SkewPairRDD {
       }
     }
 
+    def leftOuterJoin[S:ClassTag](rrdd: (RDD[(K, S)], RDD[(K, S)])): 
+      (RDD[(K, (V, Option[S]))], RDD[(K, (V, Option[S]))], Broadcast[Set[K]]) = {
+        val runion = rrdd.union
+        if (heavyKeys.value.nonEmpty){
+          val rlight = runion.filter(i => !heavyKeys.value(i._1))
+          val lresult = light.leftOuterJoin(rlight)
+
+          val rheavy = runion.toHeavyMap(heavyKeys)
+          val heavyRights = heavy.sparkContext.broadcast(rheavy)
+          val hresult = heavy.broadcastOuterJoin(heavyRights)
+          (lresult, hresult, heavyKeys)
+        } else {
+          val result = lrdd.union.leftOuterJoin(runion)
+          (result, result.empty, heavyKeys)
+        }
+    }
+
     def cogroupDropKey[S:ClassTag](rrdd:(RDD[(K,S)], RDD[(K,S)])): (RDD[(V, Vector[S])], RDD[(V, Vector[S])]) = {
       val runion = rrdd.union
       if (heavyKeys.value.nonEmpty){
@@ -134,17 +151,18 @@ object SkewPairRDD {
         }
       }
 
-    def nestReduce(f: (V,V) => V): (RDD[(K,V)], RDD[(K,V)]) = {
-      (lrdd.union.nestReduce(f), light.empty)
+    def reduce(f: (V,V) => V): (RDD[(K,V)], RDD[(K,V)]) = {
+      val result = lrdd.union.reduce(f)
+      (result, result.empty)
     }
 
-    def nestGroup: (RDD[(K,Vector[V])], RDD[(K,Vector[V])], Broadcast[Set[K]]) = {
+    def group(f: (V,V) => V): (RDD[(K,V)], RDD[(K,V)], Broadcast[Set[K]]) = {
       if (heavyKeys.value.nonEmpty){
-        val lresult = light.nestGroup
-        val hresult = heavy.mapPartitions(it => groupBy(it, heavyKeys))
+        val lresult = light.group(f)
+        val hresult = heavy.mapPartitions(it => groupBy(it, f))
         (lresult, hresult, heavyKeys)
       } else {
-        val result = lrdd.union.nestGroup
+        val result = lrdd.union.group(f)
         (result, result.empty, heavyKeys)
       }
     }
@@ -212,6 +230,19 @@ object SkewPairRDD {
       }
     }
 
+    def leftOuterJoin[S:ClassTag](rrdd: (RDD[(K, S)], RDD[(K, S)])): 
+      (RDD[(K, (V, Option[S]))], RDD[(K, (V, Option[S]))], Broadcast[Set[K]]) = {
+        val (lunion, hk) = lrdd.heavyKeys
+        val hkeys = lunion.sparkContext.broadcast(hk)
+        if (hkeys.value.nonEmpty){
+          (lunion.filter(i => !hkeys.value(i._1)), 
+            lunion.filter(i => hkeys.value(i._1)), hkeys).leftOuterJoin(rrdd)
+        }else {
+          val result = lunion.leftOuterJoin(rrdd.union)
+          (result, result.empty, hkeys)
+        }
+    }
+
     def cogroupDropKey[S:ClassTag](rrdd:(RDD[(K,S)], RDD[(K,S)])): (RDD[(V, Vector[S])], RDD[(V, Vector[S])]) = {
       val (lunion, hk) = lrdd.heavyKeys
       val hkeys = lunion.sparkContext.broadcast(hk)
@@ -237,18 +268,19 @@ object SkewPairRDD {
         }
     }
 
-    def nestReduce(f: (V,V) => V): (RDD[(K,V)], RDD[(K,V)]) = {
-      (lrdd.union.nestReduce(f), light.empty)
+    def reduce(f: (V,V) => V): (RDD[(K,V)], RDD[(K,V)]) = {
+      val result = lrdd.union.reduce(f)
+      (result, result.empty)
     }
 
-    def nestGroup: (RDD[(K,Vector[V])], RDD[(K,Vector[V])], Broadcast[Set[K]]) = {
+    def group(f: (V,V) => V): (RDD[(K,V)], RDD[(K,V)], Broadcast[Set[K]]) = {
       val (lunion, hk) = lrdd.heavyKeys
       val hkeys = lunion.sparkContext.broadcast(hk)
       if (hkeys.value.nonEmpty){
         (lunion.filter(i => !hkeys.value(i._1)), 
-          lunion.filter(i => hkeys.value(i._1)), hkeys).nestGroup
+          lunion.filter(i => hkeys.value(i._1)), hkeys).group(f)
       }else{
-        val result = lrdd.union.nestGroup
+        val result = lrdd.union.group(f)
         (result, result.empty, hkeys)
       }
     }

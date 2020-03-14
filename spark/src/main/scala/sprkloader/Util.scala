@@ -22,7 +22,7 @@ object Util{
     i.foldLeft(HashMap.empty[(K, Int), Int].withDefaultValue(0))((acc, c) =>
       { acc((c._1, index)) += 1; acc } )
   }
-  
+
   def cogroupBy[K,V,S](i: Iterator[(K,V)], hks: Broadcast[Map[K, Vector[S]]]): Iterator[(V, Vector[S])] = {
     val hm = HashMap[V, Vector[S]]()
       i.foreach{ case (k,v) =>
@@ -33,6 +33,17 @@ object Util{
       }
     hm.iterator
   }
+
+  def groupBy[K,V](i: Iterator[(K,V)], f: (V, V) => V): Iterator[(K, V)] = {
+    val hm = HashMap[K, V]()
+      i.foreach{ case (k,v) => hm get k match {
+        case Some(v2) => hm(k) = f(v2, v)
+        case None => hm(k) = v
+      }
+    } 
+    hm.iterator
+  }
+
 
   def groupBy[K,V](i: Iterator[(K,V)], hks: Broadcast[Set[K]]): Iterator[(K, Vector[V])] = {
     val hm = HashMap[K, Vector[V]]()

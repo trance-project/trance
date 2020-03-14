@@ -13,13 +13,29 @@ import shredding.examples.tpch._
 object App {
  
   def main(args: Array[String]){
-    runTPCH1()
+    runExperiment1()
+  }
+
+  def runExperiment1(){
+    Utils.runSparkNoDomains(Test1, false, false)
+    Utils.runSparkDomains(Test1, false, false)
+    Utils.runSparkDomains(Test1, true, false)
+    Utils.runSparkNoDomains(Test2Flat, false, false)
+    Utils.runSparkDomains(Test2, false, false)
+    Utils.runSparkDomains(Test2, true, false)
+    Utils.runSparkNoDomains(Test3Flat, false, false)
+    Utils.runSparkDomains(Test3, false, false)
+    Utils.runSparkDomains(Test3, true, false)
+    Utils.runSparkNoDomains(Test4Flat, false, false)
+    Utils.runSparkDomains(Test4, false, false)
+    Utils.runSparkDomains(Test4, true, false)
   }
   
   def runTPCH1(){   
 
-    // Run unnesting only
-    // Utils.runSparkNoDomains(TPCHQuery1Full)
+    // Flattning, no shredding
+    //Utils.runSparkNoDomains(TPCHQuery1Full, false, true)
+    // Utils.runSparkNoDomains(Test2a, false, false)
 
     // Run shred without domains, cannot do unshredding
     // this has a conflict with some changes in the unnesting algorithm
@@ -28,13 +44,13 @@ object App {
 
     // Run shred with domains
     // the true adds unshredding
-    Utils.runSparkDomains(TPCHQuery1Full, true, true)
-    Utils.runSparkDomains(TPCHQuery1Full, true, false)
+    //Utils.runSparkDomains(TPCHQuery1Full, true, true)
+    // Utils.runSparkDomains(Test2, true, false)
 
     // Run shred with domains when a query is used as input for another
     // the true adds unshredding
-    Utils.runSparkInputDomains(TPCHQuery1Full, TPCHQuery4FullAgg, false, true)
-    Utils.runSparkInputDomains(TPCHQuery1Full, TPCHQuery4FullAgg, false, false)
+    //Utils.runSparkInputDomains(TPCHQuery1Full, TPCHQuery4FullAgg, false, true)
+    // Utils.runSparkInputDomains(TPCHQuery1Full, TPCHQuery4FullAgg, false, false)
   }
 
   /**

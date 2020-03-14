@@ -103,9 +103,10 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
 
     case Reduce(e1, v, f, Constant("null")) => 
       val vars = generateVars(v, e1.tp)
+      val gbl = if (hasLabel(f.tp)) ".group(_++_)" else ""
       s"""|${generate(e1)}.map{ case $vars => 
           |   ${nullProject(f)}
-          |}""".stripMargin
+          |}$gbl""".stripMargin
 
     /** SELECT **/
     case Reduce(e1, v, f, p) => 
@@ -173,7 +174,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
       }
 
     /** LEFT OUTER JOIN **/
-    case Bind(jv, OuterJoin(e1, e2, v1, p1, v2, p2), e3) => 
+    case Bind(jv, OuterJoin(e1, e2, v1, p1, v2, p2, proj1, proj2), e3) => 
       val vars = generateVars(v1, e1.tp)
       val gv2 = generate(v2)
       val ve1 = "x" + Variable.newId()
@@ -185,8 +186,8 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
           else generate(p1)
         case _ => sys.error(s"unsupported $p1")
       }
-      s"""|val $ve1 = ${generate(e1)}.map{ case $vars => ({$gp1}, $vars) }
-          |val $ve2 = ${generate(e2)}.map{ case $gv2 => ({${generate(p2)}}, $gv2) }
+      s"""|val $ve1 = ${generate(e1)}.map{ case $vars => ({$gp1}, {${generate(proj1)}}) }
+          |val $ve2 = ${generate(e2)}.map{ case $gv2 => ({${generate(p2)}}, {${generate(proj2)}}) }
           |val ${generate(jv)} = $ve1.leftOuterJoin($ve2).map{ case (k, (a, Some(v))) => 
           |    (a, v); case (k, (a, None)) => (a, null) }
           |${generate(e3)}
@@ -223,7 +224,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
               s"case (${fs.slice(1, i).map(e => "_").mkString(",")},${zero(fs.last)}) => ($key, $emptyType)" //({${generate(f)}}, ${zero(e2)})" 
             }
           ) :+ s"case (null, ${(2 to fs.size).map(i => "_").mkString(",")}) => ($key, $emptyType)").mkString("\n")
-        case _ => s"case (null) => ($key, $emptyType)"
+        case _ => s"case (null) => ({$key}, $emptyType)"
       }
       s"""|${generate(e1)}.map{ case $vars => {${generate(g)}} match {
           |   $nonet
@@ -360,11 +361,17 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
       s"""|val $n = ${generate(e1)}
           |val ${generate(x)} = $n
           |${runJob(n, true)}""".stripMargin
+
     case Bind(x, CNamed(n, e1), e2) =>
     	s"""|val $n = ${generate(e1)}
           |val ${generate(x)} = $n
           |${runJob(n)}
           |${generate(e2)}""".stripMargin
+
+    case Bind(v, LinearCSet(fs), e2) => 
+      val gv = generate(v)
+      s"""|val $gv = ${generate(fs.last)}
+          |${runJob(gv, true)}""".stripMargin
 
     /** ANF BASE CASE **/
     case Bind(v, e1, e2) => 

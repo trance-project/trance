@@ -28,6 +28,14 @@ object PairRDDOperations {
         }})
     }
 
+    def broadcastOuterJoin[S: ClassTag](rrdd: Broadcast[Map[K, Vector[S]]]): RDD[(K, (V, Option[S]))] = {
+      lrdd.mapPartitions(it => 
+        it.flatMap{ case (k,v) => rrdd.value get k match {
+          case Some(ls) => ls.map(s => (k, (v, Some(s))))
+          case None => Vector((k, (v, None)))
+        }})
+    }
+
     def broadcastJoinDropKey[S: ClassTag](rrdd: Broadcast[Map[K, Vector[S]]]): RDD[(V, S)] = {
       lrdd.mapPartitions(it => 
         it.flatMap{ case (k,v) => rrdd.value get k match {
@@ -57,6 +65,12 @@ object PairRDDOperations {
     def cogroupDropKey[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(V, Vector[S])] = {
       lrdd.cogroup(rrdd).flatMap{
         case (_, (e1, e2)) => e1.map{ v => v -> e2.toVector }
+      }
+    }
+
+    def rightCoGroupDropKey[S:ClassTag](rrdd: RDD[(K, S)]): RDD[(S, Vector[V])] = {
+      lrdd.cogroup(rrdd).flatMap{
+        case (_, (e1, e2)) => e2.toVector.map{ v => v -> e1.toVector }
       }
     }
 
@@ -95,20 +109,20 @@ object PairRDDOperations {
         }
     }
 
-    def nestReduce(f: (V,V) => V): RDD[(K,V)] = lrdd.partitioner match {
+    def reduce(f: (V,V) => V): RDD[(K,V)] = lrdd.partitioner match {
       case Some(p) => lrdd.reduceByKey(f)
       case _ => lrdd.reduceByKey(new HashPartitioner(partitions), f)
     }
 
-    def nestGroup: RDD[(K,Vector[V])] = {
-      val accum1 = (acc: Vector[V], v: V) => acc :+ v
-      val accum2 = (acc1: Vector[V], acc2: Vector[V]) => acc1 ++ acc2
-      lrdd.partitioner match {
-        case Some(p) => lrdd.aggregateByKey(Vector.empty[V])(accum1, accum2)
-        case _ => lrdd.aggregateByKey(Vector.empty[V], new HashPartitioner(partitions))(accum1, accum2)
-      }
-    }
-
+    // def nestGroup: RDD[(K,Vector[V])] = {
+    //   val accum1 = (acc: Vector[V], v: V) => acc :+ v
+    //   val accum2 = (acc1: Vector[V], acc2: Vector[V]) => acc1 ++ acc2
+    //   lrdd.partitioner match {
+    //     case Some(p) => lrdd.aggregateByKey(Vector.empty[V])(accum1, accum2)
+    //     case _ => lrdd.aggregateByKey(Vector.empty[V], new HashPartitioner(partitions))(accum1, accum2)
+    //   }
+    // }
+    def group(f: (V, V) => V): RDD[(K, V)] = reduce(f)
   }
 
 }

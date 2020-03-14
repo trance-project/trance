@@ -163,7 +163,10 @@ case class Bind(x: CExpr, e1: CExpr, e: CExpr) extends CExpr {
 
 //case class CGroupBy(e1: CExpr, v: Variable, grp: CExpr, value: CExpr) extends CExpr {
 case class CGroupBy(e1: CExpr, v1: Variable, grp: CExpr, value: CExpr) extends CExpr {
-  def tp: BagCType = BagCType(RecordCType("_1" -> grp.tp, "_2" -> value.tp))
+  def tp: BagCType = grp.tp match {
+    case RecordCType(ms) => BagCType(RecordCType(ms + ("_2" -> value.tp)))
+    case _ => BagCType(RecordCType("_1" -> grp.tp, "_2" -> value.tp))
+  }
 }
 
 case class CNamed(name: String, e: CExpr) extends CExpr {
@@ -309,8 +312,9 @@ case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable,
   }
 }
 
-case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
-  def tp: BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, proj1: CExpr, proj2: CExpr) extends CExpr {
+  // def tp: BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  def tp: BagCType = BagCType(TTupleType(List(proj1.tp, proj2.tp)))
   override def wvars = {
     e1.wvars :+ v2
   }
@@ -452,7 +456,7 @@ trait Extensions {
       case Unnest(e1, v1, f, v2, p, value) => Unnest(fapply(e1, funct), v1, f, v2, p, value)
       case OuterUnnest(e1, v1, f, v2, p, value) => OuterUnnest(fapply(e1, funct), v1, f, v2, p, value)
       case Join(e1, e2, v1, p1, v2, p2) => Join(fapply(e1, funct), fapply(e2, funct), v1, p1, v2, p2)
-      case OuterJoin(e1, e2, v1, p1, v2, p2) => OuterJoin(fapply(e1, funct), fapply(e2, funct), v1, p1, v2, p2)
+      case OuterJoin(e1, e2, v1, p1, v2, p2, proj1, proj2) => OuterJoin(fapply(e1, funct), fapply(e2, funct), v1, p1, v2, p2, proj1, proj2)
       case Lookup(e1, e2, v1, p1, v2, p2, p3) => Lookup(fapply(e1, funct), e2, v1, p1, v2, p2, p3)
       case CDeDup(e1) => CDeDup(fapply(e1, funct))
       case CNamed(n, e1) => CNamed(n, fapply(e1, funct))

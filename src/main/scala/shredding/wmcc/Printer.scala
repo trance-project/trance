@@ -66,12 +66,12 @@ object Printer {
            | OUTERUNNEST[ ${quote(e2)} / ${quote(p)} / ${quote(value)}  ](${quote(e1)})""".stripMargin
     case Nest(e1, v1, f, e3, v2, p, g) =>
       val acc = e3.tp match { case IntType => "+"; case _ => "U" }
-      val outs = if (e.wvars.size == 1) "" else s"<-- (${e.wvars.map(_.quote).mkString(",")}) --"
-      s""" | $outs NEST[ ${acc} / ${quote(e3)} / ${quote(f)}, ${quote(p)} / ${quote(g)} ](${quote(e1)})""".stripMargin
+      //val outs = if (e.wvars.size == 1) "" else s"<-- (${e.wvars.map(_.quote).mkString(",")}) --"
+      s""" | NEST[ ${acc} / ${quote(e3)} / ${quote(f)}, ${quote(p)} / ${quote(g)} ](${quote(e1)})""".stripMargin
     case Join(e1, e2, v1, p1, v2, p2) =>
       s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) JOIN[${quote(p1)} = ${quote(p2)}](
            | ${ind(quote(e2))})""".stripMargin
-    case OuterJoin(e1, e2, v1, p1, v2, p2) =>
+    case OuterJoin(e1, e2, v1, p1, v2, p2, proj1, proj2) =>
       s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) OUTERJOIN[${quote(p1)} = ${quote(p2)}](
            | ${ind(quote(e2))})""".stripMargin
     case Lookup(e1, e2, v1, p1, v2, p2, p3) =>

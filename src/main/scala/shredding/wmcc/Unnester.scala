@@ -18,6 +18,7 @@ object Unnester {
     case Record(fs) => fs.filter(c => isNestedComprehension(c._2)).nonEmpty
     case Variable(_, BagCType(_)) => false
     case c:Comprehension if c.tp.isInstanceOf[PrimitiveType] => true
+    case Project(_,_) => false
     case _ => e.tp.isInstanceOf[BagCType] || e.tp.isInstanceOf[BagDictCType]
   }
 
@@ -56,7 +57,7 @@ object Unnester {
         // build the nest
         val initNest = Nest(e2, v2, key, value, v, p2, g)
         // map the values back to the initial record
-        val nrec = Tuple(u :+ Record(fs.dropRight(1) + (fs.last._1 -> v)))
+        val nrec = Tuple(u :+ Sng(Record(fs.dropRight(1) + (fs.last._1 -> v))))
         val nv = Variable.fresh(nrec.tp)
         val vs = g.fields.asInstanceOf[List[Variable]]
         Reduce(initNest, vs :+ v, nrec, Constant("null"))
@@ -192,10 +193,13 @@ object Unnester {
 	        val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case (key, value @ Sng(Record(r))) :: tail =>
-          val lkup = r.filter(c => isNestedComprehension(c._2))
-          assert(lkup.size == 1)
-          val (nE, v2) = getNest(unnest(lkup.head._2)((w, w, E)))
-          unnest(Sng(Record(fs + (key -> Record(r + (lkup.head._1 -> v2))))))((u, w :+ v2, nE)) 
+          r.filter(c => isNestedComprehension(c._2)) match {
+            case y if y.isEmpty => unnest(Sng(Record(fs + (key -> Record(r)))))((u, w, E))
+            case lkup if lkup.size == 1 =>
+              val (nE, v2) = getNest(unnest(lkup.head._2)((w, w, E)))
+              unnest(Sng(Record(fs + (key -> Record(r + (lkup.head._1 -> v2))))))((u, w :+ v2, nE)) 
+            case _ => sys.error("unsupported")
+          } 
         case (key, value @ CLookup(lbl, dict)) :: tail => 
           val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
@@ -270,10 +274,10 @@ object Unnester {
           val preds = ps(p, v, w)
           u.isEmpty match {
             case true => unnest(e)((u, w :+ v, Some(Join(E.get, Select(e1, v, preds._1, v), w, preds._2, v, preds._3))))
-            case _ => unnest(e)((u, w :+ v, Some(OuterJoin(E.get, Select(e1, v, preds._1, v), w, preds._2, v, preds._3))))
+            case _ => unnest(e)((u, w :+ v, Some(OuterJoin(E.get, Select(e1, v, preds._1, v), w, preds._2, v, preds._3, Tuple(w), v))))
           }
         case (e2, be2) => 
-          val nE = Some(OuterJoin(E.get, Select(e1, v, Constant(true), v), w, preds._2, v, preds._3)) // C11
+          val nE = Some(OuterJoin(E.get, Select(e1, v, Constant(true), v), w, preds._2, v, preds._3, Tuple(w), v)) // C11
           val (nE2, nv) = getNest(unnest(e2)((w :+ v, w :+ v, nE))) 
           unnest(e)((u, w :+ nv, nE2)) match {
             case Nest(e3, w3, f3, t3, v3, p3, g3) => Nest(e3, w3, f3, t3, nv, be2(nv), g3) 

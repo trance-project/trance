@@ -51,6 +51,10 @@ trait TPCHBase extends Query {
   val n = VarDef("n", TPCHSchema.nationtype.tp)
   val nr = TupleVarRef(n)  
 
+  val relR = BagVarRef(VarDef("R", TPCHSchema.regiontype))
+  val r = VarDef("r", TPCHSchema.regiontype.tp)
+  val rr = TupleVarRef(r)  
+
 }
   
 object TPCHQuery1Full extends TPCHBase {

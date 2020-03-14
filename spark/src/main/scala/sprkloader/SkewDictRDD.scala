@@ -104,6 +104,19 @@ object SkewDictRDD {
       (lunion, hkeys)
     }
 
+    /**def heavyKeys: (RDD[(K,Vector[V])], Set[K]) = {
+      val lunion = lrdd.union
+      val samples = lunion.sample(false, .05).flatMapValues(identity)
+      val thresh = (samples.countApprox(1).getFinalValue().low/partitions)*0.05
+      if (thresh < 1) (lunion, Set.empty[K])
+      else {
+        val hkeys = samples.mapPartitionsWithIndex((index, it) => {
+          Util.countDistinct(it).filter(_._2).iterator
+        }).keys.collect.toSet
+        (lunion, hkeys)
+      }
+    }**/
+
     def createDomain[C: ClassTag](f: V => C): (RDD[C], RDD[C]) = {
       (light.createDomain(f), heavy.createDomain(f))
     }

@@ -20,15 +20,19 @@ trait Query extends Linearization
 
   /** standard query **/
   val query: Expr
-  def calculus: CExpr = query match {
-    case l:Let => 
-      println(quote(l.e2))
-      translate(l.e2)
-    case _ => translate(query)
+  def calculus: CExpr = {
+    println(quote(query))
+    query match {
+      case l:Let => 
+        // println(quote(l.e2))
+        translate(l.e2)
+      case _ => translate(query)
+    }
   }
+
   def normalize: CExpr = {
     val norm = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
-    println(Printer.quote(norm))
+    // println(Printer.quote(norm))
     norm
   }
   def unnestOnly: CExpr = {
@@ -65,18 +69,18 @@ trait Query extends Linearization
   def unshred: Expr = {
     val shredset = this.shred
     val res = unshred(shredset._1, shredset._2.dictMapper)
-    println(quote(res))
+    // println(quote(res))
     res
   }
 
   // with domains
   def shredPlan: CExpr = {
     val seq = this.shred._2.seq
-    println(quote(seq))
+    // println(quote(seq))
     val ctrans = translate(seq)
-    println(Printer.quote(ctrans))
+    // println(Printer.quote(ctrans))
     val shredded = normalizer.finalize(ctrans).asInstanceOf[CExpr] 
-    println(Printer.quote(shredded))
+    // println(Printer.quote(shredded))
     val initPlan = Unnester.unnest(shredded)(Nil, Nil, None)
     val plan = Optimizer.applyAll(initPlan)
     println(Printer.quote(plan))
@@ -85,11 +89,11 @@ trait Query extends Linearization
 
   def shredPlanNoOpt: CExpr = {
     val seq = this.shred._2.seq
-    println(quote(seq))
+    // println(quote(seq))
     val ctrans = translate(seq)
-    println(Printer.quote(ctrans))
+    // println(Printer.quote(ctrans))
     val shredded = normalizer.finalize(ctrans).asInstanceOf[CExpr] 
-    println(Printer.quote(shredded))
+    // println(Printer.quote(shredded))
     val initPlan = Unnester.unnest(shredded)(Nil, Nil, None)
     initPlan
   }
@@ -109,7 +113,7 @@ trait Query extends Linearization
  
   def unshredPlan: CExpr = {
     val unshredded = normalizer.finalize(translate(this.unshred)).asInstanceOf[CExpr] 
-    println(Printer.quote(unshredded))
+    // println(Printer.quote(unshredded))
     val initPlan = Unnester.unnest(unshredded)(Nil, Nil, None)
     val plan = Optimizer.applyAll(initPlan)
     println(Printer.quote(plan))
@@ -127,12 +131,12 @@ trait Query extends Linearization
   def scalculus: CExpr = { val q = translate(this.shredNoDomains); println(Printer.quote(q)); q}
   def snormalize: CExpr = {
     val norm = normalizer.finalize(this.scalculus).asInstanceOf[CExpr]
-    println(Printer.quote(norm))
+    // println(Printer.quote(norm))
     norm
   }
   def sunnest: CExpr = {
     val initPlan = Unnester.unnest(this.snormalize)(Nil, Nil, None)
-    println(Printer.quote(initPlan))
+    // println(Printer.quote(initPlan))
     val plan = Optimizer.applyAll(initPlan)
     println(Printer.quote(plan))
     plan
