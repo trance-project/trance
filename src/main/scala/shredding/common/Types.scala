@@ -4,7 +4,9 @@ package shredding.core
   * NRC type system: primitive types, bag type, tuple type
   */
 
-sealed trait Type
+sealed trait Type {
+  def isPartiallyShredded: Boolean = false
+}
 
 trait TupleAttributeType extends Type
 
@@ -117,6 +119,10 @@ case class BagDictCType(flatTp: BagCType, dictTp: TTupleDict) extends TDict {
   }
   def _1 = flatTp
   def _2 = dictTp
+  override def isPartiallyShredded: Boolean = flatTp.tp match {
+    case RecordCType(ms) => ms.filter(_._2.isInstanceOf[BagCType]).nonEmpty
+    case _ => false
+  }
 }
 
 case class TupleDictCType(attrTps: Map[String, TDict]) extends TTupleDict {

@@ -13,22 +13,44 @@ import shredding.examples.tpch._
 object App {
  
   def main(args: Array[String]){
-    runExperiment1()
+    // runExperiment1()
+    runExperiment1Joins()
   }
 
   def runExperiment1(){
-    Utils.runSparkNoDomains(Test1, false, false)
-    Utils.runSparkDomains(Test1, false, false)
-    Utils.runSparkDomains(Test1, true, false)
-    Utils.runSparkNoDomains(Test2Flat, false, false)
-    Utils.runSparkDomains(Test2, false, false)
-    Utils.runSparkDomains(Test2, true, false)
-    Utils.runSparkNoDomains(Test3Flat, false, false)
-    Utils.runSparkDomains(Test3, false, false)
-    Utils.runSparkDomains(Test3, true, false)
-    Utils.runSparkNoDomains(Test4Flat, false, false)
-    Utils.runSparkDomains(Test4, false, false)
-    Utils.runSparkDomains(Test4, true, false)
+    val pathout = "experiments/exp1.1/"
+    Utils.runSparkNoDomains(Test1, pathout, false, false)
+    Utils.runSparkNoDomains(Test1, pathout, true, false)
+    Utils.runSparkDomains(Test1, pathout, false, false)
+    Utils.runSparkDomains(Test1, pathout, true, false)
+    Utils.runSparkNoDomains(Test2Flat, pathout, false, false)
+    Utils.runSparkNoDomains(Test2, pathout, true, false)
+    Utils.runSparkDomains(Test2, pathout, false, false)
+    Utils.runSparkDomains(Test2, pathout, true, false)
+    Utils.runSparkNoDomains(Test3Flat, pathout, false, false)
+    Utils.runSparkDomains(Test3, pathout, false, false)
+    Utils.runSparkDomains(Test3, pathout, true, false)
+    Utils.runSparkNoDomains(Test4Flat, pathout, false, false)
+    Utils.runSparkDomains(Test4, pathout, false, false)
+    Utils.runSparkDomains(Test4, pathout, true, false)
+  }
+
+  def runExperiment1Joins(){
+    val pathout = "experiments/exp1.2"
+    Utils.runSparkNoDomains(Test1JoinFlat, pathout, false, false)
+    Utils.runSparkNoDomains(Test1Join, pathout, true, false)
+    Utils.runSparkDomains(Test1Join, pathout, false, false)
+    Utils.runSparkDomains(Test1Join, pathout, true, false)
+    Utils.runSparkNoDomains(Test2JoinFlat, pathout, false, false)
+    Utils.runSparkNoDomains(Test2Join, pathout, true, false)
+    Utils.runSparkDomains(Test2Join, pathout, false, false)
+    Utils.runSparkDomains(Test2Join, pathout, true, false)
+    Utils.runSparkNoDomains(Test3JoinFlat, pathout, false, false)
+    Utils.runSparkDomains(Test3Join, pathout, false, false)
+    Utils.runSparkDomains(Test3Join, pathout, true, false)
+    Utils.runSparkNoDomains(Test4JoinFlat, pathout, false, false)
+    Utils.runSparkDomains(Test4Join, pathout, false, false)
+    Utils.runSparkDomains(Test4Join, pathout, true, false)
   }
   
   def runTPCH1(){   

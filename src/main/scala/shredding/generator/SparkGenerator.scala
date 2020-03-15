@@ -157,6 +157,38 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
       }
 
     /** JOIN **/
+    case Bind(jv, Join(e1, e2, v1, k1, v2, k2), e3) if isDomain(e1) => 
+      val vars = generateVars(v1, e1.tp)
+      val gv2 = generate(v2)
+      val ve1 = "x" + Variable.newId()
+      val ve2 = "x" + Variable.newId()
+      val domain = e1.tp match {
+        case BagCType(RecordCType(ms)) if ms.size == 1 => generate(e1)
+        case _ => s"${generate(e1)}.map{ case $vars => ({${generate(k1)}}, $vars)}"
+      }
+
+      // cast a label to match a single label domain
+      // needs to be tested for non-single label domains
+      val tp = e1.tp.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps("lbl")
+      //maybe the type has already been handled in domain above?
+      handleType(tp)
+      val label = generateType(tp)
+      val e1key = k2 match {
+        case Constant(true) => s"$label(lbl)"
+        case _ => s"$label({${generate(k2)}})"
+      }
+
+      val mapBagValues = e2.tp match {
+        case BagCType(RecordCType(_)) => s"$gv2 => ($e1key, $gv2)"
+        case _ => s"(lbl, bag) => ($e1key, bag)"
+      }
+
+      s"""| val $ve1 = $domain
+          | val $ve2 = ${generate(e2)}.map{ case $mapBagValues }
+          | val ${generate(jv)} = $ve2.joinDomain($ve1)
+          | ${generate(e3)}
+        """.stripMargin
+
     case Bind(jv, Join(e1, e2, v1, p1, v2, p2), e3) => 
       val vars = generateVars(v1, e1.tp)
       val gv2 = generate(v2)
@@ -166,11 +198,11 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
         case (Constant(true), Constant(true)) =>
           s"val ${generate(jv)} = ${generate(e1)}.cartesian(${generate(e2)})\n${generate(e3)}"
         case _ => 
-       s"""|val $ve1 = ${generate(e1)}.map{ case $vars => ({${generate(p1)}}, $vars) }
-           |val $ve2 = ${generate(e2)}.map{ case $gv2 => ({${generate(p2)}}, $gv2) }
-           |val ${generate(jv)} = $ve1.joinDropKey($ve2)
-           |${generate(e3)}
-           |""".stripMargin
+         s"""|val $ve1 = ${generate(e1)}.map{ case $vars => ({${generate(p1)}}, $vars) }
+             |val $ve2 = ${generate(e2)}.map{ case $gv2 => ({${generate(p2)}}, $gv2) }
+             |val ${generate(jv)} = $ve1.joinDropKey($ve2)
+             |${generate(e3)}
+             |""".stripMargin
       }
 
     /** LEFT OUTER JOIN **/
@@ -198,9 +230,11 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
     case Nest(e1, v1, f, e2, v2, p, g) if hasLabel(f.tp) =>
       val vars = generateVars(v1, e1.tp)
       val acc = "acc"+Variable.newId
+      val nestAgg = agg(e2)
+      val value = if (nestAgg.contains("++")) s"Vector({${generate(e2)}})" else s"{${generate(e2)}}"
       s"""|${generate(e1)}.map{ case $vars => 
-          |   ({${generate(f)}}, {${generate(e2)}})
-          | }.${agg(e2)}""".stripMargin
+          |   ({${generate(f)}}, $value)
+          | }.$nestAgg""".stripMargin
 
     /** NEST **/
     // TODO add filter
@@ -288,9 +322,11 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
       val gluv = generate(luv)
       val ve1 = "x" + Variable.newId()
       // move this to the implementation of lookup
+      val cogroupFun = if (e2.tp.isPartiallyShredded) s"$ve1.cogroupDropKey(${generate(e2)})"
+        else s"${generate(e2)}.rightCoGroupDropKey($ve1)"
       val nv2 = generate(drop(v3.tp, v3, key1))
       s"""|val $ve1 = ${generate(e1)}.map{ case $vars => (${generate(v3)}.$key1, $nv2)}
-          |val $gluv = $ve1.cogroupDropKey(${generate(e2)})
+          |val $gluv = $cogroupFun
           |${generate(e3)}
           |""".stripMargin 
     

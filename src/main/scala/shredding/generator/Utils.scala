@@ -9,7 +9,7 @@ import shredding.examples.tpch._
 object Utils {
 
   val normalizer = new Finalizer(new BaseNormalizer{})
-  def pathout(outf: String, sub: String = ""): String = s"experiments/tpch/$sub/test/$outf.scala"
+  def pathfun(outf: String, sub: String = ""): String = s"experiments/tpch/$sub/test/$outf.scala"
   //val pathout = (outf: String) => s"src/test/scala/shredding/examples/simple/$outf.scala"
 
   /**
@@ -37,7 +37,7 @@ object Utils {
     val gcode = codegen.generate(anfExp1)
     val header = codegen.generateHeader(ng)
 
-    val printer = new PrintWriter(new FileOutputStream(new File(pathout(qname+"Calc")), false))
+    val printer = new PrintWriter(new FileOutputStream(new File(pathfun(qname+"Calc")), false))
     val finalc = write(qname+"Calc", qdata, header, gcode)
     printer.println(finalc)
     printer.close 
@@ -55,7 +55,7 @@ object Utils {
       val gcode2 = codegen.generate(anfExp2)
       val header2 = codegen.generateHeader(ng)
 
-      val printer2 = new PrintWriter(new FileOutputStream(new File(pathout(q2name+"Calc")), false))
+      val printer2 = new PrintWriter(new FileOutputStream(new File(pathfun(q2name+"Calc")), false))
       val finalc2 = write2(q2name+"Calc", qdata, header2, gcode, q2name, gcode2, q2data)
       printer2.println(finalc2)
       printer2.close 
@@ -92,7 +92,7 @@ object Utils {
     val gcode = codegen.generate(anfExp1)
     val header = codegen.generateHeader(ng)
 
-    val printer = new PrintWriter(new FileOutputStream(new File(pathout(qname)), false))
+    val printer = new PrintWriter(new FileOutputStream(new File(pathfun(qname)), false))
     val finalc = write(qname, qdata, header, gcode)
     printer.println(finalc)
     printer.close 
@@ -112,7 +112,7 @@ object Utils {
       val gcode2 = codegen.generate(anfExp2)
       val header2 = codegen.generateHeader(ng)
 
-      val printer2 = new PrintWriter(new FileOutputStream(new File(pathout(q2name)), false))
+      val printer2 = new PrintWriter(new FileOutputStream(new File(pathfun(q2name)), false))
       val finalc2 = write2(q2name, qdata, header2, gcode, q2name, gcode2, q2data)
       printer2.println(finalc2)
       printer2.close 
@@ -151,7 +151,7 @@ object Utils {
         |f
         |var end = System.currentTimeMillis() - start """.stripMargin
 
-  def runSparkNoDomains(query: Query, shred: Boolean = false, skew: Boolean = false): Unit = {
+  def runSparkNoDomains(query: Query, pathout: String, shred: Boolean = false, skew: Boolean = false): Unit = {
     
     val codegen = new SparkNamedGenerator(query.inputTypes(shred))
     val gcode = if (shred) codegen.generate(query.sanf) else codegen.generate(query.anf)
@@ -169,7 +169,7 @@ object Utils {
    
     val qname1 = if (shred) s"Shred${query.name}Spark" else s"${query.name}Spark"
     val qname = if (skew) s"${qname1}Skew" else qname1
-    val fname = pathout(qname) 
+    val fname = s"$pathout/$qname.scala" 
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val inputs = if (skew) query.inputs(if (shred) TPCHSchema.sskewcmds else TPCHSchema.skewcmds)
@@ -180,7 +180,7 @@ object Utils {
   
   }
 
-  def runSparkInputNoDomains(inputQuery: Query, query: Query, shred: Boolean = false): Unit = {
+  def runSparkInputNoDomains(inputQuery: Query, query: Query, pathout: String, shred: Boolean = false): Unit = {
     
     val codegen = new SparkNamedGenerator(inputQuery.inputTypes(shred))
     val (inputCode, gcode) = 
@@ -188,21 +188,21 @@ object Utils {
       else (codegen.generate(inputQuery.anf), codegen.generate(query.anf))
     val header = codegen.generateHeader(inputQuery.headerTypes(shred))
 
-    val qname = if (shred) s"Shred${query.name}" else query.name
-    val fname = pathout(qname+"Spark")
+    val qname = if (shred) s"Shred${query.name}Spark" else s"${query.name}Spark"
+    val fname = s"$pathout/$qname.scala"
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val inputSection = 
       if (shred) s"${inputCode.split("\n").dropRight(1).mkString("\n")}\n${shredInputs(inputQuery.indexedDict)}"
       else s"${inputs(inputQuery.name, inputCode)}"
-    val finalc = writeSpark(qname+"Spark", query.inputs(if (shred) TPCHSchema.stblcmds else TPCHSchema.tblcmds), 
+    val finalc = writeSpark(qname, query.inputs(if (shred) TPCHSchema.stblcmds else TPCHSchema.tblcmds), 
                   header, s"$inputSection\n${timed(gcode)}")
     printer.println(finalc)
     printer.close 
   
   }
 
-  def runSparkInputDomains(inputQuery: Query, query: Query, unshred: Boolean = false, skew: Boolean = false): Unit = {
+  def runSparkInputDomains(inputQuery: Query, query: Query, pathout: String, unshred: Boolean = false, skew: Boolean = false): Unit = {
     
     val codegen = new SparkNamedGenerator(query.inputTypes(true))
     val inputCode = codegen.generate(inputQuery.shredANF)
@@ -222,8 +222,8 @@ object Utils {
             |${codegen.generateHeader(query.headerTypes(true))}""".stripMargin
       }
    
-    val qname = if (skew) s"Shred${query.name}SparkSkew" else s"Shred${query.name}Spark"
-    val fname = if (unshred) pathout(qname, "unshred") else pathout(qname)
+    val qname = if (skew) s"Shred${query.name}DomainsSparkSkew" else s"Shred${query.name}DomainsSpark"
+    val fname = if (unshred) s"$pathout/unshred/$qname.scala" else s"$pathout/$qname.scala"
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val inputSection = s"${inputCode.split("\n").dropRight(1).mkString("\n")}\n${shredInputs(inputQuery.indexedDict)}"
@@ -234,7 +234,7 @@ object Utils {
   
   }
 
-  def runSparkDomains(query: Query, unshred: Boolean = false, skew: Boolean = false): Unit = {
+  def runSparkDomains(query: Query, pathout: String, unshred: Boolean = false, skew: Boolean = false): Unit = {
     
     val codegen = new SparkNamedGenerator(query.inputTypes(true))
     val gcode1 = codegen.generate(query.shredANF)
@@ -253,8 +253,8 @@ object Utils {
             |${codegen.generateHeader(query.headerTypes(true))}""".stripMargin
       }
    
-    val qname = if (skew) s"Shred${query.name}SparkSkew" else s"Shred${query.name}Spark"
-    val fname = if (unshred) pathout(qname, "unshred") else pathout(qname)
+    val qname = if (skew) s"Shred${query.name}DomainsSparkSkew" else s"Shred${query.name}DomainsSpark"
+    val fname = if (unshred) s"$pathout/unshred/$qname.scala" else s"$pathout/$qname.scala"
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val inputs = if (skew) query.inputs(TPCHSchema.sskewcmds) else query.inputs(TPCHSchema.stblcmds)

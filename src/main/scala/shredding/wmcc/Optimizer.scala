@@ -43,7 +43,12 @@ object Optimizer {
 
   def printhm():Unit = proj.foreach(f => println(s"${f._1.asInstanceOf[Variable].name} -> ${f._2}")) 
 
-  // def groupKeyInJoinKey(v: Variable, vs: List[Variable]): Boolean = vs.contains(v)
+  def collectVars(e: CExpr): Set[Variable] = e match {
+    case Record(ms) => ms.foldLeft(Set.empty[Variable])((acc, m) => acc ++ collectVars(m._2))
+    case Project(v, f) => collectVars(v)
+    case v:Variable => Set(v)
+    case _ => ???
+  }
 
   def pushNest(e: CExpr): CExpr = fapply(e, {
     // todo check value does not contain o values
@@ -63,7 +68,8 @@ object Optimizer {
       CNamed(n, mergeOps(Reduce(e1, v2, f2, p2)))
 
     /** merge nests and joins **/
-    case Nest(OuterJoin(e1, e2, e1s, key1, e2s, key2, proj1, proj2), vs, key, value, nv, np, ng) =>
+    case Nest(OuterJoin(e1, e2, e1s, key1, e2s, key2, proj1, proj2), 
+      vs, key, value, nv, np, ng) if (collectVars(value) == Set(e2s)) =>
       CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
     case Nest(Join(e1:Select, e2, e1s, key1, e2s, key2), vs, key, value, nv, np, ng) => 
       CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
