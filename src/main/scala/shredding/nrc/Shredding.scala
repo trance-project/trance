@@ -38,7 +38,7 @@ trait BaseShredding {
   * Shredding transformation
   */
 trait Shredding extends BaseShredding with Extensions {
-  this: MaterializeNRC with Printer =>
+  this: MaterializeNRC =>
 
   def shred(e: Expr): ShredExpr = shred(e, Map.empty)
 
@@ -79,16 +79,7 @@ trait Shredding extends BaseShredding with Extensions {
         BagLet(xDict, dict1.tupleDict,
           ForeachUnion(xFlat, resolved1, resolved2))
       val lbl = NewLabel(labelParameters(flat))
-//      val tupleDict = TupleDictLet(xDict, dict1.tupleDict, dict2.tupleDict)
       val tupleDict = dict2.tupleDict
-
-println("------")
-println("FOR: " + quote(e))
-println("xDict: " + xDict.name)
-println("FLAT: " + quote(flat))
-println("DICT: " + quote(tupleDict))
-println("NEW LABEL: " + quote(lbl))
-println("------")
 
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), tupleDict))
 

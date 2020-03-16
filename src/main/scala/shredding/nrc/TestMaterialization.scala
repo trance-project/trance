@@ -7,7 +7,7 @@ object TestMaterialization extends App
   with Shredding
   with ScalaShredding
   with ScalaPrinter
-  with Materializer
+  with MaterializerNew
   with Printer
   with Evaluator
   with Optimizer {
@@ -20,11 +20,11 @@ object TestMaterialization extends App
     println("Shredded program optimized: \n" + quote(optimize(shredded)) + "\n")
 
     val materializedProgram = materialize(shredded)
-    println("Materialized program: \n" + quote(materializedProgram.program) + "\n")
-//    println("Materialized program optimized: \n" + quote(optimize(materializedProgram.program)) + "\n")
-//
+//    println("Materialized program: \n" + quote(materializedProgram.program) + "\n")
+    println("Materialized program optimized: \n" + quote(optimize(materializedProgram.program)) + "\n")
+
 //    val unshredded = unshred(shredded, materializedProgram.dictMapper)
-////    println("Unshredded program: \n" + quote(unshredded) + "\n")
+//    println("Unshredded program: \n" + quote(unshredded) + "\n")
 //    println("Unshredded program optimized: \n" + quote(optimize(unshredded)) + "\n")
   }
 
