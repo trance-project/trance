@@ -19,7 +19,7 @@ object TestMaterialization extends App
     println("Shredded program: \n" + quote(shredded) + "\n")
     println("Shredded program optimized: \n" + quote(optimize(shredded)) + "\n")
 
-    val materializedProgram = materialize(shredded)
+    val materializedProgram = materialize(optimize(shredded))
 //    println("Materialized program: \n" + quote(materializedProgram.program) + "\n")
     println("Materialized program optimized: \n" + quote(optimize(materializedProgram.program)) + "\n")
 
