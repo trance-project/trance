@@ -151,10 +151,37 @@ object Utils {
         |f
         |var end = System.currentTimeMillis() - start """.stripMargin
 
-  def runSparkNoDomains(query: Query, pathout: String, shred: Boolean = false, skew: Boolean = false): Unit = {
+  
+  def flat(query: Query, path: String, label: String): Unit =
+    runSparkNoDomains(query, path, label, 0, false, false)
+
+  def flatProj(query: Query, path: String, label: String): Unit =
+    runSparkNoDomains(query, path, label, 1, false, false)
+
+  def flatOpt(query: Query, path: String, label: String, skew: Boolean = false): Unit =
+    runSparkNoDomains(query, path, label, 2, false, skew)
+
+  def flatOptInput(input: Query, query: Query, path: String, label: String, skew: Boolean = false): Unit =
+    runSparkInputNoDomains(input, query, path, label, 2, shred = false, skew = skew)
+
+  def shredDomains(query: Query, path: String, label: String, skew: Boolean = false): Unit =
+    runSparkDomains(query, path, label, false, skew)
+
+  def shredDomainsInput(input: Query, query: Query, path: String, label: String, skew: Boolean = false): Unit =
+    runSparkInputDomains(input, query, path, label, unshred = false, skew = skew)
+
+  def unshredDomains(query: Query, path: String, label: String, skew: Boolean = false): Unit =
+    runSparkDomains(query, path, label, true, skew)
+
+  def unshredDomainsInput(input: Query, query: Query, path: String, label: String, skew: Boolean = false): Unit =
+    runSparkInputDomains(input, query, path, label, unshred = true, skew = skew)
+
+
+  def runSparkNoDomains(query: Query, pathout: String, label: String, optLevel: Int = 2, 
+    shred: Boolean = false, skew: Boolean = false): Unit = {
     
     val codegen = new SparkNamedGenerator(query.inputTypes(shred))
-    val gcode = if (shred) codegen.generate(query.sanf) else codegen.generate(query.anf)
+    val gcode = if (shred) codegen.generate(query.sanf) else codegen.generate(query.anf(optLevel))
     val header = if (skew) {
         s"""|import sprkloader.SkewPairRDD._
             ${if (shred) "|import sprkload.SkewDictRDD._" else ""}
@@ -167,28 +194,45 @@ object Utils {
             |${codegen.generateHeader(query.headerTypes(shred))}""".stripMargin
       }
    
-    val qname1 = if (shred) s"Shred${query.name}Spark" else s"${query.name}Spark"
+    val flatTag = optLevel match {
+      case 0 => "None"
+      case 1 => "Proj"
+      case _ => ""
+    }
+    val qname1 = if (shred) s"Shred${query.name}Spark" else s"${query.name}${flatTag}Spark"
     val qname = if (skew) s"${qname1}Skew" else qname1
     val fname = s"$pathout/$qname.scala" 
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val inputs = if (skew) query.inputs(if (shred) TPCHSchema.sskewcmds else TPCHSchema.skewcmds)
       else query.inputs(if (shred) TPCHSchema.stblcmds else TPCHSchema.tblcmds)
-    val finalc = writeSpark(qname, inputs, header, timed(gcode))
+    val finalc = writeSpark(qname, inputs, header, timed(gcode), label)
     printer.println(finalc)
     printer.close 
   
   }
 
-  def runSparkInputNoDomains(inputQuery: Query, query: Query, pathout: String, shred: Boolean = false): Unit = {
+  def runSparkInputNoDomains(inputQuery: Query, query: Query, pathout: String, label: String, optLevel: Int = 2, 
+    shred: Boolean = false, skew: Boolean = false): Unit = {
     
     val codegen = new SparkNamedGenerator(inputQuery.inputTypes(shred))
     val (inputCode, gcode) = 
       if (shred) (codegen.generate(inputQuery.sanf), codegen.generate(query.sanf))
-      else (codegen.generate(inputQuery.anf), codegen.generate(query.anf))
-    val header = codegen.generateHeader(inputQuery.headerTypes(shred))
+      else (codegen.generate(inputQuery.anf()), codegen.generate(query.anf(optLevel)))
+    val header = if (skew) {
+        s"""|import sprkloader.SkewPairRDD._
+            ${if (shred) "|import sprkload.SkewDictRDD._" else ""}
+            |import sprkloader.SkewTopRDD._
+            |${codegen.generateHeader(query.headerTypes(shred))}""".stripMargin
+      } else {
+        s"""|import sprkloader.PairRDDOperations._
+            ${if (shred) "|import sprkload.DictRDDOperations._" else ""}
+            |import sprkloader.TopRDD._
+            |${codegen.generateHeader(query.headerTypes(shred))}""".stripMargin
+      }
 
-    val qname = if (shred) s"Shred${query.name}Spark" else s"${query.name}Spark"
+    val qname1 = if (shred) s"Shred${query.name}Spark" else s"${query.name}Spark"
+    val qname = if (skew) s"${qname1}Skew" else qname1
     val fname = s"$pathout/$qname.scala"
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
@@ -196,13 +240,14 @@ object Utils {
       if (shred) s"${inputCode.split("\n").dropRight(1).mkString("\n")}\n${shredInputs(inputQuery.indexedDict)}"
       else s"${inputs(inputQuery.name, inputCode)}"
     val finalc = writeSpark(qname, query.inputs(if (shred) TPCHSchema.stblcmds else TPCHSchema.tblcmds), 
-                  header, s"$inputSection\n${timed(gcode)}")
+                  header, s"$inputSection\n${timed(gcode)}", label)
     printer.println(finalc)
     printer.close 
   
   }
 
-  def runSparkInputDomains(inputQuery: Query, query: Query, pathout: String, unshred: Boolean = false, skew: Boolean = false): Unit = {
+  def runSparkInputDomains(inputQuery: Query, query: Query, pathout: String, label: String, 
+    unshred: Boolean = false, skew: Boolean = false): Unit = {
     
     val codegen = new SparkNamedGenerator(query.inputTypes(true))
     val inputCode = codegen.generate(inputQuery.shredANF)
@@ -228,13 +273,13 @@ object Utils {
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val inputSection = s"${inputCode.split("\n").dropRight(1).mkString("\n")}\n${shredInputs(inputQuery.indexedDict)}"
     val inputs = if (skew) query.inputs(TPCHSchema.sskewcmds) else query.inputs(TPCHSchema.stblcmds)
-    val finalc = writeSpark(qname, inputs, header, s"$inputSection\n${timed(qname, gcodeSet)}")
+    val finalc = writeSpark(qname, inputs, header, s"$inputSection\n${timed(label, gcodeSet)}", label)
     printer.println(finalc)
     printer.close 
   
   }
 
-  def runSparkDomains(query: Query, pathout: String, unshred: Boolean = false, skew: Boolean = false): Unit = {
+  def runSparkDomains(query: Query, pathout: String, label: String, unshred: Boolean = false, skew: Boolean = false): Unit = {
     
     val codegen = new SparkNamedGenerator(query.inputTypes(true))
     val gcode1 = codegen.generate(query.shredANF)
@@ -258,7 +303,7 @@ object Utils {
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val inputs = if (skew) query.inputs(TPCHSchema.sskewcmds) else query.inputs(TPCHSchema.stblcmds)
-    val finalc = writeSpark(qname, inputs, header, timed(qname, gcodeSet))
+    val finalc = writeSpark(qname, inputs, header, timed(label, gcodeSet), label)
     printer.println(finalc)
     printer.close 
   
@@ -285,7 +330,7 @@ object Utils {
     * Writes out a query for a Spark application
     **/
 
-  def writeSpark(appname: String, data: String, header: String, gcode: String): String  = {
+  def writeSpark(appname: String, data: String, header: String, gcode: String, label:String): String  = {
     s"""
       |package experiments
       |/** Generated **/
@@ -300,7 +345,7 @@ object Utils {
       |   val spark = SparkSession.builder().config(conf).getOrCreate()
       |   $data
       |   $gcode
-      |   println("$appname"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
+      |   println("$label"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
       | }
       |}""".stripMargin
   }

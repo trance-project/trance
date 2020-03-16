@@ -30,7 +30,7 @@ object Test1 extends TPCHBase {
  
   val query = 
   ForeachUnion(o, relO,
-    Singleton(Tuple("orderdate" -> or("o_orderdate"), "o_parts" ->
+    Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" ->
       ForeachUnion(l, relL,
         IfThenElse(Cmp(OpEq, or("o_orderkey"), lr("l_orderkey")),
           Singleton(Tuple("l_partkey" -> lr("l_partkey"), "l_qty" -> lr("l_quantity"))))))))
@@ -50,7 +50,7 @@ object Test2 extends TPCHBase {
     Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> 
       ForeachUnion(o, relO,
         IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
-          Singleton(Tuple("orderdate" -> or("o_orderdate"), "o_parts" ->
+          Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" ->
             ForeachUnion(l, relL,
               IfThenElse(Cmp(OpEq, or("o_orderkey"), lr("l_orderkey")),
                 Singleton(Tuple("l_partkey" -> lr("l_partkey"), "l_qty" -> lr("l_quantity"))))))))))))
@@ -97,7 +97,7 @@ object Test3 extends TPCHBase {
           Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> 
             ForeachUnion(o, relO,
               IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
-                Singleton(Tuple("orderdate" -> or("o_orderdate"), "o_parts" ->
+                Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" ->
                   ForeachUnion(l, relL,
                     IfThenElse(Cmp(OpEq, or("o_orderkey"), lr("l_orderkey")),
                       Singleton(Tuple("l_partkey" -> lr("l_partkey"), "l_qty" -> lr("l_quantity")))))))
@@ -156,7 +156,7 @@ object Test4 extends TPCHBase {
                 Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> 
                   ForeachUnion(o, relO,
                     IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
-                      Singleton(Tuple("orderdate" -> or("o_orderdate"), "o_parts" ->
+                      Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" ->
                         ForeachUnion(l, relL,
                           IfThenElse(Cmp(OpEq, or("o_orderkey"), lr("l_orderkey")),
                             Singleton(Tuple("l_partkey" -> lr("l_partkey"), "l_qty" -> lr("l_quantity")))))))
@@ -260,7 +260,7 @@ object Test1JoinFlat extends TPCHBase {
 
   val query = Sequence(List(Named(parts, pquery),
   ForeachUnion(o, relO,
-    Singleton(Tuple("orderdate" -> or("o_orderdate"), "o_parts" ->
+    Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" ->
       ForeachUnion(part, BagVarRef(parts),
         IfThenElse(Cmp(OpEq, or("o_orderkey"), partRef("l_orderkey")),
           Singleton(Tuple("p_name" -> partRef("p_name"), "l_qty" -> partRef("l_qty"))))))))))
@@ -280,7 +280,7 @@ object Test2Join extends TPCHBase {
     Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> 
       ForeachUnion(o, relO,
         IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
-          Singleton(Tuple("orderdate" -> or("o_orderdate"), "o_parts" ->
+          Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" ->
             ForeachUnion(l, relL,
               IfThenElse(Cmp(OpEq, or("o_orderkey"), lr("l_orderkey")),
                 ForeachUnion(p, relP,
@@ -338,7 +338,7 @@ object Test3Join extends TPCHBase {
           Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> 
             ForeachUnion(o, relO,
               IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
-                Singleton(Tuple("orderdate" -> or("o_orderdate"), "o_parts" ->
+                Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" ->
                   ForeachUnion(l, relL,
                     IfThenElse(Cmp(OpEq, or("o_orderkey"), lr("l_orderkey")),
                       ForeachUnion(p, relP,
@@ -407,10 +407,10 @@ object Test4Join extends TPCHBase {
                 Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> 
                   ForeachUnion(o, relO,
                     IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
-                      Singleton(Tuple("orderdate" -> or("o_orderdate"), "o_parts" ->
+                      Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" ->
                         ForeachUnion(l, relL,
                           IfThenElse(Cmp(OpEq, or("o_orderkey"), lr("l_orderkey")),
-                            Singleton(Tuple("l_partkey" -> lr("l_partkey"), "l_qty" -> lr("l_quantity")))))))
+                            Singleton(Tuple("p_name" -> lr("l_partkey"), "l_qty" -> lr("l_quantity")))))))
                       )))))))))))))
 }
 

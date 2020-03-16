@@ -19,6 +19,16 @@ object Optimizer {
 
 
   val proj = HashMap[Variable, Set[String]]().withDefaultValue(Set())
+
+  def indexOnly(e: CExpr) = {
+    dictIndexer.finalize(e).asInstanceOf[CExpr]
+  }
+
+  def projectOnly(e: CExpr) = {
+    val projectionsPushed = push(e)
+    val indexed = dictIndexer.finalize(projectionsPushed).asInstanceOf[CExpr]
+    indexed
+  }
  
   def applyAll(e: CExpr) = {
     val projectionsPushed = push(e)

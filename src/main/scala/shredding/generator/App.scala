@@ -19,38 +19,71 @@ object App {
 
   def runExperiment1(){
     val pathout = "experiments/exp1.1/"
-    Utils.runSparkNoDomains(Test1, pathout, false, false)
-    Utils.runSparkNoDomains(Test1, pathout, true, false)
-    Utils.runSparkDomains(Test1, pathout, false, false)
-    Utils.runSparkDomains(Test1, pathout, true, false)
-    Utils.runSparkNoDomains(Test2Flat, pathout, false, false)
-    Utils.runSparkNoDomains(Test2, pathout, true, false)
-    Utils.runSparkDomains(Test2, pathout, false, false)
-    Utils.runSparkDomains(Test2, pathout, true, false)
-    Utils.runSparkNoDomains(Test3Flat, pathout, false, false)
-    Utils.runSparkDomains(Test3, pathout, false, false)
-    Utils.runSparkDomains(Test3, pathout, true, false)
-    Utils.runSparkNoDomains(Test4Flat, pathout, false, false)
-    Utils.runSparkDomains(Test4, pathout, false, false)
-    Utils.runSparkDomains(Test4, pathout, true, false)
+
+    Utils.flat(Test0, pathout, "Flat,0")
+    Utils.flat(Test1, pathout, "Flat,1")
+    Utils.flat(Test2, pathout, "Flat,2")
+    Utils.flat(Test3, pathout, "Flat,3")
+    Utils.flat(Test4, pathout, "Flat,4")
+
+    Utils.flatProj(Test0, pathout, "Flat+,0")
+    Utils.flatProj(Test1, pathout, "Flat+,1")
+    Utils.flatProj(Test2, pathout, "Flat+,2")
+    Utils.flatProj(Test3, pathout, "Flat+,3")
+    Utils.flatProj(Test4, pathout, "Flat+,4")
+
+    Utils.flatOpt(Test0, pathout, "Flat++,0")
+    Utils.flatOpt(Test1, pathout, "Flat++,1")
+    Utils.flatOpt(Test2Flat, pathout, "Flat++,2")
+    Utils.flatOpt(Test3Flat, pathout, "Flat++,3")
+    Utils.flatOpt(Test4Flat, pathout, "Flat++,4")
+
+    Utils.shredDomains(Test0, pathout, "ShredDom,0")
+    Utils.shredDomains(Test1, pathout, "ShredDom,1")
+    Utils.shredDomains(Test2, pathout, "ShredDom,2")
+    Utils.shredDomains(Test3, pathout, "ShredDom,3")
+    Utils.shredDomains(Test4, pathout, "ShredDom,4")
+
+    Utils.unshredDomains(Test0, pathout, "ShredDom,0")
+    Utils.unshredDomains(Test1, pathout, "ShredDom,1")
+    Utils.unshredDomains(Test2, pathout, "ShredDom,2")
+    Utils.unshredDomains(Test3, pathout, "ShredDom,3")
+    Utils.unshredDomains(Test4, pathout, "ShredDom,4")
+
   }
 
   def runExperiment1Joins(){
     val pathout = "experiments/exp1.2"
-    Utils.runSparkNoDomains(Test1JoinFlat, pathout, false, false)
-    Utils.runSparkNoDomains(Test1Join, pathout, true, false)
-    Utils.runSparkDomains(Test1Join, pathout, false, false)
-    Utils.runSparkDomains(Test1Join, pathout, true, false)
-    Utils.runSparkNoDomains(Test2JoinFlat, pathout, false, false)
-    Utils.runSparkNoDomains(Test2Join, pathout, true, false)
-    Utils.runSparkDomains(Test2Join, pathout, false, false)
-    Utils.runSparkDomains(Test2Join, pathout, true, false)
-    Utils.runSparkNoDomains(Test3JoinFlat, pathout, false, false)
-    Utils.runSparkDomains(Test3Join, pathout, false, false)
-    Utils.runSparkDomains(Test3Join, pathout, true, false)
-    Utils.runSparkNoDomains(Test4JoinFlat, pathout, false, false)
-    Utils.runSparkDomains(Test4Join, pathout, false, false)
-    Utils.runSparkDomains(Test4Join, pathout, true, false)
+    
+    Utils.flat(Test0Join, pathout, "Flat,0")
+    Utils.flat(Test1Join, pathout, "Flat,1")
+    Utils.flat(Test2Join, pathout, "Flat,2")
+    Utils.flat(Test3Join, pathout, "Flat,3")
+    Utils.flat(Test4Join, pathout, "Flat,4")
+
+    Utils.flatProj(Test0Join, pathout, "Flat+,0")
+    Utils.flatProj(Test1Join, pathout, "Flat+,1")
+    Utils.flatProj(Test2Join, pathout, "Flat+,2")
+    Utils.flatProj(Test3Join, pathout, "Flat+,3")
+    Utils.flatProj(Test4Join, pathout, "Flat+,4")
+
+    Utils.flatOpt(Test0Join, pathout, "Flat++,0")
+    Utils.flatOpt(Test1Join, pathout, "Flat++,1")
+    Utils.flatOpt(Test2JoinFlat, pathout, "Flat++,2")
+    Utils.flatOpt(Test3JoinFlat, pathout, "Flat++,3")
+    Utils.flatOpt(Test4JoinFlat, pathout, "Flat++,4")
+
+    Utils.shredDomains(Test0Join, pathout, "ShredDom,0")
+    Utils.shredDomains(Test1Join, pathout, "ShredDom,1")
+    Utils.shredDomains(Test2Join, pathout, "ShredDom,2")
+    Utils.shredDomains(Test3Join, pathout, "ShredDom,3")
+    Utils.shredDomains(Test4Join, pathout, "ShredDom,4")
+
+    Utils.unshredDomains(Test0Join, pathout, "ShredDom,0")
+    Utils.unshredDomains(Test1Join, pathout, "ShredDom,1")
+    Utils.unshredDomains(Test2Join, pathout, "ShredDom,2")
+    Utils.unshredDomains(Test3Join, pathout, "ShredDom,3")
+    Utils.unshredDomains(Test4Join, pathout, "ShredDom,4")
   }
   
   def runTPCH1(){   
