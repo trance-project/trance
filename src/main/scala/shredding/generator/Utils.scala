@@ -345,7 +345,7 @@ object Utils {
       |   val spark = SparkSession.builder().config(conf).getOrCreate()
       |   $data
       |   $gcode
-      |   println("$label"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
+      |   println("$label,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
       | }
       |}""".stripMargin
   }
