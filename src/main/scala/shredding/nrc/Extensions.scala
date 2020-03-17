@@ -70,8 +70,12 @@ trait Extensions {
         collect(l, f) ++ collect(d, f)
 
       // Materialization extensions
-      case MatDictLookup(l, b) =>
-        collect(l, f) ++ collect(b, f)
+      case MatDictLookup(l, d) =>
+        collect(l, f) ++ collect(d, f)
+      case BagToMatDict(b) =>
+        collect(b, f)
+      case MatDictToBag(d) =>
+        collect(d, f)
 
       case _ => List()
     })
@@ -208,10 +212,16 @@ trait Extensions {
         rd.lookup(rl) -> ctx2
 
       // Materialization extensions
-      case (MatDictLookup(l, b), ctx0) =>
+      case (MatDictLookup(l, d), ctx0) =>
         val (rl: LabelExpr, ctx1) = replace(l, ctx0, f)
-        val (rb: BagExpr, ctx2) = replace(b, ctx1, f)
-        MatDictLookup(rl, rb) -> ctx2
+        val (rd: MatDictExpr, ctx2) = replace(d, ctx1, f)
+        MatDictLookup(rl, rd) -> ctx2
+      case (BagToMatDict(b), ctx0) =>
+        val (r: BagExpr, ctx1) = replace(b, ctx0, f)
+        BagToMatDict(r) -> ctx1
+      case (MatDictToBag(d), ctx0) =>
+        val (r: MatDictExpr, ctx1) = replace(d, ctx0, f)
+        MatDictToBag(r) -> ctx1
 
       case _ => x
     })
@@ -311,10 +321,16 @@ trait Extensions {
         rd.lookup(rl)
 
       // Materialization extensions
-      case MatDictLookup(l, b) =>
+      case MatDictLookup(l, d) =>
         val rl = replace(l, f).asInstanceOf[LabelExpr]
-        val rb = replace(b, f).asInstanceOf[BagExpr]
-        MatDictLookup(rl, rb)
+        val rd = replace(d, f).asInstanceOf[MatDictExpr]
+        MatDictLookup(rl, rd)
+      case BagToMatDict(b) =>
+        val r = replace(b, f).asInstanceOf[BagExpr]
+        BagToMatDict(r)
+      case MatDictToBag(d) =>
+        val r = replace(d, f).asInstanceOf[MatDictExpr]
+        MatDictToBag(r)
 
       case _ => ex
     })
@@ -379,6 +395,11 @@ trait Extensions {
       labelParameters(e1, scope) ++ labelParameters(e2, scope + (x.name -> x))
     case l: Let =>
       labelParameters(l.e1, scope) ++ labelParameters(l.e2, scope + (l.x.name -> l.x))
+    case x: ExtractLabel =>
+      val xscope = x.lbl.tp.attrTps.collect {
+        case (n, t) if !coveredByScope(n, t, scope) => n -> VarDef(n, t)
+      }
+      labelParameters(x.lbl, scope) ++ labelParameters(x.e, scope ++ xscope)
     case p: VarRefLabelParameter =>
       filterByScope(p.e, scope).map(_ => p).toList
     case p: ProjectLabelParameter =>
@@ -389,12 +410,15 @@ trait Extensions {
   })
 
   protected def filterByScope(v: VarRef, scope: Map[String, VarDef]): Option[VarRef] =
-    scope.get(v.name) match {
-      case Some(v2) =>
+    if (coveredByScope(v.name, v.tp, scope)) None else Some(v)
+
+  protected def coveredByScope(name: String, tp: Type, scope: Map[String, VarDef]): Boolean =
+    scope.get(name) match {
+      case Some(v) =>
         // Sanity check
-        assert(v.tp == v2.tp, "[filterByScope] Types differ: " + v.tp + " and " + v2.tp)
-        None
-      case None => Some(v)
+        assert(tp == v.tp, "[coveredByScope] Types differ: " + tp + " and " + v.tp)
+        true
+      case None => false
     }
 
   def inputVars(e: Expr): Set[VarRef] =
@@ -427,11 +451,17 @@ trait Extensions {
     }._2
 
   protected def inputVars(e: Expr, scope: Map[String, VarDef]): List[VarRef] = collect(e, {
-    case v: VarRef => filterByScope(v, scope).toList
+    case v: VarRef =>
+      filterByScope(v, scope).toList
     case ForeachUnion(x, e1, e2) =>
       inputVars(e1, scope) ++ inputVars(e2, scope + (x.name -> x))
     case l: Let =>
       inputVars(l.e1, scope) ++ inputVars(l.e2, scope + (l.x.name -> l.x))
+    case x: ExtractLabel =>
+      val xscope = x.lbl.tp.attrTps.collect {
+        case (n, t) if !coveredByScope(n, t, scope) => n -> VarDef(n, t)
+      }
+      inputVars(x.lbl, scope) ++ inputVars(x.e, scope ++ xscope)
     case BagDict(ltp, f, d) =>
       val params = ltp.attrTps.map(v => v._1 -> VarDef(v._1, v._2))
       inputVars(f, scope ++ params) ++ inputVars(d, scope)

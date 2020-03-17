@@ -11,10 +11,14 @@ trait Printer {
   import shredding.utils.Utils.ind
 
   def quote(e: Expr): String = e match {
-    case c: Const if c.tp == StringType => "\"" + c.v + "\""
-    case c: Const => c.v.toString
-    case v: VarRef => v.name
-    case p: Project => quote(p.tuple) + "." + p.field
+    case c: Const if c.tp == StringType =>
+      "\"" + c.v + "\""
+    case c: Const =>
+      c.v.toString
+    case v: VarRef =>
+      v.name
+    case p: Project =>
+      quote(p.tuple) + "." + p.field
     case ForeachUnion(x, e1, e2) =>
       s"""|For ${x.name} in ${quote(e1)} Union
           |${ind(quote(e2))}""".stripMargin
@@ -29,16 +33,14 @@ trait Printer {
     case l: Let =>
       s"""|Let ${l.x.name} = ${quote(l.e1)} In
           |${quote(l.e2)}""".stripMargin
-    case c: CondExpr => c match {
-      case cmp: Cmp =>
-        s"${quote(cmp.e1)} ${cmp.op} ${quote(cmp.e2)}"
-      case And(e1, e2) =>
-        s"${quote(e1)} AND ${quote(e2)}"
-      case Or(e1, e2) =>
-        s"${quote(e1)} OR ${quote(e2)}"
-      case Not(e1) =>
-        s"NOT ${quote(e1)}"
-    }
+    case c: Cmp =>
+      s"${quote(c.e1)} ${c.op} ${quote(c.e2)}"
+    case And(e1, e2) =>
+      s"${quote(e1)} AND ${quote(e2)}"
+    case Or(e1, e2) =>
+      s"${quote(e1)} OR ${quote(e2)}"
+    case Not(e1) =>
+      s"NOT ${quote(e1)}"
     case i: IfThenElse =>
       if (i.e2.isDefined)
         s"""|If (${quote(i.cond)}) Then
@@ -64,7 +66,8 @@ trait Printer {
 
     // Label extensions
     case x: ExtractLabel =>
-      val tuple = x.lbl.tp.attrTps.keys.mkString(", ")
+//      val tuple = x.lbl.tp.attrTps.keys.mkString(", ")
+      val tuple = x.lbl.tp.attrTps.map(x => x._1 + " : " + quote(x._2)).mkString(", ")
       s"""|Extract ${quote(x.lbl)} as ($tuple) In
           |${quote(x.e)}""".stripMargin
     case l: NewLabel =>
@@ -72,10 +75,11 @@ trait Printer {
       s"NewLabel(${(l.id :: ps).mkString(", ")})"
 
     // Dictionary extensions
-    case EmptyDict => "Nil"
+    case EmptyDict =>
+      "Nil"
     case BagDict(tp, flat, dict) =>
-//      val params = tp.attrTps.map(x => x._1 + ": " + quote(x._2)).mkString(", ")
       val params = tp.attrTps.keys.mkString(", ")
+//      val params = tp.attrTps.map(x => x._1 + ": " + quote(x._2)).mkString(", ")
       s"""|(($params) ->
           |  flat :=
           |${ind(quote(flat), 2)},
@@ -97,10 +101,17 @@ trait Printer {
           |(${quote(e2)})""".stripMargin
     case Lookup(lbl, dict) =>
       s"Lookup(${quote(lbl)}, ${quote(dict)})"
-    case MatDictLookup(lbl, bag) =>
-      s"MatDictLookup(${quote(lbl)}, ${quote(bag)})"
 
-    case _ => sys.error("Cannot print unknown expression " + e)
+    // Materialization extensions
+    case MatDictLookup(lbl, dict) =>
+      s"MatDictLookup(${quote(lbl)}, ${quote(dict)})"
+    case BagToMatDict(b) =>
+      s"BagToMatDict(${quote(b)})"
+    case MatDictToBag(d) =>
+      s"MatDictToBag(${quote(d)})"
+
+    case _ =>
+      sys.error("Cannot print unknown expression " + e)
   }
 
   def quote(a: Assignment): String = s"${a.name} := ${quote(a.rhs)}"
@@ -141,8 +152,11 @@ trait Printer {
         s"flatTp := ${quote(t.flatTp, verbose)}, " +
         s"dictTp := ${quote(t.dictTp, verbose)})"
     case t: TupleDictType =>
-        s"TupleDictType(${quote(t.attrTps, verbose)})"
-    case _ => sys.error("Cannot print unknown type " + tp)
+      s"TupleDictType(${quote(t.attrTps, verbose)})"
+    case t: MatDictType =>
+      s"MatDictType(keyTp := ${quote(t.keyTp)}, valueTp := ${quote(t.valueTp)})"
+    case _ =>
+      sys.error("Cannot print unknown type " + tp)
   }
 
   protected def quote(m: Map[String, Type], verbose: Boolean): String =

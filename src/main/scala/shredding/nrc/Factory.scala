@@ -20,6 +20,7 @@ trait Factory {
       case _: TupleType => TupleVarRef(varDef)
       case _: LabelType => LabelVarRef(varDef)
       case _: DictType => DictVarRef(varDef)
+      case _: MatDictType => MatDictVarRef(varDef)
       case t => sys.error("Cannot create VarRef for type " + t)
     }
 
@@ -129,9 +130,6 @@ trait Factory {
 
     def apply(c: CondExpr, e: LabelExpr): LabelIfThenElse =
       LabelIfThenElse(c, e, None)
-
-    def apply(c: CondExpr, e1: DictExpr, e2: DictExpr): DictExpr =
-      DictIfThenElse(c, e1, e2)
   }
 
   object DictIfThenElse {

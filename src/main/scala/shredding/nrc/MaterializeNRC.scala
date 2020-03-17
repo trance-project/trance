@@ -1,6 +1,6 @@
 package shredding.nrc
 
-import shredding.core.BagType
+import shredding.core.{BagType, LabelType, MatDictType, TupleType, VarDef}
 
 trait MaterializeNRC extends ShredNRC with Optimizer {
 
@@ -10,14 +10,35 @@ trait MaterializeNRC extends ShredNRC with Optimizer {
 
   val LABEL_ATTR_NAME: String = "_LABEL"
 
-  final case class MatDictLookup(lbl: LabelExpr, bag: BagExpr) extends BagExpr {
-    assert(bag.tp.tp(KEY_ATTR_NAME) == lbl.tp,
-      "Incompatible types " + bag.tp.tp(KEY_ATTR_NAME) + " and " + lbl.tp)
+  trait MatDictExpr extends Expr {
+    def tp: MatDictType
+  }
 
-    assert(bag.tp.tp(VALUE_ATTR_NAME).isInstanceOf[BagType],
-      "Value attribute has wrong type: " + bag.tp.tp(VALUE_ATTR_NAME))
+  final case class MatDictVarRef(varDef: VarDef) extends MatDictExpr with VarRef {
+    override def tp: MatDictType = super.tp.asInstanceOf[MatDictType]
+  }
 
-    def tp: BagType = bag.tp.tp(VALUE_ATTR_NAME).asInstanceOf[BagType]
+  final case class BagToMatDict(bag: BagExpr) extends MatDictExpr {
+    def tp: MatDictType =
+      MatDictType(
+        bag.tp.tp(KEY_ATTR_NAME).asInstanceOf[LabelType],
+        bag.tp.tp(VALUE_ATTR_NAME).asInstanceOf[BagType]
+      )
+  }
+
+  final case class MatDictToBag(dict: MatDictExpr) extends BagExpr {
+    def tp: BagType =
+      BagType(TupleType(
+        KEY_ATTR_NAME -> dict.tp.keyTp,
+        VALUE_ATTR_NAME -> dict.tp.valueTp
+      ))
+  }
+
+  final case class MatDictLookup(lbl: LabelExpr, dict: MatDictExpr) extends BagExpr {
+    assert(dict.tp.keyTp == lbl.tp,
+      "Incompatible types " + dict.tp.keyTp + " and " + lbl.tp)
+
+    def tp: BagType = dict.tp.valueTp
   }
 
 }

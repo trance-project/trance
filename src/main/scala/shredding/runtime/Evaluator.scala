@@ -9,8 +9,10 @@ import shredding.nrc.MaterializeNRC
 trait Evaluator extends MaterializeNRC with ScalaRuntime {
 
   def eval(e: Expr, ctx: Context): Any = e match {
-    case c: Const => c.v
-    case v: VarRef => ctx(v.varDef)
+    case c: Const =>
+      c.v
+    case v: VarRef =>
+      ctx(v.varDef)
     case p: Project =>
       evalTuple(p.tuple, ctx)(p.field)
     case ForeachUnion(x, e1, e2) =>
@@ -66,21 +68,13 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
       else i.e2.map(eval(_, ctx)).getOrElse(Nil)
     case ArithmeticExpr(op, a1, a2) => e.tp match {
       case IntType =>
-        evalArithmeticIntegral(
-          op,
-          eval(a1, ctx).asInstanceOf[Int],
-          eval(a2, ctx).asInstanceOf[Int])
+        evalArithmeticIntegral(op, evalInt(a1, ctx), evalInt(a2, ctx))
       case LongType =>
-        evalArithmeticIntegral(
-          op,
-          eval(a1, ctx).asInstanceOf[Long],
-          eval(a2, ctx).asInstanceOf[Long])
+        evalArithmeticIntegral(op, evalLong(a1, ctx), evalLong(a2, ctx))
       case DoubleType =>
-        evalArithmeticFractional(
-          op,
-          eval(a1, ctx).asInstanceOf[Double],
-          eval(a2, ctx).asInstanceOf[Double])
-      case _ => sys.error("Arithmetic type not supported " + e.tp)
+        evalArithmeticFractional(op, evalDouble(a1, ctx), evalDouble(a2, ctx))
+      case _ =>
+        sys.error("Arithmetic type not supported " + e.tp)
     }
     case Count(e1) =>
       evalBag(e1, ctx).size
@@ -109,9 +103,8 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
 
     // Label extensions
     case x: ExtractLabel =>
-      val las = x.lbl.tp.attrTps
-      val newBoundVars = las.filterNot { case (n2, t2) =>
-        ctx.contains(VarDef(n2, t2))
+      val newBoundVars = x.lbl.tp.attrTps.filterNot {
+        case (n2, t2) => ctx.contains(VarDef(n2, t2))
       }
       eval(x.lbl, ctx) match {
         case ROutLabel(fs) =>
@@ -129,28 +122,27 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
     case l: NewLabel =>
       ROutLabel(l.params.map {
         case l: VarRefLabelParameter =>
-          l.e.varDef -> ctx(l.e.varDef)
+          l.e.varDef -> eval(l.e, ctx)
         case l: ProjectLabelParameter =>
           val v1 = VarDef(l.name, l.tp)
-          v1 -> eval(l.e.asInstanceOf[Expr], ctx)
+          v1 -> eval(l.e, ctx)
       }.toMap)
 
     // Dictionary extensions
-    case EmptyDict => REmptyDict
+    case EmptyDict =>
+      REmptyDict
     case BagDict(lblTp, flat, dict) =>
       val dictFn = new DictFn(ctx, c => evalBag(flat, c))
       ROutBagDict(dictFn, lblTp, flat.tp, evalTupleDict(dict, ctx))
     case TupleDict(fs) =>
       RTupleDict(fs.map(f => f._1 -> eval(f._2, ctx).asInstanceOf[RTupleDictAttribute]))
-    case BagDictProject(t, f) =>
-      evalTupleDict(t, ctx).fields(f)
     case TupleDictProject(b) =>
       evalBagDict(b, ctx).dict
     case d: DictUnion =>
       evalDict(d.dict1, ctx).union(evalDict(d.dict2, ctx))
 
     // Shredding extensions
-    case ShredUnion(e1, e2) =>
+    case _: ShredUnion =>
       sys.error("Not implemented")
     case Lookup(l, BagDict(lblTp, f, _)) =>
       val dictFn = new DictFn(ctx, c => evalBag(f, c))
@@ -159,8 +151,17 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
       evalBagDict(d, ctx)(evalLabel(l, ctx))
 
     // Materialization extensions
-    case MatDictLookup(l, b) =>
-      sys.error("Not implemented")
+    case MatDictLookup(l, d) =>
+      evalMatDict(d, ctx)(evalLabel(l, ctx))
+    case BagToMatDict(b) =>
+      evalBag(b, ctx).asInstanceOf[List[Map[String, _]]].map(x =>
+        x(KEY_ATTR_NAME).asInstanceOf[RLabel] ->
+          x(VALUE_ATTR_NAME).asInstanceOf[List[_]]
+      ).toMap
+    case MatDictToBag(d) =>
+      evalMatDict(d, ctx).toList.map { case (k, v) =>
+        Map(KEY_ATTR_NAME -> k, VALUE_ATTR_NAME -> v)
+      }
 
     case _ => sys.error("Cannot evaluate unknown expression " + e)
   }
@@ -192,13 +193,36 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
   protected def evalBool(e: Expr, ctx: Context): Boolean =
     eval(e, ctx).asInstanceOf[Boolean]
 
+  protected def evalInt(e: Expr, ctx: Context): Int = e.tp match {
+    case IntType => eval(e, ctx).asInstanceOf[Int]
+    case _ => sys.error("Cannot evaluate integer of type " + e.tp)
+  }
+
+  protected def evalLong(e: Expr, ctx: Context): Long = e.tp match {
+    case IntType => eval(e, ctx).asInstanceOf[Int].toLong
+    case LongType => eval(e, ctx).asInstanceOf[Long]
+    case _ => sys.error("Cannot evaluate long of type " + e.tp)
+  }
+
+  protected def evalDouble(e: Expr, ctx: Context): Double = e.tp match {
+    case IntType => eval(e, ctx).asInstanceOf[Int].toDouble
+    case LongType => eval(e, ctx).asInstanceOf[Long].toDouble
+    case DoubleType => eval(e, ctx).asInstanceOf[Double]
+    case _ => sys.error("Cannot evaluate double of type " + e.tp)
+  }
+
   protected def evalCmp[T](op: OpCmp, v1: T, v2: T)
                           (implicit o: Ordering[T]): Boolean = op match {
-    case OpEq => o.eq(v1, v2)
-    case OpNe => o.ne(v1, v2)
+    case OpEq => v1 == v2
+    case OpNe => v1 != v2
     case OpGt => o.gt(v1, v2)
     case OpGe => o.gteq(v1, v2)
   }
+
+  protected def evalMatDict(e: MatDictExpr, ctx: Context): Map[RLabel, List[_]] = {
+    eval(e, ctx).asInstanceOf[Map[RLabel, List[_]]]
+  }
+
 
   protected def evalArithmeticIntegral[T](op: OpArithmetic, a1: T, a2: T)
                                          (implicit i: Integral[T]): T = op match {

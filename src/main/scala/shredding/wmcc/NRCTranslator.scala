@@ -115,7 +115,7 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
     case Lookup(lbl, dict) => CLookup(translate(lbl), translate(dict)) 
     case EmptyDict => emptydict
     case BagDict(ltp, flat, dict) => BagCDict(ltp, translate(flat), translate(dict))
-    case BagDictProject(dict, field) => project(translate(dict), field)
+//    case BagDictProject(dict, field) => project(translate(dict), field)
     case TupleDict(fs) => TupleCDict(fs.map(f => f._1 -> translate(f._2)))
     case TupleDictProject(dict) => project(translate(dict), "_2")
     case d: DictUnion => DictCUnion(translate(d.dict1), translate(d.dict2))

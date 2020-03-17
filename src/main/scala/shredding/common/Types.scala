@@ -71,6 +71,9 @@ object TupleDictType {
   def apply(attrTps: (String, TupleDictAttributeType)*): TupleDictType = TupleDictType(Map(attrTps: _*))
 }
 
+final case class MatDictType(keyTp: LabelType, valueTp: BagType) extends Type
+
+
 /**
   * Types used for WMCC
   *
