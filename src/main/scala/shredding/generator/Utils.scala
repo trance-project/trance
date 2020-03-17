@@ -143,9 +143,9 @@ object Utils {
         |var end = System.currentTimeMillis() - start
     """.stripMargin
    
-  def timed(e: String): String = 
+  def timed(e: String, shred: Boolean = true): String = 
     s"""|def f = { 
-        | $e
+        | ${e}${if (!shred) ".evaluate"}
         |}
         |var start = System.currentTimeMillis()
         |f
@@ -155,8 +155,14 @@ object Utils {
   def flat(query: Query, path: String, label: String): Unit =
     runSparkNoDomains(query, path, label, 0, false, false)
 
+  def flatInput(input: Query, query: Query, path: String, label: String): Unit =
+    runSparkInputNoDomains(input, query, path, label, 0, shred = false)
+
   def flatProj(query: Query, path: String, label: String): Unit =
     runSparkNoDomains(query, path, label, 1, false, false)
+
+  def flatProjInput(input: Query, query: Query, path: String, label: String): Unit =
+    runSparkInputNoDomains(input, query, path, label, 1, shred = false)
 
   def flatOpt(query: Query, path: String, label: String, skew: Boolean = false): Unit =
     runSparkNoDomains(query, path, label, 2, false, skew)
@@ -206,7 +212,7 @@ object Utils {
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val inputs = if (skew) query.inputs(if (shred) TPCHSchema.sskewcmds else TPCHSchema.skewcmds)
       else query.inputs(if (shred) TPCHSchema.stblcmds else TPCHSchema.tblcmds)
-    val finalc = writeSpark(qname, inputs, header, timed(gcode), label)
+    val finalc = writeSpark(qname, inputs, header, timed(gcode, shred), label)
     printer.println(finalc)
     printer.close 
   
@@ -230,8 +236,12 @@ object Utils {
             |import sprkloader.TopRDD._
             |${codegen.generateHeader(query.headerTypes(shred))}""".stripMargin
       }
-
-    val qname1 = if (shred) s"Shred${query.name}Spark" else s"${query.name}Spark"
+    val flatTag = optLevel match {
+      case 0 => "None"
+      case 1 => "Proj"
+      case _ => ""
+    }
+    val qname1 = if (shred) s"Shred${query.name}Spark" else s"${query.name}${flatTag}Spark"
     val qname = if (skew) s"${qname1}Skew" else qname1
     val fname = s"$pathout/$qname.scala"
     println(s"Writing out $qname to $fname")
@@ -240,7 +250,7 @@ object Utils {
       if (shred) s"${inputCode.split("\n").dropRight(1).mkString("\n")}\n${shredInputs(inputQuery.indexedDict)}"
       else s"${inputs(inputQuery.name, inputCode)}"
     val finalc = writeSpark(qname, query.inputs(if (shred) TPCHSchema.stblcmds else TPCHSchema.tblcmds), 
-                  header, s"$inputSection\n${timed(gcode)}", label)
+                  header, s"$inputSection\n${timed(gcode, shred)}", label)
     printer.println(finalc)
     printer.close 
   
@@ -309,12 +319,13 @@ object Utils {
   
   }
 
-  def inputs(n: String, e: String): String = 
+  def inputs(n: String, e: String): String = {
     s"""|val $n = {
         | $e
         |}
         |$n.cache
         |$n.evaluate""".stripMargin
+  }
  
   def shredInputs(ns: List[String]): String = { 
     var cnt = 0

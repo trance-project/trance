@@ -205,7 +205,130 @@ object Test4Flat extends TPCHBase {
 
 }
 
-/** Experiment 1.2, nested joins **/
+/** Experiment 1.2, nested to nested with a join at bottom level **/
+
+object Test0NN extends TPCHBase {
+
+  val name = "Test0"
+  override def indexedDict: List[String] = List(s"${name}__D_1")
+
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("L", "P").contains(x._1)).values.toList.mkString("")}"
+ 
+  val (parts, part, partRef) = varset(Test0.name, "l", Test0.query.asInstanceOf[BagExpr])
+  val query = 
+  Let(parts, BagVarRef(parts),
+    ForeachUnion(part, BagVarRef(parts),
+      ForeachUnion(p, relP,
+        IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
+          Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> partRef("l_qty")))))))
+
+}
+
+object Test1NN extends TPCHBase {
+
+  val name = "Test1"
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"o__Do_parts_1")
+
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+ 
+  val (orders, order, orderRef) = varset(Test1.name, "o", Test1.query.asInstanceOf[BagExpr])
+  val (parts, part, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
+  val query = 
+  Let(orders, Test1.query.asInstanceOf[BagExpr],
+    ForeachUnion(order, BagVarRef(orders),
+      Singleton(Tuple("o_orderdate" -> orderRef("o_orderdate"), "o_parts" ->
+        ForeachUnion(part, BagProject(orderRef, "o_parts"),
+          ForeachUnion(p, relP,
+            IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
+              Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> partRef("l_qty"))
+    ))))))))
+
+}
+
+object Test2NN extends TPCHBase {
+
+  val name = "Test2"
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+ 
+  val (customers, customer, customerRef) = varset(Test2.name, "c", Test2.query.asInstanceOf[BagExpr])
+  val (orders, order, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
+  val (parts, part, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
+  val query = 
+  Let(customers, Test2.query.asInstanceOf[BagExpr],
+  ForeachUnion(customer, BagVarRef(customers),
+    Singleton(Tuple("c_name" -> customerRef("c_name"), "c_orders" -> 
+      ForeachUnion(order, BagProject(customerRef, "c_orders"),
+        Singleton(Tuple("o_orderdate" -> orderRef("o_orderdate"), "o_parts" ->
+          ForeachUnion(part, BagProject(orderRef, "o_parts"),
+            ForeachUnion(p, relP,
+              IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
+                Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> partRef("l_qty")))
+            ))))))))))
+}
+
+object Test3NN extends TPCHBase {
+
+  val name = "Test3"
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"n__Dn_custs_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N", "P").contains(x._1)).values.toList.mkString("")}"
+ 
+  val (nations, nation, nationRef) = varset(Test3.name, "n", Test3.query.asInstanceOf[BagExpr])
+  val (customers, customer, customerRef) = varset("customers", "c", BagProject(nationRef, "n_custs"))
+  val (orders, order, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
+  val (parts, part, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
+  val query = 
+  Let(nations, Test3.query.asInstanceOf[BagExpr],
+  ForeachUnion(nation, BagVarRef(nations),
+    Singleton(Tuple("n_name" -> nationRef("n_name"), "n_custs" ->
+      ForeachUnion(customer, BagProject(nationRef, "n_custs"),
+        Singleton(Tuple("c_name" -> customerRef("c_name"), "c_orders" -> 
+          ForeachUnion(order, BagProject(customerRef, "c_orders"),
+            Singleton(Tuple("o_orderdate" -> orderRef("o_orderdate"), "o_parts" ->
+              ForeachUnion(part, BagProject(orderRef, "o_parts"),
+                ForeachUnion(p, relP,
+                  IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
+                    Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> partRef("l_qty")))
+                )))))))))))))
+}
+
+object Test4NN extends TPCHBase {
+
+  val name = "Test4"
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"n__Dr_nations_1", s"n__Dn_custs_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N", "R", "P").contains(x._1)).values.toList.mkString("")}"
+ 
+  val (regions, region, regionRef) = varset(Test4.name, "r", Test4.query.asInstanceOf[BagExpr])
+  val (nations, nation, nationRef) = varset("nations", "n", BagProject(regionRef, "r_nations"))
+  val (customers, customer, customerRef) = varset("customers", "c", BagProject(nationRef, "n_custs"))
+  val (orders, order, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
+  val (parts, part, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
+  val query = 
+  Let(regions, Test4.query.asInstanceOf[BagExpr],
+  ForeachUnion(region, BagVarRef(regions),
+    Singleton(Tuple("r_name" -> regionRef("r_name"), "r_nations" ->
+      ForeachUnion(nation, BagProject(regionRef, "r_nations"),
+        Singleton(Tuple("n_name" -> nationRef("n_name"), "n_custs" ->
+          ForeachUnion(customer, BagProject(nationRef, "n_custs"),
+            Singleton(Tuple("c_name" -> customerRef("c_name"), "c_orders" -> 
+              ForeachUnion(order, BagProject(customerRef, "c_orders"),
+                Singleton(Tuple("o_orderdate" -> orderRef("o_orderdate"), "o_parts" ->
+                  ForeachUnion(part, BagProject(orderRef, "o_parts"),
+                    ForeachUnion(p, relP,
+                      IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
+                        Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> partRef("l_qty")))
+                    ))))))))))))))))
+}
+
+/** Experiment 1.3, nested joins **/
 
 object Test0Join extends TPCHBase {
 

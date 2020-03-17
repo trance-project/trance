@@ -8,6 +8,7 @@ trait SparkTypeHandler {
 
   var types: Map[Type, String]
   var typelst: Seq[Type] = Seq()
+  val dotEquality: Boolean = false
 
   def kvName(x: String)(implicit s: Int = -1): String = x match {
     case "k" if s == 2 => "_1"
@@ -18,13 +19,10 @@ trait SparkTypeHandler {
   }
 
   def generateTypeDef(tp: Type): String = tp match {
-    case LabelType(fs) =>
-     val name = types(tp)
-     val fsize = fs.size
-      s"case class $name(${fs.map(x => s"${kvName(x._1)(fsize)}: ${generateType(x._2)}").mkString(", ")})"
+    case LabelType(fs) => generateTypeDef(RecordCType(fs))
     case RecordCType(fs) =>
-     val name = types(tp)
-     val fsize = fs.size
+      val name = types(tp)
+      val fsize = fs.size
       s"case class $name(${fs.map(x => s"${kvName(x._1)(fsize)}: ${generateType(x._2)}").mkString(", ")})"
     case _ => sys.error("unsupported type "+tp)
   }
