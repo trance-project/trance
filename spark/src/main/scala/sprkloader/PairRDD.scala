@@ -114,14 +114,6 @@ object PairRDDOperations {
       case _ => lrdd.reduceByKey(new HashPartitioner(partitions), f)
     }
 
-    // def nestGroup: RDD[(K,Vector[V])] = {
-    //   val accum1 = (acc: Vector[V], v: V) => acc :+ v
-    //   val accum2 = (acc1: Vector[V], acc2: Vector[V]) => acc1 ++ acc2
-    //   lrdd.partitioner match {
-    //     case Some(p) => lrdd.aggregateByKey(Vector.empty[V])(accum1, accum2)
-    //     case _ => lrdd.aggregateByKey(Vector.empty[V], new HashPartitioner(partitions))(accum1, accum2)
-    //   }
-    // }
     def group(f: (V, V) => V): RDD[(K, V)] = reduce(f)
   }
 
