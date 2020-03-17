@@ -226,7 +226,6 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
           |""".stripMargin
 
     /** NEST - Dictionary Specific **/
-    // Nest for dictionaries, use groupByKey to remove lbl -> {} pairs
     case Nest(e1, v1, f, e2, v2, p, g) if hasLabel(f.tp) =>
       val vars = generateVars(v1, e1.tp)
       val acc = "acc"+Variable.newId
@@ -244,8 +243,8 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
       val emptyType = empty(e2)
       val gv2 = generate(v2)
       val key = f match {
-        case Bind(bv, Project(v, field), _) => nullProject(f)
-        case _ => s"{${generate(f)}}"
+        case Bind(bv, Project(v, field), _) => s"(${nullProject(f)}, index)"
+        case _ => s"({${generate(f)}}, index)"
       }
       //s"{${generate(f)}}"
       val value = if (!emptyType.contains("0")) s"Vector({${generate(e2)}})" else s"{${generate(e2)}}"
@@ -260,11 +259,11 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
           ) :+ s"case (null, ${(2 to fs.size).map(i => "_").mkString(",")}) => ($key, $emptyType)").mkString("\n")
         case _ => s"case (null) => ({$key}, $emptyType)"
       }
-      s"""|${generate(e1)}.map{ case $vars => {${generate(g)}} match {
+      s"""|${generate(e1)}.zipWithIndex.map{ case ($vars, index) => {${generate(g)}} match {
           |   $nonet
-          |   case $gv2 => ({${generate(f)}}, $value)
+          |   case $gv2 => (({${generate(f)}}, index), $value)
           | }
-          |}.${agg(e2)}""".stripMargin
+          |}.${agg(e2)}.map{ case ((key, index), value) => key -> value }""".stripMargin
     
     /** LOOKUPS **/
 
