@@ -61,17 +61,17 @@ trait Label {
   sealed trait LabelParameter extends Expr {
     def e: Expr
 
-    def name: String
+    def name2: String
 
     def tp: Type = e.tp
   }
 
   final case class VarRefLabelParameter(e: Expr with VarRef) extends LabelParameter {
-    def name: String = e.name
+    def name2: String = e.name
   }
 
   final case class ProjectLabelParameter(e: Expr with Project) extends LabelParameter {
-    def name: String = e.tuple.name + "_" + e.field
+    def name2: String = e.tuple.name + "_" + e.field
   }
 
   object NewLabel {
@@ -82,11 +82,17 @@ trait Label {
       currId
     }
 
+    def apply(params: LabelParameter*): NewLabel =
+      NewLabel(params.map(p => p.name2 -> p).toMap)
+
+    def apply(params: Set[LabelParameter]): NewLabel =
+      NewLabel(params.map(p => p.name2 -> p).toMap)
+
     implicit def orderingById: Ordering[NewLabel] = Ordering.by(e => e.id)
   }
 
-  final case class NewLabel(params: Set[LabelParameter], id: Int = NewLabel.getNextId) extends LabelExpr {
-    val tp: LabelType = LabelType(params.map(p => p.name -> p.tp).toMap)
+  final case class NewLabel(params: Map[String, LabelParameter], id: Int = NewLabel.getNextId) extends LabelExpr {
+    val tp: LabelType = LabelType(params.map(x => x._1 -> x._2.tp))
 
     override def equals(that: Any): Boolean = that match {
       case that: NewLabel => this.id == that.id
@@ -96,7 +102,7 @@ trait Label {
     override def hashCode: Int = id.hashCode()
 
     override def toString: String =
-      s"Label(${(id :: params.map(_.name).toList).mkString(", ")}"
+      s"Label(${(id :: params.keys.toList).mkString(", ")}"
   }
 
 }

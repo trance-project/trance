@@ -1022,26 +1022,26 @@ object TestApp extends App
 
       println("[Nesting rewrite] Q1: " + quote(q1))
 
-      val q1opt = nestingRewrite(q1)
-
-      println("[Nesting rewrite] Q1 rewritten: " + quote(q1opt))
-
-      val q1full = TPCHQueries.query1_v2.asInstanceOf[Expr]
-
-      println("[Nesting rewrite] Full Q1: " + quote(q1full))
-
-//      val q1fullopt = nestingRewrite(q1full)
+////      val q1opt = nestingRewrite(q1)
 //
-//      println("[Nesting rewrite] Full Q1 rewritten: " + quote(q1fullopt))
-
-      val q1fullshredraw = shred(q1full)
-      println("[Nesting rewrite] Shredded Full Q1: " + quote(q1fullshredraw))
-
-      val q1fullshred = optimize(q1fullshredraw)
-      println("[Nesting rewrite] Shredded Q1 Optimized: " + quote(q1fullshred))
-
-//      val q1fulllin = linearizeNoDomains(q1fullshred)
-//      println("[Nesting rewrite] Linearized Q1: " + quote(q1fulllin))
+//      println("[Nesting rewrite] Q1 rewritten: " + quote(q1opt))
+//
+//      val q1full = TPCHQueries.query1_v2.asInstanceOf[Expr]
+//
+//      println("[Nesting rewrite] Full Q1: " + quote(q1full))
+//
+////      val q1fullopt = nestingRewrite(q1full)
+////
+////      println("[Nesting rewrite] Full Q1 rewritten: " + quote(q1fullopt))
+//
+//      val q1fullshredraw = shred(q1full)
+//      println("[Nesting rewrite] Shredded Full Q1: " + quote(q1fullshredraw))
+//
+//      val q1fullshred = optimize(q1fullshredraw)
+//      println("[Nesting rewrite] Shredded Q1 Optimized: " + quote(q1fullshred))
+//
+////      val q1fulllin = linearizeNoDomains(q1fullshred)
+////      println("[Nesting rewrite] Linearized Q1: " + quote(q1fulllin))
 
     }
   }
@@ -1051,21 +1051,21 @@ object TestApp extends App
   object DomainExamples{
     def run(): Unit = {
 
-      val q1 = DomainOptExample1.program(DomainOptExample1.name).rhs.asInstanceOf[Expr]
-      println("[Nesting rewrite] " + quote(q1))
-
-      val q1opt = nestingRewrite(q1)
-
-      println("[Nesting rewrite] rewritten: " + quote(q1opt))
-
-      val q1fullshredraw = shred(q1)
-      println("[Nesting rewrite] Shredded Full: " + quote(q1fullshredraw))
-
-      val q1fullshred = optimize(q1fullshredraw)
-      println("[Nesting rewrite] Shredded Optimized: " + quote(q1fullshred))
-
-//      val q1fulllin = linearizeNoDomains(q1fullshred)
-//      println("[Nesting rewrite] Linearized Q1: " + quote(q1fulllin))
+//      val q1 = DomainOptExample1.program(DomainOptExample1.name).rhs.asInstanceOf[Expr]
+//      println("[Nesting rewrite] " + quote(q1))
+//
+//      val q1opt = nestingRewrite(q1)
+//
+//      println("[Nesting rewrite] rewritten: " + quote(q1opt))
+//
+//      val q1fullshredraw = shred(q1)
+//      println("[Nesting rewrite] Shredded Full: " + quote(q1fullshredraw))
+//
+//      val q1fullshred = optimize(q1fullshredraw)
+//      println("[Nesting rewrite] Shredded Optimized: " + quote(q1fullshred))
+//
+////      val q1fulllin = linearizeNoDomains(q1fullshred)
+////      println("[Nesting rewrite] Linearized Q1: " + quote(q1fulllin))
 
     }
   }

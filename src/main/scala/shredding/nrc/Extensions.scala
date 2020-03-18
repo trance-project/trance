@@ -40,8 +40,8 @@ trait Extensions {
         collect(e1, f)
       case Sum(e1, _) =>
         collect(e1, f)
-      case GroupByKey(e, _, _) =>
-        collect(e, f)
+      case g: GroupByKey =>
+        collect(g.e, f)
       case SumByKey(e, _, _) =>
         collect(e, f)
 
@@ -49,7 +49,7 @@ trait Extensions {
       case l: ExtractLabel =>
         collect(l.lbl, f) ++ collect(l.e, f)
       case l: NewLabel =>
-        l.params.toList.flatMap(collect(_, f))
+        l.params.toList.flatMap(x => collect(x._2, f))
       case p: LabelParameter =>
         collect(p.e, f)
 
@@ -153,9 +153,9 @@ trait Extensions {
       case (Sum(e1, fs), ctx0) =>
         val (b1: BagExpr, ctx1) = replace(e1, ctx0, f)
         Sum(b1, fs) -> ctx1
-      case (GroupByKey(e1, ks, vs), ctx0) =>
+      case (GroupByKey(e1, ks, vs, n), ctx0) =>
         val (b1: BagExpr, ctx1) = replace(e1, ctx0, f)
-        GroupByKey(b1, ks, vs) -> ctx1
+        GroupByKey(b1, ks, vs, n) -> ctx1
       case (SumByKey(e1, ks, vs), ctx0) =>
         val (b1: BagExpr, ctx1) = replace(e1, ctx0, f)
         SumByKey(b1, ks, vs) -> ctx1
@@ -167,10 +167,10 @@ trait Extensions {
         ExtractLabel(rl, re) -> ctx2
       case (l: NewLabel, ctx0) =>
         val (ps1, ctx1) =
-          l.params.foldLeft (Set.empty[LabelParameter], ctx0) {
-            case ((acc, ctx), p0) =>
+          l.params.foldLeft (Map.empty[String, LabelParameter], ctx0) {
+            case ((acc, ctx), (n, p0)) =>
               val (p1: LabelParameter, ctx1) = replace(p0, ctx, f)
-              (acc + p1, ctx1)
+              (acc + (n -> p1), ctx1)
           }
         NewLabel(ps1, l.id) -> ctx1
       case (VarRefLabelParameter(v), ctx0) =>
@@ -279,8 +279,8 @@ trait Extensions {
         Count(replace(e1, f).asInstanceOf[BagExpr])
       case Sum(e1, fs) =>
         Sum(replace(e1, f).asInstanceOf[BagExpr], fs)
-      case GroupByKey(e1, ks, vs) =>
-        GroupByKey(replace(e1, f).asInstanceOf[BagExpr], ks, vs)
+      case GroupByKey(e1, ks, vs, n) =>
+        GroupByKey(replace(e1, f).asInstanceOf[BagExpr], ks, vs, n)
       case SumByKey(e1, ks, vs) =>
         SumByKey(replace(e1, f).asInstanceOf[BagExpr], ks, vs)
 
@@ -290,7 +290,8 @@ trait Extensions {
         val re = replace(x.e, f)
         ExtractLabel(rl, re)
       case l: NewLabel =>
-        NewLabel(l.params.map(replace(_, f).asInstanceOf[LabelParameter]), l.id)
+        val ps = l.params.map(x => x._1 -> replace(x._2, f).asInstanceOf[LabelParameter])
+        NewLabel(ps, l.id)
       case VarRefLabelParameter(v) =>
         VarRefLabelParameter(replace(v, f).asInstanceOf[Expr with VarRef])
       case ProjectLabelParameter(p) =>
@@ -344,44 +345,55 @@ trait Extensions {
   // Replace label parameter projections with variable references
   def createLambda(lbl: NewLabel, e: BagExpr): BagExpr =
     lbl.params.foldRight(e) {
-      case (l: ProjectLabelParameter, acc) =>
-        projectionToVar(acc, l).asInstanceOf[BagExpr]
-      case (_, acc) =>
-        acc
-    }
+      case ((n, l: ProjectLabelParameter), acc) =>
+        // Replace projection in l with a variable reference
+        replace(acc, {
+          case p: Project if p.tuple.name == l.e.tuple.name && p.field == l.e.field =>
+            // Sanity check
+            assert(p.tp == l.tp, "[createLambda] Types differ: " + p.tp + " and " + l.tp)
+            VarRef(n, l.tp)
+          case p: ProjectLabelParameter if p.e.tuple.name == l.e.tuple.name && p.e.field == l.e.field =>
+            // Sanity check
+            assert(p.tp == l.tp, "[createLambda] Types differ: " + p.tp + " and " + l.tp)
+            VarRefLabelParameter(VarRef(n, l.tp).asInstanceOf[Expr with VarRef])
+        }).asInstanceOf[BagExpr]
 
-  // Replace projection with a variable reference
-  protected def projectionToVar(e: Expr, l: ProjectLabelParameter): Expr = replace(e, {
-    case p: Project if p.tuple.name == l.e.tuple.name && p.field == l.e.field =>
-      // Sanity check
-      assert(p.tp == l.tp, "[projectionToVar] Types differ: " + p.tp + " and " + l.tp)
-      VarRef(l.name, l.tp)
-    case p: ProjectLabelParameter if p.name == l.name =>
-      // Sanity check
-      assert(p.tp == l.tp, "[projectionToVar] Types differ: " + p.tp + " and " + l.tp)
-      VarRefLabelParameter(VarRef(l.name, l.tp).asInstanceOf[Expr with VarRef])
-  })
+      case ((n, l: VarRefLabelParameter), acc) if n != l.e.name =>
+        // Replace variable reference in l with a new variable reference
+        replace(acc, {
+          case v: VarRef if v.name == l.e.name =>
+            assert(v.tp == l.tp, "[createLambda] Types differ: " + v.tp + " and " + l.tp)
+            VarRef(n, l.tp)
+        }).asInstanceOf[BagExpr]
+
+      case (_, acc) => acc
+    }
 
   // Replace variable references with projections
   def applyLambda(lbl: NewLabel, e: BagExpr): BagExpr =
     lbl.params.foldRight(e) {
-      case (l: ProjectLabelParameter, acc) =>
-        varToProjection(acc, l).asInstanceOf[BagExpr]
-      case (_, acc) =>
-        acc
-    }
+      case ((n, l: ProjectLabelParameter), acc) =>
+        // Replace variable reference with a projection
+        replace(acc, {
+          case v: VarRef if v.name == n =>
+            // Sanity check
+            assert(v.tp == l.tp, "[applyLambda] Types differ: " + v.tp + " and " + l.tp)
+            l.e
+          case p: VarRefLabelParameter if p.e.name == n =>
+            // Sanity check
+            assert(p.tp == l.tp, "[applyLambda] Types differ: " + p.tp + " and " + l.tp)
+            l
+        }).asInstanceOf[BagExpr]
 
-  // Replace variable reference with a projection
-  protected def varToProjection(e: Expr, l: ProjectLabelParameter): Expr = replace(e, {
-    case v: VarRef if v.name == l.name =>
-      // Sanity check
-      assert(v.tp == l.tp, "[varToProjection] Types differ: " + v.tp + " and " + l.tp)
-      l.e
-    case p: VarRefLabelParameter if p.name == l.name =>
-      // Sanity check
-      assert(p.tp == l.tp, "[varToProjection] Types differ: " + p.tp + " and " + l.tp)
-      l
-  })
+      case ((n, l: VarRefLabelParameter), acc) if n != l.e.name =>
+        replace(acc, {
+          case v: VarRef if v.name == n =>
+            assert(v.tp == l.tp, "[applyLambda] Types differ: " + v.tp + " and " + l.tp)
+            l.e
+        }).asInstanceOf[BagExpr]
+
+      case (_, acc) => acc
+    }
 
   def labelParameters(e: Expr): Set[LabelParameter] = 
     labelParameters(e, Map.empty).toSet

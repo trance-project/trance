@@ -55,7 +55,7 @@ trait Printer {
     case Count(e1) => s"Count(${quote(e1)})"
     case Sum(e1, fs) =>
       s"Sum(${quote(e1)}, (${fs.mkString(", ")}))"
-    case GroupByKey(e, ks, vs) =>
+    case GroupByKey(e, ks, vs, _) =>
       s"""|GroupByKey([${ks.mkString(", ")}], [${vs.mkString(", ")}],
           |${ind(quote(e))}
           |)""".stripMargin
@@ -71,7 +71,7 @@ trait Printer {
       s"""|Extract ${quote(x.lbl)} as ($tuple) In
           |${quote(x.e)}""".stripMargin
     case l: NewLabel =>
-      val ps = l.params.map(p => p.name + " := " + quote(p.e)).toList
+      val ps = l.params.map { case (n, p) => n + " := " + quote(p.e) }.toList
       s"NewLabel(${(l.id :: ps).mkString(", ")})"
 
     // Dictionary extensions

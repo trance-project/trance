@@ -63,6 +63,6 @@ object TestMaterialization extends App
 
   }
 
-//  run(shredding.examples.tpch.Query1.program.asInstanceOf[Program])
-  run(shredding.examples.tpch.Query4.program.asInstanceOf[Program])
+  run(shredding.examples.tpch.Query1.program.asInstanceOf[Program])
+//  run(shredding.examples.tpch.Query4.program.asInstanceOf[Program])
 }

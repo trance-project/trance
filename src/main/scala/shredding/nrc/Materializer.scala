@@ -21,7 +21,7 @@ trait Materializer {
 
   val UNSHRED_PREFIX: String = "UDict_"
 
-  val ELIMINATE_DOMAINS: Boolean = false
+  val ELIMINATE_DOMAINS: Boolean = true
 
   class DictInfo(val dict: BagDictExpr,
                  val ref: VarRef,
@@ -164,7 +164,7 @@ trait Materializer {
 
         // 2. Create assignment statement
         val suffix = Symbol.fresh(name + "_")
-        val bagRef = VarRef(matDictName(suffix), bag.tp)
+        val bagRef = VarRef(matBagName(suffix), bag.tp)
         val stmt = Assignment(bagRef.name, bag)
 
         // 3. Extend context
@@ -216,6 +216,33 @@ trait Materializer {
             program
         }
 
+      case BagDict(_, flat, tupleDict: TupleDictExpr) =>
+        assert(canEliminateDomain(flat))   // sanity check
+
+        // 1. Create dictionary bag expression
+        val (bag: BagExpr, ctx2) =
+          rewriteUsingContext(eliminateDomain(flat).get, ctx)
+
+        // 2. Create assignment statement
+        val suffix = Symbol.fresh(name + "_")
+        val matDict = BagToMatDict(bag)
+        val matDictRef = VarRef(matDictName(suffix), matDict.tp)
+        val stmt = Assignment(matDictRef.name, matDict)
+
+        // 3. Extend context
+        val dictCtx = ctx2.addDict(dict, matDictRef, parent)
+
+        // 4. Materialize bag dictionary
+        val program = new MaterializedProgram(Program(stmt), dictCtx)
+
+        // 5. Materialize children if needed
+        tupleDict match {
+          case d: TupleDict =>
+            program ++ materializeTupleDict(d, suffix, dictCtx, dict)
+          case _ =>
+            program
+        }
+
       case _ =>
         sys.error("[materializeBagDict] Unexpected dictionary type: " + dict)
     }
@@ -226,20 +253,74 @@ trait Materializer {
                                    parentDict: BagDict
                                   ): MaterializedProgram =
     dict.fields.foldLeft (new MaterializedProgram(Program(), ctx)) {
+      case (acc, (n: String, d: BagDict))
+        if ELIMINATE_DOMAINS && canEliminateDomain(d.flat) =>
+        // 1. Materialize child dictionary
+        val childMatProgram =
+          materializeBagDict(d, name + "_" + n, ctx, Some(parentDict -> n), None)
+
+        acc ++ childMatProgram
+
       case (acc, (n: String, d: BagDict)) =>
         // 1. Create label domain
         val domain = createLabelDomain(ctx.matDictRef(parentDict), ctx.isTopLevel(parentDict), n)
         val domainRef = BagVarRef(VarDef(domain.name, domain.rhs.tp))
 
         // 2. Materialize child dictionary
-        val childDict =
+        val childMatProgram =
           materializeBagDict(d, name + "_" + n, ctx, Some(parentDict -> n), Some(domainRef))
 
-        val program = Program(domain :: childDict.program.statements)
-        acc ++ new MaterializedProgram(program, childDict.ctx)
+        val program = Program(domain :: childMatProgram.program.statements)
+        acc ++ new MaterializedProgram(program, childMatProgram.ctx)
 
       case (acc, _) => acc
     }
+
+  private def canEliminateDomain(b: BagExpr): Boolean = b match {
+    case ForeachUnion(_, _, BagIfThenElse(c, Singleton(Tuple(_)), None)) =>
+      val iv = inputVars(b)
+      c match {
+        case PrimitiveCmp(OpEq, p1: Project, p2: VarRef) =>
+          !iv.contains(p1.tuple) && iv.contains(p2)
+        case PrimitiveCmp(OpEq, p1: VarRef, p2: Project) =>
+          !iv.contains(p2.tuple) && iv.contains(p1)
+        case _ => false
+      }
+    case _ => false
+  }
+
+  private def eliminateDomain(b: BagExpr): Option[BagExpr] = b match {
+    case ForeachUnion(x, b1, BagIfThenElse(c, Singleton(Tuple(fs)), None)) =>
+      val iv = inputVars(b)
+      c match {
+        case PrimitiveCmp(OpEq, p1: Project, p2: VarRef)
+          if !iv.contains(p1.tuple) && iv.contains(p2) =>
+          val lbl = NewLabel(Map(p2.name -> ProjectLabelParameter(p1)))
+          val fs1 = fs + (KEY_ATTR_NAME -> lbl)
+          Some(
+            GroupByKey(
+              ForeachUnion(x, b1, Singleton(Tuple(fs1))),
+              List(KEY_ATTR_NAME),
+              fs.keys.toList,
+              VALUE_ATTR_NAME
+            )
+          )
+        case PrimitiveCmp(OpEq, p1: VarRef, p2: Project)
+          if !iv.contains(p2.tuple) && iv.contains(p1) =>
+          val lbl = NewLabel(Map(p1.name -> ProjectLabelParameter(p2)))
+          val fs1 = fs + (KEY_ATTR_NAME -> lbl)
+          Some(
+            GroupByKey(
+              ForeachUnion(x, b1, Singleton(Tuple(fs1))),
+              List(KEY_ATTR_NAME),
+              fs.keys.toList,
+              VALUE_ATTR_NAME
+            )
+          )
+        case _ => None
+      }
+    case _ => None
+  }
 
   private def createLabelDomain(varRef: VarRef, topLevel: Boolean, field: String): Assignment = {
     val domain = if (topLevel) {
@@ -295,20 +376,20 @@ trait Materializer {
 
     case (l: NewLabel, ctx) =>
       val (ps1, ctx1) =
-        l.params.foldLeft (Set.empty[LabelParameter], ctx) {
-          case ((acc, ctx), VarRefLabelParameter(l: LabelExpr))
+        l.params.foldLeft (Map.empty[String, LabelParameter], ctx) {
+          case ((acc, ctx), (_, VarRefLabelParameter(l: LabelExpr)))
             if ctx.contains(l) && ctx.isTopLevel(l) =>
             (acc, ctx)
-          case ((acc, ctx), VarRefLabelParameter(d: BagDictExpr)) =>
+          case ((acc, ctx), (_, VarRefLabelParameter(d: BagDictExpr))) =>
             assert(ctx.contains(d))  // sanity check
             (acc, ctx)
-          case ((acc, ctx), p @ ProjectLabelParameter(d: BagDictExpr)) =>
+          case ((acc, ctx), (n, ProjectLabelParameter(d: BagDictExpr))) =>
             assert(ctx.contains(d))  // sanity check
-            val ctx1 = ctx.addDictAlias(d, BagDictVarRef(VarDef(p.name, d.tp)))
+            val ctx1 = ctx.addDictAlias(d, BagDictVarRef(VarDef(n, d.tp)))
             (acc, ctx1)
-          case ((acc, ctx), p0) =>
+          case ((acc, ctx), (n, p0)) =>
             val (p1: LabelParameter, ctx1) = rewriteUsingContext(p0, ctx)
-            (acc + p1, ctx1)
+            (acc + (n -> p1), ctx1)
         }
       (NewLabel(ps1, l.id), ctx1)
 

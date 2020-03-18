@@ -252,7 +252,11 @@ trait NRC extends BaseExpr {
     def valuesTp: Type
   }
 
-  final case class GroupByKey(e: BagExpr, keys: List[String], values: List[String]) extends GroupByExpr {
+  final case class GroupByKey(e: BagExpr,
+                              keys: List[String],
+                              values: List[String],
+                              private val groupAttrName: String = GROUP_ATTR_NAME
+                             ) extends GroupByExpr {
     val keysTp: TupleType =
       TupleType(keys.map(n => n -> e.tp.tp(n)).toMap)
 
@@ -260,7 +264,7 @@ trait NRC extends BaseExpr {
       BagType(TupleType(values.map(n => n -> e.tp.tp(n)).toMap))
 
     val tp: BagType =
-      BagType(TupleType(keysTp.attrTps ++ Map(GROUP_ATTR_NAME -> valuesTp)))
+      BagType(TupleType(keysTp.attrTps ++ Map(groupAttrName -> valuesTp)))
   }
 
   final case class SumByKey(e: BagExpr, keys: List[String], values: List[String]) extends GroupByExpr {

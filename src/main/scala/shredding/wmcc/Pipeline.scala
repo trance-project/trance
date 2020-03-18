@@ -62,13 +62,13 @@ trait PipelineRunner extends MaterializeNRC
     val ttype = BagType(r1type)
     val r = VarDef("R", ttype)
     
-    val rflat = NewLabel(Set.empty)
+    val rflat = NewLabel()
     val bagdict = 
     BagDict(
       rflat.tp,
       ForeachUnion(r1, BagVarRef(r), 
         Singleton(Tuple("h" -> tr1("h"), "j" -> 
-          NewLabel(Set(ProjectLabelParameter(PrimitiveProject(tr1, "index"))))))),
+          NewLabel(ProjectLabelParameter(PrimitiveProject(tr1, "index")))))),
       TupleDict(Map("h" -> EmptyDict, "j" -> 
         // now we have to repeat the forloop above, 
         // but it might be possible to change the language a bit so 
@@ -79,7 +79,7 @@ trait PipelineRunner extends MaterializeNRC
           ForeachUnion(r1, BagVarRef(r),
             ForeachUnion(r2, tr1("j").asInstanceOf[BagExpr],
               Singleton(Tuple("m" -> tr2("m"), "n" -> tr2("n"), "k" -> 
-                NewLabel(Set(ProjectLabelParameter(PrimitiveProject(tr2, "index")))))))),
+                NewLabel(ProjectLabelParameter(PrimitiveProject(tr2, "index"))))))),
           TupleDict(Map("m" -> EmptyDict, "n" -> EmptyDict, "k" -> EmptyDict))
           // above "k" -> EmptyDict should be another bag dict expr, this is another TODO like in the last document
         )  

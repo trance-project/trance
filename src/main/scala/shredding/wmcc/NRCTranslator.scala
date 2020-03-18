@@ -104,9 +104,9 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
     case v: VarRefLabelParameter => translateVar(v.e)
     case l: NewLabel =>
       record(l.params.map {
-        case v2: VarRefLabelParameter => translateName(v2.name) -> translateVar(v2.e)
-        case v2: ProjectLabelParameter => translateName(v2.name) -> translate(v2.e)
-      }.toMap)
+        case (n, v2: VarRefLabelParameter) => translateName(n) -> translateVar(v2.e)
+        case (n, v2: ProjectLabelParameter) => translateName(n) -> translate(v2.e)
+      })
     case e:ExtractLabel =>  
       val lbl = translate(e.lbl)
       val bindings = e.lbl.tp.attrTps.map(k => 

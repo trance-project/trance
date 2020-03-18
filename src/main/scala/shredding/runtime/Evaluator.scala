@@ -81,14 +81,14 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
     case Sum(e1, fs) =>
       val b = evalBag(e1, ctx)
       fs.map { f => f -> sumAggregate(b, f, e1.tp.tp(f)) }.toMap
-    case GroupByKey(e1, ks, vs) =>
+    case GroupByKey(e1, ks, vs, an) =>
       evalBag(e1, ctx).map { t =>
         val tuple = t.asInstanceOf[Map[String, _]]
         val keys = ks.map(k => k -> tuple(k)).toMap
         val values = vs.map(v => v -> tuple(v)).toMap
         (keys, values)
       }.groupBy(_._1).map { case (k, v) =>
-        k ++ Map("group" -> v.map(_._2))
+        k ++ Map(an -> v.map(_._2))
       }.toList
     case SumByKey(e1, ks, vs) =>
       evalBag(e1, ctx).map { t =>
@@ -121,12 +121,8 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
       v
     case l: NewLabel =>
       ROutLabel(l.params.map {
-        case l: VarRefLabelParameter =>
-          l.e.varDef -> eval(l.e, ctx)
-        case l: ProjectLabelParameter =>
-          val v1 = VarDef(l.name, l.tp)
-          v1 -> eval(l.e, ctx)
-      }.toMap)
+        case (n, l) => VarDef(n, l.tp) -> eval(l.e, ctx)
+      })
 
     // Dictionary extensions
     case EmptyDict =>
