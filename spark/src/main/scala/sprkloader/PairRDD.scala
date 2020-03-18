@@ -109,12 +109,12 @@ object PairRDDOperations {
         }
     }
 
-    def reduce(f: (V,V) => V): RDD[(K,V)] = lrdd.partitioner match {
+    def agg(f: (V,V) => V): RDD[(K,V)] = lrdd.partitioner match {
       case Some(p) => lrdd.reduceByKey(f)
       case _ => lrdd.reduceByKey(new HashPartitioner(partitions), f)
     }
 
-    def group(f: (V, V) => V): RDD[(K, V)] = reduce(f)
+    def group(f: (V, V) => V): RDD[(K, V)] = agg(f)
   }
 
 }
