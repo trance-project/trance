@@ -12,9 +12,7 @@ trait Label {
     def tp: LabelType
   }
 
-  final case class LabelVarRef(varDef: VarDef) extends LabelExpr with VarRef {
-    override def tp: LabelType = super.tp.asInstanceOf[LabelType]
-  }
+  final case class LabelVarRef(name: String, tp: LabelType) extends LabelExpr with VarRef
 
   final case class LabelProject(tuple: TupleVarRef, field: String) extends LabelExpr with TupleProject {
     override def tp: LabelType = super.tp.asInstanceOf[LabelType]

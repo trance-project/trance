@@ -1,6 +1,6 @@
 package shredding.nrc
 
-import shredding.core.{OpDivide, OpEq, OpGe, OpGt, OpMinus, OpMod, OpMultiply, OpNe, OpPlus}
+import shredding.core.{OpDivide, OpEq, OpGe, OpGt, OpMinus, OpMod, OpMultiply, OpNe, OpPlus, VarDef}
 
 trait Implicits {
   this: MaterializeNRC with Factory with Extensions =>
@@ -105,4 +105,5 @@ trait Implicits {
     def varRef: Expr = VarRef(a.name, a.rhs.tp)
   }
 
+  implicit def varRef2VarDef(v: VarRef): VarDef = v.varDef
 }

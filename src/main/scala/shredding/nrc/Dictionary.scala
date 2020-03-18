@@ -28,13 +28,9 @@ trait Dictionary {
     def tp: TupleDictType
   }
 
-  final case class BagDictVarRef(varDef: VarDef) extends BagDictExpr with VarRef {
-    override def tp: BagDictType = super.tp.asInstanceOf[BagDictType]
-  }
+  final case class BagDictVarRef(name: String, tp: BagDictType) extends BagDictExpr with VarRef
 
-  final case class TupleDictVarRef(varDef: VarDef) extends TupleDictExpr with VarRef {
-    override def tp: TupleDictType = super.tp.asInstanceOf[TupleDictType]
-  }
+  final case class TupleDictVarRef(name: String, tp: TupleDictType) extends TupleDictExpr with VarRef
 
   final case class BagDict(lblTp: LabelType, flat: BagExpr, dict: TupleDictExpr) extends BagDictExpr {
     val tp: BagDictType = BagDictType(lblTp, flat.tp, dict.tp)

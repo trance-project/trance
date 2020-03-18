@@ -14,9 +14,7 @@ trait MaterializeNRC extends ShredNRC with Optimizer {
     def tp: MatDictType
   }
 
-  final case class MatDictVarRef(varDef: VarDef) extends MatDictExpr with VarRef {
-    override def tp: MatDictType = super.tp.asInstanceOf[MatDictType]
-  }
+  final case class MatDictVarRef(name: String, tp: MatDictType) extends MatDictExpr with VarRef
 
   final case class BagToMatDict(bag: BagExpr) extends MatDictExpr {
     def tp: MatDictType =

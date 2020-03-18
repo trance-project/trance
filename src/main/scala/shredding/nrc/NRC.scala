@@ -57,28 +57,20 @@ trait NRC extends BaseExpr {
   final case class PrimitiveConst(v: Any, tp: PrimitiveType) extends PrimitiveExpr with Const
 
   trait VarRef {
-    def varDef: VarDef
+    def varDef: VarDef = VarDef(name, tp)
 
-    def name: String = varDef.name
+    def name: String
 
-    def tp: Type = varDef.tp
+    def tp: Type
   }
 
-  final case class NumericVarRef(varDef: VarDef) extends NumericExpr with VarRef {
-    override def tp: NumericType = super.tp.asInstanceOf[NumericType]
-  }
+  final case class NumericVarRef(name: String, tp: NumericType) extends NumericExpr with VarRef
 
-  final case class PrimitiveVarRef(varDef: VarDef) extends PrimitiveExpr with VarRef {
-    override def tp: PrimitiveType = super.tp.asInstanceOf[PrimitiveType]
-  }
+  final case class PrimitiveVarRef(name: String, tp: PrimitiveType) extends PrimitiveExpr with VarRef
 
-  final case class BagVarRef(varDef: VarDef) extends BagExpr with VarRef {
-    override def tp: BagType = super.tp.asInstanceOf[BagType]
-  }
+  final case class BagVarRef(name: String, tp: BagType) extends BagExpr with VarRef
 
-  final case class TupleVarRef(varDef: VarDef) extends TupleExpr with VarRef {
-    override def tp: TupleType = super.tp.asInstanceOf[TupleType]
-  }
+  final case class TupleVarRef(name: String, tp: TupleType) extends TupleExpr with VarRef
 
   trait Project {
     def tuple: VarRef with Expr

@@ -118,18 +118,18 @@ trait Materializer {
 
   private def addInputDict(d: BagDictVarRef, parent: Option[(BagDictExpr, String)], ctx: Context): Context = {
     val matRef = if (parent.isEmpty)
-      VarRef(inputBagName(d.name), d.tp.flatTp)
+      BagVarRef(inputBagName(d.name), d.tp.flatTp)
     else
-      VarRef(inputDictName(d.name), MatDictType(d.tp.lblTp, d.tp.flatTp))
+      MatDictVarRef(inputDictName(d.name), MatDictType(d.tp.lblTp, d.tp.flatTp))
     val newCtx = ctx.addDict(d, matRef, parent)
 
     d.tp.dictTp.attrTps.foldLeft (newCtx) {
       case (acc, (n, t: BagDictType)) =>
         val childName = inputDictName(d.name + "_" + n)
-        val childDict = BagDictVarRef(VarDef(childName, t))
+        val childDict = BagDictVarRef(childName, t)
         val newAcc = addInputDict(childDict, Some(d -> n), acc)
 
-        val matChildDict = MatDictVarRef(VarDef(childName, MatDictType(t.lblTp, t.flatTp)))
+        val matChildDict = MatDictVarRef(childName, MatDictType(t.lblTp, t.flatTp))
         newAcc.addDict(childDict, matChildDict, Some(d -> n))
 
       case (acc, (_, EmptyDictType)) => acc
@@ -164,14 +164,14 @@ trait Materializer {
 
         // 2. Create assignment statement
         val suffix = Symbol.fresh(name + "_")
-        val bagRef = VarRef(matBagName(suffix), bag.tp)
+        val bagRef = BagVarRef(matBagName(suffix), bag.tp)
         val stmt = Assignment(bagRef.name, bag)
 
         // 3. Extend context
         val dictCtx =
             ctx2.addDict(dict, bagRef, parent)
-              .addDictAlias(dict, BagDictVarRef(VarDef(dictName(name), dict.tp)))
-              .addLabel(LabelVarRef(VarDef(flatName(name), lblTp)), parent.isEmpty)
+              .addDictAlias(dict, BagDictVarRef(dictName(name), dict.tp))
+              .addLabel(LabelVarRef(flatName(name), lblTp), parent.isEmpty)
 
         // 4. Materialize bag dictionary
         val program = new MaterializedProgram(Program(stmt), dictCtx)
@@ -188,18 +188,18 @@ trait Materializer {
         val domainRef = labelDomain.get
 
         // 1. Create dictionary bag expression
-        val lblDef = VarDef(Symbol.fresh(name = "l"), domainRef.tp.tp)
-        val lbl = LabelProject(TupleVarRef(lblDef), LABEL_ATTR_NAME)
+        val tpl = TupleVarRef(Symbol.fresh(name = "l"), domainRef.tp.tp)
+        val lbl = LabelProject(tpl, LABEL_ATTR_NAME)
         val (valueBag: BagExpr, ctx2) =
           rewriteUsingContext(BagExtractLabel(lbl, flat), ctx)
         val bag =
-          ForeachUnion(lblDef, domainRef,
+          ForeachUnion(tpl, domainRef,
             Singleton(Tuple(KEY_ATTR_NAME -> lbl, VALUE_ATTR_NAME -> valueBag)))
 
         // 2. Create assignment statement
         val suffix = Symbol.fresh(name + "_")
         val matDict = BagToMatDict(bag)
-        val matDictRef = VarRef(matDictName(suffix), matDict.tp)
+        val matDictRef = MatDictVarRef(matDictName(suffix), matDict.tp)
         val stmt = Assignment(matDictRef.name, matDict)
 
         // 3. Extend context
@@ -226,7 +226,7 @@ trait Materializer {
         // 2. Create assignment statement
         val suffix = Symbol.fresh(name + "_")
         val matDict = BagToMatDict(bag)
-        val matDictRef = VarRef(matDictName(suffix), matDict.tp)
+        val matDictRef = MatDictVarRef(matDictName(suffix), matDict.tp)
         val stmt = Assignment(matDictRef.name, matDict)
 
         // 3. Extend context
@@ -264,7 +264,7 @@ trait Materializer {
       case (acc, (n: String, d: BagDict)) =>
         // 1. Create label domain
         val domain = createLabelDomain(ctx.matDictRef(parentDict), ctx.isTopLevel(parentDict), n)
-        val domainRef = BagVarRef(VarDef(domain.name, domain.rhs.tp))
+        val domainRef = BagVarRef(domain.name, domain.rhs.tp.asInstanceOf[BagType])
 
         // 2. Materialize child dictionary
         val childMatProgram =
@@ -325,8 +325,8 @@ trait Materializer {
   private def createLabelDomain(varRef: VarRef, topLevel: Boolean, field: String): Assignment = {
     val domain = if (topLevel) {
       val bagVarRef = varRef.asInstanceOf[BagVarRef]
-      val x = VarDef(Symbol.fresh(), bagVarRef.tp.tp)
-      val lbl = LabelProject(TupleVarRef(x), field)
+      val x = TupleVarRef(Symbol.fresh(), bagVarRef.tp.tp)
+      val lbl = LabelProject(x, field)
       DeDup(
         ForeachUnion(x, bagVarRef, Singleton(Tuple(LABEL_ATTR_NAME -> lbl)))
       )
@@ -338,17 +338,17 @@ trait Materializer {
           KEY_ATTR_NAME -> matDictVarRef.tp.keyTp,
           VALUE_ATTR_NAME -> matDictVarRef.tp.valueTp
         )
-      val kv = VarDef(Symbol.fresh(name = "kv"), kvTp)
-      val values = BagProject(TupleVarRef(kv), VALUE_ATTR_NAME)
-      val x = VarDef(Symbol.fresh(), values.tp.tp)
-      val lbl = LabelProject(TupleVarRef(x), field)
+      val kv = TupleVarRef(Symbol.fresh(name = "kv"), kvTp)
+      val values = BagProject(kv, VALUE_ATTR_NAME)
+      val x = TupleVarRef(Symbol.fresh(), values.tp.tp)
+      val lbl = LabelProject(x, field)
       DeDup(
         ForeachUnion(kv, MatDictToBag(matDictVarRef),
           ForeachUnion(x, values, Singleton(Tuple(LABEL_ATTR_NAME -> lbl))))
       )
     }
 
-    val bagRef = VarRef(domainName(Symbol.fresh(field)), domain.tp)
+    val bagRef = BagVarRef(domainName(Symbol.fresh(field)), domain.tp)
     Assignment(bagRef.name, domain)
   }
 
@@ -370,7 +370,8 @@ trait Materializer {
       assert(ctx.contains(d))  // sanity check
       val newCtx = ctx.children(d).foldLeft (ctx) {
         case (acc, (n, dict)) =>
-          acc.addDictAlias(dict, BagDictProject(TupleDictVarRef(x), n))
+          val tr = TupleDictVarRef(x.name, x.tp.asInstanceOf[TupleDictType])
+          acc.addDictAlias(dict, BagDictProject(tr, n))
       }
       rewriteUsingContext(e2, newCtx)
 
@@ -385,7 +386,7 @@ trait Materializer {
             (acc, ctx)
           case ((acc, ctx), (n, ProjectLabelParameter(d: BagDictExpr))) =>
             assert(ctx.contains(d))  // sanity check
-            val ctx1 = ctx.addDictAlias(d, BagDictVarRef(VarDef(n, d.tp)))
+            val ctx1 = ctx.addDictAlias(d, BagDictVarRef(n, d.tp))
             (acc, ctx1)
           case ((acc, ctx), (n, p0)) =>
             val (p1: LabelParameter, ctx1) = rewriteUsingContext(p0, ctx)
@@ -445,7 +446,7 @@ trait Materializer {
 
       case BagDict(_, _, tupleDict: TupleDict) if isTopLevel =>
         val bagDictRef = ctx.matDictRef(dict).asInstanceOf[BagVarRef]
-        val tupleRef = TupleVarRef(VarDef(Symbol.fresh(), bagDictRef.tp.tp))
+        val tupleRef = TupleVarRef(Symbol.fresh(), bagDictRef.tp.tp)
 
         // 1. Unshred children
         val (childProgram, childTuple) = unshredTupleDict(tupleDict, tupleRef, ctx)
@@ -462,11 +463,11 @@ trait Materializer {
       case BagDict(_, _, tupleDict: TupleDict) =>
         val matDictRef = ctx.matDictRef(dict).asInstanceOf[MatDictVarRef]
         val kvDict = MatDictToBag(matDictRef)
-        val kvRef = TupleVarRef(VarDef(Symbol.fresh(name = "kv"), kvDict.tp.tp))
+        val kvRef = TupleVarRef(Symbol.fresh(name = "kv"), kvDict.tp.tp)
 
         val key = LabelProject(kvRef, KEY_ATTR_NAME)
         val value = BagProject(kvRef, VALUE_ATTR_NAME)
-        val tupleRef = TupleVarRef(VarDef(Symbol.fresh(), value.tp.tp))
+        val tupleRef = TupleVarRef(Symbol.fresh(), value.tp.tp)
 
         // 1. Unshred children
         val (childProgram, childTuple) = unshredTupleDict(tupleDict, tupleRef, ctx)
@@ -482,7 +483,7 @@ trait Materializer {
 
         // 3. Materialize unshredded dictionary
         val uName = matDictRef.name.replace(MAT_DICT_PREFIX, UNSHRED_PREFIX)
-        val uDict = VarRef(uName, kvPairsNested.tp)
+        val uDict = MatDictVarRef(uName, kvPairsNested.tp)
         val uStmt = Assignment(uDict.name, kvPairsNested)
 
         (Program(childProgram.statements :+ uStmt), MatDictLookup(lbl, uDict))

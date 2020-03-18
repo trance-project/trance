@@ -31,7 +31,7 @@ trait Optimizer extends Extensions with Implicits with Factory {
   def optimize(e: Expr): Expr = inline(deadCodeElimination(e))
 
   def inline(e: Expr): Expr = replace(e, {
-    // let X = e1 in X => e1
+    // Case: let X = e1 in X => e1
     case l: Let if (l.e2 match {
       case v2: VarRef if v2.varDef == l.x => true
       case _ => false

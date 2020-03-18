@@ -21,11 +21,11 @@ object TestApp extends App
     def run(): Unit = {
 
       val itemTp = TupleType("a" -> IntType, "b" -> StringType)
-      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+      val relationR = BagVarRef("R", BagType(itemTp))
 
-      val xref = VarRef("x", itemTp)
+      val xref = TupleVarRef("x", itemTp)
       val q1 = Program("Q1",
-        ForeachUnion(xref.varDef, relationR, Singleton(Tuple("w" -> xref("b")))))
+        ForeachUnion(xref, relationR, Singleton(Tuple("w" -> xref("b")))))
 
       println("[Ex1] Q1: " + quote(q1))
 
@@ -62,13 +62,13 @@ object TestApp extends App
       println("[Ex1] Unshredded Q1: " + quote(q1unshred))
 //      println("[Ex1] Unshredded Q1 eval: " + eval(q1unshred, ctx).asInstanceOf[List[Any]].mkString("\n\n"))
 
-      val yref = VarRef("y", itemTp)
+      val yref = TupleVarRef("y", itemTp)
       val q2 = Program("Q2",
-        ForeachUnion(xref.varDef, relationR,
+        ForeachUnion(xref, relationR,
           Singleton(Tuple(
             "grp" -> xref("a"),
             "bag" ->
-              ForeachUnion(yref.varDef, relationR,
+              ForeachUnion(yref, relationR,
                 IfThenElse(
                   Cmp(OpEq, xref("a"), yref("a")),
                   Singleton(Tuple("q" -> yref("b")))
@@ -112,21 +112,18 @@ object TestApp extends App
         "j" -> BagType(nestedItemTp)
       ))
 
-      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+      val relationR = BagVarRef("R", BagType(itemTp))
 
-      val xref = VarRef("x", itemTp)
-      val wref = VarRef("w", nestedItemTp)
+      val xref = TupleVarRef("x", itemTp)
+      val wref = TupleVarRef("w", nestedItemTp)
 
       val q1 = Program("Q1",
-        ForeachUnion(xref.varDef, relationR,
+        ForeachUnion(xref, relationR,
           Singleton(Tuple(
             "o5" -> xref("h"),
             "o6" ->
-              ForeachUnion(wref.varDef, BagProject(xref, "j"),
-                Singleton(Tuple(
-                  "o7" -> wref("m"),
-                  "o8" -> Count(BagProject(wref, "k"))
-                ))
+              ForeachUnion(wref, BagProject(xref, "j"),
+                Singleton(Tuple("o7" -> wref("m"), "o8" -> Count(BagProject(wref, "k"))))
               )
           ))))
 
@@ -210,10 +207,7 @@ object TestApp extends App
             "o5" -> xref("h"),
             "o6" ->
               ForeachUnion(wref.varDef, BagProject(xref, "j"),
-                Singleton(Tuple(
-                  "o7" -> wref("m"),
-                  "o8" -> BagProject(wref, "k")
-                ))
+                Singleton(Tuple("o7" -> wref("m"), "o8" -> BagProject(wref, "k")))
               )
           ))))
 
@@ -237,24 +231,21 @@ object TestApp extends App
     def run(): Unit = {
 
       val depTp = TupleType("dno" -> IntType, "dname" -> StringType)
-      val departments = BagVarRef(VarDef("Departments", BagType(depTp)))
+      val departments = BagVarRef("Departments", BagType(depTp))
 
       val empTp = TupleType("dno" -> IntType, "ename" -> StringType)
-      val employees = BagVarRef(VarDef("Employees", BagType(empTp)))
+      val employees = BagVarRef("Employees", BagType(empTp))
 
-      val d = VarDef("d", depTp)
-      val e = VarDef("e", empTp)
+      val dr = TupleVarRef("d", depTp)
+      val er = TupleVarRef("e", empTp)
       val q1 = Program("Q1",
-        ForeachUnion(d, departments,
+        ForeachUnion(dr, departments,
           Singleton(Tuple(
-            "D" -> TupleVarRef(d)("dno"),
-            "E" -> ForeachUnion(e, employees,
+            "D" -> dr("dno"),
+            "E" -> ForeachUnion(er, employees,
               IfThenElse(
-                Cmp(
-                  OpEq,
-                  TupleVarRef(e)("dno"),
-                  TupleVarRef(d)("dno")),
-                Singleton(TupleVarRef(e))
+                Cmp(OpEq, er("dno"), dr("dno")),
+                Singleton(er)
           ))))))
 
       println("[Ex3] Q1: " + quote(q1))
@@ -307,31 +298,25 @@ object TestApp extends App
     def run(): Unit = {
 
       val itemTp = TupleType("id" -> IntType, "name" -> StringType)
-      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+      val relationR = BagVarRef("R", BagType(itemTp))
 
-      val x0def = VarDef(Symbol.fresh(), itemTp)
-      val x1def = VarDef(Symbol.fresh(), itemTp)
+      val x0ref = TupleVarRef(Symbol.fresh(), itemTp)
+      val x1ref = TupleVarRef(Symbol.fresh(), itemTp)
 
       val rq1 =
-        ForeachUnion(x0def, relationR,
-          ForeachUnion(x1def, relationR,
-            Singleton(Tuple(
-              "w1" -> Singleton(TupleVarRef(x0def)),
-              "w2" -> Singleton(TupleVarRef(x1def)))
-            )))
+        ForeachUnion(x0ref, relationR,
+          ForeachUnion(x1ref, relationR,
+            Singleton(Tuple("w1" -> Singleton(x0ref), "w2" -> Singleton(x1ref)))))
 
-      val x2def = VarDef(Symbol.fresh(), itemTp)
-      val x3def = VarDef(Symbol.fresh(), TupleType("w1" -> BagType(itemTp), "w2" -> BagType(itemTp)))
-      val x4def = VarDef(Symbol.fresh(), BagType(TupleType("w1" -> BagType(itemTp), "w2" -> BagType(itemTp))))
+      val x2ref = TupleVarRef(Symbol.fresh(), itemTp)
+      val x3ref = TupleVarRef(Symbol.fresh(), TupleType("w1" -> BagType(itemTp), "w2" -> BagType(itemTp)))
+      val x4ref = BagVarRef(Symbol.fresh(), BagType(TupleType("w1" -> BagType(itemTp), "w2" -> BagType(itemTp))))
 
       val q1 = Program("Q1",
-        Let(x4def, rq1,
-          ForeachUnion(x3def, BagVarRef(x4def),
-            ForeachUnion(x2def, relationR,
-              Singleton(Tuple(
-                "w1" -> Singleton(TupleVarRef(x3def)),
-                "w2" -> Singleton(TupleVarRef(x2def)))
-              )))))
+        Let(x4ref, rq1,
+          ForeachUnion(x3ref, x4ref,
+            ForeachUnion(x2ref, relationR,
+              Singleton(Tuple("w1" -> Singleton(x3ref), "w2" -> Singleton(x2ref)))))))
 
       println("[Ex4] Q1: " + quote(q1))
 
@@ -367,7 +352,7 @@ object TestApp extends App
     def run(): Unit = {
 
       val itemTp = TupleType("id" -> IntType, "name" -> StringType)
-      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+      val relationR = BagVarRef("R", BagType(itemTp))
 
       //
       //    For x3 in [[ For x1 in R Union
@@ -377,23 +362,21 @@ object TestApp extends App
       //      Sng((w4 := x4.w2))
       //
 
-      val x1def = VarDef(Symbol.fresh(), itemTp)
-      val x2def = VarDef(Symbol.fresh(), itemTp)
+      val x1ref = TupleVarRef(Symbol.fresh(), itemTp)
+      val x2ref = TupleVarRef(Symbol.fresh(), itemTp)
 
       val sq1 =
-        ForeachUnion(x2def, relationR,
-          Singleton(Tuple(
-            "w2" -> TupleVarRef(x1def)("id"),
-            "w3" -> Singleton(TupleVarRef(x2def)))))
-      val sq2 = ForeachUnion(x1def, relationR, Singleton(Tuple("w1" -> sq1)))
+        ForeachUnion(x2ref, relationR,
+          Singleton(Tuple("w2" -> x1ref("id"), "w3" -> Singleton(x2ref))))
+      val sq2 = ForeachUnion(x1ref, relationR, Singleton(Tuple("w1" -> sq1)))
 
-      val x3def = VarDef(Symbol.fresh(), sq2.tp.tp)
-      val x4def = VarDef(Symbol.fresh(), sq1.tp.tp)
+      val x3ref = TupleVarRef(Symbol.fresh(), sq2.tp.tp)
+      val x4ref = TupleVarRef(Symbol.fresh(), sq1.tp.tp)
 
       val q1 = Program("Q1",
-        ForeachUnion(x3def, sq2,
-          ForeachUnion(x4def, BagProject(TupleVarRef(x3def), "w1"),
-            Singleton(Tuple("w4" -> TupleVarRef(x4def)("w2"))))))
+        ForeachUnion(x3ref, sq2,
+          ForeachUnion(x4ref, BagProject(x3ref, "w1"),
+            Singleton(Tuple("w4" -> x4ref("w2"))))))
 
       println("[Ex5] Q1: " + quote(q1))
 
@@ -429,7 +412,7 @@ object TestApp extends App
     def run(): Unit = {
 
       val itemTp = TupleType("a" -> IntType, "b" -> IntType)
-      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+      val relationR = BagVarRef("R", BagType(itemTp))
 
       //  Q1: For x4 in For x1 in R Union
       //    Sng((w0 := x1.b, w1 := For x2 in R Union
@@ -439,36 +422,30 @@ object TestApp extends App
       //    Sng((w4 := x5.w2, w5 := For x6 in x5.w3 Union
       //      Sng((w6 := x6.w4))))
 
-      val x1def = VarDef(Symbol.fresh(), itemTp)
-      val x2def = VarDef(Symbol.fresh(), itemTp)
-      val x3def = VarDef(Symbol.fresh(), itemTp)
+      val x1ref = TupleVarRef(Symbol.fresh(), itemTp)
+      val x2ref = TupleVarRef(Symbol.fresh(), itemTp)
+      val x3ref = TupleVarRef(Symbol.fresh(), itemTp)
 
-      val sq1 = ForeachUnion(x3def, relationR,
-        Singleton(Tuple("w4" -> TupleVarRef(x3def)("b"))))
+      val sq1 = ForeachUnion(x3ref, relationR,
+        Singleton(Tuple("w4" -> x3ref("b"))))
 
-      val sq2 = ForeachUnion(x2def, relationR,
-        Singleton(Tuple(
-          "w2" -> TupleVarRef(x1def)("a"),
-          "w3" -> sq1
-        )))
+      val sq2 = ForeachUnion(x2ref, relationR,
+        Singleton(Tuple("w2" -> x1ref("a"), "w3" -> sq1)))
 
-      val sq3 = ForeachUnion(x1def, relationR,
-        Singleton(Tuple(
-          "w0" -> TupleVarRef(x1def)("b"),
-          "w1" -> sq2
-        )))
+      val sq3 = ForeachUnion(x1ref, relationR,
+        Singleton(Tuple("w0" -> x1ref("b"), "w1" -> sq2)))
 
-      val x6def = VarDef(Symbol.fresh(), sq3.tp.tp)
-      val x7def = VarDef(Symbol.fresh(), sq2.tp.tp)
-      val x4def = VarDef(Symbol.fresh(), sq1.tp.tp)
+      val x6ref = TupleVarRef(Symbol.fresh(), sq3.tp.tp)
+      val x7ref = TupleVarRef(Symbol.fresh(), sq2.tp.tp)
+      val x4ref = TupleVarRef(Symbol.fresh(), sq1.tp.tp)
 
       val q1 = Program("Q1",
-        ForeachUnion(x6def, sq3,
-          ForeachUnion(x7def, BagProject(TupleVarRef(x6def), "w1"),
+        ForeachUnion(x6ref, sq3,
+          ForeachUnion(x7ref, BagProject(x6ref, "w1"),
             Singleton(Tuple(
-              "w4" -> TupleVarRef(x7def)("w2"),
-              "w5" -> ForeachUnion(x4def, BagProject(TupleVarRef(x7def), "w3"),
-                Singleton(Tuple("w6" -> TupleVarRef(x4def)("w4"))))
+              "w4" -> x7ref("w2"),
+              "w5" -> ForeachUnion(x4ref, BagProject(x7ref, "w3"),
+                Singleton(Tuple("w6" -> x4ref("w4"))))
             ))
           )))
 
@@ -506,7 +483,7 @@ object TestApp extends App
     def run(): Unit = {
 
       val itemTp = TupleType("a" -> IntType, "b" -> IntType)
-      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+      val relationR = BagVarRef("R", BagType(itemTp))
 
       //  Q1: For x4 in For x1 in R Union
       //    Sng((w0 := x1.b, w1 := For x2 in R Union
@@ -516,37 +493,28 @@ object TestApp extends App
       //    Sng((w4 := x5.w2, w5 := For x6 in x5.w3 Union
       //      Sng((w6 := x6.w4))))
 
-      val x1def = VarDef(Symbol.fresh(), itemTp)
-      val x2def = VarDef(Symbol.fresh(), itemTp)
-      val x3def = VarDef(Symbol.fresh(), itemTp)
+      val x1ref = TupleVarRef(Symbol.fresh(), itemTp)
+      val x2ref = TupleVarRef(Symbol.fresh(), itemTp)
+      val x3ref = TupleVarRef(Symbol.fresh(), itemTp)
 
-      val sq1 = ForeachUnion(x3def, relationR,
-        Singleton(Tuple("w4" -> TupleVarRef(x3def)("b"))))
+      val sq1 = ForeachUnion(x3ref, relationR,
+        Singleton(Tuple("w4" -> x3ref("b"))))
 
-      val sq2 = ForeachUnion(x2def, relationR,
-        Singleton(Tuple(
-          "w2" -> TupleVarRef(x1def)("a"),
-          "w3" -> sq1
-        )))
+      val sq2 = ForeachUnion(x2ref, relationR,
+        Singleton(Tuple("w2" -> x1ref("a"), "w3" -> sq1)))
 
-      val sq3 = ForeachUnion(x1def, relationR,
-        Singleton(Tuple(
-          "w0" -> TupleVarRef(x1def)("b"),
-          "w1" -> sq2
-        )))
+      val sq3 = ForeachUnion(x1ref, relationR,
+        Singleton(Tuple("w0" -> x1ref("b"), "w1" -> sq2)))
 
-      val x6def = VarDef(Symbol.fresh(), sq3.tp.tp)
-      val x7def = VarDef(Symbol.fresh(), sq2.tp.tp)
-      val x4def = VarDef(Symbol.fresh(), sq1.tp.tp)
+      val x6ref = TupleVarRef(Symbol.fresh(), sq3.tp.tp)
+      val x7ref = TupleVarRef(Symbol.fresh(), sq2.tp.tp)
+      val x4ref = TupleVarRef(Symbol.fresh(), sq1.tp.tp)
 
       val q1 = Program("Q1",
-        ForeachUnion(x6def, sq3,
-          ForeachUnion(x7def, BagProject(TupleVarRef(x6def), "w1"),
-            ForeachUnion(x4def, BagProject(TupleVarRef(x7def), "w3"),
-              Singleton(Tuple(
-                "w6" -> TupleVarRef(x4def)("w4")
-              ))
-            ))))
+        ForeachUnion(x6ref, sq3,
+          ForeachUnion(x7ref, BagProject(x6ref, "w1"),
+            ForeachUnion(x4ref, BagProject(x7ref, "w3"),
+              Singleton(Tuple("w6" -> x4ref("w4")))))))
 
       println("[Ex7] Q1: " + quote(q1))
 
@@ -582,7 +550,7 @@ object TestApp extends App
     def run(): Unit = {
 
       val itemTp = TupleType("a" -> IntType, "b" -> IntType, "c" -> IntType)
-      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+      val relationR = BagVarRef("R", BagType(itemTp))
 
       // Q:
       // For x In R Union
@@ -594,21 +562,21 @@ object TestApp extends App
       //       ))
       //   ))
 
-      val xref = VarRef(Symbol.fresh("x"), itemTp)
-      val yref = VarRef(Symbol.fresh("y"), itemTp)
-      val zref = VarRef(Symbol.fresh("z"), itemTp)
+      val xref = TupleVarRef(Symbol.fresh("x"), itemTp)
+      val yref = TupleVarRef(Symbol.fresh("y"), itemTp)
+      val zref = TupleVarRef(Symbol.fresh("z"), itemTp)
 
       val q1 = Program("Q1",
         ForeachUnion(xref.varDef, relationR, Singleton(Tuple(
           "m1" -> xref("a"),
           "n1" ->
-            ForeachUnion(yref.varDef, relationR,
+            ForeachUnion(yref, relationR,
               IfThenElse(
                 Cmp(OpEq, yref("a"), xref("a")),
                 Singleton(Tuple(
                   "m2" -> yref("b"),
                   "n2" ->
-                    ForeachUnion(zref.varDef, relationR,
+                    ForeachUnion(zref, relationR,
                       IfThenElse(
                         Cmp(OpEq, zref("a"), xref("a")),
                         Singleton(Tuple("m3" -> zref("c")))
@@ -650,18 +618,18 @@ object TestApp extends App
 
       val nestedItemTp = TupleType("b" -> IntType, "c" -> IntType)
       val itemTp = TupleType("a" -> IntType, "s" -> BagType(nestedItemTp))
-      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+      val relationR = BagVarRef("R", BagType(itemTp))
 
       // Q = For x in R Union {<a'= x.a, s'=For y in x.s Union if y.c<5 then {y}>}
 
-      val xref = VarRef(Symbol.fresh("x"), itemTp)
-      val yref = VarRef(Symbol.fresh("y"), nestedItemTp)
+      val xref = TupleVarRef(Symbol.fresh("x"), itemTp)
+      val yref = TupleVarRef(Symbol.fresh("y"), nestedItemTp)
 
       val q1 = Program("Q1",
-        ForeachUnion(xref.varDef, relationR, Singleton(Tuple(
+        ForeachUnion(xref, relationR, Singleton(Tuple(
           "a1" -> xref("a"),
           "s1" ->
-            ForeachUnion(yref.varDef, BagProject(xref, "s"),
+            ForeachUnion(yref, BagProject(xref, "s"),
               IfThenElse(Cmp(OpEq, yref("c"), Const(5, IntType)), Singleton(yref))
             )))))
 
@@ -822,19 +790,19 @@ object TestApp extends App
     def run(): Unit = {
 
       val itemTp = TupleType("a" -> IntType, "b" -> IntType)
-      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+      val relationR = BagVarRef("R", BagType(itemTp))
 
       // Q = DeDup(For x in R Union {<m = x.a, n = DeDup(For y in R Union if x.a = y.a then {<o = y.b>})>})
 
-      val xref = VarRef(Symbol.fresh("x"), itemTp)
-      val yref = VarRef(Symbol.fresh("y"), itemTp)
+      val xref = TupleVarRef(Symbol.fresh("x"), itemTp)
+      val yref = TupleVarRef(Symbol.fresh("y"), itemTp)
 
       val q1 = Program("Q1",
         DeDup(
-          ForeachUnion(xref.varDef, relationR, Singleton(Tuple(
+          ForeachUnion(xref, relationR, Singleton(Tuple(
             "m" -> xref("a"),
             "n" ->
-              DeDup(ForeachUnion(yref.varDef, relationR,
+              DeDup(ForeachUnion(yref, relationR,
                 IfThenElse(Cmp(OpEq, xref("a"), yref("a")), Singleton(Tuple("o" -> yref("b"))))
               ))
           )))))
@@ -879,22 +847,22 @@ object TestApp extends App
     def run(): Unit = {
 
       val itemTp = TupleType("a" -> IntType, "b" -> IntType)
-      val relationR = BagVarRef(VarDef("R", BagType(itemTp)))
+      val relationR = BagVarRef("R", BagType(itemTp))
 
-      val xref = VarRef(Symbol.fresh("x"), itemTp)
+      val xref = TupleVarRef(Symbol.fresh("x"), itemTp)
 
       val q1 = Program("Q1",
-        ForeachUnion(xref.varDef, relationR,
+        ForeachUnion(xref, relationR,
           IfThenElse(Cmp(OpEq, xref("a"), Const(5, IntType)), Singleton(xref))))
 
       val q2 = Program("Q2",
-        ForeachUnion(xref.varDef, relationR,
+        ForeachUnion(xref, relationR,
           IfThenElse(
             Or(Cmp(OpEq, xref("a"), Const(5, IntType)), Cmp(OpEq, xref("a"), Const(2, IntType))),
             Singleton(xref))))
 
       val q3 = Program("Q3",
-        ForeachUnion(xref.varDef, relationR,
+        ForeachUnion(xref, relationR,
           IfThenElse(
             And(Cmp(OpNe, xref("a"), Const(5, IntType)), Not(Cmp(OpEq, xref("a"), Const(2, IntType)))),
             Singleton(xref))))
@@ -1003,20 +971,20 @@ object TestApp extends App
 
     def run(): Unit = {
 
-      val relC = BagVarRef(VarDef("C", TPCHSchema.customertype))
-      val cr = VarRef("c", TPCHSchema.customertype.tp)
+      val relC = BagVarRef("C", TPCHSchema.customertype)
+      val cr = TupleVarRef("c", TPCHSchema.customertype.tp)
 
-      val relO = BagVarRef(VarDef("O", TPCHSchema.orderstype))
-      val or = VarRef("o", TPCHSchema.orderstype.tp)
+      val relO = BagVarRef("O", TPCHSchema.orderstype)
+      val or = TupleVarRef("o", TPCHSchema.orderstype.tp)
 
-      val relL = BagVarRef(VarDef("L", TPCHSchema.lineittype))
-      val lr = VarRef("l", TPCHSchema.lineittype.tp)
+      val relL = BagVarRef("L", TPCHSchema.lineittype)
+      val lr = TupleVarRef("l", TPCHSchema.lineittype.tp)
 
-      val relP = BagVarRef(VarDef("P", TPCHSchema.parttype))
-      val pr = VarRef("p", TPCHSchema.parttype.tp)
+      val relP = BagVarRef("P", TPCHSchema.parttype)
+      val pr = TupleVarRef("p", TPCHSchema.parttype.tp)
 
       val q1 =
-        ForeachUnion(pr.varDef, relP, IfThenElse(
+        ForeachUnion(pr, relP, IfThenElse(
           Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
           Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity")))))
 

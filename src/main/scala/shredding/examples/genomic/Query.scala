@@ -104,42 +104,38 @@ object GenomicTests {
   val nrc = new MaterializeNRC{}
   import nrc._
 
-  val relI = BagVarRef(VarDef("cases", BagType(GenomicRelations.casetype)))
-  val idef = VarDef("i", GenomicRelations.casetype)
-  val iref = TupleVarRef(idef)
+  val relI = BagVarRef("cases", BagType(GenomicRelations.casetype))
+  val iref = TupleVarRef("i", GenomicRelations.casetype)
   
-  val relV = BagVarRef(VarDef("variants", BagType(GenomicRelations.varianttype)))
-  val vdef = VarDef("v", GenomicRelations.varianttype)
-  val vref = TupleVarRef(vdef)
-  val gdef = VarDef("g", GenomicRelations.genotype)
-  val gref = TupleVarRef(gdef)
+  val relV = BagVarRef("variants", BagType(GenomicRelations.varianttype))
+  val vref = TupleVarRef("v", GenomicRelations.varianttype)
+  val gref = TupleVarRef("g", GenomicRelations.genotype)
 
-  val relC = BagVarRef(VarDef("clinical", BagType(GenomicRelations.clintype)))
-  val cdef = VarDef("c", GenomicRelations.clintype)
-  val cref = TupleVarRef(cdef)
+  val relC = BagVarRef("clinical", BagType(GenomicRelations.clintype))
+  val cref = TupleVarRef("c", GenomicRelations.clintype)
 
   // designed to construct a set of labelled points 
   // def lmm() = // some function that will do binary classification 
   // val v_sig = variants.map( v => (v.contig, v.start, 
   //              lmm(v.genotypes.groupBy(_.label).map{ case (k,v) => LabelPoint(k, v.map(_.call)) })))  
-  val q6 = ForeachUnion(vdef, relV, 
+  val q6 = ForeachUnion(vref, relV,
             Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), 
-              "dataset" -> ForeachUnion(idef, relI, 
+              "dataset" -> ForeachUnion(iref, relI,
                   Singleton(Tuple("label" -> iref("iscase"), "features" ->
-                    ForeachUnion(cdef, relC, 
+                    ForeachUnion(cref, relC,
                       IfThenElse(Cmp(OpEq, cref("iscase"), iref("iscase")),
-                        ForeachUnion(gdef, BagProject(vref, "genotypes"),
+                        ForeachUnion(gref, BagProject(vref, "genotypes"),
                           IfThenElse(Cmp(OpEq, cref("sample"), gref("sample")),
                             Singleton(Tuple("call" -> gref("call"))))))))))))) 
 
   val q1 =
-    ForeachUnion(vdef, relV,
+    ForeachUnion(vref, relV,
       Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "counts" ->
-        ForeachUnion(idef, relI,
+        ForeachUnion(iref, relI,
           Singleton(Tuple("iscase" -> iref("iscase"), "altcnt" ->
-            Sum(ForeachUnion(cdef, relC,
+            Sum(ForeachUnion(cref, relC,
               IfThenElse(Cmp(OpEq, cref("iscase"), iref("iscase")),
-                ForeachUnion(gdef, BagProject(vref, "genotypes"),
+                ForeachUnion(gref, BagProject(vref, "genotypes"),
                   IfThenElse(Cmp(OpEq, cref("sample"), gref("sample")),
                     IfThenElse(Cmp(OpEq, gref("call"), Const(1, IntType)),
                       Singleton(Tuple("count" -> NumericConst(1, IntType))),
@@ -151,40 +147,40 @@ object GenomicTests {
           ))))))
 
   // count the number of genotypes
-  val q2 = ForeachUnion(vdef, relV,
+  val q2 = ForeachUnion(vref, relV,
             Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"),
-              "counts" -> Count(ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                                  ForeachUnion(cdef, relC, 
+              "counts" -> Count(ForeachUnion(gref, BagProject(vref, "genotypes"),
+                                  ForeachUnion(cref, relC,
                                     IfThenElse(Cmp(OpEq, cref("sample"), gref("sample")),
                                       Singleton(Tuple("alt" -> Const("alt", StringType))))))))))
   
   // count the number of genotypes for case, but not control 
-  val q3 = ForeachUnion(vdef, relV,
+  val q3 = ForeachUnion(vref, relV,
             Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"),
-              "counts" -> Count(ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                                  ForeachUnion(cdef, relC, 
+              "counts" -> Count(ForeachUnion(gref, BagProject(vref, "genotypes"),
+                                  ForeachUnion(cref, relC,
                                     IfThenElse(
                                       And(Cmp(OpEq, cref("sample"), gref("sample")),
                                           Cmp(OpEq, cref("iscase"), Const("case", StringType))),
                                       Singleton(Tuple("alt" -> Const("alt", StringType))))))))))
 
   // count the number of mutations that have at least one alternate allele for case, but not control 
-  val q4 = ForeachUnion(vdef, relV,
+  val q4 = ForeachUnion(vref, relV,
             Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"),
-              "counts" -> Count(ForeachUnion(gdef, BagProject(vref, "genotypes"),
+              "counts" -> Count(ForeachUnion(gref, BagProject(vref, "genotypes"),
                                   IfThenElse(Cmp(OpGt, gref("call"), Const(0, IntType)),
-                                    ForeachUnion(cdef, relC, 
+                                    ForeachUnion(cref, relC,
                                       IfThenElse(
                                         And(Cmp(OpEq, cref("sample"), gref("sample")),
                                           Cmp(OpEq, cref("iscase"), Const("case", StringType))),
                                         Singleton(Tuple("alt" -> Const("alt", StringType)))))))))))
 
   val q5 =
-    ForeachUnion(vdef, relV,
+    ForeachUnion(vref, relV,
       Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "counts" ->
-        Sum(ForeachUnion(gdef, BagProject(vref, "genotypes"),
+        Sum(ForeachUnion(gref, BagProject(vref, "genotypes"),
           IfThenElse(Cmp(OpGt, gref("call"), Const(0, IntType)),
-            ForeachUnion(cdef, relC,
+            ForeachUnion(cref, relC,
               IfThenElse(
                 And(Cmp(OpEq, cref("sample"), gref("sample")),
                   Cmp(OpEq, cref("iscase"), Const("case", StringType))),

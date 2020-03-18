@@ -22,70 +22,62 @@ object PathwayTests {
  val nrc = new MaterializeNRC{}
  import nrc._
 
- val relP = BagVarRef(VarDef("pathways", BagType(PathwayRelations.pathtype)))
- val pdef = VarDef("p", PathwayRelations.pathtype)
- val pref = TupleVarRef(pdef)
+ val relP = BagVarRef("pathways", BagType(PathwayRelations.pathtype))
+ val pref = TupleVarRef("p", PathwayRelations.pathtype)
  
- val gdef = VarDef("g", PathwayRelations.genetype)
- val gref = TupleVarRef(gdef)
+ val gref = TupleVarRef("g", PathwayRelations.genetype)
  
- val relA = BagVarRef(VarDef("annotations", BagType(PathwayRelations.annottype)))
- val adef = VarDef("a", PathwayRelations.annottype)
- val aref = TupleVarRef(adef)
+ val relA = BagVarRef("annotations", BagType(PathwayRelations.annottype))
+ val aref = TupleVarRef("a", PathwayRelations.annottype)
 
- val sdef = VarDef("s", PathwayRelations.conseqtype)
- val sref = TupleVarRef(sdef)
+ val sref = TupleVarRef("s", PathwayRelations.conseqtype)
 
-  val relI = BagVarRef(VarDef("cases", BagType(GenomicRelations.casetype)))
-  val idef = VarDef("i", GenomicRelations.casetype)
-  val iref = TupleVarRef(idef)
+  val relI = BagVarRef("cases", BagType(GenomicRelations.casetype))
+  val iref = TupleVarRef("i", GenomicRelations.casetype)
 
-  val relV = BagVarRef(VarDef("variants", BagType(GenomicRelations.varianttype)))
-  val vdef = VarDef("v", GenomicRelations.varianttype)
-  val vref = TupleVarRef(vdef)
-  val g2def = VarDef("g2", GenomicRelations.genotype)
-  val g2ref = TupleVarRef(g2def)
+  val relV = BagVarRef("variants", BagType(GenomicRelations.varianttype))
+  val vref = TupleVarRef("v", GenomicRelations.varianttype)
+  val g2ref = TupleVarRef("g2", GenomicRelations.genotype)
 
-  val relC = BagVarRef(VarDef("clinical", BagType(GenomicRelations.clintype)))
-  val cdef = VarDef("c", GenomicRelations.clintype)
-  val cref = TupleVarRef(cdef)
+  val relC = BagVarRef("clinical", BagType(GenomicRelations.clintype))
+  val cref = TupleVarRef("c", GenomicRelations.clintype)
 
- val q0 = ForeachUnion(pdef, relP, 
+ val q0 = ForeachUnion(pref, relP,
             Singleton(Tuple("pathway" -> pref("name"), "case_burden" -> 
-              ForeachUnion(gdef, pref("genes").asInstanceOf[BagExpr],
-                ForeachUnion(vdef, relV, 
+              ForeachUnion(gref, pref("genes").asInstanceOf[BagExpr],
+                ForeachUnion(vref, relV,
                   IfThenElse(And(Cmp(OpGe, vref("start"), gref("end")),
                              Cmp(OpGe, gref("start"), vref("start"))),
-                    ForeachUnion(adef, relA, 
+                    ForeachUnion(aref, relA,
                       IfThenElse(And(Cmp(OpEq, aref("contig"), vref("contig")),
                                  Cmp(OpEq, aref("start"), vref("start"))),
-                        ForeachUnion(sdef, aref("transcript_consequences").asInstanceOf[BagExpr], 
+                        ForeachUnion(sref, aref("transcript_consequences").asInstanceOf[BagExpr],
                           IfThenElse(Not(Cmp(OpEq, sref("impact"), Const("LOW", StringType))),
-                            ForeachUnion(idef, relI, 
+                            ForeachUnion(iref, relI,
                               Singleton(Tuple("case" -> iref("iscase"), "mutation_burden" ->
-                                ForeachUnion(cdef, relC, 
+                                ForeachUnion(cref, relC,
                                   IfThenElse(Cmp(OpEq, cref("iscase"), iref("iscase")),
-                                    ForeachUnion(g2def, vref("genotypes").asInstanceOf[BagExpr],
+                                    ForeachUnion(g2ref, vref("genotypes").asInstanceOf[BagExpr],
                                       IfThenElse(Cmp(OpEq, g2ref("sample"), cref("sample")),
                                         Singleton(Tuple("call" -> g2ref("call"))))))))))))))))))))
  // basic mutation burden
  // when you don't cast the bag exprs, compilation hangs
- val q1 = ForeachUnion(pdef, relP, 
+ val q1 = ForeachUnion(pref, relP,
             Singleton(Tuple("pathway" -> pref("name"), "case_burden" -> 
-              ForeachUnion(gdef, pref("genes").asInstanceOf[BagExpr],
-                ForeachUnion(vdef, relV, 
+              ForeachUnion(gref, pref("genes").asInstanceOf[BagExpr],
+                ForeachUnion(vref, relV,
                   IfThenElse(And(Cmp(OpGe, vref("start"), gref("end")),
                              Cmp(OpGe, gref("start"), vref("start"))),
-                    ForeachUnion(adef, relA, 
+                    ForeachUnion(aref, relA,
                       IfThenElse(And(Cmp(OpEq, aref("contig"), vref("contig")),
                                  Cmp(OpEq, aref("start"), vref("start"))),
-                        ForeachUnion(sdef, aref("transcript_consequences").asInstanceOf[BagExpr], 
+                        ForeachUnion(sref, aref("transcript_consequences").asInstanceOf[BagExpr],
                           IfThenElse(Not(Cmp(OpEq, sref("impact"), Const("LOW", StringType))),
-                            ForeachUnion(idef, relI, 
+                            ForeachUnion(iref, relI,
                               Singleton(Tuple("case" -> iref("iscase"), "mutation_burden" ->
-                                Count(ForeachUnion(cdef, relC,
+                                Count(ForeachUnion(cref, relC,
                                   IfThenElse(Cmp(OpEq, cref("iscase"), iref("iscase")),
-                                    ForeachUnion(g2def, vref("genotypes").asInstanceOf[BagExpr],
+                                    ForeachUnion(g2ref, vref("genotypes").asInstanceOf[BagExpr],
                                       IfThenElse(And(Cmp(OpEq, g2ref("sample"), cref("sample")),
                                                   Cmp(OpGt, g2ref("call"), NumericConst(0, IntType))),
                                         Singleton(Tuple("call" -> NumericConst(1, IntType)))))))))))))))))))))
@@ -98,12 +90,10 @@ object PathwayTests {
   // this will created a nested set of variant annotations 
   // that can be used for downstream queries
   
-  val relV2 = BagVarRef(VarDef("variants", BagType(GenomicRelations.varianttype)))
-  val v2def = VarDef("v", GenomicRelations.varianttype)
-  val v2ref = TupleVarRef(vdef)
+  val relV2 = BagVarRef("variants", BagType(GenomicRelations.varianttype))
+  val v2ref = TupleVarRef("v", GenomicRelations.varianttype)
 
-  val g3def = VarDef("g", GenomicRelations.genotype)
-  val g3ref = TupleVarRef(g3def)
+  val g3ref = TupleVarRef("g", GenomicRelations.genotype)
   
   /**val q2 = ForeachUnion(vdef, relV, 
             IfThenElse(

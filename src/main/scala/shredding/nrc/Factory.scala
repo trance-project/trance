@@ -13,37 +13,30 @@ trait Factory {
   }
 
   object VarRef {
-    def apply(varDef: VarDef): Expr = varDef.tp match {
-      case _: NumericType => NumericVarRef(varDef)
-      case _: PrimitiveType => PrimitiveVarRef(varDef)
-      case _: BagType => BagVarRef(varDef)
-      case _: TupleType => TupleVarRef(varDef)
-      case _: LabelType => LabelVarRef(varDef)
-      case _: DictType => DictVarRef(varDef)
-      case _: MatDictType => MatDictVarRef(varDef)
+    def apply(varDef: VarDef): Expr = apply(varDef.name, varDef.tp)
+
+    def apply(n: String, tp: Type): Expr = tp match {
+      case _: NumericType => NumericVarRef(n, tp.asInstanceOf[NumericType])
+      case _: PrimitiveType => PrimitiveVarRef(n, tp.asInstanceOf[PrimitiveType])
+      case _: BagType => BagVarRef(n, tp.asInstanceOf[BagType])
+      case _: TupleType => TupleVarRef(n, tp.asInstanceOf[TupleType])
+      case _: LabelType => LabelVarRef(n, tp.asInstanceOf[LabelType])
+      case _: DictType => DictVarRef(n, tp.asInstanceOf[DictType])
+      case _: MatDictType => MatDictVarRef(n, tp.asInstanceOf[MatDictType])
       case t => sys.error("Cannot create VarRef for type " + t)
     }
-
-    def apply(n: String, tp: BagType): BagVarRef = BagVarRef(VarDef(n, tp))
-
-    def apply(n: String, tp: TupleType): TupleVarRef = TupleVarRef(VarDef(n, tp))
-
-    def apply(n: String, tp: LabelType): LabelVarRef = LabelVarRef(VarDef(n, tp))
-
-    def apply(n: String, tp: MatDictType): MatDictVarRef = MatDictVarRef(VarDef(n, tp))
-
-    def apply(n: String, tp: Type): Expr = apply(VarDef(n, tp))
   }
 
   object DictVarRef {
-    def apply(varDef: VarDef): DictExpr = varDef.tp match {
+    def apply(varDef: VarDef): DictExpr =
+      apply(varDef.name, varDef.tp.asInstanceOf[DictType])
+
+    def apply(n: String, tp: DictType): DictExpr = tp match {
       case EmptyDictType => EmptyDict
-      case _: BagDictType => BagDictVarRef(varDef)
-      case _: TupleDictType => TupleDictVarRef(varDef)
+      case _: BagDictType => BagDictVarRef(n, tp.asInstanceOf[BagDictType])
+      case _: TupleDictType => TupleDictVarRef(n, tp.asInstanceOf[TupleDictType])
       case t => sys.error("Cannot create DictVarRef for type " + t)
     }
-
-    def apply(n: String, tp: Type): DictExpr = apply(VarDef(n, tp))
   }
 
   object Project {

@@ -53,20 +53,17 @@ trait PipelineRunner extends MaterializeNRC
                     BagType(TupleType("n" -> IntType)))
     val r1type = TupleType("index" -> IntType, "h" -> IntType, "j" -> BagType(r2type))
 
-    val r1 = VarDef("r1", r1type)
-    val tr1 = TupleVarRef(r1)
-
-    val r2 = VarDef("r2", r2type)
-    val tr2 = TupleVarRef(r2)
+    val tr1 = TupleVarRef("r1", r1type)
+    val tr2 = TupleVarRef("r2", r2type)
 
     val ttype = BagType(r1type)
-    val r = VarDef("R", ttype)
+    val br = BagVarRef("R", ttype)
     
     val rflat = NewLabel()
     val bagdict = 
     BagDict(
       rflat.tp,
-      ForeachUnion(r1, BagVarRef(r), 
+      ForeachUnion(tr1, br,
         Singleton(Tuple("h" -> tr1("h"), "j" -> 
           NewLabel(ProjectLabelParameter(PrimitiveProject(tr1, "index")))))),
       TupleDict(Map("h" -> EmptyDict, "j" -> 
@@ -76,8 +73,8 @@ trait PipelineRunner extends MaterializeNRC
         // this extra iteration is what linearization (ie. materialization helps us avoid)
         BagDict(
           rflat.tp, // just another dummy label (i think ???)
-          ForeachUnion(r1, BagVarRef(r),
-            ForeachUnion(r2, tr1("j").asInstanceOf[BagExpr],
+          ForeachUnion(tr1, br,
+            ForeachUnion(tr2, tr1("j").asInstanceOf[BagExpr],
               Singleton(Tuple("m" -> tr2("m"), "n" -> tr2("n"), "k" -> 
                 NewLabel(ProjectLabelParameter(PrimitiveProject(tr2, "index"))))))),
           TupleDict(Map("m" -> EmptyDict, "n" -> EmptyDict, "k" -> EmptyDict))

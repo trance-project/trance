@@ -61,7 +61,7 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
   def translateName(name: String): String = name.replace("^", "__").replace("'", "").replace(".", "")
   def translate(v: VarDef): CExpr = Variable(translateName(v.name), translate(v.tp))
   def translateVar(v: VarRef): CExpr = v match {
-    case BagVarRef(VarDef(_, BagType(TupleType(fs)))) => fs.get("lbl") match {
+    case BagVarRef(_, BagType(TupleType(fs))) => fs.get("lbl") match {
       case Some(LabelType(ms)) if ms.isEmpty => sng(record(Map("lbl" -> CUnit)))
       case _ => translate(v.varDef)
     }
