@@ -44,10 +44,10 @@ object TestMaterialization extends App
     )
 
     val ctx = new RuntimeContext
-    ctx.add(VarDef("IDict_L__D", shredding.examples.tpch.TPCHSchema.lineittype), lDict)
-    ctx.add(VarDef("IDict_P__D", shredding.examples.tpch.TPCHSchema.parttype), pDict)
-    ctx.add(VarDef("IDict_C__D", shredding.examples.tpch.TPCHSchema.customertype), cDict)
-    ctx.add(VarDef("IDict_O__D", shredding.examples.tpch.TPCHSchema.orderstype), oDict)
+    ctx.add(VarDef(inputBagName("L__D"), shredding.examples.tpch.TPCHSchema.lineittype), lDict)
+    ctx.add(VarDef(inputBagName("P__D"), shredding.examples.tpch.TPCHSchema.parttype), pDict)
+    ctx.add(VarDef(inputBagName("C__D"), shredding.examples.tpch.TPCHSchema.customertype), cDict)
+    ctx.add(VarDef(inputBagName("O__D"), shredding.examples.tpch.TPCHSchema.orderstype), oDict)
 
     println("Program eval: ")
     eval(materializedProgram.program, ctx)
