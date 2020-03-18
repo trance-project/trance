@@ -46,10 +46,10 @@ object TestApp extends App
       val q1shred = optimize(q1shredraw)
       println("[Ex1] Shredded Q1 Optimized: " + quote(q1shred))
 
-      val shredR = shred(relationRValue, relationR.tp)
+//      val shredR = shred(relationRValue, relationR.tp)
 
-      println("NAME: " + inputDictName(dictName(relationR.name)))
-      println("TYPE: " + shredR.dict.tp)
+//      println("NAME: " + inputDictName(dictName(relationR.name)))
+//      println("TYPE: " + shredR.dict.tp)
 
 //      ctx.add(VarDef(inputDictName(flatName(relationR.name)), shredR.flatTp), shredR.flat)
 //      ctx.add(VarDef(inputDictName(dictName(relationR.name)), shredR.dict.tp), shredR.dict)
@@ -194,7 +194,7 @@ object TestApp extends App
       val q1shred = optimize(q1shredraw)
       println("[Ex2] Shredded Q2 Optimized: " + quote(q1shred))
 
-      val shredR = shred(relationRValue, relationR.tp)
+//      val shredR = shred(relationRValue, relationR.tp)
 
 //      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
 //      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
@@ -285,8 +285,8 @@ object TestApp extends App
       val q1shred = optimize(q1shredraw)
       println("[Ex3] Shredded Q1 Optimized: " + quote(q1shred))
 
-      val shredDepartments = shred(departmentsValue, departments.tp)
-      val shredEmployees = shred(employeesValue, employees.tp)
+//      val shredDepartments = shred(departmentsValue, departments.tp)
+//      val shredEmployees = shred(employeesValue, employees.tp)
 
 //      ctx.add(VarDef(flatName(departments.name), shredDepartments.flatTp), shredDepartments.flat)
 //      ctx.add(VarDef(dictName(departments.name), shredDepartments.dict.tp), shredDepartments.dict)
@@ -348,7 +348,7 @@ object TestApp extends App
       val q1shred = optimize(q1shredraw)
       println("[Ex4] Shredded Q1 Optimized: " + quote(q1shred))
 
-      val shredR = shred(relationRValue, relationR.tp)
+//      val shredR = shred(relationRValue, relationR.tp)
 
 //      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
 //      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
@@ -410,7 +410,7 @@ object TestApp extends App
       val q1shred = optimize(q1shredraw)
       println("[Ex5] Shredded Q1 Optimized: " + quote(q1shred))
 
-      val shredR = shred(relationRValue, relationR.tp)
+//      val shredR = shred(relationRValue, relationR.tp)
 
 //      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
 //      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
@@ -487,7 +487,7 @@ object TestApp extends App
       val q1shred = optimize(q1shredraw)
       println("[Ex6] Shredded Q1 Optimized: " + quote(q1shred))
 
-      val shredR = shred(relationRValue, relationR.tp)
+//      val shredR = shred(relationRValue, relationR.tp)
 
 //      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
 //      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
@@ -563,7 +563,7 @@ object TestApp extends App
       val q1shred = optimize(q1shredraw)
       println("[Ex7] Shredded Q1 Optimized: " + quote(q1shred))
 
-      val shredR = shred(relationRValue, relationR.tp)
+//      val shredR = shred(relationRValue, relationR.tp)
 
 //      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
 //      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
@@ -631,7 +631,7 @@ object TestApp extends App
       val q1shred = optimize(q1shredraw)
       println("[Ex8] Shredded Q1 Optimized: " + quote(q1shred))
 
-      val shredR = shred(relationRValue, relationR.tp)
+//      val shredR = shred(relationRValue, relationR.tp)
 
 //      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
 //      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
@@ -691,7 +691,7 @@ object TestApp extends App
       val q1shred = optimize(q1shredraw)
       println("[Ex9] Shredded Q1 Optimized: " + quote(q1shred))
 
-      val shredR = shred(relationRValue, relationR.tp)
+//      val shredR = shred(relationRValue, relationR.tp)
 
 //      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
 //      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
@@ -803,15 +803,15 @@ object TestApp extends App
         )
       )
 
-      val shredR = shred(relationR, BagType(itemTp))
-
-      println(quote(relationR, BagType(itemTp)))
-      println(quote(shredR))
-
-      val unshredR = unshred(shredR)
-      println(quote(unshredR, BagType(itemTp)))
-
-      println("Same as original: " + relationR.equals(unshredR))
+//      val shredR = shred(relationR, BagType(itemTp))
+//
+//      println(quote(relationR, BagType(itemTp)))
+//      println(quote(shredR))
+//
+//      val unshredR = unshred(shredR)
+//      println(quote(unshredR, BagType(itemTp)))
+//
+//      println("Same as original: " + relationR.equals(unshredR))
     }
   }
 
@@ -861,7 +861,7 @@ object TestApp extends App
       val q1shred = optimize(q1shredraw)
       println("[Ex10] Shredded Q1 Optimized: " + quote(q1shred))
 
-      val shredR = shred(relationRValue, relationR.tp)
+//      val shredR = shred(relationRValue, relationR.tp)
 
 //      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
 //      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
@@ -937,7 +937,7 @@ object TestApp extends App
       val q3shred = optimize(q3shredraw)
       println("[Ex11] Shredded Q3 Optimized: " + quote(q3shred))
 
-      val shredR = shred(relationRValue, relationR.tp)
+//      val shredR = shred(relationRValue, relationR.tp)
 
 //      ctx.add(VarDef(flatName(relationR.name), shredR.flatTp), shredR.flat)
 //      ctx.add(VarDef(dictName(relationR.name), shredR.dict.tp), shredR.dict)
@@ -1052,17 +1052,17 @@ object TestApp extends App
     def run(): Unit = {
 
       val q1 = DomainOptExample1.program(DomainOptExample1.name).rhs.asInstanceOf[Expr]
-      println("[Nesting rewrite] Q1: " + quote(q1))
+      println("[Nesting rewrite] " + quote(q1))
 
       val q1opt = nestingRewrite(q1)
 
-      println("[Nesting rewrite] Q1 rewritten: " + quote(q1opt))
+      println("[Nesting rewrite] rewritten: " + quote(q1opt))
 
       val q1fullshredraw = shred(q1)
-      println("[Nesting rewrite] Shredded Full Q1: " + quote(q1fullshredraw))
+      println("[Nesting rewrite] Shredded Full: " + quote(q1fullshredraw))
 
       val q1fullshred = optimize(q1fullshredraw)
-      println("[Nesting rewrite] Shredded Q1 Optimized: " + quote(q1fullshred))
+      println("[Nesting rewrite] Shredded Optimized: " + quote(q1fullshred))
 
 //      val q1fulllin = linearizeNoDomains(q1fullshred)
 //      println("[Nesting rewrite] Linearized Q1: " + quote(q1fulllin))
@@ -1103,9 +1103,9 @@ object TestApp extends App
 
 //  ExtractExamples.run()
 //  Example_Unshredding.run()
-//  Example1.run()
+  Example1.run()
   Example2.run()
-//  Example3.run()
+  Example3.run()
 //  Example4.run()
 //  Example5.run()
 //  Example6.run()
