@@ -24,6 +24,14 @@ trait Factory {
       case t => sys.error("Cannot create VarRef for type " + t)
     }
 
+    def apply(n: String, tp: BagType): BagVarRef = BagVarRef(VarDef(n, tp))
+
+    def apply(n: String, tp: TupleType): TupleVarRef = TupleVarRef(VarDef(n, tp))
+
+    def apply(n: String, tp: LabelType): LabelVarRef = LabelVarRef(VarDef(n, tp))
+
+    def apply(n: String, tp: MatDictType): MatDictVarRef = MatDictVarRef(VarDef(n, tp))
+
     def apply(n: String, tp: Type): Expr = apply(VarDef(n, tp))
   }
 

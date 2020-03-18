@@ -63,7 +63,7 @@ trait Query extends Materializer
 
   def unshred: Program = {
     val shredset = this.shred
-    val res = unshred(shredset._1, shredset._2.dictMapper)
+    val res = unshred(shredset._1, shredset._2.ctx)
     println(quote(res))
     res
   }

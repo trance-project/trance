@@ -8,7 +8,7 @@ import shredding.nrc.MaterializeNRC
   */
 trait Evaluator extends MaterializeNRC with ScalaRuntime {
 
-  def eval(e: Expr, ctx: Context): Any = e match {
+  def eval(e: Expr, ctx: RuntimeContext): Any = e match {
     case c: Const =>
       c.v
     case v: VarRef =>
@@ -166,45 +166,45 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
     case _ => sys.error("Cannot evaluate unknown expression " + e)
   }
 
-  def eval(a: Assignment, ctx: Context): Unit =
+  def eval(a: Assignment, ctx: RuntimeContext): Unit =
     ctx.add(VarDef(a.name, a.rhs.tp), eval(a.rhs, ctx))
 
-  def eval(p: Program, ctx: Context): Unit =
+  def eval(p: Program, ctx: RuntimeContext): Unit =
     p.statements.foreach(eval(_, ctx))
 
-  protected def evalBag(e: Expr, ctx: Context): List[_] =
+  protected def evalBag(e: Expr, ctx: RuntimeContext): List[_] =
     eval(e, ctx).asInstanceOf[List[_]]
 
-  protected def evalTuple(e: Expr, ctx: Context): Map[String, _] =
+  protected def evalTuple(e: Expr, ctx: RuntimeContext): Map[String, _] =
     eval(e, ctx).asInstanceOf[Map[String, _]]
 
-  protected def evalLabel(e: LabelExpr, ctx: Context): RLabel =
+  protected def evalLabel(e: LabelExpr, ctx: RuntimeContext): RLabel =
     eval(e, ctx).asInstanceOf[RLabel]
 
-  protected def evalDict(e: DictExpr, ctx: Context): RDict =
+  protected def evalDict(e: DictExpr, ctx: RuntimeContext): RDict =
     eval(e, ctx).asInstanceOf[RDict]
 
-  protected def evalBagDict(e: BagDictExpr, ctx: Context): RBagDict =
+  protected def evalBagDict(e: BagDictExpr, ctx: RuntimeContext): RBagDict =
     eval(e, ctx).asInstanceOf[RBagDict]
 
-  protected def evalTupleDict(e: TupleDictExpr, ctx: Context): RTupleDict =
+  protected def evalTupleDict(e: TupleDictExpr, ctx: RuntimeContext): RTupleDict =
     eval(e, ctx).asInstanceOf[RTupleDict]
 
-  protected def evalBool(e: Expr, ctx: Context): Boolean =
+  protected def evalBool(e: Expr, ctx: RuntimeContext): Boolean =
     eval(e, ctx).asInstanceOf[Boolean]
 
-  protected def evalInt(e: Expr, ctx: Context): Int = e.tp match {
+  protected def evalInt(e: Expr, ctx: RuntimeContext): Int = e.tp match {
     case IntType => eval(e, ctx).asInstanceOf[Int]
     case _ => sys.error("Cannot evaluate integer of type " + e.tp)
   }
 
-  protected def evalLong(e: Expr, ctx: Context): Long = e.tp match {
+  protected def evalLong(e: Expr, ctx: RuntimeContext): Long = e.tp match {
     case IntType => eval(e, ctx).asInstanceOf[Int].toLong
     case LongType => eval(e, ctx).asInstanceOf[Long]
     case _ => sys.error("Cannot evaluate long of type " + e.tp)
   }
 
-  protected def evalDouble(e: Expr, ctx: Context): Double = e.tp match {
+  protected def evalDouble(e: Expr, ctx: RuntimeContext): Double = e.tp match {
     case IntType => eval(e, ctx).asInstanceOf[Int].toDouble
     case LongType => eval(e, ctx).asInstanceOf[Long].toDouble
     case DoubleType => eval(e, ctx).asInstanceOf[Double]
@@ -219,7 +219,7 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
     case OpGe => o.gteq(v1, v2)
   }
 
-  protected def evalMatDict(e: MatDictExpr, ctx: Context): Map[RLabel, List[_]] = {
+  protected def evalMatDict(e: MatDictExpr, ctx: RuntimeContext): Map[RLabel, List[_]] = {
     eval(e, ctx).asInstanceOf[Map[RLabel, List[_]]]
   }
 

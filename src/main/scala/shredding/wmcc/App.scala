@@ -3,14 +3,14 @@ package shredding.wmcc
 import shredding.core._
 import shredding.examples.genomic._
 import shredding.examples.tpch._
-import shredding.runtime.{Context, Evaluator}
+import shredding.runtime.{RuntimeContext, Evaluator}
 import shredding.nrc.{MaterializeNRC, ShredNRC, Printer => NRCPrinter}
 
 object App {
   
   val nrceval = new Evaluator{}
   val nrcprinter = new NRCPrinter with ShredNRC with MaterializeNRC{}
-  val ctx = new Context()
+  val ctx = new RuntimeContext()
 
   val translator = new NRCTranslator{}
   val normalizer = new Finalizer(new BaseNormalizer{})

@@ -1,14 +1,14 @@
 package shredding.nrc
 
-import shredding.core.{BagType, DoubleType, IntType, StringType, TupleType, VarDef}
-import shredding.runtime.{Evaluator, ScalaPrinter, ScalaShredding, Context => ScalaContext}
+import shredding.core.{VarDef}
+import shredding.runtime.{Evaluator, ScalaPrinter, ScalaShredding, RuntimeContext}
 
 object TestMaterialization extends App
   with MaterializeNRC
   with Shredding
   with ScalaShredding
   with ScalaPrinter
-  with MaterializerNew
+  with Materializer
   with Printer
   with Evaluator
   with Optimizer {
@@ -26,8 +26,8 @@ object TestMaterialization extends App
     println("Materialized program: \n" + quote(materializedProgram.program) + "\n")
 //    println("Materialized program optimized: \n" + quote(optimize(materializedProgram.program)) + "\n")
 
-//    val unshredded = unshred(shredded, materializedProgram.dictMapper)
-//    println("Unshredded program: \n" + quote(unshredded) + "\n")
+    val unshredded = unshred(optShredded, materializedProgram.ctx)
+    println("Unshredded program: \n" + quote(unshredded) + "\n")
 //    println("Unshredded program optimized: \n" + quote(optimize(unshredded)) + "\n")
 
     val lDict = List[Map[String, Any]](
@@ -43,7 +43,7 @@ object TestMaterialization extends App
       Map("o_orderkey" -> 1, "o_custkey" -> 10, "o_orderdate" -> 20200317)
     )
 
-    val ctx = new ScalaContext
+    val ctx = new RuntimeContext
     ctx.add(VarDef("IDict_L__D", shredding.examples.tpch.TPCHSchema.lineittype), lDict)
     ctx.add(VarDef("IDict_P__D", shredding.examples.tpch.TPCHSchema.parttype), pDict)
     ctx.add(VarDef("IDict_C__D", shredding.examples.tpch.TPCHSchema.customertype), cDict)
@@ -52,6 +52,12 @@ object TestMaterialization extends App
     println("Program eval: ")
     eval(materializedProgram.program, ctx)
     materializedProgram.program.statements.foreach { s =>
+      println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
+    }
+
+    println("Unshredded program eval: ")
+    eval(unshredded, ctx)
+    program.statements.foreach { s =>
       println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
     }
 

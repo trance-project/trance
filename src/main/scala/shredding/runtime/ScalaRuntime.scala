@@ -55,10 +55,10 @@ trait ScalaRuntime {
     val lblTp: LabelType = LabelType("id" -> IntType)
   }
 
-  class DictFn(init: Context, val f: Context => List[Any]) {
+  class DictFn(init: RuntimeContext, val f: RuntimeContext => List[Any]) {
     // Store context when DictFn was created. Need only
     // input values to be stored but we keep entire context.
-    val ctx: Context = Context(init.ctx.toList: _*)
+    val ctx: RuntimeContext = RuntimeContext(init.ctx.toList: _*)
   }
 
   final case class ROutBagDict(dictFn: DictFn, lblTp: LabelType, flatBagTp: BagType, dict: RTupleDict) extends RBagDict {

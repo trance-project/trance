@@ -300,6 +300,8 @@ trait NRC extends BaseExpr {
 
   object Program {
     def apply(statements: Assignment*): Program = Program(List(statements: _*))
+
+    def apply(name: String, e: Expr): Program = Program(List(Assignment(name, e)))
   }
 
 }
