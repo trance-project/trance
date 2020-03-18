@@ -292,15 +292,17 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   }
 
   def loadRegion():RDD[Region] = {
-    spark.sparkContext.textFile(s"file:///$datapath/region.tbl",minPartitions = parts).map(line => {
+    spark.sparkContext.textFile(s"file:///$datapath/region.tbl",minPartitions = parts).mapPartitions(it =>
+      it.map(line => {
                     val l = line.split("\\|")
-                    Region(l(0).toInt, l(1), l(2))})
+                    Region(l(0).toInt, l(1), l(2))}), true).repartition(parts)
   }
 
   def loadNation():RDD[Nation] = {
-    spark.sparkContext.textFile(s"file:///$datapath/nation.tbl",minPartitions = parts).map(line => {
+    spark.sparkContext.textFile(s"file:///$datapath/nation.tbl",minPartitions = parts).mapPartitions(it =>
+      it.map(line => {
                     val l = line.split("\\|")
-                    Nation(l(0).toInt, l(1), l(2).toInt, l(3))})
+                    Nation(l(0).toInt, l(1), l(2).toInt, l(3))}), true).repartition(parts)
   }
 
 }
