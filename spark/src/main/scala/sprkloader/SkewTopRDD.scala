@@ -21,6 +21,8 @@ object SkewTopRDD{
 
     // def heavyKeys: Set[K] = Set.empty[K]
 
+    def zipWithIndex: (RDD[(K, Long)], RDD[(K, Long)]) = (light.zipWithIndex, heavy.zipWithIndex)
+
     def map[S:ClassTag](f: K => S): (RDD[S], RDD[S]) = 
       (light.map(k => f(k)), heavy.map(k => f(k)))
 

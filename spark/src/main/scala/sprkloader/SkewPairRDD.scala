@@ -23,6 +23,9 @@ object SkewPairRDD {
     def union: RDD[(K,V)] = (light, heavy).union
     def cache: Unit = (light, heavy).cache
 
+    def zipWithIndex: (RDD[((K,V), Long)], RDD[((K,V), Long)], Broadcast[Set[K]]) = 
+      (light.zipWithIndex, heavy.zipWithIndex, heavyKeys)
+
     // non key altering map
     def mapPartitions[S:ClassTag](f: ((K,V)) => (K, S)): (RDD[(K,S)], RDD[(K,S)], Broadcast[Set[K]]) = {
       val (l, h) = (light, heavy).mapPartitions(f, true)
@@ -151,8 +154,8 @@ object SkewPairRDD {
         }
       }
 
-    def reduce(f: (V,V) => V): (RDD[(K,V)], RDD[(K,V)]) = {
-      val result = lrdd.union.reduce(f)
+    def agg(f: (V,V) => V): (RDD[(K,V)], RDD[(K,V)]) = {
+      val result = lrdd.union.agg(f)
       (result, result.empty)
     }
 
@@ -268,8 +271,8 @@ object SkewPairRDD {
         }
     }
 
-    def reduce(f: (V,V) => V): (RDD[(K,V)], RDD[(K,V)]) = {
-      val result = lrdd.union.reduce(f)
+    def agg(f: (V,V) => V): (RDD[(K,V)], RDD[(K,V)]) = {
+      val result = lrdd.union.agg(f)
       (result, result.empty)
     }
 
