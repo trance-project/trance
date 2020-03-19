@@ -6,8 +6,7 @@ import shredding.core._
 /**
   * Materialization of nested output queries
   */
-trait Materializer {
-  this: MaterializeNRC with Optimizer with Printer =>
+trait BaseMaterialization {
 
   val INPUT_BAG_PREFIX: String = "IBag_"
 
@@ -21,69 +20,6 @@ trait Materializer {
 
   val UNSHRED_PREFIX: String = "UDict_"
 
-  val ELIMINATE_DOMAINS: Boolean = true
-
-  class DictInfo(val dict: BagDictExpr,
-                 val ref: VarRef,
-                 val parent: Option[(BagDictExpr, String)])
-
-  class LabelInfo(val isTopLevel: Boolean)
-
-  class Context(private val dicts: Map[BagDictExpr, DictInfo],
-                private val labels: Map[LabelExpr, LabelInfo],
-                private val scope: Map[String, VarDef]) {
-
-    def this() = this(Map.empty, Map.empty, Map.empty)
-
-    def addDict(dict: BagDictExpr,
-                ref: VarRef,
-                parent: Option[(BagDictExpr, String)]): Context =
-      new Context(dicts + (dict -> new DictInfo(dict, ref, parent)), labels, scope)
-
-    def addDictAlias(dict: BagDictExpr, alias: BagDictExpr): Context =
-      new Context(dicts + (alias -> dicts(dict)), labels, scope)
-
-    def contains(d: BagDictExpr): Boolean = dicts.contains(d)
-
-    def isTopLevel(d: BagDictExpr): Boolean = dicts(d).parent.isEmpty
-
-    def matDictRef(d: BagDictExpr): VarRef = dicts(d).ref
-
-    def children(d: BagDictExpr): Map[String, BagDictExpr] = {
-      val dict = dicts(d).dict
-      dicts.values.collect {
-        case i: DictInfo if i.parent.exists(_._1 == dict) =>
-          i.parent.get._2 -> i.dict
-      }.toMap
-    }
-
-    def addLabel(l: LabelExpr, isTopLevel: Boolean): Context =
-      new Context(dicts, labels + (l -> new LabelInfo(isTopLevel)), scope)
-
-    def contains(l: LabelExpr): Boolean = labels.contains(l)
-
-    def isTopLevel(l: LabelExpr): Boolean = labels(l).isTopLevel
-
-    def addVarDef(v: VarDef): Context =
-      new Context(dicts, labels, scope + (v.name -> v))
-
-    def removeVarDef(v: VarDef): Context =
-      new Context(dicts, labels, scope - v.name)
-
-    def contains(n: String): Boolean = scope.contains(n)
-
-    def varDef(n: String): VarDef = scope(n)
-
-    def ++(other: Context): Context =
-      new Context(dicts ++ other.dicts, labels ++ other.labels, scope ++ other.scope)
-
-  }
-
-  class MaterializedProgram(val program: Program, val ctx: Context) {
-    def ++(m: MaterializedProgram): MaterializedProgram =
-      new MaterializedProgram(program ++ m.program, ctx ++ m.ctx)
-  }
-
   def inputBagName(name: String): String = INPUT_BAG_PREFIX + name
 
   def inputDictName(name: String): String = INPUT_DICT_PREFIX + name
@@ -96,27 +32,71 @@ trait Materializer {
 
   def unshredDictName(name: String): String = UNSHRED_PREFIX + name
 
-  def materialize(p: ShredProgram): MaterializedProgram = {
-    Symbol.freshClear()
+}
 
-    // Create initial context with top-level dictionaries
-    val ctx = inputVars(p).foldLeft (new Context) {
+trait MaterializationContext extends BaseMaterialization {
+  this: MaterializeNRC =>
+
+  class DictInfo(val dict: BagDictExpr, val ref: VarRef, val parent: Option[(BagDictExpr, String)])
+
+  class LabelInfo(val isTopLevel: Boolean)
+
+  class Context(private val dictCtx: Map[BagDictExpr, DictInfo],
+                private val labelCtx: Map[LabelExpr, LabelInfo],
+                private val scope: Map[String, VarDef]) {
+
+    def addDict(dict: BagDictExpr, ref: VarRef, parent: Option[(BagDictExpr, String)]): Context =
+      new Context(dictCtx + (dict -> new DictInfo(dict, ref, parent)), labelCtx, scope)
+
+    def addDictAlias(dict: BagDictExpr, alias: BagDictExpr): Context =
+      new Context(dictCtx + (alias -> dictCtx(dict)), labelCtx, scope)
+
+    def contains(d: BagDictExpr): Boolean = dictCtx.contains(d)
+
+    def isTopLevel(d: BagDictExpr): Boolean = dictCtx(d).parent.isEmpty
+
+    def matVarRef(d: BagDictExpr): VarRef = dictCtx(d).ref
+
+    def children(d: BagDictExpr): Map[String, BagDictExpr] = {
+      val reference = dictCtx(d).dict
+      dictCtx.values.collect {
+        case i: DictInfo if i.parent.exists(_._1 == reference) =>
+          i.parent.get._2 -> i.dict
+      }.toMap
+    }
+
+    def addLabel(l: LabelExpr, isTopLevel: Boolean): Context =
+      new Context(dictCtx, labelCtx + (l -> new LabelInfo(isTopLevel)), scope)
+
+    def contains(l: LabelExpr): Boolean = labelCtx.contains(l)
+
+    def isTopLevel(l: LabelExpr): Boolean = labelCtx(l).isTopLevel
+
+    def addVarDef(v: VarDef): Context =
+      new Context(dictCtx, labelCtx, scope + (v.name -> v))
+
+    def removeVarDef(v: VarDef): Context =
+      new Context(dictCtx, labelCtx, scope - v.name)
+
+    def contains(n: String): Boolean = scope.contains(n)
+
+    def varDef(n: String): VarDef = scope(n)
+
+    def ++(c: Context): Context =
+      new Context(dictCtx ++ c.dictCtx, labelCtx ++ c.labelCtx, scope ++ c.scope)
+
+  }
+
+  def initContext(p: ShredProgram): Context =
+    inputVars(p).foldLeft (new Context(Map.empty, Map.empty, Map.empty)) {
       case (acc, d: BagDictVarRef) =>
-        addInputDict(d, None, acc)
+        addInputDict(d, acc, None)
       case (acc, l: LabelVarRef) =>
         acc.addLabel(l, isTopLevel = true)
       case (acc, _) => acc
     }
 
-    // Materialize each statement starting from empty program
-    val emptyProgram = new MaterializedProgram(Program(), ctx)
-    p.statements.foldLeft (emptyProgram) { case (acc, s) =>
-      val mat = materialize(s, acc.ctx)
-      new MaterializedProgram(acc.program ++ mat.program, mat.ctx)
-    }
-  }
-
-  private def addInputDict(d: BagDictVarRef, parent: Option[(BagDictExpr, String)], ctx: Context): Context = {
+  private def addInputDict(d: BagDictVarRef, ctx: Context, parent: Option[(BagDictExpr, String)]): Context = {
     val matRef = if (parent.isEmpty)
       BagVarRef(inputBagName(d.name), d.tp.flatTp)
     else
@@ -125,38 +105,56 @@ trait Materializer {
 
     d.tp.dictTp.attrTps.foldLeft (newCtx) {
       case (acc, (n, t: BagDictType)) =>
-        val childName = inputDictName(d.name + "_" + n)
-        val childDict = BagDictVarRef(childName, t)
-        val newAcc = addInputDict(childDict, Some(d -> n), acc)
-
-        val matChildDict = MatDictVarRef(childName, MatDictType(t.lblTp, t.flatTp))
-        newAcc.addDict(childDict, matChildDict, Some(d -> n))
-
+        val child = BagDictVarRef(d.name + "_" + n, t)
+        addInputDict(child, acc, Some(d -> n))
       case (acc, (_, EmptyDictType)) => acc
     }
-
   }
 
-  private def materialize(a: ShredAssignment, ctx: Context): MaterializedProgram = a.rhs match {
-    case ShredExpr(l: NewLabel, d: BagDict) =>
-      assert(l.tp == d.lblTp)   // sanity check
-      materializeBagDict(d, a.name, ctx, None, None)
-    case _ =>
-      sys.error("Materialization not supported for " + quote(a))
+}
+
+trait Materialization extends MaterializationContext {
+  this: MaterializeNRC with Optimizer with Printer =>
+
+  class MaterializedProgram(val program: Program, val ctx: Context) {
+    def ++(m: MaterializedProgram): MaterializedProgram =
+      new MaterializedProgram(program ++ m.program, ctx ++ m.ctx)
   }
+
+  def materialize(p: ShredProgram, eliminateDomains: Boolean = false): MaterializedProgram = {
+    Symbol.freshClear()
+    // Create initial context with top-level dictionaries
+    val ctx = initContext(p)
+    // Materialize each statement starting from empty program
+    val emptyProgram = new MaterializedProgram(Program(), ctx)
+    p.statements.foldLeft (emptyProgram) { case (acc, s) =>
+      val mat = materialize(s, acc.ctx, eliminateDomains)
+      new MaterializedProgram(acc.program ++ mat.program, mat.ctx)
+    }
+  }
+
+  private def materialize(a: ShredAssignment, ctx: Context, eliminateDomains: Boolean): MaterializedProgram =
+    a.rhs match {
+      case ShredExpr(l: NewLabel, d: BagDict) =>
+        assert(l.tp == d.lblTp)   // sanity check
+        materializeBagDict(d, a.name, ctx, None, None, eliminateDomains)
+      case _ =>
+        sys.error("Materialization not supported for " + quote(a))
+    }
 
   private def materializeBagDict(dict: BagDict,
                                  name: String,
                                  ctx: Context,
                                  parent: Option[(BagDictExpr, String)],
-                                 labelDomain: Option[BagVarRef]
+                                 labelDomain: Option[BagVarRef],
+                                 eliminateDomains: Boolean
                                 ): MaterializedProgram =
     dict match {
       case BagDict(tp, ShredUnion(b1, b2), TupleDictUnion(d1, d2)) =>
         val dict1 = BagDict(tp, b1, d1)
         val dict2 = BagDict(tp, b2, d2)
-        materializeBagDict(dict1, name, ctx, parent, labelDomain) ++
-          materializeBagDict(dict2, name, ctx, parent, labelDomain)
+        materializeBagDict(dict1, name, ctx, parent, labelDomain, eliminateDomains) ++
+          materializeBagDict(dict2, name, ctx, parent, labelDomain, eliminateDomains)
 
       case BagDict(lblTp, flat, tupleDict: TupleDictExpr) if parent.isEmpty =>
         // 1. Create dictionary bag expression
@@ -179,7 +177,7 @@ trait Materializer {
         // 5. Materialize children if needed
         tupleDict match {
           case d: TupleDict =>
-            program ++ materializeTupleDict(d, suffix, dictCtx, dict)
+            program ++ materializeTupleDict(d, suffix, dictCtx, dict, eliminateDomains)
           case _ =>
             program
         }
@@ -211,13 +209,13 @@ trait Materializer {
         // 5. Materialize children if needed
         tupleDict match {
           case d: TupleDict =>
-            program ++ materializeTupleDict(d, suffix, dictCtx, dict)
+            program ++ materializeTupleDict(d, suffix, dictCtx, dict, eliminateDomains)
           case _ =>
             program
         }
 
       case BagDict(_, flat, tupleDict: TupleDictExpr) =>
-        assert(canEliminateDomain(flat))   // sanity check
+        assert(eliminateDomains && canEliminateDomain(flat))   // sanity check
 
         // 1. Create dictionary bag expression
         val (bag: BagExpr, ctx2) =
@@ -238,7 +236,7 @@ trait Materializer {
         // 5. Materialize children if needed
         tupleDict match {
           case d: TupleDict =>
-            program ++ materializeTupleDict(d, suffix, dictCtx, dict)
+            program ++ materializeTupleDict(d, suffix, dictCtx, dict, eliminateDomains)
           case _ =>
             program
         }
@@ -250,25 +248,26 @@ trait Materializer {
   private def materializeTupleDict(dict: TupleDict,
                                    name: String,
                                    ctx: Context,
-                                   parentDict: BagDict
+                                   parentDict: BagDict,
+                                   eliminateDomains: Boolean
                                   ): MaterializedProgram =
     dict.fields.foldLeft (new MaterializedProgram(Program(), ctx)) {
       case (acc, (n: String, d: BagDict))
-        if ELIMINATE_DOMAINS && canEliminateDomain(d.flat) =>
+        if eliminateDomains && canEliminateDomain(d.flat) =>
         // 1. Materialize child dictionary
         val childMatProgram =
-          materializeBagDict(d, name + "_" + n, ctx, Some(parentDict -> n), None)
+          materializeBagDict(d, name + "_" + n, ctx, Some(parentDict -> n), None, eliminateDomains)
 
         acc ++ childMatProgram
 
       case (acc, (n: String, d: BagDict)) =>
         // 1. Create label domain
-        val domain = createLabelDomain(ctx.matDictRef(parentDict), ctx.isTopLevel(parentDict), n)
+        val domain = createLabelDomain(ctx.matVarRef(parentDict), ctx.isTopLevel(parentDict), n)
         val domainRef = BagVarRef(domain.name, domain.rhs.tp.asInstanceOf[BagType])
 
         // 2. Materialize child dictionary
         val childMatProgram =
-          materializeBagDict(d, name + "_" + n, ctx, Some(parentDict -> n), Some(domainRef))
+          materializeBagDict(d, name + "_" + n, ctx, Some(parentDict -> n), Some(domainRef), eliminateDomains)
 
         val program = Program(domain :: childMatProgram.program.statements)
         acc ++ new MaterializedProgram(program, childMatProgram.ctx)
@@ -358,12 +357,12 @@ trait Materializer {
 
     case (Lookup(l, d), ctx) if ctx.isTopLevel(d) =>
       assert(ctx.isTopLevel(l))  // sanity check
-      (ctx.matDictRef(d).asInstanceOf[BagVarRef], ctx)
+      (ctx.matVarRef(d).asInstanceOf[BagVarRef], ctx)
 
     case (Lookup(l, d), ctx) =>
       assert(ctx.contains(d))  // sanity check
       val (lbl: LabelExpr, ctx1) = rewriteUsingContext(l, ctx)
-      val dict = ctx.matDictRef(d).asInstanceOf[MatDictExpr]
+      val dict = ctx.matVarRef(d).asInstanceOf[MatDictExpr]
       (MatDictLookup(lbl, dict), ctx1)
 
     case (BagLet(x, TupleDictProject(d), e2), ctx) =>
@@ -441,11 +440,11 @@ trait Materializer {
         (prog1 ++ prog2, Union(bag1, bag2))
 
       case BagDict(_, _, tupleDict: TupleDict) if isTopLevel && tupleDict.isEmpty =>
-        val bagRef = ctx.matDictRef(dict).asInstanceOf[BagVarRef]
+        val bagRef = ctx.matVarRef(dict).asInstanceOf[BagVarRef]
         (Program(), bagRef)
 
       case BagDict(_, _, tupleDict: TupleDict) if isTopLevel =>
-        val bagDictRef = ctx.matDictRef(dict).asInstanceOf[BagVarRef]
+        val bagDictRef = ctx.matVarRef(dict).asInstanceOf[BagVarRef]
         val tupleRef = TupleVarRef(Symbol.fresh(), bagDictRef.tp.tp)
 
         // 1. Unshred children
@@ -457,11 +456,11 @@ trait Materializer {
         (Program(childProgram.statements), nestedBag)
 
       case BagDict(_, _, tupleDict: TupleDict) if tupleDict.isEmpty =>
-        val matDictRef = ctx.matDictRef(dict).asInstanceOf[MatDictVarRef]
+        val matDictRef = ctx.matVarRef(dict).asInstanceOf[MatDictVarRef]
         (Program(), MatDictLookup(lbl, matDictRef))
 
       case BagDict(_, _, tupleDict: TupleDict) =>
-        val matDictRef = ctx.matDictRef(dict).asInstanceOf[MatDictVarRef]
+        val matDictRef = ctx.matVarRef(dict).asInstanceOf[MatDictVarRef]
         val kvDict = MatDictToBag(matDictRef)
         val kvRef = TupleVarRef(Symbol.fresh(name = "kv"), kvDict.tp.tp)
 

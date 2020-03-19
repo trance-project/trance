@@ -31,12 +31,11 @@ class TestExamples extends FunSuite
     println("")
     println("[TEST_1] A query doing a simple projection on a tuple variable.\n    Suppose x is a variable of type <. . . a : Bag(C). . .>\n    E = x.a")
     val tuple = TupleType("b" -> StringType, "a" -> BagType(TupleType("c" -> IntType)), "d" -> StringType)
-    val relationR = BagVarRef(VarDef("R", BagType(tuple)))
+    val relationR = BagVarRef("R", BagType(tuple))
 
-    val xdef = VarDef("x", tuple)
-    val xref = TupleVarRef(xdef)
+    val xref = TupleVarRef("x", tuple)
 
-    val q1 = ForeachUnion(xdef, relationR, Singleton(Tuple("E" -> xref("a"))))
+    val q1 = ForeachUnion(xref, relationR, Singleton(Tuple("E" -> xref("a"))))
     printQuery("TEST_1", q1)
 
     val translator = new NRCTranslator {}
@@ -74,12 +73,11 @@ class TestExamples extends FunSuite
     println("[TEST_2] Projecting every tuple in a bag onto a bag attribute. Input: R of type BagType(h. . . a : BagType(C). . .i.\n    E = For x In R Union x.a")
 
     val tuple = TupleType("b" -> StringType, "a" -> BagType(TupleType("c" -> IntType)), "d" -> StringType)
-    val relationR = BagVarRef(VarDef("R", BagType(tuple)))
+    val relationR = BagVarRef("R", BagType(tuple))
 
-    val xdef = VarDef("x", tuple)
-    val xref = TupleVarRef(xdef)
+    val xref = TupleVarRef("x", tuple)
 
-    val q1 = ForeachUnion(xdef, relationR, Singleton(Tuple("E" -> xref("a"))))
+    val q1 = ForeachUnion(xref, relationR, Singleton(Tuple("E" -> xref("a"))))
 
     printQuery("TEST_2", q1)
 
@@ -123,10 +121,9 @@ class TestExamples extends FunSuite
     println("[TEST_3] Taking a projection of a variable onto a bag attribute (as in the first example) and wrapping it in\n  a singleton tuple.\n E = {a' = x.ai}")
 
     val tuple = TupleType("b" -> StringType, "a" -> BagType(TupleType("c" -> IntType)), "d" -> StringType)
-    val relationR = BagVarRef(VarDef("R", BagType(tuple)))
-    val xdef = VarDef("x", tuple)
-    val xref = TupleVarRef(xdef)
-    val results = Singleton(Tuple("a" -> ForeachUnion(xdef, relationR, Singleton(Tuple("E" -> xref("a"))))))
+    val relationR = BagVarRef("R", BagType(tuple))
+    val xref = TupleVarRef("x", tuple)
+    val results = Singleton(Tuple("a" -> ForeachUnion(xref, relationR, Singleton(Tuple("E" -> xref("a"))))))
 
     printQuery("TEST_3", results)
     val translator = new NRCTranslator {}
@@ -164,13 +161,10 @@ class TestExamples extends FunSuite
     println("[TEST_4] Output a tuple where one attribute is a value and another is a complex bag that groups on the\n  value.\n    E = <a' = x.c, b' = For y In R Union (If y.c == x.c Then y.a)>")
     val tuple_x = TupleType("a" -> IntType, "c" -> IntType)
     val tuple_y = TupleType("a" -> IntType, "c" -> IntType)
-    val relationR = BagVarRef(VarDef("R", BagType(tuple_x)))
-    val xdef = VarDef("x", tuple_x)
-    val ydef = VarDef("y", tuple_y)
-    val xref = TupleVarRef(xdef)
-
-    val yref = TupleVarRef(ydef)
-    val results = Tuple("a" -> xref("c"), "b" -> ForeachUnion(ydef, relationR,
+    val relationR = BagVarRef("R", BagType(tuple_x))
+    val xref = TupleVarRef("x", tuple_x)
+    val yref = TupleVarRef("y", tuple_y)
+    val results = Tuple("a" -> xref("c"), "b" -> ForeachUnion(yref, relationR,
       IfThenElse(
         Cmp(OpEq, yref("c"), xref("c")),
         Singleton(Tuple("b'" -> yref("a")))
@@ -215,20 +209,18 @@ class TestExamples extends FunSuite
 
     val tuple_x = TupleType("a" -> IntType, "c" -> IntType)
     val tuple_y = TupleType("a" -> IntType, "c" -> IntType)
-    val relationR = BagVarRef(VarDef("R", BagType(tuple_x)))
-    val relationS = BagVarRef(VarDef("S", BagType(tuple_x)))
-    val xdef = VarDef("x", tuple_x)
-    val ydef = VarDef("y", tuple_y)
-    val xref = TupleVarRef(xdef)
+    val relationR = BagVarRef("R", BagType(tuple_x))
+    val relationS = BagVarRef("S", BagType(tuple_x))
+    val xref = TupleVarRef("x", tuple_x)
+    val yref = TupleVarRef("y", tuple_y)
 
-    val yref = TupleVarRef(ydef)
-    val q4 = Singleton(Tuple("a" -> xref("c"), "b" -> ForeachUnion(ydef, relationR,
+    val q4 = Singleton(Tuple("a" -> xref("c"), "b" -> ForeachUnion(yref, relationR,
       IfThenElse(
         Cmp(
           OpEq, yref("c"), xref("c")),
         Singleton(Tuple("a'" -> yref("a")))))))
 
-    val results = ForeachUnion(xdef, relationS, q4.asInstanceOf[BagExpr])
+    val results = ForeachUnion(xref, relationS, q4.asInstanceOf[BagExpr])
     printQuery("TEST_5", results)
     val translator = new NRCTranslator {}
     val normalizer = new Finalizer(new BaseNormalizer {})
@@ -290,19 +282,16 @@ class TestExamples extends FunSuite
       "For z In R Union If z.a == x.a ∧ z.b == y.b Then\n            " +
       "{c' = z.ci}")
     val tuple_x = TupleType("a" -> IntType, "b" -> IntType, "c" -> IntType)
-    val relationR = BagVarRef(VarDef("R", BagType(tuple_x)))
-    val xdef = VarDef("x", tuple_x)
-    val zdef = VarDef("z", tuple_x)
-    val ydef = VarDef("y", tuple_x)
-    val xref = TupleVarRef(xdef)
-    val yref = TupleVarRef(ydef)
-    val zref = TupleVarRef(zdef)
-    val results = ForeachUnion(xdef, relationR,
-      ForeachUnion(ydef, relationR, IfThenElse(Cmp(OpEq, xref("a"), yref("a")),
+    val relationR = BagVarRef("R", BagType(tuple_x))
+    val xref = TupleVarRef("x", tuple_x)
+    val yref = TupleVarRef("y", tuple_x)
+    val zref = TupleVarRef("z", tuple_x)
+    val results = ForeachUnion(xref, relationR,
+      ForeachUnion(yref, relationR, IfThenElse(Cmp(OpEq, xref("a"), yref("a")),
         //{b' = y.b, s2 =
         //  For z In R Union If z.a == x.a ∧ z.b == y.b Then
         //    {c' = z.ci}
-        ForeachUnion(zdef, relationR,
+        ForeachUnion(zref, relationR,
           IfThenElse(
             Or(Cmp(OpEq, zref("a"), xref("a")), Cmp(OpEq, zref("b"), yref("b"))),
             Singleton(Tuple("c'" -> zref("c"))))
@@ -393,9 +382,8 @@ class TestExamples extends FunSuite
     val bagC = BagType(TupleType("sample" -> StringType, "iscase"->DoubleType))
 
 
-    val relationV = BagVarRef(VarDef("V", bagV))
-    val vdef = VarDef("v", bagV.tp)
-    val vref = TupleVarRef(vdef)
+    val relationV = BagVarRef("V", bagV)
+    val vref = TupleVarRef("v", bagV.tp)
 
 //    val gdef = VarDef("g", tuple)
 

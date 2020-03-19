@@ -1,14 +1,16 @@
 package shredding.nrc
 
-import shredding.core.{VarDef}
-import shredding.runtime.{Evaluator, ScalaPrinter, ScalaShredding, RuntimeContext}
+import shredding.core.VarDef
+import shredding.runtime.{Evaluator, RuntimeContext, ScalaPrinter, ScalaShredding}
+import shredding.examples.tpch
+import shredding.examples.tpch.TPCHSchema
 
 object TestMaterialization extends App
   with MaterializeNRC
   with Shredding
   with ScalaShredding
   with ScalaPrinter
-  with Materializer
+  with Materialization
   with Printer
   with Evaluator
   with Optimizer {
@@ -22,7 +24,7 @@ object TestMaterialization extends App
     val optShredded = optimize(shredded)
     println("Shredded program optimized: \n" + quote(optShredded) + "\n")
 
-    val materializedProgram = materialize(optShredded)
+    val materializedProgram = materialize(optShredded, eliminateDomains = true)
     println("Materialized program: \n" + quote(materializedProgram.program) + "\n")
 //    println("Materialized program optimized: \n" + quote(optimize(materializedProgram.program)) + "\n")
 
@@ -44,10 +46,10 @@ object TestMaterialization extends App
     )
 
     val ctx = new RuntimeContext
-    ctx.add(VarDef(inputBagName("L__D"), shredding.examples.tpch.TPCHSchema.lineittype), lDict)
-    ctx.add(VarDef(inputBagName("P__D"), shredding.examples.tpch.TPCHSchema.parttype), pDict)
-    ctx.add(VarDef(inputBagName("C__D"), shredding.examples.tpch.TPCHSchema.customertype), cDict)
-    ctx.add(VarDef(inputBagName("O__D"), shredding.examples.tpch.TPCHSchema.orderstype), oDict)
+    ctx.add(VarDef(inputBagName("L__D"), TPCHSchema.lineittype), lDict)
+    ctx.add(VarDef(inputBagName("P__D"), TPCHSchema.parttype), pDict)
+    ctx.add(VarDef(inputBagName("C__D"), TPCHSchema.customertype), cDict)
+    ctx.add(VarDef(inputBagName("O__D"), TPCHSchema.orderstype), oDict)
 
     println("Program eval: ")
     eval(materializedProgram.program, ctx)
@@ -63,6 +65,6 @@ object TestMaterialization extends App
 
   }
 
-//  run(shredding.examples.tpch.Query1.program.asInstanceOf[Program])
-  run(shredding.examples.tpch.Query4.program.asInstanceOf[Program])
+//  run(tpch.Query1.program.asInstanceOf[Program])
+  run(tpch.Query4.program.asInstanceOf[Program])
 }

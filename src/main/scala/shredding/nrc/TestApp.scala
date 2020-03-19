@@ -11,7 +11,7 @@ object TestApp extends App
   with Shredding
   with ScalaShredding
   with ScalaPrinter
-  with Materializer
+  with Materialization
   with Printer
   with Evaluator
   with Optimizer {
