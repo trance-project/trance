@@ -4,8 +4,14 @@ package shredding.core
   * NRC type system: primitive types, bag type, tuple type
   */
 
-sealed trait Type {
+sealed trait Type { self =>
   def isPartiallyShredded: Boolean = false
+  def isPrimitive: Boolean = self match {
+    case IntType => true
+    case DoubleType => true
+    case _ => false
+  }
+  def isDict: Boolean = false
 }
 
 trait TupleAttributeType extends Type
@@ -74,7 +80,12 @@ case class TypeSet(tp: Map[Type, String]) extends Type
 
 case class SetType(tp: Type) extends Type
 
-case class BagCType(tp: Type) extends Type
+case class BagCType(tp: Type) extends Type {
+  override def isDict: Boolean = tp match {
+    case TTupleType(fs) => fs.head.isInstanceOf[LabelType]
+    case _ => false
+  }
+}
 
 case object EmptyCType extends Type
 
@@ -101,7 +112,7 @@ trait TTupleDict extends Type
 
 case object EmptyDictCType extends TDict with TTupleDict
 
-case class BagDictCType(flatTp: BagCType, dictTp: TTupleDict) extends TDict {
+case class BagDictCType(flatTp: BagCType, dictTp: TTupleDict) extends TDict { self =>
   def apply(n: String): Type = n match {
     case "lbl" => flatTp.tp.asInstanceOf[TTupleType](0)
     case "flat" => flatTp.tp match {
@@ -122,6 +133,10 @@ case class BagDictCType(flatTp: BagCType, dictTp: TTupleDict) extends TDict {
   override def isPartiallyShredded: Boolean = flatTp.tp match {
     case RecordCType(ms) => ms.filter(_._2.isInstanceOf[BagCType]).nonEmpty
     case _ => false
+  }
+  override def isDict: Boolean = self("lbl") match {
+    case EmptyCType => false
+    case _ => true
   }
 }
 

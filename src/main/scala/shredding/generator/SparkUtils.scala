@@ -40,8 +40,8 @@ trait SparkUtils {
   }
 
   def agg(e: CExpr): String = e.tp match {
-    case IntType => "reduce(_+_)"
-    case DoubleType => "reduce(_+_)"
+    case IntType => "agg(_+_)"
+    case DoubleType => "agg(_+_)"
     case _ => "group(_++_)"
   } 
 

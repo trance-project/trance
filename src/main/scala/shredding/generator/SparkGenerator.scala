@@ -157,7 +157,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
       }
 
     /** JOIN **/
-    case Bind(jv, Join(e1, e2, v1, k1, v2, k2), e3) if isDomain(e1) => 
+    case Bind(jv, Join(e1, e2, v1, k1, v2, k2, proj1, proj2), e3) if isDomain(e1) => 
       val vars = generateVars(v1, e1.tp)
       val gv2 = generate(v2)
       val ve1 = "x" + Variable.newId()
@@ -189,7 +189,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
           | ${generate(e3)}
         """.stripMargin
 
-    case Bind(jv, Join(e1, e2, v1, p1, v2, p2), e3) => 
+    case Bind(jv, Join(e1, e2, v1, p1, v2, p2, proj1, proj2), e3) => 
       val vars = generateVars(v1, e1.tp)
       val gv2 = generate(v2)
       val ve1 = "x" + Variable.newId()
@@ -237,14 +237,26 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
 
     /** NEST **/
     // TODO add filter
-    case Nest(e1, v1, f, e2, v2, Constant(true), g) =>
+    case Nest(e1, v1, f, e2, v2, p, g) =>
+
+      // this should be an attribute on the nest operator
+      def wrapIndex(s: String): String = p match {
+        case Constant("byKey") => s
+        case _ => s"($s, index)"
+      }
+      val (zip, removeIndex) = p match {
+        case Constant("byKey") => ("", "")
+        case _ => (".zipWithIndex", s".map{ case ((key, index), value) => key -> value }")
+      }
+
       val vars = generateVars(v1, e1.tp)
       val acc = "acc"+Variable.newId
       val emptyType = empty(e2)
       val gv2 = generate(v2)
+      val baseKey = wrapIndex(s"{${generate(f)}}")
       val key = f match {
-        case Bind(bv, Project(v, field), _) => s"(${nullProject(f)}, index)"
-        case _ => s"({${generate(f)}}, index)"
+        case Bind(bv, Project(v, field), _) => wrapIndex(nullProject(f))
+        case _ => baseKey
       }
       //s"{${generate(f)}}"
       val value = if (!emptyType.contains("0")) s"Vector({${generate(e2)}})" else s"{${generate(e2)}}"
@@ -259,11 +271,11 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
           ) :+ s"case (null, ${(2 to fs.size).map(i => "_").mkString(",")}) => ($key, $emptyType)").mkString("\n")
         case _ => s"case (null) => ({$key}, $emptyType)"
       }
-      s"""|${generate(e1)}.zipWithIndex.map{ case ($vars, index) => {${generate(g)}} match {
+      s"""|${generate(e1)}$zip.map{ case ${wrapIndex(vars)} => {${generate(g)}} match {
           |   $nonet
-          |   case $gv2 => (({${generate(f)}}, index), $value)
+          |   case $gv2 => ($baseKey, $value)
           | }
-          |}.${agg(e2)}.map{ case ((key, index), value) => key -> value }""".stripMargin
+          |}.${agg(e2)}$removeIndex""".stripMargin
     
     /** LOOKUPS **/
 

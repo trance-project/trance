@@ -253,7 +253,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
           |   case _ => List(($vars, null))
           | }
           |}}""".stripMargin
-    case Join(e1, e2, v1, p1, v2, p2) =>
+    case Join(e1, e2, v1, p1, v2, p2, proj1, proj2) =>
       val hm = "hm" + Variable.newId()
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       (p1, p2) match {
@@ -268,7 +268,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
             | case _ => Nil
             |}) }""".stripMargin
        }
-    case OuterJoin(e1, e2, v1, p1, v2, p2) => generate(Join(e1, e2, v1, p1, v2, p2))
+    case OuterJoin(e1, e2, v1, p1, v2, p2, proj1, proj2) => generate(Join(e1, e2, v1, p1, v2, p2, proj1, proj2))
     case OuterUnnest(e1, v1, f, v2, p,_) => //generate(Unnest(e1, v1, f, v2, p))
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 = generate(v2)

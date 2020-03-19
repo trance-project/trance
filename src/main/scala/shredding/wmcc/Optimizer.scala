@@ -32,10 +32,8 @@ object Optimizer {
  
   def applyAll(e: CExpr) = {
     val projectionsPushed = push(e)
-    //dictIndexer.finalize(projectionsPushed).asInstanceOf[CExpr]
     val merged = mergeOps(projectionsPushed)
-    // val optimized = optimizer.finalize(merged).asInstanceOf[CExpr]
-    val indexed = dictIndexer.finalize(merged).asInstanceOf[CExpr]
+    val indexed = dictIndexer.finalize(pushNest(merged)).asInstanceOf[CExpr]
     indexed
   }
 
@@ -55,6 +53,7 @@ object Optimizer {
 
   def collectVars(e: CExpr): Set[Variable] = e match {
     case Record(ms) => ms.foldLeft(Set.empty[Variable])((acc, m) => acc ++ collectVars(m._2))
+    case Tuple(fs) => fs.foldLeft(Set.empty[Variable])((acc, m) => acc ++ collectVars(m))
     case Project(v, f) => collectVars(v)
     case v:Variable => Set(v)
     case _ => ???
@@ -62,11 +61,34 @@ object Optimizer {
 
   def pushNest(e: CExpr): CExpr = fapply(e, {
     // todo check value does not contain o values
-    case Nest(OuterJoin(e1:Select, e2, v1s, key1 @ Project(e1v, f1), v2, key2, proj1, proj2), 
-      v2s, Tuple(gbs), gbval, v3, filt, Tuple(nulls)) if gbs.contains(e1v) =>
+    case Nest(OuterJoin(e1, e2, v1s, key1 @ Project(e1v, f1), v2, key2, proj1, proj2), 
+      v2s, Tuple(gbs), gbval, v3, filt, Tuple(nulls)) if (gbs.contains(e1v) && !gbval.tp.isPrimitive) =>
         val pv = Variable.fresh(TTupleType(List(key2.tp, BagCType(gbval.tp))))
-        val pushed = Nest(e2, List(v2), key2, gbval, pv, filt, Tuple((nulls.toSet - e1v).toList))
+        val pushed = pushNest(Nest(e2, List(v2), key2, gbval, pv, filt, Tuple((nulls.toSet - e1v).toList)))
         OuterJoin(e1, pushed, v1s, key1, pv, Project(pv, "_1"), Tuple(v1s), Project(pv, "_2"))
+
+    case Nest(Join(e1, e2, v1s, key1 @ Project(e1v, f1), v2, key2, proj1, proj2), 
+      v2s, Tuple(gbs), gbval, v3, filt, Tuple(nulls)) if (gbs.contains(e1v) && !gbval.tp.isPrimitive) =>
+        val pv = Variable.fresh(TTupleType(List(key2.tp, BagCType(gbval.tp))))
+        val pushed = pushNest(Nest(e2, List(v2), key2, gbval, pv, filt, Tuple((nulls.toSet - e1v).toList)))
+        Join(e1, pushed, v1s, key1, pv, Project(pv, "_1"), Tuple(v1s), Project(pv, "_2"))
+    
+    // primitive aggregation, move right
+    // case Nest(Join(e1, e2, v1s, key1 @ Project(e1v, f1), v2, key2, proj1, proj2), 
+    //   v2s, Tuple(gbs), gbval @ Project(e2v, f2), v3, filt, Tuple(nulls)) if e1v == e2v && gbval.tp.isPrimitive =>
+    //     // this needs to remove additional attributes
+    //     val parentKey = Tuple(v1s :+ key1)
+    //     val aggVal = gbval
+    //     val pv = Variable.fresh(TTupleType(List(key1.tp, gbval.tp)))
+    //     // filter needs pushed as well
+    //     val pushed = pushNest(Nest(e1, v1s, parentKey, gbval, pv, Constant(true), Tuple((nulls.toSet - v2).toList)))
+    //     Nest(Join(pushed, e2, v1s, key1, v2, key2, proj1, proj2), 
+    //       v2s, Tuple(gbs), gbval, v3, filt, Tuple(nulls))
+
+    // case Nest(Lookup(lbl, dict, v1s, extract, v2, key1, p), v2s, Tuple(gbs), gbval, v3, filt, Tuple(nulls)) => 
+    //   Lookup(lbl, dict, v1s, extract, v2, key1, 
+    //     Comprehension(Project(dict, "_2"), v2, filt, Record(Map("key" -> Tuple(gbs), "agg" -> gbval))))
+    
     })
 
   def mergeOps(e: CExpr): CExpr = fapply(e, {
@@ -79,11 +101,13 @@ object Optimizer {
 
     /** merge nests and joins **/
     case Nest(OuterJoin(e1, e2, e1s, key1, e2s, key2, proj1, proj2), 
-      vs, key, value, nv, np, ng) if (collectVars(value) == Set(e2s)) =>
+      vs, key, value, nv, np, ng) if (collectVars(value) == Set(e2s) && !value.tp.isPrimitive) =>
       CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
-    case Nest(Join(e1:Select, e2, e1s, key1, e2s, key2), vs, key, value, nv, np, ng) => 
+    case Nest(Join(e1:Select, e2, e1s, key1, e2s, key2, proj1, proj2), 
+      vs, key, value, nv, np, ng) if !value.tp.isPrimitive => 
       CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
-    case Nest(Lookup(e1:Select, e2, e1s, key1, e2s, key2, key3), vs, key, value, nv, np, ng) => 
+    case Nest(Lookup(e1:Select, e2, e1s, key1, e2s, key2, key3), 
+      vs, key, value, nv, np, ng) if !value.tp.isPrimitive => 
       CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
   
     // case OuterJoin(Nest(e1, vs, key, value, nv, np, ng), e2, e1s, key1, e2s, key2, proj1, proj2) =>
@@ -97,7 +121,7 @@ object Optimizer {
     //   mergeOps(Nest(e1, vs, key, value, nv, np, ng))
     case Reduce(r @ Reduce(x, v, e2, Constant("null")), 
       v2, t @ Record(fs), p2) if fs.keySet == Set("_1", "_2") => r
-    case Reduce(Reduce(x, v, e2, p), v2, f2, p2) =>
+    case Reduce(Reduce(x, v, e2, p), v2, f2, p2) if p != Constant("null") =>
       mergeOps(Reduce(x, v2, e2, normalizer.and(p, p2)))
     case Reduce(Select(x, v, p, e2), v2, f2:Variable, p2) =>
       Reduce(x, List(v), e2, normalizer.and(p, p2))
@@ -134,13 +158,17 @@ object Optimizer {
     case OuterUnnest(e1, v1, f, v2, p, value) =>
       fields(f)
       OuterUnnest(push(e1), v1, f, v2, p, value)
-    case Join(e1, e2, v1, p1, v2, p2) =>   
+    case Join(e1, e2, v1, p1, v2, p2, proj1, proj2) =>   
       fields(p1)
       fields(p2)
-      Join(push(e1), push(e2), v1, p1, v2, p2)
+      fields(proj1)
+      fields(proj2)
+      Join(push(e1), push(e2), v1, p1, v2, p2, proj1, proj2)
     case OuterJoin(e1, e2, v1, p1, v2, p2, proj1, proj2) =>   
       fields(p1)
       fields(p2)
+      fields(proj1)
+      fields(proj2)
       OuterJoin(push(e1), push(e2), v1, p1, v2, p2, proj1, proj2)
     case Select(InputRef(n, _), v,_,_) if n.contains("M_ctx") => e
     case Select(d, v, f, e2) =>

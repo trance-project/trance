@@ -42,7 +42,7 @@ object Unnester {
         val value = fs.last._2 match { case Sng(t) => t; case t => t }
         val v = Variable.fresh(TTupleType(List(key.tp, value.tp)))
 		    val g = Tuple(u ++ fs.dropRight(1).map(v => v._2 match { case Project(t, f) => t; case v3 => v3}).toList)
-        Nest(e2, v2, key, value, v, p2, g)
+        Nest(e2, v2, key, value, v, Constant("byKey"), g)
       case n @ Nest(e2, v2, f2, e3 @ Record(fs), v3, p2 @ Constant(true), g) => 
         // key = (groupbyvars, e3._1)
         val key = Tuple(u :+ Record(fs.dropRight(1)))
@@ -55,7 +55,7 @@ object Unnester {
 		    val g = Tuple(u ++ fs.dropRight(1).map(v => 
           v._2 match { case Project(t, f) => t; case v3 => v3}).toList)
         // build the nest
-        val initNest = Nest(e2, v2, key, value, v, p2, g)
+        val initNest = Nest(e2, v2, key, value, v, Constant("byKey"), g)
         // map the values back to the initial record
         val nrec = Tuple(u :+ Sng(Record(fs.dropRight(1) + (fs.last._1 -> v))))
         val nv = Variable.fresh(nrec.tp)
@@ -73,18 +73,20 @@ object Unnester {
         dict.tp match {
           //case InputRef(topd, _) =>
           case BagDictCType(BagCType(RecordCType(_)), EmptyDictCType) =>
-            unnest(e2)((u, w :+ v, Some(Join(E.get, Select(Project(dict, "_1"), v, sp2s, v), w, p1s, v, p2s))))
+            unnest(e2)((u, w :+ v, Some(Join(E.get, Select(Project(dict, "_1"), v, sp2s, v), w, p1s, v, p2s, Tuple(w), v))))
             // unnest(e2)((u, w :+ v, Some(CoGroup(E.get, Select(Project(dict, "_1"), v, sp2s, v), w, v, p1s, p2s, v))))
           case _ =>
             if (u.isEmpty) { 
                // this should flatten the bag
                // unnest(e2)((u, w :+ v, Some(CoGroup(E.get, Project(dict, "_1"), w, v, lbl, p2s, p1s))))
                unnest(e2)((u, w :+ v, Some(Lookup(E.get, Project(dict, "_1"), w, lbl, v, p2s, p1s))))
+               // unnest(e2)((u, w :+ v, Some(Join(E.get, dict, w, lbl, v, Project(dict, "_1")))))
             } else {
               // todo move out to all cases
               getPM(sp2s) match {
                 case (Constant(false), _) =>  
                   unnest(e2)((u, w :+ v, Some(Lookup(E.get, Project(dict, "_1"), w, lbl, v, p2s, p1s))))
+                  // unnest(e2)((u, w :+ v, Some(Join(E.get, dict, w, lbl, v, Project(dict, "_1")))))
                 case (e3, be2) => 
                   val nE = Some(Lookup(E.get, Project(dict, "_1"), w, lbl, v, p2s, p1s))
                   val (nE2, nv) = getNest(unnest(e3)((w :+ v, w :+ v, nE)))
@@ -205,7 +207,7 @@ object Unnester {
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case head @ (key, value) :: tail => sys.error(s"not supported ${Printer.quote(value)}")
      }
-    case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !isDictType(e0.tp) && !w.isEmpty =>
+    case c @ Comprehension(e1 @ Project(e0, f), v, p, e) if !w.isEmpty => //&& !isDictType(e0.tp) =>
       assert(!E.isEmpty)
       val (p1, p2) = ps1(p,v)
       getPM(p) match {
@@ -247,7 +249,7 @@ object Unnester {
              case Project(InputRef(name, btp @ BagDictCType(_,_)), "_1") if name.endsWith("__D") => e2 match {
               //case Project(v1, "_2") if v1 == v => unnest(e3)((u, w :+ v2, Some(Select(e1, v2, p2, v2))))
               case _ =>
-                val nE = Some(Join(E.get, Select(e1, v, sp2s, v), w, p1s, v2, p2s))  
+                val nE = Some(Join(E.get, Select(e1, v, sp2s, v), w, p1s, v2, p2s, Tuple(w), v))  
                 unnest(e4)((u, w :+ v2, nE))
              }
              case _ => if (u.isEmpty) {
@@ -273,7 +275,7 @@ object Unnester {
         case (Constant(false), _) => 
           val preds = ps(p, v, w)
           u.isEmpty match {
-            case true => unnest(e)((u, w :+ v, Some(Join(E.get, Select(e1, v, preds._1, v), w, preds._2, v, preds._3))))
+            case true => unnest(e)((u, w :+ v, Some(Join(E.get, Select(e1, v, preds._1, v), w, preds._2, v, preds._3, Tuple(w), v))))
             case _ => unnest(e)((u, w :+ v, Some(OuterJoin(E.get, Select(e1, v, preds._1, v), w, preds._2, v, preds._3, Tuple(w), v))))
           }
         case (e2, be2) => 

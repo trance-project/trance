@@ -89,6 +89,7 @@ class GDBLoader(spark: SparkSession) extends Serializable {
     return responseRDD
   }
 }
+
 object GDBLoader {
   def apply(spark: SparkSession): GDBLoader = new GDBLoader(spark)
 

@@ -13,8 +13,9 @@ import shredding.examples.tpch._
 object App {
  
   def main(args: Array[String]){
-    runExperiment1FN()
+    // runExperiment1FN()
     runExperiment1NN()
+    runExperiment2Agg()
     // runExperiment1Joins()
   }
 
@@ -56,28 +57,28 @@ object App {
   def runExperiment1NN(){
     val pathout = "experiments/exp1.2"
 
-    Utils.flatInput(Test0, Test0NN, pathout, "Flat,0")
-    Utils.flatInput(Test1, Test1NN, pathout, "Flat,1")
-    Utils.flatInput(Test2Flat, Test2NN, pathout, "Flat,2")
-    Utils.flatInput(Test3Flat, Test3NN, pathout, "Flat,3")
-    Utils.flatInput(Test4Flat, Test4NN, pathout, "Flat,4")
+    // Utils.flatInput(Test0, Test0NN, pathout, "Flat,0")
+    // Utils.flatInput(Test1, Test1NN, pathout, "Flat,1")
+    // Utils.flatInput(Test2Flat, Test2NN, pathout, "Flat,2")
+    // Utils.flatInput(Test3Flat, Test3NN, pathout, "Flat,3")
+    // Utils.flatInput(Test4Flat, Test4NN, pathout, "Flat,4")
 
-    Utils.flatProjInput(Test0, Test0NN, pathout, "Flat+,0")
-    Utils.flatProjInput(Test1, Test1NN, pathout, "Flat+,1")
-    Utils.flatProjInput(Test2Flat, Test2NN, pathout, "Flat+,2")
-    Utils.flatProjInput(Test3Flat, Test3NN, pathout, "Flat+,3")
-    Utils.flatProjInput(Test4Flat, Test4NN, pathout, "Flat+,4")
+    // Utils.flatProjInput(Test0, Test0NN, pathout, "Flat+,0")
+    // Utils.flatProjInput(Test1, Test1NN, pathout, "Flat+,1")
+    // Utils.flatProjInput(Test2Flat, Test2NN, pathout, "Flat+,2")
+    // Utils.flatProjInput(Test3Flat, Test3NN, pathout, "Flat+,3")
+    // Utils.flatProjInput(Test4Flat, Test4NN, pathout, "Flat+,4")
 
-    Utils.flatOptInput(Test0, Test0NN, pathout, "Flat++,0")
-    Utils.flatOptInput(Test1, Test1NN, pathout, "Flat++,1")
-    Utils.flatOptInput(Test2Flat, Test2NN, pathout, "Flat++,2")
-    Utils.flatOptInput(Test3Flat, Test3NN, pathout, "Flat++,3")
-    Utils.flatOptInput(Test4Flat, Test4NN, pathout, "Flat++,4")
+    // Utils.flatOptInput(Test0, Test0NN, pathout, "Flat++,0")
+    // Utils.flatOptInput(Test1, Test1NN, pathout, "Flat++,1")
+    // Utils.flatOptInput(Test2Flat, Test2NN, pathout, "Flat++,2")
+    // Utils.flatOptInput(Test3Flat, Test3NN, pathout, "Flat++,3")
+    // Utils.flatOptInput(Test4Flat, Test4NN, pathout, "Flat++,4")
 
-    Utils.shredDomainsInput(Test0, Test0NN, pathout, "ShredDom,0")
-    Utils.shredDomainsInput(Test1, Test1NN, pathout, "ShredDom,1")
-    Utils.shredDomainsInput(Test2, Test2NN, pathout, "ShredDom,2")
-    Utils.shredDomainsInput(Test3, Test3NN, pathout, "ShredDom,3")
+    // Utils.shredDomainsInput(Test0, Test0NN, pathout, "ShredDom,0")
+    // Utils.shredDomainsInput(Test1, Test1NN, pathout, "ShredDom,1")
+    // Utils.shredDomainsInput(Test2, Test2NN, pathout, "ShredDom,2")
+    // Utils.shredDomainsInput(Test3, Test3NN, pathout, "ShredDom,3")
     Utils.shredDomainsInput(Test4, Test4NN, pathout, "ShredDom,4")
 
     // Utils.unshredDomains(Test0Join, pathout, "ShredDom,0")
@@ -85,6 +86,21 @@ object App {
     // Utils.unshredDomains(Test2NN, pathout, "ShredDom,2")
     // Utils.unshredDomains(Test3Join, pathout, "ShredDom,3")
     // Utils.unshredDomains(Test4Join, pathout, "ShredDom,4")
+  }
+
+  def runExperiment2Agg(){
+    val pathout = "experiments/exp2.1"
+    // Utils.flatOptInput(Test0, Test0Agg, pathout, "Flat++,0")
+    // Utils.flatOptInput(Test1, Test1Agg, pathout, "Flat++,1")
+    // Utils.flatOptInput(Test2Flat, Test2NN, pathout, "Flat++,2")
+    // Utils.flatOptInput(Test3Flat, Test3NN, pathout, "Flat++,3")
+    // Utils.flatOptInput(Test4Flat, Test4NN, pathout, "Flat++,4")
+
+    // Utils.shredDomainsInput(Test0, Test0Agg, pathout, "ShredDom,0")
+    Utils.shredDomainsInput(Test1, Test1Agg, pathout, "ShredDom,1")
+    // Utils.shredDomainsInput(Test2, Test2NN, pathout, "ShredDom,2")
+    // Utils.shredDomainsInput(Test3, Test3NN, pathout, "ShredDom,3")
+    // Utils.shredDomainsInput(Test4, Test4NN, pathout, "ShredDom,4")
   }
 
   def runExperiment1Joins(){

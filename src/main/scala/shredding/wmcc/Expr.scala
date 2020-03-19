@@ -322,24 +322,19 @@ case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Va
 
 // unnests an inner bag, without unnesting before a downstream join
 case class Lookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, p3: CExpr) extends CExpr {
-  val v2tp = p3 match { case v:Variable => BagCType(v2.tp); case _ => v2.tp }
+  val valueBagType = p3 match { 
+    // should deprecate this
+    case v:Variable => v2.tp
+    case Constant(true) => v2.tp
+    case _ => p3.tp.asInstanceOf[BagCType].tp 
+  }
   def tp:BagCType = e1.tp match {
-    case BagCType(tup) => BagCType(TTupleType(List(tup, v2tp)))
-    case btp:BagDictCType => BagCType(TTupleType(List(btp.flat, v2tp)))
+    case BagCType(lbl) => BagCType(TTupleType(List(lbl, valueBagType)))
+    case btp:BagDictCType => BagCType(TTupleType(List(btp.flatTp.tp, valueBagType)))
     case _ => ???
   }
   override def wvars = e1.wvars :+ v2
 }
-
-// case class CoGroup(e1: CExpr, es: List[CExpr], vs: List[Variable], ps: CExpr) extends CExpr {
-//   // assert es.size < 3 (cogroups with more than three not supported in spark)
-//   def tp:BagCType = e1.tp match {
-//     case BagCType(tup) => BagCType(TTupleType(tup +: vs.map(_.tp) ))
-//     case btp:BagDictCType => BagCType(TTupleType(btp.flat +: vs.map(_.tp)))
-//     case _ => ???
-//   }
-//   override def wvars = e1.wvars
-// }
 
 // omitting filter for now
 // and nulls
@@ -360,15 +355,19 @@ case class OuterLookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: 
   override def wvars = e1.wvars :+ v2
 }
 
-//case class CoGroup(e1: CExpr, e2: CExpr, v1: List[Variable], p1:
-
-case class Join(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr) extends CExpr {
-  def tp: BagCType = e1.tp match {
-    case btp:BagCType => BagCType(TTupleType(List(btp.tp, v2.tp)))
-    case BagDictCType(flat, tdict) => BagCType(TTupleType(List(flat.tp, v2.tp)))
-    case _ => ???
-  } 
+case class Join(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, proj1: CExpr, proj2: CExpr) extends CExpr {
+  def tp: BagCType = BagCType(TTupleType(List(proj1.tp, proj2.tp)))
+  // e1.tp match {
+  //   case btp:BagCType => BagCType(TTupleType(List(btp.tp, v2.tp)))
+  //   case BagDictCType(flat, tdict) => BagCType(TTupleType(List(flat.tp, v2.tp)))
+  //   case _ => ???
+  // } 
   override def wvars = e1.wvars :+ v2
+}
+
+
+case class LocalAgg(iter: CExpr, key: CExpr, value: CExpr, filt: CExpr) extends CExpr {
+  def tp: BagCType = BagCType(TTupleType(List(key.tp, value.tp)))
 }
 
 case class Variable(name: String, override val tp: Type) extends CExpr { self =>
@@ -389,23 +388,23 @@ case class Variable(name: String, override val tp: Type) extends CExpr { self =>
   // variable is referenced more than just for a join condition in a lookup
   // used to avoid joins on domains
   // for now collects a set of expressions for which this variable is referenced
-  def isReferenced(that: CExpr): List[CExpr] = that match {
-    case Reduce(e1, v, e2, p) => isReferenced(e1) ++ isReferenced(e2) ++ isReferenced(p)
-    case Nest(e1, v1, f, e, v2, p, g) =>
-      isReferenced(e1) ++ isReferenced(f) ++ isReferenced(e) ++ isReferenced(p) ++ isReferenced(g)
-    case Join(e1, e2, v1, p1, v2, p2) =>
-      isReferenced(e1) ++ isReferenced(e2) ++ isReferenced(p1) ++ isReferenced(p2)
-    case Tuple(fs) => fs.flatMap(isReferenced(_))
-    case r @ Record(_) => r.fields.flatMap(m => isReferenced(m._2)).toList
-    case Equals(e1, e2) => if (isReferenced(e1).nonEmpty || isReferenced(e2).nonEmpty) List(that) else Nil
-    case Project(v:Variable, f) if v.name == this.name => List(that)
-    case Project(v, f) => isReferenced(v) match {
-      case Nil => Nil
-      case l => List(that)
-    }
-    case v @ Variable(n, tp) if n == this.name => List(v)
-    case _ => Nil
-  }
+  // def isReferenced(that: CExpr): List[CExpr] = that match {
+  //   case Reduce(e1, v, e2, p) => isReferenced(e1) ++ isReferenced(e2) ++ isReferenced(p)
+  //   case Nest(e1, v1, f, e, v2, p, g) =>
+  //     isReferenced(e1) ++ isReferenced(f) ++ isReferenced(e) ++ isReferenced(p) ++ isReferenced(g)
+  //   case Join(e1, e2, v1, p1, v2, p2) =>
+  //     isReferenced(e1) ++ isReferenced(e2) ++ isReferenced(p1) ++ isReferenced(p2)
+  //   case Tuple(fs) => fs.flatMap(isReferenced(_))
+  //   case r @ Record(_) => r.fields.flatMap(m => isReferenced(m._2)).toList
+  //   case Equals(e1, e2) => if (isReferenced(e1).nonEmpty || isReferenced(e2).nonEmpty) List(that) else Nil
+  //   case Project(v:Variable, f) if v.name == this.name => List(that)
+  //   case Project(v, f) => isReferenced(v) match {
+  //     case Nil => Nil
+  //     case l => List(that)
+  //   }
+  //   case v @ Variable(n, tp) if n == this.name => List(v)
+  //   case _ => Nil
+  // }
   override def hashCode: Int = (name, tp).hashCode()
   def quote: String = self.name
 
@@ -455,7 +454,7 @@ trait Extensions {
       case Nest(e1, v1, f, e, v, p, g) => Nest(fapply(e1, funct), v1, f, e, v, p, g)
       case Unnest(e1, v1, f, v2, p, value) => Unnest(fapply(e1, funct), v1, f, v2, p, value)
       case OuterUnnest(e1, v1, f, v2, p, value) => OuterUnnest(fapply(e1, funct), v1, f, v2, p, value)
-      case Join(e1, e2, v1, p1, v2, p2) => Join(fapply(e1, funct), fapply(e2, funct), v1, p1, v2, p2)
+      case Join(e1, e2, v1, p1, v2, p2, proj1, proj2) => Join(fapply(e1, funct), fapply(e2, funct), v1, p1, v2, p2, proj1, proj2)
       case OuterJoin(e1, e2, v1, p1, v2, p2, proj1, proj2) => OuterJoin(fapply(e1, funct), fapply(e2, funct), v1, p1, v2, p2, proj1, proj2)
       case Lookup(e1, e2, v1, p1, v2, p2, p3) => Lookup(fapply(e1, funct), e2, v1, p1, v2, p2, p3)
       case CDeDup(e1) => CDeDup(fapply(e1, funct))
