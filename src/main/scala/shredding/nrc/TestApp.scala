@@ -21,8 +21,8 @@ object TestApp extends App
     def run(): Unit = {
 
       val itemTp = TupleType("a" -> IntType, "b" -> StringType)
-      val relationR = BagVarRef("R", BagType(itemTp))
 
+      val relationR = BagVarRef("R", BagType(itemTp))
       val xref = TupleVarRef("x", itemTp)
       val q1 = Program("Q1",
         ForeachUnion(xref, relationR, Singleton(Tuple("w" -> xref("b")))))
@@ -38,7 +38,11 @@ object TestApp extends App
       val ctx = new RuntimeContext()
       ctx.add(relationR.varDef, relationRValue)
 
-//      println("[Ex1] Q1 eval: " + eval(q1, ctx))
+      println("[Ex1] Eval")
+      eval(q1, ctx)
+      q1.statements.foreach { s =>
+        println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
+      }
 
       val q1shredraw = shred(q1)
       println("[Ex1] Shredded Q1: " + quote(q1shredraw))
@@ -46,13 +50,11 @@ object TestApp extends App
       val q1shred = optimize(q1shredraw)
       println("[Ex1] Shredded Q1 Optimized: " + quote(q1shred))
 
-//      val shredR = shred(relationRValue, relationR.tp)
+      val shredR = shred(relationRValue, relationR.tp)
 
-//      println("NAME: " + inputDictName(dictName(relationR.name)))
-//      println("TYPE: " + shredR.dict.tp)
-
-//      ctx.add(VarDef(inputDictName(flatName(relationR.name)), shredR.flatTp), shredR.flat)
-//      ctx.add(VarDef(inputDictName(dictName(relationR.name)), shredR.dict.tp), shredR.dict)
+//      ctx.add(VarDef(inputBagName(flatName(relationR.name)), shredR.flatTp), shredR.flat)
+//      ctx.add(VarDef(inputBagName(dictName(relationR.name)), shredR.flatTp), shredR.dict)
+//      ctx.add(VarDef(inputBagName(relationR.name), relationR.tp), relationRValue)
 
       val q1lin = materialize(q1shred)
       println("[Ex1] Materialized Q1: " + quote(q1lin.program))
@@ -1072,8 +1074,8 @@ object TestApp extends App
 //  ExtractExamples.run()
 //  Example_Unshredding.run()
   Example1.run()
-  Example2.run()
-  Example3.run()
+//  Example2.run()
+//  Example3.run()
 //  Example4.run()
 //  Example5.run()
 //  Example6.run()
