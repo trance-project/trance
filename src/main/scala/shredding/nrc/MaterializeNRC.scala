@@ -33,8 +33,8 @@ trait MaterializeNRC extends ShredNRC with Optimizer {
   }
 
   final case class MatDictLookup(lbl: LabelExpr, dict: MatDictExpr) extends BagExpr {
-    assert(dict.tp.keyTp == lbl.tp,
-      "Incompatible types " + dict.tp.keyTp + " and " + lbl.tp)
+    assert(lbl.tp == dict.tp.keyTp,
+      "Incompatible types " + lbl.tp + " and " + dict.tp.keyTp)
 
     def tp: BagType = dict.tp.valueTp
   }
