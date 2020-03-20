@@ -1,20 +1,25 @@
 package shredding.nrc
 
-import shredding.core.{LabelType, MatDictType, OpEq, TupleType, VarDef}
+import shredding.core.{BagType, LabelType, MatDictType, OpEq, TupleType, VarDef}
 import shredding.utils.Utils.Symbol
 
 trait MaterializationDomain {
-  this: MaterializeNRC with MaterializationContext =>
+  this: MaterializeNRC with MaterializationContext with Printer =>
 
   def eliminateDomain(lblTp: LabelType, b: BagExpr, ctx: Context): Option[(BagExpr, Context)] = {
     val newCtx = lblTp.attrTps.foldLeft (ctx) {
       case (acc, (n, t)) => acc.addVarDef(VarDef(n, t))
     }
     val (flatBag: BagExpr, flatCtx) = rewriteUsingContext(b, newCtx)
-    val ivars = inputVars(flatBag).filterNot(_.tp.isInstanceOf[MatDictType])
+    eliminateDomain(flatBag).map(_ -> flatCtx)
+  }
 
-    eliminateDomainIfHoisting(flatBag, ivars).map(_ -> flatCtx) orElse
-      eliminateDomainDictIteration(flatBag, ivars).map(_ -> flatCtx)
+  private def eliminateDomain(b: BagExpr): Option[BagExpr] = {
+    val iv = inputVars(b).filterNot(x =>
+      x.tp.isInstanceOf[MatDictType] || x.tp.isInstanceOf[BagType])
+    eliminateDomainIfHoisting(b, iv) orElse
+      eliminateDomainDictIteration(b, iv) orElse
+        eliminateDomainAggregation(b, iv)
   }
 
   private def eliminateDomainIfHoisting(b: BagExpr, iv: Set[VarRef]): Option[BagExpr] = b match {
@@ -86,6 +91,25 @@ trait MaterializationDomain {
             VALUE_ATTR_NAME ->
               ForeachUnion(x, kv(VALUE_ATTR_NAME).asInstanceOf[BagExpr], b2)))))
     case  _ => None
+  }
+
+  private def eliminateDomainAggregation(b: Expr, iv: Set[VarRef]): Option[BagExpr] = b match {
+    case ReduceByKey(e, ks, vs) =>
+      eliminateDomain(e) match {
+        case Some(ForeachUnion(kv, b1, Singleton(Tuple(fs)))) =>
+          Some(
+            ForeachUnion(kv, b1,
+              Singleton(Tuple(
+                KEY_ATTR_NAME -> fs(KEY_ATTR_NAME),
+                VALUE_ATTR_NAME -> ReduceByKey(fs(VALUE_ATTR_NAME).asInstanceOf[BagExpr], ks, vs)
+              )))
+          )
+        case Some(_) =>
+          sys.error("Missed opportunity for domain elimination")
+
+        case _ => None
+      }
+    case _ => None
   }
 
   def createLabelDomain(varRef: VarRef, topLevel: Boolean, field: String): Assignment = {
