@@ -34,7 +34,7 @@ trait BaseMaterialization {
 
 }
 
-trait MaterializationContext extends BaseMaterialization with MaterializationDomain {
+trait MaterializationContext extends BaseMaterialization with MaterializationDomain with Printer {
   this: MaterializeNRC =>
 
   class DictInfo(val dict: BagDictExpr, val ref: VarRef, val parent: Option[(BagDictExpr, String)])
