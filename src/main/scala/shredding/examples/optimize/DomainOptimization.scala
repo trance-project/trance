@@ -115,7 +115,7 @@ object DomainOptExample6 extends GenomicBase {
   val query6 =
     ForeachUnion(vref, relV,
       Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
-        SumByKey(
+        ReduceByKey(
           ForeachUnion(gref, BagProject(vref, "genotypes"),
             ForeachUnion(cref, relC,
               IfThenElse(Cmp(OpEq, gref("sample"), cref("sample")),

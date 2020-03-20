@@ -262,7 +262,7 @@ object TPCHQueries {
   val cq1br = TupleVarRef("c1", TupleType("o_id" -> IntType, "o_orderdate" -> StringType, "o_parts" -> BagType(TupleType("p_name" -> StringType, "l_qty" -> DoubleType))))
 
   val query4c =
-    SumByKey(
+    ReduceByKey(
       ForeachUnion(q1br, Q1br,
         IfThenElse(
           Cmp(OpGt, Const(1000, IntType), q1br("c_id")),
@@ -281,7 +281,7 @@ object TPCHQueries {
 
   // query4 like with filter
   val query4b =
-    SumByKey(
+    ReduceByKey(
       ForeachUnion(q1r, Q1r,
         ForeachUnion(cq1r, BagProject(q1r, "c_orders"),
           ForeachUnion(pq1r, BagProject(cq1r, "o_parts"),

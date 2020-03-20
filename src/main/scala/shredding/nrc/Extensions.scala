@@ -42,7 +42,7 @@ trait Extensions {
         collect(e1, f)
       case g: GroupByKey =>
         collect(g.e, f)
-      case SumByKey(e, _, _) =>
+      case ReduceByKey(e, _, _) =>
         collect(e, f)
 
       // Label extensions
@@ -156,9 +156,9 @@ trait Extensions {
       case (GroupByKey(e1, ks, vs, n), ctx0) =>
         val (b1: BagExpr, ctx1) = replace(e1, ctx0, f)
         GroupByKey(b1, ks, vs, n) -> ctx1
-      case (SumByKey(e1, ks, vs), ctx0) =>
+      case (ReduceByKey(e1, ks, vs), ctx0) =>
         val (b1: BagExpr, ctx1) = replace(e1, ctx0, f)
-        SumByKey(b1, ks, vs) -> ctx1
+        ReduceByKey(b1, ks, vs) -> ctx1
 
       // Label extensions
       case (e: ExtractLabel, ctx0) =>
@@ -281,8 +281,8 @@ trait Extensions {
         Sum(replace(e1, f).asInstanceOf[BagExpr], fs)
       case GroupByKey(e1, ks, vs, n) =>
         GroupByKey(replace(e1, f).asInstanceOf[BagExpr], ks, vs, n)
-      case SumByKey(e1, ks, vs) =>
-        SumByKey(replace(e1, f).asInstanceOf[BagExpr], ks, vs)
+      case ReduceByKey(e1, ks, vs) =>
+        ReduceByKey(replace(e1, f).asInstanceOf[BagExpr], ks, vs)
 
       // Label extensions
       case x: ExtractLabel =>

@@ -47,7 +47,7 @@ object TPCHQuery4A extends TPCHBase {
   val query4 =
     ForeachUnion(cor, q1r,
       Singleton(Tuple("c_name" -> cor("c_name"), "partqty" ->
-        SumByKey(
+        ReduceByKey(
           ForeachUnion(cor2, BagProject(cor, "corders"),
             ForeachUnion(cor1, p1r,
               IfThenElse(Cmp(OpEq, cor2("o_orderkey"), cor1("l_orderkey")),
@@ -96,7 +96,7 @@ object TPCHQuery4B extends TPCHBase {
   val cor2 = TupleVarRef("order", BagProject(cor, "orders").tp.tp)
 
   val query4 =
-      SumByKey(
+      ReduceByKey(
         ForeachUnion(cor, BagVarRef(q1.name, q1.tp.asInstanceOf[BagType]),
           ForeachUnion(cor2, BagProject(cor, "orders"),
             ForeachUnion(cr, relC,
@@ -132,7 +132,7 @@ object TPCHQuery4C extends TPCHBase {
                     Singleton(Tuple("l_orderkey" -> lr("l_orderkey"), "p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))
   val (p1r, cor1) = varset("parts", "part", parts.asInstanceOf[BagExpr])
   val query4 =
-    SumByKey(
+    ReduceByKey(
       ForeachUnion(cor, q1r,
         ForeachUnion(cor2, BagProject(cor, "corders"),
           ForeachUnion(cor1, p1r,
@@ -168,7 +168,7 @@ object TPCHQuery4D extends TPCHBase {
   val (p1r, cor1) = varset("parts", "part", parts.asInstanceOf[BagExpr])
 
   val query4 =
-    SumByKey(
+    ReduceByKey(
       ForeachUnion(cor, p1r,
         ForeachUnion(cor2, BagProject(cor, "corders"),
           ForeachUnion(cor1,p1r,
@@ -228,7 +228,7 @@ object TPCHQuery4E extends TPCHBase {
   //val query = Sequence(List(
  //   Named(p1, parts),
   val query4 =
-    SumByKey(
+    ReduceByKey(
       ForeachUnion(cor, q1r,
         ForeachUnion(cor1, BagProject(cor, "corders"),
           ForeachUnion(cor2, p1r,
@@ -308,7 +308,7 @@ object TPCHQuery4New extends TPCHBase {
 
   val query4 = ForeachUnion(cor, q1r,
                 Singleton(Tuple("c_name" -> cor("c_name"), "totals" ->
-                  SumByKey(
+                  ReduceByKey(
                     ForeachUnion(co2r, orders,
                       ForeachUnion(co3r, parts,
                         Singleton(Tuple("orderdate" -> co2r("o_orderdate"),
@@ -362,7 +362,7 @@ object TPCHQuery4New3 extends TPCHBase {
   val co3r = TupleVarRef("p2", parts.tp.tp)
 
   val query4 =
-    SumByKey(
+    ReduceByKey(
       ForeachUnion(cor, q1r,
         ForeachUnion(co2r, orders,
           ForeachUnion(co3r, parts,

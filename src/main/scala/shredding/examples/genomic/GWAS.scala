@@ -30,7 +30,7 @@ object AltCounts extends GenomicBase {
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
   
   val queryAC =
-    SumByKey(
+    ReduceByKey(
       ForeachUnion(vref, relV,
         ForeachUnion(gref, BagProject(vref, "genotypes"),
           ForeachUnion(cref, relC,
@@ -77,7 +77,7 @@ object AlleleCounts2 extends GenomicBase {
     ForeachUnion(vref, relV,
       //IfThenElse(Not(Cmp(OpEq, vref("consequence"), Const("LOW IMPACT", StringType))),
       Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cohorts" ->
-        SumByKey(
+        ReduceByKey(
           ForeachUnion(gref, BagProject(vref, "genotypes"),
             ForeachUnion(cref, relC,
               IfThenElse(
@@ -121,7 +121,7 @@ object AlleleCountsGB extends GenomicBase {
   val queryACGB =
     ForeachUnion(vref, relV,
       Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
-        SumByKey(
+        ReduceByKey(
           ForeachUnion(gref, BagProject(vref, "genotypes"),
             ForeachUnion(cref, relC,
               IfThenElse(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),
@@ -143,7 +143,7 @@ object AlleleCountsGB3 extends GenomicBase {
     ForeachUnion(vref, relV,
       IfThenElse(Cmp(OpEq, PrimitiveProject(vref, "consequence"), Const("LOW IMPACT", StringType)),
         Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
-          SumByKey(
+          ReduceByKey(
             ForeachUnion(gref, BagProject(vref, "genotypes"),
               ForeachUnion(cref, relC,
                 IfThenElse(And(Cmp(OpEq, PrimitiveProject(gref, "sample"), PrimitiveProject(cref, "sample")),

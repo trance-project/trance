@@ -166,9 +166,9 @@ trait Shredding extends BaseShredding with Extensions {
       val lbl = NewLabel(labelParameters(flat))
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict1.tupleDict))
 
-    case SumByKey(e1, ks, vs) =>
+    case ReduceByKey(e1, ks, vs) =>
       val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
-      val flat = SumByKey(dict1.lookup(lbl1), ks, vs)
+      val flat = ReduceByKey(dict1.lookup(lbl1), ks, vs)
       val lbl = NewLabel(labelParameters(flat))
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict1.tupleDict))
 

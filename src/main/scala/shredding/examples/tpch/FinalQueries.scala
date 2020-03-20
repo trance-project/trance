@@ -107,7 +107,7 @@ object Query2 extends TPCHBase {
   val query2 =
     ForeachUnion(cor, q1r,
       Singleton(Tuple("c_name" -> cor("c_name"), "totals" ->
-        SumByKey(
+        ReduceByKey(
           ForeachUnion(co2r, orders,
             ForeachUnion(co3r, parts,
               Singleton(Tuple("orderdate" -> co2r("o_orderdate"),
@@ -146,7 +146,7 @@ object Query3 extends TPCHBase {
   val co3r = TupleVarRef("p2", parts.tp.tp)
 
   val query3 =
-    SumByKey(
+    ReduceByKey(
       ForeachUnion(cor, q1r,
         ForeachUnion(co2r, orders,
           ForeachUnion(co3r, parts,
@@ -194,7 +194,7 @@ object Query4 extends TPCHBase {
       Singleton(Tuple("c_name" -> cor("c_name"), "c_orders" ->
         ForeachUnion(co2r, orders,
           Singleton(Tuple("o_orderdate" -> co2r("o_orderdate"), "o_parts" ->
-            SumByKey(
+            ReduceByKey(
               ForeachUnion(co3r, parts,
                 ForeachUnion(pr, relP,
                   IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
@@ -264,7 +264,7 @@ object Query4Filter1 extends TPCHBase {
         Singleton(Tuple("c_name" -> cor("c_name"), "c_orders" ->
           ForeachUnion(co2r, orders,
             Singleton(Tuple("o_orderdate" -> co2r("o_orderdate"), "o_parts" ->
-              SumByKey(
+              ReduceByKey(
                 ForeachUnion(co3r, parts,
                   ForeachUnion(pr, relP,
                     IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
@@ -301,7 +301,7 @@ object Query4Filter2 extends TPCHBase {
           ForeachUnion(co2r, orders,
             IfThenElse(Cmp(OpGe, Const(150000000, IntType), or("o_orderkey")),
             Singleton(Tuple("o_orderdate" -> co2r("o_orderdate"), "o_parts" ->
-              SumByKey(
+              ReduceByKey(
                 ForeachUnion(co3r, parts,
                   ForeachUnion(pr, relP,
                     IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),

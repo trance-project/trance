@@ -59,7 +59,7 @@ trait Printer {
       s"""|GroupByKey([${ks.mkString(", ")}], [${vs.mkString(", ")}],
           |${ind(quote(e))}
           |)""".stripMargin
-    case SumByKey(e, ks, vs) =>
+    case ReduceByKey(e, ks, vs) =>
       s"""|ReduceByKey([${ks.mkString(", ")}], [${vs.mkString(", ")}],
           |${ind(quote(e))}
           |)""".stripMargin

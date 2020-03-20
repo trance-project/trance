@@ -297,6 +297,35 @@ trait Materialization extends MaterializationContext {
             VALUE_ATTR_NAME))
       case _ => None
     }
+
+    case ForeachUnion(x, b1, BagIfThenElse(c, b2, None)) => c match {
+      case PrimitiveCmp(OpEq, p1: Project, p2: VarRef)
+        if !iv.contains(p1.tuple) && iv.contains(p2) =>
+        val lbl = NewLabel(Map(p2.name -> ProjectLabelParameter(p1)))
+        Some(
+          ReduceByKey(
+            ForeachUnion(x, b1,
+              Singleton(Tuple(
+                KEY_ATTR_NAME -> lbl,
+                VALUE_ATTR_NAME -> b2))),
+            List(KEY_ATTR_NAME),
+            List(VALUE_ATTR_NAME)))
+
+      case PrimitiveCmp(OpEq, p1: VarRef, p2: Project)
+        if !iv.contains(p2.tuple) && iv.contains(p1) =>
+        val lbl = NewLabel(Map(p1.name -> ProjectLabelParameter(p2)))
+        Some(
+          ReduceByKey(
+            ForeachUnion(x, b1,
+              Singleton(Tuple(
+                KEY_ATTR_NAME -> lbl,
+                VALUE_ATTR_NAME -> b2))),
+            List(KEY_ATTR_NAME),
+            List(VALUE_ATTR_NAME)))
+
+      case _ => None
+    }
+
     case _ => None
   }
 
@@ -351,7 +380,7 @@ trait Materialization extends MaterializationContext {
       )
     }
 
-    val bagRef = BagVarRef(domainName(Symbol.fresh(field)), domain.tp)
+    val bagRef = BagVarRef(domainName(Symbol.fresh(field + "_")), domain.tp)
     Assignment(bagRef.name, domain)
   }
 

@@ -80,7 +80,7 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
       evalBag(e1, ctx).size
     case Sum(e1, fs) =>
       val b = evalBag(e1, ctx)
-      fs.map { f => f -> sumAggregate(b, f, e1.tp.tp(f)) }.toMap
+      fs.map { f => f -> reduceAggregate(b, f, e1.tp.tp(f)) }.toMap
     case GroupByKey(e1, ks, vs, an) =>
       evalBag(e1, ctx).map { t =>
         val tuple = t.asInstanceOf[Map[String, _]]
@@ -90,7 +90,7 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
       }.groupBy(_._1).map { case (k, v) =>
         k ++ Map(an -> v.map(_._2))
       }.toList
-    case SumByKey(e1, ks, vs) =>
+    case ReduceByKey(e1, ks, vs) =>
       evalBag(e1, ctx).map { t =>
         val tuple = t.asInstanceOf[Map[String, _]]
         val keys = ks.map(k => k -> tuple(k)).toMap
@@ -98,7 +98,7 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
         (keys, values)
       }.groupBy(_._1).map { case (k, v) =>
         val b = v.map(_._2)
-        k ++ vs.map(v => v -> sumAggregate(b, v, e1.tp.tp(v))).toMap
+        k ++ vs.map(v => v -> reduceAggregate(b, v, e1.tp.tp(v))).toMap
       }.toList
 
     // Label extensions
@@ -238,14 +238,17 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
     case OpMod => sys.error("Modulo over fractional values")
   }
 
-  protected def sumAggregate(b: List[_], f: String, tp: Type): AnyVal = tp match {
+  protected def reduceAggregate(b: List[_], f: String, tp: Type): Any = tp match {
     case IntType =>
       b.map(_.asInstanceOf[Map[String, Int]](f)).sum
     case LongType =>
       b.map(_.asInstanceOf[Map[String, Long]](f)).sum
     case DoubleType =>
       b.map(_.asInstanceOf[Map[String, Double]](f)).sum
-    case _ => sys.error("Aggregation over non-numeric values of type " + tp)
+    case _: BagType =>
+      b.map(_.asInstanceOf[Map[String, List[_]]](f)).reduce(_ ++ _)
+    case _ =>
+      sys.error("Aggregation over non-reducible values of type " + tp)
   }
 }
 
