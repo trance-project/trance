@@ -157,91 +157,99 @@ trait Materialization extends MaterializationContext {
 
       case BagDict(lblTp, flat, tupleDict: TupleDictExpr) =>
 
-        if (parent.isEmpty) {
-          // 1. Eliminate symbolic dictionaries from flat expression
-          val (flatBag: BagExpr, flatCtx) = rewriteUsingContext(flat, ctx)
+        parent match {
+          case None =>
+            // 1. Eliminate symbolic dictionaries from flat expression
+            val (flatBag: BagExpr, flatCtx) = rewriteUsingContext(flat, ctx)
 
-          // 2. Create assignment statement
-          val suffix = Symbol.fresh(name + "_")
-          val bagRef = BagVarRef(matBagName(suffix), flatBag.tp)
-          val stmt = Assignment(bagRef.name, flatBag)
+            // 2. Create assignment statement
+            val suffix = Symbol.fresh(name + "_")
+            val bagRef = BagVarRef(matBagName(suffix), flatBag.tp)
+            val stmt = Assignment(bagRef.name, flatBag)
 
-          // 3. Extend context
-          val dictCtx =
-            flatCtx.addDict(dict, bagRef, parent)
-              .addDictAlias(dict, BagDictVarRef(dictName(name), dict.tp))
-              .addLabel(LabelVarRef(flatName(name), lblTp), parent.isEmpty)
+            // 3. Extend context
+            val dictCtx =
+              flatCtx.addDict(dict, bagRef, parent)
+                .addDictAlias(dict, BagDictVarRef(dictName(name), dict.tp))
+                .addLabel(LabelVarRef(flatName(name), lblTp), parent.isEmpty)
 
-          // 4. Materialize bag dictionary
-          val program = new MaterializedProgram(Program(stmt), dictCtx)
+            // 4. Materialize bag dictionary
+            val program = new MaterializedProgram(Program(stmt), dictCtx)
 
-          // 5. Materialize children if needed
-          tupleDict match {
-            case d: TupleDict =>
-              program ++ materializeTupleDict(d, suffix, dictCtx, dict, eliminateDomains)
-            case _ =>
-              program
-          }
-        }
-        else if (eliminateDomains && canEliminateDomain(flat)) {
-          // 1. Eliminate domain
-          val (bag: BagExpr, newCtx) =
-            rewriteUsingContext(eliminateDomain(flat).get, ctx)
+            // 5. Materialize children if needed
+            tupleDict match {
+              case d: TupleDict =>
+                program ++ materializeTupleDict(d, suffix, dictCtx, dict, eliminateDomains)
+              case _ =>
+                program
+            }
 
-          // 2. Create assignment statement
-          val suffix = Symbol.fresh(name + "_")
-          val matDict = BagToMatDict(bag)
-          val matDictRef = MatDictVarRef(matDictName(suffix), matDict.tp)
-          val stmt = Assignment(matDictRef.name, matDict)
+          case Some((parentDict, field)) =>
+            // Get new label type for flat lambda expression
+            val matDictTp = ctx.matVarRef(parentDict).tp
+            val newLabelTp = if (ctx.isTopLevel(parentDict))
+              matDictTp.asInstanceOf[BagType].tp(field).asInstanceOf[LabelType]
+            else
+              matDictTp.asInstanceOf[MatDictType].valueTp.tp(field).asInstanceOf[LabelType]
 
-          // 3. Extend context
-          val dictCtx = newCtx.addDict(dict, matDictRef, parent)
+            eliminateDomain(newLabelTp, flat, ctx) match {
+              case None =>
+                // 1. Create label domain
+                val domain = createLabelDomain(ctx.matVarRef(parentDict), ctx.isTopLevel(parentDict), field)
+                val domainRef = BagVarRef(domain.name, domain.rhs.tp.asInstanceOf[BagType])
 
-          // 4. Materialize bag dictionary
-          val program = new MaterializedProgram(Program(stmt), dictCtx)
+                // 2. Create dictionary bag expression
+                val tpl = TupleVarRef(Symbol.fresh(name = "l"), domainRef.tp.tp)
+                val lbl = LabelProject(tpl, LABEL_ATTR_NAME)
+                val (valueBag: BagExpr, ctx2) =
+                  rewriteUsingContext(BagExtractLabel(lbl, flat), ctx)
+                val bag =
+                  ForeachUnion(tpl, domainRef,
+                    Singleton(Tuple(KEY_ATTR_NAME -> lbl, VALUE_ATTR_NAME -> valueBag)))
 
-          // 5. Materialize children if needed
-          tupleDict match {
-            case d: TupleDict =>
-              program ++ materializeTupleDict(d, suffix, dictCtx, dict, eliminateDomains)
-            case _ =>
-              program
-          }
-        }
-        else {
-          // 1. Create label domain
-          val (parentDict, field) = parent.get
-          val domain = createLabelDomain(ctx.matVarRef(parentDict), ctx.isTopLevel(parentDict), field)
-          val domainRef = BagVarRef(domain.name, domain.rhs.tp.asInstanceOf[BagType])
+                // 3. Create assignment statement
+                val suffix = Symbol.fresh(name + "_")
+                val matDict = BagToMatDict(bag)
+                val matDictRef = MatDictVarRef(matDictName(suffix), matDict.tp)
+                val stmt = Assignment(matDictRef.name, matDict)
 
-          // 2. Create dictionary bag expression
-          val tpl = TupleVarRef(Symbol.fresh(name = "l"), domainRef.tp.tp)
-          val lbl = LabelProject(tpl, LABEL_ATTR_NAME)
-          val (valueBag: BagExpr, ctx2) =
-            rewriteUsingContext(BagExtractLabel(lbl, flat), ctx)
-          val bag =
-            ForeachUnion(tpl, domainRef,
-              Singleton(Tuple(KEY_ATTR_NAME -> lbl, VALUE_ATTR_NAME -> valueBag)))
+                // 4. Extend context
+                val dictCtx = ctx2.addDict(dict, matDictRef, parent)
 
-          // 3. Create assignment statement
-          val suffix = Symbol.fresh(name + "_")
-          val matDict = BagToMatDict(bag)
-          val matDictRef = MatDictVarRef(matDictName(suffix), matDict.tp)
-          val stmt = Assignment(matDictRef.name, matDict)
+                // 5. Materialize bag dictionary
+                val program = new MaterializedProgram(Program(domain, stmt), dictCtx)
 
-          // 4. Extend context
-          val dictCtx = ctx2.addDict(dict, matDictRef, parent)
+                // 6. Materialize children if needed
+                tupleDict match {
+                  case d: TupleDict =>
+                    program ++ materializeTupleDict(d, suffix, dictCtx, dict, eliminateDomains)
+                  case _ =>
+                    program
+                }
 
-          // 5. Materialize bag dictionary
-          val program = new MaterializedProgram(Program(domain, stmt), dictCtx)
+              case Some((flatBag, flatCtx)) =>
+                // 2. Create assignment statement
+                val suffix = Symbol.fresh(name + "_")
+                val matDict = BagToMatDict(flatBag)
+                val matDictRef = MatDictVarRef(matDictName(suffix), matDict.tp)
+                val stmt = Assignment(matDictRef.name, matDict)
 
-          // 6. Materialize children if needed
-          tupleDict match {
-            case d: TupleDict =>
-              program ++ materializeTupleDict(d, suffix, dictCtx, dict, eliminateDomains)
-            case _ =>
-              program
-          }
+//                println("DOMAIN ELIMINATED: " + stmt.name)
+
+                // 3. Extend context
+                val dictCtx = flatCtx.addDict(dict, matDictRef, parent)
+
+                // 4. Materialize bag dictionary
+                val program = new MaterializedProgram(Program(stmt), dictCtx)
+
+                // 5. Materialize children if needed
+                tupleDict match {
+                  case d: TupleDict =>
+                    program ++ materializeTupleDict(d, suffix, dictCtx, dict, eliminateDomains)
+                  case _ =>
+                    program
+                }
+            }
         }
 
       case _ =>
@@ -264,50 +272,57 @@ trait Materialization extends MaterializationContext {
         sys.error("[materializeTupleDict] Unsupported dictionary type: " + d)
     }
 
-  private def canEliminateDomain(b: BagExpr): Boolean = b match {
-    case ForeachUnion(_, _, BagIfThenElse(c, Singleton(Tuple(_)), None)) =>
-      val iv = inputVars(b)
-      c match {
-        case PrimitiveCmp(OpEq, p1: Project, p2: VarRef) =>
-          !iv.contains(p1.tuple) && iv.contains(p2)
-        case PrimitiveCmp(OpEq, p1: VarRef, p2: Project) =>
-          !iv.contains(p2.tuple) && iv.contains(p1)
-        case _ => false
-      }
-    case _ => false
+  private def eliminateDomainIfHoisting(b: BagExpr, iv: Set[VarRef]): Option[BagExpr] = b match {
+    case ForeachUnion(x, b1, BagIfThenElse(c, Singleton(Tuple(fs)), None)) => c match {
+      case PrimitiveCmp(OpEq, p1: Project, p2: VarRef)
+        if !iv.contains(p1.tuple) && iv.contains(p2) =>
+        val lbl = NewLabel(Map(p2.name -> ProjectLabelParameter(p1)))
+        val fs1 = fs + (KEY_ATTR_NAME -> lbl)
+        Some(
+          GroupByKey(
+            ForeachUnion(x, b1, Singleton(Tuple(fs1))),
+            List(KEY_ATTR_NAME),
+            fs.keys.toList,
+            VALUE_ATTR_NAME))
+
+      case PrimitiveCmp(OpEq, p1: VarRef, p2: Project)
+        if !iv.contains(p2.tuple) && iv.contains(p1) =>
+        val lbl = NewLabel(Map(p1.name -> ProjectLabelParameter(p2)))
+        val fs1 = fs + (KEY_ATTR_NAME -> lbl)
+        Some(
+          GroupByKey(
+            ForeachUnion(x, b1, Singleton(Tuple(fs1))),
+            List(KEY_ATTR_NAME),
+            fs.keys.toList,
+            VALUE_ATTR_NAME))
+      case _ => None
+    }
+    case _ => None
   }
 
-  private def eliminateDomain(b: BagExpr): Option[BagExpr] = b match {
-    case ForeachUnion(x, b1, BagIfThenElse(c, Singleton(Tuple(fs)), None)) =>
-      val iv = inputVars(b)
-      c match {
-        case PrimitiveCmp(OpEq, p1: Project, p2: VarRef)
-          if !iv.contains(p1.tuple) && iv.contains(p2) =>
-          val lbl = NewLabel(Map(p2.name -> ProjectLabelParameter(p1)))
-          val fs1 = fs + (KEY_ATTR_NAME -> lbl)
-          Some(
-            GroupByKey(
-              ForeachUnion(x, b1, Singleton(Tuple(fs1))),
-              List(KEY_ATTR_NAME),
-              fs.keys.toList,
-              VALUE_ATTR_NAME
-            )
-          )
-        case PrimitiveCmp(OpEq, p1: VarRef, p2: Project)
-          if !iv.contains(p2.tuple) && iv.contains(p1) =>
-          val lbl = NewLabel(Map(p1.name -> ProjectLabelParameter(p2)))
-          val fs1 = fs + (KEY_ATTR_NAME -> lbl)
-          Some(
-            GroupByKey(
-              ForeachUnion(x, b1, Singleton(Tuple(fs1))),
-              List(KEY_ATTR_NAME),
-              fs.keys.toList,
-              VALUE_ATTR_NAME
-            )
-          )
-        case _ => None
-      }
-    case _ => None
+  private def eliminateDomainDictIteration(b: BagExpr, iv: Set[VarRef]): Option[BagExpr] = b match {
+    case ForeachUnion(x, MatDictLookup(l: VarRef, d), b2) if iv == Set(l) =>
+      val dictBag = MatDictToBag(d)
+      val kv = TupleVarRef(Symbol.fresh(name = "kv"), dictBag.tp.tp)
+      val lbl = LabelProject(kv, KEY_ATTR_NAME)
+      Some(
+        ForeachUnion(kv, dictBag,
+          Singleton(Tuple(
+            KEY_ATTR_NAME -> NewLabel(Map(l.name -> ProjectLabelParameter(lbl))),
+            VALUE_ATTR_NAME ->
+              ForeachUnion(x, kv(VALUE_ATTR_NAME).asInstanceOf[BagExpr], b2)))))
+    case  _ => None
+  }
+
+  private def eliminateDomain(lblTp: LabelType, b: BagExpr, ctx: Context): Option[(BagExpr, Context)] = {
+    val newCtx = lblTp.attrTps.foldLeft (ctx) {
+      case (acc, (n, t)) => acc.addVarDef(VarDef(n, t))
+    }
+    val (flatBag: BagExpr, flatCtx) = rewriteUsingContext(b, newCtx)
+    val ivars = inputVars(flatBag).filterNot(_.tp.isInstanceOf[MatDictType])
+
+    eliminateDomainIfHoisting(flatBag, ivars).map(_ -> flatCtx) orElse
+      eliminateDomainDictIteration(flatBag, ivars).map(_ -> flatCtx)
   }
 
   private def createLabelDomain(varRef: VarRef, topLevel: Boolean, field: String): Assignment = {

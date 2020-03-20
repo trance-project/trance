@@ -70,8 +70,8 @@ object TestMaterialization extends App
 //  run(tpch.Query1.program.asInstanceOf[Program])
 //  run(tpch.Query2.program.asInstanceOf[Program])
 //  run(tpch.Query3.program.asInstanceOf[Program])
-  run(tpch.Query4.program.asInstanceOf[Program])
-//  run(tpch.Query5.program.asInstanceOf[Program])
+//  run(tpch.Query4.program.asInstanceOf[Program])
+  run(tpch.Query5.program.asInstanceOf[Program])
 //  run(tpch.Query6.program.asInstanceOf[Program])
 //  run(tpch.Query7.program.asInstanceOf[Program])
 }
