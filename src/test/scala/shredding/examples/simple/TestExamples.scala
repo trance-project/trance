@@ -2,12 +2,12 @@ package shredding.examples.simple
 
 import org.scalatest.FunSuite
 import shredding.core._
-import shredding.nrc.{NRC, Printer, ShredNRC}
+import shredding.nrc.{NRC, Printer, MaterializeNRC}
 import shredding.wmcc._
 
 class TestExamples extends FunSuite
   with NRC
-  with ShredNRC
+  with MaterializeNRC
   with Printer {
   /*Examples
   June 6, 2019

@@ -13,9 +13,9 @@ import shredding.examples.tpch._
 object App {
  
   def main(args: Array[String]){
-    // runExperiment1FN()
-    runExperiment1NN()
-    runExperiment2Agg()
+    runExperiment1FN()
+    // runExperiment1NN()
+    // runExperiment2Agg()
     // runExperiment1Joins()
   }
 
@@ -23,34 +23,61 @@ object App {
     val pathout = "experiments/exp1.1/"
 
     Utils.flat(Test0, pathout, "Flat,0")
+    Utils.flat(Test0Full, pathout, "Flat,0")
     Utils.flat(Test1, pathout, "Flat,1")
+    Utils.flat(Test1Full, pathout, "Flat,1")
     Utils.flat(Test2, pathout, "Flat,2")
+    Utils.flat(Test2Full, pathout, "Flat,2")
     Utils.flat(Test3, pathout, "Flat,3")
+    Utils.flat(Test3Full, pathout, "Flat,3")
     Utils.flat(Test4, pathout, "Flat,4")
+    Utils.flat(Test4Full, pathout, "Flat,4")
 
     Utils.flatProj(Test0, pathout, "Flat+,0")
+    Utils.flatProj(Test0Full, pathout, "Flat+,0")
     Utils.flatProj(Test1, pathout, "Flat+,1")
+    Utils.flatProj(Test1Full, pathout, "Flat+,1")
     Utils.flatProj(Test2, pathout, "Flat+,2")
+    Utils.flatProj(Test2Full, pathout, "Flat+,2")
     Utils.flatProj(Test3, pathout, "Flat+,3")
+    Utils.flatProj(Test3Full, pathout, "Flat+,3")
     Utils.flatProj(Test4, pathout, "Flat+,4")
+    Utils.flatProj(Test4Full, pathout, "Flat+,4")
 
     Utils.flatOpt(Test0, pathout, "Flat++,0")
+    Utils.flatOpt(Test0Full, pathout, "Flat++,0")
     Utils.flatOpt(Test1, pathout, "Flat++,1")
+    Utils.flatOpt(Test1Full, pathout, "Flat++,1")
     Utils.flatOpt(Test2Flat, pathout, "Flat++,2")
+    Utils.flatOpt(Test2FullFlat, pathout, "Flat++,2")
     Utils.flatOpt(Test3Flat, pathout, "Flat++,3")
+    Utils.flatOpt(Test3FullFlat, pathout, "Flat++,3")
     Utils.flatOpt(Test4Flat, pathout, "Flat++,4")
+    Utils.flatOpt(Test4FullFlat, pathout, "Flat++,4")
 
-    Utils.shredDomains(Test0, pathout, "ShredDom,0")
-    Utils.shredDomains(Test1, pathout, "ShredDom,1")
-    Utils.shredDomains(Test2, pathout, "ShredDom,2")
-    Utils.shredDomains(Test3, pathout, "ShredDom,3")
-    Utils.shredDomains(Test4, pathout, "ShredDom,4")
+    Utils.shredDomains(Test0, pathout, "Shred,0")
+    Utils.shredDomains(Test1, pathout, "Shred,1")
+    Utils.shredDomains(Test2, pathout, "Shred,2")
+    Utils.shredDomains(Test3, pathout, "Shred,3")
+    Utils.shredDomains(Test4, pathout, "Shred,4")
 
-    Utils.unshredDomains(Test0, pathout, "ShredDom,0")
-    Utils.unshredDomains(Test1, pathout, "ShredDom,1")
-    Utils.unshredDomains(Test2, pathout, "ShredDom,2")
-    Utils.unshredDomains(Test3, pathout, "ShredDom,3")
-    Utils.unshredDomains(Test4, pathout, "ShredDom,4")
+    Utils.shredDomains(Test0Full, pathout, "Shred,0")
+    Utils.shredDomains(Test1Full, pathout, "Shred,1")
+    Utils.shredDomains(Test2Full, pathout, "Shred,2")
+    Utils.shredDomains(Test3Full, pathout, "Shred,3")
+    Utils.shredDomains(Test4Full, pathout, "Shred,4")
+
+    Utils.unshredDomains(Test0, pathout, "Shred,0")
+    Utils.unshredDomains(Test1, pathout, "Shred,1")
+    Utils.unshredDomains(Test2, pathout, "Shred,2")
+    Utils.unshredDomains(Test3, pathout, "Shred,3")
+    Utils.unshredDomains(Test4, pathout, "Shred,4")
+
+    Utils.unshredDomains(Test0Full, pathout, "Shred,0")
+    Utils.unshredDomains(Test1Full, pathout, "Shred,1")
+    Utils.unshredDomains(Test2Full, pathout, "Shred,2")
+    Utils.unshredDomains(Test3Full, pathout, "Shred,3")
+    Utils.unshredDomains(Test4Full, pathout, "Shred,4")
 
   }
  
@@ -75,14 +102,14 @@ object App {
     // Utils.flatOptInput(Test3Flat, Test3NN, pathout, "Flat++,3")
     // Utils.flatOptInput(Test4Flat, Test4NN, pathout, "Flat++,4")
 
-    // Utils.shredDomainsInput(Test0, Test0NN, pathout, "ShredDom,0")
-    // Utils.shredDomainsInput(Test1, Test1NN, pathout, "ShredDom,1")
+    Utils.shredDomains(Test0NN, pathout, "ShredDom,0")
+    Utils.shredDomains(Test1NN, pathout, "ShredDom,1")
     // Utils.shredDomainsInput(Test2, Test2NN, pathout, "ShredDom,2")
     // Utils.shredDomainsInput(Test3, Test3NN, pathout, "ShredDom,3")
-    Utils.shredDomainsInput(Test4, Test4NN, pathout, "ShredDom,4")
+    // Utils.shredDomainsInput(Test4, Test4NN, pathout, "ShredDom,4")
 
-    // Utils.unshredDomains(Test0Join, pathout, "ShredDom,0")
-    // Utils.unshredDomains(Test1NN, pathout, "ShredDom,1")
+    Utils.unshredDomains(Test0NN, pathout, "ShredDom,0")
+    Utils.unshredDomains(Test1NN, pathout, "ShredDom,1")
     // Utils.unshredDomains(Test2NN, pathout, "ShredDom,2")
     // Utils.unshredDomains(Test3Join, pathout, "ShredDom,3")
     // Utils.unshredDomains(Test4Join, pathout, "ShredDom,4")
@@ -97,7 +124,7 @@ object App {
     // Utils.flatOptInput(Test4Flat, Test4NN, pathout, "Flat++,4")
 
     // Utils.shredDomainsInput(Test0, Test0Agg, pathout, "ShredDom,0")
-    Utils.shredDomainsInput(Test1, Test1Agg, pathout, "ShredDom,1")
+    // Utils.shredDomainsInput(Test1, Test1Agg, pathout, "ShredDom,1")
     // Utils.shredDomainsInput(Test2, Test2NN, pathout, "ShredDom,2")
     // Utils.shredDomainsInput(Test3, Test3NN, pathout, "ShredDom,3")
     // Utils.shredDomainsInput(Test4, Test4NN, pathout, "ShredDom,4")

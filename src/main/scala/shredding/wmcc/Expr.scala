@@ -122,6 +122,8 @@ case class Project(e1: CExpr, field: String) extends CExpr { self =>
     case t:TTupleType => field match {
       case "_1" => t(0)
       case "_2" => t(1)
+      case "_KEY" => t(0)
+      case "_VALUE" => t(1)
       case  _ => println(t); t(field.toInt)
     }
     case t:LabelType => t(field)
@@ -198,11 +200,11 @@ case object EmptyCDict extends CExpr {
   def tp: TDict = EmptyDictCType
 }
 
-case class BagCDict(lbl: CExpr, flat: CExpr, dict: CExpr) extends CExpr {
+case class BagCDict(lblTp: LabelType, flat: CExpr, dict: CExpr) extends CExpr {
   def tp: BagDictCType = 
-    BagDictCType(BagCType(TTupleType(List(lbl.tp, flat.tp))), dict.tp.asInstanceOf[TTupleDict])
+    BagDictCType(BagCType(TTupleType(List(lblTp, flat.tp))), dict.tp.asInstanceOf[TTupleDict])
   def apply(n: String) = n match {
-    case "lbl" => lbl
+//    case "lbl" => lbl
     case "flat" => flat
     //case "_1" => List(lbl, flat)
     case "_2" => dict
@@ -322,16 +324,22 @@ case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Va
 
 // unnests an inner bag, without unnesting before a downstream join
 case class Lookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, p3: CExpr) extends CExpr {
+
   val valueBagType = p3 match { 
-    // should deprecate this
-    case v:Variable => v2.tp
-    case Constant(true) => v2.tp
-    case _ => p3.tp.asInstanceOf[BagCType].tp 
+    // lookup used in unshredding
+    case Variable(_, TTupleType(fs)) if fs.size == 2 => fs.last
+    // lookup iterator
+    case _ => v2.tp match {
+      case TTupleType(fs) => fs.last.asInstanceOf[BagCType].tp
+      case t => t
+    }
   }
+
   def tp:BagCType = e1.tp match {
     case BagCType(lbl) => BagCType(TTupleType(List(lbl, valueBagType)))
-    case btp:BagDictCType => BagCType(TTupleType(List(btp.flatTp.tp, valueBagType)))
-    case _ => ???
+    // case btp:BagDictCType => 
+    //   BagCType(TTupleType(List(btp.flatTp.tp, valueBagType)))
+    case _ => sys.error(s"unsupported ${e1.tp}")
   }
   override def wvars = e1.wvars :+ v2
 }
@@ -415,6 +423,9 @@ object Variable {
   def fresh(tp: Type): Variable = {
     val id = newId()
     Variable(s"x$id", tp)
+  }
+  def fresh(key: Type, value: Type): Variable = {
+    fresh(TTupleType(List(key, value)))
   }
   def freshFromBag(tp: Type): Variable = {
     val id = newId()

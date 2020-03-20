@@ -9,7 +9,7 @@ import shredding.utils.Utils.ind
   * Generates Scala code specific to Spark applications
   */
 
-class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHandler with SparkUtils {
+class SparkNamedGenerator(inputs: Map[Type, String] = Map(), cache: Boolean = false, evaluate: Boolean = true) extends SparkTypeHandler with SparkUtils {
 
   implicit def expToString(e: CExpr): String = generate(e)
 
@@ -39,6 +39,23 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
     case _ => generate(e)
   }
 
+  def projectBag(e: CExpr, vs: List[Variable]): (String, String, List[CExpr], List[CExpr]) = e match {
+    case Bind(v, Project(v2 @ Variable(n,tp), field), e2) => 
+      val nvs1 = vs.map( v3 => if (v3 == v2) drop(tp, v2, field) else v3)
+      val nvs2 = vs.map( v3 => if (v3 == v2) v2.nullValue else v3)
+      (n, field, nvs1, nvs2)
+    case _ => sys.error(s"unsupported bag projection $e")
+  }
+
+  def drop(tp: Type, v: Variable, field: String): CExpr = tp match {
+      case TTupleType(fs) => 
+        Tuple(fs.drop((kvName(field)(2).replace("_", "").toInt-1)).zipWithIndex.map{ case (t, i) 
+          => Project(v, "_"+i) })
+      case RecordCType(fs) => 
+        Record((fs - field).map{ case (attr, atp) => attr -> Project(v, attr)})
+      case _ => sys.error(s"unsupported type $tp")
+    }
+
   def generate(e: CExpr): String = e match {
 
     /** ZEROS **/
@@ -61,10 +78,11 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
       s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
     }
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
-    case Project(e1, "lbl") => generate(e1)
+    case Project(e1, "_LABEL") => generate(e1)
     case Project(e2 @ Record(fs), field) => 
       s"${generate(e2)}.${kvName(field)(fs.size)}"
-    case Project(e2, field) => s"${generate(e2)}.${kvName(field)}"
+    case Project(e2, field) => 
+      s"${generate(e2)}.${kvName(field)}"
     /** MATH OPS **/
     case CMultiply(e1, e2) => s"${generate(e1)} * ${generate(e2)}"
 
@@ -225,16 +243,6 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
           |${generate(e3)}
           |""".stripMargin
 
-    /** NEST - Dictionary Specific **/
-    case Nest(e1, v1, f, e2, v2, p, g) if hasLabel(f.tp) =>
-      val vars = generateVars(v1, e1.tp)
-      val acc = "acc"+Variable.newId
-      val nestAgg = agg(e2)
-      val value = if (nestAgg.contains("++")) s"Vector({${generate(e2)}})" else s"{${generate(e2)}}"
-      s"""|${generate(e1)}.map{ case $vars => 
-          |   ({${generate(f)}}, $value)
-          | }.$nestAgg""".stripMargin
-
     /** NEST **/
     // TODO add filter
     case Nest(e1, v1, f, e2, v2, p, g) =>
@@ -260,22 +268,27 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
       }
       //s"{${generate(f)}}"
       val value = if (!emptyType.contains("0")) s"Vector({${generate(e2)}})" else s"{${generate(e2)}}"
-      val nonet = g match {
+      g match {
+        case Bind(_, CUnit, _) =>
+          s"""|${generate(e1)}$zip.map{ 
+              |  case ${wrapIndex(vars)} => ($baseKey, $value)
+              |}.${agg(e2)}$removeIndex""".stripMargin
         case Bind(_, Tuple(fs), _) if fs.size > 1 => 
-          ((2 to fs.size).map(i => 
-            if (i != fs.size) {
-              s"case (${fs.slice(1, i).map(e => "_").mkString(",")},${zero(fs(i-1))},${fs.slice(i, fs.size).map(e => "_").mkString(",")}) => ($key, $emptyType)" //({${generate(f)}}, ${zero(e2)})"
-            } else { 
-              s"case (${fs.slice(1, i).map(e => "_").mkString(",")},${zero(fs.last)}) => ($key, $emptyType)" //({${generate(f)}}, ${zero(e2)})" 
-            }
-          ) :+ s"case (null, ${(2 to fs.size).map(i => "_").mkString(",")}) => ($key, $emptyType)").mkString("\n")
-        case _ => s"case (null) => ({$key}, $emptyType)"
+          ((s"${generate(e1)}$zip.map{ case ${wrapIndex(vars)} => {${generate(g)}} match { " +:
+            ((2 to fs.size).map(i => 
+              if (i != fs.size) {
+                s"case (${fs.slice(1, i).map(e => "_").mkString(",")},${zero(fs(i-1))},${fs.slice(i, fs.size).map(e => "_").mkString(",")}) => ($key, $emptyType)"
+              } else { 
+                s"case (${fs.slice(1, i).map(e => "_").mkString(",")},${zero(fs.last)}) => ($key, $emptyType)" //({${generate(f)}}, ${zero(e2)})" 
+              }
+            ) :+ s"case (null, ${(2 to fs.size).map(i => "_").mkString(",")}) => ($key, $emptyType)")
+          ) :+ s"case $gv2 => ($baseKey, $value)\n}}.${agg(e2)}$removeIndex").mkString("\n")
+        case _ => 
+          s"""|${generate(e1)}$zip.map{ case ${wrapIndex(vars)} => {${generate(g)}} match { 
+              |  case (null) => ({$key}, $emptyType)
+              |  case $gv2 => ($baseKey, $value)
+              |}}.${agg(e2)}$removeIndex""".stripMargin
       }
-      s"""|${generate(e1)}$zip.map{ case ${wrapIndex(vars)} => {${generate(g)}} match {
-          |   $nonet
-          |   case $gv2 => ($baseKey, $value)
-          | }
-          |}.${agg(e2)}$removeIndex""".stripMargin
     
     /** LOOKUPS **/
 
@@ -288,7 +301,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
         case BagCType(RecordCType(ms)) if ms.size == 1 => generate(e1)
         case _ => s"${generate(e1)}.map{ case $vars => ({${generate(k1)}}, $vars)}"
       }
-      val tp = e1.tp.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps("lbl")
+      val tp = e1.tp.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps("_LABEL")
       handleType(tp)
       val label = generateType(tp)
       val e1key = k2 match {
@@ -310,7 +323,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
     // drops the partitioner of the parent dictionary, uses partitioning information 
     // of the child dictionary, then drops the child partitioner to rekey by 
     // the parent label.
-    case Bind(unv, Unnest(dict1, v1, bag, v2:Variable, filt, value), 
+    case Bind(unv, OuterUnnest(dict1, v1, bag, v2:Variable, filt, value), 
       Bind(luv, Lookup(_, dict2, _, Bind(_, Project(_, key1), _), v3, key2, key3), e2)) =>
       val vars = generateVars(v1, dict1.tp)
       val fdict = generate(unv)
@@ -327,7 +340,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
 
     // Non-domain lookup that does not require flattening one of the dictionaries
     // ie. (top level bag).lookup(lower level dictionary)
-    case Bind(luv, Lookup(e1, e2, v1, p1 @ Bind(_, Project(v3:Variable, key1), _), v2, p2, Variable(_,_)), e3) =>
+    case Bind(luv, Lookup(e1, e2, v1, p1 @ Bind(_, Project(v3:Variable, key1), _), v2, Constant(true), Variable(_,_)), e3) =>
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 = generate(v2)
       val gluv = generate(luv)
@@ -369,7 +382,6 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
         case BagCType(RecordCType(_)) => s"${generate(v2)} => ($e1key, {${generate(value)}})"
         case _ => s"(lbl, bag) => ($e1key, bag.map(${generate(v2)} => {${generate(value)}}))"
       }
-
       s"""| val $ve1 = $domain
           | val $ve2 = ${generate(e2)}.map{ case $mapBagValues }
           | val ${generate(cv)} = $ve2.cogroupDomain($ve1)
@@ -407,18 +419,18 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeHa
     case Bind(x, CNamed(n, e1), Bind(_, LinearCSet(_), _)) => 
       s"""|val $n = ${generate(e1)}
           |val ${generate(x)} = $n
-          |${runJob(n, true)}""".stripMargin
+          |${runJob(n, cache, evaluate)}""".stripMargin
 
     case Bind(x, CNamed(n, e1), e2) =>
     	s"""|val $n = ${generate(e1)}
           |val ${generate(x)} = $n
-          |${runJob(n)}
+          |${runJob(n, false, false)}
           |${generate(e2)}""".stripMargin
 
     case Bind(v, LinearCSet(fs), e2) => 
       val gv = generate(v)
       s"""|val $gv = ${generate(fs.last)}
-          |${runJob(gv, true)}""".stripMargin
+          |${runJob(gv, cache, evaluate)}""".stripMargin
 
     /** ANF BASE CASE **/
     case Bind(v, e1, e2) => 

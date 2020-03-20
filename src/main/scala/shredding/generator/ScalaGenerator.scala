@@ -147,8 +147,9 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case LinearCSet(exprs) => 
       s"""(${exprs.map(generate(_)).mkString(",")})"""
     case EmptyCDict => "()"
-    case BagCDict(lbl, flat, dict) => 
-      s"(${generate(flat)}.map(v => (${generate(lbl)}, v)), ${generate(dict)})"
+    // TODO: lbl not available anymore
+//    case BagCDict(lbl, flat, dict) =>
+//      s"(${generate(flat)}.map(v => (${generate(lbl)}, v)), ${generate(dict)})"
     case TupleCDict(fs) => generate(Record(fs))
     case Select(x, v, p, e) => p match {
       case Constant(true) => generate(x)

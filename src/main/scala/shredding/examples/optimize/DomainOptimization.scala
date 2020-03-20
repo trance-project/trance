@@ -1,11 +1,8 @@
 package shredding.examples.optimize
 
 import shredding.core._
-import shredding.examples.Query
 import shredding.examples.tpch.TPCHBase
 import shredding.examples.genomic.GenomicBase
-import shredding.nrc.LinearizedNRC
-import shredding.wmcc._
 
 /**
   All label extractions are at top level
@@ -16,16 +13,18 @@ object DomainOptExample1 extends TPCHBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
   
-  val query = 
-  ForeachUnion(c, relC,
-    Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(o, relO,
+  val query1 =
+  ForeachUnion(cr, relC,
+    Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(or, relO,
       IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")),
-        Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(l, relL,
+        Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(lr, relL,
           IfThenElse(
             Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
-            ForeachUnion(p, relP, IfThenElse(
+            ForeachUnion(pr, relP, IfThenElse(
               Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
               Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))))))))))
+
+  val program = Program(Assignment(name, query1))
 }
 
 object DomainOptExample2 extends TPCHBase {
@@ -34,14 +33,17 @@ object DomainOptExample2 extends TPCHBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
   
-  val query = 
-  ForeachUnion(c, relC,
-    Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(o, relO,
+  val query2 =
+  ForeachUnion(cr, relC,
+    Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(or, relO,
       IfThenElse(Cmp(OpEq, or("o_custkey"), cr("c_custkey")),
-        Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(l, relL,
-            ForeachUnion(p, relP, IfThenElse(
-              And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
+        Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(lr, relL,
+            ForeachUnion(pr, relP, IfThenElse(
+              And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
+                Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
               Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity")))))))))))))
+
+  val program = Program(Assignment(name, query2))
 }
 
 object DomainOptExample3 extends TPCHBase {
@@ -50,15 +52,18 @@ object DomainOptExample3 extends TPCHBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
   
-  val query = 
-    ForeachUnion(o, relO,
-      Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(l, relL,
-        ForeachUnion(p, relP, IfThenElse(
-          And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
+  val query3 =
+    ForeachUnion(or, relO,
+      Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(lr, relL,
+        ForeachUnion(pr, relP, IfThenElse(
+          And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
+              Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
             Singleton(Tuple("p_name" -> pr("p_name"), "customers" ->
-              ForeachUnion(c, relC, IfThenElse(
+              ForeachUnion(cr, relC, IfThenElse(
                 Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
                   Singleton(Tuple("c_name" -> cr("c_name")))))))))))))
+
+  val program = Program(Assignment(name, query3))
 }
 
 object DomainOptExample4 extends TPCHBase {
@@ -67,16 +72,18 @@ object DomainOptExample4 extends TPCHBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
   
-  val query = 
-    ForeachUnion(o, relO,
-      Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(p, relP, 
-        ForeachUnion(l, relL, IfThenElse(
-          And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")), Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
+  val query4 =
+    ForeachUnion(or, relO,
+      Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "o_parts" -> ForeachUnion(pr, relP,
+        ForeachUnion(lr, relL, IfThenElse(
+          And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
+              Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
             Singleton(Tuple("p_name" -> pr("p_name"), "customers" ->
-              ForeachUnion(c, relC, IfThenElse(
+              ForeachUnion(cr, relC, IfThenElse(
                 Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
                   Singleton(Tuple("c_name" -> cr("c_name")))))))))))))
 
+  val program = Program(Assignment(name, query4))
 }
 
 object DomainOptExample5 extends TPCHBase {
@@ -85,31 +92,37 @@ object DomainOptExample5 extends TPCHBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
   
-  val query =
-    ForeachUnion(o, relO,
+  val query5 =
+    ForeachUnion(or, relO,
       Singleton(Tuple("o_orderdate" -> or("o_orderdate"), "custparts" ->
-        ForeachUnion(c, relC, 
+        ForeachUnion(cr, relC,
           IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
-            ForeachUnion(p, relP, 
-              ForeachUnion(l, relL, 
-                IfThenElse(And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")), Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
+            ForeachUnion(pr, relP,
+              ForeachUnion(lr, relL,
+                IfThenElse(And(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
+                            Cmp(OpEq, lr("l_partkey"), pr("p_partkey"))),
                   Singleton(Tuple("c_name" -> cr("c_name"), "p_name" -> pr("p_name")))))))))))
+
+  val program = Program(Assignment(name, query5))
 }
 
 object DomainOptExample6 extends GenomicBase {
- 
   val name = "DomainOptExample6"
  
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
 
-  val query = ForeachUnion(vdef, relV,
-                Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
-                  GroupBy(ForeachUnion(gdef, BagProject(vref, "genotypes"),
-                    ForeachUnion(cdef, relC,
-                      IfThenElse(Cmp(OpEq, gref("sample"), cref("sample")),
-                        Singleton(Tuple("case" -> cref("iscase"), "genotype" -> gref("call")))))),
-                   List("case"),
-                   List("genotype"),
-                   IntType))))
+  val query6 =
+    ForeachUnion(vref, relV,
+      Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
+        SumByKey(
+          ForeachUnion(gref, BagProject(vref, "genotypes"),
+            ForeachUnion(cref, relC,
+              IfThenElse(Cmp(OpEq, gref("sample"), cref("sample")),
+                Singleton(Tuple("case" -> cref("iscase"), "genotype" -> gref("call")))))),
+          List("case"),
+          List("genotype")
+        ))))
+
+  val program = Program(Assignment(name, query6))
 }

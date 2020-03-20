@@ -50,7 +50,9 @@ case class Q3Flat2(N__F: Int, Query7__F: Q3Flat, uniqueId: Long)
 case class Q3Flat3(Query7__F: Q3Flat, N__F: Int, uniqueId: Long)
 
 object TPCHSchema {
-  val folderLocation = Config.datapath
+  // TODO: crashes here - Config.datapath does not exist
+//  val folderLocation = Config.datapath
+  val folderLocation = "/"
   val scalingFactor = 1
   val lineItemTable = {
     val L_ORDERKEY: Attribute = "L_ORDERKEY" -> IntType
@@ -301,19 +303,23 @@ object TPCHSchema {
         "N" -> loadLineSkew("N", "Nation"),
         "R" -> loadLineSkew("R", "Region"))
 
-  def loadDict(tbl: String, tblname: String): String = 
-    s"""|val ${tbl}__D_1 = tpch.load$tblname()
-        |${tbl}__D_1.cache
-        |spark.sparkContext.runJob(${tbl}__D_1, (iter: Iterator[_]) => {})
+  def loadDict(tbl: String, tblname: String): String = {
+    val name = s"IBag_${tbl}__D"
+    s"""|val $name = tpch.load$tblname()
+        |${name}.cache
+        |spark.sparkContext.runJob($name, (iter: Iterator[_]) => {})
         |""".stripMargin
+  }
 
-  def loadDictSkew(tbl: String, tblname: String): String = 
-    s"""|val ${tbl}__D_1_L = tpch.load$tblname()
-        |${tbl}__D_1_L.cache
-        |spark.sparkContext.runJob(${tbl}__D_1_L, (iter: Iterator[_]) => {})
-        |val ${tbl}__D_1_H = spark.sparkContext.emptyRDD[$tblname]
-        |val ${tbl}__D_1 = (${tbl}__D_1_L, ${tbl}__D_1_H)
+  def loadDictSkew(tbl: String, tblname: String): String = {
+    val name = s"IBag_${tbl}__D"
+    s"""|val ${name}_L = tpch.load$tblname()
+        |${name}_L.cache
+        |spark.sparkContext.runJob(${name}_L, (iter: Iterator[_]) => {})
+        |val ${name}_H = spark.sparkContext.emptyRDD[$tblname]
+        |val ${name} = (${name}_L, ${name}_H)
         |""".stripMargin
+  }
 
   val stblcmds =     
     Map("C" -> loadDict("C", "Customer"),

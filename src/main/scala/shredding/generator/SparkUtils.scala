@@ -45,25 +45,8 @@ trait SparkUtils {
     case _ => "group(_++_)"
   } 
 
-  def drop(tp: Type, v: Variable, field: String): CExpr = tp match {
-    case TTupleType(fs) => 
-      Tuple(fs.drop((field.replace("_", "").toInt-1)).zipWithIndex.map{ case (t, i) 
-        => Project(v, "_"+i) })
-    case RecordCType(fs) => 
-      Record((fs - field).map{ case (attr, atp) => attr -> Project(v, attr)})
-    case _ => sys.error(s"unsupported type $tp")
-  }
-
-  def projectBag(e: CExpr, vs: List[Variable]): (String, String, List[CExpr], List[CExpr]) = e match {
-    case Bind(v, Project(v2 @ Variable(n,tp), field), e2) => 
-      val nvs1 = vs.map( v3 => if (v3 == v2) drop(tp, v2, field) else v3)
-      val nvs2 = vs.map( v3 => if (v3 == v2) v2.nullValue else v3)
-      (n, field, nvs1, nvs2)
-    case _ => sys.error(s"unsupported bag projection $e")
-  }
-
   def isDomain(e: CExpr): Boolean = e.tp match {
-    case BagCType(RecordCType(ms)) => ms get "lbl" match {
+    case BagCType(RecordCType(ms)) => ms get "_LABEL" match {
       case Some(tp:LabelType) => true
       case _ => false
     }
@@ -72,7 +55,7 @@ trait SparkUtils {
 
   def hasLabel(e: Type): Boolean = e match {
     case TTupleType(ls) => ls.filter(t => hasLabel(t)).nonEmpty
-    case RecordCType(ms) => ms.keySet == Set("lbl")
+    case RecordCType(ms) => ms.keySet == Set("_LABEL")
     case LabelType(_) => true
     case _ => false
   }
@@ -82,12 +65,14 @@ trait SparkUtils {
     case _ => sys.error("unsupported type")
   }
 
-  def runJob(n: String, last:Boolean = false): String = {
+  def comment(n: String): String = s"//$n"
+
+  def runJob(n: String, cache:Boolean, evaluate:Boolean): String = {
+    // change this to work with new domain tags
     if (!n.contains("ctx")){
-      val fcomment = if (last) "" else "//"
-      s"""|//$n.cache
+      s"""|${if (cache) n else comment(n)}.cache
           |//$n.print
-          |${fcomment}$n.evaluate"""
+          |${if (evaluate) n else comment(n)}.evaluate"""
     }else ""
   }
 

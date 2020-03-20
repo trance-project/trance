@@ -1,9 +1,7 @@
 package shredding.examples.tpch
 
 import shredding.core._
-import shredding.examples.Query
-import shredding.nrc.LinearizedNRC
-//import shredding.wmcc._
+import shredding.utils.Utils.Symbol
 
 /**
 For c2 in Query1 Union
@@ -15,28 +13,32 @@ For c2 in Query1 Union
 **/
 object TPCHNested1 extends TPCHBase {
   val name = "TPCHNested1"
+
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
 
-  val (q1, co, cor) = varset(TPCHQuery1.name, "c2", TPCHQuery1Full.query.asInstanceOf[BagExpr])
+  val (q1r, cor) = varset(TPCHQuery1Full.name, "c2",
+    TPCHQuery1Full.program(TPCHQuery1Full.name).asInstanceOf[BagExpr])
+
   val orders = BagProject(cor, "c_orders")
-  val co2 = VarDef("o2", orders.tp.tp)
-  val co2r = TupleVarRef(co2)
+  val co2r = TupleVarRef("o2", orders.tp.tp)
 
   val parts = BagProject(co2r, "o_parts")
-  val co3 = VarDef("p2", parts.tp.tp)
-  val co3r = TupleVarRef(co3)
+  val co3r = TupleVarRef("p2", parts.tp.tp)
 
-  val query = ForeachUnion(co, BagVarRef(q1),
-                Singleton(Tuple("c_name" -> cor("c_name"), "totals" ->
-                  GroupBy(
-                    ForeachUnion(co2, orders,
-                      ForeachUnion(co3, parts,
-                        Singleton(Tuple("orderdate" -> co2r("o_orderdate"),
-                          "pname" -> co3r("p_name"), "qty" -> co3r("l_qty"))))),
-                 List("orderdate", "pname"),
-                 List("qty"),
-                 DoubleType))))
+  val query1 =
+    ForeachUnion(cor, q1r,
+      Singleton(Tuple("c_name" -> cor("c_name"), "totals" ->
+        SumByKey(
+          ForeachUnion(co2r, orders,
+            ForeachUnion(co3r, parts,
+              Singleton(Tuple("orderdate" -> co2r("o_orderdate"),
+                "pname" -> co3r("p_name"), "qty" -> co3r("l_qty"))))),
+          List("orderdate", "pname"),
+          List("qty")
+        ))))
+
+  val program = Program(Assignment(name, query1))
 }
 
 /**
@@ -52,19 +54,20 @@ Note that this query is not yet supported because it requires multiplication.
 **/
 object TPCHNested2 extends TPCHBase {
   val name = "TPCHNested2Unopt"
+
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
 
-  val (q1, co, cor) = varset(TPCHQuery1.name, "c2", TPCHQuery1Full.query.asInstanceOf[BagExpr])
+  val (q1r, cor) = varset(TPCHQuery1Full.name, "c2",
+    TPCHQuery1Full.program(TPCHQuery1Full.name).varRef.asInstanceOf[BagExpr])
+
   val orders = BagProject(cor, "c_orders")
-  val co2 = VarDef("o2", orders.tp.tp)
-  val co2r = TupleVarRef(co2)
+  val co2r = TupleVarRef("o2", orders.tp.tp)
 
   val parts = BagProject(co2r, "o_parts")
-  val co3 = VarDef("p2", parts.tp.tp)
-  val co3r = TupleVarRef(co3)
+  val co3r = TupleVarRef("p2", parts.tp.tp)
 
-  val query = 
+  val query2 =
       /**ForeachUnion(co, BagVarRef(q1),
         ForeachUnion(co2, orders,
           Singleton(Tuple("c_name" -> cor("c_name"), "parts" -> 
@@ -77,18 +80,19 @@ object TPCHNested2 extends TPCHBase {
               List("total"),
               DoubleType       
              )))))**/
-    GroupBy(
-      ForeachUnion(co, BagVarRef(q1),
-        ForeachUnion(co2, orders, 
-          ForeachUnion(co3, parts, 
-            ForeachUnion(p, relP, 
+    SumByKey(
+      ForeachUnion(cor, q1r,
+        ForeachUnion(co2r, orders,
+          ForeachUnion(co3r, parts,
+            ForeachUnion(pr, relP,
               IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
                 Singleton(Tuple("c_name" -> cor("c_name"), "p_name" -> pr("p_name"), 
-                                "total" -> PrimitiveOp(Multiply, co3r("l_qty"), pr("p_retailprice"))))))))),
+                                "total" -> co3r("l_qty").asNumeric * pr("p_retailprice").asNumeric))))))),
       List("c_name", "p_name"),
-      List("total"),
-      DoubleType)
-              
+      List("total")
+    )
+
+  val program = Program(Assignment(name, query2))
 }
 
 /**
@@ -105,31 +109,34 @@ Again, this isn't supported
 **/
 object TPCHNested3 extends TPCHBase {
   val name = "TPCHNested3"
+
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
 
-  val (q1, co, cor) = varset(TPCHQuery1.name, "c2", TPCHQuery1Full.query.asInstanceOf[BagExpr])
+  val (q1r, cor) = varset(TPCHQuery1Full.name, "c2",
+    TPCHQuery1Full.program(TPCHQuery1Full.name).varRef.asInstanceOf[BagExpr])
+
   val orders = BagProject(cor, "c_orders")
-  val co2 = VarDef("o2", orders.tp.tp)
-  val co2r = TupleVarRef(co2)
+  val co2r = TupleVarRef("o2", orders.tp.tp)
 
   val parts = BagProject(co2r, "o_parts")
-  val co3 = VarDef("p2", parts.tp.tp)
-  val co3r = TupleVarRef(co3)
+  val co3r = TupleVarRef("p2", parts.tp.tp)
 
-  val query = 
-    ForeachUnion(co, BagVarRef(q1),
+  val query3 =
+    ForeachUnion(cor, q1r,
       Singleton(Tuple("c_name" -> cor("c_name"), "c_orders" ->
-        GroupBy(
-          ForeachUnion(co2, orders, 
-            ForeachUnion(co3, parts, 
-              ForeachUnion(p, relP, 
+        SumByKey(
+          ForeachUnion(co2r, orders,
+            ForeachUnion(co3r, parts,
+              ForeachUnion(pr, relP,
                 IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
                   Singleton(Tuple("o_orderdate" -> co2r("o_orderdate"), "p_name" -> pr("p_name"), 
                                 "qty" -> co3r("l_qty"), "price" -> pr("p_retailprice"))))))),
-      List("o_orderdate", "p_name", "qty"),
-      List("price"),
-      DoubleType))))          
+          List("o_orderdate", "p_name", "qty"),
+          List("price")
+        ))))
+
+  val program = Program(Assignment(name, query3))
 }
 
 /**
@@ -147,64 +154,70 @@ Again, need multiplication for this to work.
 **/
 object TPCHNested4 extends TPCHBase {
   val name = "TPCHNested4"
+
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
 
-  val (q1, co, cor) = varset(TPCHQuery1.name, "c2", TPCHQuery1Full.query.asInstanceOf[BagExpr])
+  val (q1r, cor) = varset(TPCHQuery1Full.name, "c2",
+    TPCHQuery1Full.program(TPCHQuery1Full.name).varRef.asInstanceOf[BagExpr])
+
   val orders = BagProject(cor, "c_orders")
-  val co2 = VarDef("o2", orders.tp.tp)
-  val co2r = TupleVarRef(co2)
+  val co2r = TupleVarRef("o2", orders.tp.tp)
 
   val parts = BagProject(co2r, "o_parts")
-  val co3 = VarDef("p2", parts.tp.tp)
-  val co3r = TupleVarRef(co3)
+  val co3r = TupleVarRef("p2", parts.tp.tp)
 
-  val query = 
-    ForeachUnion(co, BagVarRef(q1),
+  val query4 =
+    ForeachUnion(cor, q1r,
       Singleton(Tuple("c_name" -> cor("c_name"), "c_orders" ->
-        ForeachUnion(co2, orders, 
+        ForeachUnion(co2r, orders,
           Singleton(Tuple("o_orderdate" -> co2r("o_orderdate"), "o_parts" ->
-            GroupBy(
-              ForeachUnion(co3, parts, 
-                ForeachUnion(p, relP, 
+            SumByKey(
+              ForeachUnion(co3r, parts,
+                ForeachUnion(pr, relP,
                   IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
                     Singleton(Tuple("p_name" -> pr("p_name"), "total" -> 
-                      PrimitiveOp(Multiply, co3r("l_qty"), pr("p_retailprice"))))))),
-      List("p_name"),
-      List("total"),
-      DoubleType)))))))          
+                      co3r("l_qty").asNumeric * pr("p_retailprice").asNumeric))))),
+              List("p_name"),
+              List("total")
+            )))))))
+
+  val program = Program(Assignment(name, query4))
 }
 
 object TPCHNested4Filter extends TPCHBase {
   val name = "TPCHNested4Filter"
+
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
 
-  val (q1, co, cor) = varset(TPCHQuery1WK.name, "c2", TPCHQuery1WK.query1.asInstanceOf[BagExpr])
+  val (q1r, cor) = varset(TPCHQuery1WK.name, "c2",
+    TPCHQuery1WK.program(TPCHQuery1WK.name).varRef.asInstanceOf[BagExpr])
+
   val orders = BagProject(cor, "c_orders")
-  val co2 = VarDef("o2", orders.tp.tp)
-  val co2r = TupleVarRef(co2)
+  val co2r = TupleVarRef("o2", orders.tp.tp)
 
   val parts = BagProject(co2r, "o_parts")
-  val co3 = VarDef("p2", parts.tp.tp)
-  val co3r = TupleVarRef(co3)
+  val co3r = TupleVarRef("p2", parts.tp.tp)
 
-  val query = 
-    ForeachUnion(co, BagVarRef(q1),
+  val query4 =
+    ForeachUnion(cor, q1r,
       IfThenElse(Cmp(OpGe, Const(1500000, IntType), cr("c_custkey")),
         Singleton(Tuple("c_name" -> cor("c_name"), "c_orders" ->
-          ForeachUnion(co2, orders, 
+          ForeachUnion(co2r, orders,
             IfThenElse(Cmp(OpGe, Const(150000000, IntType), or("o_orderkey")),
             Singleton(Tuple("o_orderdate" -> co2r("o_orderdate"), "o_parts" ->
-              GroupBy(
-                ForeachUnion(co3, parts, 
-                  ForeachUnion(p, relP, 
+              SumByKey(
+                ForeachUnion(co3r, parts,
+                  ForeachUnion(pr, relP,
                     IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
                         Singleton(Tuple("p_name" -> pr("p_name"), "total" -> 
-                          PrimitiveOp(Multiply, co3r("l_qty"), pr("p_retailprice"))))))),
-        List("p_name"),
-        List("total"),
-        DoubleType)))))))))          
+                          co3r("l_qty").asNumeric * pr("p_retailprice").asNumeric))))),
+                List("p_name"),
+                List("total")
+              )))))))))
+
+  val program = Program(Assignment(name, query4))
 }
 
 /**
@@ -216,53 +229,59 @@ For c2 in Query1 Union
 **/
 object TPCHNested5a extends TPCHBase {
   val name = "TPCHNested5a"
+
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
 
-  val (q1, co, cor) = varset(TPCHQuery1.name, "c2", TPCHQuery1Full.query.asInstanceOf[BagExpr])
+  val (q1r, cor) = varset(TPCHQuery1Full.name, "c2",
+    TPCHQuery1Full.program(TPCHQuery1Full.name).varRef.asInstanceOf[BagExpr])
+
   val orders = BagProject(cor, "c_orders")
-  val co2 = VarDef("o2", orders.tp.tp)
-  val co2r = TupleVarRef(co2)
+  val co2r = TupleVarRef("o2", orders.tp.tp)
 
   val parts = BagProject(co2r, "o_parts")
-  val co3 = VarDef("p2", parts.tp.tp)
-  val co3r = TupleVarRef(co3)
+  val co3r = TupleVarRef("p2", parts.tp.tp)
 
-  val query = 
-    ForeachUnion(co, BagVarRef(q1),
-      ForeachUnion(co2, orders, 
+  val query5 =
+    ForeachUnion(cor, q1r,
+      ForeachUnion(co2r, orders,
         Singleton(Tuple("orders" -> co2r("o_orderdate"), "customers" ->
-          ForeachUnion(c, relC,
+          ForeachUnion(cr, relC,
             IfThenElse(Cmp(OpEq, cr("c_name"), cor("c_name")),
-              Singleton(Tuple("name" -> cr("c_name"), "address" -> cr("c_address")))))))))            
+              Singleton(Tuple("name" -> cr("c_name"), "address" -> cr("c_address")))))))))
+
+  val program = Program(Assignment(name, query5))
 }
 
 object TPCHNested5b extends TPCHBase {
   val name = "TPCHNested5b"
+
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
 
-  val (q1, co, cor) = varset(TPCHQuery1.name, "c2", TPCHQuery1Full.query.asInstanceOf[BagExpr])
+  val (q1r, cor) = varset(TPCHQuery1Full.name, "c2",
+    TPCHQuery1Full.program(TPCHQuery1Full.name).varRef.asInstanceOf[BagExpr])
+
   val orders = BagProject(cor, "c_orders")
-  val co2 = VarDef("o2", orders.tp.tp)
-  val co2r = TupleVarRef(co2)
+  val co2r = TupleVarRef("o2", orders.tp.tp)
 
   val parts = BagProject(co2r, "o_parts")
-  val co3 = VarDef("p2", parts.tp.tp)
-  val co3r = TupleVarRef(co3)
+  val co3r = TupleVarRef("p2", parts.tp.tp)
   
   val flat = 
-    ForeachUnion(co, BagVarRef(q1),
-      ForeachUnion(co2, orders, 
+    ForeachUnion(cor, q1r,
+      ForeachUnion(co2r, orders,
         Singleton(Tuple("order" -> co2r("o_orderdate"), "customer" -> cor("c_name")))))
-  val (fref, f, fr) = varset("flat", "f", flat)
+  val (frefr, fr) = varset("flat", "f", flat)
 
-  val query = Sequence(List(Named(fref, flat),
-    ForeachUnion(o, relO, 
+  val query5 =
+    ForeachUnion(or, relO,
       Singleton(Tuple("order" -> or("o_orderdate"), "customers" -> 
-        ForeachUnion(f, BagVarRef(fref),
+        ForeachUnion(fr, frefr,
             IfThenElse(Cmp(OpEq, fr("order"), or("o_orderdate")),
-              Singleton(Tuple("customer" -> cor("c_name"))))))))))
+              Singleton(Tuple("customer" -> cor("c_name"))))))))
+
+  val program = Program(Assignment(frefr.name, flat), Assignment(name, query5))
 }
 
 /**
@@ -282,30 +301,33 @@ For o in O Union
 **/
 object TPCHNested5 extends TPCHBase {
   val name = "TPCHNested5"
+
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
 
-  val (q1, co, cor) = varset(TPCHQuery1.name, "c2", TPCHQuery1Full.query.asInstanceOf[BagExpr])
+  val (q1r, cor) = varset(TPCHQuery1Full.name, "c2",
+    TPCHQuery1Full.program(TPCHQuery1Full.name).varRef.asInstanceOf[BagExpr])
+
   val orders = BagProject(cor, "c_orders")
-  val co2 = VarDef("o2", orders.tp.tp)
-  val co2r = TupleVarRef(co2)
+  val co2r = TupleVarRef("o2", orders.tp.tp)
 
   val parts = BagProject(co2r, "o_parts")
-  val co3 = VarDef("p2", parts.tp.tp)
-  val co3r = TupleVarRef(co3)
+  val co3r = TupleVarRef("p2", parts.tp.tp)
   
   val flat = 
-    ForeachUnion(co, BagVarRef(q1),
-      ForeachUnion(co2, orders, 
+    ForeachUnion(cor, q1r,
+      ForeachUnion(co2r, orders,
         Singleton(Tuple("order" -> co2r("o_orderdate"), "customer" -> cor("c_name")))))
-  val (fref, f, fr) = varset("flat", "f", flat)
+  val (frefr, fr) = varset("flat", "f", flat)
 
-  val query = Sequence(List(Named(fref, flat),
-    ForeachUnion(o, relO, 
+  val query5 =
+    ForeachUnion(or, relO,
       Singleton(Tuple("order" -> or("o_orderdate"), "customers" -> 
-        ForeachUnion(f, BagVarRef(fref),
+        ForeachUnion(fr, frefr,
             IfThenElse(Cmp(OpEq, fr("order"), or("o_orderdate")),
-              Singleton(Tuple("customer" -> cor("c_name"))))))))))
+              Singleton(Tuple("customer" -> cor("c_name"))))))))
+
+  val program = Program(Assignment(frefr.name, flat), Assignment(name, query5))
 }
 
 
@@ -319,26 +341,29 @@ For c2 in Query1 Union
 **/
 object TPCHNested6 extends TPCHBase {
   val name = "TPCHNested6"
+
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
 
-  val (q1, co, cor) = varset(TPCHQuery1.name, "c2", TPCHQuery1Full.query.asInstanceOf[BagExpr])
+  val (q1r, cor) = varset(TPCHQuery1Full.name, "c2",
+    TPCHQuery1Full.program(TPCHQuery1Full.name).varRef.asInstanceOf[BagExpr])
+
   val orders = BagProject(cor, "c_orders")
-  val co2 = VarDef("o2", orders.tp.tp)
-  val co2r = TupleVarRef(co2)
+  val co2r = TupleVarRef("o2", orders.tp.tp)
 
   val parts = BagProject(co2r, "o_parts")
-  val co3 = VarDef("p2", parts.tp.tp)
-  val co3r = TupleVarRef(co3)
+  val co3r = TupleVarRef("p2", parts.tp.tp)
 
-  val query = 
-    ForeachUnion(co, BagVarRef(q1),
-      ForeachUnion(co2, orders, 
-        ForeachUnion(co3, parts, 
+  val query6 =
+    ForeachUnion(cor, q1r,
+      ForeachUnion(co2r, orders,
+        ForeachUnion(co3r, parts,
           Singleton(Tuple("p_name" -> co3r("p_name"), "customers" ->
-          ForeachUnion(c, relC,
+          ForeachUnion(cr, relC,
             IfThenElse(Cmp(OpEq, cr("c_name"), cor("c_name")),
-              Singleton(Tuple("name" -> cr("c_name"), "address" -> cr("c_address"))))))))))            
+              Singleton(Tuple("name" -> cr("c_name"), "address" -> cr("c_address"))))))))))
+
+  val program = Program(Assignment(name, query6))
 }
 
 //object TPCHNested7 = TPCHQuery6
@@ -355,25 +380,27 @@ For c in C Union
 **/
 object TPCHNested8 extends TPCHBase {
   val name = "TPCHNested8"
+
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
  
-  val (q2, co, cor) = varset(TPCHQuery2.name, "co", TPCHQuery2Full.query.asInstanceOf[BagExpr])
-  val cust = BagProject(cor, "customers2")
-  val co2 = VarDef("co2", cust.tp.tp)
-  val co2r = TupleVarRef(co2)
-  
-  val flat = ForeachUnion(co, BagVarRef(q2),
-              ForeachUnion(co2, cust,
-                Singleton(Tuple("c_name" -> co2r("c_name2"), "s_name" -> cor("s_name")))))
-  val (cflat, cf, cfr) = varset("cflat", "cf", flat.asInstanceOf[BagExpr])
-  val query = Sequence(List(Named(cflat, flat),
-    ForeachUnion(c, relC, 
-                Singleton(Tuple("c_name" -> cr("c_name"), "suppliers" -> 
-                  Total(ForeachUnion(cf, BagVarRef(cflat),
-                    IfThenElse(Cmp(OpEq, cfr("c_name"), cr("c_name")),
-                      Singleton(Tuple("s_name" -> cfr("s_name")))))))))))
+  val (q2r, cor) = varset(TPCHQuery2Full.name, "co",
+    TPCHQuery2Full.program(TPCHQuery2Full.name).varRef.asInstanceOf[BagExpr])
 
+  val cust = BagProject(cor, "customers2")
+  val co2r = TupleVarRef("co2", cust.tp.tp)
+  
+  val flat = ForeachUnion(cor, q2r,
+              ForeachUnion(co2r, cust,
+                Singleton(Tuple("c_name" -> co2r("c_name2"), "s_name" -> cor("s_name")))))
+  val (cflatr, cfr) = varset("cflat", "cf", flat.asInstanceOf[BagExpr])
+  val query8 = ForeachUnion(cr, relC,
+                Singleton(Tuple("c_name" -> cr("c_name"), "suppliers" -> 
+                  Count(ForeachUnion(cfr, cflatr,
+                    IfThenElse(Cmp(OpEq, cfr("c_name"), cr("c_name")),
+                      Singleton(Tuple("s_name" -> cfr("s_name")))))))))
+
+  val program = Program(Assignment(cflatr.name, flat), Assignment(name, query8))
 }
 
 /**
@@ -388,25 +415,28 @@ For co in Query2 Union
 **/
 object TPCHNested9 extends TPCHBase {
   val name = "TPCHNested9"
+
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
  
-  val (q2, co, cor) = varset(TPCHQuery2.name, "co", TPCHQuery2Full.query.asInstanceOf[BagExpr])
+  val (q2r, cor) = varset(TPCHQuery2Full.name, "co",
+    TPCHQuery2Full.program(TPCHQuery2Full.name).varRef.asInstanceOf[BagExpr])
+
   val cust = BagProject(cor, "customers2")
-  val co2 = VarDef("co2", cust.tp.tp)
-  val co2r = TupleVarRef(co2)
+  val co2r = TupleVarRef("co2", cust.tp.tp)
   
-  val query = 
-    ForeachUnion(co, BagVarRef(q2),
+  val query9 =
+    ForeachUnion(cor, q2r,
       Singleton(Tuple("s_name" -> cor("s_name"), "nations" -> 
-        ForeachUnion(n, relN, 
+        ForeachUnion(nr, relN,
           Singleton(Tuple("nation" -> nr("n_name"), "customers" ->
-            ForeachUnion(co2, cust,
+            ForeachUnion(co2r, cust,
               IfThenElse(And(
                 Cmp(OpEq, nr("n_nationkey"), cr("c_nationkey")),
                 Cmp(OpEq, co2r("c_name2"), cr("c_name"))),
                 Singleton(Tuple("c_name" -> cr("c_name")))))))))))
 
+  val program = Program(Assignment(name, query9))
 }
 
 /**
@@ -420,30 +450,30 @@ For n in N Union
       Then Sng((s_name := s.s_name))))))))
 **/
 object TPCHNested10 extends TPCHBase {
-
   val name = "TPCHNested10"
+
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x =>
       List("C", "O", "L", "P", "PS", "S", "N").contains(x._1)).values.toList.mkString("")}"
 
-  val (q3, co, cor) = varset(TPCHQuery3.name, "co", TPCHQuery3Full.query.asInstanceOf[BagExpr])
+  val (q3r, cor) = varset(TPCHQuery3Full.name, "co",
+    TPCHQuery3Full.program(TPCHQuery3Full.name).varRef.asInstanceOf[BagExpr])
 
   val customers = BagProject(cor, "customers")
-  val c2 = VarDef.fresh(customers.tp.tp)
-  val c2r = TupleVarRef(c2)
+  val c2r = TupleVarRef(Symbol.fresh(), customers.tp.tp)
 
   val suppliers = BagProject(cor, "suppliers")
-  val s2 = VarDef.fresh(suppliers.tp.tp)
-  val s2r = TupleVarRef(s2)
+  val s2r = TupleVarRef(Symbol.fresh(), suppliers.tp.tp)
 
-  val query = ForeachUnion(n, relN, 
-    Singleton(Tuple("nation" -> nr("n_name"), "operations" -> ForeachUnion(co, BagVarRef(q3),
-      Singleton(Tuple("customers" -> ForeachUnion(c2, customers, 
+  val query10 = ForeachUnion(nr, relN,
+    Singleton(Tuple("nation" -> nr("n_name"), "operations" -> ForeachUnion(cor, q3r,
+      Singleton(Tuple("customers" -> ForeachUnion(c2r, customers,
         IfThenElse(Cmp(OpEq, nr("n_nationkey"), c2r("c_nationkey")),
           Singleton(Tuple("c_name" -> c2r("c_name"))))),
-       "suppliers" -> ForeachUnion(s2, suppliers, 
+       "suppliers" -> ForeachUnion(s2r, suppliers,
         IfThenElse(Not(Cmp(OpEq, s2r("s_nationkey"), nr("n_nationkey"))),
           Singleton(Tuple("s_name" -> s2r("s_name")))))
       ))))))
 
+  val program = Program(Assignment(name, query10))
 }

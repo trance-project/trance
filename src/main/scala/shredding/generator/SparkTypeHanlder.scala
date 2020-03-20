@@ -11,10 +11,12 @@ trait SparkTypeHandler {
   val dotEquality: Boolean = false
 
   def kvName(x: String)(implicit s: Int = -1): String = x match {
-    case "k" if s == 2 => "_1"
-    case "v" if s == 2 => "_2"
-    case "key" if s == 2 => "_1"
-    case "value" if s == 2 => "_2"
+    // case "k" if s == 2 => "_1"
+    // case "v" if s == 2 => "_2"
+    // case "key" if s == 2 => "_1"
+    // case "value" if s == 2 => "_2"
+    case "_KEY" if s == 2 => "_1"
+    case "_VALUE" if s == 2 => "_2"
     case _ => x
   }
 

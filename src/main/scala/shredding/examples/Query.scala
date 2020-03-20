@@ -1,13 +1,13 @@
 package shredding.examples
 
-import shredding.core.{Type, VarDef}
+import shredding.core.Type
 import shredding.nrc._
 import shredding.wmcc._
 
-trait Query extends Linearization
-  with Shredding 
+trait Query extends Materializer
+  with MaterializeNRC
   with Printer
-  with Optimizer 
+  with Shredding
   with NRCTranslator {
 
   val runner = new PipelineRunner{}
@@ -18,18 +18,9 @@ trait Query extends Linearization
   def inputTypes(shred: Boolean = false): Map[Type, String]
   def headerTypes(shred: Boolean = false): List[String]
 
-  /** standard query **/
-  val query: Expr
-  def calculus: CExpr = {
-    println(quote(query))
-    query match {
-      case l:Let => 
-        // println(quote(l.e2))
-        translate(l.e2)
-      case _ => translate(query)
-    }
-  }
-
+  /** standard query program **/
+  val program: Program
+  def calculus: CExpr = {val q = translate(program); println(Printer.quote(q)); q}
   def normalize: CExpr = {
     val norm = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
     // println(Printer.quote(norm))
@@ -64,34 +55,33 @@ trait Query extends Linearization
 
   /** shred query **/
 
-  def shred: (ShredExpr, MaterializationInfo) = query match {
-    case Sequence(fs) => 
-      println(quote(query))
-      val exprs = fs.map(expr => optimize(shred(expr)))
-      (exprs.last.asInstanceOf[ShredExpr], materialize(exprs))
-    case _ => 
-      println(quote(query))
-      val expr = optimize(shred(query))
-      (expr, materialize(expr))
+  def shred: (ShredProgram, MaterializedProgram) = {
+    println(quote(program))
+    val sprog = optimize(shred(program))
+    (sprog, materialize(sprog))
   }
 
-  def shredNoDomains: Expr = runner.shredPipelineNew(query.asInstanceOf[runner.Expr]).asInstanceOf[Expr]
+  def shredNoDomains: Program =
+    runner.shredPipelineNew(program.asInstanceOf[runner.Program]).program.asInstanceOf[Program]
 
-  def unshred: Expr = {
+  def unshred: Program = {
     val shredset = this.shred
-    val res = unshred(shredset._1, shredset._2.dictMapper)
-    // println(quote(res))
+    val res = unshred(shredset._1, shredset._2.ctx)
+    println(quote(res))
     res
   }
 
   // with domains
   def shredPlan: CExpr = {
-    val seq = this.shred._2.seq
-    // println(quote(seq))
+    val seq = this.shred._2.program
+    println("shredded program")
+    println(quote(seq))
     val ctrans = translate(seq)
-    // println(Printer.quote(ctrans))
+    println("translated to calc")
+    println(Printer.quote(ctrans))
     val shredded = normalizer.finalize(ctrans).asInstanceOf[CExpr] 
-    // println(Printer.quote(shredded))
+    println("normalized calculus")
+    println(Printer.quote(shredded))
     val initPlan = Unnester.unnest(shredded)(Nil, Nil, None)
     val plan = Optimizer.applyAll(initPlan)
     println(Printer.quote(plan))
@@ -99,7 +89,7 @@ trait Query extends Linearization
   }
 
   def shredPlanNoOpt: CExpr = {
-    val seq = this.shred._2.seq
+    val seq = this.shred._2.program
     // println(quote(seq))
     val ctrans = translate(seq)
     // println(Printer.quote(ctrans))
@@ -123,8 +113,10 @@ trait Query extends Linearization
   }
  
   def unshredPlan: CExpr = {
-    val unshredded = normalizer.finalize(translate(this.unshred)).asInstanceOf[CExpr] 
-    // println(Printer.quote(unshredded))
+    val c = translate(this.unshred)
+    println(Printer.quote(c))
+    val unshredded = normalizer.finalize(c).asInstanceOf[CExpr] 
+    println(Printer.quote(unshredded))
     val initPlan = Unnester.unnest(unshredded)(Nil, Nil, None)
     val plan = Optimizer.applyAll(initPlan)
     println(Printer.quote(plan))
@@ -159,8 +151,6 @@ trait Query extends Linearization
   }
 
   /** misc utils **/
-  def varset(n1: String, n2: String, e: BagExpr): (VarDef, VarDef, TupleVarRef) = {
-    val vd = VarDef(n2, e.tp.tp)
-    (VarDef(n1, e.tp), vd, TupleVarRef(vd))
-  }
+  def varset(n1: String, n2: String, e: BagExpr): (BagVarRef, TupleVarRef) =
+    (BagVarRef(n1, e.tp), TupleVarRef(n2, e.tp.tp))
 }

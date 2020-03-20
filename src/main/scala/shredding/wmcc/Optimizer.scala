@@ -56,7 +56,7 @@ object Optimizer {
     case Tuple(fs) => fs.foldLeft(Set.empty[Variable])((acc, m) => acc ++ collectVars(m))
     case Project(v, f) => collectVars(v)
     case v:Variable => Set(v)
-    case _ => ???
+    case _ => sys.error(s"implementation missing $e")
   }
 
   def pushNest(e: CExpr): CExpr = fapply(e, {
@@ -109,7 +109,10 @@ object Optimizer {
     case Nest(Lookup(e1:Select, e2, e1s, key1, e2s, key2, key3), 
       vs, key, value, nv, np, ng) if !value.tp.isPrimitive => 
       CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
-  
+    // unshredding, maybe this could be an unnesting case
+    case Reduce(Nest(Lookup(e1, e2, e1s, key1, e2s, key2, key3), 
+      vs, key, value, nv, np, ng), v3, Record(ms), filt) if !value.tp.isPrimitive && ms.keySet == Set("_1", "_2") => 
+      Reduce(Lookup(mergeOps(e1), mergeOps(e2), e1s, key1, e2s, key2, key3), vs, Tuple(List(vs.head, value)), filt)
     // case OuterJoin(Nest(e1, vs, key, value, nv, np, ng), e2, e1s, key1, e2s, key2, proj1, proj2) =>
     //   CoGroup(e1, mergeOps(e2), e1s, e2s, key1, key2, value)
 

@@ -3,54 +3,45 @@ package shredding.wmcc
 import shredding.core._
 import shredding.nrc._
 
-trait PipelineRunner extends Linearization 
+trait PipelineRunner extends MaterializeNRC
+  with Materializer
   with Shredding
   with Printer
   with Optimizer 
   with NRCTranslator {
 
-  def shredPipelineNew(query: Expr, domains: Boolean = false): Expr = query match {
-    case Sequence(fs) => Sequence(fs.map{
-      case Named(VarDef(n, _), e1) => 
-        val sp = shredPipelineNew(e1, domains) match {
-          case Sequence(nes) => nes.head
-          case ne => ne
-        }
-        // explore why the types wouldn't be the same here in the first place
-        Named(VarDef(n, sp.tp), sp.asInstanceOf[BagExpr])
-      case e1 => shredPipelineNew(e1, domains) 
-    })
-    case _ => 
-      println("\nQuery:\n")
-      println(quote(query))
-      //val nq = nestingRewrite(query)
-      //println("\nRewrite:\n")
-      //println(quote(nq))
-      val sq = shred(query)
-      //println("\nShredded:\n")
-      //println(quote(sq))
-      //println("\nOptimized:\n")
-      val sqo = optimize(sq)
-      //println(quote(sqo))
-      val lsq = if (domains) linearize(sqo) else linearizeNoDomains(sqo)
-      println("\nLinearized:\n")
-      println(quote(lsq))
-      lsq
+  def shredPipelineNew(program: Program, domains: Boolean = false): MaterializedProgram = {
+    println("\nProgram:\n")
+    println(quote(program))
+    val shredProgram = shred(program)
+//    println("\nShredded:\n")
+//    println(quote(shredProgram))
+    val optShredProgram = optimize(shredProgram)
+//    println("\nOptimized:\n")
+//    println(quote(optShredProgram))
+    val matProgram =
+      if (domains) materialize(optShredProgram)
+      else sys.error("Not implemented yet")
+    // TODO: Domain elimination
+    println("\nMaterialized:\n")
+    println(quote(matProgram.program))
+    matProgram
   }
 
   def shredPipeline(query: Expr): CExpr = {
-      println("\nQuery:\n")
-      println(quote(query))
-      val sq = shred(query)
+      val program = Program("Q", query)
+      println("\nProgram:\n")
+      println(quote(program))
+      val sq = shred(program)
       println("\nShredded:\n")
       println(quote(sq))
       //println("\nOptimized:\n")
       val sqo = optimize(sq)
       //println(quote(sqo))
-      val lsq = linearize(sqo)
-      println("\nLinearized:\n")
-      println(quote(lsq))
-      translate(lsq)
+      val lsq = materialize(sqo)
+      println("\nMaterialized:\n")
+      println(quote(lsq.program))
+      translate(lsq.program)
   }
 
   /**
@@ -62,33 +53,30 @@ trait PipelineRunner extends Linearization
                     BagType(TupleType("n" -> IntType)))
     val r1type = TupleType("index" -> IntType, "h" -> IntType, "j" -> BagType(r2type))
 
-    val r1 = VarDef("r1", r1type)
-    val tr1 = TupleVarRef(r1)
-
-    val r2 = VarDef("r2", r2type)
-    val tr2 = TupleVarRef(r2)
+    val tr1 = TupleVarRef("r1", r1type)
+    val tr2 = TupleVarRef("r2", r2type)
 
     val ttype = BagType(r1type)
-    val r = VarDef("R", ttype)
+    val br = BagVarRef("R", ttype)
     
     val rflat = NewLabel()
     val bagdict = 
     BagDict(
-      rflat,
-      ForeachUnion(r1, BagVarRef(r), 
+      rflat.tp,
+      ForeachUnion(tr1, br,
         Singleton(Tuple("h" -> tr1("h"), "j" -> 
-          NewLabel(Set(ProjectLabelParameter(PrimitiveProject(tr1, "index"))))))),
+          NewLabel(ProjectLabelParameter(PrimitiveProject(tr1, "index")))))),
       TupleDict(Map("h" -> EmptyDict, "j" -> 
         // now we have to repeat the forloop above, 
         // but it might be possible to change the language a bit so 
         // we do not have to do this
         // this extra iteration is what linearization (ie. materialization helps us avoid)
         BagDict(
-          rflat, // just another dummy label (i think ???)
-          ForeachUnion(r1, BagVarRef(r),
-            ForeachUnion(r2, tr1("j").asInstanceOf[BagExpr],
+          rflat.tp, // just another dummy label (i think ???)
+          ForeachUnion(tr1, br,
+            ForeachUnion(tr2, tr1("j").asInstanceOf[BagExpr],
               Singleton(Tuple("m" -> tr2("m"), "n" -> tr2("n"), "k" -> 
-                NewLabel(Set(ProjectLabelParameter(PrimitiveProject(tr2, "index")))))))),
+                NewLabel(ProjectLabelParameter(PrimitiveProject(tr2, "index"))))))),
           TupleDict(Map("m" -> EmptyDict, "n" -> EmptyDict, "k" -> EmptyDict))
           // above "k" -> EmptyDict should be another bag dict expr, this is another TODO like in the last document
         )  

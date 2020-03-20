@@ -7,7 +7,7 @@ import shredding.core._
   */
 trait BaseExpr {
 
-  trait Expr extends Serializable {
+  trait Expr {
     def tp: Type
   }
 
@@ -19,11 +19,21 @@ trait BaseExpr {
     def tp: PrimitiveType
   }
 
+  trait NumericExpr extends PrimitiveExpr {
+    def tp: NumericType
+  }
+
+  trait CondExpr extends PrimitiveExpr {
+    def tp: PrimitiveType = BoolType
+  }
+
   trait BagExpr extends TupleAttributeExpr {
     def tp: BagType
   }
 
-  trait TupleExpr extends Expr {
+  trait AbstractTuple
+
+  trait TupleExpr extends Expr with AbstractTuple {
     def tp: TupleType
   }
 
@@ -34,68 +44,59 @@ trait BaseExpr {
   */
 trait NRC extends BaseExpr {
 
-  final case class Const(v: Any, tp: PrimitiveType) extends PrimitiveExpr
- 
+  val GROUP_ATTR_NAME: String = "_GROUP"
+
+  sealed trait Const {
+    def v: Any
+
+    def tp: PrimitiveType
+  }
+
+  final case class NumericConst(v: AnyVal, tp: NumericType) extends NumericExpr with Const
+
+  final case class PrimitiveConst(v: Any, tp: PrimitiveType) extends PrimitiveExpr with Const
+
   trait VarRef {
-    def varDef: VarDef
+    def varDef: VarDef = VarDef(name, tp)
 
-    def name: String = varDef.name
+    def name: String
 
-    def tp: Type = varDef.tp
-
+    def tp: Type
   }
 
-  case object VarRef {
-    def apply(varDef: VarDef): Expr = varDef.tp match {
-      case _: PrimitiveType => PrimitiveVarRef(varDef)
-      case _: BagType => BagVarRef(varDef)
-      case _: TupleType => TupleVarRef(varDef)
-      case t => sys.error("Cannot create VarRef for type " + t)
-    }
+  final case class NumericVarRef(name: String, tp: NumericType) extends NumericExpr with VarRef
 
-    def apply(n: String, tp: Type): Expr = apply(VarDef(n, tp))
-  }
+  final case class PrimitiveVarRef(name: String, tp: PrimitiveType) extends PrimitiveExpr with VarRef
 
-  final case class PrimitiveVarRef(varDef: VarDef) extends PrimitiveExpr with VarRef {
-    override def tp: PrimitiveType = super.tp.asInstanceOf[PrimitiveType]
-  }
+  final case class BagVarRef(name: String, tp: BagType) extends BagExpr with VarRef
 
-  final case class BagVarRef(varDef: VarDef) extends BagExpr with VarRef {
-    override def tp: BagType = super.tp.asInstanceOf[BagType]
-  }
-
-  final case class TupleVarRef(varDef: VarDef) extends TupleExpr with VarRef {
-    override def tp: TupleType = super.tp.asInstanceOf[TupleType]
-  }
+  final case class TupleVarRef(name: String, tp: TupleType) extends TupleExpr with VarRef
 
   trait Project {
-    def tuple: TupleExpr
+    def tuple: VarRef with Expr
+
+    def field: String
+
+    def tp: Type
+  }
+
+  trait TupleProject extends Project {
+    def tuple: TupleVarRef
 
     def field: String
 
     def tp: TupleAttributeType = tuple.tp(field)
   }
 
-  implicit class TupleExprOps(tuple: TupleExpr) {
-    def apply(field: String): TupleAttributeExpr = tuple match {
-      case Tuple(fs) => fs(field)
-      case TupleLet(x, e1, Tuple(fs)) =>
-        Let(x, e1, fs(field)).asInstanceOf[TupleAttributeExpr]
-      case TupleIfThenElse(c, Tuple(fs1), Tuple(fs2)) =>
-        IfThenElse(c, fs1(field), fs2(field)).asInstanceOf[TupleAttributeExpr]
-      case _ => tuple.tp(field) match {
-        case _: PrimitiveType => PrimitiveProject(tuple, field)
-        case _: BagType => BagProject(tuple, field)
-        case t => sys.error("Cannot create Project for type " + t)
-      }
-    }
+  final case class NumericProject(tuple: TupleVarRef, field: String) extends NumericExpr with TupleProject {
+    override def tp: NumericType = super.tp.asInstanceOf[NumericType]
   }
 
-  final case class PrimitiveProject(tuple: TupleExpr, field: String) extends PrimitiveExpr with Project {
+  final case class PrimitiveProject(tuple: TupleVarRef, field: String) extends PrimitiveExpr with TupleProject {
     override def tp: PrimitiveType = super.tp.asInstanceOf[PrimitiveType]
   }
 
-  final case class BagProject(tuple: TupleExpr, field: String) extends BagExpr with Project {
+  final case class BagProject(tuple: TupleVarRef, field: String) extends BagExpr with TupleProject {
     override def tp: BagType = super.tp.asInstanceOf[BagType]
   }
 
@@ -106,6 +107,8 @@ trait NRC extends BaseExpr {
   }
 
   final case class Union(e1: BagExpr, e2: BagExpr) extends BagExpr {
+    assert(e1.tp == e2.tp)
+
     val tp: BagType = e1.tp
   }
 
@@ -113,8 +116,8 @@ trait NRC extends BaseExpr {
     val tp: BagType = BagType(e.tp)
   }
 
-  final case class WeightedSingleton(e: TupleExpr, w: PrimitiveExpr) extends BagExpr {
-    val tp: BagType = BagType(e.tp)
+  final case class DeDup(e: BagExpr) extends BagExpr {
+    val tp: BagType = e.tp
   }
 
   final case class Tuple(fields: Map[String, TupleAttributeExpr]) extends TupleExpr {
@@ -125,7 +128,7 @@ trait NRC extends BaseExpr {
     def apply(fs: (String, TupleAttributeExpr)*): Tuple = Tuple(Map(fs: _*))
   }
 
-  trait Let extends Expr {
+  trait Let {
     def x: VarDef
 
     def e1: Expr
@@ -133,13 +136,10 @@ trait NRC extends BaseExpr {
     def e2: Expr
   }
 
-  object Let {
-    def apply(x: VarDef, e1: Expr, e2: Expr): Expr = e2.tp match {
-      case _: PrimitiveType => PrimitiveLet(x, e1, e2.asInstanceOf[PrimitiveExpr])
-      case _: TupleType => TupleLet(x, e1, e2.asInstanceOf[TupleExpr])
-      case _: BagType => BagLet(x, e1, e2.asInstanceOf[BagExpr])
-      case t => sys.error("Cannot create Let for type " + t)
-    }
+  final case class NumericLet(x: VarDef, e1: Expr, e2: NumericExpr) extends NumericExpr with Let {
+    assert(x.tp == e1.tp)
+
+    val tp: NumericType = e2.tp
   }
 
   final case class PrimitiveLet(x: VarDef, e1: Expr, e2: PrimitiveExpr) extends PrimitiveExpr with Let {
@@ -148,79 +148,53 @@ trait NRC extends BaseExpr {
     val tp: PrimitiveType = e2.tp
   }
 
-  final case class TupleLet(x: VarDef, e1: Expr, e2: TupleExpr) extends TupleExpr with Let {
-    assert(x.tp == e1.tp)
-
-    val tp: TupleType = e2.tp
-  }
-
   final case class BagLet(x: VarDef, e1: Expr, e2: BagExpr) extends BagExpr with Let {
     assert(x.tp == e1.tp)
 
     val tp: BagType = e2.tp
   }
 
-  final case class Total(e: BagExpr) extends PrimitiveExpr {
-    val tp: PrimitiveType = IntType
+  final case class TupleLet(x: VarDef, e1: Expr, e2: TupleExpr) extends TupleExpr with Let {
+    assert(x.tp == e1.tp)
+
+    val tp: TupleType = e2.tp
   }
 
-  final case class DeDup(e: BagExpr) extends BagExpr {
-    val tp: BagType = e.tp
+  sealed trait Cmp {
+    def op: OpCmp
+
+    def e1: Expr
+
+    def e2: Expr
   }
-  
-  trait Cond extends PrimitiveExpr {
-    def tp: PrimitiveType = BoolType
+
+  final case class PrimitiveCmp(op: OpCmp, e1: PrimitiveExpr, e2: PrimitiveExpr) extends CondExpr with Cmp {
+    assert(e1.tp == e2.tp || (e1.tp.isInstanceOf[NumericType] && e2.tp.isInstanceOf[NumericType]))
   }
 
-  final case class Cmp(op: OpCmp, e1: TupleAttributeExpr, e2: TupleAttributeExpr) extends Cond
+  final case class And(e1: CondExpr, e2: CondExpr) extends CondExpr
 
-  final case class And(e1: Cond, e2: Cond) extends Cond
+  final case class Or(e1: CondExpr, e2: CondExpr) extends CondExpr
 
-  final case class Or(e1: Cond, e2: Cond) extends Cond
-
-  final case class Not(c: Cond) extends Cond
-
-  final case class PrimitiveOp(op: PrimOp, e1: PrimitiveExpr, e2: PrimitiveExpr) extends PrimitiveExpr {
-    def tp: PrimitiveType = (e1.tp, e2.tp) match {
-      case (DoubleType, _) => DoubleType
-      case (_, DoubleType) => DoubleType
-      case (IntType, _) => IntType
-      case _ => sys.error("unsupported type")
-    }
-  }
-  
-  object PrimitiveOp {
-    def apply(op: PrimOp, e1: TupleAttributeExpr, e2: TupleAttributeExpr): PrimitiveExpr = {
-      PrimitiveOp(op, e1.asInstanceOf[PrimitiveExpr], e2.asInstanceOf[PrimitiveExpr])
-    }
-  }
+  final case class Not(c: CondExpr) extends CondExpr
 
   trait IfThenElse {
-    def cond: Cond
+    def cond: CondExpr
 
     def e1: Expr
 
     def e2: Option[Expr]
   }
 
-  object IfThenElse {
-    def apply(c: Cond, e1: Expr, e2: Expr): Expr = e1.tp match {
-      case _: PrimitiveType =>
-        PrimitiveIfThenElse(c, e1.asInstanceOf[PrimitiveExpr], e2.asInstanceOf[PrimitiveExpr])
-      case _: TupleType =>
-        TupleIfThenElse(c, e1.asInstanceOf[TupleExpr], e2.asInstanceOf[TupleExpr])
-      case _: BagType =>
-        BagIfThenElse(c, e1.asInstanceOf[BagExpr], Some(e2.asInstanceOf[BagExpr]))
-      case t => sys.error("Cannot create IfThenElse for type " + t)
-    }
+  final case class NumericIfThenElse(cond: CondExpr, e1: NumericExpr, p2: NumericExpr) extends NumericExpr with IfThenElse {
+    assert(e1.tp == p2.tp)
 
-    def apply(c: Cond, e1: Expr): BagIfThenElse = e1.tp match {
-      case _: BagType => BagIfThenElse(c, e1.asInstanceOf[BagExpr], None)
-      case t => sys.error("Cannot create IfThen for type " + t)
-    }
+    val tp: NumericType = e1.tp
+
+    def e2: Option[NumericExpr] = Some(p2)
   }
 
-  final case class PrimitiveIfThenElse(cond: Cond, e1: PrimitiveExpr, p2: PrimitiveExpr) extends PrimitiveExpr with IfThenElse {
+  final case class PrimitiveIfThenElse(cond: CondExpr, e1: PrimitiveExpr, p2: PrimitiveExpr) extends PrimitiveExpr with IfThenElse {
     assert(e1.tp == p2.tp)
 
     val tp: PrimitiveType = e1.tp
@@ -228,7 +202,13 @@ trait NRC extends BaseExpr {
     def e2: Option[PrimitiveExpr] = Some(p2)
   }
 
-  final case class TupleIfThenElse(cond: Cond, e1: TupleExpr, t2: TupleExpr) extends TupleExpr with IfThenElse {
+  final case class BagIfThenElse(cond: CondExpr, e1: BagExpr, e2: Option[BagExpr]) extends BagExpr with IfThenElse {
+    assert(e2.isEmpty || e1.tp == e2.get.tp)
+
+    val tp: BagType = e1.tp
+  }
+
+  final case class TupleIfThenElse(cond: CondExpr, e1: TupleExpr, t2: TupleExpr) extends TupleExpr with IfThenElse {
     assert(e1.tp == t2.tp)
 
     val tp: TupleType = e1.tp
@@ -236,54 +216,88 @@ trait NRC extends BaseExpr {
     def e2: Option[TupleExpr] = Some(t2)
   }
 
-  final case class BagIfThenElse(cond: Cond, e1: BagExpr, e2: Option[BagExpr]) extends BagExpr with IfThenElse {
-    assert(e2.isEmpty || e1.tp == e2.get.tp)
-
-    val tp: BagType = e1.tp
+  final case class ArithmeticExpr(op: OpArithmetic, e1: NumericExpr, e2: NumericExpr) extends NumericExpr {
+    val tp: NumericType = NumericType.resolve(e1.tp, e2.tp)
   }
 
-
-  trait GroupBy extends BagExpr {
-    def bag: BagExpr
-    def grp: Expr
-    def value: Expr
-    def v: VarDef
+  final case class Count(e: BagExpr) extends NumericExpr {
+    val tp: NumericType = IntType
   }
 
-  object GroupBy {
-    def apply(bag: BagExpr, grp: List[String], ins: List[String], tp: Type): BagExpr = { 
-      val x = VarDef.fresh(bag.tp.tp)
-      val xr = TupleVarRef(x)
-      tp match {
-        case p:PrimitiveType => 
-          assert(ins.size == 1)
-          PlusGroupBy(bag, x, Tuple(grp.map{g => (g -> xr(g))}.toMap), 
-            xr(ins.head).asInstanceOf[PrimitiveExpr])
-        case b:BagType => 
-          BagGroupBy(bag, x, Tuple(grp.map{g => (g -> xr(g))}.toMap), 
-            Tuple(ins.map{g => (g -> xr(g))}.toMap))      
-        case _ => sys.error("unsupported groupby type")
-      }
+  final case class Sum(e: BagExpr, fields: List[String]) extends TupleExpr {
+    assert(fields.forall(n => e.tp.tp(n).isInstanceOf[NumericType]),
+      "Sum over non-numeric attributes")
+
+    val tp: TupleType =
+      TupleType(fields.map(n => n -> e.tp.tp(n)).toMap)
+  }
+
+  trait GroupByExpr extends BagExpr {
+    def e: BagExpr
+
+    def keys: List[String]
+
+    def keysTp: TupleType
+
+    def values: List[String]
+
+    def valuesTp: Type
+  }
+
+  final case class GroupByKey(e: BagExpr,
+                              keys: List[String],
+                              values: List[String],
+                              private val groupAttrName: String = GROUP_ATTR_NAME
+                             ) extends GroupByExpr {
+    val keysTp: TupleType =
+      TupleType(keys.map(n => n -> e.tp.tp(n)).toMap)
+
+    val valuesTp: BagType =
+      BagType(TupleType(values.map(n => n -> e.tp.tp(n)).toMap))
+
+    val tp: BagType =
+      BagType(TupleType(keysTp.attrTps ++ Map(groupAttrName -> valuesTp)))
+  }
+
+  final case class SumByKey(e: BagExpr, keys: List[String], values: List[String]) extends GroupByExpr {
+    assert(values.forall(n => e.tp.tp(n).isInstanceOf[NumericType]),
+      "ReduceByKey over non-numeric attributes")
+
+    val keysTp: TupleType =
+      TupleType(keys.map(n => n -> e.tp.tp(n)).toMap)
+
+    val valuesTp: TupleType =
+      TupleType(values.map(n => n -> e.tp.tp(n)).toMap)
+
+    val tp: BagType =
+      BagType(TupleType(keysTp.attrTps ++ valuesTp.attrTps))
+  }
+
+  final case class Assignment(name: String, rhs: Expr)
+
+  final case class Program(statements: List[Assignment]) {
+    assert(statements.map(_.name).distinct.size == statements.map(_.name).size)
+
+    def ++(p: Program): Program = Program(statements ++ p.statements)
+
+    def append(a: Assignment): Program = Program(statements :+ a)
+
+    def get(n: String): Option[Assignment] = statements.filter(_.name == n) match {
+      case Nil => None
+      case hd :: Nil => Some(hd)
+      case _ => sys.error("Multiple assignments with the same name")
+    }
+
+    def apply(n: String): Assignment = get(n) match {
+      case Some(a) => a
+      case None => throw new NoSuchElementException
     }
   }
 
-  final case class BagGroupBy(bag: BagExpr, v: VarDef, grp: TupleExpr, value: TupleExpr) extends GroupBy {
-    val tp: BagType = BagType(TupleType(grp.tp.attrTps + ("_2" -> BagType(value.tp))))
-  }
+  object Program {
+    def apply(statements: Assignment*): Program = Program(List(statements: _*))
 
-  final case class PlusGroupBy(bag: BagExpr, v: VarDef, grp: TupleExpr, value: PrimitiveExpr) extends GroupBy {
-    val tp: BagType = BagType(TupleType(grp.tp.attrTps + ("_2" -> value.tp)))
-  }
-
-  // enforcing this to be a named bag expression
-  // may need to expand later if this is too restrictive
-  case class Named(v: VarDef, e: BagExpr) extends BagExpr {
-    assert(v.tp == e.tp)
-    val tp: BagType = e.tp//TupleType()    // unit type
-  }
-
-  case class Sequence(exprs: List[Expr]) extends Expr {
-    val tp: Type = exprs.lastOption.map(_.tp).getOrElse(TupleType())
+    def apply(name: String, e: Expr): Program = Program(List(Assignment(name, e)))
   }
 
 }

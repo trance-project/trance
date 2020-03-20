@@ -9,6 +9,7 @@ import shredding.core._
   */
 
 object Unnester {
+  
   type Ctx = (List[Variable], List[Variable], Option[CExpr])
   @inline def u(implicit ctx: Ctx): List[Variable] = ctx._1
   @inline def w(implicit ctx: Ctx): List[Variable] = ctx._2
@@ -31,18 +32,22 @@ object Unnester {
     case _ => false
   }
 
+  def keyValue(e: CExpr): (CExpr, CExpr) = e match {
+    case Record(fs) => fs get "_1" match {
+      case Some(key) => (key, Record(fs - "_1"))
+      case _ => sys.error(s"no key type in record")
+    }
+    case _ => ???
+  }
+
   def unnest(e: CExpr)(implicit ctx: Ctx): CExpr = e match {
     case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E)))
     case CGroupBy(e1, v1, grp, value) => unnest(e1)(u, w, E) match {
-      case Reduce(e2, v2, e3 @ Record(fs), p2 @ Constant(true)) => 
-        val key = fs.dropRight(1).get("key") match {
-          case Some(a) => a
-          case _ => Record(fs.dropRight(1))
-        }
-        val value = fs.last._2 match { case Sng(t) => t; case t => t }
-        val v = Variable.fresh(TTupleType(List(key.tp, value.tp)))
-		    val g = Tuple(u ++ fs.dropRight(1).map(v => v._2 match { case Project(t, f) => t; case v3 => v3}).toList)
-        Nest(e2, v2, key, value, v, Constant("byKey"), g)
+      case r @ Reduce(e2, v2, e3, p2) => 
+        val (nkey, nval) = keyValue(e3)
+        val v = Variable.fresh(nkey.tp, nval.tp)
+        Nest(e2, v2, nkey, nval, v, Constant("byKey"), Tuple(Nil))
+
       case n @ Nest(e2, v2, f2, e3 @ Record(fs), v3, p2 @ Constant(true), g) => 
         // key = (groupbyvars, e3._1)
         val key = Tuple(u :+ Record(fs.dropRight(1)))
@@ -63,10 +68,11 @@ object Unnester {
         Reduce(initNest, vs :+ v, nrec, Constant("null"))
       case _ => ???
     }
-    case CLookup(lbl, dict) =>
-      // the last position is the identity function (do not flatten the bag)
-      val v2 = Variable.fresh(dict.tp.asInstanceOf[BagDictCType].flatTp)
-      Lookup(E.get, dict, w, lbl, v2, Constant(true), v2)
+    // case CLookup(lbl, dict) =>
+    //   // the last position is the identity function (do not flatten the bag)
+    //   val v2 = Variable.fresh(dict.tp.asInstanceOf[BagDictCType].flatTp)
+    //   CoGroup(E.get, dict, w, v2, lbl, Constant(true), v2)
+    //   // Lookup(E.get, dict, w, lbl, v2, Constant(true), v2)
     case Comprehension(lu @ CLookup(lbl, dict), v, p, e2) =>
       val (sp2s, p1s, p2s) = ps(p, v, w)
       if (!w.isEmpty) {
@@ -163,9 +169,9 @@ object Unnester {
         case Nil =>
           if (u.isEmpty) {
             t match {
-              case Record(ms) if (ms.keySet == Set("k", "v") || ms.keySet == Set("_1", "_2"))  =>
-                val lbl = fs("_1") match { case Project(t1,"_1") => t1; case t1 => t1 }
-                Reduce(E.get, w, Record(Map("_1" -> lbl, "_2" -> fs("_2"))), Constant(true))
+              // case Record(ms) if (ms.keySet == Set("k", "v") || ms.keySet == Set("_1", "_2"))  =>
+              //   val lbl = fs("_1") match { case Project(t1,"_1") => t1; case t1 => t1 }
+              //   Reduce(E.get, w, Record(Map("_1" -> lbl, "_2" -> fs("_2"))), Constant(true))
               case _ => 
                 // println("terminating")
                 // println(t)
@@ -181,10 +187,6 @@ object Unnester {
         case (key, value @ If(Equals(c1:Comprehension, c2), x1, None)) :: tail => 
           val (nE, v2) = getNest(unnest(c1)((w, w, E)))
           unnest(Sng(Record(fs + (key -> If(Equals(v2, c2), x1, None)))))((u, w :+ v2, nE))
-        // case (key, value @ Comprehension(CLookup(_,_), v, p, e)) :: tail =>
-        //   // unnest(value)((u, w, E))
-        //   val nE = unnest(value)((u, w, E))
-        //   unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
 	        val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
@@ -202,8 +204,10 @@ object Unnester {
               unnest(Sng(Record(fs + (key -> Record(r + (lkup.head._1 -> v2))))))((u, w :+ v2, nE)) 
             case _ => sys.error("unsupported")
           } 
+        // hit unshredding case
         case (key, value @ CLookup(lbl, dict)) :: tail => 
-          val (nE, v2) = getNest(unnest(value)((w, w, E)))
+          val v2 = Variable.fresh(dict.tp.asInstanceOf[BagDictCType].flat)
+          val nE = Some(Lookup(E.get, dict, w, lbl, v2, Constant(true), v2))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case head @ (key, value) :: tail => sys.error(s"not supported ${Printer.quote(value)}")
      }
@@ -298,7 +302,9 @@ object Unnester {
     case CNamed(n, exp) => exp match {
       case Record(lbl) => CNamed(n, exp)
       case Sng(Record(lbl)) => CNamed(n, exp)
-      case _ => CNamed(n, unnest(exp)((Nil, Nil, None)))
+      case _ => 
+        println(n)
+        CNamed(n, unnest(exp)((Nil, Nil, None)))
     }
     case InputRef(_,_) => e
     case Record(fs) => unnest(Sng(Record(fs)))((u, w, E))

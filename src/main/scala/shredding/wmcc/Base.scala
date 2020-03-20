@@ -39,7 +39,7 @@ trait Base {
   def linset(e: List[Rep]): Rep
   def lookup(lbl: Rep, dict: Rep): Rep
   def emptydict: Rep
-  def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep
+  def bagdict(lblTp: LabelType, flat: Rep, dict: Rep): Rep
   def tupledict(fs: Map[String, Rep]): Rep
   def dictunion(d1: Rep, d2: Rep): Rep
   def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep
@@ -101,7 +101,7 @@ trait BaseStringify extends Base{
   def linset(e: List[Rep]): Rep = e.mkString("\n\n")
   def lookup(lbl: Rep, dict: Rep): Rep = s"Lookup(${lbl}, ${dict})"
   def emptydict: Rep = s"Nil"
-  def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = s"(${lbl} -> ${flat}, ${dict})"
+  def bagdict(lblTp: LabelType, flat: Rep, dict: Rep): Rep = s"(${lblTp} -> ${flat}, ${dict})"
   def tupledict(fs: Map[String, Rep]): Rep =
     s"(${fs.map(f => f._1 + " := " + f._2).mkString(",")})"
   def dictunion(d1: Rep, d2: Rep): Rep = s"${d1} U ${d2}"
@@ -213,7 +213,7 @@ trait BaseCompiler extends Base {
   def linset(e: List[Rep]): Rep = LinearCSet(e)
   def lookup(lbl: Rep, dict: Rep): Rep = CLookup(lbl, dict)
   def emptydict: Rep = EmptyCDict
-  def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = BagCDict(lbl, flat, dict)
+  def bagdict(lblTp: LabelType, flat: Rep, dict: Rep): Rep = BagCDict(lblTp, flat, dict)
   def tupledict(fs: Map[String, Rep]): Rep = TupleCDict(fs)
   def dictunion(d1: Rep, d2: Rep): Rep = DictCUnion(d1, d2)
   def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
@@ -336,29 +336,34 @@ trait BaseCompiler extends Base {
   */
 trait BaseDictNameIndexer extends BaseCompiler {
 
-  def isDictType(tp: Type): (Type, Boolean) = tp match {
-    case BagCType(TTupleType(List(EmptyCType, BagCType(tup)))) => (tup, true)
-    case BagDictCType(BagCType(rct @ RecordCType(_)), tdict) => (rct, true)
-    case BagDictCType(flat, dict) => isDictType(flat)
-    case _ => (tp, false)
-  }
-
+  // def isDictType(tp: Type): (Type, Boolean) = tp match {
+  //   case BagCType(TTupleType(List(EmptyCType, BagCType(tup)))) => (tup, true)
+  //   case BagDictCType(BagCType(rct @ RecordCType(_)), tdict) => (rct, true)
+  //   case BagDictCType(flat, dict) => isDictType(flat)
+  //   case _ => (tp, false)
+  // }
 
   override def project(e1: Rep, f: String): Rep = e1 match {
-    // this case needs work
-    case Project(InputRef(n, TupleDictCType(fs)), "_2") => 
-      InputRef(n+"_2"+f, fs(f))
-    case InputRef(n, BagCType(TTupleType(List(EmptyCType, btp)))) => 
-      InputRef(n+f, btp)
-    // case InputRef(n, BagDictCType(BagCType(TTupleType(List(EmptyCType, btp))), tdict)) if f == "_1" => 
-    //   InputRef(n+f, btp)
-    case InputRef(n, BagDictCType(flat, dict)) => 
-      if (f == "_1") InputRef(n+f, flat)
-      else if (f == "_2") project(InputRef(n, dict), f)
-      else super.project(e1, f)
-    case InputRef(n, TupleDictCType(fs)) => InputRef(n+f, fs(f))
-    case _ => super.project(e1, f) 
+    case InputRef(n, _) if n.contains("Dict") => e1
+    case _ => super.project(e1, f)
   }
+
+  // override def project(e1: Rep, f: String): Rep = e1 match {
+  //   // this case needs work
+  //   case Project(InputRef(n, TupleDictCType(fs)), "_2") => 
+  //     InputRef(n+"_2"+f, fs(f))
+  //   // case InputRef(n, BagCType(RecordCType(ms))) if n.contains("Dict") => InputRef(n+f, )
+  //   case InputRef(n, BagCType(TTupleType(List(EmptyCType, btp)))) => 
+  //     InputRef(n+f, btp)
+  //   // case InputRef(n, BagDictCType(BagCType(TTupleType(List(EmptyCType, btp))), tdict)) if f == "_1" => 
+  //   //   InputRef(n+f, btp)
+  //   case InputRef(n, BagDictCType(flat, dict)) => 
+  //     if (f == "_1") InputRef(n+f, flat)
+  //     else if (f == "_2") project(InputRef(n, dict), f)
+  //     else super.project(e1, f)
+  //   case InputRef(n, TupleDictCType(fs)) => InputRef(n+f, fs(f))
+  //   case _ => super.project(e1, f) 
+  // }
 
   // override def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = e1 match {        
   //     case Lookup(e3, e4, v1, pa, v2, pb, pc) => (e2, e4) match {
@@ -475,7 +480,7 @@ trait BaseScalaInterp extends Base{
     case _ => dict // (flat, ())
   }
   def emptydict: Rep = ()
-  def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = (flat.asInstanceOf[List[_]].map(v => (lbl, v)), dict)
+  def bagdict(lbl: LabelType, flat: Rep, dict: Rep): Rep = (flat.asInstanceOf[List[_]].map(v => (lbl, v)), dict)
   def tupledict(fs: Map[String, Rep]): Rep = fs
   def dictunion(d1: Rep, d2: Rep): Rep = d1 // TODO
   def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = { 
@@ -700,7 +705,7 @@ trait BaseANF extends Base {
   def linset(e: List[Rep]): Rep = compiler.linset(e.map(defToExpr(_)))
   def lookup(lbl: Rep, dict: Rep): Rep = compiler.lookup(lbl, dict)
   def emptydict: Rep = compiler.emptydict
-  def bagdict(lbl: Rep, flat: Rep, dict: Rep): Rep = compiler.bagdict(lbl, flat, dict)
+  def bagdict(lblTp: LabelType, flat: Rep, dict: Rep): Rep = compiler.bagdict(lblTp, flat, dict)
   def tupledict(fs: Map[String, Rep]): Rep = compiler.tupledict(fs.map(f => (f._1, defToExpr(f._2))))
   def dictunion(d1: Rep, d2: Rep): Rep = compiler.dictunion(d1, d2)
   def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = compiler.select(x, p, e)
@@ -785,7 +790,7 @@ class Finalizer(val target: Base){
       target.lookup(finalize(l), finalize(d))
     case EmptyCDict => target.emptydict
     case BagCDict(l, f, d) => 
-      target.bagdict(finalize(l), finalize(f), finalize(d))
+      target.bagdict(l, finalize(f), finalize(d))
     case TupleCDict(fs) => target.tupledict(fs.map(f => f._1 -> finalize(f._2)))
     case DictCUnion(d1, d2) => target.dictunion(finalize(d1), finalize(d2))
     case Select(x, v, p, e) =>

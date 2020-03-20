@@ -3,15 +3,14 @@ package shredding.wmcc
 import shredding.core._
 import shredding.examples.genomic._
 import shredding.examples.tpch._
-import shredding.examples.simple._
-import shredding.runtime.{Context, Evaluator}
-import shredding.nrc.{Printer => NRCPrinter}
+import shredding.runtime.{RuntimeContext, Evaluator}
+import shredding.nrc.{MaterializeNRC, ShredNRC, Printer => NRCPrinter}
 
 object App {
   
   val nrceval = new Evaluator{}
-  val nrcprinter = new NRCPrinter{}
-  val ctx = new Context()
+  val nrcprinter = new NRCPrinter with ShredNRC with MaterializeNRC{}
+  val ctx = new RuntimeContext()
 
   val translator = new NRCTranslator{}
   val normalizer = new Finalizer(new BaseNormalizer{})
@@ -286,8 +285,7 @@ object App {
     println(evaluator.finalize(anfExp1.asInstanceOf[CExpr]))**/
 
     println("\n---------------------------------------- QUERY 1 JOIN ORDER -----------------------\n")
-    val qa = nrceval.Named(VarDef("Query4", TPCHQueries.query1a.tp), 
-      TPCHQueries.query1a.asInstanceOf[nrceval.BagExpr])
+    val qa = nrceval.Assignment("Query4", TPCHQueries.query1a.asInstanceOf[nrceval.BagExpr])
     println(nrcprinter.quote(qa.asInstanceOf[nrcprinter.Expr]))
 
     ctx.add(VarDef("C", TPCHSchema.customertype), TPCHLoader.loadCustomer[Customer].toList.map(getCCParams(_))) 
@@ -297,8 +295,8 @@ object App {
     println("\nNRC EVALUATED:\n")
     println(nrceval.eval(qa, ctx))
   
-    val q2a = translator.translate(translator.Named(VarDef("Query4", TPCHQueries.query1a.tp), 
-              TPCHQueries.query1a.asInstanceOf[translator.BagExpr]))
+    val q2a = translator.translate(
+      translator.Assignment("Query4", TPCHQueries.query1a.asInstanceOf[translator.BagExpr]))
     
    
     val normq2a = normalizer.finalize(q2a).asInstanceOf[CExpr]
@@ -323,8 +321,7 @@ object App {
     //println(evaluator.finalize(anfExp2.asInstanceOf[CExpr]))
 
     println("\n---------------------------------------- QUERY 1 -----------------------\n")
-    val q = nrceval.Named(VarDef("Query4", TPCHQueries.query1.tp), 
-      TPCHQueries.query1.asInstanceOf[nrceval.BagExpr])
+    val q = nrceval.Assignment("Query4", TPCHQueries.query1.asInstanceOf[nrceval.BagExpr])
  
     ctx.add(VarDef("C", TPCHSchema.customertype), TPCHLoader.loadCustomer[Customer].toList.map(getCCParams(_))) 
     ctx.add(VarDef("O", TPCHSchema.orderstype), TPCHLoader.loadOrders[Order].toList.map(getCCParams(_)))
@@ -333,8 +330,8 @@ object App {
     println("\nNRC EVALUATED:\n")
     println(nrceval.eval(q, ctx))
   
-    val q2 = translator.translate(translator.Named(VarDef("Query4", TPCHQueries.query1.tp), 
-              TPCHQueries.query1.asInstanceOf[translator.BagExpr]))
+    val q2 = translator.translate(
+      translator.Assignment("Query4", TPCHQueries.query1.asInstanceOf[translator.BagExpr]))
     
    
     val normq2 = normalizer.finalize(q2).asInstanceOf[CExpr]
@@ -348,7 +345,7 @@ object App {
     println("\nNORMALIZED CALCULUS EVALUATED:\n")
     println(evaluator.finalize(normq2))
     
-    val plan2 = Unnester.unnest(normq2)(Nil, Nil, None).asInstanceOf[CExpr]
+    val plan2 = Unnester.unnest(normq2)(Nil, Nil, None)
     println("\nPlan\n")
     println(Printer.quote(plan2))
     println("\nEVALUATED PLAN:\n")
@@ -371,7 +368,7 @@ object App {
     println("\nNORMALIZED CALC EVALUATED")
     println(evaluator.finalize(normq5a))
     
-    val plan5a = Unnester.unnest(normq5a)(Nil, Nil, None).asInstanceOf[CExpr]
+    val plan5a = Unnester.unnest(normq5a)(Nil, Nil, None)
     println("\nPlan:\n")
     println(Printer.quote(plan5a))
     println("\nPLAN EVALUTED:\n")

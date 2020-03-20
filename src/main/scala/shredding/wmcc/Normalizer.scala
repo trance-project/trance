@@ -37,12 +37,9 @@ trait BaseNormalizer extends BaseCompiler {
   }
 
   override def lookup(lbl: Rep, dict: Rep): Rep = dict match {
-    case BagCDict(lbl2, flat2, dict2) if (lbl2.tp == lbl.tp) => 
-      flat2
-    case BagCDict(lbl2, flat2, dict2) =>
-      super.lookup(lbl,dict)
-    case _ => 
-      super.lookup(lbl, dict)
+    case BagCDict(lbl2, flat2, dict2) if (lbl2 == lbl.tp) => flat2
+    case BagCDict(lbl2, flat2, dict2) => super.lookup(lbl,dict)
+    case _ => super.lookup(lbl, dict)
   }
   
   /** need to update the types in a sequence **/
@@ -50,10 +47,11 @@ trait BaseNormalizer extends BaseCompiler {
     LinearCSet(es.flatMap{
       case LinearCSet(fs) => fs
       case fs => List(fs)
-    }.filter(f => f match {
-      case CNamed("M_ctx1", _) => false
-      case _ => true
-      }))
+    })
+    // .filter(f => f match {
+    //   case CNamed("M_ctx1", _) => false
+    //   case _ => true
+    //   }))
   } 
 
   // N1, N2
@@ -110,7 +108,7 @@ trait BaseNormalizer extends BaseCompiler {
       case If(cond, e3, e4 @ Some(a)) => //N4
         If(cond, comprehension(e3, p, e), Some(comprehension(a, p, e)))
       case If(cond, e3 @ WeightedSng(t, q), None) => comprehension(e3, (i: CExpr) => cond, e)
-      case WeightedSng(t, q) if e(t) == Constant(1) => comprehension(Sng(t), p, (i: CExpr) => q)
+      // case WeightedSng(t, q) if e(t) == Constant(1) => comprehension(Sng(t), p, (i: CExpr) => q)
       case EmptySng => EmptySng // N5
       case Sng(t) => ifthen(p(t), sng(e(t))) // N6
       case Merge(e1, e2) => Merge(comprehension(e1, p, e), comprehension(e2, p, e))  //N7
@@ -120,12 +118,12 @@ trait BaseNormalizer extends BaseCompiler {
         // { 1 | v <- { WeightedSng(t,q) | v2 <- e2, p2}, p(v) }
         // { if (p(v)) { q } else { 0 } | v2 <- e2, p2, v := t, ... }
         // need to sum if more than one weighted sng is in a comprehension
-        case WeightedSng(t, q) if (e(e3) == Constant(1)) =>
-          val c2 = comprehension(Sng(t), p, (i: CExpr) => q) match {
-            case Comprehension(a,b,c,Constant(1)) => Comprehension(a, b, c, q)
-            case c3 => c3
-          } 
-          Comprehension(e2, v2, p2, c2)
+        // case WeightedSng(t, q) if (e(e3) == Constant(1)) =>
+        //   val c2 = comprehension(Sng(t), p, (i: CExpr) => q) match {
+        //     case Comprehension(a,b,c,Constant(1)) => Comprehension(a, b, c, q)
+        //     case c3 => c3
+        //   } 
+        //   Comprehension(e2, v2, p2, c2)
         //N8
         // { e(v) | v <- { e3 | v2 <- e2, p2 }, p(v) }
         // { { e(v) | v <- e3 } | v2 <- e2, p2 }
@@ -149,19 +147,20 @@ trait BaseNormalizer extends BaseCompiler {
             Comprehension(e1, v, p(v), e(v))
         }
       // this will break this for the shredded case...
-      case InputRef(n, tp) if isTopLevelDict(tp) =>
-        val v = topLevelVar(tp)
-        e(v) match {
-          // top level dictionary case from unshredding
-          case Comprehension(Project(_,"_2"), v2, p2, Sng(Record(fs))) if fs.keySet == Set("_1", "_2") =>
-            Comprehension(InputRef(n, tp), v2, p2, fs.get("_2").get)  
-          case Comprehension(Project(_,"_2"), v2, p2, e3) =>
-            Comprehension(InputRef(n, tp), v2, p2, e3)  
-          case _ => ???
-        }
+      // case InputRef(n, tp) if isTopLevelDict(tp) =>
+      //   val v = topLevelVar(tp)
+      //   e(v) match {
+      //     // top level dictionary case from unshredding
+      //     case Comprehension(Project(_,"_2"), v2, p2, Sng(Record(fs))) if fs.keySet == Set("_1", "_2") =>
+      //       Comprehension(InputRef(n, tp), v2, p2, fs.get("_2").get)  
+      //     case Comprehension(Project(_,"_2"), v2, p2, e3) =>
+      //       Comprehension(InputRef(n, tp), v2, p2, e3)  
+      //     case _ => ???
+      //   }
        case _ => // standard case (return self)
         val v = e1.tp match {
-          case btp @ BagDictCType(BagCType(TTupleType(fs)),tdict) => Variable.fresh(btp._1.tp)
+          case btp @ BagDictCType(BagCType(TTupleType(fs)),tdict) => 
+            Variable.fresh(btp._1.tp)
           case _ => Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
         }
         Comprehension(e1, v, p(v), e(v))
