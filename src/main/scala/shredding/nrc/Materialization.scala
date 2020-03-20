@@ -34,7 +34,7 @@ trait BaseMaterialization {
 
 }
 
-trait MaterializationContext extends BaseMaterialization {
+trait MaterializationContext extends BaseMaterialization with MaterializationDomain {
   this: MaterializeNRC =>
 
   class DictInfo(val dict: BagDictExpr, val ref: VarRef, val parent: Option[(BagDictExpr, String)])
@@ -111,6 +111,70 @@ trait MaterializationContext extends BaseMaterialization {
     }
   }
 
+  def rewriteUsingContext(e0: Expr, ctx0: Context): (Expr, Context) = replace[Context](e0, ctx0, {
+    case (v: VarRef, ctx) if ctx.contains(v.name) =>
+      (VarRef(ctx.varDef(v.name)), ctx)
+
+    case (Lookup(l, d), ctx) if ctx.isTopLevel(d) =>
+      assert(ctx.isTopLevel(l))  // sanity check
+      (ctx.matVarRef(d).asInstanceOf[BagVarRef], ctx)
+
+    case (Lookup(l, d), ctx) =>
+      assert(ctx.contains(d))  // sanity check
+      val (lbl: LabelExpr, ctx1) = rewriteUsingContext(l, ctx)
+      val dict = ctx.matVarRef(d).asInstanceOf[MatDictExpr]
+      (MatDictLookup(lbl, dict), ctx1)
+
+    case (BagLet(x, TupleDictProject(d), e2), ctx) =>
+      assert(ctx.contains(d))  // sanity check
+      val newCtx = ctx.children(d).foldLeft (ctx) {
+        case (acc, (n, dict)) =>
+          val tr = TupleDictVarRef(x.name, x.tp.asInstanceOf[TupleDictType])
+          acc.addDictAlias(dict, BagDictProject(tr, n))
+      }
+      rewriteUsingContext(e2, newCtx)
+
+    case (l: NewLabel, ctx) =>
+      val (ps1, ctx1) =
+        l.params.foldLeft (Map.empty[String, LabelParameter], ctx) {
+          case ((acc, ctx), (_, VarRefLabelParameter(l: LabelExpr)))
+            if ctx.contains(l) && ctx.isTopLevel(l) =>
+            (acc, ctx)
+          case ((acc, ctx), (_, VarRefLabelParameter(d: BagDictExpr))) =>
+            assert(ctx.contains(d))  // sanity check
+            (acc, ctx)
+          case ((acc, ctx), (n, ProjectLabelParameter(d: BagDictExpr))) =>
+            assert(ctx.contains(d))  // sanity check
+            val ctx1 = ctx.addDictAlias(d, BagDictVarRef(n, d.tp))
+            (acc, ctx1)
+          case ((acc, ctx), (n, p0)) =>
+            val (p1: LabelParameter, ctx1) = rewriteUsingContext(p0, ctx)
+            (acc + (n -> p1), ctx1)
+        }
+      (NewLabel(ps1, l.id), ctx1)
+
+    case (ForeachUnion(x, e1, e2), ctx) =>
+      val (r1: BagExpr, ctx1) = rewriteUsingContext(e1, ctx)
+      val xd = VarDef(x.name, r1.tp.tp)
+      val ctx2 = ctx1.addVarDef(xd)
+      val (r2: BagExpr, ctx3) = rewriteUsingContext(e2, ctx2)
+      (ForeachUnion(xd, r1, r2), ctx3)
+
+    case (l: Let, ctx) =>
+      val (r1, ctx1) = rewriteUsingContext(l.e1, ctx)
+      val xd = VarDef(l.x.name, r1.tp)
+      val ctx2 = ctx1.addVarDef(xd)
+      val (r2, ctx3) = rewriteUsingContext(l.e2, ctx2)
+      (Let(xd, r1, r2), ctx3)
+
+    case (x: ExtractLabel, ctx) =>
+      val (l: LabelExpr, ctx1) = rewriteUsingContext(x.lbl, ctx)
+      val ctx2 = l.tp.attrTps.foldLeft (ctx1) {
+        case (acc, (n, t)) => acc.addVarDef(VarDef(n, t))
+      }
+      val (r, ctx3) = rewriteUsingContext(x.e, ctx2)
+      (ExtractLabel(l, r), ctx3)
+  })
 }
 
 trait Materialization extends MaterializationContext {
@@ -234,8 +298,6 @@ trait Materialization extends MaterializationContext {
                 val matDictRef = MatDictVarRef(matDictName(suffix), matDict.tp)
                 val stmt = Assignment(matDictRef.name, matDict)
 
-//                println("DOMAIN ELIMINATED: " + stmt.name)
-
                 // 3. Extend context
                 val dictCtx = flatCtx.addDict(dict, matDictRef, parent)
 
@@ -271,183 +333,6 @@ trait Materialization extends MaterializationContext {
       case (_, (_, d)) =>
         sys.error("[materializeTupleDict] Unsupported dictionary type: " + d)
     }
-
-  private def eliminateDomainIfHoisting(b: BagExpr, iv: Set[VarRef]): Option[BagExpr] = b match {
-    case ForeachUnion(x, b1, BagIfThenElse(c, Singleton(Tuple(fs)), None)) => c match {
-      case PrimitiveCmp(OpEq, p1: Project, p2: VarRef)
-        if !iv.contains(p1.tuple) && iv.contains(p2) =>
-        val lbl = NewLabel(Map(p2.name -> ProjectLabelParameter(p1)))
-        val fs1 = fs + (KEY_ATTR_NAME -> lbl)
-        Some(
-          GroupByKey(
-            ForeachUnion(x, b1, Singleton(Tuple(fs1))),
-            List(KEY_ATTR_NAME),
-            fs.keys.toList,
-            VALUE_ATTR_NAME))
-
-      case PrimitiveCmp(OpEq, p1: VarRef, p2: Project)
-        if !iv.contains(p2.tuple) && iv.contains(p1) =>
-        val lbl = NewLabel(Map(p1.name -> ProjectLabelParameter(p2)))
-        val fs1 = fs + (KEY_ATTR_NAME -> lbl)
-        Some(
-          GroupByKey(
-            ForeachUnion(x, b1, Singleton(Tuple(fs1))),
-            List(KEY_ATTR_NAME),
-            fs.keys.toList,
-            VALUE_ATTR_NAME))
-      case _ => None
-    }
-
-    case ForeachUnion(x, b1, BagIfThenElse(c, b2, None)) => c match {
-      case PrimitiveCmp(OpEq, p1: Project, p2: VarRef)
-        if !iv.contains(p1.tuple) && iv.contains(p2) =>
-        val lbl = NewLabel(Map(p2.name -> ProjectLabelParameter(p1)))
-        Some(
-          ReduceByKey(
-            ForeachUnion(x, b1,
-              Singleton(Tuple(
-                KEY_ATTR_NAME -> lbl,
-                VALUE_ATTR_NAME -> b2))),
-            List(KEY_ATTR_NAME),
-            List(VALUE_ATTR_NAME)))
-
-      case PrimitiveCmp(OpEq, p1: VarRef, p2: Project)
-        if !iv.contains(p2.tuple) && iv.contains(p1) =>
-        val lbl = NewLabel(Map(p1.name -> ProjectLabelParameter(p2)))
-        Some(
-          ReduceByKey(
-            ForeachUnion(x, b1,
-              Singleton(Tuple(
-                KEY_ATTR_NAME -> lbl,
-                VALUE_ATTR_NAME -> b2))),
-            List(KEY_ATTR_NAME),
-            List(VALUE_ATTR_NAME)))
-
-      case _ => None
-    }
-
-    case _ => None
-  }
-
-  private def eliminateDomainDictIteration(b: BagExpr, iv: Set[VarRef]): Option[BagExpr] = b match {
-    case ForeachUnion(x, MatDictLookup(l: VarRef, d), b2) if iv == Set(l) =>
-      val dictBag = MatDictToBag(d)
-      val kv = TupleVarRef(Symbol.fresh(name = "kv"), dictBag.tp.tp)
-      val lbl = LabelProject(kv, KEY_ATTR_NAME)
-      Some(
-        ForeachUnion(kv, dictBag,
-          Singleton(Tuple(
-            KEY_ATTR_NAME -> NewLabel(Map(l.name -> ProjectLabelParameter(lbl))),
-            VALUE_ATTR_NAME ->
-              ForeachUnion(x, kv(VALUE_ATTR_NAME).asInstanceOf[BagExpr], b2)))))
-    case  _ => None
-  }
-
-  private def eliminateDomain(lblTp: LabelType, b: BagExpr, ctx: Context): Option[(BagExpr, Context)] = {
-    val newCtx = lblTp.attrTps.foldLeft (ctx) {
-      case (acc, (n, t)) => acc.addVarDef(VarDef(n, t))
-    }
-    val (flatBag: BagExpr, flatCtx) = rewriteUsingContext(b, newCtx)
-    val ivars = inputVars(flatBag).filterNot(_.tp.isInstanceOf[MatDictType])
-
-    eliminateDomainIfHoisting(flatBag, ivars).map(_ -> flatCtx) orElse
-      eliminateDomainDictIteration(flatBag, ivars).map(_ -> flatCtx)
-  }
-
-  private def createLabelDomain(varRef: VarRef, topLevel: Boolean, field: String): Assignment = {
-    val domain = if (topLevel) {
-      val bagVarRef = varRef.asInstanceOf[BagVarRef]
-      val x = TupleVarRef(Symbol.fresh(), bagVarRef.tp.tp)
-      val lbl = LabelProject(x, field)
-      DeDup(
-        ForeachUnion(x, bagVarRef, Singleton(Tuple(LABEL_ATTR_NAME -> lbl)))
-      )
-    }
-    else {
-      val matDictVarRef = varRef.asInstanceOf[MatDictVarRef]
-      val kvTp =
-        TupleType(
-          KEY_ATTR_NAME -> matDictVarRef.tp.keyTp,
-          VALUE_ATTR_NAME -> matDictVarRef.tp.valueTp
-        )
-      val kv = TupleVarRef(Symbol.fresh(name = "kv"), kvTp)
-      val values = BagProject(kv, VALUE_ATTR_NAME)
-      val x = TupleVarRef(Symbol.fresh(), values.tp.tp)
-      val lbl = LabelProject(x, field)
-      DeDup(
-        ForeachUnion(kv, MatDictToBag(matDictVarRef),
-          ForeachUnion(x, values, Singleton(Tuple(LABEL_ATTR_NAME -> lbl))))
-      )
-    }
-
-    val bagRef = BagVarRef(domainName(Symbol.fresh(field + "_")), domain.tp)
-    Assignment(bagRef.name, domain)
-  }
-
-  private def rewriteUsingContext(e0: Expr, ctx0: Context): (Expr, Context) = replace[Context](e0, ctx0, {
-    case (v: VarRef, ctx) if ctx.contains(v.name) =>
-      (VarRef(ctx.varDef(v.name)), ctx)
-
-    case (Lookup(l, d), ctx) if ctx.isTopLevel(d) =>
-      assert(ctx.isTopLevel(l))  // sanity check
-      (ctx.matVarRef(d).asInstanceOf[BagVarRef], ctx)
-
-    case (Lookup(l, d), ctx) =>
-      assert(ctx.contains(d))  // sanity check
-      val (lbl: LabelExpr, ctx1) = rewriteUsingContext(l, ctx)
-      val dict = ctx.matVarRef(d).asInstanceOf[MatDictExpr]
-      (MatDictLookup(lbl, dict), ctx1)
-
-    case (BagLet(x, TupleDictProject(d), e2), ctx) =>
-      assert(ctx.contains(d))  // sanity check
-      val newCtx = ctx.children(d).foldLeft (ctx) {
-        case (acc, (n, dict)) =>
-          val tr = TupleDictVarRef(x.name, x.tp.asInstanceOf[TupleDictType])
-          acc.addDictAlias(dict, BagDictProject(tr, n))
-      }
-      rewriteUsingContext(e2, newCtx)
-
-    case (l: NewLabel, ctx) =>
-      val (ps1, ctx1) =
-        l.params.foldLeft (Map.empty[String, LabelParameter], ctx) {
-          case ((acc, ctx), (_, VarRefLabelParameter(l: LabelExpr)))
-            if ctx.contains(l) && ctx.isTopLevel(l) =>
-            (acc, ctx)
-          case ((acc, ctx), (_, VarRefLabelParameter(d: BagDictExpr))) =>
-            assert(ctx.contains(d))  // sanity check
-            (acc, ctx)
-          case ((acc, ctx), (n, ProjectLabelParameter(d: BagDictExpr))) =>
-            assert(ctx.contains(d))  // sanity check
-            val ctx1 = ctx.addDictAlias(d, BagDictVarRef(n, d.tp))
-            (acc, ctx1)
-          case ((acc, ctx), (n, p0)) =>
-            val (p1: LabelParameter, ctx1) = rewriteUsingContext(p0, ctx)
-            (acc + (n -> p1), ctx1)
-        }
-      (NewLabel(ps1, l.id), ctx1)
-
-    case (ForeachUnion(x, e1, e2), ctx) =>
-      val (r1: BagExpr, ctx1) = rewriteUsingContext(e1, ctx)
-      val xd = VarDef(x.name, r1.tp.tp)
-      val ctx2 = ctx1.addVarDef(xd)
-      val (r2: BagExpr, ctx3) = rewriteUsingContext(e2, ctx2)
-      (ForeachUnion(xd, r1, r2), ctx3)
-
-    case (l: Let, ctx) =>
-      val (r1, ctx1) = rewriteUsingContext(l.e1, ctx)
-      val xd = VarDef(l.x.name, r1.tp)
-      val ctx2 = ctx1.addVarDef(xd)
-      val (r2, ctx3) = rewriteUsingContext(l.e2, ctx2)
-      (Let(xd, r1, r2), ctx3)
-
-    case (x: ExtractLabel, ctx) =>
-      val (l: LabelExpr, ctx1) = rewriteUsingContext(x.lbl, ctx)
-      val ctx2 = l.tp.attrTps.foldLeft (ctx1) {
-        case (acc, (n, t)) => acc.addVarDef(VarDef(n, t))
-      }
-      val (r, ctx3) = rewriteUsingContext(x.e, ctx2)
-      (ExtractLabel(l, r), ctx3)
-  })
 
   def unshred(p: ShredProgram, ctx: Context): Program = {
     Symbol.freshClear()
