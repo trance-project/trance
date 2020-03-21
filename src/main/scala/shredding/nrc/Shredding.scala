@@ -181,12 +181,13 @@ trait Shredding extends BaseShredding with Extensions {
     ShredAssignment(stmt.name, shred(stmt.rhs, ctx))
 
   def shred(program: Program): ShredProgram =
-    ShredProgram(
-      program.statements.foldLeft (List[ShredAssignment](), Map.empty[String, ShredExpr]) {
-        case ((acc, ctx), stmt) =>
-          val sa = shred(stmt, ctx)
-          (acc :+ sa, ctx + (sa.name -> sa.rhs))
-      }._1
-    )
+    shredCtx(program, Map.empty[String, ShredExpr])._1
+
+  def shredCtx(program: Program, ctx: Map[String, ShredExpr] = Map.empty): (ShredProgram, Map[String, ShredExpr]) =
+    program.statements.foldLeft (ShredProgram(), ctx) {
+      case ((acc, ctx), stmt) =>
+        val sa = shred(stmt, ctx)
+        (ShredProgram(acc.statements :+ sa), ctx + (sa.name -> sa.rhs))
+    }
 
 }

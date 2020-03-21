@@ -342,6 +342,15 @@ trait Extensions {
   def replaceProgram(p: Program, f: PartialFunction[Expr, Expr]): Program =
     Program(p.statements.map(replaceAssignment(_, f)))
 
+  def replaceShred(e: ShredExpr, f: PartialFunction[Expr, Expr]): ShredExpr =
+    ShredExpr(replace(e.flat, f), replace(e.dict, f).asInstanceOf[DictExpr])
+
+  def replaceShredAssignment(a: ShredAssignment, f: PartialFunction[Expr, Expr]): ShredAssignment =
+    ShredAssignment(a.name, replaceShred(a.rhs, f))
+
+  def replaceShredProgram(p: ShredProgram, f: PartialFunction[Expr, Expr]): ShredProgram =
+    ShredProgram(p.statements.map(replaceShredAssignment(_, f)))
+
   // Replace label parameter projections with variable references
   def createLambda(lbl: NewLabel, e: BagExpr): BagExpr =
     lbl.params.foldRight(e) {
