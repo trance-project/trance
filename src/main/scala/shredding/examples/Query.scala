@@ -4,7 +4,7 @@ import shredding.core.Type
 import shredding.nrc._
 import shredding.wmcc._
 
-trait Query extends Materializer
+trait Query extends Materialization
   with MaterializeNRC
   with Printer
   with Shredding

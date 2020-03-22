@@ -15,30 +15,32 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
   import compiler._
 
   def translate(e: Type): Type = e match {
-    case MatDictType(lbl, dict) => 
-      BagDictCType(BagCType(TTupleType(List(translate(lbl), translate(dict)))), EmptyDictCType)
-    /** old types to clean **/
-    case BagType(t @ TupleType(fs)) if (fs.isEmpty) => BagCType(EmptyCType)
-    case BagType(t @ TupleType(fs)) if (fs.keySet == Set("_1", "_2")) =>
-      BagDictCType(BagCType(TTupleType(List(
-        translate(fs.get("_1").get), translate(fs.get("_2").get)))), EmptyDictCType)
+    case MatDictType(lbl, dict) => BagCType(TTupleType(List(translate(lbl), translate(dict))))
+      // BagDictCType(BagCType(TTupleType(List(translate(lbl), translate(dict)))), EmptyDictCType)
+    //case BagCType(r @ TupleType(ms)) if ms.keySet == Set("_1", "_2") => 
+      //BagDictCType(BagCType(translate(r)), EmptyDictCType)
     case BagType(t) => BagCType(translate(t))
+    case LabelType(fs) => LabelType(fs.map(f => f._1 -> translate(f._2)))
     case TupleType(fs) if fs.isEmpty => EmptyCType
     case TupleType(fs) => RecordCType(fs.map(f => f._1 -> translate(f._2)))
-    case BagDictType(_, f, d) => f match {
-      case BagType(t @ TupleType(fs)) if fs.keySet == Set("_1", "_2") =>
-       BagDictCType(BagCType(TTupleType(List(
-        translate(fs.get("_1").get), translate(fs.get("_2").get)))), 
-          translate(d).asInstanceOf[TTupleDict])     
-      case _ => 
-       BagDictCType(BagCType(TTupleType(List(EmptyCType,translate(f).asInstanceOf[BagCType]))), 
-        translate(d).asInstanceOf[TTupleDict])    
-    }
-    case EmptyDictType => EmptyDictCType
-    case TupleDictType(ts) if ts.isEmpty => EmptyDictCType
-    case TupleDictType(ts) => TupleDictCType(ts.map(f => f._1 -> translate(f._2).asInstanceOf[TDict]))
-    case LabelType(fs) if fs.isEmpty => EmptyCType
-    case LabelType(fs) => LabelType(fs.map(f => f._1 -> translate(f._2)))
+    
+    /** old types to clean **/
+    // case BagType(t @ TupleType(fs)) if (fs.isEmpty) => BagCType(EmptyCType)
+    // case BagType(t @ TupleType(fs)) if (fs.keySet == Set("_1", "_2")) =>
+    //   BagDictCType(BagCType(TTupleType(List(
+    //     translate(fs.get("_1").get), translate(fs.get("_2").get)))), EmptyDictCType)
+    // case BagDictType(_, f, d) => f match {
+    //   case BagType(t @ TupleType(fs)) if fs.keySet == Set("_1", "_2") =>
+    //    BagDictCType(BagCType(TTupleType(List(
+    //     translate(fs.get("_1").get), translate(fs.get("_2").get)))), 
+    //       translate(d).asInstanceOf[TTupleDict])     
+    //   case _ => 
+    //    BagDictCType(BagCType(TTupleType(List(EmptyCType,translate(f).asInstanceOf[BagCType]))), 
+    //     translate(d).asInstanceOf[TTupleDict])    
+    // }
+    // case EmptyDictType => EmptyDictCType
+    // case TupleDictType(ts) if ts.isEmpty => EmptyDictCType
+    // case TupleDictType(ts) => TupleDictCType(ts.map(f => f._1 -> translate(f._2).asInstanceOf[TDict]))
     case _ => e
   }
   
@@ -99,15 +101,22 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
         Comprehension(translate(e1), translate(x).asInstanceOf[Variable], constant(true), te2)
     }
     case l:Let => Bind(translate(l.x), translate(l.e1), translate(l.e2))
-    case g:GroupByExpr => 
-      val bagExpr = translate(g.e)
+    // TODO map out case handling of group bys
+    case GroupByKey(be, keys, values, _) => 
+      val bagExpr = translate(be)
       val v = Variable.freshFromBag(bagExpr.tp)
-      CGroupBy(bagExpr, v, record(g.keys.map(n => (n, project(v, n))).toMap), 
-        record(g.values.map(n => (n, project(v, n))).toMap))
-
+      val key = record(keys.map(n => (n, project(v, n))).toMap)
+      val value = record(values.map(n => (n, project(v, n))).toMap)
+      CGroupBy(bagExpr, v, key, Sng(value))
+    case ReduceByKey(be, keys, values) => 
+      val bagExpr = translate(be)
+      val v = Variable.freshFromBag(bagExpr.tp)
+      val key = record(keys.map(n => (n, project(v, n))).toMap)
+      val value = record(values.map(n => (n, project(v, n))).toMap)
+      CGroupBy(bagExpr, v, key, value) 
     case v: VarRefLabelParameter => translateVar(v.e)
     case l: NewLabel =>
-      record(l.params.map {
+      label(l.params.map {
         case (n, v2: VarRefLabelParameter) => translateName(n) -> translateVar(v2.e)
         case (n, v2: ProjectLabelParameter) => translateName(n) -> translate(v2.e)
       })

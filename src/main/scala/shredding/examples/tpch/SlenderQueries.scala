@@ -380,7 +380,7 @@ object TPCHQuery4Full extends TPCHBase {
   val co3r = TupleVarRef("p2", parts.tp.tp)
 
   val query4 =
-    SumByKey(
+    ReduceByKey(
       ForeachUnion(cor, q1r,
         ForeachUnion(co2r, orders,
           ForeachUnion(co3r, parts,

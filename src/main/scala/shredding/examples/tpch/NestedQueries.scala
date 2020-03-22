@@ -29,7 +29,7 @@ object TPCHNested1 extends TPCHBase {
   val query1 =
     ForeachUnion(cor, q1r,
       Singleton(Tuple("c_name" -> cor("c_name"), "totals" ->
-        SumByKey(
+        ReduceByKey(
           ForeachUnion(co2r, orders,
             ForeachUnion(co3r, parts,
               Singleton(Tuple("orderdate" -> co2r("o_orderdate"),
@@ -80,7 +80,7 @@ object TPCHNested2 extends TPCHBase {
               List("total"),
               DoubleType       
              )))))**/
-    SumByKey(
+    ReduceByKey(
       ForeachUnion(cor, q1r,
         ForeachUnion(co2r, orders,
           ForeachUnion(co3r, parts,
@@ -125,7 +125,7 @@ object TPCHNested3 extends TPCHBase {
   val query3 =
     ForeachUnion(cor, q1r,
       Singleton(Tuple("c_name" -> cor("c_name"), "c_orders" ->
-        SumByKey(
+        ReduceByKey(
           ForeachUnion(co2r, orders,
             ForeachUnion(co3r, parts,
               ForeachUnion(pr, relP,
@@ -172,7 +172,7 @@ object TPCHNested4 extends TPCHBase {
       Singleton(Tuple("c_name" -> cor("c_name"), "c_orders" ->
         ForeachUnion(co2r, orders,
           Singleton(Tuple("o_orderdate" -> co2r("o_orderdate"), "o_parts" ->
-            SumByKey(
+            ReduceByKey(
               ForeachUnion(co3r, parts,
                 ForeachUnion(pr, relP,
                   IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
@@ -207,7 +207,7 @@ object TPCHNested4Filter extends TPCHBase {
           ForeachUnion(co2r, orders,
             IfThenElse(Cmp(OpGe, Const(150000000, IntType), or("o_orderkey")),
             Singleton(Tuple("o_orderdate" -> co2r("o_orderdate"), "o_parts" ->
-              SumByKey(
+              ReduceByKey(
                 ForeachUnion(co3r, parts,
                   ForeachUnion(pr, relP,
                     IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),

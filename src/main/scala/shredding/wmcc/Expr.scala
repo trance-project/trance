@@ -60,6 +60,11 @@ case object CUnit extends CExpr {
   def tp: Type = EmptyCType
 }
 
+case class Label(fields: Map[String, CExpr]) extends CExpr{
+  def tp: LabelType = LabelType(fields.map(f => f._1 -> f._2.tp))
+  def apply(n: String) = fields(n)
+}
+
 case class Record(fields: Map[String, CExpr]) extends CExpr{
   def tp: RecordCType = RecordCType(fields.map(f => f._1 -> f._2.tp))
   def apply(n: String) = fields(n)
@@ -117,13 +122,12 @@ case class Multiply(e1: CExpr, e2: CExpr) extends CExpr{
 
 case class Project(e1: CExpr, field: String) extends CExpr { self =>
   def tp: Type = e1.tp match {
+    case l:LabelType => l.attrTps(field)
     case t:RecordCType => t.attrTps(field)
     case t @ TTupleType(List(EmptyCType, RecordCType(fs))) if ( field != "_1" && field != "_2") => fs(field)
     case t:TTupleType => field match {
       case "_1" => t(0)
       case "_2" => t(1)
-      case "_KEY" => t(0)
-      case "_VALUE" => t(1)
       case  _ => println(t); t(field.toInt)
     }
     case t:LabelType => t(field)
@@ -273,29 +277,15 @@ case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CEx
   // }
 }
 
-case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr, value: CExpr) extends CExpr { self =>
-  val bagproj = e2 match {
-    case Project(_, field) => field
-    case Bind(_, Project(_, field), _) => field
-    case _ => ???
-  }
+case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr, value: CExpr) extends CExpr {
   def tp: Type = e1.tp match {
     case btp:BagDictCType => 
-      // val ntp = RecordCType(btp.flatTp.tp.asInstanceOf[TTupleType].attrTps.last.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps - bagproj)
-      // BagCType(TTupleType(List(ntp, v2.tp)))
       BagCType(TTupleType(List(btp.flatTp.tp, v2.tp)))
     case btp:BagCType => 
-      //val ntp = RecordCType(btp.tp.asInstanceOf[TTupleType].attrTps.last.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps - bagproj)
       BagCType(TTupleType(List(btp.tp, v2.tp)))
     case _ => ???
   }
   override def wvars = e1.wvars :+ v2
-  // need to fix this to work with ANF
-  // override def equals(that: Any): Boolean = that match {
-  //   case Unnest(e11, v11, e21, v21, p1) if e21 == e2 => true
-  //   case OuterUnnest(e11, v11, e21, v21, p1) if e21 == e2 => true
-  //   case e => false
-  // }
 }
 
 case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr, g: CExpr) extends CExpr {

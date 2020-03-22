@@ -259,9 +259,9 @@ trait NRC extends BaseExpr {
       BagType(TupleType(keysTp.attrTps ++ Map(groupAttrName -> valuesTp)))
   }
 
-  final case class SumByKey(e: BagExpr, keys: List[String], values: List[String]) extends GroupByExpr {
-    assert(values.forall(n => e.tp.tp(n).isInstanceOf[NumericType]),
-      "ReduceByKey over non-numeric attributes")
+  final case class ReduceByKey(e: BagExpr, keys: List[String], values: List[String]) extends GroupByExpr {
+    assert(values.forall(n => e.tp.tp(n).isInstanceOf[ReducibleType]),
+      "ReduceByKey over non-reducible attributes")
 
     val keysTp: TupleType =
       TupleType(keys.map(n => n -> e.tp.tp(n)).toMap)

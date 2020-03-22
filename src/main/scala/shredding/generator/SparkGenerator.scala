@@ -50,7 +50,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), cache: Boolean = fa
   def drop(tp: Type, v: Variable, field: String): CExpr = tp match {
       case TTupleType(fs) => 
         Tuple(fs.drop((kvName(field)(2).replace("_", "").toInt-1)).zipWithIndex.map{ case (t, i) 
-          => Project(v, "_"+i) })
+          => Project(v, "_"+(i+1)) })
       case RecordCType(fs) => 
         Record((fs - field).map{ case (attr, atp) => attr -> Project(v, attr)})
       case _ => sys.error(s"unsupported type $tp")
@@ -70,6 +70,11 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), cache: Boolean = fa
     case Constant(s:String) => "\"" + s + "\""
     case Constant(x) => x.toString
     case Sng(e) => s"Vector(${generate(e)})"
+    case Label(fs) => {
+      val tp = e.tp
+      handleType(tp)
+      s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
+    }
     case Record(fs) if isDictRecord(e) => 
       s"(${fs.map(f => { handleType(f._2.tp); generate(f._2) } ).mkString(", ") })"
     case Record(fs) => {
@@ -153,7 +158,9 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), cache: Boolean = fa
               | $v.$attr.map{ $gv2 => ($nvars, ${generate(value)})}
               |}.filter{ case ($vars, $gv2) => {${generate(p)}} }""".stripMargin
       }
-
+    
+    case OuterUnnest(e1, v1, f, v2, p, value) if e1.tp.isDict => 
+      generate(Unnest(e1, v1, f, v2, p, value))
     case OuterUnnest(e1, v1, f, v2, p, value) => 
       val vars = generateVars(v1, e1.tp)
       val gv2 = generate(v2)
@@ -224,6 +231,8 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), cache: Boolean = fa
       }
 
     /** LEFT OUTER JOIN **/
+    case Bind(jv, OuterJoin(e1, e2, v1, p1, v2, p2, proj1, proj2), e3) if e1.tp.isDict =>
+      generate(Bind(jv, Join(e1, e2, v1, p1, v2, p2, proj1, proj2), e3))
     case Bind(jv, OuterJoin(e1, e2, v1, p1, v2, p2, proj1, proj2), e3) => 
       val vars = generateVars(v1, e1.tp)
       val gv2 = generate(v2)

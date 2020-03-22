@@ -14,13 +14,15 @@ sealed trait Type { self =>
   def isDict: Boolean = false
 }
 
+trait ReducibleType
+
 trait TupleAttributeType extends Type
 
 trait PrimitiveType extends TupleAttributeType
 case object BoolType extends PrimitiveType
 case object StringType extends PrimitiveType
 
-trait NumericType extends PrimitiveType
+trait NumericType extends PrimitiveType with ReducibleType
 case object IntType extends NumericType
 case object LongType extends NumericType
 case object DoubleType extends NumericType
@@ -34,7 +36,7 @@ object NumericType {
   }
 }
 
-final case class BagType(tp: TupleType) extends TupleAttributeType
+final case class BagType(tp: TupleType) extends TupleAttributeType with ReducibleType
 
 final case class TupleType(attrTps: Map[String, TupleAttributeType]) extends Type {
   def apply(n: String): TupleAttributeType = attrTps(n)
@@ -117,6 +119,8 @@ object RecordCType {
 
 case class TTupleType(attrTps: List[Type]) extends Type {
   def apply(n: Int): Type = attrTps(n)
+  override def isDict: Boolean = 
+    attrTps.size == 2 && attrTps.head.isInstanceOf[LabelType]
 }
 
 trait TDict extends Type

@@ -18,9 +18,9 @@ object Printer {
     case EmptySng => emptysng
     case CUnit => unit
     case Sng(e1) => sng(quote(e1))
-    case WeightedSng(e1, qt) => weightedsng(quote(e1), quote(qt))
     case Tuple(fs) => tuple(fs.map(quote(_)))
     case Record(fs) => record(fs.map(f => f._1 -> quote(f._2)))
+    case Label(fs) => label(fs.map(f => f._1 -> quote(f._2)))
     case Multiply(e1, e2) => compiler.mult(quote(e1), quote(e2))
     case Equals(e1, e2) => compiler.equals(quote(e1), quote(e2))
     case Lt(e1, e2) => lt(quote(e1), quote(e2))

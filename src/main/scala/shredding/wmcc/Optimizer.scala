@@ -38,6 +38,7 @@ object Optimizer {
   }
 
   def fields(e: CExpr):Unit = e match {
+    case Label(ms) => ms.foreach(f => fields(f._2))
     case Record(ms) => ms.foreach(f => fields(f._2))
     case Sng(r) => fields(r)
     case Tuple(fs) => fs.foreach( f => fields(f))
@@ -120,8 +121,8 @@ object Optimizer {
     // case Reduce(CoGroup(e1, e2, e1s, e2s, key1, key2, value), vr, fr, pr) => 
     //   mergeOps(CoGroup(e1, mergeOps(e2), e1s, e2s, key1, key2, fr))
     // todo push record type projection into lookup
-    // case Reduce(Nest(e1, vs, key, value, nv, np, ng), v2, e2, p2) => 
-    //   mergeOps(Nest(e1, vs, key, value, nv, np, ng))
+    case Reduce(Nest(e1, vs, key, value, nv, np, CUnit), v2, e2, p2) => 
+      mergeOps(Nest(e1, vs, key, value, nv, np, CUnit))
     case Reduce(r @ Reduce(x, v, e2, Constant("null")), 
       v2, t @ Record(fs), p2) if fs.keySet == Set("_1", "_2") => r
     case Reduce(Reduce(x, v, e2, p), v2, f2, p2) if p != Constant("null") =>

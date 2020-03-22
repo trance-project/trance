@@ -13,8 +13,8 @@ import shredding.examples.tpch._
 object App {
  
   def main(args: Array[String]){
-    runExperiment1FN()
-    // runExperiment1NN()
+    // runExperiment1FN()
+    runExperiment1NN()
     // runExperiment2Agg()
     // runExperiment1Joins()
   }
@@ -102,17 +102,17 @@ object App {
     // Utils.flatOptInput(Test3Flat, Test3NN, pathout, "Flat++,3")
     // Utils.flatOptInput(Test4Flat, Test4NN, pathout, "Flat++,4")
 
-    Utils.shredDomains(Test0NN, pathout, "ShredDom,0")
-    Utils.shredDomains(Test1NN, pathout, "ShredDom,1")
-    // Utils.shredDomainsInput(Test2, Test2NN, pathout, "ShredDom,2")
-    // Utils.shredDomainsInput(Test3, Test3NN, pathout, "ShredDom,3")
-    // Utils.shredDomainsInput(Test4, Test4NN, pathout, "ShredDom,4")
+    Utils.shredDomains(Test0NN, pathout, "Shred,0")
+    Utils.shredDomains(Test1NN, pathout, "Shred,1")
+    Utils.shredDomains(Test2NN, pathout, "Shred,2")
+    // Utils.shredDomains(Test3NN, pathout, "Shred,3")
+    // Utils.shredDomains(Test4NN, pathout, "Shred,4")
 
-    Utils.unshredDomains(Test0NN, pathout, "ShredDom,0")
-    Utils.unshredDomains(Test1NN, pathout, "ShredDom,1")
-    // Utils.unshredDomains(Test2NN, pathout, "ShredDom,2")
-    // Utils.unshredDomains(Test3Join, pathout, "ShredDom,3")
-    // Utils.unshredDomains(Test4Join, pathout, "ShredDom,4")
+    // Utils.unshredDomains(Test0NN, pathout, "Shred,0")
+    // Utils.unshredDomains(Test1NN, pathout, "Shred,1")
+    // Utils.unshredDomains(Test2NN, pathout, "Shred,2")
+    // Utils.unshredDomains(Test3NN, pathout, "Shred,3")
+    // Utils.unshredDomains(Test4NN, pathout, "Shred,4")
   }
 
   def runExperiment2Agg(){

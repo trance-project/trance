@@ -107,7 +107,7 @@ object Query2 extends TPCHBase {
   val query2 =
     ForeachUnion(cor, q1r,
       Singleton(Tuple("c_name" -> cor("c_name"), "totals" ->
-        SumByKey(
+        ReduceByKey(
           ForeachUnion(co2r, orders,
             ForeachUnion(co3r, parts,
               Singleton(Tuple("orderdate" -> co2r("o_orderdate"),
@@ -146,7 +146,7 @@ object Query3 extends TPCHBase {
   val co3r = TupleVarRef("p2", parts.tp.tp)
 
   val query3 =
-    SumByKey(
+    ReduceByKey(
       ForeachUnion(cor, q1r,
         ForeachUnion(co2r, orders,
           ForeachUnion(co3r, parts,
@@ -194,7 +194,7 @@ object Query4 extends TPCHBase {
       Singleton(Tuple("c_name" -> cor("c_name"), "c_orders" ->
         ForeachUnion(co2r, orders,
           Singleton(Tuple("o_orderdate" -> co2r("o_orderdate"), "o_parts" ->
-            SumByKey(
+            ReduceByKey(
               ForeachUnion(co3r, parts,
                 ForeachUnion(pr, relP,
                   IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
@@ -264,7 +264,7 @@ object Query4Filter1 extends TPCHBase {
         Singleton(Tuple("c_name" -> cor("c_name"), "c_orders" ->
           ForeachUnion(co2r, orders,
             Singleton(Tuple("o_orderdate" -> co2r("o_orderdate"), "o_parts" ->
-              SumByKey(
+              ReduceByKey(
                 ForeachUnion(co3r, parts,
                   ForeachUnion(pr, relP,
                     IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
@@ -301,7 +301,7 @@ object Query4Filter2 extends TPCHBase {
           ForeachUnion(co2r, orders,
             IfThenElse(Cmp(OpGe, Const(150000000, IntType), or("o_orderkey")),
             Singleton(Tuple("o_orderdate" -> co2r("o_orderdate"), "o_parts" ->
-              SumByKey(
+              ReduceByKey(
                 ForeachUnion(co3r, parts,
                   ForeachUnion(pr, relP,
                     IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
@@ -401,7 +401,7 @@ object Query6Full extends TPCHBase {
 This is Query 6 with the Let, which helps with 
 join order in the version with the optimization.
 
-cflat := For co in Query2 Union
+cflat := For co in Query5 Union
  For co2 in co.customers2 Union
    Sng((c_name := co2.c_name2, s_name := co.s_name))
 For c in C Union
@@ -416,13 +416,13 @@ object Query6 extends TPCHBase {
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
       List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
  
-  val (q2r, cor) = varset(Query2.name, "co",
-    Query2.program(Query2.name).varRef.asInstanceOf[BagExpr])
+  val (q5r, cor) = varset(Query5.name, "co",
+    Query5.program(Query5.name).varRef.asInstanceOf[BagExpr])
 
   val cust = BagProject(cor, "customers2")
   val co2r = TupleVarRef("co2", cust.tp.tp)
   
-  val flat = ForeachUnion(cor, q2r,
+  val flat = ForeachUnion(cor, q5r,
               ForeachUnion(co2r, cust,
                 Singleton(Tuple("c_name" -> co2r("c_name2"), "s_name" -> cor("s_name")))))
   val (cflatr, cfr) = varset("cflat", "cf", flat.asInstanceOf[BagExpr])
@@ -433,12 +433,12 @@ object Query6 extends TPCHBase {
                       Singleton(Tuple("s_name" -> cfr("s_name"))))))))
 
   val program =
-    Query2.program.asInstanceOf[Program] ++
+    Query5.program.asInstanceOf[Program] ++
       Program(Assignment(cflatr.name, flat), Assignment(name, query6))
 }
 
 /**
-cflat := For co in Query2 Union
+cflat := For co in Query5 Union
   For co2 in co.customers2 Union
     Sng((c_name := co2.c_name2, s_name := co.s_name))
 
@@ -453,13 +453,13 @@ object Query7 extends TPCHBase {
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
  
-  val (q2r, cor) = varset(Query2.name, "co",
-    Query2.program(Query2.name).varRef.asInstanceOf[BagExpr])
+  val (q5r, cor) = varset(Query5.name, "co",
+    Query5.program(Query5.name).varRef.asInstanceOf[BagExpr])
 
   val cust = BagProject(cor, "customers2")
   val co2r = TupleVarRef("co2", cust.tp.tp)
   
-  val flat = ForeachUnion(cor, q2r,
+  val flat = ForeachUnion(cor, q5r,
               ForeachUnion(co2r, cust,
                 Singleton(Tuple("c_name" -> co2r("c_name2"), "s_name" -> cor("s_name")))))
   val (cflatr, cfr) = varset("cflat", "cf", flat.asInstanceOf[BagExpr])
@@ -470,6 +470,6 @@ object Query7 extends TPCHBase {
                       Singleton(Tuple("s_name" -> cfr("s_name")))))))))
 
   val program =
-    Query2.program.asInstanceOf[Program] ++
+    Query5.program.asInstanceOf[Program] ++
       Program(Assignment(cflatr.name, flat), Assignment(name, query7))
 }

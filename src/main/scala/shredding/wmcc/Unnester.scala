@@ -78,7 +78,8 @@ object Unnester {
       if (!w.isEmpty) {
         dict.tp match {
           //case InputRef(topd, _) =>
-          case BagDictCType(BagCType(RecordCType(_)), EmptyDictCType) =>
+          case y if !y.isDict => 
+          //BagDictCType(BagCType(RecordCType(_)), EmptyDictCType) =>
             unnest(e2)((u, w :+ v, Some(Join(E.get, Select(Project(dict, "_1"), v, sp2s, v), w, p1s, v, p2s, Tuple(w), v))))
             // unnest(e2)((u, w :+ v, Some(CoGroup(E.get, Select(Project(dict, "_1"), v, sp2s, v), w, v, p1s, p2s, v))))
           case _ =>
@@ -179,9 +180,11 @@ object Unnester {
             }
           }else {
             val et = Tuple(u)
-            val gt = Tuple((w.toSet -- u).toList)
             val v = Variable.fresh(TTupleType(et.tp.attrTps :+ BagCType(t.tp))) 
-            Nest(E.get, w, et, t, v, Constant(true), gt)
+            val (filt, nulls) = if (u.head.tp.isDict) 
+              (Constant("byKey"), CUnit)
+            else (Constant(true), Tuple((w.toSet -- u).toList))
+            Nest(E.get, w, et, t, v, filt, nulls)
           }
         // address special case
         case (key, value @ If(Equals(c1:Comprehension, c2), x1, None)) :: tail => 
@@ -302,9 +305,7 @@ object Unnester {
     case CNamed(n, exp) => exp match {
       case Record(lbl) => CNamed(n, exp)
       case Sng(Record(lbl)) => CNamed(n, exp)
-      case _ => 
-        println(n)
-        CNamed(n, unnest(exp)((Nil, Nil, None)))
+      case _ => CNamed(n, unnest(exp)((Nil, Nil, None)))
     }
     case InputRef(_,_) => e
     case Record(fs) => unnest(Sng(Record(fs)))((u, w, E))
