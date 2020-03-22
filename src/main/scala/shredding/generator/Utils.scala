@@ -278,9 +278,11 @@ object Utils {
     
     val codegenInput = new SparkNamedGenerator(Map.empty[Type, String], true, true)
     val codegen = new SparkNamedGenerator(codegenInput.types)
-    val (inputShred, inputUnshred, inputCtx) = query.shredPlan(eliminateDomains = eliminateDomains)
+    val (inputShred, inputUnshred, inputCtx) = 
+      inputQuery.shredPlan(eliminateDomains = eliminateDomains)
     val inputCode = codegen.generate(inputShred)
-    val (gcodeShred, gcodeUnshred, sctx) = query.shredPlan(ctx = inputCtx, eliminateDomains = eliminateDomains)
+    val (gcodeShred, gcodeUnshred, sctx) = 
+      query.shredPlan(ctx = inputCtx.asInstanceOf[Map[String, query.ShredExpr]], eliminateDomains = eliminateDomains)
     val gcode1 = codegen.generate(gcodeShred)
     val gcodeSet = if (unshred) List(gcode1, codegen.generate(gcodeUnshred)) else List(gcode1)
     val header = if (skew) {

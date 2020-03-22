@@ -105,15 +105,15 @@ object App {
 
     Utils.shredInput(Test0Full, Test0NN, pathout, "Shred,0")
     Utils.shredInput(Test1Full, Test1NN, pathout, "Shred,1")
-    Utils.shredInput(Test2Full, Test2NN, pathout, "Shred,2")
-    Utils.shredInput(Test3Full, Test3NN, pathout, "Shred,3")
-    Utils.shredInput(Test4Full, Test4NN, pathout, "Shred,4")
+    // Utils.shredInput(Test2Full, Test2NN, pathout, "Shred,2")
+    // Utils.shredInput(Test3Full, Test3NN, pathout, "Shred,3")
+    // Utils.shredInput(Test4Full, Test4NN, pathout, "Shred,4")
 
-    Utils.shredInput(Test0Full, Test0NN, pathout, "Shred,0", unshred=true)
-    Utils.shredInput(Test1Full, Test1NN, pathout, "Shred,1", unshred=true)
-    Utils.shredInput(Test2Full, Test2NN, pathout, "Shred,2", unshred=true)
-    Utils.shredInput(Test3Full, Test3NN, pathout, "Shred,3", unshred=true)
-    Utils.shredInput(Test4Full, Test4NN, pathout, "Shred,4", unshred=true)
+    // Utils.shredInput(Test0Full, Test0NN, pathout, "Shred,0", unshred=true)
+    // Utils.shredInput(Test1Full, Test1NN, pathout, "Shred,1", unshred=true)
+    // Utils.shredInput(Test2Full, Test2NN, pathout, "Shred,2", unshred=true)
+    // Utils.shredInput(Test3Full, Test3NN, pathout, "Shred,3", unshred=true)
+    // Utils.shredInput(Test4Full, Test4NN, pathout, "Shred,4", unshred=true)
   }
 
   def runExperiment2Agg(){

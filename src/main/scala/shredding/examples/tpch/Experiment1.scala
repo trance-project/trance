@@ -432,13 +432,13 @@ object Test0NN extends TPCHBase {
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("L", "P").contains(x._1)).values.toList.mkString("")}"
  
-  val partsInput = Test0.program(Test0.name).varRef.asInstanceOf[BagExpr]
-  val (parts, partRef) = varset(Test0.name, "l", partsInput)
+  val partsInput = Test0Full.program(Test0Full.name).varRef.asInstanceOf[BagExpr]
+  val (parts, partRef) = varset(Test0Full.name, "l", partsInput)
   val query = 
     ForeachUnion(partRef, parts,
       ForeachUnion(pr, relP,
         IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
-          Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> partRef("l_qty"))))))
+          Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity"))))))
 
   val program = Program(Assignment(name, query))
 
@@ -452,7 +452,7 @@ object Test1NN extends TPCHBase {
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("O", "L", "P").contains(x._1)).values.toList.mkString("")}"
  
-  val (orders, orderRef) = varset(Test1.name, "o", Test1.program(Test1.name).varRef.asInstanceOf[BagExpr])
+  val (orders, orderRef) = varset(Test1Full.name, "o", Test1Full.program(Test1Full.name).varRef.asInstanceOf[BagExpr])
   val (parts, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
   val query = 
     ForeachUnion(orderRef, orders,
@@ -460,7 +460,7 @@ object Test1NN extends TPCHBase {
         ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
           ForeachUnion(pr, relP,
             IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
-              Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> partRef("l_qty")))))))))
+              Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))))))
 
   val program = Program(Assignment(name, query))
 
@@ -474,7 +474,7 @@ object Test2NN extends TPCHBase {
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
  
-  val (customers, customerRef) = varset(Test2.name, "c", Test2.program(Test2.name).varRef.asInstanceOf[BagExpr])
+  val (customers, customerRef) = varset(Test2Full.name, "c", Test2Full.program(Test2Full.name).varRef.asInstanceOf[BagExpr])
   val (orders, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
   val (parts, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
   val query = 
@@ -485,7 +485,7 @@ object Test2NN extends TPCHBase {
           ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
             ForeachUnion(pr, relP,
               IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
-                Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> partRef("l_qty"))))))))))))
+                Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity"))))))))))))
   val program = Program(Assignment(name, query))
 }
 
@@ -497,7 +497,7 @@ object Test3NN extends TPCHBase {
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N", "P").contains(x._1)).values.toList.mkString("")}"
  
-  val (nations, nationRef) = varset(Test3.name, "n", Test3.program(Test3.name).varRef.asInstanceOf[BagExpr])
+  val (nations, nationRef) = varset(Test3Full.name, "n", Test3Full.program(Test3Full.name).varRef.asInstanceOf[BagExpr])
   val (customers, customerRef) = varset("customers", "c", BagProject(nationRef, "n_custs"))
   val (orders, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
   val (parts, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
@@ -511,7 +511,7 @@ object Test3NN extends TPCHBase {
               ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
                 ForeachUnion(pr, relP,
                   IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
-                    Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> partRef("l_qty")))))))))))))))
+                    Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))))))))))))
   val program = Program(Assignment(name, query))
 }
 
@@ -523,7 +523,7 @@ object Test4NN extends TPCHBase {
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N", "R", "P").contains(x._1)).values.toList.mkString("")}"
  
-  val (regions, regionRef) = varset(Test4.name, "r", Test4.program(Test4.name).varRef.asInstanceOf[BagExpr])
+  val (regions, regionRef) = varset(Test4Full.name, "r", Test4Full.program(Test4Full.name).varRef.asInstanceOf[BagExpr])
   val (nations, nationRef) = varset("nations", "n", BagProject(regionRef, "r_nations"))
   val (customers, customerRef) = varset("customers", "c", BagProject(nationRef, "n_custs"))
   val (orders, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
@@ -540,7 +540,7 @@ object Test4NN extends TPCHBase {
                   ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
                     ForeachUnion(pr, relP,
                       IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
-                        Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> partRef("l_qty"))))))))))))))))))
+                        Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity"))))))))))))))))))
   val program = Program(Assignment(name, query))
 }
 
