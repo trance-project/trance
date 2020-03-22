@@ -27,4 +27,9 @@ trait ShredNRC extends NRC with BaseShredding with Label with Dictionary {
   final case class ShredAssignment(name: String, rhs: ShredExpr)
 
   final case class ShredProgram(statements: List[ShredAssignment])
+
+  object ShredProgram {
+    def apply(statements: ShredAssignment*): ShredProgram = ShredProgram(List(statements: _*))
+  }
+
 }

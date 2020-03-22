@@ -72,6 +72,7 @@ trait Printer {
           |${quote(x.e)}""".stripMargin
     case l: NewLabel =>
       val ps = l.params.map { case (n, p) => n + " := " + quote(p.e) }.toList
+//      val ps = l.params.map { case (n, p) => n + " := " + quote(p.e) + " : " + quote(p.tp)}.toList
       s"NewLabel(${(l.id :: ps).mkString(", ")})"
 
     // Dictionary extensions
