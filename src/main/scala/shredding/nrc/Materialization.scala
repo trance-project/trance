@@ -121,8 +121,8 @@ trait MaterializationContext extends BaseMaterialization with MaterializationDom
 
     case (Lookup(l, d), ctx) =>
       assert(ctx.contains(d))  // sanity check
-      val (lbl: LabelExpr, ctx1) = rewriteUsingContext(l, ctx)
       val dict = ctx.matVarRef(d).asInstanceOf[MatDictExpr]
+      val (lbl: LabelExpr, ctx1) = rewriteUsingContext(l, ctx)
       (MatDictLookup(lbl, dict), ctx1)
 
     case (BagLet(x, TupleDictProject(d), e2), ctx) =>
@@ -185,10 +185,12 @@ trait Materialization extends MaterializationContext {
       new MaterializedProgram(program ++ m.program, ctx ++ m.ctx)
   }
 
-  def materialize(p: ShredProgram, eliminateDomains: Boolean = false): MaterializedProgram = {
-    Symbol.freshClear()
+  def materialize(p: ShredProgram, eliminateDomains: Boolean = false): MaterializedProgram =
     // Create initial context with input dictionaries
-    val ctx = initContext(p)
+    materialize(p, initContext(p), eliminateDomains)
+
+  def materialize(p: ShredProgram, ctx: Context, eliminateDomains: Boolean): MaterializedProgram = {
+    Symbol.freshClear()
     // Materialize each statement starting from empty program
     val emptyProgram = new MaterializedProgram(Program(), ctx)
     p.statements.foldLeft (emptyProgram) { case (acc, s) =>
@@ -235,7 +237,7 @@ trait Materialization extends MaterializationContext {
             val dictCtx =
               flatCtx.addDict(dict, bagRef, parent)
                 .addDictAlias(dict, BagDictVarRef(dictName(name), dict.tp))
-                .addLabel(LabelVarRef(flatName(name), lblTp), parent.isEmpty)
+                .addLabel(LabelVarRef(flatName(name), lblTp), isTopLevel = true)
 
             // 4. Materialize bag dictionary
             val program = new MaterializedProgram(Program(stmt), dictCtx)
@@ -265,7 +267,7 @@ trait Materialization extends MaterializationContext {
                 // 2. Create dictionary bag expression
                 val tpl = TupleVarRef(Symbol.fresh(name = "l"), domainRef.tp.tp)
                 val lbl = LabelProject(tpl, LABEL_ATTR_NAME)
-                val (valueBag: BagExpr, ctx2) =
+                val (valueBag: BagExpr, valueCtx) =
                   rewriteUsingContext(BagExtractLabel(lbl, flat), ctx)
                 val bag =
                   ForeachUnion(tpl, domainRef,
@@ -278,7 +280,7 @@ trait Materialization extends MaterializationContext {
                 val stmt = Assignment(matDictRef.name, matDict)
 
                 // 4. Extend context
-                val dictCtx = ctx2.addDict(dict, matDictRef, parent)
+                val dictCtx = valueCtx.addDict(dict, matDictRef, parent)
 
                 // 5. Materialize bag dictionary
                 val program = new MaterializedProgram(Program(domain, stmt), dictCtx)

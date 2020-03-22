@@ -3,8 +3,8 @@ package shredding.nrc
 import shredding.core.{BagType, LabelType, MatDictType, OpEq, TupleType, VarDef}
 import shredding.utils.Utils.Symbol
 
-trait MaterializationDomain {
-  this: MaterializeNRC with MaterializationContext with Printer =>
+trait MaterializationDomain extends Printer {
+  this: MaterializeNRC with MaterializationContext =>
 
   def eliminateDomain(lblTp: LabelType, b: BagExpr, ctx: Context): Option[(BagExpr, Context)] = {
     val newCtx = lblTp.attrTps.foldLeft (ctx) {
