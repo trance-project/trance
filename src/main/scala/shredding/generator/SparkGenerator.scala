@@ -272,7 +272,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), cache: Boolean = fa
       val gv2 = generate(v2)
       val baseKey = wrapIndex(s"{${generate(f)}}")
       val key = f match {
-        case Bind(bv, Project(v, field), _) => wrapIndex(nullProject(f))
+        case Bind(bv, Project(v, field), _) => wrapIndex(s"{${nullProject(f)}}")
         case _ => baseKey
       }
       //s"{${generate(f)}}"
@@ -294,7 +294,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), cache: Boolean = fa
           ) :+ s"case $gv2 => ($baseKey, $value)\n}}.${agg(e2)}$removeIndex").mkString("\n")
         case _ => 
           s"""|${generate(e1)}$zip.map{ case ${wrapIndex(vars)} => {${generate(g)}} match { 
-              |  case (null) => ({$key}, $emptyType)
+              |  case (null) => ($key, $emptyType)
               |  case $gv2 => ($baseKey, $value)
               |}}.${agg(e2)}$removeIndex""".stripMargin
       }

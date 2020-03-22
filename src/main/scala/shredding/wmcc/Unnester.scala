@@ -168,8 +168,9 @@ object Unnester {
       assert(!E.isEmpty)
       fs.filter(f => isNestedComprehension(f._2)).toList match {
         case Nil =>
-          if (u.isEmpty) Reduce(E.get, w, t, Constant(true)) 
-          else {
+          if (u.isEmpty) {
+            Reduce(E.get, w, t, Constant(true)) 
+          } else {
             val et = Tuple(u)
             val v = Variable.fresh(TTupleType(et.tp.attrTps :+ BagCType(t.tp))) 
             val (filt, nulls) = if (u.head.tp.isDict) 

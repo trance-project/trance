@@ -27,6 +27,14 @@ trait TPCHBase extends Query {
     Singleton(Tuple(tr.tp.attrTps.withFilter(f => 
       !omit.contains(f._1)).map(f => f._1 -> tr(f._1))))
 
+  def projectTuples(tr1: TupleVarRef, tr2: TupleVarRef, omit: List[String] = Nil): BagExpr = {
+    val m1 = tr1.tp.attrTps.withFilter(f => 
+      !omit.contains(f._1)).map(f => f._1 -> tr1(f._1))
+    val m2 = tr2.tp.attrTps.withFilter(f => 
+      !omit.contains(f._1)).map(f => f._1 -> tr2(f._1))
+    Singleton(Tuple(m1 ++ m2))
+  }
+
   def projectTuple(tr: TupleVarRef, nbag:(String, TupleAttributeExpr), omit: List[String] = Nil): BagExpr = 
     Singleton(Tuple(tr.tp.attrTps.withFilter(f => 
       !omit.contains(f._1)).map(f => f._1 -> tr(f._1)) + nbag))

@@ -48,10 +48,6 @@ trait BaseNormalizer extends BaseCompiler {
       case LinearCSet(fs) => fs
       case fs => List(fs)
     })
-    // .filter(f => f match {
-    //   case CNamed("M_ctx1", _) => false
-    //   case _ => true
-    //   }))
   } 
 
   // N1, N2
@@ -126,20 +122,5 @@ trait BaseNormalizer extends BaseCompiler {
         Comprehension(e1, v, p(v), e(v))
       }
     }
-
-  // def isTopLevelDict(tp: Type): Boolean = tp match {
-  //   case BagDictCType(BagCType(RecordCType(fs)), EmptyDictCType) => true
-  //   case BagCType(RecordCType(fs)) if fs.keySet == Set("lbl") => false
-  //   case BagCType(RecordCType(fs)) if fs.exists(_._2.isInstanceOf[LabelType]) => true
-  //   case _ => false
-  // }
-
-  // def topLevelVar(tp: Type): Variable = tp match {
-  //   case BagDictCType(BagCType(RecordCType(fs)), EmptyDictCType) => 
-  //     Variable.fresh(TTupleType(List(EmptyCType,tp)))
-  //   case BagCType(rs @ RecordCType(fs)) if fs.exists(_._2.isInstanceOf[LabelType]) => 
-  //     Variable.fresh(TTupleType(List(EmptyCType, tp)))
-  //   case _ => ???
-  // }
 
 }

@@ -237,7 +237,6 @@ trait BaseCompiler extends Base {
     val ev = e(v1)
     val v = ev.tp match {
       case p:PrimitiveType => 
-        // Variable.fresh(RecordCType(Map("_1" -> fv.tp, "_2" -> ev.tp)))
         Variable.fresh(TTupleType(List(fv.tp,ev.tp)))
       case _ => 
         Variable.fresh(TTupleType(List(fv.tp,BagCType(ev.tp))))
@@ -279,16 +278,17 @@ trait BaseCompiler extends Base {
   /**
     * Why am I using this still??
     */
-  def vars(e: Type): List[Variable] = e match {
-    case BagCType(tup) => vars(tup)
-    case BagDictCType(BagCType(tup), _) => List(Variable.fresh(tup))
+
+  def vars(e: Type, top: Boolean = true): List[Variable] = e match {
+    case BagCType(tup) if top => vars(tup, false)
+    case BagDictCType(BagCType(tup), _) if top => List(Variable.fresh(tup))
     case TTupleType(List(EmptyCType, BagCType(tup))) => List(Variable.fresh(tup))
     //case BagDictCType(flat, dict) => List(Variable.fresh(flat.tp))
     case TTupleType(tps) if tps.head.isInstanceOf[LabelType] => 
       List(Variable.fresh(e)) // won't catch all cases
     case TTupleType(tps) if (tps.head.isInstanceOf[RecordCType] && tps.last.isInstanceOf[PrimitiveType] && tps.size == 2) => 
       List(Variable.fresh(e)) // fix this
-    case TTupleType(tps) => tps.flatMap(vars(_)) 
+    case TTupleType(tps) => tps.flatMap(vars(_, false)) 
     case _ => List(Variable.fresh(e))
   }
 
@@ -300,34 +300,10 @@ trait BaseCompiler extends Base {
   */
 trait BaseDictNameIndexer extends BaseCompiler {
 
-  // def isDictType(tp: Type): (Type, Boolean) = tp match {
-  //   case BagCType(TTupleType(List(EmptyCType, BagCType(tup)))) => (tup, true)
-  //   case BagDictCType(BagCType(rct @ RecordCType(_)), tdict) => (rct, true)
-  //   case BagDictCType(flat, dict) => isDictType(flat)
-  //   case _ => (tp, false)
-  // }
-
   override def project(e1: Rep, f: String): Rep = e1 match {
     case InputRef(n, _) if n.contains("Dict") => e1
     case _ => super.project(e1, f)
   }
-
-  // override def project(e1: Rep, f: String): Rep = e1 match {
-  //   // this case needs work
-  //   case Project(InputRef(n, TupleDictCType(fs)), "_2") => 
-  //     InputRef(n+"_2"+f, fs(f))
-  //   // case InputRef(n, BagCType(RecordCType(ms))) if n.contains("Dict") => InputRef(n+f, )
-  //   case InputRef(n, BagCType(TTupleType(List(EmptyCType, btp)))) => 
-  //     InputRef(n+f, btp)
-  //   // case InputRef(n, BagDictCType(BagCType(TTupleType(List(EmptyCType, btp))), tdict)) if f == "_1" => 
-  //   //   InputRef(n+f, btp)
-  //   case InputRef(n, BagDictCType(flat, dict)) => 
-  //     if (f == "_1") InputRef(n+f, flat)
-  //     else if (f == "_2") project(InputRef(n, dict), f)
-  //     else super.project(e1, f)
-  //   case InputRef(n, TupleDictCType(fs)) => InputRef(n+f, fs(f))
-  //   case _ => super.project(e1, f) 
-  // }
 
   // override def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = e1 match {        
   //     case Lookup(e3, e4, v1, pa, v2, pb, pc) => (e2, e4) match {

@@ -101,9 +101,9 @@ object Optimizer {
       CNamed(n, mergeOps(Reduce(e1, v2, f2, p2)))
 
     /** merge nests and joins **/
-    case Nest(OuterJoin(e1, e2, e1s, key1, e2s, key2, proj1, proj2), 
-      vs, key, value, nv, np, ng) if (collectVars(value) == Set(e2s) && !value.tp.isPrimitive) =>
-      CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
+    // case Nest(OuterJoin(e1, e2, e1s, key1, e2s, key2, proj1, proj2), 
+    //   vs, key, value, nv, np, ng) if (collectVars(value) == Set(e2s) && !value.tp.isPrimitive) =>
+    //   CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
     case Nest(Join(e1:Select, e2, e1s, key1, e2s, key2, proj1, proj2), 
       vs, key, value, nv, np, ng) if !value.tp.isPrimitive => 
       CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
@@ -174,13 +174,13 @@ object Optimizer {
       fields(proj1)
       fields(proj2)
       OuterJoin(push(e1), push(e2), v1, p1, v2, p2, proj1, proj2)
-    case Select(InputRef(n, _), v,_,_) if n.contains("M_ctx") => e
+    //case Select(InputRef(n, _), v,_,_) if n.contains("M_ctx") => e
     case Select(d, v, f, e2) =>
       fields(e)
       val projs = proj(v)
       e2 match {
-        case Variable(_, RecordCType(tfs)) if tfs.keySet != projs  && tfs.keySet != Set("lbl") =>
-           Select(push(d), v, f, Record(projs.map(f2 => f2 -> Project(v, f2)).toMap))
+        case Variable(_, RecordCType(tfs)) if tfs.keySet != projs => // && tfs.keySet != Set("lbl") =>
+          Select(push(d), v, f, Record(projs.map(f2 => f2 -> Project(v, f2)).toMap))
         case _ =>
           Select(push(d), v, f, e2)
       }

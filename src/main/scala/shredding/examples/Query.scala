@@ -20,7 +20,12 @@ trait Query extends Materialization
 
   /** standard query program **/
   val program: Program
-  def calculus: CExpr = {val q = translate(program); println(Printer.quote(q)); q}
+  def calculus: CExpr = {
+    val q = translate(program)
+    // println(Printer.quote(q)) 
+    q
+  }
+
   def normalize: CExpr = {
     val norm = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
     // println(Printer.quote(norm))
@@ -33,7 +38,7 @@ trait Query extends Materialization
 
   def unnest: CExpr = {
     val plan = Optimizer.applyAll(unnestOnly)
-    println(Printer.quote(plan))
+    println("\n"+Printer.quote(plan))
     plan
   }
 
@@ -43,11 +48,11 @@ trait Query extends Materialization
     optimizationLevel match {
       case 0 => 
         val plan = Optimizer.indexOnly(unnestOnly)
-        println(Printer.quote(plan))
+        println("\n"+Printer.quote(plan))
         anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
       case 1 => 
         val plan = Optimizer.projectOnly(unnestOnly)
-        println(Printer.quote(plan))
+        println("\n"+Printer.quote(plan))
         anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
       case _ => anfBase.anf(anfer.finalize(this.unnest).asInstanceOf[anfBase.Rep])
     }
@@ -71,7 +76,7 @@ trait Query extends Materialization
       val ncalc = normalizer.finalize(translate(matProg)).asInstanceOf[CExpr]
       val initPlan = Unnester.unnest(ncalc)(Nil, Nil, None)
       val optPlan = Optimizer.applyAll(initPlan)
-      println(Printer.quote(optPlan))
+      // println(Printer.quote(optPlan))
       val anfBase = new BaseANF{}
       val anfer = new Finalizer(anfBase)
       val splan = anfBase.anf(anfer.finalize(optPlan).asInstanceOf[anfBase.Rep])
@@ -80,7 +85,7 @@ trait Query extends Materialization
       val uncalc = normalizer.finalize(translate(ushred)).asInstanceOf[CExpr]
       val uinitPlan = Unnester.unnest(uncalc)(Nil, Nil, None)
       val uoptPlan = Optimizer.applyAll(uinitPlan)
-      println(Printer.quote(uoptPlan))
+      // println(Printer.quote(uoptPlan))
       val uanfBase = new BaseANF{}
       val uanfer = new Finalizer(uanfBase)
       val usplan = uanfBase.anf(uanfer.finalize(uoptPlan).asInstanceOf[uanfBase.Rep])
