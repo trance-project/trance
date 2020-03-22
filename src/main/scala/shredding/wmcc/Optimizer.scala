@@ -101,9 +101,9 @@ object Optimizer {
       CNamed(n, mergeOps(Reduce(e1, v2, f2, p2)))
 
     /** merge nests and joins **/
-    // case Nest(OuterJoin(e1, e2, e1s, key1, e2s, key2, proj1, proj2), 
-    //   vs, key, value, nv, np, ng) if (collectVars(value) == Set(e2s) && !value.tp.isPrimitive) =>
-    //   CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
+    case Nest(OuterJoin(e1, e2, e1s, key1, e2s, key2, proj1, proj2), 
+      vs, key, value, nv, np, ng) if (collectVars(value) == Set(e2s) && !value.tp.isPrimitive) =>
+      CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
     case Nest(Join(e1:Select, e2, e1s, key1, e2s, key2, proj1, proj2), 
       vs, key, value, nv, np, ng) if !value.tp.isPrimitive => 
       CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
