@@ -168,17 +168,8 @@ object Unnester {
       assert(!E.isEmpty)
       fs.filter(f => isNestedComprehension(f._2)).toList match {
         case Nil =>
-          if (u.isEmpty) {
-            t match {
-              // case Record(ms) if (ms.keySet == Set("k", "v") || ms.keySet == Set("_1", "_2"))  =>
-              //   val lbl = fs("_1") match { case Project(t1,"_1") => t1; case t1 => t1 }
-              //   Reduce(E.get, w, Record(Map("_1" -> lbl, "_2" -> fs("_2"))), Constant(true))
-              case _ => 
-                // println("terminating")
-                // println(t)
-                Reduce(E.get, w, t, Constant(true)) 
-            }
-          }else {
+          if (u.isEmpty) Reduce(E.get, w, t, Constant(true)) 
+          else {
             val et = Tuple(u)
             val v = Variable.fresh(TTupleType(et.tp.attrTps :+ BagCType(t.tp))) 
             val (filt, nulls) = if (u.head.tp.isDict) 
@@ -209,7 +200,7 @@ object Unnester {
           } 
         // hit unshredding case
         case (key, value @ CLookup(lbl, dict)) :: tail => 
-          val v2 = Variable.fresh(dict.tp.asInstanceOf[BagDictCType].flat)
+          val v2 = Variable.freshFromBag(dict.tp.flat)
           val nE = Some(Lookup(E.get, dict, w, lbl, v2, Constant(true), v2))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case head @ (key, value) :: tail => sys.error(s"not supported ${Printer.quote(value)}")

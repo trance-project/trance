@@ -440,7 +440,7 @@ object Test0NN extends TPCHBase {
         IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
           Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> partRef("l_qty"))))))
 
-  val program = Test0.program.asInstanceOf[Test0NN.Program].append(Assignment(name, query))
+  val program = Program(Assignment(name, query))
 
 }
 
@@ -462,7 +462,7 @@ object Test1NN extends TPCHBase {
             IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
               Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> partRef("l_qty")))))))))
 
-  val program = Test1.program.asInstanceOf[Test1NN.Program].append(Assignment(name, query))
+  val program = Program(Assignment(name, query))
 
 }
 
@@ -486,7 +486,7 @@ object Test2NN extends TPCHBase {
             ForeachUnion(pr, relP,
               IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
                 Singleton(Tuple("p_name" -> pr("p_name"), "l_qty" -> partRef("l_qty"))))))))))))
-  val program = Test2.program.asInstanceOf[Test2NN.Program].append(Assignment(name, query))
+  val program = Program(Assignment(name, query))
 }
 
 object Test3NN extends TPCHBase {
