@@ -12,6 +12,11 @@ sealed trait Type { self =>
     case _ => false
   }
   def isDict: Boolean = false
+  def flat: BagCType = self match {
+    case _:BagCType => self.flat
+    case _:BagDictCType => self.flat
+    case _ => sys.error("unsupported call to flat")
+  }
 }
 
 trait ReducibleType
@@ -99,6 +104,10 @@ case class BagCType(tp: Type) extends Type {
     case TTupleType(fs) => fs.head.isInstanceOf[LabelType]
     case _ => false
   }
+  override def flat: BagCType = tp match {
+    case TTupleType(fs) if tp.isDict => fs.last.asInstanceOf[BagCType]
+    case _ => sys.error("calling flat on an unsupported type")
+  }
 }
 
 case object EmptyCType extends Type
@@ -139,7 +148,7 @@ case class BagDictCType(flatTp: BagCType, dictTp: TTupleDict) extends TDict { se
     case "_2" => dictTp
   }
   def lbl: LabelType = flatTp.tp.asInstanceOf[TTupleType](0).asInstanceOf[LabelType]
-  def flat: BagCType = flatTp.tp match {
+  override def flat: BagCType = flatTp.tp match {
     case ttp @ TTupleType(List(IntType, RecordCType(_))) => BagCType(ttp)
     case TTupleType(fs) => fs(1).asInstanceOf[BagCType]
     case _ => flatTp //sys.error("type not supported in flat bag")

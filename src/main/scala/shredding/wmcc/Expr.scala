@@ -122,7 +122,6 @@ case class Multiply(e1: CExpr, e2: CExpr) extends CExpr{
 
 case class Project(e1: CExpr, field: String) extends CExpr { self =>
   def tp: Type = e1.tp match {
-    case l:LabelType => l.attrTps(field)
     case t:RecordCType => t.attrTps(field)
     case t @ TTupleType(List(EmptyCType, RecordCType(fs))) if ( field != "_1" && field != "_2") => fs(field)
     case t:TTupleType => field match {
@@ -196,7 +195,7 @@ case class LinearCSet(exprs: List[CExpr]) extends CExpr {
   */
 
 case class CLookup(lbl: CExpr, dict: CExpr) extends CExpr {
-  def tp: BagCType = dict.tp.asInstanceOf[BagDictCType]("flat").asInstanceOf[BagCType]
+  def tp: BagCType = dict.tp.flat
   //def tp: BagCType = dict.tp.asInstanceOf[BagDictCType].flatTp
 }
 

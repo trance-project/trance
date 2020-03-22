@@ -55,6 +55,38 @@ trait Query extends Materialization
 
   /** shred query **/
 
+  def shred(ctx: Map[String, ShredExpr] = Map.empty, eliminateDomains: Boolean = true): 
+    (Program, Program, Map[String, ShredExpr]) = {
+      val (shredded, shreddedCtx) = shredCtx(program, ctx)
+      val optShred = optimize(shredded)
+      val materializedProgram = materialize(optimize(shredded), eliminateDomains = eliminateDomains)
+      val unshredProg = unshred(optShred, materializedProgram.ctx)
+      (materializedProgram.program, unshredProg, shreddedCtx)
+    }
+
+  def shredPlan(ctx: Map[String, ShredExpr] = Map.empty, eliminateDomains: Boolean = true): 
+    (CExpr, CExpr, Map[String, ShredExpr]) = {
+      val (matProg, ushred, sctx) = shred(ctx, eliminateDomains)
+      // shred 
+      val ncalc = normalizer.finalize(translate(matProg)).asInstanceOf[CExpr]
+      val initPlan = Unnester.unnest(ncalc)(Nil, Nil, None)
+      val optPlan = Optimizer.applyAll(initPlan)
+      println(Printer.quote(optPlan))
+      val anfBase = new BaseANF{}
+      val anfer = new Finalizer(anfBase)
+      val splan = anfBase.anf(anfer.finalize(optPlan).asInstanceOf[anfBase.Rep])
+
+      //unshred
+      val uncalc = normalizer.finalize(translate(ushred)).asInstanceOf[CExpr]
+      val uinitPlan = Unnester.unnest(uncalc)(Nil, Nil, None)
+      val uoptPlan = Optimizer.applyAll(uinitPlan)
+      println(Printer.quote(uoptPlan))
+      val uanfBase = new BaseANF{}
+      val uanfer = new Finalizer(uanfBase)
+      val usplan = uanfBase.anf(uanfer.finalize(uoptPlan).asInstanceOf[uanfBase.Rep])
+      (splan, usplan, ctx)
+  }
+
   def shred: (ShredProgram, MaterializedProgram) = {
     println(quote(program))
     val sprog = optimize(shred(program))
