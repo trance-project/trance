@@ -23,6 +23,22 @@ trait TPCHBase extends Query {
   def headerTypes(shred: Boolean = false): List[String] =
     inputTypes(shred).values.toList
 
+  def projectBaseTuple(tr: TupleVarRef, omit: List[String] = Nil): BagExpr = 
+    Singleton(Tuple(tr.tp.attrTps.withFilter(f => 
+      !omit.contains(f._1)).map(f => f._1 -> tr(f._1))))
+
+  def projectTuples(tr1: TupleVarRef, tr2: TupleVarRef, omit: List[String] = Nil): BagExpr = {
+    val m1 = tr1.tp.attrTps.withFilter(f => 
+      !omit.contains(f._1)).map(f => f._1 -> tr1(f._1))
+    val m2 = tr2.tp.attrTps.withFilter(f => 
+      !omit.contains(f._1)).map(f => f._1 -> tr2(f._1))
+    Singleton(Tuple(m1 ++ m2))
+  }
+
+  def projectTuple(tr: TupleVarRef, nbag:(String, TupleAttributeExpr), omit: List[String] = Nil): BagExpr = 
+    Singleton(Tuple(tr.tp.attrTps.withFilter(f => 
+      !omit.contains(f._1)).map(f => f._1 -> tr(f._1)) + nbag))
+
   val relC = BagVarRef("C", TPCHSchema.customertype)
   val cr = TupleVarRef("c", TPCHSchema.customertype.tp)
 
@@ -43,6 +59,9 @@ trait TPCHBase extends Query {
 
   val relN = BagVarRef("N", TPCHSchema.nationtype)
   val nr = TupleVarRef("n", TPCHSchema.nationtype.tp)
+
+  val relR = BagVarRef("R", TPCHSchema.regiontype)
+  val rr = TupleVarRef("r", TPCHSchema.regiontype.tp)
 
 }
   
@@ -178,8 +197,8 @@ object TPCHQuery2Full extends TPCHBase {
   val name = "Query2Full"
 
   def inputs(tmap: Map[String, String]): String =
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x =>
-      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
+    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"""
 
   override def indexedDict: List[String] =
     List("Query2Full__D_1", "Query2Full__D_2customers2_1")
@@ -214,8 +233,8 @@ object TPCHQuery2 extends TPCHBase {
   val name = "Query2"
 
   def inputs(tmap: Map[String, String]): String =
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x =>
-      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
+    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x =>
+      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"""
 
   override def indexedDict: List[String] =
     List(s"${name}__D_1", s"${name}__D_2customers2_1")
@@ -248,8 +267,8 @@ object TPCHQuery3Full extends TPCHBase{
     List(s"${name}__D_1", s"${name}__D_2suppliers_1", s"${name}__D_2customers_1")
 
   def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
-      List("C", "O", "L", "P", "PS", "S").contains(x._1)).values.toList.mkString("")}"
+    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "P", "PS", "S").contains(x._1)).values.toList.mkString("")}"""
 
   val query3 = ForeachUnion(pr, relP,
                 Singleton(Tuple("p_name" -> pr("p_name"), "suppliers" -> ForeachUnion(psr, relPS,
@@ -304,8 +323,8 @@ object TPCHQuery3 extends TPCHBase {
     List(s"${name}__D_1", s"${name}__D_2suppliers_1", s"${name}__D_2customers_1")
 
   def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
-      List("C", "O", "L", "P", "PS", "S").contains(x._1)).values.toList.mkString("")}"
+    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "P", "PS", "S").contains(x._1)).values.toList.mkString("")}"""
   
   val partsuppliers = ForeachUnion(psr, relPS,
                     ForeachUnion(sr, relS,
@@ -397,8 +416,8 @@ object TPCHQuery6Full extends TPCHBase {
   val name = "Query6Full"
 
   def inputs(tmap: Map[String, String]): String =
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
-      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
+    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"""
  
   val (q2r, cor) = varset(TPCHQuery2Full.name, "co",
     TPCHQuery2Full.program(TPCHQuery2Full.name).varRef.asInstanceOf[BagExpr])
@@ -420,8 +439,8 @@ object TPCHQuery6 extends TPCHBase {
   val name = "Query6"
 
   def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
-      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
+    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"""
  
   val (q2r, cor) = varset(TPCHQuery2Full.name, "co",
     TPCHQuery2Full.program(TPCHQuery2Full.name).varRef.asInstanceOf[BagExpr])
@@ -446,8 +465,8 @@ object TPCHQuery6New extends TPCHBase {
   val name = "Query6New"
 
   def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
-      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
+    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"""
  
   val (q2r, cor) = varset(TPCHQuery2Full.name, "co",
     TPCHQuery2Full.program(TPCHQuery2Full.name).varRef.asInstanceOf[BagExpr])
@@ -484,8 +503,8 @@ object TPCHQuery7Full extends TPCHBase {
   val name = "Query7Full"
 
   def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
-      List("C", "O", "L", "P", "PS", "S", "N").contains(x._1)).values.toList.mkString("")}"
+    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "P", "PS", "S", "N").contains(x._1)).values.toList.mkString("")}"""
 
   val (q3r, cor) = varset(TPCHQuery3Full.name, "co",
     TPCHQuery3Full.program(TPCHQuery3Full.name).varRef.asInstanceOf[BagExpr])
@@ -516,8 +535,8 @@ object TPCHQuery7 extends TPCHBase {
   val name = "Query7"
 
   def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
-      List("C", "O", "L", "P", "PS", "S", "N").contains(x._1)).values.toList.mkString("")}"
+    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "P", "PS", "S", "N").contains(x._1)).values.toList.mkString("")}"""
 
   val (q3r, cor) = varset(TPCHQuery3Full.name, "co",
     TPCHQuery3Full.program(TPCHQuery3Full.name).varRef.asInstanceOf[BagExpr])
@@ -547,8 +566,8 @@ object TPCHQuery72 extends TPCHBase {
   val name = "Query72"
 
   def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
-      List("C", "O", "L", "P", "PS", "S", "N").contains(x._1)).values.toList.mkString("")}"
+    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "P", "PS", "S", "N").contains(x._1)).values.toList.mkString("")}"""
 
   val (q3r, cor) = varset(TPCHQuery3Full.name, "co",
     TPCHQuery3Full.program(TPCHQuery3Full.name).varRef.asInstanceOf[BagExpr])
