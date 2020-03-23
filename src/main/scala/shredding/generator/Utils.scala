@@ -247,7 +247,7 @@ object Utils {
     unshred: Boolean = false, skew: Boolean = false): Unit = {
     
     val codegen = new SparkNamedGenerator()
-    val (gcodeShred, gcodeUnshred, ctx) = query.shredPlan(eliminateDomains = eliminateDomains)
+    val (gcodeShred, gcodeUnshred) = query.shredPlan(eliminateDomains = eliminateDomains)
     val gcode1 = codegen.generate(gcodeShred)
     val gcodeSet = if (unshred) List(gcode1, codegen.generate(gcodeUnshred)) else List(gcode1)
     val header = if (skew) {
@@ -276,15 +276,12 @@ object Utils {
   def runSparkInputShred(inputQuery: Query, query: Query, pathout: String, label: String, 
     eliminateDomains: Boolean = true, unshred: Boolean = false, skew: Boolean = false): Unit = {
     
-    val codegenInput = new SparkNamedGenerator(Map.empty[Type, String], true, true)
+    val codegenInput = new SparkNamedGenerator(Map.empty[Type, String], cache = false, evaluate = false)
     val codegen = new SparkNamedGenerator(codegenInput.types)
-    val (inputShred, inputUnshred, inputCtx) = 
-      inputQuery.shredPlan(eliminateDomains = eliminateDomains)
+    val (inputShred, queryShred, queryUnshred) = query.shredWithInput(inputQuery, eliminateDomains = eliminateDomains)
     val inputCode = codegen.generate(inputShred)
-    val (gcodeShred, gcodeUnshred, sctx) = 
-      query.shredPlan(ctx = inputCtx.asInstanceOf[Map[String, query.ShredExpr]], eliminateDomains = eliminateDomains)
-    val gcode1 = codegen.generate(gcodeShred)
-    val gcodeSet = if (unshred) List(gcode1, codegen.generate(gcodeUnshred)) else List(gcode1)
+    val gcode1 = codegen.generate(queryShred)
+    val gcodeSet = if (unshred) List(gcode1, codegen.generate(queryUnshred)) else List(gcode1)
     val header = if (skew) {
         s"""|import sprkloader.SkewPairRDD._
             |import sprkloader.SkewDictRDD._
@@ -323,10 +320,13 @@ object Utils {
   def shredInputs(ns: List[String]): String = { 
     var cnt = 0
     ns.map{ n => 
+      val (inputTag, outputTag) = if (cnt == 0) ("MBag", "IBag") else ("MDict", "IDict")
+      val iname = n.replace("__D", "")
+      val oname = n.replace("_1", "")
       cnt += 1
-      s"""|val $n = M__D_$cnt
-          |$n.cache
-          |$n.evaluate"""
+      s"""|val ${outputTag}_$oname = ${inputTag}_$iname
+          |${outputTag}_$oname.cache
+          |${outputTag}_$oname.evaluate"""
     }.mkString("\n").stripMargin
   }
 

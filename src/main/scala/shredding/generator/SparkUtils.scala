@@ -69,12 +69,9 @@ trait SparkUtils {
   def comment(n: String): String = s"//$n"
 
   def runJob(n: String, cache:Boolean, evaluate:Boolean): String = {
-    // change this to work with new domain tags
-    if (!n.contains("ctx")){
       s"""|${if (cache) n else comment(n)}.cache
           |//$n.print
           |${if (evaluate) n else comment(n)}.evaluate"""
-    }else ""
   }
 
 }

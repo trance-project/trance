@@ -111,6 +111,8 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
       CReduceBy(bagExpr, v, keys, values) 
     case v: VarRefLabelParameter => translateVar(v.e)
     case l: NewLabel =>
+      println("translating this type")
+      println(l.tp)
       label(l.params.map {
         case (n, v2: VarRefLabelParameter) => translateName(n) -> translateVar(v2.e)
         case (n, v2: ProjectLabelParameter) => translateName(n) -> translate(v2.e)
@@ -131,7 +133,9 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
     case DeDup(e1) => CDeDup(translate(e1)) 
     // case _ => EmptyCDict
     case MatDictLookup(lbl, dict) => CLookup(translate(lbl), translate(dict))
-    case MatDictToBag(bd) => translate(bd)
+    case MatDictToBag(bd) => 
+      println(bd)
+      translate(bd)
     case BagToMatDict(bd) => translate(bd)
     
     case _ => sys.error("cannot translate "+quote(e))

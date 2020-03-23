@@ -123,10 +123,10 @@ object Optimizer {
     // todo push record type projection into lookup
     // case Reduce(Nest(e1, vs, key, value, nv, np, CUnit, dk), v2, e2, p2) => 
     //   mergeOps(Nest(e1, vs, key, value, nv, np, CUnit, dk))
-    case Reduce(r @ Reduce(x, v, e2, Constant("null")), 
-      v2, t @ Record(fs), p2) if fs.keySet == Set("_1", "_2") => r
-    case Reduce(Reduce(x, v, e2, p), v2, f2, p2) if p != Constant("null") =>
-      mergeOps(Reduce(x, v2, e2, normalizer.and(p, p2)))
+    // case Reduce(r @ Reduce(x, v, e2, Constant("null")), 
+    //   v2, t @ Record(fs), p2) if fs.keySet == Set("_1", "_2") => r
+    // case Reduce(Reduce(x, v, e2, p), v2, f2, p2) if p != Constant("null") =>
+    //   mergeOps(Reduce(x, v2, e2, normalizer.and(p, p2)))
     case Reduce(Select(x, v, p, e2), v2, f2:Variable, p2) =>
       Reduce(x, List(v), e2, normalizer.and(p, p2))
     case Reduce(Select(x, v, p, e2), v2, f2, p2) => 

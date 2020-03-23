@@ -37,26 +37,51 @@ object Unnester {
     // assuming single numeric agg for now
     case g:CombineOp => unnest(g.e1)(u, w, E) match {
       case r @ Reduce(e2, v2, e3 @ Record(fs), p2) => 
-        val (keys, values) = (e3.project(g.keys), e3(g.values.head))//.project(g.values))
+        println(Printer.quote(e3))
+        val keys = fs get "_1" match {
+          case Some(lbl) => lbl
+          case _ => e3.project(g.keys)
+        }
+        val (values, vname) = g.valuesTp match {
+          case _:RecordCType => (e3(g.values.head), g.values.head)
+          case _:BagCType => (e3.project(g.values), "_2")
+          case _ => ???
+        }
+
         val v = Variable.fresh(values.tp)
+
         val initNest = Nest(e2, v2, keys, values, v, p2, CUnit, true)
-        val nrec = Record(keys.fields ++ Map(g.values.head -> v))
-        val vs = keys.fields.map(f => f._2 match {
-            case Project(v1, f) => v1
-            case v1 => v1
-          }).asInstanceOf[List[Variable]]
-        Reduce(initNest, vs :+ v, nrec, Constant(true))
-      
+        println("this nest")
+        keys match {
+          case Label(_) => initNest
+          case Record(ks) => 
+            val vs = ks.map(f => f._2 match {
+              case Project(v1, f) => v1
+              case v1 => v1
+            }).asInstanceOf[List[Variable]]
+            val nrec = Tuple(u :+ Record(ks ++ Map(vname -> v)))
+            Reduce(initNest, vs :+ v, nrec, Constant(true))
+          case _ => ???
+        }
+        
       case n @ Nest(e2, v2, f2, e3 @ Record(fs), v3, p2, gs, _) => 
-        val (keys, values) = (e3.project(g.keys), e3(g.values.head))
-        val key = Tuple(u :+ keys)
+
+        val keys = e3.project(g.keys)
+        val (values, vname) = g.valuesTp match {
+          case _:RecordCType => (e3(g.values.head), g.values.head)
+          case _:BagCType => (e3.project(g.values), "_2")
+          case _ => ???
+        }
+
         val v = Variable.fresh(values.tp)
+        val nrec = Tuple(u :+ Record(keys.fields ++ Map(vname -> v)))
+
         val castNulls = Tuple(u ++ keys.fields.map(f => f._2 match {
             case Project(v1, f) => v1
             case v1 => v1
           }).toList)
-        val initNest = Nest(e2, v2, key, values, v, p2, gs, true)
-        val nrec = Tuple(u :+ Record(keys.fields ++ Map(g.values.head -> v)))
+
+        val initNest = Nest(e2, v2, Tuple(u :+ keys), values, v, p2, gs, true)
         val vs = castNulls.fields.asInstanceOf[List[Variable]]
         Reduce(initNest, vs :+ v, nrec, Constant("null"))
       case _ => ???

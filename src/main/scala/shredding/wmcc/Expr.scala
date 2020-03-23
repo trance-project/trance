@@ -176,6 +176,7 @@ trait CombineOp extends CExpr {
   def v1: Variable
   def keys: List[String]
   def values: List[String]
+  def valuesTp: Type
 }
 
 case class CReduceBy(e1: CExpr, v1: Variable, keys: List[String], values: List[String]) extends CExpr with CombineOp {

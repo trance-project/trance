@@ -39,7 +39,7 @@ object Test0Full extends TPCHBase {
 object Test1 extends TPCHBase {
 
   val name = "Test1"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"o__Do_parts_1")
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_o_parts_1")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("O", "L").contains(x._1)).values.toList.mkString("")}"
@@ -58,7 +58,7 @@ object Test1 extends TPCHBase {
 object Test1Full extends TPCHBase {
 
   val name = "Test1Full"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"o__Do_parts_1")
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_o_parts_1")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("O", "L").contains(x._1)).values.toList.mkString("")}"
@@ -77,7 +77,8 @@ object Test1Full extends TPCHBase {
 object Test2 extends TPCHBase {
 
   val name = "Test2"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_c_orders_1", 
+    s"${name}__D_1_c_orders_1_o_parts_1")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
@@ -97,7 +98,8 @@ object Test2 extends TPCHBase {
 object Test2Full extends TPCHBase {
 
   val name = "Test2Full"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_c_orders_1", 
+    s"${name}__D_1_c_orders_1_o_parts_1")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
@@ -117,7 +119,8 @@ object Test2Full extends TPCHBase {
 object Test2Flat extends TPCHBase {
 
   val name = "Test2"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_c_orders_1", 
+    s"${name}__D_1_c_orders_1_o_parts_1")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L").contains(x._1)).values.toList.mkString("")}"
@@ -143,7 +146,8 @@ object Test2Flat extends TPCHBase {
 object Test2FullFlat extends TPCHBase {
 
   val name = "Test2Full"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_c_orders_1", 
+    s"${name}__D_1_c_orders_1_o_parts_1")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L").contains(x._1)).values.toList.mkString("")}"
@@ -169,7 +173,8 @@ object Test2FullFlat extends TPCHBase {
 object Test3 extends TPCHBase {
 
   val name = "Test3"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"n__Dn_custs_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_n_custs_1", 
+    s"${name}__D_1_n_custs_1_c_orders_1", s"${name}__D_1_n_custs_1_c_orders_1_o_parts_1")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N").contains(x._1)).values.toList.mkString("")}"
@@ -194,7 +199,8 @@ object Test3 extends TPCHBase {
 object Test3Full extends TPCHBase {
 
   val name = "Test3Full"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"n__Dn_custs_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_n_custs_1", 
+    s"${name}__D_1_n_custs_1_c_orders_1", s"${name}__D_1_n_custs_1_c_orders_1_o_parts_1")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N").contains(x._1)).values.toList.mkString("")}"
@@ -218,7 +224,8 @@ object Test3Full extends TPCHBase {
 object Test3Flat extends TPCHBase {
 
   val name = "Test3"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"n__Dn_custs_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_n_custs_1", 
+    s"${name}__D_1_n_custs_1_c_orders_1", s"${name}__D_1_n_custs_1_c_orders_1_o_parts_1")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N").contains(x._1)).values.toList.mkString("")}"
@@ -252,7 +259,8 @@ object Test3Flat extends TPCHBase {
 object Test3FullFlat extends TPCHBase {
 
   val name = "Test3Full"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"n__Dn_custs_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_n_custs_1", 
+    s"${name}__D_1_n_custs_1_c_orders_1", s"${name}__D_1_n_custs_1_c_orders_1_o_parts_1")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N").contains(x._1)).values.toList.mkString("")}"
@@ -285,7 +293,9 @@ object Test3FullFlat extends TPCHBase {
 object Test4 extends TPCHBase {
 
   val name = "Test4"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"r__Dr_nations_1", s"n__Dn_custs_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_r_nations_1", 
+    s"${name}__D_1_r_nations_1_n_custs_1", s"${name}__D_1_r_nations_1_n_custs_1_c_orders_1", 
+    s"${name}__D_1_r_nations_1_n_custs_1_c_orders_1_o_parts_1")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N", "R").contains(x._1)).values.toList.mkString("")}"
@@ -312,7 +322,9 @@ object Test4 extends TPCHBase {
 object Test4Full extends TPCHBase {
 
   val name = "Test4Full"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"r__Dr_nations_1", s"n__Dn_custs_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_r_nations_1", 
+    s"${name}__D_1_r_nations_1_n_custs_1", s"${name}__D_1_r_nations_1_n_custs_1_c_orders_1", 
+    s"${name}__D_1_r_nations_1_n_custs_1_c_orders_1_o_parts_1")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N", "R").contains(x._1)).values.toList.mkString("")}"
@@ -338,7 +350,9 @@ object Test4Full extends TPCHBase {
 object Test4Flat extends TPCHBase {
 
   val name = "Test4"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"r__Dr_nations_1", s"n__Dn_custs_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_r_nations_1", 
+    s"${name}__D_1_r_nations_1_n_custs_1", s"${name}__D_1_r_nations_1_n_custs_1_c_orders_1", 
+    s"${name}__D_1_r_nations_1_n_custs_1_c_orders_1_o_parts_1")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N", "R").contains(x._1)).values.toList.mkString("")}"
@@ -382,7 +396,9 @@ object Test4Flat extends TPCHBase {
 object Test4FullFlat extends TPCHBase {
 
   val name = "Test4Full"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"r__Dr_nations_1", s"n__Dn_custs_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_r_nations_1", 
+    s"${name}__D_1_r_nations_1_n_custs_1", s"${name}__D_1_r_nations_1_n_custs_1_c_orders_1", 
+    s"${name}__D_1_r_nations_1_n_custs_1_c_orders_1_o_parts_1")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N", "R").contains(x._1)).values.toList.mkString("")}"
