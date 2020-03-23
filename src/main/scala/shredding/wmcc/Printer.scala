@@ -42,7 +42,8 @@ object Printer {
     }
     case Bind(x, e1, e2) => s"{ ${quote(e2)} | ${quote(x)} := ${quote(e1)} }"
     case CDeDup(e1) => s"DeDup(${quote(e1)})"
-    case CGroupBy(e1, v, grp, value) => s"(${quote(e1)}).groupBy(${quote(grp)}, ${quote(value)})"
+    case CGroupBy(e1, v, grp, value) => s"(${quote(e1)}).groupBy(${grp.mkString(",")}, ${value.mkString(",")})"
+    case CReduceBy(e1, v, grp, value) => s"(${quote(e1)}).reduceBy(${grp.mkString(",")}, ${value.mkString(",")})"
     case CNamed(n, e) => named(n, quote(e))
     case LinearCSet(exprs) => linset(exprs.map(quote(_)))
     case CLookup(lbl, dict) => lookup(quote(lbl), quote(dict))

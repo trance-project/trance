@@ -435,10 +435,11 @@ object Test0NN extends TPCHBase {
   val partsInput = Test0Full.program(Test0Full.name).varRef.asInstanceOf[BagExpr]
   val (parts, partRef) = varset(Test0Full.name, "l", partsInput)
   val query = 
-    ForeachUnion(partRef, parts,
+    ReduceByKey(ForeachUnion(partRef, parts,
       ForeachUnion(pr, relP,
         IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
-          Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity"))))))
+          Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))),
+    List("p_name"), List("l_quantity"))
 
   val program = Program(Assignment(name, query))
 
@@ -455,10 +456,11 @@ object Test0FullNN extends TPCHBase {
   val partsInput = Test0Full.program(Test0Full.name).varRef.asInstanceOf[BagExpr]
   val (parts, partRef) = varset(Test0Full.name, "l", partsInput)
   val query = 
-    ForeachUnion(partRef, parts,
+    ReduceByKey(ForeachUnion(partRef, parts,
       ForeachUnion(pr, relP,
         IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
-          projectTuples(pr, partRef))))
+          Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))), 
+    List("p_name"), List("l_quantity"))
 
   val program = Program(Assignment(name, query))
 
@@ -477,10 +479,11 @@ object Test1NN extends TPCHBase {
   val query = 
     ForeachUnion(orderRef, orders,
       Singleton(Tuple("o_orderdate" -> orderRef("o_orderdate"), "o_parts" ->
-        ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
+        ReduceByKey(ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
           ForeachUnion(pr, relP,
             IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
-              Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))))))
+              Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))),
+            List("p_name"), List("l_quantity")))))
 
   val program = Program(Assignment(name, query))
 
@@ -499,10 +502,11 @@ object Test1FullNN extends TPCHBase {
   val query = 
     ForeachUnion(orderRef, orders,
       projectTuple(orderRef, "o_parts" ->
-        ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
+        ReduceByKey(ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
           ForeachUnion(pr, relP,
             IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
-              projectTuples(pr, partRef)))), List("o_parts")))
+              Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))),
+            List("p_name"), List("l_quantity"))))
 
   val program = Program(Assignment(name, query))
 
@@ -524,10 +528,12 @@ object Test2NN extends TPCHBase {
     Singleton(Tuple("c_name" -> customerRef("c_name"), "c_orders" -> 
       ForeachUnion(orderRef, BagProject(customerRef, "c_orders"),
         Singleton(Tuple("o_orderdate" -> orderRef("o_orderdate"), "o_parts" ->
-          ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
+          ReduceByKey(ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
             ForeachUnion(pr, relP,
               IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
-                Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity"))))))))))))
+                Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))),
+          List("p_name"), List("l_quantity"))))))))
+
   val program = Program(Assignment(name, query))
 }
 
@@ -547,10 +553,11 @@ object Test2FullNN extends TPCHBase {
     projectTuple(customerRef, "c_orders" -> 
       ForeachUnion(orderRef, BagProject(customerRef, "c_orders"),
         projectTuple(orderRef, "o_parts" ->
-          ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
+          ReduceByKey(ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
             ForeachUnion(pr, relP,
               IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
-                projectTuples(pr, partRef)))), List("o_parts"))), List("c_orders")))
+                Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))),
+          List("p_name"), List("l_quantity"))))))
   val program = Program(Assignment(name, query))
 }
 
@@ -573,10 +580,11 @@ object Test3NN extends TPCHBase {
         Singleton(Tuple("c_name" -> customerRef("c_name"), "c_orders" -> 
           ForeachUnion(orderRef, BagProject(customerRef, "c_orders"),
             Singleton(Tuple("o_orderdate" -> orderRef("o_orderdate"), "o_parts" ->
-              ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
+              ReduceByKey(ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
                 ForeachUnion(pr, relP,
                   IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
-                    Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))))))))))))
+                    Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))),
+                List("p_name"), List("l_quantity")))))))))))
   val program = Program(Assignment(name, query))
 }
 
@@ -599,10 +607,11 @@ object Test3FullNN extends TPCHBase {
         projectTuple(customerRef, "c_orders" -> 
           ForeachUnion(orderRef, BagProject(customerRef, "c_orders"),
             projectTuple(orderRef, "o_parts" ->
-              ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
+              ReduceByKey(ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
                 ForeachUnion(pr, relP,
                   IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
-                    projectTuples(pr, partRef))))))))))
+                    Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))),
+              List("p_name"), List("l_quantity"))))))))
   val program = Program(Assignment(name, query))
 }
 
@@ -628,10 +637,11 @@ object Test4NN extends TPCHBase {
             Singleton(Tuple("c_name" -> customerRef("c_name"), "c_orders" -> 
               ForeachUnion(orderRef, BagProject(customerRef, "c_orders"),
                 Singleton(Tuple("o_orderdate" -> orderRef("o_orderdate"), "o_parts" ->
-                  ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
+                  ReduceByKey(ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
                     ForeachUnion(pr, relP,
                       IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
-                        Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity"))))))))))))))))))
+                        Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))),
+                  List("p_name"), List("l_quantity"))))))))))))))
   val program = Program(Assignment(name, query))
 }
 
@@ -657,10 +667,11 @@ object Test4FullNN extends TPCHBase {
             projectTuple(customerRef, "c_orders" -> 
               ForeachUnion(orderRef, BagProject(customerRef, "c_orders"),
                 projectTuple(orderRef, "o_parts" ->
-                  ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
+                  ReduceByKey(ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
                     ForeachUnion(pr, relP,
                       IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
-                        projectTuples(pr, partRef))))))))))))
+                        Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))),
+                  List("p_name"), List("l_quantity"))))))))))
   val program = Program(Assignment(name, query))
 }
 

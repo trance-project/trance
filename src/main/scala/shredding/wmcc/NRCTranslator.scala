@@ -101,19 +101,14 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
         Comprehension(translate(e1), translate(x).asInstanceOf[Variable], constant(true), te2)
     }
     case l:Let => Bind(translate(l.x), translate(l.e1), translate(l.e2))
-    // TODO map out case handling of group bys
     case GroupByKey(be, keys, values, _) => 
       val bagExpr = translate(be)
       val v = Variable.freshFromBag(bagExpr.tp)
-      val key = record(keys.map(n => (n, project(v, n))).toMap)
-      val value = record(values.map(n => (n, project(v, n))).toMap)
-      CGroupBy(bagExpr, v, key, Sng(value))
+      CGroupBy(bagExpr, v, keys, values)
     case ReduceByKey(be, keys, values) => 
       val bagExpr = translate(be)
       val v = Variable.freshFromBag(bagExpr.tp)
-      val key = record(keys.map(n => (n, project(v, n))).toMap)
-      val value = record(values.map(n => (n, project(v, n))).toMap)
-      CGroupBy(bagExpr, v, key, value) 
+      CReduceBy(bagExpr, v, keys, values) 
     case v: VarRefLabelParameter => translateVar(v.e)
     case l: NewLabel =>
       label(l.params.map {

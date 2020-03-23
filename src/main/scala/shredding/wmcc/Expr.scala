@@ -68,6 +68,7 @@ case class Label(fields: Map[String, CExpr]) extends CExpr{
 case class Record(fields: Map[String, CExpr]) extends CExpr{
   def tp: RecordCType = RecordCType(fields.map(f => f._1 -> f._2.tp))
   def apply(n: String) = fields(n)
+  def project(n: List[String]) = Record(fields.filter(f => n.contains(f._1)))
 }
 
 case class Tuple(fields: List[CExpr]) extends CExpr {
@@ -122,7 +123,10 @@ case class Multiply(e1: CExpr, e2: CExpr) extends CExpr{
 
 case class Project(e1: CExpr, field: String) extends CExpr { self =>
   def tp: Type = e1.tp match {
-    case t:RecordCType => t.attrTps(field)
+    case t:RecordCType => t.attrTps get field match {
+      case Some(fi) => fi
+      case _ => sys.error(s"$field not found in $t")
+    }
     case t @ TTupleType(List(EmptyCType, RecordCType(fs))) if ( field != "_1" && field != "_2") => fs(field)
     case t:TTupleType => field match {
       case "_1" => t(0)
@@ -166,12 +170,26 @@ case class Bind(x: CExpr, e1: CExpr, e: CExpr) extends CExpr {
   }
 }
 
-//case class CGroupBy(e1: CExpr, v: Variable, grp: CExpr, value: CExpr) extends CExpr {
-case class CGroupBy(e1: CExpr, v1: Variable, grp: CExpr, value: CExpr) extends CExpr {
-  def tp: BagCType = grp.tp match {
-    case RecordCType(ms) => BagCType(RecordCType(ms + ("_2" -> value.tp)))
-    case _ => BagCType(RecordCType("_1" -> grp.tp, "_2" -> value.tp))
-  }
+trait CombineOp extends CExpr {
+  def tp: BagCType
+  def e1: CExpr
+  def v1: Variable
+  def keys: List[String]
+  def values: List[String]
+}
+
+case class CReduceBy(e1: CExpr, v1: Variable, keys: List[String], values: List[String]) extends CExpr with CombineOp {
+  val e1Tp: RecordCType = v1.tp.asInstanceOf[RecordCType]
+  val keysTp: RecordCType = RecordCType(keys.map(n => n -> e1Tp(n)).toMap)
+  val valuesTp: RecordCType = RecordCType(values.map(n => n -> e1Tp(n)).toMap)
+  def tp: BagCType = BagCType(RecordCType(keysTp.attrTps ++ valuesTp.attrTps))
+}
+
+case class CGroupBy(e1: CExpr, v1: Variable, keys: List[String], values: List[String]) extends CExpr with CombineOp {
+  val e1Tp: RecordCType = v1.tp.asInstanceOf[RecordCType]
+  val keysTp: RecordCType = RecordCType(keys.map(n => n -> e1Tp(n)).toMap)
+  val valuesTp: BagCType = BagCType(RecordCType(values.map(n => n -> e1Tp(n)).toMap))
+  def tp: BagCType = BagCType(RecordCType(keysTp.attrTps ++ Map("_2" -> valuesTp)))
 }
 
 case class CNamed(name: String, e: CExpr) extends CExpr {

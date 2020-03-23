@@ -33,7 +33,9 @@ trait Query extends Materialization
   }
 
   def unnestOnly: CExpr = {
-    Unnester.unnest(this.normalize)(Nil, Nil, None)
+    val plan = Unnester.unnest(this.normalize)(Nil, Nil, None)
+    println("\n"+Printer.quote(plan))
+    plan
   }
 
   def unnest: CExpr = {

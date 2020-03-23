@@ -34,7 +34,8 @@ trait Base {
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep
   def dedup(e1: Rep): Rep
   def bind(e1: Rep, e: Rep => Rep): Rep 
-  def groupby(e1: Rep, g: Rep => Rep, v: Rep => Rep): Rep
+  def groupby(e1: Rep, g: List[String], v: List[String]): Rep
+  def reduceby(e1: Rep, g: List[String], v: List[String]): Rep
   def named(n: String, e: Rep): Rep
   def linset(e: List[Rep]): Rep
   def lookup(lbl: Rep, dict: Rep): Rep
@@ -86,9 +87,13 @@ trait BaseStringify extends Base{
     val x = Variable.fresh(StringType)
     s"{ ${e(x.quote)} | ${x.quote} := ${e1} }"
   }
-  def groupby(e1: Rep, g: Rep => Rep, v: Rep => Rep): Rep = {
+  def groupby(e1: Rep, g: List[String], v: List[String]): Rep = {
     val v2 = Variable.fresh(StringType)
-    s"(${e1}).groupBy(${g(v2.quote)}, ${v(v2.quote)})"
+    s"(${e1}).groupBy(${g.mkString(",")}, ${v.mkString(",")})"
+  }
+  def reduceby(e1: Rep, g: List[String], v: List[String]): Rep = {
+    val v2 = Variable.fresh(StringType)
+    s"(${e1}).reduceBy(${g.mkString(",")}, ${v.mkString(",")})"
   }
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = { 
     val x = Variable.fresh(StringType)
@@ -206,9 +211,13 @@ trait BaseCompiler extends Base {
       val v = Variable.fresh(e1.tp)
       Bind(v, e1, e(v)) 
   }
-  def groupby(e1: Rep, g: Rep => Rep, v: Rep => Rep): Rep = {
-    val v2 = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
-    CGroupBy(e1, v2, g(v2), v(v2)) 
+  def groupby(e1: Rep, g: List[String], v: List[String]): Rep = {
+    val v2 = Variable.freshFromBag(e1.tp)
+    CGroupBy(e1, v2, g, v) 
+  }
+  def reduceby(e1: Rep, g: List[String], v: List[String]): Rep = {
+    val v2 = Variable.freshFromBag(e1.tp)
+    CGroupBy(e1, v2, g, v) 
   }
   def named(n: String, e: Rep): Rep = CNamed(n, e)
   def linset(e: List[Rep]): Rep = LinearCSet(e)
@@ -223,6 +232,10 @@ trait BaseCompiler extends Base {
   }
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
     val v = vars(e1.tp)
+    // println("have these vars")
+    // println(Printer.quote(f(v)))
+    // println(e1.tp)
+    // println(v)
     Reduce(e1, v, f(v), p(v))
   }
   def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep, value: List[Rep] => Rep): Rep = {
@@ -303,225 +316,6 @@ trait BaseDictNameIndexer extends BaseCompiler {
   override def project(e1: Rep, f: String): Rep = e1 match {
     case InputRef(n, _) if n.contains("Dict") => e1
     case _ => super.project(e1, f)
-  }
-
-  // override def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = e1 match {        
-  //     case Lookup(e3, e4, v1, pa, v2, pb, pc) => (e2, e4) match {
-  //       case (InputRef(n1, _), InputRef(n2, _)) if n1.split("_").size == n2.split("_").size =>
-  //         CoGroup(e3, List(e2, e4), v1 :+ v2, p1(v1 :+ v2))
-  //       case _ => super.lkup(e1, e2, p1, p2, p3)
-  //     } 
-  //   case _ => 
-  //     super.outerlkup(e1, e2, p1, p2, p3)
-  // }
-
-}
-
-/**
-  * Scala evaluation 
-  */
-trait BaseScalaInterp extends Base{
-  type Rep = Any
-  val ctx = scala.collection.mutable.Map[Any, Any]()
-  var doteq = true
-  def inputref(x: String, tp: Type): Rep = ctx(x)
-  def input(x: List[Rep]): Rep = x
-  def constant(x: Any): Rep = x
-  def emptysng: Rep = Nil
-  def unit: Rep = ()
-  def sng(x: Rep): Rep = List(x)
-  def tuple(x: List[Rep]): Rep = x
-  def record(fs: Map[String, Rep]): Rep = {
-    if (doteq) RecordValue(fs.asInstanceOf[Map[String, Rep]], RecordValue.newId)
-    else Rec(fs.asInstanceOf[Map[String, Rep]])
-  }
-  def label(fs: Map[String, Rep]): Rep = Rec(fs.asInstanceOf[Map[String, Rep]])
-  def mult(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Double] * e2.asInstanceOf[Double]
-  def equals(e1: Rep, e2: Rep): Rep = e1 == e2
-  def lt(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Int] < e2.asInstanceOf[Int]
-  def gt(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Int] > e2.asInstanceOf[Int]
-  def lte(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Int] <= e2.asInstanceOf[Int]
-  def gte(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Int] >= e2.asInstanceOf[Int]
-  def and(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Boolean] && e2.asInstanceOf[Boolean]
-  def not(e1: Rep): Rep = !e1.asInstanceOf[Boolean]
-  def or(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[Boolean] || e2.asInstanceOf[Boolean]
-  def project(e1: Rep, f: String) = f match {
-    //case "_1" if e1.isInstanceOf[List[(Int, List[_])]] => e1.asInstanceOf[List[(Int, List[_])]].head._2 //no
-    case "_1" => e1.asInstanceOf[Product].productElement(0)
-    case "_2" if e1.isInstanceOf[RecordValue] => e1.asInstanceOf[RecordValue].map("v")
-    case "_2" => e1.asInstanceOf[Product].productElement(1)
-    case f => e1 match {
-      case None => None
-      case m:Rec => m.map.get("map") match {
-        case Some(a) => a.asInstanceOf[Map[String, Any]](f)
-        case _ => m.map(f)
-      }
-      case m:RecordValue => m.map(f)
-      case c:CaseClassRecord => 
-        val field = c.getClass.getDeclaredFields.find(_.getName == f).get
-        field.setAccessible(true)
-        field.get(c)
-      //case m:HashMap[_,_] => m(f.asInstanceOf[_])
-      case l:List[_] => l.map(project(_,f))
-      case p:Product => p.productElement(f.toInt)
-      case t => sys.error(s"unsupported projection type ${t.getClass} for object:\n$t") 
-    }
-  }
-  def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = e2 match {
-    case Some(a) => if (cond.asInstanceOf[Boolean]) { e1 } else { a }
-    case _ => if (cond.asInstanceOf[Boolean]) { e1 } else { Nil }
-  } 
-  def merge(e1: Rep, e2: Rep): Rep = e1.asInstanceOf[List[_]] ++ e2.asInstanceOf[List[_]]
-  def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
-    e1 match {
-      case Nil => e(Nil) match { case i:Int => 0; case i:Double => 0.0; case _ => Nil }
-      case data @ (head :: tail) => e(head) match {
-        case i:Int =>
-          data.withFilter(p.asInstanceOf[Rep => Boolean]).map(e).asInstanceOf[List[Int]].sum
-        case i:Double =>
-          data.withFilter(p.asInstanceOf[Rep => Boolean]).map(e).asInstanceOf[List[Double]].sum
-	case _ => 
-          data.withFilter(p.asInstanceOf[Rep => Boolean]).
-            flatMap(e.asInstanceOf[Rep => scala.collection.GenTraversableOnce[Rep]])
-      }
-    }
-  }
-  def dedup(e1: Rep): Rep = {
-    val data = e1.asInstanceOf[List[_]]
-    data.head match {
-      case r:Rec => data.distinct
-      case r:RecordValue => data.map(_.asInstanceOf[RecordValue].toRec).distinct
-    }
-  }
-  def named(n: String, e: Rep): Rep = {
-    ctx(n) = e
-    println(n+" := "+e+"\n")
-    e
-  }
-  def linset(e: List[Rep]): Rep = e
-  def bind(e1: Rep, e: Rep => Rep): Rep = e(e1) //ctx.getOrElseUpdate(e1, e(e1))
-  def groupby(e1: Rep, g: Rep => Rep, v: Rep => Rep): Rep = {
-    val grp = e1.asInstanceOf[List[_]].groupBy(g)
-    e1.asInstanceOf[List[_]].head match {
-      case Int => grp.map{ case (g2, v2) => 
-        (g2, v2.asInstanceOf[List[_]].map(v).asInstanceOf[List[Int]].sum) }
-      case Double => grp.map{ case (g2, v2) => 
-        (g2, v2.asInstanceOf[List[_]].map(v).asInstanceOf[List[Double]].sum) }
-      case _ => grp.map{ case (g2, v2) => (g2, v2.asInstanceOf[List[_]].map(v)) }
-    }
-  }
-  def lookup(lbl: Rep, dict: Rep): Rep = dict match {
-    case (flat, tdict) => flat match {
-      case (head:Map[_,_]) :: tail => flat
-      case _ => flat.asInstanceOf[List[(_,_)]].withFilter(_._1 == lbl).map(_._2)
-    }
-    case _ => dict // (flat, ())
-  }
-  def emptydict: Rep = ()
-  def bagdict(lbl: LabelType, flat: Rep, dict: Rep): Rep = (flat.asInstanceOf[List[_]].map(v => (lbl, v)), dict)
-  def tupledict(fs: Map[String, Rep]): Rep = fs
-  def dictunion(d1: Rep, d2: Rep): Rep = d1 // TODO
-  def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = { 
-    x.asInstanceOf[List[_]].filter(p.asInstanceOf[Rep => Boolean]).map(e)
-  }
-  def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    e1.asInstanceOf[List[_]].map(v2 => f(tupleVars(v2))) 
-  }
-  def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep, value: List[Rep] => Rep): Rep = {
-    e1.asInstanceOf[List[_]].flatMap{
-      v =>
-        val v1 = tupleVars(v)
-        f(v1).asInstanceOf[List[_]].map{ v2 => 
-          val nv = v1 :+ v2
-          if (p.asInstanceOf[Rep => Boolean](nv)) { value(nv) } else { Nil }
-      }
-    }
-  }
-  def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, proj1: List[Rep] => Rep, proj2: Rep => Rep): Rep = {
-    outerjoin(e1, e2, p1, p2, proj1, proj2)
-  } 
-  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep = {
-    val grps = e1.asInstanceOf[List[_]].groupBy(v => f(tupleVars(v)))
-    val res = e1 match {
-      case Nil => e(Nil) match { case i:Int => 0; case _ => Nil }
-      case head :: tail => e(head.asInstanceOf[List[_]]) match {
-        case i:Int => 
-          grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.foldLeft(0)((acc, v1) => { 
-            // this should be if g(x2) != None 
-            if (g(v1.asInstanceOf[List[_]]) != None && p(v1.asInstanceOf[List[_]]).asInstanceOf[Boolean]) { 
-              val nacc = e(v1.asInstanceOf[List[_]]) match { case Nil => 0; case c => c.asInstanceOf[Int] }
-              acc + nacc 
-            } else { acc } 
-           })).toList
-        case i:Double =>
-          grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.foldLeft(0.0)((acc, v1) => { 
-            // this should be if g(x2) != None  
-            if (g(v1.asInstanceOf[List[_]]) != None && p(v1.asInstanceOf[List[_]]).asInstanceOf[Boolean]) { 
-              acc + e(v1.asInstanceOf[List[_]]).asInstanceOf[Double] } else { acc } 
-           })).toList
-	case _ => 
-          grps.map(x1 => x1._1.asInstanceOf[List[_]] :+ x1._2.flatMap(v => { 
-            val v2 = tupleVars(v)
-            if (!g(v2).asInstanceOf[List[_]].contains(None) && p(v2).asInstanceOf[Boolean]) { 
-              List(e(v2)) 
-            } else { Nil } })).toList
-        }
-     }
-     //println(res)
-     res
-  }
-  def outerunnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep, value: List[Rep] => Rep): Rep = {
-    e1.asInstanceOf[List[_]].flatMap{
-      v =>
-        val v1 = tupleVars(v)
-        f(v1).asInstanceOf[List[_]].map{ v2 => 
-          val nv = v1 :+ v2
-          if (p(nv).asInstanceOf[Boolean]) { value(nv) } else { v1 :+ None }
-      }
-    }
-  }
-  def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, proj1: List[Rep] => Rep, proj2: Rep => Rep): Rep = {
-    val hm = e1.asInstanceOf[List[_]].groupBy(v => p1(tupleVars(v)))
-    e2.asInstanceOf[List[_]].flatMap(v2 => hm.get(p2(v2)) match {
-      case Some(v1) => v1.map(v => tupleVars(v) :+ v2)
-      case _ => Nil
-    })
-  }
-  // TODO
-  def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
-    val hm = mapVars(e2)
-    e1.asInstanceOf[List[_]].flatMap(v2 => { 
-                val vs = tupleVars(v2)
-                hm.get(p1(vs)) match {
-                  case Some(v1) => v1.asInstanceOf[List[_]].withFilter(v3 => 
-                    p3(vs).equals(p2(v3))).map(v3 => vs :+ v3)
-                  case _ => Nil
-                }})
-  }
-  def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
-    val hm = mapVars(e2)
-    e1.asInstanceOf[List[_]].flatMap(v2 => { 
-                val vs = tupleVars(v2)
-                hm.get(p1(vs)) match {
-                  case Some(v1) => v1.asInstanceOf[List[_]].map(v3 => {
-                    if (p3(vs).equals(p2(v3))) { vs :+ v3 } else { vs :+ None }
-                  })
-                  case _ => Nil  
-                }})
-  }
-  // todo
-  def cogroup(e1: Rep, e2: Rep, k1: List[Rep] => Rep, k2: Rep => Rep, value: List[Rep] => Rep): Rep = e1
-  
-  // keys and flattens input tuples
-  def tupleVars(k: Any): List[Rep] = k match {
-    case c:CaseClassRecord => List(k).asInstanceOf[List[Rep]]
-    case c:Rec => List(k).asInstanceOf[List[Rep]]
-    case _ => k.asInstanceOf[List[Rep]]
-  }
-  def mapVars(k: Any): Map[Any, Any] = k match {
-    case l:List[_] if l.head.isInstanceOf[RecordValue] =>
-      l.asInstanceOf[List[RecordValue]].map{ case rv => (rv.map("k"), rv.map("v")) }.toMap
-    case _ => k.asInstanceOf[List[(Any, Any)]].toMap
   }
 
 }
@@ -629,7 +423,8 @@ trait BaseANF extends Base {
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = compiler.comprehension(e1, p, e)
   def dedup(e1: Rep): Rep = compiler.dedup(e1)
   def bind(e1: Rep, e: Rep => Rep): Rep = compiler.bind(e1, e)
-  def groupby(e1: Rep, g: Rep => Rep, v: Rep => Rep): Rep = compiler.groupby(e1, g, v)
+  def groupby(e1: Rep, g: List[String], v: List[String]): Rep = compiler.groupby(e1, g, v)
+  def reduceby(e1: Rep, g: List[String], v: List[String]): Rep = compiler.reduceby(e1, g, v)
   def named(n: String, e: Rep): Rep = {
     val d = compiler.named(n, e)
     varMaps = varMaps + (n -> d.e.asInstanceOf[Variable])
@@ -713,9 +508,8 @@ class Finalizer(val target: Base){
     case CDeDup(e1) => target.dedup(finalize(e1))
     case Bind(x, e1, e) =>
       target.bind(finalize(e1), (r: target.Rep) => withMap(x -> r)(finalize(e)))
-    case CGroupBy(e1, v2, g, v) => 
-      target.groupby(finalize(e1), (r: target.Rep) => withMap(v2 -> r)(finalize(g)), 
-        (r: target.Rep) => withMap(v2 -> r)(finalize(v)))
+    case CGroupBy(e1, v2, g, v) => target.groupby(finalize(e1), g, v)
+    case CReduceBy(e1, v2, g, v) => target.reduceby(finalize(e1), g, v)
     case CNamed(n, e) => target.named(n, finalize(e))
     case LinearCSet(exprs) => 
       target.linset(exprs.map(finalize(_)))
