@@ -34,22 +34,28 @@ object Unnester {
 
   def unnest(e: CExpr)(implicit ctx: Ctx): CExpr = e match {
     case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E)))
+    // assuming single numeric agg for now
     case g:CombineOp => unnest(g.e1)(u, w, E) match {
       case r @ Reduce(e2, v2, e3 @ Record(fs), p2) => 
-        val (keys, values) = (e3.project(g.keys), e3.project(g.values))
-        val v = Variable.freshFromBag(g.tp)
-        Nest(e2, v2, keys, values, v, Constant("byKey"), CUnit)
-
-      // assume numeric aggregation on a single column for now
-      case n @ Nest(e2, v2, f2, e3 @ Record(fs), v3, p2 @ Constant(true), gs) => 
+        val (keys, values) = (e3.project(g.keys), e3(g.values.head))//.project(g.values))
+        val v = Variable.fresh(values.tp)
+        val initNest = Nest(e2, v2, keys, values, v, p2, CUnit, true)
+        val nrec = Record(keys.fields ++ Map(g.values.head -> v))
+        val vs = keys.fields.map(f => f._2 match {
+            case Project(v1, f) => v1
+            case v1 => v1
+          }).asInstanceOf[List[Variable]]
+        Reduce(initNest, vs :+ v, nrec, Constant(true))
+      
+      case n @ Nest(e2, v2, f2, e3 @ Record(fs), v3, p2, gs, _) => 
         val (keys, values) = (e3.project(g.keys), e3(g.values.head))
         val key = Tuple(u :+ keys)
         val v = Variable.fresh(values.tp)
-        val castNulls = Tuple(u ++ fs.map(f => f._2 match {
+        val castNulls = Tuple(u ++ keys.fields.map(f => f._2 match {
             case Project(v1, f) => v1
             case v1 => v1
           }).toList)
-        val initNest = Nest(e2, v2, key, values, v, Constant("byKey"), gs)
+        val initNest = Nest(e2, v2, key, values, v, p2, gs, true)
         val nrec = Tuple(u :+ Record(keys.fields ++ Map(g.values.head -> v)))
         val vs = castNulls.fields.asInstanceOf[List[Variable]]
         Reduce(initNest, vs :+ v, nrec, Constant("null"))
@@ -85,7 +91,7 @@ object Unnester {
                   val nE = Some(Lookup(E.get, Project(dict, "_1"), w, lbl, v, p2s, p1s))
                   val (nE2, nv) = getNest(unnest(e3)((w :+ v, w :+ v, nE)))
                   unnest(e2)((u, w :+ nv, nE2)) match {
-                    case Nest(e4, w4, f4, t4, v4, p4, g4) => Nest(e4, w4, f4, t4, nv, be2(nv), g4)
+                    case Nest(e4, w4, f4, t4, v4, p4, g4, dk) => Nest(e4, w4, f4, t4, nv, be2(nv), g4, dk)
                     case res => res
                   }
               }
@@ -109,7 +115,7 @@ object Unnester {
             val et = Tuple(u)
             val gt = Tuple((w.toSet -- u).toList)
             val v = Variable.fresh(TTupleType(et.tp.attrTps :+ BagCType(t.tp)))
-            Nest(E.get, w, et, t, v, cond, gt)
+            Nest(E.get, w, et, t, v, cond, gt, false)
           }
         case (key, value @ Comprehension(e1, v, p, e)) :: tail =>
           val (nE, v2) = getNest(unnest(value)((w, w, E)))
@@ -129,7 +135,7 @@ object Unnester {
         val et = Tuple(u)
         val gt = Tuple((w.toSet -- u).toList)
         val v2 = Variable.fresh(TTupleType(et.tp.attrTps :+ p.tp))
-        Nest(E.get, w, et, p, v2, Constant(true), gt)
+        Nest(E.get, w, et, p, v2, Constant(true), gt, false)
       }
     case s @ Sng(v @ Variable(_,_)) if !w.isEmpty =>
       assert(!E.isEmpty)
@@ -138,7 +144,7 @@ object Unnester {
         val et = Tuple(u)
         val gt = Tuple((w.toSet -- u).toList)
         val v2 = Variable.fresh(TTupleType(et.tp.attrTps :+ BagCType(v.tp)))
-        Nest(E.get, w, et, v, v2, Constant(true), gt)
+        Nest(E.get, w, et, v, v2, Constant(true), gt, false)
       }
     case s @ Sng(t @ Record(fs)) if fs.keySet == Set("k", "v") && !w.isEmpty =>
       val (nE, v2) = fs.get("v").get match {    
@@ -160,10 +166,10 @@ object Unnester {
           } else {
             val et = Tuple(u)
             val v = Variable.fresh(TTupleType(et.tp.attrTps :+ BagCType(t.tp))) 
-            val (filt, nulls) = if (u.head.tp.isDict) 
-              (Constant("byKey"), CUnit)
-            else (Constant(true), Tuple((w.toSet -- u).toList))
-            Nest(E.get, w, et, t, v, filt, nulls)
+            val (dk, nulls) = if (u.head.tp.isDict) 
+              (true, CUnit)
+            else (false, Tuple((w.toSet -- u).toList))
+            Nest(E.get, w, et, t, v, Constant(true), nulls, dk)
           }
         // address special case
         case (key, value @ If(Equals(c1:Comprehension, c2), x1, None)) :: tail => 
@@ -175,7 +181,7 @@ object Unnester {
         case (key, CDeDup(value @ Comprehension(e1, v, p, e))) :: tail =>
 	        val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, Some(CDeDup(nE.get))))
-        case (key, value @ CGroupBy(e1, v1, grp, value2)) :: tail =>
+        case (key, value:CombineOp) :: tail => //@ CGroupBy(e1, v1, grp, value2)) :: tail =>
 	        val (nE, v2) = getNest(unnest(value)((w, w, E)))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case (key, value @ Sng(Record(r))) :: tail =>
@@ -206,7 +212,7 @@ object Unnester {
           val nE = Some(OuterUnnest(E.get, w, e1, v, Constant(true), v)) // C11
           val (nE2, nv) = getNest(unnest(e2)((w :+ v, w :+ v, nE))) 
           unnest(e)((u, w :+ nv, nE2)) match {
-            case Nest(e3, w3, f3, t3, v3, p3, g3) => Nest(e3, w3, f3, t3, nv, be2(nv), g3) 
+            case Nest(e3, w3, f3, t3, v3, p3, g3, dk) => Nest(e3, w3, f3, t3, nv, be2(nv), g3, dk) 
             case res => res
           }
       }
@@ -250,7 +256,7 @@ object Unnester {
           val nE = Some(OuterLookup(E.get, Select(e1, v2, Constant(true), v2), w, lbl1, v2, Constant(true), Constant(true)))
           val (nE2, nv) = getNest(unnest(e4)((w :+ v2, w :+ v2, nE)))
           unnest(e3)((u, w :+ nv, nE2)) match {
-            case Nest(e4, w4, f4, t4, v4, p4, g3) => Nest(e4, w4, f4, t4, nv, be2(nv), g3)
+            case Nest(e4, w4, f4, t4, v4, p4, g3, dk) => Nest(e4, w4, f4, t4, nv, be2(nv), g3, dk)
             case res => res
           }
       }
@@ -268,7 +274,7 @@ object Unnester {
           val nE = Some(OuterJoin(E.get, Select(e1, v, Constant(true), v), w, preds._2, v, preds._3, Tuple(w), v)) // C11
           val (nE2, nv) = getNest(unnest(e2)((w :+ v, w :+ v, nE))) 
           unnest(e)((u, w :+ nv, nE2)) match {
-            case Nest(e3, w3, f3, t3, v3, p3, g3) => Nest(e3, w3, f3, t3, nv, be2(nv), g3) 
+            case Nest(e3, w3, f3, t3, v3, p3, g3, dk) => Nest(e3, w3, f3, t3, nv, be2(nv), g3, dk) 
             case res => res
           }
       }
@@ -278,7 +284,7 @@ object Unnester {
       else {
         val et = Tuple(u)
         val gt = Tuple((w.toSet -- u).toList)
-        Nest(E.get, w, et, c, Variable.fresh(TTupleType(et.tp.attrTps :+ IntType)), Constant(true), gt)
+        Nest(E.get, w, et, c, Variable.fresh(TTupleType(et.tp.attrTps :+ IntType)), Constant(true), gt, false)
       }
     case LinearCSet(exprs) => LinearCSet(exprs.map(unnest(_)((Nil, Nil, None))))
     case CNamed(n, exp) => exp match {
@@ -300,7 +306,7 @@ object Unnester {
   
   def getNest(e: CExpr): (Option[CExpr], Variable) = e match {
     case Bind(nval, nv @ Variable(_,_), e1) => (Some(e), nv)
-    case Nest(_,_,_,_,v2 @ Variable(_,_),_,_) => (Some(e), v2)
+    case Nest(_,_,_,_,v2 @ Variable(_,_),_,_,_) => (Some(e), v2)
     case Reduce(lu @ Lookup(e1,e2,v1,p1, v2 @ Variable(_,_),p2,_),v3,p3,p4) => 
       val v3 = Variable.fresh(e.tp.asInstanceOf[BagCType].tp)
       (Some(e), v3)

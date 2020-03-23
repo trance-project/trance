@@ -305,7 +305,7 @@ case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p
   override def wvars = e1.wvars :+ v2
 }
 
-case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr, g: CExpr) extends CExpr {
+case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr, g: CExpr, distinctKeys: Boolean) extends CExpr {
   def tp: Type = BagCType(v2.tp)
   // only using this for printing, consider removing
   override def wvars = { 
@@ -469,7 +469,7 @@ trait Extensions {
   def fapply(e: CExpr, funct: PartialFunction[CExpr, CExpr]): CExpr = 
     funct.applyOrElse(e, (ex: CExpr) => ex match {
       case Reduce(d, v, f, p) => Reduce(fapply(d, funct), v, f, p)
-      case Nest(e1, v1, f, e, v, p, g) => Nest(fapply(e1, funct), v1, f, e, v, p, g)
+      case Nest(e1, v1, f, e, v, p, g, dk) => Nest(fapply(e1, funct), v1, f, e, v, p, g, dk)
       case Unnest(e1, v1, f, v2, p, value) => Unnest(fapply(e1, funct), v1, f, v2, p, value)
       case OuterUnnest(e1, v1, f, v2, p, value) => OuterUnnest(fapply(e1, funct), v1, f, v2, p, value)
       case Join(e1, e2, v1, p1, v2, p2, proj1, proj2) => Join(fapply(e1, funct), fapply(e2, funct), v1, p1, v2, p2, proj1, proj2)

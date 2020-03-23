@@ -28,13 +28,13 @@ trait Query extends Materialization
 
   def normalize: CExpr = {
     val norm = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
-    // println(Printer.quote(norm))
+    println(Printer.quote(norm))
     norm
   }
 
   def unnestOnly: CExpr = {
     val plan = Unnester.unnest(this.normalize)(Nil, Nil, None)
-    println("\n"+Printer.quote(plan))
+    // println("\n"+Printer.quote(plan))
     plan
   }
 

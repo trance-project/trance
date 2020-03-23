@@ -128,7 +128,7 @@ trait BaseScalaInterp extends Base{
   def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, proj1: List[Rep] => Rep, proj2: Rep => Rep): Rep = {
     outerjoin(e1, e2, p1, p2, proj1, proj2)
   } 
-  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep = {
+  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep, dk: Boolean): Rep = {
     val grps = e1.asInstanceOf[List[_]].groupBy(v => f(tupleVars(v)))
     val res = e1 match {
       case Nil => e(Nil) match { case i:Int => 0; case _ => Nil }

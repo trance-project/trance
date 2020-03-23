@@ -63,15 +63,15 @@ object Optimizer {
   def pushNest(e: CExpr): CExpr = fapply(e, {
     // todo check value does not contain o values
     case Nest(OuterJoin(e1, e2, v1s, key1 @ Project(e1v, f1), v2, key2, proj1, proj2), 
-      v2s, Tuple(gbs), gbval, v3, filt, Tuple(nulls)) if (gbs.contains(e1v) && !gbval.tp.isPrimitive) =>
+      v2s, Tuple(gbs), gbval, v3, filt, Tuple(nulls), dk) if (gbs.contains(e1v) && !gbval.tp.isPrimitive) =>
         val pv = Variable.fresh(TTupleType(List(key2.tp, BagCType(gbval.tp))))
-        val pushed = pushNest(Nest(e2, List(v2), key2, gbval, pv, filt, Tuple((nulls.toSet - e1v).toList)))
+        val pushed = pushNest(Nest(e2, List(v2), key2, gbval, pv, filt, Tuple((nulls.toSet - e1v).toList), dk))
         OuterJoin(e1, pushed, v1s, key1, pv, Project(pv, "_1"), Tuple(v1s), Project(pv, "_2"))
 
     case Nest(Join(e1, e2, v1s, key1 @ Project(e1v, f1), v2, key2, proj1, proj2), 
-      v2s, Tuple(gbs), gbval, v3, filt, Tuple(nulls)) if (gbs.contains(e1v) && !gbval.tp.isPrimitive) =>
+      v2s, Tuple(gbs), gbval, v3, filt, Tuple(nulls), dk) if (gbs.contains(e1v) && !gbval.tp.isPrimitive) =>
         val pv = Variable.fresh(TTupleType(List(key2.tp, BagCType(gbval.tp))))
-        val pushed = pushNest(Nest(e2, List(v2), key2, gbval, pv, filt, Tuple((nulls.toSet - e1v).toList)))
+        val pushed = pushNest(Nest(e2, List(v2), key2, gbval, pv, filt, Tuple((nulls.toSet - e1v).toList), dk))
         Join(e1, pushed, v1s, key1, pv, Project(pv, "_1"), Tuple(v1s), Project(pv, "_2"))
     
     // primitive aggregation, move right
@@ -102,17 +102,17 @@ object Optimizer {
 
     /** merge nests and joins **/
     case Nest(OuterJoin(e1, e2, e1s, key1, e2s, key2, proj1, proj2), 
-      vs, key, value, nv, np, ng) if (collectVars(value) == Set(e2s) && !value.tp.isPrimitive) =>
+      vs, key, value, nv, np, ng, _) if (collectVars(value) == Set(e2s) && !value.tp.isPrimitive) =>
       CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
     case Nest(Join(e1:Select, e2, e1s, key1, e2s, key2, proj1, proj2), 
-      vs, key, value, nv, np, ng) if !value.tp.isPrimitive => 
+      vs, key, value, nv, np, ng, _) if !value.tp.isPrimitive => 
       CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
     case Nest(Lookup(e1:Select, e2, e1s, key1, e2s, key2, key3), 
-      vs, key, value, nv, np, ng) if !value.tp.isPrimitive => 
+      vs, key, value, nv, np, ng, _) if !value.tp.isPrimitive => 
       CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
     // unshredding, maybe this could be an unnesting case
     case Reduce(Nest(Lookup(e1, e2, e1s, key1, e2s, key2, key3), 
-      vs, key, value, nv, np, ng), v3, Record(ms), filt) if !value.tp.isPrimitive && ms.keySet == Set("_1", "_2") => 
+      vs, key, value, nv, np, ng, _), v3, Record(ms), filt) if !value.tp.isPrimitive && ms.keySet == Set("_1", "_2") => 
       Reduce(Lookup(mergeOps(e1), mergeOps(e2), e1s, key1, e2s, key2, key3), vs, Tuple(List(vs.head, value)), filt)
     // case OuterJoin(Nest(e1, vs, key, value, nv, np, ng), e2, e1s, key1, e2s, key2, proj1, proj2) =>
     //   CoGroup(e1, mergeOps(e2), e1s, e2s, key1, key2, value)
@@ -121,8 +121,8 @@ object Optimizer {
     // case Reduce(CoGroup(e1, e2, e1s, e2s, key1, key2, value), vr, fr, pr) => 
     //   mergeOps(CoGroup(e1, mergeOps(e2), e1s, e2s, key1, key2, fr))
     // todo push record type projection into lookup
-    case Reduce(Nest(e1, vs, key, value, nv, np, CUnit), v2, e2, p2) => 
-      mergeOps(Nest(e1, vs, key, value, nv, np, CUnit))
+    // case Reduce(Nest(e1, vs, key, value, nv, np, CUnit, dk), v2, e2, p2) => 
+    //   mergeOps(Nest(e1, vs, key, value, nv, np, CUnit, dk))
     case Reduce(r @ Reduce(x, v, e2, Constant("null")), 
       v2, t @ Record(fs), p2) if fs.keySet == Set("_1", "_2") => r
     case Reduce(Reduce(x, v, e2, p), v2, f2, p2) if p != Constant("null") =>
@@ -151,11 +151,11 @@ object Optimizer {
       fields(f)
       fields(p)
       Reduce(push(d), v, f, p)
-    case Nest(e1, v1, f, e, v, p, g) => 
+    case Nest(e1, v1, f, e, v, p, g, dk) => 
       fields(e)
       fields(f)
       fields(p)
-      Nest(push(e1), v1, f, e, v, p, g)
+      Nest(push(e1), v1, f, e, v, p, g, dk)
     case Unnest(e1, v1, f, v2, p, value) =>
       fields(f)
       Unnest(push(e1), v1, f, v2, p, value)

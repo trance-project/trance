@@ -65,7 +65,7 @@ object Printer {
     case OuterUnnest(e1, v1, e2, v2, p, value) =>
       s""" |  <-- (${e.wvars.map(_.quote).mkString(",")}) -- 
            | OUTERUNNEST[ ${quote(e2)} / ${quote(p)} / ${quote(value)}  ](${quote(e1)})""".stripMargin
-    case Nest(e1, v1, f, e3, v2, p, g) =>
+    case Nest(e1, v1, f, e3, v2, p, g, dk) =>
       val acc = e3.tp match { case IntType => "+"; case _ => "U" }
       //val outs = if (e.wvars.size == 1) "" else s"<-- (${e.wvars.map(_.quote).mkString(",")}) --"
       s""" | NEST[ ${acc} / ${quote(e3)} / ${quote(f)}, ${quote(p)} / ${quote(g)} ](${quote(e1)})""".stripMargin

@@ -254,21 +254,25 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), cache: Boolean = fa
 
     /** NEST **/
     // TODO add filter
-    case Nest(e1, v1, f, e2, v2, p, g) =>
+    case Nest(e1, v1, f, e2, v2, p, g, dk) =>
 
-      // this should be an attribute on the nest operator
-      def wrapIndex(s: String): String = p match {
-        case Constant("byKey") => s
-        case _ => s"($s, index)"
-      }
-      val (zip, removeIndex) = p match {
-        case Constant("byKey") => ("", "")
-        case _ => (".zipWithIndex", s".map{ case ((key, index), value) => key -> value }")
-      }
+      def wrapIndex(s: String): String = if (dk) s else s"($s, index)"
 
+      val (zip, removeIndex) = 
+        if (dk) ("", "")
+        else (".zipWithIndex", s".map{ case ((key, index), value) => key -> value }")
+
+      // extract single element reduce
+      val valueExp = e2 match {
+        case Bind(_, proj:Project, Bind(_, Record(_), _)) => proj.tp match {
+          case _:NumericType => proj
+          case _ => e2
+        }
+        case _ => e2
+      }
       val vars = generateVars(v1, e1.tp)
       val acc = "acc"+Variable.newId
-      val emptyType = empty(e2)
+      val emptyType = empty(valueExp)
       val gv2 = generate(v2)
       val baseKey = wrapIndex(s"{${generate(f)}}")
       val key = f match {
@@ -276,12 +280,15 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), cache: Boolean = fa
         case _ => baseKey
       }
       //s"{${generate(f)}}"
-      val value = if (!emptyType.contains("0")) s"Vector({${generate(e2)}})" else s"{${generate(e2)}}"
+      val value = 
+        if (!emptyType.contains("0")) s"Vector({${generate(valueExp)}})" 
+        else s"{${generate(valueExp)}}"
+
       g match {
         case Bind(_, CUnit, _) =>
           s"""|${generate(e1)}$zip.map{ 
               |  case ${wrapIndex(vars)} => ($baseKey, $value)
-              |}.${agg(e2)}$removeIndex""".stripMargin
+              |}.${agg(valueExp)}$removeIndex""".stripMargin
         case Bind(_, Tuple(fs), _) if fs.size > 1 => 
           ((s"${generate(e1)}$zip.map{ case ${wrapIndex(vars)} => {${generate(g)}} match { " +:
             ((2 to fs.size).map(i => 
@@ -291,12 +298,12 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), cache: Boolean = fa
                 s"case (${fs.slice(1, i).map(e => "_").mkString(",")},${zero(fs.last)}) => ($key, $emptyType)" //({${generate(f)}}, ${zero(e2)})" 
               }
             ) :+ s"case (null, ${(2 to fs.size).map(i => "_").mkString(",")}) => ($key, $emptyType)")
-          ) :+ s"case $gv2 => ($baseKey, $value)\n}}.${agg(e2)}$removeIndex").mkString("\n")
+          ) :+ s"case $gv2 => ($baseKey, $value)\n}}.${agg(valueExp)}$removeIndex").mkString("\n")
         case _ => 
           s"""|${generate(e1)}$zip.map{ case ${wrapIndex(vars)} => {${generate(g)}} match { 
               |  case (null) => ($key, $emptyType)
               |  case $gv2 => ($baseKey, $value)
-              |}}.${agg(e2)}$removeIndex""".stripMargin
+              |}}.${agg(valueExp)}$removeIndex""".stripMargin
       }
     
     /** LOOKUPS **/

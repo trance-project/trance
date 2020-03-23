@@ -49,7 +49,7 @@ trait Base {
   def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, proj1: List[Rep] => Rep, proj2: Rep => Rep): Rep
   def outerunnest(e1: Rep, r: List[Rep] => Rep, p: List[Rep] => Rep, value: List[Rep] => Rep): Rep
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep, proj1: List[Rep] => Rep, proj2: Rep => Rep): Rep
-  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep
+  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep, dk: Boolean): Rep
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep
   def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep
   def cogroup(e1: Rep, e2: Rep, k1: List[Rep] => Rep, k2: Rep => Rep, value: List[Rep] => Rep): Rep
@@ -124,7 +124,7 @@ trait BaseStringify extends Base{
     val v = Variable.fresh(StringType)
     s""" | UNNEST[ ${f(List(v1.quote))} / ${p(List(v.quote))} / ${value(List(v.quote))} ](${x})""".stripMargin
   }
-  def nest(x: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep = {
+  def nest(x: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep, dk: Boolean): Rep = {
     val v1 = Variable.fresh(StringType) 
     val v2 = Variable.fresh(StringType)
     val acc = e(List(v1.quote)) match { case "1" => "+"; case _ => "U" }
@@ -232,10 +232,6 @@ trait BaseCompiler extends Base {
   }
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
     val v = vars(e1.tp)
-    // println("have these vars")
-    // println(Printer.quote(f(v)))
-    // println(e1.tp)
-    // println(v)
     Reduce(e1, v, f(v), p(v))
   }
   def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep, value: List[Rep] => Rep): Rep = {
@@ -244,17 +240,15 @@ trait BaseCompiler extends Base {
     val v = Variable.freshFromBag(fv.tp)
     Unnest(e1, v1, fv, v, p(v1 :+ v), value(v1 :+ v))
   }
-  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep = {
+  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep, dk: Boolean): Rep = {
     val v1 = vars(e1.tp)
     val fv = f(v1) // groups
     val ev = e(v1)
-    val v = ev.tp match {
-      case p:PrimitiveType => 
-        Variable.fresh(TTupleType(List(fv.tp,ev.tp)))
-      case _ => 
-        Variable.fresh(TTupleType(List(fv.tp,BagCType(ev.tp))))
+    val v = fv.tp match {
+      case TTupleType(fs) if !dk => Variable.fresh(fv.tp, BagCType(ev.tp))
+      case _ => Variable.fresh(fv.tp, ev.tp)
     }
-    Nest(e1, v1, fv, ev, v, p(v1:+v), g(v1))
+    Nest(e1, v1, fv, ev, v, p(v1:+v), g(v1), dk)
   }
   def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, proj1: List[Rep] => Rep, proj2: Rep => Rep): Rep = {
     val v1 = vars(e1.tp)
@@ -299,8 +293,8 @@ trait BaseCompiler extends Base {
     //case BagDictCType(flat, dict) => List(Variable.fresh(flat.tp))
     case TTupleType(tps) if tps.head.isInstanceOf[LabelType] => 
       List(Variable.fresh(e)) // won't catch all cases
-    case TTupleType(tps) if (tps.head.isInstanceOf[RecordCType] && tps.last.isInstanceOf[PrimitiveType] && tps.size == 2) => 
-      List(Variable.fresh(e)) // fix this
+    // case TTupleType(tps) if (tps.head.isInstanceOf[RecordCType] && tps.last.isInstanceOf[PrimitiveType] && tps.size == 2) => 
+    //   List(Variable.fresh(e)) // fix this
     case TTupleType(tps) => tps.flatMap(vars(_, false)) 
     case _ => List(Variable.fresh(e))
   }
@@ -438,16 +432,22 @@ trait BaseANF extends Base {
   def dictunion(d1: Rep, d2: Rep): Rep = compiler.dictunion(d1, d2)
   def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = compiler.select(x, p, e)
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = compiler.reduce(e1, f, p)
-  def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep, value: List[Rep] => Rep): Rep = compiler.unnest(e1, f, p, value)
+  def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep, value: List[Rep] => Rep): Rep = 
+    compiler.unnest(e1, f, p, value)
   def join(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, proj1: List[Rep] => Rep, proj2: Rep => Rep): Rep = 
     compiler.join(e1, e2, p1, p2, proj1, proj2)
-  def outerunnest(e1: Rep, r: List[Rep] => Rep, p: List[Rep] => Rep, value: List[Rep] => Rep): Rep = compiler.outerunnest(e1, r, p, value)
+  def outerunnest(e1: Rep, r: List[Rep] => Rep, p: List[Rep] => Rep, value: List[Rep] => Rep): Rep = 
+    compiler.outerunnest(e1, r, p, value)
   def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p: Rep => Rep, proj1: List[Rep] => Rep, proj2: Rep => Rep): Rep = 
     compiler.outerjoin(e1, e2, p1, p, proj1, proj2)
-  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep): Rep = compiler.nest(e1, f, e, p, g)
-  def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = compiler.lkup(e1, e2, p1, p2, p3)
-  def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = compiler.outerlkup(e1, e2, p1, p2, p3)
-  def cogroup(e1: Rep, e2: Rep, k1: List[Rep] => Rep, k2: Rep => Rep, value: List[Rep] => Rep): Rep = compiler.cogroup(e1, e2, k1, k2, value)
+  def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep, dk: Boolean): Rep = 
+    compiler.nest(e1, f, e, p, g, dk)
+  def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = 
+    compiler.lkup(e1, e2, p1, p2, p3)
+  def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = 
+    compiler.outerlkup(e1, e2, p1, p2, p3)
+  def cogroup(e1: Rep, e2: Rep, k1: List[Rep] => Rep, k2: Rep => Rep, value: List[Rep] => Rep): Rep = 
+    compiler.cogroup(e1, e2, k1, k2, value)
   
   def vars(e: Type): List[Variable] = e match {
     case BagCType(tp:RecordCType) => List(Variable.fresh(tp))
@@ -530,11 +530,11 @@ class Finalizer(val target: Base){
       target.unnest(finalize(e1), (r: List[target.Rep]) => withMapList(v zip r)(finalize(e2)), 
         (r: List[target.Rep]) => withMapList((v :+ v2) zip r)(finalize(p)),
         (r: List[target.Rep]) => withMapList((v :+ v2) zip r)(finalize(value)))
-    case Nest(e1, v, f, e, v2, p, g) =>
+    case Nest(e1, v, f, e, v2, p, g, dk) =>
       target.nest(finalize(e1), (r: List[target.Rep]) => withMapList(v zip r)(finalize(f)),
         (r: List[target.Rep]) => withMapList(v zip r)(finalize(e)), 
           (r: List[target.Rep]) => withMapList((v :+ v2) zip r)(finalize(p)), 
-          (r: List[target.Rep]) => withMapList(v zip r)(finalize(g)))
+          (r: List[target.Rep]) => withMapList(v zip r)(finalize(g)), dk)
     case Join(e1, e2, v, p1, v2, p2, proj1, proj2) =>
       target.join(finalize(e1), finalize(e2), (r: List[target.Rep]) => withMapList(v zip r)(finalize(p1)),
         (r: target.Rep) => withMap(v2 -> r)(finalize(p2)), 
