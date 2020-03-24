@@ -7,6 +7,7 @@ import sprkloader._
 import sprkloader.PairRDDOperations._
 import sprkloader.DictRDDOperations._
 import sprkloader.TopRDD._
+import org.apache.spark.HashPartitioner
 case class Record4481(n__F_n_nationkey: Int)
 case class Record4482(n_regionkey: Int, n_nationkey: Int, n_custs: Record4481, n_name: String, n_comment: String)
 case class Record4484(c__F_c_custkey: Int)
@@ -71,7 +72,7 @@ val x4325 = x4315.c_mktsegment
 val x4326 = x4315.c_phone 
 val x4327 = Record4485(x4318, x4319, x4320, x4321, x4322, x4323, x4324, x4325, x4326) 
 x4327})
-}//.group(_++_) 
+}.partitionBy(new HashPartitioner(400))//.group(_++_) 
 val MDict_Test3Full_1_n_custs_1 = x4330
 val x4331 = MDict_Test3Full_1_n_custs_1
 MDict_Test3Full_1_n_custs_1.cache
@@ -93,7 +94,7 @@ val x4345 = x4334.o_totalprice
 val x4346 = x4334.o_comment 
 val x4347 = Record4488(x4337, x4338, x4339, x4340, x4342, x4343, x4344, x4345, x4341, x4346) 
 x4347})
-}//.group(_++_) 
+}.partitionBy(new HashPartitioner(500))//.group(_++_) 
 val MDict_Test3Full_1_n_custs_1_c_orders_1 = x4350
 val x4351 = MDict_Test3Full_1_n_custs_1_c_orders_1
 MDict_Test3Full_1_n_custs_1_c_orders_1.cache
@@ -121,7 +122,7 @@ val x4371 = x4354.l_suppkey
 val x4372 = x4354.l_orderkey 
 val x4373 = Record4490(x4357, x4358, x4359, x4360, x4361, x4362, x4363, x4364, x4365, x4366, x4367, x4368, x4369, x4370, x4371, x4372) 
 x4373})
-}//.group(_++_) 
+}.partitionBy(new HashPartitioner(1000))//.group(_++_) 
 val MDict_Test3Full_1_n_custs_1_c_orders_1_o_parts_1 = x4376
 val x4377 = MDict_Test3Full_1_n_custs_1_c_orders_1_o_parts_1
 MDict_Test3Full_1_n_custs_1_c_orders_1_o_parts_1.cache
@@ -129,7 +130,13 @@ MDict_Test3Full_1_n_custs_1_c_orders_1_o_parts_1.cache
 MDict_Test3Full_1_n_custs_1_c_orders_1_o_parts_1.evaluate
 var end0 = System.currentTimeMillis() - start0
 println("Shred,3,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
-    
+
+IBag_L__D.unpersist()
+IBag_O__D.unpersist()
+IBag_C__D.unpersist()
+IBag_N__D.unpersist()
+
+tpch.triggerGC
 
 var start1 = System.currentTimeMillis()
 val x4413 = MDict_Test3Full_1_n_custs_1_c_orders_1 
@@ -195,7 +202,7 @@ x4477}
 val Test3Full = x4478
 val x4479 = Test3Full
 //Test3Full.cache
-Test3Full.print
+// Test3Full.print
 Test3Full.evaluate
 
 
