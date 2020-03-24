@@ -144,7 +144,7 @@ val x4417 = x4413.map{case (x4414, x4416) =>
    (x4416.o_parts, (x4414, Record4491(x4416.o_shippriority, x4416.o_orderdate, x4416.o_custkey, x4416.o_orderpriority, 
     x4416.o_clerk, x4416.o_orderstatus, x4416.o_totalprice, x4416.o_orderkey, x4416.o_comment)))
 }
-val x4422 = MDict_Test3Full_1_n_custs_1_c_orders_1_o_parts_1.rightCoGroupDropKey(x4417)
+val x4422 = x4417.cogroupDropKey(MDict_Test3Full_1_n_custs_1_c_orders_1_o_parts_1)//.rightCoGroupDropKey(x4417)
 val x4437 = x4422.map{ case ((x4423, x4424), x4425) => 
    {val x4426 = x4424.o_shippriority 
 val x4427 = x4424.o_orderdate 
@@ -169,7 +169,7 @@ val x4444 = x4440.map{case (x4441, x4443) =>
    (x4443.c_orders, (x4441, Record4493(x4443.c_acctbal, x4443.c_name, x4443.c_nationkey, x4443.c_custkey, x4443.c_comment, 
     x4443.c_address, x4443.c_mktsegment, x4443.c_phone)))
 }
-val x4449 = UDict_Test3Full_1_n_custs_1_c_orders_1.rightCoGroupDropKey(x4444)
+val x4449 = x4444.cogroupDropKey(UDict_Test3Full_1_n_custs_1_c_orders_1)//.rightCoGroupDropKey(x4444)
 val x4463 = x4449.map{ case ((x4450, x4451), x4452) => 
    {val x4453 = x4451.c_acctbal 
 val x4454 = x4451.c_name 
@@ -190,7 +190,7 @@ val x4464 = UDict_Test3Full_1_n_custs_1
 // UDict_Test3Full_1_n_custs_1.evaluate
 val x4466 = MBag_Test3Full_1 
 val x4495 = x4466.map{ case x4467 => (x4467.n_custs, Record4496(x4467.n_regionkey, x4467.n_nationkey, x4467.n_name, x4467.n_comment))}
-val x4470 = UDict_Test3Full_1_n_custs_1.rightCoGroupDropKey(x4495)
+val x4470 = x4495.cogroupDropKey(UDict_Test3Full_1_n_custs_1)//.rightCoGroupDropKey(x4495)
 val x4478 = x4470.map{ case (x4471, x4472) => 
    {val x4473 = x4471.n_regionkey 
 val x4474 = x4471.n_nationkey 
