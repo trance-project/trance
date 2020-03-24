@@ -147,7 +147,6 @@ trait MaterializationContext extends BaseMaterialization with MaterializationDom
             if ctx.contains(l) && ctx.isTopLevel(l) =>
             (acc, ctx)
           case ((acc, ctx), (_, VarRefLabelParameter(d: BagDictExpr))) =>
-            println(d)
             assert(ctx.contains(d))  // sanity check
             (acc, ctx)
           case ((acc, ctx), (n, ProjectLabelParameter(d: BagDictExpr))) =>

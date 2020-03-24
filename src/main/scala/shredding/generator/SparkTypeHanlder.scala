@@ -61,6 +61,13 @@ trait SparkTypeHandler {
         case RecordCType(fs) =>
           fs.foreach(f => handleType(f._2))
           val name = givenName.getOrElse("Record" + Variable.newId)
+          // println(s"adding this type $name")
+          // println(tp)
+          
+          // types get tp match {
+          //   case Some(t) => println(s"updating the name of this type $name $t")
+          //   case None => println(s"new type $tp")
+          // }
           types = types + (tp -> name)
           typelst = typelst :+ tp
         case BagCType(tp) =>

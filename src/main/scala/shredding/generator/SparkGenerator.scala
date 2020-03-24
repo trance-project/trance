@@ -9,7 +9,7 @@ import shredding.utils.Utils.ind
   * Generates Scala code specific to Spark applications
   */
 
-class SparkNamedGenerator(inputs: Map[Type, String] = Map(), cache: Boolean = false, evaluate: Boolean = true) extends SparkTypeHandler with SparkUtils {
+class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, inputs: Map[Type, String] = Map()) extends SparkTypeHandler with SparkUtils {
 
   implicit def expToString(e: CExpr): String = generate(e)
 
@@ -36,6 +36,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), cache: Boolean = fa
           |     val ${generate(bv)} = ${generate(v)}.$field
           |     ${generate(p2)} }}
           |${generate(p3)}}""".stripMargin
+    case Bind(v, Project(v2, "_1"), e2) => generate(Bind(v, v2, e2))
     case _ => generate(e)
   }
 
@@ -73,7 +74,8 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), cache: Boolean = fa
     case Label(fs) => {
       val tp = e.tp
       handleType(tp)
-      s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
+      val inner = fs.map{f => generate(f._2)}.mkString(", ")
+      s"${generateType(tp)}($inner)"
     }
     case Record(fs) if isDictRecord(e) => 
       s"(${fs.map(f => { handleType(f._2.tp); generate(f._2) } ).mkString(", ") })"
@@ -83,6 +85,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), cache: Boolean = fa
       s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
     }
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
+    // this is a quick hack
     case Project(e1, "_LABEL") => generate(e1)
     case Project(e2 @ Record(fs), field) => 
       s"${generate(e2)}.${kvName(field)(fs.size)}"
@@ -121,7 +124,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), cache: Boolean = fa
     case Reduce(e1, v, f, Constant(true)) => 
       val vars = generateVars(v, e1.tp)
       s"""|${generate(e1)}.map{ case $vars => 
-          |   ${generate(f)}
+          |   {${generate(f)}}
           |}""".stripMargin
 
     case Reduce(e1, v, f, Constant("null")) => 
@@ -418,16 +421,12 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), cache: Boolean = fa
 
     /** LOCAL COMPREHENSION **/
 
-    case Comprehension(e1, v, p, e) =>
-      val acc = Variable.fresh("acc")
+    case Comprehension(e1, v, p, e2) =>
+      // val acc = Variable.fresh("acc")
       val cur = generate(v)
-      e.tp match {
-        case IntType =>
-          s"${generate(e1)}.foldLeft(0)(($acc, $cur) => \n${ind(conditional(p, s"$acc + {${generate(e)}}", s"$acc"))})"
-        case DoubleType =>
-          s"${generate(e1)}.foldLeft(0.0)(($acc, $cur) => \n${ind(conditional(p, s"$acc + {${generate(e)}}", s"$acc"))})"
-        case _ =>
-          s"${generate(e1)}.flatMap($cur => { \n${ind(conditional(p, s"${generate(e)}", "Nil"))}})"
+      p match {
+        case Constant(true) => s"${generate(e1)}.map($cur => {${generate(e2)}} )"
+        case _ => ???
       }
 
     /** SEQUENCE OF PLAN HANDLING **/
@@ -440,7 +439,7 @@ class SparkNamedGenerator(inputs: Map[Type, String] = Map(), cache: Boolean = fa
     case Bind(x, CNamed(n, e1), e2) =>
     	s"""|val $n = ${generate(e1)}
           |val ${generate(x)} = $n
-          |${runJob(n, false, false)}
+          |${runJob(n, cache, evaluate)}
           |${generate(e2)}""".stripMargin
 
     case Bind(v, LinearCSet(fs), e2) => 

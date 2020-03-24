@@ -181,7 +181,7 @@ object Utils {
   def runSpark(query: Query, pathout: String, label: String, 
     optLevel: Int = 2, skew: Boolean = false): Unit = {
     
-    val codegen = new SparkNamedGenerator()//query.inputTypes(shred))
+    val codegen = new SparkNamedGenerator(false, true)//query.inputTypes(shred))
     val gcode = codegen.generate(query.anf(optLevel))
     val header = if (skew) {
         s"""|import sprkloader.SkewPairRDD._
@@ -212,14 +212,13 @@ object Utils {
   def runSparkInput(inputQuery: Query, query: Query, pathout: String, label: String, 
     optLevel: Int = 2, skew: Boolean = false): Unit = {
     
-    val codegenInput = new SparkNamedGenerator(Map.empty[Type, String], true, true)
-    val codegen = new SparkNamedGenerator(codegenInput.types)
-    val (inputCode, gcode) = 
-      (codegenInput.generate(inputQuery.anf()), codegen.generate(query.anf(optLevel)))
+    val codegenInput = new SparkNamedGenerator(true, true)
+    val inputCode = codegenInput.generate(inputQuery.anf()) 
+    val codegen = new SparkNamedGenerator(false, true, codegenInput.types) 
+    val gcode = codegen.generate(query.anf(optLevel))
     val header = if (skew) {
         s"""|import sprkloader.SkewPairRDD._
             |import sprkloader.SkewTopRDD._
-            |${codegenInput.generateHeader(query.headerTypes(false))}
             |${codegen.generateHeader(query.headerTypes(false))}""".stripMargin
       } else {
         s"""|import sprkloader.PairRDDOperations._
@@ -246,7 +245,7 @@ object Utils {
   def runSparkShred(query: Query, pathout: String, label: String, eliminateDomains: Boolean = true, 
     unshred: Boolean = false, skew: Boolean = false): Unit = {
     
-    val codegen = new SparkNamedGenerator()
+    val codegen = new SparkNamedGenerator(false, eliminateDomains)
     val (gcodeShred, gcodeUnshred) = query.shredPlan(eliminateDomains = eliminateDomains)
     val gcode1 = codegen.generate(gcodeShred)
     val gcodeSet = if (unshred) List(gcode1, codegen.generate(gcodeUnshred)) else List(gcode1)
@@ -276,10 +275,10 @@ object Utils {
   def runSparkInputShred(inputQuery: Query, query: Query, pathout: String, label: String, 
     eliminateDomains: Boolean = true, unshred: Boolean = false, skew: Boolean = false): Unit = {
     
-    val codegenInput = new SparkNamedGenerator(Map.empty[Type, String], cache = false, evaluate = false)
-    val codegen = new SparkNamedGenerator(codegenInput.types)
-    val (inputShred, queryShred, queryUnshred) = query.shredWithInput(inputQuery, eliminateDomains = eliminateDomains)
-    val inputCode = codegen.generate(inputShred)
+    val codegenInput = new SparkNamedGenerator(false, false)
+    val (inputShred, queryShred, queryUnshred) = query.shredWithInput(inputQuery, unshredRun = unshred, eliminateDomains = eliminateDomains)
+    val inputCode = codegenInput.generate(inputShred)
+    val codegen = new SparkNamedGenerator(false, eliminateDomains, codegenInput.types)
     val gcode1 = codegen.generate(queryShred)
     val gcodeSet = if (unshred) List(gcode1, codegen.generate(queryUnshred)) else List(gcode1)
     val header = if (skew) {
@@ -299,7 +298,7 @@ object Utils {
     val fname = if (unshred) s"$pathout/unshred/$qname.scala" else s"$pathout/$qname.scala"
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val inputSection = s"${inputCode.split("\n").dropRight(1).mkString("\n")}\n${shredInputs(inputQuery.indexedDict)}"
+    val inputSection = s"${inputCode}\n${shredInputs(inputQuery.indexedDict)}"
     val inputs = if (skew) query.inputs(TPCHSchema.sskewcmds) else query.inputs(TPCHSchema.stblcmds)
     val finalc = writeSpark(qname, inputs, header, s"$inputSection\n${timed(label, gcodeSet)}", label)
     printer.println(finalc)

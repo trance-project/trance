@@ -91,6 +91,15 @@ object Optimizer {
     //     Comprehension(Project(dict, "_2"), v2, filt, Record(Map("key" -> Tuple(gbs), "agg" -> gbval))))
     
     })
+  
+  def wrapLabel(l: CExpr, nv: CExpr): CExpr = l match {
+    case Label(ls) if ls.size == 1 => ls.head match {
+      case (attr, p @ Project(_, _)) => 
+        Label(Map(attr -> p))//Variable(v.name, p.tp)))
+      case _ => ???
+    }
+    case _ => sys.error(s"not a label $l")
+  }
 
   def mergeOps(e: CExpr): CExpr = fapply(e, {
 
@@ -99,6 +108,35 @@ object Optimizer {
       CNamed(n, mergeOps(Reduce(e1, v2, f2, p2)))
     case CNamed(n, CDeDup(r @ Reduce(e1, v2, f2, p2))) if n.contains("M_ctx") =>
       CNamed(n, mergeOps(Reduce(e1, v2, f2, p2)))
+    
+    /** wrap label type during group by label **/   
+    case Reduce(Nest(e1, vs, Tuple(fs), value, nv, np, CUnit, dk), v2, Record(ms), p2) 
+      if ms.keySet == Set("_1", "_2") && fs.size == 1 => ms get "_1" match {
+        case Some(lbl) => 
+          mergeOps(Nest(e1, vs, wrapLabel(lbl, fs.head), value, nv, np, CUnit, dk))
+        case _ => e
+      }
+    case Reduce(r @ Reduce(x, v, Tuple(fs), Constant("null")), v2, Record(ms), p2) 
+      if ms.keySet == Set("_1", "_2") && fs.size == 2 => ms get "_1" match {
+        case Some(lbl) => 
+          mergeOps(Reduce(x, v, Tuple(wrapLabel(lbl, fs.head) +: fs.tail), Constant("null")))
+        case _ => e
+      }
+
+    /** push basic projections **/
+    case Reduce(Select(x, v, p, e2), v2, f2:Variable, p2) =>
+      Reduce(x, List(v), e2, normalizer.and(p, p2))
+    case Reduce(Select(x, v, p, e2), v2, f2, p2) => 
+      Reduce(x, List(v), f2, normalizer.and(p, p2))
+    case Select(x, v, Constant(true), e2) => 
+      Reduce(x, List(v), e2, Constant(true))
+    case Select(x, v, p, e2) => 
+      Reduce(x, List(v), e2, p)
+
+    // unshredding, maybe this could be an unnesting case
+    case Reduce(Nest(Lookup(e1, e2, e1s, key1, e2s, key2, key3), 
+      vs, key, value, nv, np, ng, _), v3, Record(ms), filt) if !value.tp.isPrimitive && ms.keySet == Set("_1", "_2") => 
+      Reduce(Lookup(mergeOps(e1), mergeOps(e2), e1s, key1, e2s, key2, key3), vs, Tuple(List(vs.head, value)), filt)
 
     /** merge nests and joins **/
     case Nest(OuterJoin(e1, e2, e1s, key1, e2s, key2, proj1, proj2), 
@@ -110,10 +148,13 @@ object Optimizer {
     case Nest(Lookup(e1:Select, e2, e1s, key1, e2s, key2, key3), 
       vs, key, value, nv, np, ng, _) if !value.tp.isPrimitive => 
       CoGroup(mergeOps(e1), mergeOps(e2), e1s, e2s, key1, key2, value)
-    // unshredding, maybe this could be an unnesting case
-    case Reduce(Nest(Lookup(e1, e2, e1s, key1, e2s, key2, key3), 
-      vs, key, value, nv, np, ng, _), v3, Record(ms), filt) if !value.tp.isPrimitive && ms.keySet == Set("_1", "_2") => 
-      Reduce(Lookup(mergeOps(e1), mergeOps(e2), e1s, key1, e2s, key2, key3), vs, Tuple(List(vs.head, value)), filt)
+
+    case Nest(OuterUnnest(e1, v1, lbag, v2, p, _), vs, key, value, v3, p2, _,_) 
+      if e1.tp.isDict => 
+      println("triggering this")
+      println(e1.tp)
+      Reduce(e1, v1, Tuple(List(key, Comprehension(lbag, v2, p, value))), p2)
+  
     // case OuterJoin(Nest(e1, vs, key, value, nv, np, ng), e2, e1s, key1, e2s, key2, proj1, proj2) =>
     //   CoGroup(e1, mergeOps(e2), e1s, e2s, key1, key2, value)
 
@@ -121,20 +162,7 @@ object Optimizer {
     // case Reduce(CoGroup(e1, e2, e1s, e2s, key1, key2, value), vr, fr, pr) => 
     //   mergeOps(CoGroup(e1, mergeOps(e2), e1s, e2s, key1, key2, fr))
     // todo push record type projection into lookup
-    // case Reduce(Nest(e1, vs, key, value, nv, np, CUnit, dk), v2, e2, p2) => 
-    //   mergeOps(Nest(e1, vs, key, value, nv, np, CUnit, dk))
-    // case Reduce(r @ Reduce(x, v, e2, Constant("null")), 
-    //   v2, t @ Record(fs), p2) if fs.keySet == Set("_1", "_2") => r
-    // case Reduce(Reduce(x, v, e2, p), v2, f2, p2) if p != Constant("null") =>
-    //   mergeOps(Reduce(x, v2, e2, normalizer.and(p, p2)))
-    case Reduce(Select(x, v, p, e2), v2, f2:Variable, p2) =>
-      Reduce(x, List(v), e2, normalizer.and(p, p2))
-    case Reduce(Select(x, v, p, e2), v2, f2, p2) => 
-      Reduce(x, List(v), f2, normalizer.and(p, p2))
-    case Select(x, v, Constant(true), e2) => 
-      Reduce(x, List(v), e2, Constant(true))
-    case Select(x, v, p, e2) => 
-      Reduce(x, List(v), e2, p)
+
   })
  
   def push(e: CExpr): CExpr = e match {

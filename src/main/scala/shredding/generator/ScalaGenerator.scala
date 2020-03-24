@@ -164,7 +164,7 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
           |${ind(generate(f))}.flatMap($gv2 => {
           |${ind(s"${conditional(p, s"List(($vars, $gv2))", "Nil")}")}
           |})}""".stripMargin
-    case Nest(e1, v1, f, e2, v2, p, g) => 
+    case Nest(e1, v1, f, e2, v2, p, g, dk) => 
       val grps = "grps" + Variable.newId()
       val acc = "acc"+Variable.newId()
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)

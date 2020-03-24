@@ -217,7 +217,7 @@ trait BaseCompiler extends Base {
   }
   def reduceby(e1: Rep, g: List[String], v: List[String]): Rep = {
     val v2 = Variable.freshFromBag(e1.tp)
-    CGroupBy(e1, v2, g, v) 
+    CReduceBy(e1, v2, g, v) 
   }
   def named(n: String, e: Rep): Rep = CNamed(n, e)
   def linset(e: List[Rep]): Rep = LinearCSet(e)

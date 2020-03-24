@@ -37,7 +37,6 @@ object Unnester {
     // assuming single numeric agg for now
     case g:CombineOp => unnest(g.e1)(u, w, E) match {
       case r @ Reduce(e2, v2, e3 @ Record(fs), p2) => 
-        println(Printer.quote(e3))
         val keys = fs get "_1" match {
           case Some(lbl) => lbl
           case _ => e3.project(g.keys)
@@ -51,7 +50,6 @@ object Unnester {
         val v = Variable.fresh(values.tp)
 
         val initNest = Nest(e2, v2, keys, values, v, p2, CUnit, true)
-        println("this nest")
         keys match {
           case Label(_) => initNest
           case Record(ks) => 
@@ -59,13 +57,12 @@ object Unnester {
               case Project(v1, f) => v1
               case v1 => v1
             }).asInstanceOf[List[Variable]]
-            val nrec = Tuple(u :+ Record(ks ++ Map(vname -> v)))
+            val nrec = Tuple(u :+ Sng(Record(ks ++ Map(vname -> v))))
             Reduce(initNest, vs :+ v, nrec, Constant(true))
           case _ => ???
         }
         
       case n @ Nest(e2, v2, f2, e3 @ Record(fs), v3, p2, gs, _) => 
-
         val keys = e3.project(g.keys)
         val (values, vname) = g.valuesTp match {
           case _:RecordCType => (e3(g.values.head), g.values.head)
@@ -74,7 +71,7 @@ object Unnester {
         }
 
         val v = Variable.fresh(values.tp)
-        val nrec = Tuple(u :+ Record(keys.fields ++ Map(vname -> v)))
+        val nrec = Tuple(u :+ Sng(Record(keys.fields ++ Map(vname -> v))))
 
         val castNulls = Tuple(u ++ keys.fields.map(f => f._2 match {
             case Project(v1, f) => v1
@@ -95,17 +92,11 @@ object Unnester {
       val (sp2s, p1s, p2s) = ps(p, v, w)
       if (!w.isEmpty) {
         dict.tp match {
-          //case InputRef(topd, _) =>
           case y if !y.isDict => 
-          //BagDictCType(BagCType(RecordCType(_)), EmptyDictCType) =>
             unnest(e2)((u, w :+ v, Some(Join(E.get, Select(Project(dict, "_1"), v, sp2s, v), w, p1s, v, p2s, Tuple(w), v))))
-            // unnest(e2)((u, w :+ v, Some(CoGroup(E.get, Select(Project(dict, "_1"), v, sp2s, v), w, v, p1s, p2s, v))))
           case _ =>
             if (u.isEmpty) { 
-               // this should flatten the bag
-               // unnest(e2)((u, w :+ v, Some(CoGroup(E.get, Project(dict, "_1"), w, v, lbl, p2s, p1s))))
                unnest(e2)((u, w :+ v, Some(Lookup(E.get, Project(dict, "_1"), w, lbl, v, p2s, p1s))))
-               // unnest(e2)((u, w :+ v, Some(Join(E.get, dict, w, lbl, v, Project(dict, "_1")))))
             } else {
               // todo move out to all cases
               getPM(sp2s) match {
