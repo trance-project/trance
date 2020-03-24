@@ -45,6 +45,8 @@ trait MaterializationContext extends BaseMaterialization with MaterializationDom
                 private val labelCtx: Map[LabelExpr, LabelInfo],
                 private val scope: Map[String, VarDef]) {
 
+    def this() = this(Map.empty, Map.empty, Map.empty)
+
     def addDict(dict: BagDictExpr, ref: VarRef, parent: Option[(BagDictExpr, String)]): Context =
       new Context(dictCtx + (dict -> new DictInfo(dict, ref, parent)), labelCtx, scope)
 
@@ -87,8 +89,12 @@ trait MaterializationContext extends BaseMaterialization with MaterializationDom
 
   }
 
-  def initContext(p: ShredProgram): Context =
-    inputVars(p).foldLeft (new Context(Map.empty, Map.empty, Map.empty)) {
+  def initContext(p: ShredProgram, ctx: Context): Context =
+    inputVars(p).filterNot {
+      case v: BagDictVarRef => ctx.contains(v)
+      case l: LabelVarRef => ctx.contains(l)
+      case _ => false
+    }.foldLeft (ctx) {
       case (acc, d: BagDictVarRef) =>
         addInputDict(d, acc, None)
       case (acc, l: LabelVarRef) =>
@@ -186,14 +192,14 @@ trait Materialization extends MaterializationContext {
       new MaterializedProgram(program ++ m.program, ctx ++ m.ctx)
   }
 
-  def materialize(p: ShredProgram, eliminateDomains: Boolean = false): MaterializedProgram =
-    // Create initial context with input dictionaries
-    materialize(p, initContext(p), eliminateDomains)
-
-  def materialize(p: ShredProgram, ctx: Context, eliminateDomains: Boolean): MaterializedProgram = {
+  def materialize(p: ShredProgram, ctx: Context = new Context, eliminateDomains: Boolean = false): MaterializedProgram = {
     Symbol.freshClear()
+
+    // Create initial context with input dictionaries
+    val initCtx = initContext(p, ctx)
+
     // Materialize each statement starting from empty program
-    val emptyProgram = new MaterializedProgram(Program(), ctx)
+    val emptyProgram = new MaterializedProgram(Program(), initCtx)
     p.statements.foldLeft (emptyProgram) { case (acc, s) =>
       val mat = materialize(s, acc.ctx, eliminateDomains)
       new MaterializedProgram(acc.program ++ mat.program, mat.ctx)
