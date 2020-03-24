@@ -1,6 +1,7 @@
 package shredding.nrc
 
 import shredding.core._
+import shredding.utils.Utils.Symbol
 
 /**
   * Extension methods for NRC expressions
@@ -497,4 +498,44 @@ trait Extensions {
   protected def inputVars(a: ShredAssignment, scope: Map[String, VarDef]): Set[VarRef] =
     inputVars(a.rhs.flat, scope).toSet ++ inputVars(a.rhs.dict, scope).toSet
 
+
+  def addOutputField(f: (String, TupleAttributeExpr), t: TupleExpr): TupleExpr = t match {
+    case Tuple(fs) =>
+      Tuple(fs + f)
+    case TupleLet(x, e1, e2) =>
+      TupleLet(x, e1, addOutputField(f, e2))
+    case TupleIfThenElse(c, e1, e2) =>
+      TupleIfThenElse(c, addOutputField(f, e1), addOutputField(f, e2))
+    case TupleExtractLabel(l, e) =>
+      TupleExtractLabel(l, addOutputField(f, e))
+    case _ =>
+      Tuple(t.tp.attrTps.keys.map(k => k -> t(k)).toMap + f)
+  }
+
+  def addOutputField(f: (String, TupleAttributeExpr), b: BagExpr): BagExpr = b match {
+    case ForeachUnion(x, b1, b2) =>
+      ForeachUnion(x, b1, addOutputField(f, b2))
+    case Union(e1, e2) =>
+      Union(addOutputField(f, e1), addOutputField(f, e2))
+    case DeDup(e) =>
+      DeDup(addOutputField(f, e))
+    case Singleton(t) =>
+      Singleton(addOutputField(f, t))
+    case BagLet(x, e1, e2) =>
+      BagLet(x, e1, addOutputField(f, e2))
+    case BagIfThenElse(c, e1, Some(e2)) =>
+      BagIfThenElse(c, addOutputField(f, e1), Some(addOutputField(f, e2)))
+    case BagIfThenElse(c, e1, None) =>
+      BagIfThenElse(c, addOutputField(f, e1), None)
+    case GroupByKey(e, ks, vs, n) =>
+      GroupByKey(addOutputField(f, e), f._1 :: ks, vs, n)
+    case ReduceByKey(e, ks, vs) =>
+      ReduceByKey(addOutputField(f, e), f._1 :: ks, vs)
+    case BagExtractLabel(l, e) =>
+      BagExtractLabel(l, addOutputField(f, e))
+    case _ =>
+      val x = TupleVarRef(Symbol.fresh(), b.tp.tp)
+      val xProjects = x.tp.attrTps.keys.map(k => k -> x(k)).toMap
+      ForeachUnion(x, b, Singleton(Tuple(xProjects + f)))
+  }
 }

@@ -1,12 +1,10 @@
 package shredding.nrc
 
-import shredding.core.{BagType, LabelType, MatDictType, TupleType, VarDef}
+import shredding.core.{BagType, LabelType, MatDictType, TupleType}
 
 trait MaterializeNRC extends ShredNRC with Optimizer {
 
   val KEY_ATTR_NAME: String = "_KEY"
-
-  val VALUE_ATTR_NAME: String = "_VALUE"
 
   val LABEL_ATTR_NAME: String = "_LABEL"
 
@@ -20,16 +18,13 @@ trait MaterializeNRC extends ShredNRC with Optimizer {
     def tp: MatDictType =
       MatDictType(
         bag.tp.tp(KEY_ATTR_NAME).asInstanceOf[LabelType],
-        bag.tp.tp(VALUE_ATTR_NAME).asInstanceOf[BagType]
+        BagType(TupleType(bag.tp.tp.attrTps.filterKeys(_ != KEY_ATTR_NAME)))
       )
   }
 
   final case class MatDictToBag(dict: MatDictExpr) extends BagExpr {
     def tp: BagType =
-      BagType(TupleType(
-        KEY_ATTR_NAME -> dict.tp.keyTp,
-        VALUE_ATTR_NAME -> dict.tp.valueTp
-      ))
+      BagType(TupleType(dict.tp.valueTp.tp.attrTps + (KEY_ATTR_NAME -> dict.tp.keyTp)))
   }
 
   final case class MatDictLookup(lbl: LabelExpr, dict: MatDictExpr) extends BagExpr {
