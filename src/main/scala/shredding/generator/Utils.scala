@@ -223,7 +223,6 @@ object Utils {
       } else {
         s"""|import sprkloader.PairRDDOperations._
             |import sprkloader.TopRDD._
-            |${codegenInput.generateHeader(query.headerTypes(false))}
             |${codegen.generateHeader(query.headerTypes(false))}""".stripMargin
       }
     val flatTag = optLevel match {

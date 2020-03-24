@@ -72,21 +72,21 @@ trait Query extends Materialization
     // input
     println("INPUT:")
     val inputC = normalizer.finalize(translate(matInput.program)).asInstanceOf[CExpr]
-    println(Printer.quote(inputC))
+    // println(Printer.quote(inputC))
     val inputInitPlan = Unnester.unnest(inputC)(Nil, Nil, None)
     val inputOptPlan = Optimizer.applyAll(inputInitPlan)
-    println(Printer.quote(inputOptPlan))
+    // println(Printer.quote(inputOptPlan))
     val anfBase = new BaseANF{}
     val anfer = new Finalizer(anfBase)
     val inputPlan = anfBase.anf(anfer.finalize(inputOptPlan).asInstanceOf[anfBase.Rep])
 
     println("QUERY:")
-    println(quote(mat.program))
+    // println(quote(mat.program))
     val calc = normalizer.finalize(translate(mat.program)).asInstanceOf[CExpr]
-    println(Printer.quote(calc))
+    // println(Printer.quote(calc))
     val initPlan = Unnester.unnest(calc)(Nil, Nil, None)
     val optPlan = Optimizer.applyAll(initPlan)
-    println(Printer.quote(optPlan))
+    // println(Printer.quote(optPlan))
     val sanfBase = new BaseANF{}
     val sanfer = new Finalizer(sanfBase)
     val splan = sanfBase.anf(sanfer.finalize(optPlan).asInstanceOf[sanfBase.Rep])
@@ -94,9 +94,11 @@ trait Query extends Materialization
     // unshred
     val usplan = if (unshredRun){
       val unshredProg = unshred(optShredded, mat.ctx)
+      println(quote(unshredProg))
       val uncalc = normalizer.finalize(translate(unshredProg)).asInstanceOf[CExpr]
       val uinitPlan = Unnester.unnest(uncalc)(Nil, Nil, None)
-      val uoptPlan = Optimizer.applyAll(uinitPlan)
+      println(Printer.quote(uinitPlan))
+      val uoptPlan = Optimizer.indexOnly(uinitPlan)
       println(Printer.quote(uoptPlan))
       val uanfBase = new BaseANF{}
       val uanfer = new Finalizer(uanfBase)
