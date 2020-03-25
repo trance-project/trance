@@ -73,11 +73,11 @@ object App {
     // Utils.shred(Test3, pathout, "Shred,3", unshred=true)
     // Utils.shred(Test4, pathout, "Shred,4", unshred=true)
 
-    Utils.shred(Test0Full, pathout, "Shred,0", unshred=true)
-    Utils.shred(Test1Full, pathout, "Shred,1", unshred=true)
+    // Utils.shred(Test0Full, pathout, "Shred,0", unshred=true)
+    // Utils.shred(Test1Full, pathout, "Shred,1", unshred=true)
     Utils.shred(Test2Full, pathout, "Shred,2", unshred=true)
-    Utils.shred(Test3Full, pathout, "Shred,3", unshred=true)
-    Utils.shred(Test4Full, pathout, "Shred,4", unshred=true)
+    // Utils.shred(Test3Full, pathout, "Shred,3", unshred=true)
+    // Utils.shred(Test4Full, pathout, "Shred,4", unshred=true)
 
 
   }

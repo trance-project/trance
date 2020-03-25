@@ -62,7 +62,7 @@ trait SparkUtils {
   }
 
   def isDictRecord(e: CExpr): Boolean = e match {
-    case Record(fs) => (fs.keySet == Set("_1","_2") || fs.keySet == Set("key", "value"))
+    case Record(fs) => fs.contains("_1")
     case _ => sys.error("unsupported type")
   }
 

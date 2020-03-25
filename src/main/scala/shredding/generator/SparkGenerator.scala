@@ -77,13 +77,24 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, inputs: Map[Type, S
       val inner = fs.map{f => generate(f._2)}.mkString(", ")
       s"${generateType(tp)}($inner)"
     }
-    case Record(fs) if isDictRecord(e) => 
-      s"(${fs.map(f => { handleType(f._2.tp); generate(f._2) } ).mkString(", ") })"
+    // case Record(fs) if isDictRecord(e) => 
+    //   s"(${fs.map(f => { handleType(f._2.tp); generate(f._2) } ).mkString(", ") })"
     case Record(fs) => {
       val tp = e.tp
       handleType(tp)
       s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
     }
+    // case Record(fs) => fs get "_1" match {
+    //   case Some(lbl) =>
+    //     val nfs = Record(fs - "_1")
+    //     val tp = nfs.tp
+    //     handleType(nfs.tp)
+    //     s"(${generate(lbl)}, ${generateType(tp)}(${nfs.fields.map(f => generate(f._2)).mkString(", ")}))"
+    //   case _ => 
+    //     val tp = e.tp
+    //     handleType(tp)
+    //     s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
+    // }
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
     // this is a quick hack
     case Project(e1, "_LABEL") => generate(e1)
@@ -364,14 +375,31 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, inputs: Map[Type, S
       val gv2 = generate(v2)
       val gluv = generate(luv)
       val ve1 = "x" + Variable.newId()
+      val ve2 = "x" + Variable.newId()
       // move this to the implementation of lookup
+      println(Printer.quote(e1))
+      println(e1.tp)
+      println(Printer.quote(e2))
+      println(e2.tp)
       val cogroupFun =
-        if (e2.tp.isPartiallyShredded) s"$ve1.cogroupDropKey(${generate(e2)})"
-        else s"$ve1.cogroupDropKey(${generate(e2)})"
+        //if (e2.tp.isPartiallyShredded) s"val $gluv = $ve1.cogroupDropKey(${generate(e2)})"
+        //else {
+          e2.tp match {
+            case BagCType(TTupleType(fs)) => (fs.head, fs.last) match {
+              case (LabelType(_), BagCType(rs @ RecordCType(_))) => 
+                handleType(rs)
+                s"""|val $ve2 = ${generate(e2)}.map(v => 
+                    |  (v._1, ${generateType(rs)}(${rs.attrTps.map(f => s"v.${f._1}").toList.mkString(", ")})))
+                    |val $gluv = $ve1.cogroupDropKey($ve2)""".stripMargin
+              case _ => s"val $gluv = $ve1.cogroupDropKey(${generate(e2)})"
+            }
+            case _ => s"val $gluv = $ve1.cogroupDropKey(${generate(e2)})"
+          }
+        // }
           // else s"${generate(e2)}.rightCoGroupDropKey($ve1)"
       val nv2 = generate(drop(v3.tp, v3, key1))
       s"""|val $ve1 = ${generate(e1)}.map{ case $vars => (${generate(v3)}.$key1, $nv2)}
-          |val $gluv = $cogroupFun
+          |$cogroupFun
           |${generate(e3)}
           |""".stripMargin 
     
