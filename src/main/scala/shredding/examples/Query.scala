@@ -153,7 +153,9 @@ trait Query extends Materialization
         println("")
         val uanfBase = new BaseANF{}
         val uanfer = new Finalizer(uanfBase)
-        uanfBase.anf(uanfer.finalize(uoptPlan).asInstanceOf[uanfBase.Rep])
+        val uanfed = uanfBase.anf(uanfer.finalize(uoptPlan).asInstanceOf[uanfBase.Rep])
+        println(uanfed)
+        uanfed
       }else CUnit
       (splan, usplan)
   }

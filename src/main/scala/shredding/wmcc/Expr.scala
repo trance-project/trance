@@ -214,8 +214,38 @@ case class LinearCSet(exprs: List[CExpr]) extends CExpr {
   */
 
 case class CLookup(lbl: CExpr, dict: CExpr) extends CExpr {
-  def tp: BagCType = dict.tp.flat
+  def tp: BagCType = dict.tp match {
+    case MatDictCType(lbl, dict) => dict
+    case _ => sys.error(s"not supported ${dict.tp}")
+  }
+  //dict.tp.flat
   //def tp: BagCType = dict.tp.asInstanceOf[BagDictCType].flatTp
+}
+
+case class FlatDict(e: CExpr) extends CExpr {
+  def tp: BagCType = e.tp match {
+    case MatDictCType(lbl, BagCType(RecordCType(ms))) => 
+      BagCType(RecordCType(ms + ("_1" -> lbl)))
+    case _ => sys.error(s"unsupported type ${e.tp}")
+  }
+}
+
+case class GroupDict(e: CExpr) extends CExpr {
+  def tp: MatDictCType = e.tp match {
+    case BagCType(RecordCType(ms)) => 
+      val lbl = ms get "_1" match {
+        case Some(l:LabelType) => l
+        case _ => sys.error("invalid bag")
+      }
+      MatDictCType(lbl, BagCType(RecordCType(ms - "_1")))
+    case BagCType(TTupleType(ms)) if ms.size == 2 =>
+      val lbl = ms.head match {
+        case l:LabelType => l
+        case _ => sys.error("invalid bag")
+      }
+      MatDictCType(lbl, ms.last.asInstanceOf[BagCType])
+    case _ => ???
+  }
 }
 
 case object EmptyCDict extends CExpr {

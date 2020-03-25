@@ -103,7 +103,7 @@ trait BaseNormalizer extends BaseCompiler {
     e1 match {
       case If(cond, e3, e4 @ Some(a)) => //N4
         If(cond, comprehension(e3, p, e), Some(comprehension(a, p, e)))
-      case If(cond, e3 @ WeightedSng(t, q), None) => comprehension(e3, (i: CExpr) => cond, e)
+      // case If(cond, e3 @ WeightedSng(t, q), None) => comprehension(e3, (i: CExpr) => cond, e)
       // case WeightedSng(t, q) if e(t) == Constant(1) => comprehension(Sng(t), p, (i: CExpr) => q)
       case EmptySng => EmptySng // N5
       case Sng(t) => ifthen(p(t), sng(e(t))) // N6

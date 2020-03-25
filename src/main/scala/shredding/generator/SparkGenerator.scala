@@ -9,7 +9,7 @@ import shredding.utils.Utils.ind
   * Generates Scala code specific to Spark applications
   */
 
-class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, inputs: Map[Type, String] = Map()) extends SparkTypeHandler with SparkUtils {
+class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean = false, inputs: Map[Type, String] = Map()) extends SparkTypeHandler with SparkUtils {
 
   implicit def expToString(e: CExpr): String = generate(e)
 
@@ -54,7 +54,10 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, inputs: Map[Type, S
           => Project(v, "_"+(i+1)) })
       case RecordCType(fs) => 
         Record((fs - field).map{ case (attr, atp) => attr -> Project(v, attr)})
-      case _ => sys.error(s"unsupported type $tp")
+      case MatDictCType(lbl, BagCType(r @ RecordCType(fs))) => 
+        val nv = Variable(v.name, r)
+        Record(fs.map{ case (attr, atp) => attr -> Project(nv, attr)})
+      case _ => sys.error(s"unsupported type ${tp}")
     }
 
   def generate(e: CExpr): String = e match {
@@ -84,17 +87,6 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, inputs: Map[Type, S
       handleType(tp)
       s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
     }
-    // case Record(fs) => fs get "_1" match {
-    //   case Some(lbl) =>
-    //     val nfs = Record(fs - "_1")
-    //     val tp = nfs.tp
-    //     handleType(nfs.tp)
-    //     s"(${generate(lbl)}, ${generateType(tp)}(${nfs.fields.map(f => generate(f._2)).mkString(", ")}))"
-    //   case _ => 
-    //     val tp = e.tp
-    //     handleType(tp)
-    //     s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
-    // }
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
     // this is a quick hack
     case Project(e1, "_LABEL") => generate(e1)
@@ -122,6 +114,9 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, inputs: Map[Type, S
 
     /** DEDUPLICATION **/
     case CDeDup(e1) => s"${generate(e1)}.distinct"
+
+    case GroupDict(e1) => if (flatDict) generate(e1) else s"${generate(e1)}.groupBy(_++_)"
+    case FlatDict(e1) => s"${generate(e1)} /** FLATTEN **/"
    
     /** DOMAIN CREATION **/
     case Reduce(e1, v, f @ Bind(_, Project(_, labelField), _), Constant(true)) if isDomain(e) =>  
@@ -368,6 +363,45 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, inputs: Map[Type, S
           |${generate(e2)}
           |""".stripMargin
 
+    case Bind(fv, FlatDict(InputRef(pdict, _)), 
+      Bind(_, _, Bind(lv, Lookup(e1, InputRef(cdict, _), vs, 
+        p1 @ Bind(_, Project(v3:Variable, key1), _), v2, k2, p), e3))) =>
+
+      val vars = generateVars(vs, e1.tp)
+      val gv2 = generate(v2)
+      val gluv = generate(lv)
+      val ve1 = "x" + Variable.newId()
+      val ve2 = "x" + Variable.newId()
+      if (flatDict){
+        val nv2 = generate(drop(v3.tp, v3, key1))
+        val nv3 = generate(drop(v2.tp, v2, "_1"))
+        s"""|val $ve1 = $pdict.map{ case $vars => (${generate(v3)}.$key1, $nv2)}
+            |val $ve2 = $cdict.map{ $gv2 => ($gv2._1, $nv3) }
+            |val $gluv = $ve1.cogroupDropKey($ve2)
+            |${generate(e3)}
+        """.stripMargin
+      }else "TODO"
+
+    case Bind(rv, Reduce(InputRef(pdict, _), _,_,_), 
+      Bind(lv, Lookup(e1, InputRef(cdict, _), vs, 
+        p1 @ Bind(_, Project(v3:Variable, key1), _), v2, k2, p), e3)) =>
+
+      val vars = generateVars(vs, e1.tp)
+      val gv2 = generate(v2)
+      val gluv = generate(lv)
+      val ve1 = "x" + Variable.newId()
+      val ve2 = "x" + Variable.newId()
+      if (flatDict){
+        val nv2 = generate(drop(v3.tp, v3, key1))
+        val nv3 = generate(drop(v2.tp, v2, "_1"))
+        s"""|val $ve1 = $pdict.map{ case $vars => (${generate(v3)}.$key1, $nv2)}
+            |val $ve2 = $cdict.map{ $gv2 => ($gv2._1, $nv3) }
+            |val $gluv = $ve1.cogroupDropKey($ve2)
+            |${generate(e3)}
+        """.stripMargin
+      }else "TODO"
+      
+
     // Non-domain lookup that does not require flattening one of the dictionaries
     // ie. (top level bag).lookup(lower level dictionary)
     case Bind(luv, Lookup(e1, e2, v1, p1 @ Bind(_, Project(v3:Variable, key1), _), v2, Constant(true), Variable(_,_)), e3) =>
@@ -377,10 +411,6 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, inputs: Map[Type, S
       val ve1 = "x" + Variable.newId()
       val ve2 = "x" + Variable.newId()
       // move this to the implementation of lookup
-      println(Printer.quote(e1))
-      println(e1.tp)
-      println(Printer.quote(e2))
-      println(e2.tp)
       val cogroupFun =
         //if (e2.tp.isPartiallyShredded) s"val $gluv = $ve1.cogroupDropKey(${generate(e2)})"
         //else {

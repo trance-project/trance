@@ -199,6 +199,8 @@ trait BaseScalaInterp extends Base{
   }
   // todo
   def cogroup(e1: Rep, e2: Rep, k1: List[Rep] => Rep, k2: Rep => Rep, value: List[Rep] => Rep): Rep = e1
+  def flatdict(e1: Rep): Rep = e1
+  def groupdict(e1: Rep): Rep = e1
   
   // keys and flattens input tuples
   def tupleVars(k: Any): List[Rep] = k match {

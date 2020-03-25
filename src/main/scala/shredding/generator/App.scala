@@ -51,7 +51,7 @@ object App {
     // Utils.flatOpt(Test2Flat, pathout, "Flat++,2")
     // Utils.flatOpt(Test2FullFlat, pathout, "Flat++,2")
     // Utils.flatOpt(Test3Flat, pathout, "Flat++,3")
-    // Utils.flatOpt(Test3FullFlat, pathout, "Flat++,3")
+    Utils.flatOpt(Test3FullFlat, pathout, "Flat++,3")
     // Utils.flatOpt(Test4Flat, pathout, "Flat++,4")
     // Utils.flatOpt(Test4FullFlat, pathout, "Flat++,4")
 
@@ -75,7 +75,7 @@ object App {
 
     // Utils.shred(Test0Full, pathout, "Shred,0", unshred=true)
     // Utils.shred(Test1Full, pathout, "Shred,1", unshred=true)
-    Utils.shred(Test2Full, pathout, "Shred,2", unshred=true)
+    // Utils.shred(Test2Full, pathout, "Shred,2", unshred=true)
     // Utils.shred(Test3Full, pathout, "Shred,3", unshred=true)
     // Utils.shred(Test4Full, pathout, "Shred,4", unshred=true)
 

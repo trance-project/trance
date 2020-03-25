@@ -17,6 +17,7 @@ sealed trait Type { self =>
     case _:BagDictCType => self.flat
     case _ => sys.error("unsupported call to flat")
   }
+  override def toString: String = ""
 }
 
 trait ReducibleType
@@ -109,6 +110,8 @@ case class BagCType(tp: Type) extends Type {
     case _ => sys.error("calling flat on an unsupported type")
   }
 }
+
+case class MatDictCType(keyTp: LabelType, valueTp: BagCType) extends Type
 
 case object EmptyCType extends Type
 

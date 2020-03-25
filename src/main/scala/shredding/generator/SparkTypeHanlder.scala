@@ -43,6 +43,7 @@ trait SparkTypeHandler {
     case LongType => "Long"
     case TTupleType(fs) => s"(${fs.map(generateType(_)).mkString(",")})"
     case BagCType(tp) => s"Vector[${generateType(tp)}]" //combineByKey, etc. may need this to be iterable
+    case MatDictCType(lbl, dict) => s"${generateType(dict)}"
     case BagDictCType(flat @ BagCType(TTupleType(fs)), dict) =>
       dict match {
         case TupleDictCType(ds) if !ds.filter(_._2 != EmptyDictCType).isEmpty =>
@@ -67,8 +68,9 @@ trait SparkTypeHandler {
           handleType(tp, givenName)
         case LabelType(fs) if !fs.isEmpty =>
           handleType(RecordCType(fs))
+        case MatDictCType(lbl, dict) => handleType(dict)
         case BagDictCType(flat @ BagCType(TTupleType(fs)), dict) =>
-          val nid = Variable.newId
+          // val nid = Variable.newId
           handleType(fs.last, Some(givenName.getOrElse("")))
         case TupleDictCType(fs) =>
           val ffs = fs.filter(_._2 != EmptyDictCType)

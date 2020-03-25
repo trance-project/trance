@@ -85,6 +85,8 @@ object Printer {
       s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) COGROUP[${quote(k1)} = ${quote(k2)}, 
            | ${quote(value)}] (
            |  ${ind(quote(e2))})""".stripMargin
+    case FlatDict(e1) => flatdict(quote(e1))
+    case GroupDict(e1) => groupdict(quote(e1))
     case Variable(n, tp) => n
   }
 }

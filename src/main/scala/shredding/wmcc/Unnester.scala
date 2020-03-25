@@ -35,6 +35,8 @@ object Unnester {
   def unnest(e: CExpr)(implicit ctx: Ctx): CExpr = e match {
     case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E)))
     // assuming single numeric agg for now
+    case FlatDict(e1) => FlatDict(unnest(e1)((u, w, E)))
+    case GroupDict(e1) => GroupDict(unnest(e1)((u, w, E)))
     case g:CombineOp => unnest(g.e1)(u, w, E) match {
       case r @ Reduce(e2, v2, e3 @ Record(fs), p2) => 
         val keys = fs get "_1" match {
@@ -210,7 +212,7 @@ object Unnester {
           } 
         // hit unshredding case
         case (key, value @ CLookup(lbl, dict)) :: tail => 
-          val v2 = Variable.freshFromBag(dict.tp.flat)
+          val v2 = Variable.freshFromBag(dict.tp)
           val nE = Some(Lookup(E.get, dict, w, lbl, v2, Constant(true), v2))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case head @ (key, value) :: tail => sys.error(s"not supported ${Printer.quote(value)}")

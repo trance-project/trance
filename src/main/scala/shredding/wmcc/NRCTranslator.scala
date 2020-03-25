@@ -16,7 +16,8 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
 
   def translate(e: Type): Type = e match {
     case MatDictType(lbl, dict) => 
-      BagCType(TTupleType(List(translate(lbl), translate(dict))))
+      MatDictCType(translate(lbl).asInstanceOf[LabelType], translate(dict).asInstanceOf[BagCType])
+      // BagCType(TTupleType(List(translate(lbl), translate(dict))))
       // BagDictCType(BagCType(TTupleType(List(translate(lbl), translate(dict)))), EmptyDictCType)
     //case BagCType(r @ TupleType(ms)) if ms.keySet == Set("_1", "_2") => 
       //BagDictCType(BagCType(translate(r)), EmptyDictCType)
@@ -136,25 +137,18 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
     case DeDup(e1) => CDeDup(translate(e1)) 
     // case _ => EmptyCDict
     case MatDictLookup(lbl, dict) => CLookup(translate(lbl), translate(dict))
-    case MatDictToBag(dv:MatDictVarRef) => 
-      val flattenTp = dv.tp match {
-        case MatDictType(lbl, BagType(TupleType(fs))) => BagType(TupleType(fs + ("_1" -> lbl)))
-      }
-      translate(BagVarRef(dv.name, flattenTp))
-    case MatDictToBag(bd) => translate(bd)
-    case BagToMatDict(bd) => translate(bd)
+    // case MatDictToBag(dv:MatDictVarRef) => 
+    //   val flattenTp = dv.tp match {
+    //     case MatDictType(lbl, BagType(TupleType(fs))) => BagType(TupleType(fs + ("_1" -> lbl)))
+    //   }
+    //   translate(BagVarRef(dv.name, flattenTp))
+    case MatDictToBag(bd) => FlatDict(translate(bd))
+    case BagToMatDict(bd) => GroupDict(translate(bd))
     
     case _ => sys.error("cannot translate "+quote(e))
   }
 
-  def translate(a: Assignment): CExpr = {
-    val c = CNamed(a.name, translate(a.rhs))
-    // println(a.name)
-    // println(a.rhs.tp)
-    // println(c.name)
-    // println(c.e.tp)
-    c
-  }
+  def translate(a: Assignment): CExpr = CNamed(a.name, translate(a.rhs))
   def translate(p: Program): LinearCSet = LinearCSet(p.statements.map(translate))
 
 }

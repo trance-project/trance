@@ -181,7 +181,7 @@ object Utils {
   def runSpark(query: Query, pathout: String, label: String, 
     optLevel: Int = 2, skew: Boolean = false): Unit = {
     
-    val codegen = new SparkNamedGenerator(false, true)//query.inputTypes(shred))
+    val codegen = new SparkNamedGenerator(false, true, flatDict = true)//query.inputTypes(shred))
     val gcode = codegen.generate(query.anf(optLevel))
     val header = if (skew) {
         s"""|import sprkloader.SkewPairRDD._
@@ -212,9 +212,9 @@ object Utils {
   def runSparkInput(inputQuery: Query, query: Query, pathout: String, label: String, 
     optLevel: Int = 2, skew: Boolean = false): Unit = {
     
-    val codegenInput = new SparkNamedGenerator(true, true)
+    val codegenInput = new SparkNamedGenerator(true, true, flatDict = true)
     val inputCode = codegenInput.generate(inputQuery.anf()) 
-    val codegen = new SparkNamedGenerator(false, true, codegenInput.types) 
+    val codegen = new SparkNamedGenerator(false, true, flatDict = true, inputs = codegenInput.types) 
     val gcode = codegen.generate(query.anf(optLevel))
     val header = if (skew) {
         s"""|import sprkloader.SkewPairRDD._
@@ -244,7 +244,7 @@ object Utils {
   def runSparkShred(query: Query, pathout: String, label: String, eliminateDomains: Boolean = true, 
     unshred: Boolean = false, skew: Boolean = false): Unit = {
     
-    val codegen = new SparkNamedGenerator(false, eliminateDomains)
+    val codegen = new SparkNamedGenerator(false, eliminateDomains, flatDict = true)
     val (gcodeShred, gcodeUnshred) = query.shredPlan(unshred, eliminateDomains = eliminateDomains)
     val gcode1 = codegen.generate(gcodeShred)
     val gcodeSet = if (unshred) List(gcode1, codegen.generate(gcodeUnshred)) else List(gcode1)
@@ -274,10 +274,10 @@ object Utils {
   def runSparkInputShred(inputQuery: Query, query: Query, pathout: String, label: String, 
     eliminateDomains: Boolean = true, unshred: Boolean = false, skew: Boolean = false): Unit = {
     
-    val codegenInput = new SparkNamedGenerator(false, false)
+    val codegenInput = new SparkNamedGenerator(false, false, flatDict = true)
     val (inputShred, queryShred, queryUnshred) = query.shredWithInput(inputQuery, unshredRun = unshred, eliminateDomains = eliminateDomains)
     val inputCode = codegenInput.generate(inputShred)
-    val codegen = new SparkNamedGenerator(false, eliminateDomains, codegenInput.types)
+    val codegen = new SparkNamedGenerator(false, eliminateDomains, flatDict = true, inputs = codegenInput.types)
     val gcode1 = codegen.generate(queryShred)
     val gcodeSet = if (unshred) List(gcode1, codegen.generate(queryUnshred)) else List(gcode1)
     val header = if (skew) {

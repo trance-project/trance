@@ -53,6 +53,8 @@ trait Base {
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep
   def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep
   def cogroup(e1: Rep, e2: Rep, k1: List[Rep] => Rep, k2: Rep => Rep, value: List[Rep] => Rep): Rep
+  def flatdict(e1: Rep): Rep
+  def groupdict(e1: Rep): Rep
 }
 
 trait BaseStringify extends Base{
@@ -159,8 +161,8 @@ trait BaseStringify extends Base{
     s"""| ($e1) COGROUP[${k1(List(e1))} = ${k2(e2)} / ${value(List(e1, e2))} ] 
         | ${ind(e2)})""".stripMargin
   }
-
-
+  def flatdict(e1: Rep): Rep = s"FLAT($e1)"
+  def groupdict(e1: Rep): Rep = s"GROUP($e1)"
 }
 
 /**
@@ -281,6 +283,8 @@ trait BaseCompiler extends Base {
     val v2 = Variable.freshFromBag(e2.tp)
     CoGroup(e1, e2, vs, v2, k1(vs), k2(v2), value(vs :+ v2))
   }
+  def flatdict(e1: Rep): Rep = FlatDict(e1)
+  def groupdict(e1: Rep): Rep = GroupDict(e1)
 
   /**
     * Why am I using this still??
@@ -448,6 +452,8 @@ trait BaseANF extends Base {
     compiler.outerlkup(e1, e2, p1, p2, p3)
   def cogroup(e1: Rep, e2: Rep, k1: List[Rep] => Rep, k2: Rep => Rep, value: List[Rep] => Rep): Rep = 
     compiler.cogroup(e1, e2, k1, k2, value)
+  def flatdict(e1: Rep): Rep = compiler.flatdict(e1)
+  def groupdict(e1: Rep): Rep = compiler.groupdict(e1)
   
   def vars(e: Type): List[Variable] = e match {
     case BagCType(tp:RecordCType) => List(Variable.fresh(tp))
@@ -558,6 +564,8 @@ class Finalizer(val target: Base){
     case CoGroup(e1, e2, v1, v2, k1, k2, value) =>
       target.cogroup(finalize(e1), finalize(e2), (r: List[target.Rep]) => withMapList(v1 zip r)(finalize(k1)), 
         (r: target.Rep) => withMap(v2 -> r)(finalize(k2)), (r: List[target.Rep]) => withMapList(v1 :+ v2 zip r)(finalize(value)))
+    case FlatDict(e1) => target.flatdict(finalize(e1))
+    case GroupDict(e1) => target.groupdict(finalize(e1))
     case v @ Variable(_, _) => variableMap.getOrElse(v, target.inputref(v.name, v.tp))
   }
 
