@@ -117,26 +117,44 @@ trait Query extends Materialization
       (materializedProgram.program, unshredProg)
     }
 
-  def shredPlan(eliminateDomains: Boolean = true): (CExpr, CExpr) = {
+  def shredPlan(unshredRun: Boolean = false, eliminateDomains: Boolean = true): (CExpr, CExpr) = {
       val (matProg, ushred) = shred(eliminateDomains)
       // shred 
+      println("SHRED NRC")
+      println(quote(matProg))
+      println("")
       val ncalc = normalizer.finalize(translate(matProg)).asInstanceOf[CExpr]
+      println("SHRED CALC")
+      println(Printer.quote(ncalc))
+      println("")
       val initPlan = Unnester.unnest(ncalc)(Nil, Nil, None)
       // println(Printer.quote(initPlan))
       val optPlan = Optimizer.applyAll(initPlan)
+      println("SHRED PLAN")
       println(Printer.quote(optPlan))
+      println("")
       val anfBase = new BaseANF{}
       val anfer = new Finalizer(anfBase)
       val splan = anfBase.anf(anfer.finalize(optPlan).asInstanceOf[anfBase.Rep])
 
       //unshred
-      val uncalc = normalizer.finalize(translate(ushred)).asInstanceOf[CExpr]
-      val uinitPlan = Unnester.unnest(uncalc)(Nil, Nil, None)
-      val uoptPlan = Optimizer.applyAll(uinitPlan)
-      // println(Printer.quote(uoptPlan))
-      val uanfBase = new BaseANF{}
-      val uanfer = new Finalizer(uanfBase)
-      val usplan = uanfBase.anf(uanfer.finalize(uoptPlan).asInstanceOf[uanfBase.Rep])
+      val usplan = if (unshredRun){
+        println("UNSHRED NRC")
+        println(quote(ushred))
+        println("")
+        val uncalc = normalizer.finalize(translate(ushred)).asInstanceOf[CExpr]
+        println("UNSHRED CALC")
+        println(Printer.quote(uncalc))
+        println("")
+        val uinitPlan = Unnester.unnest(uncalc)(Nil, Nil, None)
+        val uoptPlan = Optimizer.applyAll(uinitPlan)
+        println("UNSHRED PLAN")
+        println(Printer.quote(uoptPlan))
+        println("")
+        val uanfBase = new BaseANF{}
+        val uanfer = new Finalizer(uanfBase)
+        uanfBase.anf(uanfer.finalize(uoptPlan).asInstanceOf[uanfBase.Rep])
+      }else CUnit
       (splan, usplan)
   }
 

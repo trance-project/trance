@@ -15,7 +15,8 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
   import compiler._
 
   def translate(e: Type): Type = e match {
-    case MatDictType(lbl, dict) => BagCType(TTupleType(List(translate(lbl), translate(dict))))
+    case MatDictType(lbl, dict) => 
+      BagCType(TTupleType(List(translate(lbl), translate(dict))))
       // BagDictCType(BagCType(TTupleType(List(translate(lbl), translate(dict)))), EmptyDictCType)
     //case BagCType(r @ TupleType(ms)) if ms.keySet == Set("_1", "_2") => 
       //BagDictCType(BagCType(translate(r)), EmptyDictCType)
@@ -98,6 +99,10 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
       case If(cond, e3, e4 @ None) => 
         Comprehension(translate(e1), translate(x).asInstanceOf[Variable], cond, e3)
       case te2 => 
+        // println(e1)
+        // println(e1.tp)
+        val te1 = translate(e1)
+        // println(te1)
         Comprehension(translate(e1), translate(x).asInstanceOf[Variable], constant(true), te2)
     }
     case l:Let => Bind(translate(l.x), translate(l.e1), translate(l.e2))
@@ -131,13 +136,25 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
     case DeDup(e1) => CDeDup(translate(e1)) 
     // case _ => EmptyCDict
     case MatDictLookup(lbl, dict) => CLookup(translate(lbl), translate(dict))
+    case MatDictToBag(dv:MatDictVarRef) => 
+      val flattenTp = dv.tp match {
+        case MatDictType(lbl, BagType(TupleType(fs))) => BagType(TupleType(fs + ("_1" -> lbl)))
+      }
+      translate(BagVarRef(dv.name, flattenTp))
     case MatDictToBag(bd) => translate(bd)
     case BagToMatDict(bd) => translate(bd)
     
     case _ => sys.error("cannot translate "+quote(e))
   }
 
-  def translate(a: Assignment): CExpr = CNamed(a.name, translate(a.rhs))
+  def translate(a: Assignment): CExpr = {
+    val c = CNamed(a.name, translate(a.rhs))
+    // println(a.name)
+    // println(a.rhs.tp)
+    // println(c.name)
+    // println(c.e.tp)
+    c
+  }
   def translate(p: Program): LinearCSet = LinearCSet(p.statements.map(translate))
 
 }

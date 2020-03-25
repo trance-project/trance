@@ -365,8 +365,10 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, inputs: Map[Type, S
       val gluv = generate(luv)
       val ve1 = "x" + Variable.newId()
       // move this to the implementation of lookup
-      val cogroupFun = if (e2.tp.isPartiallyShredded) s"$ve1.cogroupDropKey(${generate(e2)})"
-        else s"${generate(e2)}.rightCoGroupDropKey($ve1)"
+      val cogroupFun =
+        if (e2.tp.isPartiallyShredded) s"$ve1.cogroupDropKey(${generate(e2)})"
+        else s"$ve1.cogroupDropKey(${generate(e2)})"
+          // else s"${generate(e2)}.rightCoGroupDropKey($ve1)"
       val nv2 = generate(drop(v3.tp, v3, key1))
       s"""|val $ve1 = ${generate(e1)}.map{ case $vars => (${generate(v3)}.$key1, $nv2)}
           |val $gluv = $cogroupFun

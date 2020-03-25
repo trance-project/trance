@@ -247,7 +247,7 @@ trait NRC extends BaseExpr {
   final case class GroupByKey(e: BagExpr,
                               keys: List[String],
                               values: List[String],
-                              private val groupAttrName: String = GROUP_ATTR_NAME
+                              groupAttrName: String = GROUP_ATTR_NAME
                              ) extends GroupByExpr {
     val keysTp: TupleType =
       TupleType(keys.map(n => n -> e.tp.tp(n)).toMap)

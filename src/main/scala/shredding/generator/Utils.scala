@@ -245,7 +245,7 @@ object Utils {
     unshred: Boolean = false, skew: Boolean = false): Unit = {
     
     val codegen = new SparkNamedGenerator(false, eliminateDomains)
-    val (gcodeShred, gcodeUnshred) = query.shredPlan(eliminateDomains = eliminateDomains)
+    val (gcodeShred, gcodeUnshred) = query.shredPlan(unshred, eliminateDomains = eliminateDomains)
     val gcode1 = codegen.generate(gcodeShred)
     val gcodeSet = if (unshred) List(gcode1, codegen.generate(gcodeUnshred)) else List(gcode1)
     val header = if (skew) {

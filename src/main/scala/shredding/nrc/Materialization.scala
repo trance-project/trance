@@ -264,7 +264,9 @@ trait Materialization extends MaterializationContext {
             else
               matDictTp.asInstanceOf[MatDictType].valueTp.tp(field).asInstanceOf[LabelType]
 
-            eliminateDomain(newLabelTp, flat, ctx) match {
+            val eliminated = if (eliminateDomains) eliminateDomain(newLabelTp, flat, ctx) else None
+
+            eliminated match {
               case None =>
                 // 1. Create label domain
                 val domain = createLabelDomain(ctx.matVarRef(parentDict), ctx.isTopLevel(parentDict), field)
@@ -273,20 +275,20 @@ trait Materialization extends MaterializationContext {
                 // 2. Create dictionary bag expression
                 val tpl = TupleVarRef(Symbol.fresh(name = "l"), domainRef.tp.tp)
                 val lbl = LabelProject(tpl, LABEL_ATTR_NAME)
-                val (valueBag: BagExpr, valueCtx) =
-                  rewriteUsingContext(BagExtractLabel(lbl, flat), ctx)
-                val bag =
+                val dictBag =
                   ForeachUnion(tpl, domainRef,
-                    Singleton(Tuple(KEY_ATTR_NAME -> lbl, VALUE_ATTR_NAME -> valueBag)))
+                    addOutputField(KEY_ATTR_NAME -> lbl, BagExtractLabel(lbl, flat)))
+                val (newDictBag: BagExpr, newCtx) =
+                  rewriteUsingContext(dictBag, ctx)
 
                 // 3. Create assignment statement
                 val suffix = Symbol.fresh(name + "_")
-                val matDict = BagToMatDict(bag)
+                val matDict = BagToMatDict(newDictBag)
                 val matDictRef = MatDictVarRef(matDictName(suffix), matDict.tp)
                 val stmt = Assignment(matDictRef.name, matDict)
 
                 // 4. Extend context
-                val dictCtx = valueCtx.addDict(dict, matDictRef, parent)
+                val dictCtx = newCtx.addDict(dict, matDictRef, parent)
 
                 // 5. Materialize bag dictionary
                 val program = new MaterializedProgram(Program(domain, stmt), dictCtx)
@@ -390,21 +392,15 @@ trait Materialization extends MaterializationContext {
         val kvDict = MatDictToBag(matDictRef)
         val kvRef = TupleVarRef(Symbol.fresh(name = "kv"), kvDict.tp.tp)
 
-        val key = LabelProject(kvRef, KEY_ATTR_NAME)
-        val value = BagProject(kvRef, VALUE_ATTR_NAME)
-        val tupleRef = TupleVarRef(Symbol.fresh(), value.tp.tp)
-
         // 1. Unshred children
-        val (childProgram, childTuple) = unshredTupleDict(tupleDict, tupleRef, ctx)
+        val (childProgram, childTuple) = unshredTupleDict(tupleDict, kvRef, ctx)
 
         // 2. Compute nested object
+        val key = LabelProject(kvRef, KEY_ATTR_NAME)
         val kvPairsNested =
           BagToMatDict(
             ForeachUnion(kvRef.varDef, kvDict,
-              Singleton(Tuple(
-                KEY_ATTR_NAME -> key,
-                VALUE_ATTR_NAME -> ForeachUnion(tupleRef.varDef, value, Singleton(childTuple)))
-              )))
+              Singleton(Tuple(childTuple.fields + (KEY_ATTR_NAME -> key)))))
 
         // 3. Materialize unshredded dictionary
         val uName = matDictRef.name.replace(MAT_DICT_PREFIX, UNSHRED_PREFIX)
