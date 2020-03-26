@@ -135,13 +135,7 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
     case d: DictUnion => DictCUnion(translate(d.dict1), translate(d.dict2))
     case Count(e1) => comprehension(translate(e1), x => constant(true), (i: CExpr) => constant(1))
     case DeDup(e1) => CDeDup(translate(e1)) 
-    // case _ => EmptyCDict
     case MatDictLookup(lbl, dict) => CLookup(translate(lbl), translate(dict))
-    // case MatDictToBag(dv:MatDictVarRef) => 
-    //   val flattenTp = dv.tp match {
-    //     case MatDictType(lbl, BagType(TupleType(fs))) => BagType(TupleType(fs + ("_1" -> lbl)))
-    //   }
-    //   translate(BagVarRef(dv.name, flattenTp))
     case MatDictToBag(bd) => FlatDict(translate(bd))
     case BagToMatDict(bd) => GroupDict(translate(bd))
     

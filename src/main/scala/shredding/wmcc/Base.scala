@@ -234,6 +234,10 @@ trait BaseCompiler extends Base {
   }
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
     val v = vars(e1.tp)
+    // println("\n")
+    // println(e1.tp)
+    // println(v)
+    // println("\n")
     Reduce(e1, v, f(v), p(v))
   }
   def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep, value: List[Rep] => Rep): Rep = {
@@ -293,10 +297,13 @@ trait BaseCompiler extends Base {
   def vars(e: Type, top: Boolean = true): List[Variable] = e match {
     case BagCType(tup) if top => vars(tup, false)
     case BagDictCType(BagCType(tup), _) if top => List(Variable.fresh(tup))
+    case RecordCType(ms) if ms.keySet == Set("_1", "_2") => ms.values.toList.flatMap(f => vars(f, false))
     case TTupleType(List(EmptyCType, BagCType(tup))) => List(Variable.fresh(tup))
     //case BagDictCType(flat, dict) => List(Variable.fresh(flat.tp))
-    case TTupleType(tps) if tps.head.isInstanceOf[LabelType] => 
-      List(Variable.fresh(e)) // won't catch all cases
+    case TTupleType(tps) if tps.head.isInstanceOf[LabelType] =>
+      // val nlbl = RecordCType(Map("_1" -> tps.head))
+      // vars(TTupleType(nlbl +: tps.tail), false)
+      List(Variable.fresh(e))
     // case TTupleType(tps) if (tps.head.isInstanceOf[RecordCType] && tps.last.isInstanceOf[PrimitiveType] && tps.size == 2) => 
     //   List(Variable.fresh(e)) // fix this
     case TTupleType(tps) => tps.flatMap(vars(_, false)) 

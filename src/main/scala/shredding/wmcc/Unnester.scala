@@ -32,59 +32,76 @@ object Unnester {
     case _ => false
   }
 
+  def collectVars(e: CExpr): Set[Variable] = e match {
+    case Record(ms) => ms.foldLeft(Set.empty[Variable])((acc, m) => acc ++ collectVars(m._2))
+    case Tuple(fs) => fs.foldLeft(Set.empty[Variable])((acc, m) => acc ++ collectVars(m))
+    case Label(ls) => ls.foldLeft(Set.empty[Variable])((acc, m) => acc ++ collectVars(m._2))
+    case Project(v, f) => collectVars(v)
+    case v:Variable => Set(v)
+    case _ => sys.error(s"implementation missing $e")
+  }
+
   def unnest(e: CExpr)(implicit ctx: Ctx): CExpr = e match {
     case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E)))
     // assuming single numeric agg for now
     case FlatDict(e1) => FlatDict(unnest(e1)((u, w, E)))
     case GroupDict(e1) => GroupDict(unnest(e1)((u, w, E)))
-    case g:CombineOp => unnest(g.e1)(u, w, E) match {
-      case r @ Reduce(e2, v2, e3 @ Record(fs), p2) => 
-        val keys = fs get "_1" match {
-          case Some(lbl) => lbl
-          case _ => e3.project(g.keys)
-        }
-        val (values, vname) = g.valuesTp match {
-          case _:RecordCType => (e3(g.values.head), g.values.head)
-          case _:BagCType => (e3.project(g.values), "_2")
-          case _ => ???
-        }
+    case CReduceBy(e1, v1, keys, values) => CReduceBy(unnest(e1)((u, w, E)), v1, keys, values)
+    case CGroupBy(e1, v1, keys, values) => CReduceBy(unnest(e1)((u, w, E)), v1, keys, values)
+    // case g:CombineOp => unnest(g.e1)(u, w, E) match {
+    //   case r @ Reduce(e2, v2, e3 @ Record(fs), p2) => 
+    //     val keys = (fs get "_1", fs.size == 1) match {
+    //       case (Some(lbl), true) => lbl
+    //       case (Some(lbl), false) => Record(Map("_1" -> lbl, "_2" -> e3.project((fs.keySet - "_1").toList)))
+    //       case _ => e3.project(g.keys)
+    //     }
+    //     val (values, vname) = g.valuesTp match {
+    //       case _:RecordCType => (e3(g.values.head), g.values.head)
+    //       case _:BagCType => (e3.project(g.values), "_2")
+    //       case _ => ???
+    //     }
 
-        val v = Variable.fresh(values.tp)
+    //     val v = Variable.fresh(values.tp)
 
-        val initNest = Nest(e2, v2, keys, values, v, p2, CUnit, true)
-        keys match {
-          case Label(_) => initNest
-          case Record(ks) => 
-            val vs = ks.map(f => f._2 match {
-              case Project(v1, f) => v1
-              case v1 => v1
-            }).asInstanceOf[List[Variable]]
-            val nrec = Tuple(u :+ Sng(Record(ks ++ Map(vname -> v))))
-            Reduce(initNest, vs :+ v, nrec, Constant(true))
-          case _ => ???
-        }
+    //     val initNest = Nest(e2, v2, keys, values, v, p2, CUnit, true)
+    //     keys match {
+    //       case Label(_) => initNest
+    //       case Record(ks) => 
+    //         val vs = ks.map(f => f._2 match {
+    //           case Label(ms) => ms.head._2 match { case Project(v1, f) => v1}
+    //           case Project(v1, f) => v1
+    //           case v1 => v1
+    //         }).asInstanceOf[List[Variable]]
+    //         val baseType = v.tp match {
+    //           case _:NumericType => Record(ks ++ Map(vname -> v))
+    //           case _ => Sng(Record(ks ++ Map(vname -> v)))
+    //         }
+    //         val nrec = if (u.isEmpty) baseType else Tuple(u :+ baseType)
+    //         Reduce(initNest, vs :+ v, nrec, Constant(true))
+    //       case _ => ???
+    //     }
         
-      case n @ Nest(e2, v2, f2, e3 @ Record(fs), v3, p2, gs, _) => 
-        val keys = e3.project(g.keys)
-        val (values, vname) = g.valuesTp match {
-          case _:RecordCType => (e3(g.values.head), g.values.head)
-          case _:BagCType => (e3.project(g.values), "_2")
-          case _ => ???
-        }
+    //   case n @ Nest(e2, v2, f2, e3 @ Record(fs), v3, p2, gs, _) => 
+    //     val keys = e3.project(g.keys)
+    //     val (values, vname) = g.valuesTp match {
+    //       case _:RecordCType => (e3(g.values.head), g.values.head)
+    //       case _:BagCType => (e3.project(g.values), "_2")
+    //       case _ => ???
+    //     }
 
-        val v = Variable.fresh(values.tp)
-        val nrec = Tuple(u :+ Sng(Record(keys.fields ++ Map(vname -> v))))
+    //     val v = Variable.fresh(values.tp)
+    //     val nrec = Tuple(u :+ Sng(Record(keys.fields ++ Map(vname -> v))))
 
-        val castNulls = Tuple(u ++ keys.fields.map(f => f._2 match {
-            case Project(v1, f) => v1
-            case v1 => v1
-          }).toList)
+    //     val castNulls = Tuple(u ++ keys.fields.map(f => f._2 match {
+    //         case Project(v1, f) => v1
+    //         case v1 => v1
+    //       }).toList)
 
-        val initNest = Nest(e2, v2, Tuple(u :+ keys), values, v, p2, gs, true)
-        val vs = castNulls.fields.asInstanceOf[List[Variable]]
-        Reduce(initNest, vs :+ v, nrec, Constant("null"))
-      case _ => ???
-    }
+    //     val initNest = Nest(e2, v2, Tuple(u :+ keys), values, v, p2, gs, true)
+    //     val vs = castNulls.fields.asInstanceOf[List[Variable]]
+    //     Reduce(initNest, vs :+ v, nrec, Constant("null"))
+    //   case _ => ???
+    // }
     // case CLookup(lbl, dict) =>
     //   // the last position is the identity function (do not flatten the bag)
     //   val v2 = Variable.fresh(dict.tp.asInstanceOf[BagDictCType].flatTp)

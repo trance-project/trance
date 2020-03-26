@@ -98,11 +98,13 @@ trait Query extends Materialization
       val uncalc = normalizer.finalize(translate(unshredProg)).asInstanceOf[CExpr]
       val uinitPlan = Unnester.unnest(uncalc)(Nil, Nil, None)
       println(Printer.quote(uinitPlan))
-      val uoptPlan = Optimizer.indexOnly(uinitPlan)
+      val uoptPlan = Optimizer.applyAll(uinitPlan)
       println(Printer.quote(uoptPlan))
       val uanfBase = new BaseANF{}
       val uanfer = new Finalizer(uanfBase)
-      uanfBase.anf(uanfer.finalize(uoptPlan).asInstanceOf[uanfBase.Rep])
+      val suanf = uanfBase.anf(uanfer.finalize(uoptPlan).asInstanceOf[uanfBase.Rep])
+      // println(suanf)
+      suanf
     }else CUnit
 
     (inputPlan, splan, usplan)

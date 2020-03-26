@@ -262,6 +262,28 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
           |""".stripMargin
 
     /** NEST **/
+    
+    case Bind(v, CReduceBy(e1, v1 @ Variable(_, rt @ RecordCType(ms)), keys, values), e2) => 
+      val gv1 = generate(v1)
+      val keyTp = Record(keys.map(k => (k, Project(v1, k))).toMap)
+      handleType(keyTp.tp)
+      val skeys = keys.map(k => s"$gv1.$k").mkString(s"${generateType(keyTp.tp)}(", ",", ")")
+      val svalue = s"${gv1}.${values.head}"
+      val acc1 = "acc"+Variable.newId
+      val acc = generate(v)
+      val x = "x"+Variable.newId
+      handleType(rt)
+      // s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
+      // Record(keys.map(k => k -> Project(v1, k)) ++ Map(values.head -> v1.asInstanceOf[RecordCType])
+      //   values.map(v => v -> Project())
+      val nrec = ms.keys.map(f => 
+        if (f == values.head) s"$x._2" else s"$x._1.$f").mkString("(", ", ", ")")
+      s"""|val $acc1 = ${generate(e1)}.map($gv1 => 
+          |   ($skeys, $svalue)).agg(_+_)
+          |val $acc = $acc1.map($x => ${generateType(rt)}$nrec)
+          |${generate(e2)}
+          """.stripMargin
+
     // TODO add filter
     case Nest(e1, v1, f, e2, v2, p, g, dk) =>
 

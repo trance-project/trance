@@ -232,6 +232,12 @@ case class FlatDict(e: CExpr) extends CExpr {
 
 case class GroupDict(e: CExpr) extends CExpr {
   def tp: MatDictCType = e.tp match {
+    case BagCType(BagCType(RecordCType(ms))) => 
+      val lbl = ms get "_1" match {
+        case Some(l:LabelType) => l
+        case _ => sys.error("invalid bag")
+      }
+      MatDictCType(lbl, BagCType(RecordCType(ms - "_1")))
     case BagCType(RecordCType(ms)) => 
       val lbl = ms get "_1" match {
         case Some(l:LabelType) => l
@@ -243,8 +249,13 @@ case class GroupDict(e: CExpr) extends CExpr {
         case l:LabelType => l
         case _ => sys.error("invalid bag")
       }
-      MatDictCType(lbl, ms.last.asInstanceOf[BagCType])
-    case _ => ???
+      val bag = ms.last match {
+        case bt:BagCType => bt
+        case bt => BagCType(bt)
+      }
+      MatDictCType(lbl, bag)
+
+    case _ => sys.error(s"unsupported type ${e.tp}")
   }
 }
 
