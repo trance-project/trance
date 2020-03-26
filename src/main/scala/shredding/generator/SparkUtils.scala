@@ -69,9 +69,12 @@ trait SparkUtils {
   def comment(n: String): String = s"//$n"
 
   def runJob(n: String, cache:Boolean, evaluate:Boolean): String = {
+    if (!n.contains("UDict")){
       s"""|${if (cache) n else comment(n)}.cache
           |//$n.print
           |${if (evaluate) n else comment(n)}.evaluate"""
+    }else ""
+
   }
 
 }

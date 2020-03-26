@@ -244,7 +244,7 @@ object Utils {
   def runSparkShred(query: Query, pathout: String, label: String, eliminateDomains: Boolean = true, 
     unshred: Boolean = false, skew: Boolean = false): Unit = {
     
-    val codegen = new SparkNamedGenerator(false, eliminateDomains, flatDict = true)
+    val codegen = new SparkNamedGenerator(unshred, eliminateDomains, flatDict = true)
     val (gcodeShred, gcodeUnshred) = query.shredPlan(unshred, eliminateDomains = eliminateDomains)
     val gcode1 = codegen.generate(gcodeShred)
     val gcodeSet = if (unshred) List(gcode1, codegen.generate(gcodeUnshred)) else List(gcode1)
