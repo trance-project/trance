@@ -345,18 +345,10 @@ case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CEx
       BagCType(TTupleType(List(dropOld, unnestedBag)))
     case _ => ???
   }
-  // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
   override def wvars = e1.wvars :+ v2
-  // override def equals(that: Any): Boolean = that match {
-  //   case Unnest(e11, v11, e21, v21, p1) => e21 == e2
-  //   case OuterUnnest(e11, v11, e21, v21, p1) => e21 == e2
-  //   case e => false
-  // }
 }
 
 case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr, value: CExpr) extends CExpr {
-  println("making this with")
-  println(v1)
   val bagproj = e2 match {
     case Project(_, field) => field
     case Bind(_, Project(_, field), _) => field

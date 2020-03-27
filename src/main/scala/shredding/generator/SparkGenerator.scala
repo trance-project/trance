@@ -295,20 +295,10 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
             else s"$x.$f").mkString(s"${generateType(rt)}(", ", ", ")")
       }
 
-      rt.attrTps get "_1" match {
-        case Some(LabelType(_)) =>
-          s"""|val $acc1 = ${generate(e1)}.map($gv1 => 
-              |   ($skeys, $svalue)).agg(_+_)
-              |val $acc = $acc1.map(($x, value) => $nrec)
-              |${generate(e2)}""".stripMargin
-
-        case _ => 
-          s"""|val $acc1 = ${generate(e1)}.zipWithIndex.map{ case ($gv1, index) => 
-              |   (($skeys, index), $svalue)}.agg(_+_)
-              |val $acc = $acc1.map{ case (($x, index), value) => $nrec }
-              |${generate(e2)}""".stripMargin
-      }
-
+      s"""|val $acc1 = ${generate(e1)}.map($gv1 => 
+          |   ($skeys, $svalue)).agg(_+_)
+          |val $acc = $acc1.map{ case ($x, value) => $nrec }
+          |${generate(e2)}""".stripMargin
 
     // TODO add filter
     case Nest(e1, v1, f, e2, v2, p, g, dk) =>
