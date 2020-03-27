@@ -284,7 +284,8 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
         case BagCType(TTupleType(fs)) => 
           val nrecTp = RecordCType((ms - "_1"))
           handleType(nrecTp)
-          val xRange = Range(1, fs.size).map(i => s"$x._1._$i").mkString(", ")
+          val xRange = if (fs.size <= 2) s"$x._1"
+            else Range(1, fs.size).map(i => s"$x._1._$i").mkString(", ")
           (ms - "_1").keys.map(f => if (f == values.head) s"value" 
             else s"$x.$f").mkString(
               s"(${xRange}, ${generateType(nrecTp)}(", ", ", "))")
