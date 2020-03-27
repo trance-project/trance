@@ -234,10 +234,6 @@ trait BaseCompiler extends Base {
   }
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
     val v = vars(e1.tp)
-    // println("\n")
-    // println(e1.tp)
-    // println(v)
-    // println("\n")
     Reduce(e1, v, f(v), p(v))
   }
   def unnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep, value: List[Rep] => Rep): Rep = {

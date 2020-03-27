@@ -162,8 +162,21 @@ object Optimizer {
     // todo push record type projection into lookup
 
   })
+
+  def makeProjection(v: Variable, e: CExpr): CExpr = {
+    val projs = proj(v)
+    e match {
+      case Variable(_, RecordCType(tfs)) if tfs.keySet != projs =>
+        Record(projs.map(f2 => f2 -> Project(v, f2)).toMap)
+      case _ => e
+    }
+  } 
  
   def push(e: CExpr): CExpr = e match {
+    case FlatDict(e1) => FlatDict(push(e1))
+    case GroupDict(e1) => GroupDict(push(e1))
+    case CGroupBy(e1, v1, keys, values) => CGroupBy(push(e1), v1, keys, values)
+    case CReduceBy(e1, v1, keys, values) => CReduceBy(push(e1), v1, keys, values)
     case Reduce(Select(x, v, p, e2), v2, f2, p2) => x match {
       case InputRef(n, BagDictCType(flat, tdict)) =>
         push(Reduce(InputRef(n, flat), v2, f2, normalizer.and(p, p2)))
@@ -184,10 +197,10 @@ object Optimizer {
       Nest(push(e1), v1, f, e, v, p, g, dk)
     case Unnest(e1, v1, f, v2, p, value) =>
       fields(f)
-      Unnest(push(e1), v1, f, v2, p, value)
+      Unnest(push(e1), v1, f, v2, p, makeProjection(v2, value))
     case OuterUnnest(e1, v1, f, v2, p, value) =>
       fields(f)
-      OuterUnnest(push(e1), v1, f, v2, p, value)
+      OuterUnnest(push(e1), v1, f, v2, p, makeProjection(v2, value))
     case Join(e1, e2, v1, p1, v2, p2, proj1, proj2) =>   
       fields(p1)
       fields(p2)
@@ -203,17 +216,12 @@ object Optimizer {
     //case Select(InputRef(n, _), v,_,_) if n.contains("M_ctx") => e
     case Select(d, v, f, e2) =>
       fields(e)
-      val projs = proj(v)
-      e2 match {
-        case Variable(_, RecordCType(tfs)) if tfs.keySet != projs => // && tfs.keySet != Set("lbl") =>
-          Select(push(d), v, f, Record(projs.map(f2 => f2 -> Project(v, f2)).toMap))
-        case _ =>
-          Select(push(d), v, f, e2)
-      }
+      Select(push(d), v, f, makeProjection(v, e2))
     case Lookup(e1, e2, v1, p1, v2, p2, p3) =>
       fields(p2)
       fields(p3)
       Lookup(e1, e2, v1, p1, v2, p2, p3)
+    // case InputRef(iname, itp) => push(Select())
     case CNamed(n, o) => CNamed(n, push(o))
     case LinearCSet(rs) => LinearCSet(rs.reverse.map(r => push(r)).reverse)
     case _ => e

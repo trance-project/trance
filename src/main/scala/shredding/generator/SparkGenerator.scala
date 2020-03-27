@@ -27,16 +27,22 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
     case _ => s"if({${generate(p)}}) {${ind(thenp)}} else {${ind(elsep)}}"
   }
 
-  def nullProject(e: CExpr): String = e match {
-    case Project(e1, field) => 
-      s"${generate(e1)} match { case null => ${castNull(e)}; case pv => pv.${kvName(field)} }"
-    case Bind(bv, p1 @ Project(v, field), Bind(bv2, p2 @ Record(_), p3)) =>
+  def nullProject(e: CExpr, grouped: Boolean = false): String = e match {
+    case Bind(bv, p1 @ Project(v, field), Bind(bv2, p2 @ Record(_), p3)) if grouped =>
       s"""|{val ${generate(bv2)} = ${generate(v)} match {
-          |   case null => null; case _ => {
+          |   case null => ${castNull(p1)}; case _ => {
           |     val ${generate(bv)} = ${generate(v)}.$field
           |     ${generate(p2)} }}
           |${generate(p3)}}""".stripMargin
     case Bind(v, Project(v2, "_1"), e2) => generate(Bind(v, v2, e2))
+    case Bind(bv, p @ Project(e1, field), e2) => 
+      s"""|val ${generate(bv)} = ${generate(e1)} match { 
+          | case null => ${castNull(p)}; case pv => pv.${kvName(field)} }
+          |${nullProject(e2, grouped)}""".stripMargin
+    case Bind(v, t:Tuple, proj) => 
+      s"val ${generate(v)} = ${generate(t)}\n${nullProject(proj, grouped)}"
+    case Project(v, field) => 
+      s"${generate(v)} match { case null => ${castNull(e)}; case pv => pv.${kvName(field)} }"
     case _ => generate(e)
   }
 
@@ -51,7 +57,7 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
   def drop(tp: Type, v: Variable, field: String): CExpr = tp match {
       case TTupleType(fs) => 
         Tuple(fs.drop((kvName(field)(2).replace("_", "").toInt-1)).zipWithIndex.map{ case (t, i) 
-          => Project(v, "_"+(i+1)) })
+          => Project(v, "_"+ (i+1)) })
       case RecordCType(fs) => 
         Record((fs - field).map{ case (attr, atp) => attr -> Project(v, attr)})
       case MatDictCType(lbl, BagCType(r @ RecordCType(fs))) => 
@@ -161,10 +167,10 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
       p match {
         case Constant(true) =>
           s"""|${generate(e1)}.flatMap{ case $vars => 
-              | $v.$attr.map{ $gv2 => ($nvars, ${generate(value)})}}""".stripMargin
+              | $v.$attr.map{ $gv2 => ($nvars, {${generate(value)}})}}""".stripMargin
         case _ => 
           s"""|${generate(e1)}.flatMap{ case $vars => 
-              | $v.$attr.map{ $gv2 => ($nvars, ${generate(value)})}
+              | $v.$attr.map{ $gv2 => ($nvars, {${generate(value)}})}
               |}.filter{ case ($vars, $gv2) => {${generate(p)}} }""".stripMargin
       }
     
@@ -182,11 +188,11 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
           s"""|${generate(e1)}.flatMap{ case $vars => 
               |  $v match { $nullvars
               |    case _ => if ($v.$attr.isEmpty) Vector(($nvars, null))
-              |     else $v.$attr.map{ $gv2 => ($nvars, ${generate(value)})}
+              |     else $v.$attr.map{ $gv2 => ($nvars, {${generate(value)}})}
               |}}""".stripMargin
         case _ => 
           s"""|${generate(e1)}.flatMap{ case $vars => 
-              | {${generate(f)}}.map{ $gv2 => ($nvars, ${generate(value)})}
+              | {${generate(f)}}.map{ $gv2 => ($nvars, {${generate(value)}})}
               |}.filter{ case ($vars, $gv2) => {${generate(p)}} }""".stripMargin
       }
 
@@ -250,7 +256,7 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
       // avoid null pointer exceptions
       val gp1 = p1 match {
         case Bind(_, proj @ Project(v, field), _) => 
-          if (v1.size > 1) nullProject(proj)
+          if (v1.size > 1) nullProject(p1, true)
           else generate(p1)
         case _ => sys.error(s"unsupported $p1")
       }
@@ -267,22 +273,42 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
       val gv1 = generate(v1)
       val keyTp = Record(keys.map(k => (k, Project(v1, k))).toMap)
       handleType(keyTp.tp)
-      val skeys = keys.map(k => s"$gv1.$k").mkString(s"${generateType(keyTp.tp)}(", ",", ")")
+      val skeys = keys.map(k => s"$gv1.$k"
+        ).mkString(s"${generateType(keyTp.tp)}(", ",", ")")
       val svalue = s"${gv1}.${values.head}"
       val acc1 = "acc"+Variable.newId
       val acc = generate(v)
       val x = "x"+Variable.newId
-      handleType(rt)
-      // s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
-      // Record(keys.map(k => k -> Project(v1, k)) ++ Map(values.head -> v1.asInstanceOf[RecordCType])
-      //   values.map(v => v -> Project())
-      val nrec = ms.keys.map(f => 
-        if (f == values.head) s"$x._2" else s"$x._1.$f").mkString("(", ", ", ")")
-      s"""|val $acc1 = ${generate(e1)}.map($gv1 => 
-          |   ($skeys, $svalue)).agg(_+_)
-          |val $acc = $acc1.map($x => ${generateType(rt)}$nrec)
-          |${generate(e2)}
-          """.stripMargin
+
+      val nrec = v.tp match {
+        case BagCType(TTupleType(fs)) => 
+          val nrecTp = RecordCType((ms - "_1"))
+          handleType(nrecTp)
+          val xRange = Range(1, fs.size).map(i => s"$x._1._$i").mkString(", ")
+          (ms - "_1").keys.map(f => if (f == values.head) s"value" 
+            else s"$x.$f").mkString(
+              s"(${xRange}, ${generateType(nrecTp)}(", ", ", "))")
+        case _ => 
+          handleType(rt)
+          ms.keys.map(f => 
+            if (f == values.head) s"value" 
+            else s"$x.$f").mkString(s"${generateType(rt)}(", ", ", ")")
+      }
+
+      rt.attrTps get "_1" match {
+        case Some(LabelType(_)) =>
+          s"""|val $acc1 = ${generate(e1)}.map($gv1 => 
+              |   ($skeys, $svalue)).agg(_+_)
+              |val $acc = $acc1.map(($x, value) => $nrec)
+              |${generate(e2)}""".stripMargin
+
+        case _ => 
+          s"""|val $acc1 = ${generate(e1)}.zipWithIndex.map{ case ($gv1, index) => 
+              |   (($skeys, index), $svalue)}.agg(_+_)
+              |val $acc = $acc1.map{ case (($x, index), value) => $nrec }
+              |${generate(e2)}""".stripMargin
+      }
+
 
     // TODO add filter
     case Nest(e1, v1, f, e2, v2, p, g, dk) =>
@@ -519,9 +545,11 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
           |${runJob(n, cache, evaluate)}""".stripMargin
 
     case Bind(x, CNamed(n, e1), e2) =>
+      val (tmp1, tmp2) = if (cache) (false, false)
+      else (cache, evaluate)
     	s"""|val $n = ${generate(e1)}
           |val ${generate(x)} = $n
-          |${runJob(n, cache, evaluate)}
+          |${runJob(n, tmp1, tmp2)}
           |${generate(e2)}""".stripMargin
 
     case Bind(v, LinearCSet(fs), e2) => 

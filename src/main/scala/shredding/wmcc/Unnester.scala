@@ -46,8 +46,15 @@ object Unnester {
     // assuming single numeric agg for now
     case FlatDict(e1) => FlatDict(unnest(e1)((u, w, E)))
     case GroupDict(e1) => GroupDict(unnest(e1)((u, w, E)))
-    case CReduceBy(e1, v1, keys, values) => CReduceBy(unnest(e1)((u, w, E)), v1, keys, values)
-    case CGroupBy(e1, v1, keys, values) => CReduceBy(unnest(e1)((u, w, E)), v1, keys, values)
+    case CReduceBy(e1, v1, keys, values) => unnest(e1)((u, w, E)) match {
+      case n @ Nest(e2, v2, fs, Record(e3), v3, p2, gs, _) =>
+        val adjustNest = Reduce(e2, v2, Record(Map("_1" -> fs) ++ e3), Constant("null"))
+        val nv = Variable.freshFromBag(adjustNest.tp)
+        CReduceBy(adjustNest, nv, "_1" +: keys, values)
+      case ne1 => CReduceBy(ne1, v1, keys, values)
+    }
+
+    case CGroupBy(e1, v1, keys, values) => CGroupBy(unnest(e1)((u, w, E)), v1, keys, values)
     // case g:CombineOp => unnest(g.e1)(u, w, E) match {
     //   case r @ Reduce(e2, v2, e3 @ Record(fs), p2) => 
     //     val keys = (fs get "_1", fs.size == 1) match {
@@ -204,6 +211,9 @@ object Unnester {
             val (dk, nulls) = if (u.head.tp.isDict) 
               (true, CUnit)
             else (false, Tuple((w.toSet -- u).toList))
+            // println("this nest??")
+            // println(et)
+            // println(t)
             Nest(E.get, w, et, t, v, Constant(true), nulls, dk)
           }
         // address special case
@@ -345,6 +355,7 @@ object Unnester {
     case Reduce(lu @ Lookup(e1,e2,v1,p1, v2 @ Variable(_,_),p2,_),v3,p3,p4) => 
       val v3 = Variable.fresh(e.tp.asInstanceOf[BagCType].tp)
       (Some(e), v3)
+    case CReduceBy(e1, v1, keys, values) => (Some(e), v1)
     case Reduce(e1, v1, e2, p2) => 
       val v3 = Variable.fresh(e.tp.asInstanceOf[BagCType].tp)
       (Some(e), v3)

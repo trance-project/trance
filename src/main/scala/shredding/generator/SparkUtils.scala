@@ -23,7 +23,7 @@ trait SparkUtils {
 
   def castNull(e: CExpr): String = e.tp match {
     case IntType => "-1"
-    case DoubleType => "-1.0"
+    case DoubleType => "0.0"
     case _ => "null"
   }
 

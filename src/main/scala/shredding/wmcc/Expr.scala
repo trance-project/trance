@@ -180,10 +180,17 @@ trait CombineOp extends CExpr {
 }
 
 case class CReduceBy(e1: CExpr, v1: Variable, keys: List[String], values: List[String]) extends CExpr with CombineOp {
-  val e1Tp: RecordCType = v1.tp.asInstanceOf[RecordCType]
+  val e1Tp: RecordCType = v1.tp match {
+    case rt:RecordCType => rt
+    case _ => sys.error(s"unsupported type ${v1.tp}")
+  }
   val keysTp: RecordCType = RecordCType(keys.map(n => n -> e1Tp(n)).toMap)
   val valuesTp: RecordCType = RecordCType(values.map(n => n -> e1Tp(n)).toMap)
-  def tp: BagCType = BagCType(RecordCType(keysTp.attrTps ++ valuesTp.attrTps))
+  def tp: BagCType = e1Tp.attrTps get "_1" match {
+    case Some(TTupleType(fs)) => 
+      BagCType(TTupleType(fs :+ RecordCType((e1Tp.attrTps - "_1") ++ valuesTp.attrTps)))
+    case _ => BagCType(RecordCType(keysTp.attrTps ++ valuesTp.attrTps))
+  }
 }
 
 case class CGroupBy(e1: CExpr, v1: Variable, keys: List[String], values: List[String]) extends CExpr with CombineOp {
@@ -298,7 +305,10 @@ case class DictCUnion(d1: CExpr, d2: CExpr) extends CExpr {
   */
 
 case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
-  def tp: Type = x.tp
+  def tp: Type = e.tp match {
+    case rt:RecordCType => BagCType(rt)
+    case _ => x.tp
+  }
   override def wvars = List(v)
 }
 
@@ -322,9 +332,17 @@ case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CEx
     case btp:BagDictCType => 
       val ntp = RecordCType(btp.flatTp.tp.asInstanceOf[TTupleType].attrTps.last.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps - bagproj)
       BagCType(TTupleType(List(ntp, v2.tp)))
-    case btp:BagCType => 
-      val ntp = RecordCType(btp.tp.asInstanceOf[TTupleType].attrTps.last.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps - bagproj)
-      BagCType(TTupleType(List(ntp, v2.tp)))
+    case BagCType(TTupleType(fs)) => 
+      val ntp = fs.last match {
+        case BagCType(RecordCType(ms)) => RecordCType(ms - bagproj)
+        case RecordCType(ms) => RecordCType(ms - bagproj)
+        case _ => ???
+      }
+      BagCType(TTupleType(List(ntp, value.tp)))
+    case BagCType(RecordCType(fs)) => 
+      val unnestedBag = value.tp//fs(bagproj).asInstanceOf[BagCType].tp
+      val dropOld = RecordCType(fs - bagproj)
+      BagCType(TTupleType(List(dropOld, unnestedBag)))
     case _ => ???
   }
   // def tpMap: Map[Variable, Type] = e1.tp ++ (v2 -> v2.tp)
@@ -337,11 +355,28 @@ case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CEx
 }
 
 case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr, value: CExpr) extends CExpr {
+  println("making this with")
+  println(v1)
+  val bagproj = e2 match {
+    case Project(_, field) => field
+    case Bind(_, Project(_, field), _) => field
+    case _ => ???
+  }
   def tp: Type = e1.tp match {
     case btp:BagDictCType => 
-      BagCType(TTupleType(List(btp.flatTp.tp, v2.tp)))
-    case btp:BagCType => 
-      BagCType(TTupleType(List(btp.tp, v2.tp)))
+      val ntp = RecordCType(btp.flatTp.tp.asInstanceOf[TTupleType].attrTps.last.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps - bagproj)
+      BagCType(TTupleType(List(ntp, v2.tp)))
+    case BagCType(TTupleType(fs)) => 
+      val ntp = fs.last match {
+        case BagCType(RecordCType(ms)) => TTupleType(fs.dropRight(1) :+ RecordCType(ms - bagproj))
+        case RecordCType(ms) => TTupleType(fs.dropRight(1) :+ RecordCType(ms - bagproj))
+        case _ => ???
+      }
+      BagCType(TTupleType(List(ntp, value.tp)))//v2.tp)))
+    case BagCType(RecordCType(fs)) => 
+      val unnestedBag = value.tp//fs(bagproj).asInstanceOf[BagCType].tp
+      val dropOld = RecordCType(fs - bagproj)
+      BagCType(TTupleType(List(dropOld, unnestedBag)))
     case _ => ???
   }
   override def wvars = e1.wvars :+ v2
