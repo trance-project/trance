@@ -40,6 +40,10 @@ case class Constant(data: Any) extends CExpr{
   }
 }
 
+case object Index extends CExpr {
+  def tp: Type = LongType
+}
+
 case object Null extends CExpr {
   def tp: Type = EmptyCType
 }
@@ -334,14 +338,14 @@ case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CEx
       BagCType(TTupleType(List(ntp, v2.tp)))
     case BagCType(TTupleType(fs)) => 
       val ntp = fs.last match {
-        case BagCType(RecordCType(ms)) => RecordCType(ms - bagproj)
-        case RecordCType(ms) => RecordCType(ms - bagproj)
+        case BagCType(RecordCType(ms)) => RecordCType(Map("index" -> IntType) ++ (ms - bagproj))
+        case RecordCType(ms) => RecordCType(Map("index" -> IntType) ++ (ms - bagproj))
         case _ => ???
       }
       BagCType(TTupleType(List(ntp, value.tp)))
     case BagCType(RecordCType(fs)) => 
       val unnestedBag = value.tp//fs(bagproj).asInstanceOf[BagCType].tp
-      val dropOld = RecordCType(fs - bagproj)
+      val dropOld = RecordCType(Map("index" -> IntType) ++ fs - bagproj)
       BagCType(TTupleType(List(dropOld, unnestedBag)))
     case _ => ???
   }
@@ -360,14 +364,14 @@ case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p
       BagCType(TTupleType(List(ntp, v2.tp)))
     case BagCType(TTupleType(fs)) => 
       val ntp = fs.last match {
-        case BagCType(RecordCType(ms)) => TTupleType(fs.dropRight(1) :+ RecordCType(ms - bagproj))
-        case RecordCType(ms) => TTupleType(fs.dropRight(1) :+ RecordCType(ms - bagproj))
+        case BagCType(RecordCType(ms)) => TTupleType(fs.dropRight(1) :+ RecordCType(Map("index" -> LongType) ++ (ms - bagproj)))
+        case RecordCType(ms) => TTupleType(fs.dropRight(1) :+ RecordCType(Map("index" -> LongType) ++ (ms - bagproj)))
         case _ => ???
       }
       BagCType(TTupleType(List(ntp, value.tp)))//v2.tp)))
     case BagCType(RecordCType(fs)) => 
-      val unnestedBag = value.tp//fs(bagproj).asInstanceOf[BagCType].tp
-      val dropOld = RecordCType(fs - bagproj)
+      val unnestedBag = value.tp 
+      val dropOld = RecordCType(Map("index" -> LongType) ++ (fs - bagproj))
       BagCType(TTupleType(List(dropOld, unnestedBag)))
     case _ => ???
   }
@@ -375,7 +379,10 @@ case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p
 }
 
 case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr, g: CExpr, distinctKeys: Boolean) extends CExpr {
-  def tp: Type = BagCType(v2.tp)
+  def tp: Type = v2.tp match {
+    case RecordCType(ms) => BagCType(RecordCType(ms - "index"))
+    case _ => BagCType(v2.tp)
+  }
   // only using this for printing, consider removing
   override def wvars = { 
     val uvars = f match {

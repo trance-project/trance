@@ -90,7 +90,7 @@ object Query4SparkManualAgg {
         }
     }.leftOuterJoin(P.map(p => p.p_partkey -> Record318(p.p_retailprice, p.p_name))).map{
       case (_, ((id1, cust, id2, order, qty), Some(pinfo))) =>
-        (id1, cust, id2, order, pinfo.p_name) -> qty*pinfo.p_retailprice
+        (id1, cust, id2, order, pinfo.p_name) -> qty//*pinfo.p_retailprice
       case (_, ((id1, cust, id2, order, qty), _)) => (id1, cust, id2, order, null) -> 0.0
     }.reduceByKey(_ + _).map{
       case ((id1, cust, id2, order, pname), total) => 
@@ -104,7 +104,7 @@ object Query4SparkManualAgg {
   	var end0 = System.currentTimeMillis() - start0
 	  println("Query4SparkManualAgg,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
     
-    /**result.flatMap{
+    result.flatMap{
       c =>
         if (c.c_orders.isEmpty) List((c.c_name, null, null, null))
         else c.c_orders.flatMap{
@@ -112,7 +112,7 @@ object Query4SparkManualAgg {
             if (o.o_parts.isEmpty) List((c.c_name, o.o_orderdate, null, null))
             else o.o_parts.map(p => (c.c_name, o.o_orderdate, p.p_name, p._2))
          }
-      }.sortBy(_._1).collect.foreach(println(_))**/
+      }.sortBy(_._1).collect.foreach(println(_))
   
   }
 }

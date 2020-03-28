@@ -46,20 +46,24 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
     case _ => generate(e)
   }
 
-  def projectBag(e: CExpr, vs: List[Variable]): (String, String, List[CExpr], List[CExpr]) = e match {
+  def projectBag(e: CExpr, vs: List[Variable], index: Boolean = true): (String, String, List[CExpr], List[CExpr]) = e match {
     case Bind(v, Project(v2 @ Variable(n,tp), field), e2) => 
-      val nvs1 = vs.map( v3 => if (v3 == v2) drop(tp, v2, field) else v3)
+      val nvs1 = vs.map( v3 => if (v3 == v2) drop(tp, v2, field, index) else v3)
       val nvs2 = vs.map( v3 => if (v3 == v2) v2.nullValue else v3)
       (n, field, nvs1, nvs2)
     case _ => sys.error(s"unsupported bag projection $e")
   }
 
-  def drop(tp: Type, v: Variable, field: String): CExpr = tp match {
+  def drop(tp: Type, v: Variable, field: String, index: Boolean = true): CExpr = tp match {
       case TTupleType(fs) => 
         Tuple(fs.drop((kvName(field)(2).replace("_", "").toInt-1)).zipWithIndex.map{ case (t, i) 
           => Project(v, "_"+ (i+1)) })
       case RecordCType(fs) => 
-        Record((fs - field).map{ case (attr, atp) => attr -> Project(v, attr)})
+        val imap = if (index) Map("index" -> Index) else Map()
+        val r = Record(imap ++ (fs - field).map{ case (
+          attr, atp) => attr -> Project(v, attr)})
+        println(r)
+        r
       case MatDictCType(lbl, BagCType(r @ RecordCType(fs))) => 
         val nv = Variable(v.name, r)
         Record(fs.map{ case (attr, atp) => attr -> Project(nv, attr)})
@@ -73,6 +77,7 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
     case CUnit => "()"
     case EmptySng => "Vector()"
     case EmptyCDict => s"()"
+    case Index => "index"
     
     /** BASIC CONSTRUCTS **/
     case Variable(name, _) => name
@@ -89,6 +94,8 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
     // case Record(fs) if isDictRecord(e) => 
     //   s"(${fs.map(f => { handleType(f._2.tp); generate(f._2) } ).mkString(", ") })"
     case Record(fs) => {
+      if (fs.contains("index")) println("making it here??")
+      println(e.tp)
       val tp = e.tp
       handleType(tp)
       s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
@@ -179,13 +186,13 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
     case OuterUnnest(e1, v1, f, v2, p, value) => 
       val vars = generateVars(v1, e1.tp)
       val gv2 = generate(v2)
-      val (v, attr, vs1, vs2) = projectBag(f, v1)
+      val (v, attr, vs1, vs2) = projectBag(f, v1, true)
       val nvars = generateVars(vs1, e1.tp)
       val nullvars = if (v1.size == 1) "" 
         else s"case null => Vector((${generateVars(vs2, e1.tp)}, null))"
       p match {
         case Constant(true) =>
-          s"""|${generate(e1)}.flatMap{ case $vars => 
+          s"""|${generate(e1)}.zipWithIndex.flatMap{ case ($vars, index) => 
               |  $v match { $nullvars
               |    case _ => if ($v.$attr.isEmpty) Vector(($nvars, null))
               |     else $v.$attr.map{ $gv2 => ($nvars, {${generate(value)}})}
@@ -304,12 +311,6 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
     // TODO add filter
     case Nest(e1, v1, f, e2, v2, p, g, dk) =>
 
-      def wrapIndex(s: String): String = if (dk) s else s"($s, index)"
-
-      val (zip, removeIndex) = 
-        if (dk) ("", "")
-        else (".zipWithIndex", s".map{ case ((key, index), value) => key -> value }")
-
       // extract single element reduce
       val valueExp = e2 match {
         case Bind(_, proj:Project, Bind(_, Record(_), _)) => proj.tp match {
@@ -322,23 +323,22 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
       val acc = "acc"+Variable.newId
       val emptyType = empty(valueExp)
       val gv2 = generate(v2)
-      val baseKey = wrapIndex(s"{${generate(f)}}")
+      val baseKey = s"{${generate(f)}}"
       val key = f match {
-        case Bind(bv, Project(v, field), _) => wrapIndex(s"{${nullProject(f)}}")
+        case Bind(bv, Project(v, field), _) => s"{${nullProject(f)}}"
         case _ => baseKey
       }
-      //s"{${generate(f)}}"
       val value = 
         if (!emptyType.contains("0")) s"Vector({${generate(valueExp)}})" 
         else s"{${generate(valueExp)}}"
 
       g match {
         case Bind(_, CUnit, _) =>
-          s"""|${generate(e1)}$zip.map{ 
-              |  case ${wrapIndex(vars)} => ($baseKey, $value)
-              |}.${agg(valueExp)}$removeIndex""".stripMargin
+          s"""|${generate(e1)}.map{ 
+              |  case $vars => ($baseKey, $value)
+              |}.${agg(valueExp)}""".stripMargin
         case Bind(_, Tuple(fs), _) if fs.size > 1 => 
-          ((s"${generate(e1)}$zip.map{ case ${wrapIndex(vars)} => {${generate(g)}} match { " +:
+          ((s"${generate(e1)}.map{ case $vars => {${generate(g)}} match { " +:
             ((2 to fs.size).map(i => 
               if (i != fs.size) {
                 s"case (${fs.slice(1, i).map(e => "_").mkString(",")},${zero(fs(i-1))},${fs.slice(i, fs.size).map(e => "_").mkString(",")}) => ($key, $emptyType)"
@@ -346,12 +346,12 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
                 s"case (${fs.slice(1, i).map(e => "_").mkString(",")},${zero(fs.last)}) => ($key, $emptyType)" //({${generate(f)}}, ${zero(e2)})" 
               }
             ) :+ s"case (null, ${(2 to fs.size).map(i => "_").mkString(",")}) => ($key, $emptyType)")
-          ) :+ s"case $gv2 => ($baseKey, $value)\n}}.${agg(valueExp)}$removeIndex").mkString("\n")
+          ) :+ s"case $gv2 => ($baseKey, $value)\n}}.${agg(valueExp)}").mkString("\n")
         case _ => 
-          s"""|${generate(e1)}$zip.map{ case ${wrapIndex(vars)} => {${generate(g)}} match { 
+          s"""|${generate(e1)}.map{ case $vars => {${generate(g)}} match { 
               |  case (null) => ($key, $emptyType)
               |  case $gv2 => ($baseKey, $value)
-              |}}.${agg(valueExp)}$removeIndex""".stripMargin
+              |}}.${agg(valueExp)}""".stripMargin
       }
     
     /** LOOKUPS **/
