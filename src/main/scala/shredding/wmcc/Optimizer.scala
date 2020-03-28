@@ -33,7 +33,8 @@ object Optimizer {
   def applyAll(e: CExpr) = {
     val projectionsPushed = push(e)
     val merged = mergeOps(projectionsPushed)
-    val indexed = dictIndexer.finalize(pushNest(merged)).asInstanceOf[CExpr]
+    val pushedAgg = pushAgg(merged)
+    val indexed = dictIndexer.finalize(pushNest(pushedAgg)).asInstanceOf[CExpr]
     indexed
   }
 
@@ -60,6 +61,45 @@ object Optimizer {
     case _ => sys.error(s"implementation missing $e")
   }
 
+  def collectAttrs(e: Type): Set[String] = e match {
+    case TTupleType(fs) => fs.map(collectAttrs(_)).flatten.toSet
+    case RecordCType(fs) => fs.keySet
+    case BagCType(ts) => collectAttrs(ts)
+    case _ => ???
+  }
+
+  def pushAgg(e: CExpr, keys: Set[String] = Set.empty, values: Set[String] = Set.empty): CExpr = fapply(e, {
+    // base case
+    case CReduceBy(Reduce(e1, v1, f1, p1), v2, keys, values) => 
+      val attrs = v1.map(t => collectAttrs(t.tp)).flatten.toSet
+      val (nkeys, nvalues) = (keys.toSet.filter(f => attrs(f)), values.toSet.filter(f => attrs(f)))
+      CReduceBy(Reduce(pushAgg(e1, nkeys, nvalues), v1, f1, p1), v2, keys, values)
+    case OuterJoin(e1, e2, v1, p1 @ Project(pv1, key1), v2, p2 @ Project(pv2, key2), proj1, proj2) =>
+      val rattrs = collectAttrs(v2.tp)
+      val lattrs = v1.map(t => collectAttrs(t.tp)).flatten.toSet
+      val (lkeys, lvalues) = (keys.filter(f => lattrs(f)) + key1, values.filter(f => lattrs(f)))
+      val (rkeys, rvalues) = (keys.filter(f => rattrs(f)) + key2, values.filter(f => rattrs(f)))
+      OuterJoin(pushAgg(e1, lkeys, lvalues), pushAgg(e2, rkeys, rvalues), v1, p1, v2, p2, proj1, proj2)
+    case OuterUnnest(e1, v1, e2, v2, p, value) =>
+      val lattrs = v1.map(t => collectAttrs(t.tp)).flatten.toSet
+      val rattrs = collectAttrs(v2.tp)
+      val (lkeys, lvalues) = (keys.filter(f => lattrs(f)), values.filter(f => lattrs(f)))
+      val (rkeys, rvalues) = (keys.filter(f => rattrs(f)), values.filter(f => rattrs(f)))
+      val checkAgg = pushAgg(e2, rkeys, rvalues)
+      // val (nv2, value) = checkAgg match {
+      //   case crb:CReduceBy => 
+      //     value match {
+      //       case RecordCType(ms) => 
+      //       case _ => ???
+      //     }
+      //   case _ => (v2, value)
+      // }
+      OuterUnnest(pushAgg(e1, lkeys, lvalues), v1, checkAgg, v2, p, value)
+    case Project(v1, f) if keys.nonEmpty && values.nonEmpty =>
+      val v1 = Variable.freshFromBag(e.tp)
+      CReduceBy(e, v1, keys.toList, values.toList)
+  })
+
   def pushNest(e: CExpr): CExpr = fapply(e, {
     // todo check value does not contain o values
     case Nest(OuterJoin(e1, e2, v1s, key1 @ Project(e1v, f1), v2, key2, proj1, proj2), 
@@ -74,21 +114,17 @@ object Optimizer {
         val pushed = pushNest(Nest(e2, List(v2), key2, gbval, pv, filt, Tuple((nulls.toSet - e1v).toList), dk))
         Join(e1, pushed, v1s, key1, pv, Project(pv, "_1"), Tuple(v1s), Project(pv, "_2"))
     
-    // primitive aggregation, move right
-    // case Nest(Join(e1, e2, v1s, key1 @ Project(e1v, f1), v2, key2, proj1, proj2), 
-    //   v2s, Tuple(gbs), gbval @ Project(e2v, f2), v3, filt, Tuple(nulls)) if e1v == e2v && gbval.tp.isPrimitive =>
-    //     // this needs to remove additional attributes
-    //     val parentKey = Tuple(v1s :+ key1)
-    //     val aggVal = gbval
-    //     val pv = Variable.fresh(TTupleType(List(key1.tp, gbval.tp)))
-    //     // filter needs pushed as well
-    //     val pushed = pushNest(Nest(e1, v1s, parentKey, gbval, pv, Constant(true), Tuple((nulls.toSet - v2).toList)))
-    //     Nest(Join(pushed, e2, v1s, key1, v2, key2, proj1, proj2), 
-    //       v2s, Tuple(gbs), gbval, v3, filt, Tuple(nulls))
-
-    // case Nest(Lookup(lbl, dict, v1s, extract, v2, key1, p), v2s, Tuple(gbs), gbval, v3, filt, Tuple(nulls)) => 
-    //   Lookup(lbl, dict, v1s, extract, v2, key1, 
-    //     Comprehension(Project(dict, "_2"), v2, filt, Record(Map("key" -> Tuple(gbs), "agg" -> gbval))))
+    // case CReduceBy(r @ Reduce(Join(e1, e2, v3, Project(pv1, key1), v4, Project(pv2, key2), proj1, proj2),
+    //   v2, f1, p1), v1, keys, values) => 
+    //   val subkeys = e1.tp match {
+    //     case BagCType(RecordCType(ms)) => (ms.keySet -- values.toSet) + key1
+    //     case RecordCType(ms) => (ms.keySet -- values.toSet) + key1
+    //     case _ => ???
+    //   }
+    //   val nc = CReduceBy(e1, v3, subkeys.toList, values)
+    //   val nv = Variable.freshFromBag(nc.tp)
+    //   CReduceBy(Reduce(Join(nc, e2, List(nv), Project(pv1, key1), v4, Projet(pv2, key2), proj1, proj2), 
+    //     v2, f1, p1), v1, keys, values)
     
     })
   

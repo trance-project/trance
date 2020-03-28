@@ -46,11 +46,11 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
     case _ => generate(e)
   }
 
-  def projectBag(e: CExpr, vs: List[Variable], index: Boolean = true): (String, String, List[CExpr], List[CExpr]) = e match {
+  def projectBag(e: CExpr, vs: List[Variable], index: Boolean = true): (String, String, List[CExpr], List[CExpr], CExpr) = e match {
     case Bind(v, Project(v2 @ Variable(n,tp), field), e2) => 
       val nvs1 = vs.map( v3 => if (v3 == v2) drop(tp, v2, field, index) else v3)
       val nvs2 = vs.map( v3 => if (v3 == v2) v2.nullValue else v3)
-      (n, field, nvs1, nvs2)
+      (n, field, nvs1, nvs2, e2)
     case _ => sys.error(s"unsupported bag projection $e")
   }
 
@@ -60,10 +60,8 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
           => Project(v, "_"+ (i+1)) })
       case RecordCType(fs) => 
         val imap = if (index) Map("index" -> Index) else Map()
-        val r = Record(imap ++ (fs - field).map{ case (
+        Record(imap ++ (fs - field).map{ case (
           attr, atp) => attr -> Project(v, attr)})
-        println(r)
-        r
       case MatDictCType(lbl, BagCType(r @ RecordCType(fs))) => 
         val nv = Variable(v.name, r)
         Record(fs.map{ case (attr, atp) => attr -> Project(nv, attr)})
@@ -91,11 +89,7 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
       val inner = fs.map{f => generate(f._2)}.mkString(", ")
       s"${generateType(tp)}($inner)"
     }
-    // case Record(fs) if isDictRecord(e) => 
-    //   s"(${fs.map(f => { handleType(f._2.tp); generate(f._2) } ).mkString(", ") })"
     case Record(fs) => {
-      if (fs.contains("index")) println("making it here??")
-      println(e.tp)
       val tp = e.tp
       handleType(tp)
       s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
@@ -169,7 +163,7 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
         case _ => generateVars(v1, e1.tp)
       }
       val gv2 = generate(v2)
-      val (v, attr, vs1, vs2) = projectBag(f, v1)
+      val (v, attr, vs1, vs2, e2) = projectBag(f, v1)
       val nvars = generateVars(vs1, e1.tp)
       p match {
         case Constant(true) =>
@@ -186,7 +180,17 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
     case OuterUnnest(e1, v1, f, v2, p, value) => 
       val vars = generateVars(v1, e1.tp)
       val gv2 = generate(v2)
-      val (v, attr, vs1, vs2) = projectBag(f, v1, true)
+      val (v, attr, vs1, vs2, e2) = projectBag(f, v1, true)
+      val localAgg = e2 match {
+        case Bind(lv1, CReduceBy(bv1, bv2, ks, vs), lv2) => 
+          val lv = generate(bv2)
+          val keys = Record(ks.map(k => k -> Project(bv2, k)).toMap)
+          handleType(keys.tp)
+          val values = Project(bv2, vs.head)
+          s""".foldLeft(HashMap.empty[${generateType(keys.tp)}, ${generateType(values.tp)}].withDefaultValue(0.0))(
+              (acc, $lv) => {acc(${generate(keys)}) += ${generate(values)}; acc})"""
+        case _ => s""
+      }
       val nvars = generateVars(vs1, e1.tp)
       val nullvars = if (v1.size == 1) "" 
         else s"case null => Vector((${generateVars(vs2, e1.tp)}, null))"
@@ -195,7 +199,7 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
           s"""|${generate(e1)}.zipWithIndex.flatMap{ case ($vars, index) => 
               |  $v match { $nullvars
               |    case _ => if ($v.$attr.isEmpty) Vector(($nvars, null))
-              |     else $v.$attr.map{ $gv2 => ($nvars, {${generate(value)}})}
+              |     else $v.$attr$localAgg.map{ $gv2 => ($nvars, {${generate(value)}})}
               |}}""".stripMargin
         case _ => 
           s"""|${generate(e1)}.flatMap{ case $vars => 

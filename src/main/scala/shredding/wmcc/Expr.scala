@@ -356,6 +356,7 @@ case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p
   val bagproj = e2 match {
     case Project(_, field) => field
     case Bind(_, Project(_, field), _) => field
+    case CReduceBy(Project(bag, field), bv, k, v) => field
     case _ => ???
   }
   def tp: Type = e1.tp match {
@@ -552,6 +553,10 @@ trait Extensions {
       case OuterJoin(e1, e2, v1, p1, v2, p2, proj1, proj2) => OuterJoin(fapply(e1, funct), fapply(e2, funct), v1, p1, v2, p2, proj1, proj2)
       case Lookup(e1, e2, v1, p1, v2, p2, p3) => Lookup(fapply(e1, funct), e2, v1, p1, v2, p2, p3)
       case CDeDup(e1) => CDeDup(fapply(e1, funct))
+      case GroupDict(e1) => GroupDict(fapply(e1, funct))
+      case FlatDict(e1) => FlatDict(fapply(e1, funct))
+      case CGroupBy(e1, v1, keys, values) => CGroupBy(fapply(e1, funct), v1, keys, values)
+      case CReduceBy(e1, v1, keys, values) => CReduceBy(fapply(e1, funct), v1, keys, values)
       case CNamed(n, e1) => CNamed(n, fapply(e1, funct))
       case LinearCSet(es) => LinearCSet(es.map(e1 => fapply(e1, funct)))
       case _ => ex

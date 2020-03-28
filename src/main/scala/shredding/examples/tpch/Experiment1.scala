@@ -461,6 +461,29 @@ object Test0NN extends TPCHBase {
 
 }
 
+object Test0Push extends TPCHBase {
+
+  val name = "Test0Push"
+  override def indexedDict: List[String] = List(s"${name}__D_1")
+
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("L", "P").contains(x._1)).values.toList.mkString("")}"
+ 
+  val partsInput = Test0Full.program(Test0Full.name).varRef.asInstanceOf[BagExpr]
+  val (parts, partRef) = varset(Test0Full.name, "l", partsInput)
+  val pushAgg = ReduceByKey(parts, List("l_partkey"), List("l_quantity"))
+  val (partsAgg, partsAggRef) = varset("localAgg", "l2", pushAgg)
+  val query = 
+    ReduceByKey(ForeachUnion(partsAggRef, partsAgg,
+      ForeachUnion(pr, relP,
+        IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
+          Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))),
+    List("p_name"), List("l_quantity"))
+
+  val program = Program(Assignment(partsAgg.name, pushAgg), Assignment(name, query))
+
+}
+
 object Test0FullNN extends TPCHBase {
 
   val name = "Test0FullNN"
