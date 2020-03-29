@@ -56,7 +56,10 @@ trait Query extends Materialization
         val plan = Optimizer.projectOnly(unnestOnly)
         println("\n"+Printer.quote(plan))
         anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
-      case _ => anfBase.anf(anfer.finalize(this.unnest).asInstanceOf[anfBase.Rep])
+      case _ => 
+        val plan = anfBase.anf(anfer.finalize(this.unnest).asInstanceOf[anfBase.Rep])
+        // println(plan)
+        plan 
     }
   }
 

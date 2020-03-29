@@ -14,8 +14,8 @@ object App {
  
   def main(args: Array[String]){
     // runExperiment1FN()
-    // runExperiment1NN()
-    runExperiment2()
+    runExperiment1NN()
+    // runExperiment2()
     // runExperiment1Joins()
   }
 

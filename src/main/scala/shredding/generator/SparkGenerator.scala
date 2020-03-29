@@ -123,9 +123,9 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
     case CDeDup(e1) => s"${generate(e1)}.distinct"
 
     case GroupDict(e1) => if (flatDict) generate(e1) else s"${generate(e1)}.groupBy(_++_)"
-    case Bind(fv, fd @ FlatDict(InputRef(_,_)), Bind(rv, 
-      CReduceBy(_, v1 @ Variable(gv1, RecordCType(ms)), ks, vs), e2)) => 
-      val gfv = generate(fv)
+
+    case Bind(rv, CReduceBy(fd @ InputRef(_,_), v1 @ Variable(gv1, RecordCType(ms)), ks, vs), e2) =>
+      val gfv = generate(fd)
       val gv1Tp = RecordCType(ms.filter(k => (ks.toSet ++ vs.toSet)(k._1)))
       handleType(gv1Tp)
       val finalValue = gv1Tp.attrTps.map(m => 
@@ -135,13 +135,16 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
       handleType(keys.tp)
       val values = Project(v1, vs.head)
       val vzero = zero(values)
-      s"""|val $gfv = ${generate(fd)}
-          |val ${generate(rv)} = ${gfv}.mapPartitions(it => 
+      // s"""|val $gfv = ${generate(fd)}
+      s"""|val ${generate(rv)} = ${gfv}.mapPartitions(it => 
           | it.foldLeft(HashMap.empty[${generateType(keys.tp)}, ${generateType(values.tp)}]
           | .withDefaultValue($vzero))((acc, $gv1) => {
           |   acc(${generate(keys)}) += ${generate(values)}; acc
           |}).map($gv1 => $finalValue).iterator)
           |${generate(e2)}""".stripMargin
+
+    case Bind(fv, fd @ FlatDict(i:InputRef), Bind(rv, CReduceBy(cr, v1, ks, vs), e2)) => 
+      generate(Bind(rv, CReduceBy(i, v1, ks, vs), e2))
 
     case FlatDict(e1) => s"${generate(e1)} /** FLATTEN **/"
 

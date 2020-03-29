@@ -72,11 +72,14 @@ object Optimizer {
     // base case
     case CReduceBy(e1, v1, keys, values) => 
       CReduceBy(pushAgg(e1, keys.toSet, values.toSet), v1, keys, values)
-    // capture attributes that are projected away
     case Reduce(FlatDict(InputRef(e1, tp)), v1, f1, Constant(true)) if keys.nonEmpty && values.nonEmpty => 
       val nkeys = (collectAttrs(f1.tp) -- values)
       val v2 = Variable.freshFromBag(e.tp)
       CReduceBy(FlatDict(InputRef(e1, tp)), v2, nkeys.toList, values.toList)
+    case Reduce(InputRef(e1, tp), v1, f1, Constant(true)) if keys.nonEmpty && values.nonEmpty =>
+      val nkeys = (collectAttrs(f1.tp) -- values)
+      val v2 = Variable.freshFromBag(e.tp)
+      CReduceBy(InputRef(e1, tp), v2, nkeys.toList, values.toList)
     case Reduce(e1, v1, f1, p1) => 
       val attrs = v1.map(t => collectAttrs(t.tp)).flatten.toSet
       val (nkeys, nvalues) = (keys.filter(f => attrs(f)), values.filter(f => attrs(f)))
