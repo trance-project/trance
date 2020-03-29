@@ -123,8 +123,28 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
     case CDeDup(e1) => s"${generate(e1)}.distinct"
 
     case GroupDict(e1) => if (flatDict) generate(e1) else s"${generate(e1)}.groupBy(_++_)"
+    case Bind(fv, fd @ FlatDict(InputRef(_,_)), Bind(rv, 
+      CReduceBy(_, v1 @ Variable(gv1, RecordCType(ms)), ks, vs), e2)) => 
+      val gfv = generate(fv)
+      val gv1Tp = RecordCType(ms.filter(k => (ks.toSet ++ vs.toSet)(k._1)))
+      handleType(gv1Tp)
+      val finalValue = gv1Tp.attrTps.map(m => 
+        if (vs.head == m._1) s"${gv1}._2" 
+        else s"${gv1}._1.${m._1}").mkString(s"${generateType(gv1Tp)}(", ",", ")")
+      val keys = Record(ks.map(k => k -> Project(v1, k)).toMap)
+      handleType(keys.tp)
+      val values = Project(v1, vs.head)
+      val vzero = zero(values)
+      s"""|val $gfv = ${generate(fd)}
+          |val ${generate(rv)} = ${gfv}.mapPartitions(it => 
+          | it.foldLeft(HashMap.empty[${generateType(keys.tp)}, ${generateType(values.tp)}]
+          | .withDefaultValue($vzero))((acc, $gv1) => {
+          |   acc(${generate(keys)}) += ${generate(values)}; acc
+          |}).map($gv1 => $finalValue).iterator)
+          |${generate(e2)}""".stripMargin
+
     case FlatDict(e1) => s"${generate(e1)} /** FLATTEN **/"
-   
+
     /** DOMAIN CREATION **/
     case Reduce(e1, v, f @ Bind(_, Project(_, labelField), _), Constant(true)) if isDomain(e) =>  
       s"${generate(e1)}.createDomain(l => l.$labelField)"
@@ -199,7 +219,8 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
           val keys = Record(ks.map(k => k -> Project(bv2, k)).toMap)
           handleType(keys.tp)
           val values = Project(bv2, vs.head)
-          s""".foldLeft(HashMap.empty[${generateType(keys.tp)}, ${generateType(values.tp)}].withDefaultValue(0.0))(
+          val vzero = zero(values)
+          s""".foldLeft(HashMap.empty[${generateType(keys.tp)}, ${generateType(values.tp)}].withDefaultValue($vzero))(
               (acc, $lv) => {
                 acc(${generate(keys)}) += ${generate(values)}; acc
               }).map($gv2 => ($nvars, $nvalue))"""
@@ -409,7 +430,7 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
       val fdict = generate(unv)
       val gv2 = generate(v2)
       val gluv = generate(luv)
-      val nv2 = generate(drop(v2.tp, v2, key1))
+      val nv2 = generate(drop(v2.tp, v2, key1, false))
       s"""|val $fdict = ${generate(dict1)}.flatMap{
           | case $vars => {${generate(bag)}}.map{case $gv2 => 
           |   ($gv2.$key1, ($vars._1, $nv2))}
@@ -428,8 +449,8 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
       val ve1 = "x" + Variable.newId()
       val ve2 = "x" + Variable.newId()
       if (flatDict){
-        val nv2 = generate(drop(v3.tp, v3, key1))
-        val nv3 = generate(drop(v2.tp, v2, "_1"))
+        val nv2 = generate(drop(v3.tp, v3, key1, false))
+        val nv3 = generate(drop(v2.tp, v2, "_1", false))
         s"""|val $ve1 = $pdict.map{ case $vars => (${generate(v3)}.$key1, $nv2)}
             |val $ve2 = $cdict.map{ $gv2 => ($gv2._1, $nv3) }
             |val $gluv = $ve1.cogroupDropKey($ve2)
@@ -447,8 +468,8 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
       val ve1 = "x" + Variable.newId()
       val ve2 = "x" + Variable.newId()
       if (flatDict){
-        val nv2 = generate(drop(v3.tp, v3, key1))
-        val nv3 = generate(drop(v2.tp, v2, "_1"))
+        val nv2 = generate(drop(v3.tp, v3, key1, false))
+        val nv3 = generate(drop(v2.tp, v2, "_1", false))
         s"""|val $ve1 = $pdict.map{ case $vars => (${generate(v3)}.$key1, $nv2)}
             |val $ve2 = $cdict.map{ $gv2 => ($gv2._1, $nv3) }
             |val $gluv = $ve1.cogroupDropKey($ve2)
@@ -482,7 +503,7 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
           }
         // }
           // else s"${generate(e2)}.rightCoGroupDropKey($ve1)"
-      val nv2 = generate(drop(v3.tp, v3, key1))
+      val nv2 = generate(drop(v3.tp, v3, key1, false))
       s"""|val $ve1 = ${generate(e1)}.map{ case $vars => (${generate(v3)}.$key1, $nv2)}
           |$cogroupFun
           |${generate(e3)}

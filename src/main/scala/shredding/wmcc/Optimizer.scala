@@ -65,15 +65,28 @@ object Optimizer {
     case TTupleType(fs) => fs.map(collectAttrs(_)).flatten.toSet
     case RecordCType(fs) => fs.keySet
     case BagCType(ts) => collectAttrs(ts)
-    case _ => ???
+    case _ => Set()
   }
 
   def pushAgg(e: CExpr, keys: Set[String] = Set.empty, values: Set[String] = Set.empty): CExpr = fapply(e, {
     // base case
-    case CReduceBy(Reduce(e1, v1, f1, p1), v2, keys, values) => 
+    case CReduceBy(e1, v1, keys, values) => 
+      CReduceBy(pushAgg(e1, keys.toSet, values.toSet), v1, keys, values)
+    // capture attributes that are projected away
+    case Reduce(FlatDict(InputRef(e1, tp)), v1, f1, Constant(true)) if keys.nonEmpty && values.nonEmpty => 
+      val nkeys = (collectAttrs(f1.tp) -- values)
+      val v2 = Variable.freshFromBag(e.tp)
+      CReduceBy(FlatDict(InputRef(e1, tp)), v2, nkeys.toList, values.toList)
+    case Reduce(e1, v1, f1, p1) => 
       val attrs = v1.map(t => collectAttrs(t.tp)).flatten.toSet
-      val (nkeys, nvalues) = (keys.toSet.filter(f => attrs(f)), values.toSet.filter(f => attrs(f)))
-      CReduceBy(Reduce(pushAgg(e1, nkeys, nvalues), v1, f1, p1), v2, keys, values)
+      val (nkeys, nvalues) = (keys.filter(f => attrs(f)), values.filter(f => attrs(f)))
+      Reduce(pushAgg(e1, nkeys, nvalues), v1, f1, p1)
+    case Join(e1, e2, v1, p1 @ Project(pv1, key1), v2, p2 @ Project(pv2, key2), proj1, proj2) =>
+      val rattrs = collectAttrs(v2.tp)
+      val lattrs = v1.map(t => collectAttrs(t.tp)).flatten.toSet
+      val (lkeys, lvalues) = (keys.filter(f => lattrs(f)) + key1, values.filter(f => lattrs(f)))
+      val (rkeys, rvalues) = (keys.filter(f => rattrs(f)) + key2, values.filter(f => rattrs(f)))
+      Join(pushAgg(e1, lkeys, lvalues), pushAgg(e2, rkeys, rvalues), v1, p1, v2, p2, proj1, proj2)
     case OuterJoin(e1, e2, v1, p1 @ Project(pv1, key1), v2, p2 @ Project(pv2, key2), proj1, proj2) =>
       val rattrs = collectAttrs(v2.tp)
       val lattrs = v1.map(t => collectAttrs(t.tp)).flatten.toSet

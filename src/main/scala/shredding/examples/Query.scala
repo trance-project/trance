@@ -87,6 +87,7 @@ trait Query extends Materialization
     val initPlan = Unnester.unnest(calc)(Nil, Nil, None)
     // println(Printer.quote(initPlan))
     val optPlan = Optimizer.applyAll(initPlan)
+    // println(optPlan)
     println(Printer.quote(optPlan))
     val sanfBase = new BaseANF{}
     val sanfer = new Finalizer(sanfBase)
