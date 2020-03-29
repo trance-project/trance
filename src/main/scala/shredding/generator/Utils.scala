@@ -234,8 +234,8 @@ object Utils {
     val fname = s"$pathout/$qname.scala"
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val finalc = writeSpark(qname, query.inputs(TPCHSchema.tblcmds), 
-        header, s"$inputCode\n${timed(gcode)}", label)
+    val inputs = if (skew) query.inputs(TPCHSchema.skewcmds) else query.inputs(TPCHSchema.tblcmds)
+    val finalc = writeSpark(qname, inputs, header, s"$inputCode\n${timed(gcode)}", label)
     printer.println(finalc)
     printer.close 
   

@@ -14,8 +14,8 @@ object App {
  
   def main(args: Array[String]){
     // runExperiment1FN()
-    runExperiment1NN()
-    // runExperiment2Agg()
+    // runExperiment1NN()
+    runExperiment2()
     // runExperiment1Joins()
   }
 
@@ -146,19 +146,10 @@ object App {
     Utils.shredInput(Test4Full, Test4FullNN, pathout, "Shred,4", unshred=true)
   }
 
-  def runExperiment2Agg(){
+  def runExperiment2(){
     val pathout = "experiments/exp2.1"
-    // Utils.flatOptInput(Test0, Test0Agg, pathout, "Flat++,0")
-    // Utils.flatOptInput(Test1, Test1Agg, pathout, "Flat++,1")
-    // Utils.flatOptInput(Test2Flat, Test2NN, pathout, "Flat++,2")
-    // Utils.flatOptInput(Test3Flat, Test3NN, pathout, "Flat++,3")
-    // Utils.flatOptInput(Test4Flat, Test4NN, pathout, "Flat++,4")
-
-    // Utils.shredDomainsInput(Test0, Test0Agg, pathout, "ShredDom,0")
-    // Utils.shredDomainsInput(Test1, Test1Agg, pathout, "ShredDom,1")
-    // Utils.shredDomainsInput(Test2, Test2NN, pathout, "ShredDom,2")
-    // Utils.shredDomainsInput(Test3, Test3NN, pathout, "ShredDom,3")
-    // Utils.shredDomainsInput(Test4, Test4NN, pathout, "ShredDom,4")
+    Utils.flatOptInput(Test2FullFlat, Test2NN, pathout, "Flat++,2")
+    Utils.flatOptInput(Test2FullFlat, Test2NN, pathout, "Flat++,2", skew=true)
   }
 
   def runExperiment1Joins(){
