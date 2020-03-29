@@ -80,20 +80,12 @@ object Optimizer {
       val (lkeys, lvalues) = (keys.filter(f => lattrs(f)) + key1, values.filter(f => lattrs(f)))
       val (rkeys, rvalues) = (keys.filter(f => rattrs(f)) + key2, values.filter(f => rattrs(f)))
       OuterJoin(pushAgg(e1, lkeys, lvalues), pushAgg(e2, rkeys, rvalues), v1, p1, v2, p2, proj1, proj2)
-    case OuterUnnest(e1, v1, e2, v2, p, value) =>
+    case OuterUnnest(e1, v1, e2, v2, p, value @ Record(ms)) =>
       val lattrs = v1.map(t => collectAttrs(t.tp)).flatten.toSet
-      val rattrs = collectAttrs(v2.tp)
+      val rattrs = collectAttrs(value.tp)
       val (lkeys, lvalues) = (keys.filter(f => lattrs(f)), values.filter(f => lattrs(f)))
       val (rkeys, rvalues) = (keys.filter(f => rattrs(f)), values.filter(f => rattrs(f)))
       val checkAgg = pushAgg(e2, rkeys, rvalues)
-      // val (nv2, value) = checkAgg match {
-      //   case crb:CReduceBy => 
-      //     value match {
-      //       case RecordCType(ms) => 
-      //       case _ => ???
-      //     }
-      //   case _ => (v2, value)
-      // }
       OuterUnnest(pushAgg(e1, lkeys, lvalues), v1, checkAgg, v2, p, value)
     case Project(v1, f) if keys.nonEmpty && values.nonEmpty =>
       val v1 = Variable.freshFromBag(e.tp)

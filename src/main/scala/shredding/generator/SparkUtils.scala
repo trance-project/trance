@@ -69,8 +69,9 @@ trait SparkUtils {
   def comment(n: String): String = s"//$n"
 
   def runJob(n: String, cache:Boolean, evaluate:Boolean): String = {
+    val dictCache = cache && (n.contains("MDict") || n.contains("MBag")) 
     if (!n.contains("UDict")){
-      s"""|${if (cache && (n.contains("MDict") || n.contains("MBag"))) n else comment(n)}.cache
+      s"""|${if (cache || dictCache) n else comment(n)}.cache
           |//$n.print
           |${if (evaluate) n else comment(n)}.evaluate"""
     }else ""

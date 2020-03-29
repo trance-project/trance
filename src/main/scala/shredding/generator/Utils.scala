@@ -338,6 +338,7 @@ object Utils {
       |/** Generated **/
       |import org.apache.spark.SparkConf
       |import org.apache.spark.sql.SparkSession
+      |import scala.collection.mutable.HashMap
       |import sprkloader._
       |$header
       |object $appname {

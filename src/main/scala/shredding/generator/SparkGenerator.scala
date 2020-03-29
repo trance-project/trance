@@ -181,29 +181,41 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
       val vars = generateVars(v1, e1.tp)
       val gv2 = generate(v2)
       val (v, attr, vs1, vs2, e2) = projectBag(f, v1, true)
+      val gvalue = generate(value)
+      
+      val nvars = generateVars(vs1, e1.tp)
+      val nullvars = if (v1.size == 1) "" 
+        else s"case null => Vector((${generateVars(vs2, e1.tp)}, null))"
+      
       val localAgg = e2 match {
         case Bind(lv1, CReduceBy(bv1, bv2, ks, vs), lv2) => 
           val lv = generate(bv2)
+          val nvalue = value.tp match {
+            case RecordCType(ms) => ms.map(m => 
+              if (vs.head == m._1) s"${gv2}._2" 
+              else s"${gv2}._1.${m._1}").mkString(s"${generateType(value.tp)}(", ",", ")")
+            case _ => gvalue
+          }
           val keys = Record(ks.map(k => k -> Project(bv2, k)).toMap)
           handleType(keys.tp)
           val values = Project(bv2, vs.head)
           s""".foldLeft(HashMap.empty[${generateType(keys.tp)}, ${generateType(values.tp)}].withDefaultValue(0.0))(
-              (acc, $lv) => {acc(${generate(keys)}) += ${generate(values)}; acc})"""
-        case _ => s""
+              (acc, $lv) => {
+                acc(${generate(keys)}) += ${generate(values)}; acc
+              }).map($gv2 => ($nvars, $nvalue))"""
+        case _ => s".map($gv2 => ($nvars, {$gvalue}))"
       }
-      val nvars = generateVars(vs1, e1.tp)
-      val nullvars = if (v1.size == 1) "" 
-        else s"case null => Vector((${generateVars(vs2, e1.tp)}, null))"
+
       p match {
         case Constant(true) =>
           s"""|${generate(e1)}.zipWithIndex.flatMap{ case ($vars, index) => 
               |  $v match { $nullvars
               |    case _ => if ($v.$attr.isEmpty) Vector(($nvars, null))
-              |     else $v.$attr$localAgg.map{ $gv2 => ($nvars, {${generate(value)}})}
+              |     else $v.$attr$localAgg
               |}}""".stripMargin
         case _ => 
           s"""|${generate(e1)}.flatMap{ case $vars => 
-              | {${generate(f)}}.map{ $gv2 => ($nvars, {${generate(value)}})}
+              | {${generate(f)}}.map{ $gv2 => ($nvars, {$gvalue})}
               |}.filter{ case ($vars, $gv2) => {${generate(p)}} }""".stripMargin
       }
 
