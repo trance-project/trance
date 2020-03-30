@@ -550,9 +550,10 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
     case Bind(cv, CoGroup(e1, e2, vs, v2, k1, k2, value), e3) =>
       val ve1 = "x" + Variable.newId()
       val ve2 = "x" + Variable.newId()
-      val vars = generateVars(vs, e1.tp.asInstanceOf[BagCType].tp)
+      val vars = generateVars(vs, e1.tp)
+      val key1 = if (vars.size > 1) nullProject(k1) else generate(k1)
       val gv2 = generate(v2)
-      s"""| val $ve1 = ${generate(e1)}.map{ case $vars => ({${generate(k1)}}, $vars)}
+      s"""| val $ve1 = ${generate(e1)}.map{ case $vars => ({$key1}, $vars)}
           | val $ve2 = ${generate(e2)}.map{ case $gv2 => ({${generate(k2)}}, {${generate(value)}})}
           | val ${generate(cv)} = $ve1.cogroupDropKey($ve2)
           | ${generate(e3)}

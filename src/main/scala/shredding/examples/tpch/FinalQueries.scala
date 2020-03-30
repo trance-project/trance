@@ -180,8 +180,8 @@ object Query4 extends TPCHBase {
   def inputs(tmap: Map[String, String]): String =
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
 
-  val (q1r, cor) = varset(Query1.name, "c2",
-    Query1.program(Query1.name).varRef.asInstanceOf[BagExpr])
+  val (q1r, cor) = varset(Test2.name, "c2",
+    Test2.program(Test2.name).varRef.asInstanceOf[BagExpr])
 
   val orders = BagProject(cor, "c_orders")
   val co2r = TupleVarRef("o2", orders.tp.tp)
@@ -197,7 +197,7 @@ object Query4 extends TPCHBase {
             ReduceByKey(
               ForeachUnion(co3r, parts,
                 ForeachUnion(pr, relP,
-                  IfThenElse(Cmp(OpEq, pr("p_name"), co3r("p_name")),
+                  IfThenElse(Cmp(OpEq, pr("p_partkey"), co3r("l_partkey")),
                     Singleton(Tuple("p_name" -> pr("p_name"), "total" -> 
                       co3r("l_qty").asNumeric * pr("p_retailprice").asNumeric))))),
               List("p_name"),
@@ -205,7 +205,7 @@ object Query4 extends TPCHBase {
             )))))))
 
   val program =
-    Query1.program.asInstanceOf[Program] ++
+    Test2.program.asInstanceOf[Program] ++
       Program(Assignment(name, query4))
 }
 

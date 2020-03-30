@@ -13,10 +13,15 @@ import shredding.examples.tpch._
 object App {
  
   def main(args: Array[String]){
+    // exp1.1
     // runExperiment1FN()
-    runExperiment1NN()
-    // runExperiment2()
-    // runExperiment1Joins()
+    // exp1.2
+    // runExperiment1NN()
+    // exp2.1
+    runExperiment2FN()
+    runExperiment2NN()
+    // exp2.0
+    // runExperiment2(0)
   }
 
   def runExperiment1FN(){
@@ -146,11 +151,102 @@ object App {
     Utils.shredInput(Test4Full, Test4FullNN, pathout, "Shred,4", unshred=true)
   }
 
-  def runExperiment2(){
-    val pathout = "experiments/exp2.1"
-    Utils.flatOptInput(Test2FullFlat, Test2NN, pathout, "Flat++,2")
-    Utils.flatOptInput(Test2FullFlat, Test2NN, pathout, "Flat++,2", skew=true)
+  def runExperiment2FN(){
+    val pathout = "experiments/exp2.1/"
+
+    Utils.flatOpt(Test0, pathout, "Flat++,0")
+    Utils.flatOpt(Test0, pathout, "Flat++,0", skew = true)
+    Utils.flatOpt(Test1, pathout, "Flat++,1")
+    Utils.flatOpt(Test1, pathout, "Flat++,1", skew = true)
+    Utils.flatOpt(Test2Flat, pathout, "Flat++,2")
+    Utils.flatOpt(Test2Flat, pathout, "Flat++,2", skew = true)
+    Utils.flatOpt(Test3Flat, pathout, "Flat++,3")
+    Utils.flatOpt(Test3Flat, pathout, "Flat++,3", skew = true)
+    Utils.flatOpt(Test4Flat, pathout, "Flat++,4")
+    Utils.flatOpt(Test4Flat, pathout, "Flat++,4", skew = true)
+
+    Utils.shred(Test0, pathout, "Shred,0")
+    Utils.shred(Test1, pathout, "Shred,1")
+    Utils.shred(Test2, pathout, "Shred,2")
+    Utils.shred(Test3, pathout, "Shred,3")
+    Utils.shred(Test4, pathout, "Shred,4")
+
+    Utils.shred(Test0, pathout, "Shred,0", skew = true)
+    Utils.shred(Test1, pathout, "Shred,1", skew = true)
+    Utils.shred(Test2, pathout, "Shred,2", skew = true)
+    Utils.shred(Test3, pathout, "Shred,3", skew = true)
+    Utils.shred(Test4, pathout, "Shred,4", skew = true)
+
+    Utils.shred(Test0, pathout, "Shred,0", unshred=true)
+    Utils.shred(Test1, pathout, "Shred,1", unshred=true)
+    Utils.shred(Test2, pathout, "Shred,2", unshred=true)
+    Utils.shred(Test3, pathout, "Shred,3", unshred=true)
+    Utils.shred(Test4, pathout, "Shred,4", unshred=true)
+
+    Utils.shred(Test0, pathout, "Shred,0", unshred=true, skew = true)
+    Utils.shred(Test1, pathout, "Shred,1", unshred=true, skew = true)
+    Utils.shred(Test2, pathout, "Shred,2", unshred=true, skew = true)
+    Utils.shred(Test3, pathout, "Shred,3", unshred=true, skew = true)
+    Utils.shred(Test4, pathout, "Shred,4", unshred=true, skew = true)
+
   }
+
+  def runExperiment2NN(){
+    val pathout = "experiments/exp2.1"
+
+    Utils.flatOptInput(Test0, Test0NN, pathout, "Flat++,0")
+    Utils.flatOptInput(Test1, Test1NN, pathout, "Flat++,1")
+    Utils.flatOptInput(Test2Flat, Test2NN, pathout, "Flat++,2")
+    Utils.flatOptInput(Test3Flat, Test3NN, pathout, "Flat++,3")
+    Utils.flatOptInput(Test4Flat, Test4NN, pathout, "Flat++,4")
+
+    Utils.flatOptInput(Test0, Test0NN, pathout, "Flat++,0", skew = true)
+    Utils.flatOptInput(Test1, Test1NN, pathout, "Flat++,1", skew = true)
+    Utils.flatOptInput(Test2Flat, Test2NN, pathout, "Flat++,2", skew = true)
+    Utils.flatOptInput(Test3Flat, Test3NN, pathout, "Flat++,3", skew = true)
+    Utils.flatOptInput(Test4Flat, Test4NN, pathout, "Flat++,4", skew = true)
+
+    Utils.shredInput(Test0, Test0NN, pathout, "Shred,0")
+    Utils.shredInput(Test1, Test1NN, pathout, "Shred,1")
+    Utils.shredInput(Test2, Test2NN, pathout, "Shred,2")
+    Utils.shredInput(Test3, Test3NN, pathout, "Shred,3")
+    Utils.shredInput(Test4, Test4NN, pathout, "Shred,4")
+
+    Utils.shredInput(Test0, Test0NN, pathout, "Shred,0", unshred=true)
+    Utils.shredInput(Test1, Test1NN, pathout, "Shred,1", unshred=true)
+    Utils.shredInput(Test2, Test2NN, pathout, "Shred,2", unshred=true)
+    Utils.shredInput(Test3, Test3NN, pathout, "Shred,3", unshred=true)
+    Utils.shredInput(Test4, Test4NN, pathout, "Shred,4", unshred=true)
+
+    Utils.shredInput(Test0, Test0NN, pathout, "Shred,0", skew = true)
+    Utils.shredInput(Test1, Test1NN, pathout, "Shred,1", skew = true)
+    Utils.shredInput(Test2, Test2NN, pathout, "Shred,2", skew = true)
+    Utils.shredInput(Test3, Test3NN, pathout, "Shred,3", skew = true)
+    Utils.shredInput(Test4, Test4NN, pathout, "Shred,4", skew = true)
+
+    Utils.shredInput(Test0, Test0NN, pathout, "Shred,0", unshred=true, skew = true)
+    Utils.shredInput(Test1, Test1NN, pathout, "Shred,1", unshred=true, skew = true)
+    Utils.shredInput(Test2, Test2NN, pathout, "Shred,2", unshred=true, skew = true)
+    Utils.shredInput(Test3, Test3NN, pathout, "Shred,3", unshred=true, skew = true)
+    Utils.shredInput(Test4, Test4NN, pathout, "Shred,4", unshred=true, skew = true)
+  }
+
+  // def runExperiment2(){
+  //   val pathout = "experiments/exp2.1"
+  //   Utils.flatOpt(Query1, pathout, "Flat++")
+  //   Utils.flatOpt(Query1, pathout, "Flat++", skew = true)
+  //   Utils.shred(Query1, pathout, "Shred,0")
+  //   Utils.shred(Query1, pathout, "Shred,1", unshred=true)
+  //   Utils.shred(Query1, pathout, "Shred,0", skew = true)
+  //   Utils.shred(Query1, pathout, "Shred,1", skew = true, unshred=true)
+
+  //   Utils.flatOptInput(Test2Flat, Query4, pathout, "Flat++")
+  //   Utils.flatOptInput(Test2Flat, Query4, pathout, "Flat++", skew = true)
+  //   Utils.shredInput(Test2, Query4, pathout, "Shred,0")
+  //   Utils.shredInput(Test2, Query4, pathout, "Shred,1", unshred=true)
+  //   Utils.shredInput(Test2, Query4, pathout, "Shred,0", skew = true)
+  //   Utils.shredInput(Test2, Query4, pathout, "Shred,1", skew = true, unshred=true)
+  // }
 
   def runExperiment1Joins(){
     val pathout = "experiments/exp1.3"

@@ -143,14 +143,14 @@ object Utils {
         |var end = System.currentTimeMillis() - start
     """.stripMargin
    
-  def timed(e: String): String = 
+  def timed(e: String): String = {
     s"""|def f = { 
         | $e
         |}
         |var start = System.currentTimeMillis()
         |f
         |var end = System.currentTimeMillis() - start """.stripMargin
-
+  }
   
   def flat(query: Query, path: String, label: String): Unit =
     runSpark(query, path, label, 0, false)
@@ -277,7 +277,7 @@ object Utils {
     val codegenInput = new SparkNamedGenerator(false, false, flatDict = true)
     val (inputShred, queryShred, queryUnshred) = query.shredWithInput(inputQuery, unshredRun = unshred, eliminateDomains = eliminateDomains)
     val inputCode = codegenInput.generate(inputShred)
-    val codegen = new SparkNamedGenerator(false, eliminateDomains, flatDict = true, inputs = codegenInput.types)
+    val codegen = new SparkNamedGenerator(unshred, eliminateDomains, flatDict = true, inputs = codegenInput.types)
     val gcode1 = codegen.generate(queryShred)
     val gcodeSet = if (unshred) List(gcode1, codegen.generate(queryUnshred)) else List(gcode1)
     val header = if (skew) {
