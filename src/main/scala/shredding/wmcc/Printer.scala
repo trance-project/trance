@@ -17,6 +17,7 @@ object Printer {
     case Constant(d) => constant(d)
     case EmptySng => emptysng
     case CUnit => unit
+    case Index => "index"
     case Sng(e1) => sng(quote(e1))
     case Tuple(fs) => tuple(fs.map(quote(_)))
     case Record(fs) => record(fs.map(f => f._1 -> quote(f._2)))
