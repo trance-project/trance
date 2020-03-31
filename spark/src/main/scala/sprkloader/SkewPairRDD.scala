@@ -27,7 +27,7 @@ object SkewPairRDD {
       (light.zipWithIndex, heavy.zipWithIndex, heavyKeys)
 
     // non key altering map
-    def mapPartitions[S:ClassTag](f: ((K,V)) => (K, S)): (RDD[(K,S)], RDD[(K,S)], Broadcast[Set[K]]) = {
+    def mapPartitions[S:ClassTag](f: Iterator[(K,V)] => Iterator[(K, S)]): (RDD[(K,S)], RDD[(K,S)], Broadcast[Set[K]]) = {
       val (l, h) = (light, heavy).mapPartitions(f, true)
       (l, h, heavyKeys)
     }

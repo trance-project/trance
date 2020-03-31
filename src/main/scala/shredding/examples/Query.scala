@@ -41,6 +41,7 @@ trait Query extends Materialization
   def unnest: CExpr = {
     val plan = Optimizer.applyAll(unnestOnly)
     println("\n"+Printer.quote(plan))
+    // println(plan)
     plan
   }
 

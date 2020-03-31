@@ -61,6 +61,12 @@ object Optimizer {
     case _ => sys.error(s"implementation missing $e")
   }
 
+  def attrsFromOp(e: CExpr): Set[String] = e match {
+    case Multiply(e1, e2) => attrsFromOp(e1) ++ attrsFromOp(e2)
+    case Project(e1, f) => Set(f)
+    case _ => ???
+  }
+
   def collectAttrs(e: Type): Set[String] = e match {
     case TTupleType(fs) => fs.map(collectAttrs(_)).flatten.toSet
     case RecordCType(fs) => fs.keySet
@@ -80,9 +86,10 @@ object Optimizer {
       val nkeys = (collectAttrs(f1.tp) -- values)
       val v2 = Variable.freshFromBag(e.tp)
       CReduceBy(InputRef(e1, tp), v2, nkeys.toList, values.toList)
-    case Reduce(e1, v1, f1, p1) => 
+    case Reduce(e1, v1, f1 @ Record(ms), p1) if values.nonEmpty =>
       val attrs = v1.map(t => collectAttrs(t.tp)).flatten.toSet
-      val (nkeys, nvalues) = (keys.filter(f => attrs(f)), values.filter(f => attrs(f)))
+      val checkValues = if ((attrs intersect values).nonEmpty) values else attrsFromOp(ms(values.head))
+      val (nkeys, nvalues) = (keys.filter(f => attrs(f)), checkValues.filter(f => attrs(f)))
       Reduce(pushAgg(e1, nkeys, nvalues), v1, f1, p1)
     case Join(e1, e2, v1, p1 @ Project(pv1, key1), v2, p2 @ Project(pv2, key2), proj1, proj2) =>
       val rattrs = collectAttrs(v2.tp)
@@ -96,7 +103,7 @@ object Optimizer {
       val (lkeys, lvalues) = (keys.filter(f => lattrs(f)) + key1, values.filter(f => lattrs(f)))
       val (rkeys, rvalues) = (keys.filter(f => rattrs(f)) + key2, values.filter(f => rattrs(f)))
       OuterJoin(pushAgg(e1, lkeys, lvalues), pushAgg(e2, rkeys, rvalues), v1, p1, v2, p2, proj1, proj2)
-    case OuterUnnest(e1, v1, e2, v2, p, value @ Record(ms)) =>
+    case OuterUnnest(e1, v1, e2, v2, p, value) =>
       val lattrs = v1.map(t => collectAttrs(t.tp)).flatten.toSet
       val rattrs = collectAttrs(value.tp)
       val (lkeys, lvalues) = (keys.filter(f => lattrs(f)), values.filter(f => lattrs(f)))

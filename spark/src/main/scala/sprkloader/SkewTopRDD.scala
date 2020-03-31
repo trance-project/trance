@@ -26,9 +26,9 @@ object SkewTopRDD{
     def map[S:ClassTag](f: K => S): (RDD[S], RDD[S]) = 
       (light.map(k => f(k)), heavy.map(k => f(k)))
 
-    def mapPartitions[S:ClassTag](f: K => S, preserve: Boolean = false): (RDD[S], RDD[S]) = 
-      (light.mapPartitions(it => it.map(k => f(k)), preserve), 
-       heavy.mapPartitions(it => it.map(k => f(k)), preserve))
+    def mapPartitions[S:ClassTag](f: Iterator[K] => Iterator[S], preserve: Boolean = false): (RDD[S], RDD[S]) = 
+      (light.mapPartitions(f, preserve), //it => it.map(k => f(k)), preserve), 
+       heavy.mapPartitions(f, preserve))//it => it.map(k => f(k)), preserve))
 
     def filter(p: K => Boolean): (RDD[K], RDD[K]) = 
       (light.filter(k => p(k)), heavy.filter(k => p(k)))
