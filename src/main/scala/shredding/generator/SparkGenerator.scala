@@ -578,7 +578,7 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean =
 
     case Bind(x, CNamed(n, e1), e2) =>
       val (tmp1, tmp2) = if (cache) (false, false)
-      else (cache, evaluate)
+      else (cache, false)
     	s"""|val $n = ${generate(e1)}
           |val ${generate(x)} = $n
           |${runJob(n, tmp1, tmp2)}
