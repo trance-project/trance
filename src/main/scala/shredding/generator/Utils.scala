@@ -186,6 +186,7 @@ object Utils {
     val header = if (skew) {
         s"""|import sprkloader.SkewPairRDD._
             |import sprkloader.SkewTopRDD._
+            |import sprkloader.TopRDD._
             |${codegen.generateHeader(query.headerTypes(false))}""".stripMargin
       } else {
         s"""|import sprkloader.PairRDDOperations._
@@ -219,6 +220,7 @@ object Utils {
     val header = if (skew) {
         s"""|import sprkloader.SkewPairRDD._
             |import sprkloader.SkewTopRDD._
+            |import sprkloader.TopRDD._
             |${codegen.generateHeader(query.headerTypes(false))}""".stripMargin
       } else {
         s"""|import sprkloader.PairRDDOperations._
@@ -260,7 +262,7 @@ object Utils {
             |${codegen.generateHeader(query.headerTypes(true))}""".stripMargin
       }
    
-    val qname = if (skew) s"Shred${query.name}SparkSkew" else s"Shred${query.name}Spark"
+    val qname = if (skew) s"Shred${query.name}SkewSpark" else s"Shred${query.name}Spark"
     val fname = if (unshred) s"$pathout/unshred/$qname.scala" else s"$pathout/$qname.scala"
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
@@ -293,7 +295,7 @@ object Utils {
       }
    
     val domains = if (eliminateDomains) "" else "Domains"
-    val qname = if (skew) s"Shred${query.name}${domains}SparkSkew" else s"Shred${query.name}${domains}Spark"
+    val qname = if (skew) s"Shred${query.name}${domains}SkewSpark" else s"Shred${query.name}${domains}Spark"
     val fname = if (unshred) s"$pathout/unshred/$qname.scala" else s"$pathout/$qname.scala"
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))

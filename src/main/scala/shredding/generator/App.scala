@@ -18,10 +18,10 @@ object App {
     // exp1.2
     // runExperiment1NN()
     // exp2.1
-    runExperiment2FN()
-    runExperiment2NN()
+    // runExperiment2FN()
+    // runExperiment2NN()
     // exp2.0
-    // runExperiment2()
+    runExperiment2()
   }
 
   def runExperiment1FN(){
@@ -232,20 +232,20 @@ object App {
   }
 
   def runExperiment2(){
-    val pathout = "experiments/exp2.1"
-    // Utils.flatOpt(Query1, pathout, "Flat++")
-    // Utils.flatOpt(Query1, pathout, "Flat++", skew = true)
-    // Utils.shred(Query1, pathout, "Shred,0")
-    // Utils.shred(Query1, pathout, "Shred,1", unshred=true)
-    // Utils.shred(Query1, pathout, "Shred,0", skew = true)
-    // Utils.shred(Query1, pathout, "Shred,1", skew = true, unshred=true)
+    val pathout = "experiments/exp2.0"
+    Utils.flatOpt(Query1, pathout, "Flat++,Standard,Query1")
+    Utils.flatOpt(Query1, pathout, "Flat++,Skew,Query1", skew = true)
+    Utils.shred(Query1, pathout, "Shred,Standard,Query1")
+    Utils.shred(Query1, pathout, "Shred,Standard,Query1", unshred=true)
+    Utils.shred(Query1, pathout, "Shred,Skew,Query1", skew = true)
+    Utils.shred(Query1, pathout, "Shred,Skew,Query1", skew = true, unshred=true)
 
-    // Utils.flatOptInput(Test2Flat, Query4, pathout, "Flat++")
-    Utils.flatOptInput(Test2Flat, Query4, pathout, "Flat++", skew = true)
-    // Utils.shredInput(Test2, Query4, pathout, "Shred,0")
-    // Utils.shredInput(Test2, Query4, pathout, "Shred,1", unshred=true)
-    // Utils.shredInput(Test2, Query4, pathout, "Shred,0", skew = true)
-    // Utils.shredInput(Test2, Query4, pathout, "Shred,1", skew = true, unshred=true)
+    Utils.flatOptInput(Test2Flat, Query4, pathout, "Flat++,Standard,Query4")
+    Utils.flatOptInput(Test2Flat, Query4, pathout, "Flat++,Skew,Query4", skew = true)
+    Utils.shredInput(Test2, Query4, pathout, "Shred,Standard,Query4")
+    Utils.shredInput(Test2, Query4, pathout, "Shred,Standard,Query4", unshred=true)
+    Utils.shredInput(Test2, Query4, pathout, "Shred,Skew,Query4", skew = true)
+    Utils.shredInput(Test2, Query4, pathout, "Shred,Skew,Query4", skew = true, unshred=true)
   }
 
   def runExperiment1Joins(){

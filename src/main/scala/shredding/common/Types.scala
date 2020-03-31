@@ -117,11 +117,18 @@ case object EmptyCType extends Type
 
 case class RecordCType(attrTps: Map[String, Type]) extends Type {
   def apply(n: String): Type = attrTps(n)
+  // override def equals(that: Any): Boolean = that match {
+  //   case that: LabelType => this.attrTps == that.attrTps
+  //   case that:RecordCType => this.attrTps == that.attrTps
+  //   case _ => false
+  // }
+  def canEqual(a: Any) = a.isInstanceOf[RecordCType]
   override def equals(that: Any): Boolean = that match {
-    case that: LabelType => this.attrTps == that.attrTps
-    case that:RecordCType => this.attrTps == that.attrTps
+    case RecordCType(fs) => fs.toList == attrTps.toList
     case _ => false
   }
+
+  override def hashCode: Int = this.attrTps.toList.hashCode
 
 }
 
