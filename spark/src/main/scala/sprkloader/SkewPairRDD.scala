@@ -192,7 +192,7 @@ object SkewPairRDD {
         val partition = it.toVector
         val cnt = partition.size
         val filt = cnt*.05
-        Range(0, (cnt*.10).toInt).foldLeft(HashMap.empty[K, Int].withDefaultValue(0))((acc, c) =>
+        Range(0, (cnt*.10).toInt).toVector.foldLeft(HashMap.empty[K, Int].withDefaultValue(0))((acc, c) =>
           { acc(partition(random.nextInt(cnt-1))._1) += 1; acc } ).filter(_._2 > filt).iterator
         }).keys.collect.toSet
       (lunion, keys)

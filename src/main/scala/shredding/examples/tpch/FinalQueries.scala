@@ -204,9 +204,7 @@ object Query4 extends TPCHBase {
               List("total")
             )))))))
 
-  val program =
-    Test2.program.asInstanceOf[Program] ++
-      Program(Assignment(name, query4))
+  val program = Program(Assignment(name, query4))
 }
 
 /** 
@@ -311,9 +309,7 @@ object Query4Filter2 extends TPCHBase {
                 List("total")
               )))))))))
 
-  val program =
-    Query1Extended.program.asInstanceOf[Program] ++
-      Program(Assignment(name, query4))
+  val program = Program(Assignment(name, query4))
 }
 
 /**
