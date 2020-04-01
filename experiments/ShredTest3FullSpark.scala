@@ -196,17 +196,7 @@ val Test3Full = x160
 val x161 = Test3Full
 //Test3Full.cache
 // Test3Full.print
-Test3Full.evaluate
-
-Test3Full.flatMap{
-      case nations => if (nations.n_custs.isEmpty) Vector((nations.n_name, null, null, -1, -1.0))
-        else nations.n_custs.flatMap{
-          case customers => if (customers.c_orders.isEmpty) Vector((nations.n_name, customers.c_name, null, -1, -1.0))
-            else customers.c_orders.flatMap{
-              case orders => if (orders.o_parts.isEmpty) Vector((nations.n_name, customers.c_name, orders.o_orderdate, -1, -1.0))
-                else orders.o_parts.map{ p => (nations.n_name, customers.c_name, orders.o_orderdate, p.l_partkey, p.l_quantity) }
-                }}}.collect.foreach(println(_))
-        
+Test3Full.evaluate        
         
         
 var end1 = System.currentTimeMillis() - start1

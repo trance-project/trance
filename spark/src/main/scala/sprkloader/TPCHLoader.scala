@@ -92,10 +92,10 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 
   def loadCustomer(path: String = s"file:///$datapath/customer.tbl"):RDD[Customer] = {
     spark.sparkContext.textFile(path, minPartitions = parts).mapPartitions(it =>
-		it.map(line => {
+		it.toVector.map(line => {
         	val l = line.split("\\|")
             Customer(l(0).toInt, l(1), l(2), l(3).toInt, l(4), l(5).toDouble, l(6), l(7))
-		}), true).repartition(parts)
+		}).iterator, true).repartition(parts)
   }
 
   def loadCustomersProj(path: String = s"file:///$datapath/customer.tbl"):RDD[CustomerProj] = {
@@ -139,10 +139,10 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 
   def loadPart(path: String = s"file:///$datapath/part.tbl"):RDD[Part] = {
     spark.sparkContext.textFile(path, minPartitions = parts).mapPartitions(it =>
-		it.map(line => {
+		it.toVector.map(line => {
         	val l = line.split("\\|")
             Part(l(0).toInt, l(1), l(2), l(3), l(4), l(5).toInt, l(6), l(7).toDouble, l(8))
-  		}), true).repartition(parts)
+  		}).iterator, true).repartition(parts)
   }
 
   def loadPartProj(path: String = s"file:///$datapath/part.tbl"):RDD[PartProj] = {
@@ -182,10 +182,10 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   def loadOrder(path: String = s"file:///$datapath/order.tbl"):RDD[Order] = {
     //val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
     spark.sparkContext.textFile(path ,minPartitions = parts).mapPartitions(it => 
-		it.map(line => {
+		it.toVector.map(line => {
       		val l = line.split("\\|")
             Order(parseBigInt(l(0)), l(1).toInt, l(2), l(3).toDouble, l(4), l(5), l(6), l(7).toInt, l(8))
-  		}), true).repartition(parts)
+  		}).iterator, true).repartition(parts)
   }
 
   def loadOrdersProj(path: String = s"file:///$datapath/order.tbl"):RDD[OrdersProj] = {
@@ -230,11 +230,11 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   // split --line-bytes=797780948 --filter='gzip > $FILE.gz' /path/to/input /path/to/output
   def loadLineitem():RDD[Lineitem] = {
   	spark.sparkContext.textFile(s"file:///$datapath/lineitem.tbl",minPartitions = lparts).mapPartitions(it => 
-		it.map(line => {
+		it.toVector.map(line => {
 			val l = line.split("\\|")
         	Lineitem(parseBigInt(l(0)), l(1).toInt, l(2).toInt, l(3).toInt, l(4).toDouble, l(5).toDouble, 
 				l(6).toDouble, l(7).toDouble, l(8), l(9), l(10), l(11), l(12), l(13), l(14), l(15))
-		}), true).repartition(lparts)
+		}).iterator, true).repartition(lparts)
   }
  
   def loadLineitemProj(path: String = s"file:///$datapath/lineitem.tbl"):RDD[LineitemProj] = {

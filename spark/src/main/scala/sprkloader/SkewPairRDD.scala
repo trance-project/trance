@@ -180,22 +180,21 @@ object SkewPairRDD {
     val partitions = light.getNumPartitions
     val random = scala.util.Random
 
-    // def heavyKeys: (RDD[(K,V)], Set[K]) = {
-    //   val lunion = lrdd.union
-    //   (lunion, lunion.mapPartitions( it => 
-    //     Util.countDistinct(it).filter(_._2 > threshold).iterator,true).keys.collect.toSet)
-    // }
+    /**def heavyKeys: (RDD[(K,V)], Set[K]) = {
+       val lunion = lrdd.union
+       (lunion, lunion.mapPartitions( it => 
+         Util.countDistinct(it).filter(_._2 > threshold).iterator,true).keys.collect.toSet)
+    }**/
     
     def heavyKeys: (RDD[(K,V)], Set[K]) = {
       val lunion = lrdd.union
       val keys = lunion.mapPartitions(it => {
-        val partition = it.toVector
-        val cnt = partition.size
-        val filt = cnt*.05
-        Range(0, (cnt*.10).toInt).toVector.foldLeft(HashMap.empty[K, Int].withDefaultValue(0))((acc, c) =>
-          { acc(partition(random.nextInt(cnt-1))._1) += 1; acc } ).filter(_._2 > filt).iterator
+       	var cnt = 0
+		val acc = HashMap.empty[K, Int].withDefaultValue(0)
+		it.foreach{ c => cnt += 1; if (random.nextDouble < .10) acc(c._1) += 1 }
+		acc.filter(_._2 > cnt*.05).iterator
         }).keys.collect.toSet
-      (lunion, keys)
+	  (lunion, keys)
     }
 
     def join[S:ClassTag](rrdd: (RDD[(K, S)], RDD[(K, S)])): (RDD[(K, (V, S))], RDD[(K, (V, S))], Broadcast[Set[K]]) = {
