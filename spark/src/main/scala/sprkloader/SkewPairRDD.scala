@@ -177,7 +177,7 @@ object SkewPairRDD {
     val light = lrdd._1
     val heavy = lrdd._2
     val threshold = Config.threshold
-    val partitions = light.getNumPartitions
+	val partitions = light.getNumPartitions
     val random = scala.util.Random
 
     /**def heavyKeys: (RDD[(K,V)], Set[K]) = {
@@ -191,9 +191,10 @@ object SkewPairRDD {
       val keys = lunion.mapPartitions(it => {
        	var cnt = 0
 		val acc = HashMap.empty[K, Int].withDefaultValue(0)
-		it.foreach{ c => cnt += 1; if (random.nextDouble < .10) acc(c._1) += 1 }
-		acc.filter(_._2 > cnt*.05).iterator
+		it.foreach{ c => cnt += 1; if (random.nextDouble <= .1) acc(c._1) += 1 }
+		acc.filter(_._2 > (cnt*.1)*.0025).iterator
         }).keys.collect.toSet
+	  //println(s"heavy key size ${keys.size}")
 	  (lunion, keys)
     }
 
