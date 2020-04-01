@@ -233,8 +233,8 @@ object App {
 
   def runExperiment2(){
     val pathout = "experiments/exp2.0"
-    Utils.flatOpt(Query1, pathout, "Flat++,Standard,Query1")
-    Utils.flatOpt(Query1, pathout, "Flat++,Skew,Query1", skew = true)
+    Utils.flatOpt(Query1BU, pathout, "Flat++,Standard,Query1")
+    Utils.flatOpt(Query1BU, pathout, "Flat++,Skew,Query1", skew = true)
     Utils.shred(Query1, pathout, "Shred,Standard,Query1")
     Utils.shred(Query1, pathout, "Shred,Standard,Query1", unshred=true)
     Utils.shred(Query1, pathout, "Shred,Skew,Query1", skew = true)

@@ -49,6 +49,39 @@ object Query1 extends TPCHBase {
   val program = Program(Assignment(ljpr.name, query1_ljp), Assignment(name, query1))
 }
 
+object Query1BU extends TPCHBase {
+  val name = "Query1"
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_c_orders_1", 
+    s"${name}__D_1_c_orders_1_o_parts_1")
+
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+ 
+  val lquery = ForeachUnion(lr, relL, 
+    ForeachUnion(pr, relP, 
+      IfThenElse(Cmp(OpEq, lr("l_partkey"), pr("p_partkey")),
+        Singleton(Tuple("l_orderkey" -> lr("l_orderkey"), "p_name" -> pr("p_name"), "l_qty" -> lr("l_quantity"))))))
+  
+  val (parts, partRef) = varset("parts", "part", lquery)
+  val oquery = 
+    ForeachUnion(or, relO,
+      Singleton(Tuple("o_custkey" -> or("o_custkey"), "o_orderdate" -> or("o_orderdate"), "o_parts" -> 
+        ForeachUnion(partRef, parts,
+          IfThenElse(Cmp(OpEq, or("o_orderkey"), partRef("l_orderkey")),
+            Singleton(Tuple("p_name" -> partRef("p_name"), "l_qty" -> partRef("l_qty"))))))))
+  
+  val (orders, orderRef) = varset("orders", "order", oquery)
+  val query = 
+    ForeachUnion(cr, relC,
+      Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> 
+        ForeachUnion(orderRef, orders,
+          IfThenElse(Cmp(OpEq, cr("c_custkey"), orderRef("o_custkey")),
+            Singleton(Tuple("o_orderdate" -> orderRef("o_orderdate"), 
+              "o_parts" -> orderRef("o_parts"))))))))
+
+  val program = Program(Assignment(parts.name, lquery), Assignment(orders.name, oquery), Assignment(name, query))
+}
+
 
 object Query1Filter extends TPCHBase {
   val name = "Query1Filter"
