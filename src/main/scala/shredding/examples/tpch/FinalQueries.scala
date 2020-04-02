@@ -411,7 +411,7 @@ object Query6Full extends TPCHBase {
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
       List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
  
-  val (q2r, cor) = varset(Query2.name, "co",
+  val (q2r, cor) = varset(Query5.name, "co",
     Query2.program(Query2.name).varRef.asInstanceOf[BagExpr])
 
   val cust = BagProject(cor, "customers2")
@@ -446,8 +446,8 @@ object Query6 extends TPCHBase {
   val name = "Query6"
 
   def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
-      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
+    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"""
  
   val (q5r, cor) = varset(Query5.name, "co",
     Query5.program(Query5.name).varRef.asInstanceOf[BagExpr])
@@ -457,17 +457,17 @@ object Query6 extends TPCHBase {
   
   val flat = ForeachUnion(cor, q5r,
               ForeachUnion(co2r, cust,
-                Singleton(Tuple("c_name" -> co2r("c_name2"), "s_name" -> cor("s_name")))))
+                Singleton(Tuple("c_name" -> co2r("c_name"), "s_name" -> cor("s_name"), 
+                  "s_nationkey" -> cor("s_nationkey")))))
   val (cflatr, cfr) = varset("cflat", "cf", flat.asInstanceOf[BagExpr])
+
   val query6 = ForeachUnion(cr, relC,
-                Singleton(Tuple("c_name" -> cr("c_name"), "suppliers" -> 
+                Singleton(Tuple("c_name" -> cr("c_name"), "c_nationkey" -> cr("c_nationkey"), "suppliers" -> 
                   ForeachUnion(cfr, cflatr,
                     IfThenElse(Cmp(OpEq, cfr("c_name"), cr("c_name")),
-                      Singleton(Tuple("s_name" -> cfr("s_name"))))))))
+                      projectBaseTuple(cfr, List("s_suppkey")))))))
 
-  val program =
-    Query5.program.asInstanceOf[Program] ++
-      Program(Assignment(cflatr.name, flat), Assignment(name, query6))
+  val program = Program(Assignment(cflatr.name, flat), Assignment(name, query6))
 }
 
 /**

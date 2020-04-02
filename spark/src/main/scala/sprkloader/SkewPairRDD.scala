@@ -190,10 +190,9 @@ object SkewPairRDD {
       val lunion = lrdd.union
       val keys = lunion.mapPartitions(it => {
        	var cnt = 0
-		val acc = HashMap.empty[K, Int].withDefaultValue(0)
-		it.foreach{ c => cnt += 1; if (random.nextDouble <= .1) acc(c._1) += 1 }
-		acc.filter(_._2 > (cnt*.1)*.0025).iterator
-        }).keys.collect.toSet
+    		val acc = HashMap.empty[K, Int].withDefaultValue(0)
+    		it.foreach{ c => cnt += 1; if (random.nextDouble <= .1) acc(c._1) += 1 }
+    		acc.filter(_._2 > (cnt*.1)*.0025).iterator}).keys.collect.toSet
 	  //println(s"heavy key size ${keys.size}")
 	  (lunion, keys)
     }

@@ -219,7 +219,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
                   StructField("o_shippriority", IntegerType), 
                   StructField("o_comment", StringType)))
    
-    val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "orders.tbl" }
+    val ofile = if (datapath.split("/").last.startsWith("sfs")) { "order.tbl" } else { "order.tbl" }
     spark.read.schema(schema)
       .option("delimiter", "|")
       .csv(s"file:///$datapath/$ofile")
