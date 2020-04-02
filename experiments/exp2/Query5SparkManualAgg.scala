@@ -52,10 +52,10 @@ object Query5SparkManualAgg {
   var end0 = System.currentTimeMillis() - start0
   println("Query5SparkManualAgg"+sf+","+Config.datapath+","+end0+","+spark.sparkContext.applicationId)
   
-  /**result.flatMap{ 
+  result.flatMap{ 
     case supp => if (supp.customers.isEmpty) List((supp.s.s_name, supp.s.s_nationkey, null))
       else supp.customers.map(c => (supp.s.s_name, supp.s.s_nationkey, c.c_name, c.c_nationkey))
-    }.collect.foreach(println(_))**/
+    }.collect.foreach(println(_))
 
   }
 }

@@ -18,8 +18,8 @@ object App {
     // exp1.2
     // runExperiment1NN()
     // exp2.1
-    // runExperiment2FN()
-    // runExperiment2NN()
+    runExperiment2FN()
+    runExperiment2NN()
     // exp2.0
     runExperiment2()
   }
@@ -246,6 +246,13 @@ object App {
     Utils.shredInput(Test2, Query4, pathout, "Shred,Standard,Query4", unshred=true)
     Utils.shredInput(Test2, Query4, pathout, "Shred,Skew,Query4", skew = true)
     Utils.shredInput(Test2, Query4, pathout, "Shred,Skew,Query4", skew = true, unshred=true)
+
+    Utils.flatOpt(Query5, pathout, "Flat++,Standard,Query5")
+    Utils.flatOpt(Query5, pathout, "Flat++,Skew,Query5", skew = true)
+    Utils.shred(Query5, pathout, "Shred,Standard,Query5")
+    Utils.shred(Query5, pathout, "Shred,Standard,Query5", unshred=true)
+    Utils.shred(Query5, pathout, "Shred,Skew,Query5", skew = true)
+    Utils.shred(Query5, pathout, "Shred,Skew,Query5", skew = true, unshred=true)
   }
 
   def runExperiment1Joins(){

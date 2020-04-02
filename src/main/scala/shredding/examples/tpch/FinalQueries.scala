@@ -363,29 +363,33 @@ object Query5 extends TPCHBase {
   val name = "Query5"
 
   def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
-      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
+    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"""
 
   override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_2customers2_1")
 
-  val resultInner = 
-    //ForeachUnion(lr, relL,
+  val custs = 
       ForeachUnion(or, relO,
-        //IfThenElse(Cmp(OpEq, lr("l_orderkey"), or("o_orderkey")),
-          ForeachUnion(cr, relC, // skew join
+          ForeachUnion(cr, relC,
             IfThenElse(Cmp(OpEq, cr("c_custkey"), or("o_custkey")),
-              Singleton(Tuple("o_orderkey" -> or("o_orderkey"), "c_name" -> cr("c_name"))))))//))
-  val (rir, cor) = varset("resultInner", "co", resultInner)
+              Singleton(Tuple("c_orderkey" -> or("o_orderkey"),
+                 "c_name" -> cr("c_name"), "c_nationkey" -> cr("c_nationkey"))))))
+  val (customers, customersRef) = varset("customers", "co", custs)
+
+  val custsKeyed = ForeachUnion(customersRef, customers, 
+    ForeachUnion(lr, relL,
+      IfThenElse(Cmp(OpEq, lr("l_orderkey"), customersRef("c_orderkey")),
+        projectTuple(customersRef, "c_suppkey" -> lr("l_suppkey"), List("c_orderkey")))))
+  val (csuppkeys, csuppRef) = varset("csupps", "cs", custsKeyed)
                        
   val query5 = ForeachUnion(sr, relS,
-                Singleton(Tuple("s_name" -> sr("s_name"), "customers2" -> 
-                  ForeachUnion(lr, relL,
-                    IfThenElse(Cmp(OpEq, lr("l_suppkey"), sr("s_suppkey")),
-                      ForeachUnion(cor, rir,
-                        IfThenElse(Cmp(OpEq, lr("l_orderkey"), cor("o_orderkey")),
-                          Singleton(Tuple("c_name2" -> cor("c_name")))))))))) 
+                Singleton(Tuple("s_name" -> sr("s_name"), "s_nationkey" -> sr("s_nationkey"), "customers2" -> 
+                  ForeachUnion(csuppRef, csuppkeys,
+                    IfThenElse(Cmp(OpEq, csuppRef("c_suppkey"), sr("s_suppkey")),
+                      projectBaseTuple(csuppRef, List("c_suppkey"))))))) 
 
-  val program = Program(Assignment(rir.name, resultInner), Assignment(name, query5))
+  val program = Program(Assignment(customers.name, custs), 
+    Assignment(csuppkeys.name, custsKeyed), Assignment(name, query5))
 }
 
 /**

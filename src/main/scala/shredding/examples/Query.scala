@@ -21,6 +21,7 @@ trait Query extends Materialization
   /** standard query program **/
   val program: Program
   def calculus: CExpr = {
+    println(quote(program))
     val q = translate(program)
     // println(Printer.quote(q)) 
     q
