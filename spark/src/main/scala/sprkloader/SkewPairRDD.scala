@@ -193,7 +193,7 @@ object SkewPairRDD {
 		val acc = HashMap.empty[K, Int].withDefaultValue(0)
 		it.foreach{ c => cnt += 1; if (random.nextDouble <= .1) acc(c._1) += 1 }
 		acc.filter(_._2 > (cnt*.1)*.0025).iterator
-        }).keys.collect.toSet
+       }).keys.collect.toSet
 	  //println(s"heavy key size ${keys.size}")
 	  (lunion, keys)
     }
@@ -281,6 +281,7 @@ object SkewPairRDD {
       val (lunion, hk) = lrdd.heavyKeys
       val hkeys = lunion.sparkContext.broadcast(hk)
       if (hkeys.value.nonEmpty){
+		//println(s"group has heavy keys ${hkeys.value.size}")
         (lunion.filter(i => !hkeys.value(i._1)), 
           lunion.filter(i => hkeys.value(i._1)), hkeys).group(f)
       }else{
