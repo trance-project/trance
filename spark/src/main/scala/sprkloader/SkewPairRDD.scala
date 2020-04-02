@@ -194,7 +194,6 @@ object SkewPairRDD {
 		it.foreach{ c => cnt += 1; if (random.nextDouble <= .1) acc(c._1) += 1 }
 		acc.filter(_._2 > (cnt*.1)*.0025).iterator
        }).keys.collect.toSet
-	  //println(s"heavy key size ${keys.size}")
 	  (lunion, keys)
     }
 

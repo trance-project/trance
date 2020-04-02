@@ -9,7 +9,8 @@ import shredding.utils.Utils.ind
   * Generates Scala code specific to Spark applications
   */
 
-class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, flatDict: Boolean = false, inputs: Map[Type, String] = Map()) extends SparkTypeHandler with SparkUtils {
+class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = false,
+  flatDict: Boolean = false, inputs: Map[Type, String] = Map()) extends SparkTypeHandler with SparkUtils {
 
   implicit def expToString(e: CExpr): String = generate(e)
 
