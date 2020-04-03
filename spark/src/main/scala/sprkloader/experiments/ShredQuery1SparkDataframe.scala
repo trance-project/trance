@@ -21,6 +21,9 @@ case class Record6957(_1: Int, o_orderdate: String, o_parts: Seq[Record6958])
 case class Record6956(p_name: String, l_qty: Double, _1: Record6954)
 case class RecordIn(o_orderdate: String, o_parts: Seq[Record6958])
 case class RecordTop(c_name: String, c_orders: Seq[RecordIn])
+case class RecordC(c_name: String, c_orders: Int)
+case class RecordO(_1: Int, o_orderdate: String, o_parts: Int)
+case class RecordL(_1: Int, p_name: String, l_qty: Double)
 
 object ShredQuery1SparkDataframe extends App {
  override def main(args: Array[String]){
@@ -41,7 +44,7 @@ IBag_C__D.count
 val IBag_O__D = tpch.loadOrdersDF()
 IBag_O__D.cache
 IBag_O__D.count
-
+// implicit val ncodec = Encoders.product[RecordC]
 implicit val ncode0 = Encoders.product[Record6957]
 implicit val ncode1 = Encoders.product[Record6958]
 implicit val ncode2 = Encoders.product[RecordTop]
@@ -52,14 +55,14 @@ implicit val ncode3 = Encoders.product[RecordIn]
 var start0 = System.currentTimeMillis()
 val MBag_Query1_1 = IBag_C__D
   .select("c_name", "c_custkey")
-  .withColumnRenamed("c_custkey", "c_orders")
+  .withColumnRenamed("c_custkey", "c_orders").as[RecordC]
 MBag_Query1_1.cache
 MBag_Query1_1.count
 
 val MDict_Query1_1_c_orders_1 = IBag_O__D
   .select("o_custkey", "o_orderdate", "o_orderkey")
-  .withColumnRenamed("o_custkey", "c_orders_KEY")
-  .withColumnRenamed("o_orderkey", "o_parts")
+  .withColumnRenamed("o_custkey", "_1")
+  .withColumnRenamed("o_orderkey", "o_parts").as[RecordO]
 MDict_Query1_1_c_orders_1.cache
 MDict_Query1_1_c_orders_1.count
 
@@ -67,7 +70,7 @@ val MBag_ljp_1 = IBag_L__D.join(IBag_P__D,
   IBag_L__D("l_partkey") === IBag_P__D("p_partkey"))
 val MDict_Query1_1_c_orders_1_o_parts_1 = MBag_ljp_1
   .select("l_orderkey", "p_name", "l_quantity")
-  .withColumnRenamed("l_orderkey", "o_parts_KEY")
+  .withColumnRenamed("l_orderkey", "_1").as[RecordL]
 MDict_Query1_1_c_orders_1_o_parts_1.cache
 MDict_Query1_1_c_orders_1_o_parts_1.count
 
@@ -76,17 +79,16 @@ println("Shred,Standard,Query1,"+sf+","+Config.datapath+","+end0+",query,"+spark
   
 var start1 = System.currentTimeMillis()
 
-val dict1 = MDict_Query1_1_c_orders_1.groupByKey(x => x.getInt(x.fieldIndex("o_parts"))).cogroup(
-  MDict_Query1_1_c_orders_1_o_parts_1.groupByKey(x => x.getInt(x.fieldIndex("o_parts_KEY"))))(
-    (key, left, right) => left.map(l => Record6957(l.getInt(l.fieldIndex("c_orders_KEY")), l.getString(l.fieldIndex("o_orderdate")), 
-      right.map(r => Record6958(r.getString(r.fieldIndex("p_name")), r.getDouble(r.fieldIndex("l_quantity")))).toSeq)))
+val dict1 = MDict_Query1_1_c_orders_1.groupByKey(x => x.o_parts).cogroup(
+  MDict_Query1_1_c_orders_1_o_parts_1.groupByKey(x => x._1))(
+    (key, left, right) => left.map(l => 
+      Record6957(l._1, l.o_orderdate, right.map(r => Record6958(r.p_name, r.l_qty)).toSeq)))
 
 val result = dict1.groupByKey(x => x._1).cogroup(
-    MBag_Query1_1.groupByKey(x => x.getInt(x.fieldIndex("c_orders")))
-  )((key, left, right) => right.map(r => RecordTop(r.getString(r.fieldIndex("c_name")), 
-    left.map(l => RecordIn(l.o_orderdate, l.o_parts)).toSeq)))
+    MBag_Query1_1.groupByKey(x => x.c_orders)
+  )((key, left, right) => right.map(r => RecordTop(r.c_name, left.map(l => RecordIn(l.o_orderdate, l.o_parts)).toSeq)))
 
-result.collect.foreach(println(_))
+result.count
 
 var end1 = System.currentTimeMillis() - start1
 println("Shred,Standard,Query1,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
