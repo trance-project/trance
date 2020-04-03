@@ -17,6 +17,10 @@ case class Line1(_KEY: Int, l_partkey: Int, l_quantity: Double)
 case class Cust1(c_name: String, c_orders: Int)
 case class Order1(_KEY: Int, o_orderdate: String, o_parts: Int)
 case class PL1(_KEY: Int, p_name: String, total: Double)
+case class OParts(p_name: String, total: Double)
+case class COrders1(_KEY: Int, o_orderdate: String, o_parts: Seq[OParts])
+case class COrders2(o_orderdate: String, o_parts: Seq[OParts])
+case class Top(c_name: String, c_orders: Seq[COrders2])
 // case class KeyL(_1: Int, o_parts: Seq[Lineitem])
 // case class KeyO(_1: Int, c_orders: Seq[TmpO])
 // case class TmpO(o_shippriority: Int, o_orderdate: String, o_custkey: Int, o_orderpriority: String, o_clerk: String, o_orderstatus: String, o_totalprice: Double, o_orderkey: Int, o_comment: String, o_parts: Seq[Lineitem])
@@ -49,6 +53,10 @@ implicit val ncode1 = Encoders.product[Line1]
 implicit val ncode2 = Encoders.product[Cust1]
 implicit val ncode3 = Encoders.product[Order1]
 implicit val ncode4 = Encoders.product[PL1]
+implicit val ncode5 = Encoders.product[OParts]
+implicit val ncode6 = Encoders.product[COrders1]
+implicit val ncode7 = Encoders.product[COrders2]
+implicit val ncode8 = Encoders.product[Top]
 
 val IBag_Query1_1 = IBag_C__D.select("c_name", "c_custkey")
   .withColumnRenamed("c_custkey", "c_orders").as[Cust1]
@@ -83,6 +91,7 @@ val pl = IDict_Query1_1_c_orders_1_o_parts_1
 val MDict_Query1_1_c_orders_1_o_parts_1 = pl.groupByKey(x => (x._KEY, x.p_name))
   .agg(typed.sum[PL1](_.total)).mapPartitions(it =>
     it.map{case ((ok, pname), tot) => PL1(ok, pname, tot)})
+MDict_Query1_1_c_orders_1_o_parts_1.cache
 MDict_Query1_1_c_orders_1_o_parts_1.count
 
 var end0 = System.currentTimeMillis() - start0
@@ -90,21 +99,18 @@ println("Shred,Standard,Query4,"+sf+","+Config.datapath+","+end0+",query,"+spark
   
 var start1 = System.currentTimeMillis()
 
-// val dict1 = IBag_L__D
-// .groupByKey(x => x.l_orderkey).mapGroups{
-//   case (lbl, bag) => KeyL(lbl, bag.toSeq)
-// }
+val dict2 = IDict_Query1_1_c_orders_1.groupByKey(x => x.o_parts)
+val dict1 = MDict_Query1_1_c_orders_1_o_parts_1.groupByKey(x => x._KEY)
+val dict3 = dict2.cogroup(dict1)( 
+  (key, orders, lines) => orders.map(o => COrders1(o._KEY, o.o_orderdate, 
+    lines.map(l => OParts(l.p_name, l.total)).toSeq))
+  ).groupByKey(x => x._KEY)
 
-// val dict2 = IBag_O__D.join(dict1, 
-//   dict1("_1") === IBag_O__D("o_orderkey")).drop("_1").as[TmpO]
-// .groupByKey(x => x.o_custkey).mapGroups{
-//   case (lbl, bag) => KeyO(lbl, bag.toSeq)
-// }
+val result = IBag_Query1_1.groupByKey(x => x.c_orders).cogroup(dict3)(
+  (key, custs, orders) => custs.map(c => Top(c.c_name, orders.map(o => 
+    COrders2(o.o_orderdate, o.o_parts)).toSeq)))
 
-// val result = IBag_C__D.join(dict2, IBag_C__D("c_custkey") === dict2("_1"))
-//   .drop("_1").as[TmpC]
-
-// result.count
+result.count
 
 var end1 = System.currentTimeMillis() - start1
 println("Shred,Standard,Query1,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
