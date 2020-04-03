@@ -17,13 +17,13 @@ case class Record6953(c_name: String, c_orders: Record6952)
 case class Record6954(o__F_o_orderkey: Int)
 case class Record6955(o_orderdate: String, _1: Int)
 case class Record6958(p_name: String, l_qty: Double)
-case class Record6957(_1: Int, o_orderdate: String, o_parts: Seq[Record6958])
-case class Record6956(p_name: String, l_qty: Double, _1: Record6954)
+case class Record6957(_KEY: Int, o_orderdate: String, o_parts: Seq[Record6958])
+case class Record6956(p_name: String, l_quantity: Double, _KEY: Record6954)
 case class RecordIn(o_orderdate: String, o_parts: Seq[Record6958])
 case class RecordTop(c_name: String, c_orders: Seq[RecordIn])
 case class RecordC(c_name: String, c_orders: Int)
-case class RecordO(_1: Int, o_orderdate: String, o_parts: Int)
-case class RecordL(_1: Int, p_name: String, l_qty: Double)
+case class RecordO(_KEY: Int, o_orderdate: String, o_parts: Int)
+case class RecordL(_KEY: Int, p_name: String, l_quantity: Double)
 
 object ShredQuery1SparkDataframe extends App {
  override def main(args: Array[String]){
@@ -61,7 +61,7 @@ MBag_Query1_1.count
 
 val MDict_Query1_1_c_orders_1 = IBag_O__D
   .select("o_custkey", "o_orderdate", "o_orderkey")
-  .withColumnRenamed("o_custkey", "_1")
+  .withColumnRenamed("o_custkey", "_KEY")
   .withColumnRenamed("o_orderkey", "o_parts").as[RecordO]
 MDict_Query1_1_c_orders_1.cache
 MDict_Query1_1_c_orders_1.count
@@ -70,7 +70,7 @@ val MBag_ljp_1 = IBag_L__D.join(IBag_P__D,
   IBag_L__D("l_partkey") === IBag_P__D("p_partkey"))
 val MDict_Query1_1_c_orders_1_o_parts_1 = MBag_ljp_1
   .select("l_orderkey", "p_name", "l_quantity")
-  .withColumnRenamed("l_orderkey", "_1").as[RecordL]
+  .withColumnRenamed("l_orderkey", "_KEY").as[RecordL]
 MDict_Query1_1_c_orders_1_o_parts_1.cache
 MDict_Query1_1_c_orders_1_o_parts_1.count
 
@@ -79,14 +79,21 @@ println("Shred,Standard,Query1,"+sf+","+Config.datapath+","+end0+",query,"+spark
   
 var start1 = System.currentTimeMillis()
 
-val dict1 = MDict_Query1_1_c_orders_1.groupByKey(x => x.o_parts).cogroup(
-  MDict_Query1_1_c_orders_1_o_parts_1.groupByKey(x => x._1))(
-    (key, left, right) => left.map(l => 
-      Record6957(l._1, l.o_orderdate, right.map(r => Record6958(r.p_name, r.l_qty)).toSeq)))
+val dict1 = MDict_Query1_1_c_orders_1_o_parts_1.groupByKey(x => x._KEY).mapGroups{
+  case (key, value) => (key, value.map(x => Record6958(x.p_name, x.l_quantity)).toSeq)
+}
 
-val result = dict1.groupByKey(x => x._1).cogroup(
-    MBag_Query1_1.groupByKey(x => x.c_orders)
-  )((key, left, right) => right.map(r => RecordTop(r.c_name, left.map(l => RecordIn(l.o_orderdate, l.o_parts)).toSeq)))
+val dict2 = dict1.join(MDict_Query1_1_c_orders_1, 
+  dict1("_1") === MDict_Query1_1_c_orders_1("o_parts"))
+  .drop("_1", "o_parts")
+  .withColumnRenamed("_2", "o_parts").as[Record6957].groupByKey(_._KEY).mapGroups{
+    case (key, value) => (key, value.map(x => RecordIn(x.o_orderdate, x.o_parts)).toSeq)
+  }
+
+val result = dict2.join(MBag_Query1_1, 
+  MBag_Query1_1("c_orders") === dict2("_1"))
+  .drop("_1", "c_orders")
+  .withColumnRenamed("_2", "c_orders").as[RecordTop]
 
 result.count
 
