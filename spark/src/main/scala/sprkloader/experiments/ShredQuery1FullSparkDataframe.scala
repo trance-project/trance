@@ -22,16 +22,19 @@ object ShredQuery1FullSparkDataframe extends App {
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
    import spark.implicits._
-val IBag_L__D = tpch.loadLineitemDF()
+val lineitem = tpch.loadLineitemDF()
+val IBag_L__D = lineitem.repartition(1000, lineitem("l_orderkey"), lineitem("l_partkey"), lineitem("l_suppkey"))
 IBag_L__D.cache
 IBag_L__D.count
 // val IBag_P__D = tpch.loadPartDF()
 // IBag_P__D.cache
 // IBag_P__D.count
-val IBag_C__D = tpch.loadCustomersDF()
+val customers = tpch.loadCustomersDF()
+val IBag_C__D = customers.repartition(400, customers("c_custkey"))
 IBag_C__D.cache
 IBag_C__D.count
-val IBag_O__D = tpch.loadOrdersDF()
+val orders = tpch.loadOrdersDF()
+val IBag_O__D = orders.repartition(400, orders("o_orderkey"))
 IBag_O__D.cache
 IBag_O__D.count
 implicit val ncodec = Encoders.product[TmpC]
@@ -58,13 +61,13 @@ val dict1 = MDict_Query1_1_c_orders_1_o_parts_1
   case (lbl, bag) => KeyL(lbl, bag.toSeq)
 }
 
-val dict2 = dict1.join(MDict_Query1_1_c_orders_1, 
+val dict2 = MDict_Query1_1_c_orders_1.join(dict1, 
   dict1("_1") === MDict_Query1_1_c_orders_1("o_orderkey")).drop("_1").as[TmpO]
 .groupByKey(x => x.o_custkey).mapGroups{
   case (lbl, bag) => KeyO(lbl, bag.toSeq)
 }
 
-val result = dict2.join(MBag_Query1_1, MBag_Query1_1("c_custkey") === dict2("_1"))
+val result = MBag_Query1_1.join(dict2, MBag_Query1_1("c_custkey") === dict2("_1"))
   .drop("_1").as[TmpC]
 
 result.count
