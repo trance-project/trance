@@ -18,7 +18,9 @@ case class TmpC(c_acctbal: Double, c_name: String, c_nationkey: Int, c_custkey: 
 object ShredQuery1FullSparkDataframe extends App {
  override def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
-   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery1FullSparkDataframe"+sf)
+   val conf = new SparkConf().setMaster(Config.master)
+    .setAppName("ShredQuery1FullSparkDataframe"+sf)
+    .set("spark.sql.shuffle.partitions", Config.lparts.toString)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
    import spark.implicits._
