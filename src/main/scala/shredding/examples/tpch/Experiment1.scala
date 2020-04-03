@@ -576,30 +576,29 @@ object Test2NN extends TPCHBase {
   val program = Program(Assignment(name, query))
 }
 
-object Test2NF extends TPCHBase {
+// object Test2NF extends TPCHBase {
 
-  val name = "Test2NN"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+//   val name = "Test2NN"
+//   override def indexedDict: List[String] = List(s"${name}__D_1", s"c__Dc_orders_1", s"o__Do_parts_1")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+//   def inputs(tmap: Map[String, String]): String = 
+//     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
  
-  val (customers, customerRef) = varset(Test2.name, "c", Test2.program(Test2.name).varRef.asInstanceOf[BagExpr])
-  val (orders, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
-  val (parts, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
-  val query = 
-  ForeachUnion(customerRef, customers,
-    Singleton(Tuple("c_name" -> customerRef("c_name"), "c_orders" -> 
-      ReduceByKey(ForeachUnion(orderRef, BagProject(customerRef, "c_orders"),
-        ReduceByKey(Singleton(
-          ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
-            ForeachUnion(pr, relP,
-              IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
-                Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_qty")))))),
-          List("p_name"), List("l_quantity"))))))))
+//   val (customers, customerRef) = varset(Test2.name, "c", Test2.program(Test2.name).varRef.asInstanceOf[BagExpr])
+//   val (orders, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
+//   val (parts, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
+//   val query = 
+//   ForeachUnion(customerRef, customers,
+//     Singleton(Tuple("c_name" -> customerRef("c_name"), "c_orders" -> 
+//       ReduceByKey(ForeachUnion(orderRef, BagProject(customerRef, "c_orders"),
+//           ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
+//             ForeachUnion(pr, relP,
+//               IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
+//                 Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_qty"))))))),
+//           List("p_name"), List("l_quantity")))))))
 
-  val program = Program(Assignment(name, query))
-}
+//   val program = Program(Assignment(name, query))
+// }
 
 object Test2FullNN extends TPCHBase {
 
