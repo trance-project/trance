@@ -25,7 +25,9 @@ case class PL1(_KEY: Int, p_name: String, total: Double)
 object ShredQuery4FullSparkDataframe extends App {
  override def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
-   val conf = new SparkConf().setMaster(Config.master).setAppName("ShredQuery4FullSparkDataframe"+sf)
+   val conf = new SparkConf().setMaster(Config.master)
+    .setAppName("ShredQuery4FullSparkDataframe"+sf)
+    .set("spark.sql.shuffle.partitions", Config.lparts.toString)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    val tpch = TPCHLoader(spark)
    import spark.implicits._
