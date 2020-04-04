@@ -141,7 +141,7 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = fal
           | it.foldLeft(HashMap.empty[${generateType(keys.tp)}, ${generateType(values.tp)}]
           | .withDefaultValue($vzero))((acc, $gv1) => {
           |   acc(${generate(keys)}) += ${generate(values)}; acc
-          |}).map($gv1 => $finalValue).iterator)
+          |}).toVector.map($gv1 => $finalValue).iterator)
           |${generate(e2)}""".stripMargin
 
     case Bind(fv, fd @ FlatDict(i:InputRef), Bind(rv, CReduceBy(cr, v1, ks, vs), e2)) => 
@@ -227,7 +227,7 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = fal
           s""".foldLeft(HashMap.empty[${generateType(keys.tp)}, ${generateType(values.tp)}].withDefaultValue($vzero))(
               (acc, $lv) => {
                 acc(${generate(keys)}) += ${generate(values)}; acc
-              }).map($gv2 => ($nvars, $nvalue)).toVector"""
+              }).toVector.map($gv2 => ($nvars, $nvalue)).toVector"""
         case _ => s".map($gv2 => ($nvars, {$gvalue}))"
       }
 

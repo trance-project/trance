@@ -14,14 +14,14 @@ object App {
  
   def main(args: Array[String]){
     // exp1.1
-    runExperiment1FN()
+    //runExperiment1FN()
     // exp1.2
     // runExperiment1NN()
     // exp2.1
     // runExperiment2FN()
     // runExperiment2NN()
     // // exp2.0
-    // runExperiment2()
+    runExperiment2()
   }
 
   def runExperiment1FN(){
@@ -243,7 +243,7 @@ object App {
     Utils.flatOptInput(Test2Flat, Query4, pathout, "Flat++,Standard,Query4")
     // Utils.flatOptInput(Test2Flat, Query4, pathout, "Flat++,Skew,Query4", skew = true)
     // Utils.shredInput(Test2, Query4, pathout, "Shred,Standard,Query4")
-    // Utils.shredInput(Test2, Query4, pathout, "Shred,Standard,Query4", unshred=true)
+    Utils.shredInput(Test2, Query4, pathout, "Shred,Standard,Query4", unshred=true)
     // Utils.shredInput(Test2, Query4, pathout, "Shred,Skew,Query4", skew = true)
     // Utils.shredInput(Test2, Query4, pathout, "Shred,Skew,Query4", skew = true, unshred=true)
 
