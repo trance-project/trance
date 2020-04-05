@@ -148,7 +148,7 @@ val q1p = query1f.join(parts, query1f("l_partkey") === parts("p_partkey"), "left
     }.toSeq
     Top2(cname, ncorders)
   }
-// q1p.collect.foreach(println(_))
+q1p.count
     // q1p.rdd.flatMap{
     //   c =>
     //     if (c.c_orders.isEmpty) List((c.c_name, null, null, null))
