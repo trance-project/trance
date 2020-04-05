@@ -60,29 +60,29 @@ var start1 = System.currentTimeMillis()
 val dict2 = MDict_Query1_1_c_orders_1.groupByKey(x => x.o_orderkey)
 val dict1 = MDict_Query1_1_c_orders_1_o_parts_1.groupByKey(x => x.l_orderkey)
 val dict3 = dict2.cogroup(dict1)( 
-  (key, orders, lines) => orders.map(o => TmpO(o.o_shippriority, o.o_orderdate, o.o_custkey,
-   o.o_orderpriority, o.o_clerk, o.o_orderstatus, o.o_totalprice, o.o_orderkey, o.o_comment, lines.toSeq))
-  ).groupByKey(x => x.o_custkey)
+  (key, orders, lines) => {
+    val oparts = lines.toSeq
+    orders.map(o => TmpO(o.o_shippriority, o.o_orderdate, o.o_custkey,
+   o.o_orderpriority, o.o_clerk, o.o_orderstatus, o.o_totalprice, o.o_orderkey, o.o_comment, oparts))
+  }).groupByKey(x => x.o_custkey)
 
 val result = MBag_Query1_1.groupByKey(x => x.c_custkey).cogroup(dict3)(
-  (key, custs, orders) => custs.map(c => TmpC(c.c_acctbal, c.c_name, c.c_nationkey, c.c_custkey, 
-    c.c_comment, c.c_address, c.c_mktsegment, c.c_phone, orders.toSeq)))
-
-// val dict1 = IBag_L__D
-// .groupByKey(x => x.l_orderkey).mapGroups{
-//   case (lbl, bag) => KeyL(lbl, bag.toSeq)
-// }
-
-// val dict2 = IBag_O__D.join(dict1, 
-//   dict1("_1") === IBag_O__D("o_orderkey")).drop("_1").as[TmpO]
-// .groupByKey(x => x.o_custkey).mapGroups{
-//   case (lbl, bag) => KeyO(lbl, bag.toSeq)
-// }
-
-// val result = IBag_C__D.join(dict2, IBag_C__D("c_custkey") === dict2("_1"))
-//   .drop("_1").as[TmpC]
+  (key, custs, orders) => {
+    val corders = orders.toSeq
+    custs.map(c => TmpC(c.c_acctbal, c.c_name, c.c_nationkey, c.c_custkey, 
+    c.c_comment, c.c_address, c.c_mktsegment, c.c_phone, corders))
+  })
 
 result.count
+    // result.rdd.flatMap{
+    //   c =>
+    //     if (c.c_orders.isEmpty) List((c.c_name, null, null, null))
+    //     else c.c_orders.flatMap{
+    //       o =>
+    //         if (o.o_parts.isEmpty) List((c.c_name, o.o_orderdate, null, null))
+    //         else o.o_parts.map(p => (c.c_name, o.o_orderdate, p.l_partkey, p.l_quantity))
+    //      }
+    //   }.collect.foreach(println(_))
 
 var end1 = System.currentTimeMillis() - start1
 println("Shred,Standard,Query1,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
