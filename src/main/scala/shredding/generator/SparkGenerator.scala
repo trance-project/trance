@@ -227,7 +227,7 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = fal
           s""".foldLeft(HashMap.empty[${generateType(keys.tp)}, ${generateType(values.tp)}].withDefaultValue($vzero))(
               (acc, $lv) => {
                 acc(${generate(keys)}) += ${generate(values)}; acc
-              }).toVector.map($gv2 => ($nvars, $nvalue)).toVector"""
+              }).toVector.map($gv2 => ($nvars, $nvalue))"""
         case _ => s".map($gv2 => ($nvars, {$gvalue}))"
       }
 

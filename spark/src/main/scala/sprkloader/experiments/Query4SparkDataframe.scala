@@ -24,7 +24,7 @@ case class COrders5(o_orderdate: String, o_parts: Seq[OParts2])
 case class Top1(c_name: String, c_orders: Seq[COrders4])
 case class Top1Id(cid: Long, c_name: String, c_orders: Seq[COrders4])
 case class OParts1(l_partkey: Int, l_quantity: Double)
-case class OParts2(p_name: String, l_quantity: Double)
+case class OParts2(p_name: String, total: Double)
 case class Top2(c_name: String, c_orders: Seq[COrders5])
 case class Cid2(cid: Long, c_name: String, o_orderdate: Option[String], o_parts: Seq[OParts2])
 case class Cid1(cid: Long, c_name: String, o_orderdate: Option[String], o_parts: Option[Seq[OParts1]])
@@ -32,6 +32,21 @@ case class Cid(cid: Long, c_name: String, oid: Long, o_orderdate: Option[String]
 case class Oid(cid: Long, c_name: String, oid: Long, o_orderdate: Option[String], l_partkey: Option[Int], l_quantity: Option[Double])
 case class Flat(cid: Long, c_name: String, oid: Long, o_orderdate: Option[String], p_name: Option[String], total: Option[Double])
 case class Flat1(cid: Long, c_name: String, oid: Long, o_orderdate: Option[String], p_name: Option[String], total: Double)
+
+case class OrdersProjId(index: Long, o_orderkey: Int, o_custkey: Int, o_orderdate: String)
+case class CustomerProjId(index: Long, c_custkey: Int, c_name: String)
+case class LineitemProjId(index: Long, l_orderkey: Int, l_partkey: Int, l_quantity: Double) 
+
+case class InitKey(index: Long, key: Int)
+case class KeyTuple(index: Long, key: Int) {
+  def canEqual(a: Any) = a.isInstanceOf[KeyTuple]
+  override def equals(that: Any): Boolean = that match {
+    case KeyTuple(id, k) => key == k
+    case _ => false
+  }
+  override def hashCode: Int = key.hashCode
+}
+
 
 object Query4SparkDataframe extends App {
  override def main(args: Array[String]){
@@ -65,20 +80,31 @@ implicit val ncode9 = Encoders.product[COrders4]
 implicit val ncode10 = Encoders.product[Flat1]
 implicit val ncode11 = Encoders.product[COrders5]
 implicit val ncode12 = Encoders.product[Top2]
+implicit val ncode13 = Encoders.product[CustomerProj]
+// implicit val ncode12 = Encoders.product[OrdersProj]
 
-val o = O.select("o_custkey", "o_orderdate", "o_orderkey").as[OrdersProj]
+val o = O.select("o_custkey", "o_orderdate", "o_orderkey")
+  .withColumn("index", monotonically_increasing_id()).as[OrdersProjId]
   .groupByKey(o => o.o_orderkey)
-val l = L.select("l_orderkey", "l_partkey", "l_quantity").as[LineitemProj]
+
+val l = L.select("l_orderkey", "l_partkey", "l_quantity")
+  .withColumn("index", monotonically_increasing_id()).as[LineitemProjId]
   .groupByKey(l => l.l_orderkey)
+
 val ol = o.cogroup(l)( 
-  (key, orders, lines) => orders.map(o => COrders3(o.o_custkey, o.o_orderdate, 
-    lines.map(l => OParts1(l.l_partkey, l.l_quantity)).toSeq))
-  ).groupByKey(ol => ol.o_custkey)
+  (key, orders, lines) => {
+    val oparts = lines.map(l => OParts1(l.l_partkey, l.l_quantity)).toSeq
+    orders.map(o => COrders3(o.o_custkey, o.o_orderdate, oparts))
+  }).groupByKey(ol => ol.o_custkey)
+// ol1.collect.foreach(println(_))
 
-val Query1 = C.groupByKey(x => x.c_custkey).cogroup(ol)(
-  (key, custs, orders) => custs.map(c => Top1(c.c_name, 
-    orders.map(o => COrders4(o.o_orderdate, o.o_parts)).toSeq)))
-
+val Query1 = C.select("c_name", "c_custkey")
+  .withColumn("index", monotonically_increasing_id()).as[CustomerProjId]
+  .groupByKey(c => c.c_custkey).cogroup(ol)(
+    (key, custs, orders) => {
+      val corders = orders.map(o => COrders4(o.o_orderdate, o.o_parts)).toSeq
+      custs.map(c => Top1(c.c_name, corders))
+  })
 Query1.cache
 Query1.count
 
@@ -97,6 +123,8 @@ val query1f = Query1.withColumn("cid", monotonically_increasing_id()).as[Top1Id]
     case _ => Seq(Oid(of.cid, of.c_name, of.oid, of.o_orderdate, None, None))
   }
 }.as[Oid]
+
+// query1f.collect.foreach(println(_))
 
 val parts = P.select("p_partkey", "p_name", "p_retailprice").as[PartProj4]
 val q1p = query1f.join(parts, query1f("l_partkey") === parts("p_partkey"), "left_outer")
@@ -120,7 +148,16 @@ val q1p = query1f.join(parts, query1f("l_partkey") === parts("p_partkey"), "left
     }.toSeq
     Top2(cname, ncorders)
   }
-q1p.count
+// q1p.collect.foreach(println(_))
+    // q1p.rdd.flatMap{
+    //   c =>
+    //     if (c.c_orders.isEmpty) List((c.c_name, null, null, null))
+    //     else c.c_orders.flatMap{
+    //       o =>
+    //         if (o.o_parts.isEmpty) List((c.c_name, o.o_orderdate, null, null))
+    //         else o.o_parts.map(p => (c.c_name, o.o_orderdate, p.p_name, p.total))
+    //      }
+    //   }.collect.foreach(println(_))
 
 var end0 = System.currentTimeMillis() - start0
 println("Flat++,Standard,Query4,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
