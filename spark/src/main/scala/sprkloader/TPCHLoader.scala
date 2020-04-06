@@ -178,7 +178,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
       .option("delimiter", "|")
       .csv(s"file:///$datapath/part.tbl")
       .as[Part]
-    partsdf.repartition(parts, partsdf("p_partkey"))
+    partsdf//.repartition(parts, partsdf("p_partkey"))
   }
 
   def loadOrder(path: String = s"file:///$datapath/order.tbl"):RDD[Order] = {
