@@ -112,7 +112,7 @@ val result = IBag_Query1_1.groupByKey(x => x.c_orders).cogroup(dict3)(
     val corders = orders.map(o => COrders2(o.o_orderdate, o.o_parts)).toSeq
     custs.map(c => Top(c.c_name, corders))
   })
-// result.count
+result.count
     // result.rdd.flatMap{
     //   c =>
     //     if (c.c_orders.isEmpty) List((c.c_name, null, null, null))
