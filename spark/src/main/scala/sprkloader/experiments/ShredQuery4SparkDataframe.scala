@@ -66,13 +66,13 @@ IBag_Query1_1.count
 val IDict_Query1_1_c_orders_1 = IBag_O__D.select("o_custkey", "o_orderdate", "o_orderkey")
   .withColumnRenamed("o_orderkey", "o_parts")
   .withColumnRenamed("o_custkey", "_KEY").as[Order1]
-IDict_Query1_1_c_orders_1.cache
+IDict_Query1_1_c_orders_1.repartition($"_KEY").cache
 IDict_Query1_1_c_orders_1.count
 
 val IDict_Query1_1_c_orders_1_o_parts_1 = IBag_L__D
   .select("l_orderkey", "l_partkey", "l_quantity")
   .withColumnRenamed("l_orderkey", "_KEY").as[Line1]
-IDict_Query1_1_c_orders_1_o_parts_1.cache
+IDict_Query1_1_c_orders_1_o_parts_1.repartition($"_KEY").cache
 IDict_Query1_1_c_orders_1_o_parts_1.count
 
     def f = {
