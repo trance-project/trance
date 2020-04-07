@@ -46,10 +46,19 @@ implicit val ncode1 = Encoders.product[TmpO]
  
 var start0 = System.currentTimeMillis()
 val MBag_Query1_1 = IBag_C__D
+  .repartition($"c_custkey")
+// MBag_Query1_1.cache
+MBag_Query1_1.count
 
 val MDict_Query1_1_c_orders_1 = IBag_O__D
+  .repartition($"o_custkey")
+// MDict_Query1_1_c_orders_1.cache
+MDict_Query1_1_c_orders_1.count
 
 val MDict_Query1_1_c_orders_1_o_parts_1 = IBag_L__D
+  .repartition($"l_orderkey")
+// MDict_Query1_1_c_orders_1_o_parts_1.cache
+MDict_Query1_1_c_orders_1_o_parts_1.count
 
 var end0 = System.currentTimeMillis() - start0
 println("Shred,Standard,Query1,"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
@@ -73,7 +82,7 @@ val result = MBag_Query1_1.groupByKey(x => x.c_custkey).cogroup(dict3)(
     c.c_comment, c.c_address, c.c_mktsegment, c.c_phone, corders))
   })
 
-result.count
+// result.count
     // result.rdd.flatMap{
     //   c =>
     //     if (c.c_orders.isEmpty) List((c.c_name, null, null, null))

@@ -24,10 +24,12 @@ object TopRDD{
       ).iterator)
     }
 
-    def cartesianDomain(rrdd: RDD[K]): RDD[(K, L)] = {
+    def cartesianDomain[K: ClassTag](rrdd: RDD[K]): RDD[(K, L)] = {
       val domain = rrdd.distinct
       domain.cartesian(lrdd)
     }
+
+  }
 
 }
 
