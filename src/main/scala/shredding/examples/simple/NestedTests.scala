@@ -24,6 +24,37 @@ trait ExtractTest extends Query {
   val tr = TupleVarRef("y", typeT)
 }
 
+object LetExample extends ExtractTest {
+
+  val name = "LetExample"
+  def inputs(tmap: Map[String,String]): String = ""
+
+  val letx = ForeachUnion(rr, relR,
+              IfThenElse(Cmp(OpEq, rr("c"), sr("b")),
+                Singleton(Tuple("a1" -> sr("b"), "b1" -> rr("a")))))
+  val x = BagVarRef("X", letx.tp)
+  val xr = TupleVarRef("x", letx.tp.tp)
+  val yr = TupleVarRef("y", xr.tp)
+  val x2r = TupleVarRef("x2", BagProject(xr, "b1").tp.tp)
+  val y2r = TupleVarRef("y2", BagProject(yr, "b1").tp.tp)
+
+  val query = ForeachUnion(sr, relS,
+                BagLet(VarDef("X", letx.tp), letx, 
+                  ForeachUnion(xr, x,
+                    Singleton(Tuple(
+                      "a1" -> xr("a1"), 
+                      "a2" -> ForeachUnion(x2r, BagProject(xr, "b1"),
+                        Singleton(Tuple("a3" -> x2r("d")))),
+                      "a4" -> ForeachUnion(yr, x,
+                        IfThenElse(Cmp(OpEq, yr("a1"), sr("b")),
+                          Singleton(Tuple("a5" -> yr("a1"), "a6" -> 
+                            ForeachUnion(y2r, BagProject(yr, "b1"),
+                              Singleton(Tuple("a7" -> y2r("d"))))
+                              )))))))))                
+  val program = Program(Assignment(name, query))
+}
+
+
 object ExtractExample extends ExtractTest {
   val name = "ExtractExample"
 
@@ -73,6 +104,7 @@ object ExtractExample extends ExtractTest {
     )
 
   val program3 = Program(Assignment(name + "3", query3))
+
 }
 
 object NestedTests {

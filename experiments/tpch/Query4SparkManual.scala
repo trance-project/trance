@@ -28,7 +28,6 @@ object Query4SparkManual {
     P.cache
     P.count
 
-	var start = System.currentTimeMillis()
     val l = L.map(l => l.l_partkey -> (l.l_orderkey, l.l_quantity))
     val p = P.map(p => p.p_partkey -> p.p_name)
     val lpj = l.joinSkewLeft(p)
@@ -43,9 +42,6 @@ object Query4SparkManual {
     val c = C.map(c => c.c_custkey -> c.c_name).cogroup(CustomerOrders).flatMap{
 	                case (_, (c_name, orders)) => c_name.map(c => (c, orders.toArray))
 			}
-	c.count
-	var end = System.currentTimeMillis() - start
-    println("Query1SparkManual"+sf+","+Config.datapath+","+end+",query,"+spark.sparkContext.applicationId)
 	c.cache
     c.count
 

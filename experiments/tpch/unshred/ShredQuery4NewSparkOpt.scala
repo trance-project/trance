@@ -224,9 +224,10 @@ val x387 = Query1__D_2c_orders_1.flatMapValues(identity)
          
 val x392 = { val out1 = x387.map{ case (x388, x389) => ({val x391 = x389.o_parts 
 x391}, (x388, x389)) }
-out1.cogroup(Query1__D_2c_orders_2o_parts_1.flatMapValues(identity)).flatMap{ pair =>
+out1.lookupSkewLeft(Query1__D_2c_orders_2o_parts_1.flatMapValues(identity))
+/**out1.cogroup(Query1__D_2c_orders_2o_parts_1.flatMapValues(identity)).flatMap{ pair =>
  for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
-}
+}**/
 }
          
 val x403 = x392.flatMap{ case ((x393, x394), x395) => val x402 = (x393,x394,x395) 
@@ -245,7 +246,7 @@ val x409 = x403.map{ case ((x404, x405), x406) =>
    val x407 = Record412(x404)//.lbl 
 val x408 = (x407, Record438(x405.pname, x405.orderdate, x406)) 
 x408 
-} 
+}.groupByLabel() 
 val totals__D_1 = x409
 val x410 = totals__D_1
 //totals__D_1.collect.foreach(println(_))
@@ -259,7 +260,7 @@ val x426 = M__D_1
 val x430 = { val out1 = x426.map{ case x427 => ({val x429 = x427.totals 
 x429}, x427) }
 out1.cogroup(totals__D_1).flatMap{
- case (_, (left, x428)) => left.map{ case x427 => (x427, x428) }}
+ case (_, (left, x428)) => left.map{ case x427 => (x427, x428.flatten) }}
 }
          
 val x435 = x430.map{ case (x431, x432) => 
@@ -269,7 +270,7 @@ x434
 } 
 val newM__D_1 = x435
 val x436 = newM__D_1
-//newM__D_1.collect.foreach(println(_))
+newM__D_1.collect.foreach(println(_))
 x436.count
 var end1 = System.currentTimeMillis() - start1
 println("ShredQuery4NewSparkOpt,"+sf+","+Config.datapath+","+end1+",unshredding,"+spark.sparkContext.applicationId)
