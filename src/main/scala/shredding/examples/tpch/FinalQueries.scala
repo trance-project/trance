@@ -440,13 +440,13 @@ object Query6GBK extends TPCHBase {
   val cust = BagProject(cor, "customers2")
   val co2r = TupleVarRef("co2", cust.tp.tp)
 
-  val query6 = GroupByKey(ForeachUnion(cor, q2r,
+  val cflat = ForeachUnion(cor, q2r,
                     ForeachUnion(co2r, cust,
-                      Singleton(Tuple("c_name" -> co2r("c_name"), "s_name" -> cor("s_name"))))),
-                List("c_name"),
-                List("s_name"))
+                      Singleton(Tuple("c_name" -> co2r("c_name"), "s_name" -> cor("s_name")))))
+  val (cfr, c2r) = varset("cflat", "c2", cflat)
+  val query6 = GroupByKey(cfr, List("c_name"), List("s_name"))
 
-  val program = Program(Assignment(name, query6))
+  val program = Program(Assignment(cfr.name, cflat), Assignment(name, query6))
 }
 
 /**

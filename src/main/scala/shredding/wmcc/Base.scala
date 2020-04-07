@@ -289,22 +289,13 @@ trait BaseCompiler extends Base {
   def flatdict(e1: Rep): Rep = FlatDict(e1)
   def groupdict(e1: Rep): Rep = GroupDict(e1)
 
-  /**
-    * Why am I using this still??
-    */
-
   def vars(e: Type, top: Boolean = true): List[Variable] = e match {
     case BagCType(tup) if top => vars(tup, false)
     case BagDictCType(BagCType(tup), _) if top => List(Variable.fresh(tup))
     case RecordCType(ms) if ms.keySet == Set("_1", "_2") => ms.values.toList.flatMap(f => vars(f, false))
     case TTupleType(List(EmptyCType, BagCType(tup))) => List(Variable.fresh(tup))
-    //case BagDictCType(flat, dict) => List(Variable.fresh(flat.tp))
     case TTupleType(tps) if tps.head.isInstanceOf[LabelType] =>
-      // val nlbl = RecordCType(Map("_1" -> tps.head))
-      // vars(TTupleType(nlbl +: tps.tail), false)
       List(Variable.fresh(e))
-    // case TTupleType(tps) if (tps.head.isInstanceOf[RecordCType] && tps.last.isInstanceOf[PrimitiveType] && tps.size == 2) => 
-    //   List(Variable.fresh(e)) // fix this
     case TTupleType(tps) => tps.flatMap(vars(_, false)) 
     case _ => List(Variable.fresh(e))
   }

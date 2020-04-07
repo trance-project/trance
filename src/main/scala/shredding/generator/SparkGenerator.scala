@@ -245,6 +245,10 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = fal
       }
 
     /** JOIN **/
+    case Bind(jv, Join(e1, e2, v1, Constant(true), v2, Constant(true), proj1, proj2), e3) if isDomain(e1) => 
+      s"""|val ${generate(jv)} = ${generate(e2)}.cartesianDomain(${generate(e1)})
+          |${generate(e3)}""".stripMargin
+
     case Bind(jv, Join(e1, e2, v1, k1, v2, k2, proj1, proj2), e3) if isDomain(e1) => 
       val vars = generateVars(v1, e1.tp)
       val gv2 = generate(v2)
@@ -473,9 +477,9 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = fal
       val gluv = generate(lv)
       val ve1 = "x" + Variable.newId()
       val ve2 = "x" + Variable.newId()
+      val nv2 = generate(drop(v3.tp, v3, key1, false))
+      val nv3 = generate(drop(v2.tp, v2, "_1", false))
       if (flatDict){
-        val nv2 = generate(drop(v3.tp, v3, key1, false))
-        val nv3 = generate(drop(v2.tp, v2, "_1", false))
         s"""|val $ve1 = $pdict.map{ case $vars => (${generate(v3)}.$key1, $nv2)}
             |val $ve2 = $cdict.map{ $gv2 => ($gv2._1, $nv3) }
             |val $gluv = $ve1.cogroupDropKey($ve2)
@@ -487,9 +491,6 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = fal
     // Non-domain lookup that does not require flattening one of the dictionaries
     // ie. (top level bag).lookup(lower level dictionary)
     case Bind(luv, Lookup(e1, e2, v1, p1, v2, p2, v3), e3) =>
-      //p1 @ Bind(_, Project(v3:Variable, key1), _), v2, Constant(true), Variable(_,_)), e3) =>
-      println("in here with p2")
-      println(p2)
       val (v3, key1) = p1 match {
         case Bind(_, Project(pv:Variable, pk), _) => (pv, pk)
         case _ => ???

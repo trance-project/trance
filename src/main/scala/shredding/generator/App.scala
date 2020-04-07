@@ -256,10 +256,11 @@ object App {
 
     Utils.flatOptInput(Query5, Query6, pathout, "Flat++,Standard,Query6")
     Utils.flatOptInput(Query5, Query6, pathout, "Flat++,Skew,Query6", skew = true)
-    Utils.shredInput(Query5, Query6Full, pathout, "Shred,Standard,Query6")
-    Utils.shredInput(Query5, Query6Full, pathout, "Shred,Standard,Query6", unshred=true)
-    Utils.shredInput(Query5, Query6Full, pathout, "Shred,Skew,Query6", skew = true)
-    Utils.shredInput(Query5, Query6Full, pathout, "Shred,Skew,Query6", skew = true, unshred=true)
+    Utils.shredInput(Query5, Query6, pathout, "Shred,Standard,Query6")
+    Utils.shredInput(Query5, Query6, pathout, "Shred,Standard,Query6", unshred=true)
+    Utils.shredInput(Query5, Query6, pathout, "Shred,Skew,Query6", skew = true)
+    Utils.shredInput(Query5, Query6, pathout, "Shred,Skew,Query6", skew = true, unshred=true)
+
   }
 
   def runExperiment1Joins(){

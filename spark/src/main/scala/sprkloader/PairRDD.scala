@@ -90,7 +90,7 @@ object PairRDDOperations {
               it.flatMap{ case (lbl, (vs, _)) => vs.map(v => lbl -> v) }, true)
         }
     }
-
+    
     /**
       CoGroup a top-level bag (dict) with a single element domain (ie. Label(childLabel))
       This is joinDomain + group by (pushed group by before the join)
