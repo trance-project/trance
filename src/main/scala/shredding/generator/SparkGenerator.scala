@@ -187,7 +187,7 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = fal
         case _ => generateVars(v1, e1.tp)
       }
       val gv2 = generate(v2)
-      val (v, attr, vs1, vs2, e2) = projectBag(f, v1)
+      val (v, attr, vs1, vs2, e2) = projectBag(f, v1, false)
       val nvars = generateVars(vs1, e1.tp)
       p match {
         case Constant(true) =>
