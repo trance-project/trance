@@ -216,12 +216,13 @@ val x382 = totals_ctx1
 val x387 = { val out1 = x382.map{ case x383 => ({val x385 = x383.lbl 
 val x386 = x385.c2__Fc_orders 
 x386}, x383) }
-out1.cogroup(Query1__D_2c_orders_1.flatMapValues(identity)).flatMap{ pair =>
+Query1__D_2c_orders_1.flatMapValues(identity).lookupSkewLeft(out1)
+/**.flatMap{ pair =>
  for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
-}
+}**/
 }
          
-val x392 = { val out1 = x387.map{ case (x388, x389) => ({val x391 = x389.o_parts 
+val x392 = { val out1 = x387.map{ case (x389, x388) => ({val x391 = x389.o_parts 
 x391}, (x388, x389)) }
 out1.cogroup(Query1__D_2c_orders_2o_parts_1.flatMapValues(identity)).flatMap{ pair =>
  for (k <- pair._2._1.iterator; w <- pair._2._2.iterator) yield (k,w)
@@ -244,7 +245,7 @@ val x409 = x403.map{ case ((x404, x405), x406) =>
    val x407 = x404.lbl 
 val x408 = (x407, Record438(x405.pname, x405.orderdate, x406)) 
 x408 
-} 
+}.groupByLabel() 
 val totals__D_1 = x409
 val x410 = totals__D_1
 //totals__D_1.collect.foreach(println(_))
@@ -258,7 +259,7 @@ val x426 = M__D_1
 val x430 = { val out1 = x426.map{ case x427 => ({val x429 = x427.totals 
 x429}, x427) }
 out1.cogroup(totals__D_1).flatMap{
- case (_, (left, x428)) => left.map{ case x427 => (x427, x428) }}
+ case (_, (left, x428)) => left.map{ case x427 => (x427, x428.flatten) }}
 }
          
 val x435 = x430.map{ case (x431, x432) => 

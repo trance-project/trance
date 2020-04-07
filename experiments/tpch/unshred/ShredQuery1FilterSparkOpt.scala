@@ -73,7 +73,7 @@ x157
 val M_flat1 = x158
 val x159 = M_flat1
 //M_flat1.cache
-M_flat1.count
+//M_flat1.count
 //M_flat1.collect.foreach(println(_))
 val x169 = O__D_1.filter(_.o_orderkey <= 150000000).map{ case x160 => 
    val x161 = x160.o_custkey 
@@ -89,7 +89,7 @@ x168
 val M_flat2 = x169
 val x170 = M_flat2
 //M_flat2.cache
-M_flat2.count
+//M_flat2.count
 //M_flat2.collect.foreach(println(_))
 val x179 = ljp__D_1.map{ case x171 => 
    val x172 = x171.l_orderkey 

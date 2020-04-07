@@ -79,7 +79,7 @@ x151
 } 
 val M_flat1 = x152
 val x153 = M_flat1
-M_flat1.count
+//M_flat1.count
 //M_flat1.collect.foreach(println(_))
 val x161 = resultInner__D_1.map{ case x154 => 
    val x155 = x154.l_suppkey 
@@ -93,8 +93,8 @@ x160
 val M_flat2 = x161
 val x162 = M_flat2
 //M_flat2.collect.foreach(println(_))
-//x162.count
-M_flat2.count
+x162.count
+//M_flat2.count
 var end0 = System.currentTimeMillis() - start0 
 println("ShredQuery2SparkOpt"+sf+","+Config.datapath+","+end0+",query,"+spark.sparkContext.applicationId)
 
