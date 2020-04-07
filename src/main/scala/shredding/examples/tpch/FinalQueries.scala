@@ -365,8 +365,8 @@ object Query5 extends TPCHBase {
   def inputs(tmap: Map[String, String]): String = 
     s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
       List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"""
-
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_2customers2_1")
+    // List(s"${name}__D_1", s"${name}__D_2c_orders_1", s"${name}__D_2c_orders_2o_parts_1")
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_customers2_1")
 
   val custs = 
       ForeachUnion(or, relO,
@@ -408,11 +408,11 @@ object Query6Full extends TPCHBase {
   val name = "Query6Full"
 
   def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
-      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"
+    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"""
  
   val (q2r, cor) = varset(Query5.name, "co",
-    Query2.program(Query2.name).varRef.asInstanceOf[BagExpr])
+    Query5.program(Query5.name).varRef.asInstanceOf[BagExpr])
 
   val cust = BagProject(cor, "customers2")
   val co2r = TupleVarRef("co2", cust.tp.tp)
@@ -421,12 +421,32 @@ object Query6Full extends TPCHBase {
                 Singleton(Tuple("c_name" -> cr("c_name"), "suppliers" -> 
                   ForeachUnion(cor, q2r,
                     ForeachUnion(co2r, cust,
-                      IfThenElse(Cmp(OpEq, co2r("c_name2"), cr("c_name")),
+                      IfThenElse(Cmp(OpEq, co2r("c_name"), cr("c_name")),
                         Singleton(Tuple("s_name" -> cor("s_name")))))))))
 
-  val program =
-    Query2.program.asInstanceOf[Program] ++
-      Program(Assignment(name, query6))
+  val program = Program(Assignment(name, query6))
+}
+
+object Query6GBK extends TPCHBase {
+  val name = "Query6GBK"
+
+  def inputs(tmap: Map[String, String]): String = 
+    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
+      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"""
+ 
+  val (q2r, cor) = varset(Query5.name, "co",
+    Query5.program(Query5.name).varRef.asInstanceOf[BagExpr])
+
+  val cust = BagProject(cor, "customers2")
+  val co2r = TupleVarRef("co2", cust.tp.tp)
+
+  val query6 = GroupByKey(ForeachUnion(cor, q2r,
+                    ForeachUnion(co2r, cust,
+                      Singleton(Tuple("c_name" -> co2r("c_name"), "s_name" -> cor("s_name"))))),
+                List("c_name"),
+                List("s_name"))
+
+  val program = Program(Assignment(name, query6))
 }
 
 /**

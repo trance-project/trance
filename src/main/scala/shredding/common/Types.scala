@@ -111,7 +111,9 @@ case class BagCType(tp: Type) extends Type {
   }
 }
 
-case class MatDictCType(keyTp: LabelType, valueTp: BagCType) extends Type
+case class MatDictCType(keyTp: LabelType, valueTp: BagCType) extends Type {
+  override def isDict: Boolean = true
+}
 
 case object EmptyCType extends Type
 

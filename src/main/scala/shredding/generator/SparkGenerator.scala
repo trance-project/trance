@@ -257,17 +257,19 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = fal
 
       // cast a label to match a single label domain
       // needs to be tested for non-single label domains
-      val tp = e1.tp.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps("lbl")
+      val tp = e1.tp.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps("_LABEL")
       //maybe the type has already been handled in domain above?
       handleType(tp)
       val label = generateType(tp)
       val e1key = k2 match {
-        case Constant(true) => s"$label(lbl)"
+        case Constant(true) => s"$label($gv2._1)"
         case _ => s"$label({${generate(k2)}})"
       }
 
+      val nrec = drop(v2.tp, v2, "_1", false)
+
       val mapBagValues = e2.tp match {
-        case BagCType(RecordCType(_)) => s"$gv2 => ($e1key, $gv2)"
+        case BagCType(RecordCType(_)) => s"$gv2 => ($e1key, ${generate(nrec)})"
         case _ => s"(lbl, bag) => ($e1key, bag)"
       }
 
@@ -484,13 +486,22 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = fal
 
     // Non-domain lookup that does not require flattening one of the dictionaries
     // ie. (top level bag).lookup(lower level dictionary)
-    case Bind(luv, Lookup(e1, e2, v1, p1 @ Bind(_, Project(v3:Variable, key1), _), v2, Constant(true), Variable(_,_)), e3) =>
+    case Bind(luv, Lookup(e1, e2, v1, p1, v2, p2, v3), e3) =>
+      //p1 @ Bind(_, Project(v3:Variable, key1), _), v2, Constant(true), Variable(_,_)), e3) =>
+      println("in here with p2")
+      println(p2)
+      val (v3, key1) = p1 match {
+        case Bind(_, Project(pv:Variable, pk), _) => (pv, pk)
+        case _ => ???
+      }
       val vars = generateVars(v1, e1.tp.asInstanceOf[BagCType].tp)
       val gv2 = generate(v2)
       val gluv = generate(luv)
       val ve1 = "x" + Variable.newId()
       val ve2 = "x" + Variable.newId()
       // move this to the implementation of lookup
+      val nrec = drop(v2.tp, v2, "_1")
+
       val cogroupFun =
         //if (e2.tp.isPartiallyShredded) s"val $gluv = $ve1.cogroupDropKey(${generate(e2)})"
         //else {
@@ -520,25 +531,26 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = fal
       val ve1 = "x" + Variable.newId()
       val ve2 = "x" + Variable.newId()
       val vars = generateVars(vs, e1.tp.asInstanceOf[BagCType].tp)
+      val gv2 = generate(v2)
 
       val domain = e1.tp match {
-        case BagCType(RecordCType(ms)) if ms.size == 1 => generate(e1)
+        case BagCType(LabelType(ms)) if ms.size == 1 => generate(e1)
         case _ => s"${generate(e1)}.map{ case $vars => ({${generate(k1)}}, $vars)}"
       }
 
       // cast a label to match a single label domain
       // needs to be tested for non-single label domains
-      val tp = e1.tp.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps("lbl")
+      val tp = e1.tp.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps("_LABEL")
       //maybe the type has already been handled in domain above?
       handleType(tp)
       val label = generateType(tp)
       val e1key = k2 match {
-        case Constant(true) => s"$label(lbl)"
+        case Constant(true) => s"$label($gv2._1)"
         case _ => s"$label({${generate(k2)}})"
       }
 
       val mapBagValues = e2.tp match {
-        case BagCType(RecordCType(_)) => s"${generate(v2)} => ($e1key, {${generate(value)}})"
+        case BagCType(RecordCType(_)) => s"$gv2 => ($e1key, {${generate(value)}})"
         case _ => s"(lbl, bag) => ($e1key, bag.map(${generate(v2)} => {${generate(value)}}))"
       }
       s"""| val $ve1 = $domain

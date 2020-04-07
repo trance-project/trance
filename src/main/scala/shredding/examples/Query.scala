@@ -80,17 +80,17 @@ trait Query extends Materialization
     // println(Printer.quote(inputC))
     val inputInitPlan = Unnester.unnest(inputC)(Nil, Nil, None)
     val inputOptPlan = Optimizer.applyAll(inputInitPlan)
-    // println(Printer.quote(inputOptPlan))
+    println(Printer.quote(inputOptPlan))
     val anfBase = new BaseANF{}
     val anfer = new Finalizer(anfBase)
     val inputPlan = anfBase.anf(anfer.finalize(inputOptPlan).asInstanceOf[anfBase.Rep])
 
     println("QUERY:")
-    // println(quote(mat.program))
+    println(quote(mat.program))
     val calc = normalizer.finalize(translate(mat.program)).asInstanceOf[CExpr]
-    // println(Printer.quote(calc))
+    println(Printer.quote(calc))
     val initPlan = Unnester.unnest(calc)(Nil, Nil, None)
-    // println(Printer.quote(initPlan))
+    println(Printer.quote(initPlan))
     val optPlan = Optimizer.applyAll(initPlan)
     // println(optPlan)
     println(Printer.quote(optPlan))

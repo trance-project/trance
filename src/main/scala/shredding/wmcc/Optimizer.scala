@@ -155,9 +155,9 @@ object Optimizer {
   def mergeOps(e: CExpr): CExpr = fapply(e, {
 
     /** cast domains **/
-    case CNamed(n, CDeDup(r @ Reduce(Unnest(e1, _, _, _, _,_), v2, f2, p2))) if n.contains("M_ctx") =>
+    case CNamed(n, CDeDup(r @ Reduce(Unnest(e1, _, _, _, _,_), v2, f2, p2))) if n.contains("Dom") =>
       CNamed(n, mergeOps(Reduce(e1, v2, f2, p2)))
-    case CNamed(n, CDeDup(r @ Reduce(e1, v2, f2, p2))) if n.contains("M_ctx") =>
+    case CNamed(n, CDeDup(r @ Reduce(e1, v2, f2, p2))) if n.contains("Dom") =>
       CNamed(n, mergeOps(Reduce(e1, v2, f2, p2)))
     
     /** wrap label type during group by label **/   

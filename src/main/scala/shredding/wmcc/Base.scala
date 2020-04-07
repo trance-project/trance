@@ -270,7 +270,10 @@ trait BaseCompiler extends Base {
   }
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
     val v1 = vars(e1.tp)
-    val v2 = Variable.freshFromBag(e2.tp) 
+    val v2 = e2.tp match {
+      case MatDictCType(lbl, bag) => Variable.freshFromBag(bag)
+      case _ => Variable.freshFromBag(e2.tp) 
+    } 
     Lookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
   }
   def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {

@@ -24,6 +24,7 @@ object Unnester {
   }
 
   def isDictType(e: Type): Boolean = e match { 
+    case btp:MatDictCType => true
     case btp:BagDictCType => true
     case BagCType(TTupleType(fs)) => fs match {
       case (head @ IntType) :: (value @ BagCType(_)) :: Nil => true
@@ -119,6 +120,8 @@ object Unnester {
       if (!w.isEmpty) {
         dict.tp match {
           case y if !y.isDict => 
+            println("in here")
+            println(y)
             unnest(e2)((u, w :+ v, Some(Join(E.get, Select(Project(dict, "_1"), v, sp2s, v), w, p1s, v, p2s, Tuple(w), v))))
           case _ =>
             if (u.isEmpty) { 

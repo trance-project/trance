@@ -47,6 +47,7 @@ trait SparkUtils {
   } 
 
   def isDomain(e: CExpr): Boolean = e.tp match {
+    case BagCType(LabelType(_)) => true
     case BagCType(RecordCType(ms)) => ms get "_LABEL" match {
       case Some(tp:LabelType) => true
       case _ => false
