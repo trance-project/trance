@@ -158,7 +158,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     case Bind(v, CNamed(n, e1), e2) =>
-      val repart = if (n.contains("MDict")) s""".repsartition($$"_1")""" else ""
+      val repart = if (n.contains("MDict")) s""".repartition($$"_1")""" else ""
       val gv = generate(v)
       s"""|val $gv = ${generate(e1)}
           |val $n = $gv$repart
