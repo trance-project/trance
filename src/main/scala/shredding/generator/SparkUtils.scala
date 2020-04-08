@@ -79,4 +79,57 @@ trait SparkUtils {
 
   }
 
+  /** dataframe specifc utils **/
+
+  def flattenLabel(e: CExpr): CExpr = e match {
+    case Record(ms) => Record(ms.map(m => m._1 -> flattenLabel(m._2)))
+    case Label(ls) if ls.size == 1 => ls.head._2
+    // case LabelType(ls) if ls.size == 1 => 
+    case _ => e
+  }
+
+  def flattenLabelType(ms: Map[String, Type], wrap: String = ""): Map[String, Type] = {
+    ms.map{
+      case(attr, tp) => tp match {
+        case LabelType(ls) if ls.size == 1 => (attr -> ls.head._2)
+        case y if attr == wrap => (attr -> BagCType(tp))
+        case _ => (attr -> tp)
+      }
+    }
+  }
+
+  def project(e: CExpr): Map[String, String] = e match {
+    case Record(ms) => ms.map{ case (attr, value) => value match {
+      case Project(v, f) => attr -> f
+      case v:Variable => attr -> attr
+      case _ => ???
+    }}
+    case _ => Map() //sys.error(s"not supported $e")
+  }
+
+  def renameColumns(cols: Map[String, String], keepCols: Set[String] = Set()): String = {
+    cols.flatMap{
+      case (ncol, ocol) => if (ncol == ocol) Nil
+        else if (keepCols(ocol)) List(s"""| .withColumn("$ncol", $$"$ocol")""")
+        else List(s"""| .withColumnRenamed("$ocol", "$ncol")""")
+    }.mkString("\n")
+  }
+
+  def getTypeMap(tp: Type): Map[String, Type] = tp match {
+    case BagCType(ttp) => getTypeMap(ttp)
+    case RecordCType(ms) => ms
+    case _ => ???
+  }
+
+  def flatRecord(e1: CExpr, e2: CExpr): Type = {
+    RecordCType(getTypeMap(e1.tp) ++ getTypeMap(e2.tp))
+  }
+
+  def flatType(es: List[Variable]): RecordCType = {
+    RecordCType(es.flatMap{ e => e.tp match {
+      case RecordCType(ms) => ms.toList
+      case _ => ???
+    }}.toMap)
+  }
+
 }

@@ -9,6 +9,7 @@ trait SparkTypeHandler {
   var types: Map[Type, String]
   var typelst: Seq[Type] = Seq()
   val dotEquality: Boolean = false
+  val bagtype: String = "Vector"
 
   def kvName(x: String)(implicit s: Int = -1): String = x match {
     // case "k" if s == 2 => "_1"
@@ -42,13 +43,13 @@ trait SparkTypeHandler {
     case DoubleType => "Double"
     case LongType => "Long"
     case TTupleType(fs) => s"(${fs.map(generateType(_)).mkString(",")})"
-    case BagCType(tp) => s"Vector[${generateType(tp)}]" //combineByKey, etc. may need this to be iterable
+    case BagCType(tp) => s"$bagtype[${generateType(tp)}]" //combineByKey, etc. may need this to be iterable
     case MatDictCType(lbl, dict) => s"${generateType(dict)}"
     case BagDictCType(flat @ BagCType(TTupleType(fs)), dict) =>
       dict match {
         case TupleDictCType(ds) if !ds.filter(_._2 != EmptyDictCType).isEmpty =>
-          s"(Vector[(${generateType(fs.head)}, ${generateType(fs.last)})], ${generateType(dict)})"
-        case _ => s"(Vector[(${generateType(fs.head)}, ${generateType(fs.last)})], Unit)"
+          s"($bagtype[(${generateType(fs.head)}, ${generateType(fs.last)})], ${generateType(dict)})"
+        case _ => s"($bagtype[(${generateType(fs.head)}, ${generateType(fs.last)})], Unit)"
       }
     case TupleDictCType(fs) if !fs.filter(_._2 != EmptyDictCType).isEmpty =>
       generateType(RecordCType(fs.filter(_._2 != EmptyDictCType)))

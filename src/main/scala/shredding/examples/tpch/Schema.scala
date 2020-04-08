@@ -268,11 +268,14 @@ object TPCHSchema {
     BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(nationtype.tp.attrTps))))), EmptyDictCType) -> "ND",
     BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(regiontype.tp.attrTps))))), EmptyDictCType) -> "RD")
 
-  def loadLine(tbl: String, tblname: String): String = 
-    s"""|val $tbl = tpch.load$tblname()
+  def loadLine(tbl: String, tblname: String, df: String = ""): String = {
+    val eval = if (df == "DF") s"$tbl.count" 
+      else s"spark.sparkContext.runJob($tbl, (iter: Iterator[_]) => {})"
+    s"""|val $tbl = tpch.load$tblname$df()
         |$tbl.cache
-        |spark.sparkContext.runJob($tbl, (iter: Iterator[_]) => {})
+        |$eval
         |""".stripMargin
+  }
 
   def loadLineSkew(tbl: String, tblname: String): String = 
     s"""|val ${tbl}_L = tpch.load$tblname()
@@ -281,7 +284,16 @@ object TPCHSchema {
         |val ${tbl}_H = spark.sparkContext.emptyRDD[$tblname]
         |val ${tbl} = (${tbl}_L, ${tbl}_H)
         |""".stripMargin
-
+  
+  val dfs = 
+    Map("C" -> loadLine("C", "Customer", "DF"),
+        "O" -> loadLine("O", "Order", "DF"),
+        "L" -> loadLine("L", "Lineitem", "DF"),
+        "P" -> loadLine("P", "Part", "DF"),
+        "PS" -> loadLine("PS", "PartSupp", "DF"),
+        "S" -> loadLine("S", "Supplier", "DF"),
+        "N" -> loadLine("N", "Nation", "DF"),
+        "R" -> loadLine("R", "Region", "DF"))
 
   val tblcmds = 
     Map("C" -> loadLine("C", "Customer"),
@@ -303,11 +315,13 @@ object TPCHSchema {
         "N" -> loadLineSkew("N", "Nation"),
         "R" -> loadLineSkew("R", "Region"))
 
-  def loadDict(tbl: String, tblname: String): String = {
+  def loadDict(tbl: String, tblname: String, df: String = ""): String = {
     val name = s"IBag_${tbl}__D"
-    s"""|val $name = tpch.load$tblname()
+    val eval = if (df == "DF") s"$name.count" 
+      else s"spark.sparkContext.runJob($name, (iter: Iterator[_]) => {})"
+    s"""|val $name = tpch.load$tblname$df()
         |${name}.cache
-        |spark.sparkContext.runJob($name, (iter: Iterator[_]) => {})
+        |$eval
         |""".stripMargin
   }
 
@@ -320,6 +334,16 @@ object TPCHSchema {
         |val ${name} = (${name}_L, ${name}_H)
         |""".stripMargin
   }
+
+  val sdfs =     
+    Map("C" -> loadDict("C", "Customer", "DF"),
+        "O" -> loadDict("O", "Order", "DF"),
+        "L" -> loadDict("L", "Lineitem", "DF"),
+        "P" -> loadDict("P", "Part", "DF"),
+        "PS" -> loadDict("PS", "PartSupp"),
+        "S" -> loadDict("S", "Supplier"),
+        "N" -> loadDict("N", "Nation"),
+        "R" -> loadDict("R", "Region"))
 
   val stblcmds =     
     Map("C" -> loadDict("C", "Customer"),

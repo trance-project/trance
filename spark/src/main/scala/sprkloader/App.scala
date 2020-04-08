@@ -13,10 +13,10 @@ object App{
 
     import spark.implicits._
     val tpch = TPCHLoader(spark)
-    val c = tpch.loadCustomersDF
+    val c = tpch.loadCustomerDF
     c.cache
     c.count
-    val o = tpch.loadOrdersDF
+    val o = tpch.loadOrderDF
     o.cache
     o.count
     val l = tpch.loadLineitemDF

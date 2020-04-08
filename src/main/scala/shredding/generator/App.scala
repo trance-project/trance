@@ -21,7 +21,17 @@ object App {
     // runExperiment2FN()
     // runExperiment2NN()
     // // exp2.0
-    runExperiment2()
+    // runExperiment2()
+    runDataset()
+  }
+
+  def runDataset(){
+    val pathout = "spark/src/main/scala/sprkloader/experiments"
+    // Utils.flatOpt(Query1BU, pathout, "Flat++,Standard,Query1")
+    Utils.shredDataset(Query1Full, pathout, "Shred,Standard,Query1")
+    Utils.shredDataset(Query1Full, pathout, "Shred,Standard,Query1", unshred = true)
+    Utils.shredDataset(Test2Full, pathout, "Shred,Standard,Test2Full")
+    Utils.shredDataset(Test2Full, pathout, "Shred,Standard,Test2Full", unshred = true)
   }
 
   def runExperiment1FN(){

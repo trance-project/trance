@@ -271,7 +271,7 @@ trait BaseCompiler extends Base {
   def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
     val v1 = vars(e1.tp)
     val v2 = e2.tp match {
-      case MatDictCType(lbl, bag) => Variable.freshFromBag(bag)
+      case MatDictCType(lbl, bag) => Variable.freshFromBag(bag)//Variable.fresh(bag)
       case _ => Variable.freshFromBag(e2.tp) 
     } 
     Lookup(e1, e2, v1, p1(v1), v2, p2(v2), p3(v1 :+ v2))
@@ -341,20 +341,42 @@ trait BaseANF extends Base {
     (x: List[CExpr]) => reifyBlock { fd(x.map(x2 => Def(x2))) }
   }
 
+  // implicit def exprToDef(e: CExpr): Def = {
+  //   state.get(e) match {
+  //     case Some(v) => // CSE!
+  //       Def(v)
+  //     case None =>
+  //       e match {
+  //         case Constant(_) | InputRef(_, _) => Def(e)
+	 //        case _ => 
+  //           val v = Variable.fresh(e.tp)
+  //           vars = vars :+ v
+  //           state = state + (e -> v)
+  //           stateInv = stateInv + (v -> e)
+  //           Def(v)
+  //       }
+  //   }
+  // }
+
   implicit def exprToDef(e: CExpr): Def = {
     state.get(e) match {
-      case Some(v) => // CSE!
-        Def(v)
+      case Some(v) => Def(v)
       case None =>
-        e match {
-          case Constant(_) | InputRef(_, _) => Def(e)
-	  case _ => 
-            val v = Variable.fresh(e.tp)
-            vars = vars :+ v
-            state = state + (e -> v)
-            stateInv = stateInv + (v -> e)
-            Def(v)
+        def updateState(c: CExpr): Def = {
+          val v = Variable.fresh(e.tp)
+          vars = vars :+ v
+          state = state + (e -> v)
+          stateInv = stateInv + (v -> e)
+          Def(v)
         }
+        e match {
+          case r:Reduce => updateState(r)
+          case s:Select => updateState(s)
+          case j:Join => updateState(j)
+          case l:Lookup => updateState(l)
+          case n:CNamed => updateState(n)
+          case _ => Def(e)
+      }
     }
   }
 

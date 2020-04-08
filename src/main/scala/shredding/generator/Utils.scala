@@ -170,6 +170,10 @@ object Utils {
   def flatOptInput(input: Query, query: Query, path: String, label: String, skew: Boolean = false): Unit =
     runSparkInput(input, query, path, label, 2, skew)
 
+  def shredDataset(query: Query, path: String, label: String, eliminateDomains: Boolean = true, 
+    unshred: Boolean = false, skew: Boolean = false): Unit =
+      runDatasetShred(query, path, label, eliminateDomains, unshred, skew)
+
   def shred(query: Query, path: String, label: String, eliminateDomains: Boolean = true, 
     unshred: Boolean = false, skew: Boolean = false): Unit =
       runSparkShred(query, path, label, eliminateDomains, unshred, skew)
@@ -273,6 +277,30 @@ object Utils {
   
   }
 
+  def runDatasetShred(query: Query, pathout: String, label: String, eliminateDomains: Boolean = true, 
+    unshred: Boolean = false, skew: Boolean = false): Unit = {
+    
+    val codegen = new SparkDatasetGenerator(unshred, eliminateDomains)
+    val (gcodeShred, gcodeUnshred) = query.shredPlan(unshred, eliminateDomains = eliminateDomains, anfed = true)
+    val gcode1 = codegen.generate(gcodeShred)
+    val (header, gcodeSet) = if (unshred) {
+      val codegen2 = new SparkDatasetGenerator(false, false, unshred = true, inputs = codegen.types)
+      val ugcode = codegen2.generate(gcodeUnshred)
+      (s"""|${codegen2.generateHeader(query.headerTypes(false))}""".stripMargin, List(gcode1, ugcode))
+    } else (s"""|${codegen.generateHeader(query.headerTypes(true))}""".stripMargin, List(gcode1))
+   
+    val us = if (unshred) "Unshred" else ""
+    val qname = if (skew) s"Shred${query.name}${us}SkewSpark" else s"Shred${query.name}${us}Spark"
+    val fname = s"$pathout/$qname.scala"
+    println(s"Writing out $qname to $fname")
+    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
+    val inputs = if (skew) query.inputs(TPCHSchema.sskewcmds) else query.inputs(TPCHSchema.sdfs)
+    val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet), label)
+    printer.println(finalc)
+    printer.close 
+  
+  }
+
   def runSparkInputShred(inputQuery: Query, query: Query, pathout: String, label: String, 
     eliminateDomains: Boolean = true, unshred: Boolean = false, skew: Boolean = false): Unit = {
     
@@ -348,6 +376,32 @@ object Utils {
       |   val sf = Config.datapath.split("/").last
       |   val conf = new SparkConf().setMaster(Config.master).setAppName(\"$appname\"+sf)
       |   val spark = SparkSession.builder().config(conf).getOrCreate()
+      |   $data
+      |   $gcode
+      |   println("$label,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
+      | }
+      |}""".stripMargin
+  }
+
+  def writeDataset(appname: String, data: String, header: String, gcode: String, label:String): String  = {
+    s"""
+      |package sprkloader.experiments
+      |/** Generated **/
+      |import org.apache.spark.SparkConf
+      |import org.apache.spark.sql.SparkSession
+      |import org.apache.spark.sql._
+      |import org.apache.spark.sql.functions._
+      |import org.apache.spark.sql.types._
+      |import sprkloader._
+      |$header
+      |object $appname {
+      | def main(args: Array[String]){
+      |   val sf = Config.datapath.split("/").last
+      |   val conf = new SparkConf().setMaster(Config.master)
+      |     .setAppName(\"$appname\"+sf)
+      |     .set("spark.sql.shuffle.partitions", Config.lparts.toString)
+      |   val spark = SparkSession.builder().config(conf).getOrCreate()
+      |   import spark.implicits._
       |   $data
       |   $gcode
       |   println("$label,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)

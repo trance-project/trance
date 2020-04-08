@@ -126,7 +126,7 @@ trait Query extends Materialization
       (materializedProgram.program, unshredProg)
     }
 
-  def shredPlan(unshredRun: Boolean = false, eliminateDomains: Boolean = true): (CExpr, CExpr) = {
+  def shredPlan(unshredRun: Boolean = false, eliminateDomains: Boolean = true, anfed: Boolean = true): (CExpr, CExpr) = {
       val (matProg, ushred) = shred(eliminateDomains)
       // shred 
       println("SHRED NRC")
@@ -142,9 +142,12 @@ trait Query extends Materialization
       println("SHRED PLAN")
       println(Printer.quote(optPlan))
       println("")
-      val anfBase = new BaseANF{}
-      val anfer = new Finalizer(anfBase)
-      val splan = anfBase.anf(anfer.finalize(optPlan).asInstanceOf[anfBase.Rep])
+      // println(optPlan)
+      val qplan = if (anfed) {
+        val anfBase = new BaseANF{}
+        val anfer = new Finalizer(anfBase)
+        anfBase.anf(anfer.finalize(optPlan).asInstanceOf[anfBase.Rep])
+      }else optPlan
 
       //unshred
       val usplan = if (unshredRun){
@@ -165,8 +168,9 @@ trait Query extends Materialization
         val uanfed = uanfBase.anf(uanfer.finalize(uoptPlan).asInstanceOf[uanfBase.Rep])
         // println(uanfed)
         uanfed
+
       }else CUnit
-      (splan, usplan)
+      (qplan, usplan)
   }
 
   def shred: (ShredProgram, MaterializedProgram) = {

@@ -114,7 +114,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 		}), true).repartition(parts)
   }
 
-  def loadCustomersDF():Dataset[Customer] = { 
+  def loadCustomerDF():Dataset[Customer] = { 
     val schema = StructType(Array(
                       StructField("c_custkey", IntegerType), 
                       StructField("c_name", StringType),
@@ -208,7 +208,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
   		}), true).repartition(parts)
   }
 
-  def loadOrdersDF():Dataset[Order] = {
+  def loadOrderDF():Dataset[Order] = {
 
     val schema = StructType(Array(
                   StructField("o_orderkey", IntegerType), 

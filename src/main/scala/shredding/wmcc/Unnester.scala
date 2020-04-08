@@ -120,8 +120,6 @@ object Unnester {
       if (!w.isEmpty) {
         dict.tp match {
           case y if !y.isDict => 
-            println("in here")
-            println(y)
             unnest(e2)((u, w :+ v, Some(Join(E.get, Select(Project(dict, "_1"), v, sp2s, v), w, p1s, v, p2s, Tuple(w), v))))
           case _ =>
             if (u.isEmpty) { 
@@ -242,7 +240,7 @@ object Unnester {
           } 
         // hit unshredding case
         case (key, value @ CLookup(lbl, dict)) :: tail => 
-          val v2 = Variable.freshFromBag(dict.tp)
+          val v2 = Variable.freshFromBag(dict.tp)//.asInstanceOf[MatDictCType].valueTp)
           val nE = Some(Lookup(E.get, dict, w, lbl, v2, Constant(true), v2))
           unnest(Sng(Record(fs + (key -> v2))))((u, w :+ v2, nE))
         case head @ (key, value) :: tail => sys.error(s"not supported ${Printer.quote(value)}")
