@@ -148,18 +148,20 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Select(x, v, p, e2) => generate(Reduce(x, List(v), e2, p))
 
     case Bind(v, CNamed(n, e1), LinearCSet(fs)) =>
+      val repart = if (n.contains("MDict")) s""".repartition($$"_1")""" else ""
       val gv = generate(v)
       s"""|val $gv = ${generate(e1)}
-          |val $n = $gv
+          |val $n = $gv$repart
           |//$n.collect.foreach(println(_))
           |${if (!cache) comment(n) else n}.cache
           |${if (!unshred && !evaluate) comment(n) else n}.count
           |""".stripMargin
 
     case Bind(v, CNamed(n, e1), e2) =>
+      val repart = if (n.contains("MDict")) s""".repsartition($$"_1")""" else ""
       val gv = generate(v)
       s"""|val $gv = ${generate(e1)}
-          |val $n = $gv
+          |val $n = $gv$repart
           |//$n.collect.foreach(println(_))
           |${if (!cache) comment(n) else n}.cache
           |${if (!evaluate) comment(n) else n}.count
