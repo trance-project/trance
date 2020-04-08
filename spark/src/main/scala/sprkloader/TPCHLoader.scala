@@ -129,7 +129,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
       .option("delimiter", "|")
       .csv(s"file:///$datapath/customer.tbl")
       .as[Customer]
-    customers//.repartition(parts, customers("c_custkey"))
+    customers.repartition(parts)//, customers("c_custkey"))
   }
 
   def loadPartSupp():RDD[PartSupp] = {
@@ -178,7 +178,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
       .option("delimiter", "|")
       .csv(s"file:///$datapath/part.tbl")
       .as[Part]
-    partsdf//.repartition(parts, partsdf("p_partkey"))
+    partsdf.repartition(parts)//, partsdf("p_partkey"))
   }
 
   def loadOrder(path: String = s"file:///$datapath/order.tbl"):RDD[Order] = {
@@ -226,7 +226,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
       .option("delimiter", "|")
       .csv(s"file:///$datapath/$ofile")
       .as[Order]
-    orders//.repartition(parts, orders("o_orderkey"))
+    orders.repartition(parts)//, orders("o_orderkey"))
   }
 
   // this is hard coded directory of files split with bash
@@ -279,7 +279,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
       .option("delimiter", "|")
       .csv(s"file:///$datapath/lineitem.tbl")
       .as[Lineitem]
-    lineitem//.repartition(lparts, lineitem("l_orderkey"), lineitem("l_partkey"), lineitem("l_suppkey"))
+    lineitem.repartition(lparts)//, lineitem("l_orderkey"), lineitem("l_partkey"), lineitem("l_suppkey"))
   }
 
   def loadSupplier():RDD[Supplier] = {
