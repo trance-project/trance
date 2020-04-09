@@ -294,7 +294,7 @@ object Utils {
     val fname = s"$pathout/$qname.scala"
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val inputs = if (skew) query.inputs(TPCHSchema.sskewcmds) else query.inputs(TPCHSchema.sdfs)
+    val inputs = if (skew) query.inputs(TPCHSchema.skewdfs) else query.inputs(TPCHSchema.sdfs)
     val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet), label)
     printer.println(finalc)
     printer.close 
@@ -393,6 +393,7 @@ object Utils {
       |import org.apache.spark.sql.functions._
       |import org.apache.spark.sql.types._
       |import sprkloader._
+      |import sprkloader.SkewDataset._
       |$header
       |object $appname {
       | def main(args: Array[String]){

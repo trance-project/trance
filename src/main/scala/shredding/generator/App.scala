@@ -22,7 +22,7 @@ object App {
     // runExperiment2NN()
     // // exp2.0
     // runExperiment2()
-    // runDataset()
+    runDataset()
   }
 
   def runDataset(){
@@ -30,7 +30,7 @@ object App {
     // Utils.flatOpt(Query1BU, pathout, "Flat++,Standard,Query1")
     // Utils.shredDataset(Query1Full, pathout, "Shred,Standard,Query1")
     // Utils.shredDataset(Query1Full, pathout, "Shred,Standard,Query1", unshred = true)
-    Utils.shredDataset(Query1Full, pathout, "Shred,Standard,Query1", skew = true, unshred = true)
+    Utils.shredDataset(Query1Full, pathout, "Shred,Skew,Query1", skew = true, unshred = true)
     // Utils.shredDataset(Test2Full, pathout, "Shred,Standard,Test2Full")
     // Utils.shredDataset(Test2Full, pathout, "Shred,Standard,Test2Full", unshred = true)
   }
