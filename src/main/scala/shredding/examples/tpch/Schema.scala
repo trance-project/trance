@@ -325,12 +325,16 @@ object TPCHSchema {
         |""".stripMargin
   }
 
-  def loadDictSkew(tbl: String, tblname: String): String = {
+  def loadDictSkew(tbl: String, tblname: String, df: String = ""): String = {
     val name = s"IBag_${tbl}__D"
-    s"""|val ${name}_L = tpch.load$tblname()
+    val eval = if (df == "DF") s"${name}_L.count" 
+      else s"spark.sparkContext.runJob(${name}_L, (iter: Iterator[_]) => {})"
+    val empty = if (df == "DF") s"Seq.empty[$tblname].toDS()"
+      else s"spark.sparkContext.emptyRDD[$tblname]"
+    s"""|val ${name}_L = tpch.load$tblname$df()
         |${name}_L.cache
-        |spark.sparkContext.runJob(${name}_L, (iter: Iterator[_]) => {})
-        |val ${name}_H = spark.sparkContext.emptyRDD[$tblname]
+        |$eval
+        |val ${name}_H = $empty
         |val ${name} = (${name}_L, ${name}_H)
         |""".stripMargin
   }
@@ -340,10 +344,10 @@ object TPCHSchema {
         "O" -> loadDict("O", "Order", "DF"),
         "L" -> loadDict("L", "Lineitem", "DF"),
         "P" -> loadDict("P", "Part", "DF"),
-        "PS" -> loadDict("PS", "PartSupp"),
-        "S" -> loadDict("S", "Supplier"),
-        "N" -> loadDict("N", "Nation"),
-        "R" -> loadDict("R", "Region"))
+        "PS" -> loadDict("PS", "PartSupp", "DF"),
+        "S" -> loadDict("S", "Supplier", "DF"),
+        "N" -> loadDict("N", "Nation", "DF"),
+        "R" -> loadDict("R", "Region", "DF"))
 
   val stblcmds =     
     Map("C" -> loadDict("C", "Customer"),
@@ -354,6 +358,16 @@ object TPCHSchema {
         "S" -> loadDict("S", "Supplier"),
         "N" -> loadDict("N", "Nation"),
         "R" -> loadDict("R", "Region"))
+
+  val skewdfs = 
+    Map("C" -> loadDictSkew("C", "Customer", "DF"),
+        "O" -> loadDictSkew("O", "Order", "DF"),
+        "L" -> loadDictSkew("L", "Lineitem", "DF"),
+        "P" -> loadDictSkew("P", "Part", "DF"),
+        "PS" -> loadDictSkew("PS", "PartSupp", "DF"),
+        "S" -> loadDictSkew("S", "Supplier", "DF"),
+        "N" -> loadDictSkew("N", "Nation", "DF"),
+        "R" -> loadDictSkew("R", "Region", "DF"))
 
   val sskewcmds = 
     Map("C" -> loadDictSkew("C", "Customer"),
