@@ -62,7 +62,7 @@ trait SparkTypeHandler {
       tp match {
         case RecordCType(fs) =>
           fs.foreach(f => handleType(f._2))
-          val name = givenName.getOrElse("Record" + Variable.newId)
+          val name = givenName.getOrElse("Record"+java.util.UUID.randomUUID().toString.replace("-", ""))//"Record" + Variable.newId)
           types = types + (tp -> name)
           typelst = typelst :+ tp
         case BagCType(tp) =>
