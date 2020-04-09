@@ -294,6 +294,23 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
                     SupplierProj(l(0).toInt, l(1), l(3).toInt)})
   }
 
+  def loadSupplierDF():Dataset[Supplier] = {
+    val schema = StructType(Array(
+                   StructField("s_suppkey", IntegerType), 
+                   StructField("s_name", StringType),
+                   StructField("s_address", StringType),
+                   StructField("s_nationkey", IntegerType), 
+                   StructField("s_phone", StringType), 
+                   StructField("s_acctbal", DoubleType), 
+                   StructField("s_comment", StringType)))
+
+    val supplier = spark.read.schema(schema)
+      .option("delimiter", "|")
+      .csv(s"file:///$datapath/supplier.tbl")
+      .as[Supplier]
+    supplier.repartition(parts)//, lineitem("l_orderkey"), lineitem("l_partkey"), lineitem("l_suppkey"))
+  }
+
   def loadRegion():RDD[Region] = {
     spark.sparkContext.textFile(s"file:///$datapath/region.tbl",minPartitions = parts).mapPartitions(it =>
       it.map(line => {
@@ -301,11 +318,38 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
                     Region(l(0).toInt, l(1), l(2))}), true).repartition(parts)
   }
 
+  def loadRegionDF():Dataset[Region] = {
+    val schema = StructType(Array(
+                   StructField("r_regionkey", IntegerType), 
+                   StructField("r_name", StringType),
+                   StructField("r_comment", StringType)))
+
+    val region = spark.read.schema(schema)
+      .option("delimiter", "|")
+      .csv(s"file:///$datapath/region.tbl")
+      .as[Region]
+    region.repartition(parts)//, lineitem("l_orderkey"), lineitem("l_partkey"), lineitem("l_suppkey"))
+  }
+
   def loadNation():RDD[Nation] = {
     spark.sparkContext.textFile(s"file:///$datapath/nation.tbl",minPartitions = parts).mapPartitions(it =>
       it.map(line => {
                     val l = line.split("\\|")
                     Nation(l(0).toInt, l(1), l(2).toInt, l(3))}), true).repartition(parts)
+  }
+
+  def loadNationDF():Dataset[Nation] = {
+    val schema = StructType(Array(
+                   StructField("n_nationkey", IntegerType), 
+                   StructField("n_name", StringType),
+                   StructField("n_regionkey", IntegerType), 
+                   StructField("n_comment", StringType)))
+
+    val nation = spark.read.schema(schema)
+      .option("delimiter", "|")
+      .csv(s"file:///$datapath/nation.tbl")
+      .as[Nation]
+    nation.repartition(parts)//, lineitem("l_orderkey"), lineitem("l_partkey"), lineitem("l_suppkey"))
   }
 
 }
