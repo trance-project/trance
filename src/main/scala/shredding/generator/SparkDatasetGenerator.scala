@@ -83,8 +83,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val rec = generateType(recTp)
       val ge1 = generate(e1)
       val ge2 = generate(e2)
-      s"""|$ge1.join($ge2, 
-          | $ge1("$p1") === $ge2("$p2")).as[$rec]
+      s"""|$ge1.equiJoin($ge2, Seq("$p1","$p2")).as[$rec]
           |""".stripMargin
 
     case Bind(_, Lookup(e1, e2, _, p1 @ Project(v1, f1), v2, p2, v3),
