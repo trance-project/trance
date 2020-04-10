@@ -118,6 +118,7 @@ trait SparkUtils {
   def getTypeMap(tp: Type): Map[String, Type] = tp match {
     case BagCType(ttp) => getTypeMap(ttp)
     case RecordCType(ms) => ms
+    case LabelType(ls) if ls.size == 1 => Map("_1" -> ls.head._2)
     case _ => ???
   }
 
@@ -130,6 +131,12 @@ trait SparkUtils {
       case RecordCType(ms) => ms.toList
       case _ => ???
     }}.toMap)
+  }
+
+  def flatDictType(e: Type): Type = e match {
+    case BagCType(tup) => tup
+    case MatDictCType(lbl, bag) => RecordCType(getTypeMap(lbl) ++ getTypeMap(bag))
+    case _ => ???
   }
 
 }

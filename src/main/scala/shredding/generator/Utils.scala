@@ -134,8 +134,9 @@ object Utils {
     """.stripMargin
   }
 
-  def timed(appname: String, e: List[String]): String =
+  def timed(appname: String, e: List[String], encoders: String = ""): String =
     s"""| def f = {
+        | $encoders
         | ${e.zipWithIndex.map{ case (e1,i) => timeOp(appname, e1, i) }.mkString("\n")}
         |}
         |var start = System.currentTimeMillis()
@@ -283,11 +284,13 @@ object Utils {
     val codegen = new SparkDatasetGenerator(unshred, eliminateDomains)
     val (gcodeShred, gcodeUnshred) = query.shredPlan(unshred, eliminateDomains = eliminateDomains, anfed = true)
     val gcode1 = codegen.generate(gcodeShred)
-    val (header, gcodeSet) = if (unshred) {
+    val (header, gcodeSet, encoders) = if (unshred) {
       val codegen2 = new SparkDatasetGenerator(false, false, unshred = true, inputs = codegen.types)
       val ugcode = codegen2.generate(gcodeUnshred)
-      (s"""|${codegen2.generateHeader(query.headerTypes(false))}""".stripMargin, List(gcode1, ugcode))
-    } else (s"""|${codegen.generateHeader(query.headerTypes(true))}""".stripMargin, List(gcode1))
+      val encoders1 = codegen.generateEncoders() + codegen2.generateEncoders()
+      (s"""|${codegen2.generateHeader(query.headerTypes(false))}""".stripMargin, List(gcode1, ugcode), encoders1)
+    } else 
+      (s"""|${codegen.generateHeader(query.headerTypes(true))}""".stripMargin, List(gcode1), codegen.generateEncoders())
    
     val us = if (unshred) "Unshred" else ""
     val qname = if (skew) s"Shred${query.name}${us}SkewSpark" else s"Shred${query.name}${us}Spark"
@@ -295,9 +298,9 @@ object Utils {
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val inputs = if (skew) query.inputs(TPCHSchema.skewdfs) else query.inputs(TPCHSchema.sdfs)
-    val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet), label)
+    val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet, encoders), label)
     printer.println(finalc)
-    printer.close 
+    printer.close
   
   }
 

@@ -6,6 +6,7 @@ import scala.collection.mutable.HashMap
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
+import PairRDDOperations._
 
 object SkewDataset{
 
@@ -15,11 +16,11 @@ object SkewDataset{
 
     def emptyDF: DataFrame = left.sparkSession.emptyDataFrame
 
-    def lfilter(col: Column, hkeys: Broadcast[Set[Int]]): Dataset[T] = {
+    def lfilter[K](col: Column, hkeys: Broadcast[Set[K]]): Dataset[T] = {
       left.filter(!col.isInCollection(hkeys.value))
     }
 
-    def hfilter(col: Column, hkeys: Broadcast[Set[Int]]): Dataset[T] = {
+    def hfilter[K](col: Column, hkeys: Broadcast[Set[K]]): Dataset[T] = {
       left.filter(col.isInCollection(hkeys.value))
     }
 
@@ -27,9 +28,13 @@ object SkewDataset{
       left.join(right, col(usingColumns(0)) === col(usingColumns(1)))
     }
 
+    def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag, K](right: KeyValueGroupedDataset[K, S], key1: (T) => K)
+      (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R])(implicit arg0: Encoder[K]): Dataset[R] =
+        left.groupByKey(key1).cogroup(right)(f)
+
   }
 
-  implicit class SkewDataframeKeyOps(dfs: (DataFrame, DataFrame, Option[String], Broadcast[Set[Int]])) extends Serializable {
+  implicit class SkewDataframeKeyOps[K: ClassTag](dfs: (DataFrame, DataFrame, Option[String], Broadcast[Set[K]])) extends Serializable {
 
     val light = dfs._1
     val heavy = dfs._2
@@ -38,27 +43,27 @@ object SkewDataset{
 
     def print: Unit = (light, heavy).print
 
-    def select(col: String, cols: String*): (DataFrame, DataFrame, Option[String], Broadcast[Set[Int]])= {
+    def select(col: String, cols: String*): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]])= {
       (light.select(col, cols:_*), heavy.select(col, cols:_*), key, heavyKeys)
     }
 
-    def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U], Option[String], Broadcast[Set[Int]]) = {
+    def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U], Option[String], Broadcast[Set[K]]) = {
       if (heavy.rdd.getNumPartitions == 0) (light.as[U], light.sparkSession.emptyDataset[U], key, heavyKeys)
       else (light.as[U], heavy.as[U], key, heavyKeys)
     }
 
-    def withColumn(colName: String, col: Column): (DataFrame, DataFrame, Option[String], Broadcast[Set[Int]]) = {
+    def withColumn(colName: String, col: Column): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
       (light.withColumn(colName, col), heavy.withColumn(colName, col), key, heavyKeys)
     }
 
-    def withColumnRenamed(existingName: String, newName: String): (DataFrame, DataFrame, Option[String], Broadcast[Set[Int]]) = {
+    def withColumnRenamed(existingName: String, newName: String): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
       (light.withColumnRenamed(existingName, newName), 
         heavy.withColumnRenamed(existingName, newName), key, heavyKeys)
     }
 
   }
 
-  implicit class SkewDatasetKeyOps[T: Encoder : ClassTag](dfs: (Dataset[T], Dataset[T], Option[String], Broadcast[Set[Int]])) extends Serializable {
+  implicit class SkewDatasetKeyOps[T: Encoder : ClassTag, K: Encoder: ClassTag](dfs: (Dataset[T], Dataset[T], Option[String], Broadcast[Set[K]])) extends Serializable {
     val light = dfs._1
     val heavy = dfs._2
     val key = dfs._3 
@@ -72,9 +77,15 @@ object SkewDataset{
     def cache: Unit = (light, heavy).cache
 
     // don't repartition a set with known heavy keys
-    def repartition(partitionExprs: Column*): (Dataset[T], Dataset[T], Option[String], Broadcast[Set[Int]]) = {
-      println("can't repartition when heavy keys are known")
-      dfs
+    def repartition(partitionExpr: Column): (Dataset[T], Dataset[T], Option[String], Broadcast[Set[K]]) = {
+      key match {
+        case Some(k) if col(k) == partitionExpr => 
+          (light.repartition(Seq(partitionExpr):_*), heavy, key, heavyKeys)
+        case _ => 
+          (light.repartition(Seq(partitionExpr):_*), heavy.repartition(Seq(partitionExpr):_*), None, 
+            light.sparkSession.sparkContext.broadcast(Set.empty[K]))
+      }
+
     }
 
     def union: Dataset[T] = (light, heavy).union
@@ -83,15 +94,15 @@ object SkewDataset{
       (light.select(col, cols:_*), heavy.select(col, cols:_*))
     }
 
-    def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U], Option[String], Broadcast[Set[Int]]) = {
+    def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U], Option[String], Broadcast[Set[K]]) = {
       (light.as[U], heavy.as[U], key, heavyKeys)
     }
 
-    def withColumn(colName: String, col: Column): (DataFrame, DataFrame, Option[String], Broadcast[Set[Int]]) = {
+    def withColumn(colName: String, col: Column): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
       (light.withColumn(colName, col), heavy.withColumn(colName, col), key, heavyKeys)
     }
 
-    def withColumnRenamed(existingName: String, newName: String): (DataFrame, DataFrame, Option[String], Broadcast[Set[Int]]) = {
+    def withColumnRenamed(existingName: String, newName: String): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
       key match{
         case Some(k) if k == existingName =>
         (light.withColumnRenamed(existingName, newName), 
@@ -103,22 +114,32 @@ object SkewDataset{
 
     }
 
-    def equiJoin[S: Encoder : ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String]): (DataFrame, DataFrame, Option[String], Broadcast[Set[Int]]) = {
+    def groupByKey(f: (T) => K)(implicit arg0: Encoder[(K, T)]): (KeyValueGroupedDataset[K, T], Dataset[(K,T)], Broadcast[Set[K]]) = {
+      if (heavyKeys.value.nonEmpty){
+        (light.groupByKey(f), heavy.map(x => (f(x), x)), heavyKeys)
+      }else (light, heavy).groupByKey(f)
+    }
+
+    def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag](right: (KeyValueGroupedDataset[K, S], Dataset[(K, S)], Broadcast[Set[K]]), 
+      key1: (T) => K)(f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R]): (Dataset[R], Dataset[R]) = (light, heavy).cogroup(right, key1)(f)
+
+    def equiJoin[S: Encoder : ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String]): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
       // using a heavy key
       val hkeys = key match {
         case Some(k) if usingColumns.contains(k) => heavyKeys
-        case _ => light.sparkSession.sparkContext.broadcast(Set.empty[Int])
+        case _ => light.sparkSession.sparkContext.broadcast(Set.empty[K])
       }
       if (hkeys.value.nonEmpty){
         val rkey = usingColumns(1)
         val runion = right.union
-        val lresult = light.join(runion.lfilter(col(rkey), hkeys), col(key.get) === col(rkey))
+        val rlight = runion.lfilter(col(rkey), hkeys)
+        val lresult = light.join(rlight, col(key.get) === col(rkey))
 
         val hresult = heavy.join(runion.hfilter(col(rkey), hkeys).hint("broadcast"), col(key.get) === col(rkey))
         (lresult, hresult, key, hkeys)
       // using a key we know is not heavy
       }else{
-        (light, heavy).equiJoin(right, usingColumns)
+        (light, heavy).equiJoin[S, K](right, usingColumns)
       }
 
     }
@@ -181,8 +202,14 @@ object SkewDataset{
       heavy.cache
     }
 
-    def repartition(partitionExprs: Column*): (Dataset[T], Dataset[T]) = {
-      (light.repartition(partitionExprs:_*), heavy.repartition(partitionExprs:_*))
+    def repartition[K: ClassTag](partitionExpr: Column): (Dataset[T], Dataset[T], Option[String], Broadcast[Set[K]]) = {
+      val key = partitionExpr.toString
+      val (dfull, hkeys) = heavyKeys[K](key)
+      if (hkeys.nonEmpty){
+        val hk = dfull.sparkSession.sparkContext.broadcast(hkeys)
+        (dfull.lfilter[K](col(key), hk).repartition(Seq(partitionExpr):_*), dfull.hfilter[K](col(key), hk), Some(key), hk)
+      }else (light.repartition(Seq(partitionExpr):_*), heavy.repartition(Seq(partitionExpr):_*),
+        None, light.sparkSession.sparkContext.broadcast(Set.empty[K]))
     }
 
     def union: Dataset[T] = if (heavy.rdd.getNumPartitions == 0) light 
@@ -205,30 +232,76 @@ object SkewDataset{
         heavy.withColumnRenamed(existingName, newName))
     }
 
-    def heavyKeys(key: String): (Dataset[T], Set[Int]) = {
+    def heavyKeys[K: ClassTag](key: String): (Dataset[T], Set[K]) = {
       val dfull = dfs.union
       val keys = dfull.select(key).rdd.mapPartitions(it => {
         var cnt = 0
         val acc = HashMap.empty[Row, Int].withDefaultValue(0)
         it.foreach{ c => cnt +=1; if (random.nextDouble <= .1) acc(c) += 1 }
-        acc.filter(_._2 > (cnt*.1)*.0025).map(r => r._1.getInt(0)).iterator
+        acc.filter(_._2 > (cnt*.1)*.0025).map(r => r._1.getAs[K](0)).iterator
       }).collect.toSet
       (dfull, keys)
     }
 
-    def equiJoin[S: Encoder : ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String]): (DataFrame, DataFrame, Option[String], Broadcast[Set[Int]]) = {
-      val nkey = usingColumns(0)
-      val (dfull, hk) = heavyKeys(nkey)
+    def heavyKeys[K:ClassTag](f: (T) => K): (Dataset[T], Set[K]) = {
+      val dfull = dfs.union
+      val keys = dfull.rdd.map(f).mapPartitions(it => {
+        var cnt = 0
+        val acc = HashMap.empty[K, Int].withDefaultValue(0)
+        it.foreach{ c => cnt +=1; if (random.nextDouble <= .1) acc(c) += 1 }
+        acc.filter(_._2 > (cnt*.1)*.0025).map(r => r._1).iterator
+      }).collect.toSet
+      (dfull, keys)
+    }
+
+    def groupByKey[K: Encoder : ClassTag](f: (T) => K)(implicit arg0: Encoder[(K, T)]): (KeyValueGroupedDataset[K, T], Dataset[(K,T)], Broadcast[Set[K]]) = {
+      val (dfull, hk) = heavyKeys[K](f)
       if (hk.nonEmpty){
         val hkeys = dfull.sparkSession.sparkContext.broadcast(hk)
-        val rkey = usingColumns(1)
-        (dfull.lfilter(col(nkey), hkeys), dfull.hfilter(col(nkey), hkeys), Some(nkey), hkeys).equiJoin(right, usingColumns)
+        val dlight = dfull.filter((x:T) => !hkeys.value(f(x)))
+        val dheavy = dfull.flatMap{ t => if (hkeys.value(f(t))) Vector((f(t), t)) else Vector() } 
+        (dlight.groupByKey(f), dheavy, hkeys)
+      }else (dfull.groupByKey(f), dfull.empty.map(t => (f(t), t)), dfull.sparkSession.sparkContext.broadcast(Set.empty[K]))
+    }
+
+    def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag, K : Encoder: ClassTag](right: (KeyValueGroupedDataset[K, S], Dataset[(K, S)], Broadcast[Set[K]]), 
+      key1: (T) => K)(f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R]): (Dataset[R], Dataset[R]) = {
+        val dfull = dfs.union
+        if (right._3.value.nonEmpty){
+          val dlight = dfull.filter((x:T) => !right._3.value(key1(x)))
+          val dheavy = dfull.filter((x:T) => right._3.value(key1(x)))
+
+          val lightResult = dlight.cogroup(right._1, key1)(f)
+
+          val heavyMap = dheavy.sparkSession.sparkContext.broadcast(right._2.rdd.groupByKey().collect.toMap)
+          val heavyResult = dheavy.mapPartitions(
+              it => it.flatMap(t => heavyMap.value get key1(t) match {
+                  case None => Iterator()
+                  case Some(ks) => f(key1(t), Iterator(t), ks.iterator)
+                })
+            )
+          (lightResult, heavyResult)
+        }else{
+          val result = dfull.cogroup(right._1, key1)(f)
+          (result, result.empty)
+        }
+
+      }
+
+    def equiJoin[S: Encoder : ClassTag, K: ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String])(implicit arg0: Encoder[K]): 
+    (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
+      val nkey = usingColumns(0)
+      val (dfull, hk) = heavyKeys[K](nkey)
+      if (hk.nonEmpty){
+        val hkeys = dfull.sparkSession.sparkContext.broadcast(hk)
+        (dfull.lfilter[K](col(nkey), hkeys), dfull.hfilter[K](col(nkey), hkeys), Some(nkey), hkeys).equiJoin(right, usingColumns)
       }else{
-        (dfull.equiJoin(right.union, usingColumns), light.emptyDF, Some(nkey), light.sparkSession.sparkContext.broadcast(Set.empty[Int]))
+        (dfull.equiJoin(right.union, usingColumns), light.emptyDF, Some(nkey), light.sparkSession.sparkContext.broadcast(Set.empty[K]))
       }
     }
 
 
   }
+
 
 }

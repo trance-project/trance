@@ -11,6 +11,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
   implicit def expToString(e: CExpr): String = generate(e)
 
   var types: Map[Type, String] = inputs
+  var encoders: List[String] = Nil
   override val bagtype: String = "Seq"
 
   def generateHeader(names: List[String] = List()): String = {
@@ -19,7 +20,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     if (h2.nonEmpty) { s"$h1\n${h2.mkString("\n")}" } else { h1 }
   }
 
-  def generateEncoders(): String = "TODO"
+  def generateEncoders(): String = encoders.map{
+    case r => s"implicit val encoder$r: Encoder[$r] = Encoders.product[$r]"
+  }.mkString("\n")
 
   def drop(tp: Type, v: Variable, field: String, index: Boolean = true): CExpr = tp match {
     case RecordCType(fs) => 
@@ -83,7 +86,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val rec = generateType(recTp)
       val ge1 = generate(e1)
       val ge2 = generate(e2)
-      s"""|$ge1.equiJoin($ge2, Seq("$p1","$p2")).as[$rec]
+      s"""|$ge1.equiJoin[${generateType(v2.tp)}, Int]($ge2, Seq("$p1","$p2")).as[$rec]
           |""".stripMargin
 
     case Bind(_, Lookup(e1, e2, _, p1 @ Project(v1, f1), v2, p2, v3),
@@ -107,9 +110,21 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         case v:Variable => s"$ve3"
         case _ => ???
       }}.mkString(s"$gnrecName2(", ",", ")")
-      s"""|implicit val encoder${Variable.newId()} = Encoders.product[${generateType(nrec.tp)}]
-          |val $glv = ${generate(e1)}.groupByKey(${generate(v1)} => ${generate(p1)})
-          | .cogroup($ge2.groupByKey(x => x._1))(
+      // s"""|implicit val encoder${Variable.newId()} = Encoders.product[${generateType(nrec.tp)}]
+      //     |val $glv = ${generate(e1)}.groupByKey(${generate(v1)} => ${generate(p1)})
+      //     | .cogroup($ge2.groupByKey(x => x._1))(
+      //     |   (_, $ve1, $ve2) => {
+      //     |     val $ve3 = $ve2.map(${generate(v2)} => $gnrec).toSeq
+      //     |     $ve1.map($ve4 => $gnrec2)
+      //     |   }
+      //     | ).as[$gnrecName2]
+      //     |${generate(e3)}
+      //     |""".stripMargin
+      val fv2Tp = flatDictType(e2.tp)
+      val xrec = {handleType(fv2Tp); generateType(fv2Tp)}
+      encoders = encoders :+ generateType(nrec.tp)
+      //implicit val encoder${Variable.newId()} = Encoders.product[${generateType(nrec.tp)}]
+      s"""|val $glv = ${generate(e1)}.cogroup($ge2.groupByKey(x => x._1), ${generate(v1)} => ${generate(p1)})(
           |   (_, $ve1, $ve2) => {
           |     val $ve3 = $ve2.map(${generate(v2)} => $gnrec).toSeq
           |     $ve1.map($ve4 => $gnrec2)
@@ -147,7 +162,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Select(x, v, p, e2) => generate(Reduce(x, List(v), e2, p))
 
     case Bind(v, CNamed(n, e1), LinearCSet(fs)) =>
-      val repart = if (n.contains("MDict")) s""".repartition($$"_1")""" else ""
+      val repart = if (n.contains("MDict")) s""".repartition[Int]($$"_1")""" else ""
       val gv = generate(v)
       s"""|val $gv = ${generate(e1)}
           |val $n = $gv$repart
@@ -157,7 +172,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     case Bind(v, CNamed(n, e1), e2) =>
-      val repart = if (n.contains("MDict")) s""".repartition($$"_1")""" else ""
+      val repart = if (n.contains("MDict")) s""".repartition[Int]($$"_1")""" else ""
       val gv = generate(v)
       s"""|val $gv = ${generate(e1)}
           |val $n = $gv$repart
