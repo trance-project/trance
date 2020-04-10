@@ -222,7 +222,7 @@ object Utils {
   def runDataset(query: Query, pathout: String, label: String, 
     optLevel: Int = 2, skew: Boolean = false): Unit = {
     
-    val codegen = new SparkDatasetGenerator(false, true, isDict = false)//query.inputTypes(shred))
+    val codegen = new SparkDatasetGenerator(false, false, isDict = false)//query.inputTypes(shred))
     val gcode = codegen.generate(query.anf(optLevel))
     val header = s"""|${codegen.generateHeader(query.headerTypes(false))}""".stripMargin
     val encoders = codegen.generateEncoders()

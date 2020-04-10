@@ -183,7 +183,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |val $n = $gv$repart
           |//$n.print
           |${if (!cache) comment(n) else n}.cache
-          |${if (!unshred && !evaluate) comment(n) else n}.count
+          |${if (unshred && !isDict) comment(n) else n}.count
           |""".stripMargin
 
     case Bind(v, CNamed(n, e1), e2) =>
