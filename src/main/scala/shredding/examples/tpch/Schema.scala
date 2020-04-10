@@ -277,13 +277,18 @@ object TPCHSchema {
         |""".stripMargin
   }
 
-  def loadLineSkew(tbl: String, tblname: String): String = 
-    s"""|val ${tbl}_L = tpch.load$tblname()
+  def loadLineSkew(tbl: String, tblname: String, df: String = ""): String = {
+      val eval = if (df == "DF") s"$tbl.count" 
+      else s"spark.sparkContext.runJob(${tbl}_L, (iter: Iterator[_]) => {})"
+      val empty = if (df == "DF") s"Seq.empty[$tblname].toDS()"
+      else s"spark.sparkContext.emptyRDD[$tblname]"
+    s"""|val ${tbl}_L = tpch.load$tblname$df()
         |${tbl}_L.cache
-        |spark.sparkContext.runJob(${tbl}_L, (iter: Iterator[_]) => {})
-        |val ${tbl}_H = spark.sparkContext.emptyRDD[$tblname]
+        |$eval
+        |val ${tbl}_H = $empty
         |val ${tbl} = (${tbl}_L, ${tbl}_H)
         |""".stripMargin
+  }
   
   val dfs = 
     Map("C" -> loadLine("C", "Customer", "DF"),
@@ -314,6 +319,16 @@ object TPCHSchema {
         "S" -> loadLineSkew("S", "Supplier"),
         "N" -> loadLineSkew("N", "Nation"),
         "R" -> loadLineSkew("R", "Region"))
+
+  val skewdfs = 
+    Map("C" -> loadLineSkew("C", "Customer", "DF"),
+        "O" -> loadLineSkew("O", "Order", "DF"),
+        "L" -> loadLineSkew("L", "Lineitem", "DF"),
+        "P" -> loadLineSkew("P", "Part", "DF"),
+        "PS" -> loadLineSkew("PS", "PartSupp", "DF"),
+        "S" -> loadLineSkew("S", "Supplier", "DF"),
+        "N" -> loadLineSkew("N", "Nation", "DF"),
+        "R" -> loadLineSkew("R", "Region", "DF"))
 
   def loadDict(tbl: String, tblname: String, df: String = ""): String = {
     val name = s"IBag_${tbl}__D"
@@ -359,7 +374,7 @@ object TPCHSchema {
         "N" -> loadDict("N", "Nation"),
         "R" -> loadDict("R", "Region"))
 
-  val skewdfs = 
+  val sskewdfs = 
     Map("C" -> loadDictSkew("C", "Customer", "DF"),
         "O" -> loadDictSkew("O", "Order", "DF"),
         "L" -> loadDictSkew("L", "Lineitem", "DF"),

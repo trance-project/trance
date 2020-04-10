@@ -17,7 +17,7 @@ sealed trait Type { self =>
     case _:BagDictCType => self.flat
     case _ => sys.error("unsupported call to flat")
   }
-  // override def toString: String = ""
+  override def toString: String = ""
 }
 
 trait ReducibleType

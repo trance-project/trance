@@ -129,7 +129,7 @@ trait SparkUtils {
   def flatType(es: List[Variable]): RecordCType = {
     RecordCType(es.flatMap{ e => e.tp match {
       case RecordCType(ms) => ms.toList
-      case _ => ???
+      case _ => Nil //sys.error(s"not supported ${e.tp}")
     }}.toMap)
   }
 

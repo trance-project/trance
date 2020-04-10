@@ -5,7 +5,7 @@ import shredding.wmcc.{Multiply => CMultiply}
 import shredding.wmcc._
 import shredding.utils.Utils.ind
 
-class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = false,
+class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = false, isDict: Boolean = true,
   unshred: Boolean = false, inputs: Map[Type, String] = Map()) extends SparkTypeHandler with SparkUtils {
 
   implicit def expToString(e: CExpr): String = generate(e)
@@ -86,7 +86,32 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val rec = generateType(recTp)
       val ge1 = generate(e1)
       val ge2 = generate(e2)
-      s"""|$ge1.equiJoin[${generateType(v2.tp)}, Int]($ge2, Seq("$p1","$p2")).as[$rec]
+      val gtp1 = generateType(v2.tp)
+      val gtp2 = if (skew) ", Int" else ""
+      s"""|$ge1.equiJoin[$gtp1$gtp2]($ge2, Seq("$p1","$p2")).as[$rec]
+          |""".stripMargin
+
+    case Bind(_, CoGroup(e1, e2, v1, v2, k1 @ Project(pv1, f1), k2, value),
+      Bind(rv, Reduce(re1, v, Record(ms), Constant(true)), e3)) => 
+      val gv2 = generate(v2)
+      val gv2Rec = generate(value)
+      val ge2 = s"${generate(e2)}.groupByKey($gv2 => ${generate(k2)})"
+      val ve1 = "x" + Variable.newId()
+      val ve2 = "x" + Variable.newId()
+      val ve3 = "x" + Variable.newId()
+      val nrec = Record(ms.map{
+        case (attr, value) => value match {
+          case tv:Variable => (attr, Variable(ve3, tv.tp))
+          case _ => (attr, value)
+        }
+      })
+      encoders = encoders :+ generateType(value.tp)
+      s"""|val ${generate(rv)} = ${generate(e1)}.cogroup($ge2, ${generate(pv1)} => ${generate(k1)})(
+          |   (_, $ve1, $ve2) => {
+          |     val $ve3 = $ve2.map($gv2 => $gv2Rec).toSeq
+          |     $ve1.map(${generate(v.head)} => ${generate(nrec)})
+          | }).as[${generateType(nrec.tp)}]
+          |${generate(e3)}
           |""".stripMargin
 
     case Bind(_, Lookup(e1, e2, _, p1 @ Project(v1, f1), v2, p2, v3),
@@ -110,20 +135,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         case v:Variable => s"$ve3"
         case _ => ???
       }}.mkString(s"$gnrecName2(", ",", ")")
-      // s"""|implicit val encoder${Variable.newId()} = Encoders.product[${generateType(nrec.tp)}]
-      //     |val $glv = ${generate(e1)}.groupByKey(${generate(v1)} => ${generate(p1)})
-      //     | .cogroup($ge2.groupByKey(x => x._1))(
-      //     |   (_, $ve1, $ve2) => {
-      //     |     val $ve3 = $ve2.map(${generate(v2)} => $gnrec).toSeq
-      //     |     $ve1.map($ve4 => $gnrec2)
-      //     |   }
-      //     | ).as[$gnrecName2]
-      //     |${generate(e3)}
-      //     |""".stripMargin
-      val fv2Tp = flatDictType(e2.tp)
-      val xrec = {handleType(fv2Tp); generateType(fv2Tp)}
+      // val fv2Tp = flatDictType(e2.tp)
+      // val xrec = {handleType(fv2Tp); generateType(fv2Tp)}
       encoders = encoders :+ generateType(nrec.tp)
-      //implicit val encoder${Variable.newId()} = Encoders.product[${generateType(nrec.tp)}]
       s"""|val $glv = ${generate(e1)}.cogroup($ge2.groupByKey(x => x._1), ${generate(v1)} => ${generate(p1)})(
           |   (_, $ve1, $ve2) => {
           |     val $ve3 = $ve2.map(${generate(v2)} => $gnrec).toSeq
@@ -140,7 +154,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
     /** PROJECT **/
     case Reduce(e1, v, f @ Record(_), Constant(true)) =>
-      val frec = flattenLabel(f)
+      val frec = if (isDict) flattenLabel(f) else f
       handleType(frec.tp)
       val rec = generateType(frec.tp)
       val projsMap = project(frec)
@@ -162,21 +176,23 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Select(x, v, p, e2) => generate(Reduce(x, List(v), e2, p))
 
     case Bind(v, CNamed(n, e1), LinearCSet(fs)) =>
-      val repart = if (n.contains("MDict")) s""".repartition[Int]($$"_1")""" else ""
+      val gtp = if (skew) "[Int]" else ""
+      val repart = if (n.contains("MDict")) s""".repartition$gtp($$"_1")""" else ""
       val gv = generate(v)
       s"""|val $gv = ${generate(e1)}
           |val $n = $gv$repart
-          |//$n.collect.foreach(println(_))
+          |//$n.print
           |${if (!cache) comment(n) else n}.cache
           |${if (!unshred && !evaluate) comment(n) else n}.count
           |""".stripMargin
 
     case Bind(v, CNamed(n, e1), e2) =>
-      val repart = if (n.contains("MDict")) s""".repartition[Int]($$"_1")""" else ""
+      val gtp = if (skew) "[Int]" else ""
+      val repart = if (n.contains("MDict")) s""".repartition$gtp($$"_1")""" else ""
       val gv = generate(v)
       s"""|val $gv = ${generate(e1)}
           |val $n = $gv$repart
-          |//$n.collect.foreach(println(_))
+          |//$n.print
           |${if (!cache) comment(n) else n}.cache
           |${if (!evaluate) comment(n) else n}.count
           |${generate(e2)}

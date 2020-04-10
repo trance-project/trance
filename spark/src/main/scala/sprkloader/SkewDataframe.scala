@@ -12,6 +12,8 @@ object SkewDataset{
 
   implicit class DatasetOps[T: Encoder: ClassTag](left: Dataset[T]) extends Serializable {
 
+    def print: Unit = left.collect.foreach(println(_))
+
     def empty: Dataset[T] = left.sparkSession.emptyDataset[T]
 
     def emptyDF: DataFrame = left.sparkSession.emptyDataFrame

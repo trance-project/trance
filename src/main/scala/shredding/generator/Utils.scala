@@ -144,8 +144,9 @@ object Utils {
         |var end = System.currentTimeMillis() - start
     """.stripMargin
    
-  def timed(e: String): String = {
+  def timedOne(e: String, encoders: String = ""): String = {
     s"""|def f = { 
+        | $encoders
         | $e
         |}
         |var start = System.currentTimeMillis()
@@ -167,6 +168,9 @@ object Utils {
 
   def flatOpt(query: Query, path: String, label: String, skew: Boolean = false): Unit =
     runSpark(query, path, label, 2, skew)
+
+  def flatDataset(query: Query, path: String, label: String, skew: Boolean = false, opt: Int = 2): Unit =
+    runDataset(query, path, label, opt, skew)
 
   def flatOptInput(input: Query, query: Query, path: String, label: String, skew: Boolean = false): Unit =
     runSparkInput(input, query, path, label, 2, skew)
@@ -209,7 +213,31 @@ object Utils {
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val inputs = if (skew) query.inputs(TPCHSchema.skewcmds) else query.inputs(TPCHSchema.tblcmds)
-    val finalc = writeSpark(qname, inputs, header, timed(gcode), label)
+    val finalc = writeSpark(qname, inputs, header, timedOne(gcode), label)
+    printer.println(finalc)
+    printer.close 
+  
+  }
+
+  def runDataset(query: Query, pathout: String, label: String, 
+    optLevel: Int = 2, skew: Boolean = false): Unit = {
+    
+    val codegen = new SparkDatasetGenerator(false, true, isDict = false)//query.inputTypes(shred))
+    val gcode = codegen.generate(query.anf(optLevel))
+    val header = s"""|${codegen.generateHeader(query.headerTypes(false))}""".stripMargin
+    val encoders = codegen.generateEncoders()
+
+    val flatTag = optLevel match {
+      case 0 => "None"
+      case 1 => "Proj"
+      case _ => ""
+    }
+    val qname = if (skew) s"${query.name}${flatTag}SkewSpark" else s"${query.name}${flatTag}Spark"
+    val fname = s"$pathout/$qname.scala" 
+    println(s"Writing out $qname to $fname")
+    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
+    val inputs = if (skew) query.inputs(TPCHSchema.skewdfs) else query.inputs(TPCHSchema.dfs)
+    val finalc = writeDataset(qname, inputs, header, timedOne(gcode, encoders), label)
     printer.println(finalc)
     printer.close 
   
@@ -242,7 +270,7 @@ object Utils {
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val inputs = if (skew) query.inputs(TPCHSchema.skewcmds) else query.inputs(TPCHSchema.tblcmds)
-    val finalc = writeSpark(qname, inputs, header, s"$inputCode\n${timed(gcode)}", label)
+    val finalc = writeSpark(qname, inputs, header, s"$inputCode\n${timedOne(gcode)}", label)
     printer.println(finalc)
     printer.close 
   
@@ -297,7 +325,7 @@ object Utils {
     val fname = s"$pathout/$qname.scala"
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val inputs = if (skew) query.inputs(TPCHSchema.skewdfs) else query.inputs(TPCHSchema.sdfs)
+    val inputs = if (skew) query.inputs(TPCHSchema.sskewdfs) else query.inputs(TPCHSchema.sdfs)
     val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet, encoders), label)
     printer.println(finalc)
     printer.close
