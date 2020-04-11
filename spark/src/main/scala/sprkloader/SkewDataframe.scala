@@ -26,8 +26,8 @@ object SkewDataset{
       left.filter(col.isInCollection(hkeys.value))
     }
 
-    def equiJoin[S: Encoder : ClassTag](right: Dataset[S], usingColumns: Seq[String]): DataFrame = {
-      left.join(right, col(usingColumns(0)) === col(usingColumns(1)))
+    def equiJoin[S: Encoder : ClassTag](right: Dataset[S], usingColumns: Seq[String], joinType: String = "inner"): DataFrame = {
+      left.join(right, col(usingColumns(0)) === col(usingColumns(1)), joinType)
     }
 
     def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag, K](right: KeyValueGroupedDataset[K, S], key1: (T) => K)

@@ -119,7 +119,8 @@ trait SparkUtils {
     case BagCType(ttp) => getTypeMap(ttp)
     case RecordCType(ms) => ms
     case LabelType(ls) if ls.size == 1 => Map("_1" -> ls.head._2)
-    case _ => ???
+    case TTupleType(ts) => ts.map(t => getTypeMap(t)).flatten.toMap
+    case _ => sys.error(s"not supported $tp")
   }
 
   def flatRecord(e1: CExpr, e2: CExpr): Type = {

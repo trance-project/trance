@@ -32,6 +32,19 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case _ => sys.error(s"unsupported type ${tp}")
   }
 
+  def generateJoin(e1: CExpr, e2: CExpr, p1: String, p2: String, v2: Variable, joinType: String = "inner"): String = {
+    val recTp = flatRecord(e1, e2)
+    handleType(recTp)
+    val rec = generateType(recTp)
+    val ge1 = generate(e1)
+    val ge2 = generate(e2)
+    val gtp1 = generateType(v2.tp)
+    val gtp2 = if (skew) ", Int" else ""
+    s"""|$ge1.equiJoin[$gtp1$gtp2]($ge2, Seq("$p1","$p2"), "$joinType")
+        | .as[$rec]
+        |""".stripMargin     
+  }
+
   def generate(e: CExpr): String = e match {
 
     /** ZEROS **/
@@ -80,16 +93,13 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case FlatDict(e1) => s"${generate(e1)} /** FLATTEN **/"
     case GroupDict(e1) => generate(e1) 
 
-    case Join(e1, e2, v1, Project(_, p1), v2, Project(_, p2), proj1, proj2) =>
-      val recTp = flatRecord(e1, e2)
-      handleType(recTp)
-      val rec = generateType(recTp)
-      val ge1 = generate(e1)
-      val ge2 = generate(e2)
-      val gtp1 = generateType(v2.tp)
-      val gtp2 = if (skew) ", Int" else ""
-      s"""|$ge1.equiJoin[$gtp1$gtp2]($ge2, Seq("$p1","$p2")).as[$rec]
-          |""".stripMargin
+    // case Nest(e1, v1, f, e2, v2, p, g, dk) => 
+
+    case OuterJoin(e1, e2, v1, Project(_, p1), v2, Project(_, p2), proj1, proj2) => 
+      generateJoin(e1, e2, p1, p2, v2, "left_outer")
+
+    case Join(e1, e2, v1, Project(_, p1), v2, Project(_, p2), proj1, proj2) => 
+      generateJoin(e1, e2, p1, p2, v2)
 
     case Bind(_, CoGroup(e1, e2, v1, v2, k1 @ Project(pv1, f1), k2, value),
       Bind(rv, Reduce(re1, v, Record(ms), Constant(true)), e3)) => 
@@ -135,8 +145,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         case v:Variable => s"$ve3"
         case _ => ???
       }}.mkString(s"$gnrecName2(", ",", ")")
-      // val fv2Tp = flatDictType(e2.tp)
-      // val xrec = {handleType(fv2Tp); generateType(fv2Tp)}
       encoders = encoders :+ generateType(nrec.tp)
       s"""|val $glv = ${generate(e1)}.cogroup($ge2.groupByKey(x => x._1), ${generate(v1)} => ${generate(p1)})(
           |   (_, $ve1, $ve2) => {
