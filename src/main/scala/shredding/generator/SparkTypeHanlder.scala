@@ -53,7 +53,8 @@ trait SparkTypeHandler {
       }
     case TupleDictCType(fs) if !fs.filter(_._2 != EmptyDictCType).isEmpty =>
       generateType(RecordCType(fs.filter(_._2 != EmptyDictCType)))
-    case EmptyCType => "Unit"
+    case OptionType(e1) => s"Option[${generateType(e1)}]"
+    case EmptyCType => "()"
     case _ => sys.error("not supported type " + tp)
   }
   

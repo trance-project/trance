@@ -4,6 +4,10 @@ import shredding.core._
 import shredding.wmcc._
 import shredding.utils.Utils.ind
 
+case class COption(e: CExpr) extends CExpr {
+  def tp: OptionType = OptionType(e.tp)
+}
+
 trait SparkUtils {
 
   def validLabel(e: Type): Boolean = e match {
@@ -28,6 +32,12 @@ trait SparkUtils {
   }
 
   def zero(e: CExpr): String = e.tp match {
+    case IntType => "0"
+    case DoubleType => "0.0"
+    case _ => "null"
+  } 
+
+  def zero(e: Type): String = e match {
     case IntType => "0"
     case DoubleType => "0.0"
     case _ => "null"
@@ -115,23 +125,45 @@ trait SparkUtils {
     }.mkString("\n")
   }
 
-  def getTypeMap(tp: Type): Map[String, Type] = tp match {
-    case BagCType(ttp) => getTypeMap(ttp)
-    case RecordCType(ms) => ms
+  def getTypeMap(tp: Type, outer: Boolean = false): Map[String, Type] = tp match {
+    case BagCType(ttp) => getTypeMap(ttp, outer)
+    case RecordCType(ms) => if (outer) ms.map{ case (attr, ttp) => (attr, OptionType(ttp)) } else ms
     case LabelType(ls) if ls.size == 1 => Map("_1" -> ls.head._2)
-    case TTupleType(ts) => ts.map(t => getTypeMap(t)).flatten.toMap
-    case _ => sys.error(s"not supported $tp")
+    case TTupleType(ts) => ts.map(t => getTypeMap(t, outer)).flatten.toMap
+    case _ => Map()//sys.error(s"not supported $tp")
   }
 
-  def flatRecord(e1: CExpr, e2: CExpr): Type = {
-    RecordCType(getTypeMap(e1.tp) ++ getTypeMap(e2.tp))
+  def flatRecord(e1: Type, e2: Type, outer: Boolean = false): Type = {
+    RecordCType(getTypeMap(e1) ++ getTypeMap(e2, outer))
   }
 
-  def flatType(es: List[Variable]): RecordCType = {
-    RecordCType(es.flatMap{ e => e.tp match {
-      case RecordCType(ms) => ms.toList
+  def flatType(es: List[Variable], index: Boolean = false, wrapOption: String = ""): RecordCType = {
+    val rmap = es.zipWithIndex.flatMap{ case (e, id) => e.tp match {
+      case RecordCType(ms) => if (wrapOption != "") {
+        ms.map{
+          case (attr, btp:BagCType) if (attr == wrapOption) => (attr, OptionType(btp))
+          case (attr, tp) => 
+            if (id > 0 && wrapOption == "null") (attr, OptionType(tp)) else (attr, tp)
+        }.toList
+      }else ms.toList
       case _ => Nil //sys.error(s"not supported ${e.tp}")
-    }}.toMap)
+    }}.toMap
+    if (index) RecordCType(rmap ++ Map("index" -> LongType)) else RecordCType(rmap)
+  }
+
+  def unnestDataframe(v1: Variable, v2: Variable, field: String, nulls: Boolean = false): Record = {
+    Record(v1.tp match {
+      case RecordCType(ms) => ms.flatMap{
+        case (attr, BagCType(_)) if (attr == field) => v2.tp.asInstanceOf[RecordCType].attrTps.map{
+          case (nattr, ntp) => if (nulls) (nattr,COption(Null)) else (nattr, COption(Project(v2, nattr)))
+        }
+        case (attr, OptionType(BagCType(_))) if (attr == field) => v2.tp.asInstanceOf[RecordCType].attrTps.map{
+          case (nattr, ntp) => if (nulls) (nattr,COption(Null)) else (nattr, COption(Project(v2, nattr)))
+        }
+        case (attr, tp) => List((attr,Project(v1, attr)))
+      }
+      case _ => ???
+    })
   }
 
   def flatDictType(e: Type): Type = e match {

@@ -377,7 +377,10 @@ trait BaseANF extends Base {
           case l:Lookup => updateState(l)
           case n:CNamed => updateState(n)
           case c:CoGroup => updateState(c)
+          case u:Unnest => updateState(u)
+          case ou:OuterUnnest => updateState(ou)
           case n:Nest => updateState(n)
+          case cr:CReduceBy => updateState(cr)
           case _ => Def(e)
       }
     }

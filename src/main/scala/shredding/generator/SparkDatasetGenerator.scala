@@ -32,8 +32,10 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case _ => sys.error(s"unsupported type ${tp}")
   }
 
-  def generateJoin(e1: CExpr, e2: CExpr, p1: String, p2: String, v2: Variable, joinType: String = "inner"): String = {
-    val recTp = flatRecord(e1, e2)
+  def generateJoin(e1: CExpr, e2: CExpr, p1: String, p2: String, v1: List[Variable], v2: Variable, joinType: String = "inner"): String = {
+    val wrapOption = if (joinType != "inner") "null" else ""
+    val recTp = flatRecord(flatType(v1, true, wrapOption), e2.tp, {joinType != "inner"})
+    println(recTp)
     handleType(recTp)
     val rec = generateType(recTp)
     val ge1 = generate(e1)
@@ -53,6 +55,10 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case EmptySng => "Seq()"
     case EmptyCDict => s"()"
     case Index => "index"
+    case COption(e1) => e1 match {
+      case Null => "None"
+      case _ => s"Some(${generate(e1)})"
+    }
     
     /** BASIC CONSTRUCTS **/
     case Variable(name, _) => name
@@ -93,13 +99,172 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case FlatDict(e1) => s"${generate(e1)} /** FLATTEN **/"
     case GroupDict(e1) => generate(e1) 
 
-    // case Nest(e1, v1, f, e2, v2, p, g, dk) => 
+    case Bind(nv, Nest(e1, v1, Tuple(fs), e2 @ Record(ms), v2, p, g, dk),
+      Bind(rv, Reduce(e3, vs, fs2:Record, ps), e4)) => 
+      val fv1Tp = flatType(v1, true, wrapOption = "null")
+      val fv1 = Variable.fresh(fv1Tp)
+      val gv1 = generate(fv1)
+      val key = Record(flatType(fs.asInstanceOf[List[Variable]]).attrTps.map{
+        case (attr, expr) => attr -> Project(fv1, attr)})
+      val kv1 = Variable.fresh(key.tp)
+      val gkv1 = generate(kv1)
+      // remove creduce by attributes that are null
+      val topAttrs = e2.tp.attrTps.flatMap{
+        case (attr, tp) => tp match {
+          case RecordCType(ms) => Nil
+          case _ => List(attr)
+        }
+      }.toList
+      val groupAttrs = e2.tp.attrTps.flatMap{
+        case (attr, tp) => tp match {
+          case RecordCType(ms) => ms.map(_._1)
+          case _ => List(attr)
+        }
+      }.toList
+      val grecTp = RecordCType(fv1Tp.attrTps.flatMap{ case m => m match {
+        case (attr, OptionType(otp)) if topAttrs.contains(attr) => List((attr, otp))
+        case (attr, OptionType(otp)) if groupAttrs.contains(attr) => List((attr, OptionType(otp)))
+        case _ => Nil
+      }}.toMap)
+      handleType(grecTp)
+      val grecName = generateType(grecTp)
+      val grecCheckNull = fv1Tp.attrTps.map{ case m => m match {
+        case (attr, OptionType(otp)) if topAttrs.contains(attr) => "None"
+        case _ => "_"
+      }}.mkString(s"case ${generateType(fv1Tp)}(",",",") => Seq()")
+      val grecFull = fv1Tp.attrTps.filter(x => groupAttrs.contains(x._1)).map{ case m => m match {
+        case (attr, OptionType(otp)) if topAttrs.contains(attr) => s"$gv1.$attr.get"
+        case (attr, _) => s"$gv1.$attr"
+      }}.mkString(s"case _ => Seq(${grecName}(",",","))")
+      val finalFieldsType = RecordCType(fs2.tp.attrTps.map{
+        case (attr, BagCType(tp)) => (attr, BagCType(grecTp))
+        case (attr, tp) => (attr, tp)
+      })
+      handleType(finalFieldsType)
+      val finalFields = fs2.tp.attrTps.map{
+        case (attr, BagCType(tp)) => "ngroup"
+        case (attr, tp) => if (fs.size == 1) s"$gkv1.$attr" else s"$gkv1._1.$attr"
+      }.mkString(",")
+      encoders = encoders :+ grecName
+      s"""|val ${generate(rv)} = ${generate(e1)}
+          | .groupByKey($gv1 =>
+          |   ${generate(key)}).mapGroups{
+          |   case ($gkv1, group) => 
+          |     val ngroup = group.flatMap{
+          |       $gv1 => $gv1 match {
+          |         $grecCheckNull 
+          |         $grecFull
+          |       }}.toSeq
+          |     ${generateType(finalFieldsType)}($finalFields)
+          | }.as[${generateType(finalFieldsType)}]
+          |${generate(e4)}
+          |""".stripMargin
+
+    case Nest(e1, v1, Tuple(fs), e2 @ Record(ms), v2, p, g, dk) => 
+      val fv1Tp = flatType(v1, true, wrapOption = "null")
+      val fv1 = Variable.fresh(fv1Tp)
+      val gv1 = generate(fv1)
+      val key = Record(flatType(fs.asInstanceOf[List[Variable]]).attrTps.map{
+        case (attr, expr) => attr -> Project(fv1, attr)})
+      val kv1 = Variable.fresh(key.tp)
+      val gkv1 = generate(kv1)
+      // remove creduce by attributes that are null
+      val topAttrs = e2.tp.attrTps.flatMap{
+        case (attr, tp) => tp match {
+          case RecordCType(ms) => Nil
+          case _ => List(attr)
+        }
+      }.toList
+      val groupAttrs = e2.tp.attrTps.flatMap{
+        case (attr, tp) => tp match {
+          case RecordCType(ms) => ms.map(_._1)
+          case _ => List(attr)
+        }
+      }.toList
+      val grecTp = RecordCType(fv1Tp.attrTps.flatMap{ case m => m match {
+        case (attr, OptionType(otp)) if topAttrs.contains(attr) => List((attr, otp))
+        case (attr, OptionType(otp)) if groupAttrs.contains(attr) => List((attr, OptionType(otp)))
+        case _ => Nil
+      }}.toMap)
+      handleType(grecTp)
+      val grecName = generateType(grecTp)
+      val grecCheckNull = fv1Tp.attrTps.map{ case m => m match {
+        case (attr, OptionType(otp)) if topAttrs.contains(attr) => "None"
+        case _ => "_"
+      }}.mkString(s"case ${generateType(fv1Tp)}(",",",") => Seq()")
+      val grecFull = fv1Tp.attrTps.filter(x => groupAttrs.contains(x._1)).map{ case m => m match {
+        case (attr, OptionType(otp)) if topAttrs.contains(attr) => s"$gv1.$attr.get"
+        case (attr, _) => s"$gv1.$attr"
+      }}.mkString(s"case _ => Seq(${grecName}(",",","))")
+      encoders = encoders :+ grecName
+      s"""|${generate(e1)}
+          | .groupByKey($gv1 =>
+          |   ${generate(key)}).mapGroups{
+          |   case ($gkv1, group) => 
+          |     val ngroup = group.flatMap{
+          |       $gv1 => $gv1 match {
+          |         $grecCheckNull 
+          |         $grecFull
+          |       }}.toSeq
+          |   ($gkv1, ngroup)
+          |}
+          |""".stripMargin
+
+    case Bind(rv, Reduce(e1, v1, f1, Constant(nulls)), 
+      Bind(cv, CReduceBy(e2, v2, keys, values), e3)) =>
+      val ftp = flatType(List(v2))
+      val nv2 = Variable.fresh(flatType(v1, v1.size > 1, wrapOption = nulls.toString))
+      val keyTps = ftp.attrTps.filter{case (attr, tp) => keys.contains(attr)}
+      val flatKeys = keyTps("_1") match {
+        case t:TTupleType => getTypeMap(t) ++ (keyTps - "_1")
+        case _ => keyTps
+        }
+      val fkey = Record(flatKeys.map{case (attr, tp) => attr -> Project(nv2, attr)})
+      val agg = "x" + Variable.newId()
+      val frec = Record(fkey.fields + (values.head -> COption(Variable(agg, ftp.attrTps(values.head)))))
+      val gfrec = generate(frec)
+      s"""|val ${generate(cv)} = ${generate(e1)}.groupByKey(${generate(nv2)} => 
+          | ${generate(fkey)}).agg(
+          |   typed.sum[${generateType(nv2.tp)}](
+          |     x => x.${values.head} match {
+          |       case Some(r) => r; case _ => ${zero(ftp.attrTps(values.head))}
+          |   })).mapPartitions(
+          |     it => it.map{ case (${generate(nv2)}, $agg) => $gfrec
+          | }).as[${generateType(frec.tp)}]
+          |${generate(e3)}
+          |"""
+
+    case OuterUnnest(e1, v1s, p1 @ Project(_, f), v2, p, value) => 
+      val v1 = Variable.fresh(flatType(v1s, index = true, wrapOption = {if (v1s.size > 1) f else ""}))
+      val path = generate(Project(v1, f))
+      handleType(v1.tp)
+      val nv2 = Variable.fresh(value.tp)
+      val frec = unnestDataframe(v1, nv2, f)
+      val gfrec = generate(frec)
+      val nrec = unnestDataframe(v1, nv2, f, true)
+      val gnrec = s"${generateType(frec.tp)}(${nrec.fields.map(f => generate(f._2)).mkString(", ")})"
+      if (v1s.size == 1){
+        s"""|${generate(e1)}.withColumn("index", monotonically_increasing_id())
+            | .as[${generateType(v1.tp)}].flatMap{
+            |   case ${generate(v1)} => if ($path.isEmpty) Seq($gnrec) 
+            |     else $path.map( ${generate(nv2)} => $gfrec )
+            |}.as[${generateType(frec.tp)}]
+            |""".stripMargin
+      }else{
+        s"""|${generate(e1)}.withColumn("index", monotonically_increasing_id())
+            | .as[${generateType(v1.tp)}].flatMap{
+            |   case ${generate(v1)} => $path match {
+            |     case None => Seq($gnrec)
+            |     case Some(bag) => bag.map( ${generate(nv2)} => $gfrec )
+            | }}.as[${generateType(frec.tp)}]
+            |""".stripMargin
+      }
 
     case OuterJoin(e1, e2, v1, Project(_, p1), v2, Project(_, p2), proj1, proj2) => 
-      generateJoin(e1, e2, p1, p2, v2, "left_outer")
+      generateJoin(e1, e2, p1, p2, v1, v2, "left_outer")
 
     case Join(e1, e2, v1, Project(_, p1), v2, Project(_, p2), proj1, proj2) => 
-      generateJoin(e1, e2, p1, p2, v2)
+      generateJoin(e1, e2, p1, p2, v1, v2)
 
     case Bind(_, CoGroup(e1, e2, v1, v2, k1 @ Project(pv1, f1), k2, value),
       Bind(rv, Reduce(re1, v, Record(ms), Constant(true)), e3)) => 

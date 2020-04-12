@@ -33,7 +33,7 @@ object Optimizer {
   def applyAll(e: CExpr) = {
     val projectionsPushed = push(e)
     val merged = mergeOps(projectionsPushed)
-    val pushedAgg = pushAgg(merged)
+    val pushedAgg = merged//pushAgg(merged)
     val indexed = dictIndexer.finalize(pushNest(pushedAgg)).asInstanceOf[CExpr]
     indexed
   }

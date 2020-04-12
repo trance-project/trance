@@ -14,7 +14,7 @@ object App {
  
   def main(args: Array[String]){
     // exp1.1
-    runExperiment1FN()
+    // runExperiment1FN()
     // exp1.2
     // runExperiment1NN()
     // exp2.1
@@ -22,15 +22,15 @@ object App {
     // runExperiment2NN()
     // // exp2.0
     // runExperiment2()
-    // runDataset()
+    runDataset()
   }
 
   def runDataset(){
     val pathout = "spark/src/main/scala/sprkloader/experiments"
     // Utils.flatOpt(Query1BU, pathout, "Flat++,Standard,Query1")
     // Utils.shredDataset(Query1Full, pathout, "Shred,Standard,Query1")
-    Utils.shredDataset(Query1Full, pathout, "Shred,Standard,Query1")
-    Utils.runDataset(Query1BU, pathout, "Flat++,Standard,Query1")
+    // Utils.shredDataset(Query1Full, pathout, "Shred,Standard,Query1")
+    // Utils.runDataset(Query1BU, pathout, "Flat++,Standard,Query1")
     // Utils.runDataset(Query1BU, pathout, "Flat++,Standard,Query1", skew = true)
     // Utils.shredDataset(Query1Full, pathout, "Shred,Standard,Query1")
     // Utils.shredDataset(Query1Full, pathout, "Shred,Standard,Query1", unshred = true)
@@ -38,8 +38,9 @@ object App {
     // Utils.shredDataset(Query1Full, pathout, "Shred,Skew,Query1", skew = true, unshred = true)
     // Utils.shredDataset(Test2Full, pathout, "Shred,Standard,Test2Full")
     // Utils.shredDataset(Test2Full, pathout, "Shred,Standard,Test2Full", unshred = true)
-    Utils.runDataset(Test2FullFlat, pathout, "Flat++,2")
-    // Utils.flatOptInput(Test2FullFlat, Test2NN, pathout, "Flat++,2")
+    // Utils.runDataset(Test2FullFlat, pathout, "Flat++,2")
+    Utils.runDatasetInput(Test2FullFlat, Test2NN, pathout, "Flat++,2")
+    Utils.runDatasetInput(Test3FullFlat, Test3NN, pathout, "Flat++,3")
     // Utils.shredInput(Test2Full, Test2NN, pathout, "Shred,2", unshred=true)
     // Utils.flatOptInput(Test2FullFlat, Test2NN, pathout, "Flat++,2")
     // Utils.shredInput(Test2Full, Test2NN, pathout, "Shred,2", unshred=true)
