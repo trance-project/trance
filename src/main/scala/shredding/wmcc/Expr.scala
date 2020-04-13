@@ -381,7 +381,8 @@ case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p
 
 case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr, g: CExpr, distinctKeys: Boolean) extends CExpr {
   def tp: Type = v2.tp match {
-    case RecordCType(ms) => BagCType(RecordCType(ms - "index"))
+    case RecordCType(ms) => 
+      BagCType(RecordCType(ms - "index"))
     case _ => BagCType(v2.tp)
   }
   // only using this for printing, consider removing

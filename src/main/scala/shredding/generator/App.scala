@@ -41,6 +41,7 @@ object App {
     // Utils.runDataset(Test2FullFlat, pathout, "Flat++,2")
     Utils.runDatasetInput(Test2FullFlat, Test2NN, pathout, "Flat++,2")
     Utils.runDatasetInput(Test3FullFlat, Test3NN, pathout, "Flat++,3")
+    Utils.runDatasetInput(Test4FullFlat, Test4NN, pathout, "Flat++,4")
     // Utils.shredInput(Test2Full, Test2NN, pathout, "Shred,2", unshred=true)
     // Utils.flatOptInput(Test2FullFlat, Test2NN, pathout, "Flat++,2")
     // Utils.shredInput(Test2Full, Test2NN, pathout, "Shred,2", unshred=true)

@@ -21,6 +21,14 @@ trait SparkTypeHandler {
     case _ => x
   }
 
+  def checkType(mapType: Map[String, Type]): Type = {
+    val check = types.filter{
+      case (RecordCType(ms), name) => ms.keySet == mapType.keySet
+      case _ => false
+    }
+    if (check.size == 1) check.head._1 else RecordCType(mapType)
+  }
+
   def generateTypeDef(tp: Type): String = tp match {
     case LabelType(fs) => generateTypeDef(RecordCType(fs))
     case RecordCType(fs) =>
