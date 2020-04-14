@@ -110,7 +110,7 @@ object App {
   }
  
   def runExperiment1NN(){
-    val pathout = "experiments/exp1.2"
+    val pathout = "spark/src/main/scala/sprkloader/experiments"
 
     // Utils.flatInput(Test0Full, Test0FullNN, pathout, "Flat,0")
     // Utils.flatInput(Test1Full, Test1FullNN, pathout, "Flat,1")
