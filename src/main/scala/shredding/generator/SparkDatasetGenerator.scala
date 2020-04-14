@@ -6,7 +6,7 @@ import shredding.wmcc._
 import shredding.utils.Utils.ind
 
 class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = false, isDict: Boolean = true,
-  unshred: Boolean = false, inputs: Map[Type, String] = Map()) extends SparkTypeHandler with SparkUtils {
+  unshred: Boolean = false, evalFinal: Boolean = true, inputs: Map[Type, String] = Map()) extends SparkTypeHandler with SparkUtils {
 
   implicit def expToString(e: CExpr): String = generate(e)
 
@@ -34,7 +34,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
   def generateJoin(e1: CExpr, e2: CExpr, p1: String, p2: String, v1: List[Variable], v2: Variable, joinType: String = "inner"): String = {
     val wrapOption = if (joinType != "inner") "null" else ""
-    val recTp = flatRecord(flatType(v1, true, wrapOption), e2.tp, {joinType != "inner"})
+    val recTp = flatRecord(flatType(v1, !isDict, wrapOption), e2.tp, {joinType != "inner"})
     handleType(recTp)
     val rec = generateType(recTp)
     val ge1 = generate(e1)
@@ -70,12 +70,13 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Constant(s:String) => "\"" + s + "\""
     case Constant(x) => x.toString
     case Sng(e) => s"Seq(${generate(e)})"
-    case Label(fs) => {
-      val tp = e.tp
-      handleType(tp)
-      val inner = fs.map{f => generate(f._2)}.mkString(", ")
-      s"${generateType(tp)}($inner)"
-    }
+    case Label(fs) if fs.size == 1 => generate(fs.head._2)
+    // {
+    //   val tp = e.tp
+    //   handleType(tp)
+    //   val inner = fs.map{f => generate(f._2)}.mkString(", ")
+    //   s"${generateType(tp)}($inner)"
+    // }
     case Record(fs) => {
       val tp = e.tp
       handleType(tp)
@@ -100,11 +101,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Or(e1, e2) => s"${generate(e1)} || ${generate(e2)}"
     case Not(e1) => s"!(${generate(e1)})"
 
-    case FlatDict(e1) => s"${generate(e1)} /** FLATTEN **/"
+    case FlatDict(e1) => s"${generate(e1)}"
     case GroupDict(e1) => generate(e1) 
 
     case Nest(e1, v1, Tuple(fs), e2 @ Record(ms), v2, p, Tuple(gs), dk) => 
-      val fv1Tp = flatType(v1, true, wrapOption = "null")
+      val fv1Tp = flatType(v1, !isDict, wrapOption = "null")
       handleType(fv1Tp)
       val fv1 = Variable.fresh(fv1Tp)
       val gv1 = generate(fv1)
@@ -147,7 +148,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Bind(rv, Reduce(e1, v1, f1, Constant(nulls)), 
       Bind(cv, CReduceBy(e2, v2, keys, values), e3)) =>
       val ftp = flatType(List(v2))
-      val nv2 = Variable.fresh(flatType(v1, v1.size > 1, wrapOption = nulls.toString))
+      val nv2 = Variable.fresh(flatType(v1, (v1.size > 1 && !isDict), wrapOption = nulls.toString))
+      handleType(nv2.tp)
       val keyTps = ftp.attrTps.filter{case (attr, tp) => keys.contains(attr)}
       val flatKeys = keyTps get "_1" match {
         case Some(t) => getTypeMap(t) ++ (keyTps - "_1")
@@ -180,6 +182,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
               |""".stripMargin
       }
 
+    // shouldn't be called by shredded evaluation
     case OuterUnnest(e1, v1s, p1 @ Project(_, f), v2, p, value) => 
       val v1 = Variable.fresh(flatType(v1s, index = true, wrapOption = {if (v1s.size > 1) f else ""}))
       val path = generate(Project(v1, f))
@@ -314,7 +317,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |val $n = $gv$repart
           |//$n.print
           |${if (!cache) comment(n) else n}.cache
-          |${if (unshred && !isDict) comment(n) else n}.count
+          |${if (!evalFinal) comment(n) else n}.count
           |""".stripMargin
 
     case Bind(v, CNamed(n, e1), e2) =>

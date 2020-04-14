@@ -148,11 +148,11 @@ object App {
     Utils.runDatasetInput(Test3FullFlat, Test3FullNN, pathout, "Flat++,3")
     Utils.runDatasetInput(Test4FullFlat, Test4FullNN, pathout, "Flat++,4")
 
-    // Utils.shredInput(Test0Full, Test0NN, pathout, "Shred,0")
-    // Utils.shredInput(Test1Full, Test1NN, pathout, "Shred,1")
-    // Utils.shredInput(Test2Full, Test2NN, pathout, "Shred,2")
-    // Utils.shredInput(Test3Full, Test3NN, pathout, "Shred,3")
-    // Utils.shredInput(Test4Full, Test4NN, pathout, "Shred,4")
+    Utils.runDatasetInputShred(Test0Full, Test0NN, pathout, "Shred,0")
+    Utils.runDatasetInputShred(Test1Full, Test1NN, pathout, "Shred,1")
+    Utils.runDatasetInputShred(Test2Full, Test2NN, pathout, "Shred,2")
+    Utils.runDatasetInputShred(Test3Full, Test3NN, pathout, "Shred,3")
+    Utils.runDatasetInputShred(Test4Full, Test4NN, pathout, "Shred,4")
 
     // Utils.shredInput(Test0Full, Test0NN, pathout, "Shred,0", unshred=true)
     // Utils.shredInput(Test1Full, Test1NN, pathout, "Shred,1", unshred=true)
@@ -160,11 +160,11 @@ object App {
     // Utils.shredInput(Test3Full, Test3NN, pathout, "Shred,3", unshred=true)
     // Utils.shredInput(Test4Full, Test4NN, pathout, "Shred,4", unshred=true)
 
-    // Utils.shredInput(Test0Full, Test0FullNN, pathout, "Shred,0")
-    // Utils.shredInput(Test1Full, Test1FullNN, pathout, "Shred,1")
-    // Utils.shredInput(Test2Full, Test2FullNN, pathout, "Shred,2")
-    // Utils.shredInput(Test3Full, Test3FullNN, pathout, "Shred,3")
-    // Utils.shredInput(Test4Full, Test4FullNN, pathout, "Shred,4")
+    Utils.runDatasetInputShred(Test0Full, Test0FullNN, pathout, "Shred,0")
+    Utils.runDatasetInputShred(Test1Full, Test1FullNN, pathout, "Shred,1")
+    Utils.runDatasetInputShred(Test2Full, Test2FullNN, pathout, "Shred,2")
+    Utils.runDatasetInputShred(Test3Full, Test3FullNN, pathout, "Shred,3")
+    Utils.runDatasetInputShred(Test4Full, Test4FullNN, pathout, "Shred,4")
 
     // Utils.shredInput(Test0Full, Test0FullNN, pathout, "Shred,0", unshred=true)
     // Utils.shredInput(Test1Full, Test1FullNN, pathout, "Shred,1", unshred=true)

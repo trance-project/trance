@@ -100,7 +100,7 @@ trait Query extends Materialization
     val inputInitPlan = Unnester.unnest(inputC)(Nil, Nil, None)
     val inputOptPlan = Optimizer.applyAll(inputInitPlan)
     println(Printer.quote(inputOptPlan))
-    val anfBase = new BaseANF{}
+    val anfBase = new BaseDFANF{}
     val anfer = new Finalizer(anfBase)
     val inputPlan = anfBase.anf(anfer.finalize(inputOptPlan).asInstanceOf[anfBase.Rep])
 
@@ -113,7 +113,7 @@ trait Query extends Materialization
     val optPlan = Optimizer.applyAll(initPlan)
     // println(optPlan)
     println(Printer.quote(optPlan))
-    val sanfBase = new BaseANF{}
+    val sanfBase = new BaseDFANF{}
     val sanfer = new Finalizer(sanfBase)
     val splan = sanfBase.anf(sanfer.finalize(optPlan).asInstanceOf[sanfBase.Rep])
 
@@ -126,7 +126,7 @@ trait Query extends Materialization
       println(Printer.quote(uinitPlan))
       val uoptPlan = Optimizer.applyAll(uinitPlan)
       println(Printer.quote(uoptPlan))
-      val uanfBase = new BaseANF{}
+      val uanfBase = new BaseDFANF{}
       val uanfer = new Finalizer(uanfBase)
       val suanf = uanfBase.anf(uanfer.finalize(uoptPlan).asInstanceOf[uanfBase.Rep])
       // println(suanf)
@@ -163,7 +163,7 @@ trait Query extends Materialization
       println("")
       // println(optPlan)
       val qplan = if (anfed) {
-        val anfBase = new BaseANF{}
+        val anfBase = new BaseDFANF{}
         val anfer = new Finalizer(anfBase)
         anfBase.anf(anfer.finalize(optPlan).asInstanceOf[anfBase.Rep])
       }else optPlan
@@ -182,7 +182,7 @@ trait Query extends Materialization
         println("UNSHRED PLAN")
         println(Printer.quote(uoptPlan))
         println("")
-        val uanfBase = new BaseANF{}
+        val uanfBase = new BaseDFANF{}
         val uanfer = new Finalizer(uanfBase)
         val uanfed = uanfBase.anf(uanfer.finalize(uoptPlan).asInstanceOf[uanfBase.Rep])
         // println(uanfed)
