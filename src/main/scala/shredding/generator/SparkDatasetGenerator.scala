@@ -157,8 +157,10 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         }
       val fkey = Record(flatKeys.map{case (attr, tp) => attr -> Project(nv2, attr)})
       val agg = "x" + Variable.newId()
+      val valueExpr = if (isDict) Variable(agg, ftp.attrTps(values.head)) 
+        else COption(Variable(agg, ftp.attrTps(values.head)))
       val vrecOption = Record(fkey.fields.filter(f => keys.contains(f._1))
-       + (values.head -> COption(Variable(agg, ftp.attrTps(values.head)))))
+       + (values.head -> valueExpr))
       val gvrec = generate(vrecOption)
       encoders = encoders + generateType(vrecOption.tp)
       fkey.fields.filter(f => !keys.contains(f._1)) - values.head match {

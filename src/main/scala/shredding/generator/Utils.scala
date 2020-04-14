@@ -340,7 +340,7 @@ object Utils {
     val (header, gcodeSet, encoders) = if (unshred) {
       val codegen2 = new SparkDatasetGenerator(false, false, unshred = true, inputs = codegen.types)
       val ugcode = codegen2.generate(gcodeUnshred)
-      val encoders1 = codegen.generateEncoders() + codegen2.generateEncoders()
+      val encoders1 = codegen.generateEncoders() +"\n"+ codegen2.generateEncoders()
       (s"""|${codegen2.generateHeader(query.headerTypes(false))}""".stripMargin, List(gcode1, ugcode), encoders1)
     } else 
       (s"""|${codegen.generateHeader(query.headerTypes(true))}""".stripMargin, List(gcode1), codegen.generateEncoders())
@@ -368,10 +368,10 @@ object Utils {
     val (header, gcodeSet, encoders) = if (unshred) {
       val codegen2 = new SparkDatasetGenerator(false, false, unshred = true, isDict = true, inputs = codegen.types)
       val ugcode = codegen2.generate(queryUnshred)
-      val encoders1 = codegenInput.generateEncoders() + codegen.generateEncoders() + codegen2.generateEncoders()
+      val encoders1 = codegenInput.generateEncoders() +"\n"+ codegen.generateEncoders() +"\n"+ codegen2.generateEncoders()
       (s"""|${codegen2.generateHeader(query.headerTypes(false))}""".stripMargin, List(gcode1, ugcode), encoders1)
     } else 
-      (s"""|${codegen.generateHeader(query.headerTypes(true))}""".stripMargin, List(gcode1), codegenInput.generateEncoders() + codegen.generateEncoders())
+      (s"""|${codegen.generateHeader(query.headerTypes(true))}""".stripMargin, List(gcode1), codegenInput.generateEncoders() +"\n"+ codegen.generateEncoders())
    
     val us = if (unshred) "Unshred" else ""
     val qname = if (skew) s"Shred${query.name}${us}SkewSpark" else s"Shred${query.name}${us}Spark"

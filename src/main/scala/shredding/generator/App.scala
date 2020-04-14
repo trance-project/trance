@@ -84,29 +84,29 @@ object App {
     Utils.flatDataset(Test4Flat, pathout, "Flat++,4")
     Utils.flatDataset(Test4FullFlat, pathout, "Flat++,4")
 
-    // Utils.shredDataset(Test0, pathout, "Shred,0")
-    // Utils.shredDataset(Test1, pathout, "Shred,1")
-    // Utils.shredDataset(Test2, pathout, "Shred,2")
-    // Utils.shredDataset(Test3, pathout, "Shred,3")
-    // Utils.shredDataset(Test4, pathout, "Shred,4")
+    Utils.shredDataset(Test0, pathout, "Shred,0")
+    Utils.shredDataset(Test1, pathout, "Shred,1")
+    Utils.shredDataset(Test2, pathout, "Shred,2")
+    Utils.shredDataset(Test3, pathout, "Shred,3")
+    Utils.shredDataset(Test4, pathout, "Shred,4")
 
-    // Utils.shredDataset(Test0Full, pathout, "Shred,0")
-    // Utils.shredDataset(Test1Full, pathout, "Shred,1")
-    // Utils.shredDataset(Test2Full, pathout, "Shred,2")
-    // Utils.shredDataset(Test3Full, pathout, "Shred,3")
-    // Utils.shredDataset(Test4Full, pathout, "Shred,4")
+    Utils.shredDataset(Test0Full, pathout, "Shred,0")
+    Utils.shredDataset(Test1Full, pathout, "Shred,1")
+    Utils.shredDataset(Test2Full, pathout, "Shred,2")
+    Utils.shredDataset(Test3Full, pathout, "Shred,3")
+    Utils.shredDataset(Test4Full, pathout, "Shred,4")
 
-    // Utils.shredDataset(Test0, pathout, "Shred,0", unshred=true)
-    // Utils.shredDataset(Test1, pathout, "Shred,1", unshred=true)
-    // Utils.shredDataset(Test2, pathout, "Shred,2", unshred=true)
-    // Utils.shredDataset(Test3, pathout, "Shred,3", unshred=true)
-    // Utils.shredDataset(Test4, pathout, "Shred,4", unshred=true)
+    Utils.shredDataset(Test0, pathout, "Shred,0", unshred=true)
+    Utils.shredDataset(Test1, pathout, "Shred,1", unshred=true)
+    Utils.shredDataset(Test2, pathout, "Shred,2", unshred=true)
+    Utils.shredDataset(Test3, pathout, "Shred,3", unshred=true)
+    Utils.shredDataset(Test4, pathout, "Shred,4", unshred=true)
 
-    // Utils.shredDataset(Test0Full, pathout, "Shred,0", unshred=true)
-    // Utils.shredDataset(Test1Full, pathout, "Shred,1", unshred=true)
-    // Utils.shredDataset(Test2Full, pathout, "Shred,2", unshred=true)
-    // Utils.shredDataset(Test3Full, pathout, "Shred,3", unshred=true)
-    // Utils.shredDataset(Test4Full, pathout, "Shred,4", unshred=true)
+    Utils.shredDataset(Test0Full, pathout, "Shred,0", unshred=true)
+    Utils.shredDataset(Test1Full, pathout, "Shred,1", unshred=true)
+    Utils.shredDataset(Test2Full, pathout, "Shred,2", unshred=true)
+    Utils.shredDataset(Test3Full, pathout, "Shred,3", unshred=true)
+    Utils.shredDataset(Test4Full, pathout, "Shred,4", unshred=true)
   }
  
   def runExperiment1NN(){
@@ -154,11 +154,11 @@ object App {
     Utils.runDatasetInputShred(Test3Full, Test3NN, pathout, "Shred,3")
     Utils.runDatasetInputShred(Test4Full, Test4NN, pathout, "Shred,4")
 
-    // Utils.shredInput(Test0Full, Test0NN, pathout, "Shred,0", unshred=true)
-    // Utils.shredInput(Test1Full, Test1NN, pathout, "Shred,1", unshred=true)
-    // Utils.shredInput(Test2Full, Test2NN, pathout, "Shred,2", unshred=true)
-    // Utils.shredInput(Test3Full, Test3NN, pathout, "Shred,3", unshred=true)
-    // Utils.shredInput(Test4Full, Test4NN, pathout, "Shred,4", unshred=true)
+    Utils.runDatasetInputShred(Test0Full, Test0NN, pathout, "Shred,0", unshred=true)
+    Utils.runDatasetInputShred(Test1Full, Test1NN, pathout, "Shred,1", unshred=true)
+    Utils.runDatasetInputShred(Test2Full, Test2NN, pathout, "Shred,2", unshred=true)
+    Utils.runDatasetInputShred(Test3Full, Test3NN, pathout, "Shred,3", unshred=true)
+    Utils.runDatasetInputShred(Test4Full, Test4NN, pathout, "Shred,4", unshred=true)
 
     Utils.runDatasetInputShred(Test0Full, Test0FullNN, pathout, "Shred,0")
     Utils.runDatasetInputShred(Test1Full, Test1FullNN, pathout, "Shred,1")
@@ -166,11 +166,11 @@ object App {
     Utils.runDatasetInputShred(Test3Full, Test3FullNN, pathout, "Shred,3")
     Utils.runDatasetInputShred(Test4Full, Test4FullNN, pathout, "Shred,4")
 
-    // Utils.shredInput(Test0Full, Test0FullNN, pathout, "Shred,0", unshred=true)
-    // Utils.shredInput(Test1Full, Test1FullNN, pathout, "Shred,1", unshred=true)
-    // Utils.shredInput(Test2Full, Test2FullNN, pathout, "Shred,2", unshred=true)
-    // Utils.shredInput(Test3Full, Test3FullNN, pathout, "Shred,3", unshred=true)
-    // Utils.shredInput(Test4Full, Test4FullNN, pathout, "Shred,4", unshred=true)
+    Utils.runDatasetInputShred(Test0Full, Test0FullNN, pathout, "Shred,0", unshred=true)
+    Utils.runDatasetInputShred(Test1Full, Test1FullNN, pathout, "Shred,1", unshred=true)
+    Utils.runDatasetInputShred(Test2Full, Test2FullNN, pathout, "Shred,2", unshred=true)
+    Utils.runDatasetInputShred(Test3Full, Test3FullNN, pathout, "Shred,3", unshred=true)
+    Utils.runDatasetInputShred(Test4Full, Test4FullNN, pathout, "Shred,4", unshred=true)
   }
 
   def runExperiment2FN(){
