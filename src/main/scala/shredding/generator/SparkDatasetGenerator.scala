@@ -148,10 +148,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       Bind(cv, CReduceBy(e2, v2, keys, values), e3)) =>
       val ftp = flatType(List(v2))
       val nv2 = Variable.fresh(flatType(v1, v1.size > 1, wrapOption = nulls.toString))
-      handleType(nv2.tp)
       val keyTps = ftp.attrTps.filter{case (attr, tp) => keys.contains(attr)}
-      val flatKeys = keyTps("_1") match {
-        case t:TTupleType => getTypeMap(t) ++ (keyTps - "_1")
+      val flatKeys = keyTps get "_1" match {
+        case Some(t) => getTypeMap(t) ++ (keyTps - "_1")
         case _ => keyTps
         }
       val fkey = Record(flatKeys.map{case (attr, tp) => attr -> Project(nv2, attr)})
@@ -159,19 +158,27 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val vrecOption = Record(fkey.fields.filter(f => keys.contains(f._1))
        + (values.head -> COption(Variable(agg, ftp.attrTps(values.head)))))
       val gvrec = generate(vrecOption)
-      val frec = Record(fkey.fields.filter(f => !keys.contains(f._1)) - values.head)
-      val gfrec = generate(frec)
       encoders = encoders + generateType(vrecOption.tp)
-      s"""|val ${generate(cv)} = ${generate(e1)}.groupByKey(${generate(nv2)} => 
-          | ${generate(fkey)}).agg(
-          |   typed.sum[${generateType(nv2.tp)}](
-          |     x => x.${values.head} match {
-          |       case Some(r) => r; case _ => ${zero(ftp.attrTps(values.head))}
-          |   })).mapPartitions(
-          |     it => it.map{ case (${generate(nv2)}, $agg) => ($gfrec, $gvrec)
-          | })
-          |${generate(e3)}
-          |"""
+      fkey.fields.filter(f => !keys.contains(f._1)) - values.head match {
+        case y if y.isEmpty => 
+          s"""|val ${generate(cv)} = ${generate(e1)}.groupByKey(${generate(nv2)} => 
+              | ${generate(fkey)}).agg(
+              |   typed.sum[${generateType(nv2.tp)}](x => x.${values.head})).mapPartitions(
+              |     it => it.map{ case (${generate(nv2)}, $agg) => $gvrec })
+              |${generate(e3)}
+              |""".stripMargin
+        case grecMap =>
+          s"""|val ${generate(cv)} = ${generate(e1)}.groupByKey(${generate(nv2)} => 
+              | ${generate(fkey)}).agg(
+              |   typed.sum[${generateType(nv2.tp)}](
+              |     x => x.${values.head} match {
+              |       case Some(r) => r; case _ => ${zero(ftp.attrTps(values.head))}
+              |   })).mapPartitions(
+              |     it => it.map{ case (${generate(nv2)}, $agg) => (${generate(Record(grecMap))}, $gvrec)
+              | })
+              |${generate(e3)}
+              |""".stripMargin
+      }
 
     case OuterUnnest(e1, v1s, p1 @ Project(_, f), v2, p, value) => 
       val v1 = Variable.fresh(flatType(v1s, index = true, wrapOption = {if (v1s.size > 1) f else ""}))
@@ -268,7 +275,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     /** PROJECT **/
     case Reduce(e1, v, f @ Record(fs), Constant(true)) if v.size > 1 =>
       val fTp = wrapOption(f.tp)
-      println(fTp)
       handleType(fTp)
       val rec = s"${generateType(fTp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
       val v1s = vars(v)

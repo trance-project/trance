@@ -136,13 +136,13 @@ object App {
     // Utils.flatProjInput(Test3FullFlat, Test3NN, pathout, "Flat+,3")
     // Utils.flatProjInput(Test4FullFlat, Test4NN, pathout, "Flat+,4")
 
-    // Utils.runDatasetInput(Test0Full, Test0NN, pathout, "Flat++,0")
+    Utils.runDatasetInput(Test0Full, Test0NN, pathout, "Flat++,0")
     Utils.runDatasetInput(Test1Full, Test1NN, pathout, "Flat++,1")
     Utils.runDatasetInput(Test2FullFlat, Test2NN, pathout, "Flat++,2")
     Utils.runDatasetInput(Test3FullFlat, Test3NN, pathout, "Flat++,3")
     Utils.runDatasetInput(Test4FullFlat, Test4NN, pathout, "Flat++,4")
 
-    // Utils.runDatasetInput(Test0Full, Test0FullNN, pathout, "Flat++,0")
+    Utils.runDatasetInput(Test0Full, Test0FullNN, pathout, "Flat++,0")
     Utils.runDatasetInput(Test1Full, Test1FullNN, pathout, "Flat++,1")
     Utils.runDatasetInput(Test2FullFlat, Test2FullNN, pathout, "Flat++,2")
     Utils.runDatasetInput(Test3FullFlat, Test3FullNN, pathout, "Flat++,3")
