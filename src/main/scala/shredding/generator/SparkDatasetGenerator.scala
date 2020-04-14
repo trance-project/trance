@@ -34,7 +34,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
   def generateJoin(e1: CExpr, e2: CExpr, p1: String, p2: String, v1: List[Variable], v2: Variable, joinType: String = "inner"): String = {
     val wrapOption = if (joinType != "inner") "null" else ""
-    val recTp = flatRecord(flatType(v1, !isDict, wrapOption), e2.tp, {joinType != "inner"})
+    val recTp = flatRecord(flatType(v1, {!isDict && joinType != "inner"}, wrapOption), e2.tp, {joinType != "inner"})
     handleType(recTp)
     val rec = generateType(recTp)
     val ge1 = generate(e1)
@@ -71,12 +71,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Constant(x) => x.toString
     case Sng(e) => s"Seq(${generate(e)})"
     case Label(fs) if fs.size == 1 => generate(fs.head._2)
-    // {
-    //   val tp = e.tp
-    //   handleType(tp)
-    //   val inner = fs.map{f => generate(f._2)}.mkString(", ")
-    //   s"${generateType(tp)}($inner)"
-    // }
     case Record(fs) => {
       val tp = e.tp
       handleType(tp)
@@ -148,7 +142,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Bind(rv, Reduce(e1, v1, f1, Constant(nulls)), 
       Bind(cv, CReduceBy(e2, v2, keys, values), e3)) =>
       val ftp = flatType(List(v2))
-      val nv2 = Variable.fresh(flatType(v1, (v1.size > 1 && !isDict), wrapOption = nulls.toString))
+      val nv2 = Variable.fresh(flatType(v1, /**(v1.size > 1 && !isDict),**/ wrapOption = nulls.toString))
       handleType(nv2.tp)
       val keyTps = ftp.attrTps.filter{case (attr, tp) => keys.contains(attr)}
       val flatKeys = keyTps get "_1" match {

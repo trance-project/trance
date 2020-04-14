@@ -149,6 +149,7 @@ trait SparkUtils {
     val rmap = es.zipWithIndex.flatMap{ case (e, id) => e.tp match {
       case RecordCType(ms) => if (wrapOption != "") {
         ms.map{
+          case ("index", tp) => ("index", tp)
           case (attr, btp:BagCType) if (attr == wrapOption) => (attr, OptionType(btp))
           case (attr, tp) => 
             if (id > 0 && wrapOption == "null") (attr, OptionType(tp)) else (attr, tp)
