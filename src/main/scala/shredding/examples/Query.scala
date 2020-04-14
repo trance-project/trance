@@ -47,7 +47,26 @@ trait Query extends Materialization
   }
 
   def anf(optimizationLevel: Int = 2): CExpr = {
-    val anfBase = new BaseANF{}
+    val anfBase = new BaseDFANF{}
+    val anfer = new Finalizer(anfBase)
+    optimizationLevel match {
+      case 0 => 
+        val plan = Optimizer.indexOnly(unnestOnly)
+        println("\n"+Printer.quote(plan))
+        anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
+      case 1 => 
+        val plan = Optimizer.projectOnly(unnestOnly)
+        println("\n"+Printer.quote(plan))
+        anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
+      case _ => 
+        val plan = anfBase.anf(anfer.finalize(this.unnest).asInstanceOf[anfBase.Rep])
+        // println(plan)
+        plan 
+    }
+  }
+
+  def anfDF(optimizationLevel: Int = 2): CExpr = {
+    val anfBase = new BaseDFANF{}
     val anfer = new Finalizer(anfBase)
     optimizationLevel match {
       case 0 => 

@@ -302,6 +302,66 @@ trait BaseCompiler extends Base {
 
 }
 
+trait BaseDFCompiler extends BaseCompiler {
+  override def inputref(x: String, tp: Type): Rep = InputRef(x, tp)
+
+  override def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
+    val v = Variable.freshFromBag(x.ftp) 
+    Select(x, v, p(v), e(v))
+  }
+
+  override def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
+    val v = vars(e1.ftp)
+    Reduce(e1, v, f(v), p(v))
+  }
+
+  override def reduceby(e1: Rep, g: List[String], v: List[String]): Rep = {
+    val v2 = Variable.freshFromBag(e1.ftp)
+    CReduceBy(e1, v2, g, v) 
+  }
+
+  // override def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep, dk: Boolean): Rep = {
+  //   val v1 = List(Variable.freshFromBag(e1.ftp))
+  //   val fv = f(v1) // groups
+  //   val ev = e(v1)
+  //   val v = Variable.fresh(RecordCType(fv.tp.asInstanceOf[RecordCType].attrTps + ("_2" -> ev.ftp)))
+  //   Nest(e1, v1, fv, ev, v, p(v1:+v), g(v1), dk)
+  // }
+
+  override def cogroup(e1: Rep, e2: Rep, k1: List[Rep] => Rep, k2: Rep => Rep, value: List[Rep] => Rep): Rep = {
+    val vs = vars(e1.ftp)
+    val v2 = Variable.freshFromBag(e2.ftp)
+    CoGroup(e1, e2, vs, v2, k1(vs), k2(v2), value(vs :+ v2))
+  }
+
+  override def outerunnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep, value: List[Rep] => Rep): Rep = {
+    val v1 = vars(e1.ftp)
+    val fv = f(v1) 
+    val v = Variable.freshFromBag(fv.ftp)
+    OuterUnnest(e1, v1, fv, v, p(v1 :+ v), value(v1 :+ v))
+  }
+  
+  override def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, proj1: List[Rep] => Rep, proj2: Rep => Rep): Rep = {
+    val v1 = List(Variable.freshFromBag(e1.ftp))
+    val v2 = Variable.freshFromBag(e2.ftp)
+    OuterJoin(e1, e2, v1, p1(v1), v2, p2(v2), proj1(v1), proj2(v2))
+  }
+
+  override def vars(e: Type, top: Boolean = true): List[Variable] = e match {
+    case BagCType(tup) if top => vars(tup, false)
+    // case rt:RecordCType => 
+    //   val check = rt.attrTps.map{
+    //     case (attr, RecordCType(ms1)) => 
+    //       attr -> RecordCType(ms1.map(m => m._1 -> OptionType(m._2)).toMap)
+    //     case (attr, expr) => (attr, expr)
+    //   }
+    //   List(Variable.fresh(RecordCType(check)))
+    case TTupleType(ls) if ls.size == 2 => ls.flatMap{l => vars(l, false)}
+    case _ => List(Variable.fresh(e))
+  }
+
+}
+
 /**
   * This is named the base indexer, but maybe I will make this the base 
   * compiler for pre-anf'ed bottom up optimizations. 
@@ -311,6 +371,44 @@ trait BaseDictNameIndexer extends BaseCompiler {
   override def project(e1: Rep, f: String): Rep = e1 match {
     case InputRef(n, _) if n.contains("Dict") => e1
     case _ => super.project(e1, f)
+  }
+
+}
+
+/**
+  * ANF compiler for generating scala code,
+  * uses common subexpression elimination (CSE) 
+  */
+trait BaseDFANF extends BaseANF {
+
+  override val compiler = new BaseCompiler {}
+
+  override implicit def exprToDef(e: CExpr): Def = {
+    state.get(e) match {
+      case Some(v) => Def(v)
+      case None =>
+        def updateState(c: CExpr): Def = {
+          val v = Variable.fresh(e.tp)
+          vars = vars :+ v
+          state = state + (e -> v)
+          stateInv = stateInv + (v -> e)
+          Def(v)
+        }
+        e match {
+          case r:Reduce => updateState(r)
+          case s:Select => updateState(s)
+          case j:Join => updateState(j)
+          case o:OuterJoin => updateState(o)
+          case l:Lookup => updateState(l)
+          case n:CNamed => updateState(n)
+          case c:CoGroup => updateState(c)
+          case u:Unnest => updateState(u)
+          case ou:OuterUnnest => updateState(ou)
+          case n:Nest => updateState(n)
+          case cr:CReduceBy => updateState(cr)
+          case _ => Def(e)
+      }
+    }
   }
 
 }
@@ -341,48 +439,20 @@ trait BaseANF extends Base {
     (x: List[CExpr]) => reifyBlock { fd(x.map(x2 => Def(x2))) }
   }
 
-  // implicit def exprToDef(e: CExpr): Def = {
-  //   state.get(e) match {
-  //     case Some(v) => // CSE!
-  //       Def(v)
-  //     case None =>
-  //       e match {
-  //         case Constant(_) | InputRef(_, _) => Def(e)
-	 //        case _ => 
-  //           val v = Variable.fresh(e.tp)
-  //           vars = vars :+ v
-  //           state = state + (e -> v)
-  //           stateInv = stateInv + (v -> e)
-  //           Def(v)
-  //       }
-  //   }
-  // }
-
   implicit def exprToDef(e: CExpr): Def = {
     state.get(e) match {
-      case Some(v) => Def(v)
+      case Some(v) => // CSE!
+        Def(v)
       case None =>
-        def updateState(c: CExpr): Def = {
-          val v = Variable.fresh(e.tp)
-          vars = vars :+ v
-          state = state + (e -> v)
-          stateInv = stateInv + (v -> e)
-          Def(v)
-        }
         e match {
-          case r:Reduce => updateState(r)
-          case s:Select => updateState(s)
-          case j:Join => updateState(j)
-          case o:OuterJoin => updateState(o)
-          case l:Lookup => updateState(l)
-          case n:CNamed => updateState(n)
-          case c:CoGroup => updateState(c)
-          case u:Unnest => updateState(u)
-          case ou:OuterUnnest => updateState(ou)
-          case n:Nest => updateState(n)
-          case cr:CReduceBy => updateState(cr)
-          case _ => Def(e)
-      }
+          case Constant(_) | InputRef(_, _) => Def(e)
+	        case _ => 
+            val v = Variable.fresh(e.tp)
+            vars = vars :+ v
+            state = state + (e -> v)
+            stateInv = stateInv + (v -> e)
+            Def(v)
+        }
     }
   }
 

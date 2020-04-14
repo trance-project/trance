@@ -11,7 +11,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
   implicit def expToString(e: CExpr): String = generate(e)
 
   var types: Map[Type, String] = inputs
-  var encoders: List[String] = Nil
+  var encoders: Set[String] = Set()
   override val bagtype: String = "Seq"
 
   def generateHeader(names: List[String] = List()): String = {
@@ -44,6 +44,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     s"""|$ge1.equiJoin[$gtp1$gtp2]($ge2, Seq("$p1","$p2"), "$joinType")
         | .as[$rec]
         |""".stripMargin     
+  }
+  
+  def vars(vs: List[Variable]): String = {
+    if (vs.size == 1) generate(vs.head)
+    else vs.map(generate(_)).mkString("(", ",", ")")
   }
 
   def generate(e: CExpr): String = e match {
@@ -98,126 +103,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case FlatDict(e1) => s"${generate(e1)} /** FLATTEN **/"
     case GroupDict(e1) => generate(e1) 
 
-    case Bind(nv, Nest(e1, v1, Tuple(fs), e2 @ Record(ms), v2, p, g, dk),
-      Bind(rv, Reduce(e3, vs, fs2:Record, ps), e4)) => 
-      val fv1Tp = flatType(v1, true, wrapOption = "null")
-      val fv1 = Variable.fresh(fv1Tp)
-      val gv1 = generate(fv1)
-      val key = Record(flatType(fs.asInstanceOf[List[Variable]]).attrTps.map{
-        case (attr, expr) => attr -> Project(fv1, attr)})
-      handleType(key.tp)
-      val kv1 = Variable.fresh(key.tp)
-      val gkv1 = generate(kv1)
-      val gkey = key.fields.map{
-        case (attr, Project(sv, attr2)) if (v1.size > 1) => s"$gv1._1.$attr2" 
-        case (attr, expr) => generate(expr)
-      }.mkString(s"${generateType(key.tp)}(", ",", ")")
-      // remove creduce by attributes that are null
-      val topAttrs = e2.tp.attrTps.flatMap{
-        case (attr, tp) => tp match {
-          case RecordCType(ms) => Nil
-          case _ => List(attr)
-        }
-      }.toList
-      val groupAttrs = e2.tp.attrTps.flatMap{
-        case (attr, tp) => tp match {
-          case RecordCType(ms) => ms.map(_._1)
-          case _ => List(attr)
-        }
-      }.toList
-      // from a reduce
-      if (topAttrs != groupAttrs){
-        val grecTp = RecordCType(fv1Tp.attrTps.flatMap{ case m => m match {
-          case (attr, OptionType(otp)) if topAttrs.contains(attr) => List((attr, otp))
-          case (attr, OptionType(otp)) if groupAttrs.contains(attr) => List((attr, OptionType(otp)))
-          case _ => Nil
-        }}.toMap)
-        handleType(grecTp)
-        val grecName = generateType(grecTp)
-        val grecCheckNull = fv1Tp.attrTps.map{ case m => m match {
-          case (attr, OptionType(otp)) if topAttrs.contains(attr) => "None"
-          case _ => "_"
-        }}.mkString(s"case ${generateType(fv1Tp)}(",",",") => Seq()")
-        val grecFull = fv1Tp.attrTps.filter(x => groupAttrs.contains(x._1)).map{ case m => m match {
-          case (attr, OptionType(otp)) if topAttrs.contains(attr) => s"$gv1.$attr.get"
-          case (attr, _) => s"$gv1.$attr"
-        }}.mkString(s"case _ => Seq(${grecName}(",",","))")
-        val finalFieldsType = RecordCType(fs2.tp.attrTps.map{
-          case (attr, BagCType(tp)) => (attr, BagCType(grecTp))
-          case (attr, tp) => (attr, tp)
-        })
-        handleType(finalFieldsType)
-        val finalFields = fs2.tp.attrTps.map{
-          case (attr, BagCType(tp)) => "ngroup"
-          case (attr, tp) => if (fs.size == 1) s"$gkv1.$attr" else s"$gkv1._1.$attr"
-        }.mkString(",")
-      encoders = encoders :+ grecName
-      s"""|val ${generate(rv)} = ${generate(e1)}
-          | .groupByKey($gv1 =>
-          |   ${generate(key)}).mapGroups{
-          |   case ($gkv1, group) => 
-          |     val ngroup = group.flatMap{
-          |       $gv1 => $gv1 match {
-          |         $grecCheckNull 
-          |         $grecFull
-          |       }}.toSeq
-          |     ${generateType(finalFieldsType)}($finalFields)
-          | }.as[${generateType(finalFieldsType)}]
-          |${generate(e4)}
-          |""".stripMargin
-    }else{
-      val grecTp = RecordCType(e2.tp.attrTps.map{ case m => m match {
-        case (attr, BagCType(RecordCType(ms))) => 
-        val attrs = ms.flatMap{ m => m._2 match {
-            case RecordCType(ms2) => ms2.map(m2 => (m2._1, OptionType(m2._2)))
-            case _ => List((m._1, m._2))
-        }}.toMap
-        val checkT = checkType(attrs)
-        (attr, BagCType(checkT))
-        case (attr, expr) => (attr,expr)
-      }}.toMap)
-      handleType(grecTp)
-      val grecName = generateType(grecTp)
-      val grecCheckNull = fv1Tp.attrTps.map{ case m => m match {
-        case (attr, OptionType(otp)) => "None"
-        case _ => "_"
-      }}.mkString(s"case ${generateType(fv1Tp)}(",",",") => Seq()")
-      val grecFull = e2.tp.attrTps.map{ case m => m match {
-        case (attr, BagCType(_)) => s"$gv1._2"
-        case (attr, opt) => s"$gv1._1.$attr.get"
-      }}.mkString(s"case _ => Seq(${grecName}(",",","))")
-      val finalFieldsType = RecordCType(fs2.tp.attrTps.map{
-        case (attr, BagCType(tp)) => (attr, BagCType(grecTp))
-        case (attr, tp) => (attr, tp)
-      })
-      handleType(finalFieldsType)
-      val finalFields = fs2.tp.attrTps.map{
-        case (attr, BagCType(tp)) => "ngroup"
-        case (attr, tp) => s"$gkv1.$attr"
-      }.mkString(",")
-    encoders = encoders :+ grecName
-    s"""|val ${generate(rv)} = ${generate(e1)}
-        | .groupByKey($gv1 =>
-        |   $gkey).mapGroups{
-        |   case ($gkv1, group) => 
-        |     val ngroup = group.flatMap{
-        |       $gv1 => $gv1._1 match {
-        |         $grecCheckNull 
-        |         $grecFull
-        |       }}.toSeq
-        |     ${generateType(finalFieldsType)}($finalFields)
-        | }.as[${generateType(finalFieldsType)}]
-        |${generate(e4)}
-        |""".stripMargin      
-    }
-
-    case Nest(e1, v1, Tuple(fs), e2 @ Record(ms), v2, p, g, dk) => 
-      val check = v1.last.tp match {
-        case RecordCType(ms) => ms.contains("index")
-        case _ => true
-      }
-      println(v1)
-      println(check)
+    case Nest(e1, v1, Tuple(fs), e2 @ Record(ms), v2, p, Tuple(gs), dk) => 
       val fv1Tp = flatType(v1, true, wrapOption = "null")
       handleType(fv1Tp)
       val fv1 = Variable.fresh(fv1Tp)
@@ -228,55 +114,41 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val kv1 = Variable.fresh(key.tp)
       val gkv1 = generate(kv1)
       val gkey = key.fields.map{
-        case (attr, Project(sv, attr2)) => if (check) s"$gv1._1.$attr2" else s"$gv1.$attr2"
+        case (attr, Project(sv, attr2)) => s"$gv1._1.$attr2"
         case (attr, expr) => generate(expr)
       }.mkString(s"${generateType(key.tp)}(", ",", ")")
-      // remove creduce by attributes that are null
-      val topAttrs = e2.tp.attrTps.flatMap{
-        case (attr, tp) => tp match {
-          case RecordCType(ms) => Nil
-          case _ => List(attr)
-        }
-      }.toList
-      val groupAttrs = e2.tp.attrTps.flatMap{
-        case (attr, tp) => tp match {
-          case RecordCType(ms) => ms.map(_._1)
-          case _ => List(attr)
-        }
-      }.toList
-      val grecTp = RecordCType(fv1Tp.attrTps.flatMap{ case m => m match {
-        case (attr, OptionType(otp)) if topAttrs.contains(attr) => List((attr, otp))
-        case (attr, OptionType(otp)) if groupAttrs.contains(attr) => List((attr, OptionType(otp)))
-        case _ => Nil
-      }}.toMap)
-      handleType(grecTp)
-      val grecName = generateType(grecTp)
-      val grecCheckNull = fv1Tp.attrTps.map{ case m => m match {
-        case (attr, OptionType(otp)) if topAttrs.contains(attr) => "None"
-        case _ => "_"
-      }}.mkString(s"case ${generateType(fv1Tp)}(",",",") => Seq()")
-      val grecFull = fv1Tp.attrTps.filter(x => groupAttrs.contains(x._1)).map{ case m => m match {
-        case (attr, OptionType(otp)) if topAttrs.contains(attr) => s"$gv1.$attr.get"
-        case (attr, _) => s"$gv1.$attr"
-      }}.mkString(s"case _ => Seq(${grecName}(",",","))")
-      encoders = encoders :+ grecName
+      handleType(e2.tp)
+      val tops = ms.filter(_._2 match { case v:Variable => false; case _ => true})
+      val grecFull = ms.map{
+        case (attr, Variable(n, rtp @ RecordCType(rs))) => 
+          encoders = encoders + generateType(rtp)
+          rs.map{ case r => s"$gv1._2.${r._1} match { case Some(v) => v; case _ => ${castNull(r._2)} }" }.mkString(s"${generateType(rtp)}(",",",")")
+        case (attr, Variable(n, BagCType(rtp @ RecordCType(rs)))) => 
+          encoders = encoders + generateType(rtp)
+          val srec = rs.map{ case r => s"$n.${r._1}" }.mkString(s"${generateType(rtp)}(",",",")")
+          s"$gv1._2.map($n => $srec)"
+        case (attr, Project(_, attr2)) => s"$gv1._1.$attr2.get"
+      }.mkString(s"Seq(${generateType(e2.tp)}(",",","))")
+      encoders = encoders + generateType(e2.tp)
       s"""|${generate(e1)}
           | .groupByKey($gv1 =>
           |   $gkey).mapGroups{
           |   case ($gkv1, group) => 
           |     val ngroup = group.flatMap{
-          |       $gv1 => $gv1 match {
-          |         $grecCheckNull 
-          |         $grecFull
-          |       }}.toSeq
+          |       $gv1 => $gv1${getIndex(v1, tops.head._1)}.${tops.head._1} match {
+          |         case None => Seq()
+          |         case _ => $grecFull
+          |        }
+          |     }.toSeq
           |   ($gkv1, ngroup)
           |}
-          |""".stripMargin
+          |""".stripMargin          
 
     case Bind(rv, Reduce(e1, v1, f1, Constant(nulls)), 
       Bind(cv, CReduceBy(e2, v2, keys, values), e3)) =>
       val ftp = flatType(List(v2))
       val nv2 = Variable.fresh(flatType(v1, v1.size > 1, wrapOption = nulls.toString))
+      handleType(nv2.tp)
       val keyTps = ftp.attrTps.filter{case (attr, tp) => keys.contains(attr)}
       val flatKeys = keyTps("_1") match {
         case t:TTupleType => getTypeMap(t) ++ (keyTps - "_1")
@@ -284,16 +156,20 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         }
       val fkey = Record(flatKeys.map{case (attr, tp) => attr -> Project(nv2, attr)})
       val agg = "x" + Variable.newId()
-      val frec = Record(fkey.fields + (values.head -> COption(Variable(agg, ftp.attrTps(values.head)))))
+      val vrecOption = Record(fkey.fields.filter(f => keys.contains(f._1))
+       + (values.head -> COption(Variable(agg, ftp.attrTps(values.head)))))
+      val gvrec = generate(vrecOption)
+      val frec = Record(fkey.fields.filter(f => !keys.contains(f._1)) - values.head)
       val gfrec = generate(frec)
+      encoders = encoders + generateType(vrecOption.tp)
       s"""|val ${generate(cv)} = ${generate(e1)}.groupByKey(${generate(nv2)} => 
           | ${generate(fkey)}).agg(
           |   typed.sum[${generateType(nv2.tp)}](
           |     x => x.${values.head} match {
           |       case Some(r) => r; case _ => ${zero(ftp.attrTps(values.head))}
           |   })).mapPartitions(
-          |     it => it.map{ case (${generate(nv2)}, $agg) => $gfrec
-          | }).as[${generateType(frec.tp)}]
+          |     it => it.map{ case (${generate(nv2)}, $agg) => ($gfrec, $gvrec)
+          | })
           |${generate(e3)}
           |"""
 
@@ -318,6 +194,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
             | .as[${generateType(v1.tp)}].flatMap{
             |   case ${generate(v1)} => $path match {
             |     case None => Seq($gnrec)
+            |     case Some(bag) if bag.isEmpty => Seq($gnrec)
             |     case Some(bag) => bag.map( ${generate(nv2)} => $gfrec )
             | }}.as[${generateType(frec.tp)}]
             |""".stripMargin
@@ -343,7 +220,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           case _ => (attr, value)
         }
       })
-      encoders = encoders :+ generateType(value.tp)
+      encoders = encoders + generateType(value.tp)
       s"""|val ${generate(rv)} = ${generate(e1)}.cogroup($ge2, ${generate(pv1)} => ${generate(k1)})(
           |   (_, $ve1, $ve2) => {
           |     val $ve3 = $ve2.map($gv2 => $gv2Rec).toSeq
@@ -373,7 +250,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         case v:Variable => s"$ve3"
         case _ => ???
       }}.mkString(s"$gnrecName2(", ",", ")")
-      encoders = encoders :+ generateType(nrec.tp)
+      encoders = encoders + generateType(nrec.tp)
       s"""|val $glv = ${generate(e1)}.cogroup($ge2.groupByKey(x => x._1), ${generate(v1)} => ${generate(p1)})(
           |   (_, $ve1, $ve2) => {
           |     val $ve3 = $ve2.map(${generate(v2)} => $gnrec).toSeq
@@ -387,6 +264,18 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Reduce(InputRef(n, _), v, Variable(_,_), Constant(true)) => n
     case Reduce(FlatDict(i), v, Variable(_,_), Constant(true)) => generate(i)
     case Reduce(Variable(n, _), v, Variable(_,_), Constant(true)) => n
+    
+    /** PROJECT **/
+    case Reduce(e1, v, f @ Record(fs), Constant(true)) if v.size > 1 =>
+      val fTp = wrapOption(f.tp)
+      println(fTp)
+      handleType(fTp)
+      val rec = s"${generateType(fTp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
+      val v1s = vars(v)
+      s"""|${generate(e1)}.mapPartitions{ it => it.map{
+          | case $v1s => $rec
+          |}}.as[${generateType(fTp)}]
+          |""".stripMargin
 
     /** PROJECT **/
     case Reduce(e1, v, f @ Record(_), Constant(true)) =>

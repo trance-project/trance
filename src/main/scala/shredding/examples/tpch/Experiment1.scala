@@ -513,7 +513,7 @@ object Test1NN extends TPCHBase {
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("O", "L", "P").contains(x._1)).values.toList.mkString("")}"
  
-  val (orders, orderRef) = varset(Test1Full.name, "o", Test1Full.program(Test1Full.name).varRef.asInstanceOf[BagExpr])
+  val (orders, orderRef) = varset(Test1.name, "o", Test1.program(Test1.name).varRef.asInstanceOf[BagExpr])
   val (parts, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
   val query = 
     ForeachUnion(orderRef, orders,
@@ -559,7 +559,7 @@ object Test2NN extends TPCHBase {
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
  
-  val (customers, customerRef) = varset(Test2Full.name, "c", Test2Full.program(Test2Full.name).varRef.asInstanceOf[BagExpr])
+  val (customers, customerRef) = varset(Test2.name, "c", Test2.program(Test2.name).varRef.asInstanceOf[BagExpr])
   val (orders, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
   val (parts, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
   val query = 

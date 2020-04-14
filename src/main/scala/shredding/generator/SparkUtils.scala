@@ -31,13 +31,21 @@ trait SparkUtils {
     case _ => "null"
   }
 
+  def castNull(e: Type): String = e match {
+    case IntType => "-1"
+    case DoubleType => "0.0"
+    case _ => "null"
+  }
+
   def zero(e: CExpr): String = e.tp match {
+    case OptionType(tp) => zero(tp)
     case IntType => "0"
     case DoubleType => "0.0"
     case _ => "null"
   } 
 
   def zero(e: Type): String = e match {
+    case OptionType(tp) => zero(tp)
     case IntType => "0"
     case DoubleType => "0.0"
     case _ => "null"
@@ -170,6 +178,32 @@ trait SparkUtils {
     case BagCType(tup) => tup
     case MatDictCType(lbl, bag) => RecordCType(getTypeMap(lbl) ++ getTypeMap(bag))
     case _ => ???
+  }
+
+  def addIndex(e: Type): RecordCType = e match {
+    case BagCType(RecordCType(ms)) => RecordCType(ms + ("index" -> LongType))
+    case RecordCType(ms) => RecordCType(ms + ("index" -> LongType))
+    case _ => ???
+  }
+
+  def wrapOption(e: Type, f: String = ""): Type = e match {
+    case RecordCType(ms1) => RecordCType(ms1.map{
+      case (attr, RecordCType(ms2)) => 
+        (attr, RecordCType(ms2.map(m => m._1 -> OptionType(m._2))))
+      case (attr, rtp) => (attr, rtp)
+    })
+    case _ => e
+  }
+
+  def getIndex(vs: List[Variable], f: String): String = {
+    val len = vs.size - 1
+    vs.zipWithIndex.foreach{
+      case (variable, index) => 
+        if (getTypeMap(variable.tp).keySet(f)) 
+          if (index < len) return "._1"
+          else return "._2"
+    }
+    return "";
   }
 
 }

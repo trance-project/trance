@@ -10,6 +10,7 @@ import shredding.core._
 
 trait CExpr {
   def tp: Type
+  def ftp: Type = tp
   def nullValue: CExpr = tp match {
     case IntType => Constant(-1)
     case DoubleType => Constant(-1.0)
@@ -195,6 +196,7 @@ case class CReduceBy(e1: CExpr, v1: Variable, keys: List[String], values: List[S
       BagCType(TTupleType(fs :+ RecordCType((e1Tp.attrTps - "_1") ++ valuesTp.attrTps)))
     case _ => BagCType(RecordCType(keysTp.attrTps ++ valuesTp.attrTps))
   }
+
 }
 
 case class CGroupBy(e1: CExpr, v1: Variable, keys: List[String], values: List[String]) extends CExpr with CombineOp {
@@ -313,6 +315,18 @@ case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
     case rt:RecordCType => BagCType(rt)
     case _ => x.tp
   }
+  override def ftp: Type = e.tp match {
+    case RecordCType(ms) => ms get "_1" match {
+      case Some(TTupleType(ls)) => 
+        val inner = ls.flatMap{l => l match {
+          case RecordCType(ms1) => ms1 
+          case _ => ???
+        }}.toMap
+        BagCType(RecordCType(inner ++ (ms - "_1")))
+      case _ => BagCType(RecordCType(ms))
+    }
+    case _ => tp
+  }
   override def wvars = List(v)
 }
 
@@ -321,6 +335,15 @@ case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CEx
     case t:RecordCType => BagCType(t)
     case t:TTupleType => BagCType(t)
     case t => t
+  }
+  override def ftp: Type = e2.ftp match {
+    case RecordCType(ms) => ms get "_1" match {
+      case Some(a) => 
+        BagCType(RecordCType(Map("_1" -> a) ++
+          (ms - "_1").map{ case (attr, expr) => (attr, OptionType(expr))}))
+      case _ => BagCType(RecordCType(ms))
+    }
+    case _ => ???
   }
   override def wvars = e1.wvars
 }
@@ -376,6 +399,16 @@ case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p
       BagCType(TTupleType(List(dropOld, unnestedBag)))
     case _ => ???
   }
+  override def ftp: BagCType = e1.tp match {
+    case BagCType(RecordCType(fs)) => 
+      val unnestedBag = value.tp match {
+        case RecordCType(ls) => ls.map(m => m._1 -> OptionType(m._2))
+        case _ => ???
+      }
+      val dropOld = Map("index" -> LongType) ++ (fs - bagproj)
+      BagCType(RecordCType(dropOld ++ unnestedBag))
+    case _ => sys.error(s"not supported ${e1.tp}")
+  }
   override def wvars = e1.wvars :+ v2
 }
 
@@ -402,6 +435,10 @@ case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable,
 case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, proj1: CExpr, proj2: CExpr) extends CExpr {
   // def tp: BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
   def tp: BagCType = BagCType(TTupleType(List(proj1.tp, proj2.tp)))
+  override def ftp: BagCType = (e1.ftp, e2.ftp) match {
+    case (BagCType(RecordCType(ms1)), BagCType(RecordCType(ms2))) => BagCType(RecordCType(ms1 ++ ms2.map(m => m._1 -> OptionType(m._2))))
+    case _ => sys.error(s"issue with ${proj1.ftp} ${proj2.ftp}")
+  }
   override def wvars = {
     e1.wvars :+ v2
   }
@@ -431,8 +468,7 @@ case class Lookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Varia
 
 // omitting filter for now
 // and nulls
-case class CoGroup(e1: CExpr, e2: CExpr, v1: List[Variable], v2: Variable, k1: CExpr, 
-  k2: CExpr, value: CExpr) extends CExpr {
+case class CoGroup(e1: CExpr, e2: CExpr, v1: List[Variable], v2: Variable, k1: CExpr, k2: CExpr, value: CExpr) extends CExpr {
   def tp:BagCType = e1.tp match {
     case BagCType(tup) => BagCType(TTupleType(List(tup, BagCType(value.tp))))
     case _ => ???

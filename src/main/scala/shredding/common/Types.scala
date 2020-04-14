@@ -100,7 +100,7 @@ case class TypeSet(tp: Map[Type, String]) extends Type
 
 case class SetType(tp: Type) extends Type
 
-case class OptionType(tp: Type) extends Type
+case class OptionType(tp: Type) extends Type 
 
 case class BagCType(tp: Type) extends Type {
   override def isDict: Boolean = tp match {
