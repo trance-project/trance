@@ -278,7 +278,7 @@ object TPCHSchema {
   }
 
   def loadLineSkew(tbl: String, tblname: String, df: String = ""): String = {
-      val eval = if (df == "DF") s"$tbl.count" 
+      val eval = if (df == "DF") s"${tbl}_L.count" 
       else s"spark.sparkContext.runJob(${tbl}_L, (iter: Iterator[_]) => {})"
       val empty = if (df == "DF") s"Seq.empty[$tblname].toDS()"
       else s"spark.sparkContext.emptyRDD[$tblname]"
