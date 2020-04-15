@@ -44,12 +44,13 @@ trait SparkUtils {
     case _ => "null"
   } 
 
-  def zero(e: Type): String = e match {
+  def zero(e: Type, df: Boolean = false): String = e match {
     case OptionType(tp) => zero(tp)
     case IntType => "0"
     case DoubleType => "0.0"
     case _ => "null"
-  } 
+
+  }  
 
   def empty(e: CExpr): String = e.tp match {
     case IntType => "0"
@@ -145,14 +146,15 @@ trait SparkUtils {
     RecordCType(getTypeMap(e1) ++ getTypeMap(e2, outer))
   }
 
-  def flatType(es: List[Variable], index: Boolean = false, wrapOption: String = ""): RecordCType = {
+  def flatType(es: List[Variable], index: Boolean = false, wrapOption: String = "", wrapNested: Boolean = false): RecordCType = {
     val rmap = es.zipWithIndex.flatMap{ case (e, id) => e.tp match {
       case RecordCType(ms) => if (wrapOption != "") {
         ms.map{
           case ("index", tp) => ("index", tp)
           case (attr, btp:BagCType) if (attr == wrapOption) => (attr, OptionType(btp))
-          case (attr, tp) => 
-            if (id > 0 && wrapOption == "null") (attr, OptionType(tp)) else (attr, tp)
+          case (attr, tp) if (id > 0 && wrapOption == "null") => (attr, OptionType(tp))
+          case (attr, tp) if (id > 0 && wrapNested) => (attr, OptionType(tp))
+          case (attr, tp) => (attr, tp)
         }.toList
       }else ms.toList
       case _ => Nil //sys.error(s"not supported ${e.tp}")

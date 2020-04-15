@@ -18,9 +18,9 @@ object App {
     // runExperiment1FN()
     // exp2.0
     // exp2.1
-    // runExperiment1NN()
+    runExperiment1NN()
     // exp3.0
-    runExperiment2FN()
+    // runExperiment2FN()
     // runExperiment2NN()
     // // exp2.0
     // runExperiment2()
@@ -217,43 +217,43 @@ object App {
   }
 
   def runExperiment2NN(){
-    val pathout = "experiments/exp2.1"
+    val pathout = "spark/src/main/scala/sprkloader/experiments"
 
-    Utils.flatOptInput(Test0, Test0NN, pathout, "Flat++,0,Standard")
-    Utils.flatOptInput(Test1, Test1NN, pathout, "Flat++,1,Standard")
-    Utils.flatOptInput(Test2Flat, Test2NN, pathout, "Flat++,2,Standard")
-    Utils.flatOptInput(Test3Flat, Test3NN, pathout, "Flat++,3,Standard")
-    Utils.flatOptInput(Test4Flat, Test4NN, pathout, "Flat++,4,Standard")
+    // Utils.runDatasetInput(Test0Full, Test0NN, pathout, "Flat++,0", skew = true)
+    // Utils.runDatasetInput(Test1Full, Test1NN, pathout, "Flat++,1", skew = true)
+    Utils.runDatasetInput(Test2FullFlat, Test2NN, pathout, "Flat++,2", skew = true)
+    // Utils.runDatasetInput(Test3FullFlat, Test3NN, pathout, "Flat++,3", skew = true)
+    // Utils.runDatasetInput(Test4FullFlat, Test4NN, pathout, "Flat++,4", skew = true)
 
-    Utils.flatOptInput(Test0, Test0NN, pathout, "Flat++,0,Skew", skew = true)
-    Utils.flatOptInput(Test1, Test1NN, pathout, "Flat++,1,Skew", skew = true)
-    Utils.flatOptInput(Test2Flat, Test2NN, pathout, "Flat++,2,Skew", skew = true)
-    Utils.flatOptInput(Test3Flat, Test3NN, pathout, "Flat++,3,Skew", skew = true)
-    Utils.flatOptInput(Test4Flat, Test4NN, pathout, "Flat++,4,Skew", skew = true)
+    // Utils.runDatasetInput(Test0Full, Test0FullNN, pathout, "Flat++,0", skew = true)
+    // Utils.runDatasetInput(Test1Full, Test1FullNN, pathout, "Flat++,1", skew = true)
+    // Utils.runDatasetInput(Test2FullFlat, Test2FullNN, pathout, "Flat++,2", skew = true)
+    // Utils.runDatasetInput(Test3FullFlat, Test3FullNN, pathout, "Flat++,3", skew = true)
+    // Utils.runDatasetInput(Test4FullFlat, Test4FullNN, pathout, "Flat++,4", skew = true)
 
-    Utils.shredInput(Test0, Test0NN, pathout, "Shred,0,Standard")
-    Utils.shredInput(Test1, Test1NN, pathout, "Shred,1,Standard")
-    Utils.shredInput(Test2, Test2NN, pathout, "Shred,2,Standard")
-    Utils.shredInput(Test3, Test3NN, pathout, "Shred,3,Standard")
-    Utils.shredInput(Test4, Test4NN, pathout, "Shred,4,Standard")
+    // Utils.runDatasetInputShred(Test0Full, Test0NN, pathout, "Shred,0", skew = true)
+    // Utils.runDatasetInputShred(Test1Full, Test1NN, pathout, "Shred,1", skew = true)
+    Utils.runDatasetInputShred(Test2Full, Test2NN, pathout, "Shred,2", skew = true)
+    // Utils.runDatasetInputShred(Test3Full, Test3NN, pathout, "Shred,3", skew = true)
+    // Utils.runDatasetInputShred(Test4Full, Test4NN, pathout, "Shred,4", skew = true)
 
-    Utils.shredInput(Test0, Test0NN, pathout, "Shred,0,Standard", unshred=true)
-    Utils.shredInput(Test1, Test1NN, pathout, "Shred,1,Standard", unshred=true)
-    Utils.shredInput(Test2, Test2NN, pathout, "Shred,2,Standard", unshred=true)
-    Utils.shredInput(Test3, Test3NN, pathout, "Shred,3,Standard", unshred=true)
-    Utils.shredInput(Test4, Test4NN, pathout, "Shred,4,Standard", unshred=true)
+    // Utils.runDatasetInputShred(Test0Full, Test0NN, pathout, "Shred,0", unshred=true, skew = true)
+    // Utils.runDatasetInputShred(Test1Full, Test1NN, pathout, "Shred,1", unshred=true, skew = true)
+    // Utils.runDatasetInputShred(Test2Full, Test2NN, pathout, "Shred,2", unshred=true, skew = true)
+    // Utils.runDatasetInputShred(Test3Full, Test3NN, pathout, "Shred,3", unshred=true, skew = true)
+    // Utils.runDatasetInputShred(Test4Full, Test4NN, pathout, "Shred,4", unshred=true, skew = true)
 
-    Utils.shredInput(Test0, Test0NN, pathout, "Shred,0,Skew", skew = true)
-    Utils.shredInput(Test1, Test1NN, pathout, "Shred,1,Skew", skew = true)
-    Utils.shredInput(Test2, Test2NN, pathout, "Shred,2,Skew", skew = true)
-    Utils.shredInput(Test3, Test3NN, pathout, "Shred,3,Skew", skew = true)
-    Utils.shredInput(Test4, Test4NN, pathout, "Shred,4,Skew", skew = true)
+    // Utils.runDatasetInputShred(Test0Full, Test0FullNN, pathout, "Shred,0", skew = true)
+    // Utils.runDatasetInputShred(Test1Full, Test1FullNN, pathout, "Shred,1", skew = true)
+    // Utils.runDatasetInputShred(Test2Full, Test2FullNN, pathout, "Shred,2", skew = true)
+    // Utils.runDatasetInputShred(Test3Full, Test3FullNN, pathout, "Shred,3", skew = true)
+    // Utils.runDatasetInputShred(Test4Full, Test4FullNN, pathout, "Shred,4", skew = true)
 
-    Utils.shredInput(Test0, Test0NN, pathout, "Shred,0,Skew", unshred=true, skew = true)
-    Utils.shredInput(Test1, Test1NN, pathout, "Shred,1,Skew", unshred=true, skew = true)
-    Utils.shredInput(Test2, Test2NN, pathout, "Shred,2,Skew", unshred=true, skew = true)
-    Utils.shredInput(Test3, Test3NN, pathout, "Shred,3,Skew", unshred=true, skew = true)
-    Utils.shredInput(Test4, Test4NN, pathout, "Shred,4,Skew", unshred=true, skew = true)
+    // Utils.runDatasetInputShred(Test0Full, Test0FullNN, pathout, "Shred,0", unshred=true, skew = true)
+    // Utils.runDatasetInputShred(Test1Full, Test1FullNN, pathout, "Shred,1", unshred=true, skew = true)
+    // Utils.runDatasetInputShred(Test2Full, Test2FullNN, pathout, "Shred,2", unshred=true, skew = true)
+    // Utils.runDatasetInputShred(Test3Full, Test3FullNN, pathout, "Shred,3", unshred=true, skew = true)
+    // Utils.runDatasetInputShred(Test4Full, Test4FullNN, pathout, "Shred,4", unshred=true, skew = true)
   }
 
   def runExperiment2(){

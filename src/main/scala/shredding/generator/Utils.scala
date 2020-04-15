@@ -222,7 +222,7 @@ object Utils {
   def runDataset(query: Query, pathout: String, label: String, 
     optLevel: Int = 2, skew: Boolean = false): Unit = {
     
-    val codegen = new SparkDatasetGenerator(false, false, isDict = false)//,inputs = query.inputTypes(false))
+    val codegen = new SparkDatasetGenerator(false, false, isDict = false, skew = skew)//,inputs = query.inputTypes(false))
     val gcode = codegen.generate(query.anf(optLevel))
     val header = s"""|${codegen.generateHeader(query.headerTypes(false))}""".stripMargin
     val encoders = codegen.generateEncoders()
@@ -246,9 +246,9 @@ object Utils {
   def runDatasetInput(inputQuery: Query, query: Query, pathout: String, label: String, 
     optLevel: Int = 2, skew: Boolean = false): Unit = {
     
-    val codegenInput = new SparkDatasetGenerator(true, false, isDict = false)//,inputs = query.inputTypes(false))
+    val codegenInput = new SparkDatasetGenerator(true, false, isDict = false, skew = skew)//,inputs = query.inputTypes(false))
     val inputCode = codegenInput.generate(inputQuery.anf()) 
-    val codegen = new SparkDatasetGenerator(false, true, isDict = false, inputs = codegenInput.types) 
+    val codegen = new SparkDatasetGenerator(false, true, isDict = false, inputs = codegenInput.types, skew = skew) 
     val gcode = codegen.generate(query.anf(optLevel))
     val header = s"""|${codegen.generateHeader(query.headerTypes(false))}""".stripMargin
     val encoders = codegenInput.generateEncoders() + "\n" + codegen.generateEncoders()

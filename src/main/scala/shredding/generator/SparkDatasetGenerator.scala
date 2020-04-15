@@ -180,7 +180,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
     // shouldn't be called by shredded evaluation
     case OuterUnnest(e1, v1s, p1 @ Project(_, f), v2, p, value) => 
-      val v1 = Variable.fresh(flatType(v1s, index = true, wrapOption = {if (v1s.size > 1) f else ""}))
+      val v1 = Variable.fresh(flatType(v1s, index = true, wrapOption = {if (v1s.size > 1) f else ""}, wrapNested = true))
       val path = generate(Project(v1, f))
       handleType(v1.tp)
       val nv2 = Variable.fresh(value.tp)
@@ -196,7 +196,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
             |}.as[${generateType(frec.tp)}]
             |""".stripMargin
       }else{
-        s"""|${generate(e1)}.withColumn("index", monotonically_increasing_id())
+        s"""|/** 
+            | ${v1s}
+            | ${v1.tp} 
+            |**/
+            |${generate(e1)}.withColumn("index", monotonically_increasing_id())
             | .as[${generateType(v1.tp)}].flatMap{
             |   case ${generate(v1)} => $path match {
             |     case None => Seq($gnrec)

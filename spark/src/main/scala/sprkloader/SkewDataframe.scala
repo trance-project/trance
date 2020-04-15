@@ -6,6 +6,7 @@ import scala.collection.mutable.HashMap
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.expressions.scalalang._
 import PairRDDOperations._
 
 object SkewDataset{
@@ -33,6 +34,10 @@ object SkewDataset{
     def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag, K](right: KeyValueGroupedDataset[K, S], key1: (T) => K)
       (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R])(implicit arg0: Encoder[K]): Dataset[R] =
         left.groupByKey(key1).cogroup(right)(f)
+
+    // def reduceByKey[S: Encoder, K: Encoder](key: (T) => K, value: (T) => S): Dataset[(K, S)] = {
+    //   left.groupByKey(key).agg[S](typed.sum[T, S](value))
+    // }
 
   }
 
@@ -116,6 +121,18 @@ object SkewDataset{
 
     }
 
+    def mapPartitions[U: Encoder : ClassTag](func: (Iterator[T]) ⇒ Iterator[U]): (Dataset[U], Dataset[U]) = {
+      (light, heavy).mapPartitions(func)
+    }
+
+    def flatMap[U: Encoder : ClassTag](func: (T) ⇒ TraversableOnce[U]): (Dataset[U], Dataset[U], Option[String], Broadcast[Set[K]]) = {
+      (light.flatMap(func), heavy.flatMap(func), key, heavyKeys)
+    }
+
+    // def reduceByKey[S: Encoder, K: Encoder](key: (T) => K, value: (T) => S): (Dataset[(K, S)], Dataset[(K, S)]) = {
+    //   (light, heavy).reduceByKey(key, value)
+    // }
+
     def groupByKey(f: (T) => K)(implicit arg0: Encoder[(K, T)]): (KeyValueGroupedDataset[K, T], KeyValueGroupedDataset[K, T], Broadcast[Set[K]]) = {
       if (heavyKeys.value.nonEmpty){
         (light.groupByKey(f), heavy.groupByKey(f), heavyKeys)
@@ -125,7 +142,7 @@ object SkewDataset{
     def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag](right: (KeyValueGroupedDataset[K, S], KeyValueGroupedDataset[K, S], Broadcast[Set[K]]), 
       key1: (T) => K)(f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R]): (Dataset[R], Dataset[R]) = (light, heavy).cogroup(right, key1)(f)
 
-    def equiJoin[S: Encoder : ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String]): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
+    def equiJoin[S: Encoder : ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String], joinType: String = "inner"): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
       // using a heavy key
       val hkeys = key match {
         case Some(k) if usingColumns.contains(k) => heavyKeys
@@ -135,13 +152,13 @@ object SkewDataset{
         val rkey = usingColumns(1)
         val runion = right.union
         val rlight = runion.lfilter(col(rkey), hkeys)
-        val lresult = light.join(rlight, col(key.get) === col(rkey))
+        val lresult = light.join(rlight, col(key.get) === col(rkey), joinType)
 
-        val hresult = heavy.join(runion.hfilter(col(rkey), hkeys).hint("broadcast"), col(key.get) === col(rkey))
+        val hresult = heavy.join(runion.hfilter(col(rkey), hkeys).hint("broadcast"), col(key.get) === col(rkey), joinType)
         (lresult, hresult, key, hkeys)
       // using a key we know is not heavy
       }else{
-        (light, heavy).equiJoin[S, K](right, usingColumns)
+        (light, heavy).equiJoin[S, K](right, usingColumns, joinType)
       }
 
     }
@@ -256,6 +273,19 @@ object SkewDataset{
       (dfull, keys)
     }
 
+    def mapPartitions[U: Encoder : ClassTag](func: (Iterator[T]) ⇒ Iterator[U]): (Dataset[U], Dataset[U]) = {
+      (light.mapPartitions(func), heavy.mapPartitions(func))
+    }
+
+    def flatMap[U: Encoder : ClassTag](func: (T) ⇒ TraversableOnce[U]): (Dataset[U], Dataset[U]) = {
+      (light.flatMap(func), heavy.flatMap(func))
+    }
+
+    // def reduceByKey[S: Encoder, K: Encoder](key: (T) => K, value: (T) => S): (Dataset[(K, S)], Dataset[(K, S)]) = {
+    //   val result = dfs.union.reduceByKey(key, value)
+    //   (result, result.empty)
+    // }
+
     def groupByKey[K: Encoder : ClassTag](f: (T) => K)(implicit arg0: Encoder[(K, T)]): (KeyValueGroupedDataset[K, T], KeyValueGroupedDataset[K, T], Broadcast[Set[K]]) = {
       val (dfull, hk) = heavyKeys[K](f)
       if (hk.nonEmpty){
@@ -285,15 +315,15 @@ object SkewDataset{
 
       }
 
-    def equiJoin[S: Encoder : ClassTag, K: ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String])(implicit arg0: Encoder[K]): 
+    def equiJoin[S: Encoder : ClassTag, K: ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String], joinType: String = "inner")(implicit arg0: Encoder[K]): 
     (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
       val nkey = usingColumns(0)
       val (dfull, hk) = heavyKeys[K](nkey)
       if (hk.nonEmpty){
         val hkeys = dfull.sparkSession.sparkContext.broadcast(hk)
-        (dfull.lfilter[K](col(nkey), hkeys), dfull.hfilter[K](col(nkey), hkeys), Some(nkey), hkeys).equiJoin(right, usingColumns)
+        (dfull.lfilter[K](col(nkey), hkeys), dfull.hfilter[K](col(nkey), hkeys), Some(nkey), hkeys).equiJoin(right, usingColumns, joinType)
       }else{
-        (dfull.equiJoin(right.union, usingColumns), light.emptyDF, Some(nkey), light.sparkSession.sparkContext.broadcast(Set.empty[K]))
+        (dfull.equiJoin(right.union, usingColumns, joinType), light.emptyDF, Some(nkey), light.sparkSession.sparkContext.broadcast(Set.empty[K]))
       }
     }
 
