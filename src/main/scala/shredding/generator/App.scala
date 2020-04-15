@@ -18,9 +18,9 @@ object App {
     // runExperiment1FN()
     // exp2.0
     // exp2.1
-    runExperiment1NN()
+    // runExperiment1NN()
     // exp3.0
-    // runExperiment2FN()
+    runExperiment2FN()
     // runExperiment2NN()
     // // exp2.0
     // runExperiment2()
@@ -179,40 +179,40 @@ object App {
 
     val pathout = "spark/src/main/scala/sprkloader/experiments"
 
-    Utils.flatDataset(Test0, pathout, "Flat++,0", skew = true)
-    Utils.flatDataset(Test0Full, pathout, "Flat++,0", skew = true)
-    Utils.flatDataset(Test1, pathout, "Flat++,1", skew = true)
-    Utils.flatDataset(Test1Full, pathout, "Flat++,1", skew = true)
-    Utils.flatDataset(Test2Flat, pathout, "Flat++,2", skew = true)
-    Utils.flatDataset(Test2FullFlat, pathout, "Flat++,2", skew = true)
-    Utils.flatDataset(Test3Flat, pathout, "Flat++,3", skew = true)
+    Utils.flatDataset(Test0, pathout, "Flat++,Skew,0", skew = true)
+    Utils.flatDataset(Test0Full, pathout, "Flat++,Skew,0", skew = true)
+    Utils.flatDataset(Test1, pathout, "Flat++,Skew,1", skew = true)
+    Utils.flatDataset(Test1Full, pathout, "Flat++,Skew,1", skew = true)
+    Utils.flatDataset(Test2Flat, pathout, "Flat++,Skew,2", skew = true)
+    Utils.flatDataset(Test2FullFlat, pathout, "Flat++,Skew,2", skew = true)
+    Utils.flatDataset(Test3Flat, pathout, "Flat++,Skew,3", skew = true)
     Utils.flatDataset(Test3FullFlat, pathout, "Flat++,3", skew = true)
-    Utils.flatDataset(Test4Flat, pathout, "Flat++,4", skew = true)
-    Utils.flatDataset(Test4FullFlat, pathout, "Flat++,4", skew = true)
+    Utils.flatDataset(Test4Flat, pathout, "Flat++,Skew,4", skew = true)
+    Utils.flatDataset(Test4FullFlat, pathout, "Flat++,Skew,4", skew = true)
 
-    Utils.shredDataset(Test0, pathout, "Shred,0", skew = true)
-    Utils.shredDataset(Test1, pathout, "Shred,1", skew = true)
-    Utils.shredDataset(Test2, pathout, "Shred,2", skew = true)
-    Utils.shredDataset(Test3, pathout, "Shred,3", skew = true)
-    Utils.shredDataset(Test4, pathout, "Shred,4", skew = true)
+    Utils.shredDataset(Test0, pathout, "Shred,Skew,0", skew = true)
+    Utils.shredDataset(Test1, pathout, "Shred,Skew,1", skew = true)
+    Utils.shredDataset(Test2, pathout, "Shred,Skew,2", skew = true)
+    Utils.shredDataset(Test3, pathout, "Shred,Skew,3", skew = true)
+    Utils.shredDataset(Test4, pathout, "Shred,Skew,4", skew = true)
 
-    Utils.shredDataset(Test0Full, pathout, "Shred,0", skew = true)
-    Utils.shredDataset(Test1Full, pathout, "Shred,1", skew = true)
-    Utils.shredDataset(Test2Full, pathout, "Shred,2", skew = true)
-    Utils.shredDataset(Test3Full, pathout, "Shred,3", skew = true)
-    Utils.shredDataset(Test4Full, pathout, "Shred,4", skew = true)
+    Utils.shredDataset(Test0Full, pathout, "Shred,Skew,0", skew = true)
+    Utils.shredDataset(Test1Full, pathout, "Shred,Skew,1", skew = true)
+    Utils.shredDataset(Test2Full, pathout, "Shred,Skew,2", skew = true)
+    Utils.shredDataset(Test3Full, pathout, "Shred,Skew,3", skew = true)
+    Utils.shredDataset(Test4Full, pathout, "Shred,Skew,4", skew = true)
 
-    Utils.shredDataset(Test0, pathout, "Shred,0", unshred=true, skew = true)
-    Utils.shredDataset(Test1, pathout, "Shred,1", unshred=true, skew = true)
-    Utils.shredDataset(Test2, pathout, "Shred,2", unshred=true, skew = true)
-    Utils.shredDataset(Test3, pathout, "Shred,3", unshred=true, skew = true)
-    Utils.shredDataset(Test4, pathout, "Shred,4", unshred=true, skew = true)
+    Utils.shredDataset(Test0, pathout, "Shred,Skew,0", unshred=true, skew = true)
+    Utils.shredDataset(Test1, pathout, "Shred,Skew,1", unshred=true, skew = true)
+    Utils.shredDataset(Test2, pathout, "Shred,Skew,2", unshred=true, skew = true)
+    Utils.shredDataset(Test3, pathout, "Shred,Skew,3", unshred=true, skew = true)
+    Utils.shredDataset(Test4, pathout, "Shred,Skew,4", unshred=true, skew = true)
 
-    Utils.shredDataset(Test0Full, pathout, "Shred,0", unshred=true, skew = true)
-    Utils.shredDataset(Test1Full, pathout, "Shred,1", unshred=true, skew = true)
-    Utils.shredDataset(Test2Full, pathout, "Shred,2", unshred=true, skew = true)
-    Utils.shredDataset(Test3Full, pathout, "Shred,3", unshred=true, skew = true)
-    Utils.shredDataset(Test4Full, pathout, "Shred,4", unshred=true, skew = true)
+    Utils.shredDataset(Test0Full, pathout, "Shred,Skew,0", unshred=true, skew = true)
+    Utils.shredDataset(Test1Full, pathout, "Shred,Skew,1", unshred=true, skew = true)
+    Utils.shredDataset(Test2Full, pathout, "Shred,Skew,2", unshred=true, skew = true)
+    Utils.shredDataset(Test3Full, pathout, "Shred,Skew,3", unshred=true, skew = true)
+    Utils.shredDataset(Test4Full, pathout, "Shred,Skew,4", unshred=true, skew = true)
 
   }
 
@@ -221,6 +221,7 @@ object App {
 
     // Utils.runDatasetInput(Test0Full, Test0NN, pathout, "Flat++,0", skew = true)
     // Utils.runDatasetInput(Test1Full, Test1NN, pathout, "Flat++,1", skew = true)
+    Utils.runDatasetInput(Test2FullFlat, Test2NN, pathout, "Flat++,2")//, skew = true)
     Utils.runDatasetInput(Test2FullFlat, Test2NN, pathout, "Flat++,2", skew = true)
     // Utils.runDatasetInput(Test3FullFlat, Test3NN, pathout, "Flat++,3", skew = true)
     // Utils.runDatasetInput(Test4FullFlat, Test4NN, pathout, "Flat++,4", skew = true)
