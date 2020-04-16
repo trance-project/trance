@@ -12,6 +12,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
   var types: Map[Type, String] = inputs
   var encoders: Set[String] = Set()
+  var tupleTrigger: Boolean = false
   override val bagtype: String = "Seq"
 
   def generateHeader(names: List[String] = List()): String = {
@@ -41,6 +42,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     val ge2 = generate(e2)
     val gtp1 = generateType(v2.tp)
     val gtp2 = if (skew) ", Int" else ""
+    // s"""|$ge1.equiJoinWith($ge2, Seq("$p1","$p2"), "$joinType")
+    //     |""".stripMargin    
     s"""|$ge1.equiJoin[$gtp1$gtp2]($ge2, Seq("$p1","$p2"), "$joinType")
         | .as[$rec]
         |""".stripMargin     
@@ -125,6 +128,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         case (attr, Project(_, attr2)) => s"$gv1._1.$attr2.get"
       }.mkString(s"Seq(${generateType(e2.tp)}(",",","))")
       encoders = encoders + generateType(e2.tp)
+      tupleTrigger = true
       s"""|${generate(e1)}
           | .groupByKey($gv1 =>
           |   $gkey).mapGroups{
@@ -157,21 +161,19 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
        + (values.head -> valueExpr))
       val gvrec = generate(vrecOption)
       encoders = encoders + generateType(vrecOption.tp)
+      // val xtp = flatType(e2)
       fkey.fields.filter(f => !keys.contains(f._1)) - values.head match {
         case y if y.isEmpty => 
-          s"""|val ${generate(cv)} = ${generate(e1)}.groupByKey(${generate(nv2)} => 
-              | ${generate(fkey)}).agg(
-              |   typed.sum[${generateType(nv2.tp)}](x => x.${values.head})).mapPartitions(
+          s"""|val ${generate(cv)} = ${generate(e1)}.reduceByKey(${generate(nv2)} => 
+              | ${generate(fkey)}, x => x.${values.head} match { case _ => x.${values.head}}).mapPartitions(
               |     it => it.map{ case (${generate(nv2)}, $agg) => $gvrec })
               |${generate(e3)}
               |""".stripMargin
         case grecMap =>
-          s"""|val ${generate(cv)} = ${generate(e1)}.groupByKey(${generate(nv2)} => 
-              | ${generate(fkey)}).agg(
-              |   typed.sum[${generateType(nv2.tp)}](
-              |     x => x.${values.head} match {
+          s"""|val ${generate(cv)} = ${generate(e1)}.reduceByKey(${generate(nv2)} => 
+              | ${generate(fkey)}, x => x.${values.head} match {
               |       case Some(r) => r; case _ => ${zero(ftp.attrTps(values.head))}
-              |   })).mapPartitions(
+              |   }).mapPartitions(
               |     it => it.map{ case (${generate(nv2)}, $agg) => (${generate(Record(grecMap))}, $gvrec)
               | })
               |${generate(e3)}
@@ -188,6 +190,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val gfrec = generate(frec)
       val nrec = unnestDataframe(v1, nv2, f, true)
       val gnrec = s"${generateType(frec.tp)}(${nrec.fields.map(f => generate(f._2)).mkString(", ")})"
+      tupleTrigger = false
       if (v1s.size == 1){
         s"""|${generate(e1)}.withColumn("index", monotonically_increasing_id())
             | .as[${generateType(v1.tp)}].flatMap{
@@ -196,11 +199,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
             |}.as[${generateType(frec.tp)}]
             |""".stripMargin
       }else{
-        s"""|/** 
-            | ${v1s}
-            | ${v1.tp} 
-            |**/
-            |${generate(e1)}.withColumn("index", monotonically_increasing_id())
+        s"""|${generate(e1)}.withColumn("index", monotonically_increasing_id())
             | .as[${generateType(v1.tp)}].flatMap{
             |   case ${generate(v1)} => $path match {
             |     case None => Seq($gnrec)
@@ -231,6 +230,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         }
       })
       encoders = encoders + generateType(value.tp)
+      tupleTrigger = false
       s"""|val ${generate(rv)} = ${generate(e1)}.cogroup($ge2, ${generate(pv1)} => ${generate(k1)})(
           |   (_, $ve1, $ve2) => {
           |     val $ve3 = $ve2.map($gv2 => $gv2Rec).toSeq
@@ -261,6 +261,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         case _ => ???
       }}.mkString(s"$gnrecName2(", ",", ")")
       encoders = encoders + generateType(nrec.tp)
+      tupleTrigger = false
       s"""|val $glv = ${generate(e1)}.cogroup($ge2.groupByKey(x => x._1), ${generate(v1)} => ${generate(p1)})(
           |   (_, $ve1, $ve2) => {
           |     val $ve3 = $ve2.map(${generate(v2)} => $gnrec).toSeq
@@ -271,9 +272,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     /** IDENTITY **/
-    case Reduce(InputRef(n, _), v, Variable(_,_), Constant(true)) => n
-    case Reduce(FlatDict(i), v, Variable(_,_), Constant(true)) => generate(i)
-    case Reduce(Variable(n, _), v, Variable(_,_), Constant(true)) => n
+    case Reduce(InputRef(n, _), v, Variable(_,_), Constant(true)) => {tupleTrigger = false; n}
+    case Reduce(FlatDict(i), v, Variable(_,_), Constant(true)) => {tupleTrigger = false; generate(i)}
+    case Reduce(Variable(n, _), v, Variable(_,_), Constant(true)) => {tupleTrigger = false; n}
     
     /** PROJECT **/
     case Reduce(e1, v, f @ Record(fs), Constant(true)) if v.size > 1 =>
@@ -281,6 +282,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       handleType(fTp)
       val rec = s"${generateType(fTp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
       val v1s = vars(v)
+      tupleTrigger = false
       s"""|${generate(e1)}.mapPartitions{ it => it.map{
           | case $v1s => $rec
           |}}.as[${generateType(fTp)}]
@@ -295,6 +297,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val projs = projsMap.values.mkString("\"", "\", \"", "\"")
       val tblRows = flatType(v).attrTps.keySet
       val newRows = projsMap.values.toSet
+      tupleTrigger = false
       if ((tblRows intersect newRows) == tblRows){
         val labelCols = newRows -- tblRows
         s"""|${generate(e1)}

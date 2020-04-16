@@ -142,7 +142,7 @@ trait SparkUtils {
     case _ => Map()//sys.error(s"not supported $tp")
   }
 
-  def flatRecord(e1: Type, e2: Type, outer: Boolean = false): Type = {
+  def flatRecord(e1: Type, e2: Type, outer: Boolean = false): RecordCType = {
     RecordCType(getTypeMap(e1) ++ getTypeMap(e2, outer))
   }
 
