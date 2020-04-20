@@ -95,8 +95,9 @@ object SkewDataset{
     def repartition[S](partitionExpr: Column): (Dataset[T], Dataset[T], Option[String], Broadcast[Set[K]]) = {
       key match {
         case Some(k) if col(k) == partitionExpr => 
-          (light.repartition(Seq(partitionExpr):_*), heavy, key, heavyKeys)
-        case _ => 
+          //(light.repartition(Seq(partitionExpr):_*), heavy, key, heavyKeys)
+          (light, heavy, key, heavyKeys)
+		case _ => 
           (light.repartition(Seq(partitionExpr):_*), heavy.repartition(Seq(partitionExpr):_*), None, 
             light.sparkSession.sparkContext.broadcast(Set.empty[K]))
       }
@@ -142,13 +143,18 @@ object SkewDataset{
     }
 
     def groupByKey(f: (T) => K)(implicit arg0: Encoder[(K, T)]): (KeyValueGroupedDataset[K, T], KeyValueGroupedDataset[K, T], Broadcast[Set[K]]) = {
-      if (heavyKeys.value.nonEmpty){
+      println("grouping already calculated heavy keys")
+	  if (heavyKeys.value.nonEmpty){
+		println("nonempty")
         (light.groupByKey(f), heavy.groupByKey(f), heavyKeys)
-      }else (light, heavy).groupByKey(f)
+      }else
+	  	println("is empty")
+	  	(light, heavy).groupByKey(f)
     }
 
     def groupByKey[S: Encoder : ClassTag](f: (T) => S)(implicit arg0: Encoder[(S, T)]): (KeyValueGroupedDataset[S, T], KeyValueGroupedDataset[S, T], Broadcast[Set[S]]) = {
-      (light, heavy).groupByKey(f)
+      println("am i in this?")
+	  (light, heavy).groupByKey(f)
     }
 
     def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag](right: (KeyValueGroupedDataset[K, S], KeyValueGroupedDataset[K, S], Broadcast[Set[K]]), 
@@ -270,7 +276,7 @@ object SkewDataset{
         None, light.sparkSession.sparkContext.broadcast(Set.empty[K]))
     }
 
-    def union: Dataset[T] = if (heavy.rdd.getNumPartitions == 0) light 
+    def union: Dataset[T] = if (heavy.rdd.getNumPartitions == 1) light 
       else light.union(heavy)
 
     def select(col: String, cols: String*): (DataFrame, DataFrame) = {
@@ -327,11 +333,13 @@ object SkewDataset{
 
     def groupByKey[K: Encoder : ClassTag](f: (T) => K)(implicit arg0: Encoder[(K, T)]): (KeyValueGroupedDataset[K, T], KeyValueGroupedDataset[K, T], Broadcast[Set[K]]) = {
       val (dfull, hk) = heavyKeys[K](f)
-      if (hk.nonEmpty){
+      println("in here trying to calculate this")
+	  if (hk.nonEmpty){
         val hkeys = dfull.sparkSession.sparkContext.broadcast(hk)
         val dlight = dfull.filter((x:T) => !hkeys.value(f(x)))
         // val dheavy = dfull.flatMap{ t => if (hkeys.value(f(t))) Vector((f(t), t)) else Vector() } 
         val dheavy = dfull.filter((x:T) => hkeys.value(f(x)))
+		println("grouping the heavy keys")
         (dlight.groupByKey(f), dheavy.groupByKey(f), hkeys)
       }else (dfull.groupByKey(f), dfull.empty.groupByKey(f), dfull.sparkSession.sparkContext.broadcast(Set.empty[K]))
     }
