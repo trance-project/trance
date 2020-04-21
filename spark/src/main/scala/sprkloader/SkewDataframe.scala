@@ -29,6 +29,10 @@ object SkewDataset{
       left.filter((col.isInCollection(hkeys.value)))
     }
 
+    def equiJoinWith[S: Encoder : ClassTag](right: Dataset[S], usingColumns: Seq[String], joinType: String = "inner"): Dataset[(T,S)] = {
+      left.joinWith(right, col(usingColumns(0)) === col(usingColumns(1)), joinType)
+    }
+
     def equiJoin[S: Encoder : ClassTag](right: Dataset[S], usingColumns: Seq[String], joinType: String = "inner"): DataFrame = {
       left.join(right, col(usingColumns(0)) === col(usingColumns(1)), joinType)
     }
@@ -107,10 +111,6 @@ object SkewDataset{
     def count: Long = (light, heavy).count
 
     def cache: Unit = (light, heavy).cache
-
-    def checkpoint: (Dataset[T], Dataset[T], Option[String], Broadcast[Set[K]]) = {
-      (light.checkpoint, heavy.checkpoint, key, heavyKeys)
-    }
 
     // don't repartition a set with known heavy keys
     def repartition[S](partitionExpr: Column): (Dataset[T], Dataset[T], Option[String], Broadcast[Set[K]]) = {

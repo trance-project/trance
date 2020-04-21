@@ -35,6 +35,10 @@ trait TPCHBase extends Query {
     Singleton(Tuple(m1 ++ m2))
   }
 
+  def projectTuple(tr: TupleVarRef, nbag:Map[String, TupleAttributeExpr], omit: List[String]): BagExpr = 
+    Singleton(Tuple(tr.tp.attrTps.withFilter(f => 
+      !omit.contains(f._1)).map(f => f._1 -> tr(f._1)) ++ nbag))
+
   def projectTuple(tr: TupleVarRef, nbag:(String, TupleAttributeExpr), omit: List[String] = Nil): BagExpr = 
     Singleton(Tuple(tr.tp.attrTps.withFilter(f => 
       !omit.contains(f._1)).map(f => f._1 -> tr(f._1)) + nbag))
