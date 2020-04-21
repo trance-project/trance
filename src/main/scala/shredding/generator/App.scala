@@ -180,15 +180,15 @@ object App {
 
     val pathout = "spark/src/main/scala/sprkloader/experiments"
 
-    // Utils.flatDataset(Test0, pathout, "Flat++,Skew,0", skew = true)
+    Utils.flatDataset(Test0, pathout, "Flat++,Skew,0", skew = true)
     // Utils.flatDataset(Test0Full, pathout, "Flat++,Skew,0", skew = true)
-    // Utils.flatDataset(Test1, pathout, "Flat++,Skew,1", skew = true)
+    Utils.flatDataset(Test1, pathout, "Flat++,Skew,1", skew = true)
     // Utils.flatDataset(Test1Full, pathout, "Flat++,Skew,1", skew = true)
-    // Utils.flatDataset(Test2Flat, pathout, "Flat++,Skew,2", skew = true)
+    Utils.flatDataset(Test2Flat, pathout, "Flat++,Skew,2", skew = true)
     // Utils.flatDataset(Test2FullFlat, pathout, "Flat++,Skew,2", skew = true)
-    // Utils.flatDataset(Test3Flat, pathout, "Flat++,Skew,3", skew = true)
+    Utils.flatDataset(Test3Flat, pathout, "Flat++,Skew,3", skew = true)
     // Utils.flatDataset(Test3FullFlat, pathout, "Flat++,3", skew = true)
-    // Utils.flatDataset(Test4Flat, pathout, "Flat++,Skew,4", skew = true)
+    Utils.flatDataset(Test4Flat, pathout, "Flat++,Skew,4", skew = true)
     // Utils.flatDataset(Test4FullFlat, pathout, "Flat++,Skew,4", skew = true)
 
     // Utils.shredDataset(Test0, pathout, "Shred,Skew,0", skew = true)
@@ -215,12 +215,12 @@ object App {
     // Utils.shredDataset(Test3Full, pathout, "Shred,Skew,3", unshred=true, skew = true)
     // Utils.shredDataset(Test4Full, pathout, "Shred,Skew,4", unshred=true, skew = true)
 
-    Utils.flatDataset(TestFN0, pathout, "Flat++,Skew,0", skew = true)
-    Utils.flatDataset(TestFN1, pathout, "Flat++,Skew,1", skew = true)
-    Utils.flatDataset(TestFN2Full, pathout, "Flat++,Skew,2", skew = true)
-    Utils.flatDataset(TestFN0, pathout, "Flat++,Standard,0")
-    Utils.flatDataset(TestFN1, pathout, "Flat++,Standard,1")
-    Utils.flatDataset(TestFN2Full, pathout, "Flat++,Standard,2")
+    // Utils.flatDataset(TestFN0, pathout, "Flat++,Skew,0", skew = true)
+    // Utils.flatDataset(TestFN1, pathout, "Flat++,Skew,1", skew = true)
+    // Utils.flatDataset(TestFN2Full, pathout, "Flat++,Skew,2", skew = true)
+    // Utils.flatDataset(TestFN0, pathout, "Flat++,Standard,0")
+    // Utils.flatDataset(TestFN1, pathout, "Flat++,Standard,1")
+    // Utils.flatDataset(TestFN2Full, pathout, "Flat++,Standard,2")
 
     // Utils.shredDataset(TestFN0, pathout, "Shred,Skew,0", skew = true)
     // Utils.shredDataset(TestFN1, pathout, "Shred,Skew,1", skew = true)

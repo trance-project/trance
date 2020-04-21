@@ -215,11 +215,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Join(e1, e2, v1, Project(_, p1), v2, Project(_, p2), proj1, proj2) => 
       generateJoin(e1, e2, p1, p2, v1, v2)
 
-    case Bind(_, CoGroup(e1, e2, v1, v2, k1 @ Project(pv1, f1), k2, value),
+    case Bind(_, CoGroup(e1, e2, v1, v2, k1 @ Project(pv1, f1), k2 @ Project(pv2, f2), value),
       Bind(rv, Reduce(re1, v, Record(ms), Constant(true)), e3)) => 
       val gv2 = generate(v2)
       val gv2Rec = generate(value)
-      val ge2 = s"${generate(e2)}.groupByKey($gv2 => ${generate(k2)})"
+      val ge1 = s"${generate(e1)}"//.groupByKey(${generate(pv1)} => ${generate(k1)})"
       val ve1 = "x" + Variable.newId()
       val ve2 = "x" + Variable.newId()
       val ve3 = "x" + Variable.newId()
@@ -229,10 +229,21 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           case _ => (attr, value)
         }
       })
+      val e1Rec = e1.tp match {
+        case BagCType(tup) => generateType(tup)
+        case _ => ???
+      }
       encoders = encoders + generateType(value.tp)
-      tupleTrigger = false
-      s"""|val ${generate(rv)} = ${generate(e1)}.cogroup($ge2, ${generate(pv1)} => ${generate(k1)})(
-          |   (_, $ve1, $ve2) => {
+      // s"""|val ${generate(rv)} = ${generate(e1)}.cogroup($ge2, ${generate(pv1)} => ${generate(k1)})(
+      //     |   (_, $ve1, $ve2) => {
+      //     |     val $ve3 = $ve2.map($gv2 => $gv2Rec).toSeq
+      //     |     $ve1.map(${generate(v.head)} => ${generate(nrec)})
+      //     | }).as[${generateType(nrec.tp)}]
+      //     |${generate(e3)}
+      //     |""".stripMargin
+      s"""|val ${generate(rv)} = ${generate(e2)}.cogroup($ge1, $gv2 => ${generate(k2)}, 
+          | (${generate(pv1)}:$e1Rec) => ${generate(k1)}, Some("$f2"))(
+          |   (_, $ve2, $ve1) => {
           |     val $ve3 = $ve2.map($gv2 => $gv2Rec).toSeq
           |     $ve1.map(${generate(v.head)} => ${generate(nrec)})
           | }).as[${generateType(nrec.tp)}]

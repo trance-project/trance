@@ -41,18 +41,37 @@ object SkewDataset{
       left.joinWith(right, col(usingColumns(0)) === col(usingColumns(1)), joinType)
     }
 
-    def lookup[S: Encoder : ClassTag, R : Encoder: ClassTag, K](right: KeyValueGroupedDataset[K, S], key1: (T) => K)
+    def lookup[S: Encoder : ClassTag, R : Encoder: ClassTag, K](right: Dataset[S], lkey: (T) => K, rkey: (S) => K)
       (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R])(implicit arg0: Encoder[K]): Dataset[R] =
-        left.groupByKey(key1).cogroup(right)(f)
+        left.groupByKey(lkey).cogroup(right.groupByKey(rkey))(f)
 
-    def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag, K](right: KeyValueGroupedDataset[K, S], key1: (T) => K)
+    def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag, K](right: Dataset[S], lkey: (T) => K, rkey: (S) => K, key: Option[String] = None)
       (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R])(implicit arg0: Encoder[K]): Dataset[R] =
-        left.groupByKey(key1).cogroup(right)(f)
+        left.groupByKey(lkey).cogroup(right.groupByKey(rkey))(f)
+
+    // def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag, K](right: KeyValueGroupedDataset[K, S], key1: (T) => K)
+    //   (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R])(implicit arg0: Encoder[K]): Dataset[R] =
+    //     left.groupByKey(key1).cogroup(right)(f)
 
     def groupByLabel[K: Encoder](f: (T) => K): KeyValueGroupedDataset[K, T] = left.groupByKey(f)
 
     def reduceByKey[K: Encoder](key: (T) => K, value: (T) => Double): Dataset[(K, Double)] = {
       left.groupByKey(key).agg(typed.sum[T](value))
+    }
+
+    def broadcastCogroup[S: Encoder : ClassTag, R: Encoder : ClassTag, K: Encoder](right: KeyValueGroupedDataset[K, S], key1: (T) => K)
+      (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R])(implicit arg0: Encoder[Seq[S]], arg1: Encoder[(K, Seq[S])]): Dataset[R] = {
+
+        val rheavyMap = right.mapGroups{
+          case (key, value) => (key, value.toSeq)
+        }.collect.toMap
+
+        val rheavyBC = left.sparkSession.sparkContext.broadcast(rheavyMap)
+        left.groupByKey(key1).flatMapGroups{
+          case (key, values) => rheavyBC.value get key match {
+            case Some(ks) => f(key, values, ks.iterator)
+            case _ => f(key, values, Iterator())
+          }}
     }
 
   }
@@ -170,9 +189,6 @@ object SkewDataset{
     }
 
     def groupByKey(f: (T) => K)(implicit arg0: Encoder[(K, T)]): KeyValueGroupedDataset[K, T] = {
-    // (KeyValueGroupedDataset[K, T], KeyValueGroupedDataset[K, T], Broadcast[Set[K]]) = {
-	   //  if (heavyKeys.value.nonEmpty) (light.groupByKey(f), heavy.groupByKey(f), heavyKeys)
-    //   else 
       (light, heavy).groupByKey(f)
     }
 
@@ -181,14 +197,37 @@ object SkewDataset{
       (light, heavy).groupByKey(f)
     }
 
-    def lookup[S: Encoder : ClassTag, R : Encoder: ClassTag](right: KeyValueGroupedDataset[K, S], key1: (T) => K)
-      (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R]): (Dataset[R], Dataset[R]) = (light, heavy).lookup(right, key1)(f)
+    def lookup[S: Encoder : ClassTag, R : Encoder: ClassTag](right: (Dataset[S], Dataset[S]), lkey: (T) => K, rkey: (S) => K)
+      (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R]): (Dataset[R], Dataset[R]) = 
+      (light, heavy).lookup(right, lkey, rkey)(f)
 
-    // def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag](right: (KeyValueGroupedDataset[K, S], KeyValueGroupedDataset[K, S], Broadcast[Set[K]]), 
-    //   key1: (T) => K)(f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R]): (Dataset[R], Dataset[R]) = (light, heavy).cogroup(right, key1)(f)
+    def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag](right: (Dataset[S], Dataset[S]), lkey: (T) => K, rkey: (S) => K, ckey: Option[String])
+      (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R]): (Dataset[R], Dataset[R], Option[String], Broadcast[Set[K]]) = {
+        if (heavyKeys.value.nonEmpty && ckey == key){
+          val runion = right.union
+          val rlight = runion.filter((x:S) => rkey(x) match { 
+            case null => true;
+            case k => !heavyKeys.value(k) }).groupByKey(rkey)
+          val lresult = light.groupByKey(lkey).cogroup(rlight)(f)
 
-    def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag](right: KeyValueGroupedDataset[K, S], key1: (T) => K)
-      (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R]): (Dataset[R], Dataset[R]) = (light, heavy).cogroup(right, key1)(f)
+          val rheavy = runion.filter((x:S) => rkey(x) match { 
+            case null => true;
+            case k => heavyKeys.value(k) }).collect.groupBy(rkey).toMap
+          val rheavyBC = heavy.sparkSession.sparkContext.broadcast(rheavy)
+          val hresult = heavy.groupByKey(lkey).flatMapGroups{
+            case (key, values) => rheavyBC.value get key match {
+              case Some(ks) => f(key, values, ks.iterator)
+              case _ => f(key, values, Iterator())
+            }}        
+          (lresult, hresult, key, heavyKeys)
+        }else (light, heavy).cogroup(right, lkey, rkey, ckey)(f)
+    }
+
+    def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag](right: (Dataset[S], Dataset[S], Option[String], Broadcast[Set[K]]), 
+      lkey: (T) => K, rkey: (S) => K, ckey: Option[String])
+      (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R]): (Dataset[R], Dataset[R], Option[String], Broadcast[Set[K]]) = {
+        dfs.cogroup((right._1, right._2), lkey, rkey, ckey)(f)
+      }
 
     def equiJoinWith[S: Encoder : ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String], joinType: String = "inner")
     (implicit arg0: Encoder[(T,S)]): (Dataset[(T, S)], Dataset[(T,S)]) = {
@@ -386,22 +425,48 @@ object SkewDataset{
       dfs.union.groupByKey(f)
     }
 
-    def groupByKey[K: Encoder : ClassTag](f: (T) => K)(implicit arg0: Encoder[(K, T)]): KeyValueGroupedDataset[K,T] = {
+    def groupByKey[K: Encoder : ClassTag](f: (T) => K)(implicit arg0: Encoder[(K, T)]): KeyValueGroupedDataset[K, T] = {
       dfs.union.groupByKey(f)
     }
 
-    def lookup[S: Encoder : ClassTag, R : Encoder: ClassTag, K : Encoder: ClassTag](right: KeyValueGroupedDataset[K, S], key1: (T) => K)
+    def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag, K : Encoder: ClassTag](right: (Dataset[S], Dataset[S]), 
+      lkey: (T) => K, rkey: (S) => K, key: Option[String])
+      (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R]): (Dataset[R], Dataset[R], Option[String], Broadcast[Set[K]]) = {
+        val (dfull, hk) = heavyKeys[K](key.get)
+        if (hk.nonEmpty){
+          val hkeys = dfull.sparkSession.sparkContext.broadcast(hk)
+          val dlight = dfull.filter((x:T) => lkey(x) match { 
+            case null => true; 
+            case k => !hkeys.value(k) })
+          val dheavy = dfull.filter((x:T) => lkey(x) match { 
+            case null => true; 
+            case k => hkeys.value(k) })
+          (dlight, dheavy, key, hkeys).cogroup(right, lkey, rkey, key)(f)
+        }else{
+          val result = dfull.cogroup(right.union, lkey, rkey)(f)
+          (result, result.empty, key, result.sparkSession.sparkContext.broadcast(Set.empty[K]))
+        }
+    }
+
+    def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag, K : Encoder: ClassTag](right: (Dataset[S], Dataset[S], Option[String], Broadcast[Set[K]]), 
+      lkey: (T) => K, rkey: (S) => K, key: Option[String])
+      (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R]): (Dataset[R], Dataset[R], Option[String], Broadcast[Set[K]]) = {
+        dfs.cogroup((right._1, right._2), lkey, rkey, key)(f)
+      }
+
+    def lookup[S: Encoder : ClassTag, R : Encoder: ClassTag, K : Encoder: ClassTag](right: (Dataset[S], Dataset[S]), lkey: (T) => K, rkey: (S) => K)
       (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R]): (Dataset[R], Dataset[R]) = {
-        val result = dfs.union.cogroup(right, key1)(f)
+        val result = dfs.union.cogroup((right._1, right._2).union, lkey, rkey)(f)
         (result, result.empty)
     }
 
-    def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag, K : Encoder: ClassTag](right: KeyValueGroupedDataset[K, S], key1: (T) => K)
+    def lookup[S: Encoder : ClassTag, R : Encoder: ClassTag, K : Encoder: ClassTag](right: (Dataset[S], Dataset[S], Option[String], Broadcast[Set[K]]), 
+      lkey: (T) => K, rkey: (S) => K)
       (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R]): (Dataset[R], Dataset[R]) = {
-        val result = dfs.union.cogroup(right, key1)(f)
+        val result = dfs.union.cogroup((right._1, right._2).union, lkey, rkey)(f)
         (result, result.empty)
-      }
-    
+    }
+
     def equiJoinWith[S: Encoder : ClassTag, K: Encoder : ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String], joinType: String = "inner")
       (implicit arg0: Encoder[(T,S)]): (Dataset[(T, S)], Dataset[(T,S)]) = {
       val nkey = usingColumns(0)
