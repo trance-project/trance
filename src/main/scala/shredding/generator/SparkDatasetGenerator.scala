@@ -272,8 +272,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         case _ => ???
       }}.mkString(s"$gnrecName2(", ",", ")")
       encoders = encoders + generateType(nrec.tp)
-      val cop = if (unshred) "lookup" else "cogroup"
-      s"""|val $glv = ${generate(e1)}.$cop($ge2.groupByLabel(x => x._1), ${generate(v1)} => ${generate(p1)})(
+      val xrec = generateType(flatDictType(e2.tp))
+      s"""|val $glv = ${generate(e1)}.cogroup($ge2, ${generate(v1)} => ${generate(p1)}, (x:$xrec) => x._1)(
           |   (_, $ve1, $ve2) => {
           |     val $ve3 = $ve2.map(${generate(v2)} => $gnrec).toSeq
           |     $ve1.map($ve4 => $gnrec2)

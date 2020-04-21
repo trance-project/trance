@@ -179,7 +179,7 @@ trait SparkUtils {
 
   def flatDictType(e: Type): Type = e match {
     case BagCType(tup) => tup
-    case MatDictCType(lbl, bag) => RecordCType(getTypeMap(lbl) ++ getTypeMap(bag))
+    case MatDictCType(lbl, bag) => RecordCType(getTypeMap(bag) ++ getTypeMap(lbl))
     case _ => ???
   }
 
