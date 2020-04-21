@@ -42,7 +42,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     val ge2 = generate(e2)
     val gtp1 = generateType(v2.tp)
     val gtp2 = if (skew) ", Int" else ""
-    s"""|$ge1.equiJoinWith($ge2, Seq("$p1","$p2"), "$joinType")
+    s"""|$ge1.equiJoinWith[$gtp1$gtp2]($ge2, Seq("$p1","$p2"), "$joinType")
         |""".stripMargin    
     // s"""|$ge1.equiJoin[$gtp1$gtp2]($ge2, Seq("$p1","$p2"), "$joinType")
     //     | .as[$rec]

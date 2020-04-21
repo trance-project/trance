@@ -215,9 +215,9 @@ object App {
     // Utils.shredDataset(Test3Full, pathout, "Shred,Skew,3", unshred=true, skew = true)
     // Utils.shredDataset(Test4Full, pathout, "Shred,Skew,4", unshred=true, skew = true)
 
-    // Utils.flatDataset(TestFN0, pathout, "Flat++,Skew,0", skew = true)
-    // Utils.flatDataset(TestFN1, pathout, "Flat++,Skew,1", skew = true)
-    // Utils.flatDataset(TestFN2Full, pathout, "Flat++,Skew,2", skew = true)
+    Utils.flatDataset(TestFN0, pathout, "Flat++,Skew,0", skew = true)
+    Utils.flatDataset(TestFN1, pathout, "Flat++,Skew,1", skew = true)
+    Utils.flatDataset(TestFN2Full, pathout, "Flat++,Skew,2", skew = true)
     Utils.flatDataset(TestFN0, pathout, "Flat++,Standard,0")
     Utils.flatDataset(TestFN1, pathout, "Flat++,Standard,1")
     Utils.flatDataset(TestFN2Full, pathout, "Flat++,Standard,2")
