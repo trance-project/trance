@@ -16,9 +16,7 @@ import shredding.utils.Utils.Symbol
 trait TPCHBase extends Query {
 
   // append other type maps
-  def inputTypes(shred: Boolean = false): Map[Type, String] = 
-    if (shred) TPCHSchema.tpchInputs.map(f => translate(f._1) -> f._2) ++ TPCHSchema.tpchShredInputs
-    else TPCHSchema.tpchInputs.map(f => translate(f._1) -> f._2)
+  def inputTypes(shred: Boolean = false): Map[Type, String] = TPCHSchema.tpchInputs.map(f => translate(f._1) -> f._2)
 
   def headerTypes(shred: Boolean = false): List[String] =
     inputTypes(shred).values.toList

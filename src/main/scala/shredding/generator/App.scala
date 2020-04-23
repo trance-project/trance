@@ -15,12 +15,12 @@ object App {
   def main(args: Array[String]){
     // exp1.0
     // exp1.1
-    // runExperiment1FN()
+    runExperiment1FN()
     // exp2.0
     // exp2.1
-    // runExperiment1NN()
+    runExperiment1NN()
     // exp3.0.0
-    runExperiment2FN()
+    // runExperiment2FN()
     // exp3.0.1
     // runExperiment2NN()
     // // exp2.0
@@ -256,8 +256,8 @@ object App {
     // Utils.runDatasetInput(Test0Full, Test0NN, pathout, "Flat++,Skew,0", skew = true)
     // Utils.runDatasetInput(Test1Full, Test1NN, pathout, "Flat++,Skew,1", skew = true)
     Utils.runDatasetInput(Test2FullFlat, Test2NN, pathout, "Flat++,Skew,2", skew = true)
-    // Utils.runDatasetInput(Test3FullFlat, Test3NN, pathout, "Flat++,Skew,3", skew = true)
-    // Utils.runDatasetInput(Test4FullFlat, Test4NN, pathout, "Flat++,Skew,4", skew = true)
+    Utils.runDatasetInput(Test3FullFlat, Test3NN, pathout, "Flat++,Skew,3", skew = true)
+    Utils.runDatasetInput(Test4FullFlat, Test4NN, pathout, "Flat++,Skew,4", skew = true)
 
     // Utils.runDatasetInput(Test0Full, Test0FullNN, pathout, "Flat++,Skew,0", skew = true)
     // Utils.runDatasetInput(Test1Full, Test1FullNN, pathout, "Flat++,Skew,1", skew = true)
@@ -268,14 +268,14 @@ object App {
     // Utils.runDatasetInputShred(Test0Full, Test0NN, pathout, "Shred,Skew,0", skew = true)
     // Utils.runDatasetInputShred(Test1Full, Test1NN, pathout, "Shred,Skew,1", skew = true)
     Utils.runDatasetInputShred(Test2Full, Test2NN, pathout, "Shred,Skew,2", skew = true)
-    // Utils.runDatasetInputShred(Test3Full, Test3NN, pathout, "Shred,Skew,3", skew = true)
-    // Utils.runDatasetInputShred(Test4Full, Test4NN, pathout, "Shred,Skew,4", skew = true)
+    Utils.runDatasetInputShred(Test3Full, Test3NN, pathout, "Shred,Skew,3", skew = true)
+    Utils.runDatasetInputShred(Test4Full, Test4NN, pathout, "Shred,Skew,4", skew = true)
 
     // Utils.runDatasetInputShred(Test0Full, Test0NN, pathout, "Shred,Skew,0", unshred=true, skew = true)
     // Utils.runDatasetInputShred(Test1Full, Test1NN, pathout, "Shred,Skew,1", unshred=true, skew = true)
-    // Utils.runDatasetInputShred(Test2Full, Test2NN, pathout, "Shred,Skew,2", unshred=true, skew = true)
-    // Utils.runDatasetInputShred(Test3Full, Test3NN, pathout, "Shred,Skew,3", unshred=true, skew = true)
-    // Utils.runDatasetInputShred(Test4Full, Test4NN, pathout, "Shred,Skew,4", unshred=true, skew = true)
+    Utils.runDatasetInputShred(Test2Full, Test2NN, pathout, "Shred,Skew,2", unshred=true, skew = true)
+    Utils.runDatasetInputShred(Test3Full, Test3NN, pathout, "Shred,Skew,3", unshred=true, skew = true)
+    Utils.runDatasetInputShred(Test4Full, Test4NN, pathout, "Shred,Skew,4", unshred=true, skew = true)
 
     // Utils.runDatasetInputShred(Test0Full, Test0FullNN, pathout, "Shred,Skew,0", skew = true)
     // Utils.runDatasetInputShred(Test1Full, Test1FullNN, pathout, "Shred,Skew,1", skew = true)
@@ -320,101 +320,6 @@ object App {
     Utils.shredInput(Query5, Query6Full, pathout, "Shred,Skew,Query6", skew = true)
     Utils.shredInput(Query5, Query6Full, pathout, "Shred,Skew,Query6", skew = true, unshred=true)
 
-
-  }
-
-  def runExperiment1Joins(){
-    val pathout = "experiments/exp1.3"
-
-    // Utils.flat(Test0Join, pathout, "Flat,0")
-    // Utils.flat(Test1Join, pathout, "Flat,1")
-    // Utils.flat(Test2Join, pathout, "Flat,2")
-    // Utils.flat(Test3Join, pathout, "Flat,3")
-    // Utils.flat(Test4Join, pathout, "Flat,4")
-
-    // Utils.flatProj(Test0Join, pathout, "Flat+,0")
-    // Utils.flatProj(Test1Join, pathout, "Flat+,1")
-    // Utils.flatProj(Test2Join, pathout, "Flat+,2")
-    // Utils.flatProj(Test3Join, pathout, "Flat+,3")
-    // Utils.flatProj(Test4Join, pathout, "Flat+,4")
-
-    // Utils.flatOpt(Test0Join, pathout, "Flat++,0")
-    // Utils.flatOpt(Test1Join, pathout, "Flat++,1")
-    // Utils.flatOpt(Test2JoinFlat, pathout, "Flat++,2")
-    // Utils.flatOpt(Test3JoinFlat, pathout, "Flat++,3")
-    // Utils.flatOpt(Test4JoinFlat, pathout, "Flat++,4")
-
-    // Utils.shredDomains(Test0Join, pathout, "ShredDom,0")
-    // Utils.shredDomains(Test1Join, pathout, "ShredDom,1")
-    // Utils.shredDomains(Test2Join, pathout, "ShredDom,2")
-    // Utils.shredDomains(Test3Join, pathout, "ShredDom,3")
-    // Utils.shredDomains(Test4Join, pathout, "ShredDom,4")
-
-    // Utils.unshredDomains(Test0Join, pathout, "ShredDom,0")
-    // Utils.unshredDomains(Test1Join, pathout, "ShredDom,1")
-    // Utils.unshredDomains(Test2Join, pathout, "ShredDom,2")
-    // Utils.unshredDomains(Test3Join, pathout, "ShredDom,3")
-    // Utils.unshredDomains(Test4Join, pathout, "ShredDom,4")
-  }
-  
-  def runTPCH1(){   
-
-    // Flattning, no shredding
-    //Utils.runSparkNoDomains(TPCHQuery1Full, false, true)
-    // Utils.runSparkNoDomains(Test2a, false, false)
-
-    // Run shred without domains, cannot do unshredding
-    // this has a conflict with some changes in the unnesting algorithm
-    // that needs fixed
-    // Utils.runSparkInputNoDomains(TPCHQuery1Full, TPCHQuery4FullAgg)
-
-    // Run shred with domains
-    // the true adds unshredding
-    //Utils.runSparkDomains(TPCHQuery1Full, true, true)
-    // Utils.runSparkDomains(Test2, true, false)
-
-    // Run shred with domains when a query is used as input for another
-    // the true adds unshredding
-    //Utils.runSparkInputDomains(TPCHQuery1Full, TPCHQuery4FullAgg, false, true)
-    // Utils.runSparkInputDomains(TPCHQuery1Full, TPCHQuery4FullAgg, false, false)
-  }
-
-  /**
-    Examples that generate queries that generate a non-spark scala program
-  **/
-
-  val runner = new PipelineRunner{}
-  val translator = new NRCTranslator{}
-  val normalizer = new Finalizer(new BaseNormalizer{})
-  val tpchInputM = TPCHSchema.tpchInputs.map(f => translator.translate(f._1) -> f._2)
-  val tpchShredM = tpchInputM ++ TPCHSchema.tpchShredInputs
- 
-
-  def run1Calc(){
-    
-    println("---------------------------- Query 1  ----------------------------")  
-    val q1 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
-    val qinfo = (q1.asInstanceOf[CExpr], TPCHQueries.q1name, TPCHQueries.q1data)
-    Utils.runCalc(qinfo, tpchInputM)
-
-    println("---------------------------- Query 1 Shred ----------------------------")  
-    val sq1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
-    val sqinfo = (sq1.asInstanceOf[CExpr], "Shred"+TPCHQueries.q1name, TPCHQueries.sq1data)
-    Utils.runCalc(sqinfo, tpchShredM)
-
-  }
- 
-  def run1(){
-    
-    println("---------------------------- Query 1 Unnest ----------------------------")  
-    val q1 = translator.translate(TPCHQueries.query1.asInstanceOf[translator.Expr])
-    val qinfo = (q1.asInstanceOf[CExpr], TPCHQueries.q1name, TPCHQueries.q1data)
-    Utils.run(qinfo, tpchInputM)
-
-    println("---------------------------- Query 1 Shred Unnest ----------------------------")
-    val sq1 = runner.shredPipeline(TPCHQueries.query1.asInstanceOf[runner.Expr])
-    val sqinfo = (sq1.asInstanceOf[CExpr], "Shred"+TPCHQueries.q1name, TPCHQueries.sq1data)
-    Utils.run(sqinfo, tpchShredM)
 
   }
 

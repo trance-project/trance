@@ -240,33 +240,32 @@ object TPCHSchema {
 
   val regiontype = tableType(regionTable)
 
-  var q1ftype = TupleType("P__F" -> IntType, "C__F" -> IntType, "L__F" -> IntType, "O__F" -> IntType)
+  // var q1ftype = TupleType("P__F" -> IntType, "C__F" -> IntType, "L__F" -> IntType, "O__F" -> IntType)
   var tpchInputs:Map[Type, String] = Map(partsupptype.tp -> "PartSupp", 
                                      suppliertype.tp -> "Supplier", 
                                      lineittype.tp -> "Lineitem", 
-                                     orderstype.tp -> "Orders",
+                                     orderstype.tp -> "Order",
                                      customertype.tp -> "Customer", 
                                      parttype.tp -> "Part",
                                      nationtype.tp -> "Nation",
-                                     regiontype.tp -> "Region", 
-                                     q1ftype -> "Q1Flat")
+                                     regiontype.tp -> "Region")
   
-  var tpchShredInputs:Map[Type, String] = Map(
-    RecordCType("P__F" -> IntType, "C__F" -> IntType, "L__F" -> IntType, "O__F" -> IntType) -> "Q1Flat",
-    RecordCType("Query4__F" -> IntType) -> "Q1Flat2",
-    RecordCType("O__F" -> IntType, "C__F" -> IntType, "PS__F" -> IntType, 
-                "S__F" -> IntType, "L__F" -> IntType, "P__F" -> IntType) -> "Q3Flat",
-    RecordCType("N__F" -> IntType, "Query7__F" -> IntType) -> "Q3Flat2",
-    RecordCType("Query5__F" -> IntType) -> "Q5Flat",
-    RecordCType("Query7__F" -> IntType, "N__F" -> IntType) -> "Q3Flat3",
-    BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(partsupptype.tp.attrTps))))), EmptyDictCType) -> "PD", 
-    BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(suppliertype.tp.attrTps))))), EmptyDictCType) -> "SD", 
-    BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(lineittype.tp.attrTps))))), EmptyDictCType) -> "LD", 
-    BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(orderstype.tp.attrTps))))), EmptyDictCType) -> "OD",
-    BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(customertype.tp.attrTps))))), EmptyDictCType) -> "CD", 
-    BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(parttype.tp.attrTps))))), EmptyDictCType) -> "PD",
-    BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(nationtype.tp.attrTps))))), EmptyDictCType) -> "ND",
-    BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(regiontype.tp.attrTps))))), EmptyDictCType) -> "RD")
+  // var tpchShredInputs:Map[Type, String] = Map(
+  //   RecordCType("P__F" -> IntType, "C__F" -> IntType, "L__F" -> IntType, "O__F" -> IntType) -> "Q1Flat",
+  //   RecordCType("Query4__F" -> IntType) -> "Q1Flat2",
+  //   RecordCType("O__F" -> IntType, "C__F" -> IntType, "PS__F" -> IntType, 
+  //               "S__F" -> IntType, "L__F" -> IntType, "P__F" -> IntType) -> "Q3Flat",
+  //   RecordCType("N__F" -> IntType, "Query7__F" -> IntType) -> "Q3Flat2",
+  //   RecordCType("Query5__F" -> IntType) -> "Q5Flat",
+  //   RecordCType("Query7__F" -> IntType, "N__F" -> IntType) -> "Q3Flat3",
+  //   BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(partsupptype.tp.attrTps))))), EmptyDictCType) -> "PD", 
+  //   BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(suppliertype.tp.attrTps))))), EmptyDictCType) -> "SD", 
+  //   BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(lineittype.tp.attrTps))))), EmptyDictCType) -> "LD", 
+  //   BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(orderstype.tp.attrTps))))), EmptyDictCType) -> "OD",
+  //   BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(customertype.tp.attrTps))))), EmptyDictCType) -> "CD", 
+  //   BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(parttype.tp.attrTps))))), EmptyDictCType) -> "PD",
+  //   BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(nationtype.tp.attrTps))))), EmptyDictCType) -> "ND",
+  //   BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(regiontype.tp.attrTps))))), EmptyDictCType) -> "RD")
 
   def loadLine(tbl: String, tblname: String, df: String = ""): String = {
     val eval = if (df == "DF") s"$tbl.count" 

@@ -42,11 +42,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     val ge2 = generate(e2)
     val gtp1 = generateType(v2.tp)
     val gtp2 = if (skew) ", Int" else ""
-    s"""|$ge1.equiJoinWith[$gtp1$gtp2]($ge2, Seq("$p1","$p2"), "$joinType")
-        |""".stripMargin    
-    // s"""|$ge1.equiJoin[$gtp1$gtp2]($ge2, Seq("$p1","$p2"), "$joinType")
-    //     | .as[$rec]
-    //     |""".stripMargin     
+    // s"""|$ge1.equiJoinWith[$gtp1$gtp2]($ge2, Seq("$p1","$p2"), "$joinType")
+    //     |""".stripMargin    
+    s"""|$ge1.equiJoin[$gtp1$gtp2]($ge2, Seq("$p1","$p2"), "$joinType")
+        | .as[$rec]
+        |""".stripMargin     
   }
   
   def vars(vs: List[Variable]): String = {
@@ -75,9 +75,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Sng(e) => s"Seq(${generate(e)})"
     case Label(fs) if fs.size == 1 => generate(fs.head._2)
     case Record(fs) => {
-      val tp = e.tp
+      val tp:RecordCType = e.tp.asInstanceOf[RecordCType]
       handleType(tp)
-      s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
+      val rcnts = tp.attrTps.map(f => generate(fs(f._1))).mkString(", ")
+      s"${generateType(tp)}($rcnts)"
+      // s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
     }
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
     // this is a quick hack
@@ -219,7 +221,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       Bind(rv, Reduce(re1, v, Record(ms), Constant(true)), e3)) => 
       val gv2 = generate(v2)
       val gv2Rec = generate(value)
-      val ge1 = s"${generate(e1)}"//.groupByKey(${generate(pv1)} => ${generate(k1)})"
+      val ge2 = s"${generate(e2)}.groupByKey($gv2 => ${generate(k2)})"
       val ve1 = "x" + Variable.newId()
       val ve2 = "x" + Variable.newId()
       val ve3 = "x" + Variable.newId()
@@ -229,21 +231,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           case _ => (attr, value)
         }
       })
-      val e1Rec = e1.tp match {
-        case BagCType(tup) => generateType(tup)
-        case _ => ???
-      }
       encoders = encoders + generateType(value.tp)
-      // s"""|val ${generate(rv)} = ${generate(e1)}.cogroup($ge2, ${generate(pv1)} => ${generate(k1)})(
-      //     |   (_, $ve1, $ve2) => {
-      //     |     val $ve3 = $ve2.map($gv2 => $gv2Rec).toSeq
-      //     |     $ve1.map(${generate(v.head)} => ${generate(nrec)})
-      //     | }).as[${generateType(nrec.tp)}]
-      //     |${generate(e3)}
-      //     |""".stripMargin
-      s"""|val ${generate(rv)} = ${generate(e2)}.cogroup($ge1, $gv2 => ${generate(k2)}, 
-          | (${generate(pv1)}:$e1Rec) => ${generate(k1)}, Some("$f2"))(
-          |   (_, $ve2, $ve1) => {
+      s"""|val ${generate(rv)} = ${generate(e1)}.cogroup($ge2, ${generate(pv1)} => ${generate(k1)})(
+          |   (_, $ve1, $ve2) => {
           |     val $ve3 = $ve2.map($gv2 => $gv2Rec).toSeq
           |     $ve1.map(${generate(v.head)} => ${generate(nrec)})
           | }).as[${generateType(nrec.tp)}]
@@ -272,8 +262,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         case _ => ???
       }}.mkString(s"$gnrecName2(", ",", ")")
       encoders = encoders + generateType(nrec.tp)
-      val xrec = generateType(flatDictType(e2.tp))
-      s"""|val $glv = ${generate(e1)}.cogroup($ge2, ${generate(v1)} => ${generate(p1)}, (x:$xrec) => x._1)(
+      s"""|val $glv = ${generate(e1)}.cogroup($ge2.groupByKey(x => x._1), ${generate(v1)} => ${generate(p1)})(
           |   (_, $ve1, $ve2) => {
           |     val $ve3 = $ve2.map(${generate(v2)} => $gnrec).toSeq
           |     $ve1.map($ve4 => $gnrec2)
@@ -283,9 +272,16 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     /** IDENTITY **/
-    case Reduce(InputRef(n, _), v, Variable(_,_), Constant(true)) => {tupleTrigger = false; n}
-    case Reduce(FlatDict(i), v, Variable(_,_), Constant(true)) => {tupleTrigger = false; generate(i)}
-    case Reduce(Variable(n, _), v, Variable(_,_), Constant(true)) => {tupleTrigger = false; n}
+    case Reduce(InputRef(n, tp), v, Variable(_,_), Constant(true)) => n
+      // val ftp = flatDictType(tp)
+      // if (externalInputs.contains(ftp)){
+      //   handleType(ftp)
+      //   val gtp = generateType(ftp)
+      //   encoders = encoders + gtp
+      //   s"${n}.as[$gtp]"
+      // }else n
+    case Reduce(FlatDict(i), v, Variable(_,_), Constant(true)) => generate(i)
+    case Reduce(Variable(n, _), v, Variable(_,_), Constant(true)) => n
     
     /** PROJECT **/
     case Reduce(e1, v, f @ Record(fs), Constant(true)) if v.size > 1 =>

@@ -190,7 +190,7 @@ object Utils {
   def runSpark(query: Query, pathout: String, label: String, 
     optLevel: Int = 2, skew: Boolean = false): Unit = {
     
-    val codegen = new SparkNamedGenerator(false, true, flatDict = true)//query.inputTypes(shred))
+    val codegen = new SparkNamedGenerator(false, true, flatDict = true)//, query.inputTypes(shred))
     val gcode = codegen.generate(query.anf(optLevel))
     val header = if (skew) {
         s"""|import sprkloader.SkewPairRDD._
@@ -224,7 +224,7 @@ object Utils {
     
     val codegen = new SparkDatasetGenerator(false, false, isDict = false, skew = skew)//,inputs = query.inputTypes(false))
     val gcode = codegen.generate(query.anf(optLevel))
-    val header = s"""|${codegen.generateHeader(query.headerTypes(false))}""".stripMargin
+    val header = s"""|${codegen.generateHeader()}""".stripMargin
     val encoders = codegen.generateEncoders()
 
     val flatTag = optLevel match {
@@ -246,11 +246,11 @@ object Utils {
   def runDatasetInput(inputQuery: Query, query: Query, pathout: String, label: String, 
     optLevel: Int = 2, skew: Boolean = false): Unit = {
     
-    val codegenInput = new SparkDatasetGenerator(true, false, isDict = false, skew = skew)//,inputs = query.inputTypes(false))
+    val codegenInput = new SparkDatasetGenerator(true, false, isDict = false, skew = skew)//,externalInputs = query.inputTypes(false))
     val inputCode = codegenInput.generate(inputQuery.anf()) 
     val codegen = new SparkDatasetGenerator(false, true, isDict = false, inputs = codegenInput.types, skew = skew) 
     val gcode = codegen.generate(query.anf(optLevel))
-    val header = s"""|${codegen.generateHeader(query.headerTypes(false))}""".stripMargin
+    val header = s"""|${codegen.generateHeader()}""".stripMargin
     val encoders = codegenInput.generateEncoders() + "\n" + codegen.generateEncoders()
 
     val flatTag = optLevel match {
