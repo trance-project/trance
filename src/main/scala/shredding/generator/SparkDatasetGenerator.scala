@@ -12,7 +12,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
   var types: Map[Type, String] = inputs
   var encoders: Set[String] = Set()
-  var tupleTrigger: Boolean = false
   override val bagtype: String = "Seq"
 
   def generateHeader(names: List[String] = List()): String = {
@@ -130,9 +129,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         case (attr, Project(_, attr2)) => s"$gv1._1.$attr2.get"
       }.mkString(s"Seq(${generateType(e2.tp)}(",",","))")
       encoders = encoders + generateType(e2.tp)
-      tupleTrigger = true
       s"""|${generate(e1)}
-          | .groupByKey($gv1 =>
+          | .setGroups($gv1 =>
           |   $gkey).mapGroups{
           |   case ($gkv1, group) => 
           |     val ngroup = group.flatMap{
@@ -192,7 +190,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val gfrec = generate(frec)
       val nrec = unnestDataframe(v1, nv2, f, true)
       val gnrec = s"${generateType(frec.tp)}(${nrec.fields.map(f => generate(f._2)).mkString(", ")})"
-      tupleTrigger = false
       if (v1s.size == 1){
         s"""|${generate(e1)}.withColumn("index", monotonically_increasing_id())
             | .as[${generateType(v1.tp)}].flatMap{
@@ -289,7 +286,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       handleType(fTp)
       val rec = s"${generateType(fTp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
       val v1s = vars(v)
-      tupleTrigger = false
       s"""|${generate(e1)}.mapPartitions{ it => it.map{
           | case $v1s => $rec
           |}}.as[${generateType(fTp)}]
@@ -304,7 +300,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val projs = projsMap.values.mkString("\"", "\", \"", "\"")
       val tblRows = flatType(v).attrTps.keySet
       val newRows = projsMap.values.toSet
-      tupleTrigger = false
       if ((tblRows intersect newRows) == tblRows){
         val labelCols = newRows -- tblRows
         s"""|${generate(e1)}

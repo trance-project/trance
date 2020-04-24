@@ -54,7 +54,7 @@ object SkewDataset{
       (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R])(implicit arg0: Encoder[K]): Dataset[R] =
         left.groupByKey(lkey).cogroup(right.groupByKey(rkey))(f)
 
-    def groupByLabel[K: Encoder](f: (T) => K): KeyValueGroupedDataset[K, T] = left.groupByKey(f)
+    def setGroups[K: Encoder](f: (T) => K): KeyValueGroupedDataset[K, T] = left.groupByKey(f)
 
     def reduceByKey[K: Encoder](key: (T) => K, value: (T) => Double): Dataset[(K, Double)] = {
       left.groupByKey(key).agg(typed.sum[T](value))
@@ -197,6 +197,11 @@ object SkewDataset{
     def groupByKey[S: Encoder : ClassTag](f: (T) => S)(implicit arg0: Encoder[(S, T)]): KeyValueGroupedDataset[S, T] = {
       (light, heavy).groupByKey(f)
     }
+
+    def setGroups[K: Encoder](f: (T) => K): (KeyValueGroupedDataset[K, T], KeyValueGroupedDataset[K, T]) = {
+      (light, heavy).setGroups(f)
+    }
+
 
     def lookup[S: Encoder : ClassTag, R : Encoder: ClassTag](right: (Dataset[S], Dataset[S]), lkey: (T) => K, rkey: (S) => K)
       (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R]): (Dataset[R], Dataset[R]) = 
@@ -445,6 +450,11 @@ object SkewDataset{
       dfs.union.groupByKey(f)
     }
 
+    def setGroups[K: Encoder](f: (T) => K): (KeyValueGroupedDataset[K, T], KeyValueGroupedDataset[K, T]) = {
+      val dfull = dfs.union
+      (dfull.setGroups(f), dfull.empty.setGroups(f))
+    }
+
     def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag, K : Encoder: ClassTag](right:  KeyValueGroupedDataset[K,S], lkey: (T) => K)
       (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R]): (Dataset[R], Dataset[R]) = {
       val result = dfs.union.cogroup(right, lkey)(f)
@@ -538,6 +548,17 @@ object SkewDataset{
       }
     }
 
+
+  }
+
+  implicit class SkewKeyValueDatasetOps2[K: Encoder : ClassTag, V: Encoder : ClassTag](dfs: (KeyValueGroupedDataset[K, V], KeyValueGroupedDataset[K, V])) extends Serializable {
+
+    val light = dfs._1
+    val heavy = dfs._2
+
+    def mapGroups[S: Encoder: ClassTag](func: (K, Iterator[V]) => (K, S))(implicit arg0: Encoder[(K, S)]): (Dataset[(K,S)], Dataset[(K,S)]) = {
+      (light.mapGroups(func), heavy.mapGroups(func))
+    }
 
   }
 
