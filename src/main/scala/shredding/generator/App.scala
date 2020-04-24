@@ -15,14 +15,14 @@ object App {
   def main(args: Array[String]){
     // exp1.0
     // exp1.1
-    runExperiment1FN()
+    // runExperiment1FN()
     // exp2.0
     // exp2.1
     runExperiment1NN()
     // exp3.0.0
     // runExperiment2FN()
     // exp3.0.1
-    // runExperiment2NN()
+    runExperiment2NN()
     // // exp2.0
     // runExperiment2()
     // runDataset()
