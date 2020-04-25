@@ -254,7 +254,7 @@ object App {
     val pathout = "spark/src/main/scala/sprkloader/experiments"
 
     // Utils.runDatasetInput(Test0Full, Test0NN, pathout, "Flat++,Skew,0", skew = true)
-    // Utils.runDatasetInput(Test1Full, Test1NN, pathout, "Flat++,Skew,1", skew = true)
+    Utils.runDatasetInput(Test1Full, Test1NN, pathout, "Flat++,Skew,1", skew = true)
     // Utils.runDatasetInput(Test2FullFlat, Test2NN, pathout, "Flat++,Skew,2", skew = true)
     Utils.runDatasetInput(Test2Flat, Test2NNL, pathout, "Flat++,Standard,2")
     Utils.runDatasetInput(Test2Flat, Test2NNL, pathout, "Flat++,Skew,2", skew = true)
@@ -271,14 +271,14 @@ object App {
     // Utils.runDatasetInputShred(Test1Full, Test1NN, pathout, "Shred,Skew,1", skew = true)
     // Utils.runDatasetInputShred(Test2Full, Test2NN, pathout, "Shred,Skew,2", skew = true)
     Utils.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Standard,2")
-    Utils.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Skew,2", skew = true)
+    // Utils.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Skew,2", skew = true)
     // Utils.runDatasetInputShred(Test3Full, Test3NN, pathout, "Shred,Skew,3", skew = true)
     // Utils.runDatasetInputShred(Test4Full, Test4NN, pathout, "Shred,Skew,4", skew = true)
 
     // Utils.runDatasetInputShred(Test0Full, Test0NN, pathout, "Shred,Skew,0", unshred=true, skew = true)
     // Utils.runDatasetInputShred(Test1Full, Test1NN, pathout, "Shred,Skew,1", unshred=true, skew = true)
     Utils.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Standard,2", unshred=true)
-    Utils.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Skew,2", unshred=true, skew = true)
+    // Utils.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Skew,2", unshred=true, skew = true)
     // Utils.runDatasetInputShred(Test2Full, Test2NN, pathout, "Shred,Skew,2", unshred=true, skew = true)
     // Utils.runDatasetInputShred(Test3Full, Test3NN, pathout, "Shred,Skew,3", unshred=true, skew = true)
     // Utils.runDatasetInputShred(Test4Full, Test4NN, pathout, "Shred,Skew,4", unshred=true, skew = true)

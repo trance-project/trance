@@ -556,6 +556,10 @@ object SkewDataset{
     val light = dfs._1
     val heavy = dfs._2
 
+    def mapGroups2[S: Encoder: ClassTag](func: (K, Iterator[V]) => S)(implicit arg0: Encoder[(K, S)]): (Dataset[S], Dataset[S]) = {
+      (light.mapGroups(func), heavy.mapGroups(func))
+    }
+
     def mapGroups[S: Encoder: ClassTag](func: (K, Iterator[V]) => (K, S))(implicit arg0: Encoder[(K, S)]): (Dataset[(K,S)], Dataset[(K,S)]) = {
       (light.mapGroups(func), heavy.mapGroups(func))
     }
@@ -569,6 +573,10 @@ object SkewDataset{
     val heavy = dfs._2
     val key = Some("_1")
     val heavyKeys = dfs._3
+
+    def mapGroups2[S: Encoder: ClassTag](func: (K, Iterator[V]) => S)(implicit arg0: Encoder[(K, S)]): (Dataset[S], Dataset[S]) = {
+      (light.mapGroups(func), heavy.mapGroups(func))
+    }
 
     def mapGroups[S: Encoder: ClassTag](func: (K, Iterator[V]) => (K, S))(implicit arg0: Encoder[(K, S)]): (Dataset[(K,S)], Dataset[(K,S)], Option[String], Broadcast[Set[K]]) = {
       (light.mapGroups(func), heavy.mapGroups(func), key, heavyKeys)
