@@ -576,6 +576,31 @@ object Test2NN extends TPCHBase {
   val program = Program(Assignment(name, query))
 }
 
+object Test2NNL extends TPCHBase {
+
+  val name = "Test2NNL"
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+ 
+  val (customers, customerRef) = varset(Test2.name, "c", Test2.program(Test2.name).varRef.asInstanceOf[BagExpr])
+  val (orders, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
+  val (parts, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
+  val query = 
+  ForeachUnion(customerRef, customers,
+    Singleton(Tuple("c_name" -> customerRef("c_name"), "c_orders" -> 
+      ForeachUnion(orderRef, BagProject(customerRef, "c_orders"),
+        Singleton(Tuple("o_orderdate" -> orderRef("o_orderdate"), "o_parts" ->
+          ReduceByKey(ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
+            ForeachUnion(pr, relP,
+              IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
+                Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))),
+          List("p_name"), List("l_quantity"))))))))
+
+  val program = Program(Assignment(name, query))
+}
+
 object Test2FullNN extends TPCHBase {
 
   val name = "Test2FullNN"
@@ -585,6 +610,30 @@ object Test2FullNN extends TPCHBase {
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
  
   val (customers, customerRef) = varset(Test2Full.name, "c", Test2Full.program(Test2Full.name).varRef.asInstanceOf[BagExpr])
+  val (orders, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
+  val (parts, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
+  val query = 
+  ForeachUnion(customerRef, customers,
+    projectTuple(customerRef, "c_orders" -> 
+      ForeachUnion(orderRef, BagProject(customerRef, "c_orders"),
+        projectTuple(orderRef, "o_parts" ->
+          ReduceByKey(ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
+            ForeachUnion(pr, relP,
+              IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
+                Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))),
+          List("p_name"), List("l_quantity"))))))
+  val program = Program(Assignment(name, query))
+}
+
+object Test2FullNNL extends TPCHBase {
+
+  val name = "Test2FullNNL"
+  override def indexedDict: List[String] = List(s"${name}__D_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+
+  def inputs(tmap: Map[String, String]): String = 
+    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+ 
+  val (customers, customerRef) = varset(Test2.name, "c", Test2.program(Test2.name).varRef.asInstanceOf[BagExpr])
   val (orders, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
   val (parts, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
   val query = 
