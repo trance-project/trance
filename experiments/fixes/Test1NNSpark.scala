@@ -79,8 +79,13 @@ val x91 = x85.reduceByKey(x98 =>
      it => it.map{ case (x98, x99) => (Record73b99337218e48a6ac1867f0e26e043c(x98.index, x98.o_orderdate), Recorddbb4f3ee216d46018a1c29afa2393053(x98.p_name, Some(x99)))
  }).groupByKey(_._1)
 val x94 = x91.mapGroups{
-  case (x92, x93) => 
-    val grps = x93.map(_._2).toSeq
+    case (x92, x93) => 
+    val grps = x93.flatMap{
+      x => x._2.p_name match {
+        case null => Seq()
+        case _ => Seq(x._2)
+      }
+    }.toSeq
     Record9c75463c696b4b5ea91449271385506e(x92.o_orderdate, grps)
 }.as[Record9c75463c696b4b5ea91449271385506e]
  
@@ -88,7 +93,7 @@ val x95 = x94
 val Test1NN = x95
 //Test1NN.print
 //Test1NN.cache
-Test1NN.count
+Test1NN.count 
 
 }
 var start = System.currentTimeMillis()

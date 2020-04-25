@@ -86,7 +86,12 @@ val x2708 = x2702.reduceByKey(x2715 =>
  })
 val x2711 = x2708.setGroups(_._1).mapGroups2{
   case (x92, x93) => 
-    val grps = x93.map(_._2).toSeq
+    val grps = x93.flatMap{
+      x => x._2.p_name match {
+        case null => Seq()
+        case _ => Seq(x._2)
+      }
+    }.toSeq
     Recordf21c0d70b2e747f7abf61acf61d66ef9(x92.o_orderdate, grps)
 }.as[Recordf21c0d70b2e747f7abf61acf61d66ef9]
 
@@ -95,7 +100,6 @@ val Test1NN = x2712
 //Test1NN.print
 //Test1NN.cache
 Test1NN.count
-
 
 }
 var start = System.currentTimeMillis()
