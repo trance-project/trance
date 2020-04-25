@@ -82,7 +82,7 @@ val x94 = x91.mapGroups{
     case (x92, x93) => 
     val grps = x93.flatMap{
       x => x._2.p_name match {
-        case null => Seq()
+        case None => Seq()
         case _ => Seq(x._2)
       }
     }.toSeq
@@ -93,7 +93,7 @@ val x95 = x94
 val Test1NN = x95
 //Test1NN.print
 //Test1NN.cache
-Test1NN.count 
+Test1NN.count
 
 }
 var start = System.currentTimeMillis()
