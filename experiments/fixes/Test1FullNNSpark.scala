@@ -91,7 +91,7 @@ val x64 = x63
 val Test1FullNN = x64
 //Test1FullNN.print
 //Test1FullNN.cache
-Test1FullNN.counts
+Test1FullNN.count
 
 }
 var start = System.currentTimeMillis()

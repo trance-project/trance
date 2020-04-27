@@ -10,14 +10,14 @@ import org.apache.spark.sql.expressions.scalalang._
 import sprkloader._
 import sprkloader.SkewDataset._
 case class Recordbf66611b9ca24de9b2434bfe700cd861(c_name: String, c_orders: Seq[Recordd1ba9d3e3a244d089e85ee48845fc377])
-case class Record2f16914b45cd459a87cdc95d26b3f25b(c_name: String, c_orders: Seq[Recordd1ba9d3e3a244d089e85ee48845fc377], index: Long)
-case class Recordd2c865d09f804e5cb8f95c26264a8451(c_name: String, o_parts: Option[Seq[Recordaef12fe3a9cf41f1bfd92cf38e2f54ab]], index: Long)
-case class Recordc34ba3db7d9b40f5b7bc9c57cf26cf3b(index: Long, c_name: String, o_parts: Option[Seq[Recordaef12fe3a9cf41f1bfd92cf38e2f54ab]])
-case class Record54aad39a9bb14ae59cd3d49082fd9459(index: Long, c_name: String, l_quantity: Option[Double], l_partkey: Option[Int])
+case class Record2f16914b45cd459a87cdc95d26b3f25b(c_name: String, c_orders: Seq[Recordd1ba9d3e3a244d089e85ee48845fc377])
+case class Recordd2c865d09f804e5cb8f95c26264a8451(c_name: String, o_parts: Option[Seq[Recordaef12fe3a9cf41f1bfd92cf38e2f54ab]])
+case class Recordc34ba3db7d9b40f5b7bc9c57cf26cf3b(c_name: String, o_parts: Option[Seq[Recordaef12fe3a9cf41f1bfd92cf38e2f54ab]])
+case class Record54aad39a9bb14ae59cd3d49082fd9459(c_name: String, l_quantity: Option[Double], l_partkey: Option[Int])
 case class Record58ab4a1caedd465fb69f1db4f962ea25(p_retailprice: Double, p_partkey: Int)
-case class Record0a6aa55018ef4676884ed36114e41906(l_quantity: Option[Double], p_retailprice: Option[Double], c_name: String, l_partkey: Option[Int], p_partkey: Option[Int], index: Long)
+case class Record0a6aa55018ef4676884ed36114e41906(l_quantity: Option[Double], p_retailprice: Option[Double], c_name: String, l_partkey: Option[Int], p_partkey: Option[Int])
 case class Record0b5f05a9b1e54de6be60188410b7e9b9(p_name: Option[String], total: Option[Double])
-case class Record0eed505a4edb45fdac3c303d429f7a62(index: Long, c_name: String)
+case class Record0eed505a4edb45fdac3c303d429f7a62(c_name: String)
 case class Record4e302ce861f04e4f8d13150b2b32ba40(c_name: String, total: Double)
 case class Record366d20744e9c4f40a0a6422201a930fa(c_name: String, c_orders: Double)
 case class Recordaef12fe3a9cf41f1bfd92cf38e2f54ab(l_returnflag: String, l_comment: String, l_linestatus: String, l_shipmode: String, l_shipinstruct: String, l_quantity: Double, l_receiptdate: String, l_linenumber: Int, l_tax: Double, l_shipdate: String, l_extendedprice: Double, l_partkey: Int, l_discount: Double, l_commitdate: String, l_suppkey: Int, l_orderkey: Int)
@@ -81,18 +81,18 @@ def f = {
  val x74 = Test2Full.select("c_name", "c_orders")
             .as[Recordbf66611b9ca24de9b2434bfe700cd861]
  
-val x77 = x74.withColumn("index", monotonically_increasing_id())
+val x77 = x74//.withColumn("index", monotonically_increasing_id())
  .as[Record2f16914b45cd459a87cdc95d26b3f25b].flatMap{
-   case x100 => if (x100.c_orders.isEmpty) Seq(Recordd2c865d09f804e5cb8f95c26264a8451(x100.c_name, None, x100.index)) 
-     else x100.c_orders.map( x101 => Recordd2c865d09f804e5cb8f95c26264a8451(x100.c_name, Some(x101.o_parts), x100.index) )
+   case x100 => if (x100.c_orders.isEmpty) Seq(Recordd2c865d09f804e5cb8f95c26264a8451(x100.c_name, None)) 
+     else x100.c_orders.map( x101 => Recordd2c865d09f804e5cb8f95c26264a8451(x100.c_name, Some(x101.o_parts)) )
 }.as[Recordd2c865d09f804e5cb8f95c26264a8451]
  
-val x81 = x77.withColumn("index", monotonically_increasing_id())
+val x81 = x77//.withColumn("index", monotonically_increasing_id())
  .as[Recordc34ba3db7d9b40f5b7bc9c57cf26cf3b].flatMap{
    case x102 => x102.o_parts match {
-     case None => Seq(Record54aad39a9bb14ae59cd3d49082fd9459(x102.index, x102.c_name, None, None))
-     case Some(bag) if bag.isEmpty => Seq(Record54aad39a9bb14ae59cd3d49082fd9459(x102.index, x102.c_name, None, None))
-     case Some(bag) => bag.map( x103 => Record54aad39a9bb14ae59cd3d49082fd9459(x102.index, x102.c_name, Some(x103.l_quantity), Some(x103.l_partkey)) )
+     case None => Seq(Record54aad39a9bb14ae59cd3d49082fd9459(x102.c_name, None, None))
+     case Some(bag) if bag.isEmpty => Seq(Record54aad39a9bb14ae59cd3d49082fd9459(x102.c_name, None, None))
+     case Some(bag) => bag.map( x103 => Record54aad39a9bb14ae59cd3d49082fd9459(x102.c_name, Some(x103.l_quantity), Some(x103.l_partkey)) )
  }}.as[Record54aad39a9bb14ae59cd3d49082fd9459]
  
 val x83 = P.select("p_retailprice", "p_partkey")
@@ -102,7 +102,7 @@ val x88 = x81.equiJoin[Record58ab4a1caedd465fb69f1db4f962ea25](x83, Seq("l_partk
  .as[Record0a6aa55018ef4676884ed36114e41906]
  
 val x95 = x88.reduceByKey(x104 => 
- Record0eed505a4edb45fdac3c303d429f7a62(x104.index, x104.c_name), x => x.p_retailprice match {
+ Record0eed505a4edb45fdac3c303d429f7a62(x104.c_name), x => x.p_retailprice match {
        case Some(r) => r * x.l_quantity.get; case _ => 0.0
    }).mapPartitions(
      it => it.map{ case (x104, x105) => Record4e302ce861f04e4f8d13150b2b32ba40(x104.c_name, x105)
