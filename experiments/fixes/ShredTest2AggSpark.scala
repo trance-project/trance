@@ -139,7 +139,7 @@ val x54 = x38.equiJoin[Recorda09d7cac129745cd895eebfe7f2757f8](x53, Seq("_1", "_
 val x55 = x35.equiJoin[OL2proj1](x54, Seq("_LABEL", "totals"), "left_outer").as[Cproj1]
   .drop("_LABEL", "totals").as[C2proj1]
 
-val x56 = x55
+val x56 = x55.reduceByKey(x => x.c_name, x => x.total match { case Some(t) => t; case _ => 0.0})
 val MDict_Test2FullAgg_1_c_orders_1 = x56//.repartition($"_1")
 // MDict_Test2FullAgg_1_c_orders_1.print
 //MDict_Test2FullAgg_1_c_orders_1.cache

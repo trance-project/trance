@@ -20,6 +20,7 @@ case class OLproj(_LABEL: Int, o_parts: Int, _1: Option[Int], total: Option[Doub
 case class OL2proj(_LABEL: Int, total: Option[Double])
 case class CProj(_LABEL: Int, total: Option[Double], c_acctbal: Double, c_name: String, c_nationkey: Int, c_custkey: Int, c_comment: String, c_address: String, c_orders: Int, c_mktsegment: String, c_phone: String)
 case class C2Proj(total: Option[Double], c_acctbal: Double, c_name: String, c_nationkey: Int, c_custkey: Int, c_comment: String, c_address: String, c_mktsegment: String, c_phone: String)
+case class CFinal(c_acctbal: Double, c_name: String, c_nationkey: Int, c_custkey: Int, c_comment: String, c_address: String, c_mktsegment: String, c_phone: String)
 case class Record160de2c13d4d463a89fab0cbe1e35232(_1: Int, total: Double)
 case class Record2207945f9b844b1a813606e81d7e7bae(_1: Int)
 case class Recorddc5924b533d44a19a9a1826a31443505(c_acctbal: Double, c_name: String, c_nationkey: Int, c_custkey: Int, c_comment: String, c_address: String, c_orders: Int, c_mktsegment: String, c_phone: String)
@@ -113,7 +114,9 @@ val x54 = x38.equiJoin[Record160de2c13d4d463a89fab0cbe1e35232](x53, Seq("_1", "_
 val x55 = x35.equiJoin[OL2proj](x54, Seq("_LABEL", "c_orders"), "left_outer").as[CProj]
   .drop("_LABEL", "c_orders").as[C2Proj]
 
-val x56 = x55
+val x56 = x55.reduceByKey(x => CFinal(x.c_acctbal, x.c_name, x.c_nationkey, x.c_custkey, x.c_comment, x.c_address, x.c_mktsegment, x.c_phone), 
+  x => x.total match { case Some(t) => t; case _ => 0.0})
+
 val MDict_Test2FullAgg_1_c_orders_1 = x56//.repartition($"_1")
 // MDict_Test2FullAgg_1_c_orders_1.print
 //MDict_Test2FullAgg_1_c_orders_1.cache
