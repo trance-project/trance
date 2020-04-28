@@ -20,7 +20,7 @@ case class Record9c504e510cb94bd5952899d9da5d994f(p_name: Option[String], l_quan
 case class Recorde2f85c23d4b24760a3c1f44be1b53393(index: Long, c_name: String, o_orderdate: Option[String], p_name: Option[String])
 case class Record6c1c97b4287341b3a5857dfa013f8d9a(index: Long, c_name: String, o_orderdate: Option[String])
 case class Recorda85064975f5547fda92ba809980813c4(p_name: Option[String], o_orderdate: Option[String], l_quantity: Option[Double], c_name: String, index: Long)
-case class Recordae6d72d6ba614893ae0dae03638eeb27(index: Long, c_name: String)
+case class Recordae6d72d6ba614893ae0dae03638eeb27(c_name: String)
 case class Record6806662558c34f89b699bff445ce0f6a(p_name: String, l_quantity: Double)
 case class Record06145ec864c6451491ed22c899332fcf(o_orderdate: String, o_parts: Seq[Record6806662558c34f89b699bff445ce0f6a])
 case class Record89625c5d215242619e114978b2a9f730(c_name: String, c_orders: Seq[Record06145ec864c6451491ed22c899332fcf])
@@ -127,7 +127,7 @@ val x200 = x199.setGroups(_._1).mapGroups{
 
 val x204 = x200
  .setGroups(x215 =>
-   Recordae6d72d6ba614893ae0dae03638eeb27(x215._1.index,x215._1.c_name)).mapGroups{
+   Recordae6d72d6ba614893ae0dae03638eeb27(x215._1.c_name)).mapGroups{
    case (x216, group) => 
      val ngroup = group.flatMap{
        x215 => x215._1.o_orderdate match {
@@ -144,7 +144,7 @@ val x207 = x204.mapPartitions{ it => it.map{
  
 val x208 = x207
 val Test2NN = x208
-//Test2NN.print
+// Test2NN.print
 //Test2NN.cache
   Test2NN.count
 
