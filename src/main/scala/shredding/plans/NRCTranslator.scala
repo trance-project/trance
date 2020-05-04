@@ -83,10 +83,6 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
     case ReduceByKey(be, keys, values) => 
       val bagExpr = translate(be)
       val v = Variable.freshFromBag(bagExpr.tp)
-      println("creating")
-      println(v)
-      println("From")
-      println(bagExpr)
       CReduceBy(bagExpr, v, keys, values) 
     case v: VarRefLabelParameter => translateVar(v.e)
     case l: NewLabel =>

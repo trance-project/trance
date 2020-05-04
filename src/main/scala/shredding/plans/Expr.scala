@@ -10,7 +10,8 @@ trait CExpr {
 
   def tp: Type
 
-  // experimental for dataset style unnesting
+  // experimental for batch
+  // style unnesting
   def ftp: Type = tp
 
   def nullValue: CExpr = tp match {
@@ -334,68 +335,64 @@ case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CEx
 
 // { (v1, v2) | v1 <- e1, v2 <- e2(v1), p((v1, v2)) } 
 case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr, value: CExpr) extends CExpr {
+  
   val bagproj = e2 match {
     case Project(_, field) => field
     case Bind(_, Project(_, field), _) => field
     case _ => ???
   }
-  def tp: Type = {
-    val ttp = e1.tp match {
-      case btp:BagDictCType => 
-        val ntp = RecordCType(btp.flatTp.tp.asInstanceOf[TTupleType].attrTps.last.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps - bagproj)
-        BagCType(TTupleType(List(ntp, v2.tp)))
-      case BagCType(TTupleType(fs)) => 
-        val ntp = fs.last match {
-          case BagCType(RecordCType(ms)) => RecordCType((ms - bagproj))
-          case RecordCType(ms) => RecordCType((ms - bagproj))
-          case _ => ???
-        }
-        BagCType(TTupleType(List(ntp, value.tp)))
-      case BagCType(RecordCType(fs)) => 
-        val unnestedBag = value.tp//fs(bagproj).asInstanceOf[BagCType].tp
-        val dropOld = RecordCType(fs - bagproj)
-        BagCType(TTupleType(List(dropOld, unnestedBag)))
-      case _ => ???
-    }
-    ttp
+
+  def tp: Type = e1.tp match {
+    case BagCType(TTupleType(fs)) => 
+      val ntp = fs.last match {
+        case BagCType(RecordCType(ms)) => RecordCType((ms - bagproj))
+        case RecordCType(ms) => RecordCType((ms - bagproj))
+        case _ => ???
+      }
+      BagCType(TTupleType(List(ntp, value.tp)))
+    case BagCType(RecordCType(fs)) => 
+      BagCType(TTupleType(List(RecordCType(fs - bagproj), value.tp)))
+    case _ => ???
   }
   override def wvars = e1.wvars :+ v2
 }
 
 case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CExpr, value: CExpr) extends CExpr {
+  
   val bagproj = e2 match {
     case Project(_, field) => field
     case Bind(_, Project(_, field), _) => field
-    case CReduceBy(Project(bag, field), bv, k, v) => field
+    // local agg
+    case CReduceBy(Project(_, field), _, _, _) => field
     case _ => ???
   }
+
   def tp: Type = e1.tp match {
-    case btp:BagDictCType => 
-      val ntp = RecordCType(btp.flatTp.tp.asInstanceOf[TTupleType].attrTps.last.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps - bagproj)
-      BagCType(TTupleType(List(ntp, v2.tp)))
     case BagCType(TTupleType(fs)) => 
       val ntp = fs.last match {
-        case BagCType(RecordCType(ms)) => TTupleType(fs.dropRight(1) :+ RecordCType(Map("index" -> LongType) ++ (ms - bagproj)))
-        case RecordCType(ms) => TTupleType(fs.dropRight(1) :+ RecordCType(Map("index" -> LongType) ++ (ms - bagproj)))
+        case BagCType(RecordCType(ms)) => TTupleType(fs.dropRight(1) :+ RecordCType((ms - bagproj)))
+        case RecordCType(ms) => TTupleType(fs.dropRight(1) :+ RecordCType((ms - bagproj)))
         case _ => ???
       }
-      BagCType(TTupleType(List(ntp, value.tp)))//v2.tp)))
+      BagCType(TTupleType(List(ntp, value.tp)))
     case BagCType(RecordCType(fs)) => 
       val unnestedBag = value.tp 
-      val dropOld = RecordCType(Map("index" -> LongType) ++ (fs - bagproj))
-      BagCType(TTupleType(List(dropOld, unnestedBag)))
+      val dropOld = RecordCType((fs - bagproj))
+      BagCType(TTupleType(List(RecordCType((fs - bagproj)), value.tp)))
     case _ => ???
   }
+
   override def ftp: BagCType = e1.tp match {
     case BagCType(RecordCType(fs)) => 
       val unnestedBag = value.tp match {
         case RecordCType(ls) => ls.map(m => m._1 -> OptionType(m._2))
         case _ => ???
       }
-      val dropOld = Map("index" -> LongType) ++ (fs - bagproj)
+      val dropOld = (fs - bagproj)
       BagCType(RecordCType(dropOld ++ unnestedBag))
     case _ => sys.error(s"not supported ${e1.tp}")
   }
+
   override def wvars = e1.wvars :+ v2
 }
 

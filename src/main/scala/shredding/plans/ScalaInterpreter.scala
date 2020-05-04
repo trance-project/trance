@@ -3,8 +3,10 @@ package shredding.plans
 import shredding.core._
 import scala.collection.mutable.HashMap
 import shredding.utils.Utils.ind
-/**
-  * Scala evaluation 
+
+/** Scala evaluator
+  * @deprecated this was used primarily for the inital development of the operators, 
+  * and has not been used since focus has shifted to code generators
   */
 trait BaseScalaInterp extends Base{
   type Rep = Any
@@ -85,18 +87,8 @@ trait BaseScalaInterp extends Base{
     e
   }
   def linset(e: List[Rep]): Rep = e
-  def bind(e1: Rep, e: Rep => Rep): Rep = e(e1) //ctx.getOrElseUpdate(e1, e(e1))
+  def bind(e1: Rep, e: Rep => Rep): Rep = e(e1)
   def groupby(e1: Rep, g: List[String], v: List[String]): Rep = e1
-  // {
-  //   val grp = e1.asInstanceOf[List[_]].groupBy(g)
-  //   e1.asInstanceOf[List[_]].head match {
-  //     case Int => grp.map{ case (g2, v2) => 
-  //       (g2, v2.asInstanceOf[List[_]].map(v).asInstanceOf[List[Int]].sum) }
-  //     case Double => grp.map{ case (g2, v2) => 
-  //       (g2, v2.asInstanceOf[List[_]].map(v).asInstanceOf[List[Double]].sum) }
-  //     case _ => grp.map{ case (g2, v2) => (g2, v2.asInstanceOf[List[_]].map(v)) }
-  //   }
-  // }
   def reduceby(e1: Rep, g: List[String], v: List[String]): Rep = groupby(e1, g, v)
   def lookup(lbl: Rep, dict: Rep): Rep = dict match {
     case (flat, tdict) => flat match {
@@ -155,7 +147,6 @@ trait BaseScalaInterp extends Base{
             } else { Nil } })).toList
         }
      }
-     //println(res)
      res
   }
   def outerunnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep, value: List[Rep] => Rep): Rep = {
@@ -197,7 +188,6 @@ trait BaseScalaInterp extends Base{
                   case _ => Nil  
                 }})
   }
-  // todo
   def cogroup(e1: Rep, e2: Rep, k1: List[Rep] => Rep, k2: Rep => Rep, value: List[Rep] => Rep): Rep = e1
   def flatdict(e1: Rep): Rep = e1
   def groupdict(e1: Rep): Rep = e1

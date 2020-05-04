@@ -10,7 +10,6 @@ trait Query extends Materialization
   with Shredding
   with NRCTranslator {
 
-  val runner = new PipelineRunner{}
   val normalizer = new Finalizer(new BaseNormalizer{})
 
   val name: String
@@ -198,9 +197,6 @@ trait Query extends Materialization
     (sprog, materialize(sprog))
   }
 
-  def shredNoDomains: Program =
-    runner.shredPipelineNew(program.asInstanceOf[runner.Program]).program.asInstanceOf[Program]
-
   def unshred: Program = {
     val shredset = this.shred
     val res = unshred(shredset._1, shredset._2.ctx)
@@ -241,13 +237,6 @@ trait Query extends Materialization
     val anfer = new Finalizer(anfBase)
     anfBase.anf(anfer.finalize(this.shredPlan).asInstanceOf[anfBase.Rep])
   }
-
-  def skewPlan: CExpr = {
-    // val skewplanner = new Finalizer(new BaseSkewCompiler{})
-    // val skewplan = skewplanner.finalize(this.shredANF).asInstanceOf[CExpr]
-    // println(Printer.quote(skewplan))
-    this.shredANF
-  }
  
   def unshredPlan: CExpr = {
     val c = translate(this.unshred)
@@ -267,26 +256,7 @@ trait Query extends Materialization
   }
   
   def indexedDict: List[String] = Nil
-  // have to change this for different materialization methods
-  def scalculus: CExpr = { val q = translate(this.shredNoDomains); println(Printer.quote(q)); q}
-  def snormalize: CExpr = {
-    val norm = normalizer.finalize(this.scalculus).asInstanceOf[CExpr]
-    // println(Printer.quote(norm))
-    norm
-  }
-  def sunnest: CExpr = {
-    val initPlan = Unnester.unnest(this.snormalize)(Nil, Nil, None)
-    // println(Printer.quote(initPlan))
-    val plan = Optimizer.applyAll(initPlan)
-    println(Printer.quote(plan))
-    plan
-  }
-  def sanf: CExpr = {
-    val anfBase = new BaseANF{}
-    val anfer = new Finalizer(anfBase)
-    anfBase.anf(anfer.finalize(this.sunnest).asInstanceOf[anfBase.Rep])
-  }
-
+  
   /** misc utils **/
   def varset(n1: String, n2: String, e: BagExpr): (BagVarRef, TupleVarRef) =
     (BagVarRef(n1, e.tp), TupleVarRef(n2, e.tp.tp))

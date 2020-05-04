@@ -3,9 +3,9 @@ package shredding.plans
 import shredding.core._
 
 /**
-  * Normalization rules for WMCC 
+  * Normalization for intermediate calculus of the plan language. 
+  * TODO: re-evaluate the necessity of this with updated NRC
   */
-
 trait BaseNormalizer extends BaseCompiler {
 
   // reduce conditionals
@@ -97,14 +97,11 @@ trait BaseNormalizer extends BaseCompiler {
   // { e(v) | v <- e1, p(v) }
   // where fegaras and maier does: { e | q, v <- e1, s }
   // this has { { { e | s } | v <- e1 } | q }
-  // the normalization rules reduce generators, which is why I match on e1
   // N10 is automatically handled in this representation
   override def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
     e1 match {
       case If(cond, e3, e4 @ Some(a)) => //N4
         If(cond, comprehension(e3, p, e), Some(comprehension(a, p, e)))
-      // case If(cond, e3 @ WeightedSng(t, q), None) => comprehension(e3, (i: CExpr) => cond, e)
-      // case WeightedSng(t, q) if e(t) == Constant(1) => comprehension(Sng(t), p, (i: CExpr) => q)
       case EmptySng => EmptySng // N5
       case Sng(t) => ifthen(p(t), sng(e(t))) // N6
       case Merge(e1, e2) => Merge(comprehension(e1, p, e), comprehension(e2, p, e))  //N7
