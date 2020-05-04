@@ -13,51 +13,51 @@ import shredding.examples.tpch._
 object App {
  
   def main(args: Array[String]){
-    // runFlatToNested()
+    runFlatToNested()
     runNestedToNested()
     // TODO
-    // runNestedToFlat()
+    runNestedToFlat()
     // runSkewHandling()
   }
 
   def runFlatToNested(){
     val pathout = "spark/src/main/scala/sprkloader/experiments"
 
-    Utils.flatDataset(Test0, pathout, "Flat++,0")
-    Utils.flatDataset(Test0Full, pathout, "Flat++,0")
-    Utils.flatDataset(Test1, pathout, "Flat++,1")
-    Utils.flatDataset(Test1Full, pathout, "Flat++,1")
+    // Utils.flatDataset(Test0, pathout, "Flat++,0")
+    // Utils.flatDataset(Test0Full, pathout, "Flat++,0")
+    // Utils.flatDataset(Test1, pathout, "Flat++,1")
+    // Utils.flatDataset(Test1Full, pathout, "Flat++,1")
     Utils.flatDataset(Test2, pathout, "Flat++,2")
-    Utils.flatDataset(Test2Flat, pathout, "Flat++,2")
-    Utils.flatDataset(Test2FullFlat, pathout, "Flat++,2")
-    Utils.flatDataset(Test3Flat, pathout, "Flat++,3")
-    Utils.flatDataset(Test3FullFlat, pathout, "Flat++,3")
-    Utils.flatDataset(Test4Flat, pathout, "Flat++,4")
-    Utils.flatDataset(Test4FullFlat, pathout, "Flat++,4")
+    // Utils.flatDataset(Test2Flat, pathout, "Flat++,2")
+    // Utils.flatDataset(Test2FullFlat, pathout, "Flat++,2")
+    // Utils.flatDataset(Test3Flat, pathout, "Flat++,3")
+    // Utils.flatDataset(Test3FullFlat, pathout, "Flat++,3")
+    // Utils.flatDataset(Test4Flat, pathout, "Flat++,4")
+    // Utils.flatDataset(Test4FullFlat, pathout, "Flat++,4")
 
-    Utils.shredDataset(Test0, pathout, "Shred,0")
-    Utils.shredDataset(Test1, pathout, "Shred,1")
-    Utils.shredDataset(Test2, pathout, "Shred,2")
-    Utils.shredDataset(Test3, pathout, "Shred,3")
-    Utils.shredDataset(Test4, pathout, "Shred,4")
+    // Utils.shredDataset(Test0, pathout, "Shred,0")
+    // Utils.shredDataset(Test1, pathout, "Shred,1")
+    // Utils.shredDataset(Test2, pathout, "Shred,2")
+    // Utils.shredDataset(Test3, pathout, "Shred,3")
+    // Utils.shredDataset(Test4, pathout, "Shred,4")
 
-    Utils.shredDataset(Test0Full, pathout, "Shred,0")
-    Utils.shredDataset(Test1Full, pathout, "Shred,1")
-    Utils.shredDataset(Test2Full, pathout, "Shred,2")
-    Utils.shredDataset(Test3Full, pathout, "Shred,3")
-    Utils.shredDataset(Test4Full, pathout, "Shred,4")
+    // Utils.shredDataset(Test0Full, pathout, "Shred,0")
+    // Utils.shredDataset(Test1Full, pathout, "Shred,1")
+    // Utils.shredDataset(Test2Full, pathout, "Shred,2")
+    // Utils.shredDataset(Test3Full, pathout, "Shred,3")
+    // Utils.shredDataset(Test4Full, pathout, "Shred,4")
 
-    Utils.shredDataset(Test0, pathout, "Shred,0", unshred=true)
-    Utils.shredDataset(Test1, pathout, "Shred,1", unshred=true)
+    // Utils.shredDataset(Test0, pathout, "Shred,0", unshred=true)
+    // Utils.shredDataset(Test1, pathout, "Shred,1", unshred=true)
     Utils.shredDataset(Test2, pathout, "Shred,2", unshred=true)
-    Utils.shredDataset(Test3, pathout, "Shred,3", unshred=true)
-    Utils.shredDataset(Test4, pathout, "Shred,4", unshred=true)
+    // Utils.shredDataset(Test3, pathout, "Shred,3", unshred=true)
+    // Utils.shredDataset(Test4, pathout, "Shred,4", unshred=true)
 
-    Utils.shredDataset(Test0Full, pathout, "Shred,0", unshred=true)
-    Utils.shredDataset(Test1Full, pathout, "Shred,1", unshred=true)
-    Utils.shredDataset(Test2Full, pathout, "Shred,2", unshred=true)
-    Utils.shredDataset(Test3Full, pathout, "Shred,3", unshred=true)
-    Utils.shredDataset(Test4Full, pathout, "Shred,4", unshred=true)
+    // Utils.shredDataset(Test0Full, pathout, "Shred,0", unshred=true)
+    // Utils.shredDataset(Test1Full, pathout, "Shred,1", unshred=true)
+    // Utils.shredDataset(Test2Full, pathout, "Shred,2", unshred=true)
+    // Utils.shredDataset(Test3Full, pathout, "Shred,3", unshred=true)
+    // Utils.shredDataset(Test4Full, pathout, "Shred,4", unshred=true)
   }
  
   def runNestedToNested(){
@@ -102,8 +102,8 @@ object App {
 
   def runNestedToFlat(){
     val pathout = "spark/src/main/scala/sprkloader/experiments"
-    Utils.runDatasetInput(Test2FullFlat, Test2Agg2, pathout, "Flat++,Standard,2")
-    Utils.runDatasetInput(Test2FullFlat, Test2Agg2, pathout, "Flat++,Skew,2", skew = true)
+    // Utils.runDatasetInput(Test2FullFlat, Test2Agg2, pathout, "Flat++,Standard,2")
+    // Utils.runDatasetInput(Test2FullFlat, Test2Agg2, pathout, "Flat++,Skew,2", skew = true)
 
     Utils.runDatasetInputShred(Test2Full, Test2Agg2, pathout, "Shred,Standard,2")
     Utils.runDatasetInputShred(Test2Full, Test2Agg2, pathout, "Shred,Skew,2", skew = true)    

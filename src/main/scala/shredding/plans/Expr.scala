@@ -3,29 +3,27 @@ package shredding.plans
 import shredding.core._
 
 /**
-  * Weighted Monad Comprehension Calculus (WMCC) expression nodes 
-  * includes WMCC nodes for shredding extensions, and 
-  * algebra data operators for translating WMCC to plans 
+  * Plan Operators and Calculus
   */
 
 trait CExpr {
+
   def tp: Type
+
+  // experimental for dataset style unnesting
   def ftp: Type = tp
+
   def nullValue: CExpr = tp match {
     case IntType => Constant(-1)
     case DoubleType => Constant(-1.0)
     case _ => Null
   }
-  def zero: String = tp match {
-    case IntType => "0"
-    case DoubleType => "0.0"
-    case _ => "Iterable()"
-  }
-  def wvars: List[Variable] = List() // remove this, only using for printing
+  def wvars: List[Variable] = List()
 }
 
 case class InputRef(data: String, tp: Type) extends CExpr 
 
+// Deprecated
 case class Input(data: List[CExpr]) extends CExpr{
   def tp: BagCType = data match {
     case Nil => BagCType(EmptyCType)
@@ -57,6 +55,7 @@ case class Sng(e1: CExpr) extends CExpr {
   def tp: BagCType = BagCType(e1.tp)
 }
 
+// Deprecated
 case class WeightedSng(e1: CExpr, w: CExpr) extends CExpr{
   def tp: BagCType = BagCType(e1.tp)
 }
@@ -132,11 +131,10 @@ case class Project(e1: CExpr, field: String) extends CExpr { self =>
       case Some(fi) => fi
       case _ => sys.error(s"$field not found in $t")
     }
-    case t @ TTupleType(List(EmptyCType, RecordCType(fs))) if ( field != "_1" && field != "_2") => fs(field)
     case t:TTupleType => field match {
       case "_1" => t(0)
       case "_2" => t(1)
-      case  _ => println(t); t(field.toInt)
+      case  _ => t(field.toInt)
     }
     case t:LabelType => t(field)
     case t:TupleDictCType => t(field)
@@ -157,8 +155,8 @@ case class Merge(e1: CExpr, e2: CExpr) extends CExpr {
 
 case class Comprehension(e1: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
   def tp: Type = e.tp match {
-    case t:RecordCType => BagCType(t)
-    case t => t //primitive
+    case BagCType(tup) => e.tp
+    case t => BagCType(t)
   }
 }
 
@@ -219,21 +217,13 @@ case class LinearCSet(exprs: List[CExpr]) extends CExpr {
   }}.toMap
 }
 
-/**
-  * Shred extensions
-  * Labels are just Records, ie. Label(x: x, y: y) 
-  * Extract nodes are just projections on the attributes of these labels
-  * ie. a subquery "for label in domain union x" 
-  * is represented as "for label in domain union label.x"
-  */
+/** Extensions for intermediate NRC used in shredding */
 
 case class CLookup(lbl: CExpr, dict: CExpr) extends CExpr {
   def tp: BagCType = dict.tp match {
     case MatDictCType(lbl, dict) => dict
     case _ => sys.error(s"not supported ${dict.tp}")
   }
-  //dict.tp.flat
-  //def tp: BagCType = dict.tp.asInstanceOf[BagDictCType].flatTp
 }
 
 case class FlatDict(e: CExpr) extends CExpr {
@@ -245,19 +235,16 @@ case class FlatDict(e: CExpr) extends CExpr {
 }
 
 case class GroupDict(e: CExpr) extends CExpr {
+
   def tp: MatDictCType = e.tp match {
-    case BagCType(BagCType(RecordCType(ms))) => 
-      val lbl = ms get "_1" match {
-        case Some(l:LabelType) => l
-        case _ => sys.error("invalid bag")
-      }
-      MatDictCType(lbl, BagCType(RecordCType(ms - "_1")))
+
     case BagCType(RecordCType(ms)) => 
       val lbl = ms get "_1" match {
         case Some(l:LabelType) => l
         case _ => sys.error("invalid bag")
       }
       MatDictCType(lbl, BagCType(RecordCType(ms - "_1")))
+
     case BagCType(TTupleType(ms)) if ms.size == 2 =>
       val lbl = ms.head match {
         case l:LabelType => l
@@ -277,17 +264,14 @@ case object EmptyCDict extends CExpr {
   def tp: TDict = EmptyDictCType
 }
 
+// Deprecate all these expressions?
 case class BagCDict(lblTp: LabelType, flat: CExpr, dict: CExpr) extends CExpr {
   def tp: BagDictCType = 
     BagDictCType(BagCType(TTupleType(List(lblTp, flat.tp))), dict.tp.asInstanceOf[TTupleDict])
   def apply(n: String) = n match {
-//    case "lbl" => lbl
     case "flat" => flat
-    //case "_1" => List(lbl, flat)
     case "_2" => dict
   }
-  //def lambda = Tuple(List(lbl, flat))
-  //def _1 = flat
   def _2 = dict
 }
 
@@ -305,17 +289,14 @@ case class DictCUnion(d1: CExpr, d2: CExpr) extends CExpr {
   def tp: BagDictCType = d1.asInstanceOf[BagDictCType]
 }
 
-/**
-  * Algebra data operators for creating plans from WMCC
-  * These are defined as an extension off of the WMCC nodes 
-  * since WMCC nodes are used to represent inputs, constants, tuples, bags, etc.
-  */
+/** Operators of the plan language **/ 
 
 case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
   def tp: Type = e.tp match {
     case rt:RecordCType => BagCType(rt)
     case _ => x.tp
   }
+
   override def ftp: Type = e.tp match {
     case RecordCType(ms) => ms get "_1" match {
       case Some(TTupleType(ls)) => 
@@ -328,16 +309,16 @@ case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
     }
     case _ => tp
   }
+
   override def wvars = List(v)
 }
 
 case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CExpr {
   def tp: Type = e2.tp match {
-    case t:RecordCType => 
-      BagCType(t)
-    case t:TTupleType => BagCType(t)
-    case t => t
+    case t:BagCType => t
+    case t => BagCType(t) 
   }
+
   override def ftp: Type = e2.ftp match {
     case RecordCType(ms) => ms get "_1" match {
       case Some(a) => 
@@ -347,6 +328,7 @@ case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CEx
     }
     case _ => ???
   }
+
   override def wvars = e1.wvars
 }
 
@@ -418,12 +400,9 @@ case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p
 }
 
 case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable, p: CExpr, g: CExpr, distinctKeys: Boolean) extends CExpr {
-  def tp: Type = v2.tp match {
-    case RecordCType(ms) => 
-      BagCType(RecordCType(ms - "index"))
-    case _ => BagCType(v2.tp)
-  }
-  // only using this for printing, consider removing
+  
+  def tp: Type = BagCType(v2.tp)
+
   override def wvars = { 
     val uvars = f match {
       case Bind(v1, t @ Tuple(fs), v2) => fs
@@ -438,24 +417,23 @@ case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable,
 }
 
 case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, proj1: CExpr, proj2: CExpr) extends CExpr {
-  // def tp: BagCType = BagCType(TTupleType(List(e1.tp.asInstanceOf[BagCType].tp, v2.tp)))
+  
   def tp: BagCType = BagCType(TTupleType(List(proj1.tp, proj2.tp)))
+
   override def ftp: BagCType = (e1.ftp, e2.ftp) match {
-    case (BagCType(RecordCType(ms1)), BagCType(RecordCType(ms2))) => BagCType(RecordCType(ms1 ++ ms2.map(m => m._1 -> OptionType(m._2))))
+    case (BagCType(RecordCType(ms1)), BagCType(RecordCType(ms2))) => 
+      BagCType(RecordCType(ms1 ++ ms2.map(m => m._1 -> OptionType(m._2))))
     case _ => sys.error(s"issue with ${proj1.ftp} ${proj2.ftp}")
   }
-  override def wvars = {
-    e1.wvars :+ v2
-  }
+
+  override def wvars = e1.wvars :+ v2
 }
 
 // unnests an inner bag, without unnesting before a downstream join
 case class Lookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, p3: CExpr) extends CExpr {
 
   val valueBagType = p3 match { 
-    // lookup used in unshredding
     case Variable(_, TTupleType(fs)) if fs.size == 2 => fs.last
-    // lookup iterator
     case _ => v2.tp match {
       case TTupleType(fs) => fs.last.asInstanceOf[BagCType].tp
       case t => t
@@ -464,15 +442,11 @@ case class Lookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Varia
 
   def tp:BagCType = e1.tp match {
     case BagCType(lbl) => BagCType(TTupleType(List(lbl, valueBagType)))
-    // case btp:BagDictCType => 
-    //   BagCType(TTupleType(List(btp.flatTp.tp, valueBagType)))
     case _ => sys.error(s"unsupported ${e1.tp}")
   }
   override def wvars = e1.wvars :+ v2
 }
 
-// omitting filter for now
-// and nulls
 case class CoGroup(e1: CExpr, e2: CExpr, v1: List[Variable], v2: Variable, k1: CExpr, k2: CExpr, value: CExpr) extends CExpr {
   def tp:BagCType = e1.tp match {
     case BagCType(tup) => BagCType(TTupleType(List(tup, BagCType(value.tp))))
@@ -491,14 +465,8 @@ case class OuterLookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: 
 
 case class Join(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, proj1: CExpr, proj2: CExpr) extends CExpr {
   def tp: BagCType = BagCType(TTupleType(List(proj1.tp, proj2.tp)))
-  // e1.tp match {
-  //   case btp:BagCType => BagCType(TTupleType(List(btp.tp, v2.tp)))
-  //   case BagDictCType(flat, tdict) => BagCType(TTupleType(List(flat.tp, v2.tp)))
-  //   case _ => ???
-  // } 
   override def wvars = e1.wvars :+ v2
 }
-
 
 case class LocalAgg(iter: CExpr, key: CExpr, value: CExpr, filt: CExpr) extends CExpr {
   def tp: BagCType = BagCType(TTupleType(List(key.tp, value.tp)))
@@ -507,10 +475,8 @@ case class LocalAgg(iter: CExpr, key: CExpr, value: CExpr, filt: CExpr) extends 
 case class Variable(name: String, override val tp: Type) extends CExpr { self =>
   
   // equals with a label check
-  // check if deprecated (was used in unnesting before labels were represented as records)
   def lequals(that: CExpr): Boolean = that match {
     case that: Variable => this.equals(that)
-    //case Bind(v, e1, e2) => 
     case Project(v, f) => this.lequals(v)
     case t if that.tp.isInstanceOf[LabelType] =>
       that.tp.asInstanceOf[LabelType].attrTps.keys.toList.contains(this.name)
@@ -518,27 +484,7 @@ case class Variable(name: String, override val tp: Type) extends CExpr { self =>
       that.tp.asInstanceOf[RecordCType].attrTps.keys.toList.contains(this.name)
     case _ => false  
   }
-  
-  // variable is referenced more than just for a join condition in a lookup
-  // used to avoid joins on domains
-  // for now collects a set of expressions for which this variable is referenced
-  // def isReferenced(that: CExpr): List[CExpr] = that match {
-  //   case Reduce(e1, v, e2, p) => isReferenced(e1) ++ isReferenced(e2) ++ isReferenced(p)
-  //   case Nest(e1, v1, f, e, v2, p, g) =>
-  //     isReferenced(e1) ++ isReferenced(f) ++ isReferenced(e) ++ isReferenced(p) ++ isReferenced(g)
-  //   case Join(e1, e2, v1, p1, v2, p2) =>
-  //     isReferenced(e1) ++ isReferenced(e2) ++ isReferenced(p1) ++ isReferenced(p2)
-  //   case Tuple(fs) => fs.flatMap(isReferenced(_))
-  //   case r @ Record(_) => r.fields.flatMap(m => isReferenced(m._2)).toList
-  //   case Equals(e1, e2) => if (isReferenced(e1).nonEmpty || isReferenced(e2).nonEmpty) List(that) else Nil
-  //   case Project(v:Variable, f) if v.name == this.name => List(that)
-  //   case Project(v, f) => isReferenced(v) match {
-  //     case Nil => Nil
-  //     case l => List(that)
-  //   }
-  //   case v @ Variable(n, tp) if n == this.name => List(v)
-  //   case _ => Nil
-  // }
+
   override def hashCode: Int = (name, tp).hashCode()
   def quote: String = self.name
 
@@ -571,37 +517,4 @@ object Variable {
   }
 }
 
-/** Optimizer Extensions **/
-
-trait Extensions {
-
-  def substitute(e: CExpr, vold: Variable, vnew: Variable): CExpr = e match {
-    case Record(fs) => Record(fs.map{ 
-      case (attr, e2) => attr -> substitute(e2, vold, vnew)})
-    case Project(v, f) => 
-      Project(substitute(v, vold, vnew), f)
-    case v @ Variable(_,_) => 
-      if (v == vold) Variable(vnew.name, v.tp) else v
-    case _ => e
-  }
-
-  def fapply(e: CExpr, funct: PartialFunction[CExpr, CExpr]): CExpr = 
-    funct.applyOrElse(e, (ex: CExpr) => ex match {
-      case Reduce(d, v, f, p) => Reduce(fapply(d, funct), v, f, p)
-      case Nest(e1, v1, f, e, v, p, g, dk) => Nest(fapply(e1, funct), v1, f, e, v, p, g, dk)
-      case Unnest(e1, v1, f, v2, p, value) => Unnest(fapply(e1, funct), v1, f, v2, p, value)
-      case OuterUnnest(e1, v1, f, v2, p, value) => OuterUnnest(fapply(e1, funct), v1, f, v2, p, value)
-      case Join(e1, e2, v1, p1, v2, p2, proj1, proj2) => Join(fapply(e1, funct), fapply(e2, funct), v1, p1, v2, p2, proj1, proj2)
-      case OuterJoin(e1, e2, v1, p1, v2, p2, proj1, proj2) => OuterJoin(fapply(e1, funct), fapply(e2, funct), v1, p1, v2, p2, proj1, proj2)
-      case Lookup(e1, e2, v1, p1, v2, p2, p3) => Lookup(fapply(e1, funct), e2, v1, p1, v2, p2, p3)
-      case CDeDup(e1) => CDeDup(fapply(e1, funct))
-      case GroupDict(e1) => GroupDict(fapply(e1, funct))
-      case FlatDict(e1) => FlatDict(fapply(e1, funct))
-      case CGroupBy(e1, v1, keys, values) => CGroupBy(fapply(e1, funct), v1, keys, values)
-      case CReduceBy(e1, v1, keys, values) => CReduceBy(fapply(e1, funct), v1, keys, values)
-      case CNamed(n, e1) => CNamed(n, fapply(e1, funct))
-      case LinearCSet(es) => LinearCSet(es.map(e1 => fapply(e1, funct)))
-      case _ => ex
-    })
-}
 

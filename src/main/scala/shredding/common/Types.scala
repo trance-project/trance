@@ -109,7 +109,8 @@ case class BagCType(tp: Type) extends Type {
   }
   override def flat: BagCType = tp match {
     case TTupleType(fs) if tp.isDict => fs.last.asInstanceOf[BagCType]
-    case _ => sys.error("calling flat on an unsupported type")
+    case BagCType(BagCType(tup)) => BagCType(tup)
+    case _ => BagCType(tp)
   }
 }
 

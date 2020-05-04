@@ -21,6 +21,7 @@ object Unnester {
     */
   def unnest(e: CExpr)(implicit ctx: Ctx): CExpr = e match {
 
+    /** Base case for unnesting algorithm: Rule C4 **/
     case Comprehension(e1, v, p, e2) if u.isEmpty && w.isEmpty && E.isEmpty =>
       unnest(e2)((Nil, List(v), Some(Select(e1, v, p, v))))
 
@@ -46,6 +47,14 @@ object Unnester {
       if (u.isEmpty) unnest(pushPredicate(e, p2))((u, w :+ v, Some(Unnest(E.get, w, e1, v, p1, v))))
       else unnest(pushPredicate(e, p2))((u, w :+ v, Some(OuterUnnest(E.get, w, e1, v, p1, v))))
 
+    /** LOOKUP: Unnesting rule for shredding extensions of intermediate NRC **/
+    case Comprehension(lu @ CLookup(lbl, dict), v, p, e2) if w.isEmpty =>
+      unnest(e2)((u, w :+ v, Some(Select(Project(dict, "_1"), v, p, v))))
+
+    case Comprehension(lu @ CLookup(lbl, dict), v, p, e2) =>
+      val (sp2s, p1s, p2s) = ps(p, v, w)
+      unnest(e2)((u, w :+ v, Some(Lookup(E.get, Project(dict, "_1"), w, lbl, v, p2s, p1s))))
+
     /** JOIN / OUTERJOIN: Rule C6 and C9 **/
     case Comprehension(e1, v, p, e) if !w.isEmpty =>
       assert(!E.isEmpty)
@@ -55,13 +64,6 @@ object Unnester {
 
       if (u.isEmpty) unnest(e)((u, w :+ v, Some(Join(E.get, right, w, preds._2, v, preds._3, Tuple(w), v))))
       else unnest(e)((u, w :+ v, Some(OuterJoin(E.get, right, w, preds._2, v, preds._3, Tuple(w), v))))
-
-    /** LOOKUP: Unnesting rule for shredding extensions of intermediate NRC **/
-    case Comprehension(lu @ CLookup(lbl, dict), v, p, e2) =>
-      val (sp2s, p1s, p2s) = ps(p, v, w)
-      if (!dict.tp.isDict) 
-        unnest(e2)((u, w :+ v, Some(Join(E.get, Select(Project(dict, "_1"), v, sp2s, v), w, p1s, v, p2s, Tuple(w), v))))
-      else unnest(e2)((u, w :+ v, Some(Lookup(E.get, Project(dict, "_1"), w, lbl, v, p2s, p1s))))
 
     case CGroupBy(e1, v1, keys, values) => CGroupBy(unnest(e1)((u, w, E)), v1, keys, values)
 

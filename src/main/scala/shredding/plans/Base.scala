@@ -5,9 +5,8 @@ import scala.collection.mutable.HashMap
 import shredding.utils.Utils.ind
 
 /**
-  * Based compilers for WMCC and algebra data operators
+  * Base structure for comprehension compilers.
   */
-
 trait Base {
   type Rep
   def inputref(x: String, tp:Type): Rep
@@ -57,6 +56,10 @@ trait Base {
   def groupdict(e1: Rep): Rep
 }
 
+/** Base compiler for string types.
+  * This works bottom-up and is not often used. 
+  * The primary printer, which works top-down, is in Printer.scala
+  */
 trait BaseStringify extends Base{
   type Rep = String
   def inputref(x: String, tp: Type): Rep = x
@@ -165,22 +168,12 @@ trait BaseStringify extends Base{
   def groupdict(e1: Rep): Rep = s"GROUP($e1)"
 }
 
-/**
-  * Generates expression nodes defined in Expr.scala
+/** Base compiler for generating nodes defined in the 
+  * comprehension representation (Expr.scala)
   */
-
 trait BaseCompiler extends Base {
   type Rep = CExpr 
-  def inputref(x: String, tp: Type): Rep = tp match {
-    case BagDictCType(BagCType(TTupleType(List(EmptyCType, BagCType(tup)))), tdict) =>
-      tdict match {
-        case EmptyDictCType => InputRef(x, BagCType(tup))
-        case TupleDictCType(fs) if fs.values.toSet == Set(EmptyDictCType) => 
-          InputRef(x, BagDictCType(BagCType(tup), EmptyDictCType))
-        case _ => InputRef(x, tp)
-      }
-    case _ => InputRef(x, tp)
-  }
+  def inputref(x: String, tp: Type): Rep = InputRef(x, tp)
   def input(x: List[Rep]): Rep = Input(x)
   def constant(x: Any): Rep = Constant(x)
   def emptysng: Rep = EmptySng
@@ -198,7 +191,10 @@ trait BaseCompiler extends Base {
   def and(e1: Rep, e2: Rep): Rep = And(e1, e2)
   def not(e1: Rep): Rep = Not(e1)
   def or(e1: Rep, e2: Rep): Rep = Or(e1, e2)
-  def project(e1: Rep, e2: String): Rep = Project(e1, e2)
+  def project(e1: Rep, f: String): Rep = e1 match {
+    case InputRef(n, _) if n.contains("Dict") => e1
+    case _ => Project(e1, f)
+  }
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep]): Rep = If(cond, e1, e2)
   def merge(e1: Rep, e2: Rep): Rep = Merge(e1, e2)
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
@@ -289,6 +285,13 @@ trait BaseCompiler extends Base {
   def flatdict(e1: Rep): Rep = FlatDict(e1)
   def groupdict(e1: Rep): Rep = GroupDict(e1)
 
+  /** Generates a list of variables referencing the stream from the downstream operators
+    * This was important for compiling plans from tuple stream style plans produced.
+    *
+    * @param e type of the subplan
+    * @param top optional boolean flag true if we are at top level
+    * @return a set of variables representative of the tuple stream
+    */
   def vars(e: Type, top: Boolean = true): List[Variable] = e match {
     case BagCType(tup) if top => vars(tup, false)
     case BagDictCType(BagCType(tup), _) if top => List(Variable.fresh(tup))
@@ -302,82 +305,10 @@ trait BaseCompiler extends Base {
 
 }
 
-trait BaseDFCompiler extends BaseCompiler {
-  override def inputref(x: String, tp: Type): Rep = InputRef(x, tp)
-
-  override def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
-    val v = Variable.freshFromBag(x.ftp) 
-    Select(x, v, p(v), e(v))
-  }
-
-  override def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
-    val v = vars(e1.ftp)
-    Reduce(e1, v, f(v), p(v))
-  }
-
-  override def reduceby(e1: Rep, g: List[String], v: List[String]): Rep = {
-    val v2 = Variable.freshFromBag(e1.ftp)
-    CReduceBy(e1, v2, g, v) 
-  }
-
-  // override def nest(e1: Rep, f: List[Rep] => Rep, e: List[Rep] => Rep, p: List[Rep] => Rep, g: List[Rep] => Rep, dk: Boolean): Rep = {
-  //   val v1 = List(Variable.freshFromBag(e1.ftp))
-  //   val fv = f(v1) // groups
-  //   val ev = e(v1)
-  //   val v = Variable.fresh(RecordCType(fv.tp.asInstanceOf[RecordCType].attrTps + ("_2" -> ev.ftp)))
-  //   Nest(e1, v1, fv, ev, v, p(v1:+v), g(v1), dk)
-  // }
-
-  override def cogroup(e1: Rep, e2: Rep, k1: List[Rep] => Rep, k2: Rep => Rep, value: List[Rep] => Rep): Rep = {
-    val vs = vars(e1.ftp)
-    val v2 = Variable.freshFromBag(e2.ftp)
-    CoGroup(e1, e2, vs, v2, k1(vs), k2(v2), value(vs :+ v2))
-  }
-
-  override def outerunnest(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep, value: List[Rep] => Rep): Rep = {
-    val v1 = vars(e1.ftp)
-    val fv = f(v1) 
-    val v = Variable.freshFromBag(fv.ftp)
-    OuterUnnest(e1, v1, fv, v, p(v1 :+ v), value(v1 :+ v))
-  }
-  
-  override def outerjoin(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, proj1: List[Rep] => Rep, proj2: Rep => Rep): Rep = {
-    val v1 = List(Variable.freshFromBag(e1.ftp))
-    val v2 = Variable.freshFromBag(e2.ftp)
-    OuterJoin(e1, e2, v1, p1(v1), v2, p2(v2), proj1(v1), proj2(v2))
-  }
-
-  override def vars(e: Type, top: Boolean = true): List[Variable] = e match {
-    case BagCType(tup) if top => vars(tup, false)
-    // case rt:RecordCType => 
-    //   val check = rt.attrTps.map{
-    //     case (attr, RecordCType(ms1)) => 
-    //       attr -> RecordCType(ms1.map(m => m._1 -> OptionType(m._2)).toMap)
-    //     case (attr, expr) => (attr, expr)
-    //   }
-    //   List(Variable.fresh(RecordCType(check)))
-    case TTupleType(ls) if ls.size == 2 => ls.flatMap{l => vars(l, false)}
-    case _ => List(Variable.fresh(e))
-  }
-
-}
-
 /**
-  * This is named the base indexer, but maybe I will make this the base 
-  * compiler for pre-anf'ed bottom up optimizations. 
-  */
-trait BaseDictNameIndexer extends BaseCompiler {
-
-  override def project(e1: Rep, f: String): Rep = e1 match {
-    case InputRef(n, _) if n.contains("Dict") => e1
-    case _ => super.project(e1, f)
-  }
-
-}
-
-/**
-  * ANF compiler for generating scala code,
-  * uses common subexpression elimination (CSE) 
+  * Simplistic version of ANF compiler that only 
+  * works for plan operators. This is more compatible 
+  * with a relational representation (ie. Datasets)
   */
 trait BaseDFANF extends BaseANF {
 
@@ -387,6 +318,7 @@ trait BaseDFANF extends BaseANF {
     state.get(e) match {
       case Some(v) => Def(v)
       case None =>
+        // arbitrary CSE call
         def updateState(c: CExpr): Def = {
           val v = Variable.fresh(e.tp)
           vars = vars :+ v
@@ -414,8 +346,8 @@ trait BaseDFANF extends BaseANF {
 }
 
 /**
-  * ANF compiler for generating scala code,
-  * uses common subexpression elimination (CSE) 
+  * ANF compiler for generating scala and Spark RDD code,
+  * uses common subexpression elimination (CSE).
   */
 trait BaseANF extends Base {
 
@@ -557,6 +489,9 @@ trait BaseANF extends Base {
   }
 }
 
+/** Finalizes a comprehension expression for a specific compiler.
+  *
+  */
 class Finalizer(val target: Base){
   var variableMap: Map[CExpr, target.Rep] = Map[CExpr, target.Rep]()
   def withMap[T](m: (CExpr, target.Rep))(f: => T): T = {
