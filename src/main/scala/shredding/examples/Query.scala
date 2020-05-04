@@ -2,7 +2,7 @@ package shredding.examples
 
 import shredding.core.Type
 import shredding.nrc._
-import shredding.wmcc._
+import shredding.plans._
 
 trait Query extends Materialization
   with MaterializeNRC
@@ -35,7 +35,7 @@ trait Query extends Materialization
 
   def unnestOnly: CExpr = {
     val plan = Unnester.unnest(this.normalize)(Nil, Nil, None)
-    // println("\n"+Printer.quote(plan))
+    println("\n"+Printer.quote(plan))
     plan
   }
 

@@ -1,4 +1,4 @@
-package shredding.wmcc
+package shredding.plans
 
 import shredding.core._
 import shredding.examples.genomic._

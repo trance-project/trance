@@ -1,4 +1,4 @@
-package shredding.wmcc
+package shredding.plans
 
 import shredding.core._
 
@@ -194,7 +194,8 @@ case class CReduceBy(e1: CExpr, v1: Variable, keys: List[String], values: List[S
   def tp: BagCType = e1Tp.attrTps get "_1" match {
     case Some(TTupleType(fs)) => 
       BagCType(TTupleType(fs :+ RecordCType((e1Tp.attrTps - "_1") ++ valuesTp.attrTps)))
-    case _ => BagCType(RecordCType(keysTp.attrTps ++ valuesTp.attrTps))
+    case _ => 
+      BagCType(RecordCType(keysTp.attrTps ++ valuesTp.attrTps))
   }
 
 }
@@ -332,7 +333,8 @@ case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
 
 case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CExpr {
   def tp: Type = e2.tp match {
-    case t:RecordCType => BagCType(t)
+    case t:RecordCType => 
+      BagCType(t)
     case t:TTupleType => BagCType(t)
     case t => t
   }
@@ -355,22 +357,25 @@ case class Unnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p: CEx
     case Bind(_, Project(_, field), _) => field
     case _ => ???
   }
-  def tp: Type = e1.tp match {
-    case btp:BagDictCType => 
-      val ntp = RecordCType(btp.flatTp.tp.asInstanceOf[TTupleType].attrTps.last.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps - bagproj)
-      BagCType(TTupleType(List(ntp, v2.tp)))
-    case BagCType(TTupleType(fs)) => 
-      val ntp = fs.last match {
-        case BagCType(RecordCType(ms)) => RecordCType(Map("index" -> IntType) ++ (ms - bagproj))
-        case RecordCType(ms) => RecordCType(Map("index" -> IntType) ++ (ms - bagproj))
-        case _ => ???
-      }
-      BagCType(TTupleType(List(ntp, value.tp)))
-    case BagCType(RecordCType(fs)) => 
-      val unnestedBag = value.tp//fs(bagproj).asInstanceOf[BagCType].tp
-      val dropOld = RecordCType(Map("index" -> IntType) ++ fs - bagproj)
-      BagCType(TTupleType(List(dropOld, unnestedBag)))
-    case _ => ???
+  def tp: Type = {
+    val ttp = e1.tp match {
+      case btp:BagDictCType => 
+        val ntp = RecordCType(btp.flatTp.tp.asInstanceOf[TTupleType].attrTps.last.asInstanceOf[BagCType].tp.asInstanceOf[RecordCType].attrTps - bagproj)
+        BagCType(TTupleType(List(ntp, v2.tp)))
+      case BagCType(TTupleType(fs)) => 
+        val ntp = fs.last match {
+          case BagCType(RecordCType(ms)) => RecordCType((ms - bagproj))
+          case RecordCType(ms) => RecordCType((ms - bagproj))
+          case _ => ???
+        }
+        BagCType(TTupleType(List(ntp, value.tp)))
+      case BagCType(RecordCType(fs)) => 
+        val unnestedBag = value.tp//fs(bagproj).asInstanceOf[BagCType].tp
+        val dropOld = RecordCType(fs - bagproj)
+        BagCType(TTupleType(List(dropOld, unnestedBag)))
+      case _ => ???
+    }
+    ttp
   }
   override def wvars = e1.wvars :+ v2
 }

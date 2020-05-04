@@ -97,6 +97,8 @@ object SkewDataset{
 
     def print: Unit = (light, heavy).print
 
+    def count: Long = (light, heavy).count
+
     def select(col: String, cols: String*): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]])= {
       (light.select(col, cols:_*), heavy.select(col, cols:_*), key, heavyKeys)
     }
@@ -324,6 +326,13 @@ object SkewDataset{
     val light = dfs._1
     val heavy = dfs._2
 
+    def count: Long = if (heavy.rdd.getNumPartitions == 1) light.count
+      else {
+        val l = light.count
+        val h = heavy.count
+        l + h
+      }
+
     def print: Unit = {
       println("light")
       light.collect.foreach(println(_))
@@ -366,11 +375,12 @@ object SkewDataset{
       heavy.collect.foreach(println(_))
     }
 
-    def count: Long = {
-      val lc = light.count
-      val hc = heavy.count
-      lc + hc
-    }
+    def count: Long = if (heavy.rdd.getNumPartitions == 1) light.count 
+      else {
+        val lc = light.count
+        val hc = heavy.count
+        lc + hc
+      }
 
     def cache: Unit = {
       light.cache

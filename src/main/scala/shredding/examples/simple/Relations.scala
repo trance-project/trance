@@ -1,7 +1,7 @@
 package shredding.examples.simple
 
 import shredding.core._
-import shredding.wmcc._
+import shredding.plans._
 
 case class InputR(a: Int, b: String)
 case class InputR3(n: Int)

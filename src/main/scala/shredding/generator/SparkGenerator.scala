@@ -1,8 +1,8 @@
 package shredding.generator
 
 import shredding.core._
-import shredding.wmcc.{Multiply => CMultiply}
-import shredding.wmcc._
+import shredding.plans.{Multiply => CMultiply}
+import shredding.plans._
 import shredding.utils.Utils.ind
 
 /**

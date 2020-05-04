@@ -2,7 +2,7 @@ package shredding.generator
 
 import java.io._
 import shredding.core._
-import shredding.wmcc._
+import shredding.plans._
 import shredding.examples.Query
 import shredding.examples.tpch._
 

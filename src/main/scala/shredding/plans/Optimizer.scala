@@ -1,4 +1,4 @@
-package shredding.wmcc
+package shredding.plans
 
 import shredding.core._
 import scala.collection.immutable.Set
@@ -34,6 +34,7 @@ object Optimizer {
     val projectionsPushed = push(e)
     val merged = mergeOps(projectionsPushed)
     val pushedAgg = merged//pushAgg(merged)
+    println(Printer.quote(pushedAgg))
     val indexed = dictIndexer.finalize(pushNest(pushedAgg)).asInstanceOf[CExpr]
     indexed
   }

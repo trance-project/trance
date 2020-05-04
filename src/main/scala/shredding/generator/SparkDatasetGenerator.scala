@@ -1,8 +1,8 @@
 package shredding.generator
 
 import shredding.core._
-import shredding.wmcc.{Multiply => CMultiply}
-import shredding.wmcc._
+import shredding.plans.{Multiply => CMultiply}
+import shredding.plans._
 import shredding.utils.Utils.ind
 
 class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = false, isDict: Boolean = true,
@@ -237,8 +237,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |${generate(e3)}
           |""".stripMargin
 
-    case Bind(_, Lookup(e1, e2, _, p1 @ Project(v1, f1), v2, p2, v3),
-      Bind(rv, Reduce(re1, v, f:Record, Constant(true)), e3)) =>
+    case Bind(lv, Lookup(e1, e2, vs, p1 @ Project(v1, f1), v2, p2, v3),
+      brv @ Bind(rv, Reduce(re1, v, f:Record, Constant(true)), e3)) =>
       val glv = generate(rv)
       val ge1 = generate(e1)
       val ge2 = generate(e2)
@@ -259,6 +259,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         case _ => ???
       }}.mkString(s"$gnrecName2(", ",", ")")
       encoders = encoders + generateType(nrec.tp)
+      if (unshred)
       s"""|val $glv = ${generate(e1)}.cogroup($ge2.groupByKey(x => x._1), ${generate(v1)} => ${generate(p1)})(
           |   (_, $ve1, $ve2) => {
           |     val $ve3 = $ve2.map(${generate(v2)} => $gnrec).toSeq
@@ -266,6 +267,10 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |   }
           | ).as[$gnrecName2]
           |${generate(e3)}
+          |""".stripMargin
+      else 
+      s"""|val ${generate(lv)} = ${generateJoin(e1, e2, f1, "_1", vs, v2, "left_outer")}
+          |${generate(brv)}
           |""".stripMargin
 
     /** IDENTITY **/

@@ -1,7 +1,7 @@
 package shredding.generator
 
 import shredding.core._
-import shredding.wmcc._
+import shredding.plans._
 import shredding.utils.Utils.ind
 
 trait SparkTypeHandler {
