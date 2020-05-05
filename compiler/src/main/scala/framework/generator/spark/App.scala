@@ -10,13 +10,13 @@ import framework.examples.tpch._
  */
 object App {
 
-  val pathout = Config.pathout
+  val pathout = "../executor/spark/src/main/scala/sparkutils/generated/"
  
   def main(args: Array[String]){
     runFlatToNested()
-    runNestedToNested()
+    // runNestedToNested()
     // TODO
-    runNestedToFlat()
+    // runNestedToFlat()
     // runSkewHandling()
   }
 
@@ -26,8 +26,7 @@ object App {
     // AppWriter.flatDataset(Test0Full, pathout, "Flat++,0")
     // AppWriter.flatDataset(Test1, pathout, "Flat++,1")
     // AppWriter.flatDataset(Test1Full, pathout, "Flat++,1")
-    AppWriter.flatDataset(Test2, pathout, "Flat++,2")
-    // AppWriter.flatDataset(Test2Flat, pathout, "Flat++,2")
+    AppWriter.flatDataset(Test2Flat, pathout, "Flat++,2")
     // AppWriter.flatDataset(Test2FullFlat, pathout, "Flat++,2")
     // AppWriter.flatDataset(Test3Flat, pathout, "Flat++,3")
     // AppWriter.flatDataset(Test3FullFlat, pathout, "Flat++,3")

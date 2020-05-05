@@ -8,6 +8,7 @@ import scala.collection.mutable.HashMap
 import PairRDDOperations._
 import SkewTopRDD._
 import Util._
+import sparkutils.Config
 
 object SkewPairRDD {
 

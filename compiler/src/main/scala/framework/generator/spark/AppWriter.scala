@@ -152,13 +152,13 @@ object AppWriter {
     val codegen = new SparkNamedGenerator(false, true, flatDict = true)
     val gcode = codegen.generate(query.anf(optLevel))
     val header = if (skew) {
-        s"""|import sprkloader.SkewPairRDD._
-            |import sprkloader.SkewTopRDD._
-            |import sprkloader.TopRDD._
+        s"""|import sparkutils.rdd.SkewPairRDD._
+            |import sparkutils.rdd.SkewTopRDD._
+            |import sparkutils.rdd.TopRDD._
             |${codegen.generateHeader(query.headerTypes(false))}""".stripMargin
       } else {
-        s"""|import sprkloader.PairRDDOperations._
-            |import sprkloader.TopRDD._
+        s"""|import sparkutils.rdd.PairRDDOperations._
+            |import sparkutils.rdd.TopRDD._
             |${codegen.generateHeader(query.headerTypes(false))}""".stripMargin
       }
    
@@ -186,13 +186,13 @@ object AppWriter {
     val codegen = new SparkNamedGenerator(false, true, flatDict = true, inputs = codegenInput.types) 
     val gcode = codegen.generate(query.anf(optLevel))
     val header = if (skew) {
-        s"""|import sprkloader.SkewPairRDD._
-            |import sprkloader.SkewTopRDD._
-            |import sprkloader.TopRDD._
+        s"""|import sparkutils.rdd.SkewPairRDD._
+            |import sparkutils.rdd.SkewTopRDD._
+            |import sparkutils.rdd.TopRDD._
             |${codegen.generateHeader(query.headerTypes(false))}""".stripMargin
       } else {
-        s"""|import sprkloader.PairRDDOperations._
-            |import sprkloader.TopRDD._
+        s"""|import sparkutils.rdd.PairRDDOperations._
+            |import sparkutils.rdd.TopRDD._
             |${codegen.generateHeader(query.headerTypes(false))}""".stripMargin
       }
     val flatTag = optLevel match {
@@ -229,14 +229,14 @@ object AppWriter {
     val gcode1 = codegen.generate(gcodeShred)
     val gcodeSet = if (unshred) List(gcode1, codegen.generate(gcodeUnshred)) else List(gcode1)
     val header = if (skew) {
-        s"""|import sprkloader.SkewPairRDD._
-            |import sprkloader.SkewDictRDD._
-            |import sprkloader.SkewTopRDD._
+        s"""|import sparkutils.rdd.SkewPairRDD._
+            |import sparkutils.rdd.SkewDictRDD._
+            |import sparkutils.rdd.SkewTopRDD._
             |${codegen.generateHeader(query.headerTypes(true))}""".stripMargin
       } else {
-        s"""|import sprkloader.PairRDDOperations._
-            |import sprkloader.DictRDDOperations._
-            |import sprkloader.TopRDD._
+        s"""|import sparkutils.rdd.PairRDDOperations._
+            |import sparkutils.rdd.DictRDDOperations._
+            |import sparkutils.rdd.TopRDD._
             |${codegen.generateHeader(query.headerTypes(true))}""".stripMargin
       }
    
@@ -261,14 +261,14 @@ object AppWriter {
     val gcode1 = codegen.generate(queryShred)
     val gcodeSet = if (unshred) List(gcode1, codegen.generate(queryUnshred)) else List(gcode1)
     val header = if (skew) {
-        s"""|import sprkloader.SkewPairRDD._
-            |import sprkloader.SkewDictRDD._
-            |import sprkloader.SkewTopRDD._
+        s"""|import sparkutils.rdd.SkewPairRDD._
+            |import sparkutils.rdd.SkewDictRDD._
+            |import sparkutils.rdd.SkewTopRDD._
             |${codegen.generateHeader(query.headerTypes(true))}""".stripMargin
       } else {
-        s"""|import sprkloader.PairRDDOperations._
-            |import sprkloader.DictRDDOperations._
-            |import sprkloader.TopRDD._
+        s"""|import sparkutils.rdd.PairRDDOperations._
+            |import sparkutils.rdd.DictRDDOperations._
+            |import sparkutils.rdd.TopRDD._
             |${codegen.generateHeader(query.headerTypes(true))}""".stripMargin
       }
    
@@ -308,16 +308,18 @@ object AppWriter {
 
   /**
     * Writes out a query for a Spark application
+    * used primarily for RDDs
     **/
 
   def writeSpark(appname: String, data: String, header: String, gcode: String, label:String): String  = {
     s"""
-      |package experiments
+      |package sparkutils.generated
       |/** Generated **/
       |import org.apache.spark.SparkConf
       |import org.apache.spark.sql.SparkSession
       |import scala.collection.mutable.HashMap
-      |import sprkloader._
+      |import sparkutils._
+      |import sparkutils.loader._
       |$header
       |object $appname {
       | def main(args: Array[String]){
@@ -333,7 +335,7 @@ object AppWriter {
 
   def writeDataset(appname: String, data: String, header: String, gcode: String, label:String, encoders: String): String  = {
     s"""
-      |package sprkloader.experiments
+      |package sparkutils.generated
       |/** Generated **/
       |import org.apache.spark.SparkConf
       |import org.apache.spark.sql.SparkSession
@@ -341,8 +343,9 @@ object AppWriter {
       |import org.apache.spark.sql.functions._
       |import org.apache.spark.sql.types._
       |import org.apache.spark.sql.expressions.scalalang._
-      |import sprkloader._
-      |import sprkloader.SkewDataset._
+      |import sparkutils._
+      |import sparkutils.loader._
+      |import sparkutils.skew.SkewDataset._
       |$header
       |object $appname {
       | def main(args: Array[String]){

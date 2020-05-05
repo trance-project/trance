@@ -1,4 +1,4 @@
-name := "shredder"
+name := "framework"
 
 version := "0.1"
 

@@ -1,10 +1,7 @@
+generated/*
 out
 restart.sh
 *DS_Store*
-experiments/*.scala
-experiments/tpch*
-experiments/skewfix*
-experiments/lookups*
 project/
 target/
 .history
@@ -21,7 +18,5 @@ spark/c2.cp.v7.0.symbols.gmt
 spark/example.json
 spark/format.py
 spark/run.sh
-experiments/sqlexample
 .gitignore
-experiments/*/results.csv
 plots*
