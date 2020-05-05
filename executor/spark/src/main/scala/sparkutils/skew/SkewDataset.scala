@@ -1,4 +1,4 @@
-package sprkloader
+package sparkutils.skew
 
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.TypeTag
@@ -7,7 +7,6 @@ import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.expressions.scalalang._
-import PairRDDOperations._
 
 object SkewDataset{
 

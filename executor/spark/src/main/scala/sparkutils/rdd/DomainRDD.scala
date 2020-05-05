@@ -1,5 +1,4 @@
-package sprkloader
-
+package sparkutils.rdd
 import scala.collection.mutable.HashMap
 import org.apache.spark.rdd.RDD
 import org.apache.spark.broadcast.Broadcast

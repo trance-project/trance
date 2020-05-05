@@ -1,4 +1,4 @@
-package sprkloader
+package sparkutils.rdd
 
 import org.apache.spark.Partitioner
 import org.apache.spark.broadcast.Broadcast

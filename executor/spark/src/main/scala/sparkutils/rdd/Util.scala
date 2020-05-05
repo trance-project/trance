@@ -1,4 +1,4 @@
-package sprkloader
+package sparkutils.rdd
 
 import scala.reflect.ClassTag
 import scala.collection.mutable.HashMap
