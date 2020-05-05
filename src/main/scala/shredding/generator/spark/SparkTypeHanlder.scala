@@ -1,4 +1,4 @@
-package shredding.generator
+package shredding.generator.spark
 
 import shredding.core._
 import shredding.plans._
@@ -11,16 +11,22 @@ trait SparkTypeHandler {
   val dotEquality: Boolean = false
   val bagtype: String = "Vector"
 
+  /** Translate a k,v record into a tuple type
+    * @deprecated this should no longer be required for datasets
+    * @param x string attribute name
+    */
   def kvName(x: String)(implicit s: Int = -1): String = x match {
-    // case "k" if s == 2 => "_1"
-    // case "v" if s == 2 => "_2"
-    // case "key" if s == 2 => "_1"
-    // case "value" if s == 2 => "_2"
     case "_KEY" if s == 2 => "_1"
     case "_VALUE" if s == 2 => "_2"
     case _ => x
   }
 
+  /** This ensures that records with the same attributes and corresponding 
+    * types, but in different order produce difference case classes.
+    * @todo switch to ordered names, or normalize these earlier in the pipeline
+    * @param map corresponding to the input contents of the record type.
+    * @return the type of the map to generate
+    */
   def checkType(mapType: Map[String, Type]): Type = {
     val check = types.filter{
       case (RecordCType(ms), name) => ms.keySet == mapType.keySet
@@ -29,6 +35,12 @@ trait SparkTypeHandler {
     if (check.size == 1) check.head._1 else RecordCType(mapType)
   }
 
+  /** Generator for named tuples, used when creating the 
+    * header.
+    * 
+    * @param tp type of record
+    * @return string representing code to create a class class
+    */
   def generateTypeDef(tp: Type): String = tp match {
     case LabelType(fs) => generateTypeDef(RecordCType(fs))
     case RecordCType(fs) =>
@@ -38,6 +50,11 @@ trait SparkTypeHandler {
     case _ => sys.error("unsupported type "+tp)
   }
 
+  /** Generator for all types, used within the main generator.
+    *
+    * @param tp type of expression from within generator
+    * @return string representing the native Scala type
+    */
   def generateType(tp: Type): String = tp match {
     case RecordCType(fs) if fs.isEmpty => "Unit"
     case LabelType(fs) if fs.isEmpty => "Unit"
@@ -66,7 +83,13 @@ trait SparkTypeHandler {
     case EmptyCType => "()"
     case _ => sys.error("not supported type " + tp)
   }
-  
+
+   /** Updates the type map with records and record attribute types 
+    * from the generated plan.
+    *
+    * @param tp type from the input program (called for records)
+    * @param givenName optional name used for naming the generated record
+    */ 
   def handleType(tp: Type, givenName: Option[String] = None): Unit = {
     if(!types.contains(tp)) {
       tp match {

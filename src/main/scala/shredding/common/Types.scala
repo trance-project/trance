@@ -5,18 +5,24 @@ package shredding.core
   */
 
 sealed trait Type { self =>
+
   def isPartiallyShredded: Boolean = false
+
   def isPrimitive: Boolean = self match {
     case IntType => true
     case DoubleType => true
     case _ => false
   }
+
   def isDict: Boolean = false
+
   def flat: BagCType = self match {
     case _:BagCType => self.flat
     case _:BagDictCType => self.flat
     case _ => sys.error("unsupported call to flat")
   }
+
+  // For debugging
   // override def toString: String = ""
 }
 
@@ -91,42 +97,39 @@ final case class MatDictType(keyTp: LabelType, valueTp: BagType) extends Type
 
 
 /**
-  * Types used for WMCC
+  * Types used for Calculus - these types ease some restrictions 
+  * to support easier translation to plan operators / optimizations
+  * There are three main differences:
+  * i) alternating tuple bag restriction is removed
+  * ii) named tuples are records
+  * iii) tuples without names (useful for unnesting and code generation)
   *
-  * TODO: move elsewhere?
   */
 
-case class TypeSet(tp: Map[Type, String]) extends Type 
+final case class TypeSet(tp: Map[Type, String]) extends Type 
 
-case class SetType(tp: Type) extends Type
+final case class SetType(tp: Type) extends Type
 
-case class OptionType(tp: Type) extends Type 
+final case class OptionType(tp: Type) extends Type 
 
-case class BagCType(tp: Type) extends Type {
+final case class BagCType(tp: Type) extends Type {
+
   override def isDict: Boolean = tp match {
     case TTupleType(fs) => fs.head.isInstanceOf[LabelType]
     case _ => false
   }
-  override def flat: BagCType = tp match {
-    case TTupleType(fs) if tp.isDict => fs.last.asInstanceOf[BagCType]
-    case BagCType(BagCType(tup)) => BagCType(tup)
-    case _ => BagCType(tp)
-  }
+
 }
 
-case class MatDictCType(keyTp: LabelType, valueTp: BagCType) extends Type {
+final case class MatDictCType(keyTp: LabelType, valueTp: BagCType) extends Type {
   override def isDict: Boolean = true
 }
 
 case object EmptyCType extends Type
 
-case class RecordCType(attrTps: Map[String, Type]) extends Type {
+final case class RecordCType(attrTps: Map[String, Type]) extends Type {
   def apply(n: String): Type = attrTps(n)
-  // override def equals(that: Any): Boolean = that match {
-  //   case that: LabelType => this.attrTps == that.attrTps
-  //   case that:RecordCType => this.attrTps == that.attrTps
-  //   case _ => false
-  // }
+
   def canEqual(a: Any) = a.isInstanceOf[RecordCType]
   override def equals(that: Any): Boolean = that match {
     case RecordCType(fs) => fs.toList == attrTps.toList
@@ -141,18 +144,25 @@ object RecordCType {
   def apply(attrTps: (String, Type)*): RecordCType = RecordCType(Map(attrTps: _*))
 }
 
-case class TTupleType(attrTps: List[Type]) extends Type {
+final case class TTupleType(attrTps: List[Type]) extends Type {
   def apply(n: Int): Type = attrTps(n)
   override def isDict: Boolean = 
     attrTps.size == 2 && attrTps.head.isInstanceOf[LabelType]
 }
 
+
+/** Dictionary types for calculus
+  * Important for scala generator (local evluation) and catching 
+  * lambdas that are not normalized in the NRC phase
+  */
+
 trait TDict extends Type
 trait TTupleDict extends Type
 
-case object EmptyDictCType extends TDict with TTupleDict
+final case object EmptyDictCType extends TDict with TTupleDict
 
-case class BagDictCType(flatTp: BagCType, dictTp: TTupleDict) extends TDict { self =>
+final case class BagDictCType(flatTp: BagCType, dictTp: TTupleDict) extends TDict { self =>
+  
   def apply(n: String): Type = n match {
     case "lbl" => flatTp.tp.asInstanceOf[TTupleType](0)
     case "flat" => flatTp.tp match {
@@ -162,14 +172,7 @@ case class BagDictCType(flatTp: BagCType, dictTp: TTupleDict) extends TDict { se
     case "_1" => flatTp
     case "_2" => dictTp
   }
-  def lbl: LabelType = flatTp.tp.asInstanceOf[TTupleType](0).asInstanceOf[LabelType]
-  override def flat: BagCType = flatTp.tp match {
-    case ttp @ TTupleType(List(IntType, RecordCType(_))) => BagCType(ttp)
-    case TTupleType(fs) => fs(1).asInstanceOf[BagCType]
-    case _ => flatTp //sys.error("type not supported in flat bag")
-  }
-  def _1 = flatTp
-  def _2 = dictTp
+
   override def isPartiallyShredded: Boolean = flatTp.tp match {
     case RecordCType(ms) => ms.filter(_._2.isInstanceOf[BagCType]).nonEmpty
     case _ => false
@@ -180,7 +183,7 @@ case class BagDictCType(flatTp: BagCType, dictTp: TTupleDict) extends TDict { se
   }
 }
 
-case class TupleDictCType(attrTps: Map[String, TDict]) extends TTupleDict {
+final case class TupleDictCType(attrTps: Map[String, TDict]) extends TTupleDict {
   def apply(n: String): TDict = attrTps(n)
 }
 

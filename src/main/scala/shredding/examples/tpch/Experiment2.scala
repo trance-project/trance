@@ -4,6 +4,11 @@ import shredding.core._
 import shredding.examples.Query
 import shredding.nrc.MaterializeNRC
 
+/** Flat to nested queries:
+  * Suppliers - ( Customers JOIN Orders JOIN Lineitem )
+  * Useful for skew
+  */
+
 object TestFN0 extends TPCHBase {
   val name = "TestFN0"
 

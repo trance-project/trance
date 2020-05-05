@@ -4,6 +4,8 @@ import shredding.core.Type
 import shredding.nrc._
 import shredding.plans._
 
+/** Query support methods **/
+
 trait Query extends Materialization
   with MaterializeNRC
   with Printer
@@ -17,7 +19,8 @@ trait Query extends Materialization
   def inputTypes(shred: Boolean = false): Map[Type, String]
   def headerTypes(shred: Boolean = false): List[String]
 
-  /** standard query program **/
+  /** Standard Pipeline Runners **/
+
   val program: Program
   def calculus: CExpr = {
     println(quote(program))
@@ -45,45 +48,27 @@ trait Query extends Materialization
     plan
   }
 
+  /** calls only DF style ANF, change this to use 
+    the RDD generator **/
   def anf(optimizationLevel: Int = 2): CExpr = {
     val anfBase = new BaseDFANF{}
     val anfer = new Finalizer(anfBase)
     optimizationLevel match {
       case 0 => 
         val plan = unnestOnly
-        println("\n"+Printer.quote(plan))
+        // println("\n"+Printer.quote(plan))
         anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
       case 1 => 
         val plan = Optimizer.projectOnly(unnestOnly)
-        println("\n"+Printer.quote(plan))
+        // println("\n"+Printer.quote(plan))
         anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
       case _ => 
-        val plan = anfBase.anf(anfer.finalize(this.unnest).asInstanceOf[anfBase.Rep])
-        // println(plan)
-        plan 
+        anfBase.anf(anfer.finalize(this.unnest).asInstanceOf[anfBase.Rep])
     }
   }
 
-  def anfDF(optimizationLevel: Int = 2): CExpr = {
-    val anfBase = new BaseDFANF{}
-    val anfer = new Finalizer(anfBase)
-    optimizationLevel match {
-      case 0 => 
-        val plan = unnestOnly
-        println("\n"+Printer.quote(plan))
-        anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
-      case 1 => 
-        val plan = Optimizer.projectOnly(unnestOnly)
-        println("\n"+Printer.quote(plan))
-        anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
-      case _ => 
-        val plan = anfBase.anf(anfer.finalize(this.unnest).asInstanceOf[anfBase.Rep])
-        // println(plan)
-        plan 
-    }
-  }
 
-  /** shred query **/
+  /** Shredded Pipeline Runners **/
 
   def shredWithInput(input: Query, unshredRun: Boolean = false, eliminateDomains: Boolean = true): (CExpr, CExpr, CExpr) = {
     val (inputShredded, inputShreddedCtx) = shredCtx(input.program.asInstanceOf[Program])
@@ -256,7 +241,7 @@ trait Query extends Materialization
   }
   
   def indexedDict: List[String] = Nil
-  
+
   /** misc utils **/
   def varset(n1: String, n2: String, e: BagExpr): (BagVarRef, TupleVarRef) =
     (BagVarRef(n1, e.tp), TupleVarRef(n2, e.tp.tp))

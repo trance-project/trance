@@ -1,10 +1,22 @@
-package shredding.generator
+package shredding.generator.spark
 
 import shredding.core._
 import shredding.plans.{Multiply => CMultiply}
 import shredding.plans._
 import shredding.utils.Utils.ind
 
+/**
+  * Spark/Scala generator for Datasets. 
+  * This is the initial prototype implementation and is actively in development.
+  * @deprecated no longer supported, see dataset generator
+  * @param cache boolean flag for caching intermediate outputs
+  * @param evaluate boolean flag for evaluating intermediate outputs
+  * @param skew boolean flag for skew-aware application (requires only minor adjustments)
+  * @param isDict boolean flag to represent coming from shredded pipeline
+  * @param unshred boolean flag to represent unshredding 
+  * @param evalFinal boolean flag to run evaluate on the final output (standard pipeline)
+  * @param inputs map of input types that should not be reproduced (important for programs)
+  */
 class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = false, isDict: Boolean = true,
   unshred: Boolean = false, evalFinal: Boolean = true, inputs: Map[Type, String] = Map()) extends SparkTypeHandler with SparkUtils {
 
@@ -14,17 +26,37 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
   var encoders: Set[String] = Set()
   override val bagtype: String = "Seq"
 
+  /** Generates the code for the set of case class records associated to the 
+    * records in the generated program.
+    *
+    * @param names list of names to omit from header creation
+    * @return string representing all the records required to run the corresponding application
+    */
   def generateHeader(names: List[String] = List()): String = {
     val h1 = typelst.map(x => generateTypeDef(x)).mkString("\n")
     val h2 = inputs.withFilter(x => !names.contains(x._2)).map( x => generateTypeDef(x._1)).toList
     if (h2.nonEmpty) { s"$h1\n${h2.mkString("\n")}" } else { h1 }
   }
 
+  /** Generates the code for the set of implicit encoders associated to the 
+    * records in the generated program.
+    *
+    * @return string representing all encoders required by the application
+    */
   def generateEncoders(): String = encoders.map{
     case r => s"implicit val encoder$r: Encoder[$r] = Encoders.product[$r]"
   }.mkString("\n")
 
-  def drop(tp: Type, v: Variable, field: String, index: Boolean = true): CExpr = tp match {
+  /**
+    * Drop a bag attribute and create an index where necessary.
+    * 
+    * @param tp type of record to drop attribute from
+    * @param v variable for substitution within record attribute expressions
+    * @param field bag projection attribute
+    * @param index boolean flag to introduce index or not
+    * @return new record with projected bag type
+    */
+  private def drop(tp: Type, v: Variable, field: String, index: Boolean = true): CExpr = tp match {
     case RecordCType(fs) => 
       val imap = if (index) Map("index" -> Index) else Map()
       Record(imap ++ (fs - field).map{ case (
@@ -32,7 +64,18 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case _ => sys.error(s"unsupported type ${tp}")
   }
 
-  def generateJoin(e1: CExpr, e2: CExpr, p1: String, p2: String, v1: List[Variable], v2: Variable, joinType: String = "inner"): String = {
+  /** Generates the code for a join - similar for inner and outer joins
+    *
+    * @param e1 expression corresponding to left side of join
+    * @param e2 expression corresponding to right side of join
+    * @param p1 string left-side column to match
+    * @param p2 string right-side column to match
+    * @param v1 list of variables from left
+    * @param v2 variable from right
+    * @param joinType string 
+    * @return string representing the join for the input expressions
+    */
+  private def generateJoin(e1: CExpr, e2: CExpr, p1: String, p2: String, v1: List[Variable], v2: Variable, joinType: String = "inner"): String = {
     val wrapOption = if (joinType != "inner") "null" else ""
     val recTp = flatRecord(flatType(v1, {!isDict && joinType != "inner"}, wrapOption), e2.tp, {joinType != "inner"})
     handleType(recTp)
@@ -41,18 +84,30 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     val ge2 = generate(e2)
     val gtp1 = generateType(v2.tp)
     val gtp2 = if (skew) ", Int" else ""
-    // s"""|$ge1.equiJoinWith[$gtp1$gtp2]($ge2, Seq("$p1","$p2"), "$joinType")
-    //     |""".stripMargin    
     s"""|$ge1.equiJoin[$gtp1$gtp2]($ge2, Seq("$p1","$p2"), "$joinType")
         | .as[$rec]
         |""".stripMargin     
   }
   
-  def vars(vs: List[Variable]): String = {
+  /** Generates a single variable or a tuple of variables
+    * never more than two, ie. either a or (a,b)
+    *
+    * @param list of variables from left subplan
+    * @return string tupled vars
+    */
+  private def vars(vs: List[Variable]): String = {
     if (vs.size == 1) generate(vs.head)
     else vs.map(generate(_)).mkString("(", ",", ")")
   }
 
+  /** Main function for generating a Spark application using datasets
+    * This is the initial implementation of the Dataset generator that is 
+    * very much a prototype. It is actively in development.
+    *
+    * @param plan from the BaseDFANF compiler
+    * @return string of generated code for Spark application with datasets as 
+    * the underlying type
+    */
   def generate(e: CExpr): String = e match {
 
     /** ZEROS **/
@@ -78,10 +133,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       handleType(tp)
       val rcnts = tp.attrTps.map(f => generate(fs(f._1))).mkString(", ")
       s"${generateType(tp)}($rcnts)"
-      // s"${generateType(tp)}(${fs.map(f => generate(f._2)).mkString(", ")})"
     }
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
-    // this is a quick hack
+
     case Project(e1, "_LABEL") => generate(e1)
     case Project(e2 @ Record(fs), field) => 
       s"${generate(e2)}.${kvName(field)(fs.size)}"
@@ -180,7 +234,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
               |""".stripMargin
       }
 
-    // shouldn't be called by shredded evaluation
     case OuterUnnest(e1, v1s, p1 @ Project(_, f), v2, p, value) => 
       val v1 = Variable.fresh(flatType(v1s, index = true, wrapOption = {if (v1s.size > 1) f else ""}, wrapNested = true))
       val path = generate(Project(v1, f))
@@ -275,13 +328,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
     /** IDENTITY **/
     case Reduce(InputRef(n, tp), v, Variable(_,_), Constant(true)) => n
-      // val ftp = flatDictType(tp)
-      // if (externalInputs.contains(ftp)){
-      //   handleType(ftp)
-      //   val gtp = generateType(ftp)
-      //   encoders = encoders + gtp
-      //   s"${n}.as[$gtp]"
-      // }else n
     case Reduce(FlatDict(i), v, Variable(_,_), Constant(true)) => generate(i)
     case Reduce(Variable(n, _), v, Variable(_,_), Constant(true)) => n
     
@@ -343,7 +389,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     case LinearCSet(fs) => ""
-      // fs.map(generate(_)+"/** this **/").mkString("\n")
     case Bind(v, e1, e2) => 
       s"val ${generate(v)} = ${generate(e1)} \n${generate(e2)}"
     case _ => s"/** TODO: $e **/"

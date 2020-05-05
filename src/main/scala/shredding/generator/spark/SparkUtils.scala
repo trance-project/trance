@@ -1,4 +1,4 @@
-package shredding.generator
+package shredding.generator.spark
 
 import shredding.core._
 import shredding.plans._
@@ -8,6 +8,9 @@ case class COption(e: CExpr) extends CExpr {
   def tp: OptionType = OptionType(e.tp)
 }
 
+/** 
+  * Utility functions requried for generating Spark/Scala applications
+  */
 trait SparkUtils {
 
   def validLabel(e: Type): Boolean = e match {
@@ -98,7 +101,7 @@ trait SparkUtils {
 
   }
 
-  /** dataframe specifc utils **/
+  /** Dataset Specifc **/
 
   def flattenLabel(e: CExpr): CExpr = e match {
     case Record(ms) => Record(ms.map(m => m._1 -> flattenLabel(m._2)))

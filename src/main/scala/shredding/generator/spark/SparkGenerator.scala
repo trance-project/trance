@@ -1,4 +1,4 @@
-package shredding.generator
+package shredding.generator.spark
 
 import shredding.core._
 import shredding.plans.{Multiply => CMultiply}
@@ -6,29 +6,55 @@ import shredding.plans._
 import shredding.utils.Utils.ind
 
 /**
-  * Generates Scala code specific to Spark applications
+  * Spark/Scala generator for RDD. This was the stable Spark generator 
+  * before Datasets.
+  * @deprecated no longer supported, see dataset generator
+  * @param cache boolean flag for caching intermediate outputs
+  * @param evaluate boolean flag for evaluating intermediate outputs
+  * @param skew boolean flag for skew-aware application (requires only minor adjustments)
+  * @param flatDict boolean flag for relational representation of dictionaries; used prior to 
+  * the development of the dataset generator
+  * @param inputs map of input types that should not be reproduced (important for programs)
   */
-
 class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = false,
   flatDict: Boolean = false, inputs: Map[Type, String] = Map()) extends SparkTypeHandler with SparkUtils {
 
   implicit def expToString(e: CExpr): String = generate(e)
 
-
   var types: Map[Type, String] = inputs
 
+  /** Generates the code for the set of case class records associated to the 
+    * records in the generated program.
+    *
+    * @param names list of names to omit from header creation
+    * @return string representing all the records required to run the corresponding application
+    */
   def generateHeader(names: List[String] = List()): String = {
     val h1 = typelst.map(x => generateTypeDef(x)).mkString("\n")
     val h2 = inputs.withFilter(x => !names.contains(x._2)).map( x => generateTypeDef(x._1)).toList
     if (h2.nonEmpty) { s"$h1\n${h2.mkString("\n")}" } else { h1 }
   }
 
-  def conditional(p: CExpr, thenp: String, elsep: String): String = p match {
+  /** Generate a conditional expression 
+    * 
+    * @param p condition
+    * @param thenp string representing generated code if p is true
+    * @param elsep string representing generated code if p is false
+    * @return string of the code corresponding to the conditional expression
+    */
+  private def conditional(p: CExpr, thenp: String, elsep: String): String = p match {
     case Constant(true) => s"${ind(thenp)}"
     case _ => s"if({${generate(p)}}) {${ind(thenp)}} else {${ind(elsep)}}"
   }
 
-  def nullProject(e: CExpr, grouped: Boolean = false): String = e match {
+  /** Check if a variable is null before projecting on it. 
+    * Necessary for null values introduced from the standard pipeline.
+    * 
+    * @param e expression containing projection
+    * @param grouped boolean flag for putting null values inside records
+    * @return string representing the null checks for expressions that include projections
+    */
+  private def nullProject(e: CExpr, grouped: Boolean = false): String = e match {
     case Bind(bv, p1 @ Project(v, field), Bind(bv2, p2 @ Record(_), p3)) if grouped =>
       s"""|{val ${generate(bv2)} = ${generate(v)} match {
           |   case null => ${castNull(p1)}; case _ => {
@@ -47,7 +73,16 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = fal
     case _ => generate(e)
   }
 
-  def projectBag(e: CExpr, vs: List[Variable], index: Boolean = true): (String, String, List[CExpr], List[CExpr], CExpr) = e match {
+  /** Helper function for dropping the bag attribute for the unnest operator, 
+    * this also controls introducing the index.
+    *
+    * @param e input record containing the path attribute
+    * @param vs list of variables corresponding to the left portition of the plan
+    * @param index boolean flag to produce index or not
+    * @return a set of information required for the indexed unnested bag record
+    * and the parent record that has the unnestd bag attribute removed.
+    */
+  private def projectBag(e: CExpr, vs: List[Variable], index: Boolean = true): (String, String, List[CExpr], List[CExpr], CExpr) = e match {
     case Bind(v, Project(v2 @ Variable(n,tp), field), e2) => 
       val nvs1 = vs.map( v3 => if (v3 == v2) drop(tp, v2, field, index) else v3)
       val nvs2 = vs.map( v3 => if (v3 == v2) v2.nullValue else v3)
@@ -55,7 +90,15 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = fal
     case _ => sys.error(s"unsupported bag projection $e")
   }
 
-  def drop(tp: Type, v: Variable, field: String, index: Boolean = true): CExpr = tp match {
+  /** Drops the bag attribute from a record and places the index if necessary.
+    *
+    * @param tp type of the input record to drop the bag attribute from
+    * @param v varibale to place in the attributes of the new record
+    * @param field the field corresponding to the bag attribute to be dropped
+    * @param index boolean flag to produce index or not
+    * @return record with the bag attribute dropped and an index introduced
+    */
+  private def drop(tp: Type, v: Variable, field: String, index: Boolean = true): CExpr = tp match {
       case TTupleType(fs) => 
         Tuple(fs.drop((kvName(field)(2).replace("_", "").toInt-1)).zipWithIndex.map{ case (t, i) 
           => Project(v, "_"+ (i+1)) })
@@ -69,6 +112,12 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = fal
       case _ => sys.error(s"unsupported type ${tp}")
     }
 
+  /** Main generator for Spark applications using RDDs
+    *
+    * @param e plan produced from BaseANF
+    * @return string representing the Spark application of the input plan
+    * using RDD as the base datatype.s
+    */
   def generate(e: CExpr): String = e match {
 
     /** ZEROS **/
@@ -610,8 +659,14 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = fal
     case _ => sys.error(s"not supported $e \n ${Printer.quote(e)}")
   }
 
-  /* Tuple vars based on type, for example (a,b,c) -> ((a,b),c) */
-  def generateVars(e: List[CExpr], tp: Type): String = tp match {
+  /** Generates a set of input vars based on a type 
+    * ie. (a,b,c) => ((a,b),c)
+    *
+    * @param e list of variables from operator
+    * @param tp type associated to the tupled variables
+    * @return string tupled representation of variable list
+    */
+  private def generateVars(e: List[CExpr], tp: Type): String = tp match {
     case BagDictCType(BagCType(t), d) => generateVars(e, t)
     case BagCType(t) => generateVars(e, t)
     case TTupleType(seq) if (seq.size == 2 && validLabel(seq.head)) => s"${generate(e.head)}"
@@ -623,23 +678,19 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = fal
     }
     case RecordCType(_) => s"${generate(e.head)}"
     case y if e.size == 1 => s"${generate(e.head)}" 
-    //TTupleType(seq) if seq.size == 2 && e.size == 1 => e.map(generate).mkString("(", ",", ")")
     case TTupleType(seq) => sys.error(s"not supported ${e.size} ${seq.size} --> $e:\n ")//${generateType(tp)}")
-    //case _ if e.size == 1 => s"${generate(e.head)}"
   }
 
-  def e1Key(p1: CExpr, p3: CExpr) =  p3 match {
+  private def e1Key(p1: CExpr, p3: CExpr) =  p3 match {
     case Constant(true) => s"{${generate(p1)}}"
     case _ => s"({${generate(p1)}}, {${generate(p3)}})"
   }
 
-  def e2Key(v2: CExpr, p2: CExpr) = {
+  private def e2Key(v2: CExpr, p2: CExpr) = {
     val gv2 = generate(v2)
     p2 match {
       case Constant(true) => s".flatMapValues(identity)"
       case _ => ???
-      // s"""/** WHEN DOES THIS CASE HAPPEN **/
-      //   .flatMap(v2 => v2._2.map{case $gv2 => ((v2._1, {${generate(p2)}}), $gv2)})"""
     }
   }
 

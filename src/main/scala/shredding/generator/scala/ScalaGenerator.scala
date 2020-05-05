@@ -1,4 +1,4 @@
-package shredding.generator
+package shredding.generator.scala
 
 import shredding.core._
 import shredding.plans._
@@ -6,6 +6,13 @@ import shredding.utils.Utils.ind
 
 /**
   * Generates Scala code, assumes nodes are compiled from ANF
+  * 
+  * This was used for exploring local evaluation. 
+  * @deprecated This has not been updated while the pipeline has 
+  * been evolving while developing the Spark code generator. 
+  * 
+  * @param inputs map of types and names to avoid making case class 
+  * records for when creating the header.
   */
 
 class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
@@ -15,20 +22,35 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
 
   implicit def expToString(e: CExpr): String = generate(e)
   
-  def kvName(x: String): String = x match {
+  /** Translate a k,v record into a tuple type
+    * 
+    * @param x string attribute name
+    */
+  private def kvName(x: String): String = x match {
     case "k" => "_1"
     case "v" => "_2" 
     case _ => x
   } 
 
-  def generateTypeDef(tp: Type): String = tp match {
+  /** Generator for named tuples, used when creating the 
+    * header.
+    * 
+    * @param tp type of record
+    * @return string representing code to create a class class
+    */
+  private def generateTypeDef(tp: Type): String = tp match {
     case RecordCType(fs) =>
      val name = types(tp)
       s"case class $name(${fs.map(x => s"${kvName(x._1)}: ${generateType(x._2)}").mkString(", ")}, uniqueId: Long) extends CaseClassRecord" 
     case _ => sys.error("unsupported type "+tp)
   }
 
-  def generateType(tp: Type): String = tp match {
+  /** Generator for all types, used within the main generator.
+    *
+    * @param tp type of expression from within generator
+    * @return string representing the native Scala type
+    */
+  private def generateType(tp: Type): String = tp match {
     case RecordCType(_) if types.contains(tp) => types(tp)
     case IntType => "Int"
     case StringType => "String"
@@ -49,13 +71,25 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case _ => sys.error("not supported type " + tp)
   }
 
+  /** Generates the code for the set of case class records associated to the 
+    * records in the generated program.
+    *
+    * @param names list of names to omit from header creation
+    * @return string representing all the records required to run the corresponding application
+    */
   def generateHeader(names: List[String] = List()): String = {
     val h1 = typelst.map(x => generateTypeDef(x)).mkString("\n")
     val h2 = inputs.withFilter(x => !names.contains(x._2)).map( x => generateTypeDef(x._1)).toList
     if (h2.nonEmpty) { s"$h1\n${h2.mkString("\n")}" } else { h1 }
   }
 
-  def handleType(tp: Type, givenName: Option[String] = None): Unit = {
+  /** Updates the type map with records and record attribute types 
+    * from the generated plan.
+    *
+    * @param tp type from the input program (called for records)
+    * @param givenName optional name used for naming the generated record
+    */
+  private def handleType(tp: Type, givenName: Option[String] = None): Unit = {
     if(!types.contains(tp)) {
       tp match {
         case RecordCType(fs) =>
@@ -81,11 +115,24 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     }
   }
 
-  def conditional(p: CExpr, thenp: String, elsep: String): String = p match {
+  /** Generate a conditional expression 
+    * 
+    * @param p condition
+    * @param thenp string representing generated code if p is true
+    * @param elsep string representing generated code if p is false
+    * @return string of the code corresponding to the conditional expression
+    */
+  private def conditional(p: CExpr, thenp: String, elsep: String): String = p match {
     case Constant(true) => s"${ind(thenp)}"
     case _ => s"if({${generate(p)}}) {${ind(thenp)}} else {${ind(elsep)}}"
   }
 
+  /** Code generator for local scala applications
+    *
+    * @deprecated this has not been maintained
+    * @param e plan that from the BaseANF generator
+    * @return string corresponding to the scala application of the input plan
+    */
   def generate(e: CExpr): String = e match {
     case Variable(name, _) => name
     case InputRef(name, tp) => 
@@ -147,9 +194,6 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case LinearCSet(exprs) => 
       s"""(${exprs.map(generate(_)).mkString(",")})"""
     case EmptyCDict => "()"
-    // TODO: lbl not available anymore
-//    case BagCDict(lbl, flat, dict) =>
-//      s"(${generate(flat)}.map(v => (${generate(lbl)}, v)), ${generate(dict)})"
     case TupleCDict(fs) => generate(Record(fs))
     case Select(x, v, p, e) => p match {
       case Constant(true) => generate(x)
@@ -282,12 +326,19 @@ class ScalaNamedGenerator(inputs: Map[Type, String] = Map()) {
     case _ => sys.error("not supported "+e)
   }
 
-  def toList(e: String): String = e match {
+  private def toList(e: String): String = e match {
     case _ if e.startsWith("(") => s"List$e"
     case _ => s"List($e)"
   }
 
-  def generateVars(e: List[Variable], tp: Type): String = tp match {
+  /** Generates a set of input vars based on a type 
+    * ie. (a,b,c) => ((a,b),c)
+    *
+    * @param e list of variables from operator
+    * @param tp type associated to the tupled variables
+    * @return string tupled representation of variable list
+    */
+  private def generateVars(e: List[Variable], tp: Type): String = tp match {
     case TTupleType(seq) if (seq.size == 2 && seq.head == IntType) => s"${generate(e.head)}"
     case TTupleType(seq) if e.size == seq.size => e.map(generate).mkString("(", ", ", ")")
     case TTupleType(seq) if e.size > seq.size => {
