@@ -9,6 +9,8 @@ import framework.examples.tpch._
  * Generate Spark applications for benchmark queries.
  */
 object App {
+
+  val pathout = Config.pathout
  
   def main(args: Array[String]){
     runFlatToNested()
@@ -19,7 +21,6 @@ object App {
   }
 
   def runFlatToNested(){
-    val pathout = "spark/src/main/scala/sprkloader/experiments"
 
     // AppWriter.flatDataset(Test0, pathout, "Flat++,0")
     // AppWriter.flatDataset(Test0Full, pathout, "Flat++,0")
@@ -59,7 +60,6 @@ object App {
   }
  
   def runNestedToNested(){
-    val pathout = "spark/src/main/scala/sprkloader/experiments"
 
     // AppWriter.runDatasetInput(Test0Full, Test0NN, pathout, "Flat++,0")
     // AppWriter.runDatasetInput(Test1Full, Test1NN, pathout, "Flat++,1")
@@ -99,7 +99,6 @@ object App {
   }
 
   def runNestedToFlat(){
-    val pathout = "spark/src/main/scala/sprkloader/experiments"
     // AppWriter.runDatasetInput(Test2FullFlat, Test2Agg2, pathout, "Flat++,Standard,2")
     // AppWriter.runDatasetInput(Test2FullFlat, Test2Agg2, pathout, "Flat++,Skew,2", skew = true)
 
@@ -108,7 +107,6 @@ object App {
   }
 
   def runSkewHandling(){
-    val pathout = "spark/src/main/scala/sprkloader/experiments"
 
     AppWriter.runDatasetInput(Test2Flat, Test2NNL, pathout, "Flat++,Standard,2")
     AppWriter.runDatasetInput(Test2Flat, Test2NNL, pathout, "Flat++,Skew,2", skew = true)

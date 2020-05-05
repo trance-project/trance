@@ -5,4 +5,5 @@ object Config {
   val fsin = new java.io.FileInputStream("data.flat")
   prop.load(fsin)
   val datapath = prop.getProperty("datapath")
+  val pathout = prop.getProperty("pathout")
 }
