@@ -22,6 +22,8 @@ case class Region(r_regionkey: Int, r_name: String, r_comment: String)
 
 case class Nation(n_nationkey: Int, n_name: String, n_regionkey: Int, n_comment: String)
 
+
+/** Config reader specific to tpch loader **/
 object Config {
   val prop = new java.util.Properties
   val fsin = new java.io.FileInputStream("data.flat")
@@ -34,6 +36,7 @@ object Config {
   val lparts = prop.getProperty("lineitem").toInt
 }
 
+/** RDD and Dataset loaders for TPCH **/
 class TPCHLoader(spark: SparkSession) extends Serializable {
 
   val datapath = Config.datapath

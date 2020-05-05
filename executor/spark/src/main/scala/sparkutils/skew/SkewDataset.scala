@@ -8,6 +8,15 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.expressions.scalalang._
 
+/** Implicits used for the generated Spark code from the compiler framework.
+  * This file contains the following implicits:
+  * i) skew-unaware high-level operations defined on a single Dataset/Dataframe
+  * ii) skew-aware high-level operations defined on a skew-triple with non-null heavy key set
+  * these functions work with a skew-triple (light, heavy, heavyKeys)
+  * iii) skew-aware high-level operations defined on a skew-triple with null heavy key set
+  * these functions work on a tuple (Dataset, Dataset), for example
+  *
+  */
 object SkewDataset{
 
   implicit class DatasetOps[T: Encoder: ClassTag](left: Dataset[T]) extends Serializable {
