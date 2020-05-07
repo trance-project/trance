@@ -1,6 +1,6 @@
 package framework.nrc
 
-import framework.core.{BagType, LabelType, MatDictType, OpEq, TupleType, VarDef}
+import framework.common.{BagType, LabelType, MatDictType, OpEq, TupleType, VarDef}
 import framework.utils.Utils.Symbol
 
 trait MaterializationDomain extends Printer {

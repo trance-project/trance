@@ -1,6 +1,6 @@
 package framework.examples.tpch
 
-import framework.core._
+import framework.common._
 import framework.examples.Query
 import framework.nrc.MaterializeNRC
 

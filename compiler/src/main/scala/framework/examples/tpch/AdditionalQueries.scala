@@ -1,6 +1,6 @@
 package framework.examples.tpch
 
-import framework.core._
+import framework.common._
 import framework.utils.Utils.Symbol
 
 /** This document contains additional TPC-H queries 

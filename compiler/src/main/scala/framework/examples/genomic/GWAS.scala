@@ -1,6 +1,6 @@
 package framework.examples.genomic
 
-import framework.core._
+import framework.common._
 import framework.examples.Query
 
 trait GenomicBase extends Query {

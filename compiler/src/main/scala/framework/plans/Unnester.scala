@@ -1,6 +1,6 @@
 package framework.plans
 
-import framework.core._
+import framework.common._
 
 /** Object that houses the variant of the unnesting algorithm from Fegaras and Maier,
   * includes extensions for intermediate NRC expressions from the shredding transformation 

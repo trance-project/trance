@@ -1,6 +1,6 @@
 package framework.nrc
 
-import framework.core.{BagType, LabelType, MatDictType, TupleType}
+import framework.common.{BagType, LabelType, MatDictType, TupleType}
 
 trait MaterializeNRC extends ShredNRC with Optimizer {
 

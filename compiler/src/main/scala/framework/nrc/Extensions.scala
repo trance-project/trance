@@ -1,6 +1,6 @@
 package framework.nrc
 
-import framework.core._
+import framework.common._
 import framework.utils.Utils.Symbol
 
 /**

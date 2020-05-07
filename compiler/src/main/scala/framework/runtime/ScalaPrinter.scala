@@ -1,7 +1,7 @@
 package framework.runtime
 
 import framework.utils.Utils.ind
-import framework.core._
+import framework.common._
 
 /**
   * Printer of runtime Scala values

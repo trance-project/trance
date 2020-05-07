@@ -1,6 +1,6 @@
 package framework.examples.simple
 
-import framework.core._
+import framework.common._
 import framework.plans._
 
 case class InputR(a: Int, b: String)

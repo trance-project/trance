@@ -1,6 +1,6 @@
 package framework.examples.normalize
 
-import framework.core._
+import framework.common._
 import framework.nrc.MaterializeNRC
 
 object NormalizationTests {

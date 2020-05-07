@@ -1,6 +1,6 @@
 package framework.nrc
 
-import framework.core.{OpDivide, OpEq, OpGe, OpGt, OpMinus, OpMod, OpMultiply, OpNe, OpPlus, VarDef}
+import framework.common.{OpDivide, OpEq, OpGe, OpGt, OpMinus, OpMod, OpMultiply, OpNe, OpPlus, VarDef}
 
 trait Implicits {
   this: MaterializeNRC with Factory with Extensions =>

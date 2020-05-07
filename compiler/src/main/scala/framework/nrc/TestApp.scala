@@ -1,6 +1,6 @@
 package framework.nrc
 
-import framework.core._
+import framework.common._
 import framework.examples.tpch._
 import framework.runtime.{RuntimeContext, Evaluator, ScalaPrinter, ScalaShredding}
 import framework.examples.simple._

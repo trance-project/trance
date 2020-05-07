@@ -1,7 +1,7 @@
 package framework.nrc
 
 import framework.utils.Utils.Symbol
-import framework.core._
+import framework.common._
 
 /**
   * Materialization of nested output queries

@@ -1,6 +1,6 @@
 package framework.generator.scala
 
-import framework.core._
+import framework.common._
 import framework.plans._
 import framework.utils.Utils.ind
 

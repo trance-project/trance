@@ -1,6 +1,6 @@
 package framework.plans
 
-import framework.core._
+import framework.common._
 
 /**
   * Normalization for intermediate calculus of the plan language. 

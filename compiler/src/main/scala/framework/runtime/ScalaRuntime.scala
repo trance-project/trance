@@ -1,6 +1,6 @@
 package framework.runtime
 
-import framework.core._
+import framework.common._
 
 /**
   * Runtime representations of labels and dictionaries in Scala

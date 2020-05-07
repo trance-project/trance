@@ -1,6 +1,6 @@
 package framework.examples.optimize
 
-import framework.core._
+import framework.common._
 import framework.examples.tpch.TPCHBase
 import framework.examples.genomic.GenomicBase
 

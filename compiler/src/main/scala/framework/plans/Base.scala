@@ -1,6 +1,6 @@
 package framework.plans
 
-import framework.core._
+import framework.common._
 import scala.collection.mutable.HashMap
 import framework.utils.Utils.ind
 

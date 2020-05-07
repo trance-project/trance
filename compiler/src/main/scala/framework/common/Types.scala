@@ -1,4 +1,4 @@
-package framework.core
+package framework.common
 
 /**
   * NRC type system: primitive types, bag type, tuple type

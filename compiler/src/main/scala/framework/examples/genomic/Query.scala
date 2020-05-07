@@ -1,6 +1,6 @@
 package framework.examples.genomic
 
-import framework.core._
+import framework.common._
 import framework.nrc.MaterializeNRC
 
 case class Clinical(sample: String, iscase: String)

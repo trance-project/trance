@@ -1,6 +1,6 @@
 package framework.examples.simple
 
-import framework.core._
+import framework.common._
 import framework.nrc.MaterializeNRC
 
 object FlatTests {

@@ -1,6 +1,6 @@
 package framework.plans
 
-import framework.core._
+import framework.common._
 import scala.collection.immutable.Set
 import scala.collection.mutable.HashMap
 

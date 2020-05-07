@@ -1,7 +1,7 @@
 package framework.generator.scala
 
 import java.io._
-import framework.core._
+import framework.common._
 import framework.plans._
 import framework.examples.tpch._
 import framework.examples.Query

@@ -1,6 +1,6 @@
 package framework.nrc
 
-import framework.core.VarDef
+import framework.common.VarDef
 import framework.runtime.{Evaluator, RuntimeContext, ScalaPrinter, ScalaShredding}
 import framework.examples.tpch
 import framework.examples.tpch.TPCHSchema

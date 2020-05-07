@@ -1,6 +1,6 @@
 package framework.runtime
 
-import framework.core.VarDef
+import framework.common.VarDef
 
 import scala.collection.mutable.{HashMap => HMap}
 
