@@ -32,7 +32,7 @@ Select to run the first application [1]. This will generate two files:
 Note that these files are generated inside the executor package. This is because it will need to 
 access the same `spark.sql.implicits` as the functions inside this package. 
 
-Navigate to `executor/spark`. Update `data.flat` with your configuration details, and compile the package:
+Navigate to `executor/spark`. Update `data.flat` with your configuration details, particularly replace datapath=`/path/to/shredder...` with the appropriate location of the cloned repo and compile the package:
 
 ```
 cd executors/spark
