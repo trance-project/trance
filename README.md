@@ -6,7 +6,8 @@ The framework is organized into two subfolders:
 
 ### Example
 
-For now, NRC queries are described directly in Scala. There are several examples of how to do this 
+NRC queries can currently be described directly in Scala. Examples of how to do this 
+can be found in  are described directly in Scala. There are several examples of how to do this 
 in `compilers/src/main/scala/framework/examples/`. Here we describe how to generate and 
 execute code for an example from the TPC-H benchmark.
 

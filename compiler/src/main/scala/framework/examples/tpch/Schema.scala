@@ -39,6 +39,8 @@ case class Nation(n_nationkey: Int, n_name: String, n_regionkey: Int, n_comment:
   def uniqueId: Long = n_nationkey.toLong
 }
 
+/** Case classes used primarily for local testing in scala tests, scala interpreter, and scala code generator **/
+
 case class Q1Flat(P__F: Int, C__F: Int, L__F: Int, O__F: Int, uniqueId: Long)
 
 case class Q1Flat2(Query4__F: Q1Flat, uniqueId: Long)
@@ -50,8 +52,6 @@ case class Q3Flat2(N__F: Int, Query7__F: Q3Flat, uniqueId: Long)
 case class Q3Flat3(Query7__F: Q3Flat, N__F: Int, uniqueId: Long)
 
 object TPCHSchema {
-  // TODO: crashes here - Config.datapath does not exist
-//  val folderLocation = Config.datapath
   val folderLocation = "/"
   val scalingFactor = 1
   val lineItemTable = {
@@ -240,7 +240,9 @@ object TPCHSchema {
 
   val regiontype = tableType(regionTable)
 
-  // var q1ftype = TupleType("P__F" -> IntType, "C__F" -> IntType, "L__F" -> IntType, "O__F" -> IntType)
+  
+  /** Functions used to generate inputs for the TPCH benchmark queries. **/
+
   var tpchInputs:Map[Type, String] = Map(partsupptype.tp -> "PartSupp", 
                                      suppliertype.tp -> "Supplier", 
                                      lineittype.tp -> "Lineitem", 
@@ -250,22 +252,6 @@ object TPCHSchema {
                                      nationtype.tp -> "Nation",
                                      regiontype.tp -> "Region")
   
-  // var tpchShredInputs:Map[Type, String] = Map(
-  //   RecordCType("P__F" -> IntType, "C__F" -> IntType, "L__F" -> IntType, "O__F" -> IntType) -> "Q1Flat",
-  //   RecordCType("Query4__F" -> IntType) -> "Q1Flat2",
-  //   RecordCType("O__F" -> IntType, "C__F" -> IntType, "PS__F" -> IntType, 
-  //               "S__F" -> IntType, "L__F" -> IntType, "P__F" -> IntType) -> "Q3Flat",
-  //   RecordCType("N__F" -> IntType, "Query7__F" -> IntType) -> "Q3Flat2",
-  //   RecordCType("Query5__F" -> IntType) -> "Q5Flat",
-  //   RecordCType("Query7__F" -> IntType, "N__F" -> IntType) -> "Q3Flat3",
-  //   BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(partsupptype.tp.attrTps))))), EmptyDictCType) -> "PD", 
-  //   BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(suppliertype.tp.attrTps))))), EmptyDictCType) -> "SD", 
-  //   BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(lineittype.tp.attrTps))))), EmptyDictCType) -> "LD", 
-  //   BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(orderstype.tp.attrTps))))), EmptyDictCType) -> "OD",
-  //   BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(customertype.tp.attrTps))))), EmptyDictCType) -> "CD", 
-  //   BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(parttype.tp.attrTps))))), EmptyDictCType) -> "PD",
-  //   BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(nationtype.tp.attrTps))))), EmptyDictCType) -> "ND",
-  //   BagDictCType(BagCType(TTupleType(List(IntType, BagCType(RecordCType(regiontype.tp.attrTps))))), EmptyDictCType) -> "RD")
 
   def loadLine(tbl: String, tblname: String, df: String = ""): String = {
     val eval = if (df == "DF") s"$tbl.count" 

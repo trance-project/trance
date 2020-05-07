@@ -950,11 +950,11 @@ object TestApp extends App
 
   object Example_Slender_Query1 {
 
-    import framework.examples.tpch.TPCHQueries
+    // import framework.examples.tpch.TPCHQueries
 
     def run(): Unit = {
 
-      val q1 = Program("Q1", TPCHQueries.query1_v2.asInstanceOf[Expr])
+      val q1 = Query1Full.program.asInstanceOf[Program]
 
       println("[Ex13] Q1: " + quote(q1))
 
