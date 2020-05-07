@@ -2,17 +2,22 @@
 
 The framework is organized into two subfolders:
 * `compiler` contains all the components for running the standard and shredded pipeline, both skew-unaware and skew-aware. This goes from NRC to generated code.
-* `executor` contains plan operator implementations specific to the targets of the code generator. Currently, only Spark is supported.
+* `executor` contains plan operator implementations specific to the targets of the code generator. Currently, we support Spark 2.4.2. This organization avoids running the compiler with Spark-specific dependencies.
 
-### Example
+### System Requirements
 
-NRC queries can currently be described directly in Scala. Examples of how to do this 
-can be found in  are described directly in Scala. There are several examples of how to do this 
-in `compilers/src/main/scala/framework/examples/`. Here we describe how to generate and 
+The framework has been tested with `Scala 2.12` and `Spark 2.4.2`, pre-built with Scala 2.12 support. See [here](https://spark.apache.org/releases/spark-release-2-4-2.html) for more details. 
+
+### Example Usage
+
+NRC queries can currently be described directly in Scala, see `compilers/src/main/scala/framework/examples/`
+for examples on how to do this. Here we describe how to generate and 
 execute code for an example from the TPC-H benchmark.
 
-To run an example, we will generate code into the `executor` package and then compile it 
-into an application jar. To start run the following in your terminal:
+This example generates code into the `executor/spark` package which will then be compiled into an application 
+jar along with additional Spark-specific dependencies.
+
+To start run the following in your terminal:
 
 ```
 mkdir -p executor/spark/src/main/scala/sparkutils/generated/
@@ -20,7 +25,7 @@ cd compilers
 sbt run
 ```
 
-Select application 2. This will generate two files:
+Select to run the first application [1]. This will generate two files:
 * standard pipeline: `../executor/spark/src/main/scala/sparkutils/generated/Test2Spark.scala`
 * shredded pipeline:`../executor/spark/src/main/scala/sparkutils/generated/ShredTest2UnshredSpark.scala`
 
@@ -34,7 +39,7 @@ cd executors/spark
 sbt package
 ```
 
-You can now run the application with spark-submit. For example, to run the 
+The application can now be ran with spark-submit. For example, to run the 
 application defined in `Test2Spark.scala` as a local spark job do:
 
 ```
