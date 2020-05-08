@@ -26,7 +26,7 @@ For c in COP Union
 ```
 
 NRC queries can currently be described directly in Scala. The above is the running example as defined 
-in Scala [here](https://github.com/jacmarjorie/shredder/blob/cleanup/compiler/src/main/scala/framework/examples/tpch/NestedToNested.scala#L286-L309). `compilers/src/main/scala/framework/examples/` contains more examples on how to do this.
+in Scala [here](https://github.com/jacmarjorie/shredder/blob/master/compiler/src/main/scala/framework/examples/tpch/NestedToNested.scala#L286-L309). `compilers/src/main/scala/framework/examples/` contains more examples on how to do this.
 
 This example will write the Spark application code into the `executor/spark` package, which will then be compiled into an application 
 jar along with additional Spark-specific dependencies. This is because it will need to 
