@@ -230,8 +230,44 @@ object TestMaterialization extends App
 
   }
 
+  def domainTest(): Unit = {
+    val q1 = tpch.Query5.program.asInstanceOf[Program]
+
+    println("Program: \n" + quote(q1) + "\n")
+
+    val (shredded, shreddedCtx) = shredCtx(q1)
+    println("Shredded program: \n" + quote(shredded) + "\n")
+
+    val optShredded = optimize(shredded)
+    println("Shredded program optimized: \n" + quote(optShredded) + "\n")
+
+    val materializedProgram = materialize(optShredded, eliminateDomains = true)
+    println("Materialized program: \n" + quote(materializedProgram.program) + "\n")
+
+    val unshredded = unshred(optShredded, materializedProgram.ctx)
+    println("Unshredded program: \n" + quote(unshredded) + "\n")
+
+    val q4 = tpch.Query6Full.program.asInstanceOf[Program]
+    // Program(Assignment(tpch.Query6Full.name, tpch.Query6Full.program.asInstanceOf[Expr]))
+
+    println("Program: \n" + quote(q4) + "\n")
+
+    val (shredded4, _) = shredCtx(q4, shreddedCtx)
+    println("Shredded program: \n" + quote(shredded4) + "\n")
+
+    val optShredded4 = optimize(shredded4)
+    println("Shredded program optimized: \n" + quote(optShredded4) + "\n")
+
+    val materializedProgram4 = materialize(optShredded4, materializedProgram.ctx, eliminateDomains = true)
+    println("Materialized program: \n" + quote(materializedProgram4.program) + "\n")
+
+    val unshredded4 = unshred(optShredded4, materializedProgram4.ctx)
+    println("Unshredded program: \n" + quote(unshredded4) + "\n")
+  }
+
 //  runSequential()
-  runSequential2()
+  // runSequential2()
+  domainTest()
 
 //  run(tpch.Query1.program.asInstanceOf[Program])
 //  run(tpch.Query2.program.asInstanceOf[Program])
