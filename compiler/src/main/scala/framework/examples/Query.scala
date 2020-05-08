@@ -60,6 +60,8 @@ trait Query extends Materialization
     val mat = materialize(optShredded, matInput.ctx, eliminateDomains = eliminateDomains)
 
     // shredded pipeline plan for input
+    // println("RUNNING SHREDDED PIPELINE:\n")
+    // println(quote(matInput.program))
     val inputC = normalizer.finalize(translate(matInput.program)).asInstanceOf[CExpr]
     val inputInitPlan = Unnester.unnest(inputC)(Nil, Nil, None)
     val inputOptPlan = Optimizer.applyAll(inputInitPlan)
@@ -68,6 +70,9 @@ trait Query extends Materialization
     val inputPlan = anfBase.anf(anfer.finalize(inputOptPlan).asInstanceOf[anfBase.Rep])
 
     // shredded pipeline plan for query
+    println("\nRUNNING SHREDDED PIPELINE:\n")
+    println(quote(this.program))
+    println(quote(mat.program))
     val calc = normalizer.finalize(translate(mat.program)).asInstanceOf[CExpr]
     val initPlan = Unnester.unnest(calc)(Nil, Nil, None)
     val optPlan = Optimizer.applyAll(initPlan)

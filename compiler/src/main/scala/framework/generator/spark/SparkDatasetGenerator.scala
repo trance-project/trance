@@ -181,10 +181,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           val srec = rs.map{ case r => s"$n.${r._1}" }.mkString(s"${generateType(rtp)}(",",",")")
           s"$gv1._2.map($n => $srec)"
         case (attr, Project(_, attr2)) => s"$gv1._1.$attr2.get"
+        case _ => ???
       }.mkString(s"Seq(${generateType(e2.tp)}(",",","))")
       encoders = encoders + generateType(e2.tp)
       s"""|${generate(e1)}
-          | .setGroups($gv1 =>
+          | .groupByKey($gv1 =>
           |   $gkey).mapGroups{
           |   case ($gkv1, group) => 
           |     val ngroup = group.flatMap{
@@ -271,7 +272,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       Bind(rv, Reduce(re1, v, Record(ms), Constant(true)), e3)) => 
       val gv2 = generate(v2)
       val gv2Rec = generate(value)
-      val ge2 = s"${generate(e2)}.groupByKey($gv2 => ${generate(k2)})"
+      val ge2 = s"${generate(e2)}.unionGroupByKey($gv2 => ${generate(k2)})"
       val ve1 = "x" + Variable.newId()
       val ve2 = "x" + Variable.newId()
       val ve3 = "x" + Variable.newId()
@@ -313,7 +314,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       }}.mkString(s"$gnrecName2(", ",", ")")
       encoders = encoders + generateType(nrec.tp)
       if (unshred)
-      s"""|val $glv = ${generate(e1)}.cogroup($ge2.groupByKey(x => x._1), ${generate(v1)} => ${generate(p1)})(
+      s"""|val $glv = ${generate(e1)}.cogroup($ge2.unionGroupByKey(x => x._1), ${generate(v1)} => ${generate(p1)})(
           |   (_, $ve1, $ve2) => {
           |     val $ve3 = $ve2.map(${generate(v2)} => $gnrec).toSeq
           |     $ve1.map($ve4 => $gnrec2)

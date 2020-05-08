@@ -155,7 +155,7 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
       ).groupBy(_._1).mapValues(_.map(_._2))
     case MatDictToBag(d) =>
       evalMatDict(d, ctx).toList.flatMap {
-        case (k, v: List[Map[String, _]]) => v.map(_ + (KEY_ATTR_NAME -> k))
+        case (k, v) => v.asInstanceOf[List[Map[String, _]]].map(_ + (KEY_ATTR_NAME -> k))
       }
 
     case _ => sys.error("Cannot evaluate unknown expression " + e)
