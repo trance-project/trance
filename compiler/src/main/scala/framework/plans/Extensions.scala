@@ -5,15 +5,26 @@ import framework.common._
 /** Extensions for the plan language **/
 trait Extensions {
 
-  def substitute(e: CExpr, vold: Variable, vnew: Variable): CExpr = e match {
-    case Record(fs) => Record(fs.map{ 
-      case (attr, e2) => attr -> substitute(e2, vold, vnew)})
-    case Project(v, f) => 
-      Project(substitute(v, vold, vnew), f)
-    case v @ Variable(_,_) => 
-      if (v == vold) Variable(vnew.name, v.tp) else v
+  def replace(e: CExpr, v: Variable): CExpr = e match {
+    case Record(ms) => Record(ms.map(r => r._1 -> replace(r._2, v)))
+    case Project(_, f) => Project(v, f)
+    case If(cond, s1, Some(s2)) => If(replace(cond, v), replace(s1, v), Some(replace(s2, v)))
+    case If(cond, s1, None) => If(replace(cond, v), replace(s1, v), None)
+    case Equals(e1, e2) => Equals(replace(e1, v), replace(e2, v))
+    // this will be additional base ops
+    case _:Variable => v
     case _ => e
   }
+
+  // def substitute(e: CExpr, vold: Variable, vnew: Variable): CExpr = e match {
+  //   case Record(fs) => Record(fs.map{ 
+  //     case (attr, e2) => attr -> substitute(e2, vold, vnew)})
+  //   case Project(v, f) => 
+  //     Project(substitute(v, vold, vnew), f)
+  //   case v @ Variable(_,_) => 
+  //     if (v == vold) Variable(vnew.name, v.tp) else v
+  //   case _ => e
+  // }
 
   def fapply(e: CExpr, funct: PartialFunction[CExpr, CExpr]): CExpr = 
     funct.applyOrElse(e, (ex: CExpr) => ex match {

@@ -21,7 +21,115 @@ trait GenomicBase extends Query {
   val relC = BagVarRef("clinical", BagType(GenomicRelations.clintype))
   val cref = TupleVarRef("c", GenomicRelations.clintype)
 
+  // 1000 genomes workspace 
+
+  val genoType = TupleType("g_sample" -> StringType, "call" -> IntType)
+  val variantType = TupleType("contig" -> StringType, "start" -> IntType, 
+    "reference" -> StringType, "alternate" -> StringType, "genotypes" -> BagType(genoType))
+  
+  val variants = BagVarRef("variants", BagType(variantType))
+  val vr = TupleVarRef("v", variantType)
+  val gr = TupleVarRef("g", genoType)
+
+  val metaType = TupleType("m_sample" -> StringType, "family_id" -> StringType, 
+    "population" -> StringType, "gender" -> StringType)
+  val metadata = BagVarRef("metadata", BagType(metaType))
+  val mr = TupleVarRef("m", metaType)
+
 }
+
+object OddsRatioV2 extends GenomicBase {
+
+  val name = "OddsRatioV2"
+  def inputs(tmap: Map[String, String]): String = ""
+
+  val query = 
+    ForeachUnion(vr, variants, 
+      Singleton(Tuple("contig" -> vr("contig"), 
+        "start" -> vr("start"),
+        "reference" -> vr("reference"),
+        "alterante" -> vr("alternate"),
+        "calls" ->     
+        ReduceByKey(
+          ForeachUnion(gr, BagProject(vr, "genotypes"),
+            ForeachUnion(mr, metadata,
+              IfThenElse(Cmp(OpEq, gr("g_sample"), mr("m_sample")),
+                BagIfThenElse(Cmp(OpEq, gr("call"), Const(0, IntType)),
+                  Singleton(Tuple("gender" -> mr("gender"), "refCnt" -> Const(2, IntType), "altCnt" -> Const(0, IntType))),
+                Some(BagIfThenElse(Cmp(OpEq, gr("call"), Const(1, IntType)),
+                  Singleton(Tuple("gender" -> mr("gender"), "refCnt" -> Const(1, IntType), "altCnt" -> Const(1, IntType))),
+                Some(BagIfThenElse(Cmp(OpEq, gr("call"), Const(2, IntType)),
+                  Singleton(Tuple("gender" -> mr("gender"), "refCnt" -> Const(0, IntType), "altCnt" -> Const(2, IntType))), None))))))
+          )),
+          List("gender"),
+          List("refCnt", "altCnt")))))
+
+  val program = Program(Assignment(name, query))
+}
+
+object OddsRatioV1 extends GenomicBase {
+
+  val name = "OddsRatioV1"
+  def inputs(tmap: Map[String, String]): String = ""
+
+  val heterozyg = Cmp(OpEq, gr("call"), Const(1, IntType))
+  val homozyg = Cmp(OpEq, gr("call"), Const(2, IntType))
+  val query = 
+    ForeachUnion(vr, variants, 
+      Singleton(Tuple("contig" -> vr("contig"), 
+        "start" -> vr("start"),
+        "reference" -> vr("reference"),
+        "alterante" -> vr("alternate"),
+        "calls" ->     
+        ReduceByKey(
+          ForeachUnion(gr, BagProject(vr, "genotypes"),
+            ForeachUnion(mr, metadata,
+              IfThenElse(Cmp(OpEq, gr("g_sample"), mr("m_sample")),
+                Singleton(Tuple("gender" -> mr("gender"), "refCnt" -> 
+                  PrimitiveIfThenElse(heterozyg, Const(1, IntType),
+                    PrimitiveIfThenElse(homozyg, Const(0, IntType), Const(2, IntType))),
+                  "altCnt" -> PrimitiveIfThenElse(heterozyg, Const(1, IntType),
+                    PrimitiveIfThenElse(homozyg, Const(2, IntType), Const(0, IntType)))
+                  ))))),
+          List("gender"),
+          List("refCnt", "altCnt")))))
+
+  val program = Program(Assignment(name, query))
+}
+
+object OddsRatio extends GenomicBase {
+
+  val name = "OddsRatio"
+  def inputs(tmap: Map[String, String]): String = ""
+
+  val heterozyg = Cmp(OpEq, gr("call"), Const(1, IntType))
+  val homozyg = Cmp(OpEq, gr("call"), Const(2, IntType))
+  val query = 
+    ForeachUnion(vr, variants, 
+      Singleton(Tuple("contig" -> vr("contig"), 
+        "start" -> vr("start"),
+        "reference" -> vr("reference"),
+        "alterante" -> vr("alternate"),
+        "calls" ->     
+        ReduceByKey(
+          ForeachUnion(gr, BagProject(vr, "genotypes"),
+            ForeachUnion(mr, metadata,
+              IfThenElse(Cmp(OpEq, gr("g_sample"), mr("m_sample")),
+                Singleton(Tuple("gender" -> mr("gender"), "refCnt" -> 
+                  PrimitiveIfThenElse(heterozyg, Const(1, IntType),
+                    PrimitiveIfThenElse(homozyg, Const(0, IntType), Const(2, IntType))),
+                  "altCnt" -> PrimitiveIfThenElse(heterozyg, Const(1, IntType),
+                    PrimitiveIfThenElse(homozyg, Const(2, IntType), Const(0, IntType)))
+                  ))))),
+          List("gender"),
+          List("refCnt", "altCnt"))
+    )))
+
+  val program = Program(Assignment(name, query))
+}
+
+
+/** Past queries **/
 
 object AltCounts extends GenomicBase {
   val name = "AltCounts"

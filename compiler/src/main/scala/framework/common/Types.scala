@@ -16,10 +16,38 @@ sealed trait Type { self =>
 
   def isDict: Boolean = false
 
-  def flat: BagCType = self match {
-    case _:BagCType => self.flat
-    case _:BagDictCType => self.flat
-    case _ => sys.error("unsupported call to flat")
+  def attrs: Map[String, Type] = self match {
+    case RecordCType(ms) => ms
+    case BagCType(ms) => ms.attrs
+    case _ => Map()
+  }
+
+  def project(fields: List[String]): RecordCType = self match {
+    case st @ RecordCType(ms) => 
+      if (fields.isEmpty) st
+      else RecordCType(ms.filter(x => fields.contains(x._1)))
+    case BagCType(ms) => ms.project(fields)
+    case _ => ???
+  }
+
+
+  def merge(tp: Type): RecordCType = (self, tp) match {
+    case (RecordCType(ms1), RecordCType(ms2)) => 
+      RecordCType(ms1 ++ ms2)
+    case _ => ???
+  } 
+
+  def outer: RecordCType = self match {
+    case RecordCType(ms) => 
+      RecordCType(ms.mapValues(v => v match { case _:OptionType => v; case _ => OptionType(v) }))
+    case BagCType(ms) => ms.outer
+    case OptionType(ms) => ms.outer
+    case _ => sys.error(s"not supported $self")
+  }
+
+  def unouter: RecordCType = self match {
+    case RecordCType(ms) => RecordCType(ms.mapValues(v => v match { case OptionType(o) => o; case _ => v}))
+    case _ => sys.error(s"not supported $self")
   }
 
   // For debugging

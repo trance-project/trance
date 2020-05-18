@@ -100,6 +100,213 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     else vs.map(generate(_)).mkString("(", ",", ")")
   }
 
+  private def matchOption(v: Variable, attr: String): String = 
+    v.tp.attrs(attr) match {
+      case OptionType(otp) => s"${v.name} => ${v.name}.$attr match { case Some($attr) => $attr; case _ => ${zero(otp)} }"
+      case _ => s"${v.name} => ${v.name}.$attr"
+    }
+
+  // v is an attribute that adjusts the variable naming in the 
+  // generator
+  private def accessOption(e: CExpr, nv: Variable): String = e match {
+    case Project(v, field) => 
+      nv.tp.attrs(field) match {
+        case _:OptionType => s"${nv.name}.$field.get"
+        case _ => s"${nv.name}.$field"
+      }
+    case Record(fs) => 
+      val unouter = e.tp.unouter
+      handleType(unouter)
+      val rcnts = fs.map(f => accessOption(f._2, nv)).mkString(", ")
+      s"${generateType(unouter)}($rcnts)"
+  }
+
+  def generateReference(e: CExpr): String = e match {
+    case Project(_, f) => "col(\""+f+"\")"
+    case Equals(e1, e2) => s"${generateReference(e1)} === ${generateReference(e2)}"
+    case _ => generate(e)
+  }
+
+  def generate(e: CExpr): String = e match {
+    /** ZEROS **/
+    case Null => "null"
+    case CUnit => "()"
+    case EmptySng => "Seq()"
+    case EmptyCDict => s"()"
+    case Index => "index"
+    case COption(e1) => e1 match {
+      case Null => "None"
+      case _ => s"Some(${generate(e1)})"
+    }
+    
+    /** BASIC CONSTRUCTS **/
+    case Variable(name, _) => name
+    case InputRef(name, tp) => name
+    case Constant(s:String) => "\"" + s + "\""
+    case Constant(x) => x.toString
+    case Sng(e) => s"Seq(${generate(e)})"
+    case Label(fs) if fs.size == 1 => generate(fs.head._2)
+    case Record(fs) => {
+      val tp:RecordCType = e.tp.asInstanceOf[RecordCType]
+      handleType(tp)
+      val rcnts = tp.attrTps.map(f => generate(fs(f._1))).mkString(", ")
+      s"${generateType(tp)}($rcnts)"
+    }
+    case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
+
+    case Project(e1, "_LABEL") => generate(e1)
+    case Project(e2 @ Record(fs), field) => 
+      s"${generate(e2)}.${kvName(field)(fs.size)}"
+    case Project(e2, field) => s"${generate(e2)}.$field"
+    /** MATH OPS **/
+    case CMultiply(e1, e2) => s"${generateReference(e1)} * ${generateReference(e2)}"
+
+    /** BOOL OPS **/
+    case Equals(e1, e2) => s"${generateReference(e1)} === ${generateReference(e2)}"
+    case Lt(e1, e2) => s"${generateReference(e1)} < ${generateReference(e2)}"
+    case Gt(e1, e2) => s"${generateReference(e1)} > ${generateReference(e2)}"
+    case Lte(e1, e2) => s"${generateReference(e1)} <= ${generateReference(e2)}"
+    case Gte(e1, e2) => s"${generateReference(e1)} >= ${generateReference(e2)}"
+    case And(e1, e2) => s"${generateReference(e1)} && ${generateReference(e2)}"
+    case Or(e1, e2) => s"${generateReference(e1)} || ${generateReference(e2)}"
+    case Not(e1) => s"!(${generateReference(e1)})"
+
+    case If(cond, s1, Some(s2)) => 
+      s"when(${generate(cond)}, ${generate(s1)}).otherwise(${generate(s2)})"
+    case If(cond, s1, None) => 
+      s"when(${generate(cond)}, ${generate(s1)})"
+
+    case FlatDict(e1) => s"${generate(e1)}"
+    case GroupDict(e1) => generate(e1) 
+
+    case DFProject(in, v, Constant(true), Nil) => generate(in)
+    
+    case ep @ DFProject(in, v, pat:Record, Nil) =>
+      handleType(pat.tp)
+      val fields = pat.inputColumns
+      val subRec = pat.fields.filter(f => !fields(f._1)).map(f => 
+        s""".withColumn("${f._1}", ${generate(f._2)})""").mkString("\n")
+      
+      s"""|${generate(in)}$subRec.as[${generateType(pat.tp)}]
+          |""".stripMargin
+
+    case ep @ DFProject(in, v, pat:Record, fields) =>
+      handleType(pat.tp)
+      val nrec = generateType(pat.tp)
+      s"""|${generate(in)}.select(${fields.mkString("\"", "\", \"", "\"")})
+          ${renameColumns(ep.rename)}.as[$nrec]
+          |""".stripMargin
+
+    case ej @ DFJoin(left, v, p1, right, v2, p2, Nil) => 
+      handleType(ej.tp.tp)
+      val nrec = generateType(ej.tp.tp)
+      s"""|${generate(left)}.join(${generate(right)}, 
+          | col("$p1") === col("$p2")).as[$nrec]
+          |""".stripMargin
+
+    case ej @ DFOuterJoin(left, v, p1, right, v2, p2, Nil) => 
+      handleType(ej.tp.tp)
+      val nrec = generateType(ej.tp.tp)
+      s"""|${generate(left)}.join(${generate(right)}, 
+          | col("$p1") === col("$p2"), "left_outer").as[$nrec]
+          |""".stripMargin
+
+    case eu @ DFUnnest(in, v, path, v2, filter, fields) => "TODO"
+
+    case eu @ DFOuterUnnest(in, v, path, v2, filter, fields) =>
+
+      val topAttrs = v.tp.attrs.map(f => f._1 -> Project(v, f._1)) - path
+      val nv2 = Variable(v2.name, v2.tp.unouter)
+      val nextAttrs = nv2.tp.attrs.map(f => f._1 -> COption(Project(nv2, f._1)))
+      val nrec0 = topAttrs ++ nv2.tp.attrs.map(f => f._1 -> COption(Null))
+
+      val nrec1 = Record(topAttrs ++ nextAttrs)
+      val gnrec1 = generate(nrec1)
+      val gnrec0 = s"${generateType(nrec1.tp)}(${nrec0.map(f => generate(f._2)).mkString(", ")})"
+      val gv = generate(v)
+      s"""|${generate(in)}.flatMap{
+          | case $gv => if ($gv.$path.isEmpty) Seq($gnrec0)
+          |   else $gv.$path.map( ${generate(nv2)} => $gnrec1 )
+          |}.as[${generateType(nrec1.tp)}]
+          |""".stripMargin
+
+    case en @ DFNest(in, v, key, value, filter, nulls) =>
+      val gv = generate(v)
+      val rkey = Record(key.map(k => k -> Project(v, k)).toMap)
+      val kv = Variable("key", rkey.tp)
+      val grpv = Variable("grp", BagCType(value.tp.unouter))
+      val frec = Record(en.tp.tp.attrs.map(k => if (k._1 == "_2") k._1 -> grpv else k._1 -> Project(kv, k._1)).toMap)
+      s"""|${generate(in)}.groupByKey($gv => ${generate(rkey)}).mapGroups{
+          | case (key, value) => 
+          |   val grp = value.flatMap($gv => 
+          |    $gv.${nulls.head} match {
+          |      case None => Seq()
+          |      case _ => Seq(${accessOption(value, v)})
+          |   }).toSeq
+          |   ${generate(frec)}
+          | }.as[${generateType(frec.tp)}]
+          |""".stripMargin
+
+    case er @ DFReduceBy(in, v, key, value) => 
+
+      handleType(er.tp.tp)
+      val intp = generateType(in.tp.asInstanceOf[BagCType].tp)
+      val gtp = generateType(er.tp.tp)
+
+      val gv = generate(v)
+      val rkey = Record(key.map(k => k -> Project(v, k)).toMap)
+      val rvalues = value.map(vs => 
+        s"typed.sum[$intp](${matchOption(v, vs)})\n").mkString("agg(", ",", ")")
+
+      val nrec = er.tp.tp.attrs.map(k => 
+        if (value.contains(k._1)) k._1 
+        else s"key.${k._1}").mkString(s"$gtp(", ", ", ")")
+
+      s"""|${generate(in)}.groupByKey($gv => ${generate(rkey)})
+          | .$rvalues.mapPartitions{ it => it.map{ case (key, ${value.mkString(", ")}) =>
+          |   $nrec
+          |}}.as[$gtp]
+          |""".stripMargin
+
+    case ei @ AddIndex(e1, name) => 
+      handleType(ei.tp.tp)
+      val nrec = generateType(ei.tp.tp)
+      s"""|${generate(e1)}.withColumn("$name", monotonically_increasing_id())
+          | .as[$nrec]
+          |""".stripMargin
+
+    // catch all
+    case Select(x, v, p, e2) => generate(x)
+
+    case Bind(v, CNamed(n, e1), LinearCSet(fs)) =>
+      val gtp = if (skew) "[Int]" else ""
+      val repart = if (n.contains("MDict")) s""".repartition$gtp($$"_1")""" else ""
+      val gv = generate(v)
+      s"""|val $gv = ${generate(e1)}
+          |val $n = $gv$repart
+          |//$n.print
+          |${if (!cache) comment(n) else n}.cache
+          |${if (!evalFinal) comment(n) else n}.count
+          |""".stripMargin
+
+    case Bind(v, CNamed(n, e1), e2) =>
+      val gtp = if (skew) "[Int]" else ""
+      val repart = if (n.contains("MDict")) s""".repartition$gtp($$"_1")""" else ""
+      val gv = generate(v)
+      s"""|val $gv = ${generate(e1)}
+          |val $n = $gv$repart
+          |//$n.print
+          |${if (!cache) comment(n) else n}.cache
+          |${if (!evaluate) comment(n) else n}.count
+          |${generate(e2)}
+          |""".stripMargin
+
+    case LinearCSet(fs) => ""
+    case Bind(v, e1, e2) => 
+      s"val ${generate(v)} = ${generate(e1)} \n${generate(e2)}"
+    case _ => s"/** TODO: $e **/"
+  }
+
   /** Main function for generating a Spark application using datasets
     * This is the initial implementation of the Dataset generator that is 
     * very much a prototype. It is actively in development.
@@ -108,7 +315,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     * @return string of generated code for Spark application with datasets as 
     * the underlying type
     */
-  def generate(e: CExpr): String = e match {
+  def generatePrototype(e: CExpr): String = e match {
 
     /** ZEROS **/
     case Null => "null"

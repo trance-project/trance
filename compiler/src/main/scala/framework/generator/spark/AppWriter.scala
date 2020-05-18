@@ -20,7 +20,7 @@ object AppWriter {
     optLevel: Int = 2, skew: Boolean = false): Unit = {
     
     val codegen = new SparkDatasetGenerator(false, false, isDict = false, skew = skew)//,inputs = query.inputTypes(false))
-    val gcode = codegen.generate(query.anf(optLevel))
+    val gcode = codegen.generate(query.anf(optimizationLevel = optLevel))
     val header = s"""|${codegen.generateHeader()}""".stripMargin
     val encoders = codegen.generateEncoders()
 
@@ -46,7 +46,7 @@ object AppWriter {
     val codegenInput = new SparkDatasetGenerator(true, false, isDict = false, skew = skew)//,externalInputs = query.inputTypes(false))
     val inputCode = codegenInput.generate(inputQuery.anf()) 
     val codegen = new SparkDatasetGenerator(false, true, isDict = false, inputs = codegenInput.types, skew = skew) 
-    val gcode = codegen.generate(query.anf(optLevel))
+    val gcode = codegen.generate(query.anf(optimizationLevel = optLevel))
     val header = s"""|${codegen.generateHeader()}""".stripMargin
     val encoders = codegenInput.generateEncoders() + "\n" + codegen.generateEncoders()
 
@@ -150,7 +150,7 @@ object AppWriter {
     optLevel: Int = 2, skew: Boolean = false): Unit = {
     
     val codegen = new SparkNamedGenerator(false, true, flatDict = true)
-    val gcode = codegen.generate(query.anf(optLevel))
+    val gcode = codegen.generate(query.anf(optimizationLevel = optLevel))
     val header = if (skew) {
         s"""|import sparkutils.rdd.SkewPairRDD._
             |import sparkutils.rdd.SkewTopRDD._
@@ -184,7 +184,7 @@ object AppWriter {
     val codegenInput = new SparkNamedGenerator(true, true, flatDict = true)
     val inputCode = codegenInput.generate(inputQuery.anf()) 
     val codegen = new SparkNamedGenerator(false, true, flatDict = true, inputs = codegenInput.types) 
-    val gcode = codegen.generate(query.anf(optLevel))
+    val gcode = codegen.generate(query.anf(optimizationLevel = optLevel))
     val header = if (skew) {
         s"""|import sparkutils.rdd.SkewPairRDD._
             |import sparkutils.rdd.SkewTopRDD._

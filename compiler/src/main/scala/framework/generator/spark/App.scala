@@ -3,6 +3,7 @@ package framework.generator.spark
 import framework.common._
 import framework.plans._
 import framework.examples.tpch._
+import framework.examples.genomic._
 
 
 /*
@@ -16,7 +17,8 @@ object App {
     // runFlatToNested()
     // runNestedToNested()
     // runNestedToFlat()
-    runSkewHandling()
+    // runSkewHandling()
+    runDatasetTest()
   }
 
   def runFlatToNested(){
@@ -115,5 +117,11 @@ object App {
     AppWriter.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Standard,2", unshred=true)
     AppWriter.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Skew,2", unshred=true, skew = true)
   }
+
+  def runDatasetTest(){
+    // AppWriter.flatDataset(Test2, pathout, "test")
+    AppWriter.flatDataset(OddsRatio, pathout, "test")
+  }
+
 
 }

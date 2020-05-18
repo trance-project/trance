@@ -296,9 +296,9 @@ object Test2NNL extends TPCHBase {
   val (parts, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
   val query = 
   ForeachUnion(customerRef, customers,
-    Singleton(Tuple("c_name" -> customerRef("c_name"), "c_orders" -> 
+    Singleton(Tuple("c_name" -> customerRef("c_name"), "c_orders2" -> 
       ForeachUnion(orderRef, BagProject(customerRef, "c_orders"),
-        Singleton(Tuple("o_orderdate" -> orderRef("o_orderdate"), "o_parts" ->
+        Singleton(Tuple("o_orderdate" -> orderRef("o_orderdate"), "o_parts2" ->
           ReduceByKey(ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
             ForeachUnion(pr, relP,
               IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
