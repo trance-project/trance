@@ -158,6 +158,31 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case FlatDict(e1) => s"${generate(e1)}"
     case GroupDict(e1) => generate(e1) 
 
+    /** Lookup for unshredding **/
+
+    case lu @ CLookup(Project(_, col), dict) if unshred => dict.tp match {
+      case MatDictCType(lblTp, dictTp @ BagCType(tup)) =>
+        val itp = RecordCType(Map(s"${col}_1" -> lblTp, col -> dictTp))
+        handleType(itp)
+        val rec = s"""${generateType(tup)}(${tup.attrs.map(t => s"x.${t._1}").mkString(",")})"""
+        s"""|${generate(dict)}.groupByKey(x => x._1).mapGroups{
+            | case (key, values) => 
+            | ${generateType(itp)}(key, values.map(x => $rec).toSeq)
+            |}.as[${generateType(itp)}]""".stripMargin
+      case _ => ???
+    }
+
+    case ep @ DFProject(in, v, pat:Record, fields) if unshred =>
+      handleType(pat.tp)
+      val nrec = generateType(pat.tp)
+      ep.makeCols.head match {
+        case (col, lu @ CLookup(lbl, dict)) => 
+          s"""|${generate(in)}.withColumnRenamed("$col", "${col}_LABEL")
+              | .join(${generate(lu)}, col("${col}_LABEL") === col("${col}_1"), "left_outer") 
+              | .drop("${col}_1", "${col}_LABEL").as[$nrec]""".stripMargin
+        case _ => ???
+      }   
+    
     case DFProject(in, v, Constant(true), Nil) => generate(in)
 
     case ep @ DFProject(in, v, pat:Record, fields) =>

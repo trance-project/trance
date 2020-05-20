@@ -14,11 +14,11 @@ object App {
   val pathout = "../executor/spark/src/main/scala/sparkutils/generated/"
  
   def main(args: Array[String]){
-    // runFlatToNested()
+    runFlatToNested()
     // runNestedToNested()
     // runNestedToFlat()
     // runSkewHandling()
-    runDatasetTest()
+    // runDatasetTest()
   }
 
   def runFlatToNested(){
@@ -31,7 +31,7 @@ object App {
     // AppWriter.flatDataset(Test2FullFlat, pathout, "Flat,2")
     // AppWriter.flatDataset(Test3Flat, pathout, "Flat,3")
     // AppWriter.flatDataset(Test3FullFlat, pathout, "Flat,3")
-    // AppWriter.flatDataset(Test4Flat, pathout, "Flat,4")
+    AppWriter.flatDataset(Test4Flat, pathout, "Flat,4")
     // AppWriter.flatDataset(Test4FullFlat, pathout, "Flat,4")
 
     // AppWriter.shredDataset(Test0, pathout, "Shred,0")
@@ -50,7 +50,7 @@ object App {
     // AppWriter.shredDataset(Test1, pathout, "Shred,1", unshred=true)
     AppWriter.shredDataset(Test2, pathout, "Shred,2", unshred=true)
     // AppWriter.shredDataset(Test3, pathout, "Shred,3", unshred=true)
-    // AppWriter.shredDataset(Test4, pathout, "Shred,4", unshred=true)
+    AppWriter.shredDataset(Test4, pathout, "Shred,4", unshred=true)
 
     // AppWriter.shredDataset(Test0Full, pathout, "Shred,0", unshred=true)
     // AppWriter.shredDataset(Test1Full, pathout, "Shred,1", unshred=true)
@@ -121,7 +121,7 @@ object App {
   def runDatasetTest(){
     // AppWriter.flatDataset(Test2, pathout, "test")
     // AppWriter.flatDataset(OddsRatio, pathout, "test")
-    AppWriter.shredDataset(OddsRatio, pathout, "test")
+    AppWriter.shredDataset(OddsRatio, pathout, "test", unshred = true)
   }
 
 

@@ -306,11 +306,7 @@ trait BaseCompiler extends Base {
   def flatdict(e1: Rep): Rep = FlatDict(e1)
   def groupdict(e1: Rep): Rep = GroupDict(e1)
 
-  def addindex(in: Rep, name: String): Rep = in.tp match {
-    case _:MatDictCType => in
-    case y if name.contains("MBag") || name.contains("IBag") || name.contains("IDict") => in
-    case _ => AddIndex(in, name)  
-  }
+  def addindex(in: Rep, name: String): Rep = AddIndex(in, name)  
   def dfproject(in: Rep, filter: Rep => Rep, fields: List[String]): Rep = {
     val v1 = Variable.freshFromBag(in.tp)
     val nr = filter(v1)
@@ -364,6 +360,10 @@ trait BaseCompiler extends Base {
     case _ => List(Variable.fresh(e))
   }
 
+}
+
+trait ShredOptimizer extends BaseCompiler {
+  override def addindex(in: Rep, name: String): Rep = in
 }
 
 /**

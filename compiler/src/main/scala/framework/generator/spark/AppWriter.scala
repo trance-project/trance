@@ -75,7 +75,7 @@ object AppWriter {
     unshred: Boolean = false, skew: Boolean = false): Unit = {
     
     val codegen = new SparkDatasetGenerator(unshred, eliminateDomains, skew = skew)
-    val (gcodeShred, gcodeUnshred) = query.shredPlan(unshred, eliminateDomains = eliminateDomains, anfed = true)
+    val (gcodeShred, gcodeUnshred) = query.shredBatchPlan(unshred, eliminateDomains = eliminateDomains, anfed = true)
     val gcode1 = codegen.generate(gcodeShred)
     val (header, gcodeSet, encoders) = if (unshred) {
       val codegen2 = new SparkDatasetGenerator(false, false, unshred = true, inputs = codegen.types, skew = skew)
@@ -101,7 +101,7 @@ object AppWriter {
     unshred: Boolean = false, skew: Boolean = false): Unit = {
     
     val codegenInput = new SparkDatasetGenerator(false, false, isDict = true, evalFinal = false, skew = skew)
-    val (inputShred, queryShred, queryUnshred) = query.shredWithInput(inputQuery, unshredRun = unshred, eliminateDomains = eliminateDomains)
+    val (inputShred, queryShred, queryUnshred) = query.shredBatchWithInput(inputQuery, unshredRun = unshred, eliminateDomains = eliminateDomains)
     val inputCode = codegenInput.generate(inputShred)
     val codegen = new SparkDatasetGenerator(unshred, eliminateDomains, isDict = true, inputs = codegenInput.types, skew = skew)
     val gcode1 = codegen.generate(queryShred)
