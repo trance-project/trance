@@ -120,7 +120,8 @@ object App {
 
   def runDatasetTest(){
     // AppWriter.flatDataset(Test2, pathout, "test")
-    AppWriter.flatDataset(OddsRatio, pathout, "test")
+    // AppWriter.flatDataset(OddsRatio, pathout, "test")
+    AppWriter.shredDataset(OddsRatio, pathout, "test")
   }
 
 

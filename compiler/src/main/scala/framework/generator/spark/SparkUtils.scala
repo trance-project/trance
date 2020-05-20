@@ -129,14 +129,6 @@ trait SparkUtils {
     case _ => Map() //sys.error(s"not supported $e")
   }
 
-  def renameColumns(cols: Map[String, String], keepCols: Set[String] = Set()): String = {
-    cols.flatMap{
-      case (ncol, ocol) => if (ncol == ocol) Nil
-        else if (keepCols(ocol)) List(s"""| .withColumn("$ncol", $$"$ocol")""")
-        else List(s"""| .withColumnRenamed("$ocol", "$ncol")""")
-    }.mkString("\n")
-  }
-
   def getTypeMap(tp: Type, outer: Boolean = false): Map[String, Type] = tp match {
     case BagCType(ttp) => getTypeMap(ttp, outer)
     case RecordCType(ms) => if (outer) ms.map{ case (attr, ttp) => (attr, OptionType(ttp)) } else ms

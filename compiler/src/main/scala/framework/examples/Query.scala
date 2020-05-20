@@ -180,9 +180,10 @@ trait Query extends Materialization
       //   val anfer = new Finalizer(anfBase)
       //   anfBase.anf(anfer.finalize(optPlan).asInstanceOf[anfBase.Rep])
       // }else optPlan
-      val initPlan = BatchUnnester.unnest(this.normalize)(Map(), Map(), None)
+      val initPlan = BatchUnnester.unnest(ncalc)(Map(), Map(), None)
       val compiler = new Finalizer(new BaseCompiler{})
       val plan = compiler.finalize(initPlan).asInstanceOf[CExpr]
+      println(Printer.quote(plan))
       val anfBase = new BaseDFANF{}
       val anfer = new Finalizer(anfBase)
       val qplan = anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])

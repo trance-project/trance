@@ -31,6 +31,8 @@ case class Input(data: List[CExpr]) extends CExpr{
 
 case class Constant(data: Any) extends CExpr{
   def tp: PrimitiveType = data match {
+    case _:Double => DoubleType
+    case _:Long => LongType
     case _:Int => IntType
     case _:String => StringType
     case _:Boolean => BoolType
@@ -60,6 +62,9 @@ case object CUnit extends CExpr {
 case class Label(fields: Map[String, CExpr]) extends CExpr{
   def tp: LabelType = LabelType(fields.map(f => f._1 -> f._2.tp))
   def apply(n: String) = fields(n)
+  override def inputColumns: Set[String] = fields.flatMap{
+    case (key, expr) => expr.inputColumns
+  }.toSet
 }
 
 case class Record(fields: Map[String, CExpr]) extends CExpr{
@@ -116,6 +121,15 @@ case class Or(e1: CExpr, e2: CExpr) extends CExpr{
 }
 
 case class Multiply(e1: CExpr, e2: CExpr) extends CExpr{
+  def tp: PrimitiveType = (e1.tp, e2.tp) match {
+    case (DoubleType, _) => DoubleType
+    case (_, DoubleType) => DoubleType
+    case (IntType, _) => IntType
+    case _ => sys.error("type not supported")
+  }
+}
+
+case class Divide(e1: CExpr, e2: CExpr) extends CExpr{
   def tp: PrimitiveType = (e1.tp, e2.tp) match {
     case (DoubleType, _) => DoubleType
     case (_, DoubleType) => DoubleType

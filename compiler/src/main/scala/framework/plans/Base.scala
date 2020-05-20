@@ -19,6 +19,7 @@ trait Base {
   def record(fs: Map[String, Rep]): Rep
   def label(fs: Map[String, Rep]): Rep 
   def mult(e1: Rep, e2: Rep): Rep
+  def divide(e1: Rep, e2: Rep): Rep
   def equals(e1: Rep, e2: Rep): Rep
   def lt(e1: Rep, e2: Rep): Rep
   def gt(e1: Rep, e2: Rep): Rep
@@ -83,6 +84,7 @@ trait BaseStringify extends Base{
   def label(fs: Map[String, Rep]): Rep = 
     s"Label(${fs.map(f => f._1 + " := " + f._2).mkString(",")})"
   def mult(e1: Rep, e2: Rep): Rep = s"(${e1} * ${e2})" 
+  def divide(e1: Rep, e2: Rep): Rep = s"(${e1} / ${e2})"
   def equals(e1: Rep, e2: Rep): Rep = s"${e1} == ${e2}"
   def lt(e1: Rep, e2: Rep): Rep = s"${e1} < ${e2}"
   def gt(e1: Rep, e2: Rep): Rep = s"${e1} > ${e2}"
@@ -201,6 +203,7 @@ trait BaseCompiler extends Base {
   def record(fs: Map[String, Rep]): Rep = Record(fs)
   def label(fs: Map[String, Rep]): Rep = Label(fs)
   def mult(e1: Rep, e2: Rep): Rep = Multiply(e1, e2)
+  def divide(e1: Rep, e2: Rep): Rep = Divide(e1, e2)
   def equals(e1: Rep, e2: Rep): Rep = Equals(e1, e2)
   def lt(e1: Rep, e2: Rep): Rep = Lt(e1, e2)
   def gt(e1: Rep, e2: Rep): Rep = Gt(e1, e2)
@@ -243,8 +246,7 @@ trait BaseCompiler extends Base {
   def tupledict(fs: Map[String, Rep]): Rep = TupleCDict(fs)
   def dictunion(d1: Rep, d2: Rep): Rep = DictCUnion(d1, d2)
   def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
-    val indexName = x match { case InputRef(in, _) => in; case _ => ""}
-    val v = Variable.freshFromBag(x.tp, indexName) 
+    val v = Variable.freshFromBag(x.tp)
     Select(x, v, p(v), e(v))
   }
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
@@ -304,7 +306,11 @@ trait BaseCompiler extends Base {
   def flatdict(e1: Rep): Rep = FlatDict(e1)
   def groupdict(e1: Rep): Rep = GroupDict(e1)
 
-  def addindex(in: Rep, name: String): Rep = AddIndex(in, name)
+  def addindex(in: Rep, name: String): Rep = in.tp match {
+    case _:MatDictCType => in
+    case y if name.contains("MBag") || name.contains("IBag") || name.contains("IDict") => in
+    case _ => AddIndex(in, name)  
+  }
   def dfproject(in: Rep, filter: Rep => Rep, fields: List[String]): Rep = {
     val v1 = Variable.freshFromBag(in.tp)
     val nr = filter(v1)
@@ -492,6 +498,7 @@ trait BaseANF extends Base {
   def record(fs: Map[String, Rep]): Rep = compiler.record(fs.map(x => (x._1, defToExpr(x._2))))
   def label(fs: Map[String, Rep]): Rep = compiler.label(fs.map(x => (x._1, defToExpr(x._2))))
   def mult(e1: Rep, e2: Rep): Rep = compiler.mult(e1, e2)
+  def divide(e1: Rep, e2: Rep): Rep = compiler.divide(e1, e2)
   def equals(e1: Rep, e2: Rep): Rep = compiler.equals(e1, e2)
   def lt(e1: Rep, e2: Rep): Rep = compiler.lt(e1, e2)
   def gt(e1: Rep, e2: Rep): Rep = compiler.gt(e1, e2)
@@ -603,6 +610,7 @@ class Finalizer(val target: Base){
     case Record(fs) => target.record(fs.map(f => f._1 -> finalize(f._2)))
     case Label(fs) => target.label(fs.map(f => f._1 -> finalize(f._2)))
     case Multiply(e1, e2) => target.mult(finalize(e1), finalize(e2))
+    case Divide(e1, e2) => target.divide(finalize(e1), finalize(e2))
     case Equals(e1, e2) => target.equals(finalize(e1), finalize(e2))
     case Lt(e1, e2) => target.lt(finalize(e1), finalize(e2))
     case Gt(e1, e2) => target.gt(finalize(e1), finalize(e2))

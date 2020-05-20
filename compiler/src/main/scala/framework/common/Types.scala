@@ -42,6 +42,8 @@ sealed trait Type { self =>
       RecordCType(ms.mapValues(v => v match { case _:OptionType => v; case _ => OptionType(v) }))
     case BagCType(ms) => ms.outer
     case OptionType(ms) => ms.outer
+    case MatDictCType(lbl, dict) => 
+      RecordCType(Map("_1" -> lbl) ++ dict.attrs)
     case _ => sys.error(s"not supported $self")
   }
 

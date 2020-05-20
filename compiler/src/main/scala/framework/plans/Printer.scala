@@ -23,6 +23,7 @@ object Printer {
     case Record(fs) => record(fs.map(f => f._1 -> quote(f._2)))
     case Label(fs) => label(fs.map(f => f._1 -> quote(f._2)))
     case Multiply(e1, e2) => compiler.mult(quote(e1), quote(e2))
+    case Divide(e1, e2) => compiler.divide(quote(e1), quote(e2))
     case Equals(e1, e2) => compiler.equals(quote(e1), quote(e2))
     case Lt(e1, e2) => lt(quote(e1), quote(e2))
     case Lte(e1, e2) => lte(quote(e1), quote(e2))
@@ -31,10 +32,11 @@ object Printer {
     case And(e1, e2) => and(quote(e1), quote(e2))
     case Not(e1) => not(quote(e1))
     case Or(e1, e2) => or(quote(e1), quote(e2))
-    case Project(e1, f) => e1.tp.attrs(f) match {
-      case OptionType(_) => s"Some(${project(quote(e1), f)})"
-      case _ => project(quote(e1), f)
-    }
+    case Project(e1, f) => project(quote(e1), f)
+    // e1.tp.attrs(f) match {
+    //     case OptionType(_) => s"Some(${project(quote(e1), f)})"
+    //     case _ => project(quote(e1), f)
+    //   }
     case If(c, e1, e2) => e2 match {
       case Some(a) => ifthen(quote(c), quote(e1), Some(quote(a)))
       case _ => ifthen(quote(c), quote(e1), None)
@@ -95,8 +97,12 @@ object Printer {
       s"""|PROJECT[${fields.mkString(",")}, ${quote(p)}](${quote(e1)})""".stripMargin
     case DFNest(e1, v, keys, value, filter, nulls) =>
       s"""|NEST^{${quote(value)}, ${quote(filter)}}_{U, ${keys.mkString(",")} / ${nulls.mkString(",")}}(${quote(e1)})""".stripMargin
+    case DFUnnest(e1, v, path, v2, filter, fields) =>
+      s"""|UNNEST[${quote(v)}.$path, ${quote(filter)}, ${fields.mkString(",")}](${quote(e1)})""".stripMargin
     case DFOuterUnnest(e1, v, path, v2, filter, fields) =>
       s"""|OUTERUNNEST[${quote(v)}.$path, ${quote(filter)}, ${fields.mkString(",")}](${quote(e1)})""".stripMargin
+    case DFJoin(left, v1, p1, right, v2, p2, fields) => 
+      s"""|${quote(left)} JOIN [$p1 = $p2, ${fields.mkString(",")}] ${quote(right)}""".stripMargin
     case DFOuterJoin(left, v1, p1, right, v2, p2, fields) => 
       s"""|${quote(left)} OUTERJOIN [$p1 = $p2, ${fields.mkString(",")}] ${quote(right)}""".stripMargin
     case FlatDict(e1) => flatdict(quote(e1))

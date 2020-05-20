@@ -57,6 +57,7 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
     case v: VarRef => translateVar(v)
     case ArithmeticExpr(op, e1, e2) => op match {
       case OpMultiply => mult(translate(e1), translate(e2))
+      case OpDivide => divide(translate(e1), translate(e2))
       case _ => sys.error("Not supported")
     }
     case Singleton(Tuple(fs)) if fs.isEmpty => emptysng

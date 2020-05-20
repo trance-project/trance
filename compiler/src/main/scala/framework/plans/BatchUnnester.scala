@@ -34,11 +34,17 @@ object BatchUnnester {
 
   def wvar(mtp: Map[String, Type]): Variable = Variable.fresh(RecordCType(mtp))
 
+  def getName(e: CExpr): String = e match {
+    case InputRef(name, _) => name
+    case FlatDict(e1) => getName(e1)
+    case _ => ???
+  }
+
   def unnest(e: CExpr)(implicit ctx: Ctx): CExpr = e match {
 
     /** Base case for unnesting algorithm: Rule C4 **/
-    case Comprehension(e1 @ InputRef(name, _), v, p, e2) if u.isEmpty && w.isEmpty && E.isEmpty =>
-      val ne1 = AddIndex(e1, name+"_index")
+    case Comprehension(e1, v, p, e2) if u.isEmpty && w.isEmpty && E.isEmpty =>
+      val ne1 = AddIndex(e1, getName(e1)+"_index")
       val nv = Variable(v.name, ne1.tp.tp)
       unnest(e2)((u, nv.tp.attrs, Some(Select(ne1, nv, replace(p, nv), nv))))
 
@@ -54,6 +60,11 @@ object BatchUnnester {
         val nE = DFOuterUnnest(ne1, wvar(nw), f, v, p, Nil)
         unnest(e2)((u - f), flat(nw - f, v.tp.outer), Some(nE))
       }
+
+    case Comprehension(e1 @ CLookup(Project(_, p1), dict), v1, Constant(true), e2) => 
+      assert(!E.isEmpty)
+      val nE = DFOuterJoin(E.get, wvar(w), p1, dict, v1, "_1", Nil)
+      unnest(e2)((u, flat(w, v1.tp), Some(nE)))
 
     case Comprehension(e1 @ InputRef(name, _), v, Equals(Project(_, p1), Project(_, p2)), e2) if !w.isEmpty =>
       assert(!E.isEmpty)
@@ -82,7 +93,8 @@ object BatchUnnester {
         val nr = Record((keys ++ values).map(k => k -> Project(nv2, k)).toMap)
         DFNest(crd, nv2, keys2, nr, filter, nulls)
 
-      case e2 => DFReduceBy(e2, v1, keys, values)
+      case e2 => 
+        DFReduceBy(e2, v1, keys, values)
     }
 
     case FlatDict(e1) => FlatDict(unnest(e1)((u, w, E)))

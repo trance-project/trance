@@ -16,16 +16,6 @@ trait Extensions {
     case _ => e
   }
 
-  // def substitute(e: CExpr, vold: Variable, vnew: Variable): CExpr = e match {
-  //   case Record(fs) => Record(fs.map{ 
-  //     case (attr, e2) => attr -> substitute(e2, vold, vnew)})
-  //   case Project(v, f) => 
-  //     Project(substitute(v, vold, vnew), f)
-  //   case v @ Variable(_,_) => 
-  //     if (v == vold) Variable(vnew.name, v.tp) else v
-  //   case _ => e
-  // }
-
   def fapply(e: CExpr, funct: PartialFunction[CExpr, CExpr]): CExpr = 
     funct.applyOrElse(e, (ex: CExpr) => ex match {
       case Reduce(d, v, f, p) => Reduce(fapply(d, funct), v, f, p)
