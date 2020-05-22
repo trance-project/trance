@@ -306,11 +306,14 @@ trait BaseCompiler extends Base {
   def flatdict(e1: Rep): Rep = FlatDict(e1)
   def groupdict(e1: Rep): Rep = GroupDict(e1)
 
-  def addindex(in: Rep, name: String): Rep = AddIndex(in, name)  
+  def addindex(in: Rep, name: String): Rep = in match {
+    case AddIndex(in1, _) => AddIndex(in, name)
+    case _ => AddIndex(in, name)  
+  }
   def dfproject(in: Rep, filter: Rep => Rep, fields: List[String]): Rep = {
     val v1 = Variable.freshFromBag(in.tp)
     val nr = filter(v1)
-    DFProject(in, v1, nr, Nil)//nr.inputColumns.toList)
+    DFProject(in, v1, nr, Nil)
   }
   def dfunnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = {
     val v = Variable.freshFromBag(in.tp)

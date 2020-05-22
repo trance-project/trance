@@ -74,6 +74,16 @@ case class Record(fields: Map[String, CExpr]) extends CExpr{
   override def inputColumns: Set[String] = fields.flatMap{
     case (key, expr) => expr.inputColumns
   }.toSet
+
+  def colMap: Map[String, String] = fields.flatMap{
+    case (key, Project(_, fp)) => List((key, fp))
+    case (key, Label(fs)) => fs.head match {
+      case (_, Project(_, fp)) => List((key, fp))
+      case _ => Nil
+    }
+    case _ => Nil
+  }.toMap
+
 }
 
 case class Tuple(fields: List[CExpr]) extends CExpr {

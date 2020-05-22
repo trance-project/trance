@@ -98,6 +98,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
   def generateReference(e: CExpr): String = e match {
     case Project(_, f) => "col(\""+f+"\")"
+    case Label(fs) => generateReference(fs.head._2)
     case Equals(e1, e2) => s"${generateReference(e1)} === ${generateReference(e2)}"
     case _ => generate(e)
   }
@@ -188,18 +189,24 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case ep @ DFProject(in, v, pat:Record, fields) =>
       handleType(pat.tp)
       val nrec = generateType(pat.tp)
-      val select = if (fields.isEmpty) ""
-        else s".select(${fields.mkString("\"", "\", \"", "\"")})"
-      
-      val rename = ep.rename.map{
-        case (newCol, oldCol) => s"""|.withColumnRenamed("$oldCol", "$newCol")"""
-      }.mkString("\n").stripMargin
-      val append = ep.makeCols.map{
-        case (name, expr) => s"""|.withColumn("$name", ${generate(expr)})"""
-      }.mkString("\n").stripMargin
 
-      s"""|${generate(in)}$select$append
-          $rename.as[$nrec]
+      val projectCols = pat.colMap.values.toSet ++ fields.toSet
+
+      val select = if (projectCols.isEmpty || (projectCols == v.tp.attrs.keySet)) ""
+        else s".select(${projectCols.toList.mkString("\"", "\", \"", "\"")})"
+
+      val columns = pat.fields.flatMap{
+        case (col, Project(_, oldCol)) if col != oldCol => 
+          if (projectCols(oldCol)) List(s"""| .withColumn("$col", $$"oldCol")""")
+          else List(s"""| .withColumnRenamed("$col", col("oldCol"))""")
+        case (col, expr) if !projectCols(col) =>
+          List(s"""|  .withColumn("$col", ${generateReference(expr)})""")
+        case _ => Nil
+      }.mkString("\n").stripMargin      
+
+      s"""|${generate(in)}$select
+          $columns
+          | .as[$nrec]
           |""".stripMargin
 
     case ej @ DFJoin(left, v, p1, right, v2, p2, Nil) => 
@@ -239,9 +246,10 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val gnrec1 = generate(nrec1)
       val gnrec0 = s"${generateType(nrec1.tp)}(${nrec0.map(f => generate(f._2)).mkString(", ")})"
       val gv = generate(v)
+      val getPath = accessOption(Project(v, path), v)
       s"""|${generate(in)}.flatMap{
           | case $gv => if ($gv.$path.isEmpty) Seq($gnrec0)
-          |   else $gv.$path.map( ${generate(nv2)} => $gnrec1 )
+          |   else $getPath.map( ${generate(nv2)} => $gnrec1 )
           |}.as[${generateType(nrec1.tp)}]
           |""".stripMargin
 
@@ -274,8 +282,10 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         s"typed.sum[$intp](${matchOption(v, vs)})\n").mkString("agg(", ",", ")")
 
       val nrec = er.tp.tp.attrs.map(k => 
-        if (value.contains(k._1)) k._1 
-        else s"key.${k._1}").mkString(s"$gtp(", ", ", ")")
+        if (value.contains(k._1)) k._2 match {
+          case _:OptionType => s"Some(${k._1})"
+          case _ => k._1 
+        }else s"key.${k._1}").mkString(s"$gtp(", ", ", ")")
 
       s"""|${generate(in)}.groupByKey($gv => ${generate(rkey)})
           | .$rvalues.mapPartitions{ it => it.map{ case (key, ${value.mkString(", ")}) =>
@@ -301,7 +311,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |val $n = $gv$repart
           |//$n.print
           |${if (!cache) comment(n) else n}.cache
-          |${if (!evalFinal) comment(n) else n}.count
+          |${if (!cache && !evalFinal) comment(n) else n}.count
           |""".stripMargin
 
     case Bind(v, CNamed(n, e1), e2) =>
@@ -311,7 +321,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       s"""|val $gv = ${generate(e1)}
           |val $n = $gv$repart
           |//$n.print
-          |${if (!cache) comment(n) else n}.cache
+          |${if (!cache || evalFinal) comment(n) else n}.cache
           |${if (!evaluate) comment(n) else n}.count
           |${generate(e2)}
           |""".stripMargin

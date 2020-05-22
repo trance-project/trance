@@ -18,6 +18,29 @@ trait Query extends Materialization
   val normalizer = new Finalizer(new BaseNormalizer{})
 
   val name: String
+
+  /** schema **/
+  def inputTables: Set[String] = Set()
+  val loaderName: String = "loader"
+
+  // table name to loader function
+  def loaders: Map[String, String] = Map()
+
+  def loadTable(tbl: String, eval: String, shred: Boolean = false): String = {
+    val tblName = if (shred) s"IBag_${tbl}__D" else tbl
+    s"""|val $tblName = $loaderName.${loaders(tbl)}
+        |$tblName.cache
+        |$tblName.$eval
+        |""".stripMargin
+  }
+
+  def loadTables(tbls: Set[String], eval: String, shred: Boolean = false): String = {
+      s"""|val tpch = TPCHLoader(spark)
+          |${loaders.filter(f => tbls(f._1)).map(f => loadTable(f._1, eval, shred)).mkString("\n")}
+          |""".stripMargin
+  }
+
+
   def inputs(tmap: Map[String, String]): String
   def inputTypes(shred: Boolean = false): Map[Type, String]
   def headerTypes(shred: Boolean = false): List[String]
@@ -108,6 +131,8 @@ trait Query extends Materialization
   }
 
   def shredBatchWithInput(input: Query, unshredRun: Boolean = false, eliminateDomains: Boolean = true): (CExpr, CExpr, CExpr) = {
+    val compiler = new Finalizer(new ShredOptimizer{})
+
     // materialize input
     val (inputShredded, inputShreddedCtx) = shredCtx(input.program.asInstanceOf[Program])
     val matInput = materialize(optimize(inputShredded), eliminateDomains = eliminateDomains)
@@ -119,11 +144,12 @@ trait Query extends Materialization
     // println("RUNNING SHREDDED PIPELINE:\n")
     // println(quote(matInput.program))
     val inputC = normalizer.finalize(translate(matInput.program)).asInstanceOf[CExpr]
-    val inputInitPlan = Unnester.unnest(inputC)(Nil, Nil, None)
-    val inputOptPlan = Optimizer.applyAll(inputInitPlan)
+    val inputInitPlan = BatchUnnester.unnest(inputC)(Map(), Map(), None)
+    val inputPlan = compiler.finalize(inputInitPlan).asInstanceOf[CExpr]
+    println(Printer.quote(inputPlan))
     val anfBase = new BaseDFANF{}
     val anfer = new Finalizer(anfBase)
-    val inputPlan = anfBase.anf(anfer.finalize(inputOptPlan).asInstanceOf[anfBase.Rep])
+    val iPlan = anfBase.anf(anfer.finalize(inputPlan).asInstanceOf[anfBase.Rep])
 
     // shredded pipeline plan for query
     println("\nRUNNING SHREDDED PIPELINE:\n")
@@ -131,10 +157,8 @@ trait Query extends Materialization
     println(quote(mat.program))
     val calc = normalizer.finalize(translate(mat.program)).asInstanceOf[CExpr]
     val initPlan = BatchUnnester.unnest(calc)(Map(), Map(), None)
-    // val compiler = new Finalizer(new BaseCompiler{})
-    // val plan = compiler.finalize(initPlan).asInstanceOf[CExpr]
-    // println(Printer.quote(plan))
-    val plan = initPlan
+    val plan = compiler.finalize(initPlan).asInstanceOf[CExpr]
+    println(Printer.quote(plan))
     val sanfBase = new BaseDFANF{}
     val sanfer = new Finalizer(sanfBase)
     val splan = sanfBase.anf(sanfer.finalize(plan).asInstanceOf[sanfBase.Rep])
@@ -144,13 +168,14 @@ trait Query extends Materialization
       val unshredProg = unshred(optShredded, mat.ctx)
       val uncalc = normalizer.finalize(translate(unshredProg)).asInstanceOf[CExpr]
       val uinitPlan = BatchUnnester.unnest(uncalc)(Map(), Map(), None)
-      val uplan = uinitPlan
+      val uplan = compiler.finalize(uinitPlan).asInstanceOf[CExpr]
+      println(Printer.quote(uplan))
       val uanfBase = new BaseDFANF{}
       val uanfer = new Finalizer(uanfBase)
       uanfBase.anf(uanfer.finalize(uplan).asInstanceOf[uanfBase.Rep])
     }else CUnit
 
-    (inputPlan, splan, usplan)
+    (iPlan, splan, usplan)
 
   }
 

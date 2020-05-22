@@ -33,7 +33,7 @@ object AppWriter {
     val fname = s"$pathout/$qname.scala" 
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val inputs = if (skew) query.inputs(TPCHSchema.skewdfs) else query.inputs(TPCHSchema.dfs)
+    val inputs = if (skew) query.inputs(TPCHSchema.skewdfs) else query.loadTables(query.inputTables, "count")//query.inputs(TPCHSchema.dfs)
     val finalc = writeDataset(qname, inputs, header, timedOne(gcode), label, encoders)
     printer.println(finalc)
     printer.close 
@@ -59,7 +59,7 @@ object AppWriter {
     val fname = s"$pathout/$qname.scala" 
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val inputs = if (skew) query.inputs(TPCHSchema.skewdfs) else query.inputs(TPCHSchema.dfs)
+    val inputs = if (skew) query.inputs(TPCHSchema.skewdfs) else query.loadTables(query.inputTables, "count")
     val finalc = writeDataset(qname, inputs, header, s"$inputCode\n${timedOne(gcode)}", label, encoders)
     printer.println(finalc)
     printer.close 
@@ -90,7 +90,7 @@ object AppWriter {
     val fname = s"$pathout/$qname.scala"
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val inputs = if (skew) query.inputs(TPCHSchema.sskewdfs) else query.inputs(TPCHSchema.sdfs)
+    val inputs = if (skew) query.inputs(TPCHSchema.sskewdfs) else query.loadTables(query.inputTables, "count", true)
     val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet), label, encoders)
     printer.println(finalc)
     printer.close
@@ -100,10 +100,10 @@ object AppWriter {
   def runDatasetInputShred(inputQuery: Query, query: Query, pathout: String, label: String, eliminateDomains: Boolean = true, 
     unshred: Boolean = false, skew: Boolean = false): Unit = {
     
-    val codegenInput = new SparkDatasetGenerator(false, false, isDict = true, evalFinal = false, skew = skew)
+    val codegenInput = new SparkDatasetGenerator(true, true, isDict = true, evalFinal = false, skew = skew)
     val (inputShred, queryShred, queryUnshred) = query.shredBatchWithInput(inputQuery, unshredRun = unshred, eliminateDomains = eliminateDomains)
     val inputCode = codegenInput.generate(inputShred)
-    val codegen = new SparkDatasetGenerator(unshred, eliminateDomains, isDict = true, inputs = codegenInput.types, skew = skew)
+    val codegen = new SparkDatasetGenerator(unshred, eliminateDomains, isDict = true, evalFinal = !unshred, inputs = codegenInput.types, skew = skew)
     val gcode1 = codegen.generate(queryShred)
     val (header, gcodeSet, encoders) = if (unshred) {
       val codegen2 = new SparkDatasetGenerator(false, false, unshred = true, isDict = true, inputs = codegen.types, skew = skew)
@@ -118,9 +118,8 @@ object AppWriter {
     val fname = s"$pathout/$qname.scala"
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val inputSection = s"${inputCode}\n${shredInputs(inputQuery.indexedDict)}"
-    val inputs = if (skew) query.inputs(TPCHSchema.sskewdfs) else query.inputs(TPCHSchema.sdfs)
-    val finalc = writeDataset(qname, inputs, header, s"$inputSection\n${timed(label, gcodeSet)}", label, encoders)
+    val inputs = if (skew) query.inputs(TPCHSchema.sskewdfs) else query.loadTables(query.inputTables, "count", true)
+    val finalc = writeDataset(qname, inputs, header, s"$inputCode\n${timed(label, gcodeSet)}", label, encoders)
     printer.println(finalc)
     printer.close
   

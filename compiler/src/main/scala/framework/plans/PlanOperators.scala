@@ -11,6 +11,8 @@ case class AddIndex(e: CExpr, name: String) extends CExpr {
 // rename filter
 case class DFProject(in: CExpr, v: Variable, filter: CExpr, fields: List[String]) extends CExpr {
   
+  override def inputColumns: Set[String] = v.tp.attrs.keySet
+
   def rename: Map[String, String] = filter match {
     case Record(fs) => fs.toList.flatMap{
       case (key, Project(_, fp)) if key != fp => List((key, fp))
@@ -30,7 +32,7 @@ case class DFProject(in: CExpr, v: Variable, filter: CExpr, fields: List[String]
     case _ => Map()
   }
 
-  def tp: BagCType = BagCType(filter.tp.project(fields))
+  def tp: BagCType = BagCType(filter.tp)
 }
 
 case class DFUnnest(in: CExpr, v: Variable, path: String, v2: Variable, filter: CExpr, fields: List[String]) extends CExpr {
