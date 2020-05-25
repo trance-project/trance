@@ -165,13 +165,17 @@ case class Project(e1: CExpr, field: String) extends CExpr { self =>
     case _ => sys.error("unsupported projection index "+self)
   }
 
-  override def inputColumns: Set[String] = e1.inputColumns ++ Set(field)
+  override def inputColumns: Set[String] = Set(field)
 
 }
 
 case class If(cond: CExpr, e1: CExpr, e2: Option[CExpr]) extends CExpr {
   assert(cond.tp == BoolType)
   val tp: Type = e1.tp
+  override def inputColumns: Set[String] = e2 match {
+    case None => e1.inputColumns
+    case Some(se2) => e1.inputColumns ++ se2.inputColumns
+  }
 }
 
 case class Merge(e1: CExpr, e2: CExpr) extends CExpr {
@@ -485,6 +489,10 @@ object Variable {
       case BagCType(tup) => Variable(s"x$id", tup)
       case _ => Variable(s"x$id", tp)
     }
+  }
+  def fromBag(name: String, tp: Type): Variable = tp match {
+    case BagCType(tup) => Variable(name, tup)
+    case _ => ???
   }
   def fresh(n: String = "x"): String = s"$n${newId()}"
   def newId(): Int = {

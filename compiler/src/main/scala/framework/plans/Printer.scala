@@ -59,7 +59,8 @@ object Printer {
     case TupleCDict(fs) => tupledict(fs.map(f => f._1 -> quote(f._2)))
     case DictCUnion(e1, e2) => dictunion(quote(e1), quote(e2))
     case Select(x, v, p, e) => 
-      s"""| <-- (${quote(v)}) -- SELECT[ ${quote(p)}, ${quote(e)} ](${quote(x)})""".stripMargin
+      val attrs = e.tp.attrs.keySet.toList.mkString(",")
+      s"""| <-- (${quote(v)}) -- SELECT[ ${quote(p)}, $attrs ](${quote(x)})""".stripMargin
     case Reduce(e1, v, e2:Variable, Constant(true)) =>
       s""" | ${quote(e1)}""".stripMargin
     case Reduce(e1, v, e2, Constant(true)) =>

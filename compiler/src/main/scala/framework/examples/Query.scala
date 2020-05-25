@@ -76,7 +76,10 @@ trait Query extends Materialization
     val anfBase = if (batch) new BaseDFANF{} else new BaseANF{}
     val anfer = new Finalizer(anfBase)
     optimizationLevel match {
-      case y if batch => anfBase.anf(anfer.finalize(this.batchUnnest).asInstanceOf[anfBase.Rep])
+      case y if batch => 
+        val optimized = BatchOptimizer.push(this.batchUnnest)
+        println(Printer.quote(optimized))
+        anfBase.anf(anfer.finalize(optimized).asInstanceOf[anfBase.Rep])
       case 0 => anfBase.anf(anfer.finalize(this.unnestNoOpt).asInstanceOf[anfBase.Rep])
       case 1 => anfBase.anf(anfer.finalize(Optimizer.projectOnly(unnestNoOpt)).asInstanceOf[anfBase.Rep])
       case _ => anfBase.anf(anfer.finalize(this.unnest).asInstanceOf[anfBase.Rep])
@@ -145,7 +148,7 @@ trait Query extends Materialization
     // println(quote(matInput.program))
     val inputC = normalizer.finalize(translate(matInput.program)).asInstanceOf[CExpr]
     val inputInitPlan = BatchUnnester.unnest(inputC)(Map(), Map(), None)
-    val inputPlan = compiler.finalize(inputInitPlan).asInstanceOf[CExpr]
+    val inputPlan = BatchOptimizer.push(compiler.finalize(inputInitPlan).asInstanceOf[CExpr])
     println(Printer.quote(inputPlan))
     val anfBase = new BaseDFANF{}
     val anfer = new Finalizer(anfBase)
@@ -157,7 +160,7 @@ trait Query extends Materialization
     println(quote(mat.program))
     val calc = normalizer.finalize(translate(mat.program)).asInstanceOf[CExpr]
     val initPlan = BatchUnnester.unnest(calc)(Map(), Map(), None)
-    val plan = compiler.finalize(initPlan).asInstanceOf[CExpr]
+    val plan = BatchOptimizer.push(compiler.finalize(initPlan).asInstanceOf[CExpr])
     println(Printer.quote(plan))
     val sanfBase = new BaseDFANF{}
     val sanfer = new Finalizer(sanfBase)
@@ -224,7 +227,7 @@ trait Query extends Materialization
     println(quote(matProg))
     val ncalc = normalizer.finalize(translate(matProg)).asInstanceOf[CExpr]
     val initPlan = BatchUnnester.unnest(ncalc)(Map(), Map(), None)
-    val plan = compiler.finalize(initPlan).asInstanceOf[CExpr]
+    val plan = BatchOptimizer.push(compiler.finalize(initPlan).asInstanceOf[CExpr])
     println(Printer.quote(plan))
     val anfBase = new BaseDFANF{}
     val anfer = new Finalizer(anfBase)

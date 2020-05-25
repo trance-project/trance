@@ -313,7 +313,11 @@ trait BaseCompiler extends Base {
   def dfproject(in: Rep, filter: Rep => Rep, fields: List[String]): Rep = {
     val v1 = Variable.freshFromBag(in.tp)
     val nr = filter(v1)
-    DFProject(in, v1, nr, Nil)
+    val fs = nr match {
+      case r:Record => r.colMap.values.toSet
+      case _ => Set()
+    }
+    DFProject(in, v1, nr, fs.toList)
   }
   def dfunnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = {
     val v = Variable.freshFromBag(in.tp)

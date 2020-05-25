@@ -201,6 +201,8 @@ object Optimizer {
       case _ => e
     }
   } 
+
+
  
   /** Push projections, currently works mainly to push projections to the select 
     * operator.
@@ -209,6 +211,7 @@ object Optimizer {
     * @return plan with projections pushed to select operato
     */
   def push(e: CExpr): CExpr = e match {
+    /** stream operators **/
     case FlatDict(e1) => FlatDict(push(e1))
     case GroupDict(e1) => GroupDict(push(e1))
     case CGroupBy(e1, v1, keys, values) => CGroupBy(push(e1), v1, keys, values)

@@ -71,8 +71,8 @@ object BatchUnnester {
       val right = AddIndex(e1, name+"_index")
       val nv = Variable(v.name, right.tp.tp)
       val (nw, nE) = 
-        if (u.isEmpty) (flat(w, nv.tp), DFJoin(E.get, wvar(w), p1, right, nv, p2, Nil))
-        else (flat(w, nv.tp.outer), DFOuterJoin(E.get, wvar(w), p1, right, nv, p2, Nil))
+        if (u.isEmpty) (flat(w, nv.tp), DFJoin(E.get, wvar(w), p1, Select(right, nv, Constant(true), nv), nv, p2, Nil))
+        else (flat(w, nv.tp.outer), DFOuterJoin(E.get, wvar(w), p1, Select(right, nv, Constant(true), nv), nv, p2, Nil))
       unnest(e2)((u, nw, Some(nE)))
 
     case s @ If(cnd, Sng(t @ Record(fs)), nextIf) =>

@@ -31,7 +31,7 @@ object App {
     // AppWriter.flatDataset(Test2FullFlat, pathout, "Flat,2")
     // AppWriter.flatDataset(Test3Flat, pathout, "Flat,3")
     // AppWriter.flatDataset(Test3FullFlat, pathout, "Flat,3")
-    AppWriter.flatDataset(Test4Flat, pathout, "Flat,4")
+    // AppWriter.flatDataset(Test4Flat, pathout, "Flat,4")
     // AppWriter.flatDataset(Test4FullFlat, pathout, "Flat,4")
 
     // AppWriter.shredDataset(Test0, pathout, "Shred,0")
@@ -50,7 +50,7 @@ object App {
     // AppWriter.shredDataset(Test1, pathout, "Shred,1", unshred=true)
     AppWriter.shredDataset(Test2, pathout, "Shred,2", unshred=true)
     // AppWriter.shredDataset(Test3, pathout, "Shred,3", unshred=true)
-    AppWriter.shredDataset(Test4, pathout, "Shred,4", unshred=true)
+    // AppWriter.shredDataset(Test4, pathout, "Shred,4", unshred=true)
 
     // AppWriter.shredDataset(Test0Full, pathout, "Shred,0", unshred=true)
     // AppWriter.shredDataset(Test1Full, pathout, "Shred,1", unshred=true)
@@ -63,7 +63,7 @@ object App {
 
     // AppWriter.runDatasetInput(Test0Full, Test0NN, pathout, "Flat,0")
     // AppWriter.runDatasetInput(Test1Full, Test1NN, pathout, "Flat,1")
-    AppWriter.runDatasetInput(Test2FullFlat, Test2NN, pathout, "Flat,2")
+    // AppWriter.runDatasetInput(Test2FullFlat, Test2NN, pathout, "Flat,2")
     // AppWriter.runDatasetInput(Test3FullFlat, Test3NN, pathout, "Flat,3")
     // AppWriter.runDatasetInput(Test4FullFlat, Test4NN, pathout, "Flat,4")
 

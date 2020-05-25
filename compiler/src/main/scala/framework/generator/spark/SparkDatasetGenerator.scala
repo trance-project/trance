@@ -190,15 +190,23 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       handleType(pat.tp)
       val nrec = generateType(pat.tp)
 
-      val projectCols = pat.colMap.values.toSet ++ fields.toSet
+      val select = if (fields.isEmpty) ""
+        else if (fields.toSet == ep.inputColumns) ""
+        else s".select(${fields.mkString("\"", "\", \"", "\"")})"
 
-      val select = if (projectCols.isEmpty || (projectCols == v.tp.attrs.keySet)) ""
-        else s".select(${projectCols.toList.mkString("\"", "\", \"", "\"")})"
+      // input table attributes
+      val projectCols = fields.toSet
+      // output attributes
+      val newCols = pat.fields.keySet
 
       val columns = pat.fields.flatMap{
+        // create a new column from an old column
         case (col, Project(_, oldCol)) if col != oldCol => 
-          if (projectCols(oldCol)) List(s"""| .withColumn("$col", $$"oldCol")""")
-          else List(s"""| .withColumnRenamed("$col", col("oldCol"))""")
+          // creates an additional column
+          if (newCols(oldCol)) List(s"""| .withColumn("$col", $$"$oldCol")""")
+          // overrides a column
+          else List(s"""| .withColumnRenamed("$oldCol", "$col")""")
+        // make a new column
         case (col, expr) if !projectCols(col) =>
           List(s"""|  .withColumn("$col", ${generateReference(expr)})""")
         case _ => Nil
@@ -301,7 +309,14 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     // catch all
-    case Select(x, v, p, e2) => generate(x)
+    case Select(x, v, Constant(true), e2) => 
+      if ((v.tp.attrs.keySet -- e2.tp.attrs.keySet).isEmpty) generate(x)
+      else {
+        handleType(e2.tp)
+        val cols = e2.tp.attrs.keySet.toList.map(c => "\""+c+"\"").mkString(",")
+        s"""|${generate(x)}.select($cols)
+            | .as[${generateType(e2.tp)}]""".stripMargin
+      }
 
     case Bind(v, CNamed(n, e1), LinearCSet(fs)) =>
       val gtp = if (skew) "[Int]" else ""

@@ -74,7 +74,7 @@ object AppWriter {
   def runDatasetShred(query: Query, pathout: String, label: String, eliminateDomains: Boolean = true, 
     unshred: Boolean = false, skew: Boolean = false): Unit = {
     
-    val codegen = new SparkDatasetGenerator(unshred, eliminateDomains, skew = skew)
+    val codegen = new SparkDatasetGenerator(unshred, eliminateDomains, evalFinal = false, skew = skew)
     val (gcodeShred, gcodeUnshred) = query.shredBatchPlan(unshred, eliminateDomains = eliminateDomains, anfed = true)
     val gcode1 = codegen.generate(gcodeShred)
     val (header, gcodeSet, encoders) = if (unshred) {
@@ -367,7 +367,7 @@ object AppWriter {
     * (either shredded or not shredded) that does unnesting
     */
   def timeOp(appname: String, e: String, i: Int = 0): String = {
-    val query = if (i > 0) "unframework" else "query"
+    val query = if (i > 0) "unshredding" else "query"
     s"""
       |var start$i = System.currentTimeMillis()
       |$e
