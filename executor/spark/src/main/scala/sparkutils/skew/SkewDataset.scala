@@ -522,7 +522,7 @@ object SkewDataset{
         var cnt = 0
         val acc = HashMap.empty[Row, Int].withDefaultValue(0)
         it.foreach{ c => cnt +=1; if (random.nextDouble <= .1) acc(c) += 1 }
-        acc/**.filter(_._2 > (cnt*.1)*.0025)**/.map(r => r._1.getAs[K](0)).iterator
+        acc.filter(_._2 > (cnt*.1)*.0025).map(r => r._1.getAs[K](0)).iterator
       }).collect.toSet
       (dfull, keys)
     }
