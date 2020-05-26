@@ -28,14 +28,14 @@ object BatchOptimizer{
       DFOuterUnnest(pin, nv, path, v2, filter, (fields.toSet ++ fs).toList)
 
     case DFJoin(left, v, p1, right, v2, p2, fields) =>
-      val lpin = push(left, fields.toSet ++ fs + p1 
+      val lpin = push(left, fields.toSet ++ fs + p1) 
       val rpin = push(right, fields.toSet ++ fs + p2)
       val lv = Variable.fromBag(v.name, lpin.tp)
       val rv = Variable.fromBag(v2.name, rpin.tp)
       DFJoin(lpin, lv, p1, rpin, rv, p2, fields)
 
     case DFOuterJoin(left, v, p1, right, v2, p2, fields) =>
-      val lpin = push(left, fields.toSet ++ fs + p1 
+      val lpin = push(left, fields.toSet ++ fs + p1)
       val rpin = push(right, fields.toSet ++ fs + p2)
       val lv = Variable.fromBag(v.name, lpin.tp)
       val rv = Variable.fromBag(v2.name, rpin.tp)

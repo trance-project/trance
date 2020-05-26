@@ -15,9 +15,9 @@ object App {
  
   def main(args: Array[String]){
     // runFlatToNested()
-    runNestedToNested()
+    // runNestedToNested()
     // runNestedToFlat()
-    // runSkewHandling()
+    runSkewHandling()
     // runDatasetTest()
   }
 
@@ -114,7 +114,7 @@ object App {
     // AppWriter.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Standard,2")
     // AppWriter.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Skew,2", skew = true)
 
-    AppWriter.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Standard,2", unshred=true)
+    // AppWriter.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Standard,2", unshred=true)
     AppWriter.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Skew,2", unshred=true, skew = true)
   }
 

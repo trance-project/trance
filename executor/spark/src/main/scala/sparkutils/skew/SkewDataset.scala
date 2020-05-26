@@ -187,6 +187,14 @@ object SkewDataset{
         heavy.withColumnRenamed(existingName, newName), key, heavyKeys)
     }
 
+    def drop(colName: String): (DataFrame, DataFrame) = {
+      (light.drop(colName), heavy.drop(colName))
+    }
+
+    def drop(colNames: String*): (DataFrame, DataFrame) = {
+      (light.drop(colNames:_*), heavy.drop(colNames:_*))
+    }
+
   }
 
   implicit class SkewDatasetKeyOps[T: Encoder : ClassTag, K: Encoder: ClassTag](dfs: (Dataset[T], Dataset[T], Option[String], Broadcast[Set[K]])) extends Serializable {
@@ -223,6 +231,14 @@ object SkewDataset{
 
     def select(col: String, cols: String*): (DataFrame, DataFrame) = {
       (light.select(col, cols:_*), heavy.select(col, cols:_*))
+    }
+
+    def drop(colName: String): (DataFrame, DataFrame) = {
+      (light.drop(colName), heavy.drop(colName))
+    }
+
+    def drop(colNames: String*): (DataFrame, DataFrame) = {
+      (light.drop(colNames:_*), heavy.drop(colNames:_*))
     }
 
     /** Cast a skew-triple of Dataset to a new skew-triple of Dataset **/
@@ -393,6 +409,14 @@ object SkewDataset{
       (light.select(col, cols:_*), heavy.select(col, cols:_*))
     }
 
+    def drop(colName: String): (DataFrame, DataFrame) = {
+      (light.drop(colName), heavy.drop(colName))
+    }
+
+    def drop(colNames: String*): (DataFrame, DataFrame) = {
+      (light.drop(colNames:_*), heavy.drop(colNames:_*))
+    }
+
     def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U]) = {
       if (heavy.rdd.getNumPartitions == 1){
         (light.as[U], light.empty[U])
@@ -464,6 +488,14 @@ object SkewDataset{
       (light.select(col, cols:_*), heavy.select(col, cols:_*))
     }
 
+    def drop(colName: String): (DataFrame, DataFrame) = {
+      (light.drop(colName), heavy.drop(colName))
+    }
+
+    def drop(colNames: String*): (DataFrame, DataFrame) = {
+      (light.drop(colNames:_*), heavy.drop(colNames:_*))
+    }
+
     def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U]) = if (heavy.rdd.getNumPartitions == 1) (light.as[U], light.empty[U])
       else (light.as[U], heavy.as[U])
 
@@ -490,7 +522,7 @@ object SkewDataset{
         var cnt = 0
         val acc = HashMap.empty[Row, Int].withDefaultValue(0)
         it.foreach{ c => cnt +=1; if (random.nextDouble <= .1) acc(c) += 1 }
-        acc.filter(_._2 > (cnt*.1)*.0025).map(r => r._1.getAs[K](0)).iterator
+        acc/**.filter(_._2 > (cnt*.1)*.0025)**/.map(r => r._1.getAs[K](0)).iterator
       }).collect.toSet
       (dfull, keys)
     }
@@ -590,6 +622,14 @@ object SkewDataset{
 
     val light = dfs._1
     val heavy = dfs._2
+
+    def agg[U1 : Encoder : ClassTag](col1: TypedColumn[V, U1]): (Dataset[(K, U1)], Dataset[(K, U1)]) = {
+      (light.agg(col1), heavy.agg(col1))
+    }
+
+    def agg[U1 : Encoder : ClassTag, U2 : Encoder : ClassTag](col1: TypedColumn[V, U1], col2: TypedColumn[V, U2]): (Dataset[(K, U1, U2)], Dataset[(K, U1, U2)]) = {
+      (light.agg(col1, col2), heavy.agg(col1, col2))
+    }
 
     def mapGroups[S: Encoder: ClassTag](func: (K, Iterator[V]) => S): (Dataset[S], Dataset[S]) = {
       (light.mapGroups(func), heavy.mapGroups(func))

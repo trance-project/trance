@@ -153,6 +153,9 @@ final case class BagCType(tp: Type) extends Type {
 
 final case class MatDictCType(keyTp: LabelType, valueTp: BagCType) extends Type {
   override def isDict: Boolean = true
+  def toRecordType(col: String): RecordCType = 
+    RecordCType(Map(s"${col}_1" -> keyTp, col -> valueTp))
+
 }
 
 case object EmptyCType extends Type
