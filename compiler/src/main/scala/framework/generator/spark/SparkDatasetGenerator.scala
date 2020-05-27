@@ -159,43 +159,34 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case FlatDict(e1) => s"${generate(e1)}"
     case GroupDict(e1) => generate(e1) 
 
-    /** Lookup for unshredding
-      * This is an implementation without cogroup that would
-      * handle skew at top-level (in constrast to cogroup implementation 
-      * in paper).
+    /** Unshredding lookup, though cogroup does not use partitioning 
+      * directly like a join it performs better overall
       */
-
-    case lu @ CLookup(Project(_, col), dict) if unshred => dict.tp match {
-      case mdt:MatDictCType =>//(lblTp, dictTp @ BagCType(tup)) =>
-        // val itp = RecordCType(Map(s"${col}_1" -> lblTp, col -> dictTp))
-        val itp = mdt.toRecordType(col)
-        handleType(itp)
-        val tup = mdt.valueTp.tp
-        val rec = s"""${generateType(tup)}(${tup.attrs.map(t => s"x.${t._1}").mkString(",")})"""
-        s"""|${generate(dict)}.groupByKey(x => x._1).mapGroups{
-            | case (key, values) => 
-            | ${generateType(itp)}(key, values.map(x => $rec).toSeq)
-            |}.as[${generateType(itp)}]""".stripMargin
-      case _ => ???
-    }
-
+    
     case ep @ DFProject(in, v, pat:Record, fields) if unshred =>
+      
       handleType(pat.tp)
       val nrec = generateType(pat.tp)    
+      
       ep.makeCols.head match {
-        case (col, lu @ CLookup(lbl, dict)) => 
-          val intp = RecordCType((in.tp.attrs ++ Map(s"${col}_LABEL" -> in.tp.attrs(col))) - col)
-          handleType(intp)
-          val glu = generate(lu)
-          val lutp = dict.tp.asInstanceOf[MatDictCType]
-          val classTags = if (!skew) ""
-            else s"[${generateType(lutp.toRecordType(col))}, ${generateType(lutp.keyTp)}]"  
-          s"""|${generate(in)}.withColumnRenamed("$col", "${col}_LABEL")
-              | .as[${generateType(intp)}]
-              | .equiJoin$classTags($glu, Seq("${col}_LABEL", "${col}_1"), "left_outer") 
-              | .drop("${col}_1", "${col}_LABEL").as[$nrec]""".stripMargin
-        case _ => ???
-      }   
+        case (col, lu @ CLookup(Project(_, lbl), dict)) => 
+
+          val gv = generate(v)
+          val gdict = s"${generate(dict)}.unionGroupByKey(x => x._1)"
+
+          val tup = dict.tp.asInstanceOf[MatDictCType].valueTp.tp
+          val rec = getRecord(generateType(tup), gv, tup.attrs)
+          val frec = getRecord(nrec, gv, pat.fields, col = col)
+
+          s"""|${generate(in)}.cogroup($gdict, $gv => $gv.$lbl)(
+              |   (_, ve1, ve2) => {
+              |     val $col = ve2.map($gv => $rec).toSeq
+              |     ve1.map($gv => $frec)
+              |   }).as[$nrec]
+              |""".stripMargin
+        
+        case _ => sys.error("Unsupported expression in unshredding.")
+      }
     
     case DFProject(in, v, Constant(true), Nil) => generate(in)
 
@@ -231,23 +222,27 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     case ej @ DFJoin(left, v, p1, right, v2, p2, Nil) => 
+      
       handleType(ej.tp.tp)
       val nrec = generateType(ej.tp.tp)
       val gright = generate(right)
       val rtp = right.tp.asInstanceOf[BagCType].tp
       val classTags = if (!skew) ""
         else s"[${generateType(rtp)}, ${generateType(rtp.attrs(p2))}]"
+      
       s"""|${generate(left)}.equiJoin$classTags($gright, 
           | Seq("$p1", "$p2"), "inner").as[$nrec]
           |""".stripMargin
 
     case ej @ DFOuterJoin(left, v, p1, right, v2, p2, Nil) => 
+      
       handleType(ej.tp.tp)
       val nrec = generateType(ej.tp.tp)
       val gright = generate(right)
       val rtp = right.tp.asInstanceOf[BagCType].tp
       val classTags = if (!skew) ""
         else s"[${generateType(rtp)}, ${generateType(rtp.attrs(p2))}]"
+      
       s"""|${generate(left)}.equiJoin$classTags($gright, 
           | Seq("$p1", "$p2"), "left_outer").as[$nrec]
           |""".stripMargin
@@ -283,11 +278,14 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     case en @ DFNest(in, v, key, value, filter, nulls) =>
+      
       val gv = generate(v)
       val rkey = Record(key.map(k => k -> Project(v, k)).toMap)
       val kv = Variable("key", rkey.tp)
       val grpv = Variable("grp", BagCType(value.tp.unouter))
-      val frec = Record(en.tp.tp.attrs.map(k => if (k._1 == "_2") k._1 -> grpv else k._1 -> Project(kv, k._1)).toMap)
+      val frec = Record(en.tp.tp.attrs.map(k => if (k._1 == "_2") k._1 -> grpv 
+        else k._1 -> Project(kv, k._1)).toMap)
+      
       s"""|${generate(in)}.groupByKey($gv => ${generate(rkey)}).mapGroups{
           | case (key, value) => 
           |   val grp = value.flatMap($gv => 

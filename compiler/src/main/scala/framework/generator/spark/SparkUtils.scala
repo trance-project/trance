@@ -101,107 +101,17 @@ trait SparkUtils {
 
   }
 
-  /** Dataset Specifc **/
+  /** Record writing utils **/
 
-  def flattenLabel(e: CExpr): CExpr = e match {
-    case Record(ms) => Record(ms.map(m => m._1 -> flattenLabel(m._2)))
-    case Label(ls) if ls.size == 1 => ls.head._2
-    // case LabelType(ls) if ls.size == 1 => 
-    case _ => e
-  }
+  def getRecord(name: String, v: String, ms: Map[String, Type]): String =
+    ms.map(t => s"$v.${t._1}").mkString(s"$name(", ", ", ")")
 
-  def flattenLabelType(ms: Map[String, Type], wrap: String = ""): Map[String, Type] = {
+  def getRecord(name: String, v: String, ms: Map[String, CExpr], col: String = ""): String = 
     ms.map{
-      case(attr, tp) => tp match {
-        case LabelType(ls) if ls.size == 1 => (attr -> ls.head._2)
-        case y if attr == wrap => (attr -> BagCType(tp))
-        case _ => (attr -> tp)
-      }
-    }
-  }
+      case (attr, expr) if attr == col => col
+      case (attr, Project(_, f)) => s"$v.$f"
+    }.mkString(s"$name(", ", ", ")")
 
-  def project(e: CExpr): Map[String, String] = e match {
-    case Record(ms) => ms.map{ case (attr, value) => value match {
-      case Project(v, f) => attr -> f
-      case v:Variable => attr -> attr
-      case _ => ???
-    }}
-    case _ => Map() //sys.error(s"not supported $e")
-  }
 
-  def getTypeMap(tp: Type, outer: Boolean = false): Map[String, Type] = tp match {
-    case BagCType(ttp) => getTypeMap(ttp, outer)
-    case RecordCType(ms) => if (outer) ms.map{ case (attr, ttp) => (attr, OptionType(ttp)) } else ms
-    case LabelType(ls) if ls.size == 1 => Map("_1" -> ls.head._2)
-    case TTupleType(ts) => ts.map(t => getTypeMap(t, outer)).flatten.toMap
-    case _ => Map()//sys.error(s"not supported $tp")
-  }
-
-  def flatRecord(e1: Type, e2: Type, outer: Boolean = false): RecordCType = {
-    RecordCType(getTypeMap(e1) ++ getTypeMap(e2, outer))
-  }
-
-  def flatType(es: List[Variable], index: Boolean = false, wrapOption: String = "", wrapNested: Boolean = false): RecordCType = {
-    val rmap = es.zipWithIndex.flatMap{ case (e, id) => e.tp match {
-      case RecordCType(ms) => if (wrapOption != "") {
-        ms.map{
-          case ("index", tp) => ("index", tp)
-          case (attr, btp:BagCType) if (attr == wrapOption) => (attr, OptionType(btp))
-          case (attr, tp) if (id > 0 && wrapOption == "null") => (attr, OptionType(tp))
-          case (attr, tp) if (id > 0 && wrapNested) => (attr, OptionType(tp))
-          case (attr, tp) => (attr, tp)
-        }.toList
-      }else ms.toList
-      case _ => Nil //sys.error(s"not supported ${e.tp}")
-    }}.toMap
-    if (index) RecordCType(rmap ++ Map("index" -> LongType)) else RecordCType(rmap)
-  }
-
-  def unnestDataframe(v1: Variable, v2: Variable, field: String, nulls: Boolean = false): Record = {
-    Record(v1.tp match {
-      case RecordCType(ms) => ms.flatMap{
-        case (attr, BagCType(_)) if (attr == field) => v2.tp.asInstanceOf[RecordCType].attrTps.map{
-          case (nattr, ntp) => if (nulls) (nattr,COption(Null)) else (nattr, COption(Project(v2, nattr)))
-        }
-        case (attr, OptionType(BagCType(_))) if (attr == field) => v2.tp.asInstanceOf[RecordCType].attrTps.map{
-          case (nattr, ntp) => if (nulls) (nattr,COption(Null)) else (nattr, COption(Project(v2, nattr)))
-        }
-        case (attr, tp) => List((attr,Project(v1, attr)))
-      }
-      case _ => ???
-    })
-  }
-
-  def flatDictType(e: Type): Type = e match {
-    case BagCType(tup) => tup
-    case MatDictCType(lbl, bag) => RecordCType(getTypeMap(bag) ++ getTypeMap(lbl))
-    case _ => ???
-  }
-
-  def addIndex(e: Type): RecordCType = e match {
-    case BagCType(RecordCType(ms)) => RecordCType(ms + ("index" -> LongType))
-    case RecordCType(ms) => RecordCType(ms + ("index" -> LongType))
-    case _ => ???
-  }
-
-  def wrapOption(e: Type, f: String = ""): Type = e match {
-    case RecordCType(ms1) => RecordCType(ms1.map{
-      case (attr, RecordCType(ms2)) => 
-        (attr, RecordCType(ms2.map(m => m._1 -> OptionType(m._2))))
-      case (attr, rtp) => (attr, rtp)
-    })
-    case _ => e
-  }
-
-  def getIndex(vs: List[Variable], f: String): String = {
-    val len = vs.size - 1
-    vs.zipWithIndex.foreach{
-      case (variable, index) => 
-        if (getTypeMap(variable.tp).keySet(f)) 
-          if (index < len) return "._1"
-          else return "._2"
-    }
-    return "";
-  }
 
 }

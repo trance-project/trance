@@ -14,10 +14,10 @@ object App {
   val pathout = "../executor/spark/src/main/scala/sparkutils/generated/"
  
   def main(args: Array[String]){
-    // runFlatToNested()
+    runFlatToNested()
     // runNestedToNested()
     // runNestedToFlat()
-    runSkewHandling()
+    // runSkewHandling()
     // runDatasetTest()
   }
 
@@ -108,14 +108,14 @@ object App {
 
   def runSkewHandling(){
 
-    // AppWriter.runDatasetInput(Test2Flat, Test2NNL, pathout, "Flat,Standard,2")
-    // AppWriter.runDatasetInput(Test2Flat, Test2NNL, pathout, "Flat,Skew,2", skew = true)
+    AppWriter.runDatasetInput(Test2Flat, Test2NNL, pathout, "Flat,Standard,2")
+    AppWriter.runDatasetInput(Test2Flat, Test2NNL, pathout, "Flat,Skew,2", skew = true)
 
     // AppWriter.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Standard,2")
     // AppWriter.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Skew,2", skew = true)
 
     // AppWriter.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Standard,2", unshred=true)
-    AppWriter.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Skew,2", unshred=true, skew = true)
+    // AppWriter.runDatasetInputShred(Test2, Test2NNL, pathout, "Shred,Skew,2", unshred=true, skew = true)
   }
 
   def runDatasetTest(){
