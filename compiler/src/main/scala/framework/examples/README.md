@@ -83,9 +83,6 @@ object GenomicQuery1 extends GenomicSchema {
   
   val name = "GenomicQuery1"
 
-  // specify the set of inputs for this query
-  override def inputTables = Set("variants")
-
   // this query just iterates over the variant set
   val query = 
     ForeachUnion(vr, variants,                          // For v in Variants
