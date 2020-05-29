@@ -131,3 +131,12 @@ object TestApp extends App {
 ```
 
 Now, run `sbt run` from the `compiler` folder. This should give you four application numbers. Select the application number specific to `framework.generator.spark.TestApp`. You should see the NRC written out to the console and the corresponding plan underneath.
+
+### Execution
+
+After you have completed the above, the code will be written to `shredder/executor/spark/src/main/scala/sparkutils/generated/`. cd to `shredder/exectuor/spark`, compile the jar like in the example (`sbt package`). And run the jar specifying your query: 
+
+```
+spark-submit --class sparkutils.generated.GenomicQuery1 \
+  --master "local[*]" target/scala-2.12/sparkutils_2.12-0.1.jar
+```
