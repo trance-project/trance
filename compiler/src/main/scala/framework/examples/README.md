@@ -47,6 +47,7 @@ trait GenomicSchema extends Query {
   // these are arbitrary functions that will be deprecated
   def inputTypes(shred: Boolean = false): Map[Type, String] = Map()
   def headerTypes(shred: Boolean = false): List[String] = Nil
+  def inputs(tmap: Map[String, String]): String = ""
 
   // this overrides a function that was previously used for tpch benchmarking
   // just define how to load your inputs here
