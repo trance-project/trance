@@ -49,9 +49,10 @@ trait GenomicSchema extends Query {
   def headerTypes(shred: Boolean = false): List[String] = Nil
 
   // these are references to functions from your loaders
-  override val loadername = "LoadVariant"
+  override val loadername = "variantLoader"
+  override val loaderDef = "val $loaderName = LoadVariant"
   override def loaders: Map[String, String] = 
-    Map("variants" -> "loadVCF()")
+    Map("variants" -> s"""loadVCF("/path/to/vcf", spark)""")
 
   // define the types, which would reflect the case classes from your variant loader 
   val genoType = TupleType("sample" -> String, "call" -> IntType)
