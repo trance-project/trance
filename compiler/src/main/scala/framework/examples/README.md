@@ -11,9 +11,11 @@ as well as flat and nested queries that use these relations.
 
 ### Writing a query
 
-For now, NRC queries are described natively in Scala using the NRC language defined in `src/main/scala/framework/nrc/NRC.scala`. 
+NRC queries are described natively in Scala using the NRC language defined in `src/main/scala/framework/nrc/NRC.scala`. 
 A newly defined query should extend the Query trait (see Query.scala) to leverage various support functions for executing the 
 stages of the pipeline. 
+
+** Disclaimer:** This is very much a prototype, so defining queries and generating code is a bit of an involved process which is specific to writing queries and generating code for benchmarking. This section will be updated as we develop a query parser and a more automated way to generate target code.
 
 #### Example
 
@@ -105,8 +107,27 @@ The next step is to write and run an application that will generate the code for
 
 #### Code Generation
 
+For now code generation is setup to use helper functions specific to benchmarking. See `src/main/scala/generator/spark/App.scala` for examples of how the benchmark experiments were created. Here we will define our own application to call the queries defined in the above section. 
 
+In `src/main/scala/generator/spark/` make a file called GenomicApp.scala. This will be the application you use to generate code from the above. Write the following in the application file:
 
+```
+package framework.generator.spark
 
+import framework.examples._
 
+object TestApp extends App {
 
+  val pathout = "../executor/spark/src/main/scala/sparkutils/generated/"
+ 
+  override def main(args: Array[String]){
+    // runs the standard pipeline
+    AppWriter.flatDataset(GenomicQuery1, pathout, "test")
+    
+    // runs the shredded pipeline
+    AppWriter.shredDataset(GenomicQuery1, pathout, "test", unshred = true)
+  }
+}
+```
+
+Now, run `sbt run` from the `compiler` folder. This should give you four application numbers. Select the application number specific to `framework.generator.spark.TestApp`. You should see the NRC written out to the console and the corresponding plan underneath.
