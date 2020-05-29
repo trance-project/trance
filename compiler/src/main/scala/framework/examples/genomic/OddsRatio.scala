@@ -8,11 +8,12 @@ import framework.examples.Query
   */
 trait OddsRatioBase extends Query {
   
-  def inputTypes(shred: Boolean = false): Map[Type, String] = 
+  def inputTypes(shred: Boolean = false): Map[Type, String] = Map()
     // todo handle shredded case, and organize genomic relations object
-    GenomicRelations.q1inputs
+    // GenomicRelations.q1inputs
   
-  def headerTypes(shred: Boolean = false): List[String] = inputTypes(shred).values.toList
+  def headerTypes(shred: Boolean = false): List[String] = Nil
+    //inputTypes(shred).values.toList
 
   val genoType = TupleType("g_sample" -> StringType, "call" -> IntType)
   val variantType = TupleType("contig" -> StringType, "start" -> IntType, 
