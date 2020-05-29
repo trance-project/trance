@@ -48,11 +48,15 @@ trait GenomicSchema extends Query {
   def inputTypes(shred: Boolean = false): Map[Type, String] = Map()
   def headerTypes(shred: Boolean = false): List[String] = Nil
 
-  // these are references to functions from your loaders
-  override val loadername = "variantLoader"
-  override val loaderDef = "val $loaderName = LoadVariant"
-  override def loaders: Map[String, String] = 
-    Map("variants" -> s"""loadVCF("/path/to/vcf", spark)""")
+  // this overrides a function that was previously used for tpch benchmarking
+  // just define how to load your inputs here
+  override def loadTables(tbls: Set[String], eval: String, shred: Boolean = false): String = {
+      s"""|val basepath = "src/main/scala/Data/"
+          |val path = basepath + "Variants/sub_chr22.vcf"
+          |val variants = loadVCF(path, spark)
+          |""".stripMargin
+  }
+
 
   // define the types, which would reflect the case classes from your variant loader 
   val genoType = TupleType("sample" -> String, "call" -> IntType)
