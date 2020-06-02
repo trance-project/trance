@@ -13,8 +13,8 @@ object AppWriter {
 
   /** Standard pipeline: Dataset generator **/
 
-  def flatDataset(query: Query, path: String, label: String, skew: Boolean = false, opt: Int = 2): Unit =
-    runDataset(query, path, label, opt, skew)
+  def flatDataset(query: Query, path: String, label: String, skew: Boolean = false, optLevel: Int = 2): Unit =
+    runDataset(query, path, label, optLevel, skew)
 
   def runDataset(query: Query, pathout: String, label: String, 
     optLevel: Int = 2, skew: Boolean = false): Unit = {
@@ -33,7 +33,7 @@ object AppWriter {
     val fname = s"$pathout/$qname.scala" 
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val inputs = if (skew) query.inputs(TPCHSchema.skewdfs) else query.loadTables(query.inputTables, "count")//query.inputs(TPCHSchema.dfs)
+    val inputs = if (skew) query.inputs(TPCHSchema.skewdfs) else query.loadTables(query.inputTables, "count")
     val finalc = writeDataset(qname, inputs, header, timedOne(gcode), label, encoders)
     printer.println(finalc)
     printer.close 

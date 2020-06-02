@@ -58,17 +58,8 @@ trait Query extends Materialization
 
   def normalize: CExpr = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
   
-  def batchUnnest: CExpr = {
-    val initPlan = BatchUnnester.unnest(this.normalize)(Map(), Map(), None)
-    // println("PLAN BEFORE")
-    // println(Printer.quote(initPlan))
-    // arbitrary pass through compilation phase for testing compiler
-    val compiler = new Finalizer(new BaseCompiler{})
-    val plan = compiler.finalize(initPlan).asInstanceOf[CExpr]
-    println("PLAN")
-    println(Printer.quote(plan))
-    plan
-  }
+  def batchUnnest: CExpr = BatchUnnester.unnest(this.normalize)(Map(), Map(), None)
+  
   def unnestNoOpt: CExpr = Unnester.unnest(this.normalize)(Nil, Nil, None)
   def unnest: CExpr = Optimizer.applyAll(unnestNoOpt)
 
@@ -76,6 +67,7 @@ trait Query extends Materialization
     val anfBase = if (batch) new BaseDFANF{} else new BaseANF{}
     val anfer = new Finalizer(anfBase)
     optimizationLevel match {
+      case 0 if batch => anfBase.anf(anfer.finalize(this.batchUnnest).asInstanceOf[anfBase.Rep])
       case y if batch => 
         val optimized = BatchOptimizer.push(this.batchUnnest)
         println(Printer.quote(optimized))

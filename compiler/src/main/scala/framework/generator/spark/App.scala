@@ -12,14 +12,15 @@ object App {
   val pathout = "../executor/spark/src/main/scala/sparkutils/generated/"
  
   def main(args: Array[String]){
-    // runFlatToNested()
+    runFlatToNested()
     // runNestedToNested()
     // runNestedToFlat()
-    runSkewHandling()
+    // runSkewHandling()
   }
 
   def runFlatToNested(){
-
+    // AppWriter.flatDataset(Test2, pathout, "Flat,0", optLevel = 0)
+    // AppWriter.flatDataset(Test2, pathout, "Flat,1")
     AppWriter.flatDataset(Test2Flat, pathout, "Flat,2")
     AppWriter.shredDataset(Test2, pathout, "Shred,2", unshred=true)
 
