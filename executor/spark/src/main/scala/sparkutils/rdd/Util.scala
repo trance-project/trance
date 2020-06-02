@@ -6,6 +6,20 @@ import org.apache.spark.broadcast.Broadcast
 
 object Util{ 
 
+  // replace this with json, avoiding this for now since 
+  // it will be dependent on an external json package
+  def getCCParams(cc: AnyRef): String =
+      cc.getClass.getDeclaredFields.map{f =>
+      f.setAccessible(true)
+      f.get(cc) match {
+        case l:List[_] => 
+          s"""|${f.getName} := { 
+              |  ${l.map(l2 => getCCParams(l2.asInstanceOf[AnyRef])).mkString(",\n")}
+              |}""".stripMargin
+        case fcc =>  s"${f.getName} := $fcc"
+      }
+  }.toList.mkString("(", ", ", ")")
+
   def countDistinct[K,V](i: Iterator[(K,V)]) = 
     i.foldLeft(HashMap.empty[K, Int].withDefaultValue(0))((acc, c) =>
       { acc(c._1) += 1; acc } )

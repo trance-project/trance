@@ -68,21 +68,14 @@ case class Label(fields: Map[String, CExpr]) extends CExpr{
 }
 
 case class Record(fields: Map[String, CExpr]) extends CExpr{
+  
   def tp: RecordCType = RecordCType(fields.map(f => f._1 -> f._2.tp))
   def apply(n: String) = fields(n)
   def project(n: List[String]) = Record(fields.filter(f => n.contains(f._1)))
+  
   override def inputColumns: Set[String] = fields.flatMap{
     case (key, expr) => expr.inputColumns
   }.toSet
-
-  def colMap: Map[String, String] = fields.flatMap{
-    case (key, Project(_, fp)) => List((key, fp))
-    case (key, Label(fs)) => fs.head match {
-      case (_, Project(_, fp)) => List((key, fp))
-      case _ => Nil
-    }
-    case _ => Nil
-  }.toMap
 
 }
 
@@ -93,6 +86,13 @@ case class Tuple(fields: List[CExpr]) extends CExpr {
     case "_2" => fields(1) 
   } 
   def apply(n: Int) = fields(n)
+}
+
+case class CGet(e1: CExpr) extends CExpr {
+  def tp: Type = e1.tp match {
+    case BagCType(ttp) => ttp
+    case _ => ???
+  }
 }
 
 case class Equals(e1: CExpr, e2: CExpr) extends CExpr {
@@ -471,14 +471,18 @@ case class Variable(name: String, override val tp: Type) extends CExpr { self =>
 }
 
 object Variable {
+
   private var lastId = 1
+
   def fresh(tp: Type): Variable = {
     val id = newId()
     Variable(s"x$id", tp)
   }
+
   def fresh(key: Type, value: Type): Variable = {
     fresh(TTupleType(List(key, value)))
   }
+
   def freshFromBag(tp: Type, index: String = ""): Variable = {
     val id = newId()
     tp match {
@@ -490,10 +494,15 @@ object Variable {
       case _ => Variable(s"x$id", tp)
     }
   }
-  def fromBag(name: String, tp: Type): Variable = tp match {
-    case BagCType(tup) => Variable(name, tup)
-    case _ => ???
-  }
+
+  def fromBag(name: String, tp: Type): Variable = Variable(name, RecordCType(tp.attrs))
+
+  // tp match {
+  //   case BagCType(tup) => Variable(name, tup)
+  //   case MatDictCType(lbl, bag) => Variable
+  //   case _ => sys.error(s"type not supported $tp")
+  // }
+
   def fresh(n: String = "x"): String = s"$n${newId()}"
   def newId(): Int = {
     val id = lastId

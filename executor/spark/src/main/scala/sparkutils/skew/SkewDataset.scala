@@ -22,8 +22,12 @@ object SkewDataset{
   /** Implicits for skew-unaware high-level operations defined on a single Dataset **/
   implicit class DatasetOps[T: Encoder: ClassTag](left: Dataset[T]) extends Serializable {
 
-    /** Print support for a Dataset **/
-    def print: Unit = left.collect.foreach(println(_))
+    // TODO replace with JSON
+    def print: Unit = {
+      println(left.take(10).toList.map(f => 
+        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
+    }
+    
 
     /** Create an empty Dataset with the same type 
       * Repartition to 1, this will be a check for empty dataframes that avoids 
@@ -130,7 +134,10 @@ object SkewDataset{
   implicit class DataframeOps(left: DataFrame) extends Serializable {
 
     /** Print support for a Dataframe **/
-    def print: Unit = left.collect.foreach(println(_))
+    def print: Unit = {
+      println(left.take(10).toList.map(f => 
+        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
+    }
 
     /** Create an empty Dataset with the an alternative type 
       * Repartition to 1, this will be a check for empty dataframes that avoids 
@@ -400,9 +407,11 @@ object SkewDataset{
     /** prints the light and heavy components **/
     def print: Unit = {
       println("light")
-      light.collect.foreach(println(_))
+      println(light.take(10).toList.map(f => 
+        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
       println("heavy")
-      heavy.collect.foreach(println(_))
+      println(heavy.take(10).toList.map(f => 
+        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
     }
 
     def select(col: String, cols: String*): (DataFrame, DataFrame) = {
@@ -452,9 +461,11 @@ object SkewDataset{
     /** prints the light and heavy components **/
     def print: Unit = {
       println("light")
-      light.collect.foreach(println(_))
+      println(light.take(10).toList.map(f => 
+        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
       println("heavy")
-      heavy.collect.foreach(println(_))
+      println(heavy.take(10).toList.map(f => 
+        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
     }
 
     def cache: Unit = {

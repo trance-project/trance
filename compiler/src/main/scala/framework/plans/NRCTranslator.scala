@@ -99,7 +99,8 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
     case Lookup(lbl, dict) => CLookup(translate(lbl), translate(dict)) 
     case Count(e1) => comprehension(translate(e1), x => constant(true), (i: CExpr) => constant(1))
     case DeDup(e1) => CDeDup(translate(e1)) 
-
+    case Get(e1) => CGet(translate(e1))
+    
     // new flexible dictionary handling
     case MatDictLookup(lbl, dict) => CLookup(translate(lbl), translate(dict))
     case MatDictToBag(bd) => FlatDict(translate(bd))

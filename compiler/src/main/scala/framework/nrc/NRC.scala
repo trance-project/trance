@@ -116,6 +116,10 @@ trait NRC extends BaseExpr {
     val tp: BagType = BagType(e.tp)
   }
 
+  final case class Get(e: BagExpr) extends TupleExpr {
+    val tp: TupleType = e.tp.tp
+  }
+
   final case class DeDup(e: BagExpr) extends BagExpr {
     val tp: BagType = e.tp
   }

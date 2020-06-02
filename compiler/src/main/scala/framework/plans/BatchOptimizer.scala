@@ -3,7 +3,7 @@ package framework.plans
 import framework.common._
 
 /** Optimizer used for plans from BatchUnnester **/
-object BatchOptimizer{
+object BatchOptimizer extends Extensions {
 
   /** Push projections in plans made of batch operations
     * @param e input plan from BatchUnnester
@@ -13,9 +13,10 @@ object BatchOptimizer{
   def push(e: CExpr, fs: Set[String] = Set()): CExpr = e match {
     
     case DFProject(in, v, filter, fields) => 
-      val pin = push(in, fields.toSet ++ fs)
+      val tfields = fields.toSet ++ collect(filter)
+      val pin = push(in, tfields ++ fs)
       val nv = Variable.fromBag(v.name, pin.tp)
-      DFProject(pin, nv, filter, (fields.toSet & fs).toList)
+      DFProject(pin, nv, filter, tfields.toList)
 
     case DFUnnest(in, v, path, v2, filter, fields) =>
       val pin = push(in, fields.toSet ++ fs + path)
@@ -57,7 +58,7 @@ object BatchOptimizer{
       val nkey0 = (key.toSet & fs) ++ indices 
       val nkey = if (nkey0.isEmpty) key.toSet else nkey0
 
-      val nfs = nkey ++ value.toSet ++ fs
+      val nfs = nkey ++ value.toSet ++ fs ++ collect(filter)
       val pin = push(in, nfs)
       val nv = Variable.fromBag(v.name, pin.tp)
 
@@ -79,6 +80,7 @@ object BatchOptimizer{
       val nv = Variable(v2.name, RecordCType(ptp))
       Select(in, v, p, nv)
 
+    case CGet(e1) => CGet(push(e1, fs))
     case AddIndex(e1, name) => AddIndex(push(e1, fs), name)
     case FlatDict(e1) => FlatDict(push(e1, fs))
     case GroupDict(e1) => GroupDict(push(e1, fs))

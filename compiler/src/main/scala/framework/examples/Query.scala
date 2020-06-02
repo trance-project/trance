@@ -35,7 +35,7 @@ trait Query extends Materialization
   }
 
   def loadTables(tbls: Set[String], eval: String, shred: Boolean = false): String = {
-      s"""|val tpch = TPCHLoader(spark)
+      s"""|val $loaderName = TPCHLoader(spark)
           |${loaders.filter(f => tbls(f._1)).map(f => loadTable(f._1, eval, shred)).mkString("\n")}
           |""".stripMargin
   }

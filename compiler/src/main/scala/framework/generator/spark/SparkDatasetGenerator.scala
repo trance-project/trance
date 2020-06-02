@@ -121,6 +121,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Constant(s:String) => "\"" + s + "\""
     case Constant(x) => x.toString
     case Sng(e) => s"Seq(${generate(e)})"
+    case CGet(e1) => s"${generate(e1)}.head"
     case Label(fs) if fs.size == 1 => generate(fs.head._2)
     case Record(fs) => {
       val tp:RecordCType = e.tp.asInstanceOf[RecordCType]
@@ -234,23 +235,57 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           | Seq("$p1", "$p2"), "inner").as[$nrec]
           |""".stripMargin
 
-    case ej @ DFOuterJoin(left, v, p1, right, v2, p2, Nil) => 
-      
-      handleType(ej.tp.tp)
-      val nrec = generateType(ej.tp.tp)
-      val gright = generate(right)
-      val rtp = right.tp.asInstanceOf[BagCType].tp
-      val classTags = if (!skew) ""
-        else s"[${generateType(rtp)}, ${generateType(rtp.attrs(p2))}]"
-      
-      s"""|${generate(left)}.equiJoin$classTags($gright, 
-          | Seq("$p1", "$p2"), "left_outer").as[$nrec]
-          |""".stripMargin
+    case ej @ DFOuterJoin(left, v, p1, right, v2, p2, _) => 
+      // LOOKUP iterator
+      (right.tp, p2) match {
+        case (MatDictCType(_,_), "_1") =>
+
+          // adjust lookup column of dictionary
+          val rcol = s"${p1}${p2}"
+          val rtp = rename(right.tp.attrs, p2, rcol)
+          handleType(rtp)
+          val grtp = generateType(rtp)
+
+          // adjust label lookup column
+          val lcol = s"${p1}_LABEL"
+          val ltp = rename(left.tp.attrs, p1, lcol)
+          handleType(ltp)
+          val gltp = generateType(ltp)
+
+          val nrecTp = RecordCType(ltp.merge(rtp).attrs -- Set(rcol,lcol))
+          handleType(nrecTp)
+
+          val classTags = if (!skew) ""
+            else s"[$grtp, ${generateType(right.tp.attrs(p2))}]"
+
+          s"""|${generate(left)}.withColumnRenamed("$p1", "$lcol")
+              |   .as[$gltp].equiJoin$classTags(
+              |   ${generate(right)}.withColumnRenamed("$p2", "$rcol").as[$grtp], 
+              |   Seq("$lcol", "$rcol"), "left_outer").drop("$lcol", "$rcol")
+              |   .as[${generateType(nrecTp)}]
+              |""".stripMargin
+
+        // OUTER JOIN
+        case _ => 
+
+          handleType(ej.tp.tp)
+          val nrec = generateType(ej.tp.tp)
+          val gright = generate(right)
+          val rtp = right.tp.attrs
+
+          val classTags = if (!skew) ""
+            else s"[${generateType(RecordCType(rtp))}, ${generateType(rtp(p2))}]"
+
+          s"""|${generate(left)}.equiJoin$classTags($gright, 
+              | Seq("$p1", "$p2"), "left_outer").as[$nrec]
+              |""".stripMargin
+      }
+
 
     case eu @ DFUnnest(in, v, path, v2, filter, fields) =>
 
-      val topAttrs = v.tp.attrs.map(f => f._1 -> Project(v, f._1)) - path
-      val nextAttrs = v2.tp.attrs.map(f => f._1 -> Project(v2, f._1))
+      val topAttrs = v.tp.project(fields).attrs.map(f => f._1 -> Project(v, f._1)) - path
+      val nextAttrs = v2.tp.project(fields).attrs.map(f => f._1 -> Project(v2, f._1))
       val nrec = Record(topAttrs ++ nextAttrs)
       val gv = generate(v)
 
@@ -261,21 +296,33 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
     case eu @ DFOuterUnnest(in, v, path, v2, filter, fields) =>
 
-      val topAttrs = v.tp.attrs.map(f => f._1 -> Project(v, f._1)) - path
+      val topAttrs = v.tp.project(fields).attrs.map(f => f._1 -> Project(v, f._1)) - path
       val nv2 = Variable(v2.name, v2.tp.unouter)
-      val nextAttrs = nv2.tp.attrs.map(f => f._1 -> COption(Project(nv2, f._1)))
-      val nrec0 = topAttrs ++ nv2.tp.attrs.map(f => f._1 -> COption(Null))
+      val nextAttrs = nv2.tp.project(fields).attrs.map(f => f._1 -> COption(Project(nv2, f._1)))
+      val nrec0 = topAttrs ++ nv2.tp.project(fields).attrs.map(f => f._1 -> COption(Null))
 
       val nrec1 = Record(topAttrs ++ nextAttrs)
       val gnrec1 = generate(nrec1)
       val gnrec0 = s"${generateType(nrec1.tp)}(${nrec0.map(f => generate(f._2)).mkString(", ")})"
       val gv = generate(v)
-      val getPath = accessOption(Project(v, path), v)
+      val getPath = v.tp.attrs(path) match {
+        case OptionType(_) => 
+          s"""|   $gv.$path match {
+              |     case Some($path) if $path.nonEmpty => $path.map( ${generate(nv2)} => $gnrec1 )
+              |     case _ => Seq($gnrec0)
+              |   }
+              |""".stripMargin
+        case _ => 
+          s"""|   if ($gv.$path.isEmpty) Seq($gnrec0)
+              |   else $gv.$path.map( ${generate(nv2)} => $gnrec1 )
+              |""".stripMargin
+      }
       s"""|${generate(in)}.flatMap{
-          | case $gv => if ($gv.$path.isEmpty) Seq($gnrec0)
-          |   else $getPath.map( ${generate(nv2)} => $gnrec1 )
+          | case $gv => 
+          |   $getPath
           |}.as[${generateType(nrec1.tp)}]
           |""".stripMargin
+
 
     case en @ DFNest(in, v, key, value, filter, nulls) =>
       

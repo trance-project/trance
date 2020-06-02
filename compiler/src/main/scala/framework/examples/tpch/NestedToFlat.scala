@@ -11,6 +11,8 @@ object Test2Agg2 extends TPCHBase {
   val name = "Test2Agg2"
   override def indexedDict: List[String] = List(s"${name}__D_1", s"c__Dc_orders_1", s"o__Do_parts_1")
 
+  override def inputTables = Set("L", "O", "C", "P")
+
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
  

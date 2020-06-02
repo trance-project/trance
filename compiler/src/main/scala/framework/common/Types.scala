@@ -19,6 +19,9 @@ sealed trait Type { self =>
   def attrs: Map[String, Type] = self match {
     case RecordCType(ms) => ms
     case BagCType(ms) => ms.attrs
+    case MatDictCType(LabelType(ms), bag) => 
+      val lblType = ms.head._2
+      Map("_1" -> lblType) ++ bag.attrs
     case _ => Map()
   }
 

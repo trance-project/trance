@@ -18,6 +18,7 @@ trait BaseScalaInterp extends Base{
   def emptysng: Rep = Nil
   def unit: Rep = ()
   def sng(x: Rep): Rep = List(x)
+  def get(x: Rep): Rep = x.asInstanceOf[List[Rep]].head
   def tuple(x: List[Rep]): Rep = x
   def record(fs: Map[String, Rep]): Rep = {
     if (doteq) RecordValue(fs.asInstanceOf[Map[String, Rep]], RecordValue.newId)

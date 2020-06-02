@@ -112,6 +112,11 @@ trait SparkUtils {
       case (attr, Project(_, f)) => s"$v.$f"
     }.mkString(s"$name(", ", ", ")")
 
+  def rename(mtp: Map[String, Type], ocol: String, ncol: String): RecordCType = {
+    val newColumn = Map(ncol -> mtp(ocol))
+    RecordCType((mtp - ocol) ++ newColumn)
+  }
+
 
 
 }

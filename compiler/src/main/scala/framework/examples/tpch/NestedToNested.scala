@@ -337,6 +337,8 @@ object Test2FullNNL extends TPCHBase {
   val name = "Test2FullNNL"
   override def indexedDict: List[String] = List(s"${name}__D_1", s"c__Dc_orders_1", s"o__Do_parts_1")
 
+  override def inputTables = Set("L", "O", "C", "P")
+
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
  
@@ -362,6 +364,8 @@ object Test2Agg extends TPCHBase {
 
   val name = "Test2Agg"
   override def indexedDict: List[String] = List(s"${name}__D_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+
+  override def inputTables = Set("L", "O", "C", "P")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
@@ -392,6 +396,8 @@ object Test2FullAgg extends TPCHBase {
 
   val name = "Test2FullAgg"
   override def indexedDict: List[String] = List(s"${name}__D_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+
+  override def inputTables = Set("L", "O", "C", "P")
 
   def inputs(tmap: Map[String, String]): String = 
     s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"

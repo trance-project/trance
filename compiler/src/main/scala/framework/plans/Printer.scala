@@ -33,6 +33,7 @@ object Printer {
     case Not(e1) => not(quote(e1))
     case Or(e1, e2) => or(quote(e1), quote(e2))
     case Project(e1, f) => project(quote(e1), f)
+    case CGet(e1) => s"get(${quote(e1)})"
     // e1.tp.attrs(f) match {
     //     case OptionType(_) => s"Some(${project(quote(e1), f)})"
     //     case _ => project(quote(e1), f)

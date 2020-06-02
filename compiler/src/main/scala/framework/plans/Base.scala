@@ -15,6 +15,7 @@ trait Base {
   def emptysng: Rep
   def unit: Rep 
   def sng(x: Rep): Rep
+  def get(x: Rep): Rep
   def tuple(fs: List[Rep]): Rep
   def record(fs: Map[String, Rep]): Rep
   def label(fs: Map[String, Rep]): Rep 
@@ -78,6 +79,7 @@ trait BaseStringify extends Base{
   def emptysng: Rep = "{}"
   def unit: Rep = "()"
   def sng(x: Rep): Rep = s"{ $x }"
+  def get(x: Rep): Rep = s"get($x)"
   def tuple(fs: List[Rep]) = s"(${fs.mkString(",")})"
   def record(fs: Map[String, Rep]): Rep = 
     s"(${fs.map(f => f._1 + " := " + f._2).mkString(",")})"
@@ -192,13 +194,17 @@ trait BaseStringify extends Base{
   * comprehension representation (Expr.scala)
   */
 trait BaseCompiler extends Base {
+
+  val ext = new Extensions{}
   type Rep = CExpr 
+
   def inputref(x: String, tp: Type): Rep = InputRef(x, tp)
   def input(x: List[Rep]): Rep = Input(x)
   def constant(x: Any): Rep = Constant(x)
   def emptysng: Rep = EmptySng
   def unit: Rep = CUnit
   def sng(x: Rep): Rep = Sng(x)
+  def get(x: Rep): Rep = CGet(x)
   def tuple(fs: List[Rep]): Rep = Tuple(fs)
   def record(fs: Map[String, Rep]): Rep = Record(fs)
   def label(fs: Map[String, Rep]): Rep = Label(fs)
@@ -313,10 +319,7 @@ trait BaseCompiler extends Base {
   def dfproject(in: Rep, filter: Rep => Rep, fields: List[String]): Rep = {
     val v1 = Variable.freshFromBag(in.tp)
     val nr = filter(v1)
-    val fs = nr match {
-      case r:Record => r.colMap.values.toSet
-      case _ => Set()
-    }
+    val fs = ext.collect(nr)
     DFProject(in, v1, nr, fs.toList)
   }
   def dfunnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = {
@@ -501,6 +504,7 @@ trait BaseANF extends Base {
   def emptysng: Rep = compiler.emptysng
   def unit: Rep = compiler.unit
   def sng(x: Rep): Rep = compiler.sng(x)
+  def get(x: Rep): Rep = compiler.get(x)
   def tuple(fs: List[Rep]): Rep = compiler.tuple(fs.map(defToExpr(_)))
   def record(fs: Map[String, Rep]): Rep = compiler.record(fs.map(x => (x._1, defToExpr(x._2))))
   def label(fs: Map[String, Rep]): Rep = compiler.label(fs.map(x => (x._1, defToExpr(x._2))))
@@ -611,6 +615,7 @@ class Finalizer(val target: Base){
       case EmptyCType => target.emptysng
       case _ => target.sng(finalize(x))
     }
+    case CGet(x) => target.get(finalize(x))
     case Tuple(fs) if fs.isEmpty => target.unit
     case Tuple(fs) => target.tuple(fs.map(f => finalize(f)))
     case Record(fs) if fs.isEmpty => target.unit

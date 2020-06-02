@@ -22,7 +22,7 @@ object BatchUnnester {
     case c:CGroupBy => true
     case _ => false
   }
-
+  
   def isBaseNest(fs: Map[String, CExpr]): Boolean = 
     fs.find(f => f._2 match { case Project(_, "_2") => true; case _ => false}).nonEmpty
 
@@ -37,7 +37,8 @@ object BatchUnnester {
   def getName(e: CExpr): String = e match {
     case InputRef(name, _) => name
     case FlatDict(e1) => getName(e1)
-    case _ => ???
+    case Variable(n, tp) => n
+    case _ => sys.error(s"unsupported name extraction $e")
   }
 
   def unnest(e: CExpr)(implicit ctx: Ctx): CExpr = e match {
@@ -63,7 +64,8 @@ object BatchUnnester {
 
     case Comprehension(e1 @ CLookup(Project(_, p1), dict), v1, Constant(true), e2) => 
       assert(!E.isEmpty)
-      val nE = DFOuterJoin(E.get, wvar(w), p1, dict, v1, "_1", Nil)
+      val fields = (w.keySet ++ v1.tp.attrs.keySet) -- Set(p1, "_1")
+      val nE = DFOuterJoin(E.get, wvar(w), p1, dict, v1, "_1", fields.toList)
       unnest(e2)((u, flat(w, v1.tp), Some(nE)))
 
     case Comprehension(e1 @ InputRef(name, _), v, Equals(Project(_, p1), Project(_, p2)), e2) if !w.isEmpty =>
@@ -97,6 +99,7 @@ object BatchUnnester {
         DFReduceBy(e2, v1, keys, values)
     }
 
+    case Bind(x, e1, e2) => Bind(x, unnest(e1)((u, w, E)), unnest(e2)((u, w, E)))
     case FlatDict(e1) => FlatDict(unnest(e1)((u, w, E)))
     case GroupDict(e1) => GroupDict(unnest(e1)((u, w, E)))
     case LinearCSet(exprs) => LinearCSet(exprs.map(unnest(_)((u, w, E))))

@@ -16,6 +16,16 @@ trait Extensions {
     case _ => e
   }
 
+  // todo additional cases
+  def collect(e: CExpr): Set[String] = e match {
+    case Record(e1) => e1.flatMap(f => collect(f._2)).toSet
+    case Label(e1) => e1.flatMap(f => collect(f._2)).toSet
+    case Multiply(e1, e2) => collect(e1) ++ collect(e2)
+    case Equals(e1, e2) => collect(e1) ++ collect(e2)
+    case Project(e1, f) => Set(f)
+    case _ => Set()
+  }
+
   def fapply(e: CExpr, funct: PartialFunction[CExpr, CExpr]): CExpr = 
     funct.applyOrElse(e, (ex: CExpr) => ex match {
       case Reduce(d, v, f, p) => Reduce(fapply(d, funct), v, f, p)
