@@ -19,7 +19,7 @@ object AppWriter {
   def runDataset(query: Query, pathout: String, label: String, 
     optLevel: Int = 2, skew: Boolean = false): Unit = {
     
-    val codegen = new SparkDatasetGenerator(false, false, isDict = false, skew = skew)//,inputs = query.inputTypes(false))
+    val codegen = new SparkDatasetGenerator(false, false, optLevel = optLevel, skew = skew)//,inputs = query.inputTypes(false))
     val gcode = codegen.generate(query.anf(optimizationLevel = optLevel))
     val header = s"""|${codegen.generateHeader()}""".stripMargin
     val encoders = codegen.generateEncoders()
@@ -43,9 +43,9 @@ object AppWriter {
   def runDatasetInput(inputQuery: Query, query: Query, pathout: String, label: String, 
     optLevel: Int = 2, skew: Boolean = false): Unit = {
     
-    val codegenInput = new SparkDatasetGenerator(true, false, isDict = false, skew = skew)//,externalInputs = query.inputTypes(false))
+    val codegenInput = new SparkDatasetGenerator(true, false, optLevel = optLevel, skew = skew)//,externalInputs = query.inputTypes(false))
     val inputCode = codegenInput.generate(inputQuery.anf()) 
-    val codegen = new SparkDatasetGenerator(false, true, isDict = false, inputs = codegenInput.types, skew = skew) 
+    val codegen = new SparkDatasetGenerator(false, true, optLevel = optLevel, inputs = codegenInput.types, skew = skew) 
     val gcode = codegen.generate(query.anf(optimizationLevel = optLevel))
     val header = s"""|${codegen.generateHeader()}""".stripMargin
     val encoders = codegenInput.generateEncoders() + "\n" + codegen.generateEncoders()
@@ -100,13 +100,13 @@ object AppWriter {
   def runDatasetInputShred(inputQuery: Query, query: Query, pathout: String, label: String, eliminateDomains: Boolean = true, 
     unshred: Boolean = false, skew: Boolean = false): Unit = {
     
-    val codegenInput = new SparkDatasetGenerator(true, true, isDict = true, evalFinal = false, skew = skew)
+    val codegenInput = new SparkDatasetGenerator(true, true, evalFinal = false, skew = skew)
     val (inputShred, queryShred, queryUnshred) = query.shredBatchWithInput(inputQuery, unshredRun = unshred, eliminateDomains = eliminateDomains)
     val inputCode = codegenInput.generate(inputShred)
-    val codegen = new SparkDatasetGenerator(unshred, eliminateDomains, isDict = true, evalFinal = !unshred, inputs = codegenInput.types, skew = skew)
+    val codegen = new SparkDatasetGenerator(unshred, eliminateDomains, evalFinal = !unshred, inputs = codegenInput.types, skew = skew)
     val gcode1 = codegen.generate(queryShred)
     val (header, gcodeSet, encoders) = if (unshred) {
-      val codegen2 = new SparkDatasetGenerator(false, false, unshred = true, isDict = true, inputs = codegen.types, skew = skew)
+      val codegen2 = new SparkDatasetGenerator(false, false, unshred = true, inputs = codegen.types, skew = skew)
       val ugcode = codegen2.generate(queryUnshred)
       val encoders1 = codegenInput.generateEncoders() +"\n"+ codegen.generateEncoders() +"\n"+ codegen2.generateEncoders()
       (s"""|${codegen2.generateHeader(query.headerTypes(false))}""".stripMargin, List(gcode1, ugcode), encoders1)

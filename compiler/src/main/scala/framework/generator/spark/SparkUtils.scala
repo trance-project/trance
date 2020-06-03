@@ -106,6 +106,12 @@ trait SparkUtils {
   def getRecord(name: String, v: String, ms: Map[String, Type]): String =
     ms.map(t => s"$v.${t._1}").mkString(s"$name(", ", ", ")")
 
+  def getRecord(name: String, v: String, ms: Map[String, Type], col: String, ncol: String): String = 
+    ms.map{
+      case (attr, expr) if attr == col => ncol
+      case (attr, expr) => s"$v.$attr"
+    }.mkString(s"$name(", ", ", ")")
+
   def getRecord(name: String, v: String, ms: Map[String, CExpr], col: String = ""): String = 
     ms.map{
       case (attr, expr) if attr == col => col

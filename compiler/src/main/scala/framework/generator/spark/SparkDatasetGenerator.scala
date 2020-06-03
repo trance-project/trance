@@ -17,7 +17,7 @@ import framework.utils.Utils.ind
   * @param evalFinal boolean flag to run evaluate on the final output (standard pipeline)
   * @param inputs map of input types that should not be reproduced (important for programs)
   */
-class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = false, isDict: Boolean = true,
+class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = false, optLevel: Int = 2,
   unshred: Boolean = false, evalFinal: Boolean = true, inputs: Map[Type, String] = Map()) extends SparkTypeHandler with SparkUtils {
 
   implicit def expToString(e: CExpr): String = generate(e)
@@ -25,6 +25,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
   var types: Map[Type, String] = inputs
   var encoders: Set[String] = Set()
   override val bagtype: String = "Seq"
+  val ext = new Extensions{}
 
   /** Generates the code for the set of case class records associated to the 
     * records in the generated program.
@@ -222,33 +223,20 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           | .as[$nrec]
           |""".stripMargin
 
-    case ej @ DFJoin(left, v, p1, right, v2, p2, Nil) => 
-      
-      handleType(ej.tp.tp)
-      val nrec = generateType(ej.tp.tp)
-      val gright = generate(right)
-      val rtp = right.tp.asInstanceOf[BagCType].tp
-      val classTags = if (!skew) ""
-        else s"[${generateType(rtp)}, ${generateType(rtp.attrs(p2))}]"
-      
-      s"""|${generate(left)}.equiJoin$classTags($gright, 
-          | Seq("$p1", "$p2"), "inner").as[$nrec]
-          |""".stripMargin
-
-    case ej @ DFOuterJoin(left, v, p1, right, v2, p2, _) => 
+    case ej:JoinOp => 
       // LOOKUP iterator
-      (right.tp, p2) match {
-        case (MatDictCType(_,_), "_1") =>
+      (ej.right.tp, ej.p2, ej.jtype) match {
+        case (MatDictCType(_,_), "_1", "left_outer") =>
 
           // adjust lookup column of dictionary
-          val rcol = s"${p1}${p2}"
-          val rtp = rename(right.tp.attrs, p2, rcol)
+          val rcol = s"${ej.p1}${ej.p2}"
+          val rtp = rename(ej.right.tp.attrs, ej.p2, rcol)
           handleType(rtp)
           val grtp = generateType(rtp)
 
           // adjust label lookup column
-          val lcol = s"${p1}_LABEL"
-          val ltp = rename(left.tp.attrs, p1, lcol)
+          val lcol = s"${ej.p1}_LABEL"
+          val ltp = rename(ej.left.tp.attrs, ej.p1, lcol)
           handleType(ltp)
           val gltp = generateType(ltp)
 
@@ -256,28 +244,28 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           handleType(nrecTp)
 
           val classTags = if (!skew) ""
-            else s"[$grtp, ${generateType(right.tp.attrs(p2))}]"
+            else s"[$grtp, ${generateType(ej.right.tp.attrs(ej.p2))}]"
 
-          s"""|${generate(left)}.withColumnRenamed("$p1", "$lcol")
+          s"""|${generate(ej.left)}.withColumnRenamed("${ej.p1}", "$lcol")
               |   .as[$gltp].equiJoin$classTags(
-              |   ${generate(right)}.withColumnRenamed("$p2", "$rcol").as[$grtp], 
+              |   ${generate(ej.right)}.withColumnRenamed("${ej.p2}", "$rcol").as[$grtp], 
               |   Seq("$lcol", "$rcol"), "left_outer").drop("$lcol", "$rcol")
               |   .as[${generateType(nrecTp)}]
               |""".stripMargin
 
-        // OUTER JOIN
+        // JOIN operator
         case _ => 
 
           handleType(ej.tp.tp)
           val nrec = generateType(ej.tp.tp)
-          val gright = generate(right)
-          val rtp = right.tp.attrs
+          val gright = generate(ej.right)
+          val rtp = ej.right.tp.attrs
 
           val classTags = if (!skew) ""
-            else s"[${generateType(RecordCType(rtp))}, ${generateType(rtp(p2))}]"
+            else s"[${generateType(RecordCType(rtp))}, ${generateType(rtp(ej.p2))}]"
 
-          s"""|${generate(left)}.equiJoin$classTags($gright, 
-              | Seq("$p1", "$p2"), "left_outer").as[$nrec]
+          s"""|${generate(ej.left)}.equiJoin$classTags($gright, 
+              | Seq("${ej.p1}", "${ej.p2}"), "${ej.jtype}").as[$nrec]
               |""".stripMargin
       }
 
@@ -323,6 +311,34 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |}.as[${generateType(nrec1.tp)}]
           |""".stripMargin
 
+    // Nest - Join => CoGroup
+    // if value contains only attributes from right relation
+    case Bind(vj, join:JoinOp, Bind(nv, nd @ DFNest(in, v, key, value, filter, nulls), e2)) 
+      if optLevel == 2 && (ext.collect(value) subsetOf join.v2.tp.attrs.keySet) => 
+
+      val gv = generate(join.v)
+      val gv2 = generate(join.v2)
+      val gv3 = generate(v)
+      val gright = s"${generate(join.right)}.unionGroupByKey($gv => $gv.${join.p2})"
+
+      handleType(nd.tp.tp)
+      val nrec = generateType(nd.tp.tp)
+      val frec = getRecord(nrec, gv3, nd.tp.attrs, "_2", "grp")
+
+      val gvalue = accessOption(value, join.v2)
+      val leftMap = join.jtype match {
+        case "left_outer" => s"ve1.map($gv3 => $frec)"
+        case "inner" => "ve1.flatMap($gv3 => if (grp.nonEmpty) $frec else Seq())"
+        case _ => sys.error("unsupported join type")
+      }
+
+      s"""|val ${generate(nv)} = ${generate(join.left)}.cogroup($gright, $gv => $gv.${join.p1})(
+          |   (_, ve1, ve2) => {
+          |     val grp = ve2.map($gv2 => $gvalue).toSeq
+          |     $leftMap
+          |   }).as[$nrec]
+          |${generate(e2)}
+          |""".stripMargin
 
     case en @ DFNest(in, v, key, value, filter, nulls) =>
       

@@ -45,12 +45,31 @@ case class DFOuterUnnest(in: CExpr, v: Variable, path: String, v2: Variable, fil
     BagCType(RecordCType((v.tp.attrs - path) ++ index).merge(v2.tp.outer).project(fields))
 }
 
-case class DFJoin(left: CExpr, v: Variable, p1: String, right: CExpr, v2: Variable, p2: String, fields: List[String]) extends CExpr {
-  def tp: BagCType = BagCType(v.tp.merge(v2.tp).project(fields))
+trait JoinOp extends CExpr {
+
+  def tp: BagCType
+
+  val left: CExpr
+  val v: Variable
+  val p1: String
+
+  val right: CExpr
+  val v2: Variable
+  val p2: String 
+
+  val fields: List[String]
+  val jtype: String
+
 }
 
-case class DFOuterJoin(left: CExpr, v: Variable, p1: String, right: CExpr, v2: Variable, p2: String, fields: List[String]) extends CExpr {
+case class DFJoin(left: CExpr, v: Variable, p1: String, right: CExpr, v2: Variable, p2: String, fields: List[String]) extends JoinOp {
+  def tp: BagCType = BagCType(v.tp.merge(v2.tp).project(fields))
+  val jtype = "inner"
+}
+
+case class DFOuterJoin(left: CExpr, v: Variable, p1: String, right: CExpr, v2: Variable, p2: String, fields: List[String]) extends JoinOp {
   def tp: BagCType = BagCType(v.tp.merge(v2.tp.outer).project(fields))
+  val jtype = "left_outer"
 }
 
 case class DFNest(in: CExpr, v: Variable, key: List[String], value: CExpr, filter: CExpr, nulls: List[String]) extends CExpr {
@@ -60,3 +79,4 @@ case class DFNest(in: CExpr, v: Variable, key: List[String], value: CExpr, filte
 case class DFReduceBy(in: CExpr, v: Variable, keys: List[String], values: List[String]) extends CExpr {
   def tp: BagCType = BagCType(v.tp.project(keys).merge(v.tp.project(values)))
 }
+
