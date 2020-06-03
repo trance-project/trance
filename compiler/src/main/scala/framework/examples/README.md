@@ -51,7 +51,7 @@ trait GenomicSchema extends Query {
 
   // this overrides a function that was previously used for tpch benchmarking
   // just define how to load your inputs here
-  override def loadTables(tbls: Set[String], eval: String, shred: Boolean = false): String = {
+  def loadTables(tbls: Set[String], eval: String, shred: Boolean = false): String = {
       s"""|val basepath = "src/main/scala/Data/"
           |val path = basepath + "Variants/sub_chr22.vcf"
           |val variants = loadVCF(path, spark)
@@ -60,7 +60,7 @@ trait GenomicSchema extends Query {
 
 
   // define the types, which would reflect the case classes from your variant loader 
-  val genoType = TupleType("sample" -> String, "call" -> IntType)
+  val genoType = TupleType("sample" -> StringType, "call" -> IntType)
   val variantType = TupleType(
     "contig" -> StringType, 
     "start" -> IntType, 
@@ -87,7 +87,7 @@ object GenomicQuery1 extends GenomicSchema {
   // this query just iterates over the variant set
   val query = 
     ForeachUnion(vr, variants,                          // For v in Variants
-      Singleton(Tuple("contig" -> vr("contig")          //   {( contig := v.contig,  
+      Singleton(Tuple("contig" -> vr("contig"),          //   {( contig := v.contig,  
         "start" -> vr("start"),                         //      start := v.start, 
         "reference" -> vr("reference"),                 //       reference := v.reference,
         "alternate" -> vr("alternate"),                 //       alternate := v.alternate,
@@ -120,10 +120,12 @@ package framework.generator.spark
 import framework.examples._
 
 object TestApp extends App {
-
-  val pathout = "../executor/spark/src/main/scala/sparkutils/generated/"
  
   override def main(args: Array[String]){
+  
+    // this should point to the directory of generated code in the executor/spark
+    val pathout = "../executor/spark/src/main/scala/sparkutils/generated/"
+    
     // runs the standard pipeline
     AppWriter.flatDataset(GenomicQuery1, pathout, "test")
     
