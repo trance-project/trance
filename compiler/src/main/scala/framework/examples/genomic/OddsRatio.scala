@@ -15,6 +15,23 @@ trait OddsRatioBase extends Query {
   def headerTypes(shred: Boolean = false): List[String] = Nil
     //inputTypes(shred).values.toList
 
+  override def loadTables(tbls: Set[String], eval: String, shred: Boolean = false): String = {
+    if (shred)
+      s"""|val vloader = new VariantLoader(spark, "/Users/jac/bioqueries/data/sub.vcf")
+          |val (variants, genotypes) = vloader.shredDS
+          |val IBag_variants__D = variants
+          |val IDict_variants__D_genotypes = genotypes
+          |val cloader = new ClinicalLoader(spark, "/Users/jac/bioqueries/data/1000g.csv")
+          |val IBag_metadata__D = cloader.tgenomes
+          |""".stripMargin
+    else
+      s"""|val vloader = new VariantLoader(spark, "/Users/jac/bioqueries/data/sub.vcf")
+          |val variants = vloader.loadDS
+          |val cloader = new ClinicalLoader(spark, "/Users/jac/bioqueries/data/1000g.csv")
+          |val metadata = cloader.tgenomes
+          |""".stripMargin
+  }
+
   val genoType = TupleType("g_sample" -> StringType, "call" -> IntType)
   val variantType = TupleType("contig" -> StringType, "start" -> IntType, 
     "reference" -> StringType, "alternate" -> StringType, "genotypes" -> BagType(genoType))

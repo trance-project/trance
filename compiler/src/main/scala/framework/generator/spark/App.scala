@@ -3,6 +3,20 @@ package framework.generator.spark
 import framework.examples.tpch._
 import framework.examples.genomic._
 
+/** Example Test Application 
+  *
+  */
+object TestApp extends App {
+
+  override def main(args: Array[String]){
+
+    val pathout = "../executor/spark/src/main/scala/sparkutils/generated/"
+
+    AppWriter.flatDataset(OddsRatio, pathout, "test")
+  
+  }
+}
+
 
 /*
  * Generate Spark applications for a subset of the benchmark queries.
