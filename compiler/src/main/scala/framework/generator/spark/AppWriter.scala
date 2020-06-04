@@ -13,8 +13,9 @@ object AppWriter {
 
   /** Standard pipeline: Dataset generator **/
 
-  def flatDataset(query: Query, path: String, label: String, skew: Boolean = false, optLevel: Int = 2): Unit =
-    runDataset(query, path, label, optLevel, skew)
+  def flatDataset(query: Query, label: String, path: String = "../executor/spark/src/main/scala/sparkutils/generated/", 
+  skew: Boolean = false, optLevel: Int = 2): Unit =
+    runDataset(query, label, path, optLevel, skew)
 
   def runDataset(query: Query, label: String, pathout: String = "../executor/spark/src/main/scala/sparkutils/generated/", 
     optLevel: Int = 2, skew: Boolean = false): Unit = {
