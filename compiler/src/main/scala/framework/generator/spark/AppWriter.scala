@@ -16,7 +16,7 @@ object AppWriter {
   def flatDataset(query: Query, path: String, label: String, skew: Boolean = false, optLevel: Int = 2): Unit =
     runDataset(query, path, label, optLevel, skew)
 
-  def runDataset(query: Query, pathout: String, label: String, 
+  def runDataset(query: Query, label: String, pathout: String = "../executor/spark/src/main/scala/sparkutils/generated/", 
     optLevel: Int = 2, skew: Boolean = false): Unit = {
     
     val codegen = new SparkDatasetGenerator(false, false, optLevel = optLevel, skew = skew)//,inputs = query.inputTypes(false))

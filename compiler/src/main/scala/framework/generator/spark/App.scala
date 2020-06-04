@@ -10,9 +10,7 @@ object TestApp extends App {
 
   override def main(args: Array[String]){
 
-    val pathout = "../executor/spark/src/main/scala/sparkutils/generated/"
-
-    AppWriter.flatDataset(OddsRatio, pathout, "test")
+    AppWriter.flatDataset(OddsRatio, "test")
   
   }
 }
