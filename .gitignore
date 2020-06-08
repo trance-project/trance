@@ -1,4 +1,4 @@
-generated/*.scala
+executor/spark/src/main/scala/sparkutils/generated/*.scala
 out
 restart.sh
 *DS_Store*

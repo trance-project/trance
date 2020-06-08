@@ -11,10 +11,11 @@ class ClinicalLoader(spark: SparkSession, path: String) extends Serializable {
   import spark.implicits._
 
   val schema = StructType(Array(
-                    StructField("sample", StringType), 
-                    StructField("family_id", StringType),
-                    StructField("population", StringType),
-                    StructField("gender", StringType)))
+                  StructField("sample", StringType), 
+                  StructField("family_id", StringType),
+                  StructField("population", StringType),
+                  StructField("gender", StringType)))
+
 
   val tgenomes = spark.read.schema(schema)
     .option("header", true)
@@ -23,4 +24,5 @@ class ClinicalLoader(spark: SparkSession, path: String) extends Serializable {
     .as[ThousandGenomes].withColumnRenamed("sample", "m_sample")
 
 }
+
 

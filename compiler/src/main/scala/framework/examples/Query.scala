@@ -4,11 +4,11 @@ import framework.common.Type
 import framework.nrc._
 import framework.plans._
 
+
 /** Base functionality of a query, which allows 
   * a query to be easily ran through various stages o
   * of the pipeline.
   */
-
 trait Query extends Materialization
   with MaterializeNRC
   with Printer
