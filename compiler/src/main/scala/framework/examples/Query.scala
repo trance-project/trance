@@ -26,17 +26,21 @@ trait Query extends Materialization
   // table name to loader function
   def loaders: Map[String, String] = Map()
 
-  def loadTable(tbl: String, eval: String, shred: Boolean = false): String = {
+  def loadTable(tbl: String, eval: String, shred: Boolean = false, skew: Boolean = false): String = {
     val tblName = if (shred) s"IBag_${tbl}__D" else tbl
-    s"""|val $tblName = $loaderName.${loaders(tbl)}
+    val tblCall = if (skew)  
+      s"""|val ${tblName}_L = $loaderName.${loaders(tbl)}
+          |val $tblName = (${tblName}_L, ${tblName}_L.empty)"""
+      else s"""|val $tblName = $loaderName.${loaders(tbl)}"""
+    s"""$tblCall
         |$tblName.cache
         |$tblName.$eval
         |""".stripMargin
   }
 
-  def loadTables(tbls: Set[String], eval: String, shred: Boolean = false): String = {
+  def loadTables(tbls: Set[String], eval: String, shred: Boolean = false, skew: Boolean = false): String = {
       s"""|val $loaderName = TPCHLoader(spark)
-          |${loaders.filter(f => tbls(f._1)).map(f => loadTable(f._1, eval, shred)).mkString("\n")}
+          |${loaders.filter(f => tbls(f._1)).map(f => loadTable(f._1, eval, shred, skew)).mkString("\n")}
           |""".stripMargin
   }
 
@@ -56,7 +60,11 @@ trait Query extends Materialization
     translate(program)
   }
 
-  def normalize: CExpr = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
+  def normalize: CExpr = {
+    val nc = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
+    println(Printer.quote(nc))
+    nc
+  }
   
   def batchUnnest: CExpr = BatchUnnester.unnest(this.normalize)(Map(), Map(), None)
   

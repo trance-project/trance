@@ -28,19 +28,21 @@ object BatchOptimizer extends Extensions {
       val nv = Variable.fromBag(v.name, pin.tp)
       DFOuterUnnest(pin, nv, path, v2, filter, (fields.toSet ++ fs).toList)
 
-    case DFJoin(left, v, p1, right, v2, p2, fields) =>
-      val lpin = push(left, fields.toSet ++ fs + p1) 
-      val rpin = push(right, fields.toSet ++ fs + p2)
+    case DFJoin(left, v, right, v2, cond, fields) =>
+      val jcols = collect(cond)
+      val lpin = push(left, fields.toSet ++ fs ++ jcols) 
+      val rpin = push(right, fields.toSet ++ fs ++ jcols)
       val lv = Variable.fromBag(v.name, lpin.tp)
       val rv = Variable.fromBag(v2.name, rpin.tp)
-      DFJoin(lpin, lv, p1, rpin, rv, p2, fields)
+      DFJoin(lpin, lv, rpin, rv, cond, fields)
 
-    case DFOuterJoin(left, v, p1, right, v2, p2, fields) =>
-      val lpin = push(left, fields.toSet ++ fs + p1)
-      val rpin = push(right, fields.toSet ++ fs + p2)
+    case DFOuterJoin(left, v, right, v2, cond, fields) =>
+      val jcols = collect(cond)
+      val lpin = push(left, fields.toSet ++ fs ++ jcols)
+      val rpin = push(right, fields.toSet ++ fs ++ jcols)
       val lv = Variable.fromBag(v.name, lpin.tp)
       val rv = Variable.fromBag(v2.name, rpin.tp)
-      DFOuterJoin(lpin, lv, p1, rpin, rv, p2, fields)
+      DFOuterJoin(lpin, lv, rpin, rv, cond, fields)
 
     case DFNest(in, v, key, value, filter, nulls) => 
       // adjust key

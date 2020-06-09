@@ -73,6 +73,8 @@ case object LongType extends NumericType
 case object DoubleType extends NumericType
 
 object NumericType {
+  def resolve(tp1: Type, tp2: Type): NumericType = 
+    resolve(tp1.asInstanceOf[NumericType], tp2.asInstanceOf[NumericType])
   def resolve(tp1: NumericType, tp2: NumericType): NumericType = (tp1, tp2) match {
     case (DoubleType, _) | (_, DoubleType) => DoubleType
     case (LongType, _) | (_, LongType) => LongType

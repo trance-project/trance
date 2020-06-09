@@ -130,22 +130,26 @@ case class Or(e1: CExpr, e2: CExpr) extends CExpr{
   def tp: PrimitiveType = BoolType
 }
 
-case class Multiply(e1: CExpr, e2: CExpr) extends CExpr{
-  def tp: PrimitiveType = (e1.tp, e2.tp) match {
-    case (DoubleType, _) => DoubleType
-    case (_, DoubleType) => DoubleType
-    case (IntType, _) => IntType
-    case _ => sys.error("type not supported")
-  }
-}
+// case class Multiply(e1: CExpr, e2: CExpr) extends CExpr{
+//   def tp: PrimitiveType = (e1.tp, e2.tp) match {
+//     case (DoubleType, _) => DoubleType
+//     case (_, DoubleType) => DoubleType
+//     case (IntType, _) => IntType
+//     case _ => sys.error("type not supported")
+//   }
+// }
 
-case class Divide(e1: CExpr, e2: CExpr) extends CExpr{
-  def tp: PrimitiveType = (e1.tp, e2.tp) match {
-    case (DoubleType, _) => DoubleType
-    case (_, DoubleType) => DoubleType
-    case (IntType, _) => IntType
-    case _ => sys.error("type not supported")
-  }
+// case class Divide(e1: CExpr, e2: CExpr) extends CExpr{
+//   def tp: PrimitiveType = (e1.tp, e2.tp) match {
+//     case (DoubleType, _) => DoubleType
+//     case (_, DoubleType) => DoubleType
+//     case (IntType, _) => IntType
+//     case _ => sys.error("type not supported")
+//   }
+// }
+
+case class MathOp(op: OpArithmetic, e1: CExpr, e2: CExpr) extends CExpr {
+  def tp: NumericType = NumericType.resolve(e1.tp, e2.tp)
 }
 
 case class Project(e1: CExpr, field: String) extends CExpr { self =>

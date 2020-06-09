@@ -42,7 +42,7 @@ object Optimizer {
     case Project(v @ Variable(_,_), s) => proj(v) = proj(v) ++ Set(s)
     case Gte(e1, e2) => fields(e1); fields(e2);
     case Equals(e1, e2) => fields(e1); fields(e2)
-    case Multiply(e1, e2) => fields(e1); fields(e2);
+    case MathOp(op, e1, e2) => fields(e1); fields(e2);
     case And(e1, e2) => fields(e1); fields(e2);
     case _ => Unit
   }
@@ -59,7 +59,7 @@ object Optimizer {
   }
 
   def attrsFromOp(e: CExpr): Set[String] = e match {
-    case Multiply(e1, e2) => attrsFromOp(e1) ++ attrsFromOp(e2)
+    case MathOp(op, e1, e2) => attrsFromOp(e1) ++ attrsFromOp(e2)
     case Project(e1, f) => Set(f)
     case _ => ???
   }

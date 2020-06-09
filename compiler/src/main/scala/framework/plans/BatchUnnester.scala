@@ -65,16 +65,17 @@ object BatchUnnester {
     case Comprehension(e1 @ CLookup(Project(_, p1), dict), v1, Constant(true), e2) => 
       assert(!E.isEmpty)
       val fields = (w.keySet ++ v1.tp.attrs.keySet) -- Set(p1, "_1")
-      val nE = DFOuterJoin(E.get, wvar(w), p1, dict, v1, "_1", fields.toList)
+      val nv = wvar(w)
+      val nE = DFOuterJoin(E.get, nv, dict, v1, Equals(Project(nv, p1), Project(v1, "_1")), fields.toList)
       unnest(e2)((u, flat(w, v1.tp), Some(nE)))
 
-    case Comprehension(e1 @ InputRef(name, _), v, Equals(Project(_, p1), Project(_, p2)), e2) if !w.isEmpty =>
+    case Comprehension(e1 @ InputRef(name, _), v, cond, e2) if !w.isEmpty =>
       assert(!E.isEmpty)
       val right = AddIndex(e1, name+"_index")
       val nv = Variable(v.name, right.tp.tp)
       val (nw, nE) = 
-        if (u.isEmpty) (flat(w, nv.tp), DFJoin(E.get, wvar(w), p1, Select(right, nv, Constant(true), nv), nv, p2, Nil))
-        else (flat(w, nv.tp.outer), DFOuterJoin(E.get, wvar(w), p1, Select(right, nv, Constant(true), nv), nv, p2, Nil))
+        if (u.isEmpty) (flat(w, nv.tp), DFJoin(E.get, wvar(w), Select(right, nv, Constant(true), nv), nv, cond, Nil))
+        else (flat(w, nv.tp.outer), DFOuterJoin(E.get, wvar(w), Select(right, nv, Constant(true), nv), nv, cond, Nil))
       unnest(e2)((u, nw, Some(nE)))
 
     case s @ If(cnd, Sng(t @ Record(fs)), nextIf) =>

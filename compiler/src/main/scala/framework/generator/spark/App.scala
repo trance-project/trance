@@ -10,8 +10,10 @@ object TestApp extends App {
 
   override def main(args: Array[String]){
 
-    AppWriter.flatDataset(OddsRatio, "test")
+    AppWriter.flatDataset(CandidateGenes, "test")
   
+    AppWriter.flatDataset(CandidateGenes, "test", skew = true)
+
   }
 }
 

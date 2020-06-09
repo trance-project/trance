@@ -51,23 +51,28 @@ trait JoinOp extends CExpr {
 
   val left: CExpr
   val v: Variable
-  val p1: String
 
   val right: CExpr
   val v2: Variable
-  val p2: String 
+
+  val cond: CExpr
 
   val fields: List[String]
   val jtype: String
 
+  val isEquiJoin: Boolean = cond match {
+    case Equals(_:Project,_:Project) => true
+    case _ => false
+  }
+
 }
 
-case class DFJoin(left: CExpr, v: Variable, p1: String, right: CExpr, v2: Variable, p2: String, fields: List[String]) extends JoinOp {
+case class DFJoin(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond: CExpr, fields: List[String]) extends JoinOp {
   def tp: BagCType = BagCType(v.tp.merge(v2.tp).project(fields))
   val jtype = "inner"
 }
 
-case class DFOuterJoin(left: CExpr, v: Variable, p1: String, right: CExpr, v2: Variable, p2: String, fields: List[String]) extends JoinOp {
+case class DFOuterJoin(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond: CExpr, fields: List[String]) extends JoinOp {
   def tp: BagCType = BagCType(v.tp.merge(v2.tp.outer).project(fields))
   val jtype = "left_outer"
 }

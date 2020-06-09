@@ -3,26 +3,6 @@ package framework.examples.genomic
 import framework.common._
 import framework.examples.Query
 
-trait GenomicBase extends Query {
-  
-  def inputTypes(shred: Boolean = false): Map[Type, String] = 
-    // todo handle shredded case, and organize genomic relations object
-    GenomicRelations.q1inputs
-  
-  def headerTypes(shred: Boolean = false): List[String] = inputTypes(shred).values.toList
-  
-  val relI = BagVarRef("cases", BagType(GenomicRelations.casetype))
-  val iref = TupleVarRef("i", GenomicRelations.casetype)
-
-  val relV = BagVarRef("variants", BagType(GenomicRelations.varianttype))
-  val vref = TupleVarRef("v", GenomicRelations.varianttype)
-  val gref = TupleVarRef("g", GenomicRelations.genotype)
-
-  val relC = BagVarRef("clinical", BagType(GenomicRelations.clintype))
-  val cref = TupleVarRef("c", GenomicRelations.clintype)
-
-}
-
 object AltCounts extends GenomicBase {
   val name = "AltCounts"
 

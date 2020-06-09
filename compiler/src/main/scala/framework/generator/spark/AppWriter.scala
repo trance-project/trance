@@ -34,7 +34,7 @@ object AppWriter {
     val fname = s"$pathout/$qname.scala" 
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val inputs = if (skew) query.inputs(TPCHSchema.skewdfs) else query.loadTables(query.inputTables, "count")
+    val inputs = query.loadTables(query.inputTables, "count", skew = skew)
     val finalc = writeDataset(qname, inputs, header, timedOne(gcode), label, encoders)
     printer.println(finalc)
     printer.close 
@@ -60,7 +60,7 @@ object AppWriter {
     val fname = s"$pathout/$qname.scala" 
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val inputs = if (skew) query.inputs(TPCHSchema.skewdfs) else query.loadTables(query.inputTables, "count")
+    val inputs = query.loadTables(query.inputTables, "count", skew = skew)
     val finalc = writeDataset(qname, inputs, header, s"$inputCode\n${timedOne(gcode)}", label, encoders)
     printer.println(finalc)
     printer.close 
@@ -91,7 +91,7 @@ object AppWriter {
     val fname = s"$pathout/$qname.scala"
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val inputs = if (skew) query.inputs(TPCHSchema.sskewdfs) else query.loadTables(query.inputTables, "count", true)
+    val inputs = query.loadTables(query.inputTables, "count", shred = true, skew = skew)
     val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet), label, encoders)
     printer.println(finalc)
     printer.close
@@ -119,7 +119,7 @@ object AppWriter {
     val fname = s"$pathout/$qname.scala"
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val inputs = if (skew) query.inputs(TPCHSchema.sskewdfs) else query.loadTables(query.inputTables, "count", true)
+    val inputs = query.loadTables(query.inputTables, "count", shred = true, skew = skew)
     val finalc = writeDataset(qname, inputs, header, s"$inputCode\n${timed(label, gcodeSet)}", label, encoders)
     printer.println(finalc)
     printer.close

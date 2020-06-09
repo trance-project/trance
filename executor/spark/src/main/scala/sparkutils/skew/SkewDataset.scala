@@ -202,6 +202,10 @@ object SkewDataset{
       (light.drop(colNames:_*), heavy.drop(colNames:_*))
     }
 
+    def filter(condition: Column): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
+      (light.filter(condition), heavy.filter(condition), key, heavyKeys)
+    }
+
   }
 
   implicit class SkewDatasetKeyOps[T: Encoder : ClassTag, K: Encoder: ClassTag](dfs: (Dataset[T], Dataset[T], Option[String], Broadcast[Set[K]])) extends Serializable {
@@ -246,6 +250,10 @@ object SkewDataset{
 
     def drop(colNames: String*): (DataFrame, DataFrame) = {
       (light.drop(colNames:_*), heavy.drop(colNames:_*))
+    }
+
+    def filter(condition: Column): (Dataset[T], Dataset[T], Option[String], Broadcast[Set[K]]) = {
+      (light.filter(condition), heavy.filter(condition), key, heavyKeys)
     }
 
     /** Cast a skew-triple of Dataset to a new skew-triple of Dataset **/
@@ -356,6 +364,12 @@ object SkewDataset{
 
     }
 
+    /** Default join for complex join conditions **/
+    def join[S: Encoder : ClassTag](right: (Dataset[S], Dataset[S]), cond: Column, joinType: String = "inner"): (DataFrame, DataFrame) = {
+      val result = dfs.union.join(right.union, cond, joinType)
+      (result, result.emptyDF)
+    }
+
     /** Grouping operations will drop heavy keys and call the skew-triple version with no known keys **/
 
     def reduceByKey[K: Encoder](key: (T) => K, value: (T) => Double)(implicit arg0: Encoder[(K, Double)]): (Dataset[(K, Double)], Dataset[(K, Double)]) = {
@@ -416,6 +430,10 @@ object SkewDataset{
 
     def select(col: String, cols: String*): (DataFrame, DataFrame) = {
       (light.select(col, cols:_*), heavy.select(col, cols:_*))
+    }
+
+    def filter(condition: Column): (DataFrame, DataFrame) = {
+      (light.filter(condition), heavy.filter(condition))
     }
 
     def drop(colName: String): (DataFrame, DataFrame) = {
@@ -497,6 +515,10 @@ object SkewDataset{
 
     def select(col: String, cols: String*): (DataFrame, DataFrame) = {
       (light.select(col, cols:_*), heavy.select(col, cols:_*))
+    }
+
+    def filter(condition: Column): (Dataset[T], Dataset[T]) = {
+      (light.filter(condition), heavy.filter(condition))
     }
 
     def drop(colName: String): (DataFrame, DataFrame) = {
@@ -586,7 +608,13 @@ object SkewDataset{
         (dfull.equiJoin(right.union, usingColumns, joinType), light.emptyDF, Some(nkey), light.sparkSession.sparkContext.broadcast(Set.empty[K]))
       }
     }
-    
+ 
+    /** Default join for complex join conditions **/
+    def join[S: Encoder : ClassTag](right: (Dataset[S], Dataset[S]), cond: Column, joinType: String = "inner"): (DataFrame, DataFrame) = {
+      val result = dfs.union.join(right.union, cond, joinType)
+      (result, result.emptyDF)
+    }
+
     /** Grouping operations - union the light and heavy components and perform the standard operations. 
       * The heavy component is empty and the heavy key set is null.
       */

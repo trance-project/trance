@@ -22,9 +22,11 @@ trait Extensions {
     case Label(e1) => e1.flatMap(f => collect(f._2)).toSet
     case If(cond, s1, Some(s2)) => collect(cond) ++ collect(s1) ++ collect(s2)
     case If(cond, s1, None) => collect(cond) ++ collect(s1)
-    case Multiply(e1, e2) => collect(e1) ++ collect(e2)
-    case Divide(e1, e2) => collect(e1) ++ collect(e2)
+    case MathOp(op, e1, e2) => collect(e1) ++ collect(e2)
     case Equals(e1, e2) => collect(e1) ++ collect(e2)
+    case And(e1, e2) => collect(e1) ++ collect(e2)
+    case Gte(e1, e2) => collect(e1) ++ collect(e2)
+    case Lte(e1, e2) => collect(e1) ++ collect(e2)
     case Project(e1, f) => Set(f)
     case _ => Set()
   }

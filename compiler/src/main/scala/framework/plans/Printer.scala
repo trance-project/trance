@@ -22,8 +22,9 @@ object Printer {
     case Tuple(fs) => tuple(fs.map(quote(_)))
     case Record(fs) => record(fs.map(f => f._1 -> quote(f._2)))
     case Label(fs) => label(fs.map(f => f._1 -> quote(f._2)))
-    case Multiply(e1, e2) => compiler.mult(quote(e1), quote(e2))
-    case Divide(e1, e2) => compiler.divide(quote(e1), quote(e2))
+    // case Multiply(e1, e2) => compiler.mult(quote(e1), quote(e2))
+    // case Divide(e1, e2) => compiler.divide(quote(e1), quote(e2))
+    case MathOp(op, e1, e2) => compiler.mathop(op, quote(e1), quote(e2))
     case Equals(e1, e2) => compiler.equals(quote(e1), quote(e2))
     case Lt(e1, e2) => lt(quote(e1), quote(e2))
     case Lte(e1, e2) => lte(quote(e1), quote(e2))
@@ -103,10 +104,14 @@ object Printer {
       s"""|UNNEST[${quote(v)}.$path, ${quote(filter)}, ${fields.mkString(",")}](${quote(e1)})""".stripMargin
     case DFOuterUnnest(e1, v, path, v2, filter, fields) =>
       s"""|OUTERUNNEST[${quote(v)}.$path, ${quote(filter)}, ${fields.mkString(",")}](${quote(e1)})""".stripMargin
-    case DFJoin(left, v1, p1, right, v2, p2, fields) => 
-      s"""|${quote(left)} JOIN [$p1 = $p2, ${fields.mkString(",")}] ${quote(right)}""".stripMargin
-    case DFOuterJoin(left, v1, p1, right, v2, p2, fields) => 
-      s"""|${quote(left)} OUTERJOIN [$p1 = $p2, ${fields.mkString(",")}] ${quote(right)}""".stripMargin
+    // case DFJoin(left, v1, p1, right, v2, p2, fields) => 
+    //   s"""|${quote(left)} JOIN [$p1 = $p2, ${fields.mkString(",")}] ${quote(right)}""".stripMargin
+    // case DFOuterJoin(left, v1, p1, right, v2, p2, fields) => 
+    //   s"""|${quote(left)} OUTERJOIN [$p1 = $p2, ${fields.mkString(",")}] ${quote(right)}""".stripMargin
+    case DFJoin(left, v1, right, v2, cond, fields) => 
+      s"""|${quote(left)} JOIN [${quote(cond)}, ${fields.mkString(",")}] ${quote(right)}""".stripMargin
+    case DFOuterJoin(left, v1, right, v2, cond, fields) => 
+      s"""|${quote(left)} OUTERJOIN [${quote(cond)}, ${fields.mkString(",")}] ${quote(right)}""".stripMargin
     case FlatDict(e1) => flatdict(quote(e1))
     case GroupDict(e1) => groupdict(quote(e1))
     case Variable(n, tp) => n

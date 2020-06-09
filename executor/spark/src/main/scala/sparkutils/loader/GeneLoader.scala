@@ -28,7 +28,7 @@ class GeneLoader(spark: SparkSession, path: String) extends Serializable {
 
   val table = spark.read.schema(schema)
     .option("header", true)
-    .option("delimiter", ",")
+    .option("delimiter", "\t")
     .csv(path)
     .as[Gene]
 
