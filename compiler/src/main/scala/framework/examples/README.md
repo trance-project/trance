@@ -43,21 +43,16 @@ import framework.common._
 import framework.examples.Query
 
 trait GenomicSchema extends Query {
-  
-  // these are arbitrary functions that will be deprecated
-  def inputTypes(shred: Boolean = false): Map[Type, String] = Map()
-  def headerTypes(shred: Boolean = false): List[String] = Nil
-  def inputs(tmap: Map[String, String]): String = ""
 
   // this overrides a function that was previously used for tpch benchmarking
   // just define how to load your inputs here
-  def loadTables(tbls: Set[String], eval: String, shred: Boolean = false): String = {
+  // the string below handles the case for non-skewed, non-shredded inputs
+  def loadTables(shred: Boolean = false, skew: Boolean = false): String = {
       s"""|val basepath = "src/main/scala/Data/"
           |val path = basepath + "Variants/sub_chr22.vcf"
           |val variants = loadVCF(path, spark)
           |""".stripMargin
   }
-
 
   // define the types, which would reflect the case classes from your variant loader 
   val genoType = TupleType("sample" -> StringType, "call" -> IntType)
@@ -122,15 +117,12 @@ import framework.examples._
 object TestApp extends App {
  
   override def main(args: Array[String]){
-  
-    // this should point to the directory of generated code in the executor/spark
-    val pathout = "../executor/spark/src/main/scala/sparkutils/generated/"
     
     // runs the standard pipeline
-    AppWriter.flatDataset(GenomicQuery1, pathout, "test")
+    AppWriter.flatDataset(GenomicQuery1, "test")
     
     // runs the shredded pipeline
-    AppWriter.shredDataset(GenomicQuery1, pathout, "test", unshred = true)
+    AppWriter.shredDataset(GenomicQuery1, "test", unshred = true)
   }
 }
 ```

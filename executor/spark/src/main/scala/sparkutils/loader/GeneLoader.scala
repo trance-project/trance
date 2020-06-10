@@ -7,7 +7,7 @@ case class Gene(name: String, description: String, chrom: String, g_type: String
   strand: String, ts_id: String, gene_type: String, gene_status: String, loci_level: Int, 
   alias_symbol: String, official_name: String)
 
-class GeneLoader(spark: SparkSession, path: String) extends Serializable {
+class GeneLoader(spark: SparkSession) extends Table[Gene] {
 
   import spark.implicits._
 
@@ -26,9 +26,12 @@ class GeneLoader(spark: SparkSession, path: String) extends Serializable {
     StructField("alias_symbol", StringType),
     StructField("official_name", StringType)))
 
-  val table = spark.read.schema(schema)
-    .option("header", true)
-    .option("delimiter", "\t")
+  val header: Boolean = true
+  val delimiter: String = "\t"
+
+  def load(path: String) = spark.read.schema(schema)
+    .option("header", header)
+    .option("delimiter", delimiter)
     .csv(path)
     .as[Gene]
 

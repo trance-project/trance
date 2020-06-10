@@ -9,9 +9,7 @@ import framework.examples.genomic.GenomicBase
 **/
 object DomainOptExample1 extends TPCHBase {
   val name = "DomainOptExample1"
-
-  def inputs(tmap: Map[String, String]): String =
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+  val tbls: Set[String] = Set("C", "O", "L", "P")
   
   val query1 =
   ForeachUnion(cr, relC,
@@ -29,9 +27,7 @@ object DomainOptExample1 extends TPCHBase {
 
 object DomainOptExample2 extends TPCHBase {
   val name = "DomainOptExample2"
-
-  def inputs(tmap: Map[String, String]): String =
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+  val tbls: Set[String] = Set("C", "O", "L", "P")
   
   val query2 =
   ForeachUnion(cr, relC,
@@ -48,9 +44,7 @@ object DomainOptExample2 extends TPCHBase {
 
 object DomainOptExample3 extends TPCHBase {
   val name = "DomainOptExample3"
-
-  def inputs(tmap: Map[String, String]): String =
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+  val tbls: Set[String] = Set("C", "O", "L", "P")
   
   val query3 =
     ForeachUnion(or, relO,
@@ -68,9 +62,7 @@ object DomainOptExample3 extends TPCHBase {
 
 object DomainOptExample4 extends TPCHBase {
   val name = "DomainOptExample4"
-
-  def inputs(tmap: Map[String, String]): String =
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+  val tbls: Set[String] = Set("C", "O", "L", "P")
   
   val query4 =
     ForeachUnion(or, relO,
@@ -88,9 +80,7 @@ object DomainOptExample4 extends TPCHBase {
 
 object DomainOptExample5 extends TPCHBase {
   val name = "DomainOptExample5"
-
-  def inputs(tmap: Map[String, String]): String =
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
+  val tbls: Set[String] = Set("C", "O", "L", "P")
   
   val query5 =
     ForeachUnion(or, relO,
@@ -108,10 +98,8 @@ object DomainOptExample5 extends TPCHBase {
 
 object DomainOptExample6 extends GenomicBase {
   val name = "DomainOptExample6"
- 
-  def inputs(tmap: Map[String, String]): String =
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
-
+  val tbls: Set[String] = Set("C", "O", "L", "P")
+   
   val query6 =
     ForeachUnion(vref, relV,
       Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->

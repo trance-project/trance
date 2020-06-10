@@ -6,7 +6,7 @@ import org.apache.spark.sql.types.{IntegerType, StringType, DoubleType, StructFi
 
 case class ThousandGenomes(m_sample: String, family_id: String, population: String, gender: String)
 
-class ClinicalLoader(spark: SparkSession, path: String) extends Serializable {
+class TGenomesLoader(spark: SparkSession) extends Table[ThousandGenomes] {
 
   import spark.implicits._
 
@@ -16,13 +16,14 @@ class ClinicalLoader(spark: SparkSession, path: String) extends Serializable {
                   StructField("population", StringType),
                   StructField("gender", StringType)))
 
+  val header: Boolean = true
+  val delimiter: String = ","
 
-  val table = spark.read.schema(schema)
-    .option("header", true)
-    .option("delimiter", ",")
-    .csv(path)
-    .as[ThousandGenomes]
+  def load(path: String): Dataset[ThousandGenomes] = 
+    spark.read.schema(schema)
+      .option("header", header)
+      .option("delimiter", delimiter)
+      .csv(path)
+      .as[ThousandGenomes]
 
 }
-
-
