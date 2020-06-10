@@ -9,13 +9,8 @@ import framework.nrc.MaterializeNRC
 object Test2Agg2 extends TPCHBase {
 
   val name = "Test2Agg2"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  val tbls: Set[String] = Set("L", "O", "C", "P")
 
-  override def inputTables = Set("L", "O", "C", "P")
-
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
- 
   val (customers, customerRef) = varset(Test2Full.name, "c", Test2Full.program(Test2Full.name).varRef.asInstanceOf[BagExpr])
   val (orders, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
   val (parts, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))

@@ -84,6 +84,17 @@ trait SparkTypeHandler {
     case _ => sys.error("not supported type " + tp)
   }
 
+  def generateSqlType(tp: Type): String = tp match {
+    case BagType(t) => generateSqlType(t)
+    case TupleType(ms) => ms.map(m => 
+        s"""StructField("${m._1}", ${generateSqlType(m._2)})"""
+      ).mkString("Array(", ",\n",")")
+    case StringType => "StringType"
+    case IntType => "IntegerType"
+    case DoubleType => "DoubleType"
+    case _ => sys.error("not supported")
+  }
+
    /** Updates the type map with records and record attribute types 
     * from the generated plan.
     *

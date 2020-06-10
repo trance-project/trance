@@ -18,36 +18,7 @@ trait Query extends Materialization
   val normalizer = new Finalizer(new BaseNormalizer{})
 
   val name: String
-
-  /** schema **/
-  def inputTables: Set[String] = Set()
-  val loaderName: String = "loader"
-
-  // table name to loader function
-  def loaders: Map[String, String] = Map()
-
-  def loadTable(tbl: String, eval: String, shred: Boolean = false, skew: Boolean = false): String = {
-    val tblName = if (shred) s"IBag_${tbl}__D" else tbl
-    val tblCall = if (skew)  
-      s"""|val ${tblName}_L = $loaderName.${loaders(tbl)}
-          |val $tblName = (${tblName}_L, ${tblName}_L.empty)"""
-      else s"""|val $tblName = $loaderName.${loaders(tbl)}"""
-    s"""$tblCall
-        |$tblName.cache
-        |$tblName.$eval
-        |""".stripMargin
-  }
-
-  def loadTables(tbls: Set[String], eval: String, shred: Boolean = false, skew: Boolean = false): String = {
-      s"""|val $loaderName = TPCHLoader(spark)
-          |${loaders.filter(f => tbls(f._1)).map(f => loadTable(f._1, eval, shred, skew)).mkString("\n")}
-          |""".stripMargin
-  }
-
-
-  def inputs(tmap: Map[String, String]): String
-  def inputTypes(shred: Boolean = false): Map[Type, String]
-  def headerTypes(shred: Boolean = false): List[String]
+  def loadTables(shred: Boolean = false, skew: Boolean = false): String 
 
   /** Standard Pipeline Runners **/
 
@@ -246,7 +217,6 @@ trait Query extends Materialization
     (qplan, usplan)
   }
 
-
   def shred: (ShredProgram, MaterializedProgram) = {
     val sprog = optimize(shred(program))
     (sprog, materialize(sprog))
@@ -256,45 +226,6 @@ trait Query extends Materialization
     val shredset = this.shred
     unshred(shredset._1, shredset._2.ctx)
   }
-
-
-  /** Shredded pipeline for Scala code generation - deprecated for Spark **/
-
-  def shredPlan: CExpr = {
-    val seq = this.shred._2.program
-    val ctrans = translate(seq)
-    val shredded = normalizer.finalize(ctrans).asInstanceOf[CExpr] 
-    val initPlan = Unnester.unnest(shredded)(Nil, Nil, None)
-    Optimizer.applyAll(initPlan)
-  }
-
-  def shredPlanNoOpt: CExpr = {
-    val seq = this.shred._2.program
-    val ctrans = translate(seq)
-    val shredded = normalizer.finalize(ctrans).asInstanceOf[CExpr] 
-    Unnester.unnest(shredded)(Nil, Nil, None)
-  }
- 
-  def shredANF: CExpr = {
-    val anfBase = new BaseANF{}
-    val anfer = new Finalizer(anfBase)
-    anfBase.anf(anfer.finalize(this.shredPlan).asInstanceOf[anfBase.Rep])
-  }
- 
-  def unshredPlan: CExpr = {
-    val c = translate(this.unshred)
-    val unshredded = normalizer.finalize(c).asInstanceOf[CExpr] 
-    val initPlan = Unnester.unnest(unshredded)(Nil, Nil, None)
-    Optimizer.applyAll(initPlan)
-  }
-
-  def unshredANF: CExpr = {
-    val anfBase = new BaseANF{}
-    val anfer = new Finalizer(anfBase)
-    anfBase.anf(anfer.finalize(this.unshredPlan).asInstanceOf[anfBase.Rep])
-  }
-  
-  def indexedDict: List[String] = Nil
 
   /** misc utils **/
   def varset(n1: String, n2: String, e: BagExpr): (BagVarRef, TupleVarRef) =
