@@ -12,7 +12,7 @@ import org.seqdoop.hadoop_bam.{VCFInputFormat, VariantContextWritable}
 import org.apache.spark.sql.types.{StringType, IntegerType, StructField, StructType}
 import sparkutils.Config
 
-case class Call(g_sample: String, call: Int)
+case class Call(sample: String, call: Int)
 case class Variant(contig: String, start: Int, reference: String, 
   alternate: String, genotypes: Seq[Call])
 case class IVariant(index: Long, contig: String, start: Int, reference: String, 
@@ -69,7 +69,7 @@ class VariantLoader(spark: SparkSession, path: String) extends Serializable {
     val variants = input.drop("genotypes").withColumnRenamed("index", "genotypes").as[SVariant]
     val genotypes = input.flatMap{
       case variant => variant.genotypes.map{
-        case genotype => SCall(variant.index, genotype.g_sample, genotype.call)
+        case genotype => SCall(variant.index, genotype.sample, genotype.call)
       }
     }.as[SCall]
     (variants, genotypes.repartition($"_1"))

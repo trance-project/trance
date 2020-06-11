@@ -23,8 +23,8 @@ trait GenomicSchema extends Query{
         else
             s"""|val vloader = new VariantLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Variants/sub_chr22.vcf")
                 |val variants = vloader.loadDS
-                |val cloader = new TGenomesLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Phenotype/1000g.csv")
-                |val metadata = cloader.load
+                |val cloader = new TGenomesLoader(spark)
+                |val metadata = cloader.load("/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Phenotype/1000g.csv")
                 |val gtfLoader = new GTFLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Map/Homo_sapiens.GRCh37.87.chr.gtf")
                 |val Gtfs = gtfLoader.loadDS
                 |val pathwayLoader = new PathwayLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Pathway/c2.cp.v7.1.symbols.gmt")
@@ -42,9 +42,9 @@ trait GenomicSchema extends Query{
         "alternate" -> StringType,
         "genotypes" -> BagType(genoType))
     val gtfType = TupleType(
-        "contig" -> StringType,
-        "start" -> IntType,
-        "end" -> IntType,
+        "g_contig" -> StringType,
+        "g_start" -> IntType,
+        "g_end" -> IntType,
         "gene_name" -> StringType
     )
     val geneType = TupleType("name" -> StringType)

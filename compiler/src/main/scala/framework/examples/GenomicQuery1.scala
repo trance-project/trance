@@ -40,8 +40,8 @@ object GenomicQuery1 extends GenomicSchema {
                             ForeachUnion(gtfr, gtfs,
                                 IfThenElse(
                                     And(
-                                        And(Cmp(OpNe, gr("call"), Const(0, IntType)), Cmp(OpGe, vr("start"),gtfr("start"))),
-                                        And(Cmp(OpGe, gtfr("end"),vr("start")), Cmp(OpEq, gtfr("contig"),vr("contig")))),
+                                        And(Cmp(OpNe, gr("call"), Const(0, IntType)), Cmp(OpGe, vr("start"),gtfr("g_start"))),
+                                        And(Cmp(OpGe, gtfr("g_end"),vr("start")), Cmp(OpEq, gtfr("g_contig"),vr("contig")))),
                                     Singleton(Tuple("name" -> gtfr("gene_name"), "burden" -> Const(1, IntType)))
                                 )
                             ),
@@ -78,8 +78,8 @@ object GenomicQuery1 extends GenomicSchema {
                                         IfThenElse(
                                             And(Cmp(OpEq, gtfr("gene_name"), ger("name")),
                                                 And(
-                                                    And(Cmp(OpNe, gr("call"), Const(0, IntType)), Cmp(OpGe, vr("start"),gtfr("start"))),
-                                                    And(Cmp(OpGe, gtfr("end"),vr("start")), Cmp(OpEq, gtfr("contig"),vr("contig"))))),
+                                                    And(Cmp(OpNe, gr("call"), Const(0, IntType)), Cmp(OpGe, vr("start"),gtfr("g_start"))),
+                                                    And(Cmp(OpGe, gtfr("g_end"),vr("start")), Cmp(OpEq, gtfr("g_contig"),vr("contig"))))),
                                             Singleton(Tuple("name" -> gtfr("gene_name"), "burden" -> Const(1, IntType)))
                                         )
                                     )
@@ -165,8 +165,8 @@ object GenomicQuery1 extends GenomicSchema {
                                         IfThenElse(
                                             And(Cmp(OpEq, gtfr("gene_name"), ger("name")),
                                                 And(
-                                                    And(Cmp(OpNe, gr("call"), Const(0, IntType)), Cmp(OpGe, vr("start"),gtfr("start"))),
-                                                    And(Cmp(OpGe, gtfr("end"),vr("start")), Cmp(OpEq, gtfr("contig"),vr("contig"))))),
+                                                    And(Cmp(OpNe, gr("call"), Const(0, IntType)), Cmp(OpGe, vr("start"),gtfr("g_start"))),
+                                                    And(Cmp(OpGe, gtfr("g_end"),vr("start")), Cmp(OpEq, gtfr("g_contig"),vr("contig"))))),
                                             Singleton(Tuple("name" -> pr("name"), "burden" -> Const(1, IntType)))
                                         )
                                     )
@@ -218,8 +218,8 @@ object GenomicQuery1 extends GenomicSchema {
                         "variants" ->
                         ForeachUnion(gtfr, gtfs,
                             IfThenElse(
-                                And(And(Cmp(OpNe, gr("call"), Const(0, IntType)), Cmp(OpGe, vr("start"),gtfr("start"))),
-                                    And(Cmp(OpGe, gtfr("end"),vr("start")), Cmp(OpEq, gtfr("contig"),vr("contig")))),
+                                And(And(Cmp(OpNe, gr("call"), Const(0, IntType)), Cmp(OpGe, vr("start"),gtfr("g_start"))),
+                                    And(Cmp(OpGe, gtfr("g_end"),vr("start")), Cmp(OpEq, gtfr("g_contig"),vr("contig")))),
                                 Singleton(Tuple("contig" -> vr("contig"), "start" -> vr("start"), "reference" -> vr("reference"), "alternate" -> vr("alternate")))
                             )
                         )

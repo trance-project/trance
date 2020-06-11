@@ -4,7 +4,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql._
 import org.apache.spark.rdd.RDD
 
-case class GTF(contig: String, start: Int, end: Int, gene_name: String)
+case class GTF(g_contig: String, g_start: Int, g_end: Int, gene_name: String)
 
 class GTFLoader(spark: SparkSession, path: String) extends Serializable {
     // Indices of the columns of the gencode file
