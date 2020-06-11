@@ -12,7 +12,8 @@ object TestApp extends App {
 
     // AppWriter.writeLoader("Converge", ConvergeStep1.convergeType)
     AppWriter.flatDataset(ConvergeOddsRatio, "test")
-    // AppWriter.flatDataset(CandidateGenes, "test", skew = true)
+	AppWriter.shredDataset(ConvergeOddsRatio, "test")
+	// AppWriter.flatDataset(CandidateGenes, "test", skew = true)
   }
 }
 

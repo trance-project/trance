@@ -9,21 +9,21 @@ trait ConvergeBase extends Query with VCF with GeneLoader {
     if (shred)
       s"""|val convergeLoader = new ConvergeLoader(spark)
           |val IBag_converge__D = convergeLoader.load("$path")
-          |IBag_converge__D.cache
-          |IBag_converge__D.count
+          |//IBag_converge__D.cache
+          |//IBag_converge__D.count
           |""".stripMargin
     else 
       s"""|val convergeLoader = new ConvergeLoader(spark)
           |val converge = convergeLoader.load("$path")
-          |converge.cache
-          |converge.count
+          |//converge.cache
+          |//converge.count
           |""".stripMargin
   }
 
   def loadTables(shred: Boolean = false, skew: Boolean = false): String = {
-    s"""|${loadVCF("/Users/jac/bioqueries/data/sub.vcf", shred, skew)}
-        |${loadGene("/Users/jac/oda-irigs-python/CX_PythonLocal_iRIGS/supporting_files/All_human_genes", shred, skew)}
-        |${loadConverge("/Users/jac/converge/converge.csv", shred, skew)}
+    s"""|${loadVCF("/nfs_qc4/genomics/chr10.beagle.out.phased.noMissSites_goodSamples.shapeit_phased.vcf", shred, skew)}
+        |${loadGene("/nfs_qc4/genomics/All_human_genes", shred, skew)}
+        |${loadConverge("/nfs_qc4/genomics/converge.csv", shred, skew)}
         |""".stripMargin
   }
   

@@ -3,6 +3,7 @@ package sparkutils.loader
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
+import sparkutils.Config
 
 case class Converge(gad: Int, city: String, fh_count: Int, dep_e29: Int, marital_status: Int, md_a4: Int, height_clean: Int, animal_diag: Int, bmi: Double, md_a8: Int, prot_m: Int, weight_clean: Int, md_a3: Int, postnatal_d: Int, suicidal_attempt: Int, situational_diag: Int, md_a5: Int, cold_f: Int, agora_diag: Int, md_a9: Int, csa: Int, age: Int, dob_d: Int, blood_diag: Int, prot_f: Int, id: String, neuroticism: Int, education: Int, me: Int, md_a6: Int, sle: Int, dep_e27: Int, dysthymia: Int, social_diag: Int, province: String, social_class: Int, md_a1: Int, hospital_code: String, cold_m: Int, occupation: Int, srr_id: String, iscase: Int, suicidal_thought: Int, auth_f: Int, dob_m: Int, suicidal_plan: Int, panic: Int, md_a7: Int, pms: Int, md_a2: Int, dob_y: Int, phobia: Int, index: Int, auth_m: Int)
 
@@ -71,7 +72,7 @@ StructField("auth_m", IntegerType)))
        .option("header", header)
        .option("delimiter", delimiter)
        .csv(path)
-       .as[Converge]        
+       .as[Converge].repartition(Config.minPartitions) 
    }
 }
 
