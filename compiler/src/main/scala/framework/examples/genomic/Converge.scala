@@ -163,3 +163,24 @@ object ConvergeOddsRatio extends ConvergeBase {
   val program = ConvergeStep2.program.asInstanceOf[ConvergeOddsRatio.Program].append(Assignment(name, query))
 }
 
+/** Associate SNPs to flanking region **/
+
+object ConvergeCandGenes extends GenomicBase {
+  
+  val name = "ConvergeCandGenes"
+  val (snps, sr) = varset(ConvergeOddsRatio.name, "snp", ConvergeOddsRatio.program(ConvergeOddsRatio.name).varRef.asInstanceOf[BagExpr])
+
+  val flank = Const(1000000, IntType).asNumeric
+  val query = ForeachUnion(sr, snps,
+    IfThenElse(Cmp(OpGt, sr("odds"), Const(1, IntType)), 
+      Singleton(Tuple("contig" -> sr("contig"), "start" -> sr("start"), 
+        "reference" -> sr("reference"), "alternate" -> sr("alternate"), 
+        "candidateGenes" -> ForeachUnion(gene, genes,
+          IfThenElse(And(Cmp(OpEq, sr("contig"), gene("chrom")),
+            And(Cmp(OpGe, sr("start"), gene("start_hg19").asNumeric - flank),
+              Cmp(OpGe, gene("end_hg19").asNumeric + flank, sr("start")))),
+          Singleton(Tuple("id" -> gene("name"), "name" -> gene("alias_symbol"), "strand" -> gene("strand")))))))))
+
+  val program = ConvergeOddsRatio.program.asInstanceOf[ConvergeCandGenes.Program].append(Assignment(name, query))
+
+}
