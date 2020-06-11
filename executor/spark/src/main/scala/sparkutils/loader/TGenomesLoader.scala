@@ -6,7 +6,7 @@ import org.apache.spark.sql.types.{IntegerType, StringType, DoubleType, StructFi
 
 case class ThousandGenomes(m_sample: String, family_id: String, population: String, gender: String)
 
-class TGenomesLoader(spark: SparkSession) extends Table[ThousandGenomes] {
+class TGenomesLoader(spark: SparkSession, path: String) extends Table[ThousandGenomes] {
 
   import spark.implicits._
 
@@ -19,7 +19,7 @@ class TGenomesLoader(spark: SparkSession) extends Table[ThousandGenomes] {
   val header: Boolean = true
   val delimiter: String = ","
 
-  def load(path: String): Dataset[ThousandGenomes] = 
+  def load: Dataset[ThousandGenomes] = 
     spark.read.schema(schema)
       .option("header", header)
       .option("delimiter", delimiter)

@@ -8,27 +8,27 @@ trait GenomicSchema extends Query{
     // just define how to load your inputs here
     // I think there was a function in Query previously then...
     def loadTables(shred: Boolean = false, skew: Boolean = false): String = {
-        if (shred)
+    if (shred)
             s"""|val vloader = new VariantLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Variants/sub_chr22.vcf")
                 |val (variants, genotypes) = vloader.shredDS
                 |val IBag_variants__D = variants
                 |val IDict_variants__D_genotypes = genotypes
-                |val cloader = new ClinicalLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Phenotype/1000g.csv")
-                |val IBag_metadata__D = cloader.tgenomes
+                |val cloader = new TGenomesLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Phenotype/1000g.csv")
+                |val IBag_metadata__D = cloader.load
                 |val gtfLoader = new GTFLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Map/Homo_sapiens.GRCh37.87.chr.gtf")
-                |val gtf = gtfLoader.loadDS
+                |val Gtfs = gtfLoader.loadDS
                 |val pathwayLoader = new PathwayLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Pathway/c2.cp.v7.1.symbols.gmt")
-                |val pathway = pathwayLoader.loadDS
+                |val Pathways = pathwayLoader.loadDS
                 |""".stripMargin
         else
             s"""|val vloader = new VariantLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Variants/sub_chr22.vcf")
                 |val variants = vloader.loadDS
-                |val cloader = new ClinicalLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Phenotype/1000g.csv")
-                |val metadata = cloader.tgenomes
+                |val cloader = new TGenomesLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Phenotype/1000g.csv")
+                |val metadata = cloader.load
                 |val gtfLoader = new GTFLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Map/Homo_sapiens.GRCh37.87.chr.gtf")
-                |val gtf = gtfLoader.loadDS
+                |val Gtfs = gtfLoader.loadDS
                 |val pathwayLoader = new PathwayLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Pathway/c2.cp.v7.1.symbols.gmt")
-                |val pathway = pathwayLoader.loadDS
+                |val Pathways = pathwayLoader.loadDS
                 |""".stripMargin
     }
 
@@ -53,7 +53,7 @@ trait GenomicSchema extends Query{
     val metaType = TupleType("m_sample" -> StringType, "family_id" -> StringType, "population" -> StringType, "gender" -> StringType)
 
     // define references to these types
-    val variants = BagVarRef("Variants", BagType(variantType))
+    val variants = BagVarRef("variants", BagType(variantType))
     val vr = TupleVarRef("v", variantType)
     val gr = TupleVarRef("g", genoType)
 
@@ -68,3 +68,4 @@ trait GenomicSchema extends Query{
     val mr = TupleVarRef("m", metaType)
 
 }
+    
