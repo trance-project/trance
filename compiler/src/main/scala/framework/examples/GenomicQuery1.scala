@@ -213,19 +213,20 @@ object GenomicQuery1 extends GenomicSchema {
             Singleton(Tuple("population_name" -> mr("population"), "samples" ->
                 ForeachUnion(vr, variants,                                    // For v in Variants
                 ForeachUnion(gr, BagProject(vr, "genotypes"),       //        For g in v.genotypes union
+                  IfThenElse(Cmp(OpEq, gr("sample"), mr("m_sample")),
                     Singleton(Tuple("name" -> gr("sample"),       //          {(sample := g.sample,
                         "variants" ->
                         ForeachUnion(gtfr, gtfs,
                             IfThenElse(
-                                And(Cmp(OpEq, gr("sample"), mr("m_sample")),And(And(Cmp(OpNe, gr("call"), Const(0, IntType)), Cmp(OpGe, vr("start"),gtfr("start"))),
-                                    And(Cmp(OpGe, gtfr("end"),vr("start")), Cmp(OpEq, gtfr("contig"),vr("contig"))))),
+                                And(And(Cmp(OpNe, gr("call"), Const(0, IntType)), Cmp(OpGe, vr("start"),gtfr("start"))),
+                                    And(Cmp(OpGe, gtfr("end"),vr("start")), Cmp(OpEq, gtfr("contig"),vr("contig")))),
                                 Singleton(Tuple("contig" -> vr("contig"), "start" -> vr("start"), "reference" -> vr("reference"), "alternate" -> vr("alternate")))
                             )
                         )
                     ))
                 )))
             )
-        )
+        ))
 
     /* 6.1 result:
     * For m in metadata Union
