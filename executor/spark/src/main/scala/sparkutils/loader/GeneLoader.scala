@@ -2,6 +2,7 @@ package sparkutils.loader
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.{IntegerType, StringType, DoubleType, StructField, StructType}
+import sparkutils.Config
 
 case class Gene(name: String, description: String, chrom: String, g_type: String, start_hg19: Int, end_hg19: Int, 
   strand: String, ts_id: String, gene_type: String, gene_status: String, loci_level: Int, 
@@ -33,6 +34,6 @@ class GeneLoader(spark: SparkSession) extends Table[Gene] {
     .option("header", header)
     .option("delimiter", delimiter)
     .csv(path)
-    .as[Gene]
+    .as[Gene].repartition(Config.minPartitions)
 
 }

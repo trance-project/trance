@@ -11,9 +11,10 @@ class SparkLoaderGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeH
 
   def generateLoader(tp: Type, header: Boolean = true, delimiter: String = ","): String = {
     val tname = types(tp)
-    handleType(tp)
+    handleType(tp, Some(tname))
     val cname = generateType(tp)
-    s"""|package sparkutils.generated
+    s"""|package sparkutils.loader
+        |/** Generated Code **/
         |import org.apache.spark.sql.Dataset
         |import org.apache.spark.sql.SparkSession
         |import org.apache.spark.sql.types._
@@ -27,7 +28,7 @@ class SparkLoaderGenerator(inputs: Map[Type, String] = Map()) extends SparkTypeH
         |   val header: Boolean = $header
         |   val delimiter: String = "$delimiter"
         |   
-        |   def load(path: String): Dataset[$cname] = 
+        |   def load(path: String): Dataset[$cname] = {
         |     spark.read.schema(schema)
         |       .option("header", header)
         |       .option("delimiter", delimiter)

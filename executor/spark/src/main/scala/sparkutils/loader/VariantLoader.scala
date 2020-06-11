@@ -10,6 +10,7 @@ import org.apache.hadoop.io.LongWritable
 import htsjdk.variant.variantcontext.{CommonInfo, VariantContext, Genotype}
 import org.seqdoop.hadoop_bam.{VCFInputFormat, VariantContextWritable}
 import org.apache.spark.sql.types.{StringType, IntegerType, StructField, StructType}
+import sparkutils.Config
 
 case class Call(g_sample: String, call: Int)
 case class Variant(contig: String, start: Int, reference: String, 
@@ -60,7 +61,7 @@ class VariantLoader(spark: SparkSession, path: String) extends Serializable {
         val genotypes = variant.getGenotypes.iterator.asScala.toSeq.map(s => Call(s.getSampleName, callCategory(s)))
         Variant(variant.getContig, variant.getStart, variant.getReference.toString, 
           variant.getAlternateAllele(0).toString, genotypes)
-      }.toDF().as[Variant]    
+      }.toDF().as[Variant].repartition(Config.lparts) 
   }
 
   def shredDS: (Dataset[SVariant], Dataset[SCall]) = {

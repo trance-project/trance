@@ -15,11 +15,11 @@ trait VCF extends MaterializeNRC {
       s"""|val vloader = new VariantLoader(spark, "$path")
           |val (variants, genotypes) = vloader.shredDS
           |val IBag_Variants__D = $variants
-          |IBag_Variants__D.cache
-          |IBag_Variants__D.count
+          |//IBag_Variants__D.cache
+          |//IBag_Variants__D.count
           |val IDict_Variants__D_genotypes = $genotypes
-          |IDict_Variants__D_genotypes.cache
-          |IDict_Variants__D_genotypes.count
+          |//IDict_Variants__D_genotypes.cache
+          |//IDict_Variants__D_genotypes.count
           |""".stripMargin
     
     }else{
@@ -29,8 +29,8 @@ trait VCF extends MaterializeNRC {
                  |"""
       s"""|val vloader = new VariantLoader(spark, "$path")
           $variants
-          |Variants.cache
-          |Variants.count
+          |//Variants.cache
+          |//Variants.count
           |""".stripMargin
     }
   }
@@ -89,14 +89,14 @@ trait GeneLoader extends MaterializeNRC {
       s"""|val geneLoader = new GeneLoader(spark)
           $genes
           |val IBag_Gene__D = Gene
-          |IBag_Gene__D.cache
-          |IBag_Gene__D.count
+          |//IBag_Gene__D.cache
+          |//IBag_Gene__D.count
           |""".stripMargin
     else
       s"""|val geneLoader = new GeneLoader(spark)
           $genes
-          |Gene.cache
-          |Gene.count
+          |//Gene.cache
+          |//Gene.count
           |""".stripMargin
 
   }
