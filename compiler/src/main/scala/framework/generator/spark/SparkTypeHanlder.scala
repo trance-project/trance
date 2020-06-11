@@ -43,6 +43,10 @@ trait SparkTypeHandler {
     */
   def generateTypeDef(tp: Type): String = tp match {
     case LabelType(fs) => generateTypeDef(RecordCType(fs))
+    case TupleType(fs) => 
+      val name = types(tp)
+      val fsize = fs.size
+      s"case class $name(${fs.map(x => s"${kvName(x._1)(fsize)}: ${generateType(x._2)}").mkString(", ")})"
     case RecordCType(fs) =>
       val name = types(tp)
       val fsize = fs.size
@@ -56,6 +60,7 @@ trait SparkTypeHandler {
     * @return string representing the native Scala type
     */
   def generateType(tp: Type): String = tp match {
+    case TupleType(fs) if types.contains(tp) => types(tp)
     case RecordCType(fs) if fs.isEmpty => "Unit"
     case LabelType(fs) if fs.isEmpty => "Long"
     //case RecordCType(fs) if fs.keySet == Set("_1", "_2") => fs.generateType(fs._2).mkString("(",",",")")
@@ -104,6 +109,12 @@ trait SparkTypeHandler {
   def handleType(tp: Type, givenName: Option[String] = None): Unit = {
     if(!types.contains(tp)) {
       tp match {
+        // only top level types for now
+        case TupleType(fs) => 
+          fs.foreach(f => handleType(f._2))
+          val name = givenName.getOrElse("Loader"+java.util.UUID.randomUUID().toString.replace("-", ""))
+          types = types + (tp -> name)
+          typelst = typelst :+ tp
         case RecordCType(fs) =>
           fs.foreach(f => handleType(f._2))
           val name = givenName.getOrElse("Record"+java.util.UUID.randomUUID().toString.replace("-", ""))//"Record" + Variable.newId)

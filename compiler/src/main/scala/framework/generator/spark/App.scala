@@ -10,9 +10,9 @@ object TestApp extends App {
 
   override def main(args: Array[String]){
 
-    AppWriter.flatDataset(CandidateGenes, "test")
-    AppWriter.flatDataset(CandidateGenes, "test", skew = true)
-
+    // AppWriter.writeLoader("Converge", ConvergeStep1.convergeType)
+    AppWriter.flatDataset(ConvergeOddsRatio, "test")
+    // AppWriter.flatDataset(CandidateGenes, "test", skew = true)
   }
 }
 

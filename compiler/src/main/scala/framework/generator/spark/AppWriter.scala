@@ -17,6 +17,16 @@ object AppWriter {
   def flatDataset(query: Query, label: String, skew: Boolean = false, optLevel: Int = 2): Unit =
     runDataset(query, label, optLevel, skew)
 
+  def writeLoader(name: String, tp: Type, header: Boolean = true, delimiter: String = ","): Unit = {
+    val tmaps = Map(tp -> name)
+    val fname = s"../executor/spark/src/main/scala/sparkutils/loader/${name}Loader.scala"
+    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
+    val loadergen = new SparkLoaderGenerator(tmaps)
+    val loaderc = loadergen.generateLoader(tp)
+    printer.println(loaderc)
+    printer.close
+  }
+
   def runDataset(query: Query, label: String, optLevel: Int = 2, skew: Boolean = false): Unit = {
     
     val codegen = new SparkDatasetGenerator(false, false, optLevel = optLevel, skew = skew)
