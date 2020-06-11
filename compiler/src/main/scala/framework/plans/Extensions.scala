@@ -24,6 +24,7 @@ trait Extensions {
     case If(cond, s1, None) => collect(cond) ++ collect(s1)
     case MathOp(op, e1, e2) => collect(e1) ++ collect(e2)
     case Equals(e1, e2) => collect(e1) ++ collect(e2)
+    case Not(e1) => collect(e1)
     case And(e1, e2) => collect(e1) ++ collect(e2)
     case Gte(e1, e2) => collect(e1) ++ collect(e2)
     case Lte(e1, e2) => collect(e1) ++ collect(e2)
