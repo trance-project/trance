@@ -165,6 +165,8 @@ object SkewDataset{
 
     def count: Long = (light, heavy).count
 
+    def union: DataFrame = (light, heavy).union
+
     def select(col: String, cols: String*): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]])= {
       (light.select(col, cols:_*), heavy.select(col, cols:_*), key, heavyKeys)
     }
@@ -204,6 +206,11 @@ object SkewDataset{
 
     def filter(condition: Column): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
       (light.filter(condition), heavy.filter(condition), key, heavyKeys)
+    }
+
+    def crossJoin(right: (DataFrame, DataFrame)): (DataFrame, DataFrame) = {
+      val result = dfs.union.crossJoin(right.union)
+      (result, result.emptyDF)
     }
 
   }
@@ -403,6 +410,10 @@ object SkewDataset{
         (light, heavy).cogroup((right._1, right._2), lkey, rkey)(f)
     }
 
+    def crossJoin[S: Encoder : ClassTag](right: (Dataset[S], Dataset[S])): (DataFrame, DataFrame) = {
+      (light, heavy).crossJoin(right)
+    }
+
   }
 
   implicit class SkewDataframeOps(dfs: (DataFrame, DataFrame)) extends Serializable {
@@ -427,6 +438,12 @@ object SkewDataset{
       println(heavy.take(10).toList.map(f => 
         sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
     }
+
+    /** union the light and heavy component, 
+      * if heavy is empty then just return light 
+      */
+    def union: DataFrame = if (heavy.rdd.getNumPartitions == 1) light 
+      else light.union(heavy)
 
     def select(col: String, cols: String*): (DataFrame, DataFrame) = {
       (light.select(col, cols:_*), heavy.select(col, cols:_*))
@@ -457,6 +474,11 @@ object SkewDataset{
     def withColumnRenamed(existingName: String, newName: String): (DataFrame, DataFrame) = {
       (light.withColumnRenamed(existingName, newName), 
         heavy.withColumnRenamed(existingName, newName))
+    }
+
+    def crossJoin(right: (DataFrame, DataFrame)): (DataFrame, DataFrame) = {
+      val result = dfs.union.crossJoin(right.union)
+      (result, result.emptyDF)
     }
 
   }
@@ -649,6 +671,11 @@ object SkewDataset{
     def cogroup[S: Encoder : ClassTag, R : Encoder: ClassTag, K : Encoder: ClassTag](right: (Dataset[S], Dataset[S], Option[String], Broadcast[Set[K]]), lkey: (T) => K, rkey: (S) => K)
       (f: (K, Iterator[T], Iterator[S]) => TraversableOnce[R]): (Dataset[R], Dataset[R]) = {
         dfs.cogroup((right._1, right._2), lkey, rkey)(f)
+    }
+
+    def crossJoin[S: Encoder: ClassTag](right: (Dataset[S], Dataset[S])): (DataFrame, DataFrame) = {
+      val result = dfs.union.crossJoin(right.union)
+      (result, result.emptyDF)
     }
 
   }

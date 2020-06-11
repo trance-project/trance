@@ -269,10 +269,17 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           s"""|${generate(ej.left)}.equiJoin$classTags($gright, 
               | Seq("${p1}", "${p2}"), "${ej.jtype}").as[$nrec]
               |""".stripMargin
-        }else{
-          s"""|${generate(ej.left)}.join($gright, ${generateReference(ej.cond)}, "${ej.jtype}")
-              |  .as[$nrec]
-              |""".stripMargin         
+        }else {
+          ej.cond match {
+            case Constant(true) => 
+              s"""|${generate(ej.left)}.crossJoin($gright)
+                  |  .as[$nrec]
+                  |""".stripMargin 
+            case _ => 
+              s"""|${generate(ej.left)}.join($gright, ${generateReference(ej.cond)}, "${ej.jtype}")
+                  |  .as[$nrec]
+                  |""".stripMargin   
+          }      
         }
     
     case eu @ DFUnnest(in, v, path, v2, filter, fields) =>
