@@ -165,7 +165,7 @@ object ConvergeOddsRatio extends ConvergeBase {
 
 /** Associate SNPs to flanking region **/
 
-object ConvergeCandGenes extends GenomicBase {
+object ConvergeCandGenes extends ConvergeBase {
   
   val name = "ConvergeCandGenes"
   val (snps, sr) = varset(ConvergeOddsRatio.name, "snp", ConvergeOddsRatio.program(ConvergeOddsRatio.name).varRef.asInstanceOf[BagExpr])
