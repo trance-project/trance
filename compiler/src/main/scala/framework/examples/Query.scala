@@ -50,7 +50,9 @@ trait Query extends Materialization
       case y if batch => 
         val optimized = BatchOptimizer.push(this.batchUnnest)
         println(Printer.quote(optimized))
-        anfBase.anf(anfer.finalize(optimized).asInstanceOf[anfBase.Rep])
+        val plan = anfBase.anf(anfer.finalize(optimized).asInstanceOf[anfBase.Rep])
+        println(Printer.quote(plan))
+        plan
       case 0 => anfBase.anf(anfer.finalize(this.unnestNoOpt).asInstanceOf[anfBase.Rep])
       case 1 => anfBase.anf(anfer.finalize(Optimizer.projectOnly(unnestNoOpt)).asInstanceOf[anfBase.Rep])
       case _ => anfBase.anf(anfer.finalize(this.unnest).asInstanceOf[anfBase.Rep])

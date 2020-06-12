@@ -16,11 +16,14 @@ trait HiC extends MaterializeNRC {
     }
   }
 
-  val hicType = TupleType("chr" -> StringType, "tss_bin_start" -> IntType, "tss_bin_end" -> IntType, 
-    "interacting_bin_start" -> IntType, "interacting_bin_end" -> IntType, "fdr" -> StringType, 
-    "gene_id" -> StringType)
+  val hic_oType = List(("chr", StringType), ("tss_bin_start", IntType), 
+    ("tss_bin_end", IntType), ("interacting_bin_start", IntType), 
+    ("interacting_bin_end", IntType), ("fdr", StringType), 
+    ("gene_id", StringType))
 
-  val cpEnhnacer = BagVarRef("cpEnhancers", BagType(hicType))
+  val hicType = TupleType(hic_oType.toMap)
+
+  val cpEnhancer = BagVarRef("cpEnhancers", BagType(hicType))
   val cpr = TupleVarRef("cp", hicType)
 
   val gzEnhancer = BagVarRef("gzEnhancers", BagType(hicType))
@@ -40,8 +43,10 @@ trait CapHiC extends MaterializeNRC {
     }
   }
 
-  val capType = TupleType("gene_id" -> StringType, "official_name" -> StringType, 
-    "cap4_enhancer_no" -> IntType)
+  val cap_oType = List(("gene_id", StringType), ("official_name", StringType), 
+    ("cap4_enhancer_no", IntType))
+
+  val capType = TupleType(cap_oType.toMap)
 
   val capEnhancers = BagVarRef("capEnhancers", BagType(capType))
   val capr = TupleVarRef("cap", capType)
@@ -54,17 +59,21 @@ trait Fantom extends MaterializeNRC {
     if (shred) "//TODO"
     else 
       s"""|val fantomLoader = new FantomLoader(spark)
-          |val fantom = fantomLoader("$path")
+          |val fantom = fantomLoader.load("$path")
           |""".stripMargin
   }
 
   // this should only join with gene when fdr_stat < 1
   // join with gene on gene_name
-  val fantomType = TupleType("chrom" -> StringType, "chrom_start" -> IntType, "chrom_end" -> IntType,
-    "chr" -> StringType,  "pos_range" -> StringType, "ncbi_id" -> StringType, "gene_name" -> StringType, "r" -> StringType,
-    "r_stat" -> DoubleType, "fdr" -> StringType, "fdr_stat" -> IntType,
-    "score" -> IntType, "strand" -> StringType, "thick_start" -> IntType, "thick_end" -> IntType, "item_rgb" -> StringType, 
-      "block_count" -> IntType, "block_sizes" -> StringType, "chrom_starts" -> StringType)
+  val fantom_oType = List(("chrom",StringType), ("chrom_start", IntType), 
+    ("chrom_end", IntType),("chr",StringType),("pos_range", StringType), 
+    ("ncbi_id",StringType), ("gene_name",StringType), ("r",StringType),
+    ("r_stat",DoubleType), ("fdr",StringType), ("fdr_stat", IntType),
+    ("score", IntType), ("strand", StringType), ("thick_start",IntType), 
+    ("thick_end", IntType), ("item_rgb", StringType), 
+    ("block_count", IntType), ("block_sizes", StringType), 
+    ("chrom_starts", StringType))
+  val fantomType = TupleType(fantom_oType.toMap)
 
   val fantomEnhancers = BagVarRef("fantom", BagType(fantomType))
   val fanr = TupleVarRef("fan", fantomType)
@@ -78,11 +87,35 @@ trait Enhancers extends Query with GeneLoader with Fantom with CapHiC with HiC {
     val hics = List(("cpEnhancers", s"$basepath/BrainHiC/S22_TSS_CP.txt"), 
       ("gzEnhancers", s"$basepath/BrainHiC/S23_TSS_GZ.txt"))
     val caps = List(("capEnhancers", s"$basepath/capHiC/GM12878_DRE_number"))
-    val fs = s"$basepath/Fantom5/enhancer_tss_associations.bed.txt"
+    val fs = s"$basepath/Fantom5/enhancer_tss_associations.csv"
     s"""|${loadProcessedHic(hics)}
         |${loadProcessedCapHic(caps)}
         |${loadProcessedFantom(fs)}
+        |${loadGene(s"$basepath/All_human_genes", shred, skew)}
         |""".stripMargin
   }
 
 }
+
+object GeneEnhancers extends Enhancers {
+
+  val name = "GeneEnhancers"
+
+  val query = ForeachUnion(gene, genes, 
+      Singleton(Tuple("gene_id" -> gene("name"), "gene_name" -> gene("alias_symbol"),
+        "cpEnhancers" -> ForeachUnion(cpr, cpEnhancer, 
+          IfThenElse(Cmp(OpEq, gene("name"), cpr("gene_id")), Singleton(cpr))),
+        "gzEnhancers" -> ForeachUnion(gzr, gzEnhancer, 
+          IfThenElse(Cmp(OpEq, gene("name"), gzr("gene_id")), Singleton(gzr))),
+        "capEnhancers" -> ForeachUnion(capr, capEnhancers, 
+          IfThenElse(Cmp(OpEq, gene("name"), capr("gene_id")), Singleton(capr))),
+        "fantomEnhancers" -> ForeachUnion(fanr, fantomEnhancers, 
+          IfThenElse(Cmp(OpEq, gene("alias_symbol"), fanr("gene_name")), Singleton(fanr)))
+        )))
+
+  val program = Program(Assignment(name, query))
+
+}
+
+
+

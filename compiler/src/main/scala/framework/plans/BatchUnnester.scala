@@ -84,6 +84,10 @@ object BatchUnnester {
     case s @ Sng(t @ Record(fs)) if !w.isEmpty =>
       handleLevel(fs, identity)((u, w, E))
 
+    case Sng(v @ Variable(_, tp)) if !w.isEmpty => 
+      val fs = tp.attrs.map(k => k._1 -> Project(v, k._1))
+      handleLevel(fs, identity)((u, w, E))
+
     case CReduceBy(e1, v1, keys, values) => unnest(e1)((u, w, E)) match {
       case DFNest(e2, v2, keys2, values2, filter, nulls) =>
         // adjust input for reduce operation
@@ -125,7 +129,7 @@ object BatchUnnester {
     case Some((key, value)) =>
       val nE = unnest(value)((w, w, E))
       val nv = Variable.freshFromBag(nE.tp)
-      val nr = Record(fs.map(f => f._1 -> replace(f._2, nv)) + (key -> Project(nv, "_2")))
+      val nr = Record(fs.map(f => f._1 -> replace(f._2, nv)) + (key -> Project(nv, s"_2")))
       val nw = w + (key -> nv.tp)
       unnest(exp(Sng(nr)))((u, nw, Some(nE)))
     case y if u.isEmpty => 
