@@ -1,7 +1,7 @@
 package framework.examples.genomic
 
 import framework.common._
-import framework.nrc._
+import framework.nrc.MaterializeNRC
 
 trait VCF extends MaterializeNRC {
 

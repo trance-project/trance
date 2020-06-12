@@ -11,8 +11,8 @@ object TestApp extends App {
   override def main(args: Array[String]){
 
     // AppWriter.writeLoader("Converge", ConvergeStep1.convergeType)
-    AppWriter.flatDataset(OddsRatio, "test")
-	  AppWriter.shredDataset(OddsRatio, "test")
+    AppWriter.flatDataset(ConvergeCandGenes, "test")
+	  AppWriter.shredDataset(ConvergeCandGenes, "test")
 	// AppWriter.flatDataset(CandidateGenes, "test", skew = true)
   
   }
