@@ -34,8 +34,10 @@ import framework.examples.genomic.OddsRatio
 object TestApp1 extends App {
 
     override def main(args: Array[String]){
-        AppWriter.flatDataset(GenomicQuery1, "test")
+//        AppWriter.flatDataset(GenomicQuery1, "test")
         // focuse on flatDataset for now
         // AppWriter.shredDataset(GenomicQuery1, "test", unshred = true)
+        AppWriter.flatDataset(Step2, "test")
+
     }
 }
