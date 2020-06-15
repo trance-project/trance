@@ -36,8 +36,9 @@ object TestApp1 extends App {
     override def main(args: Array[String]){
 //        AppWriter.flatDataset(GenomicQuery1, "test")
         // focuse on flatDataset for now
-        // AppWriter.shredDataset(GenomicQuery1, "test", unshred = true)
-        AppWriter.flatDataset(Step2, "test")
+//         AppWriter.shredDataset(GenomicQuery1, "test", unshred = true)
+//        AppWriter.flatDataset(Step2, "test")
+        AppWriter.shredDataset(Step2, label = "test", unshred = true)
 
     }
 }

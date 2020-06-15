@@ -205,7 +205,6 @@ import framework.common._
 //
 //
 //
-//
 //    // 6.1 {(population_name: String, samples: {(name: String, variants: {(...)})} )}
 //    val query6_1 =
 //        ForeachUnion(mr, metadata,                                              // for mr in metadata
