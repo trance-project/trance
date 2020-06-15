@@ -18,6 +18,7 @@ trait GenomicSchema extends Query{
                 |val IBag_metadata__D = cloader.load
                 |val gtfLoader = new GTFLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Map/Homo_sapiens.GRCh37.87.chr.gtf")
                 |val Gtfs = gtfLoader.loadDS
+                |val IBag_Gtfs__D = Gtfs
                 |
                 |val pathwayLoader = new PathwayLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Pathway/c2.cp.v7.1.symbols.gmt")
                 |val (Pathways, GeneSet) = pathwayLoader.sharedDS
