@@ -116,6 +116,7 @@ trait SparkUtils {
     ms.map{
       case (attr, expr) if attr == col => col
       case (attr, Project(_, f)) => s"$v.$f"
+      case (attr, expr) => sys.error(s"unsupported ${Printer.quote(expr)}")
     }.mkString(s"$name(", ", ", ")")
 
   def rename(mtp: Map[String, Type], ocol: String, ncol: String): RecordCType = {

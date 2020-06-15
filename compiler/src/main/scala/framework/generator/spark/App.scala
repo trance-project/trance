@@ -11,13 +11,8 @@ object TestApp extends App {
   override def main(args: Array[String]){
 
     // generated loaders
-    // AppWriter.writeLoader("Converge", ConvergeStep1.convergeType)
-    // AppWriter.writeLoader("HiC", GeneEnhancers.hic_oType, delimiter = "\\t")
-    // AppWriter.writeLoader("CapHiC", GeneEnhancers.cap_oType, delimiter = "\\t")
-    // AppWriter.writeLoader("Fantom", GeneEnhancers.fantom_oType, delimiter = "\\t")
-
-    AppWriter.flatDataset(GeneEnhancers, "test")
-    // AppWriter.shredDataset(GeneEnhancers, "test", unshred = true)
+    AppWriter.flatDataset(GeneEnhancersReduce2, "test")
+    AppWriter.shredDataset(GeneEnhancersReduce2, "test", unshred = true)
     // AppWriter.flatDataset(ConvergeCandGenes, "test")
     // support for domains and multi-attribute labels
 	  // AppWriter.shredDataset(ConvergeCandGenes, "test")

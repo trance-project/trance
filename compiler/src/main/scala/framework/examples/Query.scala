@@ -16,6 +16,7 @@ trait Query extends Materialization
   with NRCTranslator {
 
   val normalizer = new Finalizer(new BaseNormalizer{})
+  val baseTag: String = "_2"
 
   val name: String
   def loadTables(shred: Boolean = false, skew: Boolean = false): String 
@@ -37,7 +38,7 @@ trait Query extends Materialization
     nc
   }
   
-  def batchUnnest: CExpr = BatchUnnester.unnest(this.normalize)(Map(), Map(), None)
+  def batchUnnest: CExpr = BatchUnnester.unnest(this.normalize)(Map(), Map(), None, baseTag)
   
   def unnestNoOpt: CExpr = Unnester.unnest(this.normalize)(Nil, Nil, None)
   def unnest: CExpr = Optimizer.applyAll(unnestNoOpt)
@@ -120,7 +121,7 @@ trait Query extends Materialization
     // println("RUNNING SHREDDED PIPELINE:\n")
     // println(quote(matInput.program))
     val inputC = normalizer.finalize(translate(matInput.program)).asInstanceOf[CExpr]
-    val inputInitPlan = BatchUnnester.unnest(inputC)(Map(), Map(), None)
+    val inputInitPlan = BatchUnnester.unnest(inputC)(Map(), Map(), None, baseTag)
     val inputPlan = BatchOptimizer.push(compiler.finalize(inputInitPlan).asInstanceOf[CExpr])
     println(Printer.quote(inputPlan))
     val anfBase = new BaseDFANF{}
@@ -132,7 +133,7 @@ trait Query extends Materialization
     println(quote(this.program))
     println(quote(mat.program))
     val calc = normalizer.finalize(translate(mat.program)).asInstanceOf[CExpr]
-    val initPlan = BatchUnnester.unnest(calc)(Map(), Map(), None)
+    val initPlan = BatchUnnester.unnest(calc)(Map(), Map(), None, baseTag)
     val plan = BatchOptimizer.push(compiler.finalize(initPlan).asInstanceOf[CExpr])
     println(Printer.quote(plan))
     val sanfBase = new BaseDFANF{}
@@ -143,7 +144,7 @@ trait Query extends Materialization
     val usplan = if (unshredRun){
       val unshredProg = unshred(optShredded, mat.ctx)
       val uncalc = normalizer.finalize(translate(unshredProg)).asInstanceOf[CExpr]
-      val uinitPlan = BatchUnnester.unnest(uncalc)(Map(), Map(), None)
+      val uinitPlan = BatchUnnester.unnest(uncalc)(Map(), Map(), None, baseTag)
       val uplan = compiler.finalize(uinitPlan).asInstanceOf[CExpr]
       println(Printer.quote(uplan))
       val uanfBase = new BaseDFANF{}
@@ -199,7 +200,7 @@ trait Query extends Materialization
     println("RUNNING SHREDDED PIPELINE:\n")
     println(quote(matProg))
     val ncalc = normalizer.finalize(translate(matProg)).asInstanceOf[CExpr]
-    val initPlan = BatchUnnester.unnest(ncalc)(Map(), Map(), None)
+    val initPlan = BatchUnnester.unnest(ncalc)(Map(), Map(), None, baseTag)
     val plan = BatchOptimizer.push(compiler.finalize(initPlan).asInstanceOf[CExpr])
     println(Printer.quote(plan))
     val anfBase = new BaseDFANF{}
@@ -209,7 +210,7 @@ trait Query extends Materialization
     //shredded pipeline for unshredding 
     val usplan = if (unshredRun){
       val uncalc = normalizer.finalize(translate(ushred)).asInstanceOf[CExpr]
-      val uinitPlan = BatchUnnester.unnest(uncalc)(Map(), Map(), None)
+      val uinitPlan = BatchUnnester.unnest(uncalc)(Map(), Map(), None, baseTag)
       val uplan = compiler.finalize(uinitPlan).asInstanceOf[CExpr]
       println(Printer.quote(uplan))
       val uanfBase = new BaseDFANF{}

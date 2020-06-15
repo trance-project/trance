@@ -76,11 +76,21 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     else vs.map(generate(_)).mkString("(", ",", ")")
   }
 
-  private def matchOption(v: Variable, attr: String): String = 
+  private def matchOption(v: Variable, attr: String): String = {
     v.tp.attrs(attr) match {
-      case OptionType(otp) => s"${v.name} => ${v.name}.$attr match { case Some($attr) => $attr; case _ => ${zero(otp)} }"
+      case OptionType(otp) => 
+        s"${v.name} => ${v.name}.$attr match { case Some($attr) => $attr; case _ => ${zero(otp)} }"
       case _ => s"${v.name} => ${v.name}.$attr"
     }
+  }
+
+  private def matchOption(v: Variable, attr: String, rattr: Double): String = {
+    v.tp.attrs(attr) match {
+      case OptionType(otp) => 
+        s"${v.name} => ${v.name}.$attr match { case Some($attr) => $rattr; case _ => 0.0 }"
+      case _ => s"${v.name} => ${v.name}.$attr"
+    }
+  }
 
   // v is an attribute that adjusts the variable naming in the 
   // generator
@@ -161,35 +171,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
     case FlatDict(e1) => s"${generate(e1)}"
     case GroupDict(e1) => generate(e1) 
-
-    /** Unshredding lookup, though cogroup does not use partitioning 
-      * directly like a join it performs better overall
-      */
-    
-    case ep @ DFProject(in, v, pat:Record, fields) if unshred =>
-      
-      handleType(pat.tp)
-      val nrec = generateType(pat.tp)    
-      
-      ep.makeCols.head match {
-        case (col, lu @ CLookup(Project(_, lbl), dict)) => 
-
-          val gv = generate(v)
-          val gdict = s"${generate(dict)}.unionGroupByKey(x => x._1)"
-
-          val tup = dict.tp.asInstanceOf[MatDictCType].valueTp.tp
-          val rec = getRecord(generateType(tup), gv, tup.attrs)
-          val frec = getRecord(nrec, gv, pat.fields, col = col)
-
-          s"""|${generate(in)}.cogroup($gdict, $gv => $gv.$lbl)(
-              |   (_, ve1, ve2) => {
-              |     val $col = ve2.map($gv => $rec).toSeq
-              |     ve1.map($gv => $frec)
-              |   }).as[$nrec]
-              |""".stripMargin
-        
-        case _ => sys.error("Unsupported expression in unshredding.")
-      }
     
     case DFProject(in, v, Constant(true), Nil) => generate(in)
 
@@ -325,7 +306,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
     // Nest - Join => CoGroup
     // if value contains only attributes from right relation
-    case Bind(vj, join:JoinOp, Bind(nv, nd @ DFNest(in, v, key, value, filter, nulls), e2)) 
+    // note this also handles lookup in unshredding
+    case Bind(vj, join:JoinOp, Bind(nv, nd @ DFNest(in, v, key, value @ Record(fs), filter, nulls, tag), e2)) 
       if optLevel == 2 && (ext.collect(value) subsetOf join.v2.tp.attrs.keySet) && join.isEquiJoin => 
 
       val (p1, p2) = join.cond match {
@@ -339,7 +321,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
       handleType(nd.tp.tp)
       val nrec = generateType(nd.tp.tp)
-      val frec = getRecord(nrec, gv3, nd.tp.attrs, "_2", "grp")
+      val frec = getRecord(nrec, gv3, nd.tp.attrs, tag, "grp")
 
       val gvalue = accessOption(value, join.v2)
       val leftMap = join.jtype match {
@@ -356,13 +338,34 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |${generate(e2)}
           |""".stripMargin
 
-    case en @ DFNest(in, v, key, value, filter, nulls) =>
+    // primitive monoid
+    case en @ DFNest(in, v, key, Constant(c), Record(fs), nulls, tag) =>
+      handleType(en.tp.tp)
+      val intp = generateType(in.tp.asInstanceOf[BagCType].tp)
+      val gtp = generateType(en.tp.tp)
+
+      val gv = generate(v)
+      val rkey = Record(key.map(k => k -> Project(v, k)).toMap)
+      val rvalues = fs.keySet.map(vs => 
+        s"typed.sum[$intp](${matchOption(v, vs, c.asInstanceOf[Double])})\n").toList.mkString("agg(", ",", ")")
+
+      val v2 = generate(Variable.fresh(StringType))
+      val nrec = en.tp.tp.attrs.map(k => 
+        if (k._1 == tag) s"$v2._2" else s"$v2._1.${k._1}").mkString(s"$gtp(", ", ", ")")
+
+      s"""|${generate(in)}.groupByKey($gv => ${generate(rkey)})
+          | .$rvalues.mapPartitions{ it => it.map{ $v2 =>
+          |   $nrec
+          |}}.as[$gtp]
+          |""".stripMargin
+
+    case en @ DFNest(in, v, key, value, filter, nulls, tag) =>
       
       val gv = generate(v)
       val rkey = Record(key.map(k => k -> Project(v, k)).toMap)
       val kv = Variable("key", rkey.tp)
       val grpv = Variable("grp", BagCType(value.tp.unouter))
-      val frec = Record(en.tp.tp.attrs.map(k => if (k._1 == "_2") k._1 -> grpv 
+      val frec = Record(en.tp.tp.attrs.map(k => if (k._1 == tag) k._1 -> grpv 
         else k._1 -> Project(kv, k._1)).toMap)
       
       s"""|${generate(in)}.groupByKey($gv => ${generate(rkey)}).mapGroups{
@@ -376,8 +379,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           | }.as[${generateType(frec.tp)}]
           |""".stripMargin
 
-    case er @ DFReduceBy(in, v, key, value) => 
-
+    case er @ DFReduceBy(in, v, key, value) =>
       handleType(er.tp.tp)
       val intp = generateType(in.tp.asInstanceOf[BagCType].tp)
       val gtp = generateType(er.tp.tp)

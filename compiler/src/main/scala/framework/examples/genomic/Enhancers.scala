@@ -117,5 +117,78 @@ object GeneEnhancers extends Enhancers {
 
 }
 
+object GeneEnhancersMin extends Enhancers {
+
+  val name = "GeneEnhancersMin"
+
+  val query = ForeachUnion(gene, genes, 
+      Singleton(Tuple("gene_id" -> gene("name"), "gene_name" -> gene("alias_symbol"),
+        "cpEnhancers" -> Count(ForeachUnion(cpr, cpEnhancer, 
+          IfThenElse(Cmp(OpEq, gene("name"), cpr("gene_id")), 
+            Singleton(Tuple("gene_id" -> cpr("gene_id")))))),
+        "gzEnhancers" -> Count(ForeachUnion(gzr, gzEnhancer, 
+          IfThenElse(Cmp(OpEq, gene("name"), gzr("gene_id")), Singleton(Tuple("gene_id" -> gzr("gene_id")))))),
+        "capEnhancers" -> Count(ForeachUnion(capr, capEnhancers, 
+          IfThenElse(Cmp(OpEq, gene("name"), capr("gene_id")), Singleton(Tuple("gene_id" -> capr("gene_id")))))),
+        "fantomEnhancers" -> Count(ForeachUnion(fanr, fantomEnhancers, 
+          IfThenElse(Cmp(OpEq, gene("alias_symbol"), fanr("gene_name")), Singleton(Tuple("gene_name" -> fanr("gene_name"))))))
+        )))
+
+  val program = Program(Assignment(name, query))
+
+}
+
+
+object GeneEnhancersReduce extends Enhancers {
+
+  val name = "GeneEnhancersReduce"
+
+  val query = ForeachUnion(gene, genes, 
+      Singleton(Tuple("gene_id" -> gene("name"), "gene_name" -> gene("alias_symbol"),
+        "cpEnhancers" -> ReduceByKey(ForeachUnion(cpr, cpEnhancer, 
+          IfThenElse(Cmp(OpEq, gene("name"), cpr("gene_id")), 
+            Singleton(Tuple("gene_id" -> cpr("gene_id"), "cnt" -> Const(1, IntType))))), List("gene_id"), List("cnt")),
+        "gzEnhancers" -> ReduceByKey(ForeachUnion(gzr, gzEnhancer, 
+          IfThenElse(Cmp(OpEq, gene("name"), gzr("gene_id")), 
+            Singleton(Tuple("gene_id" -> gzr("gene_id"), "cnt" -> Const(1, IntType))))), List("gene_id"), List("cnt")),
+        "capEnhancers" -> ReduceByKey(ForeachUnion(capr, capEnhancers, 
+          IfThenElse(Cmp(OpEq, gene("name"), capr("gene_id")), 
+            Singleton(Tuple("gene_id" -> capr("gene_id"), "cnt" -> Const(1, IntType))))), List("gene_id"), List("cnt")),
+        "fantomEnhancers" -> ReduceByKey(ForeachUnion(fanr, fantomEnhancers, 
+          IfThenElse(Cmp(OpEq, gene("alias_symbol"), fanr("gene_name")), 
+            Singleton(Tuple("gene_name" -> fanr("gene_name"), "cnt" -> Const(1, IntType))))), List("gene_name"), List("cnt"))
+        )))
+
+  val program = Program(Assignment(name, query))
+
+}
+
+/** ReduceByKey test, when key is empty this should behave similar to count
+  *
+  */
+object GeneEnhancersReduce2 extends Enhancers {
+
+  val name = "GeneEnhancersReduce2"
+
+  val query = ForeachUnion(gene, genes, 
+      Singleton(Tuple("gene_id" -> gene("name"), "gene_name" -> gene("alias_symbol"),
+        "cpEnhancers" -> ReduceByKey(ForeachUnion(cpr, cpEnhancer, 
+          IfThenElse(Cmp(OpEq, gene("name"), cpr("gene_id")), 
+            Singleton(Tuple("gene_id" -> cpr("gene_id"))))), Nil, List("gene_id")),
+        "gzEnhancers" -> ReduceByKey(ForeachUnion(gzr, gzEnhancer, 
+          IfThenElse(Cmp(OpEq, gene("name"), gzr("gene_id")), 
+            Singleton(Tuple("gene_id" -> gzr("gene_id"))))), Nil, List("gene_id")),
+        "capEnhancers" -> ReduceByKey(ForeachUnion(capr, capEnhancers, 
+          IfThenElse(Cmp(OpEq, gene("name"), capr("gene_id")), 
+            Singleton(Tuple("gene_id" -> capr("gene_id"))))), Nil, List("gene_id")),
+        "fantomEnhancers" -> ReduceByKey(ForeachUnion(fanr, fantomEnhancers, 
+          IfThenElse(Cmp(OpEq, gene("alias_symbol"), fanr("gene_name")), 
+            Singleton(Tuple("gene_name" -> fanr("gene_name"))))), Nil, List("gene_name"))
+        )))
+
+  val program = Program(Assignment(name, query))
+
+}
+
 
 

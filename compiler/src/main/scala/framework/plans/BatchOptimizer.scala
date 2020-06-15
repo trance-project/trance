@@ -44,7 +44,7 @@ object BatchOptimizer extends Extensions {
       val rv = Variable.fromBag(v2.name, rpin.tp)
       DFOuterJoin(lpin, lv, rpin, rv, cond, fields)
 
-    case DFNest(in, v, key, value, filter, nulls) => 
+    case DFNest(in, v, key, value, filter, nulls, ctag) => 
       // adjust key
       val indices = key.filter(k => k.contains("index")).toSet
       val nkey0 = (key.toSet & fs) ++ indices 
@@ -52,7 +52,7 @@ object BatchOptimizer extends Extensions {
 
       val pin = push(in, nkey ++ value.inputColumns ++ fs)
       val nv = Variable.fromBag(v.name, pin.tp)
-      DFNest(pin, nv, nkey.toList, value, filter, nulls)
+      DFNest(pin, nv, nkey.toList, value, filter, nulls, ctag)
 
     case DFReduceBy(e1 @ DFProject(in, v, filter:Record, fields), v2, key, value) =>
       // adjust key
