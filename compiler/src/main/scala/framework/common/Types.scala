@@ -20,6 +20,8 @@ sealed trait Type { self =>
     case LabelType(fs) => fs
     case RecordCType(ms) => ms
     case BagCType(ms) => ms.attrs
+    case MatDictCType(LabelType(fs), bag) if fs.isEmpty => 
+      Map("_1" -> LongType) ++ bag.attrs
     case MatDictCType(LabelType(ms), bag) => 
       val lblType = ms.head._2
       Map("_1" -> lblType) ++ bag.attrs
