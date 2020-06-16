@@ -45,6 +45,8 @@ case class DFOuterUnnest(in: CExpr, v: Variable, path: String, v2: Variable, fil
     BagCType(RecordCType((v.tp.attrs - path) ++ index).merge(v2.tp.outer).project(fields))
 }
 
+/** Join operators **/
+
 trait JoinOp extends CExpr {
 
   def tp: BagCType
@@ -77,8 +79,11 @@ case class DFOuterJoin(left: CExpr, v: Variable, right: CExpr, v2: Variable, con
   val jtype = "left_outer"
 }
 
-case class DFNest(in: CExpr, v: Variable, key: List[String], value: CExpr, filter: CExpr, nulls: List[String]) extends CExpr {
-  def tp: BagCType = BagCType(RecordCType(v.tp.project(key).attrTps ++ Map("_2" -> BagCType(value.tp.unouter))))
+case class DFNest(in: CExpr, v: Variable, key: List[String], value: CExpr, filter: CExpr, nulls: List[String], ctag: String) extends CExpr {
+  def tp: BagCType = value.tp match {
+    case _:NumericType => BagCType(RecordCType(v.tp.project(key).attrTps ++ Map(ctag -> DoubleType)))
+    case _ => BagCType(RecordCType(v.tp.project(key).attrTps ++ Map(ctag -> BagCType(value.tp.unouter))))
+  }
 }
 
 case class DFReduceBy(in: CExpr, v: Variable, keys: List[String], values: List[String]) extends CExpr {

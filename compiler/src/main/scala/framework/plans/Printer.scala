@@ -98,8 +98,8 @@ object Printer {
     case AddIndex(e1, name) => s"INDEX(${quote(e1)})"
     case DFProject(e1, v, p, fields) => 
       s"""|PROJECT[${fields.mkString(",")}, ${quote(p)}](${quote(e1)})""".stripMargin
-    case DFNest(e1, v, keys, value, filter, nulls) =>
-      s"""|NEST^{${quote(value)}, ${quote(filter)}}_{U, ${keys.mkString(",")} / ${nulls.mkString(",")}}(${quote(e1)})""".stripMargin
+    case DFNest(e1, v, keys, value, filter, nulls, ctag) =>
+      s"""|NEST^{${quote(value)}, ${quote(filter)}, $ctag}_{U, ${keys.mkString(",")} / ${nulls.mkString(",")}}(${quote(e1)})""".stripMargin
     case DFUnnest(e1, v, path, v2, filter, fields) =>
       s"""|UNNEST[${quote(v)}.$path, ${quote(filter)}, ${fields.mkString(",")}](${quote(e1)})""".stripMargin
     case DFOuterUnnest(e1, v, path, v2, filter, fields) =>

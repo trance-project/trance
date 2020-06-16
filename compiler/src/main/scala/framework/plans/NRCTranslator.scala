@@ -93,7 +93,7 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
         Variable(k._1, translate(k._2)) -> project(lbl, k._1)).toSeq
       bindings.foldRight(translate(e.e))((cur, acc) => Bind(cur._1, cur._2, acc))
     case Lookup(lbl, dict) => CLookup(translate(lbl), translate(dict)) 
-    case Count(e1) => comprehension(translate(e1), x => constant(true), (i: CExpr) => constant(1))
+    case Count(e1) => comprehension(translate(e1), x => constant(true), (i: CExpr) => constant(1.0))
     case DeDup(e1) => CDeDup(translate(e1)) 
     case Get(e1) => CGet(translate(e1))
     

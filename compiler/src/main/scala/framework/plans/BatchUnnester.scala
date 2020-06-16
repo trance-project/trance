@@ -10,21 +10,20 @@ import framework.common._
   */
 object BatchUnnester {
   
-  type Ctx = (Map[String, Type], Map[String, Type], Option[CExpr])
+  type Ctx = (Map[String, Type], Map[String, Type], Option[CExpr], String)
   @inline def u(implicit ctx: Ctx): Map[String, Type] = ctx._1
   @inline def w(implicit ctx: Ctx): Map[String, Type] = ctx._2
   @inline def E(implicit ctx: Ctx): Option[CExpr] = ctx._3
+  @inline def tag(implicit ctx: Ctx): String = ctx._4
 
   def isNestedComp(e: CExpr): Boolean = e match {
     case Variable(_, BagCType(_)) => false
     case c:Comprehension => true
     case c:CReduceBy => true
     case c:CGroupBy => true
+    case c:CLookup => true
     case _ => false
   }
-  
-  def isBaseNest(fs: Map[String, CExpr]): Boolean = 
-    fs.find(f => f._2 match { case Project(_, "_2") => true; case _ => false}).nonEmpty
 
   val extensions = new Extensions{}
   import extensions._
@@ -47,27 +46,38 @@ object BatchUnnester {
     case Comprehension(e1, v, p, e2) if u.isEmpty && w.isEmpty && E.isEmpty =>
       val ne1 = AddIndex(e1, getName(e1)+"_index")
       val nv = Variable(v.name, ne1.tp.tp)
-      unnest(e2)((u, nv.tp.attrs, Some(Select(ne1, nv, replace(p, nv), nv))))
+      unnest(e2)((u, nv.tp.attrs, Some(Select(ne1, nv, replace(p, nv), nv)), tag))
 
     case c @ Comprehension(e1 @ Project(e0, f), v, p, e2) if !w.isEmpty =>
       assert(!E.isEmpty)
 
       if (u.isEmpty)
-        unnest(e2)((u, flat((w - f), v.tp), Some(DFUnnest(E.get, wvar(w), f, v, p, Nil))))
+        unnest(e2)((u, flat((w - f), v.tp), Some(DFUnnest(E.get, wvar(w), f, v, p, Nil)), tag))
       else{
         val ne1 = AddIndex(E.get, f+"_index")
         val nv = Variable(v.name, ne1.tp.tp)
         val nw = flat(w - f, nv.tp)
         val nE = DFOuterUnnest(ne1, wvar(nw), f, v, p, Nil)
-        unnest(e2)((u - f), flat(nw - f, v.tp.outer), Some(nE))
+        unnest(e2)((u - f), flat(nw - f, v.tp.outer), Some(nE), tag)
       }
+
+    case e1 @ CLookup(lbl, dict) => 
+      assert(!E.isEmpty)
+      val nv = Variable.fresh(e1.tp.tp)
+      unnest(Comprehension(e1, nv, Constant(true), Sng(nv)))((u, w, E, tag))
 
     case Comprehension(e1 @ CLookup(Project(_, p1), dict), v1, Constant(true), e2) => 
       assert(!E.isEmpty)
-      val fields = (w.keySet ++ v1.tp.attrs.keySet) -- Set(p1, "_1")
+      val fields = ((w.keySet - p1) ++ (v1.tp.attrs.keySet - "_1"))
       val nv = wvar(w)
       val nE = DFOuterJoin(E.get, nv, dict, v1, Equals(Project(nv, p1), Project(v1, "_1")), fields.toList)
-      unnest(e2)((u, flat(w, v1.tp), Some(nE)))
+      unnest(e2)((u, flat(w, v1.tp), Some(nE), tag))
+
+    case Comprehension(e1:Comprehension, v, p, Constant(c)) => unnest(e1)((u, w, E, tag)) match {
+      case DFNest(e2, v2, keys2, values2, filt, nulls, ntag) => 
+        DFNest(e2, v2, keys2, Constant(c), values2, nulls, ntag)
+      case _ => ???
+    }
 
     case Comprehension(e1 @ InputRef(name, _), v, cond, e2) if !w.isEmpty =>
       assert(!E.isEmpty)
@@ -76,16 +86,20 @@ object BatchUnnester {
       val (nw, nE) = 
         if (u.isEmpty) (flat(w, nv.tp), DFJoin(E.get, wvar(w), Select(right, nv, Constant(true), nv), nv, cond, Nil))
         else (flat(w, nv.tp.outer), DFOuterJoin(E.get, wvar(w), Select(right, nv, Constant(true), nv), nv, cond, Nil))
-      unnest(e2)((u, nw, Some(nE)))
+      unnest(e2)((u, nw, Some(nE), tag))
 
     case s @ If(cnd, Sng(t @ Record(fs)), nextIf) =>
-      handleLevel(fs, x => If(cnd, Sng(x), nextIf))((u, w, E))
+      handleLevel(fs, x => If(cnd, Sng(x), nextIf))((u, w, E, tag))
 
     case s @ Sng(t @ Record(fs)) if !w.isEmpty =>
-      handleLevel(fs, identity)((u, w, E))
+      handleLevel(fs, identity)((u, w, E, tag))
 
-    case CReduceBy(e1, v1, keys, values) => unnest(e1)((u, w, E)) match {
-      case DFNest(e2, v2, keys2, values2, filter, nulls) =>
+    case Sng(v @ Variable(_, tp)) if !w.isEmpty => 
+      val fs = tp.attrs.map(k => k._1 -> Project(v, k._1))
+      handleLevel(fs, identity)((u, w, E, tag))
+
+    case CReduceBy(e1, v1, keys, values) => unnest(e1)((u, w, E, tag)) match {
+      case DFNest(e2, v2, keys2, values2, filter, nulls, ctag) =>
         // adjust input for reduce operation
         val pattern = replace(extendIf(keys2, values2, v2), v2)
         val reduceInput = DFProject(e2, v2, pattern, Nil)
@@ -94,17 +108,18 @@ object BatchUnnester {
         val crd = DFReduceBy(reduceInput, nv1, keys2 ++ keys, values)
         val nv2 = wvar(v2.tp.attrs ++ crd.tp.attrs)
         val nr = Record((keys ++ values).map(k => k -> Project(nv2, k)).toMap)
-        DFNest(crd, nv2, keys2, nr, filter, nulls)
+        DFNest(crd, nv2, keys2, nr, filter, nulls, ctag)
 
       case e2 => 
         DFReduceBy(e2, v1, keys, values)
     }
 
-    case Bind(x, e1, e2) => Bind(x, unnest(e1)((u, w, E)), unnest(e2)((u, w, E)))
-    case FlatDict(e1) => FlatDict(unnest(e1)((u, w, E)))
-    case GroupDict(e1) => GroupDict(unnest(e1)((u, w, E)))
-    case LinearCSet(exprs) => LinearCSet(exprs.map(unnest(_)((u, w, E))))
-    case CNamed(n, exp) => CNamed(n, unnest(exp)((u, w, E)))
+    case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E, tag)))
+    case Bind(x, e1, e2) => Bind(x, unnest(e1)((u, w, E, tag)), unnest(e2)((u, w, E, tag)))
+    case FlatDict(e1) => FlatDict(unnest(e1)((u, w, E, tag)))
+    case GroupDict(e1) => GroupDict(unnest(e1)((u, w, E, tag)))
+    case LinearCSet(exprs) => LinearCSet(exprs.map(unnest(_)((u, w, E, tag))))
+    case CNamed(n, exp) => CNamed(n, unnest(exp)((u, w, E, tag)))
     case _ => e
 
   }
@@ -123,15 +138,15 @@ object BatchUnnester {
   def handleLevel(fs: Map[String, CExpr], exp: CExpr => CExpr)(implicit ctx: Ctx): CExpr = {
    fs.find(c => isNestedComp(c._2)) match {
     case Some((key, value)) =>
-      val nE = unnest(value)((w, w, E))
+      val nE = unnest(value)((w, w, E, key))
       val nv = Variable.freshFromBag(nE.tp)
-      val nr = Record(fs.map(f => f._1 -> replace(f._2, nv)) + (key -> Project(nv, "_2")))
+      val nr = Record(fs.map(f => f._1 -> replace(f._2, nv)) + (key -> Project(nv, key)))
       val nw = w + (key -> nv.tp)
-      unnest(exp(Sng(nr)))((u, nw, Some(nE)))
+      unnest(exp(Sng(nr)))((u, nw, Some(nE), tag))
     case y if u.isEmpty => 
       DFProject(E.get, wvar(w), exp(Record(fs)), Nil)
     case _ => 
-      DFNest(E.get, wvar(w), u.keys.toList, exp(Record(fs)), Constant(true), (w.keySet -- u.keySet).toList)
+      DFNest(E.get, wvar(w), u.keys.toList, exp(Record(fs)), Constant(true), (w.keySet -- u.keySet).toList, tag)
     }   
   }
 

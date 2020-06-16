@@ -24,7 +24,7 @@ object SkewDataset{
 
     // TODO replace with JSON
     def print: Unit = {
-      println(left.take(10).toList.map(f => 
+      println(left.take(100).toList.map(f => 
         sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
     }
     

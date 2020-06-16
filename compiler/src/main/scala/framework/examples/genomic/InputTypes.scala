@@ -1,7 +1,7 @@
 package framework.examples.genomic
 
 import framework.common._
-import framework.nrc._
+import framework.nrc.MaterializeNRC
 
 trait VCF extends MaterializeNRC {
 
@@ -57,14 +57,14 @@ trait TGenomesMetadata extends MaterializeNRC {
       s"""|val tgenomesLoader = new TGenomesLoader(spark)
           $metadata
           |val IBag_Metadata__D = Metadata
-          |IBag_Metadata__D.cache
-          |IBag_Metadata__D.count
+          |//IBag_Metadata__D.cache
+          |//IBag_Metadata__D.count
           |""".stripMargin
     else
       s"""|val tgenomesLoader = new TGenomesLoader(spark)
           $metadata
-          |Metadata.cache
-          |Metadata.count
+          |//Metadata.cache
+          |//Metadata.count
           |""".stripMargin
 
   }

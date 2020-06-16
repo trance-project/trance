@@ -43,10 +43,6 @@ trait SparkTypeHandler {
     */
   def generateTypeDef(tp: Type): String = tp match {
     case LabelType(fs) => generateTypeDef(RecordCType(fs))
-    case TupleType(fs) => 
-      val name = types(tp)
-      val fsize = fs.size
-      s"case class $name(${fs.map(x => s"${kvName(x._1)(fsize)}: ${generateType(x._2)}").mkString(", ")})"
     case RecordCType(fs) =>
       val name = types(tp)
       val fsize = fs.size
@@ -60,14 +56,13 @@ trait SparkTypeHandler {
     * @return string representing the native Scala type
     */
   def generateType(tp: Type): String = tp match {
-    case TupleType(fs) if types.contains(tp) => types(tp)
     case RecordCType(fs) if fs.isEmpty => "Unit"
     case LabelType(fs) if fs.isEmpty => "Long"
     //case RecordCType(fs) if fs.keySet == Set("_1", "_2") => fs.generateType(fs._2).mkString("(",",",")")
     // case RecordCType(ms) if ms.values.toList.contains(EmptyCType) => ""
     case RecordCType(_) if types.contains(tp) => types(tp)
     case LabelType(fs) if fs.size == 1 => generateType(fs.head._2)
-    // case LabelType(fs) => generateType(RecordCType(fs))
+    case LabelType(fs) => generateType(RecordCType(fs))
     case IntType => "Int"
     case StringType => "String"
     case BoolType => "Boolean"
@@ -89,17 +84,6 @@ trait SparkTypeHandler {
     case _ => sys.error("not supported type " + tp)
   }
 
-  def generateSqlType(tp: Type): String = tp match {
-    case BagType(t) => generateSqlType(t)
-    case TupleType(ms) => ms.map(m => 
-        s"""StructField("${m._1}", ${generateSqlType(m._2)})"""
-      ).mkString("Array(", ",\n",")")
-    case StringType => "StringType"
-    case IntType => "IntegerType"
-    case DoubleType => "DoubleType"
-    case _ => sys.error("not supported")
-  }
-
    /** Updates the type map with records and record attribute types 
     * from the generated plan.
     *
@@ -109,22 +93,14 @@ trait SparkTypeHandler {
   def handleType(tp: Type, givenName: Option[String] = None): Unit = {
     if(!types.contains(tp)) {
       tp match {
-        // only top level types for now
-        case TupleType(fs) => 
-          fs.foreach(f => handleType(f._2))
-          val name = givenName.getOrElse("Loader"+java.util.UUID.randomUUID().toString.replace("-", ""))
-          types = types + (tp -> name)
-          typelst = typelst :+ tp
         case RecordCType(fs) =>
           fs.foreach(f => handleType(f._2))
           val name = givenName.getOrElse("Record"+java.util.UUID.randomUUID().toString.replace("-", ""))//"Record" + Variable.newId)
           types = types + (tp -> name)
           typelst = typelst :+ tp
-        case BagCType(tp) =>
-          handleType(tp, givenName)
+        case BagCType(tp) => handleType(tp, givenName)
         case LabelType(fs) if fs.size == 1 => handleType(fs.head._2)
-        // if !fs.isEmpty =>
-        //   handleType(RecordCType(fs))
+        case LabelType(fs) if !fs.isEmpty => handleType(RecordCType(fs))
         case MatDictCType(lbl, dict) => handleType(dict)
         case BagDictCType(flat @ BagCType(TTupleType(fs)), dict) =>
           // val nid = Variable.newId

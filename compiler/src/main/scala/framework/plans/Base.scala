@@ -62,7 +62,7 @@ trait Base {
   def dfounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep
   def dfjoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep
   def dfojoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep
-  def dfnest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String]): Rep
+  def dfnest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String], ctag: String): Rep
   def dfreduceby(in: Rep, key: List[String], values: List[String]): Rep
 }
 
@@ -184,7 +184,7 @@ trait BaseStringify extends Base{
   def dfounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = ""
   def dfjoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep = ""
   def dfojoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep = ""
-  def dfnest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String]): Rep = ""
+  def dfnest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String], ctag: String): Rep = ""
   def dfreduceby(in: Rep, key: List[String], values: List[String]): Rep = ""
 }
 
@@ -339,10 +339,10 @@ trait BaseCompiler extends Base {
     val v2 = Variable.freshFromBag(right.tp)
     DFOuterJoin(left, v, right, v2, cond(v, v2), fields)
   }
-  def dfnest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String]): Rep = {
+  def dfnest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String], ctag: String): Rep = {
     val v = Variable.freshFromBag(in.tp)
     val nr = value(v)
-    DFNest(in, v, key, nr, filter(v), nr.inputColumns.toList)
+    DFNest(in, v, key, nr, filter(v), nr.inputColumns.toList, ctag)
   }
   def dfreduceby(in: Rep, key: List[String], values: List[String]): Rep = {
     val v = Variable.freshFromBag(in.tp)
@@ -394,6 +394,7 @@ trait BaseDFANF extends BaseANF {
           stateInv = stateInv + (v -> e)
           Def(v)
         }
+        // make these operator types
         e match {
           case r:Reduce => updateState(r)
           case s:Select => updateState(s)
@@ -414,6 +415,7 @@ trait BaseDFANF extends BaseANF {
           case dfn:DFNest => updateState(dfn)
           case dfr:DFReduceBy => updateState(dfr)
           case dfi:AddIndex => updateState(dfi)
+          case cd:CDeDup => updateState(cd)
           case _ => Def(e)
       }
     }
@@ -574,8 +576,8 @@ trait BaseANF extends Base {
     compiler.dfjoin(left, right, cond, fields)
   def dfojoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep = 
     compiler.dfojoin(left, right, cond, fields)
-  def dfnest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String]): Rep = 
-    compiler.dfnest(in, key, value, filter, nulls)
+  def dfnest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String], ctag: String): Rep = 
+    compiler.dfnest(in, key, value, filter, nulls, ctag)
   def dfreduceby(in: Rep, key: List[String], values: List[String]): Rep = 
     compiler.dfreduceby(in, key, values)
 
@@ -706,9 +708,9 @@ class Finalizer(val target: Base){
     case DFOuterJoin(left, v, right, v2, cond, fields) =>
       target.dfojoin(finalize(left), finalize(right), 
         (r: target.Rep, s: target.Rep) => withMapList(List((v,r), (v2,s)))(finalize(cond)), fields)
-    case DFNest(in, v, key, value, filter, nulls) =>
+    case DFNest(in, v, key, value, filter, nulls, ctag) =>
       target.dfnest(finalize(in), key, (r: target.Rep) => withMap(v -> r)(finalize(value)), 
-        (r: target.Rep) => withMap(v -> r)(finalize(filter)), nulls)
+        (r: target.Rep) => withMap(v -> r)(finalize(filter)), nulls, ctag)
     case DFReduceBy(in, v, keys, values) => 
       target.dfreduceby(finalize(in), keys, values)
 
