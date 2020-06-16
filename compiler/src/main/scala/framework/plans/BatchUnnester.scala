@@ -26,6 +26,7 @@ object BatchUnnester {
   }
 
   val extensions = new Extensions{}
+  val normalizer = new BaseNormalizer{}
   import extensions._
 
   def flat(tp1: Map[String, Type], tp2: Type): Map[String, Type] =
@@ -66,11 +67,12 @@ object BatchUnnester {
       val nv = Variable.fresh(e1.tp.tp)
       unnest(Comprehension(e1, nv, Constant(true), Sng(nv)))((u, w, E, tag))
 
-    case Comprehension(e1 @ CLookup(Project(_, p1), dict), v1, Constant(true), e2) => 
+    case Comprehension(e1 @ CLookup(Project(_, p1), dict), v1, filt, e2) => 
       assert(!E.isEmpty)
       val fields = ((w.keySet - p1) ++ (v1.tp.attrs.keySet - "_1"))
       val nv = wvar(w)
-      val nE = DFOuterJoin(E.get, nv, dict, v1, Equals(Project(nv, p1), Project(v1, "_1")), fields.toList)
+      val joinCond = normalizer.and(Equals(Project(nv, p1), Project(v1, "_1")), filt)
+      val nE = DFOuterJoin(E.get, nv, dict, v1, joinCond, fields.toList)
       unnest(e2)((u, flat(w, v1.tp), Some(nE), tag))
 
     case Comprehension(e1:Comprehension, v, p, Constant(c)) => unnest(e1)((u, w, E, tag)) match {
