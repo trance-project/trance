@@ -18,27 +18,31 @@ import framework.examples.genomic.OddsRatio
 //    }
 //}
 
-//object TestApp extends App {
-//    override def main(args: Array[String]){
-//
-////        val pathout =
-//        AppWriter.flatDataset(OddsRatio, "../executor/spark/src/main/scala/sparkutils/generated/", "test")
-//
-//    }
-//}
+/*
+* Example OddRatio Test Application
+* */
+object TestApp1 extends App {
+    override def main(args: Array[String]){
+
+//        AppWriter.flatDataset(OddsRatio, "test")
+        AppWriter.shredDataset(OddsRatio, "test1", unshred = true)
+    }
+}
 
 
-/** Example Test Application
+/** Example Genomic Test Application
   *
   */
-object TestApp1 extends App {
+object TestApp2 extends App {
 
     override def main(args: Array[String]){
 //        AppWriter.flatDataset(GenomicQuery1, "test")
-        // focuse on flatDataset for now
 //         AppWriter.shredDataset(GenomicQuery1, "test", unshred = true)
-//        AppWriter.flatDataset(Step2, "test")
-        AppWriter.shredDataset(Step2, label = "test", unshred = true)
+
+
+        // query 6.1：{(population_name: String, samples: {(name: String, variants: {(...)})} )}
+//        AppWriter.flatDataset(Step2, "test1")
+        AppWriter.shredDataset(Step2, label = "test2", unshred = true)
 
     }
 }
