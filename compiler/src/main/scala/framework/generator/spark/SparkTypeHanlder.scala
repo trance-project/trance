@@ -62,7 +62,7 @@ trait SparkTypeHandler {
     // case RecordCType(ms) if ms.values.toList.contains(EmptyCType) => ""
     case RecordCType(_) if types.contains(tp) => types(tp)
     case LabelType(fs) if fs.size == 1 => generateType(fs.head._2)
-    // case LabelType(fs) => generateType(RecordCType(fs))
+    case LabelType(fs) => generateType(RecordCType(fs))
     case IntType => "Int"
     case StringType => "String"
     case BoolType => "Boolean"
@@ -98,11 +98,9 @@ trait SparkTypeHandler {
           val name = givenName.getOrElse("Record"+java.util.UUID.randomUUID().toString.replace("-", ""))//"Record" + Variable.newId)
           types = types + (tp -> name)
           typelst = typelst :+ tp
-        case BagCType(tp) =>
-          handleType(tp, givenName)
+        case BagCType(tp) => handleType(tp, givenName)
         case LabelType(fs) if fs.size == 1 => handleType(fs.head._2)
-        // if !fs.isEmpty =>
-        //   handleType(RecordCType(fs))
+        case LabelType(fs) if !fs.isEmpty => handleType(RecordCType(fs))
         case MatDictCType(lbl, dict) => handleType(dict)
         case BagDictCType(flat @ BagCType(TTupleType(fs)), dict) =>
           // val nid = Variable.newId

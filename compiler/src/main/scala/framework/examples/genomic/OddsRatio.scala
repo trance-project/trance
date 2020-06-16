@@ -152,7 +152,7 @@ object CandidateGenes extends GenomicBase {
           IfThenElse(And(Cmp(OpEq, sr("contig"), gene("chrom")),
             And(Cmp(OpGe, sr("start"), gene("start_hg19").asNumeric - flank),
               Cmp(OpGe, gene("end_hg19").asNumeric + flank, sr("start")))),
-          Singleton(Tuple("id" -> gene("name"), "name" -> gene("alias_symbol"), "strand" -> gene("strand")))))))))
+          Singleton(Tuple("gene_id" -> gene("name"), "gene_name" -> gene("alias_symbol"), "strand" -> gene("strand")))))))))
 
   val program = OddsRatio.program.asInstanceOf[CandidateGenes.Program].append(Assignment(name, query))
 

@@ -394,6 +394,7 @@ trait BaseDFANF extends BaseANF {
           stateInv = stateInv + (v -> e)
           Def(v)
         }
+        // make these operator types
         e match {
           case r:Reduce => updateState(r)
           case s:Select => updateState(s)
@@ -414,6 +415,7 @@ trait BaseDFANF extends BaseANF {
           case dfn:DFNest => updateState(dfn)
           case dfr:DFReduceBy => updateState(dfr)
           case dfi:AddIndex => updateState(dfi)
+          case cd:CDeDup => updateState(cd)
           case _ => Def(e)
       }
     }

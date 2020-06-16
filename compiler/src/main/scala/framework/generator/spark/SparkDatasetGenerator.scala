@@ -23,7 +23,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
   implicit def expToString(e: CExpr): String = generate(e)
 
   var types: Map[Type, String] = inputs
-  var encoders: Set[String] = Set()
+  var encoders: Map[String, Type] = Map()
   override val bagtype: String = "Seq"
   val ext = new Extensions{}
 
@@ -45,8 +45,17 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     * @return string representing all encoders required by the application
     */
   def generateEncoders(): String = encoders.map{
-    case r => s"implicit val encoder$r: Encoder[$r] = Encoders.product[$r]"
+    case r => 
+      s"""|implicit val encoder${r._1}: Encoder[${r._1}] = Encoders.product[${r._1}]
+          |${generateUdf(r._2)}
+          |""".stripMargin
   }.mkString("\n")
+
+  def generateUdf(tp: Type): String = {
+    val args = tp.attrs.map(t => s"${t._1}: ${generateType(t._2)}").mkString("(", ",", ")")
+    val inpts = tp.attrs.map(t => t._1).mkString(",")
+    s"val udf${generateType(tp)} = udf { $args => ${generateType(tp)}($inpts) }"
+  }
 
   /**
     * Drop a bag attribute and create an index where necessary.
@@ -108,8 +117,16 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
   }
 
   def generateReference(e: CExpr): String = e match {
-    case Project(_, f) => "col(\""+f+"\")"
-    case Label(fs) => generateReference(fs.head._2)
+    case Project(v, f) => v.tp match {
+      case LabelType(_) => s"""col("_LABEL").getField("$f")"""
+      case _ => s"""col("$f")"""
+    }
+    case Label(fs) if fs.size == 1 => generateReference(fs.head._2)
+    case Label(fs) => 
+      encoders = encoders + (generateType(e.tp) -> e.tp)
+      handleType(e.tp)
+      val rcnts = e.tp.attrs.map(f => generateReference(fs(f._1))).mkString(", ")
+      s"udf${generateType(e.tp)}($rcnts)"
     case _ => generate(e)
   }
 
@@ -132,16 +149,16 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Constant(x) => x.toString
     case Sng(e) => s"Seq(${generate(e)})"
     case CGet(e1) => s"${generate(e1)}.head"
+    case CDeDup(e1) => s"${generate(e1)}.distinct"
     case Label(fs) if fs.size == 1 => generate(fs.head._2)
     case Record(fs) => {
-      val tp:RecordCType = e.tp.asInstanceOf[RecordCType]
-      handleType(tp)
-      val rcnts = tp.attrTps.map(f => generate(fs(f._1))).mkString(", ")
-      s"${generateType(tp)}($rcnts)"
+      handleType(e.tp)
+      val rcnts = e.tp.attrs.map(f => generate(fs(f._1))).mkString(", ")
+      s"${generateType(e.tp)}($rcnts)"
     }
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
 
-    case Project(e1, "_LABEL") => generate(e1)
+    case Project(e1, "_LABEL") => s"${generate(e1)}"
     case Project(e2 @ Record(fs), field) => 
       s"${generate(e2)}.${kvName(field)(fs.size)}"
     case Project(e2, field) => s"${generate(e2)}.$field"
@@ -187,6 +204,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       // output attributes
       val newCols = pat.fields.keySet
 
+      // bug here when column is renamed to an existing column
+      // that is overrode
       val columns = pat.fields.flatMap{
         // create a new column from an old column
         case (col, Project(_, oldCol)) if col != oldCol => 
