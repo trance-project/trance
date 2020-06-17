@@ -71,6 +71,5 @@ trait GenomicSchema extends Query{
 
     val metadata = BagVarRef("metadata", BagType(metaType))
     val mr = TupleVarRef("m", metaType)
-
 }
     

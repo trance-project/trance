@@ -64,5 +64,16 @@ object TestApp4 extends App {
   override def main(args: Array[String]){
 
     AppWriter.flatDataset(Pathway_Burden, "test")
+    AppWriter.flatDataset(Pathway_Burden_Flatten, "test")
+  }
+}
+
+object TestApp5 extends App {
+
+  override def main(args: Array[String]){
+
+    AppWriter.flatDataset(Clinical_Pathway_Burden, "test")
+    AppWriter.flatDataset(Clinical_Pathway_Burden_Flatten, "test")
+
   }
 }

@@ -353,32 +353,56 @@ object Pathway_Burden extends GenomicSchema{
   val program = Program(Assignment(name, query))
 }
 
+object Pathway_Burden_Flatten extends GenomicSchema{
+  val name = "Pathway_Burden_Flatten"
+  // {sample: String, pathway:{name: String, burden: Int}} ==> {sample: String, pathway:{name: String, burden: Int}}
+  val (cnts, ac) = varset(Pathway_Burden.name, "v2", Pathway_Burden.program(Pathway_Burden.name).varRef.asInstanceOf[BagExpr])
+  val ac2 = TupleVarRef("c2", ac("pathway").asInstanceOf[BagExpr].tp.tp)
 
+  val query =
+    ForeachUnion(ac, cnts,
+      ForeachUnion(ac2, ac("pathway").asBag,
+        Singleton(Tuple("sample"-> ac("sample"), "pathway_name"-> ac2("name"), "total_burden" -> ac2("burden"))))
+    )
+  val program = Pathway_Burden.program.asInstanceOf[Pathway_Burden_Flatten.Program].append(Assignment(name, query))
+}
 
-//object Step2_1 extends GenomicSchema {
-//  val name = "ORStep2"
-//
-//  val (cnts, ac) = varset(Step1.name, "v2", Step1.program(Step1.name).varRef.asInstanceOf[BagExpr])
-//  val ac2 = TupleVarRef("c2", ac("samples").asInstanceOf[BagExpr].tp.tp)
-//  val query =
-//    ForeachUnion(ac, cnts,
-//      Singleton(Tuple("population_name" -> ac("population_name"), "samples" ->
-//        ForeachUnion(ac2, BagProject(ac, "samples"),
-//
-//          Singleton(Tuple("name" -> ac2("name"), "variants" ->                                           // variants :=
-//            ForeachUnion(gtfr, gtfs,                        // for gtfr in gtfs
-//              IfThenElse(
-//                Cmp(OpNe, ac2("call"), Const(0, IntType)) && Cmp(OpGe, ac2("start"),gtfr("g_start"))
-//                  && Cmp(OpGe, gtfr("g_end"),ac2("start")) /*&& Cmp(OpEq, gtfr("g_contig"),vr("contig"))*/,
-//                // if (...) ==> {variants attributes}
-//                Singleton(Tuple("contig" -> ac2("contig"), "start" -> ac2("start"), "reference" -> ac2("reference"), "alternate" -> ac2("alternate")))
-//              )
-//            )))
-//        )
-//
-//      ))
-//    )
-//  val program = Step1.program.asInstanceOf[Step2.Program].append(Assignment(name, query))
-//}
+object Clinical_Pathway_Burden extends GenomicSchema{
+//  {sample: String, family_id: String, population: String, gender: String, pathway:{name: String, burden: Int}}
+  val name = "Clinical_Burden"
+  val (cnts, ac) = varset(Pathway_Burden.name, "v2", Pathway_Burden.program(Pathway_Burden.name).varRef.asInstanceOf[BagExpr])
+  val ac2 = TupleVarRef("c2", ac("pathway").asInstanceOf[BagExpr].tp.tp)
 
+  val query =
+    ForeachUnion(ac, cnts,
+      ForeachUnion(mr, metadata,
+        IfThenElse(Cmp(OpEq, gr("sample"), mr("m_sample")),
+
+          Singleton(Tuple("sample"-> ac("sample"), "family_id" -> mr("family_id"), "population" -> mr("population"), "gender" -> mr("gender"),
+            "pathways"->
+              ForeachUnion(ac2, ac("pathway").asBag,
+                 Singleton(Tuple("pathway_name"-> ac2("name"), "total_burden" -> ac2("burden"))))
+          )
+          )
+    )))
+  val program = Pathway_Burden.program.asInstanceOf[Clinical_Pathway_Burden.Program].append(Assignment(name, query))
+}
+
+object Clinical_Pathway_Burden_Flatten extends GenomicSchema{
+  //  {sample: String, family_id: String, population: String, gender: String, pathway:{name: String, burden: Int}}
+  val name = "Clinical_Burden"
+  val (cnts, ac) = varset(Pathway_Burden.name, "v2", Pathway_Burden.program(Pathway_Burden.name).varRef.asInstanceOf[BagExpr])
+  val ac2 = TupleVarRef("c2", ac("pathway").asInstanceOf[BagExpr].tp.tp)
+
+  val query =
+    ForeachUnion(ac, cnts,
+      ForeachUnion(mr, metadata,
+        IfThenElse(Cmp(OpEq, gr("sample"), mr("m_sample")),
+              ForeachUnion(ac2, ac("pathway").asBag,
+                Singleton(Tuple("sample"-> ac("sample"), "family_id" -> mr("family_id"), "population" -> mr("population"), "gender" -> mr("gender"),"pathway_name"-> ac2("name"), "total_burden" -> ac2("burden"))))
+          )
+          )
+        )
+  val program = Pathway_Burden.program.asInstanceOf[Clinical_Pathway_Burden_Flatten.Program].append(Assignment(name, query))
+}
 
