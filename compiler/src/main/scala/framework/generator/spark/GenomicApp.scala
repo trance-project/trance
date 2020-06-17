@@ -40,9 +40,20 @@ object TestApp2 extends App {
 //         AppWriter.shredDataset(GenomicQuery1, "test", unshred = true)
 
 
-        // query 6.1：{(population_name: String, samples: {(name: String, variants: {(...)})} )}
+// query 6.1：{(population_name: String, samples: {(name: String, variants: {(...)})} )}
 //        AppWriter.flatDataset(Step2, "test1")
-        AppWriter.shredDataset(Step2, label = "test2", unshred = true)
+//        AppWriter.shredDataset(Step2, label = "test2", unshred = true)
 
+
+      AppWriter.flatDataset(Gene_Burden, "test")
     }
+}
+
+
+object TestApp3 extends App {
+
+  override def main(args: Array[String]){
+
+    AppWriter.flatDataset(Gene_Burden, "test")
+  }
 }

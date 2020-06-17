@@ -263,8 +263,6 @@ object Step1 extends GenomicSchema{
     // {(population, samples:{(name, call, start, contig)})}
 }
 
-
-
 object Step2 extends GenomicSchema {
     val name = "ORStep2"
 
@@ -279,7 +277,7 @@ object Step2 extends GenomicSchema {
                             ForeachUnion(gtfr, gtfs,                        // for gtfr in gtfs
                                 IfThenElse(
                                     Cmp(OpNe, ac2("call"), Const(0, IntType)) && Cmp(OpGe, ac2("start"),gtfr("g_start"))
-                                            && Cmp(OpGe, gtfr("g_end"),ac2("start")) /*&& Cmp(OpEq, gtfr("g_contig"),vr("contig"))*/,
+                                            && Cmp(OpGe, gtfr("g_end"),ac2("start")) && Cmp(OpEq, gtfr("g_contig"),vr("contig")),
                                     // if (...) ==> {variants attributes}
                                     Singleton(Tuple("contig" -> ac2("contig"), "start" -> ac2("start"), "reference" -> ac2("reference"), "alternate" -> ac2("alternate")))
                                 )
@@ -290,3 +288,61 @@ object Step2 extends GenomicSchema {
         )
     val program = Step1.program.asInstanceOf[Step2.Program].append(Assignment(name, query))
 }
+
+
+object Gene_Burden extends GenomicSchema{
+//  {(sample: String, genes: { (name: String, burden: Int) })}
+  val name = "Gene_Burden"
+  val query =
+    ForeachUnion(vr, variants,                                    // For v in Variants
+      ForeachUnion(gr, BagProject(vr, "genotypes"),       //        For g in v.genotypes union
+        Singleton(Tuple("sample" -> gr("sample"),       //          {(sample := g.sample,
+          "genes" ->
+            IfThenElse(Cmp(OpNe, gr("call"), Const(0, IntType)),
+                                            //              genes := sumby
+            ReduceByKey(
+              ForeachUnion(gtfr, gtfs,
+                IfThenElse(
+
+                    Cmp(OpGe, vr("start"),gtfr("g_start")) &&
+                    Cmp(OpGe, gtfr("g_end"),vr("start")) && Cmp(OpEq, gtfr("g_contig"),vr("contig")),
+
+                  Singleton(Tuple("name" -> gtfr("gene_name"), "burden" -> Const(1, IntType)))
+                )
+              ),
+              List("name"),
+              List("burden")
+            )
+        )))
+      )
+    )
+  val program = Program(Assignment(name, query))
+}
+
+//object Step2_1 extends GenomicSchema {
+//  val name = "ORStep2"
+//
+//  val (cnts, ac) = varset(Step1.name, "v2", Step1.program(Step1.name).varRef.asInstanceOf[BagExpr])
+//  val ac2 = TupleVarRef("c2", ac("samples").asInstanceOf[BagExpr].tp.tp)
+//  val query =
+//    ForeachUnion(ac, cnts,
+//      Singleton(Tuple("population_name" -> ac("population_name"), "samples" ->
+//        ForeachUnion(ac2, BagProject(ac, "samples"),
+//
+//          Singleton(Tuple("name" -> ac2("name"), "variants" ->                                           // variants :=
+//            ForeachUnion(gtfr, gtfs,                        // for gtfr in gtfs
+//              IfThenElse(
+//                Cmp(OpNe, ac2("call"), Const(0, IntType)) && Cmp(OpGe, ac2("start"),gtfr("g_start"))
+//                  && Cmp(OpGe, gtfr("g_end"),ac2("start")) /*&& Cmp(OpEq, gtfr("g_contig"),vr("contig"))*/,
+//                // if (...) ==> {variants attributes}
+//                Singleton(Tuple("contig" -> ac2("contig"), "start" -> ac2("start"), "reference" -> ac2("reference"), "alternate" -> ac2("alternate")))
+//              )
+//            )))
+//        )
+//
+//      ))
+//    )
+//  val program = Step1.program.asInstanceOf[Step2.Program].append(Assignment(name, query))
+//}
+
+

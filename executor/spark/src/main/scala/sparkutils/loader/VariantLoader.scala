@@ -68,8 +68,8 @@ class VariantLoader(spark: SparkSession, path: String) extends Serializable {
     val input = loadDS.withColumn("index", monotonically_increasing_id()).as[IVariant]
     val variants = input.drop("genotypes").withColumnRenamed("index", "genotypes").as[SVariant]
     val genotypes = input.flatMap{
-      case variant => variant.genotypes.map{
-        case genotype => SCall(variant.index, genotype.sample, genotype.call)
+      variant => variant.genotypes.map{
+        genotype => SCall(variant.index, genotype.sample, genotype.call)
       }
     }.as[SCall]
     (variants, genotypes.repartition($"_1"))

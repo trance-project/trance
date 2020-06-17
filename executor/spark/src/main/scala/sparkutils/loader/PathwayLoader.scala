@@ -36,7 +36,7 @@ class PathwayLoader(spark: SparkSession, path: String) extends Serializable {
         val pathways = input.drop("gene_set").withColumnRenamed("index", "gene_set").as[SPathway]
         val gene_set = input.flatMap{
             p => p.gene_set.map{
-                gene_set => SName(p.index, gene_set.name)
+                gene => SName(p.index, gene.name)
             }
         }.as[SName]
         (pathways, gene_set.repartition($"_1"))
