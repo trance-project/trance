@@ -307,7 +307,7 @@ object Gene_Burden extends GenomicSchema{
                     Cmp(OpGe, vr("start"),gtfr("g_start")) &&
                     Cmp(OpGe, gtfr("g_end"),vr("start")) && Cmp(OpEq, gtfr("g_contig"),vr("contig")),
 
-                  Singleton(Tuple("name" -> gtfr("gene_name"), "burden" -> Const(1, IntType)))
+                  Singleton(Tuple("name" -> gtfr("gene_name"), "burden" -> Const(1, DoubleType)))
                 )
               ),
               List("name"),
@@ -338,7 +338,7 @@ object Pathway_Burden extends GenomicSchema{
                       ForeachUnion(ger, BagProject(pr, "gene_set"),               // for ger in p.gene_set union
                         IfThenElse(
                           Cmp(OpEq, gtfr("gene_name"), ger("name")),
-                          Singleton(Tuple("name" -> pr("name"), "burden" -> Const(1, IntType)))
+                          Singleton(Tuple("name" -> pr("name"), "burden" -> Const(1.0, DoubleType)))
                         )
                       )
                     )
