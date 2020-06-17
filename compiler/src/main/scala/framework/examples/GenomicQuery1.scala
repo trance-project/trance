@@ -319,6 +319,42 @@ object Gene_Burden extends GenomicSchema{
   val program = Program(Assignment(name, query))
 }
 
+
+object Pathway_Burden extends GenomicSchema{
+  // {sample: String, pathway:{name: String, burden: Int}}
+  val name = "Pathway_Burden"
+  val query =
+    ForeachUnion(vr, variants,                                    // For v in Variants
+      ForeachUnion(gr, BagProject(vr, "genotypes"),       //        For g in v.genotypes union
+
+        IfThenElse(Cmp(OpNe, gr("call"), Const(0, IntType)),
+          Singleton(Tuple("sample" -> gr("sample"),       //          {(sample := g.sample, genes :=
+            "pathway" ->
+              ForeachUnion(pr, pathways,                                  // for p in Pathways union
+                ReduceByKey(                       //              (sumby(name)(burden)
+                  ForeachUnion(gtfr, gtfs,                                    // for gtfr in gtfs union
+                    IfThenElse(Cmp(OpGe, vr("start"),gtfr("g_start")) &&
+                      Cmp(OpGe, gtfr("g_end"),vr("start")) && Cmp(OpEq, gtfr("g_contig"),vr("contig")),
+
+                      ForeachUnion(ger, BagProject(pr, "gene_set"),               // for ger in p.gene_set union
+                        IfThenElse(
+                          Cmp(OpEq, gtfr("gene_name"), ger("name")),
+                          Singleton(Tuple("name" -> pr("name"), "burden" -> Const(1, IntType)))
+                        )
+                      )
+                    )
+                  ), List("name"), List("burden")
+                )
+              )
+          ))
+        )
+      )
+    )
+  val program = Program(Assignment(name, query))
+}
+
+
+
 //object Step2_1 extends GenomicSchema {
 //  val name = "ORStep2"
 //

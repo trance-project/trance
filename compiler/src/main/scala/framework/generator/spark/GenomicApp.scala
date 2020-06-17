@@ -57,3 +57,12 @@ object TestApp3 extends App {
     AppWriter.flatDataset(Gene_Burden, "test")
   }
 }
+
+
+object TestApp4 extends App {
+
+  override def main(args: Array[String]){
+
+    AppWriter.flatDataset(Pathway_Burden, "test")
+  }
+}
