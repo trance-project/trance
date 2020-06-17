@@ -319,7 +319,6 @@ object Gene_Burden extends GenomicSchema{
   val program = Program(Assignment(name, query))
 }
 
-
 object Pathway_Burden extends GenomicSchema{
   // {sample: String, pathway:{name: String, burden: Int}}
   val name = "Pathway_Burden"
@@ -389,11 +388,10 @@ object Clinical_Pathway_Burden extends GenomicSchema{
 }
 
 object Clinical_Pathway_Burden_Flatten extends GenomicSchema{
-  //  {sample: String, family_id: String, population: String, gender: String, pathway:{name: String, burden: Int}}
-  val name = "Clinical_Burden"
+  //  {sample: String, family_id: String, population: String, gender: String, pathway_name: String, total_burden: Int}
+  val name = "Clinical_Burden_Flatten"
   val (cnts, ac) = varset(Pathway_Burden.name, "v2", Pathway_Burden.program(Pathway_Burden.name).varRef.asInstanceOf[BagExpr])
   val ac2 = TupleVarRef("c2", ac("pathway").asInstanceOf[BagExpr].tp.tp)
-
   val query =
     ForeachUnion(ac, cnts,
       ForeachUnion(mr, metadata,
