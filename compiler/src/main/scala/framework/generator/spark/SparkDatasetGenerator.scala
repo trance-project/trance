@@ -114,7 +114,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       handleType(unouter)
       val rcnts = fs.map(f => accessOption(f._2, nv)).mkString(", ")
       s"${generateType(unouter)}($rcnts)"
-    case _ => generate(e)
   }
 
   def generateReference(e: CExpr): String = e match {
@@ -128,6 +127,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       handleType(e.tp)
       val rcnts = e.tp.attrs.map(f => generateReference(fs(f._1))).mkString(", ")
       s"udf${generateType(e.tp)}($rcnts)"
+    case Constant(c) => s"lit($c)"
     case _ => generate(e)
   }
 
