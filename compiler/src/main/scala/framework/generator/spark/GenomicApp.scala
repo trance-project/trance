@@ -37,7 +37,7 @@ object TestApp2 extends App {
 
     override def main(args: Array[String]){
 //        AppWriter.flatDataset(GenomicQuery1, "test")
-//         AppWriter.shredDataset(GenomicQuery1, "test", unshred = true)
+         AppWriter.shredDataset(GenomicQuery1, "test", unshred = true)
 
 
 // query 6.1：{(population_name: String, samples: {(name: String, variants: {(...)})} )}
