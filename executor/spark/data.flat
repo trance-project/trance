@@ -2,4 +2,5 @@ datapath=/Users/jac/shredder/executor/spark/data/tpch/
 master=local[*]
 minPartitions=6
 threshold=1
-lineitem=6
+maxPartitions=6
+vepcache=/mnt/app_hdd/

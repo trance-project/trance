@@ -28,8 +28,7 @@ class TPCHLoader(spark: SparkSession) extends Serializable {
 
   val datapath = Config.datapath
   val parts = Config.minPartitions
-  val goalParts = Config.goalParts
-  val lparts = Config.lparts
+  val lparts = Config.maxPartitions
 
   def parseBigInt(n: String): Int = {
     val b = BigInt(n).intValue()
