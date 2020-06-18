@@ -264,7 +264,7 @@ object Step1 extends GenomicSchema{
 }
 
 object Step2 extends GenomicSchema {
-    val name = "ORStep2"
+    val name = "ORStep2v2"
 
     val (cnts, ac) = varset(Step1.name, "v2", Step1.program(Step1.name).varRef.asInstanceOf[BagExpr])
     val ac2 = TupleVarRef("c2", ac("samples").asInstanceOf[BagExpr].tp.tp)

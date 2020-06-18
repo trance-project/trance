@@ -23,9 +23,8 @@ import framework.examples.genomic.OddsRatio
 * */
 object TestApp1 extends App {
     override def main(args: Array[String]){
-
-//        AppWriter.flatDataset(OddsRatio, "test")
-        AppWriter.shredDataset(OddsRatio, "test1", unshred = true)
+        AppWriter.flatDataset(OddsRatio, "test")
+//        AppWriter.shredDataset(OddsRatio, "test1", unshred = true)
     }
 }
 
@@ -36,16 +35,8 @@ object TestApp1 extends App {
 object TestApp2 extends App {
 
     override def main(args: Array[String]){
-//        AppWriter.flatDataset(GenomicQuery1, "test")
-         AppWriter.shredDataset(GenomicQuery1, "test", unshred = true)
-
-
-// query 6.1：{(population_name: String, samples: {(name: String, variants: {(...)})} )}
-//        AppWriter.flatDataset(Step2, "test1")
-//        AppWriter.shredDataset(Step2, label = "test2", unshred = true)
-
-
-      AppWriter.flatDataset(Gene_Burden, "test")
+      AppWriter.shredDataset(Step2, label = "test")
+      AppWriter.flatDataset(Step2, "test") // todo: need to revisit this
     }
 }
 
@@ -55,6 +46,8 @@ object TestApp3 extends App {
   override def main(args: Array[String]){
 
     AppWriter.flatDataset(Gene_Burden, "test")
+    AppWriter.shredDataset(Gene_Burden, "test")
+
   }
 }
 
@@ -64,6 +57,7 @@ object TestApp4 extends App {
   override def main(args: Array[String]){
 
     AppWriter.flatDataset(Pathway_Burden, "test")
+    AppWriter.shredDataset(Pathway_Burden, "test")
     AppWriter.flatDataset(Pathway_Burden_Flatten, "test")
   }
 }
@@ -74,6 +68,7 @@ object TestApp5 extends App {
 
     AppWriter.flatDataset(Clinical_Pathway_Burden, "test")
     AppWriter.flatDataset(Clinical_Pathway_Burden_Flatten, "test")
+    AppWriter.shredDataset(Clinical_Pathway_Burden, "test")
 
   }
 }
