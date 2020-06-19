@@ -13,7 +13,7 @@ import org.apache.spark.sql.types.{StringType, IntegerType, StructField, StructT
 import sparkutils.Config
 
 case class Call(g_sample: String, call: Int)
-case class Variant(contig: String, start: Int, reference: String, 
+case class Variant(id: String, contig: String, start: Int, reference: String, 
   alternate: String, genotypes: Seq[Call])
 case class IVariant(index: Long, contig: String, start: Int, reference: String, 
   alternate: String, genotypes: Seq[Call])
@@ -36,14 +36,12 @@ class VariantLoader(spark: SparkSession, path: String) extends Serializable {
   implicit val genotypeEncoder = Encoders.product[Call]
   implicit val variantEncoder = Encoders.product[Variant]
 
-  /** Loads arbitrary VCF file into VariantContext objects **/
   def loadVCF: RDD[VariantContext] = {
      spark.sparkContext
       .newAPIHadoopFile[LongWritable, VariantContextWritable, VCFInputFormat](path)
-      .map(_._2.get).repartition(Config.maxPartitions) 
+      .map(_._2.get)
    }
 
-  /** Loads an annotated VCF (has gene information) **/
   def loadAnnotated: Dataset[Variant2] = {
      spark.sparkContext
       .newAPIHadoopFile[LongWritable, VariantContextWritable, VCFInputFormat](path)
@@ -52,22 +50,20 @@ class VariantLoader(spark: SparkSession, path: String) extends Serializable {
         val genotypes = variant.getGenotypes.iterator.asScala.toSeq.map(s => Call(s.getSampleName, callCategory(s)))
         Variant2(variant.getID, variant.getContig, variant.getStart, variant.getReference.toString, 
           variant.getAlternateAllele(0).toString, List(getGene(variant)))
-      }.toDF().as[Variant2].repartition(Config.maxPartitions)        
+      }.toDF().as[Variant2]       
   }
 
-  /** Loads standard VCF file (has no annotations) **/
   def loadDS: Dataset[Variant] = {
      spark.sparkContext
       .newAPIHadoopFile[LongWritable, VariantContextWritable, VCFInputFormat](path)
       .map{ case (k, v) =>
         val variant = v.get
         val genotypes = variant.getGenotypes.iterator.asScala.toSeq.map(s => Call(s.getSampleName, callCategory(s)))
-        Variant(variant.getContig, variant.getStart, variant.getReference.toString, 
+        Variant(variant.getID, variant.getContig, variant.getStart, variant.getReference.toString, 
           variant.getAlternateAllele(0).toString, genotypes)
       }.toDF().as[Variant].repartition(Config.maxPartitions) 
   }
 
-  /** Shred the variant data **/
   def shredDS: (Dataset[SVariant], Dataset[SCall]) = {
     val input = loadDS.withColumn("index", monotonically_increasing_id()).as[IVariant]
     val variants = input.drop("genotypes").withColumnRenamed("index", "genotypes").as[SVariant]
@@ -79,7 +75,6 @@ class VariantLoader(spark: SparkSession, path: String) extends Serializable {
     (variants, genotypes.repartition($"_1"))
   }
 
-  /** Load a simple SNP dataset **/
   def loadSnps(spath: String): Dataset[SNP] = {
     val schema = StructType(Array(
         StructField("id", StringType),
