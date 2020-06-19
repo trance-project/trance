@@ -18,7 +18,7 @@ object App {
      val variants = vloader.loadVCF
 
      val veploader = new VepLoader(spark)
-     val annots = veploader.loadOccurences(variants)
+     val annots = veploader.loadAnnotations(variants)
      annots.cache
      annots.count 
      println("annotations here")
