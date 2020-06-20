@@ -308,7 +308,7 @@ object Gene_Burden extends GenomicSchema{
 
                   Singleton(Tuple("name" -> gtfr("gene_name"),
                     "burden" ->
-                      PrimitiveIfThenElse(Cmp(OpNe, gr("call"), Const(0.0, DoubleType)), Const(1.0, DoubleType), Const(1.0, DoubleType))
+                      PrimitiveIfThenElse(Cmp(OpNe, gr("call"), Const(0.0, DoubleType)), Const(1.0, DoubleType), Const(0.0, DoubleType))
                   ))
                 )
               ),
@@ -340,7 +340,7 @@ object Pathway_Burden extends GenomicSchema{
                         IfThenElse(
                           Cmp(OpEq, gtfr("gene_name"), ger("name")),
                           Singleton(Tuple("name" -> pr("name"),
-                            "burden" -> PrimitiveIfThenElse(Cmp(OpNe, gr("call"), Const(0.0, DoubleType)), Const(1.0, DoubleType), Const(1.0, DoubleType))))
+                            "burden" -> PrimitiveIfThenElse(Cmp(OpNe, gr("call"), Const(0.0, DoubleType)), Const(1.0, DoubleType), Const(0.0, DoubleType))))
                         )
                       )
                     )
