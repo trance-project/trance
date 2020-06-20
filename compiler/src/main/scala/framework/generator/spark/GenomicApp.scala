@@ -36,7 +36,7 @@ object TestApp2 extends App {
 
     override def main(args: Array[String]){
       AppWriter.shredDataset(Step2, label = "test")
-      AppWriter.flatDataset(Step2, "test") // todo: need to revisit this
+      AppWriter.flatDataset(Step2, "test") // todo: need to revisit this: key not found: v2__F_samples
     }
 }
 

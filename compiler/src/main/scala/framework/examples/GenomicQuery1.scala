@@ -265,7 +265,7 @@ object Step1 extends GenomicSchema{
 
 object Step2 extends GenomicSchema {
     val name = "ORStep2v2"
-
+//    {(population_name: String, samples: {(name: String, variants: {(...)})} )}
     val (cnts, ac) = varset(Step1.name, "v2", Step1.program(Step1.name).varRef.asInstanceOf[BagExpr])
     val ac2 = TupleVarRef("c2", ac("samples").asInstanceOf[BagExpr].tp.tp)
     val query =
@@ -281,9 +281,9 @@ object Step2 extends GenomicSchema {
                                     // if (...) ==> {variants attributes}
                                     Singleton(Tuple("contig" -> ac2("contig"), "start" -> ac2("start"), "reference" -> ac2("reference"), "alternate" -> ac2("alternate")))
                                 )
-                            )))
+                            )
+                    ))
                 )
-
             ))
         )
     val program = Step1.program.asInstanceOf[Step2.Program].append(Assignment(name, query))
@@ -291,14 +291,13 @@ object Step2 extends GenomicSchema {
 
 
 object Gene_Burden extends GenomicSchema{
-//  {(sample: String, genes: { (name: String, burden: Int) })}
+//  {(sample: String, genes: { (name: String, burden: Double) })}
   val name = "Gene_Burden"
   val query =
     ForeachUnion(vr, variants,                                    // For v in Variants
       ForeachUnion(gr, BagProject(vr, "genotypes"),       //        For g in v.genotypes union
         Singleton(Tuple("sample" -> gr("sample"),       //          {(sample := g.sample,
           "genes" ->
-            IfThenElse(Cmp(OpNe, gr("call"), Const(0, IntType)),
                                             //              genes := sumby
             ReduceByKey(
               ForeachUnion(gtfr, gtfs,
@@ -307,13 +306,16 @@ object Gene_Burden extends GenomicSchema{
                     Cmp(OpGe, vr("start"),gtfr("g_start")) &&
                     Cmp(OpGe, gtfr("g_end"),vr("start")) && Cmp(OpEq, gtfr("g_contig"),vr("contig")),
 
-                  Singleton(Tuple("name" -> gtfr("gene_name"), "burden" -> Const(1, DoubleType)))
+                  Singleton(Tuple("name" -> gtfr("gene_name"),
+                    "burden" ->
+                      PrimitiveIfThenElse(Cmp(OpNe, gr("call"), Const(0.0, DoubleType)), Const(1.0, DoubleType), Const(1.0, DoubleType))
+                  ))
                 )
               ),
               List("name"),
               List("burden")
             )
-        )))
+        ))
       )
     )
   val program = Program(Assignment(name, query))
@@ -326,7 +328,6 @@ object Pathway_Burden extends GenomicSchema{
     ForeachUnion(vr, variants,                                    // For v in Variants
       ForeachUnion(gr, BagProject(vr, "genotypes"),       //        For g in v.genotypes union
 
-        IfThenElse(Cmp(OpNe, gr("call"), Const(0, IntType)),
           Singleton(Tuple("sample" -> gr("sample"),       //          {(sample := g.sample, genes :=
             "pathway" ->
               ForeachUnion(pr, pathways,                                  // for p in Pathways union
@@ -338,14 +339,15 @@ object Pathway_Burden extends GenomicSchema{
                       ForeachUnion(ger, BagProject(pr, "gene_set"),               // for ger in p.gene_set union
                         IfThenElse(
                           Cmp(OpEq, gtfr("gene_name"), ger("name")),
-                          Singleton(Tuple("name" -> pr("name"), "burden" -> Const(1.0, DoubleType)))
+                          Singleton(Tuple("name" -> pr("name"),
+                            "burden" -> PrimitiveIfThenElse(Cmp(OpNe, gr("call"), Const(0.0, DoubleType)), Const(1.0, DoubleType), Const(1.0, DoubleType))))
                         )
                       )
                     )
                   ), List("name"), List("burden")
                 )
               )
-          ))
+          )
         )
       )
     )
