@@ -5,6 +5,23 @@ import framework.common._
 /** Optimizer used for plans from BatchUnnester **/
 object BatchOptimizer extends Extensions {
 
+  val extensions = new Extensions{}
+  import extensions._
+
+  def applyAll(e: CExpr): CExpr = {
+    val pushedProjections = push(e)
+    pushUnnest(pushedProjections)
+  }
+
+  /** TODO Yao's awesome optimizer **/
+  def pushUnnest(e: CExpr): CExpr = fapply(e,  {
+    // case DFUnnest(DFJoin(...))
+    // example, remove this
+    case DFProject(in, v, filter, fields) => 
+      DFProject(in, v, Constant(true), List("whoknows"))
+  })
+
+
   /** Push projections in plans made of batch operations
     * @param e input plan from BatchUnnester
     * @param fs set of attributes, default empty set

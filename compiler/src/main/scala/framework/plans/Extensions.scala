@@ -48,6 +48,13 @@ trait Extensions {
       case CReduceBy(e1, v1, keys, values) => CReduceBy(fapply(e1, funct), v1, keys, values)
       case CNamed(n, e1) => CNamed(n, fapply(e1, funct))
       case LinearCSet(es) => LinearCSet(es.map(e1 => fapply(e1, funct)))
+      // extend these
+      case DFProject(in, v, filter, fields) => 
+        DFProject(fapply(in, funct), v, filter, fields)
+      case DFUnnest(in, v, path, v2, filter, fields) =>
+        DFUnnest(fapply(in, funct), v, path, v2, filter, fields)
+      case DFJoin(left, v, right, v2, cond, fields) =>
+        DFJoin(fapply(left, funct), v, fapply(right, funct), v2, cond, fields)
       case _ => ex
     })
 }

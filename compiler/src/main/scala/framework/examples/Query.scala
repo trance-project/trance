@@ -49,7 +49,12 @@ trait Query extends Materialization
     optimizationLevel match {
       case 0 if batch => anfBase.anf(anfer.finalize(this.batchUnnest).asInstanceOf[anfBase.Rep])
       case y if batch => 
-        val optimized = BatchOptimizer.push(this.batchUnnest)
+        println("plan before")
+        val p = this.batchUnnest
+        println(p)
+        val optimized = BatchOptimizer.applyAll(p)
+        println("plan after")
+        println(optimized)
         println(Printer.quote(optimized))
         val plan = anfBase.anf(anfer.finalize(optimized).asInstanceOf[anfBase.Rep])
         println(Printer.quote(plan))
