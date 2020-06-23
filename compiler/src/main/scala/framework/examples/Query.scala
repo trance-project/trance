@@ -162,6 +162,8 @@ trait Query extends Materialization
   }
 
   def shred(eliminateDomains: Boolean = true): (Program, Program) = {
+      println("INPUT QUERY:\n")
+      println(quote(program))
       val (shredded, shreddedCtx) = shredCtx(program)
       val optShredded = optimize(shredded)
       val materializedProgram = materialize(optShredded, eliminateDomains = eliminateDomains)
@@ -171,7 +173,6 @@ trait Query extends Materialization
 
   /** Shred plan for tuple at a time compilation **/
   def shredPlan(unshredRun: Boolean = false, eliminateDomains: Boolean = true, anfed: Boolean = true): (CExpr, CExpr) = {
-      
       // shredded pipeline for query
       val (matProg, ushred) = shred(eliminateDomains)
       println("RUNNING SHREDDED PIPELINE:\n")

@@ -16,7 +16,7 @@ object GenomicQuery1 extends GenomicSchema {
                     "alternate" -> vr("alternate"),                   //       alternate := v.alternate,
                     "genotypes" ->                                    //       genotypes :=
                         ForeachUnion(gr, BagProject(vr, "genotypes"), //        For g in v.genotypes union
-                        Singleton(Tuple("sample" -> gr("sample"),     //          {(sample := g.sample,
+                        Singleton(Tuple("sample" -> gr("g_sample"),     //          {(sample := g.sample,
                                         "call" -> gr("call")))        //            call := g.call )}
             ))))                                                      //    )}
 
@@ -34,7 +34,7 @@ object GenomicQuery1 extends GenomicSchema {
     val query4_1 =
         ForeachUnion(vr, variants,                                    // For v in Variants
             ForeachUnion(gr, BagProject(vr, "genotypes"),       //        For g in v.genotypes union
-                Singleton(Tuple("sample" -> gr("sample"),       //          {(sample := g.sample,
+                Singleton(Tuple("sample" -> gr("g_sample"),       //          {(sample := g.sample,
                     "genes" ->                                   //              genes := sumby
                         ReduceByKey(
                             ForeachUnion(gtfr, gtfs,
@@ -68,7 +68,7 @@ object GenomicQuery1 extends GenomicSchema {
     val query4_2 =
         ForeachUnion(vr, variants,                                    // For v in Variants
             ForeachUnion(gr, BagProject(vr, "genotypes"),       //        For g in v.genotypes union
-                Singleton(Tuple("sample" -> gr("sample"),       //          {(sample := g.sample, genes :=
+                Singleton(Tuple("sample" -> gr("g_sample"),       //          {(sample := g.sample, genes :=
                     "pathway" ->
                     ForeachUnion(pr, pathways,                                  // for p in Pathways union
                         Singleton(Tuple("name" -> pr("name"),       // pathway := {( name := p.name,
@@ -156,7 +156,7 @@ object GenomicQuery1 extends GenomicSchema {
     val query4_4 =
         ForeachUnion(vr, variants,                                    // For v in Variants
             ForeachUnion(gr, BagProject(vr, "genotypes"),       //        For g in v.genotypes union
-                Singleton(Tuple("sample" -> gr("sample"),       //          {(sample := g.sample, genes :=
+                Singleton(Tuple("sample" -> gr("g_sample"),       //          {(sample := g.sample, genes :=
                     "pathway" ->
                         ForeachUnion(pr, pathways,                                  // for p in Pathways union
                             ReduceByKey(                       //              (sumby(name)(burden)
@@ -212,8 +212,8 @@ object GenomicQuery1 extends GenomicSchema {
             Singleton(Tuple("population_name" -> mr("population"), "samples" ->
                     ForeachUnion(vr, variants,                                    // For vr in Variants
                         ForeachUnion(gr, BagProject(vr, "genotypes"),       //        For gr in vr.genotypes union
-                            IfThenElse(Cmp(OpEq, gr("sample"), mr("m_sample")),         // if gr.sample == mr.m_sample
-                                Singleton(Tuple("name" -> gr("sample"),       //          {(sample := gr.sample,
+                            IfThenElse(Cmp(OpEq, gr("g_sample"), mr("m_sample")),         // if gr.sample == mr.m_sample
+                                Singleton(Tuple("name" -> gr("g_sample"),       //          {(sample := gr.sample,
                                     "variants" ->                                           // variants :=
                                             ForeachUnion(gtfr, gtfs,                        // for gtfr in gtfs
                                                 IfThenElse(
@@ -255,8 +255,8 @@ object Step1 extends GenomicSchema{
             Singleton(Tuple("population_name" -> mr("population"), "samples" ->
                     ForeachUnion(vr, variants,                                    // For vr in Variants
                         ForeachUnion(gr, BagProject(vr, "genotypes"),       //        For gr in vr.genotypes union
-                            IfThenElse(Cmp(OpEq, gr("sample"), mr("m_sample")),         // if gr.sample == mr.m_sample
-                                Singleton(Tuple("name" -> gr("sample"), "call" -> gr("call"), "start" ->vr("start"), "contig" -> vr("contig"),
+                            IfThenElse(Cmp(OpEq, gr("g_sample"), mr("m_sample")),         // if gr.sample == mr.m_sample
+                                Singleton(Tuple("name" -> gr("g_sample"), "call" -> gr("call"), "start" ->vr("start"), "contig" -> vr("contig"),
                                     "reference" -> vr("reference"), "alternate" -> vr("alternate"))
                                 )))))))
     val program = Program(Assignment(name, query))
@@ -296,7 +296,7 @@ object Gene_Burden extends GenomicSchema{
   val query =
     ForeachUnion(vr, variants,                                    // For v in Variants
       ForeachUnion(gr, BagProject(vr, "genotypes"),       //        For g in v.genotypes union
-        Singleton(Tuple("sample" -> gr("sample"),       //          {(sample := g.sample,
+        Singleton(Tuple("sample" -> gr("g_sample"),       //          {(sample := g.sample,
           "genes" ->
                                             //              genes := sumby
             ReduceByKey(
@@ -328,7 +328,7 @@ object Pathway_Burden extends GenomicSchema{
     ForeachUnion(vr, variants,                                    // For v in Variants
       ForeachUnion(gr, BagProject(vr, "genotypes"),       //        For g in v.genotypes union
 
-          Singleton(Tuple("sample" -> gr("sample"),       //          {(sample := g.sample, genes :=
+          Singleton(Tuple("sample" -> gr("g_sample"),       //          {(sample := g.sample, genes :=
             "pathway" ->
               ForeachUnion(pr, pathways,                                  // for p in Pathways union
                 ReduceByKey(                       //              (sumby(name)(burden)
@@ -377,7 +377,7 @@ object Clinical_Pathway_Burden extends GenomicSchema{
   val query =
     ForeachUnion(ac, cnts,
       ForeachUnion(mr, metadata,
-        IfThenElse(Cmp(OpEq, gr("sample"), mr("m_sample")),
+        IfThenElse(Cmp(OpEq, gr("g_sample"), mr("m_sample")),
 
           Singleton(Tuple("sample"-> ac("sample"), "family_id" -> mr("family_id"), "population" -> mr("population"), "gender" -> mr("gender"),
             "pathways"->
@@ -397,7 +397,7 @@ object Clinical_Pathway_Burden_Flatten extends GenomicSchema{
   val query =
     ForeachUnion(ac, cnts,
       ForeachUnion(mr, metadata,
-        IfThenElse(Cmp(OpEq, gr("sample"), mr("m_sample")),
+        IfThenElse(Cmp(OpEq, gr("g_sample"), mr("m_sample")),
               ForeachUnion(ac2, ac("pathway").asBag,
                 Singleton(Tuple("sample"-> ac("sample"), "family_id" -> mr("family_id"), "population" -> mr("population"), "gender" -> mr("gender"),"pathway_name"-> ac2("name"), "total_burden" -> ac2("burden"))))
           )

@@ -116,7 +116,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       s"${generateType(unouter)}($rcnts)"
   }
 
-  def generateReference(e: CExpr): String = e match {
+  def generateReference(e: CExpr, literal: Boolean = false): String = e match {
     case Project(v, f) => v.tp match {
       case LabelType(_) => s"""col("_LABEL").getField("$f")"""
       case _ => s"""col("$f")"""
@@ -127,7 +127,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       handleType(e.tp)
       val rcnts = e.tp.attrs.map(f => generateReference(fs(f._1))).mkString(", ")
       s"udf${generateType(e.tp)}($rcnts)"
-    case Constant(c) => s"lit($c)"
+    case Constant(c) if literal => s"lit(${generate(e)})"
     case _ => generate(e)
   }
 
@@ -216,7 +216,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           else List(s"""| .withColumnRenamed("$oldCol", "$col")""")
         // make a new column
         case (col, expr) if !projectCols(col) =>
-          List(s"""|  .withColumn("$col", ${generateReference(expr)})""")
+          List(s"""|  .withColumn("$col", ${generateReference(expr, true)})""")
         case _ => Nil
       }.mkString("\n").stripMargin      
 

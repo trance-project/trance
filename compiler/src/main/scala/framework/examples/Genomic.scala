@@ -39,7 +39,7 @@ trait GenomicSchema extends Query{
 
 
     // define the types, which would reflect the case classes from your variant loader
-    val genoType = TupleType("sample" -> StringType, "call" -> IntType)
+    val genoType = TupleType("g_sample" -> StringType, "call" -> IntType)
     val variantType = TupleType(
         "contig" -> StringType,
         "start" -> IntType,

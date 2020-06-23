@@ -17,8 +17,9 @@ object BatchOptimizer extends Extensions {
   def pushUnnest(e: CExpr): CExpr = fapply(e,  {
     // case DFUnnest(DFJoin(...))
     // example, remove this
-    case DFProject(in, v, filter, fields) => 
-      DFProject(in, v, Constant(true), List("whoknows"))
+    // case DFProject(in, v, filter, fields) => 
+    //   DFProject(in, v, Constant(true), List("whoknows"))
+    case _ => e
   })
 
 
