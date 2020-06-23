@@ -3,26 +3,38 @@ package framework.examples.genomic
 import framework.common._
 import framework.examples.Query
 
+/** Commented out String Type represent some 
+  * continous assignment for a Sequence Ontology impact factor
+  * This is a scale from HIGH to MODIFIER (.99 - .01)
+  */ 
 trait Vep {
 
-  val element = TupleType("element" -> StringType)
+  // val element = TupleType("element" -> StringType)
+  val element = TupleType("element" -> DoubleType)
   
   val intergenic = TupleType("consequence_terms" -> BagType(element),
-    "impact" -> StringType, "variant_allele" -> StringType)
+    // "impact" -> StringType, 
+    "impact" -> DoubleType,
+    "variant_allele" -> StringType)
   
   val motif = TupleType("bp_overlap" -> LongType,
     "consequence_terms" -> BagType(element),
-    "impact" -> StringType, "variant_allele" -> StringType,
+    // "impact" -> StringType, 
+    "impact" -> DoubleType,
+    "variant_allele" -> StringType,
     "motif_feature_id" -> StringType, "percentage_overlap" -> DoubleType)
   
   val regulatory = TupleType("bp_overlap" -> LongType,
     "consequence_terms" -> BagType(element),
-    "impact" -> StringType, "variant_allele" -> StringType,
+    // "impact" -> StringType, 
+    "impact" -> DoubleType,
+    "variant_allele" -> StringType,
     "regulatory_feature_id" -> StringType, "percentage_overlap" -> DoubleType)
   
   val transcript = TupleType(
     "appris" -> StringType,
-    "biotype" -> StringType,
+    // "biotype" -> StringType,
+    "biotype" -> DoubleType,
     "bp_overlap" -> LongType,
     "canonical" -> LongType,
     "ccds" -> StringType,
@@ -38,7 +50,8 @@ trait Vep {
     "gene_symbol" -> StringType,
     "gene_symbol_source" -> StringType,
     "hgnc_id" -> StringType,
-    "impact" -> StringType,
+    // "impact" -> StringType,
+    "impact" -> DoubleType,
     "intron" -> StringType,
     "mane" -> StringType,
     "percentage_overlap" -> DoubleType,
@@ -70,7 +83,8 @@ trait Vep {
     "allele_string" -> StringType, 
     "assembly_name" -> StringType, "end" -> LongType, "id" -> StringType,
     "input" -> StringType, "intergenic_consequences" -> BagType(intergenic),
-    "most_severe_consequence" -> StringType,
+    // "most_severe_consequence" -> StringType,
+    "most_severe_consequence" -> DoubleType,   
     "motif_feature_consequences" -> BagType(motif),
     "regulatory_feature_consequences" -> BagType(regulatory),
     "seq_region_name" -> StringType,
@@ -78,8 +92,5 @@ trait Vep {
     "transcript_consequences" -> BagType(transcript),
     "variant_class" -> StringType
   )
-
-  val occurence_type = TupleType((vcf_vep_type.attrTps - "genotypes") ++
-    Map("donorId" -> StringType, "mutation" -> IntType))
 
 }

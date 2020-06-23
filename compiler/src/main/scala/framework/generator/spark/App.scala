@@ -10,14 +10,8 @@ object TestApp extends App {
 
   override def main(args: Array[String]){
 
-    val vep = new Vep{}
-    println(SparkLoaderGenerator.generateTypeDef("AnnotatedVariant", vep.vcf_vep_type))
-    // generated loaders
-    // AppWriter.flatDataset(CandidateGenes, "test")
-    // AppWriter.shredDataset(CandidateGenes, "test", unshred = true)
-    // support for domains and multi-attribute labels
-	  // AppWriter.shredDataset(ConvergeCandGenes, "test")
-	 // AppWriter.flatDataset(CandidateGenes, "test", skew = true)
+    AppWriter.flatDataset(HybridMatrix, "test")
+    AppWriter.shredDataset(HybridMatrix, "test", unshred = true)
   
   }
 }

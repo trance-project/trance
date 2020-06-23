@@ -148,7 +148,12 @@ object BatchUnnester {
     case y if u.isEmpty => 
       DFProject(E.get, wvar(w), exp(Record(fs)), Nil)
     case _ => 
-      DFNest(E.get, wvar(w), u.keys.toList, exp(Record(fs)), Constant(true), (w.keySet -- u.keySet).toList, tag)
+      val nv = wvar(w)
+      val tup = exp(Record(fs))
+      val rtup = replace(tup, nv)
+      println(Printer.quote(tup))
+      println(Printer.quote(rtup))
+      DFNest(E.get, nv, u.keys.toList, rtup, Constant(true), (w.keySet -- u.keySet).toList, tag)
     }   
   }
 
