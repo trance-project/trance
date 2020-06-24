@@ -10,8 +10,8 @@ object TestApp extends App {
 
   override def main(args: Array[String]){
 
-    AppWriter.flatDataset(HybridMatrix, "test")
-    AppWriter.shredDataset(HybridMatrix, "test", unshred = true)
+    AppWriter.flatDataset(GeneConnectivity, "test")
+    AppWriter.shredDataset(GeneConnectivity, "test")
   
   }
 }
