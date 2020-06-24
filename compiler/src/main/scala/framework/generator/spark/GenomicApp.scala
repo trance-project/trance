@@ -29,6 +29,12 @@ object TestApp1 extends App {
 }
 
 
+object Optimize1 extends App {
+  AppWriter.flatDataset(Step1, "test") // todo: need to revisit this: key not found: v2__F_samples
+//  AppWriter.shredDataset(Step1, label = "test")
+}
+
+
 /** Example Genomic Test Application
   *
   */
@@ -70,6 +76,17 @@ object TestApp5 extends App {
     AppWriter.flatDataset(Clinical_Pathway_Burden, "test")
     AppWriter.flatDataset(Clinical_Pathway_Burden_Flatten, "test")
     AppWriter.shredDataset(Clinical_Pathway_Burden, "test")
+
+  }
+}
+
+
+object TestExample1 extends App {
+
+  override def main(args: Array[String]){
+
+    AppWriter.flatDataset(Example1, "test")
+//    AppWriter.shredDataset(Example1, "test")
 
   }
 }

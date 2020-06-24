@@ -9,17 +9,31 @@ object BatchOptimizer extends Extensions {
   import extensions._
 
   def applyAll(e: CExpr): CExpr = {
-    val pushedProjections = push(e)
-    pushUnnest(pushedProjections)
+//    val pushedProjections = push(e)
+//e
+    pushUnnest(e)
+//    pushUnnest(pushedProjections)
   }
 
   /** TODO Yao's awesome optimizer **/
   def pushUnnest(e: CExpr): CExpr = fapply(e,  {
-    // case DFUnnest(DFJoin(...))
-    // example, remove this
-    // case DFProject(in, v, filter, fields) => 
-    //   DFProject(in, v, Constant(true), List("whoknows"))
-    case _ => e
+
+    case DFOuterUnnest(
+    AddIndex(DFOuterJoin(e1, x2, e2, x3, Constant(true), fs1), index),
+        x7, field, x4, Equals(Project(x4_expr, f1), Project(x5, f2)), fs2) =>{
+
+
+        print(x4.toString + "..." + x4_expr.toString)
+        if(x4.toString.equals(x4_expr.toString)){ // although they have different types, they should be the same after
+          val unnest: DFOuterUnnest = DFOuterUnnest(
+            AddIndex(e2, index), x3, field, x4, Constant(true), Nil)
+          val cond = Equals(Project(x4_expr, f1), Project(x5, f2))
+          DFOuterJoin(unnest, x7, e1, x2, cond, fs2)
+        }else{
+          e
+        }
+      }
+
   })
 
 

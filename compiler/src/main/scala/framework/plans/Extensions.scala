@@ -49,12 +49,15 @@ trait Extensions {
       case CNamed(n, e1) => CNamed(n, fapply(e1, funct))
       case LinearCSet(es) => LinearCSet(es.map(e1 => fapply(e1, funct)))
       // extend these
-      case DFProject(in, v, filter, fields) => 
+      case DFProject(in, v, filter, fields) =>
         DFProject(fapply(in, funct), v, filter, fields)
+      case DFNest(in, v, key, value, filter, nulls, ctag) => DFNest(fapply(in, funct), v, key, value, filter, nulls, ctag)
       case DFUnnest(in, v, path, v2, filter, fields) =>
         DFUnnest(fapply(in, funct), v, path, v2, filter, fields)
       case DFJoin(left, v, right, v2, cond, fields) =>
         DFJoin(fapply(left, funct), v, fapply(right, funct), v2, cond, fields)
+      case AddIndex(in, v) => AddIndex(fapply(in, funct), v)
       case _ => ex
     })
 }
+//(in: CExpr, v: Variable, key: List[String], value: CExpr, filter: CExpr, nulls: List[String], ctag: String)

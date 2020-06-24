@@ -406,3 +406,36 @@ object Clinical_Pathway_Burden_Flatten extends GenomicSchema{
   val program = Pathway_Burden.program.asInstanceOf[Clinical_Pathway_Burden_Flatten.Program].append(Assignment(name, query))
 }
 
+
+object Example1 extends GenomicSchema{
+
+  val name = "Example1"
+  val query =
+    ForeachUnion(mr, metadata,
+
+      Singleton(Tuple("population_name" -> mr("population"), "samples" ->
+        ForeachUnion(vr, variants,
+          ForeachUnion(gr, BagProject(vr, "genotypes"),
+            IfThenElse(Cmp(OpEq, gr("g_sample"), mr("m_sample")),
+              Singleton(Tuple("name" -> gr("g_sample"))
+              )))))
+      ))
+  val program = Program(Assignment(name, query))
+  // {(population, samples:{(name, count)})}
+}
+
+
+//val name = "Step1"
+//// 6.1 {(population_name: String, samples: {(name: String, variants: {(...)})} )}
+//val query =
+//ForeachUnion(mr, metadata,                                              // for mr in metadata
+//
+//Singleton(Tuple("population_name" -> mr("population"), "samples" ->
+//ForeachUnion(vr, variants,                                    // For vr in Variants
+//ForeachUnion(gr, BagProject(vr, "genotypes"),       //        For gr in vr.genotypes union
+//IfThenElse(Cmp(OpEq, gr("g_sample"), mr("m_sample")),         // if gr.sample == mr.m_sample
+//Singleton(Tuple("name" -> gr("g_sample"), "call" -> gr("call"), "start" ->vr("start"), "contig" -> vr("contig"),
+//"reference" -> vr("reference"), "alternate" -> vr("alternate"))
+//)))))))
+//val program = Program(Assignment(name, query))
+//// {(population, samples:{(name, call, start, contig)})}

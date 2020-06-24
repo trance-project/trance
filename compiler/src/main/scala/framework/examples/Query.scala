@@ -53,9 +53,9 @@ trait Query extends Materialization
         val p = this.batchUnnest
         println(p)
         val optimized = BatchOptimizer.applyAll(p)
-        println("plan after")
+        println("\nPlan after:")
         println(optimized)
-        println(Printer.quote(optimized))
+        println(Printer.quote(optimized)+"\n")
         val plan = anfBase.anf(anfer.finalize(optimized).asInstanceOf[anfBase.Rep])
         println(Printer.quote(plan))
         plan
