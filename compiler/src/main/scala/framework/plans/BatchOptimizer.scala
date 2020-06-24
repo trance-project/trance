@@ -24,7 +24,8 @@ object BatchOptimizer extends Extensions {
 
 
         print(x4.toString + "..." + x4_expr.toString)
-        if(x4.toString.equals(x4_expr.toString)){ // although they have different types, they should be the same after
+//        if(x4.toString.equals(x4_expr.toString)){ // although they have different types, they should be the same after
+      if(!x2.tp.attrs.get(f1).isDefined && !x4.tp.attrs.get(f2).isDefined){
           val unnest: DFOuterUnnest = DFOuterUnnest(
             AddIndex(e2, index), x3, field, x4, Constant(true), Nil)
           val cond = Equals(Project(x4_expr, f1), Project(x5, f2))
