@@ -105,7 +105,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
   // generator
   private def accessOption(e: CExpr, nv: Variable): String = e match {
     case Project(v, field) => 
-      nv.tp.attrs(field) match {
+      nv.tp.attrs.getOrElse(field, v.tp.attrs(field)) match {
         case _:OptionType => s"${nv.name}.$field.get"
         case _ => s"${nv.name}.$field"
       }
@@ -114,10 +114,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       handleType(unouter)
       val rcnts = fs.map(f => accessOption(f._2, nv)).mkString(", ")
       s"${generateType(unouter)}($rcnts)"
-    case _ => generate(e)
+    case MathOp(op, e1, e2) => 
+      s"${accessOption(e1, nv)} $op ${accessOption(e2, nv)}"
   }
 
-  def generateReference(e: CExpr): String = e match {
+  def generateReference(e: CExpr, literal: Boolean = false): String = e match {
     case Project(v, f) => v.tp match {
       case LabelType(_) => s"""col("_LABEL").getField("$f")"""
       case _ => s"""col("$f")"""
@@ -128,6 +129,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       handleType(e.tp)
       val rcnts = e.tp.attrs.map(f => generateReference(fs(f._1))).mkString(", ")
       s"udf${generateType(e.tp)}($rcnts)"
+    case Constant(c) if literal => s"lit(${generate(e)})"
     case _ => generate(e)
   }
 
@@ -216,7 +218,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           else List(s"""| .withColumnRenamed("$oldCol", "$col")""")
         // make a new column
         case (col, expr) if !projectCols(col) =>
-          List(s"""|  .withColumn("$col", ${generateReference(expr)})""")
+          List(s"""|  .withColumn("$col", ${generateReference(expr, true)})""")
         case _ => Nil
       }.mkString("\n").stripMargin      
 
@@ -235,17 +237,23 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
       // adjust label lookup column
       val lcol = s"${p1}_LABEL"
-      val ltp = rename(left.tp.attrs, p1, lcol)
+      val (lcolumn, ltp) = v1.tp.attrs get "_LABEL" match {
+        case Some(LabelType(ms)) if ms.size > 1 =>
+          (s""".withColumn("$lcol", col("_LABEL").getField("$p1"))""", 
+            RecordCType(left.tp.attrs))
+        case _ => 
+          (s""".withColumnRenamed("${p1}", "$lcol")""",
+            rename(left.tp.attrs, p1, lcol))
+      }
       handleType(ltp)
       val gltp = generateType(ltp)
 
       val nrecTp = RecordCType(ltp.merge(rtp).attrs -- Set(rcol,lcol))
       handleType(nrecTp)
-
       val classTags = if (!skew) ""
         else s"[$grtp, ${generateType(right.tp.attrs(p2))}]"
 
-      s"""|${generate(left)}.withColumnRenamed("${p1}", "$lcol")
+      s"""|${generate(left)}$lcolumn
           |   .as[$gltp].equiJoin$classTags(
           |   ${generate(right)}.withColumnRenamed("${p2}", "$rcol").as[$grtp], 
           |   Seq("$lcol", "$rcol"), "left_outer").drop("$lcol", "$rcol")

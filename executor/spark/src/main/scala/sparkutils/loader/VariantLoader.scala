@@ -59,9 +59,9 @@ class VariantLoader(spark: SparkSession, path: String) extends Serializable {
       .map{ case (k, v) =>
         val variant = v.get
         val genotypes = variant.getGenotypes.iterator.asScala.toSeq.map(s => Call(s.getSampleName, callCategory(s)))
-        Variant(variant.getId, variant.getContig, variant.getStart, variant.getReference.toString, 
+        Variant(variant.getID, variant.getContig, variant.getStart, variant.getReference.toString, 
           variant.getAlternateAllele(0).toString, genotypes)
-      }.toDF().as[Variant].repartition(Config.lparts) 
+      }.toDF().as[Variant].repartition(Config.maxPartitions) 
   }
 
   def shredDS: (Dataset[SVariant], Dataset[SCall]) = {

@@ -153,7 +153,7 @@ object AppWriter {
       |   val sf = Config.datapath.split("/").last
       |   val conf = new SparkConf().setMaster(Config.master)
       |     .setAppName(\"$appname\"+sf)
-      |     .set("spark.sql.shuffle.partitions", Config.lparts.toString)
+      |     .set("spark.sql.shuffle.partitions", Config.maxPartitions.toString)
       |   val spark = SparkSession.builder().config(conf).getOrCreate()
       |   $encoders
       |   import spark.implicits._

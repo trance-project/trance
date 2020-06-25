@@ -10,12 +10,8 @@ object TestApp extends App {
 
   override def main(args: Array[String]){
 
-    // generated loaders
-    AppWriter.flatDataset(ConvergeCandGenes, "test")
-    AppWriter.shredDataset(ConvergeCandGenes, "test")
-    // support for domains and multi-attribute labels
-	  // AppWriter.shredDataset(ConvergeCandGenes, "test")
-	 // AppWriter.flatDataset(CandidateGenes, "test", skew = true)
+    // AppWriter.flatDataset(GeneConnectivity, "test")
+    AppWriter.shredDataset(GeneConnectivity, "test")
   
   }
 }

@@ -21,7 +21,7 @@ sealed trait Type { self =>
     case RecordCType(ms) => ms
     case BagCType(ms) => ms.attrs
     case MatDictCType(LabelType(ms), bag) => 
-      val lblType = ms.head._2
+      val lblType = if (ms.isEmpty) LongType else ms.head._2
       Map("_1" -> lblType) ++ bag.attrs
     case _ => Map()
   }
@@ -74,14 +74,21 @@ case object LongType extends NumericType
 case object DoubleType extends NumericType
 
 object NumericType {
-  def resolve(tp1: Type, tp2: Type): NumericType = 
-    resolve(tp1.asInstanceOf[NumericType], tp2.asInstanceOf[NumericType])
+
+  def resolve(tp1: Type, tp2: Type): NumericType = (tp1, tp2) match {
+    case (OptionType(o1), OptionType(o2)) =>
+      resolve(o1.asInstanceOf[NumericType], o2.asInstanceOf[NumericType])
+    case _ => 
+      resolve(tp1.asInstanceOf[NumericType], tp2.asInstanceOf[NumericType])
+  }
+
   def resolve(tp1: NumericType, tp2: NumericType): NumericType = (tp1, tp2) match {
     case (DoubleType, _) | (_, DoubleType) => DoubleType
     case (LongType, _) | (_, LongType) => LongType
     case (IntType, _) | (_, IntType) => IntType
     case _ => sys.error("Cannot resolve types " + tp1 + " and " + tp2)
   }
+
 }
 
 final case class BagType(tp: TupleType) extends TupleAttributeType with ReducibleType
