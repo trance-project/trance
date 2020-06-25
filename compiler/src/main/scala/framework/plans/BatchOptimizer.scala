@@ -9,31 +9,29 @@ object BatchOptimizer extends Extensions {
   import extensions._
 
   def applyAll(e: CExpr): CExpr = {
-//    val pushedProjections = push(e)
+    val t = pushUnnest(e)
+    val pushedProjections = push(t)
 //e
-    pushUnnest(e)
-//    pushUnnest(pushedProjections)
+//    pushUnnest(e)
+    pushedProjections
   }
 
   /** TODO Yao's awesome optimizer **/
-  def pushUnnest(e: CExpr): CExpr = fapply(e,  {
+  def pushUnnest(e: CExpr): CExpr = fapply(e, {
 
     case DFOuterUnnest(
     AddIndex(DFOuterJoin(e1, x2, e2, x3, Constant(true), fs1), index),
-        x7, field, x4, Equals(Project(x4_expr, f1), Project(x5, f2)), fs2) =>{
+    x7, field, x4, Equals(Project(x4_expr, f1), Project(x5, f2)), fs2)
 
+      if x4.toString.equals(x4_expr.toString) => {
 
-        print(x4.toString + "..." + x4_expr.toString)
-//        if(x4.toString.equals(x4_expr.toString)){ // although they have different types, they should be the same after
-      if(!x2.tp.attrs.get(f1).isDefined && !x4.tp.attrs.get(f2).isDefined){
-          val unnest: DFOuterUnnest = DFOuterUnnest(
-            AddIndex(e2, index), x3, field, x4, Constant(true), Nil)
-          val cond = Equals(Project(x4_expr, f1), Project(x5, f2))
-          DFOuterJoin(unnest, x7, e1, x2, cond, fs2)
-        }else{
-          e
-        }
-      }
+        //        if(x4.toString.equals(x4_expr.toString)){
+        //      if(x2.tp.attrs.get(f1).isDefined && x4.tp.attrs.get(f2).isDefined){
+        val unnest: DFOuterUnnest = DFOuterUnnest(
+          AddIndex(e2, index), x3, field, x4, Constant(true), Nil)
+        val cond = Equals(Project(x4_expr, f1), Project(x5, f2))
+        DFOuterJoin(e1, x2, unnest, x7, cond, fs2)
+    }
 
   })
 
@@ -125,3 +123,4 @@ object BatchOptimizer extends Extensions {
   }
 
 }
+

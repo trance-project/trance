@@ -328,7 +328,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     // if value contains only attributes from right relation
     // note this also handles lookup in unshredding
     case Bind(vj, join:JoinOp, Bind(nv, nd @ DFNest(in, v, key, value @ Record(fs), filter, nulls, tag), e2)) 
-      if optLevel == 2 && (ext.collect(value) subsetOf join.v2.tp.attrs.keySet) && join.isEquiJoin => 
+      if optLevel == 20 && (ext.collect(value) subsetOf join.v2.tp.attrs.keySet) && join.isEquiJoin =>
 
       val (p1, p2) = join.cond match {
         case Equals(Project(_, c1), Project(_, c2)) => (c1, c2)

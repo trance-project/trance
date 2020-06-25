@@ -42,7 +42,7 @@ object TestApp2 extends App {
 
     override def main(args: Array[String]){
       AppWriter.flatDataset(Step2, "test") // todo: need to revisit this: key not found: v2__F_samples
-      AppWriter.shredDataset(Step2, label = "test")
+//      AppWriter.shredDataset(Step2, label = "test")
       
     }
 }
@@ -53,7 +53,7 @@ object TestApp3 extends App {
   override def main(args: Array[String]){
 
     AppWriter.flatDataset(Gene_Burden, "test")
-    AppWriter.shredDataset(Gene_Burden, "test")
+//    AppWriter.shredDataset(Gene_Burden, "test")
 
   }
 }
@@ -64,8 +64,8 @@ object TestApp4 extends App {
   override def main(args: Array[String]){
 
     AppWriter.flatDataset(Pathway_Burden, "test")
-    AppWriter.shredDataset(Pathway_Burden, "test")
-    AppWriter.flatDataset(Pathway_Burden_Flatten, "test")
+//    AppWriter.shredDataset(Pathway_Burden, "test")
+//    AppWriter.flatDataset(Pathway_Burden_Flatten, "test")
   }
 }
 

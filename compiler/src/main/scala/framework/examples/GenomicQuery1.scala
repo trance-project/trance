@@ -425,17 +425,55 @@ object Example1 extends GenomicSchema{
 }
 
 
-//val name = "Step1"
-//// 6.1 {(population_name: String, samples: {(name: String, variants: {(...)})} )}
-//val query =
-//ForeachUnion(mr, metadata,                                              // for mr in metadata
+object transpose extends GenomicSchema{
+
+  // variants: {contig, start, reference, alternate, genotype:{g_sample, call}}
+  // metadata: {m_sample, family_id, population, gender}
+  val name = "transpose"
+  val query =
+    ForeachUnion(mr, metadata,
+      Singleton(Tuple(
+        "sample" -> mr("m_sample"), "variants" ->
+        ForeachUnion(vr, variants,
+          ForeachUnion(gr, BagProject(vr, "genotypes"),
+            IfThenElse(Cmp(OpEq, mr("m_sample"), gr("g_sample")),
+              Singleton(Tuple("contig" -> vr("contig"), "start" -> vr("start"),
+                "alternate" -> vr("alternate"), "reference" -> vr("reference"), "call" -> gr("call")
+
+              )) // add more fields here for more intermediate information
+            )
+          )
+        )
+      ))
+    )
+//  {sample, variants:{contig, start, alternate, reference, call}}
+  val program = Program(Assignment(name, query))
+}
+
+//{sample, pathway:{name, burden}}
+
+//object plan2 extends GenomicSchema {
+//  val name = "pathway_burden_plan2"
 //
-//Singleton(Tuple("population_name" -> mr("population"), "samples" ->
-//ForeachUnion(vr, variants,                                    // For vr in Variants
-//ForeachUnion(gr, BagProject(vr, "genotypes"),       //        For gr in vr.genotypes union
-//IfThenElse(Cmp(OpEq, gr("g_sample"), mr("m_sample")),         // if gr.sample == mr.m_sample
-//Singleton(Tuple("name" -> gr("g_sample"), "call" -> gr("call"), "start" ->vr("start"), "contig" -> vr("contig"),
-//"reference" -> vr("reference"), "alternate" -> vr("alternate"))
-//)))))))
-//val program = Program(Assignment(name, query))
-//// {(population, samples:{(name, call, start, contig)})}
+//  val (cnts, ac) = varset(transpose.name, "v2", transpose.program(transpose.name).varRef.asInstanceOf[BagExpr])
+//  val ac2 = TupleVarRef("c2", ac("variants").asInstanceOf[BagExpr].tp.tp)
+//  val query =
+//    ForeachUnion(ac, cnts,
+//      Singleton(Tuple("population_name" -> ac("population_name"), "samples" ->
+//        ForeachUnion(ac2, BagProject(ac, "variants"),
+//          ForeachUnion(pr, pathways,
+//            ForeachUnion(gtfr, gtfs,
+//              IfThenElse(Cmp(OpGe, ac2("start"))
+//
+//
+//
+//              )
+//            )
+//          )
+//
+//
+//        )
+//      ))
+//    )
+//  val program = transpose.program.asInstanceOf[plan2.Program].append(Assignment(name, query))
+//}

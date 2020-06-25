@@ -31,22 +31,22 @@ object App {
  
   def main(args: Array[String]){
     // runFlatToNested()
-    // runNestedToNested()
+     runNestedToNested()
     // runNestedToFlat()
-    runSkewHandling()
+//    runSkewHandling()
   }
 
   def runFlatToNested(){
     
     // standard pipeline - no optimiztions
-    AppWriter.flatDataset(Test2, "Flat,0", optLevel = 0)
+//    AppWriter.flatDataset(Test2, "Flat,0", optLevel = 0)
     // standard pipeline - pushed projections only
-    AppWriter.flatDataset(Test2, "Flat,1", optLevel = 1)
+//    AppWriter.flatDataset(Test2, "Flat,1", optLevel = 1)
     // standard pipeline - all optimizations
     AppWriter.flatDataset(Test2Flat, "Flat,2")
     
     // shredded pipeline + unshredding
-    AppWriter.shredDataset(Test2, "Shred,2", unshred=true)
+//    AppWriter.shredDataset(Test2, "Shred,2", unshred=true)
   }
  
   def runNestedToNested(){
