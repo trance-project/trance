@@ -114,6 +114,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       handleType(unouter)
       val rcnts = fs.map(f => accessOption(f._2, nv)).mkString(", ")
       s"${generateType(unouter)}($rcnts)"
+    case If(cond, e1, Some(e2)) => 
+      "if (${generate(cond)}) ${generate(e1)} else ${generate(e2)} "
   }
 
   def generateReference(e: CExpr, literal: Boolean = false): String = e match {
