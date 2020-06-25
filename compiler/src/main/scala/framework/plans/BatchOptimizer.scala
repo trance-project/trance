@@ -11,23 +11,24 @@ object BatchOptimizer extends Extensions {
   def applyAll(e: CExpr): CExpr = {
     val t = pushUnnest(e)
     val pushedProjections = push(t)
-//e
-//    pushUnnest(e)
     pushedProjections
   }
+
+  def validateMatch(t1: Type, f1: String, t2: Type, f2: String): Boolean = 
+    (t1.attrs.get(f1).isDefined && t2.attrs.get(f2).isDefined) ||
+      (t1.attrs.get(f2).isDefined && t2.attrs.get(f1).isDefined)
 
   /** TODO Yao's awesome optimizer **/
   def pushUnnest(e: CExpr): CExpr = fapply(e, {
 
     case DFOuterUnnest(
-    AddIndex(DFOuterJoin(e1, x2, e2, x3, Constant(true), fs1), index),
-    x7, field, x4, Equals(Project(x4_expr, f1), Project(x5, f2)), fs2)
-
-      if x4.toString.equals(x4_expr.toString) => {
+      AddIndex(DFOuterJoin(e1, x2, e2, x3, Constant(true), fs1), index),
+        x7, field, x4, Equals(Project(x4_expr, f1), Project(x5, f2)), fs2)
+          if validateMatch(x2.tp, f1, x4.tp, f2) => {
 
         //        if(x4.toString.equals(x4_expr.toString)){
         //      if(x2.tp.attrs.get(f1).isDefined && x4.tp.attrs.get(f2).isDefined){
-        val unnest: DFOuterUnnest = DFOuterUnnest(
+        val unnest: DFUnnest = DFUnnest(
           AddIndex(e2, index), x3, field, x4, Constant(true), Nil)
         val cond = Equals(Project(x4_expr, f1), Project(x5, f2))
         DFOuterJoin(e1, x2, unnest, x7, cond, fs2)
