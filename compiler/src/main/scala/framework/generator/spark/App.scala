@@ -10,7 +10,7 @@ object TestApp extends App {
 
   override def main(args: Array[String]){
 
-    AppWriter.flatDataset(GeneConnectivity, "test")
+    // AppWriter.flatDataset(GeneConnectivity, "test")
     AppWriter.shredDataset(GeneConnectivity, "test")
   
   }

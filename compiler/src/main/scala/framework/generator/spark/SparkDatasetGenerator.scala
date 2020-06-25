@@ -237,17 +237,23 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
       // adjust label lookup column
       val lcol = s"${p1}_LABEL"
-      val ltp = rename(left.tp.attrs, p1, lcol)
+      val (lcolumn, ltp) = v1.tp.attrs get "_LABEL" match {
+        case Some(LabelType(ms)) if ms.size > 1 =>
+          (s""".withColumn("$lcol", col("_LABEL").getField("$p1"))""", 
+            RecordCType(left.tp.attrs))
+        case _ => 
+          (s""".withColumnRenamed("${p1}", "$lcol")""",
+            rename(left.tp.attrs, p1, lcol))
+      }
       handleType(ltp)
       val gltp = generateType(ltp)
 
       val nrecTp = RecordCType(ltp.merge(rtp).attrs -- Set(rcol,lcol))
       handleType(nrecTp)
-
       val classTags = if (!skew) ""
         else s"[$grtp, ${generateType(right.tp.attrs(p2))}]"
 
-      s"""|${generate(left)}.withColumnRenamed("${p1}", "$lcol")
+      s"""|${generate(left)}$lcolumn
           |   .as[$gltp].equiJoin$classTags(
           |   ${generate(right)}.withColumnRenamed("${p2}", "$rcol").as[$grtp], 
           |   Seq("$lcol", "$rcol"), "left_outer").drop("$lcol", "$rcol")
