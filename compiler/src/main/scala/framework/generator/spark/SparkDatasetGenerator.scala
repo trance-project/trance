@@ -101,8 +101,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     }
   }
 
-  // v is an attribute that adjusts the variable naming in the 
-  // generator
+  /** This is called from functions, not Dataset operations.
+    * When a value is an option, then it will call get on it 
+    */
   private def accessOption(e: CExpr, nv: Variable): String = e match {
     case Project(v, field) => 
       nv.tp.attrs(field) match {
@@ -115,9 +116,21 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val rcnts = fs.map(f => accessOption(f._2, nv)).mkString(", ")
       s"${generateType(unouter)}($rcnts)"
     case If(cond, e1, Some(e2)) => 
-      "if (${generate(cond)}) ${generate(e1)} else ${generate(e2)} "
+      s"if (${accessOption(cond, nv)}) ${accessOption(e1, nv)} else ${accessOption(e2, nv)} "
+    case Equals(e1, e2) => s"${accessOption(e1, nv)} == ${accessOption(e2, nv)}"
+    case Lt(e1, e2) => s"${accessOption(e1, nv)} < ${accessOption(e2, nv)}"
+    case Gt(e1, e2) => s"${accessOption(e1, nv)} > ${accessOption(e2, nv)}"
+    case Lte(e1, e2) => s"${accessOption(e1, nv)} <= ${accessOption(e2, nv)}"
+    case Gte(e1, e2) => s"${accessOption(e1, nv)} >= ${accessOption(e2, nv)}"
+    case And(e1, e2) => s"${accessOption(e1, nv)} && ${accessOption(e2, nv)}"
+    case Or(e1, e2) => s"${accessOption(e1, nv)} || ${accessOption(e2, nv)}"
+    case Not(e1) => s"!(${accessOption(e1, nv)})"
+    case _ => generate(e)
   }
 
+  /** This is specific to Dataset, when there is a projection 
+    * then it is treated as a column reference
+    */
   def generateReference(e: CExpr, literal: Boolean = false): String = e match {
     case Project(v, f) => v.tp match {
       case LabelType(_) => s"""col("_LABEL").getField("$f")"""
@@ -182,6 +195,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Gte(e1, e2) => s"${generateReference(e1)} >= ${generateReference(e2)}"
     case And(e1, e2) => s"${generateReference(e1)} && ${generateReference(e2)}"
     case Or(e1, e2) => s"${generateReference(e1)} || ${generateReference(e2)}"
+    case Not(Equals(e1, e2)) => s"${generateReference(e1)} =!= ${generateReference(e2)}"
     case Not(e1) => s"!(${generateReference(e1)})"
 
     case If(cond, s1, Some(s2)) => 
