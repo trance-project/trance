@@ -95,6 +95,7 @@ object TestExample1 extends App {
 object PathwayBurden_Test extends App{
   override def main(args: Array[String]): Unit ={
     AppWriter.flatDataset(plan2, "test")
-    AppWriter.flatDataset(plan2_1, "test")
+    AppWriter.shredDataset(plan2, label = "test")
+//    AppWriter.flatDataset(plan2_1, "test")
   }
 }

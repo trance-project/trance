@@ -23,7 +23,7 @@ trait GenomicSchema extends Query{
                 |val pathwayLoader = new PathwayLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Pathway/c2.cp.v7.1.symbols.gmt")
                 |val (pathways, geneSet) = pathwayLoader.shredDS
                 |val IBag_pathways__D = pathways
-                |val IDict_pathways__D_geneSet = geneSet
+                |val IDict_pathways__D_gene_set = geneSet
                 |""".stripMargin
         else
             s"""|val vloader = new VariantLoader(spark, "/home/yash/Documents/Basic_spark/exp/GeneBurden/Code/bioqueries/gene_burden/burden/src/main/scala/Data/Variants/sub_chr22.vcf")
