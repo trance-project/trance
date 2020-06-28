@@ -17,7 +17,7 @@ object Config {
   val threshold = prop.getProperty("threshold", "1000").toInt
 
   // vep information
-  val vepHome = prop.getProperty("vephome", "vep")
+  val vepHome = prop.getProperty("vephome", "/usr/local/ensembl-vep/vep")
   val vepCache = prop.getProperty("vepcache", "/mnt/app_hdd/")
 
 }
