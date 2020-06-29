@@ -91,6 +91,11 @@ object TestExample1 extends App {
   }
 }
 
+object pathway_by_gene_Test extends App{
+  override def main(args: Array[String]): Unit ={
+    AppWriter.flatDataset(pathway_by_gene, "test")
+  }
+}
 
 object PathwayBurden_Test extends App{
   override def main(args: Array[String]): Unit ={
