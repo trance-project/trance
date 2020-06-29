@@ -1,12 +1,14 @@
-package framework.examples.CancerDataLoader
+package sparkutils.loader
 
 import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions._
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ArrayBuffer
+import java.io.File
 
 case class Sample(gistic_sample: String, focal_score: Int)
-case class Gistic(gistic_gene: String, cytoband: String, gistic_samples: Seq[Sample])
+case class Gistic(gistic_gene: String, gistic_gene_id: Int, cytoband: String, gistic_samples: Seq[Sample])
 //  {(gene: String, cytoband: String, samples: {(name: String, focal_score: Int)})}
 
 class GisticLoader(spark: SparkSession) {
@@ -17,7 +19,7 @@ class GisticLoader(spark: SparkSession) {
   import spark.implicits._
   val delimiter: String = "\t"
   
-  def load(path: String) : Dataset[Gistic] ={
+  /**def load(path: String) : Dataset[Gistic] ={
     val header = getHeader(read(path))
     // drop the header before going through the file line by line
     val file = spark.sparkContext.textFile(path)
@@ -40,13 +42,32 @@ class GisticLoader(spark: SparkSession) {
         }
       ).toDF().as[Gistic]
     data
+  }**/
+
+  def merge(dir: String): Dataset[Gistic] = {
+    val files = (new File(dir)).listFiles().toList.map(f => s"$dir/${f.getName}")
+    val ldf = read(files.head)
+    val df = iterMerge(ldf, files.tail)
+    val columns = spark.sparkContext.broadcast(df.columns.toSet -- Set("Gene Symbol", "Gene ID", "Cytoband"))
+    df.mapPartitions{ it => it.map{ r => 
+        Gistic(r.getString(r.fieldIndex("Gene Symbol")), r.getInt(r.fieldIndex("Gene ID")), 
+          r.getString(r.fieldIndex("Cytoband")), columns.value.map(c => Sample(c, r.getInt(r.fieldIndex(c)))).toSeq
+        )
+    }}.as[Gistic]
   }
 
-  def merge(path: String) = {
-	spark.read.textFile(path)
-		//.withColumn("file", input_file_name())
+  def iterMerge(ldf: DataFrame, rfs: List[String]): DataFrame = rfs match {
+    case Nil => ldf
+    case rf :: tail =>
+      val rdf = read(rf)
+        .withColumnRenamed("Gene Symbol", "GS")
+        .withColumnRenamed("Gene ID", "GI")
+        .withColumnRenamed("Cytoband", "CB")
+      val ndf = ldf.join(rdf, $"Gene Symbol" === $"GS" && $"Gene Id" === $"GI" && $"Cytoband" === $"CB")
+        .drop("GS", "GI", "CB")
+      iterMerge(ndf, tail)
   }
-  
+
   private def read(path: String): DataFrame = {
 
     val data: DataFrame = spark.read.format("csv")
