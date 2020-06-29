@@ -71,7 +71,7 @@ object GenomicQuery1 extends GenomicSchema {
         Singleton(Tuple("sample" -> gr("g_sample"), //          {(sample := g.sample, genes :=
           "pathway" ->
             ForeachUnion(pr, pathways, // for p in Pathways union
-              Singleton(Tuple("name" -> pr("name"), // pathway := {( name := p.name,
+              Singleton(Tuple("name" -> pr("p_name"), // pathway := {( name := p.name,
                 "genes" -> ReduceByKey( //              (sumby(name)(burden)
                   ForeachUnion(gtfr, gtfs, // for gtfr in gtfs union
                     ForeachUnion(ger, BagProject(pr, "gene_set"), // for ger in p.gene_set union
@@ -114,7 +114,7 @@ object GenomicQuery1 extends GenomicSchema {
   //                Singleton(Tuple("sample" -> gr("sample"),       //          {(sample := g.sample, genes :=
   ////                    "pathway" ->
   //                        ForeachUnion(pr, pathways,                                  // for p in Pathways union
-  ////                            Singleton(Tuple("name" -> pr("name"),       // pathway := {( name := p.name,
+  ////                            Singleton(Tuple("name" -> pr("p_name"),       // pathway := {( name := p.name,
   //                                Let(gene_burden, ReduceByKey(                       //              (sumby(name)(burden)
   //                                    ForeachUnion(gtfr, gtfs,                                    // for gtfr in gtfs union
   //                                        ForeachUnion(ger, BagProject(pr, "gene_set"),               // for ger in p.gene_set union
@@ -128,7 +128,7 @@ object GenomicQuery1 extends GenomicSchema {
   //                                        )
   //                                    ), List("name"), List("burden")),
   //
-  //                                    "Pathways" -> Singleton(Tuple("name" -> pr("name"),
+  //                                    "Pathways" -> Singleton(Tuple("name" -> pr("p_name"),
   //                                        "total_burden" -> ReduceByKey(                       //              (sumby(name)(burden)
   //                                            ForeachUnion(gtfr, gtfs,                                    // for gtfr in gtfs union
   //                                                ForeachUnion(ger, BagProject(pr, "gene_set"),               // for ger in p.gene_set union
@@ -166,7 +166,7 @@ object GenomicQuery1 extends GenomicSchema {
                         And(
                           And(Cmp(OpNe, gr("call"), Const(0, IntType)), Cmp(OpGe, vr("start"), gtfr("g_start"))),
                           And(Cmp(OpGe, gtfr("g_end"), vr("start")), Cmp(OpEq, gtfr("g_contig"), vr("contig"))))),
-                      Singleton(Tuple("name" -> pr("name"), "burden" -> Const(1, IntType)))
+                      Singleton(Tuple("name" -> pr("p_name"), "burden" -> Const(1, IntType)))
                     )
                   )
                 ), List("name"), List("burden")
@@ -337,7 +337,7 @@ object Pathway_Burden extends GenomicSchema {
                     ForeachUnion(ger, BagProject(pr, "gene_set"), // for ger in p.gene_set union
                       IfThenElse(
                         Cmp(OpEq, gtfr("gene_name"), ger("name")),
-                        Singleton(Tuple("name" -> pr("name"),
+                        Singleton(Tuple("name" -> pr("p_name"),
                           "burden" -> PrimitiveIfThenElse(Cmp(OpNe, gr("call"), Const(0.0, DoubleType)), Const(1.0, DoubleType), Const(0.0, DoubleType))))
                       )
                     )
@@ -431,7 +431,7 @@ object pathway_by_gene extends GenomicSchema {
         ForeachUnion(gtfr, gtfs,
           IfThenElse(
             Cmp(OpEq, gtfr("gene_name"), ger("name")),
-            Singleton(Tuple("pathway_name" -> pr("name"), "gene_name" -> ger("name"),
+            Singleton(Tuple("pathway_name" -> pr("p_name"), "gene_name" -> ger("name"),
               "start" -> gtfr("g_start"), "end" -> gtfr("g_end"), "contig" -> gtfr("g_contig")
             ))
           )

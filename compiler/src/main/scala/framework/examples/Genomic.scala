@@ -53,7 +53,7 @@ trait GenomicSchema extends Query{
         "gene_name" -> StringType
     )
     val geneType = TupleType("name" -> StringType)
-    val pathwayType = TupleType("name" -> StringType, "url" -> StringType, "gene_set" -> BagType(geneType))
+    val pathwayType = TupleType("p_name" -> StringType, "url" -> StringType, "gene_set" -> BagType(geneType))
 
     val metaType = TupleType("m_sample" -> StringType, "family_id" -> StringType, "population" -> StringType, "gender" -> StringType)
 
