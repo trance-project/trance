@@ -35,7 +35,6 @@ class VariantLoader(spark: SparkSession, path: String) extends Serializable {
 
   implicit val genotypeEncoder = Encoders.product[Call]
   implicit val variantEncoder = Encoders.product[Variant]
-
   def loadVCF: RDD[VariantContext] = {
     spark.sparkContext
       .newAPIHadoopFile[LongWritable, VariantContextWritable, VCFInputFormat](path)

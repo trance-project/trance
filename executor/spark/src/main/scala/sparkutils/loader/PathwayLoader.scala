@@ -11,7 +11,7 @@ case class Pathway(p_name: String, url: String, gene_set: Seq[Name])
 case class IPathway(index:Long, p_name: String, url: String, gene_set: Seq[Name])
 case class SPathway( p_name: String, url: String, gene_set:Long)
 
-case class SName(_1: Long, p_name: String)
+case class SName(_1: Long, name: String)
 
 case class FlatPathway(p_name: String, p_gene: String)
 case class VariantPathway(contig: String, start: Int, p_name: String, gene: String, p_gene: String)
