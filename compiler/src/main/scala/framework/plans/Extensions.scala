@@ -56,6 +56,8 @@ trait Extensions {
         DFUnnest(fapply(in, funct), v, path, v2, filter, fields)
       case DFJoin(left, v, right, v2, cond, fields) =>
         DFJoin(fapply(left, funct), v, fapply(right, funct), v2, cond, fields)
+      case DFOuterJoin(left, v, right, v2, cond, fields) =>
+        DFOuterJoin(fapply(left, funct), v, fapply(right, funct), v2, cond, fields)
       case AddIndex(in, v) => AddIndex(fapply(in, funct), v)
       case _ => ex
     })
