@@ -42,16 +42,16 @@ case class Transcript(amino_acids: String, distance: Option[Long], cdna_end: Opt
 
 case class Transcript2(impact: String, consequence_terms: Seq[String])
 
-case class VepAnnotTrunc(vid: BigDecimal, allele_string: String, assembly_name: String, end: Long, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Seq[Transcript])
+case class VepAnnotTrunc(vid: String, allele_string: String, assembly_name: String, end: Long, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Seq[Transcript])
 
 case class VepAnnotTrunc2(input: String, transcript_consequences: Seq[Transcript2])
 
-case class VariantVep(vid: BigDecimal, vcontig: String, vstart: Int, vreference: String, genotypes: Seq[Call], vepCall: String)
-case class VepOccurrence(donorId: String, oid: BigDecimal, vend: Int, projectId: String, vstart: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, vepCall:String)
+case class VariantVep(vid: String, vcontig: String, vstart: Int, vreference: String, genotypes: Seq[Call], vepCall: String)
+case class VepOccurrence(donorId: String, oid: String, vend: Int, projectId: String, vstart: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, vepCall:String)
 
-case class OccurrenceNulls(oid: BigDecimal, donorId: String, vend: Int, projectId: String, vstart: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: Option[String], assembly_name: Option[String], end: Option[Long], vid: Option[BigDecimal], input: Option[String], most_severe_consequence: Option[String], seq_region_name: Option[String], start: Option[Long], strand: Option[Long], transcript_consequences: Option[Seq[Transcript]])
+case class OccurrenceNulls(oid: String, donorId: String, vend: Int, projectId: String, vstart: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: Option[String], assembly_name: Option[String], end: Option[Long], vid: Option[String], input: Option[String], most_severe_consequence: Option[String], seq_region_name: Option[String], start: Option[Long], strand: Option[Long], transcript_consequences: Option[Seq[Transcript]])
 
-case class Occurrence(oid: BigDecimal, donorId: String, vend: Int, projectId: String, vstart: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: BigDecimal, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Option[Seq[Transcript]])
+case class Occurrence(oid: String, donorId: String, vend: Int, projectId: String, vstart: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Option[Seq[Transcript]])
 
 class VepLoader(spark: SparkSession) extends Serializable {
 
@@ -61,11 +61,11 @@ class VepLoader(spark: SparkSession) extends Serializable {
   val vepCommandLine = s"${Config.vepHome} --cache -o STDOUT --assembly GRCh38 --json $options --offline --no_stats --format vcf --dir_cache ${Config.vepCache}"
 
   val formatOccurrenceUdf = udf { 
-	(c: String, s: Int, i: BigDecimal, r: String, a1: String, a2: String) => s"$c\t$s\t$i\t$r\t$a1\t.\tPASS\t.\n$c\t$s\t$i\t$r\t$a2\t.\tPASS\t."
+	(c: String, s: Int, i: String, r: String, a1: String, a2: String) => s"$c\t$s\t$i\t$r\t$a1\t.\tPASS\t.\n$c\t$s\t$i\t$r\t$a2\t.\tPASS\t."
   }
 
   val extractIdUdf = udf {
-	(s: String) => new BigDecimal(s.split("\t")(2))
+	(s: String) => s.split("\t")(2) 
   }
 
   val castBigDecimal = udf { s: String => new BigDecimal(s) }
@@ -110,7 +110,7 @@ class VepLoader(spark: SparkSession) extends Serializable {
   def loadAnnotations(variants: RDD[VariantContext]): (Dataset[VariantVep], Dataset[VepAnnotation]) = {
     val vindexed = variants.map(v => {
         val genotypes = v.getGenotypes.iterator.asScala.toSeq.map(s => Call(s.getSampleName, callCategory(s)))
-        VariantVep(new BigDecimal(v.getID), v.getContig, v.getStart, v.getReference.toString, genotypes, formatVariantContext(v))
+        VariantVep(v.getID, v.getContig, v.getStart, v.getReference.toString, genotypes, formatVariantContext(v))
     }).toDF().as[VariantVep]
     val annots = spark.read.json(vindexed.mapPartitions(it => 
 		callVep(it.map(i => i.vepCall).toList).iterator).toDF().as[String])
@@ -120,7 +120,7 @@ class VepLoader(spark: SparkSession) extends Serializable {
   }
 
   def loadOccurrences(variants: Dataset[OccurrencesTop]): (Dataset[VepOccurrence], Dataset[VepAnnotTrunc]) = {
-	val vindex = variants.withColumn("oid", castBigDecimal(monotonically_increasing_id().cast(StringType))).withColumn("vepCall", 
+	val vindex = variants.withColumn("oid", monotonically_increasing_id().cast(StringType)).withColumn("vepCall", 
 		formatOccurrenceUdf(col("chromosome"), col("start"), col("oid"), col("Reference_Allele"), col("Tumor_Seq_Allele1"), col("Tumor_Seq_Allele2")))
 	 .withColumnRenamed("start", "vstart").as[VepOccurrence]
  	
@@ -132,7 +132,7 @@ class VepLoader(spark: SparkSession) extends Serializable {
   }
 
   def buildOccurrences(inputvariants: Dataset[VepOccurrence], annots: Dataset[VepAnnotTrunc]): Dataset[Occurrence] = {
-	val nullFill = Map("allele_string" -> "null", "assembly_name" -> "null", "end" -> -1, "vid" -> -1, 
+	val nullFill = Map("allele_string" -> "null", "assembly_name" -> "null", "end" -> -1, "vid" -> "null", 
 		"input" -> "null", "most_severe_consequence" -> "null", "seq_region_name" -> "null", "start" -> -1, 
 		"strand" -> -1)
 
