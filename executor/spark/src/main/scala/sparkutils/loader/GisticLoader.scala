@@ -16,7 +16,7 @@ class GisticLoader(spark: SparkSession) {
 
   import spark.implicits._
   val delimiter: String = "\t"
-
+  
   def load(path: String) : Dataset[Gistic] ={
     val header = getHeader(read(path))
     // drop the header before going through the file line by line
@@ -42,6 +42,11 @@ class GisticLoader(spark: SparkSession) {
     data
   }
 
+  def merge(path: String) = {
+	spark.read.textFile(path)
+		//.withColumn("file", input_file_name())
+  }
+  
   private def read(path: String): DataFrame = {
 
     val data: DataFrame = spark.read.format("csv")
