@@ -1,4 +1,4 @@
-package sparkutils.loader
+package sparkutils
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
@@ -13,19 +13,19 @@ import org.apache.spark.sql.types.{StringType, IntegerType, StructField, StructT
 import sparkutils.Config
 
 case class Call(g_sample: String, call: Int)
-case class Variant(contig: String, start: Int, reference: String, 
-  alternate: String, genotypes: Seq[Call])
-case class IVariant(index: Long, contig: String, start: Int, reference: String, 
-  alternate: String, genotypes: Seq[Call])
+case class Variant(id: String, contig: String, start: Int, reference: String,
+                   alternate: String, genotypes: Seq[Call])
+case class IVariant(index: Long, contig: String, start: Int, reference: String,
+                    alternate: String, genotypes: Seq[Call])
 
 case class SCall(_1: Long, g_sample: String, call: Int)
-case class SVariant(contig: String, start: Int, reference: String, 
-  alternate: String, genotypes: Long)
+case class SVariant(contig: String, start: Int, reference: String,
+                    alternate: String, genotypes: Long)
 
 case class GeneInfo(contig: String, name: String, id: String, strand: String, affect: String)
 
-case class Variant2(id: String, contig: String, start: Int, reference: String, 
-  alternate: String, gene: List[GeneInfo])
+case class Variant2(id: String, contig: String, start: Int, reference: String,
+                    alternate: String, gene: List[GeneInfo])
 
 case class SNP(id: String, chr: Int, pos: Int)
 
@@ -37,39 +37,39 @@ class VariantLoader(spark: SparkSession, path: String) extends Serializable {
   implicit val variantEncoder = Encoders.product[Variant]
 
   def loadVCF: RDD[VariantContext] = {
-     spark.sparkContext
+    spark.sparkContext
       .newAPIHadoopFile[LongWritable, VariantContextWritable, VCFInputFormat](path)
       .map(_._2.get)
-   }
+  }
 
   def loadAnnotated: Dataset[Variant2] = {
-     spark.sparkContext
+    spark.sparkContext
       .newAPIHadoopFile[LongWritable, VariantContextWritable, VCFInputFormat](path)
       .map{ case (k, v) =>
         val variant = v.get
         val genotypes = variant.getGenotypes.iterator.asScala.toSeq.map(s => Call(s.getSampleName, callCategory(s)))
-        Variant2(variant.getID, variant.getContig, variant.getStart, variant.getReference.toString, 
+        Variant2(variant.getID, variant.getContig, variant.getStart, variant.getReference.toString,
           variant.getAlternateAllele(0).toString, List(getGene(variant)))
-      }.toDF().as[Variant2]       
+      }.toDF().as[Variant2]
   }
 
   def loadDS: Dataset[Variant] = {
-     spark.sparkContext
+    spark.sparkContext
       .newAPIHadoopFile[LongWritable, VariantContextWritable, VCFInputFormat](path)
       .map{ case (k, v) =>
         val variant = v.get
         val genotypes = variant.getGenotypes.iterator.asScala.toSeq.map(s => Call(s.getSampleName, callCategory(s)))
-        Variant(variant.getContig, variant.getStart, variant.getReference.toString, 
+        Variant(variant.getID, variant.getContig, variant.getStart, variant.getReference.toString,
           variant.getAlternateAllele(0).toString, genotypes)
-      }.toDF().as[Variant].repartition(Config.lparts) 
+      }.toDF().as[Variant]
   }
 
   def shredDS: (Dataset[SVariant], Dataset[SCall]) = {
     val input = loadDS.withColumn("index", monotonically_increasing_id()).as[IVariant]
     val variants = input.drop("genotypes").withColumnRenamed("index", "genotypes").as[SVariant]
     val genotypes = input.flatMap{
-      variant => variant.genotypes.map{
-        genotype => SCall(variant.index, genotype.g_sample, genotype.call)
+      case variant => variant.genotypes.map{
+        case genotype => SCall(variant.index, genotype.g_sample, genotype.call)
       }
     }.as[SCall]
     (variants, genotypes.repartition($"_1"))
@@ -77,10 +77,10 @@ class VariantLoader(spark: SparkSession, path: String) extends Serializable {
 
   def loadSnps(spath: String): Dataset[SNP] = {
     val schema = StructType(Array(
-        StructField("id", StringType),
-        StructField("chr", IntegerType),
-        StructField("pos", IntegerType)
-      ))
+      StructField("id", StringType),
+      StructField("chr", IntegerType),
+      StructField("pos", IntegerType)
+    ))
     spark.read.schema(schema)
       .option("header", true)
       .option("delimiter", "\t")
@@ -97,6 +97,6 @@ class VariantLoader(spark: SparkSession, path: String) extends Serializable {
     case c if g.isHet => 1
     case c if g.isHomVar => 2
     case _ => 0
-   }
+  }
 
 }

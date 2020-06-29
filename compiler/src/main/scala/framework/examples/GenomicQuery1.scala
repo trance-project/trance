@@ -432,12 +432,12 @@ object pathway_by_gene extends GenomicSchema {
           IfThenElse(
             Cmp(OpEq, gtfr("gene_name"), ger("name")),
             Singleton(Tuple("pathway_name" -> pr("p_name"), "gene_name" -> ger("name"),
-              "start" -> gtfr("g_start"), "end" -> gtfr("g_end"), "contig" -> gtfr("g_contig")
+              "g_start" -> gtfr("g_start"), "g_end" -> gtfr("g_end"), "g_contig" -> gtfr("g_contig")
             ))
           )
         ))
     )
-  //  {pathway_name, gene_name, start, end, contig}
+  //  {pathway_name, gene_name, g_start, g_end, g_contig}
   val program = Program(Assignment(name, query))
 }
 
@@ -460,7 +460,7 @@ object transpose extends GenomicSchema {
               IfThenElse(Cmp(OpEq, mr("m_sample"), gr("g_sample")),
                 ForeachUnion(ac, cnts,
                   IfThenElse(
-                    Cmp(OpGe, vr("start"), ac("start")) && Cmp(OpEq, ac("contig"), vr("contig")) && Cmp(OpGe, ac("end"), vr("start")),
+                    Cmp(OpGe, vr("start"), ac("g_start")) && Cmp(OpEq, ac("g_contig"), vr("contig")) && Cmp(OpGe, ac("g_end"), vr("start")),
                     Singleton(Tuple(
                       "gene_name" -> ac("gene_name"), "pathway_name" -> ac("pathway_name"),
                       "contig" -> vr("contig"), "start" -> vr("start"),
@@ -488,18 +488,16 @@ object plan2 extends GenomicSchema {
   val ac2 = TupleVarRef("c2", ac("pathway_variants").asInstanceOf[BagExpr].tp.tp)
   val query =
     ForeachUnion(ac, cnts,
-      ForeachUnion(ac2, BagProject(ac, "pathway_variants"),
         Singleton(Tuple(
           "sample" -> ac("sample"), "pathways" ->
             ReduceByKey(
-
               ForeachUnion(ac2, ac("pathway_variants").asBag,
                 Singleton(Tuple("pathway_name" -> ac2("pathway_name"), "burden" -> ac2("burden")))),
               List("pathway_name"),
               List("burden")
             )
         )
-        ))
+        )
     )
   val program = transpose.program.asInstanceOf[plan2.Program].append(Assignment(name, query))
 }
@@ -521,7 +519,7 @@ object flatten extends GenomicSchema {
         ForeachUnion(gr, BagProject(vr, "genotypes"),
           ForeachUnion(ac, cnts,
             IfThenElse(
-              Cmp(OpGe, vr("start"), ac("start")) && Cmp(OpEq, ac("contig"), vr("contig")) && Cmp(OpGe, ac("end"), vr("start")),
+              Cmp(OpGe, vr("start"), ac("g_start")) && Cmp(OpEq, ac("g_contig"), vr("contig")) && Cmp(OpGe, ac("g_end"), vr("start")),
               Singleton(Tuple(
                 "sample" -> gr("g_sample"),
                 "gene_name" -> ac("gene_name"), "pathway_name" -> ac("pathway_name"),
