@@ -15,15 +15,16 @@ object App {
      val spark = SparkSession.builder().config(conf).getOrCreate()
 
      import spark.implicits._
-	 //val vloader = new VariantLoader(spark, "/nfs_qc4/genomics/sub.vcf")
-     //val variants = vloader.loadVCF
-     //variants.take(10).foreach(println(_))
+	/**
+        //val vloader = new VariantLoader(spark, "/nfs_qc4/genomics/sub.vcf")
+        //val variants = vloader.loadVCF
+        //variants.take(10).foreach(println(_))
 	 val veploader = new VepLoader(spark)
 	 //val annots = veploader.loadAnnotations(variants)
-     //annots.cache
-     //annots.count 
-     //println("annotations here")
-     //println(annots.show())
+        //annots.cache
+        //annots.count 
+        //println("annotations here")
+        //println(annots.show())
 	 //annots.take(10).foreach(println(_))
 	 
 	 val mloader = new MAFLoader(spark)
@@ -40,13 +41,16 @@ object App {
 	 val total = joined.count
 	 println(s"writing out this many somatic mutations $total")
 	 joined.write.format("json").save("file:///nfs_qc4/genomics/gdc/somatic/dataset/")
-	 /**val occurrences = veploader.buildOccurrences(maf, "file:///nfs_qc4/genomics/gdc/somatic/dataset/")
+	 val occurrences = veploader.buildOccurrences(maf, "file:///nfs_qc4/genomics/gdc/somatic/dataset/")
 	 val stats = occurrences.map(o => o.transcript_consequences match {
 		case Some(ts) => (ts.size, ts.map(t => t.consequence_terms.size))
 		case None => (0, Nil)
 	 })
 	 stats.collect.foreach(println(_))**/
 
-   }
+         val gloader = new GisticLoader(spark)
+         val gistic = gloader.merge("/home/jacith/Downloads/gistic/")
+         gistic.write.format("json").save("file:///nfs_qc4/genomics/gdc/gistic/dataset")
+    }
 
 }

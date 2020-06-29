@@ -9,8 +9,8 @@ import scala.collection.mutable.ArrayBuffer
 import java.io.File
 
 case class Consequence(consequenceType:String, functionalImpact:String, SYMBOL: String, Consequence: String, HGVSp_Short: String, Transcript_ID: String, RefSeq:String , HGVSc:String , IMPACT:String ,CANONICAL:String , SIFT: String, PolyPhen:String, Strand:String)
-case class gene(chromosome: String, biotype: String, geneId: String, Hugo_Symbol:String, consequences: Seq[Consequence])
-case class Occurrences(donorId: String, end: Int, projectId: String, start: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, genes: Seq[gene])
+case class GeneMaf(chromosome: String, biotype: String, geneId: String, Hugo_Symbol:String, consequences: Seq[Consequence])
+case class Occurrences(donorId: String, end: Int, projectId: String, start: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, genes: Seq[GeneMaf])
 case class OccurrencesTop(donorId: String, vend: Int, projectId: String, start: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, Hugo_Symbol: String, biotype: String, functionalImpact: String, consequenceType: String, all_effects: String)
 
 class MAFLoader(spark: SparkSession) {
@@ -112,14 +112,14 @@ class MAFLoader(spark: SparkSession) {
 
         val other: (String, Int, String, Int, String, String, String) = (o._1,o._2,o._3,o._4,o._5,o._6,o._7)
 
-        val seq = ArrayBuffer[gene]()
-        seq.append(gene(o._8,o._9,o._10,o._11,conseq))
+        val seq = ArrayBuffer[Gene]()
+        seq.append(Gene(o._8,o._9,o._10,o._11,conseq))
         (other, seq)
       }).reduceByKey((x, y) => x ++: y)
       .map(
         line => {
           val o: (String, Int, String, Int, String, String, String) = line._1
-          val genes: Seq[gene] = line._2.toSeq
+          val genes: Seq[Gene] = line._2.toSeq
 
           Occurrences(o._1, o._2, o._3, o._4, o._5, o._6, o._7, genes)
         }
