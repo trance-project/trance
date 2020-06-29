@@ -51,7 +51,7 @@ case class VepOccurrence(donorId: String, oid: String, vend: Int, projectId: Str
 
 case class OccurrenceNulls(oid: String, donorId: String, vend: Int, projectId: String, vstart: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: Option[String], assembly_name: Option[String], end: Option[Long], vid: Option[String], input: Option[String], most_severe_consequence: Option[String], seq_region_name: Option[String], start: Option[Long], strand: Option[Long], transcript_consequences: Option[Seq[Transcript]])
 
-case class Occurrence(oid: String, donorId: String, vend: Int, projectId: String, vstart: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Option[Seq[Transcript]])
+case class Occurrence(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Option[Seq[Transcript]])
 
 class VepLoader(spark: SparkSession) extends Serializable {
 
@@ -135,10 +135,6 @@ class VepLoader(spark: SparkSession) extends Serializable {
 	val nullFill = Map("allele_string" -> "null", "assembly_name" -> "null", "end" -> -1, "vid" -> "null", 
 		"input" -> "null", "most_severe_consequence" -> "null", "seq_region_name" -> "null", "start" -> -1, 
 		"strand" -> -1)
-
-	/**val variants = inputvariants.withColumn("vepCall", 
-		formatOccurrenceUdf(col("chromosome"), col("start"), col("Reference_Allele"), col("Tumor_Seq_Allele1"), col("Tumor_Seq_Allele2")))
-		.withColumnRenamed("start", "vstart").as[VepOccurrence]**/
 
 	//val annots = spark.read.json(path).as[VepAnnotTrunc]
 	inputvariants.join(annots, $"oid" === $"vid", "left_outer").drop("vepCall")

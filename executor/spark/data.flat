@@ -1,6 +1,6 @@
-datapath=/Users/jac/shredder/executor/spark/data/tpch/
-master=local[*]
-minPartitions=6
+datapath=/nfs_qc4/tpch/data/tpch/
+master=spark://192.168.11.229:7077
+minPartitions=400
 threshold=1
-maxPartitions=6
-vepcache=/mnt/app_hdd/
+maxPartitions=1000
+vepcache=/nfs_qc4/genomics/
