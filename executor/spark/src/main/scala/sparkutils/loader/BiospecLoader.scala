@@ -32,8 +32,7 @@ class BiospecLoader(spark: SparkSession) extends Table[Biospec] {
      spark.read.schema(schema)
        .option("header", header)
        .option("delimiter", delimiter)
-       .csv(path)
-       .as[Biospec]        
+       .csv(path).na.drop.as[Biospec]
    }
 }
 
