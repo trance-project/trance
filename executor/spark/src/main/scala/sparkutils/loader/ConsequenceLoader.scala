@@ -3,6 +3,7 @@ package sparkutils.loader
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions.udf
 import scala.io.Source
 
 case class ConseqCalc(id: Int, so_term: String, so_description: String, so_accession: String, display_term: String, impact: String)
@@ -13,7 +14,7 @@ class ConsequenceLoader(spark: SparkSession) {
   
   val delimiter = "\t"
   val header = true
-	
+
   val schema = StructType(Array(StructField("so_term", StringType),
 		StructField("so_description", StringType),
                 StructField("so_accession", StringType),

@@ -74,6 +74,13 @@ class VepLoader(spark: SparkSession) extends Serializable {
 	(s: String) => s.split("\t")(2) 
   }
 
+  val quantifyConsequence = udf { s: String => s match {
+    case "HIGH" => .8
+    case "MODERATE" => .5
+    case "LOW" => .3
+    case "MODIFIER" => .1
+  }}
+
   val castBigDecimal = udf { s: String => new BigDecimal(s) }
 
   def formatVariantContext(v: VariantContext): String = {
