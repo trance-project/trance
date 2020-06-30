@@ -150,7 +150,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case InputRef(name, tp) => name
     case Constant(s:String) => "\"" + s + "\""
     case Constant(x) => x.toString
-    case Sng(e) => s"Seq(${generate(e)})"
+    case CUdf(n, e1, tp) => s"$n(${generateReference(e1)})"
+	case Sng(e) => s"Seq(${generate(e)})"
     case CGet(e1) => s"${generate(e1)}.head"
     case CDeDup(e1) => s"${generate(e1)}.distinct"
     case Label(fs) if fs.size == 1 => generate(fs.head._2)

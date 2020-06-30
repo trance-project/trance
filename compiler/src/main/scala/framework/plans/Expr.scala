@@ -39,6 +39,8 @@ case class Constant(data: Any) extends CExpr{
   }
 }
 
+case class CUdf(name: String, in: CExpr, tp: Type) extends CExpr
+
 case object Index extends CExpr {
   def tp: Type = LongType
 }

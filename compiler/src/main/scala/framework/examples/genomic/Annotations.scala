@@ -9,8 +9,8 @@ import framework.examples.Query
   */ 
 trait Vep {
 
-  val selement = TupleType("element" -> StringType)
-  val element = TupleType("element" -> DoubleType)
+  val element = TupleType("element" -> StringType)
+  //val element = TupleType("element" -> DoubleType)
   
   val intergenic = TupleType("consequence_terms" -> BagType(element),
     // "impact" -> StringType, 
@@ -74,9 +74,9 @@ trait Vep {
     "cds_start" -> LongType,
     "codons" -> StringType,
     "consequence_terms" -> BagType(element),
-    "flags" -> BagType(selement),
+    "flags" -> BagType(element),
     "gene_id" -> StringType,
-    "impact" -> DoubleType,
+    "impact" -> StringType,
     "protein_end" -> LongType,
     "protein_start" -> LongType,
     "strand" -> LongType,

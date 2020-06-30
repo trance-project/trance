@@ -32,10 +32,10 @@ trait Occurrence extends Vep {
 trait Gistic {
 
   val sampleType = TupleType("gistic_sample" -> StringType, 
-    "focal_score" -> DoubleType)
+    "focal_score" -> LongType)
 
   val gisticType = TupleType("gistic_gene" -> StringType, "cytoband" -> StringType,
-    "gistic_gene_id" -> IntType, "gistic_samples" -> BagType(sampleType))
+    "gistic_gene_id" -> LongType, "gistic_samples" -> BagType(sampleType))
 
 }
 
@@ -87,6 +87,15 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork wi
 		|val biospec = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/")
 		|biospec.cache
 		|biospec.count
+		|val consequenceLoader = new ConsequenceLoader(spark)
+		|val conseqmap = spark.sparkContext.broadcast(consequenceLoader.read(Config.datapath))
+		|val quantifyImpact = udf { s: String => conseqmap.value(s) } 
+		|val quantifyConsequence = udf { s: String => s match {
+		|  case "HIGH" => .8
+		|  case "MODERATE" => .5
+		|  case "LOW" => .3
+		|  case "MODIFIER" => .1
+		|}}
 		|""".stripMargin
   }
 
@@ -140,7 +149,9 @@ object HybridBySample extends DriverGene {
                           Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
                             "hybrid_score" -> 
                             //ar("biotype").asNumeric * 
-                            ar("impact").asNumeric * cr("element").asNumeric * sr("focal_score").asNumeric))))))))
+                            Udf("quantifyImpact", ar("impact").asPrimitive, DoubleType) * 
+							Udf("quantifyConsequence", cr("element").asPrimitive, DoubleType) * 
+							sr("focal_score").asNumeric))))))))
             ,List("hybrid_gene_id"),
             List("hybrid_score")))))
 

@@ -72,6 +72,8 @@ trait NRC extends BaseExpr {
 
   final case class TupleVarRef(name: String, tp: TupleType) extends TupleExpr with VarRef
 
+  final case class Udf(name: String, in: PrimitiveExpr, tp: NumericType) extends NumericExpr 
+
   trait Project {
     def tuple: VarRef with Expr
 
