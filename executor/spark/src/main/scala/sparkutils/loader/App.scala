@@ -52,10 +52,11 @@ object App {
          val gistic = gloader.merge("/nfs_qc4/genomics/gdc/gistic/")
          gistic.count
 		 gistic.write.format("json").save("file:///nfs_qc4/genomics/gdc/gistic/dataset")
-    **/
 	val bloader = new BiospecLoader(spark)
 	val biospec = bloader.load("/nfs_qc4/genomics/gdc/biospecimen/")
-	println(biospec.show())
-	}
+	println(biospec.show())**/
+       val cloader = new ConsequenceLoader(spark)
+       cloader.read("/home/jacith/Downloads/calc_variant_conseq.txt")
+    }
 
 }
