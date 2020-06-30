@@ -154,6 +154,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case CGet(e1) => s"${generate(e1)}.head"
     case CDeDup(e1) => s"${generate(e1)}.distinct"
     case Label(fs) if fs.size == 1 => generate(fs.head._2)
+    case Record(fs) if fs.contains("element") && fs.size == 1 => fs("element")
     case Record(fs) => {
       handleType(e.tp)
       val rcnts = e.tp.attrs.map(f => generate(fs(f._1))).mkString(", ")
@@ -162,6 +163,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
 
     case Project(e1, "_LABEL") => s"${generate(e1)}"
+    case Project(e1, "element") => s"${generate(e1)}"
     case Project(e2 @ Record(fs), field) => 
       s"${generate(e2)}.${kvName(field)(fs.size)}"
     case Project(e2, field) => s"${generate(e2)}.$field"

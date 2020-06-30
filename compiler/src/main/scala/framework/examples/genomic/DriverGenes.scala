@@ -5,8 +5,27 @@ import framework.examples.Query
 
 trait Occurrence extends Vep {
 
-  val occurrence_type = TupleType((vcf_vep_type.attrTps - "genotypes") ++
-    Map("donorId" -> StringType, "aliquot_id" -> StringType))
+  val occurrence_type = TupleType(
+      "oid" -> StringType,
+      "donorId" -> StringType, 
+      "vend" -> LongType,
+      "projectId" -> StringType, 
+      "vstart" -> LongType,
+      "Reference_Allele" -> StringType,
+      "Tumor_Seq_Allele1" -> StringType,
+      "Tumor_Seq_Allele2" -> StringType,
+      "chromosome" -> StringType,
+      "allele_string" -> StringType,
+      "assembly_name" -> StringType,
+      "end" -> LongType,
+      "vid" -> StringType,
+      "input" -> StringType,
+      "most_severe_consequence" -> StringType,
+      "seq_region_name" -> StringType, 
+      "start" -> LongType,
+      "strand" -> LongType,
+      "transcript_consequences" -> BagType(transcriptQuant)
+    )
 
 }
 
@@ -16,7 +35,7 @@ trait Gistic {
     "focal_score" -> DoubleType)
 
   val gisticType = TupleType("gistic_gene" -> StringType, "cytoband" -> StringType,
-    "gistic_samples" -> BagType(sampleType))
+    "gistic_gene_id" -> IntType, "gistic_samples" -> BagType(sampleType))
 
 }
 
@@ -73,7 +92,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork wi
 
   val occurrences = BagVarRef("occurrences", BagType(occurrence_type))
   val or = TupleVarRef("o", occurrence_type)
-  val ar = TupleVarRef("a", transcript)
+  val ar = TupleVarRef("a", transcriptQuant)
   val cr = TupleVarRef("c", element)
 
   val gistic = BagVarRef("gistic", BagType(gisticType))
@@ -120,8 +139,8 @@ object HybridBySample extends DriverGene {
                       ForeachUnion(cr, BagProject(ar, "consequence_terms"),
                           Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
                             "hybrid_score" -> 
-                            ar("biotype").asNumeric * ar("impact").asNumeric *
-                            (cr("element").asNumeric * sr("focal_score").asNumeric)))))))))
+                            //ar("biotype").asNumeric * 
+                            ar("impact").asNumeric * cr("element").asNumeric * sr("focal_score").asNumeric))))))))
             ,List("hybrid_gene_id"),
             List("hybrid_score")))))
 

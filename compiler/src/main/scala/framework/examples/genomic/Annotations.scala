@@ -9,7 +9,7 @@ import framework.examples.Query
   */ 
 trait Vep {
 
-  // val element = TupleType("element" -> StringType)
+  val selement = TupleType("element" -> StringType)
   val element = TupleType("element" -> DoubleType)
   
   val intergenic = TupleType("consequence_terms" -> BagType(element),
@@ -63,6 +63,42 @@ trait Vep {
     "transcript_id" -> StringType,
     "tsl" -> LongType,
     "uniparc" -> BagType(element),
+    "variant_allele" -> StringType)
+
+  val transcriptQuant = TupleType(
+    "amino_acids" -> StringType,
+    "distance" -> LongType,
+    "cdna_end" -> LongType,
+    "cdna_start" -> LongType,
+    "cds_end" -> LongType,
+    "cds_start" -> LongType,
+    "codons" -> StringType,
+    "consequence_terms" -> BagType(element),
+    "flags" -> BagType(selement),
+    "gene_id" -> StringType,
+    "impact" -> DoubleType,
+    "protein_end" -> LongType,
+    "protein_start" -> LongType,
+    "strand" -> LongType,
+    "transcript_id" -> StringType,
+    //"appris" -> StringType,
+    //"biotype" -> DoubleType,
+    //"bp_overlap" -> LongType,
+    //"canonical" -> LongType,
+    //"ccds" -> StringType,
+    //"domains" -> BagType(TupleType("db" -> StringType, "name" -> StringType)),
+    //"exon" -> StringType,
+    //"gene_symbol" -> StringType,
+    //"gene_symbol_source" -> StringType,
+    //"hgnc_id" -> StringType,
+    // "impact" -> StringType,
+    //"intron" -> StringType,
+    //"mane" -> StringType,
+    //"percentage_overlap" -> DoubleType,
+    //"protein_id" -> OptionType(StringType),
+    //"swissprot" -> BagType(element),
+    //"tsl" -> LongType,
+    //"uniparc" -> BagType(element),
     "variant_allele" -> StringType)
 
   val vep_type = TupleType("allele_string" -> StringType, 

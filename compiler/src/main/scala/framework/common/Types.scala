@@ -76,10 +76,10 @@ case object DoubleType extends NumericType
 object NumericType {
 
   def resolve(tp1: Type, tp2: Type): NumericType = (tp1, tp2) match {
-    case (OptionType(o1), OptionType(o2)) =>
-      resolve(o1.asInstanceOf[NumericType], o2.asInstanceOf[NumericType])
-    case _ => 
-      resolve(tp1.asInstanceOf[NumericType], tp2.asInstanceOf[NumericType])
+    case (OptionType(o1), o2:NumericType) => resolve(o1, o2)
+    case (o1:NumericType, OptionType(o2)) => resolve(o1, o2)
+    case (OptionType(o1), OptionType(o2)) => resolve(o1, o2)
+    case _ => resolve(tp1.asInstanceOf[NumericType], tp2.asInstanceOf[NumericType])
   }
 
   def resolve(tp1: NumericType, tp2: NumericType): NumericType = (tp1, tp2) match {
@@ -153,7 +153,7 @@ final case class TypeSet(tp: Map[Type, String]) extends Type
 
 final case class SetType(tp: Type) extends Type
 
-final case class OptionType(tp: Type) extends Type 
+final case class OptionType(tp: Type) extends TupleAttributeType
 
 final case class BagCType(tp: Type) extends Type {
 
