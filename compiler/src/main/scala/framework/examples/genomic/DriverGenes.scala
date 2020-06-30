@@ -40,7 +40,22 @@ trait GeneExpression {
 
 }
 
-trait DriverGene extends Query with Occurrence with Gistic with StringNetwork with GeneExpression {
+trait Biospecimen {
+
+  val biospecOtype = List(
+    ("bcr_patient_uuid", StringType), ("bcr_sample_barcode", StringType), 
+    ("bcr_aliquot_barcode", StringType), ("bcr_aliquot_uuid", StringType), 
+    ("biospecimen_barcode_bottom", StringType), ("center_id", StringType), 
+    ("concentration", DoubleType), ("date_of_shipment", StringType), 
+    ("is_derived_from_ffpe", StringType), ("plate_column", IntType),
+    ("plate_id", StringType), ("plate_row", StringType), 
+    ("quantity", DoubleType), ("source_center", IntType), 
+    ("volume", DoubleType))
+  val biospecType = TupleType(biospecOtype.toMap)
+
+}
+
+trait DriverGene extends Query with Occurrence with Gistic with StringNetwork with GeneExpression with Biospecimen {
 
   def loadTables(shred: Boolean = false, skew: Boolean = false): String = {
     s"""|//TODO""".stripMargin
@@ -62,6 +77,9 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork wi
   val expression = BagVarRef("expression", BagType(sampleExprType))
   val sexpr = TupleVarRef("sexpr", sampleExprType)
   val gexpr = TupleVarRef("gexpr", geneExprType)
+
+  val biospec = BagVarRef("biospec", BagType(biospecType))
+  val br = TupleVarRef("b", biospecType)
 
 }
 
