@@ -221,20 +221,28 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       // output attributes
       val newCols = pat.fields.keySet
 
-      // bug here when column is renamed to an existing column
-      // that is overrode
-      val columns = pat.fields.flatMap{
+      // make new columns
+      val newColumns = pat.fields.flatMap{
+        // avoid column renaming
+        case (col, Project(_, oldCol)) if col != oldCol => Nil
+        case (col, expr) if !projectCols(col) =>
+          List(s"""|  .withColumn("$col", ${generateReference(expr, true)})""")
+        case _ => Nil
+      }
+
+      // override existing columns
+      val renamedColumns = pat.fields.flatMap{
         // create a new column from an old column
         case (col, Project(_, oldCol)) if col != oldCol => 
           // creates an additional column
           if (newCols(oldCol)) List(s"""| .withColumn("$col", $$"$oldCol")""")
           // overrides a column
           else List(s"""| .withColumnRenamed("$oldCol", "$col")""")
-        // make a new column
-        case (col, expr) if !projectCols(col) =>
-          List(s"""|  .withColumn("$col", ${generateReference(expr, true)})""")
         case _ => Nil
-      }.mkString("\n").stripMargin      
+      } 
+
+      // ensure that new columns are made before renaming occurs
+      val columns = (newColumns ++ renamedColumns).mkString("\n").stripMargin
 
       s"""|${generate(in)}$select
           $columns

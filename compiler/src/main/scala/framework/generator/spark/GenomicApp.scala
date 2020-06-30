@@ -64,7 +64,7 @@ object TestApp4 extends App {
   override def main(args: Array[String]){
 
     AppWriter.flatDataset(Pathway_Burden, "test")
-//    AppWriter.shredDataset(Pathway_Burden, "test")
+    AppWriter.shredDataset(Pathway_Burden, "test")
 //    AppWriter.flatDataset(Pathway_Burden_Flatten, "test")
   }
 }
@@ -100,7 +100,7 @@ object pathway_by_gene_Test extends App{
 object PathwayBurden_Test extends App{
   override def main(args: Array[String]): Unit ={
     AppWriter.flatDataset(plan2, "test")
-//    AppWriter.shredDataset(plan2, label = "test")
+    AppWriter.shredDataset(plan2, label = "test")
 //    AppWriter.flatDataset(plan2_1, "test")
   }
 }
