@@ -58,7 +58,17 @@ trait Biospecimen {
 trait DriverGene extends Query with Occurrence with Gistic with StringNetwork with GeneExpression with Biospecimen {
 
   def loadTables(shred: Boolean = false, skew: Boolean = false): String = {
-    s"""|//TODO""".stripMargin
+    s"""|val occurrences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence]
+		|occurrences.cache
+		|occurrences.count
+		|val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
+		|gistic.cache
+		|gistic.count
+		|val biospecLoader = new BiospecLoader(spark)
+		|val biospec = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/")
+		|biospec.cache
+		|biospec.count
+		|""".stripMargin
   }
 
   val occurrences = BagVarRef("occurrences", BagType(occurrence_type))

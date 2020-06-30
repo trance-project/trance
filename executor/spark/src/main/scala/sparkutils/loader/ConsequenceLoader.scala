@@ -30,7 +30,7 @@ class ConsequenceLoader(spark: SparkSession) {
   def read(filename: String): Map[String, Double] = {
     val lines = Source.fromFile(filename).getLines.toList
     val thresh = lines.size
-    val assigned = lines.tail.zipWithIndex.map{ case (l, id) =>
+    lines.tail.zipWithIndex.map{ case (l, id) =>
       val eles = l.split("\t") 
       (eles(0), (thresh-(id.toDouble+1.0))/thresh)
     }.toMap
