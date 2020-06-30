@@ -188,7 +188,13 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     }
 
     /** BOOL OPS **/
-    case Equals(e1, e2) => s"${generateReference(e1)} === ${generateReference(e2)}"
+    case Equals(e1, e2) => 
+      val eq = (e1, e2) match {
+        case (Project(p1, _), _) if p1.tp.isInstanceOf[LabelType] => "=="
+        case (_, Project(p2, _)) if p2.tp.isInstanceOf[LabelType] => "=="
+        case _ => "==="
+      }
+      s"${generateReference(e1)} $eq ${generateReference(e2)}"
     case Lt(e1, e2) => s"${generateReference(e1)} < ${generateReference(e2)}"
     case Gt(e1, e2) => s"${generateReference(e1)} > ${generateReference(e2)}"
     case Lte(e1, e2) => s"${generateReference(e1)} <= ${generateReference(e2)}"
