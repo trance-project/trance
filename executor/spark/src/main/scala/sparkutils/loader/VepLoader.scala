@@ -40,6 +40,8 @@ case class VepAnnotation(motif_feature_consequences: Seq[Motif0], allele_string:
 
 case class Transcript(amino_acids: String, distance: Option[Long], cdna_end: Option[Long], cdna_start: Option[Long], cds_end: Option[Long], cds_start: Option[Long], codons: String, consequence_terms: List[String], flags: List[String], gene_id: String, impact: String, protein_end: Option[Long], protein_start: Option[Long], strand: Option[Long], transcript_id: String, variant_allele: String)
 
+case class TranscriptQuant(amino_acids: String, distance: Option[Long], cdna_end: Option[Long], cdna_start: Option[Long], cds_end: Option[Long], cds_start: Option[Long], codons: String, consequence_terms: List[Double], flags: List[String], gene_id: String, impact: Double, protein_end: Option[Long], protein_start: Option[Long], strand: Option[Long], transcript_id: String, variant_allele: String)
+
 case class Transcript2(impact: String, consequence_terms: Seq[String])
 
 case class VepAnnotTrunc(vid: String, allele_string: String, assembly_name: String, end: Long, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Seq[Transcript])
@@ -52,6 +54,8 @@ case class VepOccurrence(donorId: String, oid: String, vend: Int, projectId: Str
 case class OccurrenceNulls(oid: String, donorId: String, vend: Int, projectId: String, vstart: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: Option[String], assembly_name: Option[String], end: Option[Long], vid: Option[String], input: Option[String], most_severe_consequence: Option[String], seq_region_name: Option[String], start: Option[Long], strand: Option[Long], transcript_consequences: Option[Seq[Transcript]])
 
 case class Occurrence(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Option[Seq[Transcript]])
+
+case class OccurrQuant(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Option[Seq[TranscriptQuant]])
 
 class VepLoader(spark: SparkSession) extends Serializable {
 
