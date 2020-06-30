@@ -81,21 +81,32 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork wi
   val biospec = BagVarRef("biospec", BagType(biospecType))
   val br = TupleVarRef("b", biospecType)
 
+  def projectTuple(tr: TupleVarRef, nbag:Map[String, TupleAttributeExpr], omit: List[String] = Nil): BagExpr =
+    Singleton(Tuple(tr.tp.attrTps.withFilter(f =>
+      !omit.contains(f._1)).map(f => f._1 -> tr(f._1)) ++ nbag))
+
 }
 
 object HybridBySample extends DriverGene {
 
   val name = "HybridBySample"
-  
-  val query = ForeachUnion(or, occurrences,
-      Singleton(Tuple("hybrid_sample" -> or("donorId"), 
+ 
+  val mapped = ForeachUnion(or, occurrences, 
+    ForeachUnion(br, biospec, 
+      IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
+        projectTuple(or, Map("aliquot_id" -> Project(br, "bcr_aliquot_uuid"))))))
+
+  val (maps, mapsRef) = varset("occurrence_mapped", "mr", mapped)
+
+  val query = ForeachUnion(mapsRef, maps,
+    Singleton(Tuple("hybrid_sample" -> mapsRef("donorId"), "hybrid_aliquot" -> mapsRef("aliquot_id"),
         "hybrid_genes" -> 
         ReduceByKey(
-            ForeachUnion(ar, BagProject(or, "transcript_consequences"),
+            ForeachUnion(ar, BagProject(mapsRef, "transcript_consequences"),
               ForeachUnion(gr, gistic, 
                 IfThenElse(Cmp(OpEq, ar("gene_id"), gr("gistic_gene")),
                   ForeachUnion(sr, BagProject(gr, "gistic_samples"),
-                    IfThenElse(Cmp(OpEq, sr("gistic_sample"), or("aliquot_id")),
+                    IfThenElse(Cmp(OpEq, sr("gistic_sample"), mapsRef("aliquot_id")),
                       ForeachUnion(cr, BagProject(ar, "consequence_terms"),
                           Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
                             "hybrid_score" -> 
@@ -104,7 +115,7 @@ object HybridBySample extends DriverGene {
             ,List("hybrid_gene_id"),
             List("hybrid_score")))))
 
-  val program = Program(Assignment(name, query))
+  val program = Program(Assignment(maps.name, mapped), Assignment(name, query))
 
 }
 

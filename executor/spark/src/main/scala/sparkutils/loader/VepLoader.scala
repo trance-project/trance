@@ -55,6 +55,8 @@ case class OccurrenceNulls(oid: String, donorId: String, vend: Int, projectId: S
 
 case class Occurrence(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Option[Seq[Transcript]])
 
+case class OccurrenceMapped(aliquot_id: String, oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Option[Seq[Transcript]])
+
 case class OccurrQuant(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Option[Seq[TranscriptQuant]])
 
 class VepLoader(spark: SparkSession) extends Serializable {
