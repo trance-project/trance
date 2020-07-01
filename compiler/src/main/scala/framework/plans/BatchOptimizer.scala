@@ -61,9 +61,9 @@ object BatchOptimizer extends Extensions {
       val nkey0 = (key.toSet & fs) ++ indices 
       val nkey = if (nkey0.isEmpty) key.toSet else nkey0
 
-      val vs = value.toSet
+      val vs = nkey ++  value.toSet
       val nfilter = collect(Record(filter.fields.filter(f => vs(f._1))))
-      val nfs = nkey ++ vs ++ fs ++ nfilter
+      val nfs = vs ++ fs ++ nfilter
       val pin = push(in, nfs)
       val nv = Variable.fromBag(v.name, pin.tp)
 
