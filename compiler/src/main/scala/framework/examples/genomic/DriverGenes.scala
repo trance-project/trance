@@ -88,7 +88,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork wi
 		|biospec.cache
 		|biospec.count
 		|val consequenceLoader = new ConsequenceLoader(spark)
-		|val conseqmap = spark.sparkContext.broadcast(consequenceLoader.read(Config.datapath))
+		|val conseqmap = spark.sparkContext.broadcast(consequenceLoader.read("/nfs_qc4/genomics/calc_variant_conseq.txt"))
 		|val quantifyImpact = udf { s: String => conseqmap.value(s) } 
 		|val quantifyConsequence = udf { s: String => s match {
 		|  case "HIGH" => .8
