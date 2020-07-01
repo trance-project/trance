@@ -5,14 +5,32 @@ import framework.common._
 /** Extensions for the plan language **/
 trait Extensions {
 
-  def substitute(e: CExpr, vold: Variable, vnew: Variable): CExpr = e match {
-    case Record(fs) => Record(fs.map{ 
-      case (attr, e2) => attr -> substitute(e2, vold, vnew)})
-    case Project(v, f) => 
-      Project(substitute(v, vold, vnew), f)
-    case v @ Variable(_,_) => 
-      if (v == vold) Variable(vnew.name, v.tp) else v
+  def replace(e: CExpr, v: Variable): CExpr = e match {
+    case Record(ms) => Record(ms.map(r => r._1 -> replace(r._2, v)))
+    case Project(_, f) => Project(v, f)
+    case If(cond, s1, Some(s2)) => If(replace(cond, v), replace(s1, v), Some(replace(s2, v)))
+    case If(cond, s1, None) => If(replace(cond, v), replace(s1, v), None)
+    case Equals(e1, e2) => Equals(replace(e1, v), replace(e2, v))
+    case MathOp(op, e1, e2) => MathOp(op, replace(e1, v), replace(e2, v))
+    // this will be additional base ops
+    case _:Variable => v
     case _ => e
+  }
+
+  // todo additional cases
+  def collect(e: CExpr): Set[String] = e match {
+    case Record(e1) => e1.flatMap(f => collect(f._2)).toSet
+    case Label(e1) => e1.flatMap(f => collect(f._2)).toSet
+    case If(cond, s1, Some(s2)) => collect(cond) ++ collect(s1) ++ collect(s2)
+    case If(cond, s1, None) => collect(cond) ++ collect(s1)
+    case MathOp(op, e1, e2) => collect(e1) ++ collect(e2)
+    case Equals(e1, e2) => collect(e1) ++ collect(e2)
+    case And(e1, e2) => collect(e1) ++ collect(e2)
+    case Gte(e1, e2) => collect(e1) ++ collect(e2)
+    case Lte(e1, e2) => collect(e1) ++ collect(e2)
+    case Project(e1, f) => Set(f)
+	case CUdf(n, e1, tp) => collect(e1)
+	case _ => Set()
   }
 
   def fapply(e: CExpr, funct: PartialFunction[CExpr, CExpr]): CExpr = 

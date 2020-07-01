@@ -16,10 +16,44 @@ sealed trait Type { self =>
 
   def isDict: Boolean = false
 
-  def flat: BagCType = self match {
-    case _:BagCType => self.flat
-    case _:BagDictCType => self.flat
-    case _ => sys.error("unsupported call to flat")
+  def attrs: Map[String, Type] = self match {
+    case LabelType(fs) => fs
+    case RecordCType(ms) => ms
+    case BagCType(ms) => ms.attrs
+    case MatDictCType(LabelType(ms), bag) => 
+      val lblType = if (ms.isEmpty) LongType else ms.head._2
+      Map("_1" -> lblType) ++ bag.attrs
+    case _ => Map()
+  }
+
+  def project(fields: List[String]): RecordCType = self match {
+    case st @ RecordCType(ms) => 
+      if (fields.isEmpty) st
+      else RecordCType(ms.filter(x => fields.contains(x._1)))
+    case BagCType(ms) => ms.project(fields)
+    case _ => ???
+  }
+
+
+  def merge(tp: Type): RecordCType = (self, tp) match {
+    case (RecordCType(ms1), RecordCType(ms2)) => 
+      RecordCType(ms1 ++ ms2)
+    case _ => ???
+  } 
+
+  def outer: RecordCType = self match {
+    case RecordCType(ms) => 
+      RecordCType(ms.mapValues(v => v match { case _:OptionType => v; case _ => OptionType(v) }))
+    case BagCType(ms) => ms.outer
+    case OptionType(ms) => ms.outer
+    case MatDictCType(lbl, dict) => 
+      RecordCType(Map("_1" -> lbl) ++ dict.attrs)
+    case _ => sys.error(s"not supported $self")
+  }
+
+  def unouter: RecordCType = self match {
+    case RecordCType(ms) => RecordCType(ms.mapValues(v => v match { case OptionType(o) => o; case _ => v}))
+    case _ => sys.error(s"not supported $self")
   }
 
   // For debugging
@@ -40,12 +74,21 @@ case object LongType extends NumericType
 case object DoubleType extends NumericType
 
 object NumericType {
+
+  def resolve(tp1: Type, tp2: Type): NumericType = (tp1, tp2) match {
+    case (OptionType(o1), o2:NumericType) => resolve(o1, o2)
+    case (o1:NumericType, OptionType(o2)) => resolve(o1, o2)
+    case (OptionType(o1), OptionType(o2)) => resolve(o1, o2)
+    case _ => resolve(tp1.asInstanceOf[NumericType], tp2.asInstanceOf[NumericType])
+  }
+
   def resolve(tp1: NumericType, tp2: NumericType): NumericType = (tp1, tp2) match {
     case (DoubleType, _) | (_, DoubleType) => DoubleType
     case (LongType, _) | (_, LongType) => LongType
     case (IntType, _) | (_, IntType) => IntType
     case _ => sys.error("Cannot resolve types " + tp1 + " and " + tp2)
   }
+
 }
 
 final case class BagType(tp: TupleType) extends TupleAttributeType with ReducibleType
@@ -110,7 +153,7 @@ final case class TypeSet(tp: Map[Type, String]) extends Type
 
 final case class SetType(tp: Type) extends Type
 
-final case class OptionType(tp: Type) extends Type 
+final case class OptionType(tp: Type) extends TupleAttributeType
 
 final case class BagCType(tp: Type) extends Type {
 
@@ -123,6 +166,9 @@ final case class BagCType(tp: Type) extends Type {
 
 final case class MatDictCType(keyTp: LabelType, valueTp: BagCType) extends Type {
   override def isDict: Boolean = true
+  def toRecordType(col: String): RecordCType = 
+    RecordCType(Map(s"${col}_1" -> keyTp, col -> valueTp))
+
 }
 
 case object EmptyCType extends Type

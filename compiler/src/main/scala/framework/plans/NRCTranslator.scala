@@ -55,16 +55,14 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
   def translate(e: Expr): CExpr = e match {
     case c: Const => constant(c.v)
     case v: VarRef => translateVar(v)
-    case ArithmeticExpr(op, e1, e2) => op match {
-      case OpMultiply => mult(translate(e1), translate(e2))
-      case _ => sys.error("Not supported")
-    }
+    case ArithmeticExpr(op, e1, e2) => MathOp(op, translate(e1), translate(e2))
     case Singleton(Tuple(fs)) if fs.isEmpty => emptysng
     case Singleton(e1) => sng(translate(e1))
     case Tuple(fs) if fs.isEmpty => unit
     case Tuple(fs) => record(fs.map(f => f._1 -> translate(f._2)))
     case p: Project => project(translate(p.tuple), p.field)
-    case ift: IfThenElse => ift.e2 match {
+	case Udf(n, e1, tp) => CUdf(n, translate(e1), translate(tp))
+	case ift: IfThenElse => ift.e2 match {
       case Some(a) => ifthen(translate(ift.cond), translate(ift.e1), Option(translate(a)))
       case _ => ifthen(translate(ift.cond), translate(ift.e1))
     }
@@ -96,9 +94,10 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
         Variable(k._1, translate(k._2)) -> project(lbl, k._1)).toSeq
       bindings.foldRight(translate(e.e))((cur, acc) => Bind(cur._1, cur._2, acc))
     case Lookup(lbl, dict) => CLookup(translate(lbl), translate(dict)) 
-    case Count(e1) => comprehension(translate(e1), x => constant(true), (i: CExpr) => constant(1))
+    case Count(e1) => comprehension(translate(e1), x => constant(true), (i: CExpr) => constant(1.0))
     case DeDup(e1) => CDeDup(translate(e1)) 
-
+    case Get(e1) => CGet(translate(e1))
+    
     // new flexible dictionary handling
     case MatDictLookup(lbl, dict) => CLookup(translate(lbl), translate(dict))
     case MatDictToBag(bd) => FlatDict(translate(bd))

@@ -3,32 +3,9 @@ package framework.examples.genomic
 import framework.common._
 import framework.examples.Query
 
-trait GenomicBase extends Query {
-  
-  def inputTypes(shred: Boolean = false): Map[Type, String] = 
-    // todo handle shredded case, and organize genomic relations object
-    GenomicRelations.q1inputs
-  
-  def headerTypes(shred: Boolean = false): List[String] = inputTypes(shred).values.toList
-  
-  val relI = BagVarRef("cases", BagType(GenomicRelations.casetype))
-  val iref = TupleVarRef("i", GenomicRelations.casetype)
-
-  val relV = BagVarRef("variants", BagType(GenomicRelations.varianttype))
-  val vref = TupleVarRef("v", GenomicRelations.varianttype)
-  val gref = TupleVarRef("g", GenomicRelations.genotype)
-
-  val relC = BagVarRef("clinical", BagType(GenomicRelations.clintype))
-  val cref = TupleVarRef("c", GenomicRelations.clintype)
-
-}
-
 object AltCounts extends GenomicBase {
   val name = "AltCounts"
 
-  def inputs(tmap: Map[String, String]): String =
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
-  
   val queryAC =
     ReduceByKey(
       ForeachUnion(vref, relV,
@@ -45,9 +22,6 @@ object AltCounts extends GenomicBase {
 object AlleleCounts extends GenomicBase {
   val name = "AlleleCounts"
 
-  def inputs(tmap: Map[String, String]): String =
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
-  
   val queryAC =
     ForeachUnion(vref, relV,
       //IfThenElse(Not(Cmp(OpEq, vref("consequence"), Const("LOW IMPACT", StringType))),
@@ -70,9 +44,6 @@ object AlleleCounts extends GenomicBase {
 object AlleleCounts2 extends GenomicBase {
   val name = "AlleleCounts2"
 
-  def inputs(tmap: Map[String, String]): String =
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
-  
   val queryAC2 =
     ForeachUnion(vref, relV,
       //IfThenElse(Not(Cmp(OpEq, vref("consequence"), Const("LOW IMPACT", StringType))),
@@ -93,9 +64,6 @@ object AlleleCounts2 extends GenomicBase {
 object AlleleCounts3 extends GenomicBase {
   val name = "AlleleCounts3"
 
-  def inputs(tmap: Map[String, String]): String =
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
-  
   val queryAC3 = ForeachUnion(vref, relV,
                 IfThenElse(Not(Cmp(OpEq, PrimitiveProject(vref, "consequence"), Const("LOW IMPACT", StringType))),
                   Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
@@ -115,9 +83,6 @@ object AlleleCounts3 extends GenomicBase {
 object AlleleCountsGB extends GenomicBase {
   val name = "AlleleCountsGB"
 
-  def inputs(tmap: Map[String, String]): String =
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
-  
   val queryACGB =
     ForeachUnion(vref, relV,
       Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "cases" ->
@@ -136,9 +101,6 @@ object AlleleCountsGB extends GenomicBase {
 object AlleleCountsGB3 extends GenomicBase {
   val name = "AlleleCountsGB3"
 
-  def inputs(tmap: Map[String, String]): String =
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString(""   )}"
-  
   val queryACGB3 =
     ForeachUnion(vref, relV,
       IfThenElse(Cmp(OpEq, PrimitiveProject(vref, "consequence"), Const("LOW IMPACT", StringType)),
@@ -158,8 +120,6 @@ object AlleleCountsGB3 extends GenomicBase {
 
 object AlleleFG extends GenomicBase {
   val name = "AlleleFG"
-
-  def inputs(tmap: Map[String, String]): String = ""
 
   val keys = DeDup(ForeachUnion(cref, relC, Singleton(Tuple("pinfo" -> cref("iscase")))))
   val kr = TupleVarRef("k", keys.tp.asInstanceOf[BagType].tp)
@@ -181,8 +141,6 @@ object AlleleFG extends GenomicBase {
 object AlleleFG2 extends GenomicBase {
   val name = "AlleleFG2"
 
-  def inputs(tmap: Map[String, String]): String = ""
-
   val keys = DeDup(ForeachUnion(cref, relC, Singleton(Tuple("pinfo" -> cref("iscase")))))
   val kr = TupleVarRef("k", keys.tp.asInstanceOf[BagType].tp)
 
@@ -202,8 +160,6 @@ object AlleleFG2 extends GenomicBase {
 
 object AlleleFG1 extends GenomicBase {
   val name = "AlleleFG1"
-
-  def inputs(tmap: Map[String, String]): String = ""
 
   val queryAFG1 = ForeachUnion(vref, relV,
                 Singleton(Tuple("contig" -> vref("contig"), "start" -> vref("start"), "samples" ->

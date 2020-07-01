@@ -42,7 +42,7 @@ object Optimizer {
     case Project(v @ Variable(_,_), s) => proj(v) = proj(v) ++ Set(s)
     case Gte(e1, e2) => fields(e1); fields(e2);
     case Equals(e1, e2) => fields(e1); fields(e2)
-    case Multiply(e1, e2) => fields(e1); fields(e2);
+    case MathOp(op, e1, e2) => fields(e1); fields(e2);
     case And(e1, e2) => fields(e1); fields(e2);
     case _ => Unit
   }
@@ -59,7 +59,7 @@ object Optimizer {
   }
 
   def attrsFromOp(e: CExpr): Set[String] = e match {
-    case Multiply(e1, e2) => attrsFromOp(e1) ++ attrsFromOp(e2)
+    case MathOp(op, e1, e2) => attrsFromOp(e1) ++ attrsFromOp(e2)
     case Project(e1, f) => Set(f)
     case _ => ???
   }
@@ -201,6 +201,8 @@ object Optimizer {
       case _ => e
     }
   } 
+
+
  
   /** Push projections, currently works mainly to push projections to the select 
     * operator.
@@ -209,6 +211,7 @@ object Optimizer {
     * @return plan with projections pushed to select operato
     */
   def push(e: CExpr): CExpr = e match {
+    /** stream operators **/
     case FlatDict(e1) => FlatDict(push(e1))
     case GroupDict(e1) => GroupDict(push(e1))
     case CGroupBy(e1, v1, keys, values) => CGroupBy(push(e1), v1, keys, values)

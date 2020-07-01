@@ -10,21 +10,18 @@ trait CExpr {
 
   def tp: Type
 
-  // experimental for batch
-  // style unnesting
-  def ftp: Type = tp
-
   def nullValue: CExpr = tp match {
     case IntType => Constant(-1)
     case DoubleType => Constant(-1.0)
     case _ => Null
   }
+
   def wvars: List[Variable] = List()
+  def inputColumns: Set[String] = Set()
 }
 
 case class InputRef(data: String, tp: Type) extends CExpr 
 
-// Deprecated
 case class Input(data: List[CExpr]) extends CExpr{
   def tp: BagCType = data match {
     case Nil => BagCType(EmptyCType)
@@ -34,11 +31,15 @@ case class Input(data: List[CExpr]) extends CExpr{
 
 case class Constant(data: Any) extends CExpr{
   def tp: PrimitiveType = data match {
+    case _:Double => DoubleType
+    case _:Long => LongType
     case _:Int => IntType
     case _:String => StringType
     case _:Boolean => BoolType
   }
 }
+
+case class CUdf(name: String, in: CExpr, tp: Type) extends CExpr
 
 case object Index extends CExpr {
   def tp: Type = LongType
@@ -56,11 +57,6 @@ case class Sng(e1: CExpr) extends CExpr {
   def tp: BagCType = BagCType(e1.tp)
 }
 
-// Deprecated
-case class WeightedSng(e1: CExpr, w: CExpr) extends CExpr{
-  def tp: BagCType = BagCType(e1.tp)
-}
-
 case object CUnit extends CExpr {
   def tp: Type = EmptyCType
 }
@@ -68,12 +64,21 @@ case object CUnit extends CExpr {
 case class Label(fields: Map[String, CExpr]) extends CExpr{
   def tp: LabelType = LabelType(fields.map(f => f._1 -> f._2.tp))
   def apply(n: String) = fields(n)
+  override def inputColumns: Set[String] = fields.flatMap{
+    case (key, expr) => expr.inputColumns
+  }.toSet
 }
 
 case class Record(fields: Map[String, CExpr]) extends CExpr{
+  
   def tp: RecordCType = RecordCType(fields.map(f => f._1 -> f._2.tp))
   def apply(n: String) = fields(n)
   def project(n: List[String]) = Record(fields.filter(f => n.contains(f._1)))
+  
+  override def inputColumns: Set[String] = fields.flatMap{
+    case (key, expr) => expr.inputColumns
+  }.toSet
+
 }
 
 case class Tuple(fields: List[CExpr]) extends CExpr {
@@ -85,8 +90,18 @@ case class Tuple(fields: List[CExpr]) extends CExpr {
   def apply(n: Int) = fields(n)
 }
 
+case class CGet(e1: CExpr) extends CExpr {
+  def tp: Type = e1.tp match {
+    case BagCType(ttp) => ttp
+    case _ => ???
+  }
+}
+
 case class Equals(e1: CExpr, e2: CExpr) extends CExpr {
   def tp: PrimitiveType = BoolType
+
+  override def inputColumns: Set[String] = 
+    e1.inputColumns ++ e2.inputColumns
 }
 
 case class Lt(e1: CExpr, e2: CExpr) extends CExpr {
@@ -117,13 +132,26 @@ case class Or(e1: CExpr, e2: CExpr) extends CExpr{
   def tp: PrimitiveType = BoolType
 }
 
-case class Multiply(e1: CExpr, e2: CExpr) extends CExpr{
-  def tp: PrimitiveType = (e1.tp, e2.tp) match {
-    case (DoubleType, _) => DoubleType
-    case (_, DoubleType) => DoubleType
-    case (IntType, _) => IntType
-    case _ => sys.error("type not supported")
-  }
+// case class Multiply(e1: CExpr, e2: CExpr) extends CExpr{
+//   def tp: PrimitiveType = (e1.tp, e2.tp) match {
+//     case (DoubleType, _) => DoubleType
+//     case (_, DoubleType) => DoubleType
+//     case (IntType, _) => IntType
+//     case _ => sys.error("type not supported")
+//   }
+// }
+
+// case class Divide(e1: CExpr, e2: CExpr) extends CExpr{
+//   def tp: PrimitiveType = (e1.tp, e2.tp) match {
+//     case (DoubleType, _) => DoubleType
+//     case (_, DoubleType) => DoubleType
+//     case (IntType, _) => IntType
+//     case _ => sys.error("type not supported")
+//   }
+// }
+
+case class MathOp(op: OpArithmetic, e1: CExpr, e2: CExpr) extends CExpr {
+  def tp: NumericType = NumericType.resolve(e1.tp, e2.tp)
 }
 
 case class Project(e1: CExpr, field: String) extends CExpr { self =>
@@ -143,11 +171,17 @@ case class Project(e1: CExpr, field: String) extends CExpr { self =>
     case _ => sys.error("unsupported projection index "+self)
   }
 
+  override def inputColumns: Set[String] = Set(field)
+
 }
 
 case class If(cond: CExpr, e1: CExpr, e2: Option[CExpr]) extends CExpr {
   assert(cond.tp == BoolType)
   val tp: Type = e1.tp
+  override def inputColumns: Set[String] = e2 match {
+    case None => e1.inputColumns
+    case Some(se2) => e1.inputColumns ++ se2.inputColumns
+  }
 }
 
 case class Merge(e1: CExpr, e2: CExpr) extends CExpr {
@@ -184,17 +218,12 @@ trait CombineOp extends CExpr {
 }
 
 case class CReduceBy(e1: CExpr, v1: Variable, keys: List[String], values: List[String]) extends CExpr with CombineOp {
-  val e1Tp: RecordCType = v1.tp match {
-    case rt:RecordCType => rt
-    case _ => sys.error(s"unsupported type ${v1.tp}")
-  }
-  val keysTp: RecordCType = RecordCType(keys.map(n => n -> e1Tp(n)).toMap)
-  val valuesTp: RecordCType = RecordCType(values.map(n => n -> e1Tp(n)).toMap)
-  def tp: BagCType = e1Tp.attrTps get "_1" match {
+  val keysTp: RecordCType = RecordCType(keys.map(n => n -> v1.tp.attrs(n)).toMap)
+  val valuesTp: RecordCType = RecordCType(values.map(n => n -> v1.tp.attrs(n)).toMap)
+  def tp: BagCType = v1.tp.attrs get "_1" match {
     case Some(TTupleType(fs)) => 
-      BagCType(TTupleType(fs :+ RecordCType((e1Tp.attrTps - "_1") ++ valuesTp.attrTps)))
-    case _ => 
-      BagCType(RecordCType(keysTp.attrTps ++ valuesTp.attrTps))
+      BagCType(TTupleType(fs :+ RecordCType((v1.tp.attrs - "_1") ++ valuesTp.attrTps)))
+    case _ => BagCType(RecordCType(keysTp.attrTps ++ valuesTp.attrTps))
   }
 
 }
@@ -298,19 +327,6 @@ case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
     case _ => x.tp
   }
 
-  override def ftp: Type = e.tp match {
-    case RecordCType(ms) => ms get "_1" match {
-      case Some(TTupleType(ls)) => 
-        val inner = ls.flatMap{l => l match {
-          case RecordCType(ms1) => ms1 
-          case _ => ???
-        }}.toMap
-        BagCType(RecordCType(inner ++ (ms - "_1")))
-      case _ => BagCType(RecordCType(ms))
-    }
-    case _ => tp
-  }
-
   override def wvars = List(v)
 }
 
@@ -318,16 +334,6 @@ case class Reduce(e1: CExpr, v: List[Variable], e2: CExpr, p: CExpr) extends CEx
   def tp: Type = e2.tp match {
     case t:BagCType => t
     case t => BagCType(t) 
-  }
-
-  override def ftp: Type = e2.ftp match {
-    case RecordCType(ms) => ms get "_1" match {
-      case Some(a) => 
-        BagCType(RecordCType(Map("_1" -> a) ++
-          (ms - "_1").map{ case (attr, expr) => (attr, OptionType(expr))}))
-      case _ => BagCType(RecordCType(ms))
-    }
-    case _ => ???
   }
 
   override def wvars = e1.wvars
@@ -382,17 +388,6 @@ case class OuterUnnest(e1: CExpr, v1: List[Variable], e2: CExpr, v2: Variable, p
     case _ => ???
   }
 
-  override def ftp: BagCType = e1.tp match {
-    case BagCType(RecordCType(fs)) => 
-      val unnestedBag = value.tp match {
-        case RecordCType(ls) => ls.map(m => m._1 -> OptionType(m._2))
-        case _ => ???
-      }
-      val dropOld = (fs - bagproj)
-      BagCType(RecordCType(dropOld ++ unnestedBag))
-    case _ => sys.error(s"not supported ${e1.tp}")
-  }
-
   override def wvars = e1.wvars :+ v2
 }
 
@@ -416,12 +411,6 @@ case class Nest(e1: CExpr, v1: List[Variable], f: CExpr, e: CExpr, v2: Variable,
 case class OuterJoin(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, proj1: CExpr, proj2: CExpr) extends CExpr {
   
   def tp: BagCType = BagCType(TTupleType(List(proj1.tp, proj2.tp)))
-
-  override def ftp: BagCType = (e1.ftp, e2.ftp) match {
-    case (BagCType(RecordCType(ms1)), BagCType(RecordCType(ms2))) => 
-      BagCType(RecordCType(ms1 ++ ms2.map(m => m._1 -> OptionType(m._2))))
-    case _ => sys.error(s"issue with ${proj1.ftp} ${proj2.ftp}")
-  }
 
   override def wvars = e1.wvars :+ v2
 }
@@ -454,7 +443,7 @@ case class CoGroup(e1: CExpr, e2: CExpr, v1: List[Variable], v2: Variable, k1: C
 case class OuterLookup(e1: CExpr, e2: CExpr, v1: List[Variable], p1: CExpr, v2: Variable, p2: CExpr, p3: CExpr) extends CExpr {
   def tp:BagCType = e1.tp match {
     case BagCType(tup) => BagCType(TTupleType(List(tup, v2.tp)))
-    case btp:BagDictCType => BagCType(TTupleType(List(btp.flat, v2.tp)))
+    // case btp:BagDictCType => BagCType(TTupleType(List(btp.flat, v2.tp)))
     case _ => ???
   }
   override def wvars = e1.wvars :+ v2
@@ -488,24 +477,38 @@ case class Variable(name: String, override val tp: Type) extends CExpr { self =>
 }
 
 object Variable {
+
   private var lastId = 1
+
   def fresh(tp: Type): Variable = {
     val id = newId()
     Variable(s"x$id", tp)
   }
+
   def fresh(key: Type, value: Type): Variable = {
     fresh(TTupleType(List(key, value)))
   }
-  def freshFromBag(tp: Type): Variable = {
+
+  def freshFromBag(tp: Type, index: String = ""): Variable = {
     val id = newId()
     tp match {
       case BagDictCType(BagCType(TTupleType(List(EmptyCType, BagCType(tup)))), tdict) => Variable(s"x$id", tup)
       case BagCType(TTupleType(List(EmptyCType, BagCType(tup)))) =>  Variable(s"x$id", tup)
       case BagDictCType(flat, dict) => Variable(s"x$id",flat.tp)
+      case BagCType(RecordCType(ms)) if index != "" => Variable(s"x$id", RecordCType(ms ++ Map(index -> LongType)))
       case BagCType(tup) => Variable(s"x$id", tup)
       case _ => Variable(s"x$id", tp)
     }
   }
+
+  def fromBag(name: String, tp: Type): Variable = Variable(name, RecordCType(tp.attrs))
+
+  // tp match {
+  //   case BagCType(tup) => Variable(name, tup)
+  //   case MatDictCType(lbl, bag) => Variable
+  //   case _ => sys.error(s"type not supported $tp")
+  // }
+
   def fresh(n: String = "x"): String = s"$n${newId()}"
   def newId(): Int = {
     val id = lastId

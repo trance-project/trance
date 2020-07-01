@@ -5,8 +5,8 @@ import framework.common._
 import framework.nrc.MaterializeNRC
 
 trait ExtractTest extends Query {
-  def inputTypes(shred: Boolean = false): Map[Type, String] = Map[Type,String]()
-  def headerTypes(shred: Boolean = false): List[String] = List[String]()
+
+  def loadTables(shred: Boolean = false, skew: Boolean = false): String = "//TODO"
 
   def typeR = TupleType("a" -> BagType(TupleType("d" -> IntType)), "c" -> IntType)
   def typeS = TupleType("b" -> IntType)
@@ -26,8 +26,6 @@ trait ExtractTest extends Query {
 
 object ExtractExample extends ExtractTest {
   val name = "ExtractExample"
-
-  def inputs(tmap: Map[String,String]): String = ""
 
   val query1 =
     Union(

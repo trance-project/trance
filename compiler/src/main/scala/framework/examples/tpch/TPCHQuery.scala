@@ -10,31 +10,40 @@ import framework.utils.Utils.Symbol
   */
 trait TPCHBase extends Query {
 
-  // append other type maps
-  def inputTypes(shred: Boolean = false): Map[Type, String] = TPCHSchema.tpchInputs.map(f => translate(f._1) -> f._2)
+  // schema information
+  val tbls: Set[String]
 
-  def headerTypes(shred: Boolean = false): List[String] =
-    inputTypes(shred).values.toList
+  def loaders: Map[String, String] = Map(
+    "C" -> "loadCustomerDF()",
+    "O" -> "loadOrderDF()",
+    "L" -> "loadLineitemDF()",
+    "P" -> "loadPartDF()",
+    "PS" -> "loadPartSuppDF()",
+    "S" -> "loadSupplierDF()",
+    "N" -> "loadNationDF()",
+    "R" -> "loadRegionDF()")
 
-  def projectBaseTuple(tr: TupleVarRef, omit: List[String] = Nil): BagExpr = 
-    Singleton(Tuple(tr.tp.attrTps.withFilter(f => 
-      !omit.contains(f._1)).map(f => f._1 -> tr(f._1))))
+  val loaderName = "tpch"
 
-  def projectTuples(tr1: TupleVarRef, tr2: TupleVarRef, omit: List[String] = Nil): BagExpr = {
-    val m1 = tr1.tp.attrTps.withFilter(f => 
-      !omit.contains(f._1)).map(f => f._1 -> tr1(f._1))
-    val m2 = tr2.tp.attrTps.withFilter(f => 
-      !omit.contains(f._1)).map(f => f._1 -> tr2(f._1))
-    Singleton(Tuple(m1 ++ m2))
+  def loadTable(tbl: String, shred: Boolean = false, skew: Boolean = false): String = {
+    val tblName = if (shred) s"IBag_${tbl}__D" else tbl
+    val tblCall = if (skew)  
+      s"""|val ${tblName}_L = $loaderName.${loaders(tbl)}
+          |val $tblName = (${tblName}_L, ${tblName}_L.empty)"""
+      else s"""|val $tblName = $loaderName.${loaders(tbl)}"""
+    s"""$tblCall
+        |$tblName.cache
+        |$tblName.count
+        |""".stripMargin
   }
 
-  def projectTuple(tr: TupleVarRef, nbag:Map[String, TupleAttributeExpr], omit: List[String]): BagExpr = 
-    Singleton(Tuple(tr.tp.attrTps.withFilter(f => 
-      !omit.contains(f._1)).map(f => f._1 -> tr(f._1)) ++ nbag))
+  def loadTables(shred: Boolean = false, skew: Boolean = false): String = {
+      s"""|val $loaderName = TPCHLoader(spark)
+          |${loaders.filter(f => tbls(f._1)).map(f => loadTable(f._1, shred, skew)).mkString("\n")}
+          |""".stripMargin
+  }
 
-  def projectTuple(tr: TupleVarRef, nbag:(String, TupleAttributeExpr), omit: List[String] = Nil): BagExpr = 
-    Singleton(Tuple(tr.tp.attrTps.withFilter(f => 
-      !omit.contains(f._1)).map(f => f._1 -> tr(f._1)) + nbag))
+  /** Input references **/
 
   val relC = BagVarRef("C", TPCHSchema.customertype)
   val cr = TupleVarRef("c", TPCHSchema.customertype.tp)
@@ -59,5 +68,29 @@ trait TPCHBase extends Query {
 
   val relR = BagVarRef("R", TPCHSchema.regiontype)
   val rr = TupleVarRef("r", TPCHSchema.regiontype.tp)
+
+  /** Helper functions for writing queries with and without projections **/
+  
+  def projectBaseTuple(tr: TupleVarRef, omit: List[String] = Nil): BagExpr = 
+    Singleton(Tuple(tr.tp.attrTps.withFilter(f => 
+      !omit.contains(f._1)).map(f => f._1 -> tr(f._1))))
+
+  def projectTuples(tr1: TupleVarRef, tr2: TupleVarRef, omit: List[String] = Nil): BagExpr = {
+    val m1 = tr1.tp.attrTps.withFilter(f => 
+      !omit.contains(f._1)).map(f => f._1 -> tr1(f._1))
+    val m2 = tr2.tp.attrTps.withFilter(f => 
+      !omit.contains(f._1)).map(f => f._1 -> tr2(f._1))
+    Singleton(Tuple(m1 ++ m2))
+  }
+
+  def projectTuple(tr: TupleVarRef, nbag:Map[String, TupleAttributeExpr], omit: List[String]): BagExpr = 
+    Singleton(Tuple(tr.tp.attrTps.withFilter(f => 
+      !omit.contains(f._1)).map(f => f._1 -> tr(f._1)) ++ nbag))
+
+  def projectTuple(tr: TupleVarRef, nbag:(String, TupleAttributeExpr), omit: List[String] = Nil): BagExpr = 
+    Singleton(Tuple(tr.tp.attrTps.withFilter(f => 
+      !omit.contains(f._1)).map(f => f._1 -> tr(f._1)) + nbag))
+
+
 
 }

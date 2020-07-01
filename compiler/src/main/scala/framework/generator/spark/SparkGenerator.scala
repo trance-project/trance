@@ -1,7 +1,6 @@
 package framework.generator.spark
 
 import framework.common._
-import framework.plans.{Multiply => CMultiply}
 import framework.plans._
 import framework.utils.Utils.ind
 
@@ -152,7 +151,8 @@ class SparkNamedGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = fal
     case Project(e2, field) => 
       s"${generate(e2)}.${kvName(field)}"
     /** MATH OPS **/
-    case CMultiply(e1, e2) => s"${generate(e1)} * ${generate(e2)}"
+    // case CMultiply(e1, e2) => s"${generate(e1)} * ${generate(e2)}"
+    case MathOp(op, e1, e2) => s"${generate(e1)} $op ${generate(e2)}"
 
     /** BOOL OPS **/
     case Equals(e1, e2) => s"${generate(e1)} == ${generate(e2)}"

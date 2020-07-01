@@ -9,10 +9,7 @@ import framework.nrc.MaterializeNRC
 object Test0 extends TPCHBase {
 
   val name = "Test0"
-  override def indexedDict: List[String] = List(s"${name}__D_1")
-
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("L").contains(x._1)).values.toList.mkString("")}"
+  val tbls = Set("L")
  
   val query = 
   ForeachUnion(lr, relL, 
@@ -25,11 +22,8 @@ object Test0 extends TPCHBase {
 object Test0Full extends TPCHBase {
 
   val name = "Test0Full"
-  override def indexedDict: List[String] = List(s"${name}__D_1")
+  val tbls = Set("L")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("L").contains(x._1)).values.toList.mkString("")}"
- 
   val query = ForeachUnion(lr, relL, projectBaseTuple(lr))
 
   val program = Program(Assignment(name, query))
@@ -39,10 +33,7 @@ object Test0Full extends TPCHBase {
 object Test1 extends TPCHBase {
 
   val name = "Test1"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_o_parts_1")
-
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("O", "L").contains(x._1)).values.toList.mkString("")}"
+  val tbls = Set("L", "O")
  
   val query = 
   ForeachUnion(or, relO,
@@ -58,11 +49,8 @@ object Test1 extends TPCHBase {
 object Test1Full extends TPCHBase {
 
   val name = "Test1Full"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_o_parts_1")
+  val tbls = Set("L", "O")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("O", "L").contains(x._1)).values.toList.mkString("")}"
- 
   val query = 
   ForeachUnion(or, relO,
     projectTuple(or, "o_parts" ->
@@ -77,12 +65,8 @@ object Test1Full extends TPCHBase {
 object Test2 extends TPCHBase {
 
   val name = "Test2"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_c_orders_1", 
-    s"${name}__D_1_c_orders_1_o_parts_1")
+  val tbls = Set("L", "O", "C")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
- 
   val query = 
   ForeachUnion(cr, relC,
     Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> 
@@ -98,12 +82,8 @@ object Test2 extends TPCHBase {
 object Test2Filter extends TPCHBase {
 
   val name = "Test2Filter"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_c_orders_1", 
-    s"${name}__D_1_c_orders_1_o_parts_1")
+  val tbls: Set[String] = Set("L", "O", "C")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
- 
   val query = 
   ForeachUnion(cr, relC,
     Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> 
@@ -120,12 +100,8 @@ object Test2Filter extends TPCHBase {
 object Test2Full extends TPCHBase {
 
   val name = "Test2Full"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_c_orders_1", 
-    s"${name}__D_1_c_orders_1_o_parts_1")
+  val tbls: Set[String] = Set("L", "O", "C")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
- 
   val query = 
   ForeachUnion(cr, relC,
     projectTuple(cr, "c_orders" -> 
@@ -141,12 +117,8 @@ object Test2Full extends TPCHBase {
 object Test2Flat extends TPCHBase {
 
   val name = "Test2"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_c_orders_1", 
-    s"${name}__D_1_c_orders_1_o_parts_1")
+  val tbls: Set[String] = Set("L", "O", "C")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L").contains(x._1)).values.toList.mkString("")}"
- 
   val oquery = 
     ForeachUnion(or, relO,
       Singleton(Tuple("o_custkey" -> or("o_custkey"), "o_orderdate" -> or("o_orderdate"), "o_parts" -> 
@@ -168,12 +140,8 @@ object Test2Flat extends TPCHBase {
 object Test2FullFlat extends TPCHBase {
 
   val name = "Test2Full"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_c_orders_1", 
-    s"${name}__D_1_c_orders_1_o_parts_1")
+  val tbls: Set[String] = Set("L", "O", "C")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L").contains(x._1)).values.toList.mkString("")}"
- 
   val oquery = 
     ForeachUnion(or, relO,
       projectTuple(or, "o_parts" -> 
@@ -195,12 +163,8 @@ object Test2FullFlat extends TPCHBase {
 object Test3 extends TPCHBase {
 
   val name = "Test3"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_n_custs_1", 
-    s"${name}__D_1_n_custs_1_c_orders_1", s"${name}__D_1_n_custs_1_c_orders_1_o_parts_1")
+  val tbls: Set[String] = Set("L", "O", "C", "N")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N").contains(x._1)).values.toList.mkString("")}"
- 
   val query = 
   ForeachUnion(nr, relN,
     Singleton(Tuple("n_name" -> nr("n_name"), "n_custs" ->
@@ -221,12 +185,8 @@ object Test3 extends TPCHBase {
 object Test3Full extends TPCHBase {
 
   val name = "Test3Full"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_n_custs_1", 
-    s"${name}__D_1_n_custs_1_c_orders_1", s"${name}__D_1_n_custs_1_c_orders_1_o_parts_1")
+  val tbls: Set[String] = Set("L", "O", "C", "N")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N").contains(x._1)).values.toList.mkString("")}"
- 
   val query = 
   ForeachUnion(nr, relN,
     projectTuple(nr, "n_custs" ->
@@ -246,12 +206,8 @@ object Test3Full extends TPCHBase {
 object Test3Flat extends TPCHBase {
 
   val name = "Test3"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_n_custs_1", 
-    s"${name}__D_1_n_custs_1_c_orders_1", s"${name}__D_1_n_custs_1_c_orders_1_o_parts_1")
+  val tbls: Set[String] = Set("L", "O", "C", "N")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N").contains(x._1)).values.toList.mkString("")}"
- 
   val oquery = 
     ForeachUnion(or, relO,
       Singleton(Tuple("o_custkey" -> or("o_custkey"), "o_orderdate" -> or("o_orderdate"), "o_parts" -> 
@@ -281,12 +237,8 @@ object Test3Flat extends TPCHBase {
 object Test3FullFlat extends TPCHBase {
 
   val name = "Test3Full"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_n_custs_1", 
-    s"${name}__D_1_n_custs_1_c_orders_1", s"${name}__D_1_n_custs_1_c_orders_1_o_parts_1")
+  val tbls: Set[String] = Set("L", "O", "C", "N")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N").contains(x._1)).values.toList.mkString("")}"
- 
   val oquery = 
     ForeachUnion(or, relO,
       projectTuple(or, "o_parts" -> 
@@ -315,13 +267,8 @@ object Test3FullFlat extends TPCHBase {
 object Test4 extends TPCHBase {
 
   val name = "Test4"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_r_nations_1", 
-    s"${name}__D_1_r_nations_1_n_custs_1", s"${name}__D_1_r_nations_1_n_custs_1_c_orders_1", 
-    s"${name}__D_1_r_nations_1_n_custs_1_c_orders_1_o_parts_1")
+  val tbls: Set[String] = Set("L", "O", "C", "N", "R")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N", "R").contains(x._1)).values.toList.mkString("")}"
- 
   val query = 
   ForeachUnion(rr, relR,
     Singleton(Tuple("r_name" -> rr("r_name"), "r_nations" ->
@@ -344,13 +291,8 @@ object Test4 extends TPCHBase {
 object Test4Full extends TPCHBase {
 
   val name = "Test4Full"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_r_nations_1", 
-    s"${name}__D_1_r_nations_1_n_custs_1", s"${name}__D_1_r_nations_1_n_custs_1_c_orders_1", 
-    s"${name}__D_1_r_nations_1_n_custs_1_c_orders_1_o_parts_1")
+  val tbls: Set[String] = Set("L", "O", "C", "N", "R")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N", "R").contains(x._1)).values.toList.mkString("")}"
- 
   val query = 
   ForeachUnion(rr, relR,
     projectTuple(rr, "r_nations" ->
@@ -372,13 +314,8 @@ object Test4Full extends TPCHBase {
 object Test4Flat extends TPCHBase {
 
   val name = "Test4"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_r_nations_1", 
-    s"${name}__D_1_r_nations_1_n_custs_1", s"${name}__D_1_r_nations_1_n_custs_1_c_orders_1", 
-    s"${name}__D_1_r_nations_1_n_custs_1_c_orders_1_o_parts_1")
+  val tbls: Set[String] = Set("L", "O", "C", "N", "R")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N", "R").contains(x._1)).values.toList.mkString("")}"
- 
   val oquery = 
     ForeachUnion(or, relO,
       Singleton(Tuple("o_custkey" -> or("o_custkey"), "o_orderdate" -> or("o_orderdate"), "o_parts" -> 
@@ -418,13 +355,8 @@ object Test4Flat extends TPCHBase {
 object Test4FullFlat extends TPCHBase {
 
   val name = "Test4Full"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_r_nations_1", 
-    s"${name}__D_1_r_nations_1_n_custs_1", s"${name}__D_1_r_nations_1_n_custs_1_c_orders_1", 
-    s"${name}__D_1_r_nations_1_n_custs_1_c_orders_1_o_parts_1")
+  val tbls: Set[String] = Set("L", "O", "C", "N", "R")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N", "R").contains(x._1)).values.toList.mkString("")}"
- 
   val oquery = 
     ForeachUnion(or, relO,
       projectTuple(or, "o_parts" -> 
@@ -466,11 +398,8 @@ object Test4FullFlat extends TPCHBase {
 object Test0Join extends TPCHBase {
 
   val name = "Test0"
-  override def indexedDict: List[String] = List(s"${name}__D_1")
+  val tbls: Set[String] = Set("L", "P")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("L", "P").contains(x._1)).values.toList.mkString("")}"
- 
   val query = 
   ForeachUnion(lr, relL,
     ForeachUnion(pr, relP,
@@ -483,11 +412,8 @@ object Test0Join extends TPCHBase {
 object Test1Join extends TPCHBase {
 
   val name = "Test1"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"o__Do_parts_1")
+  val tbls: Set[String] = Set("O", "L", "P")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("O", "L", "P").contains(x._1)).values.toList.mkString("")}"
- 
   val query = 
   ForeachUnion(or, relO,
     Singleton(Tuple("orderdate" -> or("o_orderdate"), "o_parts" ->
@@ -503,11 +429,8 @@ object Test1Join extends TPCHBase {
 object Test1JoinFlat extends TPCHBase {
 
   val name = "Test1"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"o__Do_parts_1")
+  val tbls: Set[String] = Set("C", "O", "L", "P")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("O", "L", "P").contains(x._1)).values.toList.mkString("")}"
- 
   val pquery = 
     ForeachUnion(lr, relL,
       ForeachUnion(pr, relP,
@@ -529,11 +452,8 @@ object Test1JoinFlat extends TPCHBase {
 object Test2Join extends TPCHBase {
 
   val name = "Test2"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  val tbls: Set[String] = Set("C", "O", "L", "P")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
- 
   val query = 
   ForeachUnion(cr, relC,
     Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> 
@@ -551,11 +471,8 @@ object Test2Join extends TPCHBase {
 object Test2JoinFlat extends TPCHBase {
 
   val name = "Test2"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  val tbls: Set[String] = Set("C", "O", "L", "P")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "P").contains(x._1)).values.toList.mkString("")}"
-  
   val pquery = 
     ForeachUnion(lr, relL,
       ForeachUnion(pr, relP,
@@ -586,11 +503,8 @@ object Test2JoinFlat extends TPCHBase {
 object Test3Join extends TPCHBase {
 
   val name = "Test3"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"n__Dn_custs_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  val tbls: Set[String] = Set("C", "O", "L", "N", "P")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N", "P").contains(x._1)).values.toList.mkString("")}"
- 
   val query = 
   ForeachUnion(nr, relN,
     Singleton(Tuple("n_name" -> nr("n_name"), "n_custs" ->
@@ -612,11 +526,8 @@ object Test3Join extends TPCHBase {
 object Test3JoinFlat extends TPCHBase {
 
   val name = "Test3"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"n__Dn_custs_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  val tbls: Set[String] = Set("C", "O", "L", "N", "P")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N", "P").contains(x._1)).values.toList.mkString("")}"
- 
   val pquery = 
     ForeachUnion(lr, relL,
       ForeachUnion(pr, relP,
@@ -657,11 +568,8 @@ object Test3JoinFlat extends TPCHBase {
 object Test4Join extends TPCHBase {
 
   val name = "Test4"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"n__Dr_nations_1", s"n__Dn_custs_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  val tbls: Set[String] = Set("C", "O", "L", "N", "R", "P")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N", "R", "P").contains(x._1)).values.toList.mkString("")}"
- 
   val query = 
   ForeachUnion(rr, relR,
     Singleton(Tuple("r_name" -> rr("r_name"), "r_nations" ->
@@ -685,11 +593,8 @@ object Test4Join extends TPCHBase {
 object Test4JoinFlat extends TPCHBase {
 
   val name = "Test4"
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"n__Dr_nations_1", s"n__Dn_custs_1", s"c__Dc_orders_1", s"o__Do_parts_1")
+  val tbls: Set[String] = Set("C", "O", "L", "N", "R", "P")
 
-  def inputs(tmap: Map[String, String]): String = 
-    s"val tpch = TPCHLoader(spark)\n${tmap.filter(x => List("C", "O", "L", "N", "R", "P").contains(x._1)).values.toList.mkString("")}"
- 
   val pquery = 
     ForeachUnion(lr, relL,
       ForeachUnion(pr, relP,
@@ -742,11 +647,7 @@ object Test4JoinFlat extends TPCHBase {
 
 object TestFN0 extends TPCHBase {
   val name = "TestFN0"
-
-  def inputs(tmap: Map[String, String]): String = 
-    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
-      List("C", "O", "L").contains(x._1)).values.toList.mkString("")}"""
-  override def indexedDict: List[String] = List(s"${name}__D_1")
+  val tbls: Set[String] = Set("C", "O", "L")
 
   val custs = 
       ForeachUnion(or, relO,
@@ -767,12 +668,7 @@ object TestFN0 extends TPCHBase {
 
 object TestFN1 extends TPCHBase {
   val name = "TestFN1"
-
-  def inputs(tmap: Map[String, String]): String = 
-    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
-      List("C", "O", "L", "S").contains(x._1)).values.toList.mkString("")}"""
-    // List(s"${name}__D_1", s"${name}__D_2c_orders_1", s"${name}__D_2c_orders_2o_parts_1")
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_customers2_1")
+  val tbls: Set[String] = Set("C", "O", "L", "S")
 
   val custs = 
       ForeachUnion(or, relO,
@@ -801,12 +697,7 @@ object TestFN1 extends TPCHBase {
 
 object TestFN2 extends TPCHBase {
   val name = "TestFN2"
-
-  def inputs(tmap: Map[String, String]): String = 
-    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
-      List("C", "O", "L", "S", "N").contains(x._1)).values.toList.mkString("")}"""
-    // List(s"${name}__D_1", s"${name}__D_2c_orders_1", s"${name}__D_2c_orders_2o_parts_1")
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_customers2_1", s"${name}__D_1_n_nations_1_customers2_1")
+  val tbls: Set[String] = Set("C", "O", "L", "S", "N")
 
   val custs = 
       ForeachUnion(or, relO,
@@ -837,12 +728,7 @@ object TestFN2 extends TPCHBase {
 
 object TestFN2Full extends TPCHBase {
   val name = "TestFN2"
-
-  def inputs(tmap: Map[String, String]): String = 
-    s"""val tpch = TPCHLoader(spark)\n${tmap.filter(x => 
-      List("C", "O", "L", "S", "N").contains(x._1)).values.toList.mkString("")}"""
-    // List(s"${name}__D_1", s"${name}__D_2c_orders_1", s"${name}__D_2c_orders_2o_parts_1")
-  override def indexedDict: List[String] = List(s"${name}__D_1", s"${name}__D_1_customers2_1", s"${name}__D_1_n_nations_1_customers2_1")
+  val tbls: Set[String] = Set("C", "O", "L", "S", "N")
 
   val custs = 
       ForeachUnion(or, relO,

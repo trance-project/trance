@@ -12,13 +12,15 @@ trait Base {
   def inputref(x: String, tp:Type): Rep
   def input(x: List[Rep]): Rep 
   def constant(x: Any): Rep
+  def udf(n: String, e1: Rep, tp: Type): Rep
   def emptysng: Rep
   def unit: Rep 
   def sng(x: Rep): Rep
+  def get(x: Rep): Rep
   def tuple(fs: List[Rep]): Rep
   def record(fs: Map[String, Rep]): Rep
   def label(fs: Map[String, Rep]): Rep 
-  def mult(e1: Rep, e2: Rep): Rep
+  def mathop(op: OpArithmetic, e1: Rep, e2: Rep): Rep
   def equals(e1: Rep, e2: Rep): Rep
   def lt(e1: Rep, e2: Rep): Rep
   def gt(e1: Rep, e2: Rep): Rep
@@ -54,6 +56,15 @@ trait Base {
   def cogroup(e1: Rep, e2: Rep, k1: List[Rep] => Rep, k2: Rep => Rep, value: List[Rep] => Rep): Rep
   def flatdict(e1: Rep): Rep
   def groupdict(e1: Rep): Rep
+
+  def addindex(in: Rep, name: String): Rep 
+  def dfproject(in: Rep, filter: Rep => Rep, fields: List[String]): Rep
+  def dfunnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep
+  def dfounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep
+  def dfjoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep
+  def dfojoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep
+  def dfnest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String], ctag: String): Rep
+  def dfreduceby(in: Rep, key: List[String], values: List[String]): Rep
 }
 
 /** Base compiler for string types.
@@ -64,16 +75,18 @@ trait BaseStringify extends Base{
   type Rep = String
   def inputref(x: String, tp: Type): Rep = x
   def input(x: List[Rep]): Rep = s"{${x.mkString(",")}}"
+  def udf(n: String, e1: Rep, tp: Type): Rep = s"$n($e1)"
   def constant(x: Any): Rep = x.toString
   def emptysng: Rep = "{}"
   def unit: Rep = "()"
   def sng(x: Rep): Rep = s"{ $x }"
+  def get(x: Rep): Rep = s"get($x)"
   def tuple(fs: List[Rep]) = s"(${fs.mkString(",")})"
   def record(fs: Map[String, Rep]): Rep = 
     s"(${fs.map(f => f._1 + " := " + f._2).mkString(",")})"
   def label(fs: Map[String, Rep]): Rep = 
     s"Label(${fs.map(f => f._1 + " := " + f._2).mkString(",")})"
-  def mult(e1: Rep, e2: Rep): Rep = s"(${e1} * ${e2})" 
+  def mathop(op: OpArithmetic, e1: Rep, e2: Rep): Rep = s"$e1 $op $e2"
   def equals(e1: Rep, e2: Rep): Rep = s"${e1} == ${e2}"
   def lt(e1: Rep, e2: Rep): Rep = s"${e1} < ${e2}"
   def gt(e1: Rep, e2: Rep): Rep = s"${e1} > ${e2}"
@@ -166,23 +179,37 @@ trait BaseStringify extends Base{
   }
   def flatdict(e1: Rep): Rep = s"FLAT($e1)"
   def groupdict(e1: Rep): Rep = s"GROUP($e1)"
+
+  def addindex(in: Rep, name: String): Rep = ""
+  def dfproject(in: Rep, filter: Rep => Rep, fields: List[String]): Rep = ""
+  def dfunnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = ""
+  def dfounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = ""
+  def dfjoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep = ""
+  def dfojoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep = ""
+  def dfnest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String], ctag: String): Rep = ""
+  def dfreduceby(in: Rep, key: List[String], values: List[String]): Rep = ""
 }
 
 /** Base compiler for generating nodes defined in the 
   * comprehension representation (Expr.scala)
   */
 trait BaseCompiler extends Base {
+
+  val ext = new Extensions{}
   type Rep = CExpr 
+
   def inputref(x: String, tp: Type): Rep = InputRef(x, tp)
   def input(x: List[Rep]): Rep = Input(x)
   def constant(x: Any): Rep = Constant(x)
+  def udf(n: String, e1: Rep, tp: Type): Rep = CUdf(n, e1, tp)
   def emptysng: Rep = EmptySng
   def unit: Rep = CUnit
   def sng(x: Rep): Rep = Sng(x)
+  def get(x: Rep): Rep = CGet(x)
   def tuple(fs: List[Rep]): Rep = Tuple(fs)
   def record(fs: Map[String, Rep]): Rep = Record(fs)
   def label(fs: Map[String, Rep]): Rep = Label(fs)
-  def mult(e1: Rep, e2: Rep): Rep = Multiply(e1, e2)
+  def mathop(op: OpArithmetic, e1: Rep, e2: Rep): Rep = MathOp(op, e1, e2)
   def equals(e1: Rep, e2: Rep): Rep = Equals(e1, e2)
   def lt(e1: Rep, e2: Rep): Rep = Lt(e1, e2)
   def gt(e1: Rep, e2: Rep): Rep = Gt(e1, e2)
@@ -225,7 +252,7 @@ trait BaseCompiler extends Base {
   def tupledict(fs: Map[String, Rep]): Rep = TupleCDict(fs)
   def dictunion(d1: Rep, d2: Rep): Rep = DictCUnion(d1, d2)
   def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
-    val v = Variable.freshFromBag(x.tp) 
+    val v = Variable.freshFromBag(x.tp)
     Select(x, v, p(v), e(v))
   }
   def reduce(e1: Rep, f: List[Rep] => Rep, p: List[Rep] => Rep): Rep = {
@@ -285,6 +312,46 @@ trait BaseCompiler extends Base {
   def flatdict(e1: Rep): Rep = FlatDict(e1)
   def groupdict(e1: Rep): Rep = GroupDict(e1)
 
+  def addindex(in: Rep, name: String): Rep = in match {
+    case AddIndex(in1, _) => AddIndex(in, name)
+    case _ => AddIndex(in, name)  
+  }
+  def dfproject(in: Rep, filter: Rep => Rep, fields: List[String]): Rep = {
+    val v1 = Variable.freshFromBag(in.tp)
+    val nr = filter(v1)
+    val fs = ext.collect(nr)
+    DFProject(in, v1, nr, fs.toList)
+  }
+  def dfunnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = {
+    val v = Variable.freshFromBag(in.tp)
+    val v2 = Variable.freshFromBag(v.tp.asInstanceOf[RecordCType].attrTps(path))
+    DFUnnest(in, v, path, v2, filter(v2), fields)
+  }
+  def dfounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = {
+    val v = Variable.freshFromBag(in.tp)
+    val v2 = Variable.fresh(v.tp.asInstanceOf[RecordCType].attrTps(path).outer)
+    DFOuterUnnest(in, v, path, v2, filter(v2), fields)  
+  }
+  def dfjoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep = {
+    val v = Variable.freshFromBag(left.tp)
+    val v2 = Variable.freshFromBag(right.tp)
+    DFJoin(left, v, right, v2, cond(v, v2), fields)
+  }
+  def dfojoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep = {
+    val v = Variable.freshFromBag(left.tp)
+    val v2 = Variable.freshFromBag(right.tp)
+    DFOuterJoin(left, v, right, v2, cond(v, v2), fields)
+  }
+  def dfnest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String], ctag: String): Rep = {
+    val v = Variable.freshFromBag(in.tp)
+    val nr = value(v)
+    DFNest(in, v, key, nr, filter(v), nr.inputColumns.toList, ctag)
+  }
+  def dfreduceby(in: Rep, key: List[String], values: List[String]): Rep = {
+    val v = Variable.freshFromBag(in.tp)
+    DFReduceBy(in, v, key, values)
+  }
+
   /** Generates a list of variables referencing the stream from the downstream operators
     * This was important for compiling plans from tuple stream style plans produced.
     *
@@ -303,6 +370,10 @@ trait BaseCompiler extends Base {
     case _ => List(Variable.fresh(e))
   }
 
+}
+
+trait ShredOptimizer extends BaseCompiler {
+  override def addindex(in: Rep, name: String): Rep = in
 }
 
 /**
@@ -326,6 +397,7 @@ trait BaseDFANF extends BaseANF {
           stateInv = stateInv + (v -> e)
           Def(v)
         }
+        // make these operator types
         e match {
           case r:Reduce => updateState(r)
           case s:Select => updateState(s)
@@ -338,6 +410,15 @@ trait BaseDFANF extends BaseANF {
           case ou:OuterUnnest => updateState(ou)
           case n:Nest => updateState(n)
           case cr:CReduceBy => updateState(cr)
+          case dfp:DFProject => updateState(dfp)
+          case dfu:DFUnnest => updateState(dfu)
+          case dfuo:DFOuterUnnest => updateState(dfuo)
+          case dfj:DFJoin => updateState(dfj)
+          case dfjo:DFOuterJoin => updateState(dfjo)
+          case dfn:DFNest => updateState(dfn)
+          case dfr:DFReduceBy => updateState(dfr)
+          case dfi:AddIndex => updateState(dfi)
+          case cd:CDeDup => updateState(cd)
           case _ => Def(e)
       }
     }
@@ -365,6 +446,10 @@ trait BaseANF extends Base {
 
   implicit def funcDefToExpr(fd: Def => Def): CExpr => CExpr = {
     (x: CExpr) => reifyBlock { fd(Def(x)) }
+  }
+
+  implicit def funcTupDefToExpr(fd: (Def, Def) => Def): (CExpr, CExpr) => CExpr = {
+    (x: CExpr, y: CExpr) => reifyBlock { fd(Def(x), Def(y)) }
   }
 
   implicit def funcDefsToExpr(fd: List[Def] => Def): List[CExpr] => CExpr = {
@@ -422,13 +507,15 @@ trait BaseANF extends Base {
   def inputref(x: String, tp:Type): Rep = compiler.inputref(x, tp)
   def input(x: List[Rep]): Rep = ??? 
   def constant(x: Any): Rep = compiler.constant(x)
+  def udf(n: String, e1: Rep, tp: Type): Rep = compiler.udf(n, e1, tp)
   def emptysng: Rep = compiler.emptysng
   def unit: Rep = compiler.unit
   def sng(x: Rep): Rep = compiler.sng(x)
+  def get(x: Rep): Rep = compiler.get(x)
   def tuple(fs: List[Rep]): Rep = compiler.tuple(fs.map(defToExpr(_)))
   def record(fs: Map[String, Rep]): Rep = compiler.record(fs.map(x => (x._1, defToExpr(x._2))))
   def label(fs: Map[String, Rep]): Rep = compiler.label(fs.map(x => (x._1, defToExpr(x._2))))
-  def mult(e1: Rep, e2: Rep): Rep = compiler.mult(e1, e2)
+  def mathop(op: OpArithmetic, e1: Rep, e2: Rep) = compiler.mathop(op, e1, e2)
   def equals(e1: Rep, e2: Rep): Rep = compiler.equals(e1, e2)
   def lt(e1: Rep, e2: Rep): Rep = compiler.lt(e1, e2)
   def gt(e1: Rep, e2: Rep): Rep = compiler.gt(e1, e2)
@@ -482,6 +569,22 @@ trait BaseANF extends Base {
   def flatdict(e1: Rep): Rep = compiler.flatdict(e1)
   def groupdict(e1: Rep): Rep = compiler.groupdict(e1)
   
+  def addindex(in: Rep, name: String) = compiler.addindex(in, name)
+  def dfproject(in: Rep, filter: Rep => Rep, fields: List[String]): Rep = 
+    compiler.dfproject(in, filter, fields)
+  def dfunnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = 
+    compiler.dfunnest(in, path, filter, fields)
+  def dfounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = 
+    compiler.dfounnest(in, path, filter, fields)
+  def dfjoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep = 
+    compiler.dfjoin(left, right, cond, fields)
+  def dfojoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep = 
+    compiler.dfojoin(left, right, cond, fields)
+  def dfnest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String], ctag: String): Rep = 
+    compiler.dfnest(in, key, value, filter, nulls, ctag)
+  def dfreduceby(in: Rep, key: List[String], values: List[String]): Rep = 
+    compiler.dfreduceby(in, key, values)
+
   def vars(e: Type): List[Variable] = e match {
     case BagCType(tp:RecordCType) => List(Variable.fresh(tp))
     case BagCType(tp @ TTupleType(tps)) => tps.map(Variable.fresh(_))
@@ -512,18 +615,20 @@ class Finalizer(val target: Base){
     case InputRef(x, tp) => target.inputref(x, tp)
     case Input(x) => target.input(x.map(finalize(_)))
     case Constant(x) => target.constant(x)
+ 	case CUdf(n, e1, tp) => target.udf(n, finalize(e1), tp)
     case EmptySng => target.emptysng
     case CUnit => target.unit
     case Sng(x) => x.tp match {
       case EmptyCType => target.emptysng
       case _ => target.sng(finalize(x))
     }
+    case CGet(x) => target.get(finalize(x))
     case Tuple(fs) if fs.isEmpty => target.unit
     case Tuple(fs) => target.tuple(fs.map(f => finalize(f)))
     case Record(fs) if fs.isEmpty => target.unit
     case Record(fs) => target.record(fs.map(f => f._1 -> finalize(f._2)))
     case Label(fs) => target.label(fs.map(f => f._1 -> finalize(f._2)))
-    case Multiply(e1, e2) => target.mult(finalize(e1), finalize(e2))
+    case MathOp(op, e1, e2) => target.mathop(op, finalize(e1), finalize(e2))
     case Equals(e1, e2) => target.equals(finalize(e1), finalize(e2))
     case Lt(e1, e2) => target.lt(finalize(e1), finalize(e2))
     case Gt(e1, e2) => target.gt(finalize(e1), finalize(e2))
@@ -594,6 +699,26 @@ class Finalizer(val target: Base){
     case CoGroup(e1, e2, v1, v2, k1, k2, value) =>
       target.cogroup(finalize(e1), finalize(e2), (r: List[target.Rep]) => withMapList(v1 zip r)(finalize(k1)), 
         (r: target.Rep) => withMap(v2 -> r)(finalize(k2)), (r: List[target.Rep]) => withMapList(v1 :+ v2 zip r)(finalize(value)))
+
+    case AddIndex(in, name) => target.addindex(finalize(in), name)    
+    case DFProject(in, v, filter, fields) => 
+      target.dfproject(finalize(in), (r: target.Rep) => withMap(v -> r)(finalize(filter)), fields)
+    case DFUnnest(in, v, path, v2, filter, fields) => 
+      target.dfunnest(finalize(in), path, (r: target.Rep) => withMap(v2 -> r)(finalize(filter)), fields)
+    case DFOuterUnnest(in, v, path, v2, filter, fields) => 
+      target.dfounnest(finalize(in), path, (r: target.Rep) => withMap(v2 -> r)(finalize(filter)), fields)
+    case DFJoin(left, v, right, v2, cond, fields) =>
+      target.dfjoin(finalize(left), finalize(right), 
+        (r: target.Rep, s: target.Rep) => withMapList(List((v,r), (v2,s)))(finalize(cond)), fields)
+    case DFOuterJoin(left, v, right, v2, cond, fields) =>
+      target.dfojoin(finalize(left), finalize(right), 
+        (r: target.Rep, s: target.Rep) => withMapList(List((v,r), (v2,s)))(finalize(cond)), fields)
+    case DFNest(in, v, key, value, filter, nulls, ctag) =>
+      target.dfnest(finalize(in), key, (r: target.Rep) => withMap(v -> r)(finalize(value)), 
+        (r: target.Rep) => withMap(v -> r)(finalize(filter)), nulls, ctag)
+    case DFReduceBy(in, v, keys, values) => 
+      target.dfreduceby(finalize(in), keys, values)
+
     case FlatDict(e1) => target.flatdict(finalize(e1))
     case GroupDict(e1) => target.groupdict(finalize(e1))
     case v @ Variable(_, _) => variableMap.getOrElse(v, target.inputref(v.name, v.tp))

@@ -22,8 +22,12 @@ object SkewDataset{
   /** Implicits for skew-unaware high-level operations defined on a single Dataset **/
   implicit class DatasetOps[T: Encoder: ClassTag](left: Dataset[T]) extends Serializable {
 
-    /** Print support for a Dataset **/
-    def print: Unit = left.collect.foreach(println(_))
+    // TODO replace with JSON
+    def print: Unit = {
+      println(left.take(100).toList.map(f => 
+        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
+    }
+    
 
     /** Create an empty Dataset with the same type 
       * Repartition to 1, this will be a check for empty dataframes that avoids 
@@ -130,7 +134,10 @@ object SkewDataset{
   implicit class DataframeOps(left: DataFrame) extends Serializable {
 
     /** Print support for a Dataframe **/
-    def print: Unit = left.collect.foreach(println(_))
+    def print: Unit = {
+      println(left.take(10).toList.map(f => 
+        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
+    }
 
     /** Create an empty Dataset with the an alternative type 
       * Repartition to 1, this will be a check for empty dataframes that avoids 
@@ -157,6 +164,8 @@ object SkewDataset{
     def print: Unit = (light, heavy).print
 
     def count: Long = (light, heavy).count
+
+    def union: DataFrame = (light, heavy).union
 
     def select(col: String, cols: String*): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]])= {
       (light.select(col, cols:_*), heavy.select(col, cols:_*), key, heavyKeys)
@@ -185,6 +194,23 @@ object SkewDataset{
     def withColumnRenamed(existingName: String, newName: String): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
       (light.withColumnRenamed(existingName, newName), 
         heavy.withColumnRenamed(existingName, newName), key, heavyKeys)
+    }
+
+    def drop(colName: String): (DataFrame, DataFrame) = {
+      (light.drop(colName), heavy.drop(colName))
+    }
+
+    def drop(colNames: String*): (DataFrame, DataFrame) = {
+      (light.drop(colNames:_*), heavy.drop(colNames:_*))
+    }
+
+    def filter(condition: Column): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
+      (light.filter(condition), heavy.filter(condition), key, heavyKeys)
+    }
+
+    def crossJoin(right: (DataFrame, DataFrame)): (DataFrame, DataFrame) = {
+      val result = dfs.union.crossJoin(right.union)
+      (result, result.emptyDF)
     }
 
   }
@@ -223,6 +249,18 @@ object SkewDataset{
 
     def select(col: String, cols: String*): (DataFrame, DataFrame) = {
       (light.select(col, cols:_*), heavy.select(col, cols:_*))
+    }
+
+    def drop(colName: String): (DataFrame, DataFrame) = {
+      (light.drop(colName), heavy.drop(colName))
+    }
+
+    def drop(colNames: String*): (DataFrame, DataFrame) = {
+      (light.drop(colNames:_*), heavy.drop(colNames:_*))
+    }
+
+    def filter(condition: Column): (Dataset[T], Dataset[T], Option[String], Broadcast[Set[K]]) = {
+      (light.filter(condition), heavy.filter(condition), key, heavyKeys)
     }
 
     /** Cast a skew-triple of Dataset to a new skew-triple of Dataset **/
@@ -333,6 +371,12 @@ object SkewDataset{
 
     }
 
+    /** Default join for complex join conditions **/
+    def join[S: Encoder : ClassTag](right: (Dataset[S], Dataset[S]), cond: Column, joinType: String = "inner"): (DataFrame, DataFrame) = {
+      val result = dfs.union.join(right.union, cond, joinType)
+      (result, result.emptyDF)
+    }
+
     /** Grouping operations will drop heavy keys and call the skew-triple version with no known keys **/
 
     def reduceByKey[K: Encoder](key: (T) => K, value: (T) => Double)(implicit arg0: Encoder[(K, Double)]): (Dataset[(K, Double)], Dataset[(K, Double)]) = {
@@ -366,6 +410,10 @@ object SkewDataset{
         (light, heavy).cogroup((right._1, right._2), lkey, rkey)(f)
     }
 
+    def crossJoin[S: Encoder : ClassTag](right: (Dataset[S], Dataset[S])): (DataFrame, DataFrame) = {
+      (light, heavy).crossJoin(right)
+    }
+
   }
 
   implicit class SkewDataframeOps(dfs: (DataFrame, DataFrame)) extends Serializable {
@@ -384,13 +432,33 @@ object SkewDataset{
     /** prints the light and heavy components **/
     def print: Unit = {
       println("light")
-      light.collect.foreach(println(_))
+      println(light.take(10).toList.map(f => 
+        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
       println("heavy")
-      heavy.collect.foreach(println(_))
+      println(heavy.take(10).toList.map(f => 
+        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
     }
+
+    /** union the light and heavy component, 
+      * if heavy is empty then just return light 
+      */
+    def union: DataFrame = if (heavy.rdd.getNumPartitions == 1) light 
+      else light.union(heavy)
 
     def select(col: String, cols: String*): (DataFrame, DataFrame) = {
       (light.select(col, cols:_*), heavy.select(col, cols:_*))
+    }
+
+    def filter(condition: Column): (DataFrame, DataFrame) = {
+      (light.filter(condition), heavy.filter(condition))
+    }
+
+    def drop(colName: String): (DataFrame, DataFrame) = {
+      (light.drop(colName), heavy.drop(colName))
+    }
+
+    def drop(colNames: String*): (DataFrame, DataFrame) = {
+      (light.drop(colNames:_*), heavy.drop(colNames:_*))
     }
 
     def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U]) = {
@@ -406,6 +474,11 @@ object SkewDataset{
     def withColumnRenamed(existingName: String, newName: String): (DataFrame, DataFrame) = {
       (light.withColumnRenamed(existingName, newName), 
         heavy.withColumnRenamed(existingName, newName))
+    }
+
+    def crossJoin(right: (DataFrame, DataFrame)): (DataFrame, DataFrame) = {
+      val result = dfs.union.crossJoin(right.union)
+      (result, result.emptyDF)
     }
 
   }
@@ -428,9 +501,11 @@ object SkewDataset{
     /** prints the light and heavy components **/
     def print: Unit = {
       println("light")
-      light.collect.foreach(println(_))
+      println(light.take(10).toList.map(f => 
+        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
       println("heavy")
-      heavy.collect.foreach(println(_))
+      println(heavy.take(10).toList.map(f => 
+        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
     }
 
     def cache: Unit = {
@@ -462,6 +537,18 @@ object SkewDataset{
 
     def select(col: String, cols: String*): (DataFrame, DataFrame) = {
       (light.select(col, cols:_*), heavy.select(col, cols:_*))
+    }
+
+    def filter(condition: Column): (Dataset[T], Dataset[T]) = {
+      (light.filter(condition), heavy.filter(condition))
+    }
+
+    def drop(colName: String): (DataFrame, DataFrame) = {
+      (light.drop(colName), heavy.drop(colName))
+    }
+
+    def drop(colNames: String*): (DataFrame, DataFrame) = {
+      (light.drop(colNames:_*), heavy.drop(colNames:_*))
     }
 
     def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U]) = if (heavy.rdd.getNumPartitions == 1) (light.as[U], light.empty[U])
@@ -543,7 +630,13 @@ object SkewDataset{
         (dfull.equiJoin(right.union, usingColumns, joinType), light.emptyDF, Some(nkey), light.sparkSession.sparkContext.broadcast(Set.empty[K]))
       }
     }
-    
+ 
+    /** Default join for complex join conditions **/
+    def join[S: Encoder : ClassTag](right: (Dataset[S], Dataset[S]), cond: Column, joinType: String = "inner"): (DataFrame, DataFrame) = {
+      val result = dfs.union.join(right.union, cond, joinType)
+      (result, result.emptyDF)
+    }
+
     /** Grouping operations - union the light and heavy components and perform the standard operations. 
       * The heavy component is empty and the heavy key set is null.
       */
@@ -580,6 +673,11 @@ object SkewDataset{
         dfs.cogroup((right._1, right._2), lkey, rkey)(f)
     }
 
+    def crossJoin[S: Encoder: ClassTag](right: (Dataset[S], Dataset[S])): (DataFrame, DataFrame) = {
+      val result = dfs.union.crossJoin(right.union)
+      (result, result.emptyDF)
+    }
+
   }
 
   /** skew-aware implicits for KeyValueGroupedDataset with null heavy keys 
@@ -590,6 +688,14 @@ object SkewDataset{
 
     val light = dfs._1
     val heavy = dfs._2
+
+    def agg[U1 : Encoder : ClassTag](col1: TypedColumn[V, U1]): (Dataset[(K, U1)], Dataset[(K, U1)]) = {
+      (light.agg(col1), heavy.agg(col1))
+    }
+
+    def agg[U1 : Encoder : ClassTag, U2 : Encoder : ClassTag](col1: TypedColumn[V, U1], col2: TypedColumn[V, U2]): (Dataset[(K, U1, U2)], Dataset[(K, U1, U2)]) = {
+      (light.agg(col1, col2), heavy.agg(col1, col2))
+    }
 
     def mapGroups[S: Encoder: ClassTag](func: (K, Iterator[V]) => S): (Dataset[S], Dataset[S]) = {
       (light.mapGroups(func), heavy.mapGroups(func))

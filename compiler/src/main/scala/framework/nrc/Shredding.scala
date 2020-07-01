@@ -103,6 +103,10 @@ trait Shredding extends BaseShredding with Extensions {
       val lbl = NewLabel(labelParameters(flat))
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict1.tupleDict))
 
+    case Get(e1) =>
+      val ShredExpr(flat: TupleExpr, dict: TupleDictExpr) = shred(e1, ctx)
+      ShredExpr(Get(Singleton(flat)), dict)
+
     case Tuple(fs) =>
       val shredFs = fs.map(f => f._1 -> shred(f._2, ctx))
       val flatFs = shredFs.map(f => f._1 -> f._2.flat.asInstanceOf[TupleAttributeExpr])

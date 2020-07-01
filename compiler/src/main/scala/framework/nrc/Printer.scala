@@ -15,7 +15,8 @@ trait Printer {
       "\"" + c.v + "\""
     case c: Const =>
       c.v.toString
-    case v: VarRef =>
+	case Udf(n, e1, tp) => s"$n(${quote(e1)})"
+	case v: VarRef =>
       v.name
     case p: Project =>
       quote(p.tuple) + "." + p.field
@@ -28,11 +29,13 @@ trait Printer {
           |(${quote(e2)})""".stripMargin
     case Singleton(e1) => s"{${quote(e1)}}"
     case DeDup(e1) => s"DeDup(${quote(e1)})"
+    case Get(e1) => s"Get(${quote(e1)})"
     case Tuple(fs) =>
       s"( ${fs.map { case (k, v) => k + " := " + quote(v) }.mkString(",\n   ")} )"
     case l: Let =>
-      s"""|Let ${l.x.name} = ${quote(l.e1)} In
-          |${quote(l.e2)}""".stripMargin
+      s"""|Let ${l.x.name} =
+          |${ind(quote(l.e1))} 
+          |In ${quote(l.e2)}""".stripMargin
     case c: Cmp =>
       s"${quote(c.e1)} ${c.op} ${quote(c.e2)}"
     case And(e1, e2) =>

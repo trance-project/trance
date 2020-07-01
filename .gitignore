@@ -1,4 +1,5 @@
-generated/*
+executor/spark/src/main/scala/sparkutils/generated/*.scala
+executor/spark/data.flat
 out
 restart.sh
 *DS_Store*

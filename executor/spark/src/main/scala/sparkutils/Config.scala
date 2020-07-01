@@ -9,13 +9,15 @@ object Config {
   val fsin = new java.io.FileInputStream("data.flat")
   prop.load(fsin)
 
+  // fix this
   val datapath = prop.getProperty("datapath")
-  val master = prop.getProperty("master")
-  val minPartitions = prop.getProperty("minPartitions").toInt
-  val threshold = prop.getProperty("threshold").toInt
+  val master = prop.getProperty("master", "local[*]")
+  val minPartitions = prop.getProperty("minPartitions", "400").toInt
+  val maxPartitions = prop.getProperty("maxPartitions", "1000").toInt
+  val threshold = prop.getProperty("threshold", "1000").toInt
 
-  // tpch specific
-  val goalParts = prop.getProperty("goalParts")
-  val lparts = prop.getProperty("lineitem").toInt
+  // vep information
+  val vepHome = prop.getProperty("vephome", "/usr/local/ensembl-vep/vep")
+  val vepCache = prop.getProperty("vepcache", "/mnt/app_hdd/")
 
 }
