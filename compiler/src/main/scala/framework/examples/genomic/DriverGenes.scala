@@ -89,14 +89,14 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork wi
 		|biospec.count
 		|val consequenceLoader = new ConsequenceLoader(spark)
 		|val conseqmap = spark.sparkContext.broadcast(consequenceLoader.read("/nfs_qc4/genomics/calc_variant_conseq.txt"))
-                |val quantifyImpact = udf { s: String => s match { case null _ => 0.1; case _ => conseqmap.value.getOrElse(s, 0.1) }} 
+        |val quantifyImpact = udf { s: String => s match { case null => 0.1; case _ => conseqmap.value.getOrElse(s, 0.1) }} 
 		|val quantifyConsequence = udf { s: String => s match {
-                |  case null => .1
-                |  case "HIGH" => .8
+        |  case null => .1
+        |  case "HIGH" => .8
 		|  case "MODERATE" => .5
 		|  case "LOW" => .3
 		|  case "MODIFIER" => .15
-                |  case _ => .1
+        |  case _ => .1
 		|}}
 		|""".stripMargin
   }
