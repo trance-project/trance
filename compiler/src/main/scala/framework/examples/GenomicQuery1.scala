@@ -404,7 +404,6 @@ object Clinical_Pathway_Burden_Flatten extends GenomicSchema {
   val program = Pathway_Burden.program.asInstanceOf[Clinical_Pathway_Burden_Flatten.Program].append(Assignment(name, query))
 }
 
-
 object Example1 extends GenomicSchema {
 
   val name = "Example1"
@@ -479,7 +478,6 @@ object transpose extends GenomicSchema {
   val program = pathway_by_gene.program.asInstanceOf[transpose.Program].append(Assignment(name, query))
 }
 
-
 // {sample, {pathway_name, burden}}
 object plan2 extends GenomicSchema {
   val name = "pathway_burden_plan2"
@@ -488,20 +486,19 @@ object plan2 extends GenomicSchema {
   val ac2 = TupleVarRef("c2", ac("pathway_variants").asInstanceOf[BagExpr].tp.tp)
   val query =
     ForeachUnion(ac, cnts,
-        Singleton(Tuple(
-          "sample" -> ac("sample"), "pathways" ->
-            ReduceByKey(
-              ForeachUnion(ac2, ac("pathway_variants").asBag,
-                Singleton(Tuple("pathway_name" -> ac2("pathway_name"), "burden" -> ac2("burden")))),
-              List("pathway_name"),
-              List("burden")
-            )
-        )
-        )
+      Singleton(Tuple(
+        "sample" -> ac("sample"), "pathways" ->
+          ReduceByKey(
+            ForeachUnion(ac2, ac("pathway_variants").asBag,
+              Singleton(Tuple("pathway_name" -> ac2("pathway_name"), "burden" -> ac2("burden")))),
+            List("pathway_name"),
+            List("burden")
+          )
+      )
+      )
     )
   val program = transpose.program.asInstanceOf[plan2.Program].append(Assignment(name, query))
 }
-
 
 // join metadata, pathway, and gene
 object flatten extends GenomicSchema {
@@ -536,7 +533,6 @@ object flatten extends GenomicSchema {
   //  {sample, pathway_variants:{gene_name, pathway_name, contig, start, alternate, reference, call， burden}}
   val program = pathway_by_gene.program.asInstanceOf[flatten.Program].append(Assignment(name, query))
 }
-
 
 // {sample, {pathway_name, burden}}
 object plan2_1 extends GenomicSchema {
