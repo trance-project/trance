@@ -50,9 +50,10 @@ object BatchOptimizer extends Extensions {
       val nkey0 = (key.toSet & fs) ++ indices 
       val nkey = if (nkey0.isEmpty) key.toSet else nkey0
 
-      val pin = push(in, nkey ++ value.inputColumns ++ fs)
+      val pfs = nkey ++ value.inputColumns ++fs
+      val pin = push(in, pfs)
       val nv = Variable.fromBag(v.name, pin.tp)
-      DFNest(pin, nv, nkey.toList, value, filter, nulls, ctag)
+      DFNest(pin, nv, nkey.toList, value, filter, value.inputColumns.toList, ctag)
 
     case DFReduceBy(e1 @ DFProject(in, v, filter:Record, fields), v2, key, value) =>
       // adjust key
@@ -60,7 +61,7 @@ object BatchOptimizer extends Extensions {
       val nkey0 = (key.toSet & fs) ++ indices 
       val nkey = if (nkey0.isEmpty) key.toSet else nkey0
 
-      val nfs = nkey ++ value.toSet ++ fs ++ collect(filter)
+      val nfs = nkey ++ value.toSet ++ fs //++ collect(filter)
       val pin = push(in, nfs)
       val nv = Variable.fromBag(v.name, pin.tp)
 
