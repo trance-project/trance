@@ -9,30 +9,30 @@ trait GenomicSchema extends Query{
     // I think there was a function in Query previously then...
     def loadTables(shred: Boolean = false, skew: Boolean = false): String = {
     if (shred)
-            s"""|val vloader = new VariantLoader(spark, "/home/yash/Documents/Data/Variants/sub_chr22.vcf")
+            s"""|val vloader = new VariantLoader(spark, "/mnt/app_hdd/data/Data/Variants/sub_chr22.vcf")
                 |val (variants, genotypes) = vloader.shredDS
                 |val IBag_variants__D = variants
                 |val IDict_variants__D_genotypes = genotypes
                 |
                 |val cloader = new TGenomesLoader(spark)
-                |val IBag_metadata__D = cloader.load("/home/yash/Documents/Data/Phenotype/1000g.csv")
-                |val gtfLoader = new GTFLoader(spark, "/home/yash/Documents/Data/Map/Homo_sapiens.GRCh37.87.chr.gtf")
+                |val IBag_metadata__D = cloader.load("/mnt/app_hdd/data/Data/Phenotype/1000g.csv")
+                |val gtfLoader = new GTFLoader(spark, "/mnt/app_hdd/data/Data/Map/Homo_sapiens.GRCh37.87.chr.gtf")
                 |val Gtfs = gtfLoader.loadDS
                 |val IBag_Gtfs__D = Gtfs
                 |
-                |val pathwayLoader = new PathwayLoader(spark, "/home/yash/Documents/Data/Pathway/c2.cp.v7.1.symbols.gmt")
+                |val pathwayLoader = new PathwayLoader(spark, "/mnt/app_hdd/data/Data/Pathway/c2.cp.v7.1.symbols.gmt")
                 |val (pathways, geneSet) = pathwayLoader.shredDS
                 |val IBag_pathways__D = pathways
                 |val IDict_pathways__D_gene_set = geneSet
                 |""".stripMargin
         else
-            s"""|val vloader = new VariantLoader(spark, "/home/yash/Documents/Data/Variants/sub_chr22.vcf")
+            s"""|val vloader = new VariantLoader(spark, "/mnt/app_hdd/data/Data/Variants/sub_chr22.vcf")
                 |val variants = vloader.loadDS
                 |val cloader = new TGenomesLoader(spark)
-                |val metadata = cloader.load("/home/yash/Documents/Data/Phenotype/1000g.csv")
-                |val gtfLoader = new GTFLoader(spark, "/home/yash/Documents/Data/Map/Homo_sapiens.GRCh37.87.chr.gtf")
+                |val metadata = cloader.load("/mnt/app_hdd/data/Data/Phenotype/1000g.csv")
+                |val gtfLoader = new GTFLoader(spark, "/mnt/app_hdd/data/Data/Map/Homo_sapiens.GRCh37.87.chr.gtf")
                 |val Gtfs = gtfLoader.loadDS
-                |val pathwayLoader = new PathwayLoader(spark, "/home/yash/Documents/Data/Pathway/c2.cp.v7.1.symbols.gmt")
+                |val pathwayLoader = new PathwayLoader(spark, "/mnt/app_hdd/data/Data/Pathway/c2.cp.v7.1.symbols.gmt")
                 |val pathways = pathwayLoader.loadDS
                 |""".stripMargin
     }
