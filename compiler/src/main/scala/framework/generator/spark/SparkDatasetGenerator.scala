@@ -220,7 +220,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
       val select = if (fields.isEmpty) ""
         else if (fields.toSet == ep.inputColumns) ""
-        else s".select(${fields.mkString("\"", "\", \"", "\"")})"
+        else s".select(${(fields.toSet & ep.inputColumns).mkString("\"", "\", \"", "\"")})"
 
       // input table attributes
       val projectCols = fields.toSet

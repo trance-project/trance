@@ -51,10 +51,10 @@ trait Query extends Materialization
       case y if batch => 
         println("plan before")
         val p = this.batchUnnest
-        println(p)
+        println(Printer.quote(p))
         val optimized = BatchOptimizer.applyAll(p)
         println("\nPlan after:")
-        println(optimized)
+        //println(optimized)
         println(Printer.quote(optimized)+"\n")
         val plan = anfBase.anf(anfer.finalize(optimized).asInstanceOf[anfBase.Rep])
         println(Printer.quote(plan))
@@ -207,6 +207,8 @@ trait Query extends Materialization
     println(quote(matProg))
     val ncalc = normalizer.finalize(translate(matProg)).asInstanceOf[CExpr]
     val initPlan = BatchUnnester.unnest(ncalc)(Map(), Map(), None, baseTag)
+    println("plan before")
+    println(Printer.quote(initPlan))
     val plan = BatchOptimizer.push(compiler.finalize(initPlan).asInstanceOf[CExpr])
     println(Printer.quote(plan))
     val anfBase = new BaseDFANF{}
