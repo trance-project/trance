@@ -23,9 +23,9 @@ object flatten1 extends GenomicSchema {
   val query =
     ForeachUnion(vr, variants,
       ForeachUnion(gtfr, gtfs,
-        ForeachUnion(gr, BagProject(vr, "genotypes"),
-          IfThenElse(
-            Cmp(OpGe, vr("start"), gtfr("g_start")) && Cmp(OpEq, gtfr("g_contig"), vr("contig")) && Cmp(OpGe, gtfr("g_end"), vr("start")),
+        IfThenElse(
+          Cmp(OpGe, vr("start"), gtfr("g_start")) && Cmp(OpEq, gtfr("g_contig"), vr("contig")) && Cmp(OpGe, gtfr("g_end"), vr("start")),
+          ForeachUnion(gr, BagProject(vr, "genotypes"),
             Singleton(Tuple("sample" -> gr("g_sample"), "g_gene_name" -> gtfr("gene_name"),
               "burden" -> PrimitiveIfThenElse(Cmp(OpNe, gr("call"), Const(0.0, DoubleType)), Const(1.0, DoubleType), Const(0.0, DoubleType))))
           )
@@ -51,7 +51,7 @@ object pathway_flatten extends GenomicSchema {
 object plan4 extends GenomicSchema {
   val name = "pathway_burden_plan4"
   val (flatten, g) = varset(flatten1.name, "v2", flatten1.program(flatten1.name).varRef.asInstanceOf[BagExpr])
-  val (pathwayFlat, p) = varset(pathway_flatten.name, "v2", pathway_flatten.program(pathway_flatten.name).varRef.asInstanceOf[BagExpr])
+  val (pathwayFlat, p) = varset(pathway_flatten.name, "v3", pathway_flatten.program(pathway_flatten.name).varRef.asInstanceOf[BagExpr])
   val query =
     ForeachUnion(mr, metadata,
       Singleton(Tuple(
@@ -61,7 +61,7 @@ object plan4 extends GenomicSchema {
               IfThenElse(Cmp(OpEq, mr("m_sample"), g("sample")),
 
                 ForeachUnion(p, pathwayFlat,
-                  IfThenElse(Cmp(OpEq, p("p_gene_name"), g("g_gene_name")),
+                  IfThenElse(Cmp(OpEq, g("g_gene_name"), p("p_gene_name")),
                     Singleton(Tuple("pathway_name" -> p("pathway_name"), "burden" -> g("burden")))
                   )))
             ),
@@ -69,8 +69,11 @@ object plan4 extends GenomicSchema {
             List("burden"))
       ))
     )
-  val p1 = pathway_flatten.asInstanceOf[plan4.Program].get(pathway_flatten.name).get
-  val program = flatten1.program.asInstanceOf[plan4.Program].append(p1).append(Assignment(name, query))
+
+  val p1 = Assignment(pathway_flatten.name, pathway_flatten.query.asInstanceOf[Expr])
+  val p2 = Assignment(flatten1.name, flatten1.query.asInstanceOf[Expr])
+
+  val program = Program(p2, p1, Assignment(name, query))
 
 }
 
@@ -82,10 +85,11 @@ object gene_burden extends GenomicSchema {
     ReduceByKey(
       ForeachUnion(vr, variants,
         ForeachUnion(gtfr, gtfs,
-          ForeachUnion(gr, BagProject(vr, "genotypes"),
-            IfThenElse(
-              Cmp(OpGe, vr("start"), gtfr("g_start")) &&
-                Cmp(OpGe, gtfr("g_end"), vr("start")) && Cmp(OpEq, gtfr("g_contig"), vr("contig")),
+          IfThenElse(
+            Cmp(OpGe, vr("start"), gtfr("g_start")) &&
+              Cmp(OpGe, gtfr("g_end"), vr("start")) && Cmp(OpEq, gtfr("g_contig"), vr("contig")),
+            ForeachUnion(gr, BagProject(vr, "genotypes"),
+
               Singleton(Tuple("sample" -> gr("g_sample"), "name" -> gtfr("gene_name"),
                 "burden" -> PrimitiveIfThenElse(Cmp(OpNe, gr("call"), Const(0.0, DoubleType)), Const(1.0, DoubleType), Const(0.0, DoubleType))
               ))
@@ -104,7 +108,7 @@ object plan5 extends GenomicSchema {
   val name = "pathway_burden_plan5"
 
   val (flatten, g) = varset(gene_burden.name, "v2", gene_burden.program(gene_burden.name).varRef.asInstanceOf[BagExpr])
-  val (pathwayFlat, p) = varset(pathway_flatten.name, "v2", pathway_flatten.program(pathway_flatten.name).varRef.asInstanceOf[BagExpr])
+  val (pathwayFlat, p) = varset(pathway_flatten.name, "v3", pathway_flatten.program(pathway_flatten.name).varRef.asInstanceOf[BagExpr])
 
 
   val query =
@@ -116,7 +120,7 @@ object plan5 extends GenomicSchema {
               IfThenElse(Cmp(OpEq, mr("m_sample"), g("sample")),
 
                 ForeachUnion(p, pathwayFlat,
-                  IfThenElse(Cmp(OpEq, p("p_gene_name"), g("g_gene_name")),
+                  IfThenElse(Cmp(OpEq, p("p_gene_name"), g("name")),
                     Singleton(Tuple("pathway_name" -> p("pathway_name"), "burden" -> g("burden")))
                   )))
             ),
@@ -124,48 +128,34 @@ object plan5 extends GenomicSchema {
             List("burden"))
       ))
     )
-  val p1 = pathway_flatten.asInstanceOf[plan5.Program].get(pathway_flatten.name).get
-  val program = gene_burden.program.asInstanceOf[plan5.Program].append(p1).append(Assignment(name, query))
+  //  val p1 = pathway_flatten.asInstanceOf[plan5.Program].get(pathway_flatten.name).get
+  //  val program = gene_burden.program.asInstanceOf[plan5.Program].append(p1).append(Assignment(name, query))
+
+
+  val p1 = Assignment(pathway_flatten.name, pathway_flatten.query.asInstanceOf[Expr])
+  val p2 = Assignment(gene_burden.name, gene_burden.query.asInstanceOf[Expr])
+  val program = Program(p2, p1, Assignment(name, query))
+
 }
 
 
 // for plan 6
-// res: {g_gene_name: String, burden: Double}
-object flatten_plan6 extends GenomicSchema {
+// res: {g_gene_name: String, genotypes: {g_sample, g_call}}
+object variantsMapped extends GenomicSchema {
   val name = "variants_gene_plan6"
   val query =
     ForeachUnion(vr, variants,
       ForeachUnion(gtfr, gtfs,
-        ForeachUnion(gr, BagProject(vr, "genotypes"),
-          IfThenElse(
-            Cmp(OpGe, vr("start"), gtfr("g_start")) && Cmp(OpEq, gtfr("g_contig"), vr("contig")) && Cmp(OpGe, gtfr("g_end"), vr("start")),
-            Singleton(Tuple("g_gene_name" -> gtfr("gene_name"), "genotypes" -> vr("genotypes")
-            ))
-          )
+        IfThenElse(
+          Cmp(OpGe, vr("start"), gtfr("g_start")) && Cmp(OpEq, gtfr("g_contig"), vr("contig")) && Cmp(OpGe, gtfr("g_end"), vr("start")),
+          Singleton(Tuple("g_gene_name" -> gtfr("gene_name"), "g_genotypes" ->
+            ForeachUnion(gr, BagProject(vr, "genotypes"),
+              Singleton(Tuple("g_sample" -> gr("g_sample"), "g_call" -> gr("call"))
+              )
+            )
+          ))
         )
       )
-    )
-  val program = Program(Assignment(name, query))
-}
-
-//{gene_name, genotypes{}}
-object variantsMapped extends GenomicSchema {
-  val name = "variantsMapped"
-  val query =
-    ForeachUnion(gtfr, gtfs,
-
-      Singleton(Tuple("gene_name" -> gtfr("gene_name"), "genotypes" ->
-
-        ForeachUnion(vr, variants,
-          ForeachUnion(gr, BagProject(vr, "genotypes"),
-
-            IfThenElse(Cmp(OpGe, vr("start"), gtfr("g_start")) &&
-              Cmp(OpGe, gtfr("g_end"), vr("start")) && Cmp(OpEq, gtfr("g_contig"), vr("contig")),
-              vr("genotypes").asBag
-            )
-          )
-        )
-      ))
     )
   val program = Program(Assignment(name, query))
 }
@@ -175,19 +165,20 @@ object variantsMapped extends GenomicSchema {
 object Gene_Burden_plan6 extends GenomicSchema {
   val name = "Gene_Burden_plan6"
 
-  val (vs, v) = varset(variantsMapped.name, "v2", variantsMapped.program(variantsMapped.name).varRef.asInstanceOf[BagExpr])
-  val g = TupleVarRef("g2", v("genotypes").asInstanceOf[BagExpr].tp.tp)
+  val (vs, v) = varset(variantsMapped.name, "v5", variantsMapped.program(variantsMapped.name).varRef.asInstanceOf[BagExpr])
+  val gb = TupleVarRef("v6", v("g_genotypes").asInstanceOf[BagExpr].tp.tp)
 
   val query =
     ForeachUnion(mr, metadata,
       Singleton(Tuple(
         "gb_sample" -> mr("m_sample"), "genes" ->
           ForeachUnion(v, vs,
-            ForeachUnion(g, v("genotypes").asBag,
+            ForeachUnion(gb, BagProject(v, "g_genotypes"),
               IfThenElse(
-                Cmp(OpEq, g("g_sample"), mr("m_sample")),
+                Cmp(OpEq, gb("g_sample"), mr("m_sample")),
                 Singleton(Tuple(
-                  "gb_name" -> v("gene_name"), "gb_burden" -> PrimitiveIfThenElse(Cmp(OpNe, gr("call"), Const(0.0, DoubleType)), Const(1.0, DoubleType), Const(0.0, DoubleType))
+                  "gb_name" -> v("g_gene_name"),
+                  "gb_burden" -> PrimitiveIfThenElse(Cmp(OpNe, gb("g_call"), Const(0.0, DoubleType)), Const(1.0, DoubleType), Const(0.0, DoubleType))
                 ))
               )
             )
@@ -201,7 +192,7 @@ object Gene_Burden_plan6 extends GenomicSchema {
 object plan6 extends GenomicSchema {
   val name = "pathway_burden_plan6"
 
-  val (ss, s) = varset(Gene_Burden_plan6.name, "v3", Gene_Burden_plan6.program(Gene_Burden_plan6.name).varRef.asInstanceOf[BagExpr])
+  val (ss, s) = varset(Gene_Burden_plan6.name, "v4", Gene_Burden_plan6.program(Gene_Burden_plan6.name).varRef.asInstanceOf[BagExpr])
   val gs = TupleVarRef("g3", s("genes").asInstanceOf[BagExpr].tp.tp)
 
   val query =
