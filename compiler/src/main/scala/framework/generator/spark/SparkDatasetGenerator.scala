@@ -424,7 +424,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val grpv = Variable("grp", BagCType(value.tp.unouter))
       val frec = Record(en.tp.tp.attrs.map(k => if (k._1 == tag) k._1 -> grpv 
         else k._1 -> Project(kv, k._1)).toMap)
-      
+     
+      println("in nest with")
+      println(v)
       s"""|${generate(in)}.groupByKey($gv => ${generate(rkey)}).mapGroups{
           | case (key, value) => 
           |   val grp = value.flatMap($gv => 

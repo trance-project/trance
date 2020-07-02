@@ -82,7 +82,8 @@ object BatchOptimizer extends Extensions {
       val nkey0 = (key.toSet & fs) ++ indices 
       val nkey = if (nkey0.isEmpty) key.toSet else nkey0
 
-      val pin = push(in, nkey ++ value.inputColumns ++ fs)
+      val pfs = nkey ++ collect(value) ++ fs
+      val pin = push(in, pfs)
       val nv = Variable.fromBag(v.name, pin.tp)
       DFNest(pin, nv, nkey.toList, value, filter, nulls, ctag)
 
