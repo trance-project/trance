@@ -68,7 +68,7 @@ object TestMaterialization extends App
   }
 
   def runSequential(): Unit = {
-    val q1 = tpch.Query1.program.asInstanceOf[Program]
+    val q1 = tpch.Test2.program.asInstanceOf[Program]
 
     println("Program: \n" + quote(q1) + "\n")
 
@@ -119,7 +119,7 @@ object TestMaterialization extends App
       println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
     }
 
-    val q4 = Program(Assignment(tpch.Query4.name, tpch.Query4.query4.asInstanceOf[Expr]))
+    val q4 = tpch.Query4.program.asInstanceOf[Program]
 
     println("Program: \n" + quote(q4) + "\n")
 
@@ -271,7 +271,10 @@ object TestMaterialization extends App
   def dualConditionLabels(): Unit = {
     // first case satisfies If Hoisting and Dict Iteration
     val q1 = genomic.HybridBySample.program.asInstanceOf[Program]
-    val (shredded, shreddedCtx) = shredCtx(q1)
+
+    println("Program: \n" + quote(q1) + "\n")
+
+    val (shredded, _) = shredCtx(q1)
     println("Shredded program: \n" + quote(shredded) + "\n")
 
     val optShredded = optimize(shredded)
@@ -282,10 +285,15 @@ object TestMaterialization extends App
 
     val unshredded = unshred(optShredded, materializedProgram.ctx)
     println("Unshredded program: \n" + quote(unshredded) + "\n")
+  }
 
+  def dualConditionLabels2(): Unit = {
     // second case has two Dict Iteration labels (from two different inputs)
     val q2 = genomic.EffectBySample.program.asInstanceOf[Program]
-    val (shredded2, shreddedCtx2) = shredCtx(q2)
+
+    println("Program: \n" + quote(q2) + "\n")
+
+    val (shredded2, _) = shredCtx(q2)
     println("Shredded program: \n" + quote(shredded2) + "\n")
 
     val optShredded2 = optimize(shredded2)
@@ -319,11 +327,12 @@ object TestMaterialization extends App
   }
 
 //  runSequential()
-  // runSequential2()
-  // domainTest()
+//   runSequential2()
+//   domainTest()
 
   dualConditionLabels()
-  // matFailedAssertion()
+  dualConditionLabels2()
+  matFailedAssertion()
 
 
 //  run(tpch.Query1.program.asInstanceOf[Program])
