@@ -293,10 +293,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       if (ej.isEquiJoin){
 
           val (p1, p2) = (ej.p1, ej.p2)
-          // ej.cond match {
-          //   case Equals(Project(_, c1), Project(_, c2)) if ej.v=> (c1, c2)
-          //   case _ => sys.error("condition not supported")
-          // }
 
           val classTags = if (!skew) ""
             else {
