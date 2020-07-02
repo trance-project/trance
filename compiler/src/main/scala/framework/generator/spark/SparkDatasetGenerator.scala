@@ -284,22 +284,30 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
     // JOIN operator
     case ej:JoinOp => 
+
       handleType(ej.tp.tp)
       val nrec = generateType(ej.tp.tp)
       val gright = generate(ej.right)
       val rtp = ej.right.tp.attrs
 
       if (ej.isEquiJoin){
-        val (p1, p2) = ej.cond match {
-          case Equals(Project(_, c1), Project(_, c2)) => (c1, c2)
-          case _ => sys.error("condition not supported")
-        }
-        val classTags = if (!skew) ""
-          else s"[${generateType(RecordCType(rtp))}, ${generateType(rtp(p2))}]"
+
+          val (p1, p2) = (ej.p1, ej.p2)
+          // ej.cond match {
+          //   case Equals(Project(_, c1), Project(_, c2)) if ej.v=> (c1, c2)
+          //   case _ => sys.error("condition not supported")
+          // }
+
+          val classTags = if (!skew) ""
+            else {
+              handleType(RecordCType(rtp))
+              s"[${generateType(RecordCType(rtp))}, ${generateType(rtp(p2))}]"
+            }
 
           s"""|${generate(ej.left)}.equiJoin$classTags($gright, 
               | Seq("${p1}", "${p2}"), "${ej.jtype}").as[$nrec]
               |""".stripMargin
+
         }else {
           ej.cond match {
             case Constant(true) => 
