@@ -253,6 +253,8 @@ trait NRC extends BaseExpr {
                               values: List[String],
                               groupAttrName: String = GROUP_ATTR_NAME
                              ) extends GroupByExpr {
+    assert(keys.size == keys.distinct.size, "Duplicated group-by keys")
+
     val keysTp: TupleType =
       TupleType(keys.map(n => n -> e.tp.tp(n)).toMap)
 
@@ -266,6 +268,7 @@ trait NRC extends BaseExpr {
   final case class ReduceByKey(e: BagExpr, keys: List[String], values: List[String]) extends GroupByExpr {
     assert(values.forall(n => e.tp.tp(n).isInstanceOf[ReducibleType]),
       "ReduceByKey over non-reducible attributes")
+    assert(keys.size == keys.distinct.size, "Duplicated reduce-by keys")
 
     val keysTp: TupleType =
       TupleType(keys.map(n => n -> e.tp.tp(n)).toMap)
