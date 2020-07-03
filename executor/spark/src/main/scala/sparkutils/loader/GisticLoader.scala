@@ -9,6 +9,9 @@ import java.io.File
 
 case class Sample(gistic_sample: String, focal_score: Long)
 case class Gistic(gistic_gene: String, gistic_gene_id: Long, cytoband: String, gistic_samples: Seq[Sample])
+case class GisticDict1(gistic_gene: String, gistic_gene_id: Long, cytoband: String, gistic_samples: String)
+case class GisticSampleDict2(_1: String, gistic_sample: String, focal_score: Long)
+
 //  {(gene: String, cytoband: String, samples: {(name: String, focal_score: Int)})}
 
 class GisticLoader(spark: SparkSession) {
@@ -66,6 +69,15 @@ class GisticLoader(spark: SparkSession) {
       val ndf = ldf.join(rdf, $"Gene Symbol" === $"GS" && $"Gene Id" === $"GI" && $"Cytoband" === $"CB")
         .drop("GS", "GI", "CB")
       iterMerge(ndf, tail)
+  }
+
+  def shred(dfs: Dataset[Gistic]): (Dataset[GisticDict1], Dataset[GisticSampleDict2]) = {
+	val tmp = dfs.rdd.zipWithIndex
+	val dict1 = tmp.map{ case (row, id) => 
+		GisticDict1(row.gistic_gene, row.gistic_gene_id, row.cytoband, s"$id")}.toDF.as[GisticDict1]
+	val dict2 = tmp.flatMap{ case (row, id) => row.gistic_samples.map(srow => 
+		GisticSampleDict2(s"$id", srow.gistic_sample, srow.focal_score)) }.toDF.as[GisticSampleDict2]
+	(dict1, dict2)
   }
 
   private def read(path: String): DataFrame = {

@@ -84,20 +84,56 @@ trait SOImpact {
 trait DriverGene extends Query with Occurrence with Gistic with StringNetwork with GeneExpression with Biospecimen with SOImpact {
 
   def loadTables(shred: Boolean = false, skew: Boolean = false): String = {
-    s"""|val occurrences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence]
+    if (shred) loadShred(skew)
+	else
+	s"""|val vepLoader = new VepLoader(spark)
+		|val occurrences = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence])
 		|occurrences.cache
 		|occurrences.count
 		|val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
 		|gistic.cache
 		|gistic.count
 		|val biospecLoader = new BiospecLoader(spark)
-		|val biospec = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/")
+		|val biospec = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
 		|biospec.cache
 		|biospec.count
 		|val consequenceLoader = new ConsequenceLoader(spark)
 		|val consequences = consequenceLoader.loadSequential("/nfs_qc4/genomics/calc_variant_conseq.txt")
 		|consequences.cache
 		|consequences.count
+		|""".stripMargin
+  }
+
+  def loadShred(skew: Boolean = false): String = {
+	s"""|val vepLoader = new VepLoader(spark)
+		|val (odict1, odict2, odict3) = vepLoader.shred(spark.read.json(
+		|	"file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence])
+  		|val IBag_occurrences__D = odict1
+		|IBag_occurrences__D.cache
+		|IBag_occurrences__D.count
+		|val IDict_occurrences__D_transcript_consequences = odict2
+		|IDict_occurrences__D_transcript_consequences.cache
+		|IDict_occurrences__D_transcript_consequences.count
+		|val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
+		|IDict_occurrences__D_transcript_consequences_consequence_terms.cache
+		|IDict_occurrences__D_transcript_consequences_consequence_terms.count
+		|val gisticLoader = new GisticLoader(spark)
+		|val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
+		|val (gdict1, gdict2) = gisticLoader.shred(gistic)
+		|val IBag_gistic__D = gdict1
+		|IBag_gistic__D.cache
+		|IBag_gistic__D.count
+		|val IDict_gistic__D_gistic_samples = gdict2
+		|IDict_gistic__D_gistic_samples.cache
+		|IDict_gistic__D_gistic_samples.count
+		|val biospecLoader = new BiospecLoader(spark)
+		|val IBag_biospec__D = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
+		|IBag_biospec__D.cache
+		|IBag_biospec__D.count
+		|val consequenceLoader = new ConsequenceLoader(spark)
+		|val IBag_consequences__D = consequenceLoader.loadSequential("/nfs_qc4/genomics/calc_variant_conseq.txt")
+		|IBag_consequences__D.cache
+		|IBag_consequences__D.count
 		|""".stripMargin
   }
 
@@ -135,6 +171,16 @@ object HybridBySample extends DriverGene {
 
   val name = "HybridBySample"
 
+  val matchImpact = NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("HIGH", StringType)),
+		              NumericConst(0.8, DoubleType),
+		              NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("MODERATE", StringType)),
+		             	NumericConst(0.5, DoubleType),
+		                NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("LOW", StringType)),
+		                  NumericConst(0.3, DoubleType),
+		                  NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("MODIFIER", StringType)),
+		                    NumericConst(0.15, DoubleType),
+		                    NumericConst(0.1, DoubleType)))))
+
   val query = ForeachUnion(or, occurrences, 
     ForeachUnion(br, biospec, 
       IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
@@ -151,19 +197,7 @@ object HybridBySample extends DriverGene {
 		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
 		                          		Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
 		                            		"hybrid_score" -> 
-		                            		conr("so_weight").asNumeric * 
-		                            		(NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("HIGH", StringType)),
-		                            			NumericConst(0.8, DoubleType),
-		                            			NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("MODERATE", StringType)),
-		                            				NumericConst(0.5, DoubleType),
-		                            				NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("LOW", StringType)),
-		                            					NumericConst(0.3, DoubleType),
-		                            					NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("MODIFIER", StringType)),
-		                            						NumericConst(0.15, DoubleType),
-		                            						NumericConst(0.1, DoubleType)))))) *
-		                            		// //Udf("quantifyImpact", ar("impact").asPrimitive, DoubleType) * 
-					    					//Udf("quantifyConsequence", cr("element").asPrimitive, DoubleType) * 
-					    					sr("focal_score").asNumeric))))))))))
+		                            		conr("so_weight").asNumeric * matchImpact * sr("focal_score").asNumeric))))))))))
             ,List("hybrid_gene_id"),
             List("hybrid_score")))))))
 

@@ -63,6 +63,12 @@ case class OccurrQuant(oid: String, donorId: String, vend: Long, projectId: Stri
 
 case class Occurrence2(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Seq[Transcript3])
 
+case class OccurrDict1(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: String)
+
+case class OccurrTransDict2(_1: String, amino_acids: String, distance: Long, cdna_end: Long, cdna_start: Long, cds_end: Long, cds_start: Long, codons: String, consequence_terms: String, flags: List[String], gene_id: String, impact: String, protein_end: Long, protein_start: Long, strand: Long, transcript_id: String, variant_allele: String)
+
+case class OccurrTransConseqDict3(_1: String, element: String)
+
 class VepLoader(spark: SparkSession) extends Serializable {
 
   import spark.implicits._
@@ -175,9 +181,35 @@ class VepLoader(spark: SparkSession) extends Serializable {
 
   }
 
+  def shred(occur: Dataset[Occurrence]): (Dataset[OccurrDict1], Dataset[OccurrTransDict2], Dataset[OccurrTransConseqDict3]) = {
+	
+	val dict1 = occur.map{ o => OccurrDict1(o.oid, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, 
+		o.chromosome, o.allele_string, o.assembly_name, o.end, o.vid, o.input, o.most_severe_consequence, o.seq_region_name, o.start, o.strand, o.oid)
+	}.as[OccurrDict1]
+	
+	val tmp2 = occur.flatMap{ o => o.transcript_consequences match {
+	  case Some(tc) => tc.zipWithIndex.map{ case (t, id) => (o.oid, id, t) }
+	  case _ => Seq()
+	}}
+
+	val dict2 = tmp2.map{ case (id1, id2, t) => OccurrTransDict2(id1, t.amino_acids, t.distance match { case Some(l:Long) => l; case _ => -1 },
+		t.cdna_end match { case Some(l:Long) => l; case _ => -1 }, t.cdna_start match { case Some(l:Long) => l; case _ => -1 }, 
+		t.cds_end match { case Some(l:Long) => l; case _ => -1 }, t.cds_start match { case Some(l:Long) => l; case _ => -1 }, 
+		t.codons, s"${id1}_${id2}", t.flags, t.gene_id, t.impact, t.protein_end match { case Some(l:Long) => l; case _ => -1 }, 
+		t.protein_start match { case Some(l:Long) => l; case _ => -1 }, t.strand match { case Some(l:Long) => l; case _ => -1 }, 
+		t.transcript_id, t.variant_allele)}.as[OccurrTransDict2]
+
+	val dict3 = tmp2.flatMap{ case (id1, id2, t) => 
+		t.consequence_terms.map(c => OccurrTransConseqDict3(s"${id1}_${id2}", c)) }.as[OccurrTransConseqDict3]
+
+	(dict1, dict2, dict3)
+
+  }
+
   private def callCategory(g: Genotype): Int = g match {
     case c if g.isHet => 1
     case c if g.isHomVar => 2
     case _ => 0
   }
+
 }

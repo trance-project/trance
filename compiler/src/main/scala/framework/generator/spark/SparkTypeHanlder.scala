@@ -57,7 +57,7 @@ trait SparkTypeHandler {
     */
   def generateType(tp: Type): String = tp match {
     case RecordCType(fs) if fs.isEmpty => "Unit"
-    case LabelType(fs) if fs.isEmpty => "Long"
+    case LabelType(fs) if fs.isEmpty => "String"//"Long"
     case RecordCType(fs) if fs.contains("element") && fs.size == 1 => generateType(fs("element"))
     //case RecordCType(fs) if fs.keySet == Set("_1", "_2") => fs.generateType(fs._2).mkString("(",",",")")
     // case RecordCType(ms) if ms.values.toList.contains(EmptyCType) => ""
