@@ -11,6 +11,7 @@ object TestApp extends App {
   override def main(args: Array[String]){
 
     AppWriter.flatDataset(HybridBySample, "test")
+    AppWriter.shredDataset(HybridBySample3, "test")
     // AppWriter.shredDataset(GeneConnectivity, "test")
     // AppWriter.writeLoader("Biospec", HybridBySample.biospecOtype, delimiter = "\t")
   }

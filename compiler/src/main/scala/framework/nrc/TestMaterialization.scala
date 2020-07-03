@@ -326,13 +326,36 @@ object TestMaterialization extends App
 
   }
 
+
+
+  def matTupleDictUnsupported(): Unit = {
+    val q1 = genomic.HybridBySample2.program.asInstanceOf[Program]
+
+    println("Program: \n" + quote(q1) + "\n")
+
+    val (shredded, _) = shredCtx(q1)
+    println("Shredded program: \n" + quote(shredded) + "\n")
+
+    val optShredded = optimize(shredded)
+    println("Shredded program optimized: \n" + quote(optShredded) + "\n")
+
+    val materializedProgram = materialize(optShredded, eliminateDomains = true)
+    println("Materialized program (if hoists + dict iteration): \n" + quote(materializedProgram.program) + "\n")
+
+    val unshredded = unshred(optShredded, materializedProgram.ctx)
+    println("Unshredded program: \n" + quote(unshredded) + "\n")
+  }
+
 //  runSequential()
 //   runSequential2()
 //   domainTest()
 
-  dualConditionLabels()
-  dualConditionLabels2()
-  matFailedAssertion()
+  // dualConditionLabels()
+  // dualConditionLabels2()
+  // matFailedAssertion()
+  
+
+  matTupleDictUnsupported()
 
 
 //  run(tpch.Query1.program.asInstanceOf[Program])

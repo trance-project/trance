@@ -56,7 +56,8 @@ object App {
 	val biospec = bloader.load("/nfs_qc4/genomics/gdc/biospecimen/")
 	println(biospec.show())**/
        val cloader = new ConsequenceLoader(spark)
-       cloader.read("/home/jacith/Downloads/calc_variant_conseq.txt")
+       val thresh = cloader.loadSequential("/home/jacith/Downloads/calc_variant_conseq.txt")
+       thresh.collect.foreach(println(_))
     }
 
 }

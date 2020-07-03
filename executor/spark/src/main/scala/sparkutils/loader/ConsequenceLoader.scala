@@ -6,7 +6,8 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions.udf
 import scala.io.Source
 
-case class ConseqCalc(id: Int, so_term: String, so_description: String, so_accession: String, display_term: String, impact: String)
+case class ConseqCalc0(so_term: String, so_description: String, so_accession: String, display_term: String, so_impact: String)
+case class ConseqCalc(so_term: String, so_description: String, so_accession: String, display_term: String, so_impact: String, so_weight: Double)
 
 class ConsequenceLoader(spark: SparkSession) {
   
@@ -21,12 +22,21 @@ class ConsequenceLoader(spark: SparkSession) {
 		StructField("display_term", StringType),
 		StructField("impact", StringType)))
 
-  def load(path: String): Dataset[ConseqCalc] = {
+  def load(path: String): Dataset[ConseqCalc0] = {
     spark.read.schema(schema)
       .option("header", header)
       .option("delimiter", delimiter)
-      .csv(path).as[ConseqCalc]
-    }
+      .csv(path).as[ConseqCalc0]
+  }
+
+  def loadSequential(filename: String): Dataset[ConseqCalc] = {
+    val lines = Source.fromFile(filename).getLines.toList
+    val total = lines.size
+    spark.sparkContext.parallelize(lines.tail.zipWithIndex.map{ case (l, id) =>
+      val eles = l.split("\t") 
+      ConseqCalc(eles(0), eles(1), eles(2), eles(3), eles(4), (total-(id.toDouble+1.0))/total)
+    }.toSeq).toDF().as[ConseqCalc]
+  }
 
   def read(filename: String): Map[String, Double] = {
     val lines = Source.fromFile(filename).getLines.toList

@@ -74,7 +74,14 @@ trait Biospecimen {
 
 }
 
-trait DriverGene extends Query with Occurrence with Gistic with StringNetwork with GeneExpression with Biospecimen {
+trait SOImpact {
+
+	val soImpactType = TupleType("so_term" -> StringType, "so_description" -> StringType, 
+			"so_accession" -> StringType, "display_term" -> StringType, "so_impact" -> StringType, "so_weight" -> DoubleType)
+
+}
+
+trait DriverGene extends Query with Occurrence with Gistic with StringNetwork with GeneExpression with Biospecimen with SOImpact {
 
   def loadTables(shred: Boolean = false, skew: Boolean = false): String = {
     s"""|val occurrences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence]
@@ -88,16 +95,9 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork wi
 		|biospec.cache
 		|biospec.count
 		|val consequenceLoader = new ConsequenceLoader(spark)
-		|val conseqmap = spark.sparkContext.broadcast(consequenceLoader.read("/nfs_qc4/genomics/calc_variant_conseq.txt"))
-        |val quantifyImpact = udf { s: String => s match { case null => 0.1; case _ => conseqmap.value.getOrElse(s, 0.1) }} 
-		|val quantifyConsequence = udf { s: String => s match {
-        |  case null => .1
-        |  case "HIGH" => .8
-		|  case "MODERATE" => .5
-		|  case "LOW" => .3
-		|  case "MODIFIER" => .15
-        |  case _ => .1
-		|}}
+		|val consequences = consequenceLoader.loadSequential("/nfs_qc4/genomics/calc_variant_conseq.txt")
+		|consequences.cache
+		|consequences.count
 		|""".stripMargin
   }
 
@@ -121,39 +121,79 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork wi
   val biospec = BagVarRef("biospec", BagType(biospecType))
   val br = TupleVarRef("b", biospecType)
 
+  val conseq = BagVarRef("consequences", BagType(soImpactType))
+  val conr = TupleVarRef("cons", soImpactType)
+
   def projectTuple(tr: TupleVarRef, nbag:Map[String, TupleAttributeExpr], omit: List[String] = Nil): BagExpr =
     Singleton(Tuple(tr.tp.attrTps.withFilter(f =>
       !omit.contains(f._1)).map(f => f._1 -> tr(f._1)) ++ nbag))
 
 }
 
+
 object HybridBySample extends DriverGene {
 
   val name = "HybridBySample"
- 
+
+  val query = ForeachUnion(or, occurrences, 
+    ForeachUnion(br, biospec, 
+      IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
+    	Singleton(Tuple("hybrid_sample" -> or("donorId"), "hybrid_aliquot" -> br("bcr_aliquot_uuid"),
+        	"hybrid_genes" -> 
+	        	ReduceByKey(
+	            	ForeachUnion(ar, BagProject(or, "transcript_consequences"),
+		              ForeachUnion(gr, gistic, 
+		                IfThenElse(Cmp(OpEq, ar("gene_id"), gr("gistic_gene")),
+		                  ForeachUnion(sr, BagProject(gr, "gistic_samples"),
+		                    IfThenElse(Cmp(OpEq, sr("gistic_sample"), br("bcr_aliquot_uuid")),
+		                      ForeachUnion(cr, BagProject(ar, "consequence_terms"),
+		                        ForeachUnion(conr, conseq,
+		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+		                          		Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
+		                            		"hybrid_score" -> 
+		                            		conr("so_weight").asNumeric * 
+		                            		(NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("HIGH", StringType)),
+		                            			NumericConst(0.8, DoubleType),
+		                            			NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("MODERATE", StringType)),
+		                            				NumericConst(0.5, DoubleType),
+		                            				NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("LOW", StringType)),
+		                            					NumericConst(0.3, DoubleType),
+		                            					NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("MODIFIER", StringType)),
+		                            						NumericConst(0.15, DoubleType),
+		                            						NumericConst(0.1, DoubleType)))))) *
+		                            		// //Udf("quantifyImpact", ar("impact").asPrimitive, DoubleType) * 
+					    					//Udf("quantifyConsequence", cr("element").asPrimitive, DoubleType) * 
+					    					sr("focal_score").asNumeric))))))))))
+            ,List("hybrid_gene_id"),
+            List("hybrid_score")))))))
+
+  val program = Program(Assignment(name, query))
+
+}
+
+// fails 
+object HybridBySample2 extends DriverGene {
+
+  val name = "HybridBySample2"
+
   val mapped = ForeachUnion(or, occurrences, 
     ForeachUnion(br, biospec, 
       IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
         projectTuple(or, Map("aliquot_id" -> Project(br, "bcr_aliquot_uuid"))))))
-
   val (maps, mapsRef) = varset("occurrence_mapped", "mr", mapped)
-
+  
   val query = ForeachUnion(mapsRef, maps,
-    Singleton(Tuple("hybrid_sample" -> mapsRef("donorId"), "hybrid_aliquot" -> mapsRef("aliquot_id"),
+      Singleton(Tuple("hybrid_sample" -> mapsRef("donorId"), "hybrid_aliqout" -> mapsRef("aliquot_id"),
         "hybrid_genes" -> 
         ReduceByKey(
             ForeachUnion(ar, BagProject(mapsRef, "transcript_consequences"),
               ForeachUnion(gr, gistic, 
                 IfThenElse(Cmp(OpEq, ar("gene_id"), gr("gistic_gene")),
                   ForeachUnion(sr, BagProject(gr, "gistic_samples"),
-                    IfThenElse(Cmp(OpEq, sr("gistic_sample"), mapsRef("aliquot_id")),
+                    IfThenElse(Cmp(OpEq, sr("gistic_sample"), or("donorId")),
                       ForeachUnion(cr, BagProject(ar, "consequence_terms"),
                           Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
-                            "hybrid_score" -> 
-                            //ar("biotype").asNumeric * 
-                            Udf("quantifyImpact", ar("impact").asPrimitive, DoubleType) * 
-							Udf("quantifyConsequence", cr("element").asPrimitive, DoubleType) * 
-							sr("focal_score").asNumeric))))))))
+                            "hybrid_score" -> sr("focal_score").asNumeric))))))))
             ,List("hybrid_gene_id"),
             List("hybrid_score")))))
 
