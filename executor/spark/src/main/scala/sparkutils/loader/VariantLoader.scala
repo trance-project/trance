@@ -1,4 +1,4 @@
-package sparkutils
+package sparkutils.loader
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
