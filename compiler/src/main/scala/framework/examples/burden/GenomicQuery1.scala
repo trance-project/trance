@@ -1,5 +1,4 @@
-package framework.examples
-
+package framework.examples.burden
 
 import framework.common._
 

@@ -1,5 +1,6 @@
-package framework.examples
+package framework.examples.burden
 
+import framework.examples.Query
 import framework.common._
 
 trait GenomicSchema extends Query{
