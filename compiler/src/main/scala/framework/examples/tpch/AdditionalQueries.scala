@@ -239,7 +239,7 @@ object Query4 extends TPCHBase {
                 ForeachUnion(pr, relP,
                   IfThenElse(Cmp(OpEq, pr("p_partkey"), co3r("l_partkey")),
                     Singleton(Tuple("p_name" -> pr("p_name"), "total" -> 
-                      co3r("l_qty").asNumeric * pr("p_retailprice").asNumeric))))),
+                      co3r("l_quantity").asNumeric * pr("p_retailprice").asNumeric))))),
               List("p_name"),
               List("total")
             )))))))
@@ -496,7 +496,7 @@ object Query7 extends TPCHBase {
   
   val flat = ForeachUnion(cor, q5r,
               ForeachUnion(co2r, cust,
-                Singleton(Tuple("c_name" -> co2r("c_name2"), "s_name" -> cor("s_name")))))
+                Singleton(Tuple("c_name" -> co2r("c_name"), "s_name" -> cor("s_name")))))
   val (cflatr, cfr) = varset("cflat", "cf", flat.asInstanceOf[BagExpr])
   val query7 = ForeachUnion(cr, relC,
                 Singleton(Tuple("c_name" -> cr("c_name"), "suppliers" -> 

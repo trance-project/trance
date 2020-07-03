@@ -106,7 +106,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     */
   private def accessOption(e: CExpr, nv: Variable): String = e match {
     case Project(v, field) => 
-      nv.tp.attrs(field) match {
+      nv.tp.attrs.getOrElse(field, v.tp.attrs(field)) match {
         case _:OptionType => s"${nv.name}.$field.get"
         case _ => s"${nv.name}.$field"
       }
@@ -125,6 +125,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case And(e1, e2) => s"${accessOption(e1, nv)} && ${accessOption(e2, nv)}"
     case Or(e1, e2) => s"${accessOption(e1, nv)} || ${accessOption(e2, nv)}"
     case Not(e1) => s"!(${accessOption(e1, nv)})"
+    case MathOp(op, e1, e2) => 
+      s"${accessOption(e1, nv)} $op ${accessOption(e2, nv)}"     
     case _ => generate(e)
   }
 
@@ -163,10 +165,12 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case InputRef(name, tp) => name
     case Constant(s:String) => "\"" + s + "\""
     case Constant(x) => x.toString
-    case Sng(e) => s"Seq(${generate(e)})"
+    case CUdf(n, e1, tp) => s"$n(${generateReference(e1)})"
+	  case Sng(e) => s"Seq(${generate(e)})"
     case CGet(e1) => s"${generate(e1)}.head"
     case CDeDup(e1) => s"${generate(e1)}.distinct"
     case Label(fs) if fs.size == 1 => generate(fs.head._2)
+    case Record(fs) if fs.contains("element") && fs.size == 1 => fs("element")
     case Record(fs) => {
       handleType(e.tp)
       val rcnts = e.tp.attrs.map(f => generate(fs(f._1))).mkString(", ")
@@ -175,6 +179,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
 
     case Project(e1, "_LABEL") => s"${generate(e1)}"
+    case Project(e1, "element") => s"${generate(e1)}"
     case Project(e2 @ Record(fs), field) => 
       s"${generate(e2)}.${kvName(field)(fs.size)}"
     case Project(e2, field) => s"${generate(e2)}.$field"
@@ -265,17 +270,23 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
       // adjust label lookup column
       val lcol = s"${p1}_LABEL"
-      val ltp = rename(left.tp.attrs, p1, lcol)
+      val (lcolumn, ltp) = v1.tp.attrs get "_LABEL" match {
+        case Some(LabelType(ms)) if ms.size > 1 =>
+          (s""".withColumn("$lcol", col("_LABEL").getField("$p1"))""", 
+            RecordCType(left.tp.attrs))
+        case _ => 
+          (s""".withColumnRenamed("${p1}", "$lcol")""",
+            rename(left.tp.attrs, p1, lcol))
+      }
       handleType(ltp)
       val gltp = generateType(ltp)
 
       val nrecTp = RecordCType(ltp.merge(rtp).attrs -- Set(rcol,lcol))
       handleType(nrecTp)
-
       val classTags = if (!skew) ""
         else s"[$grtp, ${generateType(right.tp.attrs(p2))}]"
 
-      s"""|${generate(left)}.withColumnRenamed("${p1}", "$lcol")
+      s"""|${generate(left)}$lcolumn
           |   .as[$gltp].equiJoin$classTags(
           |   ${generate(right)}.withColumnRenamed("${p2}", "$rcol").as[$grtp], 
           |   Seq("$lcol", "$rcol"), "left_outer").drop("$lcol", "$rcol")

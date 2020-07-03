@@ -4,6 +4,7 @@ import framework.common.VarDef
 import framework.runtime.{Evaluator, RuntimeContext, ScalaPrinter, ScalaShredding}
 import framework.examples.tpch
 import framework.examples.tpch.TPCHSchema
+import framework.examples.genomic
 
 object TestMaterialization extends App
   with MaterializeNRC
@@ -67,7 +68,7 @@ object TestMaterialization extends App
   }
 
   def runSequential(): Unit = {
-    val q1 = tpch.Query1.program.asInstanceOf[Program]
+    val q1 = tpch.Test2.program.asInstanceOf[Program]
 
     println("Program: \n" + quote(q1) + "\n")
 
@@ -118,7 +119,7 @@ object TestMaterialization extends App
       println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
     }
 
-    val q4 = Program(Assignment(tpch.Query4.name, tpch.Query4.query4.asInstanceOf[Expr]))
+    val q4 = tpch.Query4.program.asInstanceOf[Program]
 
     println("Program: \n" + quote(q4) + "\n")
 
@@ -265,9 +266,95 @@ object TestMaterialization extends App
     println("Unshredded program: \n" + quote(unshredded4) + "\n")
   }
 
+  // These are multi-attribute label cases, but all attributes 
+  // satisfy a domain-optimization requirement.
+  def dualConditionLabels(): Unit = {
+    // first case satisfies If Hoisting and Dict Iteration
+    val q1 = genomic.HybridBySample.program.asInstanceOf[Program]
+
+    println("Program: \n" + quote(q1) + "\n")
+
+    val (shredded, _) = shredCtx(q1)
+    println("Shredded program: \n" + quote(shredded) + "\n")
+
+    val optShredded = optimize(shredded)
+    println("Shredded program optimized: \n" + quote(optShredded) + "\n")
+
+    val materializedProgram = materialize(optShredded, eliminateDomains = true)
+    println("Materialized program (if hoists + dict iteration): \n" + quote(materializedProgram.program) + "\n")
+
+    val unshredded = unshred(optShredded, materializedProgram.ctx)
+    println("Unshredded program: \n" + quote(unshredded) + "\n")
+  }
+
+  def dualConditionLabels2(): Unit = {
+    // second case has two Dict Iteration labels (from two different inputs)
+    val q2 = genomic.EffectBySample.program.asInstanceOf[Program]
+
+    println("Program: \n" + quote(q2) + "\n")
+
+    val (shredded2, _) = shredCtx(q2)
+    println("Shredded program: \n" + quote(shredded2) + "\n")
+
+    val optShredded2 = optimize(shredded2)
+    println("Shredded program optimized: \n" + quote(optShredded2) + "\n")
+
+    val materializedProgram2 = materialize(optShredded2, eliminateDomains = true)
+    println("Materialized program (dict iterations): \n" + quote(materializedProgram2.program) + "\n")
+
+    val unshredded2 = unshred(optShredded2, materializedProgram2.ctx)
+    println("Unshredded program: \n" + quote(unshredded2) + "\n")
+
+  }
+
+  // this version of the query fails an assertion
+  def matFailedAssertion(): Unit = {
+
+    // third case throws a materialization error
+    val q1 = genomic.EffectBySample2.program.asInstanceOf[Program]
+    val (shredded, shreddedCtx) = shredCtx(q1)
+    println("Shredded program: \n" + quote(shredded) + "\n")
+
+    val optShredded = optimize(shredded)
+    println("Shredded program optimized: \n" + quote(optShredded) + "\n")
+
+    val materializedProgram = materialize(optShredded, eliminateDomains = true)
+    println("Materialized program: \n" + quote(materializedProgram.program) + "\n")
+
+    val unshredded = unshred(optShredded, materializedProgram.ctx)
+    println("Unshredded program: \n" + quote(unshredded) + "\n")
+
+  }
+
+  // not sure where this error is coming from
+  def matTupleDictUnsupported(): Unit = {
+    val q1 = genomic.HybridBySample2.program.asInstanceOf[Program]
+
+    println("Program: \n" + quote(q1) + "\n")
+
+    val (shredded, _) = shredCtx(q1)
+    println("Shredded program: \n" + quote(shredded) + "\n")
+
+    val optShredded = optimize(shredded)
+    println("Shredded program optimized: \n" + quote(optShredded) + "\n")
+
+    val materializedProgram = materialize(optShredded, eliminateDomains = true)
+    println("Materialized program (if hoists + dict iteration): \n" + quote(materializedProgram.program) + "\n")
+
+    val unshredded = unshred(optShredded, materializedProgram.ctx)
+    println("Unshredded program: \n" + quote(unshredded) + "\n")
+  }
+
 //  runSequential()
-  // runSequential2()
-  domainTest()
+//   runSequential2()
+//   domainTest()
+
+  // dualConditionLabels()
+  // dualConditionLabels2()
+  // matFailedAssertion()
+  
+  matTupleDictUnsupported()
+
 
 //  run(tpch.Query1.program.asInstanceOf[Program])
 //  run(tpch.Query2.program.asInstanceOf[Program])

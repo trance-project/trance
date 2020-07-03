@@ -179,8 +179,30 @@ object ConvergeCandGenes extends ConvergeBase {
           IfThenElse(And(Cmp(OpEq, sr("contig"), gene("chrom")),
             And(Cmp(OpGe, sr("start"), gene("start_hg19").asNumeric - flank),
               Cmp(OpGe, gene("end_hg19").asNumeric + flank, sr("start")))),
-          Singleton(Tuple("id" -> gene("name"), "name" -> gene("alias_symbol"), "strand" -> gene("strand")))))))))
+          Singleton(Tuple("gene_id" -> gene("name"), "gene_name" -> gene("alias_symbol"), 
+            "gene_start" -> gene("start_hg19"), "gene_end" -> gene("end_hg19"), "strand" -> gene("strand")))))))))
 
   val program = ConvergeOddsRatio.program.asInstanceOf[ConvergeCandGenes.Program].append(Assignment(name, query))
+
+}
+
+object ConvergeDTT extends ConvergeBase {
+  
+  val name = "ConvergeDTT"
+  val (snps, sr) = varset(ConvergeCandGenes.name, "snp", ConvergeCandGenes.program(ConvergeCandGenes.name).varRef.asInstanceOf[BagExpr])
+  val cgr = TupleVarRef("gene", sr.tp("candidateGenes").asInstanceOf[BagType].tp)
+
+  val flank = Const(1000000, IntType).asNumeric
+  val query = ForeachUnion(sr, snps, 
+      Singleton(Tuple("contig" -> sr("contig"), "start" -> sr("start"), 
+        "reference" -> sr("reference"), "alternate" -> sr("alternate"), 
+        "candidateGenes" -> ForeachUnion(cgr, BagProject(sr, "candidateGenes"),
+            Singleton(Tuple("gene_id" -> cgr("gene_id"), "gene_name" -> cgr("gene_name"), "strand" -> cgr("strand"),
+                "gene_start" -> cgr("gene_start"), "gene_end" -> cgr("gene_end"),
+                "dtt" -> IfThenElse(Cmp(OpEq, cgr("strand"), Const("+", StringType)), 
+                            (cgr("gene_start").asNumeric - sr("start").asNumeric),
+                            (cgr("gene_end").asNumeric - sr("start").asNumeric)).asPrimitive))))))
+
+  val program = ConvergeCandGenes.program.asInstanceOf[ConvergeDTT.Program].append(Assignment(name, query))
 
 }

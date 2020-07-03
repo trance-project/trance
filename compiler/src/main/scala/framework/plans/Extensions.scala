@@ -11,6 +11,7 @@ trait Extensions {
     case If(cond, s1, Some(s2)) => If(replace(cond, v), replace(s1, v), Some(replace(s2, v)))
     case If(cond, s1, None) => If(replace(cond, v), replace(s1, v), None)
     case Equals(e1, e2) => Equals(replace(e1, v), replace(e2, v))
+    case MathOp(op, e1, e2) => MathOp(op, replace(e1, v), replace(e2, v))
     // this will be additional base ops
     case _:Variable => v
     case _ => e
@@ -29,7 +30,8 @@ trait Extensions {
     case Gte(e1, e2) => collect(e1) ++ collect(e2)
     case Lte(e1, e2) => collect(e1) ++ collect(e2)
     case Project(e1, f) => Set(f)
-    case _ => Set()
+	case CUdf(n, e1, tp) => collect(e1)
+	case _ => Set()
   }
 
   def fapply(e: CExpr, funct: PartialFunction[CExpr, CExpr]): CExpr = 

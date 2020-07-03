@@ -13,10 +13,10 @@ import org.apache.spark.sql.types.{StringType, IntegerType, StructField, StructT
 import sparkutils.Config
 
 case class Call(g_sample: String, call: Int)
-case class Variant(id: String, contig: String, start: Int, reference: String,
-                   alternate: String, genotypes: Seq[Call])
-case class IVariant(index: Long, contig: String, start: Int, reference: String,
-                    alternate: String, genotypes: Seq[Call])
+case class Variant(id: String, contig: String, start: Int, reference: String, 
+  alternate: String, genotypes: Seq[Call])
+case class IVariant(index: Long, contig: String, start: Int, reference: String, 
+  alternate: String, genotypes: Seq[Call])
 
 case class SCall(_1: Long, g_sample: String, call: Int)
 case class SVariant(contig: String, start: Int, reference: String,
@@ -58,9 +58,9 @@ class VariantLoader(spark: SparkSession, path: String) extends Serializable {
       .map{ case (k, v) =>
         val variant = v.get
         val genotypes = variant.getGenotypes.iterator.asScala.toSeq.map(s => Call(s.getSampleName, callCategory(s)))
-        Variant(variant.getID, variant.getContig, variant.getStart, variant.getReference.toString,
+        Variant(variant.getID, variant.getContig, variant.getStart, variant.getReference.toString, 
           variant.getAlternateAllele(0).toString, genotypes)
-      }.toDF().as[Variant]
+      }.toDF().as[Variant].repartition(Config.maxPartitions) 
   }
 
   def shredDS: (Dataset[SVariant], Dataset[SCall]) = {

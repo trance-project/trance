@@ -8,6 +8,8 @@ import framework.utils.Utils.ind
 object SparkLoaderGenerator extends SparkTypeHandler {
 
   var types: Map[Type, String] = Map()
+  override val bagtype: String = "Seq"
+
 
   def generateSchema(tp: List[(String, Type)]): String = 
       tp.map(m => 
@@ -19,6 +21,12 @@ object SparkLoaderGenerator extends SparkTypeHandler {
     case IntType => "IntegerType"
     case DoubleType => "DoubleType"
     case _ => sys.error("not supported")
+  }
+
+  def generateTypeDef(name: String, tp: Type): String = {
+    val translator = new NRCTranslator{}
+    handleType(translator.translate(tp))
+    typelst.map(x => generateTypeDef(x)).mkString("\n")
   }
 
   def generateTypeDef(name: String, tp: List[(String, Type)]): String = {
