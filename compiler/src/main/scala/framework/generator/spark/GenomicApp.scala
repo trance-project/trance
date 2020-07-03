@@ -99,7 +99,7 @@ object pathway_by_gene_Test extends App {
 
 object PathwayBurden_Test extends App {
   override def main(args: Array[String]): Unit = {
-            AppWriter.flatDataset(plan2, "test")
+    AppWriter.flatDataset(plan2, "test")
     //    AppWriter.shredDataset(plan2, label = "test")
     AppWriter.flatDataset(plan2_1, "test")
   }
@@ -109,7 +109,7 @@ object PathwayBurden_Test extends App {
 object PathwayBurden_Test4 extends App {
   override def main(args: Array[String]): Unit = {
     AppWriter.flatDataset(plan4, "test")
-//    AppWriter.shredDataset(plan4, "test")
+    //    AppWriter.shredDataset(plan4, "test")
     //    AppWriter.shredDataset(plan2_1, label = "test", skew = true)
   }
 }
@@ -124,14 +124,26 @@ object PathwayBurden_Test5 extends App {
 
 object PathwayBurden_Test6 extends App {
   override def main(args: Array[String]): Unit = {
-//    AppWriter.flatDataset(plan6, "test")
+    //    AppWriter.flatDataset(plan6, "test")
     AppWriter.shredDataset(plan6, "test")
     //    AppWriter.shredDataset(plan6, label = "test", skew = true)
   }
 }
 
 
-object GeneBurdenAlt extends App{
-  AppWriter.flatDataset(geneBurdenAlt, "test")
-  AppWriter.shredDataset(geneBurdenAlt, "test")
+object GeneBurdenAlt extends App {
+  override def main(args: Array[String]): Unit = {
+
+    AppWriter.flatDataset(geneBurdenAlt, "test")
+    AppWriter.shredDataset(geneBurdenAlt, "test")
+  }
+}
+
+
+object GeneBurdenAlt2 extends App {
+  override def main(args: Array[String]): Unit = {
+
+    AppWriter.flatDataset(geneBurdenAlt2, "test")
+    AppWriter.shredDataset(geneBurdenAlt2, "test")
+  }
 }

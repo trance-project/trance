@@ -261,3 +261,53 @@ object geneBurdenAlt extends GenomicSchema {
   val program = flattenBurden.program.asInstanceOf[geneBurdenAlt.Program].append(Assignment(name, query))
 
 }
+
+
+
+object byGene extends GenomicSchema {
+  val name = "byGene"
+  val query =
+    ForeachUnion(gtfr, gtfs,
+      Singleton(Tuple("b_gene" -> gtfr("gene_name"), "samples" ->
+        ReduceByKey(
+          ForeachUnion(vr, variants,
+            IfThenElse(Cmp(OpGe, vr("start"), gtfr("g_start")) && Cmp(OpGe, gtfr("g_end"), vr("start")) && Cmp(OpEq, gtfr("g_contig"), vr("contig")),
+              ForeachUnion(gr, vr("genotypes").asBag,
+                Singleton(Tuple("b_sample" -> gr("g_sample"),
+                  "b_burden" -> PrimitiveIfThenElse(Cmp(OpNe, gr("call"), Const(0.0, DoubleType)), Const(1.0, DoubleType), Const(0.0, DoubleType))
+                ))
+              )
+            )
+          ),
+          List("b_sample"),
+          List("b_burden")
+        ))
+      )
+    )
+  val program = Program(Assignment(name, query))
+}
+
+
+object geneBurdenAlt2 extends GenomicSchema {
+  val name = "geneBurdenAlt2"
+  val (bgs, g) = varset(byGene.name, "v6", byGene.program(byGene.name).varRef.asInstanceOf[BagExpr])
+  val b = TupleVarRef("g3", g("samples").asInstanceOf[BagExpr].tp.tp)
+
+  val query =
+    ForeachUnion(mr, metadata,
+      Singleton(Tuple(
+        "sample" -> mr("m_sample"), "samples" ->
+          ForeachUnion(g, bgs,
+            ForeachUnion(b, g("samples").asBag,
+              IfThenElse(Cmp(OpEq, mr("m_sample"), b("b_sample")),
+
+                Singleton(Tuple("gene" -> g("b_gene"), "burden" -> b("b_burden")))
+              )
+            )
+          )
+      ))
+    )
+  val program = byGene.program.asInstanceOf[geneBurdenAlt2.Program].append(Assignment(name, query))
+
+}
+
