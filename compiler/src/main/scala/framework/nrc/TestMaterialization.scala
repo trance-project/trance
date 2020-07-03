@@ -326,8 +326,7 @@ object TestMaterialization extends App
 
   }
 
-
-
+  // not sure where this error is coming from
   def matTupleDictUnsupported(): Unit = {
     val q1 = genomic.HybridBySample2.program.asInstanceOf[Program]
 
@@ -354,7 +353,6 @@ object TestMaterialization extends App
   // dualConditionLabels2()
   // matFailedAssertion()
   
-
   matTupleDictUnsupported()
 
 
