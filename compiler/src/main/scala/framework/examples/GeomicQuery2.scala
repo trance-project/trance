@@ -217,3 +217,47 @@ object plan6 extends GenomicSchema {
 
   val program = Gene_Burden_plan6.program.asInstanceOf[plan6.Program].append(Assignment(name, query))
 }
+
+
+object flattenBurden extends GenomicSchema {
+  val name = "falttenBurden"
+
+  val query =
+    ReduceByKey(
+      ForeachUnion(vr, variants,
+        ForeachUnion(gtfr, gtfs,
+          IfThenElse(
+            Cmp(OpGe, vr("start"), gtfr("g_start")) && Cmp(OpGe, gtfr("g_end"), vr("start")) && Cmp(OpEq, gtfr("g_contig"), vr("contig")),
+
+            ForeachUnion(gr, vr("genotypes").asBag,
+              Singleton(Tuple("fb_sample" -> gr("g_sample"), "fb_gene" -> gtfr("gene_name"), "fb_burden" -> Const(1.0, DoubleType)))
+            )
+
+
+          )
+        )
+      ),
+      List("fb_sample", "fb_gene"),
+      List("fb_burden")
+    )
+  val program = Program(Assignment(name, query))
+}
+
+
+object geneBurdenAlt extends GenomicSchema {
+  val name = "geneBurdenAlt"
+  val (fbs, fb) = varset(flattenBurden.name, "v6", flattenBurden.program(flattenBurden.name).varRef.asInstanceOf[BagExpr])
+
+  val query =
+    ForeachUnion(mr, metadata,
+      Singleton(Tuple("sample" -> mr("m_sample"), "genes" ->
+        ForeachUnion(fb, fbs,
+          IfThenElse(Cmp(OpEq, fb("fb_sample"), mr("m_sample")),
+            Singleton(Tuple("gene" -> fb("fb_gene"), "burden" -> fb("fb_burden")))
+          )
+        )
+      ))
+    )
+  val program = flattenBurden.program.asInstanceOf[geneBurdenAlt.Program].append(Assignment(name, query))
+
+}
