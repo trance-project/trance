@@ -12,7 +12,9 @@ import scala.sys.process._
 import scala.collection.JavaConverters._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{DataType, ArrayType, LongType, DoubleType, StringType, IntegerType, StructField, StructType}
-
+import sparkutils.skew.SkewDataset._
+import sparkutils.Config
+import org.apache.spark.broadcast.Broadcast
 
 case class Element(element: String)
 case class Motif0(bp_overlap: Long, percentage_overlap: Double, impact: String, motif_feature_id: String, consequence_terms: Seq[String], variant_allele: String)
@@ -165,44 +167,65 @@ class VepLoader(spark: SparkSession) extends Serializable {
   }
 
   def finalize(occur: Dataset[Occurrence]): Dataset[Occurrence2] = {
-	occur.map{ o => Occurrence2(o.oid, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, 
-		o.chromosome, o.allele_string, o.assembly_name, o.end, o.vid, o.input, o.most_severe_consequence, o.seq_region_name, o.start, o.strand, 
-		o.transcript_consequences match {
-		  case Some(tc) => tc.map(t => Transcript3(t.amino_acids, t.distance match { case Some(l:Long) => l; case _ => -1 },
-		t.cdna_end match { case Some(l:Long) => l; case _ => -1 }, t.cdna_start match { case Some(l:Long) => l; case _ => -1 }, 
-		t.cds_end match { case Some(l:Long) => l; case _ => -1 }, t.cds_start match { case Some(l:Long) => l; case _ => -1 }, 
-		t.codons, t.consequence_terms, t.flags, t.gene_id, t.impact, t.protein_end match { case Some(l:Long) => l; case _ => -1 }, 
-		t.protein_start match { case Some(l:Long) => l; case _ => -1 }, t.strand match { case Some(l:Long) => l; case _ => -1 }, 
-		t.transcript_id, t.variant_allele))
-		  case _ => Seq()
-		  })
-		
-	}.as[Occurrence2]
+  	occur.map{ o => Occurrence2(o.oid, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, 
+  		o.chromosome, o.allele_string, o.assembly_name, o.end, o.vid, o.input, o.most_severe_consequence, o.seq_region_name, o.start, o.strand, 
+  		o.transcript_consequences match {
+  		  case Some(tc) => tc.map(t => Transcript3(t.amino_acids, t.distance match { case Some(l:Long) => l; case _ => -1 },
+  		t.cdna_end match { case Some(l:Long) => l; case _ => -1 }, t.cdna_start match { case Some(l:Long) => l; case _ => -1 }, 
+  		t.cds_end match { case Some(l:Long) => l; case _ => -1 }, t.cds_start match { case Some(l:Long) => l; case _ => -1 }, 
+  		t.codons, t.consequence_terms, t.flags, t.gene_id, t.impact, t.protein_end match { case Some(l:Long) => l; case _ => -1 }, 
+  		t.protein_start match { case Some(l:Long) => l; case _ => -1 }, t.strand match { case Some(l:Long) => l; case _ => -1 }, 
+  		t.transcript_id, t.variant_allele))
+  		  case _ => Seq()
+  		  })
+  		
+  	}.as[Occurrence2].repartition(Config.maxPartitions)
 
   }
 
+  
+      //   val (dfull, hk) = heavyKeys[K](nkey)
+      // if (hk.nonEmpty){
+      //   val hkeys = dfull.sparkSession.sparkContext.broadcast(hk)
+      //   (dfull.lfilter[K](col(nkey), hkeys), dfull.hfilter[K](col(nkey), hkeys), Some(nkey), hkeys).equiJoin[S,K](right, usingColumns, joinType)
+
   def shred(occur: Dataset[Occurrence]): (Dataset[OccurrDict1], Dataset[OccurrTransDict2], Dataset[OccurrTransConseqDict3]) = {
+
+    val occurReparts = occur.repartition(Config.maxPartitions)
 	
-	val dict1 = occur.map{ o => OccurrDict1(o.oid, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, 
-		o.chromosome, o.allele_string, o.assembly_name, o.end, o.vid, o.input, o.most_severe_consequence, o.seq_region_name, o.start, o.strand, o.oid)
-	}.as[OccurrDict1]
-	
-	val tmp2 = occur.flatMap{ o => o.transcript_consequences match {
-	  case Some(tc) => tc.zipWithIndex.map{ case (t, id) => (o.oid, id, t) }
-	  case _ => Seq()
-	}}
+  	val dict1 = occurReparts.map{ o => OccurrDict1(o.oid, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, 
+  		o.chromosome, o.allele_string, o.assembly_name, o.end, o.vid, o.input, o.most_severe_consequence, o.seq_region_name, o.start, o.strand, o.oid)
+  	}.as[OccurrDict1]
+  	
+  	val tmp2 = occurReparts.flatMap{ o => o.transcript_consequences match {
+  	  case Some(tc) => tc.zipWithIndex.map{ case (t, id) => (o.oid, id, t) }
+  	  case _ => Seq()
+  	}}
 
-	val dict2 = tmp2.map{ case (id1, id2, t) => OccurrTransDict2(id1, t.amino_acids, t.distance match { case Some(l:Long) => l; case _ => -1 },
-		t.cdna_end match { case Some(l:Long) => l; case _ => -1 }, t.cdna_start match { case Some(l:Long) => l; case _ => -1 }, 
-		t.cds_end match { case Some(l:Long) => l; case _ => -1 }, t.cds_start match { case Some(l:Long) => l; case _ => -1 }, 
-		t.codons, s"${id1}_${id2}", t.flags, t.gene_id, t.impact, t.protein_end match { case Some(l:Long) => l; case _ => -1 }, 
-		t.protein_start match { case Some(l:Long) => l; case _ => -1 }, t.strand match { case Some(l:Long) => l; case _ => -1 }, 
-		t.transcript_id, t.variant_allele)}.as[OccurrTransDict2]
+  	val dict2 = tmp2.map{ case (id1, id2, t) => OccurrTransDict2(id1, t.amino_acids, t.distance match { case Some(l:Long) => l; case _ => -1 },
+  		t.cdna_end match { case Some(l:Long) => l; case _ => -1 }, t.cdna_start match { case Some(l:Long) => l; case _ => -1 }, 
+  		t.cds_end match { case Some(l:Long) => l; case _ => -1 }, t.cds_start match { case Some(l:Long) => l; case _ => -1 }, 
+  		t.codons, s"${id1}_${id2}", t.flags, t.gene_id, t.impact, t.protein_end match { case Some(l:Long) => l; case _ => -1 }, 
+  		t.protein_start match { case Some(l:Long) => l; case _ => -1 }, t.strand match { case Some(l:Long) => l; case _ => -1 }, 
+  		t.transcript_id, t.variant_allele)}.as[OccurrTransDict2]
 
-	val dict3 = tmp2.flatMap{ case (id1, id2, t) => 
-		t.consequence_terms.map(c => OccurrTransConseqDict3(s"${id1}_${id2}", c)) }.as[OccurrTransConseqDict3]
+  	val dict3 = tmp2.flatMap{ case (id1, id2, t) => 
+  		t.consequence_terms.map(c => OccurrTransConseqDict3(s"${id1}_${id2}", c)) }.as[OccurrTransConseqDict3]
 
-	(dict1, dict2, dict3)
+    (dict1, dict2, dict3)
+
+  }
+
+  def shredSkew(occur: Dataset[Occurrence]): ((Dataset[OccurrDict1], Dataset[OccurrDict1]), 
+    (Dataset[OccurrTransDict2], Dataset[OccurrTransDict2], Option[String], Broadcast[Set[String]]),
+    (Dataset[OccurrTransConseqDict3], Dataset[OccurrTransConseqDict3], Option[String], Broadcast[Set[String]])) = {
+
+    val (dict1, dict2, dict3) = shred(occur)
+
+    val skew_dict1 = (dict1, dict1.empty)
+    val skew_dict2 = (dict2, dict2.empty).repartition[String](col("_1"))
+    val skew_dict3 = (dict3, dict3.empty).repartition[String](col("_1"))
+    (skew_dict1, skew_dict2, skew_dict3)
 
   }
 

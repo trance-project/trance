@@ -76,7 +76,7 @@ object SkewDataset{
       * @param joinType string join type, default "inner"
       * @return the result of the join
       */
-    def equiJoinWith[S: Encoder : ClassTag](right: Dataset[S], usingColumns: Seq[String], joinType: String = "inner"): Dataset[(T,S)] = {
+    def equiJoinWith[S: Encoder : ClassTag](right: Dataset[S], usingColumns: Seq[String], joinType: String): Dataset[(T,S)] = {
       left.joinWith(right, col(usingColumns(0)) === col(usingColumns(1)), joinType)
     }
 
@@ -87,7 +87,7 @@ object SkewDataset{
       * @param joinType string join type, default "inner"
       * @return the result of the join
       */
-    def equiJoin[S: Encoder : ClassTag](right: Dataset[S], usingColumns: Seq[String], joinType: String = "inner"): DataFrame = {
+    def equiJoin[S: Encoder : ClassTag](right: Dataset[S], usingColumns: Seq[String], joinType: String): DataFrame = {
       left.join(right, col(usingColumns(0)) === col(usingColumns(1)), joinType)
     }
     
@@ -350,7 +350,7 @@ object SkewDataset{
       * @param joinType string join type, default "inner"
       * @return the result of the join
       */
-    def equiJoin[S: Encoder : ClassTag, J: ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String], joinType: String = "inner"): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
+    def equiJoin[S: Encoder : ClassTag, J: ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String], joinType: String): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
       val hkeys = key match {
         case Some(k) if usingColumns.contains(k) => heavyKeys
         case _ => light.sparkSession.sparkContext.broadcast(Set.empty[K])
@@ -369,6 +369,10 @@ object SkewDataset{
         (light, heavy).equiJoin[S, K](right, usingColumns, joinType)
       }
 
+    }
+
+    def equiJoin[S: Encoder : ClassTag, J: ClassTag](right: (Dataset[S], Dataset[S], Option[String], Broadcast[Set[K]]), usingColumns: Seq[String], joinType: String): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
+      equiJoin[S,J]((right.light, right.heavy), usingColumns, joinType)
     }
 
     /** Default join for complex join conditions **/
@@ -619,7 +623,7 @@ object SkewDataset{
       * @param joinType identifies the type of join
       * @return skew-triple result from the skew-aware equiJoinWith
       */
-    def equiJoin[S: Encoder : ClassTag, K: ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String], joinType: String = "inner")(implicit arg0: Encoder[K]): 
+    def equiJoin[S: Encoder : ClassTag, K: ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String], joinType: String)(implicit arg0: Encoder[K]): 
     (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
       val nkey = usingColumns(0)
       val (dfull, hk) = heavyKeys[K](nkey)
@@ -630,9 +634,14 @@ object SkewDataset{
         (dfull.equiJoin(right.union, usingColumns, joinType), light.emptyDF, Some(nkey), light.sparkSession.sparkContext.broadcast(Set.empty[K]))
       }
     }
+    
+    def equiJoin[S: Encoder : ClassTag, K: ClassTag](right: (Dataset[S], Dataset[S], Option[String], Broadcast[Set[K]]), usingColumns: Seq[String], joinType: String)(implicit arg0: Encoder[K]): 
+      (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
+        equiJoin[S,K]((right.light, right.heavy), usingColumns, joinType)
+    }
  
     /** Default join for complex join conditions **/
-    def join[S: Encoder : ClassTag](right: (Dataset[S], Dataset[S]), cond: Column, joinType: String = "inner"): (DataFrame, DataFrame) = {
+    def join[S: Encoder : ClassTag](right: (Dataset[S], Dataset[S]), cond: Column, joinType: String): (DataFrame, DataFrame) = {
       val result = dfs.union.join(right.union, cond, joinType)
       (result, result.emptyDF)
     }

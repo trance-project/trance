@@ -47,16 +47,20 @@ object App {
 		case None => (0, Nil)
 	 })
 	 stats.collect.foreach(println(_))**/
-         val gloader = new GisticLoader(spark)
-         val gistic = gloader.merge("/nfs_qc4/genomics/gdc/gistic/")
-         gistic.count
-		 gistic.write.format("json").save("file:///nfs_qc4/genomics/gdc/gistic/dataset")
+   //       val gloader = new GisticLoader(spark)
+   //       val gistic = gloader.merge("/nfs_qc4/genomics/gdc/gistic/")
+   //       gistic.count
+		 // gistic.write.format("json").save("file:///nfs_qc4/genomics/gdc/gistic/dataset")
 	/**val bloader = new BiospecLoader(spark)
 	val biospec = bloader.load("/nfs_qc4/genomics/gdc/biospecimen/")
 	println(biospec.show())
        val cloader = new ConsequenceLoader(spark)
        val thresh = cloader.loadSequential("/nfs_qc4/genomics/calc_variant_conseq.txt")
        thresh.collect.foreach(println(_))**/
+    val nloader = new NetworkLoader(spark)
+    val network = nloader.load("/home/jacith/shredder/executor/spark/data/geno/9606.protein.links.full.v11.0.txt")
+    println(network.show())
+
     }
 
 }

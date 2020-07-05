@@ -41,6 +41,13 @@ trait Gistic {
 
 trait StringNetwork {
 
+  val edgeOrderedType = List(("edge_protein", StringType), ("neighborhood", IntType),
+   ("neighborhood_transferred", IntType), ("fusion", IntType), ("cooccurence", IntType),
+   ("homology", IntType), ("coexpression", IntType), ("coexpression_transferred", IntType),
+   ("experiments", IntType), ("experiments_transferred", IntType),
+   ("database", IntType), ("database_transferred", IntType),
+  ("textmining", IntType), ("textmining_transferred", IntType), ("combined_score", IntType))
+
   val edgeType = TupleType("edge_protein" -> StringType, "neighborhood" -> IntType,
    "neighborhood_transferred" -> IntType, "fusion" -> IntType, "cooccurence" -> IntType,
    "homology" -> IntType, "coexpression" -> IntType, "coexpression_transferred" -> IntType,
@@ -85,28 +92,54 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork wi
 
   def loadTables(shred: Boolean = false, skew: Boolean = false): String = {
     if (shred) loadShred(skew)
+    else if (skew)
+    	s"""|val vepLoader = new VepLoader(spark)
+			|val occurrences_L = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence])
+			|val occurrences = (occurrences_L, occurrences_L.empty)
+			|occurrences.cache
+			|occurrences.count
+			|val gistic_L = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
+			|					.withColumn("gistic_gene", substring($"gistic_gene_iso", 1,15)).as[Gistic]
+			|val gistic = (gistic_L, gistic_L.empty)
+			|gistic.cache
+			|gistic.count
+			|val biospecLoader = new BiospecLoader(spark)
+			|val biospec_L = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
+			|val biospec = (biospec_L, biospec_L.empty)
+			|biospec.cache
+			|biospec.count
+			|val consequenceLoader = new ConsequenceLoader(spark)
+			|val consequences_L = consequenceLoader.loadSequential("/nfs_qc4/genomics/calc_variant_conseq.txt")
+			|val consequences = (consequences_L, consequences_L.empty)
+			|consequences.cache
+			|consequences.count
+			|""".stripMargin
 	else
-	s"""|val vepLoader = new VepLoader(spark)
-		|val occurrences = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence])
-		|occurrences.cache
-		|occurrences.count
-		|val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
-		|gistic.cache
-		|gistic.count
-		|val biospecLoader = new BiospecLoader(spark)
-		|val biospec = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
-		|biospec.cache
-		|biospec.count
-		|val consequenceLoader = new ConsequenceLoader(spark)
-		|val consequences = consequenceLoader.loadSequential("/nfs_qc4/genomics/calc_variant_conseq.txt")
-		|consequences.cache
-		|consequences.count
-		|""".stripMargin
+		s"""|val vepLoader = new VepLoader(spark)
+			|val occurrences = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence])
+			|occurrences.cache
+			|occurrences.count
+			|val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
+			|				.withColumn("gistic_gene", substring($"gistic_gene_iso", 1,15)).as[Gistic]
+			|gistic.cache
+			|gistic.count
+			|val biospecLoader = new BiospecLoader(spark)
+			|val biospec = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
+			|biospec.cache
+			|biospec.count
+			|val consequenceLoader = new ConsequenceLoader(spark)
+			|val consequences = consequenceLoader.loadSequential("/nfs_qc4/genomics/calc_variant_conseq.txt")
+			|consequences.cache
+			|consequences.count
+			|""".stripMargin
   }
 
   def loadShred(skew: Boolean = false): String = {
+  	val loadFun = if (skew) "shredSkew" else "shred"
+  	val biospecLoad = if (skew) "(biospec, biospec.empty)" else "biospec"
+  	val conseqLoad = if (skew) "(conseq, conseq.empty)" else "conseq"
 	s"""|val vepLoader = new VepLoader(spark)
-		|val (odict1, odict2, odict3) = vepLoader.shred(spark.read.json(
+		|val (odict1, odict2, odict3) = vepLoader.$loadFun(spark.read.json(
 		|	"file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence])
   		|val IBag_occurrences__D = odict1
 		|IBag_occurrences__D.cache
@@ -119,7 +152,8 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork wi
 		|IDict_occurrences__D_transcript_consequences_consequence_terms.count
 		|val gisticLoader = new GisticLoader(spark)
 		|val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
-		|val (gdict1, gdict2) = gisticLoader.shred(gistic)
+		|				.withColumn("gistic_gene", substring($"gistic_gene_iso", 1,15)).as[Gistic]
+		|val (gdict1, gdict2) = gisticLoader.$loadFun(gistic)
 		|val IBag_gistic__D = gdict1
 		|IBag_gistic__D.cache
 		|IBag_gistic__D.count
@@ -127,11 +161,13 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork wi
 		|IDict_gistic__D_gistic_samples.cache
 		|IDict_gistic__D_gistic_samples.count
 		|val biospecLoader = new BiospecLoader(spark)
-		|val IBag_biospec__D = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
+		|val biospec = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
+		|val IBag_biospec__D = $biospecLoad
 		|IBag_biospec__D.cache
 		|IBag_biospec__D.count
 		|val consequenceLoader = new ConsequenceLoader(spark)
-		|val IBag_consequences__D = consequenceLoader.loadSequential("/nfs_qc4/genomics/calc_variant_conseq.txt")
+		|val conseq = consequenceLoader.loadSequential("/nfs_qc4/genomics/calc_variant_conseq.txt")
+		|val IBag_consequences__D = $conseqLoad
 		|IBag_consequences__D.cache
 		|IBag_consequences__D.count
 		|""".stripMargin

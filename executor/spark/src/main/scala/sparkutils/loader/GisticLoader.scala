@@ -6,6 +6,9 @@ import org.apache.spark.sql.functions._
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ArrayBuffer
 import java.io.File
+import sparkutils.skew.SkewDataset._
+import sparkutils.Config
+import org.apache.spark.broadcast.Broadcast
 
 case class Sample(gistic_sample: String, focal_score: Long)
 case class Gistic(gistic_gene: String, gistic_gene_iso: String, cytoband: String, gistic_samples: Seq[Sample])
@@ -77,12 +80,20 @@ class GisticLoader(spark: SparkSession) {
   }
 
   def shred(dfs: Dataset[Gistic]): (Dataset[GisticDict1], Dataset[GisticSampleDict2]) = {
-	val tmp = dfs.rdd.zipWithIndex
-	val dict1 = tmp.map{ case (row, id) => 
-		GisticDict1(row.gistic_gene, row.gistic_gene_iso, row.cytoband, s"$id")}.toDF.as[GisticDict1]
-	val dict2 = tmp.flatMap{ case (row, id) => row.gistic_samples.map(srow => 
-		GisticSampleDict2(s"$id", srow.gistic_sample, srow.focal_score)) }.toDF.as[GisticSampleDict2]
-	(dict1, dict2)
+  	val tmp = dfs.repartition(Config.minPartitions).rdd.zipWithIndex
+  	val dict1 = tmp.map{ case (row, id) => 
+  		GisticDict1(row.gistic_gene, row.gistic_gene_iso, row.cytoband, s"$id")}.toDF.as[GisticDict1]
+  	val dict2 = tmp.flatMap{ case (row, id) => row.gistic_samples.map(srow => 
+  		GisticSampleDict2(s"$id", srow.gistic_sample, srow.focal_score)) }.toDF.as[GisticSampleDict2]
+  	(dict1, dict2)
+  }
+
+  def shredSkew(dfs: Dataset[Gistic]): ((Dataset[GisticDict1], Dataset[GisticDict1]), 
+    (Dataset[GisticSampleDict2], Dataset[GisticSampleDict2], Option[String], Broadcast[Set[String]])) = {
+    val (dict1, dict2) = shred(dfs)
+    val skew_dict1 = (dict1, dict1.empty)
+    val skew_dict2 = (dict2, dict2.empty).repartition[String](col("_1"))
+    (skew_dict1, skew_dict2)
   }
 
   private def read(path: String): DataFrame = {
