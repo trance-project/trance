@@ -15,6 +15,7 @@ trait Base {
   def udf(n: String, e1: Rep, tp: Type): Rep
   def emptysng: Rep
   def unit: Rep 
+  def cnull: Rep
   def sng(x: Rep): Rep
   def get(x: Rep): Rep
   def tuple(fs: List[Rep]): Rep
@@ -78,6 +79,7 @@ trait BaseStringify extends Base{
   def udf(n: String, e1: Rep, tp: Type): Rep = s"$n($e1)"
   def constant(x: Any): Rep = x.toString
   def emptysng: Rep = "{}"
+  def cnull: Rep = "null"
   def unit: Rep = "()"
   def sng(x: Rep): Rep = s"{ $x }"
   def get(x: Rep): Rep = s"get($x)"
@@ -203,6 +205,7 @@ trait BaseCompiler extends Base {
   def constant(x: Any): Rep = Constant(x)
   def udf(n: String, e1: Rep, tp: Type): Rep = CUdf(n, e1, tp)
   def emptysng: Rep = EmptySng
+  def cnull: Rep = Null
   def unit: Rep = CUnit
   def sng(x: Rep): Rep = Sng(x)
   def get(x: Rep): Rep = CGet(x)
@@ -509,6 +512,7 @@ trait BaseANF extends Base {
   def constant(x: Any): Rep = compiler.constant(x)
   def udf(n: String, e1: Rep, tp: Type): Rep = compiler.udf(n, e1, tp)
   def emptysng: Rep = compiler.emptysng
+  def cnull: Rep = compiler.cnull
   def unit: Rep = compiler.unit
   def sng(x: Rep): Rep = compiler.sng(x)
   def get(x: Rep): Rep = compiler.get(x)
@@ -617,7 +621,8 @@ class Finalizer(val target: Base){
     case Constant(x) => target.constant(x)
  	case CUdf(n, e1, tp) => target.udf(n, finalize(e1), tp)
     case EmptySng => target.emptysng
-    case CUnit => target.unit
+    case Null => target.cnull
+	case CUnit => target.unit
     case Sng(x) => x.tp match {
       case EmptyCType => target.emptysng
       case _ => target.sng(finalize(x))

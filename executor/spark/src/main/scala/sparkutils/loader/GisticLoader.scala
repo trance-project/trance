@@ -8,11 +8,11 @@ import scala.collection.mutable.ArrayBuffer
 import java.io.File
 
 case class Sample(gistic_sample: String, focal_score: Long)
-case class Gistic(gistic_gene: String, gistic_gene_id: Long, cytoband: String, gistic_samples: Seq[Sample])
-case class GisticDict1(gistic_gene: String, gistic_gene_id: Long, cytoband: String, gistic_samples: String)
+case class Gistic(gistic_gene: String, gistic_gene_iso: String, cytoband: String, gistic_samples: Seq[Sample])
+case class GisticDict1(gistic_gene: String, gistic_gene_iso: String, cytoband: String, gistic_samples: String)
 case class GisticSampleDict2(_1: String, gistic_sample: String, focal_score: Long)
 
-//  {(gene: String, cytoband: String, samples: {(name: String, focal_score: Int)})}
+//  {(gene: String, cytoband: String, samples: {(name: String, focal_score: Long)})}
 
 class GisticLoader(spark: SparkSession) {
 
@@ -53,8 +53,14 @@ class GisticLoader(spark: SparkSession) {
     val df = iterMerge(ldf, files.tail)
     val columns = spark.sparkContext.broadcast(df.columns.toSet -- Set("Gene Symbol", "Gene ID", "Cytoband"))
     df.mapPartitions{ it => it.map{ r => 
-        Gistic(r.getString(r.fieldIndex("Gene Symbol")), r.getLong(r.fieldIndex("Gene ID")), 
-          r.getString(r.fieldIndex("Cytoband")), columns.value.map(c => Sample(c, r.getLong(r.fieldIndex(c)))).toSeq
+		val gid_iso = r.getString(r.fieldIndex("Gene Symbol"))
+		val gid = gid_iso.split(".").toSeq match {
+			case Nil => "null"
+			case tail :: Nil => tail
+			case head :: tail => head
+		}
+        Gistic(gid, gid_iso, r.getString(r.fieldIndex("Cytoband")), 
+			columns.value.map(c => Sample(c, r.getInt(r.fieldIndex(c)))).toSeq
         )
     }}.as[Gistic]
   }
@@ -64,17 +70,16 @@ class GisticLoader(spark: SparkSession) {
     case rf :: tail =>
       val rdf = read(rf)
         .withColumnRenamed("Gene Symbol", "GS")
-        .withColumnRenamed("Gene ID", "GI")
         .withColumnRenamed("Cytoband", "CB")
-      val ndf = ldf.join(rdf, $"Gene Symbol" === $"GS" && $"Gene Id" === $"GI" && $"Cytoband" === $"CB")
-        .drop("GS", "GI", "CB")
+      val ndf = ldf.join(rdf, $"Gene Symbol" === $"GS" && $"Cytoband" === $"CB")
+        .drop("GS", "CB")
       iterMerge(ndf, tail)
   }
 
   def shred(dfs: Dataset[Gistic]): (Dataset[GisticDict1], Dataset[GisticSampleDict2]) = {
 	val tmp = dfs.rdd.zipWithIndex
 	val dict1 = tmp.map{ case (row, id) => 
-		GisticDict1(row.gistic_gene, row.gistic_gene_id, row.cytoband, s"$id")}.toDF.as[GisticDict1]
+		GisticDict1(row.gistic_gene, row.gistic_gene_iso, row.cytoband, s"$id")}.toDF.as[GisticDict1]
 	val dict2 = tmp.flatMap{ case (row, id) => row.gistic_samples.map(srow => 
 		GisticSampleDict2(s"$id", srow.gistic_sample, srow.focal_score)) }.toDF.as[GisticSampleDict2]
 	(dict1, dict2)
@@ -82,7 +87,7 @@ class GisticLoader(spark: SparkSession) {
 
   private def read(path: String): DataFrame = {
 
-    val data: DataFrame = spark.read.format("csv")
+	val data: DataFrame = spark.read.format("csv")
       .option("header", "true")
       .option("comment", "#")
       .option("delimiter", delimiter)

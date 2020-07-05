@@ -21,9 +21,9 @@ sealed trait Type { self =>
     case RecordCType(ms) => ms
     case BagCType(ms) => ms.attrs
     case MatDictCType(LabelType(fs), bag) if fs.isEmpty => 
-      Map("_1" -> LongType) ++ bag.attrs
+      Map("_1" -> StringType) ++ bag.attrs
     case MatDictCType(LabelType(ms), bag) => 
-      val lblType = if (ms.isEmpty) LongType else ms.head._2
+      val lblType = if (ms.isEmpty) StringType else ms.head._2
       Map("_1" -> lblType) ++ bag.attrs
     case _ => Map()
   }
@@ -59,7 +59,7 @@ sealed trait Type { self =>
   }
 
   // For debugging
-  // override def toString: String = ""
+  override def toString: String = ""
 }
 
 trait ReducibleType

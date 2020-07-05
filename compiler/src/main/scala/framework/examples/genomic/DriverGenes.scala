@@ -34,8 +34,8 @@ trait Gistic {
   val sampleType = TupleType("gistic_sample" -> StringType, 
     "focal_score" -> LongType)
 
-  val gisticType = TupleType("gistic_gene" -> StringType, "cytoband" -> StringType,
-    "gistic_gene_id" -> LongType, "gistic_samples" -> BagType(sampleType))
+  val gisticType = TupleType("gistic_gene" -> StringType, "gistic_gene_iso" -> StringType, 
+  	"cytoband" -> StringType, "gistic_samples" -> BagType(sampleType))
 
 }
 
@@ -197,8 +197,13 @@ object HybridBySample extends DriverGene {
 		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
 		                          		Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
 		                            		"hybrid_score" -> 
-		                            		conr("so_weight").asNumeric * matchImpact * sr("focal_score").asNumeric))))))))))
-            ,List("hybrid_gene_id"),
+		                            		conr("so_weight").asNumeric * matchImpact 
+											* sr("focal_score").asNumeric))))))))))
+		                          		/**Some(Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
+		                            		"hybrid_score" -> NumericConst(.01, DoubleType) 
+											* matchImpact * sr("focal_score").asNumeric)))))))))))**/
+
+			,List("hybrid_gene_id"),
             List("hybrid_score")))))))
 
   val program = Program(Assignment(name, query))

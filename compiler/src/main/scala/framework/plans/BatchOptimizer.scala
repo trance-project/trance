@@ -9,9 +9,10 @@ object BatchOptimizer extends Extensions {
   import extensions._
 
   def applyAll(e: CExpr): CExpr = {
-    val t = pushUnnest(e)
-    val pushedProjections = push(t)
-    pushedProjections
+    val o1 = pushUnnest(e)
+	val o2 = pushCondition(o1)
+	val o3 = push(o2)
+    o3
   }
 
   def validateMatch(t1: Type, f1: String, t2: Type, f2: String): Boolean = 
@@ -36,6 +37,13 @@ object BatchOptimizer extends Extensions {
 
   })
 
+
+  def pushCondition(e: CExpr): CExpr = fapply(e, {
+	case DFProject(DFOuterJoin(e1, v1, e2, v2, Constant(true), fs1), v3,
+		jc @ If(cond @ Equals(Project(_, f1), Project(_, f2)), s1, s2), fs2) =>
+		DFProject(DFOuterJoin(e1, v1, e2, v2, cond, fs1), v3, 
+			If(Equals(Project(v3, f2), Null),s1, s2), fs2)
+  })
 
   /** Push projections in plans made of batch operations
     * @param e input plan from BatchUnnester
@@ -87,19 +95,25 @@ object BatchOptimizer extends Extensions {
       val nv = Variable.fromBag(v.name, pin.tp)
       DFNest(pin, nv, nkey.toList, value, filter, value.inputColumns.toList, ctag)
 
-    case DFReduceBy(e1 @ DFProject(in, v, filter:Record, fields), v2, key, value) =>
+    case DFReduceBy(e1 @ DFProject(in, v, filter, fields), v2, key, value) =>
       // adjust key
       val indices = key.filter(k => k.contains("index")).toSet
       val nkey0 = (key.toSet & fs) ++ indices 
       val nkey = if (nkey0.isEmpty) key.toSet else nkey0
 
       val vs = nkey ++  value.toSet
-      val nfilter = collect(Record(filter.fields.filter(f => vs(f._1))))
-      val nfs = vs ++ fs ++ nfilter
+      val nfilter = filter match {
+		case Record(ffs) => Record(ffs.filter(f => vs(f._1)))
+		case If(cond, Sng(Record(f1)), Some(Sng(Record(f2)))) => 
+			 If(cond, Sng(Record(f1.filter(f => vs(f._1)))), 
+			 	Some(Sng(Record(f2.filter(f => vs(f._1))))))
+		case _ => ???
+	  }
+	  val nfs = vs ++ fs ++ collect(nfilter)
       val pin = push(in, nfs)
       val nv = Variable.fromBag(v.name, pin.tp)
 
-      val pin2 = DFProject(pin, nv, Record(filter.fields.filter(f => nfs(f._1))), nfs.toList)
+      val pin2 = DFProject(pin, nv, nfilter, nfs.toList)
       val nv2 = Variable.fromBag(v2.name, pin2.tp)
       DFReduceBy(pin2, nv2, nkey.toList, value)
 

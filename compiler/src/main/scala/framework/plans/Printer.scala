@@ -18,7 +18,8 @@ object Printer {
 	case CUdf(n, e1, tp) => udf(n, quote(e1), tp)
     case EmptySng => emptysng
     case CUnit => unit
-    case Index => "index"
+	case Null => "null"
+	case Index => "index"
     case Sng(e1) => sng(quote(e1))
     case Tuple(fs) => tuple(fs.map(quote(_)))
     case Record(fs) => record(fs.map(f => f._1 -> quote(f._2)))

@@ -151,8 +151,6 @@ object BatchUnnester {
       val nv = wvar(w)
       val tup = exp(Record(fs))
       val rtup = replace(tup, nv)
-      println(Printer.quote(tup))
-      println(Printer.quote(rtup))
       DFNest(E.get, nv, u.keys.toList, rtup, Constant(true), (w.keySet -- u.keySet).toList, tag)
     }   
   }

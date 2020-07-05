@@ -238,7 +238,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         case (col, Project(_, oldCol)) if col != oldCol => Nil
         case (col, expr) if !projectCols(col) =>
           List(s"""|  .withColumn("$col", ${generateReference(expr, true)})""")
-        case _ => Nil
+        case (ncol, col @ Label(fs)) => 
+		  List(s"""|.withColumn("$ncol", ${generateReference(col)})""")
+ 		case _ => Nil
       }
 
       // override existing columns
@@ -249,7 +251,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           if (newCols(oldCol)) List(s"""| .withColumn("$col", $$"$oldCol")""")
           // overrides a column
           else List(s"""| .withColumnRenamed("$oldCol", "$col")""")
-        case _ => Nil
+		case _ => Nil
       } 
 
       // ensure that new columns are made before renaming occurs
@@ -265,7 +267,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     // adjust lookup column of dictionary
       val rcol = s"${p1}${p2}"
       val rtp = rename(right.tp.attrs, p2, rcol)
-      handleType(rtp)
+	  handleType(rtp)
       val grtp = generateType(rtp)
 
       // adjust label lookup column

@@ -60,7 +60,9 @@ trait Extensions {
         DFJoin(fapply(left, funct), v, fapply(right, funct), v2, cond, fields)
       case DFOuterJoin(left, v, right, v2, cond, fields) =>
         DFOuterJoin(fapply(left, funct), v, fapply(right, funct), v2, cond, fields)
-      case AddIndex(in, v) => AddIndex(fapply(in, funct), v)
+      case DFReduceBy(e1, v1, key, value) => 
+	  	DFReduceBy(fapply(e1, funct), v1, key, value)
+	  case AddIndex(in, v) => AddIndex(fapply(in, funct), v)
       case _ => ex
     })
 }

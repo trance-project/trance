@@ -52,7 +52,7 @@ trait Query extends Materialization
         println("plan before")
         val p = this.batchUnnest
         println(Printer.quote(p))
-        val optimized = BatchOptimizer.applyAll(p)
+		val optimized = BatchOptimizer.applyAll(p)
         println("\nPlan after:")
         //println(optimized)
         println(Printer.quote(optimized)+"\n")
