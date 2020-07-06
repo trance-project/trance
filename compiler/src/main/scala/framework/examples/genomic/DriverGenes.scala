@@ -109,7 +109,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
     else if (skew) {
     	s"""|val basepath = "/nfs_qc4/genomics/gdc/"
 			|val mafLoader = new MAFLoader(spark)
-			|val maf = mafLoader.loadFlat(s"$basepath/somatic/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
+			|val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")//TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
 			|val vepLoader = new VepLoader(spark)
 			|val (occurs, annots) = vepLoader.loadOccurrences(maf)
 			| val occurrences_L = vepLoader.finalize(vepLoader.buildOccurrences(occurs, annots))
@@ -120,7 +120,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 			|//val gistic_L = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
 			|//					.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
 			|val gisticLoader = new GisticLoader(spark)
-			|val gistic_L = gisticLoader.merge(s"$basepath/gistic/BRCA.focal_score_by_genes.txt", dir = false)
+			|val gistic_L = gisticLoader.merge(s"$basepath/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
 			|                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
 			|val gistic = (gistic_L, gistic_L.empty)
 			|gistic.cache
@@ -139,7 +139,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 	}else{
 		s"""|val basepath = "/nfs_qc4/genomics/gdc/"
 			|val mafLoader = new MAFLoader(spark)
-			|val maf = mafLoader.loadFlat(s"$basepath/somatic/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
+			|val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")//TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
 			|val vepLoader = new VepLoader(spark)
 			|val (occurs, annots) = vepLoader.loadOccurrences(maf)
 			|val occurrences = vepLoader.finalize(vepLoader.buildOccurrences(occurs, annots))
@@ -149,7 +149,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 			|//val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
 			|//				.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
 			|val gisticLoader = new GisticLoader(spark)
-			|val gistic = gisticLoader.merge(s"$basepath/gistic/BRCA.focal_score_by_genes.txt", dir = false)
+			|val gistic = gisticLoader.merge(s"$basepath/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
 			|                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
 			|gistic.cache
 			|gistic.count
@@ -171,7 +171,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
   	val conseqLoad = if (skew) "(conseq, conseq.empty)" else "conseq"
 	s"""|val basepath = "/nfs_qc4/genomics/gdc/"
 		|val mafLoader = new MAFLoader(spark)
-		|val maf = mafLoader.loadFlat(s"$basepath/somatic/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
+		|val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")//TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
 		|val vepLoader = new VepLoader(spark)
 		|val (occurs, annots) = vepLoader.loadOccurrences(maf)
 		|val occurrences = vepLoader.buildOccurrences(occurs, annots)
@@ -188,7 +188,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 		|IDict_occurrences__D_transcript_consequences_consequence_terms.cache
 		|IDict_occurrences__D_transcript_consequences_consequence_terms.count
 		|val gisticLoader = new GisticLoader(spark)
-		|val gistic = gisticLoader.merge(s"$basepath/gistic/BRCA.focal_score_by_genes.txt", dir = false)
+		|val gistic = gisticLoader.merge(s"$basepath/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
 		|                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
 		|//val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
 		|//				.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
@@ -260,6 +260,18 @@ object QuantifyConsequence extends DriverGene {
 						Cmp(OpEq, conr("so_term"), cr("element")), 
 							conr("so_weight").asPrimitive, Const(.01, DoubleType))))))))))))**/
 
+	val program = Program(Assignment(name, query))
+
+}
+
+object ValidateOccurrence extends DriverGene {
+
+	val name = "ValidateOccurrence"
+	
+	val query = ForeachUnion(or, occurrences, 
+		projectTuple(or, Map("transcript_consequences" -> ForeachUnion(ar, BagProject(or, "transcript_consequences"), 
+		  projectTuple(ar, Map.empty[String, TupleAttributeExpr])))))
+	
 	val program = Program(Assignment(name, query))
 
 }

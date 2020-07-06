@@ -183,30 +183,28 @@ class VepLoader(spark: SparkSession) extends Serializable {
 
   }
 
-  // def loadTestData(): Dataset[Occurrence2] = {
-  //   spark.sparkContext.parallelize(Seq(Occurrence2("oid1", "donorId1", 1, "projectId1", 1, "R", "R", "A", "Chr1", "A", "Grch", 1, "vid1", "testing", "no", "Chr1", 1, 1, 
-  //     Seq()
-  //   )))
-  // }
-
+  
   def shred(occur: Dataset[Occurrence]): (Dataset[OccurrDict1], Dataset[OccurrTransDict2], Dataset[OccurrTransConseqDict3]) = {
 
-    val occurReparts = occur.repartition(Config.maxPartitions)
+    val occurReparts = finalize(occur)
 	
   	val dict1 = occurReparts.map{ o => OccurrDict1(o.oid, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, 
   		o.chromosome, o.allele_string, o.assembly_name, o.end, o.vid, o.input, o.most_severe_consequence, o.seq_region_name, o.start, o.strand, o.oid)
   	}.as[OccurrDict1]
   	
-  	val tmp2 = occurReparts.flatMap{ o => o.transcript_consequences match {
+  	val tmp2 = occurReparts.flatMap{ o => o.transcript_consequences.zipWithIndex.map{ case (t, id) => (o.oid, id, t) } }
+	/**match {
   	  case Some(tc) => tc.zipWithIndex.map{ case (t, id) => (o.oid, id, t) }
   	  case _ => Seq()
-  	}}
+  	}}**/
 
-  	val dict2 = tmp2.map{ case (id1, id2, t) => OccurrTransDict2(id1, t.amino_acids, t.distance match { case Some(l:Long) => l; case _ => -1 },
+  	val dict2 = tmp2.map{ case (id1, id2, t) => OccurrTransDict2(id1, t.amino_acids, 
+		t.distance, t.cdna_end, t.cdna_start, t.cds_end, t.cds_start, t.codons, s"${id1}_${id2}", t.flags, t.gene_id, t.impact, t.protein_end, t.protein_start, t.strand,
+		/**t.distance match { case Some(l:Long) => l; case _ => -1 },
   		t.cdna_end match { case Some(l:Long) => l; case _ => -1 }, t.cdna_start match { case Some(l:Long) => l; case _ => -1 }, 
   		t.cds_end match { case Some(l:Long) => l; case _ => -1 }, t.cds_start match { case Some(l:Long) => l; case _ => -1 }, 
   		t.codons, s"${id1}_${id2}", t.flags, t.gene_id, t.impact, t.protein_end match { case Some(l:Long) => l; case _ => -1 }, 
-  		t.protein_start match { case Some(l:Long) => l; case _ => -1 }, t.strand match { case Some(l:Long) => l; case _ => -1 }, 
+  		t.protein_start match { case Some(l:Long) => l; case _ => -1 }, t.strand match { case Some(l:Long) => l; case _ => -1 }, **/
   		t.transcript_id, t.variant_allele)}.as[OccurrTransDict2]
 
   	val dict3 = tmp2.flatMap{ case (id1, id2, t) => 
