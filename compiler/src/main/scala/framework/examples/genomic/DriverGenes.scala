@@ -315,9 +315,9 @@ object HybridBySample extends DriverGene {
         	"hybrid_genes" -> 
 	        	ReduceByKey(
 	            	ForeachUnion(cnr, copynum,
-					  IfThenElse(Cmp(OpEq, cnr("cn_aliquot_uuid"), br("bcr_aliquot_uuid")),
-					  	ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-					  		IfThenElse(Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id")),
+					       IfThenElse(Cmp(OpEq, cnr("cn_aliquot_uuid"), br("bcr_aliquot_uuid")),
+					  	    ForeachUnion(ar, BagProject(or, "transcript_consequences"),
+					  		     IfThenElse(Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id")),
 		                      ForeachUnion(cr, BagProject(ar, "consequence_terms"),
 		                        ForeachUnion(conr, conseq,
 		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),

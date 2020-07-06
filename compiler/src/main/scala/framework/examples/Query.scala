@@ -206,6 +206,7 @@ trait Query extends Materialization
     println("RUNNING SHREDDED PIPELINE:\n")
     println(quote(matProg))
     val ncalc = normalizer.finalize(translate(matProg)).asInstanceOf[CExpr]
+    println(ncalc)
     val initPlan = BatchUnnester.unnest(ncalc)(Map(), Map(), None, baseTag)
     println("plan before")
     println(Printer.quote(initPlan))

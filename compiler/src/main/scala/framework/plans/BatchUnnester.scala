@@ -89,6 +89,8 @@ object BatchUnnester {
       val (nw, nE) = 
         if (u.isEmpty) (flat(w, nv.tp), DFJoin(E.get, wvar(w), Select(right, nv, Constant(true), nv), nv, cond, Nil))
         else (flat(w, nv.tp.outer), DFOuterJoin(E.get, wvar(w), Select(right, nv, Constant(true), nv), nv, cond, Nil))
+      println("in here with")
+      println(Printer.quote(nE))
       unnest(e2)((u, nw, Some(nE), tag))
 
     case s @ If(cnd, Sng(t @ Record(fs)), nextIf) =>
