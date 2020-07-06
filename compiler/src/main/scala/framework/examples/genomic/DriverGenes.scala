@@ -264,6 +264,55 @@ object QuantifyConsequence extends DriverGene {
 
 }
 
+object StandardHybridBySample extends DriverGene {
+
+  val name = "HybridBySample"
+
+  val matchImpact = NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("HIGH", StringType)),
+                  NumericConst(0.8, DoubleType),
+                  NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("MODERATE", StringType)),
+                  NumericConst(0.5, DoubleType),
+                    NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("LOW", StringType)),
+                      NumericConst(0.3, DoubleType),
+                      NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("MODIFIER", StringType)),
+                        NumericConst(0.15, DoubleType),
+                        NumericConst(0.01, DoubleType)))))
+
+  val flattenGistic = ForeachUnion(gr, gistic,  
+      ForeachUnion(sr, BagProject(gr, "gistic_samples"),
+        Singleton(Tuple("gistic_gene2" -> gr("gistic_gene"), 
+          "gistic_sample2" -> sr("gistic_sample"), "gistic_focal" -> sr("focal_score")))))
+
+  val (gistFlat, grf) = varset("GisticFlattened", "gf", flattenGistic)
+
+  val query = ForeachUnion(or, occurrences, 
+    ForeachUnion(br, biospec, 
+      IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
+      Singleton(Tuple("hybrid_sample" -> or("donorId"), "hybrid_aliquot" -> br("bcr_aliquot_uuid"),
+          "hybrid_genes" -> 
+            ReduceByKey(
+                ForeachUnion(ar, BagProject(or, "transcript_consequences"),
+                  ForeachUnion(grf, gistFlat, 
+                    IfThenElse(Cmp(OpEq, ar("gene_id"), grf("gistic_gene2")) &&
+                               Cmp(OpEq, grf("gistic_sample2"), br("bcr_aliquot_uuid")),
+                          ForeachUnion(cr, BagProject(ar, "consequence_terms"),
+                            ForeachUnion(conr, conseq,
+                              IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+                                  Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
+                                    "hybrid_score" -> 
+                                    conr("so_weight").asNumeric * matchImpact 
+                      * (grf("gistic_focal").asNumeric + NumericConst(.01, DoubleType))))))))))
+                                  /**Some(Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
+                                    "hybrid_score" -> NumericConst(.01, DoubleType) 
+                      * matchImpact * sr("focal_score").asNumeric)))))))))))**/
+
+      ,List("hybrid_gene_id"),
+            List("hybrid_score")))))))
+
+  val program = Program(Assignment(gistFlat.name, flattenGistic), Assignment(name, query))
+
+}
+
 object HybridBySample extends DriverGene {
 
   val name = "HybridBySample"
