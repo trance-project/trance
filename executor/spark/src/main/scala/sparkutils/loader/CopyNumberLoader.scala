@@ -1,26 +1,32 @@
 package sparkutils.loader
-
-import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
+/** Generated Code **/
+import org.apache.spark.sql.Dataset
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.functions._
-import java.io.File
 
-class CopyNumberLoader(spark: SparkSession) {
+case class CopyNumber(cn_gene_id: String, cn_gene_name: String, cn_chromosome: String, cn_start: Int, cn_end: Int, cn_copy_number: Int, min_copy_number: Int, max_copy_number: Int, cn_aliquot_uuid: String)
 
-  import spark.implicits._
-  val delimiter: String = "\t"  
-
-  val aliquotUdf = udf { s: String => s.split(".")(1) }
-  def load(dir: String) = {
-    val files = (new File(dir)).listFiles().toSeq.map(f => s"$dir/${f.getName}")
-    spark.read.format("csv")
-      .option("header", "true")
-      .option("comment", "#")
-      .option("delimiter", delimiter)
-      .option("inferSchema", "true")
-      .load(files:_*)
-	  .withColumn("filename", input_file_name)
-	  //.withColumn("gl_aliquot_uuid", aliquotUdf($"filename"))
-  }
-
+class CopyNumberLoader(spark: SparkSession) extends Table[CopyNumber] {
+ 
+   import spark.implicits._
+   val schema = StructType(Array(StructField("cn_gene_id", StringType),
+StructField("cn_gene_name", StringType),
+StructField("cn_chromosome", StringType),
+StructField("cn_start", IntegerType),
+StructField("cn_end", IntegerType),
+StructField("cn_copy_number", IntegerType),
+StructField("min_copy_number", IntegerType),
+StructField("max_copy_number", IntegerType),
+StructField("cn_aliquot_uuid", StringType)))
+   val header: Boolean = true
+   val delimiter: String = "\	"
+   
+   def load(path: String): Dataset[CopyNumber] = {
+     spark.read.schema(schema)
+       .option("header", header)
+       .option("delimiter", delimiter)
+       .csv(path)
+       .as[CopyNumber]        
+   }
 }
+

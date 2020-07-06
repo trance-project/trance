@@ -60,9 +60,12 @@ object App {
     // val nloader = new NetworkLoader(spark)
     // val network = nloader.load("/home/jacith/shredder/executor/spark/data/geno/9606.protein.links.full.v11.0.txt")
     // println(network.show())
-    val bloader = new BiomartLoader(spark)
-    val biomart = bloader.load("/home/jacith/shredder/executor/spark/data/geno/mart_export.txt")
-    println(biomart.show())
+    //val bloader = new BiomartLoader(spark)
+    //val biomart = bloader.load("/home/jacith/shredder/executor/spark/data/geno/mart_export.txt")
+    //println(biomart.show())
+	val cloader = new CopyNumberLoader(spark)
+	val copynum = cloader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
+	copynum.take(10).foreach(println(_))
 
     }
 

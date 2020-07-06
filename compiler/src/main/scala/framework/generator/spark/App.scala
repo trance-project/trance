@@ -12,13 +12,14 @@ object TestApp extends App {
 
     //AppWriter.flatDataset(HybridBySample, "test", skew=true)
     // AppWriter.shredDataset(HybridBySample, "test", skew=true)
-    // AppWriter.flatDataset(HybridBySample, "test")
-    //AppWriter.shredDataset(HybridBySample, "test", unshred = true)
-	AppWriter.flatDataset(ValidateOccurrence, "test")
-	AppWriter.shredDataset(ValidateOccurrence, "test", unshred = true)
+    AppWriter.flatDataset(HybridBySample, "test")
+    AppWriter.shredDataset(HybridBySample, "test")
+    //AppWriter.flatDataset(StandardHybridBySample, "test")
+	//AppWriter.shredDataset(StandardHybridBySample, "test")
+	// AppWriter.shredDataset(HybridBySample, "test", unshred = true)
 	// AppWriter.shredDataset(QuantifyConsequence, "test")
 	// AppWriter.shredDataset(GeneConnectivity, "test")
-    // AppWriter.writeLoader("Biomart", HybridBySample.geneProteinOrderedType, delimiter = "\\\t")
+    AppWriter.writeLoader("CopyNumber", HybridBySample.copyNumberOrderedType, delimiter = "\\\t")
   }
 }
 
