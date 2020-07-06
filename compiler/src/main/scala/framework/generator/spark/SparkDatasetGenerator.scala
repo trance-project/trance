@@ -135,7 +135,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     */
   def generateReference(e: CExpr, literal: Boolean = false): String = e match {
     case Project(v, f) => v.tp match {
-      case LabelType(_) => s"""col("_LABEL").getField("$f")"""
+      case LabelType(fs) if fs.size > 1 => 
+        println(s"in here with $e")
+        s"""col("_LABEL").getField("$f")"""
       case _ => s"""col("$f")"""
     }
     case Label(fs) if fs.size == 1 => generateReference(fs.head._2)
@@ -189,7 +191,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         val ge2 = generateReference(e2)
         val ze2 = zero(e2.tp)
         s"when($ge2 === $ze2, $ze2).otherwise(${generateReference(e1)} $op $ge2)"
-      case _ => s"${generateReference(e1)} $op ${generateReference(e2)}"
+      case _ => s"(${generateReference(e1)} $op ${generateReference(e2)})"
     }
 
     /** BOOL OPS **/
@@ -238,7 +240,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         case (col, Project(_, oldCol)) if col != oldCol => Nil
         case (col, expr) if !projectCols(col) =>
           List(s"""|  .withColumn("$col", ${generateReference(expr, true)})""")
-        case _ => Nil
+        case (ncol, col @ Label(fs)) => 
+		  List(s"""|.withColumn("$ncol", ${generateReference(col)})""")
+ 		case _ => Nil
       }
 
       // override existing columns
@@ -249,7 +253,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           if (newCols(oldCol)) List(s"""| .withColumn("$col", $$"$oldCol")""")
           // overrides a column
           else List(s"""| .withColumnRenamed("$oldCol", "$col")""")
-        case _ => Nil
+		case _ => Nil
       } 
 
       // ensure that new columns are made before renaming occurs
@@ -265,13 +269,13 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     // adjust lookup column of dictionary
       val rcol = s"${p1}${p2}"
       val rtp = rename(right.tp.attrs, p2, rcol)
-      handleType(rtp)
+	    handleType(rtp)
       val grtp = generateType(rtp)
 
       // adjust label lookup column
       val lcol = s"${p1}_LABEL"
       val (lcolumn, ltp) = v1.tp.attrs get "_LABEL" match {
-        case Some(LabelType(ms)) if ms.size > 1 =>
+        case Some(LabelType(ms)) if ms.size > 1 && ms.contains(p1) =>
           (s""".withColumn("$lcol", col("_LABEL").getField("$p1"))""", 
             RecordCType(left.tp.attrs))
         case _ => 
