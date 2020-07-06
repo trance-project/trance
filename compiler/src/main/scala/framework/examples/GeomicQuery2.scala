@@ -208,7 +208,6 @@ object plan6 extends GenomicSchema {
             ForeachUnion(gs, s("genes").asBag,
               ForeachUnion(gs, s("genes").asBag,
                 ForeachUnion(p, ps,
-
                   IfThenElse(Cmp(OpEq, gs("gb_name"), p("p_gene_name")),
                     Singleton(Tuple("pathway_name" -> p("pathway_name"), "burden" -> gs("gb_burden")))
                   )
@@ -219,9 +218,12 @@ object plan6 extends GenomicSchema {
       )
     )
 
+
+
+  val p0 = Assignment(variantsMapped.name, variantsMapped.query.asInstanceOf[Expr])
   val p1 = Assignment(pathway_flatten.name, pathway_flatten.query.asInstanceOf[Expr])
   val p2 = Assignment(Gene_Burden_plan6.name, Gene_Burden_plan6.query.asInstanceOf[Expr])
-  val program = Program(p1, p2, Assignment(name, query))
+  val program = Program(p0, p1, p2, Assignment(name, query))
 }
 
 
