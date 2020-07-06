@@ -136,7 +136,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 			|val gistic = (gistic_L, gistic_L.empty)
 			|gistic.cache
 			|gistic.count**/
-			|val cnLoader = new CopyNumber(spark)
+			|val cnLoader = new CopyNumberLoader(spark)
 			|//val copynum = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
 			|val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
 			|val copynumber = (copynumber_L, copynumber_L.empty)
@@ -171,7 +171,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 			|                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
 			|gistic.cache
 			|gistic.count**/
-			|val cnLoader = new CopyNumber(spark)
+			|val cnLoader = new CopyNumberLoader(spark)
 			|//val copynum = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
 			|val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
 			|copynumber.cache
@@ -222,7 +222,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 		|val IDict_gistic__D_gistic_samples = gdict2
 		|IDict_gistic__D_gistic_samples.cache
 		|IDict_gistic__D_gistic_samples.count**/
-		|val cnLoader = new CopyNumber(spark)
+		|val cnLoader = new CopyNumberLoader(spark)
 		|//val copynum = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
 		|val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
 		|val IBag_copynumber__D = copynum
