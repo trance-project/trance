@@ -280,7 +280,7 @@ object HybridBySample extends DriverGene {
 		                          		Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
 		                            		"hybrid_score" -> 
 		                            		conr("so_weight").asNumeric * matchImpact 
-											* (sr("focal_score").asNumeric + Const(.01, Double))))))))))))
+											* (sr("focal_score").asNumeric + NumericConst(.01, DoubleType))))))))))))
 		                          		/**Some(Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
 		                            		"hybrid_score" -> NumericConst(.01, DoubleType) 
 											* matchImpact * sr("focal_score").asNumeric)))))))))))**/

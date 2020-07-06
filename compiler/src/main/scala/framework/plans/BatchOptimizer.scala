@@ -70,19 +70,21 @@ object BatchOptimizer extends Extensions {
 
     case DFJoin(left, v, right, v2, cond, fields) =>
       val jcols = collect(cond)
-      val lpin = push(left, fields.toSet ++ fs ++ jcols) 
-      val rpin = push(right, fields.toSet ++ fs ++ jcols)
+      val nfields = fs ++ jcols
+      val lpin = push(left, nfields) 
+      val rpin = push(right, nfields)
       val lv = Variable.fromBag(v.name, lpin.tp)
       val rv = Variable.fromBag(v2.name, rpin.tp)
-      DFJoin(lpin, lv, rpin, rv, cond, fields)
+      DFJoin(lpin, lv, rpin, rv, cond, nfields.toList)
 
     case DFOuterJoin(left, v, right, v2, cond, fields) =>
       val jcols = collect(cond)
-      val lpin = push(left, fields.toSet ++ fs ++ jcols)
-      val rpin = push(right, fields.toSet ++ fs ++ jcols)
+      val nfields = fs ++ jcols
+      val lpin = push(left, nfields)
+      val rpin = push(right, nfields)
       val lv = Variable.fromBag(v.name, lpin.tp)
       val rv = Variable.fromBag(v2.name, rpin.tp)
-      DFOuterJoin(lpin, lv, rpin, rv, cond, fields)
+      DFOuterJoin(lpin, lv, rpin, rv, cond, nfields.toList)
 
     case DFNest(in, v, key, value, filter, nulls, ctag) => 
       // adjust key
@@ -103,13 +105,13 @@ object BatchOptimizer extends Extensions {
 
       val vs = nkey ++  value.toSet
       val nfilter = filter match {
-		case Record(ffs) => Record(ffs.filter(f => vs(f._1)))
-		case If(cond, Sng(Record(f1)), Some(Sng(Record(f2)))) => 
-			 If(cond, Sng(Record(f1.filter(f => vs(f._1)))), 
-			 	Some(Sng(Record(f2.filter(f => vs(f._1))))))
-		case _ => ???
-	  }
-	  val nfs = vs ++ fs ++ collect(nfilter)
+    		case Record(ffs) => Record(ffs.filter(f => vs(f._1)))
+    		case If(cond, Sng(Record(f1)), Some(Sng(Record(f2)))) => 
+    			 If(cond, Sng(Record(f1.filter(f => vs(f._1)))), 
+    			 	Some(Sng(Record(f2.filter(f => vs(f._1))))))
+    		case _ => ???
+	    } 
+	    val nfs = vs ++ fs ++ collect(nfilter)
       val pin = push(in, nfs)
       val nv = Variable.fromBag(v.name, pin.tp)
 
