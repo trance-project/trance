@@ -58,7 +58,7 @@ object Shredpathway_burden_plan2Spark {
     val sf = Config.datapath.split("/").last
     val conf = new SparkConf().setMaster(Config.master)
       .setAppName("Shredpathway_burden_plan2Spark" + sf)
-      .set("spark.sql.shuffle.partitions", Config.lparts.toString)
+      .set("spark.sql.shuffle.partitions", Config.maxPartitions.toString)
     val spark = SparkSession.builder().config(conf).getOrCreate()
 
     import spark.implicits._

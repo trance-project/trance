@@ -188,6 +188,7 @@ object Gene_Burden_plan6 extends GenomicSchema {
   val program = variantsMapped.program.asInstanceOf[Gene_Burden_plan6.Program].append(Assignment(name, query))
 }
 
+
 // {sample, {pathway_name, burden}}
 object plan6 extends GenomicSchema {
   val name = "pathway_burden_plan6"
@@ -195,19 +196,21 @@ object plan6 extends GenomicSchema {
   val (ss, s) = varset(Gene_Burden_plan6.name, "v4", Gene_Burden_plan6.program(Gene_Burden_plan6.name).varRef.asInstanceOf[BagExpr])
   val gs = TupleVarRef("g3", s("genes").asInstanceOf[BagExpr].tp.tp)
 
+  // flatpathway: {pathway_name: String, p_gene_name: String}
+  val (ps, p) = varset(pathway_flatten.name, "p1", pathway_flatten.program(pathway_flatten.name).varRef.asInstanceOf[BagExpr])
+
   val query =
     ForeachUnion(s, ss,
 
       Singleton(Tuple(
         "sample" -> s("gb_sample"), "pathways" ->
           ReduceByKey(
-            // ForeachUnion(gs, s("genes").asBag,
-              // ForeachUnion(...) // change this here to iterate over pathwayFlat
-            ForeachUnion(pr, pathways,
-              ForeachUnion(ger, BagProject(pr, "gene_set"),
-                ForeachUnion(gs, s("genes").asBag,
-                  IfThenElse(Cmp(OpEq, gs("gb_name"), ger("name")),
-                    Singleton(Tuple("pathway_name" -> pr("p_name"), "burden" -> gs("gb_burden")))
+            ForeachUnion(gs, s("genes").asBag,
+              ForeachUnion(gs, s("genes").asBag,
+                ForeachUnion(p, ps,
+
+                  IfThenElse(Cmp(OpEq, gs("gb_name"), p("p_gene_name")),
+                    Singleton(Tuple("pathway_name" -> p("pathway_name"), "burden" -> gs("gb_burden")))
                   )
                 ))
             ),
@@ -216,9 +219,11 @@ object plan6 extends GenomicSchema {
       )
     )
 
-
-  val program = Gene_Burden_plan6.program.asInstanceOf[plan6.Program].append(Assignment(name, query))
+  val p1 = Assignment(pathway_flatten.name, pathway_flatten.query.asInstanceOf[Expr])
+  val p2 = Assignment(Gene_Burden_plan6.name, Gene_Burden_plan6.query.asInstanceOf[Expr])
+  val program = Program(p1, p2, Assignment(name, query))
 }
+
 
 
 object flattenBurden extends GenomicSchema {
