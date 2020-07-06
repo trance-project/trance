@@ -201,8 +201,10 @@ object plan6 extends GenomicSchema {
       Singleton(Tuple(
         "sample" -> s("gb_sample"), "pathways" ->
           ReduceByKey(
-            ForeachUnion(pr, pathways,
-              ForeachUnion(ger, BagProject(pr, "gene_set"),
+            ForeachUnion(gs, s("genes").asBag,
+              ForeachUnion(...) // change this here to iterate over pathwayFlat
+            // ForeachUnion(pr, pathways,
+            //   ForeachUnion(ger, BagProject(pr, "gene_set"),
                 ForeachUnion(gs, s("genes").asBag,
                   IfThenElse(Cmp(OpEq, gs("gb_name"), ger("name")),
                     Singleton(Tuple("pathway_name" -> pr("p_name"), "burden" -> gs("gb_burden")))

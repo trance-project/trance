@@ -81,8 +81,9 @@ object BatchUnnester {
       case _ => ???
     }
 
-    case Comprehension(e1 @ InputRef(name, _), v, cond, e2) if !w.isEmpty =>
+    case Comprehension(e1, v, cond, e2) if !w.isEmpty =>
       assert(!E.isEmpty)
+      val name = getName(e1)
       val right = AddIndex(e1, name+"_index")
       val nv = Variable(v.name, right.tp.tp)
       val (nw, nE) = 

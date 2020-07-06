@@ -59,7 +59,7 @@ sealed trait Type { self =>
   }
 
   // For debugging
-  // override def toString: String = ""
+  override def toString: String = ""
 }
 
 trait ReducibleType
