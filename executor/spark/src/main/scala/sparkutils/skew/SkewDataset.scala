@@ -7,6 +7,7 @@ import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.expressions.scalalang._
+import sparkutils.Config
 
 /** Implicits used for the generated Spark code from the compiler framework.
   * This file contains the following implicits:
@@ -224,7 +225,10 @@ object SkewDataset{
 
     def print: Unit = (light, heavy).print
 
-    def count: Long = (light, heavy).count
+    def count: Long = {
+	  println(s"heavy key size: ${heavyKeys.value.size}")
+	  (light, heavy).count
+	}
 
     def cache: Unit = (light, heavy).cache
 
@@ -426,11 +430,15 @@ object SkewDataset{
     val heavy = dfs._2
 
     /** counts the light and heavy component, returns as sum **/
-    def count: Long = if (heavy.rdd.getNumPartitions == 1) light.count
-      else {
+    def count: Long = if (heavy.rdd.getNumPartitions == 1) {
+	  	val l = light.count
+		println(s"light: $l, heavy: 0")
+		l
+      } else {
         val l = light.count
         val h = heavy.count
-        l + h
+		println(s"light: $l, heavy: $h")
+		l + h
       }
 
     /** prints the light and heavy components **/
@@ -493,13 +501,18 @@ object SkewDataset{
     val heavy = dfs._2
     val partitions = light.rdd.getNumPartitions
     val random = scala.util.Random
+	val thresh = Config.threshold
 
     /** counts the light and heavy component, returns as sum **/
-    def count: Long = if (heavy.rdd.getNumPartitions == 1) light.count 
-      else {
+    def count: Long = if (heavy.rdd.getNumPartitions == 1) {
+	  	val l = light.count 
+		println(s"light: $l, heavy: 0")
+		l
+      } else {
         val lc = light.count
         val hc = heavy.count
-        lc + hc
+        println(s"light: $lc, heavy: $hc")
+		lc + hc
       }
 
     /** prints the light and heavy components **/
@@ -577,11 +590,11 @@ object SkewDataset{
       */
     def heavyKeys[K: ClassTag](key: String): (Dataset[T], Set[K]) = {
       val dfull = dfs.union
-      val keys = dfull.select(key).rdd.mapPartitions(it => {
+	  val keys = dfull.select(key).rdd.mapPartitions(it => {
         var cnt = 0
         val acc = HashMap.empty[Row, Int].withDefaultValue(0)
         it.foreach{ c => cnt +=1; if (random.nextDouble <= .1) acc(c) += 1 }
-        acc.filter(_._2 > (cnt*.1)*.0025).map(r => r._1.getAs[K](0)).iterator
+        acc.filter(_._2 > (cnt*.1)*thresh).map(r => r._1.getAs[K](0)).iterator
       }).collect.toSet
       (dfull, keys)
     }

@@ -10,9 +10,12 @@ object TestApp extends App {
 
   override def main(args: Array[String]){
 
-    AppWriter.flatDataset(HybridBySample, "test", skew=true)
-    AppWriter.shredDataset(HybridBySample, "test", skew=true)
-    // AppWriter.shredDataset(GeneConnectivity, "test")
+    //AppWriter.flatDataset(HybridBySample, "test", skew=true)
+    //AppWriter.shredDataset(HybridBySample, "test", skew=true)
+    //AppWriter.flatDataset(HybridBySample, "test")
+    //AppWriter.shredDataset(HybridBySample, "test")
+	AppWriter.shredDataset(QuantifyConsequence, "test")
+	// AppWriter.shredDataset(GeneConnectivity, "test")
     //AppWriter.writeLoader("Network", HybridBySample.edgeOrderedType, delimiter = "\t")
   }
 }

@@ -50,8 +50,9 @@ class GisticLoader(spark: SparkSession) {
     data
   }**/
 
-  def merge(dir: String): Dataset[Gistic] = {
-    val files = (new File(dir)).listFiles().toList.map(f => s"$dir/${f.getName}")
+  def merge(path: String, dir: Boolean = true): Dataset[Gistic] = {
+    val files = if (dir) (new File(path)).listFiles().toList.map(f => s"$dir/${f.getName}")
+		else List(path)
     val ldf = read(files.head)
     val df = iterMerge(ldf, files.tail)
     val columns = spark.sparkContext.broadcast(df.columns.toSet -- Set("Gene Symbol", "Gene ID", "Cytoband"))
@@ -92,7 +93,8 @@ class GisticLoader(spark: SparkSession) {
     (Dataset[GisticSampleDict2], Dataset[GisticSampleDict2], Option[String], Broadcast[Set[String]])) = {
     val (dict1, dict2) = shred(dfs)
     val skew_dict1 = (dict1, dict1.empty)
-    val skew_dict2 = (dict2, dict2.empty).repartition[String](col("_1"))
+	val nullKeys = spark.sparkContext.broadcast(Set.empty[String])
+    val skew_dict2 = (dict2, dict2.empty, Some("_1"), nullKeys)//.repartition[String](col("_1"))
     (skew_dict1, skew_dict2)
   }
 
