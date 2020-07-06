@@ -3,6 +3,8 @@ package sparkutils.loader
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
+import java.io.File
+import or.apache.spark.sql.functions._
 
 case class CopyNumber(cn_gene_id: String, cn_gene_name: String, cn_chromosome: String, cn_start: Int, cn_end: Int, cn_copy_number: Int, min_copy_number: Int, max_copy_number: Int, cn_aliquot_uuid: String)
 
