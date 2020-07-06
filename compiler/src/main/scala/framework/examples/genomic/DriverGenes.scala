@@ -127,7 +127,8 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 			|val occurrences = (occurrences_L, occurrences_L.empty)
 			|occurrences.cache
 			|occurrences.count
-			|/**//val gistic_L = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
+			|/**
+      |//val gistic_L = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
 			|//					.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
 			|val gisticLoader = new GisticLoader(spark)
 			|val gistic_L = gisticLoader.merge(s"$basepath/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
@@ -162,7 +163,8 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 			|//val occurrences = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence])
 			|occurrences.cache
 			|occurrences.count
-			|/**//val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
+			|/**
+      |//val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
 			|//				.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
 			|val gisticLoader = new GisticLoader(spark)
 			|val gistic = gisticLoader.merge(s"$basepath/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
