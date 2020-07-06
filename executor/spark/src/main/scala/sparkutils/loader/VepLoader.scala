@@ -183,11 +183,11 @@ class VepLoader(spark: SparkSession) extends Serializable {
 
   }
 
-  
-      //   val (dfull, hk) = heavyKeys[K](nkey)
-      // if (hk.nonEmpty){
-      //   val hkeys = dfull.sparkSession.sparkContext.broadcast(hk)
-      //   (dfull.lfilter[K](col(nkey), hkeys), dfull.hfilter[K](col(nkey), hkeys), Some(nkey), hkeys).equiJoin[S,K](right, usingColumns, joinType)
+  // def loadTestData(): Dataset[Occurrence2] = {
+  //   spark.sparkContext.parallelize(Seq(Occurrence2("oid1", "donorId1", 1, "projectId1", 1, "R", "R", "A", "Chr1", "A", "Grch", 1, "vid1", "testing", "no", "Chr1", 1, 1, 
+  //     Seq()
+  //   )))
+  // }
 
   def shred(occur: Dataset[Occurrence]): (Dataset[OccurrDict1], Dataset[OccurrTransDict2], Dataset[OccurrTransConseqDict3]) = {
 

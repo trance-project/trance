@@ -77,6 +77,15 @@ object BatchOptimizer extends Extensions {
       val rv = Variable.fromBag(v2.name, rpin.tp)
       DFJoin(lpin, lv, rpin, rv, cond, nfields.toList)
 
+    case DFOuterJoin(left, v, right, v2, cond @ Equals(Project(_, p1), Project(_, p2 @ "_1")), fields) if right.tp.isDict =>
+      // val jcols = collect(cond)
+      val nfields = fs ++ Set(p1, p2)
+      val lpin = push(left, nfields)
+      val rpin = push(right, nfields)
+      val lv = Variable.fromBag(v.name, lpin.tp)
+      val rv = Variable.fromBag(v2.name, rpin.tp)
+      DFOuterJoin(lpin, lv, rpin, rv, cond, (nfields -- Set(p1, p2)).toList)
+
     case DFOuterJoin(left, v, right, v2, cond, fields) =>
       val jcols = collect(cond)
       val nfields = fs ++ jcols

@@ -59,6 +59,17 @@ trait StringNetwork {
 
 }
 
+trait GeneProteinMap {
+
+  val geneProteinOrderedType = List(("gene_stable_id", StringType), ("gene_stable_id_version" -> StringType),
+    ("transcript_stable_id_version", StringType), ("protein_stable_id", StringType), 
+    ("protein_stable_id_version", StringType), ("gene_start_bp", IntType), ("gene_end_bp", IntType),
+    ("transcript_start_bp", IntType), ("transcript_end_bp", IntType), ("biomart_gene_name", StringType))
+  
+  val geneProteinMapType = TupleType(geneProteinOrderedType.toMap)
+
+}
+
 trait GeneExpression {
 
   val geneExprType = TupleType("expr_gene" -> StringType, "fpkm" -> DoubleType)
@@ -88,7 +99,8 @@ trait SOImpact {
 
 }
 
-trait DriverGene extends Query with Occurrence with Gistic with StringNetwork with GeneExpression with Biospecimen with SOImpact {
+trait DriverGene extends Query with Occurrence with Gistic with StringNetwork 
+  with GeneExpression with Biospecimen with SOImpact with GeneProteinMap {
   
   val basepath = "/nfs_qc4/genomics/gdc/"
   
@@ -222,6 +234,9 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork wi
 
   val conseq = BagVarRef("consequences", BagType(soImpactType))
   val conr = TupleVarRef("cons", soImpactType)
+
+  val gpmap = BagVarRef("biomart", BagType(geneProteinMapType))
+  val gpr = TupleVarRef("gp", geneProteinMapType)
 
   def projectTuple(tr: TupleVarRef, nbag:Map[String, TupleAttributeExpr], omit: List[String] = Nil): BagExpr =
     Singleton(Tuple(tr.tp.attrTps.withFilter(f =>

@@ -57,9 +57,12 @@ object App {
        val cloader = new ConsequenceLoader(spark)
        val thresh = cloader.loadSequential("/nfs_qc4/genomics/calc_variant_conseq.txt")
        thresh.collect.foreach(println(_))**/
-    val nloader = new NetworkLoader(spark)
-    val network = nloader.load("/home/jacith/shredder/executor/spark/data/geno/9606.protein.links.full.v11.0.txt")
-    println(network.show())
+    // val nloader = new NetworkLoader(spark)
+    // val network = nloader.load("/home/jacith/shredder/executor/spark/data/geno/9606.protein.links.full.v11.0.txt")
+    // println(network.show())
+    val bloader = new BiomartLoader(spark)
+    val biomart = bloader.load("/home/jacith/shredder/executor/spark/data/geno/mart_export.txt")
+    println(biomart.show())
 
     }
 

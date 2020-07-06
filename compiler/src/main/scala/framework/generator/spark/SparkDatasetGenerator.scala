@@ -189,7 +189,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         val ge2 = generateReference(e2)
         val ze2 = zero(e2.tp)
         s"when($ge2 === $ze2, $ze2).otherwise(${generateReference(e1)} $op $ge2)"
-      case _ => s"${generateReference(e1)} $op ${generateReference(e2)}"
+      case _ => s"(${generateReference(e1)} $op ${generateReference(e2)})"
     }
 
     /** BOOL OPS **/
@@ -267,7 +267,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     // adjust lookup column of dictionary
       val rcol = s"${p1}${p2}"
       val rtp = rename(right.tp.attrs, p2, rcol)
-	  handleType(rtp)
+	    handleType(rtp)
       val grtp = generateType(rtp)
 
       // adjust label lookup column
