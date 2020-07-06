@@ -19,7 +19,7 @@ object TestApp extends App {
 	// AppWriter.shredDataset(HybridBySample, "test", unshred = true)
 	// AppWriter.shredDataset(QuantifyConsequence, "test")
 	// AppWriter.shredDataset(GeneConnectivity, "test")
-    AppWriter.writeLoader("CopyNumber", HybridBySample.copyNumberOrderedType, delimiter = "\\\t")
+    //AppWriter.writeLoader("CopyNumber", HybridBySample.copyNumberOrderedType, delimiter = "\\\t")
   }
 }
 
