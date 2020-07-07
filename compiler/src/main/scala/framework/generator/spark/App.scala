@@ -16,8 +16,8 @@ object TestApp extends App {
     AppWriter.flatDataset(HybridPlusBySample, "test")
     AppWriter.shredDataset(HybridPlusBySample, "test")
 
-    AppWriter.flatDataset(SampleSomaticNetwork, "SampleSomaticNetwork,standard")
-    AppWriter.shredDataset(SampleSomaticNetwork, "SampleSomaticNetwork,shredded")
+    // AppWriter.flatDataset(SampleSomaticNetwork, "SampleSomaticNetwork,standard")
+    // AppWriter.shredDataset(SampleSomaticNetwork, "SampleSomaticNetwork,shredded")
   }
 }
 

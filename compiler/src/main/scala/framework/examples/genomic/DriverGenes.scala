@@ -471,7 +471,7 @@ object HybridPlusBySample extends DriverGene {
                           			"hybrid_transcript_id" -> ar("transcript_id"),
                           			"hybrid_protein_start" -> ar("protein_start"),
                           			"hybrid_protein_end" -> ar("protein_end"),
-                          			"hybrid_strand" -> ar("strand"),
+                          			"hybrid_strand" -> ar("ts_strand"),
                           			"hybrid_gene_name" -> cnr("cn_gene_name"),
                           			"hybrid_max_copy" -> cnr("max_copy_number"),
                             		"hybrid_score" -> 

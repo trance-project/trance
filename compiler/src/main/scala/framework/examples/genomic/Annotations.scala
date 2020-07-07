@@ -80,7 +80,7 @@ trait Vep {
     "impact" -> StringType,
     "protein_end" -> LongType,
     "protein_start" -> LongType,
-    "strand" -> LongType,
+    "ts_strand" -> LongType,
     "transcript_id" -> StringType,
     //"appris" -> StringType,
     //"biotype" -> DoubleType,
