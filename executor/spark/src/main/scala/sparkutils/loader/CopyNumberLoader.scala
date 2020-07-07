@@ -24,7 +24,7 @@ class CopyNumberLoader(spark: SparkSession) {
    val delimiter: String = "\t"
   
 
-  val aliquotUdf = udf { s: String => s.split(".")(1) }
+  val aliquotUdf = udf { s: String => s.split("\\.")(1) }
 
   def load(path: String, dir: Boolean = true): Dataset[CopyNumber] = {
     val files = if (dir) (new File(path)).listFiles().toSeq.map(f => s"$path/${f.getName}")
