@@ -118,10 +118,10 @@ trait CopyNumber {
 		if (shred){
 		val copynumLoad = if (skew) "(copynumber, copynumber.empty)" else "copynumber"
 		s"""|val cnLoader = new CopyNumberLoader(spark)
-			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
-	    	|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
-			|val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
-			|				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
+			|val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
+	    	|				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
+			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
 			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
 			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
 			|val IBag_copynumber__D = $copynumLoad
@@ -455,6 +455,8 @@ object HybridPlusBySample extends DriverGene {
 
   val query = ForeachUnion(or, occurrences,
     Singleton(Tuple("hybrid_sample" -> or("donorId"),
+		"hybrid_project" -> or("projectId"),
+		"hybrid_aliquotId" -> or("aliquotId"),
     	"hybrid_genes" -> 
         	ReduceByKey(
         		ForeachUnion(ar, BagProject(or, "transcript_consequences"),
