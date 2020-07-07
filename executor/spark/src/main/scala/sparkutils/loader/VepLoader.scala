@@ -71,6 +71,9 @@ case class OccurrTransDict2(_1: String, caseid: String, amino_acids: String, dis
 
 case class OccurrTransConseqDict3(_1: String, element: String)
 
+
+
+
 class VepLoader(spark: SparkSession) extends Serializable {
 
   import spark.implicits._

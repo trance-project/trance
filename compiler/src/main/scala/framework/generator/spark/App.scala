@@ -10,16 +10,14 @@ object TestApp extends App {
 
   override def main(args: Array[String]){
 
-    //AppWriter.flatDataset(HybridBySampleStandard, "test", skew=true)
-    //AppWriter.shredDataset(HybridBySample, "test", skew=true)
-    AppWriter.flatDataset(HybridBySample, "test")
-    AppWriter.shredDataset(HybridBySample, "test")
-    //AppWriter.flatDataset(StandardHybridBySample, "test")
-	//AppWriter.shredDataset(StandardHybridBySample, "test")
-	// AppWriter.shredDataset(HybridBySample, "test", unshred = true)
-	// AppWriter.shredDataset(QuantifyConsequence, "test")
-	// AppWriter.shredDataset(GeneConnectivity, "test")
-    //AppWriter.writeLoader("CopyNumber", HybridBySample.copyNumberOrderedType, delimiter = "\\\t")
+    // AppWriter.flatDataset(HybridBySample, "test")
+    // AppWriter.shredDataset(HybridBySample, "test")
+
+    AppWriter.flatDataset(HybridPlusBySample, "test")
+    AppWriter.shredDataset(HybridPlusBySample, "test")
+
+    AppWriter.flatDataset(SampleSomaticNetwork, "SampleSomaticNetwork,standard")
+    AppWriter.shredDataset(SampleSomaticNetwork, "SampleSomaticNetwork,shredded")
   }
 }
 
