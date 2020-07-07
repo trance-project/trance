@@ -343,13 +343,13 @@ object HybridBySampleStandard extends DriverGene {
 		                        ForeachUnion(conr, conseq,
 		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
 		                          		Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
-		                          			"hybrid_transcript_id" -> ar("transcript_id"),
-		                          			"hyrbid_protein_start" -> ar("protein_start"),
-		                          			"hybrid_protein_end" -> ar("protein_end"),
-		                          			"hybrid_strand" -> ar("strand"),
-		                          			"hybrid_gene_name" -> cnr("cn_gene_name"),
-		                          			"hybrid_max_copy" -> cnr("max_copy_number"),
-		                          			"hybrid_impact" -> or("most_severe_consequence"),
+		                          			// "hybrid_transcript_id" -> ar("transcript_id"),
+		                          			// "hyrbid_protein_start" -> ar("protein_start"),
+		                          			// "hybrid_protein_end" -> ar("protein_end"),
+		                          			// "hybrid_strand" -> ar("strand"),
+		                          			// "hybrid_gene_name" -> cnr("cn_gene_name"),
+		                          			// "hybrid_max_copy" -> cnr("max_copy_number"),
+		                          			// "hybrid_impact" -> or("most_severe_consequence"),
 		                            		"hybrid_score" -> 
 		                            		conr("so_weight").asNumeric * matchImpact 
 											* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))
@@ -357,8 +357,9 @@ object HybridBySampleStandard extends DriverGene {
 		                            		"hybrid_score" -> NumericConst(.01, DoubleType) 
 											* matchImpact * sr("focal_score").asNumeric)))))))))))**/
 
-			,List("hybrid_gene_id", "hybrid_transcript_id", "hybrid_protein_start", "hybrid_protein_end", 
-					"hybrid_strand", "hybrid_gene_name", "hybrid_max_copy", "hybrid_impact"),
+			,List("hybrid_gene_id"),
+			// "hybrid_transcript_id", "hybrid_protein_start", "hybrid_protein_end", 
+			//		"hybrid_strand", "hybrid_gene_name", "hybrid_max_copy", "hybrid_impact"),
             List("hybrid_score")))))))
 
   val program = Program(Assignment(name, query))
@@ -379,39 +380,38 @@ object HybridBySample extends DriverGene {
 		                    NumericConst(0.15, DoubleType),
 		                    NumericConst(0.01, DoubleType)))))
 
-  val query = ForeachUnion(or, occurrences, 
-    ForeachUnion(br, biospec, 
-      IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
-    	Singleton(Tuple("hybrid_sample" -> or("donorId"), 
-    		"hybrid_aliquot" -> br("bcr_aliquot_uuid"),
-    		"hybrid_project" -> or("projectId"),
-        	"hybrid_genes" -> 
-	        	ReduceByKey(
-	            	ForeachUnion(cnr, copynum,
-					       IfThenElse(Cmp(OpEq, cnr("cn_aliquot_uuid"), br("bcr_aliquot_uuid")),
-					  	    ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-					  		     IfThenElse(Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id")),
-		                      ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-		                        ForeachUnion(conr, conseq,
-		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-		                          		Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
-		                          			"hybrid_transcript_id" -> ar("transcript_id"),
-		                          			"hyrbid_protein_start" -> ar("protein_start"),
-		                          			"hybrid_protein_end" -> ar("protein_end"),
-		                          			"hybrid_strand" -> ar("strand"),
-		                          			"hybrid_gene_name" -> cnr("cn_gene_name"),
-		                          			"hybrid_max_copy" -> cnr("max_copy_number"),
-		                          			"hybrid_impact" -> or("most_severe_consequence"),
+  val query = ForeachUnion(or, occurrences,
+    Singleton(Tuple("hybrid_sample" -> or("donorId"),
+    	"hybrid_genes" -> 
+        	ReduceByKey(
+        		ForeachUnion(ar, BagProject(or, "transcript_consequences"),
+					ForeachUnion(br, biospec, 
+  						IfThenElse(Cmp(OpEq, ar("caseid"), br("bcr_patient_uuid")),
+					 		ForeachUnion(cnr, copynum,
+				       			IfThenElse(And(Cmp(OpEq, cnr("cn_aliquot_uuid"), br("bcr_aliquot_uuid")),
+				       				Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id"))),
+	                      				ForeachUnion(cr, BagProject(ar, "consequence_terms"),
+	                        				ForeachUnion(conr, conseq,
+	                        					IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+	                          						Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
+		                          			// "hybrid_transcript_id" -> ar("transcript_id"),
+		                          			// "hyrbid_protein_start" -> ar("protein_start"),
+		                          			// "hybrid_protein_end" -> ar("protein_end"),
+		                          			// "hybrid_strand" -> ar("strand"),
+		                          			// "hybrid_gene_name" -> cnr("cn_gene_name"),
+		                          			// "hybrid_max_copy" -> cnr("max_copy_number"),
+		                          			// "hybrid_impact" -> or("most_severe_consequence"),
 		                            		"hybrid_score" -> 
 		                            		conr("so_weight").asNumeric * matchImpact 
-											* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType)))))))))))
+											* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
 		                          		/**Some(Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
 		                            		"hybrid_score" -> NumericConst(.01, DoubleType) 
 											* matchImpact * sr("focal_score").asNumeric)))))))))))**/
 
-			,List("hybrid_gene_id", "hybrid_transcript_id", "hybrid_protein_start", "hybrid_protein_end", 
-					"hybrid_strand", "hybrid_gene_name", "hybrid_max_copy", "hybrid_impact"),
-            List("hybrid_score")))))))
+			,List("hybrid_gene_id"),
+			//, "hybrid_transcript_id", "hybrid_protein_start", "hybrid_protein_end", 
+			//		"hybrid_strand", "hybrid_gene_name", "hybrid_max_copy", "hybrid_impact"),
+            List("hybrid_score")))))
 
   val program = Program(Assignment(name, query))
 

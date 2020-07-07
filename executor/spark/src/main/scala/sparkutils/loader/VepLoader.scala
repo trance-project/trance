@@ -44,7 +44,7 @@ case class Transcript(amino_acids: String, distance: Option[Long], cdna_end: Opt
 
 case class TranscriptQuant(amino_acids: String, distance: Option[Long], cdna_end: Option[Long], cdna_start: Option[Long], cds_end: Option[Long], cds_start: Option[Long], codons: String, consequence_terms: List[Double], flags: List[String], gene_id: String, impact: Double, protein_end: Option[Long], protein_start: Option[Long], strand: Option[Long], transcript_id: String, variant_allele: String)
 
-case class Transcript3(amino_acids: String, distance: Long, cdna_end: Long, cdna_start: Long, cds_end: Long, cds_start: Long, codons: String, consequence_terms: List[String], flags: List[String], gene_id: String, impact: String, protein_end: Long, protein_start: Long, strand: Long, transcript_id: String, variant_allele: String)
+case class Transcript3(caseid: String, amino_acids: String, distance: Long, cdna_end: Long, cdna_start: Long, cds_end: Long, cds_start: Long, codons: String, consequence_terms: List[String], flags: List[String], gene_id: String, impact: String, protein_end: Long, protein_start: Long, strand: Long, transcript_id: String, variant_allele: String)
 
 case class Transcript2(impact: String, consequence_terms: Seq[String])
 
@@ -67,7 +67,7 @@ case class Occurrence2(oid: String, donorId: String, vend: Long, projectId: Stri
 
 case class OccurrDict1(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: String)
 
-case class OccurrTransDict2(_1: String, amino_acids: String, distance: Long, cdna_end: Long, cdna_start: Long, cds_end: Long, cds_start: Long, codons: String, consequence_terms: String, flags: List[String], gene_id: String, impact: String, protein_end: Long, protein_start: Long, strand: Long, transcript_id: String, variant_allele: String)
+case class OccurrTransDict2(_1: String, caseid: String, amino_acids: String, distance: Long, cdna_end: Long, cdna_start: Long, cds_end: Long, cds_start: Long, codons: String, consequence_terms: String, flags: List[String], gene_id: String, impact: String, protein_end: Long, protein_start: Long, strand: Long, transcript_id: String, variant_allele: String)
 
 case class OccurrTransConseqDict3(_1: String, element: String)
 
@@ -170,7 +170,7 @@ class VepLoader(spark: SparkSession) extends Serializable {
   	occur.map{ o => Occurrence2(o.oid, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, 
   		o.chromosome, o.allele_string, o.assembly_name, o.end, o.vid, o.input, o.most_severe_consequence, o.seq_region_name, o.start, o.strand, 
   		o.transcript_consequences match {
-  		  case Some(tc) => tc.map(t => Transcript3(t.amino_acids, t.distance match { case Some(l:Long) => l; case _ => -1 },
+  		  case Some(tc) => tc.map(t => Transcript3(o.donorId, t.amino_acids, t.distance match { case Some(l:Long) => l; case _ => -1 },
   		t.cdna_end match { case Some(l:Long) => l; case _ => -1 }, t.cdna_start match { case Some(l:Long) => l; case _ => -1 }, 
   		t.cds_end match { case Some(l:Long) => l; case _ => -1 }, t.cds_start match { case Some(l:Long) => l; case _ => -1 }, 
   		t.codons, t.consequence_terms, t.flags, t.gene_id, t.impact, t.protein_end match { case Some(l:Long) => l; case _ => -1 }, 
@@ -198,7 +198,7 @@ class VepLoader(spark: SparkSession) extends Serializable {
   	  case _ => Seq()
   	}}**/
 
-  	val dict2 = tmp2.map{ case (id1, id2, t) => OccurrTransDict2(id1, t.amino_acids, 
+  	val dict2 = tmp2.map{ case (id1, id2, t) => OccurrTransDict2(id1, t.caseid, t.amino_acids, 
 		t.distance, t.cdna_end, t.cdna_start, t.cds_end, t.cds_start, t.codons, s"${id1}_${id2}", t.flags, t.gene_id, t.impact, t.protein_end, t.protein_start, t.strand,
 		/**t.distance match { case Some(l:Long) => l; case _ => -1 },
   		t.cdna_end match { case Some(l:Long) => l; case _ => -1 }, t.cdna_start match { case Some(l:Long) => l; case _ => -1 }, 
