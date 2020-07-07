@@ -10,10 +10,10 @@ object TestApp extends App {
 
   override def main(args: Array[String]){
 
-    //AppWriter.flatDataset(HybridBySample, "test", skew=true)
-    // AppWriter.shredDataset(HybridBySample, "test", skew=true)
-    AppWriter.flatDataset(HybridBySample, "test")
-    AppWriter.shredDataset(HybridBySample, "test")
+    AppWriter.flatDataset(HybridBySample, "test", skew=true)
+    AppWriter.shredDataset(HybridBySample, "test", skew=true)
+    // AppWriter.flatDataset(HybridBySample, "test")
+    // AppWriter.shredDataset(HybridBySample, "test")
     //AppWriter.flatDataset(StandardHybridBySample, "test")
 	//AppWriter.shredDataset(StandardHybridBySample, "test")
 	// AppWriter.shredDataset(HybridBySample, "test", unshred = true)

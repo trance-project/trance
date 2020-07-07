@@ -119,7 +119,8 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
     else if (skew) {
     	s"""|val basepath = "/nfs_qc4/genomics/gdc/"
 			|val mafLoader = new MAFLoader(spark)
-			|val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")//TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
+			|//val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")
+      |val maf = mafLoader.loadFlat(s"$basepath/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
 			|val vepLoader = new VepLoader(spark)
 			|val (occurs, annots) = vepLoader.loadOccurrences(maf)
 			| val occurrences_L = vepLoader.finalize(vepLoader.buildOccurrences(occurs, annots))
@@ -138,7 +139,8 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 			|gistic.count**/
 			|val cnLoader = new CopyNumberLoader(spark)
 			|//val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
-			|val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
+      |val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+			|//val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
 			|val copynumber = (copynumber_L, copynumber_L.empty)
 			|copynumber.cache
 			|copynumber.count
@@ -156,7 +158,8 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 	}else{
 		s"""|val basepath = "/nfs_qc4/genomics/gdc/"
 			|val mafLoader = new MAFLoader(spark)
-			|val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")//TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
+      |//val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")
+      |val maf = mafLoader.loadFlat(s"$basepath/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
 			|val vepLoader = new VepLoader(spark)
 			|val (occurs, annots) = vepLoader.loadOccurrences(maf)
 			|val occurrences = vepLoader.finalize(vepLoader.buildOccurrences(occurs, annots))
@@ -173,7 +176,8 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 			|gistic.count**/
 			|val cnLoader = new CopyNumberLoader(spark)
 			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
-			|val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
+      |val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
 			|copynumber.cache
 			|copynumber.count
 			|val biospecLoader = new BiospecLoader(spark)
@@ -192,16 +196,18 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
   	val loadFun = if (skew) "shredSkew" else "shred"
   	val biospecLoad = if (skew) "(biospec, biospec.empty)" else "biospec"
   	val conseqLoad = if (skew) "(conseq, conseq.empty)" else "conseq"
+    val copynumLoad = if (skew) "(copynumber, copynumber.empty)" else "copynumber"
 	s"""|val basepath = "/nfs_qc4/genomics/gdc/"
 		|val mafLoader = new MAFLoader(spark)
-		|val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")//TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
+		|//val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")
+    |val maf = mafLoader.loadFlat(s"$basepath/somatic/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
 		|val vepLoader = new VepLoader(spark)
 		|val (occurs, annots) = vepLoader.loadOccurrences(maf)
 		|val occurrences = vepLoader.buildOccurrences(occurs, annots)
 		|val (odict1, odict2, odict3) = vepLoader.$loadFun(occurrences)
 		|//val (odict1, odict2, odict3) = vepLoader.$loadFun(spark.read.json(
 		|//	"file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence])
-  		|val IBag_occurrences__D = odict1
+  	|val IBag_occurrences__D = odict1
 		|IBag_occurrences__D.cache
 		|IBag_occurrences__D.count
 		|val IDict_occurrences__D_transcript_consequences = odict2
@@ -210,7 +216,8 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 		|val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
 		|IDict_occurrences__D_transcript_consequences_consequence_terms.cache
 		|IDict_occurrences__D_transcript_consequences_consequence_terms.count
-		|/**val gisticLoader = new GisticLoader(spark)
+		|/**
+    |val gisticLoader = new GisticLoader(spark)
 		|val gistic = gisticLoader.merge(s"$basepath/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
 		|                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
 		|//val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
@@ -224,8 +231,9 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 		|IDict_gistic__D_gistic_samples.count**/
 		|val cnLoader = new CopyNumberLoader(spark)
 		|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
-		|val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
-		|val IBag_copynumber__D = copynumber
+    |val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+		|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
+		|val IBag_copynumber__D = $copynumLoad
 		|IBag_copynumber__D.cache
 		|IBag_copynumber__D.count
 		|val biospecLoader = new BiospecLoader(spark)
