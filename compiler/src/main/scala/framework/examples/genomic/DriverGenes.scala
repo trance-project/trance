@@ -120,7 +120,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
     	s"""|val basepath = "/nfs_qc4/genomics/gdc/"
 			|val mafLoader = new MAFLoader(spark)
 			|//val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")
-      |val maf = mafLoader.loadFlat(s"$basepath/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
+      |val maf = mafLoader.loadFlat(s"$basepath/somatic/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
 			|val vepLoader = new VepLoader(spark)
 			|val (occurs, annots) = vepLoader.loadOccurrences(maf)
 			| val occurrences_L = vepLoader.finalize(vepLoader.buildOccurrences(occurs, annots))
@@ -139,8 +139,11 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 			|gistic.count**/
 			|val cnLoader = new CopyNumberLoader(spark)
 			|//val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
-      |val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
+			|val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+			|				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
 			|//val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
+			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
 			|val copynumber = (copynumber_L, copynumber_L.empty)
 			|copynumber.cache
 			|copynumber.count
@@ -159,7 +162,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 		s"""|val basepath = "/nfs_qc4/genomics/gdc/"
 			|val mafLoader = new MAFLoader(spark)
       |//val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")
-      |val maf = mafLoader.loadFlat(s"$basepath/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
+      |val maf = mafLoader.loadFlat(s"$basepath/somatic/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
 			|val vepLoader = new VepLoader(spark)
 			|val (occurs, annots) = vepLoader.loadOccurrences(maf)
 			|val occurrences = vepLoader.finalize(vepLoader.buildOccurrences(occurs, annots))
@@ -176,8 +179,11 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 			|gistic.count**/
 			|val cnLoader = new CopyNumberLoader(spark)
 			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
-      |val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+      		|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
+			|val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+			|				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
 			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
+			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]	
 			|copynumber.cache
 			|copynumber.count
 			|val biospecLoader = new BiospecLoader(spark)
@@ -231,8 +237,11 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 		|IDict_gistic__D_gistic_samples.count**/
 		|val cnLoader = new CopyNumberLoader(spark)
 		|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
-    |val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+    	|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
+		|val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+		|				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
 		|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
+		|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
 		|val IBag_copynumber__D = $copynumLoad
 		|IBag_copynumber__D.cache
 		|IBag_copynumber__D.count
@@ -301,6 +310,48 @@ object QuantifyConsequence extends DriverGene {
 							conr("so_weight").asPrimitive, Const(.01, DoubleType))))))))))))**/
 
 	val program = Program(Assignment(name, query))
+
+}
+
+object HybridBySampleStandard extends DriverGene {
+
+  val name = "HybridBySample"
+
+  val matchImpact = NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("HIGH", StringType)),
+		              NumericConst(0.8, DoubleType),
+		              NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("MODERATE", StringType)),
+		             	NumericConst(0.5, DoubleType),
+		                NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("LOW", StringType)),
+		                  NumericConst(0.3, DoubleType),
+		                  NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("MODIFIER", StringType)),
+		                    NumericConst(0.15, DoubleType),
+		                    NumericConst(0.01, DoubleType)))))
+
+  val query = ForeachUnion(or, occurrences, 
+    ForeachUnion(br, biospec, 
+      IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
+    	Singleton(Tuple("hybrid_sample" -> or("donorId"), "hybrid_aliquot" -> br("bcr_aliquot_uuid"),
+        	"hybrid_genes" -> 
+	        	ReduceByKey(
+					ForeachUnion(ar, BagProject(or, "transcript_consequences"),
+					  ForeachUnion(cnr, copynum,
+					    IfThenElse(And(Cmp(OpEq, cnr("cn_aliquot_uuid"), br("bcr_aliquot_uuid")),
+									   Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id"))),
+		                      ForeachUnion(cr, BagProject(ar, "consequence_terms"),
+		                        ForeachUnion(conr, conseq,
+		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+		                          		Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
+		                            		"hybrid_score" -> 
+		                            		conr("so_weight").asNumeric * matchImpact 
+											* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))
+		                          		/**Some(Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
+		                            		"hybrid_score" -> NumericConst(.01, DoubleType) 
+											* matchImpact * sr("focal_score").asNumeric)))))))))))**/
+
+			,List("hybrid_gene_id"),
+            List("hybrid_score")))))))
+
+  val program = Program(Assignment(name, query))
 
 }
 
