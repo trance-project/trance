@@ -76,6 +76,28 @@ trait Gistic {
 
 trait StringNetwork {
 
+	def loadFlatNetwork(shred: Boolean = false, skew: Boolean = false): String = {
+  	if (shred){
+  		val fnetLoad = if (skew) "(stringNetwork, stringNetwork.empty)" else "stringNetwork"
+  		s"""|val stringLoader = new NetworkLoader(spark)
+  			|val stringNetwork = stringLoader.load("/nfs_qc4/genomics/9606.protein.links.full.v11.0.txt")
+  			|val IBag_stringNetwork__D = $fnetLoad
+  			|IBag_stringNetwork__D.cache
+  			|IBag_stringNetwork__D.count""".stripMargin
+  	}else if (skew){
+  		s"""|val stringLoader = new NetworkLoader(spark)
+  			|val stringNetwork_L = stringLoader.load("/nfs_qc4/genomics/mart_export.txt")
+  			|val stringNetwork = (stringNetwork_L, stringNetwork_L.empty)
+  			|stringNetwork.cache
+  			|stringNetwork.count""".stripMargin
+  	}else{
+  		s"""|val stringLoader = new NetworkLoader(spark)
+  			|val stringNetwork = stringLoader.load("/nfs_qc4/genomics/mart_export.txt")
+  			|stringNetwork.cache
+  			|stringNetwork.count""".stripMargin
+  	}
+  }
+
   val edgeOrderedType = List(("edge_protein", StringType), ("neighborhood", IntType),
    ("neighborhood_transferred", IntType), ("fusion", IntType), ("cooccurence", IntType),
    ("homology", IntType), ("coexpression", IntType), ("coexpression_transferred", IntType),
@@ -92,9 +114,37 @@ trait StringNetwork {
 
   val nodeType = TupleType("node_protein" -> StringType, "edges" -> BagType(edgeType))
 
+  val netPairType = TupleType("protein1" -> StringType, "protein2" -> StringType, "neighborhood" -> IntType,
+   "neighborhood_transferred" -> IntType, "fusion" -> IntType, "cooccurence" -> IntType,
+   "homology" -> IntType, "coexpression" -> IntType, "coexpression_transferred" -> IntType,
+   "experiments" -> IntType, "experiments_transferred" -> IntType,
+   "database" -> IntType, "database_transferred" -> IntType,
+  "textmining" -> IntType, "textmining_transferred" -> IntType, "combined_score" -> IntType)
 }
 
 trait GeneProteinMap {
+
+  def loadGeneProteinMap(shred: Boolean = false, skew: Boolean = false): String = {
+  	if (shred){
+  		val bmartLoad = if (skew) "(biomart, biomart.empty)" else "biomart"
+  		s"""|val bmartLoader = new BiomartLoader(spark)
+  			|val biomart = bmartLoader.load("/nfs_qc4/genomics/mart_export.txt")
+  			|val IBag_biomart__D = $bmartLoad
+  			|IBag_biomart__D.cache
+  			|IBag_biomart__D.count""".stripMargin
+  	}else if (skew){
+  		s"""|val bmartLoader = new BiomartLoader(spark)
+  			|val biomart_L = bmartLoader.load("/nfs_qc4/genomics/mart_export.txt")
+  			|val biomart = (biomart_L, biomart_L.empty)
+  			|biomart.cache
+  			|biomart.count""".stripMargin
+  	}else{
+  		s"""|val bmartLoader = new BiomartLoader(spark)
+  			|val biomart = bmartLoader.load("/nfs_qc4/genomics/mart_export.txt")
+  			|biomart.cache
+  			|biomart.count""".stripMargin
+  	}
+  }
 
   val geneProteinOrderedType = List(("gene_stable_id", StringType), ("gene_stable_id_version" -> StringType),
     ("transcript_stable_id_version", StringType), ("protein_stable_id", StringType), 
@@ -192,16 +242,17 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
     	s"""|val basepath = "/nfs_qc4/genomics/gdc/"
     		|val biospecLoader = new BiospecLoader(spark)
 			|val biospec_L = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
-			|//val biospec = (biospec_L, biospec_L.empty)
-			|//biospec.cache
-			|//biospec.count
+			|val biospec = (biospec_L, biospec_L.empty)
+			|biospec.cache
+			|biospec.count
     		|val vepLoader = new VepLoader(spark)
 			|/**val mafLoader = new MAFLoader(spark)
 			|//val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")
       		|val maf = mafLoader.loadFlat(s"$basepath/somatic/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
 			|val (occurs, annots) = vepLoader.loadOccurrences(maf)
 			|val occurrences_L = vepLoader.finalize(vepLoader.buildOccurrences(occurs, annots))**/
-			|val occurrences_L = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence], biospec_L)
+			|//val occurrences_L = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence], biospec_L)
+			|val occurrences_L = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence])
 			|val occurrences = (occurrences_L, occurrences_L.empty)
 			|occurrences.cache
 			|occurrences.count
@@ -215,15 +266,16 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 		s"""|val basepath = "/nfs_qc4/genomics/gdc/"
 			|val biospecLoader = new BiospecLoader(spark)
 			|val biospec = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
-			|//biospec.cache
-			|//biospec.count
+			|biospec.cache
+			|biospec.count
 			|val vepLoader = new VepLoader(spark)
 			|/**val mafLoader = new MAFLoader(spark)
       		|//val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")
       		|val maf = mafLoader.loadFlat(s"$basepath/somatic/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
 			|val (occurs, annots) = vepLoader.loadOccurrences(maf)
 			|//val occurrences = vepLoader.finalize(vepLoader.buildOccurrences(occurs, annots))**/
-			|val occurrences = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence], biospec)
+			|//val occurrences = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence], biospec)
+			|val occurrences = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence])
 			|occurrences.cache
 			|occurrences.count
 			|val consequenceLoader = new ConsequenceLoader(spark)
@@ -241,9 +293,9 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 	s"""|val basepath = "/nfs_qc4/genomics/gdc/"
 		|val biospecLoader = new BiospecLoader(spark)
 		|val biospec = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
-		|//val IBag_biospec__D = $biospecLoad
-		|//IBag_biospec__D.cache
-		|//IBag_biospec__D.count
+		|val IBag_biospec__D = $biospecLoad
+		|IBag_biospec__D.cache
+		|IBag_biospec__D.count
 		|val vepLoader = new VepLoader(spark)
 		|/**val mafLoader = new MAFLoader(spark)
 		|//val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")
@@ -252,7 +304,8 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 		|val occurrences = vepLoader.buildOccurrences(occurs, annots)
 		|val (odict1, odict2, odict3) = vepLoader.$loadFun(occurrences)**/
 		|val occurrences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence]
-		|val (odict1, odict2, odict3) = vepLoader.$loadFun(vepLoader.finalize(occurrences, biospec))
+		|//val (odict1, odict2, odict3) = vepLoader.$loadFun(vepLoader.finalize(occurrences, biospec))
+		|val (odict1, odict2, odict3) = vepLoader.$loadFun(vepLoader.finalize(occurrences))
   		|val IBag_occurrences__D = odict1
 		|IBag_occurrences__D.cache
 		|IBag_occurrences__D.count
@@ -282,6 +335,8 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
   val network = BagVarRef("network", BagType(nodeType))
   val nr = TupleVarRef("n", nodeType)
   val er = TupleVarRef("e", edgeType)
+  val fnetwork = BagVarRef("stringNetwork", BagType(netPairType))
+  val fnr = TupleVarRef("fn", netPairType)
 
   val expression = BagVarRef("expression", BagType(sampleExprType))
   val sexpr = TupleVarRef("sexpr", sampleExprType)
@@ -394,20 +449,23 @@ object HybridBySample extends DriverGene {
   	s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
 
   val query = ForeachUnion(or, occurrences,
-    Singleton(Tuple("hybrid_sample" -> or("donorId"), "hybrid_aliquot" -> or("aliquotId"),
+    Singleton(Tuple("hybrid_sample" -> or("donorId"), //"hybrid_aliquot" -> or("aliquotId"),
+    	"hybrid_project" -> or("projectId"),
     	"hybrid_genes" -> 
         	ReduceByKey(
         		ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-					ForeachUnion(cnr, copynum,
-				       	IfThenElse(And(Cmp(OpEq, cnr("cn_aliquot_uuid"), ar("aliquot_id")),
-				       				   Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id"))),
+        			ForeachUnion(br, biospec,
+        				IfThenElse(Cmp(OpEq, ar("aliquot_id"), br("bcr_patient_uuid")),
+							ForeachUnion(cnr, copynum,
+				       			IfThenElse(And(Cmp(OpEq, cnr("cn_aliquot_uuid"), br("bcr_aliquot_uuid")),//ar("aliquot_id")),
+				       				Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id"))),
 	                      		ForeachUnion(cr, BagProject(ar, "consequence_terms"),
 	                        		ForeachUnion(conr, conseq,
 	                        			IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
 	                          				Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
 		                            		"hybrid_score" -> 
 		                            		conr("so_weight").asNumeric * matchImpact 
-											* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))
+											* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
 
 			,List("hybrid_gene_id"),
             List("hybrid_score")))))
@@ -424,23 +482,29 @@ object HybridBySampleNoAgg extends DriverGene {
   	s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
 
   val query = ForeachUnion(or, occurrences,
-    Singleton(Tuple("hybrid_sample" -> or("donorId"), 
+    Singleton(Tuple("hybrid_sample" -> or("donorId"), "aliquot_id" -> or("aliquotId"),
+    	"hybrid_project" -> or("projectId"),
     	"hybrid_genes" -> 
-        	ReduceByKey(
-        		ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-					ForeachUnion(cnr, copynum,
-				       	IfThenElse(And(Cmp(OpEq, cnr("cn_aliquot_uuid"), ar("aliquot_id")),
-				       				   Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id"))),
-	                      		ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-	                        		ForeachUnion(conr, conseq,
-	                        			IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-	                          				Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
-		                            		"hybrid_score" -> 
-		                            		conr("so_weight").asNumeric * matchImpact 
-											* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))
-
-			,List("hybrid_gene_id"),
-            List("hybrid_score")))))
+        	ForeachUnion(ar, BagProject(or, "transcript_consequences"),
+				ForeachUnion(cnr, copynum,
+				    IfThenElse(And(Cmp(OpEq, cnr("cn_aliquot_uuid"), ar("aliquot_id")),
+				       			Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id"))),
+				    	Singleton(Tuple(
+				    		"hybrid_distance" -> ar("distance"),
+	                          "hybrid_impact" -> ar("impact"),
+	                          	"hybrid_gene_id" -> ar("gene_id"),
+	                          	"hybrid_transcript_id" -> ar("transcript_id"),
+	                          	"hybrid_copy_number" -> (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType)),
+	                          	"hybrid_max_copy" -> cnr("max_copy_number"),
+	                          	"hybrid_min_copy" -> cnr("min_copy_number"),
+	                          	"hybrid_gene_name" -> cnr("cn_gene_name"),
+	                          	"hybrid_consequences" -> 
+		                    ForeachUnion(cr, BagProject(ar, "consequence_terms"),
+		                        ForeachUnion(conr, conseq,
+		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+		                          		Singleton(Tuple("term" -> conr("so_term"), 
+		                          			"weight" -> conr("so_weight"), 
+		                          			"c_impact" -> conr("so_impact"))))))))))))))
 
   val program = Program(Assignment(name, query))
 
@@ -456,13 +520,15 @@ object HybridPlusBySample extends DriverGene {
   val query = ForeachUnion(or, occurrences,
     Singleton(Tuple("hybrid_sample" -> or("donorId"),
 		"hybrid_project" -> or("projectId"),
-		"hybrid_aliquotId" -> or("aliquotId"),
+		//"hybrid_aliquotId" -> or("aliquotId"),
     	"hybrid_genes" -> 
         	ReduceByKey(
         		ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-			 		ForeachUnion(cnr, copynum,
-		       			IfThenElse(And(Cmp(OpEq, cnr("cn_aliquot_uuid"), ar("aliquot_id")),
-		       				Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id"))),
+        			ForeachUnion(br, biospec,
+        				IfThenElse(Cmp(OpEq, ar("aliquot_id"), br("bcr_patient_uuid")),
+			 			ForeachUnion(cnr, copynum,
+		       				IfThenElse(And(Cmp(OpEq, cnr("cn_aliquot_uuid"), br("bcr_aliquot_uuid")), //ar("aliquot_id")),
+		       							Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id"))),
                   				ForeachUnion(cr, BagProject(ar, "consequence_terms"),
                     				ForeachUnion(conr, conseq,
                     					IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
@@ -476,7 +542,7 @@ object HybridPlusBySample extends DriverGene {
                           			"hybrid_max_copy" -> cnr("max_copy_number"),
                             		"hybrid_score" -> 
                             		conr("so_weight").asNumeric * matchImpact 
-									* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))
+									* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
 			,List("hybrid_gene_id", "hybrid_transcript_id", "hybrid_protein_start", "hybrid_protein_end", 
 					"hybrid_strand", "hybrid_gene_name", "hybrid_max_copy"),
             List("hybrid_score")))))
@@ -622,19 +688,55 @@ object SampleNetwork extends DriverGene {
   val gene = TupleVarRef("hgene", hmr.tp("hybrid_genes").asInstanceOf[BagType].tp)
 
   val query = ForeachUnion(hmr, hybrid, 
-      Singleton(Tuple("network_sample" -> hmr("hybrid_sample"), "network_genes" -> 
+      Singleton(Tuple("network_sample" -> hmr("hybrid_sample"), //"network_aliquot" -> hmr("hybrid_aliquot"),
+      	"network_project" -> hmr("hybrid_project"), 
+          "network_genes" ->
           ReduceByKey(
             ForeachUnion(gene, BagProject(hmr, "hybrid_genes"),
               ForeachUnion(nr, network, 
                 ForeachUnion(er, BagProject(nr, "edges"),
                   IfThenElse(Cmp(OpEq, er("edge_protein"), gene("hybrid_gene_id")),
                     Singleton(Tuple("network_gene_id" -> gene("hybrid_gene_id"), 
-                      "distance" -> er("combined_score").asNumeric * gene("hybrid_score").asNumeric
-                      )))))),
+                      "distance" -> er("combined_score").asNumeric * gene("hybrid_score").asNumeric)))))),
             List("network_gene_id"),
             List("distance")))))
 
   val program = HybridBySample.program.asInstanceOf[SampleNetwork.Program].append(Assignment(name, query))
+
+}
+
+object SampleFlatNetwork extends DriverGene {
+
+  val name = "SampleFlatNetwork"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+  	s"""|${super.loadTables(shred, skew)}
+  		|${loadCopyNumber(shred, skew)}
+  		|${loadFlatNetwork(shred, skew)}
+  		|${loadGeneProteinMap(shred, skew)}""".stripMargin
+
+  val (hybrid, hmr) = varset(HybridBySample.name, "hm", HybridBySample.program(HybridBySample.name).varRef.asInstanceOf[BagExpr])
+  val gene = TupleVarRef("hgene", hmr.tp("hybrid_genes").asInstanceOf[BagType].tp)
+
+  val query = ForeachUnion(hmr, hybrid, 
+      Singleton(Tuple("network_sample" -> hmr("hybrid_sample"), //"network_aliquot" -> hmr("hybrid_aliquot"),
+      	"network_project" -> hmr("hybrid_project"), 
+      	"network_genes" -> 
+          ReduceByKey(
+            ForeachUnion(gene, BagProject(hmr, "hybrid_genes"),
+              ForeachUnion(gpr, gpmap,
+              	IfThenElse(Cmp(OpEq, gene("hybrid_gene_id"), gpr("gene_stable_id")),
+              		ForeachUnion(fnr, fnetwork, 
+                		IfThenElse(Cmp(OpEq, fnr("protein2"), gpr("protein_stable_id")),
+                    		Singleton(Tuple(
+                    			"network_gene_id2" -> gene("hybrid_gene_id"), 
+                    			"network_protein_id1" -> fnr("protein1"),
+                    			"network_protein_id2" -> fnr("protein2"),
+                      			"distance" -> fnr("combined_score").asNumeric * gene("hybrid_score").asNumeric))))))),
+            List("network_gene_id2", "network_protein_id1", "network_protein_id2"),
+            List("distance")))))
+
+  val program = HybridBySample.program.asInstanceOf[SampleFlatNetwork.Program].append(Assignment(name, query))
 
 }
 

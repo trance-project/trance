@@ -13,11 +13,15 @@ object TestApp extends App {
     // AppWriter.flatDataset(HybridBySample, "test")
     // AppWriter.shredDataset(HybridBySample, "test")
 
-    AppWriter.flatDataset(HybridPlusBySample, "test")
-    AppWriter.shredDataset(HybridPlusBySample, "test")
+    // AppWriter.flatDataset(HybridPlusBySample, "test")
+    // AppWriter.shredDataset(HybridPlusBySample, "test")
 
-    // AppWriter.flatDataset(SampleSomaticNetwork, "SampleSomaticNetwork,standard")
-    // AppWriter.shredDataset(SampleSomaticNetwork, "SampleSomaticNetwork,shredded")
+    // AppWriter.flatDataset(HybridBySampleNoAgg, "test")
+    // AppWriter.shredDataset(HybridBySampleNoAgg, "test")
+
+    AppWriter.flatDataset(SampleFlatNetwork, "SampleFlatNetwork,standard")
+    AppWriter.shredDataset(SampleFlatNetwork, "SampleFlatNetwork,shredded")
+
   }
 }
 
