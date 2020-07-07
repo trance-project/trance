@@ -251,8 +251,8 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 		|val (occurs, annots) = vepLoader.loadOccurrences(maf)
 		|val occurrences = vepLoader.buildOccurrences(occurs, annots)
 		|val (odict1, odict2, odict3) = vepLoader.$loadFun(occurrences)**/
-		|val (odict1, odict2, odict3) = vepLoader.$loadFun(finalize(spark.read.json(
-		|	"file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence], biospec))
+		|val occurrences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence]
+		|val (odict1, odict2, odict3) = vepLoader.$loadFun(vepLoader.finalize(occurrences, biospec))
   		|val IBag_occurrences__D = odict1
 		|IBag_occurrences__D.cache
 		|IBag_occurrences__D.count

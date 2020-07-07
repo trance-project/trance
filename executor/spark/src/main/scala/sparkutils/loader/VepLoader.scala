@@ -173,7 +173,7 @@ class VepLoader(spark: SparkSession) extends Serializable {
   }
 
   def finalize(occur: Dataset[Occurrence]): Dataset[Occurrence2] = {
-  	occur.map{ o => Occurrence2(o.oid, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, 
+  	occur.map{ o => Occurrence2(o.oid, o.donorId, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, 
   		o.chromosome, o.allele_string, o.assembly_name, o.end, o.vid, o.input, o.most_severe_consequence, o.seq_region_name, o.start, o.strand, 
   		o.transcript_consequences match {
   		  case Some(tc) => tc.map(t => Transcript3(o.donorId, t.amino_acids, t.distance match { case Some(l:Long) => l; case _ => -1 },
@@ -191,7 +191,7 @@ class VepLoader(spark: SparkSession) extends Serializable {
 
   def finalize(occur: Dataset[Occurrence], biospec: Dataset[Biospec]): Dataset[Occurrence2] = {
     val biooccur = occur.join(biospec, $"donorId" === $"bcr_patient_uuid").as[OccurrenceBiospec]
-    occur.map{ o => Occurrence2(o.oid, o.bcr_aliquot_uuid, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, 
+    biooccur.map{ o => Occurrence2(o.oid, o.bcr_aliquot_uuid, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, 
       o.chromosome, o.allele_string, o.assembly_name, o.end, o.vid, o.input, o.most_severe_consequence, o.seq_region_name, o.start, o.strand, 
       o.transcript_consequences match {
         case Some(tc) => tc.map(t => Transcript3(o.bcr_aliquot_uuid, t.amino_acids, t.distance match { case Some(l:Long) => l; case _ => -1 },
@@ -228,7 +228,7 @@ class VepLoader(spark: SparkSession) extends Serializable {
 
   }
 
-  def shredSkew(occur: Dataset[Occurrence]): ((Dataset[OccurrDict1], Dataset[OccurrDict1]), 
+  def shredSkew(occur: Dataset[Occurrence2]): ((Dataset[OccurrDict1], Dataset[OccurrDict1]), 
     (Dataset[OccurrTransDict2], Dataset[OccurrTransDict2], Option[String], Broadcast[Set[String]]),
     (Dataset[OccurrTransConseqDict3], Dataset[OccurrTransConseqDict3], Option[String], Broadcast[Set[String]])) = {
 
