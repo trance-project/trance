@@ -12,8 +12,8 @@ object TestApp extends App {
 
     //AppWriter.flatDataset(HybridBySampleStandard, "test", skew=true)
     //AppWriter.shredDataset(HybridBySample, "test", skew=true)
-    AppWriter.flatDataset(HybridBySampleStandard, "test")
-    // AppWriter.shredDataset(HybridBySample, "test")
+    //AppWriter.flatDataset(HybridBySampleStandard, "test")
+    AppWriter.shredDataset(HybridBySampleStandard, "test")
     //AppWriter.flatDataset(StandardHybridBySample, "test")
 	//AppWriter.shredDataset(StandardHybridBySample, "test")
 	// AppWriter.shredDataset(HybridBySample, "test", unshred = true)

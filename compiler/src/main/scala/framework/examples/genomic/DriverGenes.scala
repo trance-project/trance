@@ -369,16 +369,18 @@ object HybridBySample extends DriverGene {
 		                    NumericConst(0.15, DoubleType),
 		                    NumericConst(0.01, DoubleType)))))
 
-  val query = ForeachUnion(or, occurrences, 
-    ForeachUnion(br, biospec, 
-      IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
+  val query = ForeachUnion(or, occurrences,
+  	
     	Singleton(Tuple("hybrid_sample" -> or("donorId"), "hybrid_aliquot" -> br("bcr_aliquot_uuid"),
         	"hybrid_genes" -> 
 	        	ReduceByKey(
-	            	ForeachUnion(cnr, copynum,
+    				ForeachUnion(br, biospec, 
+      					IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
+						 ForeachUnion(cnr, copynum,
 					       IfThenElse(Cmp(OpEq, cnr("cn_aliquot_uuid"), br("bcr_aliquot_uuid")),
-					  	    ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-					  		     IfThenElse(Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id")),
+					  	      ForeachUnion(ar, BagProject(or, "transcript_consequences"),
+					  		     IfThenElse(And(Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id")), 
+								 	Cmp(OpEq, br("
 		                      ForeachUnion(cr, BagProject(ar, "consequence_terms"),
 		                        ForeachUnion(conr, conseq,
 		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
