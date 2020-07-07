@@ -394,7 +394,7 @@ object HybridBySample extends DriverGene {
   	s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
 
   val query = ForeachUnion(or, occurrences,
-    Singleton(Tuple("hybrid_sample" -> or("donorId"),
+    Singleton(Tuple("hybrid_sample" -> or("donorId"), "hybrid_aliquot" -> or("aliquotId"),
     	"hybrid_genes" -> 
         	ReduceByKey(
         		ForeachUnion(ar, BagProject(or, "transcript_consequences"),
@@ -424,7 +424,7 @@ object HybridBySampleNoAgg extends DriverGene {
   	s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
 
   val query = ForeachUnion(or, occurrences,
-    Singleton(Tuple("hybrid_sample" -> or("donorId"),
+    Singleton(Tuple("hybrid_sample" -> or("donorId"), 
     	"hybrid_genes" -> 
         	ReduceByKey(
         		ForeachUnion(ar, BagProject(or, "transcript_consequences"),
