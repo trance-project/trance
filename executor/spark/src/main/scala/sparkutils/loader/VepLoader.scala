@@ -44,7 +44,7 @@ case class Transcript(amino_acids: String, distance: Option[Long], cdna_end: Opt
 
 case class TranscriptQuant(amino_acids: String, distance: Option[Long], cdna_end: Option[Long], cdna_start: Option[Long], cds_end: Option[Long], cds_start: Option[Long], codons: String, consequence_terms: List[Double], flags: List[String], gene_id: String, impact: Double, protein_end: Option[Long], protein_start: Option[Long], strand: Option[Long], transcript_id: String, variant_allele: String)
 
-case class Transcript3(caseid: String, amino_acids: String, distance: Long, cdna_end: Long, cdna_start: Long, cds_end: Long, cds_start: Long, codons: String, consequence_terms: List[String], flags: List[String], gene_id: String, impact: String, protein_end: Long, protein_start: Long, strand: Long, transcript_id: String, variant_allele: String)
+case class Transcript3(aliquot_id: String, amino_acids: String, distance: Long, cdna_end: Long, cdna_start: Long, cds_end: Long, cds_start: Long, codons: String, consequence_terms: List[String], flags: List[String], gene_id: String, impact: String, protein_end: Long, protein_start: Long, strand: Long, transcript_id: String, variant_allele: String)
 
 case class Transcript2(impact: String, consequence_terms: Seq[String])
 
@@ -59,15 +59,18 @@ case class OccurrenceNulls(oid: String, donorId: String, vend: Int, projectId: S
 
 case class Occurrence(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Option[Seq[Transcript]])
 
+case class OccurrenceBiospec(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Option[Seq[Transcript]],
+  bcr_patient_uuid: String, bcr_sample_barcode: String, bcr_aliquot_barcode: String, bcr_aliquot_uuid: String, biospecimen_barcode_bottom: String, center_id: String, concentration: Double, date_of_shipment: String, is_derived_from_ffpe: String, plate_column: Int, plate_id: String, plate_row: String, quantity: Double, source_center: Int, volume: Double)
+
 case class OccurrenceMapped(aliquot_id: String, oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Option[Seq[Transcript]])
 
 case class OccurrQuant(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Option[Seq[TranscriptQuant]])
 
-case class Occurrence2(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Seq[Transcript3])
+case class Occurrence2(oid: String, aliquotId: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Seq[Transcript3])
 
-case class OccurrDict1(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: String)
+case class OccurrDict1(oid: String, aliquotId: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: String)
 
-case class OccurrTransDict2(_1: String, caseid: String, amino_acids: String, distance: Long, cdna_end: Long, cdna_start: Long, cds_end: Long, cds_start: Long, codons: String, consequence_terms: String, flags: List[String], gene_id: String, impact: String, protein_end: Long, protein_start: Long, strand: Long, transcript_id: String, variant_allele: String)
+case class OccurrTransDict2(_1: String, aliquot_id: String, amino_acids: String, distance: Long, cdna_end: Long, cdna_start: Long, cds_end: Long, cds_start: Long, codons: String, consequence_terms: String, flags: List[String], gene_id: String, impact: String, protein_end: Long, protein_start: Long, strand: Long, transcript_id: String, variant_allele: String)
 
 case class OccurrTransConseqDict3(_1: String, element: String)
 
@@ -186,33 +189,41 @@ class VepLoader(spark: SparkSession) extends Serializable {
 
   }
 
-  
-  def shred(occur: Dataset[Occurrence]): (Dataset[OccurrDict1], Dataset[OccurrTransDict2], Dataset[OccurrTransConseqDict3]) = {
+  def finalize(occur: Dataset[Occurrence], biospec: Dataset[Biospec]): Dataset[Occurrence2] = {
+    val biooccur = occur.join(biospec, $"donorId" === $"bcr_patient_uuid").as[OccurrenceBiospec]
+    occur.map{ o => Occurrence2(o.oid, o.bcr_aliquot_uuid, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, 
+      o.chromosome, o.allele_string, o.assembly_name, o.end, o.vid, o.input, o.most_severe_consequence, o.seq_region_name, o.start, o.strand, 
+      o.transcript_consequences match {
+        case Some(tc) => tc.map(t => Transcript3(o.bcr_aliquot_uuid, t.amino_acids, t.distance match { case Some(l:Long) => l; case _ => -1 },
+      t.cdna_end match { case Some(l:Long) => l; case _ => -1 }, t.cdna_start match { case Some(l:Long) => l; case _ => -1 }, 
+      t.cds_end match { case Some(l:Long) => l; case _ => -1 }, t.cds_start match { case Some(l:Long) => l; case _ => -1 }, 
+      t.codons, t.consequence_terms, t.flags, t.gene_id, t.impact, t.protein_end match { case Some(l:Long) => l; case _ => -1 }, 
+      t.protein_start match { case Some(l:Long) => l; case _ => -1 }, t.strand match { case Some(l:Long) => l; case _ => -1 }, 
+      t.transcript_id, t.variant_allele))
+        case _ => Seq()
+        })
+      
+    }.as[Occurrence2].repartition(Config.maxPartitions)
+  }
 
-    val occurReparts = finalize(occur)
+  
+  def shred(occur: Dataset[Occurrence2]): (Dataset[OccurrDict1], Dataset[OccurrTransDict2], Dataset[OccurrTransConseqDict3]) = {
 	
-  	val dict1 = occurReparts.map{ o => OccurrDict1(o.oid, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, 
+  	val dict1 = occur.map{ o => OccurrDict1(o.oid, o.aliquotId, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, 
   		o.chromosome, o.allele_string, o.assembly_name, o.end, o.vid, o.input, o.most_severe_consequence, o.seq_region_name, o.start, o.strand, o.oid)
   	}.as[OccurrDict1]
   	
-  	val tmp2 = occurReparts.flatMap{ o => o.transcript_consequences.zipWithIndex.map{ case (t, id) => (o.oid, id, t) } }
-	/**match {
-  	  case Some(tc) => tc.zipWithIndex.map{ case (t, id) => (o.oid, id, t) }
-  	  case _ => Seq()
-  	}}**/
+  	val tmp2 = occur.flatMap{ o => o.transcript_consequences.zipWithIndex.map{ case (t, id) => (o.oid, id, t) } }
 
-  	val dict2 = tmp2.map{ case (id1, id2, t) => OccurrTransDict2(id1, t.caseid, t.amino_acids, 
-		t.distance, t.cdna_end, t.cdna_start, t.cds_end, t.cds_start, t.codons, s"${id1}_${id2}", t.flags, t.gene_id, t.impact, t.protein_end, t.protein_start, t.strand,
-		/**t.distance match { case Some(l:Long) => l; case _ => -1 },
-  		t.cdna_end match { case Some(l:Long) => l; case _ => -1 }, t.cdna_start match { case Some(l:Long) => l; case _ => -1 }, 
-  		t.cds_end match { case Some(l:Long) => l; case _ => -1 }, t.cds_start match { case Some(l:Long) => l; case _ => -1 }, 
-  		t.codons, s"${id1}_${id2}", t.flags, t.gene_id, t.impact, t.protein_end match { case Some(l:Long) => l; case _ => -1 }, 
-  		t.protein_start match { case Some(l:Long) => l; case _ => -1 }, t.strand match { case Some(l:Long) => l; case _ => -1 }, **/
-  		t.transcript_id, t.variant_allele)}.as[OccurrTransDict2]
+  	val dict2 = tmp2.map{ case (id1, id2, t) => OccurrTransDict2(id1, t.aliquot_id, t.amino_acids, 
+		t.distance, t.cdna_end, t.cdna_start, t.cds_end, t.cds_start, t.codons, s"${id1}_${id2}", t.flags, 
+    t.gene_id, t.impact, t.protein_end, t.protein_start, t.strand,
+  	t.transcript_id, t.variant_allele)}.as[OccurrTransDict2].repartition(col("_1"))
 
   	val dict3 = tmp2.flatMap{ case (id1, id2, t) => 
   		t.consequence_terms.map(c => OccurrTransConseqDict3(s"${id1}_${id2}", c)) }.as[OccurrTransConseqDict3]
-
+      .repartition(col("_1"))
+      
     (dict1, dict2, dict3)
 
   }

@@ -66,7 +66,7 @@ trait Vep {
     "variant_allele" -> StringType)
 
   val transcriptQuant = TupleType(
-	"caseid" -> StringType,
+	"aliquot_id" -> StringType,
 	"amino_acids" -> StringType,
     "distance" -> LongType,
     "cdna_end" -> LongType,
