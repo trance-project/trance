@@ -44,7 +44,7 @@ case class Transcript(amino_acids: String, distance: Option[Long], cdna_end: Opt
 
 case class TranscriptQuant(amino_acids: String, distance: Option[Long], cdna_end: Option[Long], cdna_start: Option[Long], cds_end: Option[Long], cds_start: Option[Long], codons: String, consequence_terms: List[Double], flags: List[String], gene_id: String, impact: Double, protein_end: Option[Long], protein_start: Option[Long], strand: Option[Long], transcript_id: String, variant_allele: String)
 
-case class Transcript3(aliquot_id: String, amino_acids: String, distance: Long, cdna_end: Long, cdna_start: Long, cds_end: Long, cds_start: Long, codons: String, consequence_terms: List[String], flags: List[String], gene_id: String, impact: String, protein_end: Long, protein_start: Long, strand: Long, transcript_id: String, variant_allele: String)
+case class Transcript3(aliquot_id: String, amino_acids: String, distance: Long, cdna_end: Long, cdna_start: Long, cds_end: Long, cds_start: Long, codons: String, consequence_terms: List[String], flags: List[String], gene_id: String, impact: String, protein_end: Long, protein_start: Long, ts_strand: Long, transcript_id: String, variant_allele: String)
 
 case class Transcript2(impact: String, consequence_terms: Seq[String])
 
@@ -70,7 +70,7 @@ case class Occurrence2(oid: String, aliquotId: String, donorId: String, vend: Lo
 
 case class OccurrDict1(oid: String, aliquotId: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: String)
 
-case class OccurrTransDict2(_1: String, aliquot_id: String, amino_acids: String, distance: Long, cdna_end: Long, cdna_start: Long, cds_end: Long, cds_start: Long, codons: String, consequence_terms: String, flags: List[String], gene_id: String, impact: String, protein_end: Long, protein_start: Long, strand: Long, transcript_id: String, variant_allele: String)
+case class OccurrTransDict2(_1: String, aliquot_id: String, amino_acids: String, distance: Long, cdna_end: Long, cdna_start: Long, cds_end: Long, cds_start: Long, codons: String, consequence_terms: String, flags: List[String], gene_id: String, impact: String, protein_end: Long, protein_start: Long, ts_strand: Long, transcript_id: String, variant_allele: String)
 
 case class OccurrTransConseqDict3(_1: String, element: String)
 
@@ -217,7 +217,7 @@ class VepLoader(spark: SparkSession) extends Serializable {
 
   	val dict2 = tmp2.map{ case (id1, id2, t) => OccurrTransDict2(id1, t.aliquot_id, t.amino_acids, 
 		t.distance, t.cdna_end, t.cdna_start, t.cds_end, t.cds_start, t.codons, s"${id1}_${id2}", t.flags, 
-    t.gene_id, t.impact, t.protein_end, t.protein_start, t.strand,
+    t.gene_id, t.impact, t.protein_end, t.protein_start, t.ts_strand,
   	t.transcript_id, t.variant_allele)}.as[OccurrTransDict2].repartition(col("_1"))
 
   	val dict3 = tmp2.flatMap{ case (id1, id2, t) => 
