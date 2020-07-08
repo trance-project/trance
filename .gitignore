@@ -1,4 +1,5 @@
 executor/spark/src/main/scala/sparkutils/generated/*.scala
+executor/spark/src/main/scala/sparkutils/generated/*.zpln
 executor/spark/data.flat
 out
 restart.sh
