@@ -80,19 +80,19 @@ trait StringNetwork {
   	if (shred){
   		val fnetLoad = if (skew) "(stringNetwork, stringNetwork.empty)" else "stringNetwork"
   		s"""|val stringLoader = new NetworkLoader(spark)
-  			|val stringNetwork = stringLoader.load("/nfs_qc4/genomics/9606.protein.links.full.v11.0.txt")
+  			|val stringNetwork = stringLoader.loadFlat("/nfs_qc4/genomics/9606.protein.links.full.v11.0.txt")
   			|val IBag_stringNetwork__D = $fnetLoad
   			|IBag_stringNetwork__D.cache
   			|IBag_stringNetwork__D.count""".stripMargin
   	}else if (skew){
   		s"""|val stringLoader = new NetworkLoader(spark)
-  			|val stringNetwork_L = stringLoader.load("/nfs_qc4/genomics/mart_export.txt")
+  			|val stringNetwork_L = stringLoader.loadFlat("/nfs_qc4/genomics/mart_export.txt")
   			|val stringNetwork = (stringNetwork_L, stringNetwork_L.empty)
   			|stringNetwork.cache
   			|stringNetwork.count""".stripMargin
   	}else{
   		s"""|val stringLoader = new NetworkLoader(spark)
-  			|val stringNetwork = stringLoader.load("/nfs_qc4/genomics/mart_export.txt")
+  			|val stringNetwork = stringLoader.loadFlat("/nfs_qc4/genomics/mart_export.txt")
   			|stringNetwork.cache
   			|stringNetwork.count""".stripMargin
   	}
@@ -489,6 +489,9 @@ object HybridBySampleNoAgg extends DriverGene {
 				ForeachUnion(cnr, copynum,
 				    IfThenElse(And(Cmp(OpEq, cnr("cn_aliquot_uuid"), ar("aliquot_id")),
 				       			Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id"))),
+				    	ForeachUnion(cr, BagProject(ar, "consequence_terms"),
+		                    ForeachUnion(conr, conseq,
+		                      	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),	
 				    	Singleton(Tuple(
 				    		"hybrid_distance" -> ar("distance"),
 	                          "hybrid_impact" -> ar("impact"),
@@ -498,13 +501,9 @@ object HybridBySampleNoAgg extends DriverGene {
 	                          	"hybrid_max_copy" -> cnr("max_copy_number"),
 	                          	"hybrid_min_copy" -> cnr("min_copy_number"),
 	                          	"hybrid_gene_name" -> cnr("cn_gene_name"),
-	                          	"hybrid_consequences" -> 
-		                    ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-		                        ForeachUnion(conr, conseq,
-		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-		                          		Singleton(Tuple("term" -> conr("so_term"), 
-		                          			"weight" -> conr("so_weight"), 
-		                          			"c_impact" -> conr("so_impact"))))))))))))))
+	                          	"hybrid_term" -> conr("so_term"), 
+		                        "hybrid_weight" -> conr("so_weight"), 
+		                        "hybrid_impact" -> conr("so_impact"))))))))))))
 
   val program = Program(Assignment(name, query))
 
@@ -598,16 +597,16 @@ object HybridGisticBySample extends DriverGene {
   	s"${super.loadTables(shred, skew)}\n${loadGistic(shred, skew)}"
 
   val query = ForeachUnion(or, occurrences, 
-    ForeachUnion(br, biospec, 
-      IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
-    	Singleton(Tuple("hybrid_sample" -> or("donorId"), "hybrid_aliquot" -> br("bcr_aliquot_uuid"),
+    	Singleton(Tuple("hybrid_sample" -> or("donorId"), 
+    		"hybrid_aliquot" -> or("aliquotId"),
+    		"hybrid_project" -> or("projectId"),
         	"hybrid_genes" -> 
 	        	ReduceByKey(
 	            	ForeachUnion(ar, BagProject(or, "transcript_consequences"),
 		              ForeachUnion(gr, gistic, 
 		                IfThenElse(Cmp(OpEq, ar("gene_id"), gr("gistic_gene")),
 		                  ForeachUnion(sr, BagProject(gr, "gistic_samples"),
-		                    IfThenElse(Cmp(OpEq, sr("gistic_sample"), br("bcr_aliquot_uuid")),
+		                    IfThenElse(Cmp(OpEq, sr("gistic_sample"), ar("aliquot_id")),
 		                      ForeachUnion(cr, BagProject(ar, "consequence_terms"),
 		                        ForeachUnion(conr, conseq,
 		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
@@ -620,11 +619,81 @@ object HybridGisticBySample extends DriverGene {
 											* matchImpact * sr("focal_score").asNumeric)))))))))))**/
 
 			,List("hybrid_gene_id"),
-            List("hybrid_score")))))))
+            List("hybrid_score")))))
 
   val program = Program(Assignment(name, query))
 
 }
+
+object HybridGisticByGene extends DriverGene {
+
+  val name = "HybridGisticByGene"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+  	s"${super.loadTables(shred, skew)}\n${loadGistic(shred, skew)}"
+
+  val query = ForeachUnion(gr, gistic, 
+  	Singleton(Tuple("hybrid_gene" -> gr("gistic_gene"), "hybrid_cytoband" -> gr("cytoband"), 
+  		"hybrid_samples" -> ReduceByKey(ForeachUnion(sr, BagProject(gr, "gistic_samples"),
+  		ForeachUnion(br, biospec, 
+  			IfThenElse(Cmp(OpEq, sr("gistic_sample"), br("bcr_aliquot_uuid")),
+  				ForeachUnion(or, occurrences, 
+  					IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
+  						ForeachUnion(ar, BagProject(or, "transcript_consequences"),
+  							IfThenElse(Cmp(OpEq, ar("gene_id"), gr("gistic_gene")),
+  								ForeachUnion(cr, BagProject(ar, "consequence_terms"),
+		                        	ForeachUnion(conr, conseq,
+		                        		IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+		                          			Singleton(Tuple("hybrid_case_id" -> or("donorId"),
+		                          				"hybrid_aliquot_id" -> br("bcr_aliquot_uuid"),
+		                          				"hybrid_project" -> or("projectId"),
+		                            			"hybrid_score" -> 
+		                            			conr("so_weight").asNumeric * matchImpact 
+												* (sr("focal_score").asNumeric + NumericConst(.01, DoubleType))))))))))))))
+  			,List("hybrid_case_id", "hybrid_aliquot_id", "hybrid_project"),
+  			List("hybrid_score")))))
+
+  val program = Program(Assignment(name, query))
+
+}
+
+// object HybridGisticByGeneByAliquot extends DriverGene {
+
+//   val name = "HybridGisticByGeneByAliquot"
+
+//   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+//   	s"${super.loadTables(shred, skew)}\n${loadGistic(shred, skew)}"
+
+//   val query = ForeachUnion(gr, gistic, 
+//   	Singleton(Tuple("hybrid_gene" -> gr("gistic_gene"), 
+//   		"hybrid_cytoband" -> gr("cytoband"), 
+//   		"hybrid_aliquots" -> 
+//   			ForeachUnion(sr, BagProject(gr, "gistic_samples"),
+//   			ForeachUnion(br, biospec, 
+//   				IfThenElse(Cmp(OpEq, sr("gistic_sample"), br("bcr_aliquot_uuid")),
+//   					Singleton(Tuple("hybrid_aliquot_id" -> br("bcr_aliquot_uuid"), 
+//   						"hybrid_aliquot_barcode" -> br("bcr_aliquot_barcode"),
+//   						"hybrid_center" -> br("source_center"),
+//   						"hybrid_samples" -> 
+//   							ReduceByKey(ForeachUnion(or, occurrences, 
+//   								IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
+//   									ForeachUnion(ar, BagProject(or, "transcript_consequences"),
+// 			  							IfThenElse(Cmp(OpEq, ar("gene_id"), gr("gistic_gene")),
+// 			  								ForeachUnion(cr, BagProject(ar, "consequence_terms"),
+// 					                        	ForeachUnion(conr, conseq,
+// 					                        		IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+// 					                          			Singleton(Tuple("hybrid_case_id" -> or("donorId"),
+// 					                          				"hybrid_aliquot_id" -> br("bcr_aliquot_uuid"),
+// 					                          				"hybrid_project" -> or("projectId"),
+// 					                            			"hybrid_score" -> 
+// 					                            			conr("so_weight").asNumeric * matchImpact 
+// 															* (sr("focal_score").asNumeric + NumericConst(.01, DoubleType))))))))))))))
+//   			,List("hybrid_case_id", "hybrid_aliquot_id", "hybrid_project"),
+//   			List("hybrid_score")))))
+
+//   val program = Program(Assignment(name, query))
+
+// }
 
 // fails 
 object HybridBySample2 extends DriverGene {
