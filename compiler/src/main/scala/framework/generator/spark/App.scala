@@ -10,8 +10,8 @@ object TestApp extends App {
 
   override def main(args: Array[String]){
 
-    AppWriter.flatDataset(HybridGisticByGeneStandard, "test")
-    AppWriter.shredDataset(HybridGisticByGene, "test")
+    AppWriter.flatDataset(HybridGisticCNByGene, "test")
+    AppWriter.shredDataset(HybridGisticCNByGene, "test")
 
     // AppWriter.flatDataset(HybridPlusBySample, "test")
     // AppWriter.shredDataset(HybridPlusBySample, "test")

@@ -179,10 +179,10 @@ trait CopyNumber {
 			|IBag_copynumber__D.count""".stripMargin
 		}else if (skew)
 		s"""|val cnLoader = new CopyNumberLoader(spark)
-			|//val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
-			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
-			|val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+			|val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
 			|				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
+			|//val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
 			|//val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
 			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
 			|val copynumber = (copynumber_L, copynumber_L.empty)
@@ -190,10 +190,10 @@ trait CopyNumber {
 			|copynumber.count""".stripMargin
 		else
 		s"""|val cnLoader = new CopyNumberLoader(spark)
-			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
-      		|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
-			|val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
-			|				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
+			|val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
+      		|				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
+			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
 			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
 			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]	
 			|copynumber.cache
@@ -634,9 +634,12 @@ object HybridGisticByGeneStandard extends DriverGene {
 
   val flatOccur = ForeachUnion(or, occurrences, 
   	ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-  		Singleton(Tuple("o_case_id" -> or("donorId"), "o_project" -> or("projectId"),
-  			"t_conseqs" -> ar("consequence_terms"), "t_gene_id" -> ar("gene_id"),
-  			"t_impact" -> matchImpact))))
+  		ForeachUnion(cr, BagProject(ar, "consequence_terms"),
+  			ForeachUnion(conr, conseq,
+		        IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+  					Singleton(Tuple("o_case_id" -> or("donorId"), "o_project" -> or("projectId"),
+  						"t_conseqs" -> conr("so_weight"), "t_gene_id" -> ar("gene_id"),
+  						"t_impact" -> matchImpact)))))))
 
   val (fOccurr, focur) = varset("flatOccurr", "focur", flatOccur)
 
@@ -646,17 +649,14 @@ object HybridGisticByGeneStandard extends DriverGene {
   		ForeachUnion(br, biospec, 
   			IfThenElse(Cmp(OpEq, sr("gistic_sample"), br("bcr_aliquot_uuid")),
   				ForeachUnion(focur, fOccurr, 
-  					IfThenElse(And(Cmp(OpEq, focur("o_case_id"), br("bcr_patient_uuid")),
-  						Cmp(OpEq, focur("t_gene_id"), gr("gistic_gene"))),
-  							ForeachUnion(cr, BagProject(focur, "t_conseqs"),
-		                        ForeachUnion(conr, conseq,
-		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-		                          		Singleton(Tuple("hybrid_case_id" -> focur("o_case_id"),
-		                          				"hybrid_aliquot_id" -> br("bcr_aliquot_uuid"),
-		                          				"hybrid_project" -> focur("o_project"),
-		                            			"hybrid_score" -> 
-		                            			conr("so_weight").asNumeric * focur("t_impact").asNumeric
-												* (sr("focal_score").asNumeric + NumericConst(.01, DoubleType))))))))))))
+  					IfThenElse(Cmp(OpEq, focur("o_case_id"), br("bcr_patient_uuid")),
+  						IfThenElse(Cmp(OpEq, focur("t_gene_id"), gr("gistic_gene")),
+                          		Singleton(Tuple("hybrid_case_id" -> focur("o_case_id"),
+                          				"hybrid_aliquot_id" -> br("bcr_aliquot_uuid"),
+                          				"hybrid_project" -> focur("o_project"),
+                            			"hybrid_score" -> 
+                            			focur("t_conseqs").asNumeric * focur("t_impact").asNumeric
+										* (sr("focal_score").asNumeric + NumericConst(.01, DoubleType))))))))))
   			,List("hybrid_case_id", "hybrid_aliquot_id", "hybrid_project"),
   			List("hybrid_score")))))
 
@@ -693,6 +693,52 @@ object HybridGisticByGene extends DriverGene {
   			List("hybrid_score")))))
 
   val program = Program(Assignment(name, query))
+
+}
+
+object HybridGisticCNByGene extends DriverGene {
+
+  val name = "HybridGisticCNByGene"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+  	s"""|${super.loadTables(shred, skew)}
+  		|${loadGistic(shred, skew)}
+  		|${loadCopyNumber(shred, skew)}""".stripMargin
+
+  val flatOccur = ForeachUnion(or, occurrences, 
+  	ForeachUnion(ar, BagProject(or, "transcript_consequences"),
+  		ForeachUnion(cr, BagProject(ar, "consequence_terms"),
+  			ForeachUnion(conr, conseq,
+		        IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+  					Singleton(Tuple("o_case_id" -> or("donorId"), "o_project" -> or("projectId"),
+  						"t_conseqs" -> conr("so_weight"), "t_gene_id" -> ar("gene_id"),
+  						"t_impact" -> matchImpact)))))))
+
+  val (fOccurr, focur) = varset("flatOccurr", "focur", flatOccur)
+
+  val query = ForeachUnion(gr, gistic, 
+  	Singleton(Tuple("hybrid_gene" -> gr("gistic_gene"), "hybrid_cytoband" -> gr("cytoband"), 
+  		"hybrid_samples" -> ReduceByKey(ForeachUnion(cnr, copynum,
+  				IfThenElse(Cmp(OpEq, cnr("cn_gene_id"), gr("gistic_gene")),
+  					ForeachUnion(sr, BagProject(gr, "gistic_samples"),
+  						IfThenElse(Cmp(OpEq, cnr("cn_aliquot_uuid"), sr("gistic_sample")),
+  							ForeachUnion(br, biospec, 
+  								IfThenElse(Cmp(OpEq, sr("gistic_sample"), br("bcr_aliquot_uuid")),
+  									ForeachUnion(focur, fOccurr,
+  										IfThenElse(And(Cmp(OpEq, focur("o_case_id"), br("bcr_patient_uuid")),
+  											Cmp(OpEq, focur("t_gene_id"), cnr("cn_gene_id"))),
+		                          			Singleton(Tuple("hybrid_case_id" -> focur("o_case_id"),
+		                          				"hybrid_aliquot_id" -> br("bcr_aliquot_uuid"),
+		                          				"hybrid_project" -> focur("o_project"),
+		                            			"hybrid_score" -> 
+		                            			focur("t_conseqs").asNumeric * focur("t_impact").asNumeric
+												* (sr("focal_score").asNumeric + NumericConst(.01, DoubleType))
+												* cnr("cn_copy_number").asNumeric
+											))))))))))
+  			,List("hybrid_case_id", "hybrid_aliquot_id", "hybrid_project"),
+  			List("hybrid_score")))))
+
+  val program = Program(Assignment(fOccurr.name, flatOccur), Assignment(name, query))
 
 }
 
