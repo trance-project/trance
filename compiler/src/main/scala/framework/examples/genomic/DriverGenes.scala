@@ -36,10 +36,10 @@ trait Gistic {
   	if (shred){
   		val loadFun = if (skew) "shredSkew" else "shred"
 		s"""|val gisticLoader = new GisticLoader(spark)
-			|val gistic = gisticLoader.merge(s"/nfs_qc4/genomics/gdc/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
-			|                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
-			|//val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
-			|//				.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
+			|//val gistic = gisticLoader.merge(s"/nfs_qc4/genomics/gdc/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
+			|//                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
+			|val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
+			|				.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
 			|val (gdict1, gdict2) = gisticLoader.$loadFun(gistic)
 			|val IBag_gistic__D = gdict1
 			|IBag_gistic__D.cache
@@ -48,20 +48,20 @@ trait Gistic {
 			|IDict_gistic__D_gistic_samples.cache
 			|IDict_gistic__D_gistic_samples.count""".stripMargin
   	}else if (skew)
-	  	s"""|//val gistic_L = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
-			|//					.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
-			|val gisticLoader = new GisticLoader(spark)
-			|val gistic_L = gisticLoader.merge(s"/nfs_qc4/genomics/gdc/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
-			|                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
+	  	s"""|val gistic_L = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
+			|					.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
+			|//val gisticLoader = new GisticLoader(spark)
+			|//val gistic_L = gisticLoader.merge(s"/nfs_qc4/genomics/gdc/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
+			|//                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
 			|val gistic = (gistic_L, gistic_L.empty)
 			|gistic.cache
 			|gistic.count""".stripMargin
 	else
-		s"""|//val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
-			|//				.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
-			|val gisticLoader = new GisticLoader(spark)
-			|val gistic = gisticLoader.merge(s"/nfs_qc4/genomics/gdc/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
-			|                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
+		s"""|val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
+			|				.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
+			|//val gisticLoader = new GisticLoader(spark)
+			|//val gistic = gisticLoader.merge(s"/nfs_qc4/genomics/gdc/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
+			|//                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
 			|gistic.cache
 			|gistic.count""".stripMargin
   }
@@ -622,6 +622,45 @@ object HybridGisticBySample extends DriverGene {
             List("hybrid_score")))))
 
   val program = Program(Assignment(name, query))
+
+}
+
+object HybridGisticByGeneStandard extends DriverGene {
+
+  val name = "HybridGisticByGene"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+  	s"${super.loadTables(shred, skew)}\n${loadGistic(shred, skew)}"
+
+  val flatOccur = ForeachUnion(or, occurrences, 
+  	ForeachUnion(ar, BagProject(or, "transcript_consequences"),
+  		Singleton(Tuple("o_case_id" -> or("donorId"), "o_project" -> or("projectId"),
+  			"t_conseqs" -> ar("consequence_terms"), "t_gene_id" -> ar("gene_id"),
+  			"t_impact" -> matchImpact))))
+
+  val (fOccurr, focur) = varset("flatOccurr", "focur", flatOccur)
+
+  val query = ForeachUnion(gr, gistic, 
+  	Singleton(Tuple("hybrid_gene" -> gr("gistic_gene"), "hybrid_cytoband" -> gr("cytoband"), 
+  		"hybrid_samples" -> ReduceByKey(ForeachUnion(sr, BagProject(gr, "gistic_samples"),
+  		ForeachUnion(br, biospec, 
+  			IfThenElse(Cmp(OpEq, sr("gistic_sample"), br("bcr_aliquot_uuid")),
+  				ForeachUnion(focur, fOccurr, 
+  					IfThenElse(And(Cmp(OpEq, focur("o_case_id"), br("bcr_patient_uuid")),
+  						Cmp(OpEq, focur("t_gene_id"), gr("gistic_gene"))),
+  							ForeachUnion(cr, BagProject(focur, "t_conseqs"),
+		                        ForeachUnion(conr, conseq,
+		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+		                          		Singleton(Tuple("hybrid_case_id" -> focur("o_case_id"),
+		                          				"hybrid_aliquot_id" -> br("bcr_aliquot_uuid"),
+		                          				"hybrid_project" -> focur("o_project"),
+		                            			"hybrid_score" -> 
+		                            			conr("so_weight").asNumeric * focur("t_impact").asNumeric
+												* (sr("focal_score").asNumeric + NumericConst(.01, DoubleType))))))))))))
+  			,List("hybrid_case_id", "hybrid_aliquot_id", "hybrid_project"),
+  			List("hybrid_score")))))
+
+  val program = Program(Assignment(fOccurr.name, flatOccur), Assignment(name, query))
 
 }
 
