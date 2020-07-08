@@ -2,7 +2,6 @@ package framework.examples
 
 import framework.common._
 
-// join pathway and gene
 object exp extends CancerSchema {
   val name = "occurrence_mapped"
   val query =

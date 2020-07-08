@@ -214,8 +214,8 @@ object AppWriter {
         |import sparkutils._
         |import sparkutils.loader._
         |import sparkutils.skew.SkewDataset._
-        """.stripMargin.replaceAll("=", "\\u003d")
-    val s2 = s"""|$header""".stripMargin.replaceAll("=", "\\u003d")
+        """.stripMargin
+    val s2 = s"""|$header""".stripMargin
 
     val s3 = s"""
         |object $appname {
@@ -231,7 +231,7 @@ object AppWriter {
         |   $gcode
         |   println("$label,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
         | }
-        |}""".stripMargin.replaceAll("=", "\\u003d")
+        |}""".stripMargin
 
     buffer+=s1
     buffer+=s2
