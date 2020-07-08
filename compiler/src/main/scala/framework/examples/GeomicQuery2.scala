@@ -206,12 +206,11 @@ object plan6 extends GenomicSchema {
         "sample" -> s("gb_sample"), "pathways" ->
           ReduceByKey(
             ForeachUnion(gs, s("genes").asBag,
-              ForeachUnion(gs, s("genes").asBag,
                 ForeachUnion(p, ps,
                   IfThenElse(Cmp(OpEq, gs("gb_name"), p("p_gene_name")),
                     Singleton(Tuple("pathway_name" -> p("pathway_name"), "burden" -> gs("gb_burden")))
                   )
-                ))
+                )
             ),
             List("pathway_name"),
             List("burden")))

@@ -1,9 +1,8 @@
 package framework.examples
-import framework.common
+
 import framework.common._
-import framework.examples.CancerDataLoader._
-import org.apache.spark.sql.SparkSession
-trait Cancer extends Query{
+
+trait CancerSchema extends Query {
   def loadTables(shred: Boolean = false, skew: Boolean = false): String = {
     if (shred) // todo: add shredDS
       s"""|val aliquotLoader = new AliquotLoader(spark)
@@ -69,8 +68,8 @@ trait Cancer extends Query{
 
   // define references to these types
   // aliquot
-  val associations = BagVarRef("association", BagType(aliquotType))
-  val ar = TupleVarRef("a", aliquotType)
+  val biospec = BagVarRef("association", BagType(aliquotType))
+  val br = TupleVarRef("br", aliquotType)
 
   // gistic: Genomic Identification of Significant Targets in Cancer
   val gistics = BagVarRef("gistic", BagType(gisticType))
@@ -78,8 +77,8 @@ trait Cancer extends Query{
   val gsr = TupleVarRef("gs", gisticSampleType)
 
   // maf
-  val somatics = BagVarRef("somatic", BagType(occurrenceType))
-  val sr = TupleVarRef("s", occurrenceType)
+  val occurrences = BagVarRef("somatic", BagType(occurrenceType))
+  val or = TupleVarRef("o", occurrenceType)
   val gir = TupleVarRef("gene", geneType)
   val cr = TupleVarRef("c", consequenceType)
 

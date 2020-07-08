@@ -30,7 +30,7 @@ object TestApp1 extends App {
 
 
 object Optimize1 extends App {
-  AppWriter.flatDataset(Step1, "test") // todo: need to revisit this: key not found: v2__F_samples
+  AppWriter.flatDataset(Step1, "test")
   //  AppWriter.shredDataset(Step1, label = "test")
 }
 
@@ -41,7 +41,7 @@ object Optimize1 extends App {
 object TestApp2 extends App {
 
   override def main(args: Array[String]) {
-    AppWriter.flatDataset(Step2, "test") // todo: need to revisit this: key not found: v2__F_samples
+    AppWriter.flatDataset(Step2, "test")
     //      AppWriter.shredDataset(Step2, label = "test")
 
   }
@@ -109,7 +109,7 @@ object PathwayBurden_Test extends App {
 object PathwayBurden_Test4 extends App {
   override def main(args: Array[String]): Unit = {
     AppWriter.flatDataset(plan4, "test")
-    //    AppWriter.shredDataset(plan4, "test")
+        AppWriter.shredDataset(plan4, "test")
     //    AppWriter.shredDataset(plan2_1, label = "test", skew = true)
   }
 }
@@ -124,7 +124,7 @@ object PathwayBurden_Test5 extends App {
 
 object PathwayBurden_Test6 extends App {
   override def main(args: Array[String]): Unit = {
-//        AppWriter.flatDataset(plan6, "test")
+        AppWriter.flatDataset(plan6, "test")
     AppWriter.shredDataset(plan6, "test")
 //        AppWriter.shredDataset(plan6, label = "test", skew = true)
   }
@@ -135,7 +135,7 @@ object GeneBurdenAlt extends App {
   override def main(args: Array[String]): Unit = {
 
     AppWriter.flatDataset(geneBurdenAlt, "test")
-    AppWriter.shredDataset(geneBurdenAlt, "test")
+//    AppWriter.shredDataset(geneBurdenAlt, "test")
   }
 }
 

@@ -1,10 +1,13 @@
 package framework.generator.spark
 
 import java.io._
+
 import framework.common._
 import framework.plans._
 import framework.examples.tpch._
 import framework.examples.Query
+
+import scala.collection.mutable.ArrayBuffer
 
 /** 
   * Utility functions for generating Spark applications 
@@ -45,7 +48,15 @@ object AppWriter {
     val inputs = query.loadTables(shred = false, skew = skew)
     val finalc = writeDataset(qname, inputs, header, timedOne(gcode), label, encoders)
     printer.println(finalc)
-    printer.close 
+    printer.close
+
+    val fname1 = s"$pathout/$qname.zpln"
+    println(s"Writing out $qname to $fname1")
+    val printer1 = new PrintWriter(new FileOutputStream(new File(fname1), false))
+    val finalc1 = writeDatasetZeppelin(qname, inputs, header, timedOne(gcode), label, encoders)
+    val jsonString = new JsonWriter().buildZepplin(qname,finalc1)
+    printer1.println(jsonString)
+    printer1.close
   
   }
 
@@ -70,7 +81,15 @@ object AppWriter {
     val inputs = query.loadTables(shred = false, skew = skew)
     val finalc = writeDataset(qname, inputs, header, s"$inputCode\n${timedOne(gcode)}", label, encoders)
     printer.println(finalc)
-    printer.close 
+    printer.close
+
+    val fname1 = s"$pathout/$qname.zpln"
+    println(s"Writing out $qname to $fname1")
+    val printer1 = new PrintWriter(new FileOutputStream(new File(fname1), false))
+    val finalc1 = writeDatasetZeppelin(qname, inputs, header, timedOne(gcode), label, encoders)
+    val jsonString = new JsonWriter().buildZepplin(qname,finalc1)
+    printer1.println(jsonString)
+    printer1.close
   }
 
   /** Shredded pipeline: Dataset generator **/
@@ -102,7 +121,14 @@ object AppWriter {
     val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet), label, encoders)
     printer.println(finalc)
     printer.close
-  
+
+    val fname1 = s"$pathout/$qname.zpln"
+    println(s"Writing out $qname to $fname1")
+    val printer1 = new PrintWriter(new FileOutputStream(new File(fname1), false))
+    val finalc1 = writeDatasetZeppelin(qname, inputs, header, timed(label, gcodeSet), label, encoders)
+    val jsonString = new JsonWriter().buildZepplin(qname,finalc1)
+    printer1.println(jsonString)
+    printer1.close
   }
 
   def runDatasetInputShred(inputQuery: Query, query: Query, label: String, eliminateDomains: Boolean = true, 
@@ -130,6 +156,14 @@ object AppWriter {
     val finalc = writeDataset(qname, inputs, header, s"$inputCode\n${timed(label, gcodeSet)}", label, encoders)
     printer.println(finalc)
     printer.close
+
+    val fname1 = s"$pathout/$qname.zpln"
+    println(s"Writing out $qname to $fname1")
+    val printer1 = new PrintWriter(new FileOutputStream(new File(fname1), false))
+    val finalc1 = writeDatasetZeppelin(qname, inputs, header, s"$inputCode\n${timed(label, gcodeSet)}", label, encoders)
+    val jsonString = new JsonWriter().buildZepplin(qname,finalc1)
+    printer1.println(jsonString)
+    printer1.close
   
   }
 
@@ -162,6 +196,48 @@ object AppWriter {
       |   println("$label,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
       | }
       |}""".stripMargin
+  }
+
+  /** Writes a generated application for a query using Spark Datasets to Zeppelin**/
+  def writeDatasetZeppelin(appname: String, data: String, header: String, gcode: String, label:String, encoders: String): ArrayBuffer[String]  = {
+
+    val buffer = new ArrayBuffer[String]
+    val s1 = s"""
+        |package sparkutils.generated
+        |/** Generated **/
+        |import org.apache.spark.SparkConf
+        |import org.apache.spark.sql.SparkSession
+        |import org.apache.spark.sql._
+        |import org.apache.spark.sql.functions._
+        |import org.apache.spark.sql.types._
+        |import org.apache.spark.sql.expressions.scalalang._
+        |import sparkutils._
+        |import sparkutils.loader._
+        |import sparkutils.skew.SkewDataset._
+        """.stripMargin.replaceAll("=", "\\u003d")
+    val s2 = s"""|$header""".stripMargin.replaceAll("=", "\\u003d")
+
+    val s3 = s"""
+        |object $appname {
+        | def main(args: Array[String]){
+        |   val sf = Config.datapath.split("/").last
+        |   val conf = new SparkConf().setMaster(Config.master)
+        |     .setAppName(\"$appname\"+sf)
+        |     .set("spark.sql.shuffle.partitions", Config.maxPartitions.toString)
+        |   val spark = SparkSession.builder().config(conf).getOrCreate()
+        |   $encoders
+        |   import spark.implicits._
+        |   $data
+        |   $gcode
+        |   println("$label,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
+        | }
+        |}""".stripMargin.replaceAll("=", "\\u003d")
+
+    buffer+=s1
+    buffer+=s2
+    buffer+=s3
+
+    buffer
   }
 
   /**
