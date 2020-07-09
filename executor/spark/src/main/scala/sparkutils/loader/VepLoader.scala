@@ -171,7 +171,9 @@ somatic: Option[Long],
 start: Option[Long],
 strand: Option[Long])
 
-case class CoLocated2(AA: String,
+case class CoLocated2(
+case_id: String,
+AA: String,
 AFR: String,
 AMR: String,
 EA: String,
@@ -225,7 +227,8 @@ strand: Option[Long],
 transcript_id: Option[String],
 variant_allele: Option[String])
 
-case class TranscriptFull2(amino_acids: String,
+case class TranscriptFull2(case_id: String,
+amino_acids: String,
 cdna_end: Long,
 cdna_start: Long,
 cds_end: Long,
@@ -258,9 +261,9 @@ colocated_variants: Seq[CoLocated2],
 end: Long, id: String, input: String, most_severe_consequence: String, seq_region_name: String, 
 start: Long, strand: Long, transcript_consequences: Seq[TranscriptFull2])
 
-case class OccurrenceFullNulls(oid: String, donorId: String, vend: Int, projectId: String, vstart: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: Option[String], assembly_name: Option[String], end: Option[Long], vid: Option[String], input: Option[String], most_severe_consequence: Option[String], seq_region_name: Option[String], start: Option[Long], strand: Option[Long], colocated_variants: Option[Seq[CoLocated2]], transcript_consequences: Option[Seq[TranscriptFull2]])
+case class OccurrenceFullNulls(oid: String, donorId: String, vend: Int, projectId: String, vstart: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: Option[String], assembly_name: Option[String], end: Option[Long], vid: Option[String], input: Option[String], most_severe_consequence: Option[String], seq_region_name: Option[String], start: Option[Long], strand: Option[Long], colocated_variants: Option[Seq[CoLocated]], transcript_consequences: Option[Seq[TranscriptFull]])
 
-case class OccurrenceFullPartialNulls(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, colocated_variants: Option[Seq[CoLocated2]], transcript_consequences: Option[Seq[TranscriptFull2]])
+case class OccurrenceFullPartialNulls(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, colocated_variants: Option[Seq[CoLocated]], transcript_consequences: Option[Seq[TranscriptFull]])
 
 case class OccurrenceFull(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, colocated_variants: Seq[CoLocated2], transcript_consequences: Seq[TranscriptFull2])
 
@@ -367,31 +370,29 @@ class VepLoader(spark: SparkSession) extends Serializable {
 	val annots = spark.read.json(vindex.sort($"chromosome", $"start").mapPartitions(it => 
 		callVep(it.map(i => i.vepCall).toList).iterator).toDF().as[String])
 		.withColumn("vid", extractIdUdf(col("input")))
-		.as[VepAnnotFull].map(o => 
-			VepAnnotFull2(o.vid, o.allele_string, o.assembly_name,
-			o.colocated_variants match { case Some(cv) => cv.map(c => CoLocated2(getString(c.AA), getString(c.AFR), getString(c.AMR), getString(c.EA), 
+		.as[VepAnnotFull]
+	
+	vindex.join(annots, $"oid" === $"vid", "left_outer").drop("vepCall")
+		.as[OccurrenceFullNulls].na.fill(nullFill).as[OccurrenceFullPartialNulls].map(o => 
+			OccurrenceFull(o.oid, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, o.chromosome, o.allele_string,
+			    o.assembly_name, o.end, o.vid, o.input, o.most_severe_consequence, o.seq_region_name, o.start, o.strand,
+				o.colocated_variants match { case Some(cv) => cv.map(c => CoLocated2(o.donorId, getString(c.AA), getString(c.AFR), getString(c.AMR), getString(c.EA), 
 				getString(c.EAS), getString(c.EUR), getString(c.SAS), getString(c.allele_string), 
 				c.clin_sig match { case Some(cg) => cg.map(x => x match { case null => "null"; case _ => x}); case _ => Seq()},
 				getString(c.clin_sig_allele), getLong(c.end), getString(c.gnomAD), getString(c.gnomAD_AFR), getString(c.gnomAD_AMR), getString(c.gnomAD_ASJ), 
 				getString(c.gnomAD_EAS), getString(c.gnomAD_FIN), getString(c.gnomAD_NFE), getString(c.gnomAD_OTH), getString(c.gnomAD_SAS),
 				getString(c.id), getString(c.minor_allele), getDouble(c.minor_allele_freq), getLong(c.phenotype_or_disease), 
 				c.pubmed match { case Some(ps) => ps; case _ => Seq() }, getString(c.seq_region_name), getLong(c.somatic), getLong(c.start), getLong(c.strand))); 
-					case _ => Seq() }, o.end, o.id, o.input, o.most_severe_consequence, o.seq_region_name,o.start, o.strand, 
-				o.transcript_consequences match { case Some(tc) => tc.map(t => TranscriptFull2(getString(t.amino_acids), getLong(t.cdna_end), 
+					case _ => Seq() }, 
+				o.transcript_consequences match { case Some(tc) => tc.map(t => TranscriptFull2(o.donorId, getString(t.amino_acids), getLong(t.cdna_end), 
 				getLong(t.cdna_start), getLong(t.cds_end), getLong(t.cds_start), getString(t.codons), 
 				t.consequence_terms match { case Some(ct) => ct.map(x => x match { case null => "null"; case _ => x }); case _ => Seq() },
 				getLong(t.distance), getString(t.exon), t.flags match { case Some(tf) => tf; case _ => Seq() }, 
 				getString(t.gene_id), getString(t.impact), getString(t.intron), getString(t.polyphen_prediction),
 				getDouble(t.polyphen_score), getLong(t.protein_end), getLong(t.protein_start), getString(t.sift_prediction), getDouble(t.sift_score), getLong(t.strand), 
 				getString(t.transcript_id), getString(t.variant_allele))); case _ => Seq()})
-		).as[VepAnnotFull2]
-	
-	vindex.join(annots, $"oid" === $"vid", "left_outer").drop("vepCall")
-		.as[OccurrenceFullNulls].na.fill(nullFill).as[OccurrenceFullPartialNulls].map(o =>
-			OccurrenceFull(o.oid, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, o.chromosome, o.allele_string, 
-			o.assembly_name, o.end, o.vid, o.input, o.most_severe_consequence, o.seq_region_name, o.start, o.strand, o.colocated_variants match {
-			  case Some(vc) => vc; case _ => Seq()}, o.transcript_consequences match { case Some(tc) => tc; case _ => Seq()})
 		).as[OccurrenceFull]
+	
   }
 
   def buildOccurrences(inputvariants: Dataset[VepOccurrence], annots: Dataset[VepAnnotTrunc]): Dataset[Occurrence] = {
