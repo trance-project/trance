@@ -10,13 +10,16 @@ object TestApp extends App {
 
   override def main(args: Array[String]){
 
-    AppWriter.flatDataset(OccurGroupByCase0, "test")
-    AppWriter.shredDataset(OccurGroupByCase0, "test")
+    // AppWriter.flatDataset(OccurGroupByGene, "test")
+    // AppWriter.shredDataset(OccurGroupByGene, "test")
 
     // AppWriter.flatDataset(HybridGisticCNByGene, "test")
     // AppWriter.shredDataset(HybridGisticCNByGene, "test")
 
     // AppWriter.flatDataset(CombineGisticCNByGene, "CombineGisticCNByGene,standard")
+
+    AppWriter.flatDataset(HybridBySampleMid2, "test")
+    AppWriter.shredDataset(HybridBySampleMid2, "test")
 
     // AppWriter.flatDataset(HybridPlusBySample, "test")
     // AppWriter.shredDataset(HybridPlusBySample, "test")

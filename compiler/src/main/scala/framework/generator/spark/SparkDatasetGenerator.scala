@@ -145,6 +145,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val rcnts = e.tp.attrs.map(f => generateReference(fs(f._1))).mkString(", ")
       s"udf${generateType(e.tp)}($rcnts)"
     case Constant(c) if literal => s"lit(${generate(e)})"
+    case IfThenElse(cond, e1, e2) => 
     case _ => generate(e)
   }
 
@@ -239,8 +240,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         case (col, expr) if !projectCols(col) =>
           List(s"""|  .withColumn("$col", ${generateReference(expr, true)})""")
         case (ncol, col @ Label(fs)) => 
-		  List(s"""|.withColumn("$ncol", ${generateReference(col)})""")
- 		case _ => Nil
+          List(s"""|.withColumn("$ncol", ${generateReference(col)})""")
+ 		    case _ => Nil
       }
 
       // override existing columns
@@ -251,7 +252,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           if (newCols(oldCol)) List(s"""| .withColumn("$col", $$"$oldCol")""")
           // overrides a column
           else List(s"""| .withColumnRenamed("$oldCol", "$col")""")
-		case _ => Nil
+		      case _ => Nil
       } 
 
       // ensure that new columns are made before renaming occurs

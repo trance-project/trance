@@ -240,11 +240,46 @@ class VepLoader(spark: SparkSession) extends Serializable {
 
   }
 
+  def shredMid(occur: Dataset[OccurrenceMid]): (Dataset[OccurrDict1], Dataset[OccurTransDict2Mid], Dataset[OccurrTransConseqDict3]) = {
+  
+    val dict1 = occur.map{ o => OccurrDict1(o.oid, o.donorId, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, 
+      o.chromosome, o.allele_string, o.assembly_name, o.end, o.vid, o.input, o.most_severe_consequence, o.seq_region_name, o.start, o.strand, o.oid)
+    }.as[OccurrDict1]
+    
+    val tmp2 = occur.flatMap{ o => o.transcript_consequences.zipWithIndex.map{ case (t, id) => (o.oid, id, t) } }
+
+    val dict2 = tmp2.map{ case (id1, id2, t) => OccurTransDict2Mid(id1, t.case_id, t.amino_acids, 
+    t.cdna_end, t.cdna_start, t.cds_end, t.cds_start, t.codons, s"${id1}_${id2}", t.distance, t.exon, t.flags, 
+    t.gene_id, t.impact, t.intron, t.polyphen_prediction, t.polyphen_score, t.protein_end, t.protein_start, 
+    t.sift_prediction, t.sift_score, t.ts_strand,
+    t.transcript_id, t.variant_allele)}.as[OccurTransDict2Mid].repartition(col("_1"))
+
+    val dict3 = tmp2.flatMap{ case (id1, id2, t) => 
+      t.consequence_terms.map(c => OccurrTransConseqDict3(s"${id1}_${id2}", c)) }.as[OccurrTransConseqDict3]
+      .repartition(col("_1"))
+      
+    (dict1, dict2, dict3)
+
+  }
+
   def shredSkew(occur: Dataset[Occurrence2]): ((Dataset[OccurrDict1], Dataset[OccurrDict1]), 
     (Dataset[OccurrTransDict2], Dataset[OccurrTransDict2], Option[String], Broadcast[Set[String]]),
     (Dataset[OccurrTransConseqDict3], Dataset[OccurrTransConseqDict3], Option[String], Broadcast[Set[String]])) = {
 
     val (dict1, dict2, dict3) = shred(occur)
+
+    val skew_dict1 = (dict1, dict1.empty)
+    val skew_dict2 = (dict2, dict2.empty).repartition[String](col("_1"))
+    val skew_dict3 = (dict3, dict3.empty).repartition[String](col("_1"))
+    (skew_dict1, skew_dict2, skew_dict3)
+
+  }
+
+  def shredSkewMid(occur: Dataset[OccurrenceMid]): ((Dataset[OccurrDict1], Dataset[OccurrDict1]), 
+    (Dataset[OccurTransDict2Mid], Dataset[OccurTransDict2Mid], Option[String], Broadcast[Set[String]]),
+    (Dataset[OccurrTransConseqDict3], Dataset[OccurrTransConseqDict3], Option[String], Broadcast[Set[String]])) = {
+
+    val (dict1, dict2, dict3) = shredMid(occur)
 
     val skew_dict1 = (dict1, dict1.empty)
     val skew_dict2 = (dict2, dict2.empty).repartition[String](col("_1"))

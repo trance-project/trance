@@ -428,7 +428,7 @@ object TestMaterialization extends App
   
   //matTupleDictUnsupported1()
   //matTupleDictUnsupported2()
-  matTupleDictUnsupported3()
+  //matTupleDictUnsupported3()
   matTupleDictUnsupported4()
   // similar query that projects less attributes, and passes
   //matTupleDictUnsupported5()

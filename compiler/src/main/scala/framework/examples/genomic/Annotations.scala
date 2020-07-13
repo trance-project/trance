@@ -103,21 +103,29 @@ trait Vep {
     "variant_allele" -> StringType)
 
   val transcriptFull = TupleType(
+    "case_id" -> StringType,
     "amino_acids" -> StringType,
-    "distance" -> LongType,
     "cdna_end" -> LongType,
     "cdna_start" -> LongType,
     "cds_end" -> LongType,
     "cds_start" -> LongType,
     "codons" -> StringType,
     "consequence_terms" -> BagType(element),
+    "distance" -> LongType,
+    "exon" -> StringType,
     "flags" -> BagType(element),
     "gene_id" -> StringType,
     "impact" -> StringType,
+    "intron" -> StringType,
+    "polyphen_prediction" -> StringType,
+    "polyphen_score" -> DoubleType,
     "protein_end" -> LongType,
     "protein_start" -> LongType,
+    "sift_prediction" -> StringType,
+    "sift_score" -> DoubleType,
     "ts_strand" -> LongType,
     "transcript_id" -> StringType,
+    "variant_allele" -> StringType
   )
 
   val vep_type = TupleType("allele_string" -> StringType, 
