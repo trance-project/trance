@@ -396,8 +396,26 @@ object OccurGroupByCase0 extends DriverGene {
 		Singleton(Tuple("o_case_id" -> br("bcr_patient_uuid"), "o_mutations" ->
 			ForeachUnion(or, occurrences, 
 				IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
-					projectTuple(or, Map("aliquotId" -> br("bcr_aliquot_uuid"))))))))
+					Singleton(Tuple("one" -> or("projectId"), "two" -> or("transcript_consequences"))))))))
+					// projectTuple(or, Map("aliquotId" -> br("bcr_aliquot_uuid"))))))))
 	
+	val program = Program(Assignment(name, query))
+}
+
+object OccurGroupByCase1 extends DriverGene {
+
+	val name = "OccurGroupByCase"
+
+	val query = ForeachUnion(br, biospec,
+		Singleton(Tuple("o_case_id" -> br("bcr_patient_uuid"), "o_mutations" ->
+			ForeachUnion(or, occurrences, 
+				IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
+					Singleton(Tuple("one" -> or("projectId"), "two" -> 
+						ForeachUnion(ar, BagProject(or, "transcript_consequences"),
+							Singleton(Tuple("three" -> ar("gene_id"), "four" -> 
+								ForeachUnion(cr, BagProject(ar, "consequence_terms"),
+									Singleton(Tuple("five" -> cr("element")))
+						)))))))))))
 	val program = Program(Assignment(name, query))
 }
 
@@ -411,8 +429,7 @@ object OccurGroupByCase extends DriverGene {
 						"o_trans_conseq" -> ForeachUnion(ar, BagProject(or, "transcript_consequences"),
 						projectTuple(ar, Map("o_conseq_terms" -> 
 							ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-								projectTuple(cr, Map())
-							)),
+								Singleton(Tuple("o_conseq" -> cr("element"))))),
 						 List("consequence_terms"))
 					)), List("transcript_consequences"))
 			)))))

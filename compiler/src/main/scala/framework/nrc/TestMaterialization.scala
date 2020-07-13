@@ -327,8 +327,81 @@ object TestMaterialization extends App
   }
 
   // not sure where this error is coming from
-  def matTupleDictUnsupported(): Unit = {
+  def matTupleDictUnsupported1(): Unit = {
     val q1 = genomic.HybridBySample2.program.asInstanceOf[Program]
+
+    println("Program: \n" + quote(q1) + "\n")
+
+    val (shredded, _) = shredCtx(q1)
+    println("Shredded program: \n" + quote(shredded) + "\n")
+
+    val optShredded = optimize(shredded)
+    println("Shredded program optimized: \n" + quote(optShredded) + "\n")
+
+    val materializedProgram = materialize(optShredded, eliminateDomains = true)
+    println("Materialized program (if hoists + dict iteration): \n" + quote(materializedProgram.program) + "\n")
+
+    val unshredded = unshred(optShredded, materializedProgram.ctx)
+    println("Unshredded program: \n" + quote(unshredded) + "\n")
+  }
+
+  def matTupleDictUnsupported2(): Unit = {
+    val q1 = genomic.HybridBySample2.program.asInstanceOf[Program]
+
+    println("Program: \n" + quote(q1) + "\n")
+
+    val (shredded, _) = shredCtx(q1)
+    println("Shredded program: \n" + quote(shredded) + "\n")
+
+    val optShredded = optimize(shredded)
+    println("Shredded program optimized: \n" + quote(optShredded) + "\n")
+
+    val materializedProgram = materialize(optShredded, eliminateDomains = true)
+    println("Materialized program (if hoists + dict iteration): \n" + quote(materializedProgram.program) + "\n")
+
+    val unshredded = unshred(optShredded, materializedProgram.ctx)
+    println("Unshredded program: \n" + quote(unshredded) + "\n")
+  }
+
+  def matTupleDictUnsupported3(): Unit = {
+    val q1 = genomic.OccurGroupByCase0.program.asInstanceOf[Program]
+
+    println("Program: \n" + quote(q1) + "\n")
+
+    val (shredded, _) = shredCtx(q1)
+    println("Shredded program: \n" + quote(shredded) + "\n")
+
+    val optShredded = optimize(shredded)
+    println("Shredded program optimized: \n" + quote(optShredded) + "\n")
+
+    val materializedProgram = materialize(optShredded, eliminateDomains = true)
+    println("Materialized program (if hoists + dict iteration): \n" + quote(materializedProgram.program) + "\n")
+
+    val unshredded = unshred(optShredded, materializedProgram.ctx)
+    println("Unshredded program: \n" + quote(unshredded) + "\n")
+  }
+
+  def matTupleDictUnsupported4(): Unit = {
+    val q1 = genomic.OccurGroupByCase.program.asInstanceOf[Program]
+
+    println("Program: \n" + quote(q1) + "\n")
+
+    val (shredded, _) = shredCtx(q1)
+    println("Shredded program: \n" + quote(shredded) + "\n")
+
+    val optShredded = optimize(shredded)
+    println("Shredded program optimized: \n" + quote(optShredded) + "\n")
+
+    val materializedProgram = materialize(optShredded, eliminateDomains = true)
+    println("Materialized program (if hoists + dict iteration): \n" + quote(materializedProgram.program) + "\n")
+
+    val unshredded = unshred(optShredded, materializedProgram.ctx)
+    println("Unshredded program: \n" + quote(unshredded) + "\n")
+  }
+
+  // an example that iterates through but doesn't fail
+  def matTupleDictUnsupported5(): Unit = {
+    val q1 = genomic.OccurGroupByCase1.program.asInstanceOf[Program]
 
     println("Program: \n" + quote(q1) + "\n")
 
@@ -353,7 +426,12 @@ object TestMaterialization extends App
   // dualConditionLabels2()
   // matFailedAssertion()
   
-  matTupleDictUnsupported()
+  //matTupleDictUnsupported1()
+  //matTupleDictUnsupported2()
+  matTupleDictUnsupported3()
+  matTupleDictUnsupported4()
+  // similar query that projects less attributes, and passes
+  //matTupleDictUnsupported5()
 
 
 //  run(tpch.Query1.program.asInstanceOf[Program])
