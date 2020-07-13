@@ -390,6 +390,35 @@ object QuantifyConsequence extends DriverGene {
 
 }
 
+object OccurGroupByCase0 extends DriverGene {
+	val name = "OccurGroupByCase"
+	val query = ForeachUnion(br, biospec,
+		Singleton(Tuple("o_case_id" -> br("bcr_patient_uuid"), "o_mutations" ->
+			ForeachUnion(or, occurrences, 
+				IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
+					projectTuple(or, Map("aliquotId" -> br("bcr_aliquot_uuid"))))))))
+	
+	val program = Program(Assignment(name, query))
+}
+
+object OccurGroupByCase extends DriverGene {
+	val name = "OccurGroupByCase"
+	val query = ForeachUnion(br, biospec,
+		Singleton(Tuple("o_case_id" -> br("bcr_patient_uuid"), "o_mutations" ->
+			ForeachUnion(or, occurrences, 
+				IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
+					projectTuple(or, Map("aliquotId" -> br("bcr_aliquot_uuid"), 
+						"o_trans_conseq" -> ForeachUnion(ar, BagProject(or, "transcript_consequences"),
+						projectTuple(ar, Map("o_conseq_terms" -> 
+							ForeachUnion(cr, BagProject(ar, "consequence_terms"),
+								projectTuple(cr, Map())
+							)),
+						 List("consequence_terms"))
+					)), List("transcript_consequences"))
+			)))))
+	val program = Program(Assignment(name, query))
+}
+
 /** This versions assumes transcripts are not annotated with aliquot id
   * This should create domains for the shredded case.
   */
@@ -741,6 +770,68 @@ object HybridGisticCNByGene extends DriverGene {
   val program = Program(Assignment(fOccurr.name, flatOccur), Assignment(name, query))
 
 }
+
+object CombineGisticCNByGene extends DriverGene {
+	
+	val name = "CombineGisticCNByGene"
+
+	override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+	  	s"""|${loadGistic(shred, skew)}
+	  		|${loadCopyNumber(shred, skew)}""".stripMargin
+
+	val query = ForeachUnion(gr, gistic,
+		Singleton(Tuple("g_gene" -> gr("gistic_gene"), "g_cytoband" -> gr("cytoband"),
+			"g_samples" -> ForeachUnion(sr, BagProject(gr, "gistic_samples"),
+				ForeachUnion(cnr, copynum,
+					IfThenElse(And(Cmp(OpEq, sr("gistic_sample"), cnr("cn_aliquot_uuid")),
+						Cmp(OpEq, gr("gistic_gene"), cnr("cn_gene_id"))),
+						Singleton(Tuple("cng_aliquot" -> cnr("cn_aliquot_uuid"), 
+							"cng_focal_score" -> sr("focal_score"),
+							"cng_copy_number" -> cnr("cn_copy_number"),
+							"cng_max_copy" -> cnr("max_copy_number"),
+							"cng_min_copy" -> cnr("min_copy_number")))))))))
+
+	val program = Program(Assignment(name, query))
+
+}
+
+// object HybridGisticCNByGene2 extends DriverGene {
+
+//   val name = "HybridGisticCNByGene2"
+
+//   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+//   	s"""|${super.loadTables(shred, skew)}
+//   		|${loadGistic(shred, skew)}
+//   		|${loadCopyNumber(shred, skew)}""".stripMargin
+
+//   val (cnFocals, cnfr) = varset("cnFocals", "cnf", CombineGisticCNByGene.query.asInstanceOf[BagExpr])
+//   val cnSamples = BagProject(cnfr, "g_samples")
+//   val snfr = TupleVarRef("snf", cnSamples.tp.tp)
+
+//   val query = ForeachUnion(cnfr, cnFocals, 
+//   	Singleton(Tuple("hybrid_gene" -> cnfr("g_gene"), "hybrid_cytoband" -> cnfr("cytoband"), 
+//   		"hybrid_samples" -> 
+//   			ReduceByKey(
+//   				ForeachUnion(snfr, cnSamples,
+//   					ForeachUnion(br, biospec, 
+//   						IfThenElse(Cmp(OpEq, snfr("cng_aliquot"), br("bcr_aliquot_uuid")),
+//   							ForeachUnion(or, occurrences,
+//   								IfThenElse(And(Cmp(OpEq, focur("o_case_id"), br("bcr_patient_uuid")),
+//   									Cmp(OpEq, focur("t_gene_id"), cnr("cn_gene_id"))),
+// 		                          	Singleton(Tuple("hybrid_case_id" -> focur("o_case_id"),
+// 		                          				"hybrid_aliquot_id" -> br("bcr_aliquot_uuid"),
+// 		                          				"hybrid_project" -> focur("o_project"),
+// 		                            			"hybrid_score" -> 
+// 		                            			focur("t_conseqs").asNumeric * focur("t_impact").asNumeric
+// 												* (sr("focal_score").asNumeric + NumericConst(.01, DoubleType))
+// 												* cnr("cn_copy_number").asNumeric
+// 											)))))))
+//   			,List("hybrid_case_id", "hybrid_aliquot_id", "hybrid_project"),
+//   			List("hybrid_score")))))
+
+//   val program = CombineGisticCNByGene.program.asInstanceOf[CombineGisticCNByGene].append(Assignment(name, query))
+
+// }
 
 // object HybridGisticByGeneByAliquot extends DriverGene {
 
