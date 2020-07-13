@@ -29,12 +29,14 @@ object App {
 	 //val fmaf = "TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf"
 	 val fmaf = ""
 	 //val fmaf = "small.maf"
-	 val maf = mloader.loadFlat(s"/nfs_qc4/genomics/gdc/somatic/$fmaf")
+	 val maf = mloader.loadFlat(s"/nfs_qc4/genomics/gdc/somatic/mafs/$fmaf")
 
-	 val occurrences = veploader.loadOccurrencesFull(maf)
+	 val occurrences = veploader.loadOccurrencesMid(maf)
+	 //val (vind, annots) = veploader.loadOccurrencesMid(maf)
 	 //println(occurrences.printSchema)
 	 //occurrences.take(10).foreach(println(_))
 	 occurrences.write.format("json").save("file:///nfs_qc4/genomics/gdc/somatic/datasetFull/")
+	 //one.write.format("json").save("file://nfs_qc4/genomics/gdc/somatic/vindexed/")
 	 //annotations.take(10).foreach(println(_))
 	 /**
 	 //val occurences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[VepAnnotTrunc]

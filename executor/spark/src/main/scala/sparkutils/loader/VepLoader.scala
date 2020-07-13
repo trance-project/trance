@@ -256,8 +256,16 @@ colocated_variants: Option[Seq[CoLocated]],
 end: Long, id: String, input: String, most_severe_consequence: String, seq_region_name: String, 
 start: Long, strand: Long, transcript_consequences: Option[Seq[TranscriptFull]])
 
+case class VepAnnotMid(vid: String, allele_string: String, assembly_name: String, 
+end: Long, id: String, input: String, most_severe_consequence: String, seq_region_name: String, 
+start: Long, strand: Long, transcript_consequences: Option[Seq[TranscriptFull]])
+
 case class VepAnnotFull2(vid: String, allele_string: String, assembly_name: String, 
 colocated_variants: Seq[CoLocated2],
+end: Long, id: String, input: String, most_severe_consequence: String, seq_region_name: String, 
+start: Long, strand: Long, transcript_consequences: Seq[TranscriptFull2])
+
+case class VepAnnotMid2(vid: String, allele_string: String, assembly_name: String, 
 end: Long, id: String, input: String, most_severe_consequence: String, seq_region_name: String, 
 start: Long, strand: Long, transcript_consequences: Seq[TranscriptFull2])
 
@@ -267,12 +275,17 @@ case class OccurrenceFullPartialNulls(oid: String, donorId: String, vend: Long, 
 
 case class OccurrenceFull(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, colocated_variants: Seq[CoLocated2], transcript_consequences: Seq[TranscriptFull2])
 
+case class OccurrenceMidNulls(oid: String, donorId: String, vend: Int, projectId: String, vstart: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: Option[String], assembly_name: Option[String], end: Option[Long], vid: Option[String], input: Option[String], most_severe_consequence: Option[String], seq_region_name: Option[String], start: Option[Long], strand: Option[Long], transcript_consequences: Option[Seq[TranscriptFull]])
+
+case class OccurrenceMidPartialNulls(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Option[Seq[TranscriptFull]])
+
+case class OccurrenceMid(oid: String, donorId: String, vend: Long, projectId: String, vstart: Long, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: String, assembly_name: String, end: Long, vid: String, input: String, most_severe_consequence: String, seq_region_name: String, start: Long, strand: Long, transcript_consequences: Seq[TranscriptFull2])
+
 class VepLoader(spark: SparkSession) extends Serializable {
 
   import spark.implicits._
 
-  val options = "--distance 1000000 --sift b --polyphen b --numbers --check_existing --clin_sig_allele 0 --no_check_alleles --af --af_1kg --af_esp --af_gnomad --failed 1"
-  //--ccds --uniprot --hgvs --symbol --numbers --domains --regulatory --canonical --protein --biotype --uniprot --tsl --appris --gene_phenotype --af --af_1kg --af_esp --af_gnomad --max_af --pubmed --variant_class --mane " //--no_check_variants_order --distance 100000"
+  val options = "--distance 1000000 --sift b --polyphen b --numbers "//--check_existing --clin_sig_allele 0 --no_check_alleles --af --af_1kg --af_esp --af_gnomad --failed 1"
   val vepCommandLine = s"${Config.vepHome} --cache -o STDOUT --assembly GRCh38 --json $options --offline --no_stats --format vcf --dir_cache ${Config.vepCache}"
 
   val formatOccurrenceUdf = udf { 
@@ -357,6 +370,36 @@ class VepLoader(spark: SparkSession) extends Serializable {
   def getLong(e: Option[Long]): Long = e match { case Some(l) => l; case _ => 0; }
   def getDouble(e: Option[Double]): Double = e match { case Some(d) => d; case _ => 0.0 }
 
+  def loadOccurrencesMid(variants: Dataset[OccurrencesTop]): Dataset[OccurrenceMid] = {
+	val nullFill = Map("allele_string" -> "null", "assembly_name" -> "null", "end" -> -1, "vid" -> "null", 
+		"input" -> "null", "most_severe_consequence" -> "null", "seq_region_name" -> "null", "start" -> -1, 
+		"strand" -> -1)
+
+	val vindex = variants.withColumn("oid", monotonically_increasing_id().cast(StringType)).withColumn("vepCall", 
+		formatOccurrenceUdf(col("chromosome"), col("start"), col("oid"), col("Reference_Allele"), col("Tumor_Seq_Allele1"), col("Tumor_Seq_Allele2")))
+	 .withColumnRenamed("start", "vstart").as[VepOccurrence]
+ 	
+	val annots = spark.read.json(vindex.sort($"chromosome", $"start").mapPartitions(it => 
+		callVep(it.map(i => i.vepCall).toList).iterator).toDF().as[String])
+		.withColumn("vid", extractIdUdf(col("input")))
+		.as[VepAnnotMid]
+	
+	vindex.join(annots, $"oid" === $"vid", "left_outer").drop("vepCall")
+		.as[OccurrenceMidNulls].na.fill(nullFill).as[OccurrenceMidPartialNulls].map(o => 
+			OccurrenceMid(o.oid, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, 
+				o.Tumor_Seq_Allele2, o.chromosome, o.allele_string,
+			    o.assembly_name, o.end, o.vid, o.input, o.most_severe_consequence, o.seq_region_name, o.start, o.strand,
+				o.transcript_consequences match { case Some(tc) => tc.map(t => TranscriptFull2(o.donorId, getString(t.amino_acids), getLong(t.cdna_end), 
+				getLong(t.cdna_start), getLong(t.cds_end), getLong(t.cds_start), getString(t.codons), 
+				t.consequence_terms match { case Some(ct) => ct.map(x => x match { case null => "null"; case _ => x }); case _ => Seq() },
+				getLong(t.distance), getString(t.exon), t.flags match { case Some(tf) => tf; case _ => Seq() }, 
+				getString(t.gene_id), getString(t.impact), getString(t.intron), getString(t.polyphen_prediction),
+				getDouble(t.polyphen_score), getLong(t.protein_end), getLong(t.protein_start), getString(t.sift_prediction), 
+				getDouble(t.sift_score), getLong(t.strand), 
+				getString(t.transcript_id), getString(t.variant_allele))); case _ => Seq()})
+		).as[OccurrenceMid]
+  }
+
   def loadOccurrencesFull(variants: Dataset[OccurrencesTop]): Dataset[OccurrenceFull] = {
 	//(Dataset[VepOccurrence], Dataset[VepAnnotFull2]) = {//Dataset[OccurrenceEverything]) = {
 	val nullFill = Map("allele_string" -> "null", "assembly_name" -> "null", "end" -> -1, "vid" -> "null", 
@@ -371,7 +414,7 @@ class VepLoader(spark: SparkSession) extends Serializable {
 		callVep(it.map(i => i.vepCall).toList).iterator).toDF().as[String])
 		.withColumn("vid", extractIdUdf(col("input")))
 		.as[VepAnnotFull]
-	
+
 	vindex.join(annots, $"oid" === $"vid", "left_outer").drop("vepCall")
 		.as[OccurrenceFullNulls].na.fill(nullFill).as[OccurrenceFullPartialNulls].map(o => 
 			OccurrenceFull(o.oid, o.donorId, o.vend, o.projectId, o.vstart, o.Reference_Allele, o.Tumor_Seq_Allele1, o.Tumor_Seq_Allele2, o.chromosome, o.allele_string,
@@ -392,7 +435,7 @@ class VepLoader(spark: SparkSession) extends Serializable {
 				getDouble(t.polyphen_score), getLong(t.protein_end), getLong(t.protein_start), getString(t.sift_prediction), getDouble(t.sift_score), getLong(t.strand), 
 				getString(t.transcript_id), getString(t.variant_allele))); case _ => Seq()})
 		).as[OccurrenceFull]
-	
+	//(vindex, annots)
   }
 
   def buildOccurrences(inputvariants: Dataset[VepOccurrence], annots: Dataset[VepAnnotTrunc]): Dataset[Occurrence] = {
