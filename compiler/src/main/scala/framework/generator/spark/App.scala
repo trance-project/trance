@@ -14,24 +14,27 @@ object TestApp extends App {
     // AppWriter.shredDataset(OccurGroupByGene, "OccurGroupByGene,shredded")
     // AppWriter.shredDataset(OccurGroupByGene, "OccurGroupByGene,shredded", unshred=true)
 
-    AppWriter.flatDataset(OccurGroupByCaseMid, "OccurGroupByCaseMid,standard")
-    AppWriter.shredDataset(OccurGroupByCaseMid, "OccurGroupByCaseMid,shredded")
-    AppWriter.shredDataset(OccurGroupByCaseMid, "OccurGroupByCaseMid,shredded", unshred=true)
+    // AppWriter.flatDataset(OccurGroupByCaseMid, "OccurGroupByCaseMid,standard")
+    // AppWriter.shredDataset(OccurGroupByCaseMid, "OccurGroupByCaseMid,shredded")
+    // AppWriter.shredDataset(OccurGroupByCaseMid, "OccurGroupByCaseMid,shredded", unshred=true)
 
 
     // AppWriter.flatDataset(OccurCNVGroupByCase, "OccurCNVGroupByCase,standard")
     // AppWriter.shredDataset(OccurCNVGroupByCase, "OccurCNVGroupByCase,shredded")
     // AppWriter.shredDataset(OccurCNVGroupByCase, "OccurCNVGroupByCase,shredded", unshred=true)
 
+    // AppWriter.flatDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,standard")
+    // AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded")
+    // AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", unshred=true)
 
     // AppWriter.flatDataset(HybridGisticCNByGene, "test")
     // AppWriter.shredDataset(HybridGisticCNByGene, "test")
 
     // AppWriter.flatDataset(CombineGisticCNByGene, "CombineGisticCNByGene,standard")
 
-    // AppWriter.flatDataset(HybridBySampleMid2, "test")
-    // AppWriter.shredDataset(HybridBySampleMid2, "test")
-    // AppWriter.shredDataset(HybridBySampleMid2, "HybridBySampleMid2,shredded")
+    AppWriter.flatDataset(HybridBySampleV2, "HybridBySampleV2,standard")
+    // AppWriter.shredDataset(HybridBySampleV2, "HybridBySampleV2,shredded")
+    // AppWriter.shredDataset(HybridBySampleV2, "HybridBySampleV2,shredded", unshred=true)
 
     // AppWriter.flatDataset(HybridPlusBySample, "test")
     // AppWriter.shredDataset(HybridPlusBySample, "test")
