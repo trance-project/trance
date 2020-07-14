@@ -30,7 +30,6 @@ trait Occurrence extends Vep {
 
     val occurmid_type = TupleType(
       "oid" -> StringType,
-      "aliquotId" -> StringType,
       "donorId" -> StringType, 
       "vend" -> LongType,
       "projectId" -> StringType, 
