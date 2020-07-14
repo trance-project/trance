@@ -32,6 +32,8 @@ object App {
 	 val maf = mloader.loadFlat(s"/nfs_qc4/genomics/gdc/somatic/mafs/$fmaf")
 
 	 val occurrences = veploader.loadOccurrencesMid(maf)
+	 occurrences.cache
+	 occurrences.count
 	 //val (vind, annots) = veploader.loadOccurrencesMid(maf)
 	 //println(occurrences.printSchema)
 	 //occurrences.take(10).foreach(println(_))
