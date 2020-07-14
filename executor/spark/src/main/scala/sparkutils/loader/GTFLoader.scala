@@ -3,6 +3,7 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql._
 import org.apache.spark.rdd.RDD
+import sparkutils.Config
 
 case class GTF(g_contig: String, g_start: Int, g_end: Int, gene_name: String)
 
@@ -27,7 +28,7 @@ class GTFLoader(spark: SparkSession, path: String) extends Serializable {
                 val splitGeneData = geneData.substring(index).split("\"")
                 GTF(sline(COL_CONTIG), sline(COL_START).toInt, sline(COL_END).toInt, splitGeneData(1))
             }
-        ).toDF.as[GTF]
+        ).toDF.as[GTF].repartition(Config.minPartitions)
         homo_sapiens
     }
 }

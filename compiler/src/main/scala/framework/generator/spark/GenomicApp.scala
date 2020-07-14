@@ -135,7 +135,7 @@ object GeneBurdenAlt extends App {
   override def main(args: Array[String]): Unit = {
 
     AppWriter.flatDataset(geneBurdenAlt, "test")
-//    AppWriter.shredDataset(geneBurdenAlt, "test")
+    AppWriter.shredDataset(geneBurdenAlt, "test")
   }
 }
 
