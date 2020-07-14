@@ -32,9 +32,9 @@ object TestApp extends App {
 
     // AppWriter.flatDataset(CombineGisticCNByGene, "CombineGisticCNByGene,standard")
 
-    AppWriter.flatDataset(HybridBySampleV2, "HybridBySampleV2,standard")
-    // AppWriter.shredDataset(HybridBySampleV2, "HybridBySampleV2,shredded")
-    // AppWriter.shredDataset(HybridBySampleV2, "HybridBySampleV2,shredded", unshred=true)
+    // AppWriter.flatDataset(HybridBySampleV2, "HybridBySampleV2,standard")
+    AppWriter.shredDataset(HybridBySampleV2, "HybridBySampleV2,shredded")
+    AppWriter.shredDataset(HybridBySampleV2, "HybridBySampleV2,shredded", unshred=true)
 
     // AppWriter.flatDataset(HybridPlusBySample, "test")
     // AppWriter.shredDataset(HybridPlusBySample, "test")

@@ -745,14 +745,14 @@ object HybridBySampleV2 extends DriverGene {
 			        		ForeachUnion(ar, BagProject(or, "transcript_consequences"),
 								ForeachUnion(cncr, cnvCases,
 							       	IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), ar("aliquot_id")),
-							       		Cmp(OpEq, amr("gene_id"), cncr("cn_gene_id"))),
+							       		Cmp(OpEq, ar("gene_id"), cncr("cn_gene_id"))),
 				                      		ForeachUnion(cr, BagProject(ar, "consequence_terms"),
 				                        		ForeachUnion(conr, conseq,
 				                        			IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
 				                          				Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
 					                            		"hybrid_score" -> 
 					                            		conr("so_weight").asNumeric * matchImpact 
-														* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
+														* (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
 
 			,List("hybrid_gene_id"),
             List("hybrid_score")))))
