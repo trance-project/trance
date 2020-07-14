@@ -145,7 +145,10 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val rcnts = e.tp.attrs.map(f => generateReference(fs(f._1))).mkString(", ")
       s"udf${generateType(e.tp)}($rcnts)"
     case Constant(c) if literal => s"lit(${generate(e)})"
-    case IfThenElse(cond, e1, e2) => 
+    case If(cond, e1, Some(e2)) => 
+      s"when(${generate(cond)}, ${generateReference(e1)}).otherwise(${generateReference(e2)})"
+    case If(cond, e1, None) => 
+      s"when(${generate(cond)}, ${generateReference(e1)})"
     case _ => generate(e)
   }
 
