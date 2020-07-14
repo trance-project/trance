@@ -227,9 +227,16 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       handleType(pat.tp)
       val nrec = generateType(pat.tp)
 
-      val select = if (fields.isEmpty) ""
-        else if (fields.toSet == ep.inputColumns) ""
-        else s".select(${(fields.toSet & ep.inputColumns).mkString("\"", "\", \"", "\"")})"
+      val nfields = ext.collect(pat)
+      println(v.tp.attrs.keySet)
+      println(in.tp.attrs.keySet)
+      println(nfields)
+      val select = if (in.tp.attrs.keySet == nfields) ""
+        else s".select(${nfields.toList.mkString("\"", "\", \"", "\"")})"
+
+        // if (fields.isEmpty) ""
+        // else if (fields.toSet == ep.inputColumns) ""
+        // else s".select(${(fields.toSet & ep.inputColumns).mkString("\"", "\", \"", "\"")})"
 
       // input table attributes
       val projectCols = fields.toSet
@@ -379,7 +386,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     // if value contains only attributes from right relation
     // note this also handles lookup in unshredding
     case Bind(vj, join:JoinOp, Bind(nv, nd @ DFNest(in, v, key, value @ Record(fs), filter, nulls, tag), e2)) 
-      if optLevel == 2 && (ext.collect(value) subsetOf join.v2.tp.attrs.keySet) && join.isEquiJoin =>
+      if optLevel == 20 && (ext.collect(value) subsetOf join.v2.tp.attrs.keySet) && join.isEquiJoin =>
       
       val (p1, p2) = join.cond match {
         case Equals(Project(_, c1), Project(_, c2)) => join.v.tp.attrs get c1 match {
@@ -442,8 +449,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val frec = Record(en.tp.tp.attrs.map(k => if (k._1 == tag) k._1 -> grpv 
         else k._1 -> Project(kv, k._1)).toMap)
      
-      println("in nest with")
-      println(v)
       s"""|${generate(in)}.groupByKey($gv => ${generate(rkey)}).mapGroups{
           | case (key, value) => 
           |   val grp = value.flatMap($gv => 

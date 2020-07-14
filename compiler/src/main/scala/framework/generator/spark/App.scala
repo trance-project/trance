@@ -10,16 +10,22 @@ object TestApp extends App {
 
   override def main(args: Array[String]){
 
-    // AppWriter.flatDataset(OccurGroupByGene, "test")
-    // AppWriter.shredDataset(OccurGroupByGene, "test")
+    // AppWriter.flatDataset(OccurGroupByGene, "OccurGroupByGene,standard")
+    // AppWriter.shredDataset(OccurGroupByGene, "OccurGroupByGene,shredded")
+    // AppWriter.shredDataset(OccurGroupByGene, "OccurGroupByGene,shredded", unshred=true)
+
+    AppWriter.flatDataset(OccurGroupByCaseMid, "OccurGroupByCaseMid,standard")
+    // AppWriter.shredDataset(OccurGroupByCaseMid, "OccurGroupByCaseMid,shredded")
+    // AppWriter.shredDataset(OccurGroupByCase, "OccurGroupByCase,shredded", unshred=true)
 
     // AppWriter.flatDataset(HybridGisticCNByGene, "test")
     // AppWriter.shredDataset(HybridGisticCNByGene, "test")
 
     // AppWriter.flatDataset(CombineGisticCNByGene, "CombineGisticCNByGene,standard")
 
-    AppWriter.flatDataset(HybridBySampleMid2, "test")
-    AppWriter.shredDataset(HybridBySampleMid2, "test")
+    // AppWriter.flatDataset(HybridBySampleMid2, "test")
+    // AppWriter.shredDataset(HybridBySampleMid2, "test")
+    // AppWriter.shredDataset(HybridBySampleMid2, "HybridBySampleMid2,shredded")
 
     // AppWriter.flatDataset(HybridPlusBySample, "test")
     // AppWriter.shredDataset(HybridPlusBySample, "test")

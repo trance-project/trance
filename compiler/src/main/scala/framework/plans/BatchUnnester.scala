@@ -89,8 +89,6 @@ object BatchUnnester {
       val (nw, nE) = 
         if (u.isEmpty) (flat(w, nv.tp), DFJoin(E.get, wvar(w), Select(right, nv, Constant(true), nv), nv, cond, Nil))
         else (flat(w, nv.tp.outer), DFOuterJoin(E.get, wvar(w), Select(right, nv, Constant(true), nv), nv, cond, Nil))
-      println("in here with")
-      println(Printer.quote(nE))
       unnest(e2)((u, nw, Some(nE), tag))
 
     case s @ If(cnd, Sng(t @ Record(fs)), nextIf) =>
@@ -154,8 +152,6 @@ object BatchUnnester {
       val nv = wvar(w)
       val tup = exp(Record(fs))
       val rtup = replace(tup, nv)
-      println(Printer.quote(tup))
-      println(Printer.quote(rtup))
       DFNest(E.get, nv, u.keys.toList, rtup, Constant(true), (w.keySet -- u.keySet).toList, tag)
     }   
   }

@@ -484,11 +484,60 @@ object OccurGroupByCase extends DriverGene {
 						"o_trans_conseq" -> ForeachUnion(ar, BagProject(or, "transcript_consequences"),
 						projectTuple(ar, Map("o_conseq_terms" -> 
 							ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-								Singleton(Tuple("o_conseq" -> cr("element"))))),
+		                        ForeachUnion(conr, conseq,
+		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+		                        		Singleton(Tuple("conseq_term" -> conr("so_term"), "conseq_weight" -> conr("so_weight"))))))),
 						 List("consequence_terms", "flags"))
 					)), List("transcript_consequences"))
 			)))))
 	val program = Program(Assignment(name, query))
+}
+
+object OccurGroupByCaseMid0 extends DriverGene {
+
+	val name = "OccurGroupByCaseMid0"
+
+	val query = ForeachUnion(br, biospec,
+		Singleton(Tuple("o_case_id" -> br("bcr_patient_uuid"), "o_mutations" ->
+			ForeachUnion(omr, occurmids, 
+				IfThenElse(Cmp(OpEq, omr("donorId"), br("bcr_patient_uuid")),
+					Singleton(Tuple(//"o_aliquotId" -> br("bcr_aliquot_uuid"), 
+						"o_trans_conseq" -> 
+						ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
+							Singleton(Tuple("o_transcript_id" -> amr("transcript_id"), 
+								"o_conseq_terms" -> 
+									ForeachUnion(cr, BagProject(amr, "consequence_terms"),
+										Singleton(Tuple("o_weight" -> cr("element"))))
+		                        		// ForeachUnion(conr, conseq,
+		                        		// 	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+		                        		// 		Singleton(Tuple("conseq_term" -> conr("so_term"), 
+		                        		// 			"conseq_weight" -> conr("so_weight"))))))
+			))))))))))
+
+	val program = Program(Assignment(name, query))
+	
+}
+
+object OccurGroupByCaseMid extends DriverGene {
+
+	val name = "OccurGroupByCaseMid"
+
+	val query = ForeachUnion(br, biospec,
+		Singleton(Tuple("o_case_id" -> br("bcr_patient_uuid"), "o_mutations" ->
+			ForeachUnion(omr, occurmids, 
+				IfThenElse(Cmp(OpEq, omr("donorId"), br("bcr_patient_uuid")),
+					projectTuple(omr, Map(//"aliquotId" -> br("bcr_aliquot_uuid"), 
+						"o_trans_conseq" -> ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
+						projectTuple(amr, Map("o_conseq_terms" -> 
+							ForeachUnion(cr, BagProject(amr, "consequence_terms"),
+		                        ForeachUnion(conr, conseq,
+		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+		                        		Singleton(Tuple("conseq_term" -> conr("so_term"), "conseq_weight" -> conr("so_weight"))))))),
+						 List("consequence_terms", "flags"))
+					)), List("transcript_consequences")))))))
+
+	val program = Program(Assignment(name, query))
+	
 }
 
 object OccurGroupByGene extends DriverGene {
