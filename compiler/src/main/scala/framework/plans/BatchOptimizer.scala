@@ -56,7 +56,7 @@ object BatchOptimizer extends Extensions {
       val tfields = fields.toSet ++ collect(filter)
       val pin = push(in, tfields ++ fs)
       val nv = Variable.fromBag(v.name, pin.tp)
-      DFProject(pin, nv, filter, tfields.toList)
+      DFProject(pin, nv, replace(filter, nv), tfields.toList)
 
     case DFUnnest(in, v, path, v2, filter, fields) =>
       val pin = push(in, fields.toSet ++ fs + path)
