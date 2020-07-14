@@ -807,7 +807,7 @@ object HybridBySampleMidV2 extends DriverGene {
         			"hybrid_center" -> br("center_id"),
         			"hybrid_genes" -> ReduceByKey(
         				ForeachUnion(omr, occurmids,
-        				IfThenElse(Cmp(OpEq, or("donorId"), br("patient_uuid")),
+        				IfThenElse(Cmp(OpEq, omr("donorId"), br("bcr_patient_uuid")),
         				ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
 							ForeachUnion(cncr, cnvCases,
 							     IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), amr("case_id")),
