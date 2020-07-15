@@ -107,7 +107,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
   private def accessOption(e: CExpr, nv: Variable): String = e match {
     case Project(v, field) => 
       nv.tp.attrs.getOrElse(field, v.tp.attrs(field)) match {
-        case _:OptionType => s"${nv.name}.$field.get"
+        case OptionType(otp) => 
+          s"${nv.name}.$field match { case Some(x) => x; case _ => ${zero(otp)} }"
+          //s"${nv.name}.$field.get"
         case _ => s"${nv.name}.$field"
       }
     case Record(fs) => 
