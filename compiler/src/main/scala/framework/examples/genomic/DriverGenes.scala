@@ -584,8 +584,14 @@ object OccurCNVGroupByCaseMid extends DriverGene {
 
 	val name = "OccurCNVGroupByCaseMid"
 
+	override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+  		s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
+
 	val query = ForeachUnion(br, biospec,
-		Singleton(Tuple("o_case_id" -> br("bcr_patient_uuid"), "o_mutations" ->
+		Singleton(Tuple("o_case_id" -> br("bcr_patient_uuid"), 
+			"o_aliquot_id" -> br("bcr_aliquot_uuid"),
+			"o_center" -> br("center_id"),
+			"o_mutations" ->
 			ForeachUnion(omr, occurmids, 
 				IfThenElse(Cmp(OpEq, omr("donorId"), br("bcr_patient_uuid")),
 					projectTuple(omr, Map(//"aliquotId" -> br("bcr_aliquot_uuid"), 

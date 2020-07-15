@@ -23,9 +23,9 @@ object TestApp extends App {
     // AppWriter.shredDataset(OccurCNVGroupByCase, "OccurCNVGroupByCase,shredded")
     // AppWriter.shredDataset(OccurCNVGroupByCase, "OccurCNVGroupByCase,shredded", unshred=true)
 
-    // AppWriter.flatDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,standard")
-    // AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded")
-    // AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", unshred=true)
+    AppWriter.flatDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,standard")
+    AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded")
+    AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", unshred=true)
 
     // AppWriter.flatDataset(HybridGisticCNByGene, "test")
     // AppWriter.shredDataset(HybridGisticCNByGene, "test")
@@ -37,8 +37,8 @@ object TestApp extends App {
     //AppWriter.shredDataset(HybridBySampleV2, "HybridBySampleV2,shredded", unshred=true)
 
     // AppWriter.flatDataset(HybridBySampleMid2V2, "HybridBySampleMid2V2,standard")
-    AppWriter.shredDataset(HybridBySampleMid2V2, "HybridBySampleMid2V2,shredded")
-    AppWriter.shredDataset(HybridBySampleMid2V2, "HybridBySampleMid2V2,shredded", unshred=true)
+    // AppWriter.shredDataset(HybridBySampleMid2V2, "HybridBySampleMid2V2,shredded")
+    // AppWriter.shredDataset(HybridBySampleMid2V2, "HybridBySampleMid2V2,shredded", unshred=true)
 
     // AppWriter.flatDataset(HybridPlusBySample, "test")
     // AppWriter.shredDataset(HybridPlusBySample, "test")
