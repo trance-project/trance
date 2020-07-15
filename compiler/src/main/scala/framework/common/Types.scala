@@ -160,6 +160,7 @@ final case class OptionType(tp: Type) extends TupleAttributeType
 final case class BagCType(tp: Type) extends Type {
 
   override def isDict: Boolean = tp match {
+    case RecordCType(fs) => fs.contains("_1")
     case TTupleType(fs) => fs.head.isInstanceOf[LabelType]
     case _ => false
   }

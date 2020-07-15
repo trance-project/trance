@@ -36,7 +36,7 @@ object TestApp extends App {
     //AppWriter.shredDataset(HybridBySampleV2, "HybridBySampleV2,shredded")
     //AppWriter.shredDataset(HybridBySampleV2, "HybridBySampleV2,shredded", unshred=true)
 
-    AppWriter.flatDataset(HybridBySampleMid2V2, "HybridBySampleMid2V2,standard")
+    // AppWriter.flatDataset(HybridBySampleMid2V2, "HybridBySampleMid2V2,standard")
     AppWriter.shredDataset(HybridBySampleMid2V2, "HybridBySampleMid2V2,shredded")
     AppWriter.shredDataset(HybridBySampleMid2V2, "HybridBySampleMid2V2,shredded", unshred=true)
 

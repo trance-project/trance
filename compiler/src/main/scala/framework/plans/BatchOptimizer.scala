@@ -84,6 +84,8 @@ object BatchOptimizer extends Extensions {
       val rpin = push(right, nfields)
       val lv = Variable.fromBag(v.name, lpin.tp)
       val rv = Variable.fromBag(v2.name, rpin.tp)
+      println("right projections pushed")
+      println(rpin)
       val nfields2 = if (nfields("_1")) nfields - p1 else nfields -- Set(p1, p2)
       DFOuterJoin(lpin, lv, rpin, rv, cond, nfields2.toList)
 
@@ -149,6 +151,13 @@ object BatchOptimizer extends Extensions {
     case GroupDict(e1) => GroupDict(push(e1, fs))
     case CNamed(n, e1) => CNamed(n, push(e1))
     case LinearCSet(fs) => LinearCSet(fs.map(f => push(f)))
+    case InputRef(name, tp) => 
+      val fields = fs & tp.attrs.keySet
+      if (fields.nonEmpty) {
+        val v = Variable.fresh(RecordCType(tp.attrs))
+        val nv = Variable(v.name, RecordCType(tp.attrs.filter(f => fields(f._1))))
+        Select(e, v, Constant(true), nv)
+      } else InputRef(name, tp)
     case _ => e
   }
 

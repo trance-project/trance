@@ -49,13 +49,13 @@ trait Query extends Materialization
     optimizationLevel match {
       case 0 if batch => anfBase.anf(anfer.finalize(this.batchUnnest).asInstanceOf[anfBase.Rep])
       case y if batch => 
-        println("plan before")
+        // println("plan before")
         val p = this.batchUnnest
-        println(Printer.quote(p))
+        // println(Printer.quote(p))
 		val optimized = BatchOptimizer.applyAll(p)
-        println("\nPlan after:")
+        // println("\nPlan after:")
         //println(optimized)
-        println(Printer.quote(optimized)+"\n")
+        // println(Printer.quote(optimized)+"\n")
         val plan = anfBase.anf(anfer.finalize(optimized).asInstanceOf[anfBase.Rep])
         println(Printer.quote(plan))
         plan
@@ -208,8 +208,8 @@ trait Query extends Materialization
     val ncalc = normalizer.finalize(translate(matProg)).asInstanceOf[CExpr]
     println(ncalc)
     val initPlan = BatchUnnester.unnest(ncalc)(Map(), Map(), None, baseTag)
-    println("plan before")
-    println(Printer.quote(initPlan))
+    // println("plan before")
+    // println(Printer.quote(initPlan))
     val plan = BatchOptimizer.push(compiler.finalize(initPlan).asInstanceOf[CExpr])
     println(Printer.quote(plan))
     val anfBase = new BaseDFANF{}
