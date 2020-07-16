@@ -249,8 +249,10 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         case (col, Project(_, oldCol)) if col != oldCol => Nil
         case (col, expr) if !projectCols(col) =>
           List(s"""|  .withColumn("$col", ${generateReference(expr, true)})""")
-        case (ncol, col @ Label(fs)) => 
-          List(s"""|.withColumn("$ncol", ${generateReference(col)})""")
+        case (ncol, col @ Label(fs)) => fs.head match {
+          case (_, Project(_, "_1")) if fs.size == 1 => Nil
+          case _ => List(s"""|.withColumn("$ncol", ${generateReference(col)})""")
+        }
  		    case _ => Nil
       }
 
@@ -441,19 +443,26 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     case en @ DFNest(in, v, key, value, filter, nulls, tag) =>
-      
+      val nullSet = nulls.toSet
+      val rnulls = v.tp.attrs.filter(n => nullSet(n._1) 
+        && n._2.isInstanceOf[OptionType]).take(22).keySet
+
       val gv = generate(v)
       val rkey = Record(key.map(k => k -> Project(v, k)).toMap)
       val kv = Variable("key", rkey.tp)
       val grpv = Variable("grp", BagCType(value.tp.unouter))
       val frec = Record(en.tp.tp.attrs.map(k => if (k._1 == tag) k._1 -> grpv 
         else k._1 -> Project(kv, k._1)).toMap)
+      val uscores = List.fill(rnulls.size)("_")
+      val nmatch = rnulls.map(n => s"$gv.$n").mkString("(",",",")")
+      val caseMatches = Range(0, rnulls.size).map(i => uscores.patch(i, Seq(s"None"), 1).mkString("case (",",",") => Seq()")
+        ).mkString("\n")
      
       s"""|${generate(in)}.groupByKey($gv => ${generate(rkey)}).mapGroups{
           | case (key, value) => 
           |   val grp = value.flatMap($gv => 
-          |    $gv.${nulls.head} match {
-          |      case None => Seq()
+          |    $nmatch match {
+          |      $caseMatches
           |      case _ => Seq(${accessOption(value, v)})
           |   }).toSeq
           |   ${generate(frec)}

@@ -52,7 +52,7 @@ trait Query extends Materialization
         // println("plan before")
         val p = this.batchUnnest
         // println(Printer.quote(p))
-		val optimized = BatchOptimizer.applyAll(p)
+		    val optimized = BatchOptimizer.applyAll(p)
         // println("\nPlan after:")
         //println(optimized)
         // println(Printer.quote(optimized)+"\n")
@@ -206,7 +206,7 @@ trait Query extends Materialization
     println("RUNNING SHREDDED PIPELINE:\n")
     println(quote(matProg))
     val ncalc = normalizer.finalize(translate(matProg)).asInstanceOf[CExpr]
-    println(ncalc)
+    // println(ncalc)
     val initPlan = BatchUnnester.unnest(ncalc)(Map(), Map(), None, baseTag)
     // println("plan before")
     // println(Printer.quote(initPlan))
