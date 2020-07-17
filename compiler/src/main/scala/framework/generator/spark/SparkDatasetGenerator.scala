@@ -191,8 +191,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       s"${generate(e2)}.${kvName(field)(fs.size)}"
     case Project(e2, field) => s"${generate(e2)}.$field"
     /** MATH OPS **/
+
     case MathOp(op, e1, e2) => op match {
-      case OpDivide => 
+      case OpDivide if !e2.isInstanceOf[Constant] => 
         val ge2 = generateReference(e2)
         val ze2 = zero(e2.tp)
         s"when($ge2 === $ze2, $ze2).otherwise(${generateReference(e1)} $op $ge2)"

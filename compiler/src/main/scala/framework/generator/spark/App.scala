@@ -23,9 +23,13 @@ object TestApp extends App {
     // AppWriter.shredDataset(OccurCNVGroupByCase, "OccurCNVGroupByCase,shredded")
     // AppWriter.shredDataset(OccurCNVGroupByCase, "OccurCNVGroupByCase,shredded", unshred=true)
 
-    AppWriter.flatDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,standard")
-    AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded")
-    AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", unshred=true)
+    //AppWriter.flatDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,standard")
+    //AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded")
+    //AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", unshred=true)
+
+    AppWriter.flatDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,standard")
+    AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded")
+    AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded", unshred=true)
 
     // AppWriter.flatDataset(HybridGisticCNByGene, "test")
     // AppWriter.shredDataset(HybridGisticCNByGene, "test")
