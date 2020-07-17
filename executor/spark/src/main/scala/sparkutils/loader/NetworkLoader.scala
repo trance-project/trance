@@ -9,9 +9,9 @@ import sparkutils.skew.SkewDataset._
 
 case class Network(protein1: String, protein2: String, neighborhood: Int, neighborhood_transferred: Int, fusion: Int, cooccurence: Int, homology: Int, coexpression: Int, coexpression_transferred: Int, experiments: Int, experiments_transferred: Int, database: Int, database_transferred: Int, textmining: Int, textmining_transferred: Int, combined_score: Int)
 
-case class StringEdge(edge_gene: String, neighborhood: Int, neighborhood_transferred: Int, fusion: Int, cooccurence: Int, homology: Int, coexpression: Int, coexpression_transferred: Int, experiments: Int, experiments_transferred: Int, database: Int, database_transferred: Int, textmining: Int, textmining_transferred: Int, combined_score: Int)
+case class StringEdge(edge_protein: String, neighborhood: Int, neighborhood_transferred: Int, fusion: Int, cooccurence: Int, homology: Int, coexpression: Int, coexpression_transferred: Int, experiments: Int, experiments_transferred: Int, database: Int, database_transferred: Int, textmining: Int, textmining_transferred: Int, combined_score: Int)
 
-case class StringEdgeDict2(_1: String, edge_gene: String, neighborhood: Int, neighborhood_transferred: Int, fusion: Int, cooccurence: Int, homology: Int, coexpression: Int, coexpression_transferred: Int, experiments: Int, experiments_transferred: Int, database: Int, database_transferred: Int, textmining: Int, textmining_transferred: Int, combined_score: Int)
+case class StringEdgeDict2(_1: String, edge_protein: String, neighborhood: Int, neighborhood_transferred: Int, fusion: Int, cooccurence: Int, homology: Int, coexpression: Int, coexpression_transferred: Int, experiments: Int, experiments_transferred: Int, database: Int, database_transferred: Int, textmining: Int, textmining_transferred: Int, combined_score: Int)
 
 case class StringNode(node_gene: String, edges: Seq[StringEdge])
 
@@ -40,7 +40,7 @@ class NetworkLoader(spark: SparkSession) extends Table[StringNode] {
       StructField("combined_score", IntegerType)))
 
    val header: Boolean = true
-   val delimiter: String = " "
+   val delimiter: String = ","
 
    def loadFlat(path: String): Dataset[Network] = {
       spark.read.schema(schema)

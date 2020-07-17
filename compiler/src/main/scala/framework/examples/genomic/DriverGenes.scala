@@ -191,11 +191,12 @@ trait StringNetwork {
   }
 
   def loadNetwork(shred: Boolean = false, skew: Boolean = false): String = {
-    if (shred){
+    val nfile = "nfs_qc4/genomics/9606.protein.links.full.v11.0.csv"
+	if (shred){
       val fnetLoad = if (skew) "(network, network.empty)" else "network"
       val loadFun = if (skew) "loadSkew" else "loadShred"
       s"""|val stringLoader = new NetworkLoader(spark)
-          |val network = stringLoader.$loadFun("/nfs_qc4/genomics/9606.protein.links.full.v11.0.txt")
+          |val network = stringLoader.$loadFun("$nfile")
           |val IBag_network__D = network._1
           |IBag_network__D.cache
           |IBag_network__D.count
@@ -205,13 +206,13 @@ trait StringNetwork {
           |""".stripMargin
     }else if (skew){
       s"""|val stringLoader = new NetworkLoader(spark)
-          |val network_L = stringLoader.load("/nfs_qc4/genomics/mart_export.txt")
+          |val network_L = stringLoader.load("$nfile")
           |val network = (network_L, network_L.empty)
           |network.cache
           |network.count""".stripMargin
     }else{
       s"""|val stringLoader = new NetworkLoader(spark)
-          |val network = stringLoader.load("/nfs_qc4/genomics/mart_export.txt")
+          |val network = stringLoader.load("$nfile")
           |network.cache
           |network.count""".stripMargin
     }
