@@ -24,7 +24,7 @@ object App {
      //println("annotations here")
      //println(annots.show())
 	 //annots.take(10).foreach(println(_))
-	 val veploader = new VepLoader(spark)
+	 /**val veploader = new VepLoader(spark)
 	 val mloader = new MAFLoader(spark)
 	 //val fmaf = "TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf"
 	 val fmaf = ""
@@ -40,7 +40,6 @@ object App {
 	 occurrences.write.format("json").save("file:///nfs_qc4/genomics/gdc/somatic/datasetFull/")
 	 //one.write.format("json").save("file://nfs_qc4/genomics/gdc/somatic/vindexed/")
 	 //annotations.take(10).foreach(println(_))
-	 /**
 	 //val occurences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[VepAnnotTrunc]
 	 //occurrences.take(10).foreach(println(_))
 	 //annotations.take(10).foreach(println(_))
@@ -65,9 +64,9 @@ object App {
        val cloader = new ConsequenceLoader(spark)
        val thresh = cloader.loadSequential("/nfs_qc4/genomics/calc_variant_conseq.txt")
        thresh.collect.foreach(println(_))**/
-    // val nloader = new NetworkLoader(spark)
-    // val network = nloader.load("/home/jacith/shredder/executor/spark/data/geno/9606.protein.links.full.v11.0.txt")
-    // println(network.show())
+   val nloader = new NetworkLoader(spark)
+   val network = nloader.load("/Users/jac/bioqueries/data/ppi/9606.protein.links.full.v11.0.txt")
+   println(network.show())
     //val bloader = new BiomartLoader(spark)
     //val biomart = bloader.load("/home/jacith/shredder/executor/spark/data/geno/mart_export.txt")
     //println(biomart.show())

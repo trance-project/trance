@@ -84,8 +84,6 @@ object BatchOptimizer extends Extensions {
       val rpin = push(right, nfields)
       val lv = Variable.fromBag(v.name, lpin.tp)
       val rv = Variable.fromBag(v2.name, rpin.tp)
-      println("right projections pushed")
-      println(rpin)
       val nfields2 = if (nfields("_1")) nfields - p1 else nfields -- Set(p1, p2)
       DFOuterJoin(lpin, lv, rpin, rv, cond, nfields2.toList)
 

@@ -3,6 +3,17 @@ package framework.examples.genomic
 import framework.common._
 import framework.examples.Query
 
+/** This file contains the base types for 
+  * queries / pipelined analysis of the 
+  * occurrences endpoint (TCGA)
+  *
+  * The rest of the document contains the 
+  * queries associated to the pipeline 
+  * analysis. Additional queries 
+  * can be found in OccurReconstruct.scala and
+  * CancerAdditional.scala.
+  **/
+
 trait Occurrence extends Vep {
 
   val occurrence_type = TupleType(
@@ -55,54 +66,57 @@ trait Occurrence extends Vep {
     	val loadFun = if (skew) "shredSkew" else "shred"
     	if (shred){
 	    	s"""|val vepLoader = new VepLoader(spark)
-				|/**val mafLoader = new MAFLoader(spark)
-				|//val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")
-		    	|//val maf = mafLoader.loadFlat(s"$basepath/somatic/mafs/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
-				|val (occurs, annots) = vepLoader.loadOccurrences(maf)
-				|val occurrences = vepLoader.buildOccurrences(occurs, annots)
-				|val (odict1, odict2, odict3) = vepLoader.$loadFun(occurrences)**/
-				|//val occurrences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence]
-				|//val (odict1, odict2, odict3) = vepLoader.$loadFun(vepLoader.finalize(occurrences, biospec))
-				|//val (odict1, odict2, odict3) = vepLoader.$loadFun(vepLoader.finalize(occurrences))
-				|val occurrences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/datasetFull/").as[OccurrenceMid]
-				|val (odict1, odict2, odict3) = vepLoader.${loadFun}Mid(occurrences)
-		  		|val IBag_occurrences__D = odict1
-				|IBag_occurrences__D.cache
-				|IBag_occurrences__D.count
-				|val IDict_occurrences__D_transcript_consequences = odict2
-				|IDict_occurrences__D_transcript_consequences.cache
-				|IDict_occurrences__D_transcript_consequences.count
-				|val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
-				|IDict_occurrences__D_transcript_consequences_consequence_terms.cache
-				|IDict_occurrences__D_transcript_consequences_consequence_terms.count
-				|""".stripMargin
+    				|//val mafLoader = new MAFLoader(spark)
+    				|//val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")
+    		    |//val maf = mafLoader.loadFlat(s"$basepath/somatic/mafs/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
+    				|//val (occurs, annots) = vepLoader.loadOccurrences(maf)
+    				|//val occurrences = vepLoader.buildOccurrences(occurs, annots)
+    				|//val (odict1, odict2, odict3) = vepLoader.$loadFun(occurrences)
+    				|//val occurrences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence]
+    				|//val (odict1, odict2, odict3) = vepLoader.$loadFun(vepLoader.finalize(occurrences, biospec))
+    				|//val (odict1, odict2, odict3) = vepLoader.$loadFun(vepLoader.finalize(occurrences))
+    				|val occurrences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/datasetFull/").as[OccurrenceMid]
+    				|//val occurrences = vepLoader.loadOccurrencesMid(maf)
+            |val (odict1, odict2, odict3) = vepLoader.${loadFun}Mid(occurrences)
+    		  	|val IBag_occurrences__D = odict1
+    				|IBag_occurrences__D.cache
+    				|IBag_occurrences__D.count
+    				|val IDict_occurrences__D_transcript_consequences = odict2
+    				|IDict_occurrences__D_transcript_consequences.cache
+    				|IDict_occurrences__D_transcript_consequences.count
+    				|val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
+    				|IDict_occurrences__D_transcript_consequences_consequence_terms.cache
+    				|IDict_occurrences__D_transcript_consequences_consequence_terms.count
+    				|""".stripMargin
     	}else if (skew){
     		s"""|val vepLoader = new VepLoader(spark)
-				|/**val mafLoader = new MAFLoader(spark)
-				|//val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")
-	      		|val maf = mafLoader.loadFlat(s"$basepath/somatic/mafs/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
-				|val (occurs, annots) = vepLoader.loadOccurrences(maf)
-				|val occurrences_L = vepLoader.finalize(vepLoader.buildOccurrences(occurs, annots))**/
-				|//val occurrences_L = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence], biospec_L)
-				|//val occurrences_L = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence])
-				|val occurrences_L = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/datasetFull/").as[OccurrenceMid]
-				|val occurrences = (occurrences_L, occurrences_L.empty)
-				|occurrences.cache
-				|occurrences.count
-				|""".stripMargin
+    				|//val mafLoader = new MAFLoader(spark)
+    				|//val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")
+    	      |//val maf = mafLoader.loadFlat(s"$basepath/somatic/mafs/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
+    				|//val (occurs, annots) = vepLoader.loadOccurrences(maf)
+    				|//val occurrences_L = vepLoader.finalize(vepLoader.buildOccurrences(occurs, annots))
+    				|//val occurrences_L = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence], biospec_L)
+    				|//val occurrences_L = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence])
+    				|val occurrences_L = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/datasetFull/").as[OccurrenceMid]
+    				|//val occurrences_L = vepLoader.loadOcccurrencesMid(maf)
+            |val occurrences = (occurrences_L, occurrences_L.empty)
+    				|occurrences.cache
+    				|occurrences.count
+    				|""".stripMargin
     	}else{
 			s"""|val vepLoader = new VepLoader(spark)
-				|/**val mafLoader = new MAFLoader(spark)
-	      		|//val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")
-	      		|val maf = mafLoader.loadFlat(s"$basepath/somatic/mafs/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
-				|val (occurs, annots) = vepLoader.loadOccurrences(maf)
-				|//val occurrences = vepLoader.finalize(vepLoader.buildOccurrences(occurs, annots))**/
-				|//val occurrences = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence], biospec)
-				|//val occurrences = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence])
-				|val occurrences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/datasetFull/").as[OccurrenceMid]
-				|occurrences.cache
-				|occurrences.count
-				|""".stripMargin
+				  |//val mafLoader = new MAFLoader(spark)
+	      	|//val maf = mafLoader.loadFlat(s"$basepath/somatic/small.maf")
+	      	|//val maf = mafLoader.loadFlat(s"$basepath/somatic/mafs/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
+  				|//val (occurs, annots) = vepLoader.loadOccurrences(maf)
+  				|//val occurrences = vepLoader.finalize(vepLoader.buildOccurrences(occurs, annots))
+  				|//val occurrences = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence], biospec)
+  				|//val occurrences = vepLoader.finalize(spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/dataset/").as[Occurrence])
+  				|val occurrences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/datasetFull/").as[OccurrenceMid]
+  				|//val occurrences = vepLoader.loadOccurrencesMid(maf)
+          |occurrences.cache
+  				|occurrences.count
+  				|""".stripMargin
     	}
     }
 
@@ -113,35 +127,35 @@ trait Gistic {
   def loadGistic(shred: Boolean = false, skew: Boolean = false): String = {
   	if (shred){
   		val loadFun = if (skew) "shredSkew" else "shred"
-		s"""|val gisticLoader = new GisticLoader(spark)
-			|//val gistic = gisticLoader.merge(s"/nfs_qc4/genomics/gdc/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
-			|//                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
-			|val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
-			|				.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
-			|val (gdict1, gdict2) = gisticLoader.$loadFun(gistic)
-			|val IBag_gistic__D = gdict1
-			|IBag_gistic__D.cache
-			|IBag_gistic__D.count
-			|val IDict_gistic__D_gistic_samples = gdict2
-			|IDict_gistic__D_gistic_samples.cache
-			|IDict_gistic__D_gistic_samples.count""".stripMargin
+  		s"""|val gisticLoader = new GisticLoader(spark)
+    			|//val gistic = gisticLoader.merge(s"/nfs_qc4/genomics/gdc/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
+    			|//                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
+    			|val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
+    			|				.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
+    			|val (gdict1, gdict2) = gisticLoader.$loadFun(gistic)
+    			|val IBag_gistic__D = gdict1
+    			|IBag_gistic__D.cache
+    			|IBag_gistic__D.count
+    			|val IDict_gistic__D_gistic_samples = gdict2
+    			|IDict_gistic__D_gistic_samples.cache
+    			|IDict_gistic__D_gistic_samples.count""".stripMargin
   	}else if (skew)
 	  	s"""|val gistic_L = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
-			|					.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
-			|//val gisticLoader = new GisticLoader(spark)
-			|//val gistic_L = gisticLoader.merge(s"/nfs_qc4/genomics/gdc/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
-			|//                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
-			|val gistic = (gistic_L, gistic_L.empty)
-			|gistic.cache
-			|gistic.count""".stripMargin
+    			|					.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
+    			|//val gisticLoader = new GisticLoader(spark)
+    			|//val gistic_L = gisticLoader.merge(s"/nfs_qc4/genomics/gdc/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
+    			|//                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
+    			|val gistic = (gistic_L, gistic_L.empty)
+    			|gistic.cache
+    			|gistic.count""".stripMargin
 	else
 		s"""|val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
-			|				.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
-			|//val gisticLoader = new GisticLoader(spark)
-			|//val gistic = gisticLoader.merge(s"/nfs_qc4/genomics/gdc/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
-			|//                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
-			|gistic.cache
-			|gistic.count""".stripMargin
+  			|				.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
+  			|//val gisticLoader = new GisticLoader(spark)
+  			|//val gistic = gisticLoader.merge(s"/nfs_qc4/genomics/gdc/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
+  			|//                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
+  			|gistic.cache
+  			|gistic.count""".stripMargin
   }
 
   val sampleType = TupleType("gistic_sample" -> StringType, 
@@ -158,22 +172,49 @@ trait StringNetwork {
   	if (shred){
   		val fnetLoad = if (skew) "(stringNetwork, stringNetwork.empty)" else "stringNetwork"
   		s"""|val stringLoader = new NetworkLoader(spark)
-  			|val stringNetwork = stringLoader.loadFlat("/nfs_qc4/genomics/9606.protein.links.full.v11.0.txt")
-  			|val IBag_stringNetwork__D = $fnetLoad
-  			|IBag_stringNetwork__D.cache
-  			|IBag_stringNetwork__D.count""".stripMargin
+    			|val stringNetwork = stringLoader.loadFlat("/nfs_qc4/genomics/9606.protein.links.full.v11.0.txt")
+    			|val IBag_stringNetwork__D = $fnetLoad
+    			|IBag_stringNetwork__D.cache
+    			|IBag_stringNetwork__D.count""".stripMargin
   	}else if (skew){
   		s"""|val stringLoader = new NetworkLoader(spark)
-  			|val stringNetwork_L = stringLoader.loadFlat("/nfs_qc4/genomics/mart_export.txt")
-  			|val stringNetwork = (stringNetwork_L, stringNetwork_L.empty)
-  			|stringNetwork.cache
-  			|stringNetwork.count""".stripMargin
+    			|val stringNetwork_L = stringLoader.loadFlat("/nfs_qc4/genomics/mart_export.txt")
+    			|val stringNetwork = (stringNetwork_L, stringNetwork_L.empty)
+    			|stringNetwork.cache
+    			|stringNetwork.count""".stripMargin
   	}else{
   		s"""|val stringLoader = new NetworkLoader(spark)
-  			|val stringNetwork = stringLoader.loadFlat("/nfs_qc4/genomics/mart_export.txt")
-  			|stringNetwork.cache
-  			|stringNetwork.count""".stripMargin
+    			|val stringNetwork = stringLoader.loadFlat("/nfs_qc4/genomics/mart_export.txt")
+    			|stringNetwork.cache
+    			|stringNetwork.count""".stripMargin
   	}
+  }
+
+  def loadNetwork(shred: Boolean = false, skew: Boolean = false): String = {
+    if (shred){
+      val fnetLoad = if (skew) "(network, network.empty)" else "network"
+      val loadFun = if (skew) "loadSkew" else "loadShred"
+      s"""|val stringLoader = new NetworkLoader(spark)
+          |val network = stringLoader.$loadFun("/nfs_qc4/genomics/9606.protein.links.full.v11.0.txt")
+          |val IBag_network__D = network._1
+          |IBag_network__D.cache
+          |IBag_network__D.count
+          |val IDict_network__D_edges = network._2
+          |IDict_network__D_edges.cache
+          |IDict_network__D_edges.count
+          |""".stripMargin
+    }else if (skew){
+      s"""|val stringLoader = new NetworkLoader(spark)
+          |val network_L = stringLoader.load("/nfs_qc4/genomics/mart_export.txt")
+          |val network = (network_L, network_L.empty)
+          |network.cache
+          |network.count""".stripMargin
+    }else{
+      s"""|val stringLoader = new NetworkLoader(spark)
+          |val network = stringLoader.load("/nfs_qc4/genomics/mart_export.txt")
+          |network.cache
+          |network.count""".stripMargin
+    }
   }
 
   val edgeOrderedType = List(("edge_protein", StringType), ("neighborhood", IntType),
@@ -246,36 +287,36 @@ trait CopyNumber {
 		if (shred){
 		val copynumLoad = if (skew) "(copynumber, copynumber.empty)" else "copynumber"
 		s"""|val cnLoader = new CopyNumberLoader(spark)
-			|val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
+			  |val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
 	    	|				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
-			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
-			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
-			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
-			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
-			|val IBag_copynumber__D = $copynumLoad
-			|IBag_copynumber__D.cache
-			|IBag_copynumber__D.count""".stripMargin
+  			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+  			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
+  			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
+  			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
+  			|val IBag_copynumber__D = $copynumLoad
+  			|IBag_copynumber__D.cache
+  			|IBag_copynumber__D.count""".stripMargin
 		}else if (skew)
 		s"""|val cnLoader = new CopyNumberLoader(spark)
-			|val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
-			|				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
-			|//val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
-			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
-			|//val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
-			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
-			|val copynumber = (copynumber_L, copynumber_L.empty)
-			|copynumber.cache
-			|copynumber.count""".stripMargin
+  			|val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
+  			|				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
+  			|//val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+  			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
+  			|//val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
+  			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
+  			|val copynumber = (copynumber_L, copynumber_L.empty)
+  			|copynumber.cache
+  			|copynumber.count""".stripMargin
 		else
 		s"""|val cnLoader = new CopyNumberLoader(spark)
-			|val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
-      		|				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
-			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
-			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
-			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
-			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]	
-			|copynumber.cache
-			|copynumber.count""".stripMargin
+		    |val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
+    		|				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
+  			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+  			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
+  			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
+  			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]	
+  			|copynumber.cache
+  			|copynumber.count""".stripMargin
 
 	}
 	
@@ -432,314 +473,16 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 
 }
 
-// fails in shredded
-object QuantifyConsequence extends DriverGene {
+// Group occurrences (100k) by mutations (large number of top level tuples)
+// aggregate each potential driver gene for each mutation (in transcript_consequences)
+// 
+// This case will not produce domains, and assumes that each transcript
+// is annotated with aliquot identifiers 
+// Note: previously "HybridBySample"
+object HybridByMutation extends DriverGene {
 
-	val name = "QuantifyConsequence"
-	val query = ForeachUnion(or, occurrences, 
-		projectTuple(or, Map("tcs" -> ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-			projectTuple(ar, Map("cons" -> ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-				ForeachUnion(conr, conseq, 
-					BagIfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-						Singleton(Tuple("element" -> conr("so_weight"))),
-						Some(Singleton(Tuple("element" -> Const(.01, DoubleType)))))))))))))
-						
-					/**	PrimitiveIfThenElse(
-						Cmp(OpEq, conr("so_term"), cr("element")), 
-							conr("so_weight").asPrimitive, Const(.01, DoubleType))))))))))))**/
-
-	val program = Program(Assignment(name, query))
-
-}
-
-object OccurGroupByCase0 extends DriverGene {
-	val name = "OccurGroupByCase"
-	val query = ForeachUnion(br, biospec,
-		Singleton(Tuple("o_case_id" -> br("bcr_patient_uuid"), "o_mutations" ->
-			ForeachUnion(or, occurrences, 
-				IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
-					Singleton(Tuple("one" -> or("projectId"), "two" -> or("transcript_consequences"))))))))
-					// projectTuple(or, Map("aliquotId" -> br("bcr_aliquot_uuid"))))))))
-	
-	val program = Program(Assignment(name, query))
-}
-
-object OccurGroupByCase1 extends DriverGene {
-
-	val name = "OccurGroupByCase"
-
-	val query = ForeachUnion(br, biospec,
-		Singleton(Tuple("o_case_id" -> br("bcr_patient_uuid"), "o_mutations" ->
-			ForeachUnion(or, occurrences, 
-				IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
-					Singleton(Tuple("one" -> or("projectId"), "two" -> 
-						ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-							Singleton(Tuple("three" -> ar("gene_id"), "four" -> 
-								ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-									Singleton(Tuple("five" -> cr("element")))
-						)))))))))))
-	val program = Program(Assignment(name, query))
-}
-
-object OccurGroupByCase extends DriverGene {
-	val name = "OccurGroupByCase"
-	val query = ForeachUnion(br, biospec,
-		Singleton(Tuple("o_case_id" -> br("bcr_patient_uuid"), "o_mutations" ->
-			ForeachUnion(or, occurrences, 
-				IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
-					projectTuple(or, Map("aliquotId" -> br("bcr_aliquot_uuid"), 
-						"o_trans_conseq" -> ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-						projectTuple(ar, Map("o_conseq_terms" -> 
-							ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-		                        ForeachUnion(conr, conseq,
-		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-		                        		Singleton(Tuple("conseq_term" -> conr("so_term"), "conseq_weight" -> conr("so_weight"))))))),
-						 List("consequence_terms", "flags"))
-					)), List("transcript_consequences"))
-			)))))
-	val program = Program(Assignment(name, query))
-}
-
-object OccurCNVGroupByCase extends DriverGene {
-	val name = "OccurGroupByCase"
-
-  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-  	s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
-
-	val query = ForeachUnion(br, biospec,
-		Singleton(Tuple("o_case_id" -> br("bcr_patient_uuid"), "o_mutations" ->
-			ForeachUnion(or, occurrences, 
-				IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
-					projectTuple(or, Map(//"aliquotId" -> br("bcr_aliquot_uuid"), 
-						"o_trans_conseq" -> ForeachUnion(ar, BagProject(or, "transcript_consequences"),	
-							ForeachUnion(cnr, copynum,
-				       			IfThenElse(And(Cmp(OpEq, cnr("cn_aliquot_uuid"), ar("aliquot_id")),
-				       				Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id"))),
-						projectTuple(ar, Map(
-							"o_copy_number" -> cnr("cn_copy_number"),
-							"o_max_copy" -> cnr("max_copy_number"),
-							"o_min_copy" -> cnr("min_copy_number"),
-							"o_cn_start" -> cnr("cn_start"),
-							"o_cn_end" -> cnr("cn_end"),
-							"o_cn_chr" -> cnr("cn_chromosome"),
-							"o_conseq_terms" -> 
-							ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-		                        ForeachUnion(conr, conseq,
-		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-		                        		Singleton(Tuple("conseq_term" -> conr("so_term"), "conseq_weight" -> conr("so_weight"))))))),
-						 List("consequence_terms", "flags"))
-					)))), List("transcript_consequences"))
-			)))))
-	val program = Program(Assignment(name, query))
-}
-
-object OccurGroupByCaseMid0 extends DriverGene {
-
-	val name = "OccurGroupByCaseMid0"
-
-	val query = ForeachUnion(br, biospec,
-		Singleton(Tuple("o_case_id" -> br("bcr_patient_uuid"), "o_mutations" ->
-			ForeachUnion(omr, occurmids, 
-				IfThenElse(Cmp(OpEq, omr("donorId"), br("bcr_patient_uuid")),
-					Singleton(Tuple(//"o_aliquotId" -> br("bcr_aliquot_uuid"), 
-						"o_trans_conseq" -> 
-						ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
-							Singleton(Tuple("o_transcript_id" -> amr("transcript_id"), 
-								"o_conseq_terms" -> 
-									ForeachUnion(cr, BagProject(amr, "consequence_terms"),
-										Singleton(Tuple("o_weight" -> cr("element"))))
-		                        		// ForeachUnion(conr, conseq,
-		                        		// 	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-		                        		// 		Singleton(Tuple("conseq_term" -> conr("so_term"), 
-		                        		// 			"conseq_weight" -> conr("so_weight"))))))
-			))))))))))
-
-	val program = Program(Assignment(name, query))
-	
-}
-
-object OccurGroupByCaseMid extends DriverGene {
-
-	val name = "OccurGroupByCaseMid"
-
-	val query = ForeachUnion(br, biospec,
-		Singleton(Tuple("o_case_id" -> br("bcr_patient_uuid"), "o_mutations" ->
-			ForeachUnion(omr, occurmids, 
-				IfThenElse(Cmp(OpEq, omr("donorId"), br("bcr_patient_uuid")),
-					projectTuple(omr, Map(//"aliquotId" -> br("bcr_aliquot_uuid"), 
-						"o_trans_conseq" -> ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
-						projectTuple(amr, Map("o_conseq_terms" -> 
-							ForeachUnion(cr, BagProject(amr, "consequence_terms"),
-		                        ForeachUnion(conr, conseq,
-		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-		                        		Singleton(Tuple("conseq_term" -> conr("so_term"), "conseq_weight" -> conr("so_weight"))))))),
-						 List("consequence_terms", "flags"))
-					)), List("transcript_consequences")))))))
-
-	val program = Program(Assignment(name, query))
-	
-}
-
-object OccurCNVGroupByCaseMid extends DriverGene {
-
-	val name = "OccurCNVGroupByCaseMid"
-
-	override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-  		s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
-
-	val query = ForeachUnion(br, biospec,
-		Singleton(Tuple("o_case_id" -> br("bcr_patient_uuid"), 
-			"o_aliquot_id" -> br("bcr_aliquot_uuid"),
-			"o_center" -> br("center_id"),
-			"o_mutations" ->
-			ForeachUnion(omr, occurmids, 
-				IfThenElse(Cmp(OpEq, omr("donorId"), br("bcr_patient_uuid")),
-					projectTuple(omr, Map(//"aliquotId" -> br("bcr_aliquot_uuid"), 
-						"o_trans_conseq" -> ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
-							ForeachUnion(cncr, cnvCases,
-				       			IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), amr("case_id")),
-				       				Cmp(OpEq, amr("gene_id"), cncr("cn_gene_id"))),
-						projectTuple(amr, Map(
-							"o_copy_number" -> cncr("cn_copy_number"),
-							"o_max_copy" -> cncr("max_copy_number"),
-							"o_min_copy" -> cncr("min_copy_number"),
-							"o_cn_start" -> cncr("cn_start"),
-							"o_cn_end" -> cncr("cn_end"),
-							"o_cn_chr" -> cncr("cn_chromosome"),
-							"o_conseq_terms" -> 
-							ForeachUnion(cr, BagProject(amr, "consequence_terms"),
-		                        ForeachUnion(conr, conseq,
-		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-		                        		Singleton(Tuple("conseq_term" -> conr("so_term"), "conseq_weight" -> conr("so_weight"))))))),
-						 List("consequence_terms", "flags"))
-					)))), List("transcript_consequences")))))))
-
-	val program = Program(Assignment("cnvCases", mapCNV), Assignment(name, query))
-	
-}
-
-object OccurCNVAggGroupByCaseMid extends DriverGene {
-
-  val name = "OccurCNVAggGroupByCaseMid"
-
-  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-      s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
-
-  val avgcn = ((cncr("max_copy_number").asNumeric + cncr("min_copy_number").asNumeric
-    + cncr("cn_copy_number").asNumeric + NumericConst(0.01, DoubleType)) / NumericConst(3.0, DoubleType)) 
-
-  val query = ForeachUnion(br, biospec,
-    Singleton(Tuple("o_case_id" -> br("bcr_patient_uuid"), 
-      "o_aliquot_id" -> br("bcr_aliquot_uuid"),
-      "o_center" -> br("center_id"),
-      "o_mutations" ->
-      ForeachUnion(omr, occurmids, 
-        IfThenElse(Cmp(OpEq, omr("donorId"), br("bcr_patient_uuid")),
-          projectTuple(omr, Map(//"aliquotId" -> br("bcr_aliquot_uuid"), 
-            "o_trans_conseq" -> ReduceByKey(
-              ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
-                ForeachUnion(cncr, cnvCases,
-                  IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), amr("case_id")),
-                      Cmp(OpEq, amr("gene_id"), cncr("cn_gene_id"))),
-                        ForeachUnion(cr, BagProject(amr, "consequence_terms"),
-                          ForeachUnion(conr, conseq,
-                            IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-                              Singleton(Tuple("o_gene_id" -> amr("gene_id"), 
-                                "hybrid_score" -> (conr("so_weight").asNumeric * avgcn * matchImpactMid)
-                                )))))))),
-            List("o_gene_id"),
-            List("hybrid_score"))), List("transcript_consequences")))))))
-
-  val program = Program(Assignment("cnvCases", mapCNV), Assignment(name, query))
-  
-}
-
-object OccurGroupByGene extends DriverGene {
-
-	val name = "OccurGroupByGene"
-
-	val one = ForeachUnion(or, occurrences, 
-				ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-					Singleton(Tuple("g_gene_id" -> ar("gene_id"),
-						"g_donorId" -> or("donorId"),
-						"g_projectId" -> or("projectId"),
-						"g_start" -> or("start"),
-						"g_end" -> or("end"),
-						"g_strand" -> or("strand"),
-						"g_reference" -> or("Reference_Allele"),
-						"g_Tumor_Seq_Allele1" -> or("Tumor_Seq_Allele1"),
-						"g_Tumor_Seq_Allele2" -> or("Tumor_Seq_Allele2"),
-						"g_chrom" -> or("chromosome"),
-						"g_distance" -> ar("distance"),
-						"g_impact" -> ar("impact"),
-						"g_conseqs" -> ar("consequence_terms"),
-						"g_transcript_id" -> ar("transcript_id")))))
-
-	val (oneBag, oneRef) = varset("occurFlat", "of", one)
-
-	val query = ForeachUnion(gr, gistic, 
-		Singleton(Tuple("g_gene_id" -> gr("gistic_gene"), 
-			"g_occurrences" -> ForeachUnion(oneRef, oneBag,
-				IfThenElse(Cmp(OpEq, oneRef("g_gene_id"), gr("gistic_gene")), 
-					Singleton(oneRef))))))
-
-	val program = Program(Assignment(oneBag.name, one), Assignment(name, query))
-}
-
-/** This versions assumes transcripts are not annotated with aliquot id
-  * This should create domains for the shredded case.
-  */
-object HybridBySampleStandard extends DriverGene {
-
-  val name = "HybridBySample"
-
-  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-  	s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
-
-  val query = ForeachUnion(or, occurrences, 
-    ForeachUnion(br, biospec, 
-      IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
-    	Singleton(Tuple("hybrid_sample" -> or("donorId"),
-    		"hybrid_aliquot" -> br("bcr_aliquot_uuid"),
-    		"hybrid_project" -> or("projectId"),
-        	"hybrid_genes" -> 
-	        	ReduceByKey(
-					ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-					  ForeachUnion(cnr, copynum,
-					    IfThenElse(And(Cmp(OpEq, cnr("cn_aliquot_uuid"), br("bcr_aliquot_uuid")),
-									   Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id"))),
-		                      ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-		                        ForeachUnion(conr, conseq,
-		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-		                          		Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
-		                          			// "hybrid_transcript_id" -> ar("transcript_id"),
-		                          			// "hyrbid_protein_start" -> ar("protein_start"),
-		                          			// "hybrid_protein_end" -> ar("protein_end"),
-		                          			// "hybrid_strand" -> ar("strand"),
-		                          			// "hybrid_gene_name" -> cnr("cn_gene_name"),
-		                          			// "hybrid_max_copy" -> cnr("max_copy_number"),
-		                          			// "hybrid_impact" -> or("most_severe_consequence"),
-		                            		"hybrid_score" -> 
-		                            		conr("so_weight").asNumeric * matchImpact 
-											* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))
-		                          		/**Some(Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
-		                            		"hybrid_score" -> NumericConst(.01, DoubleType) 
-											* matchImpact * sr("focal_score").asNumeric)))))))))))**/
-
-			,List("hybrid_gene_id"),
-			// "hybrid_transcript_id", "hybrid_protein_start", "hybrid_protein_end", 
-			//		"hybrid_strand", "hybrid_gene_name", "hybrid_max_copy", "hybrid_impact"),
-            List("hybrid_score")))))))
-
-  val program = Program(Assignment(name, query))
-
-}
-
-/** This case will not produce domains, and assumes that each transcript
-  * is annotated with aliquot identifiers **/
-object HybridBySample extends DriverGene {
-
-  val name = "HybridBySample"
+  // val name = "HybridBySample"
+  val name = "HybridByMutation"
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
   	s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
@@ -762,24 +505,70 @@ object HybridBySample extends DriverGene {
 		                            		"hybrid_score" -> 
 		                            		conr("so_weight").asNumeric * matchImpact 
 											* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
+			,List("hybrid_gene_id"), List("hybrid_score")))))
 
-			,List("hybrid_gene_id"),
+  val program = Program(Assignment(name, query))
+
+}
+
+// hybrid by mutation with more fields persisted in the output
+//
+// previously HybridPlusBySample
+object HybridPlusByMutation extends DriverGene {
+
+  val name = "HybridPlusByMutation"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
+
+  val query = ForeachUnion(or, occurrences,
+    Singleton(Tuple("hybrid_sample" -> or("donorId"),
+    "hybrid_project" -> or("projectId"),
+    //"hybrid_aliquotId" -> or("aliquotId"),
+      "hybrid_genes" -> 
+          ReduceByKey(
+            ForeachUnion(ar, BagProject(or, "transcript_consequences"),
+              ForeachUnion(br, biospec,
+                IfThenElse(Cmp(OpEq, ar("aliquot_id"), br("bcr_patient_uuid")),
+            ForeachUnion(cnr, copynum,
+                  IfThenElse(And(Cmp(OpEq, cnr("cn_aliquot_uuid"), br("bcr_aliquot_uuid")), //ar("aliquot_id")),
+                        Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id"))),
+                          ForeachUnion(cr, BagProject(ar, "consequence_terms"),
+                            ForeachUnion(conr, conseq,
+                              IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+                                  Singleton(Tuple(
+                              "hybrid_gene_id" -> ar("gene_id"),
+                                "hybrid_transcript_id" -> ar("transcript_id"),
+                                "hybrid_protein_start" -> ar("protein_start"),
+                                "hybrid_protein_end" -> ar("protein_end"),
+                                "hybrid_strand" -> ar("ts_strand"),
+                                "hybrid_gene_name" -> cnr("cn_gene_name"),
+                                "hybrid_max_copy" -> cnr("max_copy_number"),
+                                "hybrid_score" -> 
+                                conr("so_weight").asNumeric * matchImpact 
+                  * (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
+      ,List("hybrid_gene_id", "hybrid_transcript_id", "hybrid_protein_start", "hybrid_protein_end", 
+          "hybrid_strand", "hybrid_gene_name", "hybrid_max_copy"),
             List("hybrid_score")))))
 
   val program = Program(Assignment(name, query))
 
 }
 
-object HybridBySampleV2 extends DriverGene {
+// Group occurrences (100k) by sample, aggregating all driver 
+// genes across all mutations. 
+// 
+// Previously "HybridBySampleV2"
+object HybridBySample extends DriverGene {
 
-  val name = "HybridBySampleV2"
+  val name = "HybridBySample"
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
   	s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
 
   val query = ForeachUnion(br, biospec,
         		Singleton(Tuple("hybrid_sample" -> br("bcr_patient_uuid"), 
-        			"hybrid_aliqout" -> br("bcr_aliquot_uuid"),
+        			"hybrid_aliquot" -> br("bcr_aliquot_uuid"),
         			"hybrid_center" -> br("center_id"),
         			"hybrid_genes" -> ReduceByKey(
         				ForeachUnion(or, occurrences,
@@ -803,9 +592,13 @@ object HybridBySampleV2 extends DriverGene {
 
 }
 
-object HybridBySampleMid extends DriverGene {
+// Group occurrences by mutation (500k)
+// aggregate driver genes for each mutation for a given sample
+//
+// previously "HybridBySampleMid"
+object HybridByMutationMid extends DriverGene {
 
-  val name = "HybridBySampleMid"
+  val name = "HybridByMutationMid"
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
   	s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
@@ -836,9 +629,13 @@ object HybridBySampleMid extends DriverGene {
 
 }
 
-object HybridBySampleMidV2 extends DriverGene {
+// group occurrences by sample (500k)
+// aggregate driver genes across all mutations for a given sample
+//
+// previously "HybridBySampleMidV2"
+object HybridBySampleMid extends DriverGene {
 
-  val name = "HybridBySampleMidV2"
+  val name = "HybridBySampleMid"
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
   	s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
@@ -869,9 +666,13 @@ object HybridBySampleMidV2 extends DriverGene {
 
 }
 
-object HybridBySampleMid2 extends DriverGene {
+// group occurrences (500k) by mutations
+// for each mutation within each sample, aggregate the driver genes 
+// 
+// previously "HybridBySampleMid2"
+object HybridByMutationMid2 extends DriverGene {
 
-  val name = "HybridBySampleMid2"
+  val name = "HybridByMutationMid2"
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
   	s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
@@ -912,9 +713,13 @@ object HybridBySampleMid2 extends DriverGene {
 
 }
 
-object HybridBySampleMid2V2 extends DriverGene {
+// group occurrences (500k) by sample
+// aggregate driver genes for all mutations across a sample
+//
+// previously "HybridBySampleMid2V2"
+object HybridBySampleMid2 extends DriverGene {
 
-  val name = "HybridBySampleMid2V2"
+  val name = "HybridBySampleMid2"
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
   	s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
@@ -927,7 +732,7 @@ object HybridBySampleMid2V2 extends DriverGene {
 
   val query = ForeachUnion(br, biospec,
         		Singleton(Tuple("hybrid_sample" -> br("bcr_patient_uuid"), 
-        			"hybrid_aliqout" -> br("bcr_aliquot_uuid"),
+        			"hybrid_aliquot" -> br("bcr_aliquot_uuid"),
         			"hybrid_center" -> br("center_id"),
         			"hybrid_genes" -> ReduceByKey(ForeachUnion(omr, occurmids,
         				IfThenElse(Cmp(OpEq, omr("donorId"), br("bcr_patient_uuid")),
@@ -954,428 +759,6 @@ object HybridBySampleMid2V2 extends DriverGene {
 
 }
 
-object HybridBySampleNoAgg extends DriverGene {
-
-  val name = "HybridBySampleNoAgg"
-
-  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-  	s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
-
-  val query = ForeachUnion(or, occurrences,
-    Singleton(Tuple("hybrid_sample" -> or("donorId"), "aliquot_id" -> or("aliquotId"),
-    	"hybrid_project" -> or("projectId"),
-    	"hybrid_genes" -> 
-        	ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-				ForeachUnion(cnr, copynum,
-				    IfThenElse(And(Cmp(OpEq, cnr("cn_aliquot_uuid"), ar("aliquot_id")),
-				       			Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id"))),
-				    	ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-		                    ForeachUnion(conr, conseq,
-		                      	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),	
-				    	Singleton(Tuple(
-				    		"hybrid_distance" -> ar("distance"),
-	                          "hybrid_impact" -> ar("impact"),
-	                          	"hybrid_gene_id" -> ar("gene_id"),
-	                          	"hybrid_transcript_id" -> ar("transcript_id"),
-	                          	"hybrid_copy_number" -> (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType)),
-	                          	"hybrid_max_copy" -> cnr("max_copy_number"),
-	                          	"hybrid_min_copy" -> cnr("min_copy_number"),
-	                          	"hybrid_gene_name" -> cnr("cn_gene_name"),
-	                          	"hybrid_term" -> conr("so_term"), 
-		                        "hybrid_weight" -> conr("so_weight"), 
-		                        "hybrid_impact" -> conr("so_impact"))))))))))))
-
-  val program = Program(Assignment(name, query))
-
-}
-
-object HybridPlusBySample extends DriverGene {
-
-  val name = "HybridPlusBySample"
-
-  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-  	s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
-
-  val query = ForeachUnion(or, occurrences,
-    Singleton(Tuple("hybrid_sample" -> or("donorId"),
-		"hybrid_project" -> or("projectId"),
-		//"hybrid_aliquotId" -> or("aliquotId"),
-    	"hybrid_genes" -> 
-        	ReduceByKey(
-        		ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-        			ForeachUnion(br, biospec,
-        				IfThenElse(Cmp(OpEq, ar("aliquot_id"), br("bcr_patient_uuid")),
-			 			ForeachUnion(cnr, copynum,
-		       				IfThenElse(And(Cmp(OpEq, cnr("cn_aliquot_uuid"), br("bcr_aliquot_uuid")), //ar("aliquot_id")),
-		       							Cmp(OpEq, ar("gene_id"), cnr("cn_gene_id"))),
-                  				ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-                    				ForeachUnion(conr, conseq,
-                    					IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-                      						Singleton(Tuple(
-                      				"hybrid_gene_id" -> ar("gene_id"),
-                          			"hybrid_transcript_id" -> ar("transcript_id"),
-                          			"hybrid_protein_start" -> ar("protein_start"),
-                          			"hybrid_protein_end" -> ar("protein_end"),
-                          			"hybrid_strand" -> ar("ts_strand"),
-                          			"hybrid_gene_name" -> cnr("cn_gene_name"),
-                          			"hybrid_max_copy" -> cnr("max_copy_number"),
-                            		"hybrid_score" -> 
-                            		conr("so_weight").asNumeric * matchImpact 
-									* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
-			,List("hybrid_gene_id", "hybrid_transcript_id", "hybrid_protein_start", "hybrid_protein_end", 
-					"hybrid_strand", "hybrid_gene_name", "hybrid_max_copy"),
-            List("hybrid_score")))))
-
-  val program = Program(Assignment(name, query))
-
-}
-
-object HybridGisticFlatBySample extends DriverGene {
-
-  val name = "HybridGisticFlatBySample"
-
-  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-  	s"${super.loadTables(shred, skew)}\n${loadGistic(shred, skew)}"
-
-  val flattenGistic = ForeachUnion(gr, gistic,  
-      ForeachUnion(sr, BagProject(gr, "gistic_samples"),
-        Singleton(Tuple("gistic_gene2" -> gr("gistic_gene"), 
-          "gistic_sample2" -> sr("gistic_sample"), "gistic_focal" -> sr("focal_score")))))
-
-  val (gistFlat, grf) = varset("GisticFlattened", "gf", flattenGistic)
-
-  val query = ForeachUnion(or, occurrences, 
-    ForeachUnion(br, biospec, 
-      IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
-      Singleton(Tuple("hybrid_sample" -> or("donorId"), "hybrid_aliquot" -> br("bcr_aliquot_uuid"),
-          "hybrid_genes" -> 
-            ReduceByKey(
-                ForeachUnion(grf, gistFlat,
-	             	IfThenElse(Cmp(OpEq, grf("gistic_sample2"), br("bcr_aliquot_uuid")),
-						ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-                    		IfThenElse(Cmp(OpEq, ar("gene_id"), grf("gistic_gene2")),
-                          		ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-                            		ForeachUnion(conr, conseq,
-                              			IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-                                  			Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
-                                    			"hybrid_score" -> 
-                                    				conr("so_weight").asNumeric * matchImpact 
-                      								* (grf("gistic_focal").asNumeric + NumericConst(.01, DoubleType)))))))))))
-
-      ,List("hybrid_gene_id"),
-            List("hybrid_score")))))))
-
-  val program = Program(Assignment(gistFlat.name, flattenGistic), Assignment(name, query))
-
-}
-
-object HybridGisticBySample extends DriverGene {
-
-  val name = "HybridGisticBySample"
-
-  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-  	s"${super.loadTables(shred, skew)}\n${loadGistic(shred, skew)}"
-
-  val query = ForeachUnion(or, occurrences, 
-    	Singleton(Tuple("hybrid_sample" -> or("donorId"), 
-    		"hybrid_aliquot" -> or("aliquotId"),
-    		"hybrid_project" -> or("projectId"),
-        	"hybrid_genes" -> 
-	        	ReduceByKey(
-	            	ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-		              ForeachUnion(gr, gistic, 
-		                IfThenElse(Cmp(OpEq, ar("gene_id"), gr("gistic_gene")),
-		                  ForeachUnion(sr, BagProject(gr, "gistic_samples"),
-		                    IfThenElse(Cmp(OpEq, sr("gistic_sample"), ar("aliquot_id")),
-		                      ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-		                        ForeachUnion(conr, conseq,
-		                        	IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-		                          		Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
-		                            		"hybrid_score" -> 
-		                            		conr("so_weight").asNumeric * matchImpact 
-											* (sr("focal_score").asNumeric + NumericConst(.01, DoubleType))))))))))))
-		                          		/**Some(Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
-		                            		"hybrid_score" -> NumericConst(.01, DoubleType) 
-											* matchImpact * sr("focal_score").asNumeric)))))))))))**/
-
-			,List("hybrid_gene_id"),
-            List("hybrid_score")))))
-
-  val program = Program(Assignment(name, query))
-
-}
-
-object HybridGisticByGeneStandard extends DriverGene {
-
-  val name = "HybridGisticByGene"
-
-  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-  	s"${super.loadTables(shred, skew)}\n${loadGistic(shred, skew)}"
-
-  val flatOccur = ForeachUnion(or, occurrences, 
-  	ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-  		ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-  			ForeachUnion(conr, conseq,
-		        IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-  					Singleton(Tuple("o_case_id" -> or("donorId"), "o_project" -> or("projectId"),
-  						"t_conseqs" -> conr("so_weight"), "t_gene_id" -> ar("gene_id"),
-  						"t_impact" -> matchImpact)))))))
-
-  val (fOccurr, focur) = varset("flatOccurr", "focur", flatOccur)
-
-  val query = ForeachUnion(gr, gistic, 
-  	Singleton(Tuple("hybrid_gene" -> gr("gistic_gene"), "hybrid_cytoband" -> gr("cytoband"), 
-  		"hybrid_samples" -> ReduceByKey(ForeachUnion(sr, BagProject(gr, "gistic_samples"),
-  		ForeachUnion(br, biospec, 
-  			IfThenElse(Cmp(OpEq, sr("gistic_sample"), br("bcr_aliquot_uuid")),
-  				ForeachUnion(focur, fOccurr, 
-  					IfThenElse(Cmp(OpEq, focur("o_case_id"), br("bcr_patient_uuid")),
-  						IfThenElse(Cmp(OpEq, focur("t_gene_id"), gr("gistic_gene")),
-                          		Singleton(Tuple("hybrid_case_id" -> focur("o_case_id"),
-                          				"hybrid_aliquot_id" -> br("bcr_aliquot_uuid"),
-                          				"hybrid_project" -> focur("o_project"),
-                            			"hybrid_score" -> 
-                            			focur("t_conseqs").asNumeric * focur("t_impact").asNumeric
-										* (sr("focal_score").asNumeric + NumericConst(.01, DoubleType))))))))))
-  			,List("hybrid_case_id", "hybrid_aliquot_id", "hybrid_project"),
-  			List("hybrid_score")))))
-
-  val program = Program(Assignment(fOccurr.name, flatOccur), Assignment(name, query))
-
-}
-
-object HybridGisticByGene extends DriverGene {
-
-  val name = "HybridGisticByGene"
-
-  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-  	s"${super.loadTables(shred, skew)}\n${loadGistic(shred, skew)}"
-
-  val query = ForeachUnion(gr, gistic, 
-  	Singleton(Tuple("hybrid_gene" -> gr("gistic_gene"), "hybrid_cytoband" -> gr("cytoband"), 
-  		"hybrid_samples" -> ReduceByKey(ForeachUnion(sr, BagProject(gr, "gistic_samples"),
-  		ForeachUnion(br, biospec, 
-  			IfThenElse(Cmp(OpEq, sr("gistic_sample"), br("bcr_aliquot_uuid")),
-  				ForeachUnion(or, occurrences, 
-  					IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
-  						ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-  							IfThenElse(Cmp(OpEq, ar("gene_id"), gr("gistic_gene")),
-  								ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-		                        	ForeachUnion(conr, conseq,
-		                        		IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-		                          			Singleton(Tuple("hybrid_case_id" -> or("donorId"),
-		                          				"hybrid_aliquot_id" -> br("bcr_aliquot_uuid"),
-		                          				"hybrid_project" -> or("projectId"),
-		                            			"hybrid_score" -> 
-		                            			conr("so_weight").asNumeric * matchImpact 
-												* (sr("focal_score").asNumeric + NumericConst(.01, DoubleType))))))))))))))
-  			,List("hybrid_case_id", "hybrid_aliquot_id", "hybrid_project"),
-  			List("hybrid_score")))))
-
-  val program = Program(Assignment(name, query))
-
-}
-
-object HybridGisticCNByGene extends DriverGene {
-
-  val name = "HybridGisticCNByGene"
-
-  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-  	s"""|${super.loadTables(shred, skew)}
-  		|${loadGistic(shred, skew)}
-  		|${loadCopyNumber(shred, skew)}""".stripMargin
-
-  val flatOccur = ForeachUnion(or, occurrences, 
-  	ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-  		ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-  			ForeachUnion(conr, conseq,
-		        IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-  					Singleton(Tuple("o_case_id" -> or("donorId"), "o_project" -> or("projectId"),
-  						"t_conseqs" -> conr("so_weight"), "t_gene_id" -> ar("gene_id"),
-  						"t_impact" -> matchImpact)))))))
-
-  val (fOccurr, focur) = varset("flatOccurr", "focur", flatOccur)
-
-  val query = ForeachUnion(gr, gistic, 
-  	Singleton(Tuple("hybrid_gene" -> gr("gistic_gene"), "hybrid_cytoband" -> gr("cytoband"), 
-  		"hybrid_samples" -> ReduceByKey(ForeachUnion(cnr, copynum,
-  				IfThenElse(Cmp(OpEq, cnr("cn_gene_id"), gr("gistic_gene")),
-  					ForeachUnion(sr, BagProject(gr, "gistic_samples"),
-  						IfThenElse(Cmp(OpEq, cnr("cn_aliquot_uuid"), sr("gistic_sample")),
-  							ForeachUnion(br, biospec, 
-  								IfThenElse(Cmp(OpEq, sr("gistic_sample"), br("bcr_aliquot_uuid")),
-  									ForeachUnion(focur, fOccurr,
-  										IfThenElse(And(Cmp(OpEq, focur("o_case_id"), br("bcr_patient_uuid")),
-  											Cmp(OpEq, focur("t_gene_id"), cnr("cn_gene_id"))),
-		                          			Singleton(Tuple("hybrid_case_id" -> focur("o_case_id"),
-		                          				"hybrid_aliquot_id" -> br("bcr_aliquot_uuid"),
-		                          				"hybrid_project" -> focur("o_project"),
-		                            			"hybrid_score" -> 
-		                            			focur("t_conseqs").asNumeric * focur("t_impact").asNumeric
-												* (sr("focal_score").asNumeric + NumericConst(.01, DoubleType))
-												* cnr("cn_copy_number").asNumeric
-											))))))))))
-  			,List("hybrid_case_id", "hybrid_aliquot_id", "hybrid_project"),
-  			List("hybrid_score")))))
-
-  val program = Program(Assignment(fOccurr.name, flatOccur), Assignment(name, query))
-
-}
-
-object CombineGisticCNByGene extends DriverGene {
-	
-	val name = "CombineGisticCNByGene"
-
-	override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-	  	s"""|${loadGistic(shred, skew)}
-	  		|${loadCopyNumber(shred, skew)}""".stripMargin
-
-	val query = ForeachUnion(gr, gistic,
-		Singleton(Tuple("g_gene" -> gr("gistic_gene"), "g_cytoband" -> gr("cytoband"),
-			"g_samples" -> ForeachUnion(sr, BagProject(gr, "gistic_samples"),
-				ForeachUnion(cnr, copynum,
-					IfThenElse(And(Cmp(OpEq, sr("gistic_sample"), cnr("cn_aliquot_uuid")),
-						Cmp(OpEq, gr("gistic_gene"), cnr("cn_gene_id"))),
-						Singleton(Tuple("cng_aliquot" -> cnr("cn_aliquot_uuid"), 
-							"cng_focal_score" -> sr("focal_score"),
-							"cng_copy_number" -> cnr("cn_copy_number"),
-							"cng_max_copy" -> cnr("max_copy_number"),
-							"cng_min_copy" -> cnr("min_copy_number")))))))))
-
-	val program = Program(Assignment(name, query))
-
-}
-
-// object HybridGisticCNByGene2 extends DriverGene {
-
-//   val name = "HybridGisticCNByGene2"
-
-//   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-//   	s"""|${super.loadTables(shred, skew)}
-//   		|${loadGistic(shred, skew)}
-//   		|${loadCopyNumber(shred, skew)}""".stripMargin
-
-//   val (cnFocals, cnfr) = varset("cnFocals", "cnf", CombineGisticCNByGene.query.asInstanceOf[BagExpr])
-//   val cnSamples = BagProject(cnfr, "g_samples")
-//   val snfr = TupleVarRef("snf", cnSamples.tp.tp)
-
-//   val query = ForeachUnion(cnfr, cnFocals, 
-//   	Singleton(Tuple("hybrid_gene" -> cnfr("g_gene"), "hybrid_cytoband" -> cnfr("cytoband"), 
-//   		"hybrid_samples" -> 
-//   			ReduceByKey(
-//   				ForeachUnion(snfr, cnSamples,
-//   					ForeachUnion(br, biospec, 
-//   						IfThenElse(Cmp(OpEq, snfr("cng_aliquot"), br("bcr_aliquot_uuid")),
-//   							ForeachUnion(or, occurrences,
-//   								IfThenElse(And(Cmp(OpEq, focur("o_case_id"), br("bcr_patient_uuid")),
-//   									Cmp(OpEq, focur("t_gene_id"), cnr("cn_gene_id"))),
-// 		                          	Singleton(Tuple("hybrid_case_id" -> focur("o_case_id"),
-// 		                          				"hybrid_aliquot_id" -> br("bcr_aliquot_uuid"),
-// 		                          				"hybrid_project" -> focur("o_project"),
-// 		                            			"hybrid_score" -> 
-// 		                            			focur("t_conseqs").asNumeric * focur("t_impact").asNumeric
-// 												* (sr("focal_score").asNumeric + NumericConst(.01, DoubleType))
-// 												* cnr("cn_copy_number").asNumeric
-// 											)))))))
-//   			,List("hybrid_case_id", "hybrid_aliquot_id", "hybrid_project"),
-//   			List("hybrid_score")))))
-
-//   val program = CombineGisticCNByGene.program.asInstanceOf[CombineGisticCNByGene].append(Assignment(name, query))
-
-// }
-
-// object HybridGisticByGeneByAliquot extends DriverGene {
-
-//   val name = "HybridGisticByGeneByAliquot"
-
-//   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-//   	s"${super.loadTables(shred, skew)}\n${loadGistic(shred, skew)}"
-
-//   val query = ForeachUnion(gr, gistic, 
-//   	Singleton(Tuple("hybrid_gene" -> gr("gistic_gene"), 
-//   		"hybrid_cytoband" -> gr("cytoband"), 
-//   		"hybrid_aliquots" -> 
-//   			ForeachUnion(sr, BagProject(gr, "gistic_samples"),
-//   			ForeachUnion(br, biospec, 
-//   				IfThenElse(Cmp(OpEq, sr("gistic_sample"), br("bcr_aliquot_uuid")),
-//   					Singleton(Tuple("hybrid_aliquot_id" -> br("bcr_aliquot_uuid"), 
-//   						"hybrid_aliquot_barcode" -> br("bcr_aliquot_barcode"),
-//   						"hybrid_center" -> br("source_center"),
-//   						"hybrid_samples" -> 
-//   							ReduceByKey(ForeachUnion(or, occurrences, 
-//   								IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
-//   									ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-// 			  							IfThenElse(Cmp(OpEq, ar("gene_id"), gr("gistic_gene")),
-// 			  								ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-// 					                        	ForeachUnion(conr, conseq,
-// 					                        		IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-// 					                          			Singleton(Tuple("hybrid_case_id" -> or("donorId"),
-// 					                          				"hybrid_aliquot_id" -> br("bcr_aliquot_uuid"),
-// 					                          				"hybrid_project" -> or("projectId"),
-// 					                            			"hybrid_score" -> 
-// 					                            			conr("so_weight").asNumeric * matchImpact 
-// 															* (sr("focal_score").asNumeric + NumericConst(.01, DoubleType))))))))))))))
-//   			,List("hybrid_case_id", "hybrid_aliquot_id", "hybrid_project"),
-//   			List("hybrid_score")))))
-
-//   val program = Program(Assignment(name, query))
-
-// }
-
-// fails 
-object HybridBySample2 extends DriverGene {
-
-  val name = "HybridBySample2"
-
-  val mapped = ForeachUnion(or, occurrences, 
-    ForeachUnion(br, biospec, 
-      IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
-        projectTuple(or, Map("aliquot_id" -> Project(br, "bcr_aliquot_uuid"))))))
-  val (maps, mapsRef) = varset("occurrence_mapped", "mr", mapped)
-  
-  val query = ForeachUnion(mapsRef, maps,
-      Singleton(Tuple("hybrid_sample" -> mapsRef("donorId"), "hybrid_aliqout" -> mapsRef("aliquot_id"),
-        "hybrid_genes" -> 
-        ReduceByKey(
-            ForeachUnion(ar, BagProject(mapsRef, "transcript_consequences"),
-              ForeachUnion(gr, gistic, 
-                IfThenElse(Cmp(OpEq, ar("gene_id"), gr("gistic_gene")),
-                  ForeachUnion(sr, BagProject(gr, "gistic_samples"),
-                    IfThenElse(Cmp(OpEq, sr("gistic_sample"), or("donorId")),
-                      ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-                          Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
-                            "hybrid_score" -> sr("focal_score").asNumeric))))))))
-            ,List("hybrid_gene_id"),
-            List("hybrid_score")))))
-
-  val program = Program(Assignment(maps.name, mapped), Assignment(name, query))
-
-}
-
-object SampleSomaticNetwork extends DriverGene {
-
-  val name = "SampleSomaticNetwork"
-
-  val query = ForeachUnion(or, occurrences, 
-      Singleton(Tuple("network_sample" -> or("donorId"), "network_genes" -> 
-          ReduceByKey(
-            ForeachUnion(ar, BagProject(or, "transcript_consequences"),
-              ForeachUnion(nr, network, 
-                ForeachUnion(er, BagProject(nr, "edges"),
-                  IfThenElse(Cmp(OpEq, er("edge_protein"), ar("gene_id")),
-                  	ForeachUnion(cr, BagProject(ar, "consequence_terms"),
-		            	ForeachUnion(conr, conseq,
-		                    IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-                    			Singleton(Tuple("network_gene_id" -> ar("gene_id"), 
-                      				"distance" -> er("combined_score").asNumeric * 
-                      				conr("so_weight").asNumeric * matchImpact ))))))))),
-            List("network_gene_id"),
-            List("distance")))))
-
-  val program = Program(Assignment(name, query))
-
-}
-
 object SampleNetwork extends DriverGene {
 
   val name = "SampleNetwork"
@@ -1384,8 +767,8 @@ object SampleNetwork extends DriverGene {
   val gene = TupleVarRef("hgene", hmr.tp("hybrid_genes").asInstanceOf[BagType].tp)
 
   val query = ForeachUnion(hmr, hybrid, 
-      Singleton(Tuple("network_sample" -> hmr("hybrid_sample"), //"network_aliquot" -> hmr("hybrid_aliquot"),
-      	"network_project" -> hmr("hybrid_project"), 
+      Singleton(Tuple("network_sample" -> hmr("hybrid_sample"), "network_aliquot" -> hmr("hybrid_aliquot"),
+      	"network_center" -> hmr("hybrid_center"), 
           "network_genes" ->
           ReduceByKey(
             ForeachUnion(gene, BagProject(hmr, "hybrid_genes"),
@@ -1401,15 +784,47 @@ object SampleNetwork extends DriverGene {
 
 }
 
+// do this for Mid and Mid2
+object SampleNetworkMid2 extends DriverGene {
+
+  val name = "SampleNetworkMid2"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${super.loadTables(shred, skew)}
+        |${loadCopyNumber(shred, skew)}
+        |${loadNetwork(shred, skew)}
+        |""".stripMargin
+
+  val (hybrid, hmr) = varset(HybridBySampleMid2.name, "hm", HybridBySampleMid2.program(HybridBySampleMid2.name).varRef.asInstanceOf[BagExpr])
+  val gene = TupleVarRef("hgene", hmr.tp("hybrid_genes").asInstanceOf[BagType].tp)
+
+  val query = ForeachUnion(hmr, hybrid, 
+      Singleton(Tuple("network_sample" -> hmr("hybrid_sample"), "network_aliquot" -> hmr("hybrid_aliquot"),
+        "network_center" -> hmr("hybrid_center"), 
+          "network_genes" ->
+          ReduceByKey(
+            ForeachUnion(gene, BagProject(hmr, "hybrid_genes"),
+              ForeachUnion(nr, network, 
+                ForeachUnion(er, BagProject(nr, "edges"),
+                  IfThenElse(Cmp(OpEq, er("edge_protein"), gene("hybrid_gene_id")),
+                    Singleton(Tuple("network_gene_id" -> gene("hybrid_gene_id"), 
+                      "distance" -> er("combined_score").asNumeric * gene("hybrid_score").asNumeric)))))),
+            List("network_gene_id"),
+            List("distance")))))
+
+  val program = HybridBySampleMid2.program.asInstanceOf[SampleNetworkMid2.Program].append(Assignment(name, query))
+
+}
+
 object SampleFlatNetwork extends DriverGene {
 
   val name = "SampleFlatNetwork"
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
   	s"""|${super.loadTables(shred, skew)}
-  		|${loadCopyNumber(shred, skew)}
-  		|${loadFlatNetwork(shred, skew)}
-  		|${loadGeneProteinMap(shred, skew)}""".stripMargin
+  		  |${loadCopyNumber(shred, skew)}
+  		  |${loadFlatNetwork(shred, skew)}
+  		  |${loadGeneProteinMap(shred, skew)}""".stripMargin
 
   val (hybrid, hmr) = varset(HybridBySample.name, "hm", HybridBySample.program(HybridBySample.name).varRef.asInstanceOf[BagExpr])
   val gene = TupleVarRef("hgene", hmr.tp("hybrid_genes").asInstanceOf[BagType].tp)

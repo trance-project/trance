@@ -27,9 +27,9 @@ object TestApp extends App {
     //AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded")
     //AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", unshred=true)
 
-    AppWriter.flatDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,standard")
-    AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded")
-    AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded", unshred=true)
+    //AppWriter.flatDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,standard")
+    //AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded")
+    //AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded", unshred=true)
 
     // AppWriter.flatDataset(HybridGisticCNByGene, "test")
     // AppWriter.shredDataset(HybridGisticCNByGene, "test")
@@ -50,8 +50,11 @@ object TestApp extends App {
     // AppWriter.flatDataset(HybridBySampleNoAgg, "test")
     // AppWriter.shredDataset(HybridBySampleNoAgg, "test")
 
-    // AppWriter.flatDataset(SampleFlatNetwork, "SampleFlatNetwork,standard")
-    // AppWriter.shredDataset(SampleFlatNetwork, "SampleFlatNetwork,shredded")
+    AppWriter.flatDataset(SampleNetworkMid2, "SampleNetworkMid2,standard")
+    AppWriter.shredDataset(SampleNetworkMid2, "SampleNetworkMid2,shredded")
+    
+    // AppWriter.flatDataset(EffectBySample, "EffectBySample,standard")
+    // AppWriter.shredDataset(EffectBySample, "EffectBySample,shredded")
 
   }
 }
