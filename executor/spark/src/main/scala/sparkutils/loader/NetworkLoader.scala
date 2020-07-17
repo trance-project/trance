@@ -13,9 +13,9 @@ case class StringEdge(edge_protein: String, neighborhood: Int, neighborhood_tran
 
 case class StringEdgeDict2(_1: String, edge_protein: String, neighborhood: Int, neighborhood_transferred: Int, fusion: Int, cooccurence: Int, homology: Int, coexpression: Int, coexpression_transferred: Int, experiments: Int, experiments_transferred: Int, database: Int, database_transferred: Int, textmining: Int, textmining_transferred: Int, combined_score: Int)
 
-case class StringNode(node_gene: String, edges: Seq[StringEdge])
+case class StringNode(node_protein: String, edges: Seq[StringEdge])
 
-case class StringNodeDict1(node_gene: String, edges: String)
+case class StringNodeDict1(node_protein: String, edges: String)
 
 class NetworkLoader(spark: SparkSession) extends Table[StringNode] {
  
