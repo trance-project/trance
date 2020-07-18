@@ -147,3 +147,12 @@ object GeneBurdenAlt2 extends App {
     AppWriter.shredDataset(geneBurdenAlt2, "test")
   }
 }
+
+
+object GeneBurdenAlt1WithGeneLoader extends App {
+  override def main(args: Array[String]): Unit = {
+
+    AppWriter.flatDataset(geneBurdenAlt_withGenLoader, "test")
+    AppWriter.shredDataset(geneBurdenAlt_withGenLoader, "test")
+  }
+}

@@ -133,7 +133,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 			|//					.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
 			|val gisticLoader = new GisticLoader(spark)
 			|val gistic_L = gisticLoader.merge(s"$basepath/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
-			|                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
+			|                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
 			|val gistic = (gistic_L, gistic_L.empty)
 			|gistic.cache
 			|gistic.count**/
@@ -659,6 +659,8 @@ object GeneConnectivity extends DriverGene {
   val program = ConnectionBySample.program.asInstanceOf[GeneConnectivity.Program].append(Assignment(name, query))
 
 }
+
+
 
 
 

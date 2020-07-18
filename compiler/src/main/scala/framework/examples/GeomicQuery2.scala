@@ -304,7 +304,7 @@ object geneBurdenAlt2 extends GenomicSchema {
   val query =
     ForeachUnion(mr, metadata,
       Singleton(Tuple(
-        "sample" -> mr("m_sample"), "samples" ->
+        "sample" -> mr("m_sample"), "genes" ->
           ForeachUnion(g, bgs,
             ForeachUnion(b, g("samples").asBag,
               IfThenElse(Cmp(OpEq, mr("m_sample"), b("b_sample")),
@@ -312,10 +312,52 @@ object geneBurdenAlt2 extends GenomicSchema {
                 Singleton(Tuple("gene" -> g("b_gene"), "burden" -> b("b_burden")))
               )
             )
-          )
+          ),
+        "population" -> mr("population"),
+        "gender" -> mr("gender")
       ))
     )
   val program = byGene.program.asInstanceOf[geneBurdenAlt2.Program].append(Assignment(name, query))
 
 }
 
+object flattenBurden1 extends GenomicSchema {
+  val name = "falttenBurden1"
+
+  val query =
+    ReduceByKey(
+      ForeachUnion(vr, variants,
+        ForeachUnion(gtfrr, gtfss,
+          IfThenElse(
+            Cmp(OpGe, vr("start"), gtfrr("start_hg19")) && Cmp(OpGe, gtfrr("end_hg19"), vr("start")) && Cmp(OpEq, gtfrr("chrom"), vr("contig")),
+
+            ForeachUnion(gr, vr("genotypes").asBag,
+              Singleton(Tuple("fb_sample" -> gr("g_sample"), "fb_gene" -> gtfrr("name"), "fb_burden" -> Const(1.0, DoubleType)))
+            )
+          )
+        )
+      ),
+      List("fb_sample", "fb_gene"),
+      List("fb_burden")
+    )
+  val program = Program(Assignment(name, query))
+}
+
+
+object geneBurdenAlt_withGenLoader extends GenomicSchema {
+  val name = "geneBurdenAlt_withGenLoader"
+  val (fbs, fb) = varset(flattenBurden1.name, "v6", flattenBurden1.program(flattenBurden1.name).varRef.asInstanceOf[BagExpr])
+
+  val query =
+    ForeachUnion(mr, metadata,
+      Singleton(Tuple("sample" -> mr("m_sample"), "genes" ->
+        ForeachUnion(fb, fbs,
+          IfThenElse(Cmp(OpEq, fb("fb_sample"), mr("m_sample")),
+            Singleton(Tuple("gene" -> fb("fb_gene"), "burden" -> fb("fb_burden")))
+          )
+        )
+      ))
+    )
+  val program = flattenBurden1.program.asInstanceOf[geneBurdenAlt_withGenLoader.Program].append(Assignment(name, query))
+
+}
