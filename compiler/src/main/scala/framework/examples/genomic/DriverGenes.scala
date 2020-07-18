@@ -789,12 +789,16 @@ object MappedNetwork extends DriverGene {
 
   val name = "MappedNetwork"
   val martMap = gpr.tp.attrTps.map(f => s"node_${f._1}" -> Project(gpr, f._1))
-  val gpr2 = TupleVarRef("gp2", gpr.tp)
+
+  val mart2 = ForeachUnion(gpr, gpmap,
+      Singleton(Tuple(gpr.tp.attrTps.map(f => s"${f._1}2" -> Project(gpr, f._1)))))
+  val (mart2Rel, gpr2) = varset("biomart2", "gp2", mart2)
+
   val martMap2 = gpr2.tp.attrTps.map(f => s"edge_${f._1}" -> Project(gpr2, f._1))
 
   val edgeJoin = ForeachUnion(er, BagProject(nr, "edges"), 
-      ForeachUnion(gpr2, gpmap,
-        IfThenElse(Cmp(OpEq, er("edge_protein"), gpr2("protein_stable_id")),
+      ForeachUnion(gpr2, mart2Rel,
+        IfThenElse(Cmp(OpEq, er("edge_protein"), gpr2("protein_stable_id2")),
           projectTuple(er, martMap2))))
 
   val mappedEdges = Map("node_edges" -> edgeJoin)
@@ -805,7 +809,7 @@ object MappedNetwork extends DriverGene {
           projectTuple(nr, martMap ++ mappedEdges, List("edges"))
         )))
 
-  val program = Program(Assignment(name, query))
+  val program = Program(Assignment(mart2Rel.name, mart2), Assignment(name, query))
 
 }
 
@@ -835,14 +839,16 @@ object SampleNetworkMid2 extends DriverGene {
             ForeachUnion(gene, BagProject(hmr, "hybrid_genes"),
               ForeachUnion(mnr, mNet, 
                 ForeachUnion(mer, BagProject(mnr, "node_edges"),
-                  IfThenElse(Cmp(OpEq, mer("edge_gene_stable_id"), gene("hybrid_gene_id")),
+                  IfThenElse(Cmp(OpEq, mer("edge_gene_stable_id2"), gene("hybrid_gene_id")),
                     Singleton(Tuple("network_gene_id" -> gene("hybrid_gene_id"), 
                       "distance" -> mer("combined_score").asNumeric * gene("hybrid_score").asNumeric)))))),
             List("network_gene_id"),
             List("distance")))))
 
   val program = HybridBySampleMid2.program.asInstanceOf[SampleNetworkMid2.Program]
-    .append(Assignment(mNet.name, MappedNetwork.query.asInstanceOf[Expr])).append(Assignment(name, query))
+    .append(Assignment(MappedNetwork.mart2Rel.name, MappedNetwork.mart2.asInstanceOf[Expr]))
+    .append(Assignment(mNet.name, MappedNetwork.query.asInstanceOf[Expr]))
+    .append(Assignment(name, query))
 
 }
 
