@@ -248,21 +248,21 @@ trait GeneProteinMap {
   	if (shred){
   		val bmartLoad = if (skew) "(biomart, biomart.empty)" else "biomart"
   		s"""|val bmartLoader = new BiomartLoader(spark)
-  			|val biomart = bmartLoader.load("/nfs_qc4/genomics/mart_export.txt")
-  			|val IBag_biomart__D = $bmartLoad
-  			|IBag_biomart__D.cache
-  			|IBag_biomart__D.count""".stripMargin
+    			|val biomart = bmartLoader.load("/nfs_qc4/genomics/mart_export.txt")
+    			|val IBag_biomart__D = $bmartLoad
+    			|IBag_biomart__D.cache
+    			|IBag_biomart__D.count""".stripMargin
   	}else if (skew){
   		s"""|val bmartLoader = new BiomartLoader(spark)
-  			|val biomart_L = bmartLoader.load("/nfs_qc4/genomics/mart_export.txt")
-  			|val biomart = (biomart_L, biomart_L.empty)
-  			|biomart.cache
-  			|biomart.count""".stripMargin
+    			|val biomart_L = bmartLoader.load("/nfs_qc4/genomics/mart_export.txt")
+    			|val biomart = (biomart_L, biomart_L.empty)
+    			|biomart.cache
+    			|biomart.count""".stripMargin
   	}else{
   		s"""|val bmartLoader = new BiomartLoader(spark)
-  			|val biomart = bmartLoader.load("/nfs_qc4/genomics/mart_export.txt")
-  			|biomart.cache
-  			|biomart.count""".stripMargin
+    			|val biomart = bmartLoader.load("/nfs_qc4/genomics/mart_export.txt")
+    			|biomart.cache
+    			|biomart.count""".stripMargin
   	}
   }
 
@@ -794,10 +794,31 @@ object SampleNetworkMid2 extends DriverGene {
     s"""|${super.loadTables(shred, skew)}
         |${loadCopyNumber(shred, skew)}
         |${loadNetwork(shred, skew)}
+        |${loadGeneProteinMap(shred, skew)}
         |""".stripMargin
 
   val (hybrid, hmr) = varset(HybridBySampleMid2.name, "hm", HybridBySampleMid2.program(HybridBySampleMid2.name).varRef.asInstanceOf[BagExpr])
   val gene = TupleVarRef("hgene", hmr.tp("hybrid_genes").asInstanceOf[BagType].tp)
+
+  val martMap = gpr.tp.attrTps.map(f => f._1 -> Project(gpr, f._1))
+  val gpr2 = TupleVarRef("gp2", gpr.tp)
+  val martMap2 = gpr2.tp.attrTps.map(f => s"edge_${f._1}" -> Project(gpr2, f._1))
+
+  val edgeJoin = ForeachUnion(er, BagProject(nr, "edges"), 
+      ForeachUnion(gpr2, gpmap,
+        IfThenElse(Cmp(OpEq, er("edge_protein"), gpr2("protein_stable_id")),
+          projectTuple(er, martMap2))))
+
+  val mappedEdges = Map("node_edges" -> edgeJoin)
+
+  val mappedNetwork = ForeachUnion(nr, network,
+      ForeachUnion(gpr, gpmap,
+        IfThenElse(Cmp(OpEq, nr("node_protein"), gpr("protein_stable_id")),
+          projectTuple(nr, martMap ++ mappedEdges, List("edges"))
+        )))
+
+  val (mNet, mnr) = varset("mappedNetwork", "mn", mappedNetwork)
+  val mer = TupleVarRef("me", edgeJoin.tp.tp)
 
   val query = ForeachUnion(hmr, hybrid, 
       Singleton(Tuple("network_sample" -> hmr("hybrid_sample"), "network_aliquot" -> hmr("hybrid_aliquot"),
@@ -805,15 +826,15 @@ object SampleNetworkMid2 extends DriverGene {
           "network_genes" ->
           ReduceByKey(
             ForeachUnion(gene, BagProject(hmr, "hybrid_genes"),
-              ForeachUnion(nr, network, 
-                ForeachUnion(er, BagProject(nr, "edges"),
-                  IfThenElse(Cmp(OpEq, er("edge_protein"), gene("hybrid_gene_id")),
+              ForeachUnion(mnr, mNet, 
+                ForeachUnion(mer, BagProject(mnr, "node_edges"),
+                  IfThenElse(Cmp(OpEq, mer("edge_gene_stable_id"), gene("hybrid_gene_id")),
                     Singleton(Tuple("network_gene_id" -> gene("hybrid_gene_id"), 
-                      "distance" -> er("combined_score").asNumeric * gene("hybrid_score").asNumeric)))))),
+                      "distance" -> mer("combined_score").asNumeric * gene("hybrid_score").asNumeric)))))),
             List("network_gene_id"),
             List("distance")))))
 
-  val program = HybridBySampleMid2.program.asInstanceOf[SampleNetworkMid2.Program].append(Assignment(name, query))
+  val program = HybridBySampleMid2.program.asInstanceOf[SampleNetworkMid2.Program].append(Assignment(mNet.name, mappedNetwork)).append(Assignment(name, query))
 
 }
 
