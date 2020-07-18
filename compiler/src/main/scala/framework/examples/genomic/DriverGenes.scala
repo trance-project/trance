@@ -191,7 +191,7 @@ trait StringNetwork {
   }
 
   def loadNetwork(shred: Boolean = false, skew: Boolean = false): String = {
-    val nfile = "nfs_qc4/genomics/9606.protein.links.full.v11.0.csv"
+    val nfile = "/nfs_qc4/genomics/9606.protein.links.full.v11.0.csv"
 	if (shred){
       val fnetLoad = if (skew) "(network, network.empty)" else "network"
       val loadFun = if (skew) "loadSkew" else "loadShred"
@@ -785,6 +785,30 @@ object SampleNetwork extends DriverGene {
 
 }
 
+object MappedNetwork extends DriverGene {
+
+  val name = "MappedNetwork"
+  val martMap = gpr.tp.attrTps.map(f => s"node_${f._1}" -> Project(gpr, f._1))
+  val gpr2 = TupleVarRef("gp2", gpr.tp)
+  val martMap2 = gpr2.tp.attrTps.map(f => s"edge_${f._1}" -> Project(gpr2, f._1))
+
+  val edgeJoin = ForeachUnion(er, BagProject(nr, "edges"), 
+      ForeachUnion(gpr2, gpmap,
+        IfThenElse(Cmp(OpEq, er("edge_protein"), gpr2("protein_stable_id")),
+          projectTuple(er, martMap2))))
+
+  val mappedEdges = Map("node_edges" -> edgeJoin)
+
+  val query = ForeachUnion(nr, network,
+      ForeachUnion(gpr, gpmap,
+        IfThenElse(Cmp(OpEq, nr("node_protein"), gpr("protein_stable_id")),
+          projectTuple(nr, martMap ++ mappedEdges, List("edges"))
+        )))
+
+  val program = Program(Assignment(name, query))
+
+}
+
 // do this for Mid and Mid2
 object SampleNetworkMid2 extends DriverGene {
 
@@ -800,25 +824,8 @@ object SampleNetworkMid2 extends DriverGene {
   val (hybrid, hmr) = varset(HybridBySampleMid2.name, "hm", HybridBySampleMid2.program(HybridBySampleMid2.name).varRef.asInstanceOf[BagExpr])
   val gene = TupleVarRef("hgene", hmr.tp("hybrid_genes").asInstanceOf[BagType].tp)
 
-  val martMap = gpr.tp.attrTps.map(f => f._1 -> Project(gpr, f._1))
-  val gpr2 = TupleVarRef("gp2", gpr.tp)
-  val martMap2 = gpr2.tp.attrTps.map(f => s"edge_${f._1}" -> Project(gpr2, f._1))
-
-  val edgeJoin = ForeachUnion(er, BagProject(nr, "edges"), 
-      ForeachUnion(gpr2, gpmap,
-        IfThenElse(Cmp(OpEq, er("edge_protein"), gpr2("protein_stable_id")),
-          projectTuple(er, martMap2))))
-
-  val mappedEdges = Map("node_edges" -> edgeJoin)
-
-  val mappedNetwork = ForeachUnion(nr, network,
-      ForeachUnion(gpr, gpmap,
-        IfThenElse(Cmp(OpEq, nr("node_protein"), gpr("protein_stable_id")),
-          projectTuple(nr, martMap ++ mappedEdges, List("edges"))
-        )))
-
-  val (mNet, mnr) = varset("mappedNetwork", "mn", mappedNetwork)
-  val mer = TupleVarRef("me", edgeJoin.tp.tp)
+  val (mNet, mnr) = varset(MappedNetwork.name, "mn", MappedNetwork.query.asInstanceOf[BagExpr])
+  val mer = TupleVarRef("me", MappedNetwork.edgeJoin.tp.tp)
 
   val query = ForeachUnion(hmr, hybrid, 
       Singleton(Tuple("network_sample" -> hmr("hybrid_sample"), "network_aliquot" -> hmr("hybrid_aliquot"),
@@ -834,9 +841,49 @@ object SampleNetworkMid2 extends DriverGene {
             List("network_gene_id"),
             List("distance")))))
 
-  val program = HybridBySampleMid2.program.asInstanceOf[SampleNetworkMid2.Program].append(Assignment(mNet.name, mappedNetwork)).append(Assignment(name, query))
+  val program = HybridBySampleMid2.program.asInstanceOf[SampleNetworkMid2.Program]
+    .append(Assignment(mNet.name, MappedNetwork.query.asInstanceOf[Expr])).append(Assignment(name, query))
 
 }
+
+// do this for Mid and Mid2
+// optimized for shred
+// object SampleNetworkMid2a extends DriverGene {
+
+//   val name = "SampleNetworkMid2a"
+
+//   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+//     s"""|${super.loadTables(shred, skew)}
+//         |${loadCopyNumber(shred, skew)}
+//         |${loadNetwork(shred, skew)}
+//         |${loadGeneProteinMap(shred, skew)}
+//         |""".stripMargin
+
+//   val (hybrid, hmr) = varset(HybridBySampleMid2.name, "hm", HybridBySampleMid2.program(HybridBySampleMid2.name).varRef.asInstanceOf[BagExpr])
+//   val gene = TupleVarRef("hgene", hmr.tp("hybrid_genes").asInstanceOf[BagType].tp)
+
+//   val (mNet, mnr) = varset(MappedNetwork.name, "mn", MappedNetwork.query)
+//   val mer = TupleVarRef("me", edgeJoin.tp.tp)
+
+//   val query = ForeachUnion(hmr, hybrid, 
+//       Singleton(Tuple("network_sample" -> hmr("hybrid_sample"), "network_aliquot" -> hmr("hybrid_aliquot"),
+//         "network_center" -> hmr("hybrid_center"), 
+//           "network_genes" ->
+//           ReduceByKey(
+//             ForeachUnion(gene, BagProject(hmr, "hybrid_genes"),
+//               ForeachUnion(mnr, mNet, 
+//                 ForeachUnion(mer, BagProject(mnr, "node_edges"),
+//                   IfThenElse(Cmp(OpEq, mer("edge_gene_stable_id"), gene("hybrid_gene_id")),
+//                     Singleton(Tuple("network_gene_id" -> gene("hybrid_gene_id"), 
+//                       "distance" -> mer("combined_score").asNumeric * gene("hybrid_score").asNumeric)))))),
+//             List("network_gene_id"),
+//             List("distance")))))
+
+//   val program = HybridBySampleMid2.program.asInstanceOf[SampleNetworkMid2.Program]
+//     .append(Assignment(mNet.name, MappedNetwork.query)).append(Assignment(name, query))
+
+// }
+
 
 object SampleFlatNetwork extends DriverGene {
 
