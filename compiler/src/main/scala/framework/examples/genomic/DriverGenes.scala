@@ -863,7 +863,6 @@ object SampleNetworkMid2a extends DriverGene {
         |${loadCopyNumber(shred, skew)}
         |${loadNetwork(shred, skew)}
         |${loadGeneProteinMap(shred, skew)}
-        |${if (shred) "val IBag_biomart2__D = IBag_biomart__D" else "val biomart2 = biomart"}
         |""".stripMargin
 
   val (hybrid, hmr) = varset(HybridBySampleMid2.name, "hm", HybridBySampleMid2.program(HybridBySampleMid2.name).varRef.asInstanceOf[BagExpr])
@@ -896,6 +895,7 @@ object SampleNetworkMid2a extends DriverGene {
 
 
   val program = HybridBySampleMid2.program.asInstanceOf[SampleNetworkMid2a.Program]
+    .append(Assignment(MappedNetwork.mart2Rel.name, MappedNetwork.mart2.asInstanceOf[Expr]))
     .append(Assignment(mNet.name, MappedNetwork.query.asInstanceOf[Expr]))
     .append(Assignment(fNet.name, fnet)).append(Assignment(name, query))
 
