@@ -50,10 +50,14 @@ object TestApp extends App {
     // AppWriter.flatDataset(HybridBySampleNoAgg, "test")
     // AppWriter.shredDataset(HybridBySampleNoAgg, "test")
 
-    AppWriter.flatDataset(SampleNetworkMid2, "SampleNetworkMid2,standard")
-    AppWriter.shredDataset(SampleNetworkMid2, "SampleNetworkMid2,shredded")
-    AppWriter.shredDataset(SampleNetworkMid2, "SampleNetworkMid2,shredded", unshred=true)
-   
+    // AppWriter.flatDataset(SampleNetworkMid2, "SampleNetworkMid2,standard")
+    // AppWriter.shredDataset(SampleNetworkMid2, "SampleNetworkMid2,shredded")
+    // AppWriter.shredDataset(SampleNetworkMid2, "SampleNetworkMid2,shredded", unshred=true)
+
+    AppWriter.flatDataset(SampleNetworkMid2a, "SampleNetworkMid2a,standard")
+    AppWriter.shredDataset(SampleNetworkMid2a, "SampleNetworkMid2a,shredded")
+    AppWriter.shredDataset(SampleNetworkMid2a, "SampleNetworkMid2a,shredded", unshred=true)
+
     // AppWriter.flatDataset(EffectBySample, "EffectBySample,standard")
     // AppWriter.shredDataset(EffectBySample, "EffectBySample,shredded")
 

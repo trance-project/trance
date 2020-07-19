@@ -10,8 +10,8 @@ object BatchOptimizer extends Extensions {
 
   def applyAll(e: CExpr): CExpr = {
     val o1 = pushUnnest(e)
-	val o2 = pushCondition(o1)
-	val o3 = push(o2)
+  	val o2 = pushCondition(o1)
+  	val o3 = push(o2)
     o3
   }
 

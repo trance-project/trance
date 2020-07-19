@@ -854,41 +854,52 @@ object SampleNetworkMid2 extends DriverGene {
 
 // do this for Mid and Mid2
 // optimized for shred
-// object SampleNetworkMid2a extends DriverGene {
+object SampleNetworkMid2a extends DriverGene {
 
-//   val name = "SampleNetworkMid2a"
+  val name = "SampleNetworkMid2a"
 
-//   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-//     s"""|${super.loadTables(shred, skew)}
-//         |${loadCopyNumber(shred, skew)}
-//         |${loadNetwork(shred, skew)}
-//         |${loadGeneProteinMap(shred, skew)}
-//         |""".stripMargin
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${super.loadTables(shred, skew)}
+        |${loadCopyNumber(shred, skew)}
+        |${loadNetwork(shred, skew)}
+        |${loadGeneProteinMap(shred, skew)}
+        |${if (shred) "val IBag_biomart2__D = IBag_biomart__D" else "val biomart2 = biomart"}
+        |""".stripMargin
 
-//   val (hybrid, hmr) = varset(HybridBySampleMid2.name, "hm", HybridBySampleMid2.program(HybridBySampleMid2.name).varRef.asInstanceOf[BagExpr])
-//   val gene = TupleVarRef("hgene", hmr.tp("hybrid_genes").asInstanceOf[BagType].tp)
+  val (hybrid, hmr) = varset(HybridBySampleMid2.name, "hm", HybridBySampleMid2.program(HybridBySampleMid2.name).varRef.asInstanceOf[BagExpr])
+  val gene = TupleVarRef("hgene", hmr.tp("hybrid_genes").asInstanceOf[BagType].tp)
 
-//   val (mNet, mnr) = varset(MappedNetwork.name, "mn", MappedNetwork.query)
-//   val mer = TupleVarRef("me", edgeJoin.tp.tp)
+  val (mNet, mnr) = varset(MappedNetwork.name, "mn", MappedNetwork.query.asInstanceOf[BagExpr])
+  val mer = TupleVarRef("me", MappedNetwork.edgeJoin.tp.tp)
 
-//   val query = ForeachUnion(hmr, hybrid, 
-//       Singleton(Tuple("network_sample" -> hmr("hybrid_sample"), "network_aliquot" -> hmr("hybrid_aliquot"),
-//         "network_center" -> hmr("hybrid_center"), 
-//           "network_genes" ->
-//           ReduceByKey(
-//             ForeachUnion(gene, BagProject(hmr, "hybrid_genes"),
-//               ForeachUnion(mnr, mNet, 
-//                 ForeachUnion(mer, BagProject(mnr, "node_edges"),
-//                   IfThenElse(Cmp(OpEq, mer("edge_gene_stable_id"), gene("hybrid_gene_id")),
-//                     Singleton(Tuple("network_gene_id" -> gene("hybrid_gene_id"), 
-//                       "distance" -> mer("combined_score").asNumeric * gene("hybrid_score").asNumeric)))))),
-//             List("network_gene_id"),
-//             List("distance")))))
+  val fnet = ForeachUnion(mnr, mNet, 
+    ForeachUnion(mer, BagProject(mnr, "node_edges"),
+      projectTuple(mnr, Map("edge_gene_id" -> mer("edge_gene_stable_id2"),
+        "edge_combined_score" -> mer("combined_score")
+        ), List("node_edges"))))
 
-//   val program = HybridBySampleMid2.program.asInstanceOf[SampleNetworkMid2.Program]
-//     .append(Assignment(mNet.name, MappedNetwork.query)).append(Assignment(name, query))
+  val (fNet, mfr) = varset("flatNet", "fn", fnet)
 
-// }
+  val query = ForeachUnion(hmr, hybrid, 
+      Singleton(Tuple("network_sample" -> hmr("hybrid_sample"), "network_aliquot" -> hmr("hybrid_aliquot"),
+        "network_center" -> hmr("hybrid_center"), 
+          "network_genes" ->  ReduceByKey(
+                ForeachUnion(gene, BagProject(hmr, "hybrid_genes"),
+                  ForeachUnion(mfr, fNet, 
+                    IfThenElse(Cmp(OpEq, mfr("edge_gene_id"), gene("hybrid_gene_id")),
+                      Singleton(Tuple("network_gene_id" -> mfr("node_gene_stable_id"),
+                        "network_protein_id" -> mfr("node_protein_stable_id"),
+                        "distance" -> mfr("edge_combined_score").asNumeric * gene("hybrid_score").asNumeric
+                        ))))),
+              List("network_gene_id", "network_protein_id"),
+              List("distance")))))
+
+
+  val program = HybridBySampleMid2.program.asInstanceOf[SampleNetworkMid2a.Program]
+    .append(Assignment(mNet.name, MappedNetwork.query.asInstanceOf[Expr]))
+    .append(Assignment(fNet.name, fnet)).append(Assignment(name, query))
+
+}
 
 
 object SampleFlatNetwork extends DriverGene {
