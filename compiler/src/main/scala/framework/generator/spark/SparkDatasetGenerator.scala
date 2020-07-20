@@ -403,8 +403,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val gv3 = generate(v)
       val gright = s"${generate(join.right)}.unionGroupByKey($gv2 => $gv2.${p2})"
       handleType(join.right.tp)
-      // println(join.right.tp)
-      val rtype = generateType(join.right.tp)
+      println(join.right.tp)
+      println(join.right.tp.attrs)
+      val rtype = generateType(RecordCType(join.right.tp.attrs))
       val castRight = join.v2.tp.attrs(p2) match {
         case RecordCType(fs) => s".asInstanceOf[KeyValueGroupedDataset[Product, $rtype]]"
         case LabelType(fs) =>  s".asInstanceOf[KeyValueGroupedDataset[Product, $rtype]]"

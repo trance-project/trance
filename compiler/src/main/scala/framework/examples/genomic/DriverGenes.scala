@@ -836,7 +836,7 @@ object SampleNetworkMid2a extends DriverGene {
 
 }
 
-object EffectBySample extends DriverGene {
+object EffectBySampleDoubleLabel extends DriverGene {
 
   val name = "EffectBySample"
 
@@ -856,6 +856,37 @@ object EffectBySample extends DriverGene {
       ForeachUnion(snr, snetwork,
         IfThenElse(Cmp(OpEq, hmr("hybrid_aliquot"), snr("network_aliquot")),   
           Singleton(Tuple("effect_sample" -> hmr("hybrid_sample"), "effect_genes" -> 
+            ForeachUnion(gene1, BagProject(hmr, "hybrid_genes"),
+              ForeachUnion(gene2, BagProject(snr, "network_genes"),
+                IfThenElse(Cmp(OpEq, gene1("hybrid_gene_id"), gene2("network_gene_id")),
+                  Singleton(Tuple("effect_gene_id" -> gene1("hybrid_gene_id"), 
+                    "effect_protein_id" -> gene2("network_protein_id"),
+                    "effect" -> gene1("hybrid_score").asNumeric * gene2("distance").asNumeric))))))))))
+
+  val program = SampleNetworkMid2a.program.asInstanceOf[EffectBySampleDoubleLabel.Program].append(Assignment(name, query))
+
+}
+
+object EffectBySample extends DriverGene {
+
+  val name = "EffectBySample"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${super.loadTables(shred, skew)}
+        |${loadCopyNumber(shred, skew)}
+        |${loadNetwork(shred, skew)}
+        |${loadGeneProteinMap(shred, skew)}
+        |""".stripMargin
+
+  val (hybrid, hmr) = varset(HybridBySampleMid2.name, "hm", HybridBySampleMid2.program(HybridBySampleMid2.name).varRef.asInstanceOf[BagExpr])
+  val gene1 = TupleVarRef("hgene", hmr.tp("hybrid_genes").asInstanceOf[BagType].tp)
+  val (snetwork, snr) = varset(SampleNetworkMid2a.name, "sn",SampleNetworkMid2a.program(SampleNetworkMid2a.name).varRef.asInstanceOf[BagExpr])
+  val gene2 = TupleVarRef("ngene", snr.tp("network_genes").asInstanceOf[BagType].tp)
+
+  val query = ForeachUnion(hmr, hybrid, 
+          Singleton(Tuple("effect_sample" -> hmr("hybrid_sample"), "effect_genes" -> 
+            ForeachUnion(snr, snetwork,
+              IfThenElse(Cmp(OpEq, hmr("hybrid_aliquot"), snr("network_aliquot")),  
             ForeachUnion(gene1, BagProject(hmr, "hybrid_genes"),
               ForeachUnion(gene2, BagProject(snr, "network_genes"),
                 IfThenElse(Cmp(OpEq, gene1("hybrid_gene_id"), gene2("network_gene_id")),
