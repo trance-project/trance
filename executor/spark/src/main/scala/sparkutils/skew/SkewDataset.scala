@@ -118,7 +118,7 @@ object SkewDataset{
       * @param f key function
       * @return key value grouped dataset based on f
       */
-    def unionGroupByKey[K: Encoder](f: (T) => K): KeyValueGroupedDataset[K, T] = left.groupByKey(f)
+    def unionGroupByKey[K : Encoder](f: (T) => K): KeyValueGroupedDataset[K, T] = left.groupByKey(f)
 
     /** sumBy+, reduceByKey for a Double attribute defined identified 
       * @key keying function
