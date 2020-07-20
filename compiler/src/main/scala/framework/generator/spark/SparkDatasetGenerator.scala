@@ -229,7 +229,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
     case ep @ DFProject(in, v, pat:Record, fields) =>
       handleType(pat.tp)
-      val nrec = generateType(pat.tp)
+      val nrec = s"${generateType(pat.tp)} /** ${pat.tp} **/"
 
       val nfields = ext.collect(pat)
       val select = if (in.tp.attrs.keySet == nfields) ""
@@ -402,14 +402,13 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val gv2 = generate(join.v2)
       val gv3 = generate(v)
       val gright = s"${generate(join.right)}.unionGroupByKey($gv2 => $gv2.${p2})"
-      handleType(join.right.tp)
-      println(join.right.tp)
-      println(join.right.tp.attrs)
-      val rtype = generateType(RecordCType(join.right.tp.attrs))
+      handleType(join.v2.tp)
+      // println(RecordCType(join.right.tp.attrs))
+      val rtype = generateType(join.v2.tp)
       val castRight = join.v2.tp.attrs(p2) match {
         case RecordCType(fs) => s".asInstanceOf[KeyValueGroupedDataset[Product, $rtype]]"
-        case LabelType(fs) =>  s".asInstanceOf[KeyValueGroupedDataset[Product, $rtype]]"
-        case ttp => ""
+        case LabelType(fs) => s".asInstanceOf[KeyValueGroupedDataset[Product, $rtype]] /** ${join.v2.tp} **/"
+        case _ => ""
       }
 
       handleType(nd.tp.tp)
