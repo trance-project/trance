@@ -58,8 +58,9 @@ object TestApp extends App {
     AppWriter.shredDataset(SampleNetworkMid2a, "SampleNetworkMid2a,shredded")
     AppWriter.shredDataset(SampleNetworkMid2a, "SampleNetworkMid2a,shredded", unshred=true)
 
-    // AppWriter.flatDataset(EffectBySample, "EffectBySample,standard")
+    AppWriter.flatDataset(EffectBySample, "EffectBySample,standard")
     // AppWriter.shredDataset(EffectBySample, "EffectBySample,shredded")
+    // AppWriter.shredDataset(EffectBySample, "EffectBySample,shredded", unshred=true)
 
   }
 }

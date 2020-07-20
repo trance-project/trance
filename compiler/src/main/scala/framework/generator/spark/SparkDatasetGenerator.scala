@@ -129,7 +129,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Or(e1, e2) => s"${accessOption(e1, nv)} || ${accessOption(e2, nv)}"
     case Not(e1) => s"!(${accessOption(e1, nv)})"
     case MathOp(op, e1, e2) => 
-      s"${accessOption(e1, nv)} $op ${accessOption(e2, nv)}"     
+      s"(${accessOption(e1, nv)}) $op (${accessOption(e2, nv)})"     
     case _ => generate(e)
   }
 
