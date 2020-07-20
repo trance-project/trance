@@ -229,7 +229,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
     case ep @ DFProject(in, v, pat:Record, fields) =>
       handleType(pat.tp)
-      val nrec = s"${generateType(pat.tp)} /** ${pat.tp} **/"
+      val nrec = s"${generateType(pat.tp)}"
 
       val nfields = ext.collect(pat)
       val select = if (in.tp.attrs.keySet == nfields) ""
@@ -402,12 +402,18 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val gv2 = generate(join.v2)
       val gv3 = generate(v)
       val gright = s"${generate(join.right)}.unionGroupByKey($gv2 => $gv2.${p2})"
-      handleType(join.v2.tp)
-      // println(RecordCType(join.right.tp.attrs))
-      val rtype = generateType(join.v2.tp)
+      
+      // this is a hack
+      // need to check equality on nested maps
+      val rtp = RecordCType(join.v2.tp.attrs)
+      val rkeys = rtp.attrs.keySet
+      val test = types.filter(f => f._1 match { case RecordCType(ms) if ms.keySet == rkeys => true; case _ => false})
+      val rtype = if (test.nonEmpty) test.head._2
+        else { handleType(rtp); generateType(rtp) }
+
       val castRight = join.v2.tp.attrs(p2) match {
         case RecordCType(fs) => s".asInstanceOf[KeyValueGroupedDataset[Product, $rtype]]"
-        case LabelType(fs) => s".asInstanceOf[KeyValueGroupedDataset[Product, $rtype]] /** ${join.v2.tp} **/"
+        case LabelType(fs) if fs.size > 1 => s".asInstanceOf[KeyValueGroupedDataset[Product, $rtype]] /** $fs **/"
         case _ => ""
       }
 

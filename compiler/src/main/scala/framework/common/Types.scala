@@ -114,7 +114,6 @@ final case class LabelType(attrTps: Map[String, Type]) extends TupleAttributeTyp
   override def equals(that: Any): Boolean = that match {
     case that: LabelType => this.attrTps == that.attrTps
     case that: RecordCType => this.attrTps == that.attrTps
-    case _ => false
   }
 }
 
