@@ -62,7 +62,7 @@ object TestApp extends App {
     // AppWriter.shredDataset(EffectBySampleSO, "EffectBySample,shredded")
     // AppWriter.shredDataset(EffectBySampleSO, "EffectBySample,shredded", unshred=true)
 
-    AppWriter.flatDataset(ConnectionBySample, "ConnectionBySample,standard")
+    // AppWriter.flatDataset(ConnectionBySample, "ConnectionBySample,standard")
     AppWriter.shredDataset(ConnectionBySample, "ConnectionBySample,shredded")
     AppWriter.shredDataset(ConnectionBySample, "ConnectionBySample,shredded", unshred=true)
 
