@@ -203,8 +203,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     /** BOOL OPS **/
     case Equals(e1, e2) => 
       val eq = (e1, e2) match {
-        case (Project(p1, _), _) if p1.tp.isInstanceOf[LabelType] => "=="
-        case (_, Project(p2, _)) if p2.tp.isInstanceOf[LabelType] => "=="
+        // case (Project(p1, _), _) if p1.tp.isInstanceOf[LabelType] => "=="
+        // case (_, Project(p2, _)) if p2.tp.isInstanceOf[LabelType] => "=="
         case _ => "==="
       }
       s"${generateReference(e1)} $eq ${generateReference(e2)}"
@@ -398,7 +398,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         }
         case _ => sys.error("condition not supported")
       }
-      
+
       val gv = generate(join.v)
       val gv2 = generate(join.v2)
       val gv3 = generate(v)
