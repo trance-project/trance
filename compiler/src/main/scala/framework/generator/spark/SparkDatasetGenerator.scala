@@ -398,23 +398,21 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         }
         case _ => sys.error("condition not supported")
       }
+      
       val gv = generate(join.v)
       val gv2 = generate(join.v2)
       val gv3 = generate(v)
-      val gright = s"${generate(join.right)}.unionGroupByKey($gv2 => $gv2.${p2})"
-      
-      // this is a hack
-      // need to check equality on nested maps
-      val rtp = RecordCType(join.v2.tp.attrs)
-      val rkeys = rtp.attrs.keySet
-      val test = types.filter(f => f._1 match { case RecordCType(ms) if ms.keySet == rkeys => true; case _ => false})
-      val rtype = if (test.nonEmpty) test.head._2
-        else { handleType(rtp); generateType(rtp) }
 
-      val castRight = join.v2.tp.attrs(p2) match {
-        case RecordCType(fs) => s".asInstanceOf[KeyValueGroupedDataset[Product, $rtype]]"
-        case LabelType(fs) if fs.size > 1 => s".asInstanceOf[KeyValueGroupedDataset[Product, $rtype]] /** $fs **/"
-        case _ => ""
+      val gright = join.v2.tp.attrs(p2) match {
+        case LabelType(fs) if fs.size > 1 => 
+          val rkeys = fs.map(f => s"$gv2.${p2}.${f._1}").mkString("(",",",")")
+          s"${generate(join.right)}.unionGroupByKey($gv2 => $rkeys)"
+        case _ => s"${generate(join.right)}.unionGroupByKey($gv2 => $gv2.${p2})"
+      }
+
+      val lkeys = join.v.tp.attrs(p1) match {
+        case LabelType(fs) if fs.size > 1 => fs.map(f => s"$gv.${p1}.${f._1}").mkString("(",",",")")
+        case _ => s"$gv.${p1}"
       }
 
       handleType(nd.tp.tp)
@@ -428,7 +426,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         case _ => sys.error("unsupported join type")
       }
 
-      s"""|val ${generate(nv)} = ${generate(join.left)}.cogroup($gright$castRight, $gv => $gv.${p1})(
+      s"""|val ${generate(nv)} = ${generate(join.left)}.cogroup($gright, $gv => $lkeys)(
           |   (_, ve1, ve2) => {
           |     val grp = ve2.map($gv2 => $gvalue).toSeq
           |     $leftMap
