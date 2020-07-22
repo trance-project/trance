@@ -63,12 +63,16 @@ object TestApp extends App {
     // AppWriter.shredDataset(EffectBySampleSO, "EffectBySample,shredded", unshred=true)
 
     // AppWriter.flatDataset(ConnectionBySample, "ConnectionBySample,standard")
-    AppWriter.shredDataset(ConnectionBySample, "ConnectionBySample,shredded")
-    AppWriter.shredDataset(ConnectionBySample, "ConnectionBySample,shredded", unshred=true)
+    // AppWriter.shredDataset(ConnectionBySample, "ConnectionBySample,shredded")
+    // AppWriter.shredDataset(ConnectionBySample, "ConnectionBySample,shredded", unshred=true)
 
-    AppWriter.flatDataset(Effect2ConnectBySample, "Effect2ConnectBySample,standard")
+    // AppWriter.flatDataset(Effect2ConnectBySample, "Effect2ConnectBySample,standard")
     AppWriter.shredDataset(Effect2ConnectBySample, "Effect2ConnectBySample,shredded")
     AppWriter.shredDataset(Effect2ConnectBySample, "Effect2ConnectBySample,shredded", unshred=true)
+
+    // AppWriter.flatDataset(GeneConnectivity, "GeneConnectivityAlt,standard")
+    // AppWriter.shredDataset(GeneConnectivityAlt, "GeneConnectivityAlt,shredded")
+    // AppWriter.shredDataset(GeneConnectivityAlt, "GeneConnectivityAlt,shredded", unshred=true)
   }
 }
 

@@ -284,21 +284,21 @@ trait GeneExpression {
     if (shred){
     val geneLoad = if (skew) "(expression, expression.empty)" else "expression"
     s"""|val geLoader = new GeneExpressionLoader(spark)
-        |val expression = geLoader.load("/nfs_qc4/genomics/gdc/fpkm/", true)
+        |val expression = geLoader.load("/nfs_qc4/genomics/gdc/fpkm_uq/", true)
         |       .withColumn("ge_gene_id", substring(col("ge_gene_id"), 1,15)).as[GeneExpression]
         |val IBag_expression__D = $geneLoad
         |IBag_expression__D.cache
         |IBag_expression__D.count""".stripMargin
     }else if (skew)
     s"""|val geLoader = new GeneExpressionLoader(spark)
-        |val expression_L = geLoader.load("/nfs_qc4/genomics/gdc/fpkm/", true)
+        |val expression_L = geLoader.load("/nfs_qc4/genomics/gdc/fpkm_uq/", true)
         |       .withColumn("ge_gene_id", substring(col("ge_gene_id"), 1,15)).as[GeneExpression]
         |val expression = (expression_L, expression_L.empty)
         |expression.cache
         |expression.count""".stripMargin
     else
     s"""|val geLoader = new GeneExpressionLoader(spark)
-        |val expression = geLoader.load("/nfs_qc4/genomics/gdc/fpkm/", true)
+        |val expression = geLoader.load("/nfs_qc4/genomics/gdc/fpkm_uq/", true)
         |       .withColumn("ge_gene_id", substring(col("ge_gene_id"), 1,15)).as[GeneExpression]
         |expression.cache
         |expression.count""".stripMargin
@@ -1050,10 +1050,10 @@ object Effect2ConnectBySample extends DriverGene {
   val (flatNet, fner) = varset("flatSampNet", "fnp", flatSampleNetwork)
 
   val query = ForeachUnion(hmr, hybrid, 
-          Singleton(Tuple("effect_sample" -> hmr("hybrid_sample"), 
-            "effect_aliquot" -> hmr("hybrid_aliquot"),
-            "effect_center" -> hmr("hybrid_center"),
-            "effect_genes" -> 
+          Singleton(Tuple("connection_sample" -> hmr("hybrid_sample"), 
+            "connection_aliquot" -> hmr("hybrid_aliquot"),
+            "connection_center" -> hmr("hybrid_center"),
+            "connect_genes" -> 
             ForeachUnion(gene1, BagProject(hmr, "hybrid_genes"),
               ForeachUnion(fner, flatNet,
                 IfThenElse(And(Cmp(OpEq, hmr("hybrid_aliquot"), fner("fnetwork_aliquot")),  
@@ -1061,9 +1061,10 @@ object Effect2ConnectBySample extends DriverGene {
                   ForeachUnion(fexpr, fexpression,
                     IfThenElse(And(Cmp(OpEq, hmr("hybrid_aliquot"), fexpr("ge_aliquot")),  
                   Cmp(OpEq, gene1("hybrid_gene_id"), fexpr("ge_gene_id"))),
-                    Singleton(Tuple("effect_gene_id" -> gene1("hybrid_gene_id"), 
-                      "effect_protein_id" -> fner("fnetwork_protein_id"),
-                      "effect" -> gene1("hybrid_score").asNumeric * fner("fnetwork_distance").asNumeric))))))))))
+                    Singleton(Tuple("connect_gene" -> gene1("hybrid_gene_id"), 
+                      "connect_protein" -> fner("fnetwork_protein_id"),
+                      "gene_connectivity" -> gene1("hybrid_score").asNumeric 
+                      * fner("fnetwork_distance").asNumeric * fexpr("ge_fpkm").asNumeric))))))))))
 
   val program = SampleNetworkMid2a.program.asInstanceOf[Effect2ConnectBySample.Program]
     .append(Assignment(flatNet.name, flatSampleNetwork))
@@ -1117,6 +1118,24 @@ object GeneConnectivity extends DriverGene {
         List("connectivity"))
 
   val program = ConnectionBySample.program.asInstanceOf[GeneConnectivity.Program].append(Assignment(name, query))
+
+}
+
+object GeneConnectivityAlt extends DriverGene {
+
+  val name = "GeneConnectivity"
+
+  val (connect, cmr) = varset(Effect2ConnectBySample.name, "em", Effect2ConnectBySample.program(Effect2ConnectBySample.name).varRef.asInstanceOf[BagExpr])
+  val gene1 = TupleVarRef("cgene", cmr.tp("connect_genes").asInstanceOf[BagType].tp)
+
+  val query = ReduceByKey(ForeachUnion(cmr, connect, 
+      ForeachUnion(gene1, BagProject(cmr, "connect_genes"),
+        Singleton(Tuple("gene_id" -> gene1("connect_gene"), 
+          "connectivity" -> gene1("gene_connectivity"))))),
+        List("gene_id"),
+        List("connectivity"))
+
+  val program = Effect2ConnectBySample.program.asInstanceOf[GeneConnectivityAlt.Program].append(Assignment(name, query))
 
 }
 
