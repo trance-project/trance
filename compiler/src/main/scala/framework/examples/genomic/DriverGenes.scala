@@ -83,7 +83,7 @@ trait Occurrence extends Vep {
     				|IBag_occurrences__D.cache
     				|IBag_occurrences__D.count
     				|//val IDict_occurrences__D_transcript_consequences = odict2
-            |val IDict_occurrences__D_transcript_consequences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/odict2Full/").as[OccurrTransDict2]
+            |val IDict_occurrences__D_transcript_consequences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/odict2Full/").as[OccurTransDict2Mid]
     				|IDict_occurrences__D_transcript_consequences.cache
     				|IDict_occurrences__D_transcript_consequences.count
     				|//val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
