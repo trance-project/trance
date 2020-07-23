@@ -1,7 +1,7 @@
 package framework.generator.spark
 
 import framework.examples._
-import framework.examples.genomic.OddsRatio
+import framework.examples.genomic.{OddsRatio}
 
 //object TestApp extends App {
 
@@ -109,7 +109,7 @@ object PathwayBurden_Test extends App {
 object PathwayBurden_Test4 extends App {
   override def main(args: Array[String]): Unit = {
     AppWriter.flatDataset(plan4, "test")
-        AppWriter.shredDataset(plan4, "test")
+    AppWriter.shredDataset(plan4, "test")
     //    AppWriter.shredDataset(plan2_1, label = "test", skew = true)
   }
 }
@@ -124,9 +124,9 @@ object PathwayBurden_Test5 extends App {
 
 object PathwayBurden_Test6 extends App {
   override def main(args: Array[String]): Unit = {
-//        AppWriter.flatDataset(plan6, "test")
+    //        AppWriter.flatDataset(plan6, "test")
     AppWriter.shredDataset(plan6, "test")
-//        AppWriter.shredDataset(plan6, label = "test", skew = true)
+    //        AppWriter.shredDataset(plan6, label = "test", skew = true)
   }
 }
 
