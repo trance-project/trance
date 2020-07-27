@@ -30,8 +30,8 @@ trait Extensions {
     case Gte(e1, e2) => collect(e1) ++ collect(e2)
     case Lte(e1, e2) => collect(e1) ++ collect(e2)
     case Project(e1, f) => Set(f)
-	case CUdf(n, e1, tp) => collect(e1)
-	case _ => Set()
+  	case CUdf(n, e1, tp) => collect(e1)
+  	case _ => Set()
   }
 
   def fapply(e: CExpr, funct: PartialFunction[CExpr, CExpr]): CExpr = 

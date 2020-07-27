@@ -64,6 +64,41 @@ object Test2Agg2 extends TPCHBase {
   val program = Program(Assignment(name, query))
 }
 
+object Test2Agg2S extends TPCHBase {
+
+  val name = "Test2Agg2S"
+  val tbls: Set[String] = Set("L", "O", "C", "P")
+
+  val (customers, customerRef) = varset(Test2Full.name, "c", Test2Full.program(Test2Full.name).varRef.asInstanceOf[BagExpr])
+  val (orders, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
+  val (parts, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
+
+  val step1 = ForeachUnion(customerRef, customers, 
+      projectTuple(customerRef, Map("c_orders_sub" ->
+        ReduceByKey(
+          ForeachUnion(orderRef, BagProject(customerRef, "c_orders"),
+            ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
+              ForeachUnion(pr, relP,
+                IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
+                  Singleton(Tuple("p_partkey" -> pr("p_partkey"), "subtotal" -> 
+                    partRef("l_quantity").asNumeric * pr("p_retailprice").asNumeric)))))),
+            List("p_partkey"),
+            List("subtotal")
+    )), List("c_orders", "c_acctbal", "c_nationkey", "c_custkey", "c_comment", "c_address", "c_mktsegment", "c_phone")))
+
+  val (s1, s1Ref) = varset("step1", "s1", step1)
+  val (subOrders, sorderRef) = varset("osub", "o", BagProject(s1Ref, "c_orders_sub"))
+
+  val query = ReduceByKey(
+    ForeachUnion(s1Ref, s1, 
+      ForeachUnion(sorderRef, BagProject(s1Ref, "c_orders_sub"),
+        Singleton(Tuple("c_name" -> s1Ref("c_name"), "total" -> sorderRef("subtotal"))))),
+      List("c_name"), List("total"))
+
+  val program = Program(Assignment("step1", step1), Assignment(name, query))
+
+}
+
 object Test3Agg3 extends TPCHBase {
 
   val name = "Test3Agg3"

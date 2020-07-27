@@ -141,6 +141,7 @@ trait Query extends Materialization
     val initPlan = BatchUnnester.unnest(calc)(Map(), Map(), None, baseTag)
     val plan = BatchOptimizer.push(compiler.finalize(initPlan).asInstanceOf[CExpr])
     println(Printer.quote(plan))
+    // println(plan)
     val sanfBase = new BaseDFANF{}
     val sanfer = new Finalizer(sanfBase)
     val splan = sanfBase.anf(sanfer.finalize(plan).asInstanceOf[sanfBase.Rep])
