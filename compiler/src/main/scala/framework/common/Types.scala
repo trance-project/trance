@@ -21,9 +21,9 @@ sealed trait Type { self =>
     case RecordCType(ms) => ms
     case BagCType(ms) => ms.attrs
     case MatDictCType(LabelType(fs), bag) if fs.isEmpty => 
-      Map("_1" -> LongType) ++ bag.attrs
-    case MatDictCType(LabelType(ms), bag) => 
-      val lblType = if (ms.isEmpty) LongType else ms.head._2
+      Map("_1" -> StringType) ++ bag.attrs
+    case MatDictCType(lt @ LabelType(ms), bag) => 
+      val lblType = if (ms.size == 1) ms.head._2 else lt
       Map("_1" -> lblType) ++ bag.attrs
     case _ => Map()
   }
@@ -114,7 +114,6 @@ final case class LabelType(attrTps: Map[String, Type]) extends TupleAttributeTyp
   override def equals(that: Any): Boolean = that match {
     case that: LabelType => this.attrTps == that.attrTps
     case that: RecordCType => this.attrTps == that.attrTps
-    case _ => false
   }
 }
 
@@ -160,6 +159,7 @@ final case class OptionType(tp: Type) extends TupleAttributeType
 final case class BagCType(tp: Type) extends Type {
 
   override def isDict: Boolean = tp match {
+    case RecordCType(fs) => fs.contains("_1")
     case TTupleType(fs) => fs.head.isInstanceOf[LabelType]
     case _ => false
   }

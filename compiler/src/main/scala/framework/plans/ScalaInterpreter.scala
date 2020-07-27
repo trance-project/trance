@@ -16,6 +16,7 @@ trait BaseScalaInterp extends Base{
   def input(x: List[Rep]): Rep = x
   def constant(x: Any): Rep = x
   def emptysng: Rep = Nil
+  def cnull: Rep = null
   def unit: Rep = ()
   def sng(x: Rep): Rep = List(x)
   def get(x: Rep): Rep = x.asInstanceOf[List[Rep]].head

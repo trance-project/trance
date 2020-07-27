@@ -3,6 +3,7 @@ package sparkutils.loader
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
+import sparkutils.Config
 
 case class Biospec(bcr_patient_uuid: String, bcr_sample_barcode: String, bcr_aliquot_barcode: String, bcr_aliquot_uuid: String, biospecimen_barcode_bottom: String, center_id: String, concentration: Double, date_of_shipment: String, is_derived_from_ffpe: String, plate_column: Int, plate_id: String, plate_row: String, quantity: Double, source_center: Int, volume: Double)
 
@@ -32,7 +33,7 @@ class BiospecLoader(spark: SparkSession) extends Table[Biospec] {
      spark.read.schema(schema)
        .option("header", header)
        .option("delimiter", delimiter)
-       .csv(path).na.drop.as[Biospec]
+       .csv(path).na.drop.as[Biospec].repartition(Config.minPartitions)
    }
 }
 

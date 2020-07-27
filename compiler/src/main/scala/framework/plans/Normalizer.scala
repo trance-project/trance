@@ -116,7 +116,11 @@ trait BaseNormalizer extends BaseCompiler {
 
       case _ => // standard case (return self)
         val v = Variable.freshFromBag(e1.tp)
-        Comprehension(e1, v, p(v), e(v))
+        e(v) match {
+          case If(cond, e4, None) => Comprehension(e1, v, and(p(v), cond), e4)
+          case ev => Comprehension(e1, v, p(v), ev)
+        }
+
       }
     }
 

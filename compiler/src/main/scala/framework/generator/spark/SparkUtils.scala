@@ -51,6 +51,7 @@ trait SparkUtils {
     case OptionType(tp) => zero(tp)
     case IntType => "0"
     case DoubleType => "0.0"
+    case LongType => "0"
     case _ => "null"
 
   }  

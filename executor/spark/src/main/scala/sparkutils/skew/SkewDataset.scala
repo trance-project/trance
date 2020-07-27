@@ -7,6 +7,7 @@ import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.expressions.scalalang._
+import sparkutils.Config
 
 /** Implicits used for the generated Spark code from the compiler framework.
   * This file contains the following implicits:
@@ -76,7 +77,7 @@ object SkewDataset{
       * @param joinType string join type, default "inner"
       * @return the result of the join
       */
-    def equiJoinWith[S: Encoder : ClassTag](right: Dataset[S], usingColumns: Seq[String], joinType: String = "inner"): Dataset[(T,S)] = {
+    def equiJoinWith[S: Encoder : ClassTag](right: Dataset[S], usingColumns: Seq[String], joinType: String): Dataset[(T,S)] = {
       left.joinWith(right, col(usingColumns(0)) === col(usingColumns(1)), joinType)
     }
 
@@ -87,7 +88,7 @@ object SkewDataset{
       * @param joinType string join type, default "inner"
       * @return the result of the join
       */
-    def equiJoin[S: Encoder : ClassTag](right: Dataset[S], usingColumns: Seq[String], joinType: String = "inner"): DataFrame = {
+    def equiJoin[S: Encoder : ClassTag](right: Dataset[S], usingColumns: Seq[String], joinType: String): DataFrame = {
       left.join(right, col(usingColumns(0)) === col(usingColumns(1)), joinType)
     }
     
@@ -117,7 +118,7 @@ object SkewDataset{
       * @param f key function
       * @return key value grouped dataset based on f
       */
-    def unionGroupByKey[K: Encoder](f: (T) => K): KeyValueGroupedDataset[K, T] = left.groupByKey(f)
+    def unionGroupByKey[K : Encoder](f: (T) => K): KeyValueGroupedDataset[K, T] = left.groupByKey(f)
 
     /** sumBy+, reduceByKey for a Double attribute defined identified 
       * @key keying function
@@ -224,7 +225,10 @@ object SkewDataset{
 
     def print: Unit = (light, heavy).print
 
-    def count: Long = (light, heavy).count
+    def count: Long = {
+	  println(s"heavy key size: ${heavyKeys.value.size}")
+	  (light, heavy).count
+	}
 
     def cache: Unit = (light, heavy).cache
 
@@ -350,7 +354,7 @@ object SkewDataset{
       * @param joinType string join type, default "inner"
       * @return the result of the join
       */
-    def equiJoin[S: Encoder : ClassTag, J: ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String], joinType: String = "inner"): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
+    def equiJoin[S: Encoder : ClassTag, J: ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String], joinType: String): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
       val hkeys = key match {
         case Some(k) if usingColumns.contains(k) => heavyKeys
         case _ => light.sparkSession.sparkContext.broadcast(Set.empty[K])
@@ -369,6 +373,10 @@ object SkewDataset{
         (light, heavy).equiJoin[S, K](right, usingColumns, joinType)
       }
 
+    }
+
+    def equiJoin[S: Encoder : ClassTag, J: ClassTag](right: (Dataset[S], Dataset[S], Option[String], Broadcast[Set[K]]), usingColumns: Seq[String], joinType: String): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
+      equiJoin[S,J]((right.light, right.heavy), usingColumns, joinType)
     }
 
     /** Default join for complex join conditions **/
@@ -422,11 +430,15 @@ object SkewDataset{
     val heavy = dfs._2
 
     /** counts the light and heavy component, returns as sum **/
-    def count: Long = if (heavy.rdd.getNumPartitions == 1) light.count
-      else {
+    def count: Long = if (heavy.rdd.getNumPartitions == 1) {
+	  	val l = light.count
+		println(s"light: $l, heavy: 0")
+		l
+      } else {
         val l = light.count
         val h = heavy.count
-        l + h
+		println(s"light: $l, heavy: $h")
+		l + h
       }
 
     /** prints the light and heavy components **/
@@ -489,13 +501,18 @@ object SkewDataset{
     val heavy = dfs._2
     val partitions = light.rdd.getNumPartitions
     val random = scala.util.Random
+	val thresh = Config.threshold
 
     /** counts the light and heavy component, returns as sum **/
-    def count: Long = if (heavy.rdd.getNumPartitions == 1) light.count 
-      else {
+    def count: Long = if (heavy.rdd.getNumPartitions == 1) {
+	  	val l = light.count 
+		println(s"light: $l, heavy: 0")
+		l
+      } else {
         val lc = light.count
         val hc = heavy.count
-        lc + hc
+        println(s"light: $lc, heavy: $hc")
+		lc + hc
       }
 
     /** prints the light and heavy components **/
@@ -573,11 +590,11 @@ object SkewDataset{
       */
     def heavyKeys[K: ClassTag](key: String): (Dataset[T], Set[K]) = {
       val dfull = dfs.union
-      val keys = dfull.select(key).rdd.mapPartitions(it => {
+	  val keys = dfull.select(key).rdd.mapPartitions(it => {
         var cnt = 0
         val acc = HashMap.empty[Row, Int].withDefaultValue(0)
         it.foreach{ c => cnt +=1; if (random.nextDouble <= .1) acc(c) += 1 }
-        acc.filter(_._2 > (cnt*.1)*.0025).map(r => r._1.getAs[K](0)).iterator
+        acc.filter(_._2 > (cnt*.1)*thresh).map(r => r._1.getAs[K](0)).iterator
       }).collect.toSet
       (dfull, keys)
     }
@@ -619,7 +636,7 @@ object SkewDataset{
       * @param joinType identifies the type of join
       * @return skew-triple result from the skew-aware equiJoinWith
       */
-    def equiJoin[S: Encoder : ClassTag, K: ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String], joinType: String = "inner")(implicit arg0: Encoder[K]): 
+    def equiJoin[S: Encoder : ClassTag, K: ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String], joinType: String)(implicit arg0: Encoder[K]): 
     (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
       val nkey = usingColumns(0)
       val (dfull, hk) = heavyKeys[K](nkey)
@@ -630,9 +647,14 @@ object SkewDataset{
         (dfull.equiJoin(right.union, usingColumns, joinType), light.emptyDF, Some(nkey), light.sparkSession.sparkContext.broadcast(Set.empty[K]))
       }
     }
+    
+    def equiJoin[S: Encoder : ClassTag, K: ClassTag](right: (Dataset[S], Dataset[S], Option[String], Broadcast[Set[K]]), usingColumns: Seq[String], joinType: String)(implicit arg0: Encoder[K]): 
+      (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
+        equiJoin[S,K]((right.light, right.heavy), usingColumns, joinType)
+    }
  
     /** Default join for complex join conditions **/
-    def join[S: Encoder : ClassTag](right: (Dataset[S], Dataset[S]), cond: Column, joinType: String = "inner"): (DataFrame, DataFrame) = {
+    def join[S: Encoder : ClassTag](right: (Dataset[S], Dataset[S]), cond: Column, joinType: String): (DataFrame, DataFrame) = {
       val result = dfs.union.join(right.union, cond, joinType)
       (result, result.emptyDF)
     }

@@ -57,7 +57,7 @@ trait SparkTypeHandler {
     */
   def generateType(tp: Type): String = tp match {
     case RecordCType(fs) if fs.isEmpty => "Unit"
-    case LabelType(fs) if fs.isEmpty => "Long"
+    case LabelType(fs) if fs.isEmpty => "String"//"Long"
     case RecordCType(fs) if fs.contains("element") && fs.size == 1 => generateType(fs("element"))
     //case RecordCType(fs) if fs.keySet == Set("_1", "_2") => fs.generateType(fs._2).mkString("(",",",")")
     // case RecordCType(ms) if ms.values.toList.contains(EmptyCType) => ""
@@ -71,7 +71,7 @@ trait SparkTypeHandler {
     case LongType => "Long"
     case TTupleType(fs) => s"(${fs.map(generateType(_)).mkString(",")})"
     case BagCType(tp) => s"$bagtype[${generateType(tp)}]" //combineByKey, etc. may need this to be iterable
-    case MatDictCType(lbl, dict) => s"${generateType(dict)}"
+    case MatDictCType(lbl, dict) => generateType(BagCType(RecordCType(tp.attrs)))//s"${generateType(dict)}"
     case BagDictCType(flat @ BagCType(TTupleType(fs)), dict) =>
       dict match {
         case TupleDictCType(ds) if !ds.filter(_._2 != EmptyDictCType).isEmpty =>
@@ -102,7 +102,7 @@ trait SparkTypeHandler {
         case BagCType(tp) => handleType(tp, givenName)
         case LabelType(fs) if fs.size == 1 => handleType(fs.head._2)
         case LabelType(fs) if !fs.isEmpty => handleType(RecordCType(fs))
-        case MatDictCType(lbl, dict) => handleType(dict)
+        case MatDictCType(lbl, dict) => handleType(BagCType(RecordCType(tp.attrs)))//handleType(dict)
         case BagDictCType(flat @ BagCType(TTupleType(fs)), dict) =>
           // val nid = Variable.newId
           handleType(fs.last, Some(givenName.getOrElse("")))

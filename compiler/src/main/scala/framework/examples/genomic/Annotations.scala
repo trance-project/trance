@@ -66,7 +66,8 @@ trait Vep {
     "variant_allele" -> StringType)
 
   val transcriptQuant = TupleType(
-    "amino_acids" -> StringType,
+	"aliquot_id" -> StringType,
+	"amino_acids" -> StringType,
     "distance" -> LongType,
     "cdna_end" -> LongType,
     "cdna_start" -> LongType,
@@ -79,7 +80,7 @@ trait Vep {
     "impact" -> StringType,
     "protein_end" -> LongType,
     "protein_start" -> LongType,
-    "strand" -> LongType,
+    "ts_strand" -> LongType,
     "transcript_id" -> StringType,
     //"appris" -> StringType,
     //"biotype" -> DoubleType,
@@ -100,6 +101,32 @@ trait Vep {
     //"tsl" -> LongType,
     //"uniparc" -> BagType(element),
     "variant_allele" -> StringType)
+
+  val transcriptFull = TupleType(
+    "case_id" -> StringType,
+    "amino_acids" -> StringType,
+    "cdna_end" -> LongType,
+    "cdna_start" -> LongType,
+    "cds_end" -> LongType,
+    "cds_start" -> LongType,
+    "codons" -> StringType,
+    "consequence_terms" -> BagType(element),
+    "distance" -> LongType,
+    "exon" -> StringType,
+    "flags" -> BagType(element),
+    "gene_id" -> StringType,
+    "impact" -> StringType,
+    "intron" -> StringType,
+    "polyphen_prediction" -> StringType,
+    "polyphen_score" -> DoubleType,
+    "protein_end" -> LongType,
+    "protein_start" -> LongType,
+    "sift_prediction" -> StringType,
+    "sift_score" -> DoubleType,
+    "ts_strand" -> LongType,
+    "transcript_id" -> StringType,
+    "variant_allele" -> StringType
+  )
 
   val vep_type = TupleType("allele_string" -> StringType, 
     "assembly_name" -> StringType, "end" -> LongType, "id" -> StringType,
@@ -128,5 +155,7 @@ trait Vep {
     "transcript_consequences" -> BagType(transcript),
     "variant_class" -> StringType
   )
+
+
 
 }

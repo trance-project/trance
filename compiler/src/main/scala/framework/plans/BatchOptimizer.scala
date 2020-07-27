@@ -10,9 +10,10 @@ object BatchOptimizer extends Extensions {
 
   def applyAll(e: CExpr): CExpr = {
     val o1 = pushUnnest(e)
-	val o2 = pushCondition(o1)
-	val o3 = push(o2)
-    o3
+  	val o2 = pushCondition(o1)
+  	val o3 = push(o2)
+    val o4 = pushAgg(o3)
+    o4
   }
 
   def validateMatch(t1: Type, f1: String, t2: Type, f2: String): Boolean = 
@@ -39,10 +40,10 @@ object BatchOptimizer extends Extensions {
 
 
   def pushCondition(e: CExpr): CExpr = fapply(e, {
-	case DFProject(DFOuterJoin(e1, v1, e2, v2, Constant(true), fs1), v3,
-		jc @ If(cond @ Equals(Project(_, f1), Project(_, f2)), s1, s2), fs2) =>
-		DFProject(DFOuterJoin(e1, v1, e2, v2, cond, fs1), v3, 
-			If(Equals(Project(v3, f2), Null),s1, s2), fs2)
+  	case DFProject(DFOuterJoin(e1, v1, e2, v2, Constant(true), fs1), v3,
+  		jc @ If(cond @ Equals(Project(_, f1), Project(_, f2)), s1, s2), fs2) =>
+  		DFProject(DFOuterJoin(e1, v1, e2, v2, cond, fs1), v3, 
+  			If(Equals(Project(v3, f2), Null),s1, s2), fs2)
   })
 
   /** Push projections in plans made of batch operations
@@ -56,7 +57,7 @@ object BatchOptimizer extends Extensions {
       val tfields = fields.toSet ++ collect(filter)
       val pin = push(in, tfields ++ fs)
       val nv = Variable.fromBag(v.name, pin.tp)
-      DFProject(pin, nv, filter, tfields.toList)
+      DFProject(pin, nv, replace(filter, nv), tfields.toList)
 
     case DFUnnest(in, v, path, v2, filter, fields) =>
       val pin = push(in, fields.toSet ++ fs + path)
@@ -105,7 +106,7 @@ object BatchOptimizer extends Extensions {
       val pfs = nkey ++ collect(value) ++ fs
       val pin = push(in, pfs)
       val nv = Variable.fromBag(v.name, pin.tp)
-      DFNest(pin, nv, nkey.toList, value, filter, value.inputColumns.toList, ctag)
+      DFNest(pin, nv, nkey.toList, replace(value, nv), filter, value.inputColumns.toList, ctag)
 
     case DFReduceBy(e1 @ DFProject(in, v, filter, fields), v2, key, value) =>
       // adjust key
@@ -149,7 +150,46 @@ object BatchOptimizer extends Extensions {
     case GroupDict(e1) => GroupDict(push(e1, fs))
     case CNamed(n, e1) => CNamed(n, push(e1))
     case LinearCSet(fs) => LinearCSet(fs.map(f => push(f)))
+    case InputRef(name, tp) => 
+      val fields = fs & tp.attrs.keySet
+      if (fields.nonEmpty) {
+        val v = Variable.fresh(RecordCType(tp.attrs))
+        val nv = Variable(v.name, RecordCType(tp.attrs.filter(f => fields(f._1))))
+        Select(e, v, Constant(true), nv)
+      } else InputRef(name, tp)
     case _ => e
   }
+
+  /** Push aggregates to local operations, while persisting orignal aggregation.
+    * @param e plan or subplan
+    * @param keys set of key values relevant to current location in plan
+    * @param values set of values relevant to current location in plan
+    * @return plan with local aggregations where relevant 
+    */
+  def pushAgg(e: CExpr, keys: Set[String] = Set.empty, values: Set[String] = Set.empty): CExpr = fapply(e, {
+    // base case
+    case DFReduceBy(e1, v, keys, value) =>
+      DFReduceBy(pushAgg(e1, keys.toSet, value.toSet), v, keys, value)
+    case DFProject(in @ InputRef(e1, tp), v1, f1, fs) if keys.nonEmpty && values.nonEmpty =>
+      val nkeys = collect(f1) -- values
+      CReduceBy(in, v1, nkeys.toList, values.toList)
+    case ej:JoinOp =>
+      val lattrs = ej.v.tp.attrs.keySet
+      val rattrs = ej.v2.tp.attrs.keySet
+      val lpush = pushAgg(ej.left, keys.filter(f => lattrs(f)), values.filter(f => lattrs(f)))
+      val rpush = pushAgg(ej.right, keys.filter(f => rattrs(f)), values.filter(f => rattrs(f)))
+      if (ej.jtype == "inner") DFJoin(lpush, ej.v, rpush, ej.v2, ej.cond, ej.fields)
+      else DFOuterJoin(lpush, ej.v, rpush, ej.v2, ej.cond, ej.fields)
+    // need a way to represent local aggregation here, since the new operator won't support
+    // it like the old operators...
+    // case DFUnnest(e1, v1, path, v2, filter, fields) =>
+    //   val lattrs = v1.tp.attrs.keySet
+    //   val rattrs = v1.tp.attrs(path).attrs
+    //   val lpush = pushAgg(e1, keys.filter(f => lattrs(f)), values.filter(f => lattrs(f)))
+    //   val rpush = pushAgg(, keys.filter(f => rattrs(f)), values.filter(f => rattrs(f)))
+    //   DFUnnest(lpush, v1, checkAgg, v2, p, value)
+    case Project(v1:Variable, f) if keys.nonEmpty && values.nonEmpty =>
+      CReduceBy(e, v1, keys.toList, values.toList)
+  })
 
 }

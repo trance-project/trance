@@ -107,7 +107,10 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
   private def accessOption(e: CExpr, nv: Variable): String = e match {
     case Project(v, field) => 
       nv.tp.attrs.getOrElse(field, v.tp.attrs(field)) match {
-        case _:OptionType => s"${nv.name}.$field.get"
+        case OptionType(otp) => 
+          val zt = otp match { case StringType => "\""+null+"\""; case _ => zero(otp)}
+          s"""${nv.name}.$field match { case Some(x) => x; case _ => $zt }"""
+          //s"${nv.name}.$field.get"
         case _ => s"${nv.name}.$field"
       }
     case Record(fs) => 
@@ -126,7 +129,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Or(e1, e2) => s"${accessOption(e1, nv)} || ${accessOption(e2, nv)}"
     case Not(e1) => s"!(${accessOption(e1, nv)})"
     case MathOp(op, e1, e2) => 
-      s"${accessOption(e1, nv)} $op ${accessOption(e2, nv)}"     
+      s"(${accessOption(e1, nv)}) $op (${accessOption(e2, nv)})"     
     case _ => generate(e)
   }
 
@@ -147,6 +150,10 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val rcnts = e.tp.attrs.map(f => generateReference(fs(f._1))).mkString(", ")
       s"udf${generateType(e.tp)}($rcnts)"
     case Constant(c) if literal => s"lit(${generate(e)})"
+    case If(cond, e1, Some(e2)) => 
+      s"when(${generate(cond)}, ${generateReference(e1)}).otherwise(${generateReference(e2)})"
+    case If(cond, e1, None) => 
+      s"when(${generate(cond)}, ${generateReference(e1)})"
     case _ => generate(e)
   }
 
@@ -186,8 +193,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       s"${generate(e2)}.${kvName(field)(fs.size)}"
     case Project(e2, field) => s"${generate(e2)}.$field"
     /** MATH OPS **/
+
     case MathOp(op, e1, e2) => op match {
-      case OpDivide => 
+      case OpDivide if !e2.isInstanceOf[Constant] => 
         val ge2 = generateReference(e2)
         val ze2 = zero(e2.tp)
         s"when($ge2 === $ze2, $ze2).otherwise(${generateReference(e1)} $op $ge2)"
@@ -197,8 +205,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     /** BOOL OPS **/
     case Equals(e1, e2) => 
       val eq = (e1, e2) match {
-        case (Project(p1, _), _) if p1.tp.isInstanceOf[LabelType] => "=="
-        case (_, Project(p2, _)) if p2.tp.isInstanceOf[LabelType] => "=="
+        // case (Project(p1, _), _) if p1.tp.isInstanceOf[LabelType] => "=="
+        // case (_, Project(p2, _)) if p2.tp.isInstanceOf[LabelType] => "=="
         case _ => "==="
       }
       s"${generateReference(e1)} $eq ${generateReference(e2)}"
@@ -222,12 +230,14 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case DFProject(in, v, Constant(true), Nil) => generate(in)
 
     case ep @ DFProject(in, v, pat:Record, fields) =>
-      handleType(pat.tp)
-      val nrec = generateType(pat.tp)
 
-      val select = if (fields.isEmpty) ""
-        else if (fields.toSet == ep.inputColumns) ""
-        else s".select(${(fields.toSet & ep.inputColumns).mkString("\"", "\", \"", "\"")})"
+      val nfields = ext.collect(pat)
+      val select = if (in.tp.attrs.keySet == nfields) ""
+        else s".select(${nfields.toList.mkString("\"", "\", \"", "\"")})"
+
+        // if (fields.isEmpty) ""
+        // else if (fields.toSet == ep.inputColumns) ""
+        // else s".select(${(fields.toSet & ep.inputColumns).mkString("\"", "\", \"", "\"")})"
 
       // input table attributes
       val projectCols = fields.toSet
@@ -240,9 +250,12 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         case (col, Project(_, oldCol)) if col != oldCol => Nil
         case (col, expr) if !projectCols(col) =>
           List(s"""|  .withColumn("$col", ${generateReference(expr, true)})""")
-        case (ncol, col @ Label(fs)) => 
-		  List(s"""|.withColumn("$ncol", ${generateReference(col)})""")
- 		case _ => Nil
+        case (ncol, col @ Label(fs)) => fs.head match {
+          case (_, Project(_, "_1")) if fs.size == 1 => Nil
+          case (_, Project(_, pcol)) if ncol == pcol => Nil
+          case _ => List(s"""|.withColumn("$ncol", ${generateReference(col)})""")
+        }
+ 		    case _ => Nil
       }
 
       // override existing columns
@@ -253,15 +266,22 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           if (newCols(oldCol)) List(s"""| .withColumn("$col", $$"$oldCol")""")
           // overrides a column
           else List(s"""| .withColumnRenamed("$oldCol", "$col")""")
-		case _ => Nil
-      } 
+		    case _ => Nil
+      }
 
       // ensure that new columns are made before renaming occurs
-      val columns = (newColumns ++ renamedColumns).mkString("\n").stripMargin
+      val allColumns = (newColumns ++ renamedColumns)
+      val columns = allColumns.mkString("\n").stripMargin
+
+      val ncast = if (in.tp.attrs.keySet == nfields && allColumns.isEmpty) ""
+        else {
+          handleType(pat.tp)
+          s".as[${generateType(pat.tp)}]"
+        }
 
       s"""|${generate(in)}$select
           $columns
-          | .as[$nrec]
+          | $ncast
           |""".stripMargin
 
     case ej @ DFOuterJoin(left, v1, right, v2, Equals(Project(_, p1), Project(_, p2 @ "_1")), filt) if right.tp.isDict =>
@@ -377,7 +397,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     // if value contains only attributes from right relation
     // note this also handles lookup in unshredding
     case Bind(vj, join:JoinOp, Bind(nv, nd @ DFNest(in, v, key, value @ Record(fs), filter, nulls, tag), e2)) 
-      if optLevel == 2 && (ext.collect(value) subsetOf join.v2.tp.attrs.keySet) && join.isEquiJoin =>
+      if (optLevel == 2 || unshred) && (ext.collect(value) subsetOf join.v2.tp.attrs.keySet) && join.isEquiJoin =>
       
       val (p1, p2) = join.cond match {
         case Equals(Project(_, c1), Project(_, c2)) => join.v.tp.attrs get c1 match {
@@ -386,10 +406,22 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         }
         case _ => sys.error("condition not supported")
       }
+
       val gv = generate(join.v)
       val gv2 = generate(join.v2)
       val gv3 = generate(v)
-      val gright = s"${generate(join.right)}.unionGroupByKey($gv => $gv.${p2})"
+
+      val gright = join.v2.tp.attrs(p2) match {
+        case LabelType(fs) if fs.size > 1 => 
+          val rkeys = fs.map(f => s"$gv2.${p2}.${f._1}").mkString("(",",",")")
+          s"${generate(join.right)}.unionGroupByKey($gv2 => $rkeys)"
+        case _ => s"${generate(join.right)}.unionGroupByKey($gv2 => $gv2.${p2})"
+      }
+
+      val lkeys = join.v.tp.attrs(p1) match {
+        case LabelType(fs) if fs.size > 1 => fs.map(f => s"$gv.${p1}.${f._1}").mkString("(",",",")")
+        case _ => s"$gv.${p1}"
+      }
 
       handleType(nd.tp.tp)
       val nrec = generateType(nd.tp.tp)
@@ -402,7 +434,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         case _ => sys.error("unsupported join type")
       }
 
-      s"""|val ${generate(nv)} = ${generate(join.left)}.cogroup($gright, $gv => $gv.${p1})(
+      s"""|val ${generate(nv)} = ${generate(join.left)}.cogroup($gright, $gv => $lkeys)(
           |   (_, ve1, ve2) => {
           |     val grp = ve2.map($gv2 => $gvalue).toSeq
           |     $leftMap
@@ -432,21 +464,26 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     case en @ DFNest(in, v, key, value, filter, nulls, tag) =>
-      
+      val nullSet = nulls.toSet
+      val rnulls = v.tp.attrs.filter(n => nullSet(n._1) 
+        && n._2.isInstanceOf[OptionType]).take(22).keySet
+
       val gv = generate(v)
       val rkey = Record(key.map(k => k -> Project(v, k)).toMap)
       val kv = Variable("key", rkey.tp)
       val grpv = Variable("grp", BagCType(value.tp.unouter))
       val frec = Record(en.tp.tp.attrs.map(k => if (k._1 == tag) k._1 -> grpv 
         else k._1 -> Project(kv, k._1)).toMap)
+      val uscores = List.fill(rnulls.size)("_")
+      val nmatch = rnulls.map(n => s"$gv.$n").mkString("(",",",")")
+      val caseMatches = Range(0, rnulls.size).map(i => uscores.patch(i, Seq(s"None"), 1).mkString("case (",",",") => Seq()")
+        ).mkString("\n")
      
-      println("in nest with")
-      println(v)
       s"""|${generate(in)}.groupByKey($gv => ${generate(rkey)}).mapGroups{
           | case (key, value) => 
           |   val grp = value.flatMap($gv => 
-          |    $gv.${nulls.head} match {
-          |      case None => Seq()
+          |    $nmatch match {
+          |      $caseMatches
           |      case _ => Seq(${accessOption(value, v)})
           |   }).toSeq
           |   ${generate(frec)}
