@@ -20,9 +20,9 @@ trait Occurrence extends Vep {
   val occurrence_type = TupleType(
       "oid" -> StringType,
       "aliquotId" -> StringType,
-      "donorId" -> StringType, 
+      "donorId" -> StringType,
       "vend" -> LongType,
-      "projectId" -> StringType, 
+      "projectId" -> StringType,
       "vstart" -> LongType,
       "Reference_Allele" -> StringType,
       "Tumor_Seq_Allele1" -> StringType,
@@ -34,7 +34,7 @@ trait Occurrence extends Vep {
       "vid" -> StringType,
       "input" -> StringType,
       "most_severe_consequence" -> StringType,
-      "seq_region_name" -> StringType, 
+      "seq_region_name" -> StringType,
       "start" -> LongType,
       "strand" -> LongType,
       "transcript_consequences" -> BagType(transcriptQuant)
@@ -42,9 +42,9 @@ trait Occurrence extends Vep {
 
     val occurmid_type = TupleType(
       "oid" -> StringType,
-      "donorId" -> StringType, 
+      "donorId" -> StringType,
       "vend" -> LongType,
-      "projectId" -> StringType, 
+      "projectId" -> StringType,
       "vstart" -> LongType,
       "Reference_Allele" -> StringType,
       "Tumor_Seq_Allele1" -> StringType,
@@ -56,7 +56,7 @@ trait Occurrence extends Vep {
       "vid" -> StringType,
       "input" -> StringType,
       "most_severe_consequence" -> StringType,
-      "seq_region_name" -> StringType, 
+      "seq_region_name" -> StringType,
       "start" -> LongType,
       "strand" -> LongType,
       "transcript_consequences" -> BagType(transcriptFull)
@@ -120,7 +120,7 @@ trait Occurrence extends Vep {
   				|//val occurrences = vepLoader.loadOccurrencesMid(maf)
           |occurrences.cache
   				|occurrences.count
-  				|""".stripMargin
+          |""".stripMargin
     	}
     }
 
@@ -133,7 +133,7 @@ trait Gistic {
   		val loadFun = if (skew) "shredSkew" else "shred"
   		s"""|val gisticLoader = new GisticLoader(spark)
     			|//val gistic = gisticLoader.merge(s"/nfs_qc4/genomics/gdc/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
-    			|//                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
+    			|//                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
     			|val gistic = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
     			|				.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
     			|val (gdict1, gdict2) = gisticLoader.$loadFun(gistic)
@@ -148,7 +148,7 @@ trait Gistic {
     			|					.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
     			|//val gisticLoader = new GisticLoader(spark)
     			|//val gistic_L = gisticLoader.merge(s"/nfs_qc4/genomics/gdc/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
-    			|//                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
+    			|//                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
     			|val gistic = (gistic_L, gistic_L.empty)
     			|gistic.cache
     			|gistic.count""".stripMargin
@@ -157,15 +157,15 @@ trait Gistic {
   			|				.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
   			|//val gisticLoader = new GisticLoader(spark)
   			|//val gistic = gisticLoader.merge(s"/nfs_qc4/genomics/gdc/gistic/small.txt", dir = false)//BRCA.focal_score_by_genes.txt", dir = false)
-  			|//                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]				
+  			|//                .withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
   			|gistic.cache
   			|gistic.count""".stripMargin
   }
 
-  val sampleType = TupleType("gistic_sample" -> StringType, 
+  val sampleType = TupleType("gistic_sample" -> StringType,
     "focal_score" -> LongType)
 
-  val gisticType = TupleType("gistic_gene" -> StringType, "gistic_gene_iso" -> StringType, 
+  val gisticType = TupleType("gistic_gene" -> StringType, "gistic_gene_iso" -> StringType,
   	"cytoband" -> StringType, "gistic_samples" -> BagType(sampleType))
 
 }
@@ -271,10 +271,10 @@ trait GeneProteinMap {
   }
 
   val geneProteinOrderedType = List(("gene_stable_id", StringType), ("gene_stable_id_version" -> StringType),
-    ("transcript_stable_id_version", StringType), ("protein_stable_id", StringType), 
+    ("transcript_stable_id_version", StringType), ("protein_stable_id", StringType),
     ("protein_stable_id_version", StringType), ("gene_start_bp", IntType), ("gene_end_bp", IntType),
     ("transcript_start_bp", IntType), ("transcript_end_bp", IntType), ("biomart_gene_name", StringType))
-  
+
   val geneProteinMapType = TupleType(geneProteinOrderedType.toMap)
 
 }
@@ -346,12 +346,12 @@ trait CopyNumber {
   			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
   			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
   			|//val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/TCGA-BRCA.05936306-3484-48d1-9305-f4596aed82f3.gene_level_copy_number.tsv", false)
-  			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]	
+  			|//				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
   			|copynumber.cache
   			|copynumber.count""".stripMargin
 
 	}
-	
+
 	val copyNumberOrderedType = List(("cn_gene_id", StringType), ("cn_gene_name", StringType), ("cn_chromosome", StringType),
 		("cn_start", IntType), ("cn_end", IntType), ("cn_copy_number", IntType), ("min_copy_number", IntType),
 		("max_copy_number", IntType), ("cn_aliquot_uuid", StringType))
@@ -382,16 +382,16 @@ trait SOImpact {
 
 }
 
-trait DriverGene extends Query with Occurrence with Gistic with StringNetwork 
+trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
   with GeneExpression with Biospecimen with SOImpact with GeneProteinMap with CopyNumber {
-  
-  val basepath = "/nfs_qc4/genomics/gdc/"
-  
+
+  val basepath = "/mnt/app_hdd/data/Data/"
+
   def loadTables(shred: Boolean = false, skew: Boolean = false): String = {
     if (shred) loadShred(skew)
     else if (skew) {
-    	s"""|val basepath = "/nfs_qc4/genomics/gdc/"
-    		|val biospecLoader = new BiospecLoader(spark)
+    	s"""|val basepath = "/mnt/app_hdd/data/Data/"
+      |val biospecLoader = new BiospecLoader(spark)
 			|val biospec_L = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
 			|val biospec = (biospec_L, biospec_L.empty)
 			|biospec.cache
@@ -413,6 +413,12 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 			|val consequences = consequenceLoader.loadSequential("/nfs_qc4/genomics/calc_variant_conseq.txt")
 			|consequences.cache
 			|consequences.count
+      |
+      |// pathwayloader
+      |val pathwayLoader = new PathwayLoader(spark, s"$basepath/Pathway/c2.cp.v7.1.symbols.gmt")
+      |val pathways = pathwayLoader.loadDS
+      |pathways.cache
+      |pathways.count
 			|${loadOccurrence(shred, skew)}
 			|""".stripMargin
   	}
@@ -433,6 +439,13 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
     		|IBag_consequences__D.cache
     		|IBag_consequences__D.count
     		|${loadOccurrence(true, skew)}
+        |
+        |val pathwayLoader = new PathwayLoader(spark, "/mnt/app_hdd/data/Data/Pathway/c2.cp.v7.1.symbols.gmt")
+        |val (pathways, geneSet) = pathwayLoader.shredDS
+        |val IBag_pathways__D = pathways
+        |val IDict_pathways__D_gene_set = geneSet
+        |//IBag_pathways__D.cache
+        |//IBag_pathways__D.count
     		|""".stripMargin
   }
 
@@ -499,7 +512,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 				projectTuple(cnr, Map("cn_case_uuid" -> br("bcr_patient_uuid"))))))
 
   val (cnvCases, cncr) = varset("cnvCases", "cnv", mapCNV)
-  
+
 
   def projectTuple(tr: TupleVarRef, nbag:Map[String, TupleAttributeExpr], omit: List[String] = Nil): BagExpr =
     Singleton(Tuple(tr.tp.attrTps.withFilter(f =>
@@ -531,7 +544,7 @@ object HybridByMutation extends DriverGene {
   val query = ForeachUnion(or, occurrences,
     Singleton(Tuple("hybrid_sample" -> or("donorId"), //"hybrid_aliquot" -> or("aliquotId"),
     	"hybrid_project" -> or("projectId"),
-    	"hybrid_genes" -> 
+    	"hybrid_genes" ->
         	ReduceByKey(
         		ForeachUnion(ar, BagProject(or, "transcript_consequences"),
         			ForeachUnion(br, biospec,
@@ -543,8 +556,8 @@ object HybridByMutation extends DriverGene {
 	                        		ForeachUnion(conr, conseq,
 	                        			IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
 	                          				Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
-		                            		"hybrid_score" -> 
-		                            		conr("so_weight").asNumeric * matchImpact 
+		                            		"hybrid_score" ->
+		                            		conr("so_weight").asNumeric * matchImpact
 											* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
 			,List("hybrid_gene_id"), List("hybrid_score")))))
 
@@ -566,7 +579,7 @@ object HybridPlusByMutation extends DriverGene {
     Singleton(Tuple("hybrid_sample" -> or("donorId"),
     "hybrid_project" -> or("projectId"),
     //"hybrid_aliquotId" -> or("aliquotId"),
-      "hybrid_genes" -> 
+      "hybrid_genes" ->
           ReduceByKey(
             ForeachUnion(ar, BagProject(or, "transcript_consequences"),
               ForeachUnion(br, biospec,
@@ -585,10 +598,10 @@ object HybridPlusByMutation extends DriverGene {
                                 "hybrid_strand" -> ar("ts_strand"),
                                 "hybrid_gene_name" -> cnr("cn_gene_name"),
                                 "hybrid_max_copy" -> cnr("max_copy_number"),
-                                "hybrid_score" -> 
-                                conr("so_weight").asNumeric * matchImpact 
+                                "hybrid_score" ->
+                                conr("so_weight").asNumeric * matchImpact
                   * (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
-      ,List("hybrid_gene_id", "hybrid_transcript_id", "hybrid_protein_start", "hybrid_protein_end", 
+      ,List("hybrid_gene_id", "hybrid_transcript_id", "hybrid_protein_start", "hybrid_protein_end",
           "hybrid_strand", "hybrid_gene_name", "hybrid_max_copy"),
             List("hybrid_score")))))
 
@@ -608,7 +621,7 @@ object HybridBySample extends DriverGene {
   	s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
 
   val query = ForeachUnion(br, biospec,
-        		Singleton(Tuple("hybrid_sample" -> br("bcr_patient_uuid"), 
+        		Singleton(Tuple("hybrid_sample" -> br("bcr_patient_uuid"),
         			"hybrid_aliquot" -> br("bcr_aliquot_uuid"),
         			"hybrid_center" -> br("center_id"),
         			"hybrid_genes" -> ReduceByKey(
@@ -622,8 +635,8 @@ object HybridBySample extends DriverGene {
 				                        		ForeachUnion(conr, conseq,
 				                        			IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
 				                          				Singleton(Tuple("hybrid_gene_id" -> ar("gene_id"),
-					                            		"hybrid_score" -> 
-					                            		conr("so_weight").asNumeric * matchImpact 
+					                            		"hybrid_score" ->
+					                            		conr("so_weight").asNumeric * matchImpact
 														* (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
 
 			,List("hybrid_gene_id"),
@@ -647,7 +660,7 @@ object HybridByMutationMid extends DriverGene {
   val query = ForeachUnion(omr, occurmids,
     Singleton(Tuple("hybrid_sample" -> omr("donorId"), //"hybrid_aliquot" -> or("aliquotId"),
     	"hybrid_project" -> omr("projectId"),
-    	"hybrid_genes" -> 
+    	"hybrid_genes" ->
         	ReduceByKey(
         		ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
         			ForeachUnion(br, biospec,
@@ -659,7 +672,7 @@ object HybridByMutationMid extends DriverGene {
 	                        		ForeachUnion(conr, conseq,
 	                        			IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
 	                          				Singleton(Tuple("hybrid_gene_id" -> amr("gene_id"),
-		                            		"hybrid_score" -> 
+		                            		"hybrid_score" ->
 		                            		conr("so_weight").asNumeric * matchImpactMid
 											* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
 
@@ -682,7 +695,7 @@ object HybridBySampleMid extends DriverGene {
   	s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
 
   val query = ForeachUnion(br, biospec,
-        		Singleton(Tuple("hybrid_sample" -> br("bcr_patient_uuid"), 
+        		Singleton(Tuple("hybrid_sample" -> br("bcr_patient_uuid"),
         			"hybrid_aliqout" -> br("bcr_aliquot_uuid"),
         			"hybrid_center" -> br("center_id"),
         			"hybrid_genes" -> ReduceByKey(
@@ -696,7 +709,7 @@ object HybridBySampleMid extends DriverGene {
 	                        		ForeachUnion(conr, conseq,
 	                        			IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
 	                          				Singleton(Tuple("hybrid_gene_id" -> amr("gene_id"),
-		                            		"hybrid_score" -> 
+		                            		"hybrid_score" ->
 		                            		conr("so_weight").asNumeric * matchImpactMid
 											* (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
 
@@ -727,7 +740,7 @@ object HybridByMutationMid2 extends DriverGene {
   val query = ForeachUnion(omr, occurmids,
     Singleton(Tuple("hybrid_sample" -> omr("donorId"), //"hybrid_aliquot" -> or("aliquotId"),
     	"hybrid_project" -> omr("projectId"),
-    	"hybrid_genes" -> 
+    	"hybrid_genes" ->
         	ReduceByKey(
         		ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
         			ForeachUnion(br, biospec,
@@ -743,7 +756,7 @@ object HybridByMutationMid2 extends DriverGene {
 	                          				"hybrid_impact" -> amr("impact"),
 	                          				"hybrid_sift" -> amr("sift_prediction"),
 	                          				"hybrid_polyphen" -> amr("polyphen_prediction"),
-		                            		"hybrid_score" -> 
+		                            		"hybrid_score" ->
 		                            		conr("so_weight").asNumeric * matchImpactMid * siftImpact * polyImpact
 											* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
 
@@ -772,7 +785,7 @@ object HybridBySampleMid2 extends DriverGene {
   						NumericConst(0.01, DoubleType), amr("polyphen_score").asNumeric)
 
   val query = ForeachUnion(br, biospec,
-        		Singleton(Tuple("hybrid_sample" -> br("bcr_patient_uuid"), 
+        		Singleton(Tuple("hybrid_sample" -> br("bcr_patient_uuid"),
         			"hybrid_aliquot" -> br("bcr_aliquot_uuid"),
         			"hybrid_center" -> br("center_id"),
         			"hybrid_genes" -> ReduceByKey(ForeachUnion(omr, occurmids,
@@ -789,7 +802,7 @@ object HybridBySampleMid2 extends DriverGene {
 	                          				"hybrid_impact" -> amr("impact"),
 	                          				"hybrid_sift" -> amr("sift_prediction"),
 	                          				"hybrid_polyphen" -> amr("polyphen_prediction"),
-		                            		"hybrid_score" -> 
+		                            		"hybrid_score" ->
 		                            		conr("so_weight").asNumeric * matchImpactMid * siftImpact * polyImpact
 											* (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
 
@@ -811,7 +824,7 @@ object MappedNetwork extends DriverGene {
 
   val martMap2 = gpr2.tp.attrTps.map(f => s"edge_${f._1}" -> Project(gpr2, f._1))
 
-  val edgeJoin = ForeachUnion(er, BagProject(nr, "edges"), 
+  val edgeJoin = ForeachUnion(er, BagProject(nr, "edges"),
       ForeachUnion(gpr2, mart2Rel,
         IfThenElse(Cmp(OpEq, er("edge_protein"), gpr2("protein_stable_id2")),
           projectTuple(er, martMap2))))
@@ -891,7 +904,7 @@ object SampleNetworkMid2a extends DriverGene {
   val (mNet, mnr) = varset(MappedNetwork.name, "mn", MappedNetwork.query.asInstanceOf[BagExpr])
   val mer = TupleVarRef("me", MappedNetwork.edgeJoin.tp.tp)
 
-  val fnet = ForeachUnion(mnr, mNet, 
+  val fnet = ForeachUnion(mnr, mNet,
     ForeachUnion(mer, BagProject(mnr, "node_edges"),
       projectTuple(mnr, Map("edge_gene_id" -> mer("edge_gene_stable_id2"),
         "edge_combined_score" -> mer("combined_score")
@@ -899,12 +912,12 @@ object SampleNetworkMid2a extends DriverGene {
 
   val (fNet, mfr) = varset("flatNet", "fn", fnet)
 
-  val query = ForeachUnion(hmr, hybrid, 
+  val query = ForeachUnion(hmr, hybrid,
       Singleton(Tuple("network_sample" -> hmr("hybrid_sample"), "network_aliquot" -> hmr("hybrid_aliquot"),
-        "network_center" -> hmr("hybrid_center"), 
+        "network_center" -> hmr("hybrid_center"),
           "network_genes" ->  ReduceByKey(
                 ForeachUnion(gene, BagProject(hmr, "hybrid_genes"),
-                  ForeachUnion(mfr, fNet, 
+                  ForeachUnion(mfr, fNet,
                     IfThenElse(Cmp(OpEq, mfr("edge_gene_id"), gene("hybrid_gene_id")),
                       Singleton(Tuple("network_gene_id" -> mfr("node_gene_stable_id"),
                         "network_protein_id" -> mfr("node_protein_stable_id"),
@@ -940,12 +953,12 @@ object EffectBySampleDoubleLabel extends DriverGene {
 
   val query = ForeachUnion(hmr, hybrid,
       ForeachUnion(snr, snetwork,
-        IfThenElse(Cmp(OpEq, hmr("hybrid_aliquot"), snr("network_aliquot")),   
-          Singleton(Tuple("effect_sample" -> hmr("hybrid_sample"), "effect_genes" -> 
+        IfThenElse(Cmp(OpEq, hmr("hybrid_aliquot"), snr("network_aliquot")),
+          Singleton(Tuple("effect_sample" -> hmr("hybrid_sample"), "effect_genes" ->
             ForeachUnion(gene1, BagProject(hmr, "hybrid_genes"),
               ForeachUnion(gene2, BagProject(snr, "network_genes"),
                 IfThenElse(Cmp(OpEq, gene1("hybrid_gene_id"), gene2("network_gene_id")),
-                  Singleton(Tuple("effect_gene_id" -> gene1("hybrid_gene_id"), 
+                  Singleton(Tuple("effect_gene_id" -> gene1("hybrid_gene_id"),
                     "effect_protein_id" -> gene2("network_protein_id"),
                     "effect" -> gene1("hybrid_score").asNumeric * gene2("distance").asNumeric))))))))))
 
@@ -970,14 +983,14 @@ object EffectBySample extends DriverGene {
   val (snetwork, snr) = varset(SampleNetworkMid2a.name, "sn",SampleNetworkMid2a.program(SampleNetworkMid2a.name).varRef.asInstanceOf[BagExpr])
   val gene2 = TupleVarRef("ngene", snr.tp("network_genes").asInstanceOf[BagType].tp)
 
-  val query = ForeachUnion(hmr, hybrid, 
-          Singleton(Tuple("effect_sample" -> hmr("hybrid_sample"), "effect_genes" -> 
+  val query = ForeachUnion(hmr, hybrid,
+          Singleton(Tuple("effect_sample" -> hmr("hybrid_sample"), "effect_genes" ->
             ForeachUnion(snr, snetwork,
-              IfThenElse(Cmp(OpEq, hmr("hybrid_aliquot"), snr("network_aliquot")),  
+              IfThenElse(Cmp(OpEq, hmr("hybrid_aliquot"), snr("network_aliquot")),
             ForeachUnion(gene1, BagProject(hmr, "hybrid_genes"),
               ForeachUnion(gene2, BagProject(snr, "network_genes"),
                 IfThenElse(Cmp(OpEq, gene1("hybrid_gene_id"), gene2("network_gene_id")),
-                  Singleton(Tuple("effect_gene_id" -> gene1("hybrid_gene_id"), 
+                  Singleton(Tuple("effect_gene_id" -> gene1("hybrid_gene_id"),
                     "effect_protein_id" -> gene2("network_protein_id"),
                     "effect" -> gene1("hybrid_score").asNumeric * gene2("distance").asNumeric))))))))))
 
@@ -1012,16 +1025,16 @@ object EffectBySampleSO extends DriverGene {
 
   val (flatNet, fner) = varset("flatSampNet", "fnp", flatSampleNetwork)
 
-  val query = ForeachUnion(hmr, hybrid, 
-          Singleton(Tuple("effect_sample" -> hmr("hybrid_sample"), 
+  val query = ForeachUnion(hmr, hybrid,
+          Singleton(Tuple("effect_sample" -> hmr("hybrid_sample"),
             "effect_aliquot" -> hmr("hybrid_aliquot"),
             "effect_center" -> hmr("hybrid_center"),
-            "effect_genes" -> 
+            "effect_genes" ->
             ForeachUnion(gene1, BagProject(hmr, "hybrid_genes"),
               ForeachUnion(fner, flatNet,
-                IfThenElse(And(Cmp(OpEq, hmr("hybrid_aliquot"), fner("fnetwork_aliquot")),  
+                IfThenElse(And(Cmp(OpEq, hmr("hybrid_aliquot"), fner("fnetwork_aliquot")),
                   Cmp(OpEq, gene1("hybrid_gene_id"), fner("fnetwork_gene_id"))),
-                    Singleton(Tuple("effect_gene_id" -> gene1("hybrid_gene_id"), 
+                    Singleton(Tuple("effect_gene_id" -> gene1("hybrid_gene_id"),
                       "effect_protein_id" -> fner("fnetwork_protein_id"),
                       "effect" -> gene1("hybrid_score").asNumeric * fner("fnetwork_distance").asNumeric))))))))
 
@@ -1057,21 +1070,21 @@ object Effect2ConnectBySample extends DriverGene {
 
   val (flatNet, fner) = varset("flatSampNet", "fnp", flatSampleNetwork)
 
-  val query = ForeachUnion(hmr, hybrid, 
-          Singleton(Tuple("connection_sample" -> hmr("hybrid_sample"), 
+  val query = ForeachUnion(hmr, hybrid,
+          Singleton(Tuple("connection_sample" -> hmr("hybrid_sample"),
             "connection_aliquot" -> hmr("hybrid_aliquot"),
             "connection_center" -> hmr("hybrid_center"),
-            "connect_genes" -> 
+            "connect_genes" ->
             ForeachUnion(gene1, BagProject(hmr, "hybrid_genes"),
               ForeachUnion(fner, flatNet,
-                IfThenElse(And(Cmp(OpEq, hmr("hybrid_aliquot"), fner("fnetwork_aliquot")),  
+                IfThenElse(And(Cmp(OpEq, hmr("hybrid_aliquot"), fner("fnetwork_aliquot")),
                   Cmp(OpEq, gene1("hybrid_gene_id"), fner("fnetwork_gene_id"))),
                   ForeachUnion(fexpr, fexpression,
-                    IfThenElse(And(Cmp(OpEq, hmr("hybrid_aliquot"), fexpr("ge_aliquot")),  
+                    IfThenElse(And(Cmp(OpEq, hmr("hybrid_aliquot"), fexpr("ge_aliquot")),
                   Cmp(OpEq, gene1("hybrid_gene_id"), fexpr("ge_gene_id"))),
-                    Singleton(Tuple("connect_gene" -> gene1("hybrid_gene_id"), 
+                    Singleton(Tuple("connect_gene" -> gene1("hybrid_gene_id"),
                       "connect_protein" -> fner("fnetwork_protein_id"),
-                      "gene_connectivity" -> gene1("hybrid_score").asNumeric 
+                      "gene_connectivity" -> gene1("hybrid_score").asNumeric
                       * fner("fnetwork_distance").asNumeric * fexpr("ge_fpkm").asNumeric))))))))))
 
   val program = SampleNetworkMid2a.program.asInstanceOf[Effect2ConnectBySample.Program]
@@ -1095,15 +1108,15 @@ object ConnectionBySample extends DriverGene {
   val (effect, emr) = varset(EffectBySampleSO.name, "em", EffectBySampleSO.program(EffectBySampleSO.name).varRef.asInstanceOf[BagExpr])
   val gene1 = TupleVarRef("egene", emr.tp("effect_genes").asInstanceOf[BagType].tp)
 
-  val query = ForeachUnion(emr, effect, 
-        Singleton(Tuple("connection_sample" -> emr("effect_sample"), 
+  val query = ForeachUnion(emr, effect,
+        Singleton(Tuple("connection_sample" -> emr("effect_sample"),
           "connection_aliquot" -> emr("effect_aliquot"),
           "connection_center" -> emr("effect_center"),
           "connect_genes" -> ForeachUnion(gene1, BagProject(emr, "effect_genes"),
             ForeachUnion(fexpr, fexpression,
               IfThenElse(And(Cmp(OpEq, gene1("effect_gene_id"), fexpr("ge_gene_id")),
                 Cmp(OpEq, emr("effect_aliquot"), fexpr("ge_aliquot"))),
-                Singleton(Tuple("connect_gene" -> gene1("effect_gene_id"), 
+                Singleton(Tuple("connect_gene" -> gene1("effect_gene_id"),
                   "connect_protein" -> gene1("effect_protein_id"),
                   "gene_connectivity" -> gene1("effect").asNumeric * fexpr("ge_fpkm").asNumeric))))))))
 
@@ -1170,9 +1183,9 @@ object GeneConnectivityAlt extends DriverGene {
   val (connect, cmr) = varset(Effect2ConnectBySample.name, "em", Effect2ConnectBySample.program(Effect2ConnectBySample.name).varRef.asInstanceOf[BagExpr])
   val gene1 = TupleVarRef("cgene", cmr.tp("connect_genes").asInstanceOf[BagType].tp)
 
-  val query = ReduceByKey(ForeachUnion(cmr, connect, 
+  val query = ReduceByKey(ForeachUnion(cmr, connect,
       ForeachUnion(gene1, BagProject(cmr, "connect_genes"),
-        Singleton(Tuple("gene_id" -> gene1("connect_gene"), 
+        Singleton(Tuple("gene_id" -> gene1("connect_gene"),
           "connectivity" -> gene1("gene_connectivity"))))),
         List("gene_id"),
         List("connectivity"))
@@ -1197,22 +1210,22 @@ object SampleNetworkNew extends DriverGene {
   val (hybrid, hmr) = varset(HybridBySampleMid2.name, "hm", HybridBySampleMid2.program(HybridBySampleMid2.name).varRef.asInstanceOf[BagExpr])
   val gene = TupleVarRef("hgene", hmr.tp("hybrid_genes").asInstanceOf[BagType].tp)
 
-  val fnet = ForeachUnion(nr, network, 
+  val fnet = ForeachUnion(nr, network,
       ForeachUnion(er, BagProject(nr, "edges"),
         ForeachUnion(gpr, gpmap,
          IfThenElse(Cmp(OpEq, er("edge_protein"), gpr("protein_stable_id2")),
-          Singleton(Tuple("network_node" -> nr("node_protein"), 
+          Singleton(Tuple("network_node" -> nr("node_protein"),
             "network_edge" -> gpr("gene_stable_id2"),
             "network_combined" -> er("combined_score")))))))
 
   val (fNet, mfr) = varset("flatNet", "fn", fnet)
 
-  val query = ForeachUnion(hmr, hybrid, 
+  val query = ForeachUnion(hmr, hybrid,
       Singleton(Tuple("network_sample" -> hmr("hybrid_sample"), "network_aliquot" -> hmr("hybrid_aliquot"),
-        "network_center" -> hmr("hybrid_center"), 
+        "network_center" -> hmr("hybrid_center"),
           "network_genes" ->  ReduceByKey(
                 ForeachUnion(gene, BagProject(hmr, "hybrid_genes"),
-                  ForeachUnion(mfr, fNet, 
+                  ForeachUnion(mfr, fNet,
                     IfThenElse(Cmp(OpEq, mfr("network_edge"), gene("hybrid_gene_id")),
                       Singleton(Tuple("network_protein_id" -> mfr("network_node"),
                         "distance" -> mfr("network_combined").asNumeric * gene("hybrid_score").asNumeric
@@ -1253,16 +1266,16 @@ object EffectBySampleNew extends DriverGene {
 
   val (flatNet, fner) = varset("flatSampNet", "fnp", flatSampleNetwork)
 
-  val query = ForeachUnion(hmr, hybrid, 
-          Singleton(Tuple("effect_sample" -> hmr("hybrid_sample"), 
+  val query = ForeachUnion(hmr, hybrid,
+          Singleton(Tuple("effect_sample" -> hmr("hybrid_sample"),
             "effect_aliquot" -> hmr("hybrid_aliquot"),
             "effect_center" -> hmr("hybrid_center"),
-            "effect_genes" -> 
+            "effect_genes" ->
             ForeachUnion(gene1, BagProject(hmr, "hybrid_genes"),
               ForeachUnion(fner, flatNet,
-                IfThenElse(And(Cmp(OpEq, hmr("hybrid_aliquot"), fner("fnetwork_aliquot")),  
+                IfThenElse(And(Cmp(OpEq, hmr("hybrid_aliquot"), fner("fnetwork_aliquot")),
                   Cmp(OpEq, gene1("hybrid_gene_id"), fner("fnetwork_gene_id"))),
-                    Singleton(Tuple("effect_gene_id" -> gene1("hybrid_gene_id"), 
+                    Singleton(Tuple("effect_gene_id" -> gene1("hybrid_gene_id"),
                       "effect_protein_id" -> fner("fnetwork_protein_id"),
                       "effect" -> gene1("hybrid_score").asNumeric * fner("fnetwork_distance").asNumeric))))))))
 
@@ -1287,15 +1300,15 @@ object ConnectionBySampleNew extends DriverGene {
   val (effect, emr) = varset(EffectBySampleNew.name, "em", EffectBySampleNew.program(EffectBySampleNew.name).varRef.asInstanceOf[BagExpr])
   val gene1 = TupleVarRef("egene", emr.tp("effect_genes").asInstanceOf[BagType].tp)
 
-  val query = ForeachUnion(emr, effect, 
-        Singleton(Tuple("connection_sample" -> emr("effect_sample"), 
+  val query = ForeachUnion(emr, effect,
+        Singleton(Tuple("connection_sample" -> emr("effect_sample"),
           "connection_aliquot" -> emr("effect_aliquot"),
           "connection_center" -> emr("effect_center"),
           "connect_genes" -> ForeachUnion(gene1, BagProject(emr, "effect_genes"),
             ForeachUnion(fexpr, fexpression,
               IfThenElse(And(Cmp(OpEq, gene1("effect_gene_id"), fexpr("ge_gene_id")),
                 Cmp(OpEq, emr("effect_aliquot"), fexpr("ge_aliquot"))),
-                Singleton(Tuple("connect_gene" -> gene1("effect_gene_id"), 
+                Singleton(Tuple("connect_gene" -> gene1("effect_gene_id"),
                   "connect_protein" -> gene1("effect_protein_id"),
                   "gene_connectivity" -> gene1("effect").asNumeric * fexpr("ge_fpkm").asNumeric))))))))
 
@@ -1416,5 +1429,5 @@ object PathwayBurden_Alt extends DriverGene {
         List("pathway"),
         List("burden"))))
   )
-  val program = Program(Assignment(name, query))
+  val program = Program(Assignment(pfs.name, pathwayFlat), Assignment(name, query))
 }

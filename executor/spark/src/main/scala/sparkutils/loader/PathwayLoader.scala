@@ -33,32 +33,12 @@ class PathwayLoader(spark: SparkSession, path: String) extends Serializable {
 
     def shredDS: (Dataset[SPathway], Dataset[SName]) = {
         val input = loadDS.withColumn("index", monotonically_increasing_id()).as[IPathway]
-        val pathways = input.drop("gene_set").withColumnRenamed("index", "gene_set").as[SPathway]
+        val pathways = input.drop("gene_set").withColumnRenamed("index", "gene_set").as[SPathway].repartition($"_1")
         val gene_set = input.flatMap{
             p => p.gene_set.map{
                 gene => SName(p.index, gene.name)
             }
-        }.as[SName]
-        (pathways, gene_set.repartition($"_1"))
-    }
-}
-
-object App3 {
-
-    def main(args: Array[String]) {
-
-
-        // standard setup
-        val conf = new SparkConf().setMaster("local[*]")
-          .setAppName("GeneBurden")
-        val spark: SparkSession = SparkSession.builder().config(conf).getOrCreate()
-        spark.sparkContext.setLogLevel("ERROR")
-        import spark.implicits._
-
-        // load the flatten gtf file
-        val pathwayLoader = new PathwayLoader(spark, "/home/yash/Documents/Data/Pathway/c2.cp.v7.1.symbols.gmt")
-        val ds = pathwayLoader.loadDS
-        ds.show(10)
-        ds.printSchema()
+        }.as[SName].repartition($"_1")
+        (pathways, gene_set)
     }
 }

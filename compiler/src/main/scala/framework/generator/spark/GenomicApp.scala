@@ -31,7 +31,9 @@ object TestApp1 extends App {
 
 object Optimize1 extends App {
   AppWriter.flatDataset(Step1, "test")
-  //  AppWriter.shredDataset(Step1, label = "test")
+  //  AppWriter.shredDataset(Step1, label = "test"
+  //
+  //  )
 }
 
 
@@ -117,7 +119,7 @@ object PathwayBurden_Test4 extends App {
 object PathwayBurden_Test5 extends App {
   override def main(args: Array[String]): Unit = {
     AppWriter.flatDataset(plan5, "test")
-    AppWriter.shredDataset(plan5, "test")
+    AppWriter.shredDataset(plan5, "test", unshred = true)
     //    AppWriter.shredDataset(plan5, label = "test", skew = true)
   }
 }
