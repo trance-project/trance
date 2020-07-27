@@ -228,8 +228,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case DFProject(in, v, Constant(true), Nil) => generate(in)
 
     case ep @ DFProject(in, v, pat:Record, fields) =>
-      handleType(pat.tp)
-      val nrec = s"${generateType(pat.tp)}"
 
       val nfields = ext.collect(pat)
       val select = if (in.tp.attrs.keySet == nfields) ""
@@ -252,6 +250,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           List(s"""|  .withColumn("$col", ${generateReference(expr, true)})""")
         case (ncol, col @ Label(fs)) => fs.head match {
           case (_, Project(_, "_1")) if fs.size == 1 => Nil
+          case (_, Project(_, pcol)) if ncol == pcol => Nil
           case _ => List(s"""|.withColumn("$ncol", ${generateReference(col)})""")
         }
  		    case _ => Nil
@@ -269,11 +268,18 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       } 
 
       // ensure that new columns are made before renaming occurs
-      val columns = (newColumns ++ renamedColumns).mkString("\n").stripMargin
+      val allColumns = (newColumns ++ renamedColumns)
+      val columns = allColumns.mkString("\n").stripMargin
+
+      val ncast = if (in.tp.attrs.keySet == nfields && allColumns.isEmpty) ""
+        else {
+          handleType(pat.tp)
+          s".as[${generateType(pat.tp)}]"
+        }
 
       s"""|${generate(in)}$select
           $columns
-          | .as[$nrec]
+          | $ncast
           |""".stripMargin
 
     case ej @ DFOuterJoin(left, v1, right, v2, Equals(Project(_, p1), Project(_, p2 @ "_1")), filt) if right.tp.isDict =>
