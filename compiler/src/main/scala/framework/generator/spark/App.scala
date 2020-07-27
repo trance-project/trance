@@ -123,8 +123,8 @@ object App {
     // AppWriter.runDatasetInput(Test1Full, Test1Agg1Full, "Flat,Standard,1")
     // AppWriter.runDatasetInput(Test2FullFlat, Test2Agg2, "Flat,Standard,2")
     // AppWriter.runDatasetInput(Test2FullFlat, Test2Agg2Full, "Flat,Standard,2")
-    AppWriter.runDatasetInput(Test3FullFlat, Test3Agg3, "Flat,Standard,3")
-    AppWriter.runDatasetInput(Test3FullFlat, Test3Agg3Full, "Flat,Standard,3")
+    // AppWriter.runDatasetInput(Test3FullFlat, Test3Agg3, "Flat,Standard,3")
+    // AppWriter.runDatasetInput(Test3FullFlat, Test3Agg3Full, "Flat,Standard,3")
     // AppWriter.runDatasetInput(Test4FullFlat, Test4Agg4, "Flat,Standard,4")
 
     // shredded pipeline + unshredding
@@ -132,9 +132,10 @@ object App {
     // AppWriter.runDatasetInputShred(Test1Full, Test1Agg1, "Shred,Standard,1")
     // AppWriter.runDatasetInputShred(Test2Full, Test2Agg2S, "Shred,Standard,2")
     // AppWriter.runDatasetInputShred(Test2Full, Test2Agg2FullS, "Shred,Standard,2")
-    // AppWriter.runDatasetInputShred(Test3Full, Test3Agg3S, "Shred,Standard,3")
-    // AppWriter.runDatasetInputShred(Test3Full, Test3Agg3FullS, "Shred,Standard,3")
-    // AppWriter.runDatasetInputShred(Test4Full, Test4Agg4, "Shred,Standard,4") 
+    AppWriter.runDatasetInputShred(Test3Full, Test3Agg3S, "Shred,Standard,3")
+    AppWriter.runDatasetInputShred(Test3Full, Test3Agg3FullS, "Shred,Standard,3")
+    // AppWriter.runDatasetInputShred(Test4Full, Test4Agg4S, "Shred,Standard,4") 
+    // AppWriter.runDatasetInputShred(Test4Full, Test4Agg4FullS, "Shred,Standard,4")
   
   }
 
