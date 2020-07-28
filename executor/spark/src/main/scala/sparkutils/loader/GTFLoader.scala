@@ -31,7 +31,7 @@ class GTFLoader(spark: SparkSession, path: String) extends Serializable {
                 val splitGeneData = geneData.substring(index).split("\"")
                 GTF(sline(COL_CONTIG), sline(COL_START).toInt, sline(COL_END).toInt, splitGeneData(1))
             }
-        ).toDF.as[GTF].repartition(Config.minPartitions)
+        ).toDF.as[GTF].repartition(400)
         homo_sapiens
     }
 
@@ -56,7 +56,7 @@ class GTFLoader(spark: SparkSession, path: String) extends Serializable {
                 hashMap.put(geneID(1), geneName(1))
             }
         )
-        val df = hashMap.toSeq.toDF("gene_id", "gene_name").as[GeneIdName].repartition(Config.minPartitions)
+        val df = hashMap.toSeq.toDF("gene_id", "gene_name").as[GeneIdName].repartition(400)
         df
     }
 }
