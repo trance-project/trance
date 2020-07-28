@@ -454,7 +454,7 @@ object Test4Agg4S extends TPCHBase {
   val name = "Test4Agg4S"
   val tbls: Set[String] = Set("L", "O", "C", "P", "N", "R")
 
-  val (regions, regionRef) = varset(Test4Full.name, "n", Test4Full.program(Test4Full.name).varRef.asInstanceOf[BagExpr])
+  val (regions, regionRef) = varset(Test4Full.name, "r", Test4Full.program(Test4Full.name).varRef.asInstanceOf[BagExpr])
   val (nations, nationRef) = varset("nations", "n", BagProject(regionRef, "r_nations"))
   val (customers, customerRef) = varset("customers", "c", BagProject(nationRef, "n_custs"))
   val (orders, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
@@ -507,7 +507,7 @@ object Test4Agg4S extends TPCHBase {
       List("r_name"), 
       List("total"))
 
-  val program = Program(Assignment("step1", step1))//, Assignment("step2", step2), Assignment(name, query))
+  val program = Program(Assignment("step1", step1), Assignment("step2", step2), Assignment(name, query))
 
 }
 
@@ -516,7 +516,7 @@ object Test4Agg4FullS extends TPCHBase {
   val name = "Test4Agg4FullS"
   val tbls: Set[String] = Set("L", "O", "C", "P", "N", "R")
 
-  val (regions, regionRef) = varset(Test4Full.name, "n", Test4Full.program(Test4Full.name).varRef.asInstanceOf[BagExpr])
+  val (regions, regionRef) = varset(Test4Full.name, "r", Test4Full.program(Test4Full.name).varRef.asInstanceOf[BagExpr])
   val (nations, nationRef) = varset("nations", "n", BagProject(regionRef, "r_nations"))
   val (customers, customerRef) = varset("orders", "c", BagProject(nationRef, "n_custs"))
   val (orders, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
@@ -524,7 +524,7 @@ object Test4Agg4FullS extends TPCHBase {
 
   val step1 = ForeachUnion(regionRef, regions,
     projectTuple(regionRef,  ("r_nations" ->
-      ForeachUnion(nationRef, nations, 
+      ForeachUnion(nationRef, BagProject(regionRef, "r_nations"), 
         projectTuple(nationRef, ("n_custs" ->
           ForeachUnion(customerRef, BagProject(nationRef, "n_custs"), 
               projectTuple(customerRef, ("c_orders" ->
