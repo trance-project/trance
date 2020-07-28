@@ -76,7 +76,6 @@ object TestApp extends App {
   }
 }
 
-
 /*
  * Generate Spark applications for a subset of the benchmark queries.
  */
@@ -129,12 +128,13 @@ object App {
 
     // shredded pipeline + unshredding
     // AppWriter.runDatasetInputShred(Test0Full, Test0Agg0, "Shred,Standard,0")
-    // AppWriter.runDatasetInputShred(Test1Full, Test1Agg1, "Shred,Standard,1")
+    AppWriter.runDatasetInputShred(Test1Full, Test1Agg1S, "Shred,Projections,1")
+    AppWriter.runDatasetInputShred(Test1Full, Test1Agg1FullS, "Shred,Standard,1")
     // AppWriter.runDatasetInputShred(Test2Full, Test2Agg2S, "Shred,Standard,2")
     // AppWriter.runDatasetInputShred(Test2Full, Test2Agg2FullS, "Shred,Standard,2")
-    AppWriter.runDatasetInputShred(Test3Full, Test3Agg3S, "Shred,Standard,3")
+    AppWriter.runDatasetInputShred(Test3Full, Test3Agg3S, "Shred,Projections,3")
     AppWriter.runDatasetInputShred(Test3Full, Test3Agg3FullS, "Shred,Standard,3")
-    // AppWriter.runDatasetInputShred(Test4Full, Test4Agg4S, "Shred,Standard,4") 
+    // AppWriter.runDatasetInputShred(Test4Full, Test4Agg4S, "Shred,Projections,4") 
     // AppWriter.runDatasetInputShred(Test4Full, Test4Agg4FullS, "Shred,Standard,4")
   
   }
