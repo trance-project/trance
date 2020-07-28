@@ -33,7 +33,7 @@ class PathwayLoader(spark: SparkSession, path: String) extends Serializable {
 
     def shredDS: (Dataset[SPathway], Dataset[SName]) = {
         val input = loadDS.withColumn("index", monotonically_increasing_id()).as[IPathway]
-        val pathways = input.drop("gene_set").withColumnRenamed("index", "gene_set").as[SPathway].repartition($"_1")
+        val pathways = input.drop("gene_set").withColumnRenamed("index", "gene_set").as[SPathway]
         val gene_set = input.flatMap{
             p => p.gene_set.map{
                 gene => SName(p.index, gene.name)
