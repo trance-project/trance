@@ -228,6 +228,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case DFProject(in, v, Constant(true), Nil) => generate(in)
 
     case ep @ DFProject(in, v, pat:Record, fields) =>
+      handleType(pat.tp)
 
       val nfields = ext.collect(pat)
       val select = if (in.tp.attrs.keySet == nfields) ""
@@ -272,10 +273,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val columns = allColumns.mkString("\n").stripMargin
 
       val ncast = if (in.tp.attrs.keySet == nfields && allColumns.isEmpty) ""
-        else {
-          handleType(pat.tp)
-          s".as[${generateType(pat.tp)}]"
-        }
+        else s".as[${generateType(pat.tp)}]"
 
       s"""|${generate(in)}$select
           $columns

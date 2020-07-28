@@ -1107,6 +1107,14 @@ object GeneConnectivity extends DriverGene {
 
   val name = "GeneConnectivity"
 
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${super.loadTables(shred, skew)}
+        |${loadCopyNumber(shred, skew)}
+        |${loadNetwork(shred, skew)}
+        |${loadGeneProteinMap(shred, skew)}
+        |${loadGeneExpr(shred, skew)}
+        |""".stripMargin
+
   val (connect, cmr) = varset(ConnectionBySample.name, "em", ConnectionBySample.program(ConnectionBySample.name).varRef.asInstanceOf[BagExpr])
   val gene1 = TupleVarRef("cgene", cmr.tp("connect_genes").asInstanceOf[BagType].tp)
 
@@ -1124,6 +1132,14 @@ object GeneConnectivity extends DriverGene {
 object GeneConnectivityAlt extends DriverGene {
 
   val name = "GeneConnectivity"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${super.loadTables(shred, skew)}
+        |${loadCopyNumber(shred, skew)}
+        |${loadNetwork(shred, skew)}
+        |${loadGeneProteinMap(shred, skew)}
+        |${loadGeneExpr(shred, skew)}
+        |""".stripMargin
 
   val (connect, cmr) = varset(Effect2ConnectBySample.name, "em", Effect2ConnectBySample.program(Effect2ConnectBySample.name).varRef.asInstanceOf[BagExpr])
   val gene1 = TupleVarRef("cgene", cmr.tp("connect_genes").asInstanceOf[BagType].tp)
