@@ -732,9 +732,9 @@ object HybridByMutationMid2 extends DriverGene {
 	                        			IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
 	                          				Singleton(Tuple(
 	                          				"hybrid_gene_id" -> amr("gene_id"),
-	                          				"hybrid_impact" -> amr("impact"),
-	                          				"hybrid_sift" -> amr("sift_prediction"),
-	                          				"hybrid_polyphen" -> amr("polyphen_prediction"),
+	                          				//"hybrid_impact" -> amr("impact"),
+	                          				//"hybrid_sift" -> amr("sift_prediction"),
+	                          				//"hybrid_polyphen" -> amr("polyphen_prediction"),
 		                            		"hybrid_score" -> 
 		                            		conr("so_weight").asNumeric * matchImpactMid * siftImpact * polyImpact
 											* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
@@ -793,6 +793,10 @@ object HybridBySampleMid2 extends DriverGene {
 }
 
 object MappedNetwork extends DriverGene {
+	override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+     s"""|${loadNetwork(shred, skew)}
+         |${loadGeneProteinMap(shred, skew)}
+         |""".stripMargin
 
   val name = "MappedNetwork"
   val martMap = gpr.tp.attrTps.map(f => s"node_${f._1}" -> Project(gpr, f._1))

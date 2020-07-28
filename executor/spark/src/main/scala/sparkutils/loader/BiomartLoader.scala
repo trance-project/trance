@@ -11,7 +11,8 @@ class BiomartLoader(spark: SparkSession) extends Table[Biomart] {
    import spark.implicits._
    val schema = StructType(Array(StructField("gene_stable_id", StringType),
     StructField("gene_stable_id_version", StringType),
-    StructField("transcript_stable_id_version", StringType),
+    StructField("transcript_stable_id", StringType),
+	StructField("transcript_stable_id_version", StringType),
     StructField("protein_stable_id", StringType),
     StructField("protein_stable_id_version", StringType),
     StructField("gene_start_bp", IntegerType),

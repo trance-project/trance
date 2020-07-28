@@ -50,6 +50,9 @@ object TestApp extends App {
     // AppWriter.flatDataset(HybridBySampleNoAgg, "test")
     // AppWriter.shredDataset(HybridBySampleNoAgg, "test")
 
+    AppWriter.flatDataset(MappedNetwork, "MappedNetwork,standard")
+    AppWriter.shredDataset(MappedNetwork, "MappedNetwork,shredded")
+
     // AppWriter.flatDataset(SampleNetworkMid2, "SampleNetworkMid2,standard")
     // AppWriter.shredDataset(SampleNetworkMid2, "SampleNetworkMid2,shredded")
     // AppWriter.shredDataset(SampleNetworkMid2, "SampleNetworkMid2,shredded", unshred=true)
@@ -70,9 +73,9 @@ object TestApp extends App {
     // AppWriter.shredDataset(Effect2ConnectBySample, "Effect2ConnectBySample,shredded")
     // AppWriter.shredDataset(Effect2ConnectBySample, "Effect2ConnectBySample,shredded", unshred=true)
 
-    AppWriter.flatDataset(GeneConnectivity, "GeneConnectivityAlt,standard")
-    AppWriter.shredDataset(GeneConnectivity, "GeneConnectivityAlt,shredded")
-    AppWriter.shredDataset(GeneConnectivity, "GeneConnectivityAlt,shredded", unshred=true)
+    // AppWriter.flatDataset(GeneConnectivity, "GeneConnectivityAlt,standard")
+    // AppWriter.shredDataset(GeneConnectivity, "GeneConnectivityAlt,shredded")
+    // AppWriter.shredDataset(GeneConnectivity, "GeneConnectivityAlt,shredded", unshred=true)
   }
 }
 
