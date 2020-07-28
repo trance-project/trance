@@ -5,8 +5,11 @@ import org.apache.spark.sql._
 import org.apache.spark.rdd.RDD
 import sparkutils.Config
 
-case class GTF(g_contig: String, g_start: Int, g_end: Int, gene_name: String)
+import scala.collection.mutable
+import scala.collection.mutable.HashMap
 
+case class GTF(g_contig: String, g_start: Int, g_end: Int, gene_name: String)
+case class GeneIdName(gene_id: String, gene_name: String)
 class GTFLoader(spark: SparkSession, path: String) extends Serializable {
     // Indices of the columns of the gencode file
     private final val COL_CONTIG = 0
@@ -30,5 +33,30 @@ class GTFLoader(spark: SparkSession, path: String) extends Serializable {
             }
         ).toDF.as[GTF].repartition(Config.minPartitions)
         homo_sapiens
+    }
+
+
+    def loadGeneIdName: Dataset[GeneIdName] = {
+        val homo_sapiens_filtered: RDD[String] = spark.sparkContext.textFile(path)
+          .mapPartitionsWithIndex { (id_x, iter) => if (id_x == 0) iter.drop(5) else iter }
+
+        val hashMap = HashMap.empty[String, String]
+
+        homo_sapiens_filtered.map(
+            line => {
+                val sline = line.split("\t")
+                val geneData = sline(COL_DATA)
+
+                val index1 = geneData.indexOf("gene_id")
+                val geneID = geneData.substring(index1).split("\"")
+
+                val index = geneData.indexOf("gene_name")
+                val geneName = geneData.substring(index).split("\"")
+
+                hashMap.put(geneID(1), geneName(1))
+            }
+        )
+        val df = hashMap.toSeq.toDF("gene_id", "gene_name").as[GeneIdName].repartition(Config.minPartitions)
+        df
     }
 }
