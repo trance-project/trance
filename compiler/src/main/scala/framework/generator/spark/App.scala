@@ -3,6 +3,58 @@ package framework.generator.spark
 import framework.examples.tpch._
 import framework.examples.genomic._
 
+object OneKApp extends App {
+
+  override def main(args: Array[String]){
+
+    AppWriter.flatDataset(HybridBySample, "HybridBySample,standard")
+    AppWriter.shredDataset(HybridBySample, "HybridBySample,shredded")
+    AppWriter.shredDataset(HybridBySample, "HybridBySample,shredded", unshred=true)
+  
+    AppWriter.flatDataset(SampleNetworkNew100K, "SampleNetworkNew100K,standard")
+    AppWriter.shredDataset(SampleNetworkNew100K, "SampleNetworkNew100K,shredded")
+    AppWriter.shredDataset(SampleNetworkNew100K, "SampleNetworkNew100K,shredded", unshred=true)
+    
+    AppWriter.flatDataset(EffectBySampleNew100K, "EffectBySampleNew100K,standard")
+    AppWriter.shredDataset(EffectBySampleNew100K, "EffectBySampleNew100K,shredded")
+    AppWriter.shredDataset(EffectBySampleNew100K, "EffectBySampleNew100K,shredded", unshred=true)
+
+    AppWriter.flatDataset(ConnectionBySampleNew100K, "ConnectionBySampleNew100K,standard")
+    AppWriter.shredDataset(ConnectionBySampleNew100K, "ConnectionBySampleNew100K,shredded")
+    AppWriter.shredDataset(ConnectionBySampleNew100K, "ConnectionBySampleNew100K,shredded", unshred=true)
+
+    AppWriter.flatDataset(GeneConnectivityNew100K, "ConnectionBySampleNew100K,standard")
+    AppWriter.shredDataset(GeneConnectivityNew100K, "ConnectionBySampleNew100K,shredded")
+    AppWriter.shredDataset(GeneConnectivityNew100K, "ConnectionBySampleNew100K,shredded", unshred=true)
+
+  }
+
+}
+
+object FiveKApp extends App {
+
+  override def main(args: Array[String]){
+
+    AppWriter.flatDataset(SampleNetworkNew, "SampleNetworkNew,standard")
+    AppWriter.shredDataset(SampleNetworkNew, "SampleNetworkNew,shredded")
+    AppWriter.shredDataset(SampleNetworkNew, "SampleNetworkNew,shredded", unshred=true)
+    
+    AppWriter.flatDataset(EffectBySampleNew, "EffectBySampleNew,standard")
+    AppWriter.shredDataset(EffectBySampleNew, "EffectBySampleNew,shredded")
+    AppWriter.shredDataset(EffectBySampleNew, "EffectBySampleNew,shredded", unshred=true)
+
+    AppWriter.flatDataset(ConnectionBySampleNew, "ConnectionBySampleNew,standard")
+    AppWriter.shredDataset(ConnectionBySampleNew, "ConnectionBySampleNew,shredded")
+    AppWriter.shredDataset(ConnectionBySampleNew, "ConnectionBySampleNew,shredded", unshred=true)
+
+    AppWriter.flatDataset(GeneConnectivityNew, "ConnectionBySampleNew,standard")
+    AppWriter.shredDataset(GeneConnectivityNew, "ConnectionBySampleNew,shredded")
+    AppWriter.shredDataset(GeneConnectivityNew, "ConnectionBySampleNew,shredded", unshred=true)
+
+  }
+
+}
+
 /** Example Test Application 
   *
   */
@@ -23,13 +75,13 @@ object TestApp extends App {
     // AppWriter.shredDataset(OccurCNVGroupByCase, "OccurCNVGroupByCase,shredded")
     // AppWriter.shredDataset(OccurCNVGroupByCase, "OccurCNVGroupByCase,shredded", unshred=true)
 
-    //AppWriter.flatDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,standard")
-    //AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded")
-    //AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", unshred=true)
+    // AppWriter.flatDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,standard")
+    // AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded")
+    // AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", unshred=true)
 
-    //AppWriter.flatDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,standard")
-    //AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded")
-    //AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded", unshred=true)
+    // AppWriter.flatDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,standard")
+    // AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded")
+    // AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded", unshred=true)
 
     // AppWriter.flatDataset(HybridGisticCNByGene, "test")
     // AppWriter.shredDataset(HybridGisticCNByGene, "test")
@@ -60,10 +112,6 @@ object TestApp extends App {
     // AppWriter.flatDataset(SampleNetworkMid2a, "SampleNetworkMid2a,standard")
     // AppWriter.shredDataset(SampleNetworkMid2a, "SampleNetworkMid2a,shredded")
     // AppWriter.shredDataset(SampleNetworkMid2a, "SampleNetworkMid2a,shredded", unshred=true)
-
-    AppWriter.flatDataset(SampleNetworkNew, "SampleNetworkNew,standard")
-    AppWriter.shredDataset(SampleNetworkNew, "SampleNetworkNew,shredded")
-    AppWriter.shredDataset(SampleNetworkNew, "SampleNetworkNew,shredded", unshred=true)
 
     // AppWriter.flatDataset(EffectBySampleSO, "EffectBySample,standard")
     // AppWriter.shredDataset(EffectBySampleSO, "EffectBySample,shredded")
