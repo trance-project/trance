@@ -5,7 +5,6 @@ import org.apache.spark.sql._
 import org.apache.spark.rdd.RDD
 import sparkutils.Config
 
-import scala.collection.mutable
 import scala.collection.mutable.HashMap
 
 case class GTF(g_contig: String, g_start: Int, g_end: Int, gene_name: String)
@@ -40,9 +39,7 @@ class GTFLoader(spark: SparkSession, path: String) extends Serializable {
         val homo_sapiens_filtered: RDD[String] = spark.sparkContext.textFile(path)
           .mapPartitionsWithIndex { (id_x, iter) => if (id_x == 0) iter.drop(5) else iter }
 
-        val hashMap = HashMap.empty[String, String]
-
-        homo_sapiens_filtered.map(
+        val df = homo_sapiens_filtered.map(
             line => {
                 val sline = line.split("\t")
                 val geneData = sline(COL_DATA)
@@ -52,11 +49,9 @@ class GTFLoader(spark: SparkSession, path: String) extends Serializable {
 
                 val index = geneData.indexOf("gene_name")
                 val geneName = geneData.substring(index).split("\"")
-
-                hashMap.put(geneID(1), geneName(1))
+                GeneIdName(geneID(1), geneName(1))
             }
-        )
-        val df = hashMap.toSeq.toDF("gene_id", "gene_name").as[GeneIdName].repartition(400)
+        ).toDF.dropDuplicates.as[GeneIdName].repartition(400)
         df
     }
 }
