@@ -419,6 +419,11 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
       |val pathways = pathwayLoader.loadDS
       |pathways.cache
       |pathways.count
+      |
+      |val gtfLoader = new GTFLoader(spark, "/mnt/app_hdd/data/Data/Map/Homo_sapiens.GRCh37.87.chr.gtf")
+      |val Gtfs = gtfLoader.loadGeneIdName
+      |//Gtfs.cache
+      |//Gtfs.count
 			|${loadOccurrence(shred, skew)}
 			|""".stripMargin
   	}
@@ -446,6 +451,12 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
         |val IDict_pathways__D_gene_set = geneSet
         |//IBag_pathways__D.cache
         |//IBag_pathways__D.count
+        |
+        |val gtfLoader = new GTFLoader(spark, "/mnt/app_hdd/data/Data/Map/Homo_sapiens.GRCh37.87.chr.gtf")
+        |val Gtfs = gtfLoader.loadGeneIdName
+        |val IBag_Gtfs__D = Gtfs
+        |//IBag_Gtfs__D.cache
+        |//IBag_Gtfs__D.count
     		|""".stripMargin
   }
 
@@ -525,6 +536,10 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
   val pathways = BagVarRef("pathways", BagType(pathwayType))
   val pr = TupleVarRef("p", pathwayType)
   val ger = TupleVarRef("ge", geneType)
+
+  val gtfType = TupleType("gene_id" -> StringType, "gene_name" -> StringType)
+  val gtfs = BagVarRef("Gtfs", BagType(gtfType))
+  val gtfr = TupleVarRef("gtf", gtfType)
 }
 
 // Group occurrences (100k) by mutations (large number of top level tuples)
@@ -1324,8 +1339,10 @@ object PathwayBurden_1_shred extends DriverGene {
   val pathwayFlat =
     ForeachUnion(pr, pathways,
       ForeachUnion(ger, pr("gene_set").asBag,
-        Singleton(Tuple("p_pathway_name" -> pr("p_name"), "p_gene" -> ger("name")))
-      )
+        ForeachUnion(gtfr, gtfs,
+          IfThenElse(Cmp(OpEq, gtfr("gene_name"), ger("name")),
+            Singleton(Tuple("p_pathway_name" -> pr("p_name"), "p_gene" -> gtfr("gene_id"))))
+        ))
     )
   //{p_pathway_name, p_gene}
 
@@ -1376,8 +1393,10 @@ object PathwayBurden_0_standard extends DriverGene {
   val pathwayFlat =
     ForeachUnion(pr, pathways,
       ForeachUnion(ger, pr("gene_set").asBag,
-        Singleton(Tuple("p_pathway_name" -> pr("p_name"), "p_gene" -> ger("name")))
-      )
+        ForeachUnion(gtfr, gtfs,
+          IfThenElse(Cmp(OpEq, gtfr("gene_name"), ger("name")),
+            Singleton(Tuple("p_pathway_name" -> pr("p_name"), "p_gene" -> gtfr("gene_id"))))
+        ))
     )
   //{p_pathway_name, p_gene}
 
@@ -1408,8 +1427,10 @@ object PathwayBurden_Alt extends DriverGene {
   val pathwayFlat =
     ForeachUnion(pr, pathways,
       ForeachUnion(ger, pr("gene_set").asBag,
-        Singleton(Tuple("p_pathway_name" -> pr("p_name"), "p_gene" -> ger("name")))
-      )
+        ForeachUnion(gtfr, gtfs,
+          IfThenElse(Cmp(OpEq, gtfr("gene_name"), ger("name")),
+            Singleton(Tuple("p_pathway_name" -> pr("p_name"), "p_gene" -> gtfr("gene_id"))))
+      ))
     )
   //{p_pathway_name, p_gene}
 

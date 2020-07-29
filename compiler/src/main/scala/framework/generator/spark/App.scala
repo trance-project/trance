@@ -86,7 +86,7 @@ object PathwayBurden_v0 extends App {
     AppWriter.flatDataset(PathwayBurden_0_standard, "test")
     AppWriter.flatDataset(PathwayBurden_Alt, "test")
     AppWriter.shredDataset(PathwayBurden_Alt, "test")
-    AppWriter.shredDataset(PathwayBurden_0_shred, "test", unshred = true)
+    AppWriter.shredDataset(PathwayBurden_Alt, "test", unshred = true)
 
   }
 }
