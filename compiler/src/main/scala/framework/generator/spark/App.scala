@@ -19,7 +19,7 @@ object TestApp extends App {
     // AppWriter.shredDataset(OccurGroupByCaseMid, "OccurGroupByCaseMid,shredded", unshred=true)
 
 
-    // AppWriter.flatDataset(OccurCNVGroupByCase, "OccurCNVGroupByCase,standard")
+    // AppWriter.flatDataset(OccurCNVGroupByCase, "OccurCNVGroupByCase,standardi)
     // AppWriter.shredDataset(OccurCNVGroupByCase, "OccurCNVGroupByCase,shredded")
     // AppWriter.shredDataset(OccurCNVGroupByCase, "OccurCNVGroupByCase,shredded", unshred=true)
 
@@ -37,8 +37,8 @@ object TestApp extends App {
     // AppWriter.flatDataset(CombineGisticCNByGene, "CombineGisticCNByGene,standard")
 
     // AppWriter.flatDataset(HybridBySampleV2, "HybridBySampleV2,standard")
-    //AppWriter.shredDataset(HybridBySampleV2, "HybridBySampleV2,shredded")
-    //AppWriter.shredDataset(HybridBySampleV2, "HybridBySampleV2,shredded", unshred=true)
+    // AppWriter.shredDataset(HybridBySampleV2, "HybridBySampleV2,shredded")
+    // AppWriter.shredDataset(HybridBySampleV2, "HybridBySampleV2,shredded", unshred=true)
 
     // AppWriter.flatDataset(HybridBySampleMid2, "HybridBySampleMid2,standard")
     // AppWriter.shredDataset(HybridBySampleMid2, "HybridBySampleMid2,shredded")
@@ -50,8 +50,8 @@ object TestApp extends App {
     // AppWriter.flatDataset(HybridBySampleNoAgg, "test")
     // AppWriter.shredDataset(HybridBySampleNoAgg, "test")
 
-    AppWriter.flatDataset(MappedNetwork, "MappedNetwork,standard")
-    AppWriter.shredDataset(MappedNetwork, "MappedNetwork,shredded")
+    // AppWriter.flatDataset(MappedNetwork, "MappedNetwork,standard")
+    // AppWriter.shredDataset(MappedNetwork, "MappedNetwork,shredded")
 
     // AppWriter.flatDataset(SampleNetworkMid2, "SampleNetworkMid2,standard")
     // AppWriter.shredDataset(SampleNetworkMid2, "SampleNetworkMid2,shredded")
@@ -60,6 +60,10 @@ object TestApp extends App {
     // AppWriter.flatDataset(SampleNetworkMid2a, "SampleNetworkMid2a,standard")
     // AppWriter.shredDataset(SampleNetworkMid2a, "SampleNetworkMid2a,shredded")
     // AppWriter.shredDataset(SampleNetworkMid2a, "SampleNetworkMid2a,shredded", unshred=true)
+
+    AppWriter.flatDataset(SampleNetworkNew, "SampleNetworkNew,standard")
+    AppWriter.shredDataset(SampleNetworkNew, "SampleNetworkNew,shredded")
+    AppWriter.shredDataset(SampleNetworkNew, "SampleNetworkNew,shredded", unshred=true)
 
     // AppWriter.flatDataset(EffectBySampleSO, "EffectBySample,standard")
     // AppWriter.shredDataset(EffectBySampleSO, "EffectBySample,shredded")

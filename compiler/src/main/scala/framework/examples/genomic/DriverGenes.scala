@@ -732,9 +732,9 @@ object HybridByMutationMid2 extends DriverGene {
 	                        			IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
 	                          				Singleton(Tuple(
 	                          				"hybrid_gene_id" -> amr("gene_id"),
-	                          				//"hybrid_impact" -> amr("impact"),
-	                          				//"hybrid_sift" -> amr("sift_prediction"),
-	                          				//"hybrid_polyphen" -> amr("polyphen_prediction"),
+	                          				"hybrid_impact" -> amr("impact"),
+	                          				"hybrid_sift" -> amr("sift_prediction"),
+	                          				"hybrid_polyphen" -> amr("polyphen_prediction"),
 		                            		"hybrid_score" -> 
 		                            		conr("so_weight").asNumeric * matchImpactMid * siftImpact * polyImpact
 											* (cnr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
@@ -778,14 +778,14 @@ object HybridBySampleMid2 extends DriverGene {
 	                        			IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
 	                          				Singleton(Tuple(
 	                          				"hybrid_gene_id" -> amr("gene_id"),
-	                          				"hybrid_impact" -> amr("impact"),
-	                          				"hybrid_sift" -> amr("sift_prediction"),
-	                          				"hybrid_polyphen" -> amr("polyphen_prediction"),
+	                          				//"hybrid_impact" -> amr("impact"),
+	                          				//"hybrid_sift" -> amr("sift_prediction"),
+	                          				//"hybrid_polyphen" -> amr("polyphen_prediction"),
 		                            		"hybrid_score" -> 
 		                            		conr("so_weight").asNumeric * matchImpactMid * siftImpact * polyImpact
 											* (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
 
-			,List("hybrid_gene_id", "hybrid_impact", "hybrid_sift", "hybrid_polyphen"),
+			,List("hybrid_gene_id"), //"hybrid_impact", "hybrid_sift", "hybrid_polyphen"),
             List("hybrid_score")))))
 
   val program = Program(Assignment("cnvCases", mapCNV), Assignment(name, query))
@@ -1178,9 +1178,9 @@ object SampleNetworkNew extends DriverGene {
   val fnet = ForeachUnion(nr, network, 
       ForeachUnion(er, BagProject(nr, "edges"),
         ForeachUnion(gpr, gpmap,
-         IfThenElse(Cmp(OpEq, er("edge_protein"), gpr("protein_stable_id2")),
+         IfThenElse(Cmp(OpEq, er("edge_protein"), gpr("protein_stable_id")),
           Singleton(Tuple("network_node" -> nr("node_protein"), 
-            "network_edge" -> gpr("gene_stable_id2"),
+            "network_edge" -> gpr("gene_stable_id"),
             "network_combined" -> er("combined_score")))))))
 
   val (fNet, mfr) = varset("flatNet", "fn", fnet)
