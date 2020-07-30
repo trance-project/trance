@@ -7,25 +7,29 @@ object OneKApp extends App {
 
   override def main(args: Array[String]){
 
-    AppWriter.flatDataset(HybridBySample, "HybridBySample,standard")
-    AppWriter.shredDataset(HybridBySample, "HybridBySample,shredded")
-    AppWriter.shredDataset(HybridBySample, "HybridBySample,shredded", unshred=true)
+    // AppWriter.flatDataset(HybridBySample, "HybridBySample,standard")
+    // AppWriter.shredDataset(HybridBySample, "HybridBySample,shredded")
+    // AppWriter.shredDataset(HybridBySample, "HybridBySample,shredded", unshred=true)
   
-    AppWriter.flatDataset(SampleNetworkNew100K, "SampleNetworkNew100K,standard")
-    AppWriter.shredDataset(SampleNetworkNew100K, "SampleNetworkNew100K,shredded")
-    AppWriter.shredDataset(SampleNetworkNew100K, "SampleNetworkNew100K,shredded", unshred=true)
+    // AppWriter.flatDataset(SampleNetworkNew100K, "SampleNetworkNew100K,standard")
+    // AppWriter.shredDataset(SampleNetworkNew100K, "SampleNetworkNew100K,shredded")
+    // AppWriter.shredDataset(SampleNetworkNew100K, "SampleNetworkNew100K,shredded", unshred=true)
+
+    AppWriter.flatDataset(SampleNetworkNew100K, "SampleNetworkNew100K,standard", skew = true)
+    // AppWriter.shredDataset(SampleNetworkNew100K, "SampleNetworkNew100K,shredded", skew = true)
+    // AppWriter.shredDataset(SampleNetworkNew100K, "SampleNetworkNew100K,shredded", unshred=true, skew = true)
     
-    AppWriter.flatDataset(EffectBySampleNew100K, "EffectBySampleNew100K,standard")
-    AppWriter.shredDataset(EffectBySampleNew100K, "EffectBySampleNew100K,shredded")
-    AppWriter.shredDataset(EffectBySampleNew100K, "EffectBySampleNew100K,shredded", unshred=true)
+    // AppWriter.flatDataset(EffectBySampleNew100K, "EffectBySampleNew100K,standard")
+    // AppWriter.shredDataset(EffectBySampleNew100K, "EffectBySampleNew100K,shredded")
+    // AppWriter.shredDataset(EffectBySampleNew100K, "EffectBySampleNew100K,shredded", unshred=true)
 
-    AppWriter.flatDataset(ConnectionBySampleNew100K, "ConnectionBySampleNew100K,standard")
-    AppWriter.shredDataset(ConnectionBySampleNew100K, "ConnectionBySampleNew100K,shredded")
-    AppWriter.shredDataset(ConnectionBySampleNew100K, "ConnectionBySampleNew100K,shredded", unshred=true)
+    // AppWriter.flatDataset(ConnectionBySampleNew100K, "ConnectionBySampleNew100K,standard")
+    // AppWriter.shredDataset(ConnectionBySampleNew100K, "ConnectionBySampleNew100K,shredded")
+    // AppWriter.shredDataset(ConnectionBySampleNew100K, "ConnectionBySampleNew100K,shredded", unshred=true)
 
-    AppWriter.flatDataset(GeneConnectivityNew100K, "ConnectionBySampleNew100K,standard")
-    AppWriter.shredDataset(GeneConnectivityNew100K, "ConnectionBySampleNew100K,shredded")
-    AppWriter.shredDataset(GeneConnectivityNew100K, "ConnectionBySampleNew100K,shredded", unshred=true)
+    // AppWriter.flatDataset(GeneConnectivityNew100K, "ConnectionBySampleNew100K,standard")
+    // AppWriter.shredDataset(GeneConnectivityNew100K, "ConnectionBySampleNew100K,shredded")
+    // AppWriter.shredDataset(GeneConnectivityNew100K, "ConnectionBySampleNew100K,shredded", unshred=true)
 
   }
 
