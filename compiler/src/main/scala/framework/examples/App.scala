@@ -1,6 +1,6 @@
 package framework.examples
 
-import framework.examples.CancerDataLoader.{AliquotLoader, GisticLoader, MAFLoader}
+import framework.examples.CancerDataLoader.{AliquotLoader, GisticLoader, MAFLoader, TCGLoader}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 
@@ -136,4 +136,22 @@ object App {
 //    )
   }
 }
+
+object test {
+
+  def main(args: Array[String]) {
+    // standard setup
+
+    val conf = new SparkConf().setAppName("test").setMaster("local[*]")
+
+    val spark: SparkSession = SparkSession.builder().config(conf).getOrCreate()
+    spark.conf.set("spark.sql.debug.maxToStringFields", 10000)
+
+    val file = "/home/yash/Documents/tcgaData"
+
+    val tcgLoader = new TCGLoader(spark)
+    val tcgData = tcgLoader.load(file)
+    tcgData.printSchema()
+
+  }}
 

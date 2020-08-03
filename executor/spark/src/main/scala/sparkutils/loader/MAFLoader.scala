@@ -1,11 +1,7 @@
 package sparkutils.loader
 
-import org.apache.parquet.format.IntType
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
-import org.apache.spark.sql.types._
 import sparkutils.Config
-import scala.collection.mutable.ArrayBuffer
 import java.io.File
 
 case class Consequence(consequenceType:String, functionalImpact:String, SYMBOL: String, Consequence: String, HGVSp_Short: String, Transcript_ID: String, RefSeq:String , HGVSc:String , IMPACT:String ,CANONICAL:String , SIFT: String, PolyPhen:String, Strand:String)

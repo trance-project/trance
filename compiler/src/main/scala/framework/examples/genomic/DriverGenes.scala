@@ -457,6 +457,10 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
         |val IBag_Gtfs__D = Gtfs
         |//IBag_Gtfs__D.cache
         |//IBag_Gtfs__D.count
+        |
+        |val tcgLoader = new TCGLoader(spark)
+        |val tcfs = tcgLoader.load("/mnt/app_hdd/data/Data/Map/)
+        |
     		|""".stripMargin
   }
 
@@ -1437,18 +1441,29 @@ object PathwayBurden_Alt extends DriverGene {
   // tuple reference
   val (pfs, pf) = varset("pathwayFlat", "pf", pathwayFlat)
 
-  val query = ForeachUnion(br, biospec,
+  val pathwayBurdenNest = ForeachUnion(br, biospec,
     Singleton(Tuple(
-      "samples" -> br("bcr_patient_uuid"), "center_id" -> br("center_id"),
-      "pathways" -> ReduceByKey(
+      "pb_sample" -> br("bcr_patient_uuid"), "pb_center_id" -> br("center_id"),
+      "pb_pathways" -> ReduceByKey(
         ForeachUnion(or, occurrences,
           IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
             ForeachUnion(ar, or("transcript_consequences").asBag,
               ForeachUnion(pf, pfs,
                   IfThenElse(Cmp(OpEq, ar("gene_id"), pf("p_gene")),
-                    Singleton(Tuple("pathway" -> pf("p_pathway_name"), "burden" -> Const(1.0, DoubleType)))))))),
-        List("pathway"),
-        List("burden"))))
+                    Singleton(Tuple("pb_pathway" -> pf("p_pathway_name"), "pb_burden" -> Const(1.0, DoubleType)))))))),
+        List("pb_pathway"),
+        List("pb_burden"))))
   )
-  val program = Program(Assignment(pfs.name, pathwayFlat), Assignment(name, query))
+
+  // flatten the final tuple
+  // tuple reference:
+  val (pbs, pb) = varset("pathwayBurdenNest", "pb", pathwayBurdenNest)
+  val g = TupleVarRef("s", pb("pb_pathways").asInstanceOf[BagExpr].tp.tp)
+  val query = ForeachUnion(pb, pbs,
+    ForeachUnion(g, pb("pb_pathways").asBag,
+      Singleton(Tuple("sample" -> pb("pb_sample"), "pathway" -> g("pb_pathway"), "burden" -> g("pb_burden"), "center_id"->pb("pb_center_id")))
+    )
+  )
+
+  val program = Program(Assignment(pfs.name, pathwayFlat), Assignment(pbs.name, pathwayBurdenNest), Assignment(name, query))
 }

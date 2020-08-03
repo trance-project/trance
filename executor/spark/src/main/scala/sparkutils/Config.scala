@@ -6,8 +6,8 @@ package sparkutils
 object Config {
 
   val prop = new java.util.Properties
-  val fsin = new java.io.FileInputStream("data.flat")
-  prop.load(fsin)
+  //   val sf = ""
+  //   prop.load(fsin)
 
   // fix this
   val datapath = prop.getProperty("datapath")
