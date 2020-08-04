@@ -1,4 +1,4 @@
-package framework.examples.CancerDataLoader
+package sparkutils.loader
 
 import org.apache.parquet.format.IntType
 import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}

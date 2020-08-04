@@ -1,8 +1,8 @@
 package framework.examples
 
-import framework.examples.CancerDataLoader.{AliquotLoader, GisticLoader, MAFLoader, TCGLoader}
+import framework.examples.CancerDataLoader.{AliquotLoader, GisticLoader, MAFLoader, TCGALoader}
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object App {
 
@@ -147,11 +147,15 @@ object test {
     val spark: SparkSession = SparkSession.builder().config(conf).getOrCreate()
     spark.conf.set("spark.sql.debug.maxToStringFields", 10000)
 
-    val file = "/home/yash/Documents/tcgaData"
+    val path = "/home/yash/Documents/tcgaData"
 
-    val tcgLoader = new TCGLoader(spark)
-    val tcgData = tcgLoader.load(file)
-    tcgData.printSchema()
+    val tcgaLoader = new TCGALoader(spark)
+
+    val tcgaData= tcgaLoader.load(path, dir = true)
+
+    tcgaData.printSchema()
+    tcgaData.select("tumor_tissue_site").distinct().show(1000)
+
 
   }}
 

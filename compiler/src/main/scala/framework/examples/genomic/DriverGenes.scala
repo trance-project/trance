@@ -458,8 +458,9 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
         |//IBag_Gtfs__D.cache
         |//IBag_Gtfs__D.count
         |
-        |val tcgLoader = new TCGLoader(spark)
-        |val tcfs = tcgLoader.load("/mnt/app_hdd/data/Data/Map/)
+        |// todo: merge it to nrc
+        |val tcgaLoader = new TCGALoader(spark)
+        |val tcgas = tcgaLoader.load("/mnt/app_hdd/data/Data/biospecimen/clinical", dir = true)
         |
     		|""".stripMargin
   }
