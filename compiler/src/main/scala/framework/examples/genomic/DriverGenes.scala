@@ -392,7 +392,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
     else if (skew) {
     	s"""|val basepath = "/mnt/app_hdd/data/Data/"
       |val biospecLoader = new BiospecLoader(spark)
-			|val biospec_L = biospecLoader.load("/mnt/app_hdd/data/Data/biospecimen/nationwidechildrens.org_biospecimen_aliquot_brca.txt/")
+			|val biospec_L = biospecLoader.load("/mnt/app_hdd/data/Data/biospecimen/aliquot/")
 			|val biospec = (biospec_L, biospec_L.empty)
 			|biospec.cache
 			|biospec.count
@@ -406,7 +406,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 	}else{
 		s"""|val basepath = "/mnt/app_hdd/data/Data/"
 			|val biospecLoader = new BiospecLoader(spark)
-			|val biospec = biospecLoader.load("/mnt/app_hdd/data/Data/biospecimen/nationwidechildrens.org_biospecimen_aliquot_brca.txt/")
+			|val biospec = biospecLoader.load("/mnt/app_hdd/data/Data/biospecimen/aliquot/")
 			|biospec.cache
 			|biospec.count
 			|val consequenceLoader = new ConsequenceLoader(spark)
@@ -434,7 +434,7 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
   	val conseqLoad = if (skew) "(conseq, conseq.empty)" else "conseq"
   	s"""|val basepath = "/mnt/app_hdd/data/Data/"
     		|val biospecLoader = new BiospecLoader(spark)
-    		|val biospec = biospecLoader.load("/mnt/app_hdd/data/Data/biospecimen/nationwidechildrens.org_biospecimen_aliquot_brca.txt/")
+    		|val biospec = biospecLoader.load("/mnt/app_hdd/data/Data/biospecimen/aliquot/")
     		|val IBag_biospec__D = $biospecLoad
     		|IBag_biospec__D.cache
     		|IBag_biospec__D.count
@@ -460,8 +460,8 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
         |
         |// todo: merge it to nrc
         |val tcgaLoader = new TCGALoader(spark)
-        |val tcgas = tcgaLoader.load("/mnt/app_hdd/data/Data/biospecimen/clinical", dir = true)
-        |
+        |val tcgaData = tcgaLoader.load("/mnt/app_hdd/data/Data/biospecimen/clinical", dir = true)
+        |tcgaData.cache
     		|""".stripMargin
   }
 
@@ -1184,7 +1184,7 @@ object PathwayBurden_0_shred extends DriverGene {
   val p1 = TupleVarRef("c2", pg("samples").asInstanceOf[BagExpr].tp.tp)
 
   val query = ForeachUnion(br, biospec,
-    Singleton(Tuple("sample" -> br("bcr_patient_uuid"), "center_id" -> br("center_id"),
+    Singleton(Tuple("sample" -> br("bcr_patient_uuid"),
       "pathways" -> ForeachUnion(pg, pgs,
         ForeachUnion(p1, pg("samples").asBag,
           IfThenElse(Cmp(OpEq, br("bcr_patient_uuid"), p1("p_sample_name")),
@@ -1443,28 +1443,27 @@ object PathwayBurden_Alt extends DriverGene {
   val (pfs, pf) = varset("pathwayFlat", "pf", pathwayFlat)
 
   val pathwayBurdenNest = ForeachUnion(br, biospec,
-    Singleton(Tuple(
-      "pb_sample" -> br("bcr_patient_uuid"), "pb_center_id" -> br("center_id"),
-      "pb_pathways" -> ReduceByKey(
+
+       ReduceByKey(
         ForeachUnion(or, occurrences,
           IfThenElse(Cmp(OpEq, or("donorId"), br("bcr_patient_uuid")),
             ForeachUnion(ar, or("transcript_consequences").asBag,
               ForeachUnion(pf, pfs,
                   IfThenElse(Cmp(OpEq, ar("gene_id"), pf("p_gene")),
-                    Singleton(Tuple("pb_pathway" -> pf("p_pathway_name"), "pb_burden" -> Const(1.0, DoubleType)))))))),
-        List("pb_pathway"),
-        List("pb_burden"))))
+                    Singleton(Tuple("sample" -> br("bcr_patient_uuid"), "pathway" -> pf("p_pathway_name"), "burden" -> Const(1.0, DoubleType)))))))),
+        List("sample","pathway"),
+        List("burden"))
   )
 
-  // flatten the final tuple
-  // tuple reference:
-  val (pbs, pb) = varset("pathwayBurdenNest", "pb", pathwayBurdenNest)
-  val g = TupleVarRef("s", pb("pb_pathways").asInstanceOf[BagExpr].tp.tp)
-  val query = ForeachUnion(pb, pbs,
-    ForeachUnion(g, pb("pb_pathways").asBag,
-      Singleton(Tuple("sample" -> pb("pb_sample"), "pathway" -> g("pb_pathway"), "burden" -> g("pb_burden"), "center_id"->pb("pb_center_id")))
-    )
-  )
+//  // flatten the final tuple
+//  // tuple reference:
+//  val (pbs, pb) = varset("pathwayBurdenNest", "pb", pathwayBurdenNest)
+//  val g = TupleVarRef("s", pb("pb_pathways").asInstanceOf[BagExpr].tp.tp)
+//  val query = ForeachUnion(pb, pbs,
+//    ForeachUnion(g, pb("pb_pathways").asBag,
+//      Singleton(Tuple("sample" -> pb("pb_sample"), "pathway" -> g("pb_pathway"), "burden" -> g("pb_burden")))
+//    )
+//  )
 
-  val program = Program(Assignment(pfs.name, pathwayFlat), Assignment(pbs.name, pathwayBurdenNest), Assignment(name, query))
+  val program = Program(Assignment(pfs.name, pathwayFlat), Assignment(name, pathwayBurdenNest))
 }
