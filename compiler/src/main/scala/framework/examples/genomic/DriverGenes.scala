@@ -376,6 +376,34 @@ trait Biospecimen {
 
 trait TCGAClinical {
 
+  def loadClinical(shred: Boolean = false, skew: Boolean = false): String = {
+    if (shred) loadClinicalShred(skew)
+    else if (skew) {
+      s"""|val clinLoader = new TCGALoader(spark)
+          |val clinical_L = clinLoader.load("/nfs_qc4/genomics/gdc/biospecimen/clinical/patient/")
+          |val clincal = (clinical_L, clinical_L.empty)
+          |clinical.cache
+          |clinical.count
+          |""".stripMargin
+  }else{
+      s"""|val clinLoader = new TCGALoader(spark)
+          |val clinical = clinLoader.load("/nfs_qc4/genomics/gdc/biospecimen/clinical/patient/")
+          |clinical.cache
+          |clinical.count
+          |""".stripMargin
+    }
+  }
+
+  def loadClinicalShred(skew: Boolean = false): String = {
+    val clinLoad = if (skew) "(clinical, clinical.empty)" else "clinical"
+  s"""|val clinLoader = new TCGALoader(spark)
+      |val clinical = clinLoader.load("/nfs_qc4/genomics/gdc/biospecimen/clinical/patient/")
+      |val IBag_clinical__D = $clinLoad
+      |IBag_clinical__D.cache
+      |IBag_clinical__D.count
+      |""".stripMargin
+  }
+
   val clinicalType = TupleType(
       "c_sample" -> StringType,
       "c_gender" -> StringType,

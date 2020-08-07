@@ -37,10 +37,13 @@ object SkewTest2 extends DriverGene {
 
   val (flatNet, fnr2) = varset("flatNet", "fn2", fnet)
 
-  val query = ForeachUnion(cnr, copynum,
+  val query = ReduceByKey(ForeachUnion(cnr, copynum,
       ForeachUnion(fnr2, flatNet,
         IfThenElse(Cmp(OpEq, cnr("cn_gene_id"), fnr2("network_node")), 
-          projectTuple(cnr, Map("edge" -> fnr2("network_edge"), "score" -> fnr2("network_combined"))))))
+          projectTuple(cnr, Map("edge" -> fnr2("network_edge"), 
+            "score" -> fnr2("network_combined").asNumeric * cnr("cn_copy_number").asNumeric))))),
+      List("cn_gene_id"),
+      List("score"))
 
   val program = Program(Assignment("flatNet", fnet), Assignment(name, query))
 
