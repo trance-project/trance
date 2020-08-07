@@ -746,6 +746,20 @@ object HybridByMutationMid2 extends DriverGene {
 
 }
 
+object SkewTest1 extends DriverGene {
+  val name = "SkewTest1"
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
+
+  val query = ForeachUnion(cnr, copynum,
+    ForeachUnion(br, biospec,
+      IfThenElse(Cmp(OpEq, cnr("cn_aliquot_uuid"), br("bcr_aliquot_uuid")), 
+        projectTuple(cnr, Map("center_id" -> br("center_id"), "sample_id" -> br("bcr_patient_uuid"))))))
+
+  val program = Program(Assignment(name, query))
+
+}
+
 // group occurrences (500k) by sample
 // aggregate driver genes for all mutations across a sample
 //
@@ -1178,7 +1192,8 @@ object SampleNetworkNew100K extends DriverGene {
       ForeachUnion(er, BagProject(nr, "edges"),
         ForeachUnion(gpr, gpmap,
          IfThenElse(Cmp(OpEq, er("edge_protein"), gpr("protein_stable_id")),
-          Singleton(Tuple("network_node" -> nr("node_protein"), 
+          Singleton(Tuple(
+            "network_node" -> nr("node_protein"), 
             "network_edge" -> gpr("gene_stable_id"),
             "network_combined" -> er("combined_score")))))))
 

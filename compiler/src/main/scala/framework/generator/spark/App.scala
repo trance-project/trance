@@ -3,6 +3,16 @@ package framework.generator.spark
 import framework.examples.tpch._
 import framework.examples.genomic._
 
+object SkewApp extends App {
+
+  override def main(args: Array[String]){
+
+    AppWriter.flatDataset(SkewTest1, "SkewTest1,standard", skew = true)
+
+  }
+
+}
+
 object OneKApp extends App {
 
   override def main(args: Array[String]){
