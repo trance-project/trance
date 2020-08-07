@@ -41,7 +41,8 @@ object SkewTest2 extends DriverGene {
       ForeachUnion(fnr2, flatNet,
         IfThenElse(Cmp(OpEq, cnr("cn_gene_id"), fnr2("network_node")), 
           projectTuple(cnr, Map("edge" -> fnr2("network_edge"), 
-            "score" -> fnr2("network_combined").asNumeric * cnr("cn_copy_number").asNumeric))))),
+            "score" -> fnr2("network_combined").asNumeric * 
+            (cnr("cn_copy_number").asNumeric + NumericConst(0.001, DoubleType))))))),
       List("cn_gene_id"),
       List("score"))
 
