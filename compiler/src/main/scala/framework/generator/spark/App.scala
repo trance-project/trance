@@ -12,6 +12,10 @@ object SkewApp extends App {
 
     AppWriter.flatDataset(SkewTest2, "SkewTest2,standard", skew = true)
     AppWriter.flatDataset(SkewTest2, "SkewTest2,standard", skew = false)
+
+    AppWriter.flatDataset(SkewTest3, "SkewTest3,standard", skew = true)
+    AppWriter.flatDataset(SkewTest3, "SkewTest3,standard", skew = false)
+
   }
 
 }
