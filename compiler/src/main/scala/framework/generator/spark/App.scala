@@ -8,7 +8,10 @@ object SkewApp extends App {
   override def main(args: Array[String]){
 
     AppWriter.flatDataset(SkewTest1, "SkewTest1,standard", skew = true)
+    AppWriter.flatDataset(SkewTest1, "SkewTest1,standard", skew = false)
 
+    AppWriter.flatDataset(SkewTest2, "SkewTest2,standard", skew = true)
+    AppWriter.flatDataset(SkewTest2, "SkewTest2,standard", skew = false)
   }
 
 }

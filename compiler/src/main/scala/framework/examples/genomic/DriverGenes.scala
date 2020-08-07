@@ -374,6 +374,19 @@ trait Biospecimen {
 
 }
 
+trait TCGAClinical {
+
+  val clinicalType = TupleType(
+      "c_sample" -> StringType,
+      "c_gender" -> StringType,
+      "c_race" -> StringType,
+      "c_ethnicity" -> StringType,
+      "c_tumor_tissue_site" -> StringType,
+      "c_histological_type" -> StringType
+    )
+
+}
+
 trait SOImpact {
 
 	val soImpactType = TupleType("so_term" -> StringType, "so_description" -> StringType, 
@@ -382,7 +395,7 @@ trait SOImpact {
 }
 
 trait DriverGene extends Query with Occurrence with Gistic with StringNetwork 
-  with GeneExpression with Biospecimen with SOImpact with GeneProteinMap with CopyNumber {
+  with GeneExpression with Biospecimen with SOImpact with GeneProteinMap with CopyNumber with TCGAClinical {
   
   val basepath = "/nfs_qc4/genomics/gdc/"
   
@@ -462,6 +475,9 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 
   val biospec = BagVarRef("biospec", BagType(biospecType))
   val br = TupleVarRef("b", biospecType)
+
+  val clinical = BagVarRef("clinical", BagType(clinicalType))
+  val clr = TupleVarRef("cl", clinicalType)
 
   val conseq = BagVarRef("consequences", BagType(soImpactType))
   val conr = TupleVarRef("cons", soImpactType)
@@ -741,20 +757,6 @@ object HybridByMutationMid2 extends DriverGene {
 
 			,List("hybrid_gene_id", "hybrid_impact", "hybrid_sift", "hybrid_polyphen"),
             List("hybrid_score")))))
-
-  val program = Program(Assignment(name, query))
-
-}
-
-object SkewTest1 extends DriverGene {
-  val name = "SkewTest1"
-  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-    s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
-
-  val query = ForeachUnion(cnr, copynum,
-    ForeachUnion(br, biospec,
-      IfThenElse(Cmp(OpEq, cnr("cn_aliquot_uuid"), br("bcr_aliquot_uuid")), 
-        projectTuple(cnr, Map("center_id" -> br("center_id"), "sample_id" -> br("bcr_patient_uuid"))))))
 
   val program = Program(Assignment(name, query))
 
