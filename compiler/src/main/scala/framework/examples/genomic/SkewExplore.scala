@@ -61,9 +61,9 @@ object SkewTest3 extends DriverGene {
 
   val fnet = ForeachUnion(fnr, fnetwork, 
         ForeachUnion(gpr, gpmap,
-         IfThenElse(Cmp(OpEq, fnr("protein1"), gpr("protein_stable_id")),
+         IfThenElse(Cmp(OpEq, fnr("protein2"), gpr("protein_stable_id")),
           Singleton(Tuple("network_node" -> fnr("protein1"), 
-            "network_node_gene" -> gpr("gene_stable_id"),
+            "network_edge_gene" -> gpr("gene_stable_id"),
             "network_edge" -> fnr("protein2"),
             "network_combined" -> fnr("combined_score"))))))
   
@@ -73,12 +73,16 @@ object SkewTest3 extends DriverGene {
   // ForeachUnion(gpr, gpmap,
   //   Singleton(Tuple("group_gene" -> grp("gene_stable_id"), "group_protein" -> grp("group_protein_id"),
   //     "grouped_mutations" -> 
+      ReduceByKey(
         ForeachUnion(omr, occurmids,
           ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
             ForeachUnion(fnr2, flatNet,
-              IfThenElse(Cmp(OpEq, amr("gene_id"), fnr2("network_node_gene")), 
-                projectTuple(omr, Map("ngene" -> fnr2("network_node_gene"), 
-                  "nedge" -> fnr2("network_edge"), "ndist" -> fnr2("network_combined")))))))
+              IfThenElse(Cmp(OpEq, amr("gene_id"), fnr2("network_edge_gene")), 
+                projectTuple(omr, Map("ngene" -> fnr2("network_node"), 
+                  "nedge" -> fnr2("network_edge_gene"), "ndist" -> (fnr2("network_combined").asNumeric + NumericConst(0.0, DoubleType))), 
+                List("transcript_consequences")))))),
+        List("donorId", "ngene"),
+        List("ndist"))
 
 
   val program = Program(Assignment("flatNet", fnet), Assignment(name, query))
