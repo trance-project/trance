@@ -64,6 +64,7 @@ trait Occurrence extends Vep {
     def loadOccurrence(shred: Boolean = false, skew: Boolean = false): String = {
     	 val basepath = "/nfs_qc4/genomics/gdc/"
     	val loadFun = if (skew) "shredSkew" else "shred"
+      val odict = (i: Int) => if (skew) s"(odict$i, odict$i.empty)" else s"odict$i"
     	if (shred){
 	    	s"""|val vepLoader = new VepLoader(spark)
     				|//val mafLoader = new MAFLoader(spark)
@@ -78,16 +79,19 @@ trait Occurrence extends Vep {
     				|//val occurrences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/datasetFull/").as[OccurrenceMid]
     				|//val occurrences = vepLoader.loadOccurrencesMid(maf)
             |//val (odict1, odict2, odict3) = vepLoader.${loadFun}Mid(occurrences)
-    		  	|//val IBag_occurrences__D = odict1
-            |val IBag_occurrences__D = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/odict1Full/").as[OccurrDict1]
+    		  	|//val IBag_occurrences__D = ${odict(1)}
+            |val odict1 = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/odict1Full/").as[OccurrDict1]
+            |val IBag_occurrences__D = ${odict(1)}
     				|IBag_occurrences__D.cache
     				|IBag_occurrences__D.count
-    				|//val IDict_occurrences__D_transcript_consequences = odict2
-            |val IDict_occurrences__D_transcript_consequences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/odict2Full/").as[OccurTransDict2Mid]
+    				|//val IDict_occurrences__D_transcript_consequences = ${odict(2)}
+            |val odict2 = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/odict2Full/").as[OccurTransDict2Mid]
+            |val IDict_occurrences__D_transcript_consequences = ${odict(2)}
     				|IDict_occurrences__D_transcript_consequences.cache
     				|IDict_occurrences__D_transcript_consequences.count
-    				|//val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
-            |val IDict_occurrences__D_transcript_consequences_consequence_terms = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/odict3Full/").as[OccurrTransConseqDict3]
+    				|//val IDict_occurrences__D_transcript_consequences_consequence_terms = ${odict(3)}
+            |val odict3 = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/odict3Full/").as[OccurrTransConseqDict3]
+            |val IDict_occurrences__D_transcript_consequences_consequence_terms = ${odict(3)}
     				|IDict_occurrences__D_transcript_consequences_consequence_terms.cache
     				|IDict_occurrences__D_transcript_consequences_consequence_terms.count
     				|""".stripMargin
@@ -175,19 +179,19 @@ trait StringNetwork {
   	if (shred){
   		val fnetLoad = if (skew) "(stringNetwork, stringNetwork.empty)" else "stringNetwork"
   		s"""|val stringLoader = new NetworkLoader(spark)
-    			|val stringNetwork = stringLoader.loadFlat("/nfs_qc4/genomics/9606.protein.links.full.v11.0.txt")
+    			|val stringNetwork = stringLoader.loadFlat("/nfs_qc4/genomics/9606.protein.links.full.v11.0.csv")
     			|val IBag_stringNetwork__D = $fnetLoad
     			|IBag_stringNetwork__D.cache
     			|IBag_stringNetwork__D.count""".stripMargin
   	}else if (skew){
   		s"""|val stringLoader = new NetworkLoader(spark)
-    			|val stringNetwork_L = stringLoader.loadFlat("/nfs_qc4/genomics/mart_export.txt")
+    			|val stringNetwork_L = stringLoader.loadFlat("/nfs_qc4/genomics/9606.protein.links.full.v11.0.csv")
     			|val stringNetwork = (stringNetwork_L, stringNetwork_L.empty)
     			|stringNetwork.cache
     			|stringNetwork.count""".stripMargin
   	}else{
   		s"""|val stringLoader = new NetworkLoader(spark)
-    			|val stringNetwork = stringLoader.loadFlat("/nfs_qc4/genomics/mart_export.txt")
+    			|val stringNetwork = stringLoader.loadFlat("/nfs_qc4/genomics/9606.protein.links.full.v11.0.csv")
     			|stringNetwork.cache
     			|stringNetwork.count""".stripMargin
   	}
