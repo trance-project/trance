@@ -355,7 +355,7 @@ object SkewDataset{
       * @return the result of the join
       */
     def equiJoin[S: Encoder : ClassTag, J: ClassTag](right: (Dataset[S], Dataset[S]), usingColumns: Seq[String], joinType: String): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
-      val hkeys = key match {
+	  val hkeys = key match {
         case Some(k) if usingColumns.contains(k) => heavyKeys
         case _ => light.sparkSession.sparkContext.broadcast(Set.empty[K])
       }
@@ -595,8 +595,9 @@ object SkewDataset{
         val acc = HashMap.empty[Row, Int].withDefaultValue(0)
         it.foreach{ c => cnt +=1; if (random.nextDouble <= .1) acc(c) += 1 }
         acc.filter(_._2 > (cnt*.1)*thresh).map(r => r._1.getAs[K](0)).iterator
-      }).collect.toSet
-      (dfull, keys)
+      }).collect.toSet - null
+      println(s"heavy keys: ${keys.size}")
+	  (dfull, keys.asInstanceOf[Set[K]])
     }
 
     def mapPartitions[U: Encoder : ClassTag](func: (Iterator[T]) ⇒ Iterator[U]): (Dataset[U], Dataset[U]) = {
