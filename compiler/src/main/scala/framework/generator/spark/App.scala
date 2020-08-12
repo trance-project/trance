@@ -7,14 +7,20 @@ object SkewApp extends App {
 
   override def main(args: Array[String]){
 
-    AppWriter.flatDataset(SkewTest1, "SkewTest1,standard", skew = true)
-    AppWriter.flatDataset(SkewTest1, "SkewTest1,standard", skew = false)
+    // AppWriter.flatDataset(SkewTest1, "SkewTest1,standard", skew = true)
+    // AppWriter.flatDataset(SkewTest1, "SkewTest1,standard", skew = false)
 
-    AppWriter.flatDataset(SkewTest2, "SkewTest2,standard", skew = true)
-    AppWriter.flatDataset(SkewTest2, "SkewTest2,standard", skew = false)
+    // AppWriter.flatDataset(SkewTest2, "SkewTest2,standard", skew = true)
+    // AppWriter.flatDataset(SkewTest2, "SkewTest2,standard", skew = false)
 
-    AppWriter.flatDataset(SkewTest3, "SkewTest3,standard", skew = true)
-    AppWriter.flatDataset(SkewTest3, "SkewTest3,standard", skew = false)
+    // AppWriter.flatDataset(SkewTest3, "SkewTest3,standard", skew = true)
+    // AppWriter.flatDataset(SkewTest3, "SkewTest3,standard", skew = false)
+
+    AppWriter.flatDataset(SkewTest4, "SkewTest4,standard", skew = true)
+    AppWriter.flatDataset(SkewTest4, "SkewTest4,standard", skew = false)
+
+    AppWriter.shredDataset(SkewTest4, "SkewTest4,shredded", skew = true)
+    AppWriter.shredDataset(SkewTest4, "SkewTest4,shredded", skew = false)
 
   }
 
@@ -161,9 +167,9 @@ object App {
  
   def main(args: Array[String]){
     // runFlatToNested()
-     // runNestedToNested()
+    runNestedToNested()
     runNestedToFlat()
-//    runSkewHandling()
+    //runSkewHandling()
   }
 
   def runFlatToNested(){
@@ -196,7 +202,7 @@ object App {
     // AppWriter.runDatasetInput(Test0Full, Test0Agg0Full, "Flat,Standard,0")
     // AppWriter.runDatasetInput(Test1Full, Test1Agg1, "Flat,Standard,1")
     // AppWriter.runDatasetInput(Test1Full, Test1Agg1Full, "Flat,Standard,1")
-    // AppWriter.runDatasetInput(Test2FullFlat, Test2Agg2, "Flat,Standard,2")
+    AppWriter.runDatasetInput(Test2FullFlat, Test2Agg2, "Flat,Standard,2")
     // AppWriter.runDatasetInput(Test2FullFlat, Test2Agg2Full, "Flat,Standard,2")
     // AppWriter.runDatasetInput(Test3FullFlat, Test3Agg3, "Flat,Standard,3")
     // AppWriter.runDatasetInput(Test3FullFlat, Test3Agg3Full, "Flat,Standard,3")
@@ -210,8 +216,8 @@ object App {
     // AppWriter.runDatasetInputShred(Test2Full, Test2Agg2FullS, "Shred,Standard,2")
     // AppWriter.runDatasetInputShred(Test3Full, Test3Agg3S, "Shred,Projections,3")
     // AppWriter.runDatasetInputShred(Test3Full, Test3Agg3FullS, "Shred,Standard,3")
-    AppWriter.runDatasetInputShred(Test4Full, Test4Agg4S, "Shred,Projections,4") 
-    AppWriter.runDatasetInputShred(Test4Full, Test4Agg4FullS, "Shred,Standard,4")
+    // AppWriter.runDatasetInputShred(Test4Full, Test4Agg4S, "Shred,Projections,4") 
+    // AppWriter.runDatasetInputShred(Test4Full, Test4Agg4FullS, "Shred,Standard,4")
   
   }
 

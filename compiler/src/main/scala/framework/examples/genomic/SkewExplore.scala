@@ -90,41 +90,42 @@ object SkewTest3 extends DriverGene {
 
 }
 
-// object SkewTest4 extends DriverGene {
+object SkewTest4 extends DriverGene {
 
-//   val name = "SkewTest4"
+  val name = "SkewTest4"
 
-//   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-//     s"""|${super.loadTables(shred, skew)}
-//         |${loadGeneProteinMap(shred, skew)}
-//         |${loadFlatNetwork(shred, skew)}""".stripMargin
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${super.loadTables(shred, skew)}
+        |${loadGeneProteinMap(shred, skew)}
+        |${loadFlatNetwork(shred, skew)}""".stripMargin
 
-//   val fnet = ForeachUnion(fnr, fnetwork, 
-//         ForeachUnion(gpr, gpmap,
-//          IfThenElse(Cmp(OpEq, fnr("protein2"), gpr("protein_stable_id")),
-//           Singleton(Tuple("network_node" -> fnr("protein1"), 
-//             "network_edge_gene" -> gpr("gene_stable_id"),
-//             "network_edge" -> fnr("protein2"),
-//             "network_combined" -> fnr("combined_score"))))))
+  val fnet = ForeachUnion(fnr, fnetwork, 
+        ForeachUnion(gpr, gpmap,
+         IfThenElse(Cmp(OpEq, fnr("protein2"), gpr("protein_stable_id")),
+          Singleton(Tuple("network_node" -> fnr("protein1"), 
+            "network_edge_gene" -> gpr("gene_stable_id"),
+            "network_edge" -> fnr("protein2"),
+            "network_combined" -> fnr("combined_score"))))))
   
-//   val (flatNet, fnr2) = varset("flatNet", "fn2", fnet)
+  val (flatNet, fnr2) = varset("flatNet", "fn2", fnet)
 
-//   val query = 
-//   // ForeachUnion(gpr, gpmap,
-//   //   Singleton(Tuple("group_gene" -> grp("gene_stable_id"), "group_protein" -> grp("group_protein_id"),
-//   //     "grouped_mutations" ->  
-//     ForeachUnion(
-//         ForeachUnion(omr, occurmids,
-//           ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
-//             ForeachUnion(fnr2, flatNet,
-//               IfThenElse(Cmp(OpEq, amr("gene_id"), fnr2("network_edge_gene")), 
-//                 projectTuple(omr, Map("ngene" -> fnr2("network_node"), 
-//                   "nedge" -> fnr2("network_edge_gene"), "ndist" -> (fnr2("network_combined").asNumeric + NumericConst(0.0, DoubleType))), 
-//                 List("transcript_consequences")))))),
-//         List("donorId", "ngene"),
-//         List("ndist"))
+  val query = 
+  // ForeachUnion(gpr, gpmap,
+  //   Singleton(Tuple("group_gene" -> grp("gene_stable_id"), "group_protein" -> grp("group_protein_id"),
+  //     "grouped_mutations" -> 
+        ForeachUnion(omr, occurmids,
+          Singleton(Tuple("case_uuid" -> omr("donorId"), "cands" -> 
+            ReduceByKey(ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
+              ForeachUnion(fnr2, flatNet,
+                IfThenElse(Cmp(OpEq, amr("gene_id"), fnr2("network_edge_gene")), 
+                  Singleton(Tuple("gene" -> amr("gene_id"), 
+                    "ngene" -> fnr2("network_node"), 
+                    "nedge" -> fnr2("network_edge_gene"), "ndist" -> 
+                    (fnr2("network_combined").asNumeric + NumericConst(0.0, DoubleType))))))),
+              List("ngene"),
+              List("ndist")))))
 
 
-//   val program = Program(Assignment("flatNet", fnet), Assignment(name, query))
+  val program = Program(Assignment("flatNet", fnet), Assignment(name, query))
 
-// }
+}

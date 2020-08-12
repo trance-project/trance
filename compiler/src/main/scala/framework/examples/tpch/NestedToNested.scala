@@ -119,8 +119,9 @@ object Test2NN extends TPCHBase {
           ReduceByKey(ForeachUnion(partRef, BagProject(orderRef, "o_parts"),
             ForeachUnion(pr, relP,
               IfThenElse(Cmp(OpEq, partRef("l_partkey"), pr("p_partkey")),
-                Singleton(Tuple("p_name" -> pr("p_name"), "l_quantity" -> partRef("l_quantity")))))),
-          List("p_name"), List("l_quantity"))))))))
+                Singleton(Tuple("p_name" -> pr("p_name"), "total" -> 
+                  partRef("l_quantity").asNumeric * pr("p_retailprice").asNumeric))))),
+          List("p_name"), List("total"))))))))
 
   val program = Program(Assignment(name, query))
 }
