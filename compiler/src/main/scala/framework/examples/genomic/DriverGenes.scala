@@ -426,8 +426,41 @@ trait SOImpact {
 
 }
 
+trait GTFMap {
+
+  val gtfType = TupleType("g_contig" -> StringType, "g_start" -> IntType, 
+    "g_end" -> IntType, "g_gene_name" -> StringType, "g_gene_id" -> StringType)
+
+  def loadGtfTable(shred: Boolean = false, skew: Boolean = false): String = {
+    if (shred){
+      val gtfLoad = if (skew) "(gtf, gtf.empty)" else "gtf"
+      s"""|val gtfLoader = new GTFLoader(spark, "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf")
+          |val gtf = gtfLoader.loadDS
+          |val IBag_gtf__D = $gtfLoad
+          |IBag_gtf__D.cache
+          |IBag_gtf__D.count
+          |""".stripMargin
+    } else if (skew){
+      s"""|val gtfLoader = new GTFLoader(spark, "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf")
+          |val gtf0 = gtfLoader.loadDS
+          |val gtf = (gtf0, gtf0.empty)
+          |gtf.cache
+          |gtf.count
+          |""".stripMargin
+    }else{
+      s"""|val gtfLoader = new GTFLoader(spark, "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf")
+          |val gtf = gtfLoader.loadDS
+          |gtf.cache
+          |gtf.count
+          |""".stripMargin
+    }
+  }
+
+}
+
 trait DriverGene extends Query with Occurrence with Gistic with StringNetwork 
-  with GeneExpression with Biospecimen with SOImpact with GeneProteinMap with CopyNumber with TCGAClinical {
+  with GeneExpression with Biospecimen with SOImpact with GeneProteinMap 
+  with CopyNumber with TCGAClinical with GTFMap {
   
   val basepath = "/nfs_qc4/genomics/gdc/"
   
@@ -519,6 +552,9 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 
   val copynum = BagVarRef("copynumber", BagType(copyNumberType))
   val cnr = TupleVarRef("cn", copyNumberType)
+
+  val gtf = BagVarRef("gtf", BagType(gtfType))
+  val gtfr = TupleVarRef("gene", gtfType)
 
   val matchImpact = NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("HIGH", StringType)),
 	                  NumericConst(0.8, DoubleType),
