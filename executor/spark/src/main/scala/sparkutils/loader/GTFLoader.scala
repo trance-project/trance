@@ -4,7 +4,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql._
 import org.apache.spark.rdd.RDD
 
-case class GTF(g_contig: String, g_start: Int, g_end: Int, gene_name: String)
+case class GTF(g_contig: String, g_start: Int, g_end: Int, gene_name: String, gene_id: String)
 
 class GTFLoader(spark: SparkSession, path: String) extends Serializable {
     // Indices of the columns of the gencode file
@@ -23,9 +23,11 @@ class GTFLoader(spark: SparkSession, path: String) extends Serializable {
             line => {
                 val sline = line.split("\t")
                 val geneData = sline(COL_DATA)
-                val index = geneData.indexOf("gene_name")
-                val splitGeneData = geneData.substring(index).split("\"")
-                GTF(sline(COL_CONTIG), sline(COL_START).toInt, sline(COL_END).toInt, splitGeneData(1))
+                val index1 = geneData.indexOf("gene_name")
+				val geneName = geneData.substring(index1).split("\"")(1)
+				val index2 = geneData.indexOf("gene_id")
+				val geneId = geneData.substring(index2).split("\"")(1)
+                GTF(sline(COL_CONTIG), sline(COL_START).toInt, sline(COL_END).toInt, geneName, geneId)
             }
         ).toDF.as[GTF]
         homo_sapiens
