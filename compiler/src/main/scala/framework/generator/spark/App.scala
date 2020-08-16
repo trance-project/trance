@@ -21,11 +21,14 @@ object SkewApp extends App {
 
     // AppWriter.shredDataset(SkewTest4, "SkewTest4,shredded", skew = true)
     // AppWriter.shredDataset(SkewTest4, "SkewTest4,shredded", skew = false)
-    AppWriter.flatDataset(SkewTest5, "SkewTest5,standard", skew = true)
-    AppWriter.flatDataset(SkewTest5, "SkewTest5,standard", skew = false)
+    //AppWriter.flatDataset(SkewTest5, "SkewTest5,standard", skew = true)
+    //AppWriter.flatDataset(SkewTest5, "SkewTest5,standard", skew = false)
 
-    AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = true)
-    AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = false)
+    //AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = true)
+    //AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = false)
+
+	AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = true, unshred=true)
+    AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = false, unshred=true)
 
   }
 

@@ -64,9 +64,9 @@ object App {
        val cloader = new ConsequenceLoader(spark)
        val thresh = cloader.loadSequential("/nfs_qc4/genomics/calc_variant_conseq.txt")
        thresh.collect.foreach(println(_))**/
-   //val geloader = new GeneExpressionLoader(spark)
-   //val gexpr = geloader.load("/Users/jac/bioqueries/data/tcga/8659f2c4-7492-46b3-9bbe-ea8ae7bbdd53.FPKM-UQ.txt", dir = false)
-   //println(gexpr.show())
+   val geloader = new GeneExpressionLoader(spark)
+   val gexpr = geloader.load("/nfs_qc4/genomics/gdc/fpkm_uq", dir = true)
+   println(gexpr.show())
     //val bloader = new BiomartLoader(spark)
     //val biomart = bloader.load("/home/jacith/shredder/executor/spark/data/geno/mart_export.txt")
     //println(biomart.show())
@@ -74,9 +74,9 @@ object App {
 	//val copynum = cloader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
 	//copynum.take(10).foreach(println(_))
 
-	val gtfLoader = new GTFLoader(spark, "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf")
-	val gtf = gtfLoader.loadDS
-	gtf.take(10).foreach(println(_))
+	//val gtfLoader = new GTFLoader(spark, "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf")
+	//val gtf = gtfLoader.loadDS
+	//gtf.take(10).foreach(println(_))
 
 
     }
