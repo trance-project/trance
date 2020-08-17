@@ -171,10 +171,10 @@ object App {
   val pathout = "../executor/spark/src/main/scala/sparkutils/generated/"
  
   def main(args: Array[String]){
-    // runFlatToNested()
-    runNestedToNested()
-    runNestedToFlat()
-    //runSkewHandling()
+    //runFlatToNested()
+    //runNestedToNested()
+    //runNestedToFlat()
+    runSkewHandling()
   }
 
   def runFlatToNested(){

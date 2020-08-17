@@ -15,6 +15,8 @@ object Config {
   val minPartitions = prop.getProperty("minPartitions", "400").toInt
   val maxPartitions = prop.getProperty("maxPartitions", "1000").toInt
   val threshold = prop.getProperty("threshold", ".0025").toDouble
+  val sample = prop.getProperty("sample", "10000").toInt
+  val heavyKeyStrategy = prop.getProperty("heavyKeyStrategy", "sample")
 
   // vep information
   val vepHome = prop.getProperty("vephome", "/usr/local/ensembl-vep/vep")

@@ -501,13 +501,15 @@ object SkewDataset{
     val heavy = dfs._2
     val partitions = light.rdd.getNumPartitions
     val random = scala.util.Random
-	val thresh = Config.threshold
+	  val thresh = Config.threshold
+    val sampled = Config.sample
+    val strategy = Config.heavyKeyStrategy
 
     /** counts the light and heavy component, returns as sum **/
     def count: Long = if (heavy.rdd.getNumPartitions == 1) {
 	  	val l = light.count 
-		println(s"light: $l, heavy: 0")
-		l
+		  println(s"light: $l, heavy: 0")
+		  l
       } else {
         val lc = light.count
         val hc = heavy.count
@@ -590,14 +592,34 @@ object SkewDataset{
       */
     def heavyKeys[K: ClassTag](key: String): (Dataset[T], Set[K]) = {
       val dfull = dfs.union
-	  val keys = dfull.select(key).rdd.mapPartitions(it => {
+      val keys = strategy match {
+        case "sample" => sampleHeavyKeys[K](dfull, key)
+        case "slice" => sliceHeavyKeys[K](dfull, key)
+        case _ => sys.error(s"unsupported heavy key strategy: $strategy.")
+      }
+      println(s"heavy keys: ${keys.size}")
+	    (dfull, keys.asInstanceOf[Set[K]])
+    }
+
+    def sampleHeavyKeys[K: ClassTag](dfull: Dataset[T], key: String): Set[K] = {
+      dfull.select(key).rdd.mapPartitions(it => {
         var cnt = 0
         val acc = HashMap.empty[Row, Int].withDefaultValue(0)
-        it.foreach{ c => cnt +=1; if (random.nextDouble <= .1) acc(c) += 1 }
+        it.foreach{ c => 
+          cnt +=1
+          c match { case null => Unit
+            case _ => if (random.nextDouble <= .1) acc(c) += 1 }}
         acc.filter(_._2 > (cnt*.1)*thresh).map(r => r._1.getAs[K](0)).iterator
-      }).collect.toSet - null
-      println(s"heavy keys: ${keys.size}")
-	  (dfull, keys.asInstanceOf[Set[K]])
+      }).collect.toSet
+    }
+
+    def sliceHeavyKeys[K: ClassTag](dfull: Dataset[T], key: String): Set[K] = {
+      dfull.select(key).rdd.mapPartitions(it => {
+        var cnt = 0
+        val acc = HashMap.empty[Row, Int].withDefaultValue(0)
+        while (cnt < sampled && it.hasNext) { cnt += 1; it.next match { case null => Unit; case c => acc(c) += 1 }}
+        acc.filter(_._2 > sampled*thresh).map(r => r._1.getAs[K](0)).iterator
+      }).collect.toSet
     }
 
     def mapPartitions[U: Encoder : ClassTag](func: (Iterator[T]) ⇒ Iterator[U]): (Dataset[U], Dataset[U]) = {
