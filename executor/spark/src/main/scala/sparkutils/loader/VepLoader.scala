@@ -282,8 +282,8 @@ class VepLoader(spark: SparkSession) extends Serializable {
     val (dict1, dict2, dict3) = shredMid(occur)
 
     val skew_dict1 = (dict1, dict1.empty)
-    val skew_dict2 = (dict2, dict2.empty).repartition[String](col("_1"))
-    val skew_dict3 = (dict3, dict3.empty).repartition[String](col("_1"))
+    val skew_dict2 = (dict2, dict2.empty, Some("_1"), spark.sparkContext.broadcast(Set.empty[String]))//.repartition[String](col("_1"))
+    val skew_dict3 = (dict3, dict3.empty, Some("_1"), spark.sparkContext.broadcast(Set.empty[String]))//.repartition[String](col("_1"))
     (skew_dict1, skew_dict2, skew_dict3)
 
   }
