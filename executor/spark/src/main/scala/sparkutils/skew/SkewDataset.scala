@@ -618,7 +618,11 @@ object SkewDataset{
         var cnt = 0
         val acc = HashMap.empty[Row, Int].withDefaultValue(0)
         while (cnt < sampled && it.hasNext) { cnt += 1; it.next match { case null => Unit; case c => acc(c) += 1 }}
-        acc.filter(_._2 > sampled*thresh).map(r => r._1.getAs[K](0)).iterator
+        if (cnt < sampled) Iterator()
+        else {
+          val avg = acc.values.sum / acc.size
+          acc.filter(_._2 > avg*thresh).map(r => r._1.getAs[K](0)).iterator
+        }
       }).collect.toSet
     }
 
