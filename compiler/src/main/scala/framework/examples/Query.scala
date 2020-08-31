@@ -24,6 +24,7 @@ trait Query extends Materialization
   /** Standard Pipeline Runners **/
 
   val program: Program
+  def printProgram: String = quote(program)
 
   // nrc to plan language
   def calculus: CExpr = {
