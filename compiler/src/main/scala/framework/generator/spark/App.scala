@@ -30,21 +30,30 @@ object SkewApp extends App {
 	  // AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = true, unshred=true)
    //  AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = false, unshred=true)
 
-    AppWriter.flatDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,standard")
-    AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded")
-    AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", unshred=true)
+    AppWriter.flatDataset(SkewTest6, "SkewTest6,standard", skew = true)
+    AppWriter.flatDataset(SkewTest6, "SkewTest6,standard", skew = false)
 
-    AppWriter.flatDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,standard", skew=true)
-    AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", skew=true)
-    AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", unshred=true, skew=true)
+    AppWriter.shredDataset(SkewTest6, "SkewTest6,shredded", skew = true)
+    AppWriter.shredDataset(SkewTest6, "SkewTest6,shredded", skew = false)
 
-    AppWriter.flatDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,standard", skew=true)
-    AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded", skew=true)
-    AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded", unshred=true)
+    AppWriter.shredDataset(SkewTest6, "SkewTest6,shredded", skew = true, unshred=true)
+    AppWriter.shredDataset(SkewTest6, "SkewTest6,shredded", skew = false, unshred=true)
 
-    AppWriter.flatDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,standard", skew=true)
-    AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded", skew=true)
-    AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded", unshred=true, skew=true)
+    // AppWriter.flatDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,standard")
+    // AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded")
+    // AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", unshred=true)
+
+    // AppWriter.flatDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,standard", skew=true)
+    // AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", skew=true)
+    // AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", unshred=true, skew=true)
+
+    // AppWriter.flatDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,standard", skew=true)
+    // AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded", skew=true)
+    // AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded", unshred=true)
+
+    // AppWriter.flatDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,standard", skew=true)
+    // AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded", skew=true)
+    // AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded", unshred=true, skew=true)
 
   }
 

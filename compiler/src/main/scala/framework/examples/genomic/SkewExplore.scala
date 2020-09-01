@@ -155,6 +155,33 @@ object SkewTest5 extends DriverGene {
 
 }
 
+
+object SkewTest6 extends DriverGene {
+
+  val name = "SkewTest6"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${super.loadTables(shred, skew)}
+        |${loadGtfTable(shred, skew)}""".stripMargin
+
+  val query = 
+      ReduceByKey(
+        ForeachUnion(omr, occurmids,
+          ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
+            ForeachUnion(gtfr, gtf,
+              IfThenElse(Cmp(OpEq, amr("gene_id"), gtfr("g_gene_id")), 
+                Singleton(Tuple("case_uuid" -> amr("donorId"), 
+                  "c_gene_id" -> gtfr("c_gene_id")
+                  "name" -> gtfr("g_gene_name"),
+                  "count" -> NumericConst(1.0, DoubleType))))))),
+              List("case_uuid", "c_gene_id", "name"),
+              List("count"))))
+
+
+  val program = Program(Assignment(name, query))
+
+}
+
 // object SkewTest6 extends DriverGene {
 
 //   val name = "SkewTest6"
