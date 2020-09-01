@@ -539,18 +539,21 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
   val fexpr = TupleVarRef("fexpr", fgeneExprType)
 
   val biospec = BagVarRef("biospec", BagType(biospecType))
+  val samples = BagVarRef("samples", BagType(biospecType))
   val br = TupleVarRef("b", biospecType)
 
   val clinical = BagVarRef("clinical", BagType(clinicalType))
   val clr = TupleVarRef("cl", clinicalType)
 
   val conseq = BagVarRef("consequences", BagType(soImpactType))
+  val soimpact = BagVarRef("soimpact", BagType(soImpactType))
   val conr = TupleVarRef("cons", soImpactType)
 
   val gpmap = BagVarRef("biomart", BagType(geneProteinMapType))
   val gpr = TupleVarRef("gp", geneProteinMapType)
 
   val copynum = BagVarRef("copynumber", BagType(copyNumberType))
+  val cnv = BagVarRef("cnv", BagType(copyNumberType))
   val cnr = TupleVarRef("cn", copyNumberType)
 
   val gtf = BagVarRef("gtf", BagType(gtfType))
