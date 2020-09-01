@@ -171,7 +171,7 @@ object SkewTest6 extends DriverGene {
             ForeachUnion(gtfr, gtf,
               IfThenElse(Cmp(OpEq, amr("gene_id"), gtfr("g_gene_id")), 
                 Singleton(Tuple("case_uuid" -> amr("donorId"), 
-                  "c_gene_id" -> gtfr("c_gene_id")
+                  "c_gene_id" -> gtfr("c_gene_id"),
                   "name" -> gtfr("g_gene_name"),
                   "count" -> NumericConst(1.0, DoubleType))))))),
               List("case_uuid", "c_gene_id", "name"),
@@ -181,6 +181,93 @@ object SkewTest6 extends DriverGene {
   val program = Program(Assignment(name, query))
 
 }
+
+object SkewTest7 extends DriverGene {
+
+  val name = "SkewTest7"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${super.loadTables(shred, skew)}
+        |${loadGeneProteinMap(shred, skew)}
+        |${loadFlatNetwork(shred, skew)}""".stripMargin
+
+  val query = 
+   ReduceByKey( 
+    ForeachUnion(omr, occurmids,
+      ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
+        ForeachUnion(gpr, gpmap,
+          IfThenElse(Cmp(OpEq, amr("gene_id"), gpr("gene_stable_id")),
+            ForeachUnion(fnr, fnetwork,
+              IfThenElse(Cmp(OpEq, fnr("protein1"), gpr("protein_stable_id")),
+                Singleton(Tuple("case_uuid" -> omr("donorId"),
+                                "gene" -> amr("gene_id"), 
+                                "protein" -> fnr("protein1"), 
+                                "score" -> fnr("combined_score").asNumeric * matchImpactMid)))))))),
+                  List("case_uuid", "gene", "ngene"),
+                  List("score"))
+
+  val program = Program(Assignment(name, query))
+
+}
+
+object SkewTest8 extends DriverGene {
+
+  val name = "SkewTest8"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${super.loadTables(shred, skew)}
+        |${loadGeneProteinMap(shred, skew)}
+        |${loadFlatNetwork(shred, skew)}""".stripMargin
+
+  val query = 
+    ForeachUnion(br, biospec,
+      Singleton(Tuple("sample" -> br("bcr_patient_uuid"), "genes" -> 
+        ReduceByKey(ForeachUnion(omr, occurmids,
+          IfThenElse(Cmp(OpEq, br("bcr_patient_uuid"), omr("donorId")),
+            ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
+              ForeachUnion(gpr, gpmap,
+                IfThenElse(Cmp(OpEq, amr("gene_id"), gpr("gene_stable_id")),
+                  ForeachUnion(fnr, fnetwork,
+                    IfThenElse(Cmp(OpEq, fnr("protein1"), gpr("protein_stable_id")),
+                      Singleton(Tuple("gene" -> amr("gene_id"), 
+                              "protein" -> fnr("protein1"), 
+                              "score" -> fnr("combined_score").asNumeric * matchImpactMid))))))))),
+                  List("gene", "protein"),
+                  List("score")))))
+
+  val program = Program(Assignment(name, query))
+
+}
+
+
+// object SkewTest7 extends DriverGene {
+
+//   val name = "SkewTest7"
+
+//   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+//     s"""|${super.loadTables(shred, skew)}
+//         |${loadGtfTable(shred, skew)}""".stripMargin
+
+//   val query = 
+//       ReduceByKey(
+//         ForeachUnion(omr, occurmids,
+//           ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
+//             ForeachUnion(gtfr, gtf,
+//               IfThenElse(Cmp(OpEq, amr("gene_id"), gtfr("g_gene_id")), 
+//                 Singleton(Tuple("case_uuid" -> amr("donorId"), 
+//                   "c_gene_id" -> gtfr("c_gene_id")
+//                   "name" -> gtfr("g_gene_name"),
+//                   "distance" -> 
+//                     IfThenElse(OpLt(omr("vstart").asNumeric, gtfr()
+
+//                     Const(1.0, DoubleType))))))),
+//               List("case_uuid", "c_gene_id", "name"),
+//               List("count"))
+
+
+//   val program = Program(Assignment(name, query))
+
+// }
 
 // object SkewTest6 extends DriverGene {
 
