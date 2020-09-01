@@ -30,14 +30,20 @@ object SkewApp extends App {
 	  // AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = true, unshred=true)
    //  AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = false, unshred=true)
 
-    AppWriter.flatDataset(SkewTest6, "SkewTest6,standard", skew = true)
-    AppWriter.flatDataset(SkewTest6, "SkewTest6,standard", skew = false)
+    // AppWriter.flatDataset(SkewTest6, "SkewTest6,standard", skew = true)
+    // AppWriter.flatDataset(SkewTest6, "SkewTest6,standard", skew = false)
 
-    AppWriter.shredDataset(SkewTest6, "SkewTest6,shredded", skew = true)
-    AppWriter.shredDataset(SkewTest6, "SkewTest6,shredded", skew = false)
+    // AppWriter.shredDataset(SkewTest6, "SkewTest6,shredded", skew = true)
+    // AppWriter.shredDataset(SkewTest6, "SkewTest6,shredded", skew = false)
 
-    AppWriter.shredDataset(SkewTest6, "SkewTest6,shredded", skew = true, unshred=true)
-    AppWriter.shredDataset(SkewTest6, "SkewTest6,shredded", skew = false, unshred=true)
+    // AppWriter.shredDataset(SkewTest6, "SkewTest6,shredded", skew = true, unshred=true)
+    // AppWriter.shredDataset(SkewTest6, "SkewTest6,shredded", skew = false, unshred=true)
+
+    AppWriter.flatDataset(SkewTest8, "SkewTest8,standard", skew = true)
+    AppWriter.flatDataset(SkewTest8, "SkewTest8,standard", skew = false)
+
+    AppWriter.shredDataset(SkewTest8, "SkewTest8,shredded", skew = true)
+    AppWriter.shredDataset(SkewTest8, "SkewTest8,shredded", skew = false)
 
     // AppWriter.flatDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,standard")
     // AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded")
