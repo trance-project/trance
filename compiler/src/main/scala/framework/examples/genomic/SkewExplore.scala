@@ -175,7 +175,7 @@ object SkewTest6 extends DriverGene {
                   "name" -> gtfr("g_gene_name"),
                   "count" -> NumericConst(1.0, DoubleType))))))),
               List("case_uuid", "c_gene_id", "name"),
-              List("count"))))
+              List("count"))
 
 
   val program = Program(Assignment(name, query))
