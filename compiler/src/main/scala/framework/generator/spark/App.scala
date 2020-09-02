@@ -45,6 +45,8 @@ object SkewApp extends App {
     AppWriter.shredDataset(SkewTest8, "SkewTest8,shredded", skew = true)
     AppWriter.shredDataset(SkewTest8, "SkewTest8,shredded", skew = false)
 
+    AppWriter.shredDataset(SkewTest8, "SkewTest8,shredded", skew = true, unshred=true)
+    AppWriter.shredDataset(SkewTest8, "SkewTest8,shredded", skew = false, unshred=true)
     // AppWriter.flatDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,standard")
     // AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded")
     // AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", unshred=true)
