@@ -593,12 +593,25 @@ object SkewDataset{
     def heavyKeys[K: ClassTag](key: String): (Dataset[T], Set[K]) = {
       val dfull = dfs.union
       val keys = strategy match {
-        case "sample" => sampleHeavyKeys[K](dfull, key)
+        case "full" => fullHeavyKeys[K](dfull, key)
+		case "sample" => sampleHeavyKeys[K](dfull, key)
         case "slice" => sliceHeavyKeys[K](dfull, key)
         case _ => sys.error(s"unsupported heavy key strategy: $strategy.")
       }
-      println(s"heavy keys: ${keys.size}")
+      println(s"heavy keys for $key: ${keys.size}")
 	    (dfull, keys.asInstanceOf[Set[K]])
+    }
+
+	def fullHeavyKeys[K: ClassTag](dfull: Dataset[T], key: String): Set[K] = {
+      dfull.select(key).rdd.mapPartitions(it => {
+        var cnt = 0
+        val acc = HashMap.empty[Row, Int].withDefaultValue(0)
+        it.foreach{ c => 
+          cnt +=1
+          c match { case null => Unit
+            case _ => acc(c) += 1 }}
+        acc.filter(_._2 > (cnt*thresh)).map(r => r._1.getAs[K](0)).iterator
+      }).collect.toSet
     }
 
     def sampleHeavyKeys[K: ClassTag](dfull: Dataset[T], key: String): Set[K] = {
@@ -620,8 +633,10 @@ object SkewDataset{
         while (cnt < sampled && it.hasNext) { cnt += 1; it.next match { case null => Unit; case c => acc(c) += 1 }}
         if (cnt < sampled) Iterator()
         else {
-          val avg = acc.values.sum / acc.size
-          acc.filter(_._2 > avg*thresh).map(r => r._1.getAs[K](0)).iterator
+		  val accsize = acc.size
+		  val accsum = acc.values.sum
+          val avg = accsum / accsize
+		  acc.filter(_._2 > avg*thresh).map(r => r._1.getAs[K](0)).iterator
         }
       }).collect.toSet
     }
