@@ -1246,6 +1246,58 @@ object GeneConnectivityAlt extends DriverGene {
 
 }
 
+// test1
+object HybridBySampleNew extends DriverGene {
+
+  val name = "HybridBySampleNew"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
+
+  val siftImpact = NumericIfThenElse(Cmp(OpEq, amr("sift_score"), Const(0.0, DoubleType)),
+              NumericConst(0.01, DoubleType), amr("sift_score").asNumeric)
+
+  val polyImpact = NumericIfThenElse(Cmp(OpEq, amr("polyphen_score"), Const(0.0, DoubleType)),
+              NumericConst(0.01, DoubleType), amr("polyphen_score").asNumeric)
+
+  val step1Query = ReduceByKey(ForeachUnion(omr, occurmids,
+                IfThenElse(Cmp(OpEq, omr("donorId"), br("bcr_patient_uuid")),
+                  ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
+              ForeachUnion(cncr, cnvCases,
+                   IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), omr("donorId")),
+                        Cmp(OpEq, amr("gene_id"), cncr("cn_gene_id"))),
+                            ForeachUnion(cr, BagProject(amr, "consequence_terms"),
+                              ForeachUnion(conr, conseq,
+                                IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+                                    Singleton(Tuple(
+                                    "hybrid_case_id" -> omr("donorId"),
+                                    "hybrid_gene_id1" -> amr("gene_id"),
+                                    //"hybrid_impact" -> amr("impact"),
+                                    //"hybrid_sift" -> amr("sift_prediction"),
+                                    //"hybrid_polyphen" -> amr("polyphen_prediction"),
+                                    "hybrid_score1" -> 
+                                    conr("so_weight").asNumeric * matchImpactMid * siftImpact * polyImpact
+                      * (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
+            ,List("hybrid_case_id", "hybrid_gene_id1"),
+            List("hybrid_score1"))
+  
+  val (step1, s1r) = varset("step1", "s1", step1Query)
+  
+  val query = ForeachUnion(br, biospec,
+            Singleton(Tuple("hybrid_sample" -> br("bcr_patient_uuid"), 
+              "hybrid_aliquot" -> br("bcr_aliquot_uuid"),
+              "hybrid_center" -> br("center_id"),
+              "hybrid_genes" -> ForeachUnion(s1r, step1, 
+                  IfThenElse(Cmp(OpEq, s1r("hybrid_case_id"), br("bcr_patient_uuid")),
+                    Singleton(Tuple("hybrid_gene_id" -> s1r("hybrid_gene_id1"),
+                        "hybrid_score" -> s1r("hybrid_score1")
+                      )))))))
+
+  val program = Program(Assignment("cnvCases", mapCNV), Assignment("step1", step1Query), Assignment(name, query))
+
+}
+
+
 /** Alternate version of the pipeline **/
 object SampleNetworkNew100K extends DriverGene {
 

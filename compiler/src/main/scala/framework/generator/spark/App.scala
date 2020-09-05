@@ -160,9 +160,13 @@ object TestApp extends App {
     // AppWriter.shredDataset(HybridBySampleV2, "HybridBySampleV2,shredded")
     // AppWriter.shredDataset(HybridBySampleV2, "HybridBySampleV2,shredded", unshred=true)
 
-    AppWriter.flatDataset(HybridBySampleMid2, "HybridBySampleMid2,standard")
-    AppWriter.shredDataset(HybridBySampleMid2, "HybridBySampleMid2,shredded")
+    // AppWriter.flatDataset(HybridBySampleMid2, "HybridBySampleMid2,standard")
+    // AppWriter.shredDataset(HybridBySampleMid2, "HybridBySampleMid2,shredded")
     // AppWriter.shredDataset(HybridBySampleMid2, "HybridBySampleMid2,shredded", unshred=true)
+    
+    AppWriter.flatDataset(HybridBySampleNew, "HybridBySampleNew,standard")
+    // AppWriter.shredDataset(HybridBySampleNew, "HybridBySampleNew,shredded")
+    // AppWriter.shredDataset(HybridBySampleNew, "HybridBySampleNew,shredded", unshred=true)
 
     // AppWriter.flatDataset(HybridPlusBySample, "test")
     // AppWriter.shredDataset(HybridPlusBySample, "test")
