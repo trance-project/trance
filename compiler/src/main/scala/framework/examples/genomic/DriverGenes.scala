@@ -1261,7 +1261,6 @@ object HybridBySampleNew extends DriverGene {
               NumericConst(0.01, DoubleType), amr("polyphen_score").asNumeric)
 
   val step1Query = ReduceByKey(ForeachUnion(omr, occurmids,
-                IfThenElse(Cmp(OpEq, omr("donorId"), br("bcr_patient_uuid")),
                   ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
               ForeachUnion(cncr, cnvCases,
                    IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), omr("donorId")),
@@ -1277,7 +1276,7 @@ object HybridBySampleNew extends DriverGene {
                                     //"hybrid_polyphen" -> amr("polyphen_prediction"),
                                     "hybrid_score1" -> 
                                     conr("so_weight").asNumeric * matchImpactMid * siftImpact * polyImpact
-                      * (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))))))
+                      * (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType)))))))))))
             ,List("hybrid_case_id", "hybrid_gene_id1"),
             List("hybrid_score1"))
   

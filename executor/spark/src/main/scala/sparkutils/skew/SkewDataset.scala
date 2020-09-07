@@ -594,6 +594,7 @@ object SkewDataset{
       val dfull = dfs.union
       val keys = strategy match {
         case "full" => fullHeavyKeys[K](dfull, key)
+		case "partial" => partialHeavyKeys[K](dfull, key)
 		case "sample" => sampleHeavyKeys[K](dfull, key)
         case "slice" => sliceHeavyKeys[K](dfull, key)
         case _ => sys.error(s"unsupported heavy key strategy: $strategy.")
@@ -602,7 +603,22 @@ object SkewDataset{
 	    (dfull, keys.asInstanceOf[Set[K]])
     }
 
+	/** filter by a threshold and then use the number 
+		of partitions as the final filter?
+	**/
 	def fullHeavyKeys[K: ClassTag](dfull: Dataset[T], key: String): Set[K] = {
+      dfull.select(key).rdd.mapPartitions(it => {
+        var cnt = 0
+        val acc = HashMap.empty[Row, Int].withDefaultValue(0)
+        it.foreach{ c => 
+          cnt +=1
+          c match { case null => Unit
+            case _ => acc(c) += 1 }}		
+        acc.filter(_._2 > (cnt*thresh)).iterator
+      }).reduceByKey(_+_).filter(_._2 > partitions).map(r => r._1.getAs[K](0)).collect.toSet
+    }
+
+	def partialHeavyKeys[K: ClassTag](dfull: Dataset[T], key: String): Set[K] = {
       dfull.select(key).rdd.mapPartitions(it => {
         var cnt = 0
         val acc = HashMap.empty[Row, Int].withDefaultValue(0)
