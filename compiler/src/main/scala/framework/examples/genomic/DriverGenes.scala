@@ -1314,10 +1314,12 @@ object HybridBySampleNewS extends DriverGene {
         ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
           Singleton(Tuple("gene0" -> amr("gene_id"), "score0" -> matchImpactMid * siftImpact * polyImpact,
             "consequence_terms" -> 
-          ForeachUnion(cr, BagProject(amr, "consequence_terms"),
+          ReduceByKey(ForeachUnion(cr, BagProject(amr, "consequence_terms"),
             ForeachUnion(conr, conseq, 
               IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-                  Singleton(Tuple("score1" -> conr("so_weight").asNumeric)))))))))))
+                  Singleton(Tuple("score1" -> conr("so_weight").asNumeric))))),
+          Nil,
+          List("score1"))))))))
   
   val (step0, s0r) = varset("step0", "s0", step0Query)
   val s0r2 = TupleVarRef("s02", BagProject(s0r, "transcript_consequences").tp.tp)
