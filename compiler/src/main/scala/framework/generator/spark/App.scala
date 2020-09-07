@@ -164,9 +164,9 @@ object TestApp extends App {
     // AppWriter.shredDataset(HybridBySampleMid2, "HybridBySampleMid2,shredded")
     // AppWriter.shredDataset(HybridBySampleMid2, "HybridBySampleMid2,shredded", unshred=true)
     
-    // AppWriter.flatDataset(HybridBySampleNew, "HybridBySampleNew,standard")
+    AppWriter.flatDataset(HybridBySampleNew, "HybridBySampleNew,standard")
     AppWriter.shredDataset(HybridBySampleNewS, "HybridBySampleNewS,shredded")
-    // AppWriter.shredDataset(HybridBySampleNew, "HybridBySampleNew,shredded", unshred=true)
+    AppWriter.shredDataset(HybridBySampleNew, "HybridBySampleNew,shredded", unshred=true)
 
     // AppWriter.flatDataset(HybridPlusBySample, "test")
     // AppWriter.shredDataset(HybridPlusBySample, "test")

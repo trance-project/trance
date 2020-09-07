@@ -1352,7 +1352,7 @@ object HybridBySampleNewS extends DriverGene {
                 List("hybrid_gene_id"),
                 List("hybrid_score")))))
 
-  val program = Program(Assignment("cnvCases", mapCNV), Assignment("step1", step1Query), Assignment(name, query))
+  val program = Program(Assignment("cnvCases", mapCNV), Assignment("step0", step0Query), Assignment("step1", step1Query), Assignment(name, query))
 
 }
 
