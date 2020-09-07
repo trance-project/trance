@@ -1296,6 +1296,54 @@ object HybridBySampleNew extends DriverGene {
 
 }
 
+object HybridBySampleNewS extends DriverGene {
+
+  val name = "HybridBySampleNewS"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
+
+  val siftImpact = NumericIfThenElse(Cmp(OpEq, amr("sift_score"), Const(0.0, DoubleType)),
+              NumericConst(0.01, DoubleType), amr("sift_score").asNumeric)
+
+  val polyImpact = NumericIfThenElse(Cmp(OpEq, amr("polyphen_score"), Const(0.0, DoubleType)),
+              NumericConst(0.01, DoubleType), amr("polyphen_score").asNumeric)
+
+  val step1Query = ForeachUnion(omr, occurmids, 
+      Singleton(Tuple("case1" -> omr("donorId"), "tcs" -> 
+        ReduceByKey(ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
+          ForeachUnion(cr, BagProject(amr, "consequence_terms"),
+            ForeachUnion(conr, conseq, 
+              IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+                Singleton(Tuple("gene1" -> amr("gene_id"), 
+                  "score1" -> conr("so_weight").asNumeric * matchImpactMid * siftImpact * polyImpact)))))), 
+        List("gene1"), 
+        List("score1")))))
+  
+  val (step1, s1r) = varset("step1", "s1", step1Query)
+  val s1r2 = TupleVarRef("s2", BagProject(s1r, "tcs").tp.tp)
+  
+  val query = ForeachUnion(br, biospec,
+            Singleton(Tuple("hybrid_sample" -> br("bcr_patient_uuid"), 
+              "hybrid_aliquot" -> br("bcr_aliquot_uuid"),
+              "hybrid_center" -> br("center_id"),
+              "hybrid_genes" -> ReduceByKey(
+                ForeachUnion(s1r, step1, 
+                  IfThenElse(Cmp(OpEq, s1r("case1"), br("bcr_patient_uuid")),
+                    ForeachUnion(s1r2, BagProject(s1r, "tcs"),
+                      ForeachUnion(cncr, cnvCases,
+                        IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), s1r("case1")),
+                        Cmp(OpEq, s1r2("gene1"), cncr("cn_gene_id"))),
+                          Singleton(Tuple("hybrid_gene_id" -> s1r2("gene1"),
+                            "hybrid_score" -> s1r2("score1").asNumeric * 
+                            (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))),
+                List("hybrid_gene_id"),
+                List("hybrid_score")))))
+
+  val program = Program(Assignment("cnvCases", mapCNV), Assignment("step1", step1Query), Assignment(name, query))
+
+}
+
 
 /** Alternate version of the pipeline **/
 object SampleNetworkNew100K extends DriverGene {
