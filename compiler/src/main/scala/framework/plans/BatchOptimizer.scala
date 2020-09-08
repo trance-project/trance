@@ -20,7 +20,6 @@ object BatchOptimizer extends Extensions {
     (t1.attrs.get(f1).isDefined && t2.attrs.get(f2).isDefined) ||
       (t1.attrs.get(f2).isDefined && t2.attrs.get(f1).isDefined)
 
-  /** TODO Yao's awesome optimizer **/
   def pushUnnest(e: CExpr): CExpr = fapply(e, {
 
     case DFOuterUnnest(
