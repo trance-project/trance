@@ -1,0 +1,426 @@
+﻿{
+  "paragraphs": [
+    {
+      "text": "%spark.pyspark\nimport pandas as pd\n\nimport numpy as np\nimport matplotlib.pyplot as plt\n# because we already save the processed data when we do the multi-classification model,\n# we can directly load the processed data from disk\ndf = pd.read_csv(\"~/cancer_new.csv\", sep='\\t', encoding='utf-8')\n",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:55:24-0700",
+      "config": {
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/python",
+        "fontSize": 9,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1598793518353_-2094171894",
+      "id": "paragraph_1598792838842_1499878797",
+      "dateCreated": "2020-08-30T06:18:38-0700",
+      "dateStarted": "2020-09-02T09:13:30-0700",
+      "dateFinished": "2020-09-02T09:13:32-0700",
+      "status": "FINISHED",
+      "focus": true,
+      "$$hashKey": "object:3268"
+    },
+    {
+      "text": "%spark.pyspark\nimport numpy as np\nimport pandas as pd\nfrom sklearn import preprocessing\nimport matplotlib.pyplot as plt \nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.model_selection import train_test_split\nimport seaborn as sns\nimport warnings\nfrom sklearn.exceptions import DataConversionWarning\nwarnings.filterwarnings(action='ignore', category=DataConversionWarning)\nplt.rc(\"font\", size=4)\n\nsns.set(style=\"darkgrid\")\n\n\n\nplt.figure(figsize=(13,8))\n\nax = sns.countplot(y='tumor_tissue_site', data=df)\nplt.title(\"Data distribution of tumor tissue site\", size = 15);\n\nmax_chars = 12\n\nnew_labels = ['-\\n'.join(label._text[i:i + max_chars ] \n                        for i in range(0, len(label._text), max_chars ))\n              for label in ax.get_yticklabels()]\n\nax.set_yticklabels(new_labels)\nplt.show()",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T20:27:43-0700",
+      "config": {
+        "colWidth": 12,
+        "fontSize": 9,
+        "enabled": true,
+        "results": {},
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "editorMode": "ace/mode/python"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1598961653277_1369710941",
+      "id": "paragraph_1598961653277_1369710941",
+      "dateCreated": "2020-09-01T05:00:53-0700",
+      "dateStarted": "2020-09-02T09:13:32-0700",
+      "dateFinished": "2020-09-02T09:13:33-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:3269"
+    },
+    {
+      "text": "%spark.pyspark\nfrom sklearn.preprocessing import LabelEncoder, StandardScaler\nfrom sklearn.feature_selection import SelectKBest \nfrom sklearn.feature_selection import chi2 \nfrom sklearn.decomposition import PCA\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn import metrics\nfrom sklearn.feature_selection import RFE\nfrom sklearn.linear_model import RidgeCV, LassoCV, Ridge, Lasso\nimport statsmodels.api as sm\n\nimport matplotlib.pyplot as plt\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay\nfrom sklearn.datasets import load_iris\nfrom sklearn.naive_bayes import GaussianNB\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.svm import SVC\nfrom sklearn.neighbors import KNeighborsClassifier\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.ensemble import RandomForestClassifier\n\ndef warn(*args, **kwargs):\n    pass\nimport warnings\nwarnings.warn = warn\n\nclassifiers = {\n    \"LogisiticRegression\": LogisticRegression(solver='lbfgs', max_iter=100 ),\n    \"KNearest\": KNeighborsClassifier(),\n    \"Support Vector Classifier\": SVC(),\n    \"DecisionTreeClassifier\": DecisionTreeClassifier(),\n}\n\n\ndf = df[df.tumor_tissue_site != \"[Not Available]\"]",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T20:27:55-0700",
+      "config": {
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/python",
+        "fontSize": 9,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1598793518353_1938894040",
+      "id": "paragraph_1596532090985_-389253209",
+      "dateCreated": "2020-08-30T06:18:38-0700",
+      "dateStarted": "2020-09-02T09:13:33-0700",
+      "dateFinished": "2020-09-02T09:13:33-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:3270"
+    },
+    {
+      "title": "Print out the the percentage of each tumor_tissue_site",
+      "text": "%spark.pyspark\n\nprt = df.groupby([\"tumor_tissue_site\"]).size().reset_index(name='counts')\nprt[\"percentage\"] = prt[\"counts\"]/len(df.index)\nprt = prt.sort_values(\"percentage\", ascending = False)\nprint(\"Printing out the percentage of each tumor_tissue_site category:\")\nprint(prt, \"\\n\")\n\ntop_labels = prt.head(5).tumor_tissue_site.to_list()",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:51:06-0700",
+      "config": {
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/python",
+        "fontSize": 9,
+        "title": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1598793518353_-810507362",
+      "id": "paragraph_1596717673456_-1897469148",
+      "dateCreated": "2020-08-30T06:18:38-0700",
+      "dateStarted": "2020-09-02T09:13:33-0700",
+      "dateFinished": "2020-09-02T09:13:33-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:3271"
+    },
+    {
+      "title": "Find important features from a model",
+      "text": "%spark.pyspark\n\ndef topKFeatures(X, y, ifPlot = False, topK = 500):\n\n    bestfeatures = SelectKBest(score_func=chi2, k = topK)\n    fit = bestfeatures.fit(X,y)\n    dfscores = pd.DataFrame(fit.scores_)\n    dfscores = pd.DataFrame(fit.scores_)\n    dfcolumns = pd.DataFrame(X.columns)\n    \n    #concat two dataframes for better visualization \n    featureScores = pd.concat([dfcolumns,dfscores],axis=1)\n    featureScores.columns = ['Specs','Score']  #naming the dataframe columns\n    print(\"print 10 best features:\\n\", featureScores.nlargest(10,'Score'))\n    \n    if ifPlot == True:\n        plt.figure()\n        featureScores.nlargest(10,'Score').plot(kind='barh')\n        plt.show()\n    \n    topk_features = featureScores.nlargest(topK,'Score').Specs.values\n    # print(topk_features)\n    return topk_features\n",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T20:32:53-0700",
+      "config": {
+        "colWidth": 12,
+        "fontSize": 9,
+        "enabled": true,
+        "results": {},
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "editorMode": "ace/mode/python",
+        "title": true,
+        "editorHide": false
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1598793945063_-246756242",
+      "id": "paragraph_1598793945063_-246756242",
+      "dateCreated": "2020-08-30T06:25:45-0700",
+      "dateStarted": "2020-09-02T09:13:33-0700",
+      "dateFinished": "2020-09-02T09:13:33-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:3272"
+    },
+    {
+      "title": "Helper functions on confusion matrix and learning curve",
+      "text": "%spark.pyspark\n# Helper Functions  Learning Curves and Confusion Matrix\n\nfrom keras.callbacks import Callback, EarlyStopping, ReduceLROnPlateau, ModelCheckpoint\n\ndef plot_confusion_matrix(confusion_matrix, class_names, errors_only=False, figsize = (15,6), fontsize=16):\n    fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=figsize)\n    plt.subplots_adjust(wspace = 0.5)\n    plt.xticks(rotation=90)\n\n    if errors_only:\n        np.fill_diagonal(confusion_matrix, 0)        \n\n    conf_matrix_norm = confusion_matrix.astype('float') / confusion_matrix.sum(axis=1)[:,np.newaxis]\n    conf_matrix_norm = np.nan_to_num(conf_matrix_norm)  #fix any nans caused by zero row total\n    df_cm_norm = pd.DataFrame(conf_matrix_norm, index=class_names, columns=class_names)\n    heatmap = sns.heatmap(df_cm_norm, ax=ax1, cmap='Blues', fmt='.3f', annot=True, annot_kws={\"size\": fontsize},\n              linewidths=2, linecolor='black', cbar=False)\n    \n    ax1.tick_params(axis='x', labelrotation=0, labelsize=fontsize, labelcolor='black')\n    ax1.tick_params(axis='y', labelrotation=0, labelsize=fontsize, labelcolor='black')\n    ax1.set_ylim(ax1.get_xlim()[0], ax1.get_xlim()[1]) \n    ax1.set_xlabel('PREDICTED CLASS', fontsize=fontsize, color='black')\n    ax1.set_ylabel('TRUE CLASS', fontsize=fontsize, color='black')\n    ax1.set_title('Confusion Matrix - Normalized', pad=15, fontsize=fontsize, color='black')\n\n    df_cm = pd.DataFrame(confusion_matrix, index=class_names, columns=class_names)    \n    heatmap = sns.heatmap(df_cm, ax=ax2, cmap='Blues', fmt='d', annot=True, annot_kws={\"size\": fontsize+4},\n              linewidths=2, linecolor='black', cbar=False)   \n    \n    ax2.tick_params(axis='x', labelrotation=0, labelsize=fontsize, labelcolor='black')\n    ax2.tick_params(axis='y', labelrotation=0, labelsize=fontsize, labelcolor='black')\n    ax2.set_ylim(ax1.get_xlim()[0], ax1.get_xlim()[1]) \n    ax2.set_xlabel('PREDICTED CLASS', fontsize=fontsize, color='black')\n    ax2.set_ylabel('TRUE CLASS', fontsize=fontsize, color='black')\n    ax2.set_title('Confusion Matrix - Class Counts', pad=15, fontsize=fontsize, color='black')    \n  \n    for text in ax1.texts:\n        if text.get_text() == '0.000':\n            text.set_color(color='white')            \n    for text in ax2.texts:\n        if text.get_text() == '0':\n            text.set_color(color='white')\n\ndef plot_learning_curve(history, name):\n    plt.figure(figsize=(10,5))\n    plt.subplot(1,2,1)\n    plt.plot(history.history['accuracy'])\n    plt.plot(history.history['val_accuracy'])\n    \n    title = 'model accuracy for ' + name\n    if len(title) > 27:\n        title = 'model accuracy for\\n' + name\n    plt.title(title)\n    plt.ylabel('accuracy')\n    plt.xlabel('epoch')\n    plt.legend(['train', 'test'], loc='upper left')\n    #plt.clf()\n    # summarize history for loss\n    plt.subplot(1,2,2)\n    plt.plot(history.history['loss'])\n    plt.plot(history.history['val_loss'])\n    title = 'model loss for ' + name\n    if len(title) > 27:\n        title = 'model loss for\\n' + name\n    plt.title(title)\n    plt.ylabel('loss')\n    plt.xlabel('epoch')\n    plt.legend(['train', 'test'], loc='upper left')\n    # plt.show()\n",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:51:48-0700",
+      "config": {
+        "colWidth": 12,
+        "fontSize": 9,
+        "enabled": true,
+        "results": {},
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "editorMode": "ace/mode/python",
+        "editorHide": false,
+        "title": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1598797700469_260280084",
+      "id": "paragraph_1598797700469_260280084",
+      "dateCreated": "2020-08-30T07:28:20-0700",
+      "dateStarted": "2020-09-02T09:13:33-0700",
+      "dateFinished": "2020-09-02T09:13:33-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:3273"
+    },
+    {
+      "title": "Create the model",
+      "text": "%spark.pyspark\nimport time\n\n# set up keras\n##############################################################################\nimport keras\nfrom keras.utils import to_categorical\n\nfrom keras.models import Sequential\nfrom keras.layers import Dense, LeakyReLU, Flatten,Dropout, Activation,  InputLayer, Input, Dropout\n\n\ndef create_model(input_size, number_classes):\n    model = Sequential()\n    model.add(Dense(128, input_dim = input_size))\n    model.add(LeakyReLU(alpha=0.05))\n    model.add(Dropout(.15))\n    model.add(Dense(32))\n    model.add(LeakyReLU(alpha=0.05))\n    model.add(Dropout(.15))\n    model.add(Dense(1, activation='sigmoid'))\n    model.compile(loss='binary_crossentropy',\n              optimizer='adam',\n              metrics=['accuracy'])\n\n\n    model.summary()\n    return model\n",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T20:30:31-0700",
+      "config": {
+        "lineNumbers": true,
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/python",
+        "fontSize": 9,
+        "results": {},
+        "enabled": true,
+        "tableHide": false,
+        "title": true,
+        "editorHide": false
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1598793518353_-1612979966",
+      "id": "paragraph_1598278358396_-1663755049",
+      "dateCreated": "2020-08-30T06:18:38-0700",
+      "dateStarted": "2020-09-02T09:13:33-0700",
+      "dateFinished": "2020-09-02T09:13:33-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:3274"
+    },
+    {
+      "title": "Train individual models and save them locally",
+      "text": "%spark.pyspark\n\n\n# drop rows from the data, if there are not enough sample associated with this label\ndef drop_insufficient_features(df, label, cutoff):\n    return df.groupby(label).filter(lambda x : len(x)>cutoff)\n    \n\n\nres = []\nacc = []\nval_acc = []\nloss = []\nval_loss = []\nlegend = []\n\n\ndef train_binary(i):\n\n    labels = ['tumor_tissue_site', 'histological_type', 'race', 'gender', 'ethnicity']\n    LABEL = \"tumor_tissue_site\"\n    dataset = drop_insufficient_features(df, LABEL, cutoff = 200)\n    \n    y = dataset[[LABEL]]\n    X = dataset.drop(labels, axis = 1)\n    \n    top_labels = dataset[LABEL].unique()\n    print(top_labels)\n    \n\n    NAME = \"~/models/{}\".format(i+\"-new\")\n    dataset[LABEL] = np.where(dataset[LABEL]==i, 1, 0) # 1 = yes, 0 = no\n    \n    # Find the top 100 features \n    topk_features = topKFeatures(X, y, ifPlot = False, topK = 2230)\n    df1 = dataset.copy()\n    feature_X = df1[topk_features].values\n    label_y = df1[[LABEL]].values\n    new_X, new_y = feature_X, label_y\n    \n    #Normalizing the data\n    from sklearn.preprocessing import StandardScaler\n    sc = StandardScaler()\n    new_X = sc.fit_transform(new_X)\n    \n\n    #Train test split of model\n    from sklearn.model_selection import train_test_split\n    X_train,X_test,y_train,y_test = train_test_split(new_X,new_y,test_size = 0.3,random_state = 0)\n    \n    num_category = len(new_y[0])\n    num_features = X_train[0].shape[0]\n    # print(\"Number of features:\", num_features)\n    # print(\"Number of categories:\", num_category)\n    # print(y[0:10])\n    \n    model = create_model(num_features, num_category)\n    \n    history = model.fit(X_train, y_train, epochs=10, validation_data=(X_test, y_test))\n    \n    \n    plot_learning_curve(history, i)\n    \n    acc.append(history.history['accuracy'])\n    val_acc.append(history.history['val_accuracy'])\n    loss.append(history.history['loss'])\n    val_loss.append(history.history['val_loss'])\n\n    \n    model.save(NAME) # save the model",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:56:26-0700",
+      "config": {
+        "colWidth": 12,
+        "fontSize": 9,
+        "enabled": true,
+        "results": {},
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "editorMode": "ace/mode/python",
+        "title": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1598808820904_-1904256585",
+      "id": "paragraph_1598808820904_-1904256585",
+      "dateCreated": "2020-08-30T10:33:40-0700",
+      "dateStarted": "2020-09-02T09:13:33-0700",
+      "dateFinished": "2020-09-02T09:13:33-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:3275"
+    },
+    {
+      "title": "Plot the accuracy and loss function for each model",
+      "text": "%spark.pyspark\ntoPredict = ['Stomach', 'Kidney', 'Breast', 'Ovary', 'Head and Neck', 'Endometrial',\n 'Central nervous system', 'Lung', 'Colon']\nfor name in toPredict:\n    train_binary(name)",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:46:59-0700",
+      "config": {
+        "colWidth": 12,
+        "fontSize": 9,
+        "enabled": true,
+        "results": {},
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "editorMode": "ace/mode/python",
+        "tableHide": false,
+        "editorHide": false,
+        "title": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1598824378564_1725841158",
+      "id": "paragraph_1598824378564_1725841158",
+      "dateCreated": "2020-08-30T14:52:58-0700",
+      "dateStarted": "2020-09-02T09:13:33-0700",
+      "dateFinished": "2020-09-02T09:14:23-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:3276"
+    },
+    {
+      "title": "Plot the model accuracies in one graph",
+      "text": "%spark.pyspark\nfrom tensorflow import keras\n\ntoPredict = ['Stomach', 'Kidney', 'Breast', 'Ovary', 'Head and Neck', 'Endometrial',\n 'Central nervous system', 'Lung', 'Colon']\n# test_X, true_y, data = test_data(df)\n# print(test_X)\n\n\nfor name in toPredict:\n    path = \"~/models/{}\".format(name+\"-new\")\n    model = keras.models.load_model(path)\n    pred = model.predict(test_X)\n    res.append(pred)\n    # print(pred[0:10])\n\n    legend.append(name+\"_train\")\n    legend.append(name+\"_test\")\n    \nplt.figure(figsize=(8,10))\nfor i in range (len(toPredict)):\n    plt.plot(acc[i])\n    plt.plot(val_acc[i])\n    \nplt.ylabel('accuracy')\nplt.xlabel('epoch')\nplt.legend(legend, loc='upper left')    \nplt.title('model accuracy')\n\n    ",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:54:51-0700",
+      "config": {
+        "colWidth": 12,
+        "fontSize": 9,
+        "enabled": true,
+        "results": {},
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "editorMode": "ace/mode/python",
+        "title": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1598796537895_206965307",
+      "id": "paragraph_1598796537895_206965307",
+      "dateCreated": "2020-08-30T07:08:57-0700",
+      "dateStarted": "2020-09-02T09:14:23-0700",
+      "dateFinished": "2020-09-02T09:14:29-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:3277"
+    },
+    {
+      "title": "Test accuracy using all models, and plot the confusion matrix",
+      "text": "%spark.pyspark\nl = np.asarray(res)\npredict_index = l.argmax(axis = 0)\n\n\npredict_y = []\nfor i in predict_index:\n    x = toPredict[int(i)]\n    predict_y.append(x)\n\ntrue_y_index = []\nfrom pandas.core.common import flatten\nl = list(flatten(true_y.values))\nfor i in l:\n    # print(i)\n    x = toPredict.index(i)\n    true_y_index.append(x)\n\ncm = confusion_matrix(true_y_index, predict_index)\n\nplot_confusion_matrix(cm, [0,1,2,3,4,5,6,7,8], figsize = (5,12), fontsize=10)\n",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:48:15-0700",
+      "config": {
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/python",
+        "fontSize": 9,
+        "results": {},
+        "enabled": true,
+        "title": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1598793518354_990083466",
+      "id": "paragraph_1598280015926_-586424586",
+      "dateCreated": "2020-08-30T06:18:38-0700",
+      "dateStarted": "2020-09-02T09:14:29-0700",
+      "dateFinished": "2020-09-02T09:14:31-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:3278"
+    },
+    {
+      "text": "%spark.pyspark\n\nmodel.summary()\n",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-02T09:14:31-0700",
+      "config": {
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/python",
+        "fontSize": 9,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1598793518355_1431796450",
+      "id": "paragraph_1596043677692_1238632059",
+      "dateCreated": "2020-08-30T06:18:38-0700",
+      "dateStarted": "2020-09-02T09:14:31-0700",
+      "dateFinished": "2020-09-02T09:14:31-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:3279"
+    }
+  ],
+  "name": "CancerPathwayBurden_tumor_binary",
+  "id": "2FHEXYTWN",
+  "defaultInterpreterGroup": "spark",
+  "version": "0.9.0-preview1",
+  "noteParams": {},
+  "noteForms": {},
+  "angularObjects": {},
+  "config": {
+    "isZeppelinNotebookCronEnable": false,
+    "looknfeel": "default",
+    "personalizedMode": "false"
+  },
+  "info": {},
+  "path": "/CancerPathwayBurden_tumor_binary"
+}

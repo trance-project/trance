@@ -1,0 +1,993 @@
+﻿{
+  "paragraphs": [
+    {
+      "title": "NRC generated",
+      "text": "\nimport org.apache.spark.SparkConf\nimport org.apache.spark.sql.SparkSession\nimport org.apache.spark.sql._\nimport org.apache.spark.sql.functions._\nimport org.apache.spark.sql.types._\nimport org.apache.spark.sql.expressions.scalalang._\nimport sparkutils._\nimport sparkutils.loader._\nimport sparkutils.skew.SkewDataset._\n",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:48:48-0700",
+      "config": {
+        "colWidth": 12,
+        "fontSize": 9,
+        "enabled": true,
+        "results": {},
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "editorMode": "ace/mode/scala",
+        "title": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599536332547_-2002273015",
+      "id": "paragraph_1599536332547_-2002273015",
+      "dateCreated": "2020-09-07T20:38:52-0700",
+      "dateStarted": "2020-09-07T21:26:04-0700",
+      "dateFinished": "2020-09-07T21:26:04-0700",
+      "status": "FINISHED",
+      "focus": true,
+      "$$hashKey": "object:21994"
+    },
+    {
+      "text": "\ncase class Recordf6a26ee9700a46aab5c3df01c2ea29b0(pb_pathway: String, pb_burden: Double)\n\ncase class Record3dcb0a66a00d4459a89fb9cda21922b8(pb_sample: String, pb_center_id: String, pb_pathways: Seq[Recordf6a26ee9700a46aab5c3df01c2ea29b0])\n\ncase class Recordded5a1593e574964a7001bef9c6d4e6c(pb_pathway: String, pb_burden: Double, pb_pathways_1: String)\n\ncase class Record892364c2ea2e4f00a57bb4b5bad25f57(p_pathway_name: String, p_gene: String)\n\ncase class Record0f87112fc1484061aad8794a58b567eb(p_name: String, name: String, gene_id: String, gene_name: String)\n\ncase class Recorda47b4f1aa6cb4ac2b37184662dc6203e(donorId: String, transcript_consequences_LABEL: String)\n\ncase class Recordda356c5031a14f9b805b2711b5708250(pb_sample: String, pb_center_id: String, pb_pathways: String)\n\ncase class Recordc5e0e9e325ac4c5b80c83723fab2ffc6(p_name: String, gene_set_LABEL: String)\n\ncase class Record25dda87888954f20b32ec7b2433a0345(pb_sample: String, pb_burden: Double, pb_center_id: String, pb_pathway: String)\n\ncase class Recordcbe54e01342c4735a13c38c405d50aa5(pb_sample: String, pb_center_id: String, pb_pathways_LABEL: String)\n\ncase class Record9c9718d143b84365bbe005fc6c9ab84d(pb_pathway: String, _1: String, pb_burden: Double)\n\ncase class Record1ad414c79a384c7aa91048af84be8ea4(name: String, gene_set_1: String)\n\ncase class Recordcc56ba0a1d62472d99fdf1e054c088ab(p_name: String, gene_set: String)\n\ncase class Recordd28350a46d6c4aeb81fc5759fdc6db3f(gene_id: String, _1: String)\n\ncase class Record8441ad1ba95d463aa34b1ccf42b8acf3(p_gene: String, p_pathway_name: String, gene_id: String, donorId: String)\n\ncase class Record16c140c7880f46e4854aadef9a60b0e6(bcr_patient_uuid: String, center_id: String)\n\ncase class Record4a834c6c5ac240c08075010ff7fd23df(_1: String, pb_pathway: String)\n\ncase class Recorda7180f2d8074470b9bdad53647bce966(gene_id: String, donorId: String)\n\ncase class Recorda5de27e6143847b58b1d186d371003c3(p_name: String, name: String)\n\ncase class Recordde06c5cbc773488b936cbfbbbaf1edf3(transcript_consequences_1: String, gene_id: String)\n\ncase class Record20f3a298010f44d3b191bc47e3698103(pb_pathway: String, pb_burden: Double, _1: String)\n\ncase class Recordc84e6968820d483ebc8d21ef1ffde495(donorId: String, transcript_consequences: String)\n\ncase class Record766a92b447a74f539e3e28a6e167c14c(sample: String, pathway: String, burden: Double, center_id: String)",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:26:04-0700",
+      "config": {
+        "colWidth": 12,
+        "fontSize": 9,
+        "enabled": true,
+        "results": {},
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599536331900_-69885763",
+      "id": "paragraph_1599536331900_-69885763",
+      "dateCreated": "2020-09-07T20:38:51-0700",
+      "dateStarted": "2020-09-07T21:26:04-0700",
+      "dateFinished": "2020-09-07T21:26:05-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:21995"
+    },
+    {
+      "text": "object Config {\n\n  val prop = new java.util.Properties\n//   val sf = \"\"\n//   prop.load(fsin)\n\n  // fix this\n  val datapath = prop.getProperty(\"datapath\")\n  val master = prop.getProperty(\"master\", \"local[*]\")\n  val minPartitions = prop.getProperty(\"minPartitions\", \"400\").toInt\n  val maxPartitions = prop.getProperty(\"maxPartitions\", \"1000\").toInt\n  val threshold = prop.getProperty(\"threshold\", \".0025\").toDouble\n\n  // vep information\n  val vepHome = prop.getProperty(\"vephome\", \"/usr/local/ensembl-vep/vep\")\n  val vepCache = prop.getProperty(\"vepcache\", \"/mnt/app_hdd/\")\n\n}",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:26:05-0700",
+      "config": {
+        "colWidth": 12,
+        "fontSize": 9,
+        "enabled": true,
+        "results": {},
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599536330962_-1540007264",
+      "id": "paragraph_1599536330962_-1540007264",
+      "dateCreated": "2020-09-07T20:38:50-0700",
+      "dateStarted": "2020-09-07T21:26:05-0700",
+      "dateFinished": "2020-09-07T21:26:05-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:21996"
+    },
+    {
+      "text": "  val prop = new java.util.Properties\n\n\nval sf = \"\"\n    val conf = new SparkConf().setMaster(Config.master)\n      .setAppName(\"ShredPathwayBurden_v1UnshredSpark\" + sf)\n   .set(\"spark.sql.shuffle.partitions\", prop.getProperty(\"maxPartitions\", \"1000\").toInt.toString)\n\n  val spark = SparkSession.builder().config(conf).getOrCreate()\n  spark.conf.set(\"spark.sql.execution.arrow.enabled\", \"true\")\n\n  spark.sparkContext.addJar(\"sparkutils_2.12-0.1.jar\")",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:26:05-0700",
+      "config": {
+        "colWidth": 12,
+        "fontSize": 9,
+        "enabled": true,
+        "results": {},
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599536330112_302201445",
+      "id": "paragraph_1599536330112_302201445",
+      "dateCreated": "2020-09-07T20:38:50-0700",
+      "dateStarted": "2020-09-07T21:26:05-0700",
+      "dateFinished": "2020-09-07T21:26:06-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:21997"
+    },
+    {
+      "text": "// newly added section for lables \nval tcgaLoader = new TCGALoader(spark)\nval tcgaData = tcgaLoader.load(\"/mnt/app_hdd/data/Data/biospecimen/clinical\", dir = true)\ntcgaData.cache\n\n// tcgaData.show(10)\ntcgaData.printSchema",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:37:11-0700",
+      "config": {
+        "colWidth": 12,
+        "fontSize": 9,
+        "enabled": true,
+        "results": {},
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {
+        "jobUrl": {
+          "propertyName": "jobUrl",
+          "label": "SPARK JOB",
+          "tooltip": "View in Spark web UI",
+          "group": "spark",
+          "values": [
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=205",
+              "$$hashKey": "object:22743"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=206",
+              "$$hashKey": "object:22744"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=207",
+              "$$hashKey": "object:22745"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=208",
+              "$$hashKey": "object:22746"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=209",
+              "$$hashKey": "object:22747"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=210",
+              "$$hashKey": "object:22748"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=211",
+              "$$hashKey": "object:22749"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=212",
+              "$$hashKey": "object:22750"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=213",
+              "$$hashKey": "object:22751"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=214",
+              "$$hashKey": "object:22752"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=215",
+              "$$hashKey": "object:22753"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=216",
+              "$$hashKey": "object:22754"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=217",
+              "$$hashKey": "object:22755"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=218",
+              "$$hashKey": "object:22756"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=219",
+              "$$hashKey": "object:22757"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=220",
+              "$$hashKey": "object:22758"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=221",
+              "$$hashKey": "object:22759"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=222",
+              "$$hashKey": "object:22760"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=223",
+              "$$hashKey": "object:22761"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=224",
+              "$$hashKey": "object:22762"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=225",
+              "$$hashKey": "object:22763"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=226",
+              "$$hashKey": "object:22764"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=227",
+              "$$hashKey": "object:22765"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=228",
+              "$$hashKey": "object:22766"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=229",
+              "$$hashKey": "object:22767"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=230",
+              "$$hashKey": "object:22768"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=231",
+              "$$hashKey": "object:22769"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=232",
+              "$$hashKey": "object:22770"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=233",
+              "$$hashKey": "object:22771"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=234",
+              "$$hashKey": "object:22772"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=235",
+              "$$hashKey": "object:22773"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=236",
+              "$$hashKey": "object:22774"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=237",
+              "$$hashKey": "object:22775"
+            }
+          ],
+          "interpreterSettingId": "spark"
+        }
+      },
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599536329088_-314013982",
+      "id": "paragraph_1599536329088_-314013982",
+      "dateCreated": "2020-09-07T20:38:49-0700",
+      "dateStarted": "2020-09-07T21:26:06-0700",
+      "dateFinished": "2020-09-07T21:26:10-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:21998"
+    },
+    {
+      "text": "import spark.implicits._\n    val basepath = \"/mnt/app_hdd/data/Data/\"\n    val biospecLoader = new BiospecLoader(spark)\n    val biospec = biospecLoader.load(\"/mnt/app_hdd/data/Data/biospecimen/aliquot/\")\n    val IBag_biospec__D = biospec\n    IBag_biospec__D.cache\n    IBag_biospec__D.count\n    val consequenceLoader = new ConsequenceLoader(spark)\n    val conseq = consequenceLoader.loadSequential(\"/mnt/app_hdd/data/Data/calc_variant_conseq.txt\")\n    val IBag_consequences__D = conseq\n    IBag_consequences__D.cache\n    IBag_consequences__D.count\n    // val vepLoader = new VepLoader(spark)\n    //val mafLoader = new MAFLoader(spark)\n    //val maf = mafLoader.loadFlat(s\"/mnt/app_hdd/data/Data//somatic/small.maf\")\n    //val maf = mafLoader.loadFlat(s\"/mnt/app_hdd/data/Data//somatic/mafs/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf\")\n    //val (occurs, annots) = vepLoader.loadOccurrences(maf)\n    //val occurrences = vepLoader.buildOccurrences(occurs, annots)\n    //val (odict1, odict2, odict3) = vepLoader.shred(occurrences)\n    //val occurrences = spark.read.json(\"file:///mnt/app_hdd/data/Data/somatic/dataset/\").as[Occurrence]\n    //val (odict1, odict2, odict3) = vepLoader.shred(vepLoader.finalize(occurrences, biospec))\n    //val (odict1, odict2, odict3) = vepLoader.shred(vepLoader.finalize(occurrences))\n    //val occurrences = spark.read.json(\"file:///mnt/app_hdd/data/Data/somatic/datasetFull/\").as[OccurrenceMid]\n    //val occurrences = vepLoader.loadOccurrencesMid(maf)\n    //val (odict1, odict2, odict3) = vepLoader.shredMid(occurrences)\n    //val IBag_occurrences__D = odict1\n    val IBag_occurrences__D = spark.read.json(\"file:///mnt/app_hdd/data/Data/somatic/odictMutect1/\").as[OccurrDict1]\n    IBag_occurrences__D.cache\n    IBag_occurrences__D.count\n    //val IDict_occurrences__D_transcript_consequences = odict2\n    val IDict_occurrences__D_transcript_consequences = spark.read.json(\"file:///mnt/app_hdd/data/Data/somatic/odictMutect2/\").as[OccurrTransDict2]\n    IDict_occurrences__D_transcript_consequences.cache\n    IDict_occurrences__D_transcript_consequences.count\n    //val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3\n    val IDict_occurrences__D_transcript_consequences_consequence_terms = spark.read.json(\"file:///mnt/app_hdd/data/Data/somatic/odictMutect3/\").as[OccurrTransConseqDict3]\n    IDict_occurrences__D_transcript_consequences_consequence_terms.cache\n    IDict_occurrences__D_transcript_consequences_consequence_terms.count\n\n\n    val pathwayLoader = new PathwayLoader(spark, \"/mnt/app_hdd/data/Data/Pathway/c2.cp.v7.1.symbols.gmt\")\n    val (pathways, geneSet) = pathwayLoader.shredDS\n    val IBag_pathways__D = pathways\n    val IDict_pathways__D_gene_set = geneSet\n    //IBag_pathways__D.cache\n    //IBag_pathways__D.count\n\n    val gtfLoader = new GTFLoader(spark, \"/mnt/app_hdd/data/Data/Map/Homo_sapiens.GRCh37.87.chr.gtf\")\n    val Gtfs = gtfLoader.loadGeneIdName\n    val IBag_Gtfs__D = Gtfs\n    //IBag_Gtfs__D.cache\n    //IBag_Gtfs__D.count\n\n      var start0 = System.currentTimeMillis()\n      val x465 = IBag_pathways__D.select(\"p_name\", \"gene_set\")\n        .as[Recordcc56ba0a1d62472d99fdf1e054c088ab]\n      val x467 = IDict_pathways__D_gene_set\n      val x470 = x465.withColumnRenamed(\"gene_set\", \"gene_set_LABEL\")\n        .as[Recordc5e0e9e325ac4c5b80c83723fab2ffc6].equiJoin(\n        x467.withColumnRenamed(\"_1\", \"gene_set_1\").as[Record1ad414c79a384c7aa91048af84be8ea4],\n        Seq(\"gene_set_LABEL\", \"gene_set_1\"), \"left_outer\").drop(\"gene_set_LABEL\", \"gene_set_1\")\n        .as[Recorda5de27e6143847b58b1d186d371003c3]\n\n      val x472 = IBag_Gtfs__D\n      val x475 = x470.equiJoin(x472,\n        Seq(\"name\", \"gene_name\"), \"inner\").as[Record0f87112fc1484061aad8794a58b567eb]\n\n      val x477 = x475.select(\"p_name\", \"gene_id\")\n        .withColumnRenamed(\"p_name\", \"p_pathway_name\")\n        .withColumnRenamed(\"gene_id\", \"p_gene\")\n        .as[Record892364c2ea2e4f00a57bb4b5bad25f57]\n\n      val x478 = x477\n      val MBag_pathwayFlat_1 = x478\n      //MBag_pathwayFlat_1.print\n      MBag_pathwayFlat_1.cache\n      MBag_pathwayFlat_1.count\n      val x480 = IBag_biospec__D.select(\"bcr_patient_uuid\", \"center_id\")\n        .as[Record16c140c7880f46e4854aadef9a60b0e6]\n      val x482 = x480\n        .withColumn(\"pb_pathways\", col(\"bcr_patient_uuid\"))\n        .withColumnRenamed(\"bcr_patient_uuid\", \"pb_sample\")\n        .withColumnRenamed(\"center_id\", \"pb_center_id\")\n        .as[Recordda356c5031a14f9b805b2711b5708250]\n\n      val x483 = x482\n      val MBag_pathwayBurdenNest_1 = x483\n      //MBag_pathwayBurdenNest_1.print\n      MBag_pathwayBurdenNest_1.cache\n      MBag_pathwayBurdenNest_1.count\n      val x485 = IBag_occurrences__D.select(\"donorId\", \"transcript_consequences\")\n        .as[Recordc84e6968820d483ebc8d21ef1ffde495]\n      val x487 = IDict_occurrences__D_transcript_consequences.select(\"gene_id\", \"_1\")\n        .as[Recordd28350a46d6c4aeb81fc5759fdc6db3f]\n      val x490 = x485.withColumnRenamed(\"transcript_consequences\", \"transcript_consequences_LABEL\")\n        .as[Recorda47b4f1aa6cb4ac2b37184662dc6203e].equiJoin(\n        x487.withColumnRenamed(\"_1\", \"transcript_consequences_1\").as[Recordde06c5cbc773488b936cbfbbbaf1edf3],\n        Seq(\"transcript_consequences_LABEL\", \"transcript_consequences_1\"), \"left_outer\").drop(\"transcript_consequences_LABEL\", \"transcript_consequences_1\")\n        .as[Recorda7180f2d8074470b9bdad53647bce966]\n\n      val x492 = MBag_pathwayFlat_1\n      val x495 = x490.equiJoin(x492,\n        Seq(\"gene_id\", \"p_gene\"), \"inner\").as[Record8441ad1ba95d463aa34b1ccf42b8acf3]\n\n      val x497 = x495.select(\"p_pathway_name\", \"donorId\")\n        .withColumn(\"pb_burden\", lit(1.0))\n        .withColumn(\"_1\", col(\"donorId\"))\n        .withColumnRenamed(\"p_pathway_name\", \"pb_pathway\")\n        .as[Record20f3a298010f44d3b191bc47e3698103]\n\n      val x499 = x497.groupByKey(x498 => Record4a834c6c5ac240c08075010ff7fd23df(x498._1, x498.pb_pathway))\n        .agg(typed.sum[Record20f3a298010f44d3b191bc47e3698103](x498 => x498.pb_burden)\n        ).mapPartitions { it =>\n        it.map { case (key, pb_burden) =>\n          Record9c9718d143b84365bbe005fc6c9ab84d(key.pb_pathway, key._1, pb_burden)\n        }\n      }.as[Record9c9718d143b84365bbe005fc6c9ab84d]\n\n      val x500 = x499\n      val MDict_pathwayBurdenNest_1_pb_pathways_1 = x500.repartition($\"_1\")\n      //MDict_pathwayBurdenNest_1_pb_pathways_1.print\n      MDict_pathwayBurdenNest_1_pb_pathways_1.cache\n      MDict_pathwayBurdenNest_1_pb_pathways_1.count\n      val x502 = MBag_pathwayBurdenNest_1\n      val x504 = MDict_pathwayBurdenNest_1_pb_pathways_1\n      val x507 = x502.withColumnRenamed(\"pb_pathways\", \"pb_pathways_LABEL\")\n        .as[Recordcbe54e01342c4735a13c38c405d50aa5].equiJoin(\n        x504.withColumnRenamed(\"_1\", \"pb_pathways_1\").as[Recordded5a1593e574964a7001bef9c6d4e6c],\n        Seq(\"pb_pathways_LABEL\", \"pb_pathways_1\"), \"left_outer\").drop(\"pb_pathways_LABEL\", \"pb_pathways_1\")\n        .as[Record25dda87888954f20b32ec7b2433a0345]\n\n      val x509 = x507\n        .withColumnRenamed(\"pb_sample\", \"sample\")\n        .withColumnRenamed(\"pb_pathway\", \"pathway\")\n        .withColumnRenamed(\"pb_burden\", \"burden\")\n        .withColumnRenamed(\"pb_center_id\", \"center_id\")\n        .as[Record766a92b447a74f539e3e28a6e167c14c]\n\n      val x510 = x509\n      val MBag_PathwayBurden_v1_1 = x510\n      //MBag_PathwayBurden_v1_1.print\n      MBag_PathwayBurden_v1_1.cache\n      MBag_PathwayBurden_v1_1.count\n\n\n      var end0 = System.currentTimeMillis() - start0\n      println(\"test,\" + sf + \",\" + Config.datapath + \",\" + end0 + \",query,\" + spark.sparkContext.applicationId)\n\n\n      var start1 = System.currentTimeMillis()\n      val x522 = MBag_pathwayFlat_1\n      val pathwayFlat = x522\n      //pathwayFlat.print\n      //pathwayFlat.cache\n      //pathwayFlat.count\n      val x524 = MBag_pathwayBurdenNest_1\n      val x529 = x524.cogroup(MDict_pathwayBurdenNest_1_pb_pathways_1.unionGroupByKey(x526 => x526._1), x525 => x525.pb_pathways)(\n        (_, ve1, ve2) => {\n          val grp = ve2.map(x526 => Recordf6a26ee9700a46aab5c3df01c2ea29b0(x526.pb_pathway, x526.pb_burden)).toSeq\n          ve1.map(x528 => Record3dcb0a66a00d4459a89fb9cda21922b8(x528.pb_sample, x528.pb_center_id, grp))\n        }).as[Record3dcb0a66a00d4459a89fb9cda21922b8]\n      val x531 = x529\n\n\n      val x532 = x531\n      val pathwayBurdenNest = x532\n      //pathwayBurdenNest.print\n      //pathwayBurdenNest.cache\n      //pathwayBurdenNest.count\n      val x533 = MBag_PathwayBurden_v1_1\n      val PathwayBurden_v1 = x533\n      //PathwayBurden_v1.print\n      PathwayBurden_v1.cache\n      PathwayBurden_v1.count\n\n      var end1 = System.currentTimeMillis() - start1\n      println(\"test,\" + sf + \",\" + Config.datapath + \",\" + end1 + \",unshredding,\" + spark.sparkContext.applicationId)",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:26:10-0700",
+      "config": {
+        "colWidth": 12,
+        "fontSize": 9,
+        "enabled": true,
+        "results": {},
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {
+        "jobUrl": {
+          "propertyName": "jobUrl",
+          "label": "SPARK JOB",
+          "tooltip": "View in Spark web UI",
+          "group": "spark",
+          "values": [
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=238",
+              "$$hashKey": "object:22951"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=239",
+              "$$hashKey": "object:22952"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=240",
+              "$$hashKey": "object:22953"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=241",
+              "$$hashKey": "object:22954"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=242",
+              "$$hashKey": "object:22955"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=243",
+              "$$hashKey": "object:22956"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=244",
+              "$$hashKey": "object:22957"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=245",
+              "$$hashKey": "object:22958"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=246",
+              "$$hashKey": "object:22959"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=247",
+              "$$hashKey": "object:22960"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=248",
+              "$$hashKey": "object:22961"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=249",
+              "$$hashKey": "object:22962"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=250",
+              "$$hashKey": "object:22963"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=251",
+              "$$hashKey": "object:22964"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=252",
+              "$$hashKey": "object:22965"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=253",
+              "$$hashKey": "object:22966"
+            },
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=254",
+              "$$hashKey": "object:22967"
+            }
+          ],
+          "interpreterSettingId": "spark"
+        }
+      },
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599536324325_1232248641",
+      "id": "paragraph_1599536324325_1232248641",
+      "dateCreated": "2020-09-07T20:38:44-0700",
+      "dateStarted": "2020-09-07T21:26:10-0700",
+      "dateFinished": "2020-09-07T21:27:21-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:21999"
+    },
+    {
+      "text": "// JOIN BURDEN DATA WITH LABELS\n\nval joined = PathwayBurden_v1.join(tcgaData, \"sample\")\n\njoined.cache\njoined.show(10)\n",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:49:09-0700",
+      "config": {
+        "colWidth": 12,
+        "fontSize": 9,
+        "enabled": true,
+        "results": {},
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {
+        "jobUrl": {
+          "propertyName": "jobUrl",
+          "label": "SPARK JOB",
+          "tooltip": "View in Spark web UI",
+          "group": "spark",
+          "values": [
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=255",
+              "$$hashKey": "object:23079"
+            }
+          ],
+          "interpreterSettingId": "spark"
+        }
+      },
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599536322675_-880871913",
+      "id": "paragraph_1599536322675_-880871913",
+      "dateCreated": "2020-09-07T20:38:42-0700",
+      "dateStarted": "2020-09-07T21:27:21-0700",
+      "dateFinished": "2020-09-07T21:27:42-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:22000"
+    },
+    {
+      "title": "Pivot the dataframe before training",
+      "text": "// toy example before real labels\n\nimport org.apache.spark.sql.types.DoubleType\nimport org.apache.spark.sql.functions._\n\ndef castColumnTo( df: DataFrame, cn: String, tpe: DataType ) : DataFrame = {\n    df.withColumn( cn, df(cn).cast(tpe) )\n  }\n val df =\n        joined.groupBy(\"sample\" ,\"tumor_tissue_site\", \"histological_type\")\n        .pivot(\"pathway\")\n        .agg(sum($\"burden\"))\n        .drop(\"sample\")\n        .drop(\"null\")\n        .na.fill(0.0)\n\ndf.createOrReplaceTempView(\"joined\")",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:49:12-0700",
+      "config": {
+        "colWidth": 12,
+        "fontSize": 9,
+        "enabled": true,
+        "results": {
+          "0": {
+            "graph": {
+              "mode": "table",
+              "height": 300,
+              "optionOpen": false,
+              "setting": {
+                "table": {
+                  "tableGridState": {},
+                  "tableColumnTypeState": {
+                    "names": {
+                      "sample": "string",
+                      "center_id": "string",
+                      "pathway": "string",
+                      "burden": "string",
+                      "gender": "string",
+                      "race": "string",
+                      "ethnicity": "string",
+                      "tumor_tissue_site": "string",
+                      "histological_type": "string"
+                    },
+                    "updated": false
+                  },
+                  "tableOptionSpecHash": "[{\"name\":\"useFilter\",\"valueType\":\"boolean\",\"defaultValue\":false,\"widget\":\"checkbox\",\"description\":\"Enable filter for columns\"},{\"name\":\"showPagination\",\"valueType\":\"boolean\",\"defaultValue\":false,\"widget\":\"checkbox\",\"description\":\"Enable pagination for better navigation\"},{\"name\":\"showAggregationFooter\",\"valueType\":\"boolean\",\"defaultValue\":false,\"widget\":\"checkbox\",\"description\":\"Enable a footer for displaying aggregated values\"}]",
+                  "tableOptionValue": {
+                    "useFilter": false,
+                    "showPagination": false,
+                    "showAggregationFooter": false
+                  },
+                  "updated": false,
+                  "initialized": false
+                }
+              },
+              "commonSetting": {}
+            }
+          }
+        },
+        "editorSetting": {
+          "language": "scala",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "editorMode": "ace/mode/scala",
+        "title": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {
+        "jobUrl": {
+          "propertyName": "jobUrl",
+          "label": "SPARK JOB",
+          "tooltip": "View in Spark web UI",
+          "group": "spark",
+          "values": [
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=256",
+              "$$hashKey": "object:23127"
+            }
+          ],
+          "interpreterSettingId": "spark"
+        }
+      },
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599536901893_1697669609",
+      "id": "paragraph_1599536901893_1697669609",
+      "dateCreated": "2020-09-07T20:48:21-0700",
+      "dateStarted": "2020-09-07T21:27:42-0700",
+      "dateFinished": "2020-09-07T21:28:02-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:22001"
+    },
+    {
+      "title": "Save data on disk for future uses",
+      "text": "%spark.pyspark\n\n\ndata = sqlContext.table(\"joined\")\ndata.printSchema\ndf = data.toPandas()\n# df.to_csv(file_name, sep='\\t', encoding='utf-8', index=False)\n",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:40:21-0700",
+      "config": {
+        "colWidth": 12,
+        "fontSize": 9,
+        "enabled": true,
+        "results": {},
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "editorMode": "ace/mode/python",
+        "tableHide": false,
+        "title": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {
+        "jobUrl": {
+          "propertyName": "jobUrl",
+          "label": "SPARK JOB",
+          "tooltip": "View in Spark web UI",
+          "group": "spark",
+          "values": [
+            {
+              "jobUrl": "http://oda-compute-0-6:4040/jobs/job?id=257",
+              "$$hashKey": "object:23175"
+            }
+          ],
+          "interpreterSettingId": "spark"
+        }
+      },
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599537250319_-899737920",
+      "id": "paragraph_1599537250319_-899737920",
+      "dateCreated": "2020-09-07T20:54:10-0700",
+      "dateStarted": "2020-09-07T21:28:02-0700",
+      "dateFinished": "2020-09-07T21:30:19-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:22002"
+    },
+    {
+      "text": "%spark.pyspark\nimport pandas as pd\n\nimport numpy as np\nimport matplotlib.pyplot as plt\n\n# uncomment this line if the porcessed data is already save on disk\n# df = pd.read_csv(\"~/cancer_new.csv\", sep='\\t', encoding='utf-8')\n\ndf",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:41:10-0700",
+      "config": {
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/python",
+        "fontSize": 9,
+        "results": {},
+        "enabled": true,
+        "editorHide": false
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599041403340_56326028",
+      "id": "paragraph_1598792838842_1499878797",
+      "dateCreated": "2020-09-02T03:10:03-0700",
+      "dateStarted": "2020-09-07T21:30:19-0700",
+      "dateFinished": "2020-09-07T21:30:20-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:22003"
+    },
+    {
+      "title": "Plot the data distribution for each tumor tissue site",
+      "text": "%spark.pyspark\nimport numpy as np\nimport pandas as pd\nfrom sklearn import preprocessing\nimport matplotlib.pyplot as plt \nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.model_selection import train_test_split\nimport seaborn as sns\nimport warnings\nfrom sklearn.exceptions import DataConversionWarning\nwarnings.filterwarnings(action='ignore', category=DataConversionWarning)\nplt.rc(\"font\", size=4)\n\nsns.set(style=\"darkgrid\")\n\nplt.figure(figsize=(13,8))\n\nax = sns.countplot(y='tumor_tissue_site', data=df)\nplt.title(\"Data distribution of tumor tissue site\", size = 15);\n\nmax_chars = 12\n\nnew_labels = ['-\\n'.join(label._text[i:i + max_chars ] \n                        for i in range(0, len(label._text), max_chars ))\n              for label in ax.get_yticklabels()]\n\nax.set_yticklabels(new_labels)\nplt.show()",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:49:55-0700",
+      "config": {
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/python",
+        "fontSize": 9,
+        "results": {},
+        "enabled": true,
+        "editorHide": false,
+        "title": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599041403340_-1515637088",
+      "id": "paragraph_1598961653277_1369710941",
+      "dateCreated": "2020-09-02T03:10:03-0700",
+      "dateStarted": "2020-09-07T21:30:20-0700",
+      "dateFinished": "2020-09-07T21:30:23-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:22004"
+    },
+    {
+      "text": "%spark.pyspark\nfrom sklearn.preprocessing import LabelEncoder, StandardScaler\nfrom sklearn.feature_selection import SelectKBest \nfrom sklearn.feature_selection import chi2 \nfrom sklearn.decomposition import PCA\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn import metrics\nfrom sklearn.feature_selection import RFE\nfrom sklearn.linear_model import RidgeCV, LassoCV, Ridge, Lasso\nimport statsmodels.api as sm\n\nimport matplotlib.pyplot as plt\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay\nfrom sklearn.datasets import load_iris\nfrom sklearn.naive_bayes import GaussianNB\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.svm import SVC\nfrom sklearn.neighbors import KNeighborsClassifier\nfrom sklearn.tree import DecisionTreeClassifier\nfrom sklearn.ensemble import RandomForestClassifier\n\n\nfrom keras.utils import np_utils\nfrom sklearn.model_selection import cross_val_score\nfrom sklearn.model_selection import KFold\nfrom sklearn.preprocessing import LabelEncoder\nfrom sklearn.pipeline import Pipeline\n\ndef warn(*args, **kwargs):\n    pass\nimport warnings\nwarnings.warn = warn\n\nclassifiers = {\n    \"LogisiticRegression\": LogisticRegression(solver='lbfgs', max_iter=100 ),\n    \"KNearest\": KNeighborsClassifier(),\n    \"Support Vector Classifier\": SVC(),\n    \"DecisionTreeClassifier\": DecisionTreeClassifier(),\n}\n\n\ndf = df[df.tumor_tissue_site != \"[Not Available]\"]",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:30:23-0700",
+      "config": {
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/python",
+        "fontSize": 9,
+        "results": {},
+        "enabled": true,
+        "editorHide": false
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599041403341_556634412",
+      "id": "paragraph_1596532090985_-389253209",
+      "dateCreated": "2020-09-02T03:10:03-0700",
+      "dateStarted": "2020-09-07T21:30:23-0700",
+      "dateFinished": "2020-09-07T21:30:23-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:22005"
+    },
+    {
+      "title": "Print out the the percentage of each tumor_tissue_site",
+      "text": "%spark.pyspark\n\nprt = df.groupby([\"tumor_tissue_site\"]).size().reset_index(name='counts')\nprt[\"percentage\"] = prt[\"counts\"]/len(df.index)\nprt = prt.sort_values(\"percentage\", ascending = False)\nprint(\"Printing out the percentage of each tumor_tissue_site category:\")\nprint(prt, \"\\n\")\n\ntop_labels = prt.head(5).tumor_tissue_site.to_list()",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:51:12-0700",
+      "config": {
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/python",
+        "fontSize": 9,
+        "title": true,
+        "results": {},
+        "enabled": true,
+        "editorHide": false
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599041403341_934592327",
+      "id": "paragraph_1596717673456_-1897469148",
+      "dateCreated": "2020-09-02T03:10:03-0700",
+      "dateStarted": "2020-09-07T21:30:23-0700",
+      "dateFinished": "2020-09-07T21:30:23-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:22006"
+    },
+    {
+      "title": "Find important features from a model",
+      "text": "%spark.pyspark\n\ndef topKFeatures(X, y, ifPlot = False, topK = 500):\n\n    bestfeatures = SelectKBest(score_func=chi2, k = topK)\n    fit = bestfeatures.fit(X,y)\n    dfscores = pd.DataFrame(fit.scores_)\n    dfscores = pd.DataFrame(fit.scores_)\n    dfcolumns = pd.DataFrame(X.columns)\n    \n    #concat two dataframes for better visualization \n    featureScores = pd.concat([dfcolumns,dfscores],axis=1)\n    featureScores.columns = ['Specs','Score']  #naming the dataframe columns\n    print(\"print 10 best features:\\n\", featureScores.nlargest(10,'Score'))\n    \n    if ifPlot == True:\n        plt.figure()\n        featureScores.nlargest(10,'Score').plot(kind='barh')\n        plt.show()\n    \n    topk_features = featureScores.nlargest(topK,'Score').Specs.values\n    # print(topk_features)\n    return topk_features\n",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:30:23-0700",
+      "config": {
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/python",
+        "fontSize": 9,
+        "editorHide": false,
+        "title": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599041403341_1747737605",
+      "id": "paragraph_1598793945063_-246756242",
+      "dateCreated": "2020-09-02T03:10:03-0700",
+      "dateStarted": "2020-09-07T21:30:23-0700",
+      "dateFinished": "2020-09-07T21:30:23-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:22007"
+    },
+    {
+      "title": "Helper functions on confusion matrix and learning curve",
+      "text": "%spark.pyspark\n# Helper Functions  Learning Curves and Confusion Matrix\n\nfrom keras.callbacks import Callback, EarlyStopping, ReduceLROnPlateau, ModelCheckpoint\n\ndef plot_confusion_matrix(confusion_matrix, class_names, errors_only=False, figsize = (15,6), fontsize=16):\n    fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=figsize)\n    plt.subplots_adjust(wspace = 0.5)\n    plt.xticks(rotation=90)\n\n    if errors_only:\n        np.fill_diagonal(confusion_matrix, 0)        \n\n    conf_matrix_norm = confusion_matrix.astype('float') / confusion_matrix.sum(axis=1)[:,np.newaxis]\n    conf_matrix_norm = np.nan_to_num(conf_matrix_norm)  #fix any nans caused by zero row total\n    df_cm_norm = pd.DataFrame(conf_matrix_norm, index=class_names, columns=class_names)\n    heatmap = sns.heatmap(df_cm_norm, ax=ax1, cmap='Blues', fmt='.3f', annot=True, annot_kws={\"size\": fontsize},\n              linewidths=2, linecolor='black', cbar=False)\n    \n    ax1.tick_params(axis='x', labelrotation=0, labelsize=fontsize, labelcolor='black')\n    ax1.tick_params(axis='y', labelrotation=0, labelsize=fontsize, labelcolor='black')\n    ax1.set_ylim(ax1.get_xlim()[0], ax1.get_xlim()[1]) \n    ax1.set_xlabel('PREDICTED CLASS', fontsize=fontsize, color='black')\n    ax1.set_ylabel('TRUE CLASS', fontsize=fontsize, color='black')\n    ax1.set_title('Confusion Matrix - Normalized', pad=15, fontsize=fontsize, color='black')\n\n    df_cm = pd.DataFrame(confusion_matrix, index=class_names, columns=class_names)    \n    heatmap = sns.heatmap(df_cm, ax=ax2, cmap='Blues', fmt='d', annot=True, annot_kws={\"size\": fontsize+4},\n              linewidths=2, linecolor='black', cbar=False)   \n    \n    ax2.tick_params(axis='x', labelrotation=0, labelsize=fontsize, labelcolor='black')\n    ax2.tick_params(axis='y', labelrotation=0, labelsize=fontsize, labelcolor='black')\n    ax2.set_ylim(ax1.get_xlim()[0], ax1.get_xlim()[1]) \n    ax2.set_xlabel('PREDICTED CLASS', fontsize=fontsize, color='black')\n    ax2.set_ylabel('TRUE CLASS', fontsize=fontsize, color='black')\n    ax2.set_title('Confusion Matrix - Class Counts', pad=15, fontsize=fontsize, color='black')    \n  \n    for text in ax1.texts:\n        if text.get_text() == '0.000':\n            text.set_color(color='white')            \n    for text in ax2.texts:\n        if text.get_text() == '0':\n            text.set_color(color='white')\n\ndef plot_learning_curve(history, name):\n    plt.figure(figsize=(10,5))\n    plt.subplot(1,2,1)\n    plt.plot(history.history['accuracy'])\n    plt.plot(history.history['val_accuracy'])\n    \n    title = 'model accuracy for ' + name\n    if len(title) > 27:\n        title = 'model accuracy for\\n' + name\n    plt.title(title)\n    plt.ylabel('accuracy')\n    plt.xlabel('epoch')\n    plt.legend(['train', 'test'], loc='upper left')\n    #plt.clf()\n    # summarize history for loss\n    plt.subplot(1,2,2)\n    plt.plot(history.history['loss'])\n    plt.plot(history.history['val_loss'])\n    title = 'model loss for ' + name\n    if len(title) > 27:\n        title = 'model loss for\\n' + name\n    plt.title(title)\n    plt.ylabel('loss')\n    plt.xlabel('epoch')\n    plt.legend(['train', 'test'], loc='upper left')\n    # plt.show()\n",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:51:51-0700",
+      "config": {
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/python",
+        "fontSize": 9,
+        "editorHide": false,
+        "results": {},
+        "enabled": true,
+        "title": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599041403341_-1340649770",
+      "id": "paragraph_1598797700469_260280084",
+      "dateCreated": "2020-09-02T03:10:03-0700",
+      "dateStarted": "2020-09-07T21:30:23-0700",
+      "dateFinished": "2020-09-07T21:30:23-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:22008"
+    },
+    {
+      "title": "Create the model",
+      "text": "%spark.pyspark\nimport time\n\n# set up keras\n##############################################################################\nimport keras\nfrom keras.utils import to_categorical\n\nfrom keras.models import Sequential\nfrom keras.layers import Dense, LeakyReLU, Flatten,Dropout, Activation,  InputLayer, Input, Dropout, BatchNormalization\n\n\ndef create_model(input_size, number_classes):\n    model = Sequential()\n    model.add(Dense(128, input_dim = input_size))\n    model.add(LeakyReLU(alpha=0.05))\n    model.add(Dropout(0.3))\n    model.add(Dense(32))\n    model.add(LeakyReLU(alpha=0.05))\n    model.add(Dropout(.2))\n    model.add(Dense(number_classes, activation='softmax'))\n    model.compile(loss='categorical_crossentropy',\n              optimizer='adam',\n              metrics=['accuracy'])\n    \n\n    model.summary()\n    return model\n",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:30:23-0700",
+      "config": {
+        "lineNumbers": true,
+        "tableHide": false,
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/python",
+        "fontSize": 9,
+        "editorHide": false,
+        "title": true,
+        "results": {},
+        "enabled": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599041403341_-317890147",
+      "id": "paragraph_1598278358396_-1663755049",
+      "dateCreated": "2020-09-02T03:10:03-0700",
+      "dateStarted": "2020-09-07T21:30:23-0700",
+      "dateFinished": "2020-09-07T21:30:23-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:22009"
+    },
+    {
+      "title": "Train the multi-class model",
+      "text": "%spark.pyspark\n\n\n# drop rows from the data, if there are not enough sample associated with this label\ndef drop_insufficient_features(df, label, cutoff):\n    return df.groupby(label).filter(lambda x : len(x)>cutoff)\n    \n\ndef train_multi():\n    \n    labels = ['tumor_tissue_site', 'histological_type', 'race', 'gender', 'ethnicity']\n    LABEL = \"tumor_tissue_site\"\n    dataset = drop_insufficient_features(df, LABEL, cutoff = 200)\n    \n    toPredict = ['Stomach', 'Kidney', 'Breast', 'Ovary', 'Head and Neck', 'Endometrial',\n    'Central nervous system', 'Lung', 'Colon']\n    \n    y = dataset[[LABEL]]\n    X = dataset.drop(labels, axis = 1)\n    \n    top_labels = dataset[LABEL].unique()\n    print(top_labels)\n    \n    \n    NAME = \"~/models/{}\".format(\"multi\")\n    \n    topk_features = topKFeatures(X, y, ifPlot = False, topK = 1600)\n    df1 = dataset.copy()\n    feature_X = df1[topk_features].values\n    label_y = df1[[LABEL]].values\n    new_X, new_y = feature_X, label_y\n    \n    #Normalizing the data\n    from sklearn.preprocessing import StandardScaler\n    sc = StandardScaler()\n    new_X = sc.fit_transform(new_X)\n    \n    \n    encoder = LabelEncoder()\n    \n    encoder.fit(new_y)\n    encoded_Y = encoder.transform(new_y)\n    # convert integers to dummy variables (i.e. one hot encoded)\n    y_ohe = np_utils.to_categorical(encoded_Y)\n    \n    l = [0,1,2,3,4,5,6,7,8]\n    ls = encoder.inverse_transform(l)\n    print(ls, \"is encoded as\", l)\n    \n    \n    #Train test split of model\n    from sklearn.model_selection import train_test_split\n    X_train,X_test,y_train,y_test = train_test_split(new_X,y_ohe,test_size = 0.3,random_state = 0)\n    \n    num_features = X_train[0].shape[0]\n    \n    model = create_model(num_features, 9)\n    \n    history = model.fit(X_train, y_train, epochs= 30, validation_data=(X_test, y_test))\n    \n    y_pred = model.predict(X_test)\n    \n    plot_learning_curve(history)\n    \n    \n    y_test_non_category = [ np.argmax(t) for t in y_test ]\n    y_predict_non_category = [ np.argmax(t) for t in y_pred ]\n    \n    from sklearn.metrics import confusion_matrix\n    conf_mat = confusion_matrix(y_test_non_category, y_predict_non_category)\n\n    plot_confusion_matrix(conf_mat, [0,1,2,3,4,5,6,7,8], figsize = (5,12), fontsize=10)\n\n    # model.save(NAME) # save the model\n    return model",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:55:49-0700",
+      "config": {
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/python",
+        "fontSize": 9,
+        "results": {},
+        "enabled": true,
+        "editorHide": false,
+        "title": true
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599041403341_537380992",
+      "id": "paragraph_1598808820904_-1904256585",
+      "dateCreated": "2020-09-02T03:10:03-0700",
+      "dateStarted": "2020-09-07T21:30:23-0700",
+      "dateFinished": "2020-09-07T21:30:23-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:22010"
+    },
+    {
+      "text": "%spark.pyspark\nmodel = train_multi()\n",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:30:23-0700",
+      "config": {
+        "tableHide": false,
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/python",
+        "fontSize": 9,
+        "results": {},
+        "enabled": true,
+        "lineNumbers": true,
+        "editorHide": false
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599041403341_1261168179",
+      "id": "paragraph_1598824378564_1725841158",
+      "dateCreated": "2020-09-02T03:10:03-0700",
+      "dateStarted": "2020-09-07T21:30:23-0700",
+      "dateFinished": "2020-09-07T21:30:24-0700",
+      "status": "ERROR",
+      "$$hashKey": "object:22011"
+    },
+    {
+      "text": "%spark.pyspark\nNAME = \"~/models/multi/\" # change the path \nmodel.save(NAME)",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-07T21:53:53-0700",
+      "config": {
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/python",
+        "fontSize": 9,
+        "results": {},
+        "enabled": true,
+        "editorHide": false
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599041403349_-603191779",
+      "id": "paragraph_1598280015926_-586424586",
+      "dateCreated": "2020-09-02T03:10:03-0700",
+      "dateStarted": "2020-09-02T05:47:45-0700",
+      "dateFinished": "2020-09-02T05:47:46-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:22012"
+    },
+    {
+      "text": "%spark.pyspark\n\nmodel.summary()\n",
+      "user": "anonymous",
+      "dateUpdated": "2020-09-02T05:47:46-0700",
+      "config": {
+        "editorSetting": {
+          "language": "python",
+          "editOnDblClick": false,
+          "completionKey": "TAB",
+          "completionSupport": true
+        },
+        "colWidth": 12,
+        "editorMode": "ace/mode/python",
+        "fontSize": 9,
+        "results": {},
+        "enabled": true,
+        "editorHide": false
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "apps": [],
+      "runtimeInfos": {},
+      "progressUpdateIntervalMs": 500,
+      "jobName": "paragraph_1599041403350_1423447836",
+      "id": "paragraph_1596043677692_1238632059",
+      "dateCreated": "2020-09-02T03:10:03-0700",
+      "dateStarted": "2020-09-02T05:47:46-0700",
+      "dateFinished": "2020-09-02T05:47:46-0700",
+      "status": "FINISHED",
+      "$$hashKey": "object:22013"
+    }
+  ],
+  "name": "CancerPathwayBurden_tumor_multi",
+  "id": "2FK1WGZDP",
+  "defaultInterpreterGroup": "spark",
+  "version": "0.9.0-preview1",
+  "noteParams": {},
+  "noteForms": {},
+  "angularObjects": {},
+  "config": {
+    "isZeppelinNotebookCronEnable": false,
+    "looknfeel": "default",
+    "personalizedMode": "false"
+  },
+  "info": {
+    "isRunning": false
+  },
+  "path": "/CancerPathwayBurden_tumor_multi"
+}
