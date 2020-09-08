@@ -1327,20 +1327,18 @@ object HybridBySampleNewS extends DriverGene {
   val s0r2 = TupleVarRef("s02", BagProject(s0r, "transcript_consequences").tp.tp)
   val s0r3 = TupleVarRef("s03", BagProject(s0r2, "consequence_terms").tp.tp)
 
-  // val step1Query = ForeachUnion(s0r, step0, 
+  // val step1Query = 
+  //   ReduceByKey(ForeachUnion(s0r, step0, 
   //       ForeachUnion(s0r2, BagProject(s0r, "transcript_consequences"),
-  //         Singleton(Tuple("case0" -> s0r("donorId"),
-  //           "gene0" -> s0r2("gene_id"), "score1" -> s0r2("score0"),
-  //           "consequence_terms" 
-  //       ReduceByKey(ForeachUnion(s0r2, BagProject(s0r, "transcript_consequences"),
   //         ForeachUnion(s0r3, BagProject(s0r2, "consequence_terms"),
-  //           Singleton(Tuple("gene2" -> s0r2("gene0"), 
-  //                 "score2" -> s0r2("score0").asNumeric * s0r3("score1").asNumeric)))),
-  //       List("gene2"), 
-  //       List("score2")))))
+  //           Singleton(Tuple(
+  //             "gene0" -> s0r2("gene_id"), 
+  //             "case0" -> s0r("donorId"),
+  //             "score2" -> s0r2("score0").asNumeric * s0r3("score1").asNumeric))))),
+  //       List("case0", "gene0"), 
+  //       List("score2"))
   
   // val (step1, s1r) = varset("step1", "s1", step1Query)
-  // val s1r2 = TupleVarRef("s2", BagProject(s1r, "transcript_consequences").tp.tp)
   
   val query = ForeachUnion(br, biospec,
             Singleton(Tuple("hybrid_sample" -> br("bcr_patient_uuid"), 
@@ -1361,6 +1359,66 @@ object HybridBySampleNewS extends DriverGene {
                 List("hybrid_score")))))
 
   val program = Program(Assignment("cnvCases", mapCNV), Assignment("step0", step0Query), Assignment(name, query))
+
+}
+
+object HybridBySampleNewS2 extends DriverGene {
+
+  val name = "HybridBySampleNewS2"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
+
+  val siftImpact = NumericIfThenElse(Cmp(OpEq, amr("sift_score"), Const(0.0, DoubleType)),
+              NumericConst(0.01, DoubleType), amr("sift_score").asNumeric)
+
+  val polyImpact = NumericIfThenElse(Cmp(OpEq, amr("polyphen_score"), Const(0.0, DoubleType)),
+              NumericConst(0.01, DoubleType), amr("polyphen_score").asNumeric)
+
+  val step0Query = ForeachUnion(omr, occurmids, 
+        Singleton(Tuple("donorId" -> omr("donorId"), "transcript_consequences" -> 
+        ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
+          Singleton(Tuple("gene_id" -> amr("gene_id"), "score0" -> matchImpactMid * siftImpact * polyImpact,
+            "consequence_terms" -> 
+          ForeachUnion(cr, BagProject(amr, "consequence_terms"),
+            ForeachUnion(conr, conseq, 
+              IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+                  Singleton(Tuple("score1" -> conr("so_weight").asNumeric)))))))))))
+  
+  val (step0, s0r) = varset("step0", "s0", step0Query)
+  val s0r2 = TupleVarRef("s02", BagProject(s0r, "transcript_consequences").tp.tp)
+  val s0r3 = TupleVarRef("s03", BagProject(s0r2, "consequence_terms").tp.tp)
+
+  val step1Query = 
+    ReduceByKey(ForeachUnion(s0r, step0, 
+        ForeachUnion(s0r2, BagProject(s0r, "transcript_consequences"),
+          ForeachUnion(s0r3, BagProject(s0r2, "consequence_terms"),
+            Singleton(Tuple(
+              "gene0" -> s0r2("gene_id"), 
+              "case0" -> s0r("donorId"),
+              "score2" -> s0r2("score0").asNumeric * s0r3("score1").asNumeric))))),
+        List("case0", "gene0"), 
+        List("score2"))
+  
+  val (step1, s1r) = varset("step1", "s1", step1Query)
+  
+  val query = ForeachUnion(br, biospec,
+            Singleton(Tuple("hybrid_sample" -> br("bcr_patient_uuid"), 
+              "hybrid_aliquot" -> br("bcr_aliquot_uuid"),
+              "hybrid_center" -> br("center_id"),
+              "hybrid_genes" -> ReduceByKey(
+                ForeachUnion(s1r, step1, 
+                  ForeachUnion(cncr, cnvCases,
+                    IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), s1r("case0")),
+                      Cmp(OpEq, s1r("gene0"), cncr("cn_gene_id"))),
+                        Singleton(Tuple("hybrid_gene_id" -> s1r("gene0"),
+                            "hybrid_score" -> s1r("score2").asNumeric * 
+                            (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))),
+                List("hybrid_gene_id"),
+                List("hybrid_score")))))
+
+  val program = Program(Assignment("cnvCases", mapCNV), Assignment("step0", step0Query), 
+    Assignment("step1", step1Query), Assignment(name, query))
 
 }
 
