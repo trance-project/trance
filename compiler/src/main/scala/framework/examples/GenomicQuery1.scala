@@ -243,22 +243,57 @@ object GenomicQuery1 extends GenomicSchema {
 }
 
 
-object Step1 extends GenomicSchema {
+object Extension extends GenomicSchema {
 
-  val name = "Step1"
-  // 6.1 {(population_name: String, samples: {(name: String, variants: {(...)})} )}
+  val name = "extension"
   val query =
     ForeachUnion(mr, metadata, // for mr in metadata
 
-      Singleton(Tuple("population_name" -> mr("population"), "samples" ->
-        ForeachUnion(vr, variants, // For vr in Variants
-          ForeachUnion(gr, BagProject(vr, "genotypes"), //        For gr in vr.genotypes union
-            IfThenElse(Cmp(OpEq, gr("g_sample"), mr("m_sample")), // if gr.sample == mr.m_sample
-              Singleton(Tuple("name" -> gr("g_sample"), "call" -> gr("call"), "start" -> vr("start"), "contig" -> vr("contig"),
-                "reference" -> vr("reference"), "alternate" -> vr("alternate"))
-              )))))))
+      Singleton(Tuple("sample" -> mr("m_sample"), "race" -> mr("population"), "variants" ->
+        ForeachUnion(vr, variants,
+          ForeachUnion(gr, BagProject(vr, "genotypes"),
+            IfThenElse(Cmp(OpEq, gr("g_sample"), mr("m_sample")),
+              Singleton(Tuple("call" -> gr("call"), "start" -> vr("start"), "contig" -> vr("contig"),
+                "reference" -> vr("reference"), "alternate" -> vr("alternate")))))))))
+  //{sample, variants:{population, call, start, contig, reference, alternate}}
   val program = Program(Assignment(name, query))
-  // {(population, samples:{(name, call, start, contig)})}
+}
+
+
+object Step0 extends GenomicSchema {
+  val name = "Races"
+  val query = DeDup(ForeachUnion(mr, metadata,
+    Singleton(Tuple("race_key" -> mr("population")))
+  ))
+  val program = Program(Assignment(name, query))
+}
+
+
+object Step1 extends GenomicSchema {
+
+  val name = "SampleVariantsByRace"
+  val (races, r) = varset(Step0.name, "r", Step0.program(Step0.name).varRef.asInstanceOf[BagExpr])
+
+  val query =
+    ForeachUnion(r, races,
+      Singleton(Tuple("race" -> r("race_key"), "samples" ->
+        ForeachUnion(vr, variants,
+          ForeachUnion(mr, metadata,
+            Singleton(Tuple("name" -> mr("m_sample"), "variants" ->
+              ForeachUnion(gr, vr("genotypes").asBag,
+                IfThenElse(Cmp(OpEq, gr("g_sample"), mr("m_sample")) && Cmp(OpEq, r("race_key"), mr("population"))
+                  && Cmp(OpNe, gr("call"), Const(0, IntType)),
+                  ForeachUnion(gtfr, gtfs,
+                    IfThenElse(
+                      Cmp(OpGe, vr("start"), gtfr("g_start")) &&
+                        Cmp(OpGe, gtfr("g_end"), vr("start")) && Cmp(OpEq, gtfr("g_contig"), vr("contig")),
+                      Singleton(Tuple("start" -> vr("start"), "contig" -> vr("contig"),
+                        "reference" -> vr("reference"), "alternate" -> vr("alternate"))
+                      ))))))))))))
+
+  val p1 = Assignment(Step0.name, Step0.query.asInstanceOf[Expr])
+
+  val program = Program(p1, Assignment(name, query))
 }
 
 object Step2 extends GenomicSchema {
@@ -293,10 +328,9 @@ object Gene_Burden extends GenomicSchema {
   val name = "Gene_Burden"
   val query =
     ForeachUnion(vr, variants, // For v in Variants
-      ForeachUnion(gr, BagProject(vr, "genotypes"), //        For g in v.genotypes union
-        Singleton(Tuple("sample" -> gr("g_sample"), //          {(sample := g.sample,
+      ForeachUnion(gr, BagProject(vr, "genotypes"),
+        Singleton(Tuple("sample" -> gr("g_sample"),
           "genes" ->
-            //              genes := sumby
             ReduceByKey(
               ForeachUnion(gtfr, gtfs,
                 IfThenElse(

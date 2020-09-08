@@ -79,13 +79,13 @@ object TestApp extends App {
 /*GeneBurden and pathwayBurden for cancer data*/
 object PathwayBurden_v0 extends App {
   override def main(args: Array[String]): Unit = {
-    AppWriter.shredDataset(PathwayBurden_0_shred, "test")
-    AppWriter.shredDataset(PathwayBurden_0_shred, "test", unshred = true)
-
-    //    AppWriter.shredDataset(PathwayBurden_1_shred, "test")
-    AppWriter.flatDataset(PathwayBurden_0_standard, "test")
-    AppWriter.flatDataset(PathwayBurden_Alt, "test")
-    AppWriter.shredDataset(PathwayBurden_Alt, "test")
+//    AppWriter.shredDataset(PathwayBurden_0_shred, "test")
+//    AppWriter.shredDataset(PathwayBurden_0_shred, "test", unshred = true)
+//
+//    //    AppWriter.shredDataset(PathwayBurden_1_shred, "test")
+//    AppWriter.flatDataset(PathwayBurden_0_standard, "test")
+//    AppWriter.flatDataset(PathwayBurden_Alt, "test")
+//    AppWriter.shredDataset(PathwayBurden_Alt, "test")
     AppWriter.shredDataset(PathwayBurden_Alt, "test", unshred = true)
 
   }

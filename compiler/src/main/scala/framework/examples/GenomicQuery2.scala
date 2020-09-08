@@ -80,7 +80,7 @@ object plan4 extends GenomicSchema {
 
 // res: {sample: String, name: String, burden: Double}
 object gene_burden extends GenomicSchema {
-  val name = "Gene_Burden"
+  val name = "Gene_Burden_plan5"
   val query =
     ReduceByKey(
       ForeachUnion(vr, variants,
@@ -238,7 +238,8 @@ object flattenBurden extends GenomicSchema {
             Cmp(OpGe, vr("start"), gtfr("g_start")) && Cmp(OpGe, gtfr("g_end"), vr("start")) && Cmp(OpEq, gtfr("g_contig"), vr("contig")),
 
             ForeachUnion(gr, vr("genotypes").asBag,
-              Singleton(Tuple("fb_sample" -> gr("g_sample"), "fb_gene" -> gtfr("gene_name"), "fb_burden" -> Const(1.0, DoubleType)))
+              Singleton(Tuple("fb_sample" -> gr("g_sample"), "fb_gene" -> gtfr("gene_name"),
+                "fb_burden" -> PrimitiveIfThenElse(Cmp(OpNe, gr("call"), Const(0.0, DoubleType)), Const(1.0, DoubleType), Const(0.0, DoubleType))))
             )
 
 
@@ -270,6 +271,35 @@ object geneBurdenAlt extends GenomicSchema {
 
 }
 
+// res: {sample, pathways: {pathway_name, burden}}
+object plan5_pathway extends GenomicSchema {
+  val name = "pathway_burden_test"
+
+  val (gb, s) = varset(geneBurdenAlt.name, "v2", geneBurdenAlt.program(geneBurdenAlt.name).varRef.asInstanceOf[BagExpr])
+  val (pathwayFlat, p) = varset(pathway_flatten.name, "v3", pathway_flatten.program(pathway_flatten.name).varRef.asInstanceOf[BagExpr])
+  val b = TupleVarRef("gene", s("genes").asInstanceOf[BagExpr].tp.tp)
+
+//pathway_name" -> pr("p_name"), "p_gene_name"
+  val query =
+
+    ForeachUnion(s, gb,
+      Singleton(Tuple("m_sample" -> s("sample"), "pathways" ->
+        ReduceByKey(
+          ForeachUnion(b, s("genes").asBag,
+            ForeachUnion(p, pathwayFlat,
+              IfThenElse(Cmp(OpEq, p("p_gene_name"), b("gene")),
+                Singleton(Tuple("pathway" -> p("pathway_name"), "p_burden" -> b("burden")))
+              ))),
+          List("pathway"),
+          List("p_burden"))
+      ))
+    )
+
+  val p1 = Assignment(pathway_flatten.name, pathway_flatten.query.asInstanceOf[Expr])
+  val p2 = Assignment(geneBurdenAlt.name, geneBurdenAlt.query.asInstanceOf[Expr])
+  val program = Program(p2, p1, Assignment(name, query))
+
+}
 
 
 object byGene extends GenomicSchema {

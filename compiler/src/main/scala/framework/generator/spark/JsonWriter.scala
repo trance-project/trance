@@ -17,7 +17,7 @@ case class TheRootSchema(
   id: String = "2FDG6Z2M5",
   defaultInterpreterGroup: String = "spark",
   version: String = "0.9.0-preview1",
-  path: String = "/notbook/yaooo"
+  path: String = "/notbook/"
 )
 
 class JsonWriter {
