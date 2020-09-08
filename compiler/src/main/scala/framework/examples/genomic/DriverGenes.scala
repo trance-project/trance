@@ -579,10 +579,14 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 	                        NumericConst(0.15, DoubleType),
 	                        NumericConst(0.01, DoubleType)))))
 
+  //val omitCNV = (cnr.tp.attrs.keySet -- Set("cn_case_uuid", "cn_copy_number")).toList
   val mapCNV = ForeachUnion(cnr, copynum,
 		ForeachUnion(br, biospec,
 			IfThenElse(Cmp(OpEq, cnr("cn_aliquot_uuid"), br("bcr_aliquot_uuid")),
-				projectTuple(cnr, Map("cn_case_uuid" -> br("bcr_patient_uuid"))))))
+				Singleton(Tuple("cn_case_uuid" -> br("bcr_patient_uuid"), 
+					"cn_gene_id" -> cnr("cn_gene_id"),
+					"cn_copy_number" -> cnr("cn_copy_number"))))))
+				//projectTuple(cnr, Map("cn_case_uuid" -> br("bcr_patient_uuid")), omitCNV))))
 
   val (cnvCases, cncr) = varset("cnvCases", "cnv", mapCNV)
   
@@ -1310,27 +1314,29 @@ object HybridBySampleNewS extends DriverGene {
               NumericConst(0.01, DoubleType), amr("polyphen_score").asNumeric)
 
   val step0Query = ForeachUnion(omr, occurmids, 
-      Singleton(Tuple("case0" -> omr("donorId"), "transcript_consequences" -> 
+      Singleton(Tuple("donorId" -> omr("donorId"), "transcript_consequences" -> 
         ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
-          Singleton(Tuple("gene0" -> amr("gene_id"), "score0" -> matchImpactMid * siftImpact * polyImpact,
-            "consequence_terms" -> 
-          ReduceByKey(ForeachUnion(cr, BagProject(amr, "consequence_terms"),
-            ForeachUnion(conr, conseq, 
-              IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-                  Singleton(Tuple("score1" -> conr("so_weight").asNumeric))))),
-          Nil,
-          List("score1"))))))))
+          Singleton(Tuple("gene_id" -> amr("gene_id"), "score0" -> matchImpactMid * siftImpact * polyImpact,
+            //"sift_score" -> amr("sift_score"),
+			//"polyphen_score" -> amr("polyphen_score"),
+			//"impact" -> amr("impact"),
+			"consequence_terms" -> 
+          		ForeachUnion(cr, BagProject(amr, "consequence_terms"),
+            	  ForeachUnion(conr, conseq, 
+              	    IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
+                      Singleton(Tuple("score1" -> conr("so_weight").asNumeric)))))))))))
   
   val (step0, s0r) = varset("step0", "s0", step0Query)
   val s0r2 = TupleVarRef("s02", BagProject(s0r, "transcript_consequences").tp.tp)
   val s0r3 = TupleVarRef("s03", BagProject(s0r2, "consequence_terms").tp.tp)
 
   val step1Query = ForeachUnion(s0r, step0, 
-      Singleton(Tuple("case1" -> s0r("case0"), "transcript_consequences" -> 
+      Singleton(Tuple("donorId" -> s0r("donorId"), "transcript_consequences" -> 
         ReduceByKey(ForeachUnion(s0r2, BagProject(s0r, "transcript_consequences"),
           ForeachUnion(s0r3, BagProject(s0r2, "consequence_terms"),
-            Singleton(Tuple("gene2" -> s0r2("gene0"), 
+            Singleton(Tuple("gene2" -> s0r2("gene_id"), 
                   "score2" -> s0r2("score0").asNumeric * s0r3("score1").asNumeric)))),
+				  //matchImpactMid * siftImpact * polyImpact * s0r3("score1").asNumeric)))),
         List("gene2"), 
         List("score2")))))
   
@@ -1343,10 +1349,10 @@ object HybridBySampleNewS extends DriverGene {
               "hybrid_center" -> br("center_id"),
               "hybrid_genes" -> ReduceByKey(
                 ForeachUnion(s1r, step1, 
-                  IfThenElse(Cmp(OpEq, s1r("case1"), br("bcr_patient_uuid")),
+                  IfThenElse(Cmp(OpEq, s1r("donorId"), br("bcr_patient_uuid")),
                     ForeachUnion(s1r2, BagProject(s1r, "transcript_consequences"),
                       ForeachUnion(cncr, cnvCases,
-                        IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), s1r("case1")),
+                        IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), s1r("donorId")),
                         Cmp(OpEq, s1r2("gene2"), cncr("cn_gene_id"))),
                           Singleton(Tuple("hybrid_gene_id" -> s1r2("gene2"),
                             "hybrid_score" -> s1r2("score2").asNumeric * 
