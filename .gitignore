@@ -1,6 +1,8 @@
 executor/spark/src/main/scala/sparkutils/generated/*.scala
 executor/spark/src/main/scala/sparkutils/generated/*.zpln
 executor/spark/data.flat
+executor/spark/src/main/scala/sparkutils/generated/out*
+
 out
 restart.sh
 *DS_Store*

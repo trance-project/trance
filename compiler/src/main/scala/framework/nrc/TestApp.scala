@@ -642,7 +642,7 @@ object TestApp extends App
           List(
             Map("b" -> 123, "c" -> -321),
             Map("b" -> 456, "c" -> 5),
-            Map("b" -> 789, "c" -> 12),
+            Map("b" -> 789, "c" -> 12)
           )
         ),
         Map("a" -> 20, "s" ->

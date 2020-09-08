@@ -21,7 +21,7 @@ class VepLoader(spark: SparkSession) extends Serializable {
 
   import spark.implicits._
 
-  val options = "--distance 500000 --sift b --polyphen b --numbers "//--check_existing --clin_sig_allele 0 --no_check_alleles --af --af_1kg --af_esp --af_gnomad --failed 1"
+  val options = "--distance 10000 --sift b --polyphen b --numbers "//--check_existing --clin_sig_allele 0 --no_check_alleles --af --af_1kg --af_esp --af_gnomad --failed 1"
   val vepCommandLine = s"${Config.vepHome} --cache -o STDOUT --assembly GRCh38 --json $options --offline --no_stats --format vcf --dir_cache ${Config.vepCache}"
 
   val formatOccurrenceUdf = udf { 

@@ -12,3 +12,7 @@ libraryDependencies += "com.holdenkarau" %% "spark-testing-base" % "2.4.2_0.12.0
 //libraryDependencies += "net.liftweb" %% "lift-json" % "3.4.1"
 libraryDependencies += "com.github.samtools" % "htsjdk" % "2.9.1"
 libraryDependencies += "org.seqdoop" % "hadoop-bam" % "7.8.0"
+// https://mvnrepository.com/artifact/org.apache.spark/spark-mllib
+//libraryDependencies += "org.apache.spark" %% "spark-mllib" % "2.4.2" 
+//libraryDependencies += "org.scalanlp" % "breeze_2.11" % "0.13"
+
