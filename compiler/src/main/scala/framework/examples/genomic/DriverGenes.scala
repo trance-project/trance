@@ -582,6 +582,10 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
   val mapCNV = ForeachUnion(cnr, copynum,
 		ForeachUnion(br, biospec,
 			IfThenElse(Cmp(OpEq, cnr("cn_aliquot_uuid"), br("bcr_aliquot_uuid")),
+				// Singleton(Tuple(
+          // "cn_case_uuid" -> br("bcr_patient_uuid"), 
+					// "cn_gene_id" -> cnr("cn_gene_id"),
+					// "cn_copy_number" -> cnr("cn_copy_number"))))))
 				projectTuple(cnr, Map("cn_case_uuid" -> br("bcr_patient_uuid"))))))
 
   val (cnvCases, cncr) = varset("cnvCases", "cnv", mapCNV)
@@ -1310,21 +1314,24 @@ object HybridBySampleNewS extends DriverGene {
               NumericConst(0.01, DoubleType), amr("polyphen_score").asNumeric)
 
   val step0Query = ForeachUnion(omr, occurmids, 
+        Singleton(Tuple("donorId" -> omr("donorId"), "transcript_consequences" -> 
         ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
-          Singleton(Tuple(
-            "case0" -> omr("donorId"),
-            "gene0" -> amr("gene_id"), "score0" -> matchImpactMid * siftImpact * polyImpact,
+          Singleton(Tuple("gene_id" -> amr("gene_id"), "score0" -> matchImpactMid * siftImpact * polyImpact,
             "consequence_terms" -> 
           ForeachUnion(cr, BagProject(amr, "consequence_terms"),
             ForeachUnion(conr, conseq, 
               IfThenElse(Cmp(OpEq, conr("so_term"), cr("element")),
-                  Singleton(Tuple("score1" -> conr("so_weight").asNumeric)))))))))
+                  Singleton(Tuple("score1" -> conr("so_weight").asNumeric)))))))))))
   
   val (step0, s0r) = varset("step0", "s0", step0Query)
-  val s0r3 = TupleVarRef("s03", BagProject(s0r, "consequence_terms").tp.tp)
+  val s0r2 = TupleVarRef("s02", BagProject(s0r, "transcript_consequences").tp.tp)
+  val s0r3 = TupleVarRef("s03", BagProject(s0r2, "consequence_terms").tp.tp)
 
   // val step1Query = ForeachUnion(s0r, step0, 
-  //     Singleton(Tuple("case1" -> s0r("case0"), "transcript_consequences" -> 
+  //       ForeachUnion(s0r2, BagProject(s0r, "transcript_consequences"),
+  //         Singleton(Tuple("case0" -> s0r("donorId"),
+  //           "gene0" -> s0r2("gene_id"), "score1" -> s0r2("score0"),
+  //           "consequence_terms" 
   //       ReduceByKey(ForeachUnion(s0r2, BagProject(s0r, "transcript_consequences"),
   //         ForeachUnion(s0r3, BagProject(s0r2, "consequence_terms"),
   //           Singleton(Tuple("gene2" -> s0r2("gene0"), 
@@ -1341,14 +1348,15 @@ object HybridBySampleNewS extends DriverGene {
               "hybrid_center" -> br("center_id"),
               "hybrid_genes" -> ReduceByKey(
                 ForeachUnion(s0r, step0, 
-                  IfThenElse(Cmp(OpEq, s0r("case0"), br("bcr_patient_uuid")),
-                    ForeachUnion(s0r3, BagProject(s0r, "consequence_terms"),
+                  IfThenElse(Cmp(OpEq, s0r("donorId"), br("bcr_patient_uuid")),
+                    ForeachUnion(s0r2, BagProject(s0r, "transcript_consequences"),
                       ForeachUnion(cncr, cnvCases,
-                        IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), s0r("case0")),
-                        Cmp(OpEq, s0r("gene0"), cncr("cn_gene_id"))),
-                          Singleton(Tuple("hybrid_gene_id" -> s0r("gene0"),
-                            "hybrid_score" -> s0r3("score1").asNumeric * s0r("score0").asNumeric *
-                            (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))))),
+                        IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), s0r("donorId")),
+                        Cmp(OpEq, s0r2("gene_id"), cncr("cn_gene_id"))),
+                        ForeachUnion(s0r3, BagProject(s0r2, "consequence_terms"),
+                          Singleton(Tuple("hybrid_gene_id" -> s0r2("gene_id"),
+                            "hybrid_score" -> s0r3("score1").asNumeric * s0r2("score0").asNumeric *
+                            (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType)))))))))),
                 List("hybrid_gene_id"),
                 List("hybrid_score")))))
 
