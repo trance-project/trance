@@ -24,20 +24,20 @@ object App {
      //println("annotations here")
      //println(annots.show())
 	 //annots.take(10).foreach(println(_))
-	 val veploader = new VepLoader(spark)
-	 val mloader = new MAFLoader(spark)
+	 //val veploader = new VepLoader(spark)
+	 //val mloader = new MAFLoader(spark)
 	 //val fmaf = "TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf"
 	 //val fmaf = ""
 	 //val fmaf = "small.maf"
-	 val maf = mloader.loadFlat(s"/nfs_qc4/genomics/gdc/somatic/mafs/TCGA.DLBC.mutect.c3df46a9-85d1-45d4-954a-825313d4a26d.DR-10.0.somatic.maf/", dir = false)
+	 //val maf = mloader.loadFlat(s"/nfs_qc4/genomics/gdc/somatic/mafs/TCGA.DLBC.mutect.c3df46a9-85d1-45d4-954a-825313d4a26d.DR-10.0.somatic.maf/", dir = false)
 
-	 val occurrences = veploader.loadOccurrencesMid(maf)
+	 //val occurrences = veploader.loadOccurrencesMid(maf)
 	 //occurrences.cache
 	 //occurrences.count
 	 //val (vind, annots) = veploader.loadOccurrencesMid(maf)
 	 //println(occurrences.printSchema)
 	 //occurrences.take(10).foreach(println(_))
-	 occurrences.write.format("json").save("file:///nfs_qc4/genomics/gdc/somatic/datasetDLBC/")
+	 //occurrences.write.format("json").save("file:///nfs_qc4/genomics/gdc/somatic/datasetDLBC/")
 	 /**
 	 //one.write.format("json").save("file://nfs_qc4/genomics/gdc/somatic/vindexed/")
 	 //annotations.take(10).foreach(println(_))
@@ -78,8 +78,9 @@ object App {
 	//val gtfLoader = new GTFLoader(spark, "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf")
 	//val gtf = gtfLoader.loadDS
 	//gtf.take(10).foreach(println(_))
-
-
+    val nl = new NetworkLoader(spark)
+    val n = nl.load("/Users/jac/bioqueries/data/ppi/9606.protein.links.full.v11.0.csv")
+    n.write.format("json").save("file:///Users/jac/bioqueries/data/ppi/etwork")
     }
 
 }

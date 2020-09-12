@@ -1362,9 +1362,9 @@ object HybridBySampleNewS extends DriverGene {
 
 }
 
-object HybridBySampleNewS2 extends DriverGene {
+object HybridBySampleNewS2a extends DriverGene {
 
-  val name = "HybridBySampleNewS2"
+  val name = "HybridBySampleNewS2a"
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
     s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
@@ -1390,7 +1390,8 @@ object HybridBySampleNewS2 extends DriverGene {
   val s0r3 = TupleVarRef("s03", BagProject(s0r2, "consequence_terms").tp.tp)
 
   val step1Query = 
-    ReduceByKey(ForeachUnion(s0r, step0, 
+    ReduceByKey(
+      ForeachUnion(s0r, step0, 
         ForeachUnion(s0r2, BagProject(s0r, "transcript_consequences"),
           ForeachUnion(s0r3, BagProject(s0r2, "consequence_terms"),
             Singleton(Tuple(
@@ -1401,24 +1402,39 @@ object HybridBySampleNewS2 extends DriverGene {
         List("score2"))
   
   val (step1, s1r) = varset("step1", "s1", step1Query)
-  
-  val query = ForeachUnion(br, biospec,
-            Singleton(Tuple("hybrid_sample" -> br("bcr_patient_uuid"), 
-              "hybrid_aliquot" -> br("bcr_aliquot_uuid"),
-              "hybrid_center" -> br("center_id"),
-              "hybrid_genes" -> ReduceByKey(
-                ForeachUnion(s1r, step1, 
-                  ForeachUnion(cncr, cnvCases,
-                    IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), s1r("case0")),
-                      Cmp(OpEq, s1r("gene0"), cncr("cn_gene_id"))),
-                        Singleton(Tuple("hybrid_gene_id" -> s1r("gene0"),
-                            "hybrid_score" -> s1r("score2").asNumeric * 
-                            (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))),
-                List("hybrid_gene_id"),
-                List("hybrid_score")))))
+  println(s1r.tp)
+
 
   val program = Program(Assignment("cnvCases", mapCNV), Assignment("step0", step0Query), 
-    Assignment("step1", step1Query), Assignment(name, query))
+    Assignment("step1", step1Query))//, Assignment(name, query))
+
+}
+
+object HybridBySampleNewS2 extends DriverGene {
+
+  val name = "HybridBySampleNewS2"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
+
+  val (step1, s1r) = varset("step1", "s1", HybridBySampleNewS2a.step1Query.asInstanceOf[BagExpr])
+
+  val query = ForeachUnion(br, biospec,
+          Singleton(Tuple("hybrid_sample" -> br("bcr_patient_uuid"), 
+            "hybrid_aliquot" -> br("bcr_aliquot_uuid"),
+            "hybrid_center" -> br("center_id"),
+            "hybrid_genes" -> ReduceByKey(
+              ForeachUnion(s1r, step1, 
+                ForeachUnion(cncr, cnvCases,
+                  IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), s1r("case0")),
+                    Cmp(OpEq, s1r("gene0"), cncr("cn_gene_id"))),
+                      Singleton(Tuple("hybrid_gene_id" -> s1r("gene0"),
+                          "hybrid_score" -> s1r("score2").asNumeric * 
+                          (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))),
+              List("hybrid_gene_id"),
+              List("hybrid_score")))))
+
+  val program = HybridBySampleNewS2a.program.asInstanceOf[HybridBySampleNewS2.Program]append(Assignment(name, query))
 
 }
 

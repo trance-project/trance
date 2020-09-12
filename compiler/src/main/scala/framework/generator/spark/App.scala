@@ -7,38 +7,6 @@ object SkewApp extends App {
 
   override def main(args: Array[String]){
 
-    // AppWriter.flatDataset(SkewTest1, "SkewTest1,standard", skew = true)
-    // AppWriter.flatDataset(SkewTest1, "SkewTest1,standard", skew = false)
-
-    // AppWriter.flatDataset(SkewTest2, "SkewTest2,standard", skew = true)
-    // AppWriter.flatDataset(SkewTest2, "SkewTest2,standard", skew = false)
-
-    // AppWriter.flatDataset(SkewTest3, "SkewTest3,standard", skew = true)
-    // AppWriter.flatDataset(SkewTest3, "SkewTest3,standard", skew = false)
-
-    // AppWriter.flatDataset(SkewTest4, "SkewTest4,standard", skew = true)
-    // AppWriter.flatDataset(SkewTest4, "SkewTest4,standard", skew = false)
-
-    // AppWriter.shredDataset(SkewTest4, "SkewTest4,shredded", skew = true)
-    // AppWriter.shredDataset(SkewTest4, "SkewTest4,shredded", skew = false)
-    //AppWriter.flatDataset(SkewTest5, "SkewTest5,standard", skew = true)
-    //AppWriter.flatDataset(SkewTest5, "SkewTest5,standard", skew = false)
-
-    //AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = true)
-    //AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = false)
-
-	  // AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = true, unshred=true)
-   //  AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = false, unshred=true)
-
-    // AppWriter.flatDataset(SkewTest6, "SkewTest6,standard", skew = true)
-    // AppWriter.flatDataset(SkewTest6, "SkewTest6,standard", skew = false)
-
-    // AppWriter.shredDataset(SkewTest6, "SkewTest6,shredded", skew = true)
-    // AppWriter.shredDataset(SkewTest6, "SkewTest6,shredded", skew = false)
-
-    // AppWriter.shredDataset(SkewTest6, "SkewTest6,shredded", skew = true, unshred=true)
-    // AppWriter.shredDataset(SkewTest6, "SkewTest6,shredded", skew = false, unshred=true)
-
     AppWriter.flatDataset(SkewTest8, "SkewTest8,standard", skew = true)
     AppWriter.flatDataset(SkewTest8, "SkewTest8,standard", skew = false)
 
@@ -47,21 +15,6 @@ object SkewApp extends App {
 
     AppWriter.shredDataset(SkewTest8, "SkewTest8,shredded", skew = true, unshred=true)
     AppWriter.shredDataset(SkewTest8, "SkewTest8,shredded", skew = false, unshred=true)
-    // AppWriter.flatDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,standard")
-    // AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded")
-    // AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", unshred=true)
-
-    // AppWriter.flatDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,standard", skew=true)
-    // AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", skew=true)
-    // AppWriter.shredDataset(OccurCNVGroupByCaseMid, "OccurCNVGroupByCaseMid,shredded", unshred=true, skew=true)
-
-    // AppWriter.flatDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,standard", skew=true)
-    // AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded", skew=true)
-    // AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded", unshred=true)
-
-    // AppWriter.flatDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,standard", skew=true)
-    // AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded", skew=true)
-    // AppWriter.shredDataset(OccurCNVAggGroupByCaseMid, "OccurCNVAggGroupByCaseMid,shredded", unshred=true, skew=true)
 
   }
 
@@ -165,8 +118,8 @@ object TestApp extends App {
     // AppWriter.shredDataset(HybridBySampleMid2, "HybridBySampleMid2,shredded", unshred=true)
     
     AppWriter.flatDataset(HybridBySampleNew, "HybridBySampleNew,standard")
-    AppWriter.shredDataset(HybridBySampleNewS, "HybridBySampleNewS,shredded")
-    AppWriter.shredDataset(HybridBySampleNew, "HybridBySampleNew,shredded", unshred=true)
+    AppWriter.shredDataset(HybridBySampleNewS2, "HybridBySampleNewS2,shredded")
+    // AppWriter.shredDataset(HybridBySampleNew, "HybridBySampleNew,shredded", unshred=true)
 
     // AppWriter.flatDataset(HybridPlusBySample, "test")
     // AppWriter.shredDataset(HybridPlusBySample, "test")
