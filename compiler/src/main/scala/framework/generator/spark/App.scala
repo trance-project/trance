@@ -70,21 +70,23 @@ object FiveKApp extends App {
 
   override def main(args: Array[String]){
 
+    AppWriter.flatDataset(HybridBySampleMid2, "HybridBySampleMid2,standard")
+
     AppWriter.flatDataset(SampleNetworkNew, "SampleNetworkNew,standard")
-    AppWriter.shredDataset(SampleNetworkNew, "SampleNetworkNew,shredded")
-    AppWriter.shredDataset(SampleNetworkNew, "SampleNetworkNew,shredded", unshred=true)
+    //AppWriter.shredDataset(SampleNetworkNew, "SampleNetworkNew,shredded")
+    //AppWriter.shredDataset(SampleNetworkNew, "SampleNetworkNew,shredded", unshred=true)
     
     AppWriter.flatDataset(EffectBySampleNew, "EffectBySampleNew,standard")
-    AppWriter.shredDataset(EffectBySampleNew, "EffectBySampleNew,shredded")
-    AppWriter.shredDataset(EffectBySampleNew, "EffectBySampleNew,shredded", unshred=true)
+    //AppWriter.shredDataset(EffectBySampleNew, "EffectBySampleNew,shredded")
+    //AppWriter.shredDataset(EffectBySampleNew, "EffectBySampleNew,shredded", unshred=true)
 
     AppWriter.flatDataset(ConnectionBySampleNew, "ConnectionBySampleNew,standard")
-    AppWriter.shredDataset(ConnectionBySampleNew, "ConnectionBySampleNew,shredded")
-    AppWriter.shredDataset(ConnectionBySampleNew, "ConnectionBySampleNew,shredded", unshred=true)
+    //AppWriter.shredDataset(ConnectionBySampleNew, "ConnectionBySampleNew,shredded")
+    //AppWriter.shredDataset(ConnectionBySampleNew, "ConnectionBySampleNew,shredded", unshred=true)
 
     AppWriter.flatDataset(GeneConnectivityNew, "ConnectionBySampleNew,standard")
-    AppWriter.shredDataset(GeneConnectivityNew, "ConnectionBySampleNew,shredded")
-    AppWriter.shredDataset(GeneConnectivityNew, "ConnectionBySampleNew,shredded", unshred=true)
+    //AppWriter.shredDataset(GeneConnectivityNew, "ConnectionBySampleNew,shredded")
+    //AppWriter.shredDataset(GeneConnectivityNew, "ConnectionBySampleNew,shredded", unshred=true)
 
   }
 

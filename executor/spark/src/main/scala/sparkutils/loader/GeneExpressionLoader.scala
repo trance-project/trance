@@ -44,14 +44,14 @@ class GeneExpressionLoader(spark: SparkSession) {
       .as[GeneExpression]
   }
 
-  def load(path: String, dir: Boolean = true): Dataset[GeneExpression] = {
+  def load(path: String, dir: Boolean = true, aliquotFile: String = "/nfs_qc4/genomics/gdc/biospecimen/fpkm_uq_case_aliquot.txt"): Dataset[GeneExpression] = {
     val files = if (dir) (new File(path)).listFiles().toSeq.map(f => s"$path/${f.getName}")
       else Seq(path)
     val aliquotMap = spark.read.schema(schemaMap)
 		.format("csv")
       	.option("header", header)
       	.option("delimiter", delimiter)
-      	.load("/nfs_qc4/genomics/gdc/biospecimen/fpkm_uq_case_aliquot.txt")
+      	.load(aliquotFile)
 		.withColumn("file_name", aliquotUdf($"file_name"))
 		.as[AliquotMap]		
 	spark.read.schema(schema)
