@@ -149,7 +149,7 @@ object OccurCNVGroupByCaseMid extends DriverGene {
           projectTuple(omr, Map(//"aliquotId" -> br("bcr_aliquot_uuid"), 
             "o_trans_conseq" -> ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
               ForeachUnion(cncr, cnvCases,
-                    IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), amr("case_id")),
+                    IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), omr("case_id")),
                       Cmp(OpEq, amr("gene_id"), cncr("cn_gene_id"))),
             projectTuple(amr, Map(
               "o_copy_number" -> cncr("cn_copy_number"),
@@ -194,7 +194,7 @@ object OccurCNVAggGroupByCaseMid extends DriverGene {
             "o_trans_conseq" -> ReduceByKey(
               ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
                 ForeachUnion(cncr, cnvCases,
-                  IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), amr("case_id")),
+                  IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), omr("case_id")),
                       Cmp(OpEq, amr("gene_id"), cncr("cn_gene_id"))),
                         ForeachUnion(cr, BagProject(amr, "consequence_terms"),
                           ForeachUnion(conr, conseq,

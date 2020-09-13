@@ -7,28 +7,14 @@ object SkewApp extends App {
 
   override def main(args: Array[String]){
 
-    // AppWriter.flatDataset(SkewTest1, "SkewTest1,standard", skew = true)
-    // AppWriter.flatDataset(SkewTest1, "SkewTest1,standard", skew = false)
+    AppWriter.flatDataset(SkewTest8, "SkewTest8,standard", skew = true)
+    AppWriter.flatDataset(SkewTest8, "SkewTest8,standard", skew = false)
 
-    // AppWriter.flatDataset(SkewTest2, "SkewTest2,standard", skew = true)
-    // AppWriter.flatDataset(SkewTest2, "SkewTest2,standard", skew = false)
+    AppWriter.shredDataset(SkewTest8, "SkewTest8,shredded", skew = true)
+    AppWriter.shredDataset(SkewTest8, "SkewTest8,shredded", skew = false)
 
-    // AppWriter.flatDataset(SkewTest3, "SkewTest3,standard", skew = true)
-    // AppWriter.flatDataset(SkewTest3, "SkewTest3,standard", skew = false)
-
-    // AppWriter.flatDataset(SkewTest4, "SkewTest4,standard", skew = true)
-    // AppWriter.flatDataset(SkewTest4, "SkewTest4,standard", skew = false)
-
-    // AppWriter.shredDataset(SkewTest4, "SkewTest4,shredded", skew = true)
-    // AppWriter.shredDataset(SkewTest4, "SkewTest4,shredded", skew = false)
-    //AppWriter.flatDataset(SkewTest5, "SkewTest5,standard", skew = true)
-    //AppWriter.flatDataset(SkewTest5, "SkewTest5,standard", skew = false)
-
-    //AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = true)
-    //AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = false)
-
-	  AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = true, unshred=true)
-    AppWriter.shredDataset(SkewTest5, "SkewTest5,shredded", skew = false, unshred=true)
+    AppWriter.shredDataset(SkewTest8, "SkewTest8,shredded", skew = true, unshred=true)
+    AppWriter.shredDataset(SkewTest8, "SkewTest8,shredded", skew = false, unshred=true)
 
   }
 
@@ -46,7 +32,7 @@ object OneKApp extends App {
     // AppWriter.shredDataset(SampleNetworkNew100K, "SampleNetworkNew100K,shredded")
     // AppWriter.shredDataset(SampleNetworkNew100K, "SampleNetworkNew100K,shredded", unshred=true)
 
-    AppWriter.flatDataset(SampleNetworkNew100K, "SampleNetworkNew100K,standard", skew = true)
+    AppWriter.flatDataset(SampleNetworkNew100K, "SampleNetworkNew100K,standard", skew = true, notebk = true)
     // AppWriter.shredDataset(SampleNetworkNew100K, "SampleNetworkNew100K,shredded", skew = true)
     // AppWriter.shredDataset(SampleNetworkNew100K, "SampleNetworkNew100K,shredded", unshred=true, skew = true)
     
@@ -129,9 +115,13 @@ object TestApp extends App {
     // AppWriter.shredDataset(HybridBySampleV2, "HybridBySampleV2,shredded")
     // AppWriter.shredDataset(HybridBySampleV2, "HybridBySampleV2,shredded", unshred=true)
 
-    AppWriter.flatDataset(HybridBySampleMid2, "HybridBySampleMid2,standard")
-    AppWriter.shredDataset(HybridBySampleMid2, "HybridBySampleMid2,shredded")
+    // AppWriter.flatDataset(HybridBySampleMid2, "HybridBySampleMid2,standard")
+    // AppWriter.shredDataset(HybridBySampleMid2, "HybridBySampleMid2,shredded")
     // AppWriter.shredDataset(HybridBySampleMid2, "HybridBySampleMid2,shredded", unshred=true)
+    
+    AppWriter.flatDataset(HybridBySampleNew, "HybridBySampleNew,standard")
+    AppWriter.shredDataset(HybridBySampleNewS2, "HybridBySampleNewS2,shredded")
+    // AppWriter.shredDataset(HybridBySampleNew, "HybridBySampleNew,shredded", unshred=true)
 
     // AppWriter.flatDataset(HybridPlusBySample, "test")
     // AppWriter.shredDataset(HybridPlusBySample, "test")
