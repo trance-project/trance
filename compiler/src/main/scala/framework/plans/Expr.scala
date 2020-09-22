@@ -9,15 +9,8 @@ import framework.common._
 trait CExpr {
 
   def tp: Type
-
-  def nullValue: CExpr = tp match {
-    case IntType => Constant(-1)
-    case DoubleType => Constant(-1.0)
-    case _ => Null
-  }
-
-  def wvars: List[Variable] = List()
   def inputColumns: Set[String] = Set()
+
 }
 
 case class InputRef(data: String, tp: Type) extends CExpr 
@@ -184,10 +177,6 @@ case class CDeDup(e1: CExpr) extends CExpr{
 // replace all occurences of x with e1 in e1
 case class Bind(x: CExpr, e1: CExpr, e: CExpr) extends CExpr {
   def tp: Type = e.tp
-  override def wvars = e1 match {
-    case v:Variable => e.wvars :+ v
-    case _ => e.wvars :+ x.asInstanceOf[Variable]
-  }
 }
 
 trait CombineOp extends CExpr {
@@ -276,7 +265,6 @@ case object EmptyCDict extends CExpr {
   def tp: TDict = EmptyDictCType
 }
 
-// Deprecate all these expressions?
 case class BagCDict(lblTp: LabelType, flat: CExpr, dict: CExpr) extends CExpr {
   def tp: BagDictCType = 
     BagDictCType(BagCType(TTupleType(List(lblTp, flat.tp))), dict.tp.asInstanceOf[TTupleDict])

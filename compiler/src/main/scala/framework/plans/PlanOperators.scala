@@ -9,9 +9,6 @@ case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
     case rt:RecordCType => BagCType(rt)
     case _ => x.tp
   }
-
-  override def wvars = List(v)
-
 }
 
 case class AddIndex(e: CExpr, name: String) extends CExpr {
