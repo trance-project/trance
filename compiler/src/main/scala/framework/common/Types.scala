@@ -8,9 +8,10 @@ sealed trait Type { self =>
 
   def isPartiallyShredded: Boolean = false
 
-  def isPrimitive: Boolean = self match {
+  def isNumeric: Boolean = self match {
     case IntType => true
     case DoubleType => true
+    case LongType => true
     case _ => false
   }
 

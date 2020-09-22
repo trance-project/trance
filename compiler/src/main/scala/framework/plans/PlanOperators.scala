@@ -2,14 +2,24 @@ package framework.plans
 
 import framework.common._
 
-/** Batch processing operators **/
+/** Operators of the plan language **/ 
+
+case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
+  def tp: Type = e.tp match {
+    case rt:RecordCType => BagCType(rt)
+    case _ => x.tp
+  }
+
+  override def wvars = List(v)
+
+}
 
 case class AddIndex(e: CExpr, name: String) extends CExpr {
   def tp: BagCType = BagCType(RecordCType(e.tp.attrs ++ Map(name -> LongType)))
 }
 
 // rename filter
-case class DFProject(in: CExpr, v: Variable, filter: CExpr, fields: List[String]) extends CExpr {
+case class Projection(in: CExpr, v: Variable, filter: CExpr, fields: List[String]) extends CExpr {
   
   override def inputColumns: Set[String] = v.tp.attrs.keySet
 
@@ -35,11 +45,11 @@ case class DFProject(in: CExpr, v: Variable, filter: CExpr, fields: List[String]
   def tp: BagCType = BagCType(filter.tp)
 }
 
-case class DFUnnest(in: CExpr, v: Variable, path: String, v2: Variable, filter: CExpr, fields: List[String]) extends CExpr {
+case class Unnest(in: CExpr, v: Variable, path: String, v2: Variable, filter: CExpr, fields: List[String]) extends CExpr {
   def tp: BagCType = BagCType(v.tp.merge(v2.tp).project(fields))
 }
 
-case class DFOuterUnnest(in: CExpr, v: Variable, path: String, v2: Variable, filter: CExpr, fields: List[String]) extends CExpr {
+case class OuterUnnest(in: CExpr, v: Variable, path: String, v2: Variable, filter: CExpr, fields: List[String]) extends CExpr {
   val index = Map(path+"_index" -> LongType)
   def tp: BagCType = 
     BagCType(RecordCType((v.tp.attrs - path) ++ index).merge(v2.tp.outer).project(fields))
@@ -81,12 +91,12 @@ trait JoinOp extends CExpr {
 
 }
 
-case class DFJoin(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond: CExpr, fields: List[String]) extends JoinOp {
+case class Join(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond: CExpr, fields: List[String]) extends JoinOp {
   def tp: BagCType = BagCType(v.tp.merge(v2.tp).project(fields))
   val jtype = "inner"
 }
 
-case class DFOuterJoin(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond: CExpr, fields: List[String]) extends JoinOp {
+case class OuterJoin(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond: CExpr, fields: List[String]) extends JoinOp {
   def tp: BagCType = { (cond, right.tp.isDict) match {
     case (Equals(Project(_, p1), Project(_, p2 @ "_1")), true) =>
       val nvtp = RecordCType(v.tp.attrs - p1)
@@ -99,14 +109,14 @@ case class DFOuterJoin(left: CExpr, v: Variable, right: CExpr, v2: Variable, con
   val jtype = "left_outer"
 }
 
-case class DFNest(in: CExpr, v: Variable, key: List[String], value: CExpr, filter: CExpr, nulls: List[String], ctag: String) extends CExpr {
+case class Nest(in: CExpr, v: Variable, key: List[String], value: CExpr, filter: CExpr, nulls: List[String], ctag: String) extends CExpr {
   def tp: BagCType = value.tp match {
     case _:NumericType => BagCType(RecordCType(v.tp.project(key).attrTps ++ Map(ctag -> DoubleType)))
     case _ => BagCType(RecordCType(v.tp.project(key).attrTps ++ Map(ctag -> BagCType(value.tp.unouter))))
   }
 }
 
-case class DFReduceBy(in: CExpr, v: Variable, keys: List[String], values: List[String]) extends CExpr {
+case class Reduce(in: CExpr, v: Variable, keys: List[String], values: List[String]) extends CExpr {
   def tp: BagCType = BagCType(v.tp.project(keys).merge(v.tp.project(values)))
 }
 
