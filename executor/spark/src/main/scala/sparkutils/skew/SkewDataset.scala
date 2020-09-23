@@ -8,6 +8,7 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.expressions.scalalang._
 import sparkutils.Config
+import sparkutils.Util
 
 /** Implicits used for the generated Spark code from the compiler framework.
   * This file contains the following implicits:
@@ -26,7 +27,7 @@ object SkewDataset{
     // TODO replace with JSON
     def print: Unit = {
       println(left.take(100).toList.map(f => 
-        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
+        Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
     }
     
 
@@ -137,7 +138,7 @@ object SkewDataset{
     /** Print support for a Dataframe **/
     def print: Unit = {
       println(left.take(10).toList.map(f => 
-        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
+        Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
     }
 
     /** Create an empty Dataset with the an alternative type 
@@ -445,10 +446,10 @@ object SkewDataset{
     def print: Unit = {
       println("light")
       println(light.take(10).toList.map(f => 
-        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
+        Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
       println("heavy")
       println(heavy.take(10).toList.map(f => 
-        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
+        Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
     }
 
     /** union the light and heavy component, 
@@ -521,10 +522,10 @@ object SkewDataset{
     def print: Unit = {
       println("light")
       println(light.take(10).toList.map(f => 
-        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
+        Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
       println("heavy")
       println(heavy.take(10).toList.map(f => 
-        sparkutils.rdd.Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
+        Util.getCCParams(f.asInstanceOf[AnyRef])).mkString("{\n", ",\n", "}\n"))
     }
 
     def cache: Unit = {

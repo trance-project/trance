@@ -92,6 +92,7 @@ trait BaseScalaInterp extends Base{
   def bind(e1: Rep, e: Rep => Rep): Rep = e(e1)
   def groupby(e1: Rep, g: List[String], v: List[String]): Rep = e1
   def reduceby(e1: Rep, g: List[String], v: List[String]): Rep = groupby(e1, g, v)
+
   def lookup(lbl: Rep, dict: Rep): Rep = dict match {
     case (flat, tdict) => flat match {
       case (head:Map[_,_]) :: tail => flat
@@ -103,6 +104,7 @@ trait BaseScalaInterp extends Base{
   def bagdict(lbl: LabelType, flat: Rep, dict: Rep): Rep = (flat.asInstanceOf[List[_]].map(v => (lbl, v)), dict)
   def tupledict(fs: Map[String, Rep]): Rep = fs
   def dictunion(d1: Rep, d2: Rep): Rep = d1 // TODO
+
   def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = { 
     x.asInstanceOf[List[_]].filter(p.asInstanceOf[Rep => Boolean]).map(e)
   }
@@ -168,29 +170,7 @@ trait BaseScalaInterp extends Base{
       case _ => Nil
     })
   }
-  // TODO
-  def lkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
-    val hm = mapVars(e2)
-    e1.asInstanceOf[List[_]].flatMap(v2 => { 
-                val vs = tupleVars(v2)
-                hm.get(p1(vs)) match {
-                  case Some(v1) => v1.asInstanceOf[List[_]].withFilter(v3 => 
-                    p3(vs).equals(p2(v3))).map(v3 => vs :+ v3)
-                  case _ => Nil
-                }})
-  }
-  def outerlkup(e1: Rep, e2: Rep, p1: List[Rep] => Rep, p2: Rep => Rep, p3: List[Rep] => Rep): Rep = {
-    val hm = mapVars(e2)
-    e1.asInstanceOf[List[_]].flatMap(v2 => { 
-                val vs = tupleVars(v2)
-                hm.get(p1(vs)) match {
-                  case Some(v1) => v1.asInstanceOf[List[_]].map(v3 => {
-                    if (p3(vs).equals(p2(v3))) { vs :+ v3 } else { vs :+ None }
-                  })
-                  case _ => Nil  
-                }})
-  }
-  def cogroup(e1: Rep, e2: Rep, k1: List[Rep] => Rep, k2: Rep => Rep, value: List[Rep] => Rep): Rep = e1
+
   def flatdict(e1: Rep): Rep = e1
   def groupdict(e1: Rep): Rep = e1
   
@@ -200,6 +180,7 @@ trait BaseScalaInterp extends Base{
     case c:Rec => List(k).asInstanceOf[List[Rep]]
     case _ => k.asInstanceOf[List[Rep]]
   }
+  
   def mapVars(k: Any): Map[Any, Any] = k match {
     case l:List[_] if l.head.isInstanceOf[RecordValue] =>
       l.asInstanceOf[List[RecordValue]].map{ case rv => (rv.map("k"), rv.map("v")) }.toMap

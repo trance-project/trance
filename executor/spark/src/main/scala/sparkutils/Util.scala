@@ -1,4 +1,4 @@
-package sparkutils.rdd
+package sparkutils
 
 import scala.reflect.ClassTag
 import scala.collection.mutable.HashMap
