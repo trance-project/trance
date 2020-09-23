@@ -10,8 +10,10 @@ object Config {
   prop.load(fsin)
 
   // fix this
-  val datapath = prop.getProperty("datapath")
-  val master = prop.getProperty("master", "local[*]")
+  val basepath = System.getProperty("user.dir")
+  val datapath = prop.getProperty("datapath", s"$basepath/data/tpch")
+  println(datapath)
+  // val master = prop.getProperty("master", "local[*]")
   val minPartitions = prop.getProperty("minPartitions", "400").toInt
   val maxPartitions = prop.getProperty("maxPartitions", "1000").toInt
   val threshold = prop.getProperty("threshold", ".0025").toDouble

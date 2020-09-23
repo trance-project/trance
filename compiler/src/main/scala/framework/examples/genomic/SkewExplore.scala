@@ -3,6 +3,12 @@ package framework.examples.genomic
 import framework.common._
 import framework.examples.Query
 
+/** This file contains some exploratory queries 
+  * for running the skew-aware pipeline on 
+  * the cancer datasets of the biomedical benchmark.
+  *
+  **/
+
 object SkewTest1 extends DriverGene {
   val name = "SkewTest1"
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
@@ -275,63 +281,3 @@ object SkewTest9 extends DriverGene {
   val program = Program(Assignment(name, query))
 
 }
-
-
-
-
-// object SkewTest7 extends DriverGene {
-
-//   val name = "SkewTest7"
-
-//   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-//     s"""|${super.loadTables(shred, skew)}
-//         |${loadGtfTable(shred, skew)}""".stripMargin
-
-//   val query = 
-//       ReduceByKey(
-//         ForeachUnion(omr, occurmids,
-//           ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
-//             ForeachUnion(gtfr, gtf,
-//               IfThenElse(Cmp(OpEq, amr("gene_id"), gtfr("g_gene_id")), 
-//                 Singleton(Tuple("case_uuid" -> amr("donorId"), 
-//                   "c_gene_id" -> gtfr("c_gene_id")
-//                   "name" -> gtfr("g_gene_name"),
-//                   "distance" -> 
-//                     IfThenElse(OpLt(omr("vstart").asNumeric, gtfr()
-
-//                     Const(1.0, DoubleType))))))),
-//               List("case_uuid", "c_gene_id", "name"),
-//               List("count"))
-
-
-//   val program = Program(Assignment(name, query))
-
-// }
-
-// object SkewTest6 extends DriverGene {
-
-//   val name = "SkewTest6"
-
-//   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-//     s"""|${super.loadTables(shred, skew)}
-//         |${loadGtfTable(shred, skew)}""".stripMargin
-
-//   val query = 
-//   // ForeachUnion(gpr, gpmap,
-//   //   Singleton(Tuple("group_gene" -> grp("gene_stable_id"), "group_protein" -> grp("group_protein_id"),
-//   //     "grouped_mutations" -> 
-//         ForeachUnion(omr, occurmids,
-//           Singleton(Tuple("case_uuid" -> omr("donorId"), "cands" -> 
-//             ReduceByKey(ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
-//               ForeachUnion(gtfr, gtf,
-//                 IfThenElse(Cmp(OpEq, amr("gene_id"), gtfr("g_gene_id")), 
-//                   Singleton(Tuple("gene" -> amr("gene_id"), 
-//                     "name" -> gtfr("g_gene_name"),
-//                     "cnt" -> Const(0.0, DoubleType))))))))))
-//             // List("gene", "name"),
-//             // List("cnt"))
-
-
-//   val program = Program(Assignment(name, query))
-
-// }

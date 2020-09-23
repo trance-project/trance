@@ -9,7 +9,7 @@ object App {
  
   def main(args: Array[String]){
      val sf = Config.datapath.split("/").last
-     val conf = new SparkConf().setMaster(Config.master)
+     val conf = new SparkConf()
        .setAppName("TestLoader"+sf)
        .set("spark.sql.shuffle.partitions", Config.maxPartitions.toString)
      val spark = SparkSession.builder().config(conf).getOrCreate()

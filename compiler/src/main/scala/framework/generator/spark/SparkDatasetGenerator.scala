@@ -155,6 +155,13 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case _ => generate(e)
   }
 
+  def defaultCastNull(expr: CExpr, col: String, literal: Boolean = false): List[String] = {
+    val baseCol = List(s"""|  .withColumn("$col", ${generateReference(expr, literal)})""")
+    if (expr.tp.isNumeric) 
+      baseCol :+ s""".withColumn("$col", when(col("$col").isNull, ${zero(expr.tp)}).otherwise(col("$col")))"""
+    else baseCol
+  }
+
   def generate(e: CExpr): String = e match {
     /** ZEROS **/
     case Null => "null"
@@ -201,7 +208,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     }
 
     /** BOOL OPS **/
-    case Equals(e1, e2) => 
+    case Equals(e1, e2) =>
       val eq = (e1, e2) match {
         // case (Project(p1, _), _) if p1.tp.isInstanceOf[LabelType] => "=="
         // case (_, Project(p2, _)) if p2.tp.isInstanceOf[LabelType] => "=="
@@ -225,18 +232,14 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case FlatDict(e1) => s"${generate(e1)}"
     case GroupDict(e1) => generate(e1) 
     
-    case DFProject(in, v, Constant(true), Nil) => generate(in)
+    case Projection(in, v, Constant(true), Nil) => generate(in)
 
-    case ep @ DFProject(in, v, pat:Record, fields) =>
+    case ep @ Projection(in, v, pat:Record, fields) =>
       handleType(pat.tp)
 
       val nfields = ext.collect(pat)
       val select = if (in.tp.attrs.keySet == nfields) ""
         else s".select(${nfields.toList.mkString("\"", "\", \"", "\"")})"
-
-        // if (fields.isEmpty) ""
-        // else if (fields.toSet == ep.inputColumns) ""
-        // else s".select(${(fields.toSet & ep.inputColumns).mkString("\"", "\", \"", "\"")})"
 
       // input table attributes
       val projectCols = fields.toSet
@@ -247,12 +250,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val newColumns = pat.fields.flatMap{
         // avoid column renaming
         case (col, Project(_, oldCol)) if col != oldCol => Nil
-        case (col, expr) if !projectCols(col) =>
-          List(s"""|  .withColumn("$col", ${generateReference(expr, true)})""")
+        case (col, expr) if !projectCols(col) => defaultCastNull(expr, col, true)
         case (ncol, col @ Label(fs)) => fs.head match {
           case (_, Project(_, "_1")) if fs.size == 1 => Nil
           case (_, Project(_, pcol)) if ncol == pcol => Nil
-          case _ => List(s"""|.withColumn("$ncol", ${generateReference(col)})""")
+          case (_, expr) => defaultCastNull(expr, col, false)
         }
  		    case _ => Nil
       }
@@ -280,9 +282,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           | $ncast
           |""".stripMargin
 
-    case ej @ DFOuterJoin(left, v1, right, v2, Equals(Project(_, p1), Project(_, p2 @ "_1")), filt) if right.tp.isDict =>
+    case ej @ OuterJoin(left, v1, right, v2, Equals(Project(_, p1), Project(_, p2 @ "_1")), filt) if right.tp.isDict =>
    
-    // adjust lookup column of dictionary
+      // adjust lookup column of dictionary
       val rcol = s"${p1}${p2}"
       val rtp = rename(right.tp.attrs, p2, rcol)
 	    handleType(rtp)
@@ -348,7 +350,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           }      
         }
     
-    case eu @ DFUnnest(in, v, path, v2, filter, fields) =>
+    case eu @ Unnest(in, v, path, v2, filter, fields) =>
 
       val topAttrs = v.tp.project(fields).attrs.map(f => f._1 -> Project(v, f._1)) - path
       val nextAttrs = v2.tp.project(fields).attrs.map(f => f._1 -> Project(v2, f._1))
@@ -360,7 +362,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |}.as[${generateType(nrec.tp)}]
           |""".stripMargin
 
-    case eu @ DFOuterUnnest(in, v, path, v2, filter, fields) =>
+    case eu @ OuterUnnest(in, v, path, v2, filter, fields) =>
 
       val topAttrs = v.tp.project(fields).attrs.map(f => f._1 -> Project(v, f._1)) - path
       val nv2 = Variable(v2.name, v2.tp.unouter)
@@ -392,17 +394,10 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     // Nest - Join => CoGroup
     // if value contains only attributes from right relation
     // note this also handles lookup in unshredding
-    case Bind(vj, join:JoinOp, Bind(nv, nd @ DFNest(in, v, key, value @ Record(fs), filter, nulls, tag), e2)) 
-      if (optLevel == 2 || unshred) && (ext.collect(value) subsetOf join.v2.tp.attrs.keySet) && join.isEquiJoin =>
+    case Bind(vj, join:JoinOp, Bind(nv, nd @ Nest(in, v, key, value @ Record(fs), filter, nulls, tag), e2)) 
+      if (optLevel > 1 || unshred) && (ext.collect(value) subsetOf join.v2.tp.attrs.keySet) && join.isEquiJoin =>
       
-      val (p1, p2) = join.cond match {
-        case Equals(Project(_, c1), Project(_, c2)) => join.v.tp.attrs get c1 match {
-          case Some(_) => (c1, c2)
-          case _ => (c2, c1)
-        }
-        case _ => sys.error("condition not supported")
-      }
-
+      val (p1, p2) = (join.p1, join.p2)
       val gv = generate(join.v)
       val gv2 = generate(join.v2)
       val gv3 = generate(v)
@@ -439,7 +434,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     // primitive monoid
-    case en @ DFNest(in, v, key, Constant(c), Record(fs), nulls, tag) =>
+    case en @ Nest(in, v, key, Constant(c), Record(fs), nulls, tag) =>
       handleType(en.tp.tp)
       val intp = generateType(in.tp.asInstanceOf[BagCType].tp)
       val gtp = generateType(en.tp.tp)
@@ -459,21 +454,27 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |}}.as[$gtp]
           |""".stripMargin
 
-    case en @ DFNest(in, v, key, value, filter, nulls, tag) =>
-      val nullSet = nulls.toSet
-      val rnulls = v.tp.attrs.filter(n => nullSet(n._1) 
-        && n._2.isInstanceOf[OptionType]).take(22).keySet
+    case en @ Nest(in, v, key, value, filter, nulls, tag) =>
 
       val gv = generate(v)
+
+      // make key expression
       val rkey = Record(key.map(k => k -> Project(v, k)).toMap)
       val kv = Variable("key", rkey.tp)
+
+      // reference value in group
       val grpv = Variable("grp", BagCType(value.tp.unouter))
       val frec = Record(en.tp.tp.attrs.map(k => if (k._1 == tag) k._1 -> grpv 
         else k._1 -> Project(kv, k._1)).toMap)
+
+      // handle nulls
+      val nullSet = nulls.toSet
+      val rnulls = v.tp.attrs.filter(n => nullSet(n._1) 
+        && n._2.isInstanceOf[OptionType]).take(22).keySet
       val uscores = List.fill(rnulls.size)("_")
       val nmatch = rnulls.map(n => s"$gv.$n").mkString("(",",",")")
-      val caseMatches = Range(0, rnulls.size).map(i => uscores.patch(i, Seq(s"None"), 1).mkString("case (",",",") => Seq()")
-        ).mkString("\n")
+      val caseMatches = Range(0, rnulls.size).map(i => 
+        uscores.patch(i, Seq(s"None"), 1).mkString("case (",",",") => Seq()")).mkString("\n")
      
       s"""|${generate(in)}.groupByKey($gv => ${generate(rkey)}).mapGroups{
           | case (key, value) => 
@@ -486,7 +487,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           | }.as[${generateType(frec.tp)}]
           |""".stripMargin
 
-    case er @ DFReduceBy(in, v, key, value) =>
+    case er @ Reduce(in, v, key, value) =>
       handleType(er.tp.tp)
       val intp = generateType(in.tp.asInstanceOf[BagCType].tp)
       val gtp = generateType(er.tp.tp)

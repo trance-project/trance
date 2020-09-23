@@ -61,8 +61,8 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
     case Tuple(fs) if fs.isEmpty => unit
     case Tuple(fs) => record(fs.map(f => f._1 -> translate(f._2)))
     case p: Project => project(translate(p.tuple), p.field)
-	case Udf(n, e1, tp) => CUdf(n, translate(e1), translate(tp))
-	case ift: IfThenElse => ift.e2 match {
+	  case Udf(n, e1, tp) => CUdf(n, translate(e1), translate(tp))
+	  case ift: IfThenElse => ift.e2 match {
       case Some(a) => ifthen(translate(ift.cond), translate(ift.e1), Option(translate(a)))
       case _ => ifthen(translate(ift.cond), translate(ift.e1))
     }

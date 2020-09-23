@@ -15,17 +15,15 @@ object Printer {
     case InputRef(d, t) => inputref(d,t)
     case Input(d) => input(d.map(quote(_)))
     case Constant(d) => constant(d)
-	case CUdf(n, e1, tp) => udf(n, quote(e1), tp)
-    case EmptySng => emptysng
-    case CUnit => unit
-	case Null => "null"
-	case Index => "index"
+  	case CUdf(n, e1, tp) => udf(n, quote(e1), tp)
+      case EmptySng => emptysng
+      case CUnit => unit
+  	case Null => "null"
+  	case Index => "index"
     case Sng(e1) => sng(quote(e1))
     case Tuple(fs) => tuple(fs.map(quote(_)))
     case Record(fs) => record(fs.map(f => f._1 -> quote(f._2)))
     case Label(fs) => label(fs.map(f => f._1 -> quote(f._2)))
-    // case Multiply(e1, e2) => compiler.mult(quote(e1), quote(e2))
-    // case Divide(e1, e2) => compiler.divide(quote(e1), quote(e2))
     case MathOp(op, e1, e2) => compiler.mathop(op, quote(e1), quote(e2))
     case Equals(e1, e2) => compiler.equals(quote(e1), quote(e2))
     case Lt(e1, e2) => lt(quote(e1), quote(e2))
@@ -37,10 +35,6 @@ object Printer {
     case Or(e1, e2) => or(quote(e1), quote(e2))
     case Project(e1, f) => project(quote(e1), f)
     case CGet(e1) => s"get(${quote(e1)})"
-    // e1.tp.attrs(f) match {
-    //     case OptionType(_) => s"Some(${project(quote(e1), f)})"
-    //     case _ => project(quote(e1), f)
-    //   }
     case If(c, e1, e2) => e2 match {
       case Some(a) => ifthen(quote(c), quote(e1), Some(quote(a)))
       case _ => ifthen(quote(c), quote(e1), None)
@@ -54,68 +48,36 @@ object Printer {
     case CDeDup(e1) => s"DeDup(${quote(e1)})"
     case CGroupBy(e1, v, grp, value) => s"(${quote(e1)}).groupBy(${grp.mkString(",")}; ${value.mkString(",")})"
     case CReduceBy(e1, v, grp, value) => s"(${quote(e1)}).reduceBy(${grp.mkString(",")}; ${value.mkString(",")})"
-    case DFReduceBy(e1, v, grp, value) => quote(CReduceBy(e1, v, grp, value))
     case CNamed(n, e) => named(n, quote(e))
     case LinearCSet(exprs) => linset(exprs.map(quote(_)))
+
     case CLookup(lbl, dict) => lookup(quote(lbl), quote(dict))
     case EmptyCDict => emptydict
     case BagCDict(lblTp, flat, dict) => bagdict(lblTp, quote(flat), quote(dict))
     case TupleCDict(fs) => tupledict(fs.map(f => f._1 -> quote(f._2)))
     case DictCUnion(e1, e2) => dictunion(quote(e1), quote(e2))
+
     case Select(x, v, p, e) => 
       val attrs = e.tp.attrs.keySet.toList.mkString(",")
       s"""| <-- (${quote(v)}) -- SELECT[ ${quote(p)}, $attrs ](${quote(x)})""".stripMargin
-    case Reduce(e1, v, e2:Variable, Constant(true)) =>
-      s""" | ${quote(e1)}""".stripMargin
-    case Reduce(e1, v, e2, Constant(true)) =>
-      s""" | PROJECT[ ${quote(e2)} ](${quote(e1)})""".stripMargin
-    case Reduce(e1, v, e2, p) =>
-      s""" | SELECT[ ${quote(e2)} / ${quote(p)} ](${quote(e1)})""".stripMargin
-    case Unnest(e1, v1, e2, v2, p, value) =>
-      s""" |  <-- (${e.wvars.map(_.quote).mkString(",")}) --
-           | UNNEST[ ${quote(e2)} / ${quote(p)} / ${quote(value)} ](${quote(e1)})""".stripMargin
-    case OuterUnnest(e1, v1, e2, v2, p, value) =>
-      s""" |  <-- (${e.wvars.map(_.quote).mkString(",")}) -- 
-           | OUTERUNNEST[ ${quote(e2)} / ${quote(p)} / ${quote(value)}  ](${quote(e1)})""".stripMargin
-    case Nest(e1, v1, f, e3, v2, p, g, dk) =>
-      val acc = e3.tp match { case IntType => "+"; case _ => "U" }
-      //val outs = if (e.wvars.size == 1) "" else s"<-- (${e.wvars.map(_.quote).mkString(",")}) --"
-      s""" | NEST[ ${acc} / ${quote(e3)} / ${quote(f)}, ${quote(p)} / ${quote(g)} ](${quote(e1)})""".stripMargin
-    case Join(e1, e2, v1, p1, v2, p2, proj1, proj2) =>
-      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) JOIN[${quote(p1)} = ${quote(p2)}](
-           | ${ind(quote(e2))})""".stripMargin
-    case OuterJoin(e1, e2, v1, p1, v2, p2, proj1, proj2) =>
-      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) OUTERJOIN[${quote(p1)} = ${quote(p2)}](
-           | ${ind(quote(e2))})""".stripMargin
-    case Lookup(e1, e2, v1, p1, v2, p2, p3) =>
-      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) LOOKUP[${quote(p1)}, ${quote(p2)} = ${quote(p3)}](
-           | ${ind(quote(e2))})""".stripMargin
-    case OuterLookup(e1, e2, v1, p1, v2, p2, p3) =>
-      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) OUTERLOOKUP[${quote(p1)}, ${quote(p2)} = ${quote(p3)}](
-           | ${ind(quote(e2))})""".stripMargin
-    case CoGroup(e1, e2, vs, v, k1, k2, value) =>
-      s""" | <-- (${e.wvars.map(_.quote).mkString(",")}) -- (${quote(e1)}) COGROUP[${quote(k1)} = ${quote(k2)}, 
-           | ${quote(value)}] (
-           |  ${ind(quote(e2))})""".stripMargin
     case AddIndex(e1, name) => s"INDEX(${quote(e1)})"
-    case DFProject(e1, v, p, fields) => 
+    case Projection(e1, v, p, fields) => 
       s"""|PROJECT[${fields.mkString(",")}, ${quote(p)}](${quote(e1)})""".stripMargin
-    case DFNest(e1, v, keys, value, filter, nulls, ctag) =>
+    case Nest(e1, v, keys, value, filter, nulls, ctag) =>
       s"""|NEST^{${quote(value)}, ${quote(filter)}, $ctag}_{U, ${keys.mkString(",")} / ${nulls.mkString(",")}}(${quote(e1)})""".stripMargin
-    case DFUnnest(e1, v, path, v2, filter, fields) =>
+    case Unnest(e1, v, path, v2, filter, fields) =>
       s"""|UNNEST[${quote(v)}.$path, ${quote(filter)}, ${fields.mkString(",")}](${quote(e1)})""".stripMargin
-    case DFOuterUnnest(e1, v, path, v2, filter, fields) =>
+    case OuterUnnest(e1, v, path, v2, filter, fields) =>
       s"""|OUTERUNNEST[${quote(v)}.$path, ${quote(filter)}, ${fields.mkString(",")}](${quote(e1)})""".stripMargin
-    // case DFJoin(left, v1, p1, right, v2, p2, fields) => 
-    //   s"""|${quote(left)} JOIN [$p1 = $p2, ${fields.mkString(",")}] ${quote(right)}""".stripMargin
-    // case DFOuterJoin(left, v1, p1, right, v2, p2, fields) => 
-    //   s"""|${quote(left)} OUTERJOIN [$p1 = $p2, ${fields.mkString(",")}] ${quote(right)}""".stripMargin
-    case DFJoin(left, v1, right, v2, cond, fields) => 
+    case Join(left, v1, right, v2, cond, fields) => 
       s"""|${quote(left)} JOIN [${quote(cond)}, ${fields.mkString(",")}] ${quote(right)}""".stripMargin
-    case DFOuterJoin(left, v1, right, v2, cond, fields) => 
+    case OuterJoin(left, v1, right, v2, cond, fields) => 
       s"""|${quote(left)} OUTERJOIN [${quote(cond)}, ${fields.mkString(",")}] ${quote(right)}""".stripMargin
+    case Reduce(e1, v, grp, value) => quote(CReduceBy(e1, v, grp, value))
+    
     case FlatDict(e1) => flatdict(quote(e1))
     case GroupDict(e1) => groupdict(quote(e1))
+
     case Variable(n, tp) => n
   }
 }
