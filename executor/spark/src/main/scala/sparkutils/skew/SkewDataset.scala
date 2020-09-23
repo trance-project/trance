@@ -226,7 +226,7 @@ object SkewDataset{
     def print: Unit = (light, heavy).print
 
     def count: Long = {
-	  println(s"heavy key size: ${heavyKeys.value.size}")
+	  //println(s"heavy key size: ${heavyKeys.value.size}")
 	  (light, heavy).count
 	}
 
@@ -599,8 +599,8 @@ object SkewDataset{
         case "slice" => sliceHeavyKeys[K](dfull, key)
         case _ => sys.error(s"unsupported heavy key strategy: $strategy.")
       }
-      println(s"heavy keys for $key: ${keys.size}")
-	    (dfull, keys.asInstanceOf[Set[K]])
+      //println(s"heavy keys for $key: ${keys.size}")
+	  (dfull, keys.asInstanceOf[Set[K]])
     }
 
 	/** filter by a threshold and then use the number 
