@@ -155,6 +155,13 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case _ => generate(e)
   }
 
+  def defaultCastNull(expr: CExpr, col: String, literal: Boolean = false): List[String] = {
+    val baseCol = List(s"""|  .withColumn("$col", ${generateReference(expr, literal)})""")
+    if (expr.tp.isNumeric) 
+      baseCol :+ s""".withColumn("$col", when(col("$col").isNull, ${zero(expr.tp)}).otherwise(col("$col")))"""
+    else baseCol
+  }
+
   def generate(e: CExpr): String = e match {
     /** ZEROS **/
     case Null => "null"
@@ -201,7 +208,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     }
 
     /** BOOL OPS **/
-    case Equals(e1, e2) => 
+    case Equals(e1, e2) =>
       val eq = (e1, e2) match {
         // case (Project(p1, _), _) if p1.tp.isInstanceOf[LabelType] => "=="
         // case (_, Project(p2, _)) if p2.tp.isInstanceOf[LabelType] => "=="
@@ -234,10 +241,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val select = if (in.tp.attrs.keySet == nfields) ""
         else s".select(${nfields.toList.mkString("\"", "\", \"", "\"")})"
 
-        // if (fields.isEmpty) ""
-        // else if (fields.toSet == ep.inputColumns) ""
-        // else s".select(${(fields.toSet & ep.inputColumns).mkString("\"", "\", \"", "\"")})"
-
       // input table attributes
       val projectCols = fields.toSet
       // output attributes
@@ -247,19 +250,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val newColumns = pat.fields.flatMap{
         // avoid column renaming
         case (col, Project(_, oldCol)) if col != oldCol => Nil
-        case (col, expr) if !projectCols(col) =>
-          val ls = s"""|  .withColumn("$col", ${generateReference(expr, true)})"""
-          if (expr.tp.isNumeric) 
-            List(ls, s""".withColumn("$col", when(col("$col").isNull, ${zero(expr.tp)}).otherwise(col("$col")))""")
-          else List(ls)
+        case (col, expr) if !projectCols(col) => defaultCastNull(expr, col, true)
         case (ncol, col @ Label(fs)) => fs.head match {
           case (_, Project(_, "_1")) if fs.size == 1 => Nil
           case (_, Project(_, pcol)) if ncol == pcol => Nil
-          case (_, expr) => 
-            val ls = s"""|.withColumn("$ncol", ${generateReference(col)})"""
-            if (expr.tp.isNumeric)
-              List(ls, s""".withColumn("$col", when(col("$col").isNull, ${zero(expr.tp)}).otherwise(col("$col")))""")
-            else List(ls)
+          case (_, expr) => defaultCastNull(expr, col, false)
         }
  		    case _ => Nil
       }
@@ -289,7 +284,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
     case ej @ OuterJoin(left, v1, right, v2, Equals(Project(_, p1), Project(_, p2 @ "_1")), filt) if right.tp.isDict =>
    
-    // adjust lookup column of dictionary
+      // adjust lookup column of dictionary
       val rcol = s"${p1}${p2}"
       val rtp = rename(right.tp.attrs, p2, rcol)
 	    handleType(rtp)
@@ -479,8 +474,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         else k._1 -> Project(kv, k._1)).toMap)
       val uscores = List.fill(rnulls.size)("_")
       val nmatch = rnulls.map(n => s"$gv.$n").mkString("(",",",")")
-      val caseMatches = Range(0, rnulls.size).map(i => uscores.patch(i, Seq(s"None"), 1).mkString("case (",",",") => Seq()")
-        ).mkString("\n")
+      val caseMatches = Range(0, rnulls.size).map(i => 
+        uscores.patch(i, Seq(s"None"), 1).mkString("case (",",",") => Seq()")).mkString("\n")
      
       s"""|${generate(in)}.groupByKey($gv => ${generate(rkey)}).mapGroups{
           | case (key, value) => 
