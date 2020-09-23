@@ -9,7 +9,6 @@ import framework.common._
 trait CExpr {
 
   def tp: Type
-  def inputColumns: Set[String] = Set()
 
 }
 
@@ -57,9 +56,6 @@ case object CUnit extends CExpr {
 case class Label(fields: Map[String, CExpr]) extends CExpr{
   def tp: LabelType = LabelType(fields.map(f => f._1 -> f._2.tp))
   def apply(n: String) = fields(n)
-  override def inputColumns: Set[String] = fields.flatMap{
-    case (key, expr) => expr.inputColumns
-  }.toSet
 }
 
 case class Record(fields: Map[String, CExpr]) extends CExpr{
@@ -67,10 +63,6 @@ case class Record(fields: Map[String, CExpr]) extends CExpr{
   def tp: RecordCType = RecordCType(fields.map(f => f._1 -> f._2.tp))
   def apply(n: String) = fields(n)
   def project(n: List[String]) = Record(fields.filter(f => n.contains(f._1)))
-  
-  override def inputColumns: Set[String] = fields.flatMap{
-    case (key, expr) => expr.inputColumns
-  }.toSet
 
 }
 
@@ -92,9 +84,6 @@ case class CGet(e1: CExpr) extends CExpr {
 
 case class Equals(e1: CExpr, e2: CExpr) extends CExpr {
   def tp: PrimitiveType = BoolType
-
-  override def inputColumns: Set[String] = 
-    e1.inputColumns ++ e2.inputColumns
 }
 
 case class Lt(e1: CExpr, e2: CExpr) extends CExpr {
@@ -146,17 +135,11 @@ case class Project(e1: CExpr, field: String) extends CExpr { self =>
     case _ => sys.error("unsupported projection index "+self)
   }
 
-  override def inputColumns: Set[String] = Set(field)
-
 }
 
 case class If(cond: CExpr, e1: CExpr, e2: Option[CExpr]) extends CExpr {
   assert(cond.tp == BoolType)
   val tp: Type = e1.tp
-  override def inputColumns: Set[String] = e2 match {
-    case None => e1.inputColumns
-    case Some(se2) => e1.inputColumns ++ se2.inputColumns
-  }
 }
 
 case class Merge(e1: CExpr, e2: CExpr) extends CExpr {

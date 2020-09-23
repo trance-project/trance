@@ -111,7 +111,7 @@ object Optimizer extends Extensions {
       val pfs = nkey ++ collect(value) ++ fs
       val pin = push(in, pfs)
       val nv = Variable.fromBag(v.name, pin.tp)
-      Nest(pin, nv, nkey.toList, replace(value, nv), filter, value.inputColumns.toList, ctag)
+      Nest(pin, nv, nkey.toList, replace(value, nv), filter, collect(value).toList, ctag)
 
     case Reduce(e1 @ Projection(in, v, filter, fields), v2, key, value) =>
       // adjust key
@@ -170,31 +170,8 @@ object Optimizer extends Extensions {
     * @param keys set of key values relevant to current location in plan
     * @param values set of values relevant to current location in plan
     * @return plan with local aggregations where relevant 
+    * @todo This was deprecated with the new operators and will come in a future patch.
     */
-  def pushAgg(e: CExpr, keys: Set[String] = Set.empty, values: Set[String] = Set.empty): CExpr = fapply(e, {
-    // base case
-    case Reduce(e1, v, keys, value) =>
-      Reduce(pushAgg(e1, keys.toSet, value.toSet), v, keys, value)
-    case Projection(in @ InputRef(e1, tp), v1, f1, fs) if keys.nonEmpty && values.nonEmpty =>
-      val nkeys = collect(f1) -- values
-      CReduceBy(in, v1, nkeys.toList, values.toList)
-    case ej:JoinOp =>
-      val lattrs = ej.v.tp.attrs.keySet
-      val rattrs = ej.v2.tp.attrs.keySet
-      val lpush = pushAgg(ej.left, keys.filter(f => lattrs(f)), values.filter(f => lattrs(f)))
-      val rpush = pushAgg(ej.right, keys.filter(f => rattrs(f)), values.filter(f => rattrs(f)))
-      if (ej.jtype == "inner") Join(lpush, ej.v, rpush, ej.v2, ej.cond, ej.fields)
-      else OuterJoin(lpush, ej.v, rpush, ej.v2, ej.cond, ej.fields)
-    // need a way to represent local aggregation here, since the new operator won't support
-    // it like the old operators...
-    // case DFUnnest(e1, v1, path, v2, filter, fields) =>
-    //   val lattrs = v1.tp.attrs.keySet
-    //   val rattrs = v1.tp.attrs(path).attrs
-    //   val lpush = pushAgg(e1, keys.filter(f => lattrs(f)), values.filter(f => lattrs(f)))
-    //   val rpush = pushAgg(, keys.filter(f => rattrs(f)), values.filter(f => rattrs(f)))
-    //   DFUnnest(lpush, v1, checkAgg, v2, p, value)
-    case Project(v1:Variable, f) if keys.nonEmpty && values.nonEmpty =>
-      CReduceBy(e, v1, keys.toList, values.toList)
-  })
+  def pushAgg(e: CExpr, keys: Set[String] = Set.empty, values: Set[String] = Set.empty): CExpr = e
 
 }

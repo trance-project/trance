@@ -17,27 +17,6 @@ case class AddIndex(e: CExpr, name: String) extends CExpr {
 
 // rename filter
 case class Projection(in: CExpr, v: Variable, filter: CExpr, fields: List[String]) extends CExpr {
-  
-  override def inputColumns: Set[String] = v.tp.attrs.keySet
-
-  def rename: Map[String, String] = filter match {
-    case Record(fs) => fs.toList.flatMap{
-      case (key, Project(_, fp)) if key != fp => List((key, fp))
-      case (key, Label(fs)) => fs.head match {
-        case (_, Project(_, fp)) if key != fp => List((key, fp))
-        case _ => Nil
-      }
-      case _ => Nil
-    }.toMap
-    case _ => Map()
-  }
-
-  def makeCols: Map[String, CExpr] = filter match {
-    case r:Record => 
-      val fields = r.inputColumns ++ rename.keySet
-      r.fields.filter(f => !fields(f._1))
-    case _ => Map()
-  }
 
   def tp: BagCType = BagCType(filter.tp)
 }
@@ -60,6 +39,7 @@ trait JoinOp extends CExpr {
 
   val left: CExpr
   val v: Variable
+
   def p1: String = cond match {
     case Equals(Project(_, f1), Project(_, f2)) =>
       if (v.tp.attrs.contains(f1)) f1

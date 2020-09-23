@@ -248,7 +248,7 @@ trait BaseCompiler extends Base {
   def nest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String], ctag: String): Rep = {
     val v = Variable.freshFromBag(in.tp)
     val nr = value(v)
-    Nest(in, v, key, nr, filter(v), nr.inputColumns.toList, ctag)
+    Nest(in, v, key, nr, filter(v), ext.collect(nr).toList, ctag)
   }
   def reduce(in: Rep, key: List[String], values: List[String]): Rep = {
     val v = Variable.freshFromBag(in.tp)

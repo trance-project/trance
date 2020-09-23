@@ -36,9 +36,9 @@ object App {
   val pathout = "../executor/spark/src/main/scala/sparkutils/generated/"
  
   def main(args: Array[String]){
-    runFlatToNested()
-    runNestedToNested()
-    runNestedToFlat()
+    // runFlatToNested()
+    // runNestedToNested()
+    // runNestedToFlat()
     runSkewHandling()
   }
 
@@ -75,9 +75,9 @@ object App {
   def runSkewHandling(){
 
     // standard pipeline - all optimizations 
-    AppWriter.runDatasetInput(Test2Flat, Test2NNL, "Flat,Standard,2")
+    // AppWriter.runDatasetInput(Test2Flat, Test2NNL, "Flat,Standard,2")
     // standard pipeline - skew-handling - all optimizations 
-    AppWriter.runDatasetInput(Test2Flat, Test2NNL, "Flat,Skew,2", skew = true)
+    // AppWriter.runDatasetInput(Test2Flat, Test2NNL, "Flat,Skew,2", skew = true)
 
     // shredded pipeline + unshredding
     AppWriter.runDatasetInputShred(Test2, Test2NNL, "Shred,Standard,2", unshred=true)

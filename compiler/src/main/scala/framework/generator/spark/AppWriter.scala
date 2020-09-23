@@ -157,7 +157,7 @@ object AppWriter {
       |object $appname {
       | def main(args: Array[String]){
       |   val sf = Config.datapath.split("/").last
-      |   val conf = new SparkConf().setMaster(Config.master)
+      |   val conf = new SparkConf()
       |     .setAppName(\"$appname\"+sf)
       |     .set("spark.sql.shuffle.partitions", Config.maxPartitions.toString)
       |   val spark = SparkSession.builder().config(conf).getOrCreate()
@@ -165,7 +165,7 @@ object AppWriter {
       |   import spark.implicits._
       |   $data
       |   $gcode
-      |   println("$label,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
+      |   println("$label,"+sf+","+end+",total,"+spark.sparkContext.applicationId)
       | }
       |}""".stripMargin
   }
@@ -211,7 +211,7 @@ object AppWriter {
         |object $appname {
         | def main(args: Array[String]){
         |   val sf = Config.datapath.split("/").last
-        |   val conf = new SparkConf().setMaster(Config.master)
+        |   val conf = new SparkConf()
         |     .setAppName(\"$appname\"+sf)
         |     .set("spark.sql.shuffle.partitions", Config.maxPartitions.toString)
         |   val spark = SparkSession.builder().config(conf).getOrCreate()
@@ -219,7 +219,7 @@ object AppWriter {
         |   import spark.implicits._
         |   $data
         |   $gcode
-        |   println("$label,"+sf+","+Config.datapath+","+end+",total,"+spark.sparkContext.applicationId)
+        |   println("$label,"+sf+","+end+",total,"+spark.sparkContext.applicationId)
         | }
         |}""".stripMargin
 
@@ -240,7 +240,7 @@ object AppWriter {
       |var start$i = System.currentTimeMillis()
       |$e
       |var end$i = System.currentTimeMillis() - start$i
-      |println("$appname,"+sf+","+Config.datapath+","+end$i+",$query,"+spark.sparkContext.applicationId)
+      |println("$appname,"+sf+","+end$i+",$query,"+spark.sparkContext.applicationId)
     """.stripMargin
   }
 

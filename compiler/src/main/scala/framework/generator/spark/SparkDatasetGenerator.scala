@@ -395,16 +395,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     // if value contains only attributes from right relation
     // note this also handles lookup in unshredding
     case Bind(vj, join:JoinOp, Bind(nv, nd @ Nest(in, v, key, value @ Record(fs), filter, nulls, tag), e2)) 
-      if (optLevel == 2 || unshred) && (ext.collect(value) subsetOf join.v2.tp.attrs.keySet) && join.isEquiJoin =>
+      if (optLevel > 1 || unshred) && (ext.collect(value) subsetOf join.v2.tp.attrs.keySet) && join.isEquiJoin =>
       
-      val (p1, p2) = join.cond match {
-        case Equals(Project(_, c1), Project(_, c2)) => join.v.tp.attrs get c1 match {
-          case Some(_) => (c1, c2)
-          case _ => (c2, c1)
-        }
-        case _ => sys.error("condition not supported")
-      }
-
+      val (p1, p2) = (join.p1, join.p2)
       val gv = generate(join.v)
       val gv2 = generate(join.v2)
       val gv3 = generate(v)
@@ -462,16 +455,22 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     case en @ Nest(in, v, key, value, filter, nulls, tag) =>
-      val nullSet = nulls.toSet
-      val rnulls = v.tp.attrs.filter(n => nullSet(n._1) 
-        && n._2.isInstanceOf[OptionType]).take(22).keySet
 
       val gv = generate(v)
+
+      // make key expression
       val rkey = Record(key.map(k => k -> Project(v, k)).toMap)
       val kv = Variable("key", rkey.tp)
+
+      // reference value in group
       val grpv = Variable("grp", BagCType(value.tp.unouter))
       val frec = Record(en.tp.tp.attrs.map(k => if (k._1 == tag) k._1 -> grpv 
         else k._1 -> Project(kv, k._1)).toMap)
+
+      // handle nulls
+      val nullSet = nulls.toSet
+      val rnulls = v.tp.attrs.filter(n => nullSet(n._1) 
+        && n._2.isInstanceOf[OptionType]).take(22).keySet
       val uscores = List.fill(rnulls.size)("_")
       val nmatch = rnulls.map(n => s"$gv.$n").mkString("(",",",")")
       val caseMatches = Range(0, rnulls.size).map(i => 
