@@ -12,6 +12,11 @@ import org.seqdoop.hadoop_bam.{VCFInputFormat, VariantContextWritable}
 import org.apache.spark.sql.types.{StringType, IntegerType, StructField, StructType}
 import sparkutils.Config
 
+/** Load variant informatin from VCF files, including consensus VCFs. 
+  * This loader is dependent on the htsjdk and hadoop-bam.
+  *
+  */
+
 case class Call(g_sample: String, call: Int)
 case class Variant(id: String, contig: String, start: Int, reference: String, 
   alternate: String, genotypes: Seq[Call])
@@ -35,6 +40,7 @@ class VariantLoader(spark: SparkSession, path: String) extends Serializable {
 
   implicit val genotypeEncoder = Encoders.product[Call]
   implicit val variantEncoder = Encoders.product[Variant]
+
   def loadVCF: RDD[VariantContext] = {
     spark.sparkContext
       .newAPIHadoopFile[LongWritable, VariantContextWritable, VCFInputFormat](path)

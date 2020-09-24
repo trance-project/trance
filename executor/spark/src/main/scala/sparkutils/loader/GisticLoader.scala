@@ -10,12 +10,15 @@ import sparkutils.skew.SkewDataset._
 import sparkutils.Config
 import org.apache.spark.broadcast.Broadcast
 
+/** Load Gistic file from GDC / ICGC gene level focal scores. Such as:
+  * https://portal.gdc.cancer.gov/files/fd97b1fd-8f97-4b34-ba73-b7778159c6a1
+  * 
+  **/
+
 case class Sample(gistic_sample: String, focal_score: Long)
 case class Gistic(gistic_gene: String, gistic_gene_iso: String, cytoband: String, gistic_samples: Seq[Sample])
 case class GisticDict1(gistic_gene: String, gistic_gene_iso: String, cytoband: String, gistic_samples: String)
 case class GisticSampleDict2(_1: String, gistic_sample: String, focal_score: Long)
-
-//  {(gene: String, cytoband: String, samples: {(name: String, focal_score: Long)})}
 
 class GisticLoader(spark: SparkSession) {
 
@@ -25,30 +28,6 @@ class GisticLoader(spark: SparkSession) {
   import spark.implicits._
   val delimiter: String = "\t"
   
-  /**def load(path: String) : Dataset[Gistic] ={
-    val header = getHeader(read(path))
-    // drop the header before going through the file line by line
-    val file = spark.sparkContext.textFile(path)
-      .mapPartitionsWithIndex { (id_x, iter) => if (id_x == 0) iter.drop(1) else iter }
-
-    val data = file.map(
-      line =>{
-        val sline = line.split("\t")
-        val gene = sline(COL_GENE)
-        val cytoband = sline(COL_CYTOBAND)
-
-        val buffer = ArrayBuffer[Sample]()
-
-        for(index <- 5 until sline.length){
-          val name = header.getOrElse(index, "")
-          buffer.append(Sample(name, sline(index).toInt))
-          }
-
-          Gistic(gene, cytoband, buffer.toSeq)
-        }
-      ).toDF().as[Gistic]
-    data
-  }**/
 
   def merge(path: String, dir: Boolean = true): Dataset[Gistic] = {
     val files = if (dir) (new File(path)).listFiles().toList.map(f => s"$dir/${f.getName}")

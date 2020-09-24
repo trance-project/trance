@@ -6,6 +6,11 @@ import org.apache.spark.sql.types._
 import java.io.File
 import org.apache.spark.sql.functions._
 
+/** Loads copy number data from GDC / ICGC (gene_level files), such as:
+  * https://portal.gdc.cancer.gov/files/a27ea895-37a6-4cbb-8aa9-26abad949937
+  *
+  **/
+
 case class CopyNumber(cn_gene_id: String, cn_gene_name: String, cn_chromosome: String, cn_start: Int, cn_end: Int, cn_copy_number: Int, min_copy_number: Int, max_copy_number: Int, cn_aliquot_uuid: String)
 
 class CopyNumberLoader(spark: SparkSession) {

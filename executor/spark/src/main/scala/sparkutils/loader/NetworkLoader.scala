@@ -1,11 +1,16 @@
 package sparkutils.loader
-/** Generated Code **/
+
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
 import org.apache.spark.broadcast.Broadcast
 import sparkutils.skew.SkewDataset._
+
+/** Network loader based on files from String. Found here:
+  * https://string-db.org/cgi/download.pl?sessionId=07OYSmYt20Mf&species_text=Homo+sapiens
+  *
+  */
 
 case class Network(protein1: String, protein2: String, neighborhood: Int, neighborhood_transferred: Int, fusion: Int, cooccurence: Int, homology: Int, coexpression: Int, coexpression_transferred: Int, experiments: Int, experiments_transferred: Int, database: Int, database_transferred: Int, textmining: Int, textmining_transferred: Int, combined_score: Int)
 
@@ -42,6 +47,10 @@ class NetworkLoader(spark: SparkSession) extends Table[StringNode] {
    val header: Boolean = true
    val delimiter: String = ","
 
+   /**
+     * Loads the network as a relational table (flattened)
+     *
+     **/
    def loadFlat(path: String): Dataset[Network] = {
       spark.read.schema(schema)
          .option("header", header)
@@ -50,6 +59,10 @@ class NetworkLoader(spark: SparkSession) extends Table[StringNode] {
          .as[Network]
    }
    
+   /**
+     * Loads the network as a one-level nested object 
+     *
+     **/
    def load(path: String): Dataset[StringNode] = {
      loadFlat(path).groupByKey(x => x.protein1).mapGroups{
          case (key, grps) => 

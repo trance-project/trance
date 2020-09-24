@@ -7,6 +7,8 @@ import org.apache.spark.sql.types.{IntegerType, StringType, DoubleType, StructFi
 import org.apache.spark.HashPartitioner
 import sparkutils.Config
 
+/** RDD and Dataset loaders for TPC-H **/
+
 case class PartSupp(ps_partkey: Int, ps_suppkey: Int, ps_availqty: Int, ps_supplycost: Double, ps_comment: String)
 
 case class Part(p_partkey: Int, p_name: String, p_mfgr: String, p_brand: String, p_type: String, p_size: Int, p_container: String, p_retailprice: Double, p_comment: String)
@@ -23,7 +25,6 @@ case class Region(r_regionkey: Int, r_name: String, r_comment: String)
 
 case class Nation(n_nationkey: Int, n_name: String, n_regionkey: Int, n_comment: String)
 
-/** RDD and Dataset loaders for TPCH **/
 class TPCHLoader(spark: SparkSession) extends Serializable {
 
   val datapath = Config.datapath

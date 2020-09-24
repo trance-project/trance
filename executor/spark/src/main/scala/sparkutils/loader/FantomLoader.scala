@@ -1,8 +1,13 @@
 package sparkutils.loader
-/** Generated Code **/
+
 import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
+
+/** Loader used for Fantom files provided in iRiGs 
+  * supplementary material. 
+  *
+  */
 
 case class Fantom(chrom: String, chrom_start: Int, chrom_end: Int, chr: String, pos_range: String, ncbi_id: String, gene_name: String, r: String, r_stat: Double, fdr: String, fdr_stat: Int, score: Int, strand: String, thick_start: Int, thick_end: Int, item_rgb: String, block_count: Int, block_sizes: String, chrom_starts: String)
 

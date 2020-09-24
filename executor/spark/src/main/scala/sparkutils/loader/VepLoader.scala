@@ -16,6 +16,13 @@ import sparkutils.skew.SkewDataset._
 import sparkutils.Config
 import org.apache.spark.broadcast.Broadcast
 
+/** Loader that handles annotating each mutation with JSON information from VEP.
+  * It is not recommended to use the full response from VEP as the representation. 
+  * It is recommended to control the response with flags in the options and vepCommandLine
+  * variables defined at the top of the class.
+  *
+  */
+
 
 class VepLoader(spark: SparkSession) extends Serializable {
 
@@ -86,19 +93,19 @@ class VepLoader(spark: SparkSession) extends Serializable {
     val annots = spark.read.json(vindexed.mapPartitions(it => 
 		callVep(it.map(i => i.vepCall).toList).iterator).toDF().as[String])
 		.as[VepAnnotation]
-	(vindexed, annots)
-	//vindexed.join(annots, $"vepCall" === $"input").drop("vepCall").as[AnnotatedVariant0]
+	 (vindexed, annots)
+	 //vindexed.join(annots, $"vepCall" === $"input").drop("vepCall").as[AnnotatedVariant0]
   }
 
   def loadOccurrences(variants: Dataset[OccurrencesTop]): (Dataset[VepOccurrence], Dataset[VepAnnotTrunc]) = {
-	val vindex = variants.withColumn("oid", monotonically_increasing_id().cast(StringType)).withColumn("vepCall", 
-		formatOccurrenceUdf(col("chromosome"), col("start"), col("oid"), col("Reference_Allele"), col("Tumor_Seq_Allele1"), col("Tumor_Seq_Allele2")))
-	 .withColumnRenamed("start", "vstart").as[VepOccurrence]
- 	
-	val annots = spark.read.json(vindex.sort($"chromosome", $"start").mapPartitions(it => 
-		callVep(it.map(i => i.vepCall).toList).iterator).toDF().as[String]).withColumn("vid", extractIdUdf(col("input"))).as[VepAnnotTrunc]
-	
-	//vindex.join(annots, $"vepCall" === $"input").drop("vepCall").as[Occurrence]
+  	val vindex = variants.withColumn("oid", monotonically_increasing_id().cast(StringType)).withColumn("vepCall", 
+  		formatOccurrenceUdf(col("chromosome"), col("start"), col("oid"), col("Reference_Allele"), col("Tumor_Seq_Allele1"), col("Tumor_Seq_Allele2")))
+  	 .withColumnRenamed("start", "vstart").as[VepOccurrence]
+   	
+  	val annots = spark.read.json(vindex.sort($"chromosome", $"start").mapPartitions(it => 
+  		callVep(it.map(i => i.vepCall).toList).iterator).toDF().as[String]).withColumn("vid", extractIdUdf(col("input"))).as[VepAnnotTrunc]
+  	
+  	//vindex.join(annots, $"vepCall" === $"input").drop("vepCall").as[Occurrence]
   	(vindex, annots)
   }
 

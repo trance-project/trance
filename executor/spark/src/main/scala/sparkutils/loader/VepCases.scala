@@ -1,5 +1,7 @@
 package sparkutils.loader
 
+/** Various case classes for handling JSON data from VEP **/
+
 case class Element(element: String)
 case class Motif0(bp_overlap: Long, percentage_overlap: Double, impact: String, motif_feature_id: String, consequence_terms: Seq[String], variant_allele: String)
 case class Motif(bp_overlap: Long, percentage_overlap: Double, impact: String, motif_feature_id: String, consequence_terms: Seq[Element], variant_allele: String)

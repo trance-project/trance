@@ -5,6 +5,12 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
 import sparkutils.Config
 
+/** Biospecimen loader designed from the GDC/ICGC biospecimen aliquot 
+  * files (bcr biotab). Such as: 
+  * https://portal.gdc.cancer.gov/files/e5ebf196-d464-4592-895e-addd43851c16
+  *
+  **/
+
 case class Biospec(bcr_patient_uuid: String, bcr_sample_barcode: String, bcr_aliquot_barcode: String, bcr_aliquot_uuid: String, biospecimen_barcode_bottom: String, center_id: String, concentration: Double, date_of_shipment: String, is_derived_from_ffpe: String, plate_column: Int, plate_id: String, plate_row: String, quantity: Double, source_center: Int, volume: Double)
 
 class BiospecLoader(spark: SparkSession) extends Table[Biospec] {

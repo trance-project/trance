@@ -9,10 +9,11 @@ object Config {
   val fsin = new java.io.FileInputStream("data.flat")
   prop.load(fsin)
 
-  // fix this
+  // assumes at executor/spark
   val basepath = System.getProperty("user.dir")
   val datapath = prop.getProperty("datapath", s"$basepath/data/tpch")
-  println(datapath)
+
+  // deprecated should be set through spark-submit only
   // val master = prop.getProperty("master", "local[*]")
   val minPartitions = prop.getProperty("minPartitions", "400").toInt
   val maxPartitions = prop.getProperty("maxPartitions", "1000").toInt

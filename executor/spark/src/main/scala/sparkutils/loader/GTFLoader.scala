@@ -4,6 +4,11 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql._
 import org.apache.spark.rdd.RDD
 
+/** Reads a GTF files persisting only a few of the columns. Based on:
+  * ftp://ftp.ensembl.org/pub/grch37/release-100/gtf/homo_sapiens/Homo_sapiens.GRCh37.87.chr.gtf.gz 
+  *
+  */
+
 case class GTF(g_contig: String, g_start: Int, g_end: Int, g_gene_name: String, g_gene_id: String)
 
 class GTFLoader(spark: SparkSession, path: String) extends Serializable {
