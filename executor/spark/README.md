@@ -4,7 +4,7 @@ Generated Spark code should be written to `src/main/scala/sparkutils/generated/`
 
 Compile the executor with `sbt package`. 
 
-#### TPCH Example
+### TPCH Example
 
 To run an application that uses the TPCH inputs do, ie. Test2Spark:
 
@@ -17,7 +17,7 @@ spark-submit --class sparkutils.generated.Test2Spark \
       --driver-memory 2G target/scala-2.12/sparkutils_2.12-0.1.jar
 ```
 
-### Genomic Example
+### VCF (Genomic) Example
 
 To run queries on VCF files you will need to point your application to two additional jars. 
 Download the following, making sure you reference their full path in the `--jars` command.
