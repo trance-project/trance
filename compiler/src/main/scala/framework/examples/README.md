@@ -3,11 +3,11 @@
 Each query directory contains a set of input relations in various formats with their respective types, 
 as well as flat and nested queries that use these relations. 
 
-* `tpch`: TPCH queries from Slender paper. Since TPCH loads data from a CSV file, there are TPCH loader specifics in this directory.
+* `tpch`: TPC-H queries from the benchmark. Since TPC-H loads data from a CSV file, there are also TPC-H loader specifics in this directory.
 * `simple`: simple example queries used for testing
 * `normalize`: queries that trigger normalization rules
 * `optimize`: queries specific to exploring the domain-based optimization
-* `genomic`: basic GWAS example queries
+* `genomic`: Biomedical benchmark queries and some basic GWAS example queries
 
 ### Writing a query
 
@@ -15,7 +15,7 @@ NRC queries are described natively in Scala using the NRC language defined in `s
 A newly defined query should extend the Query trait (see Query.scala) to leverage various support functions for executing the 
 stages of the pipeline. 
 
-** Disclaimer:** This is very much a prototype, so defining queries and generating code is a bit of an involved process which is specific to writing queries and generating code for benchmarking. This section will be updated as we develop a query parser and a more automated way to generate target code.
+** Disclaimer:** This an experimental system, so defining queries and generating code is a bit involved. This section will be updated as we develop a query parser and a more automated way to generate target code.
 
 #### Example
 
