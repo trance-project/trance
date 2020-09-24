@@ -15,7 +15,7 @@ NRC queries are described natively in Scala using the NRC language defined in `s
 A newly defined query should extend the Query trait (see Query.scala) to leverage various support functions for executing the 
 stages of the pipeline. 
 
-** Disclaimer:** This is very much a prototype, so defining queries and generating code is a bit of an involved process which is specific to writing queries and generating code for benchmarking. This section will be updated as we develop a query parser and a more automated way to generate target code.
+** Disclaimer:** This an experimental system, so defining queries and generating code is a bit involved. This section will be updated as we develop a query parser and a more automated way to generate target code.
 
 #### Example
 
