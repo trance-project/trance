@@ -6,6 +6,11 @@ import org.apache.spark.sql.types._
 import java.io.File
 import org.apache.spark.sql.functions._
 
+/** Gene expression loader designed for FPKM_UQ files from GDC / ICGC. Such as:
+  * https://portal.gdc.cancer.gov/files/3aa74ff4-dfaa-4f74-b26e-9adbc981961e
+  *
+  **/
+
 case class AliquotMap(case_id: String, ge_aliquot: String, file_name: String)
 case class GeneExpression(ge_aliquot: String, ge_gene_id: String, ge_fpkm: Double)
 case class Tmp(filename: String, case_id: String, ge_aliquot: String, file_name: String, ge_gene_id: String, ge_fpkm: Double)
