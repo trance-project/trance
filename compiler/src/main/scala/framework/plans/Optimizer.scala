@@ -170,8 +170,55 @@ object Optimizer extends Extensions {
     * @param keys set of key values relevant to current location in plan
     * @param values set of values relevant to current location in plan
     * @return plan with local aggregations where relevant 
-    * @todo This was deprecated with the new operators and will come in a future patch.
     */
-  def pushAgg(e: CExpr, keys: Set[String] = Set.empty, values: Set[String] = Set.empty): CExpr = e
+  def pushAgg(e: CExpr, keys: Set[String] = Set.empty, values: Set[String] = Set.empty): CExpr = fapply(e, {
+    
+    // base case
+    case Reduce(e1, v, keys, value) =>
+      Reduce(pushAgg(e1, keys.toSet, value.toSet), v, keys, value)
+
+    // this will not be an index if dictionary
+    // if keys does not contain a key column...
+    case Select(in @ AddIndex(e1, name), v1, p, f1) if keys.nonEmpty && values.nonEmpty =>
+      val attrs = v1.tp.attrs.keySet
+      val nkeys = attrs & keys
+      val nvalues = attrs & values
+      Select(CReduceBy(in, v1, nkeys.toList, nvalues.toList), v1, p, f1)
+
+    case Projection(in, v, f1, fs) if keys.nonEmpty && values.nonEmpty => 
+      // capture mathops
+      val nvalues = collect(f1) -- keys
+      Projection(pushAgg(in, keys, nvalues), v, f1, fs)
+
+    case un:UnnestOp => 
+      assert(un.filter == Constant(true))
+
+      val rattrs = un.v2.tp.attrs.keySet  
+      val rkeys = rattrs & keys
+      val rvalues = rattrs & values
+
+      val npush = pushAgg(un.v2, rkeys, rvalues)
+
+      if (un.outer) OuterUnnest(un.in, un.v, un.path, un.v2, npush, un.fields)
+      else Unnest(un.in, un.v, un.path, un.v2, npush, un.fields)
+
+    case ej:JoinOp =>
+
+      val lattrs = ej.v.tp.attrs.keySet
+      val lkeys = keys.filter(f => lattrs(f)) + ej.p1
+
+      val rattrs = ej.v2.tp.attrs.keySet
+      val rkeys = keys.filter(f => rattrs(f)) + ej.p2
+
+      val lpush = pushAgg(ej.left, lkeys, values.filter(f => lattrs(f)))
+      val rpush = pushAgg(ej.right, rkeys, values.filter(f => rattrs(f)))
+
+      if (ej.jtype == "inner") Join(lpush, ej.v, rpush, ej.v2, ej.cond, ej.fields)
+      else OuterJoin(lpush, ej.v, rpush, ej.v2, ej.cond, ej.fields)
+
+    case v:Variable if keys.nonEmpty && values.nonEmpty =>
+      CReduceBy(e, v, keys.toList, values.toList)
+      
+  })
 
 }

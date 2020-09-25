@@ -21,14 +21,32 @@ case class Projection(in: CExpr, v: Variable, filter: CExpr, fields: List[String
   def tp: BagCType = BagCType(filter.tp)
 }
 
-case class Unnest(in: CExpr, v: Variable, path: String, v2: Variable, filter: CExpr, fields: List[String]) extends CExpr {
-  def tp: BagCType = BagCType(v.tp.merge(v2.tp).project(fields))
+/** Unnest operators **/
+
+trait UnnestOp extends CExpr {
+
+  def tp: BagCType
+  val in: CExpr
+  val v: Variable
+  val path: String 
+  val v2: Variable
+  val filter: CExpr
+  val fields: List[String]
+
+  val outer: Boolean 
+
 }
 
-case class OuterUnnest(in: CExpr, v: Variable, path: String, v2: Variable, filter: CExpr, fields: List[String]) extends CExpr {
+case class Unnest(in: CExpr, v: Variable, path: String, v2: Variable, filter: CExpr, fields: List[String]) extends UnnestOp {
+  def tp: BagCType = BagCType(v.tp.merge(v2.tp).project(fields))
+  val outer: Boolean = false
+}
+
+case class OuterUnnest(in: CExpr, v: Variable, path: String, v2: Variable, filter: CExpr, fields: List[String]) extends UnnestOp {
   val index = Map(path+"_index" -> LongType)
   def tp: BagCType = 
     BagCType(RecordCType((v.tp.attrs - path) ++ index).merge(v2.tp.outer).project(fields))
+  val outer: Boolean = true
 }
 
 /** Join operators **/
@@ -59,6 +77,7 @@ trait JoinOp extends CExpr {
   val cond: CExpr
 
   val fields: List[String]
+  // change to bool
   val jtype: String
 
   val isEquiJoin: Boolean = cond match {
