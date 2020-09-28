@@ -193,11 +193,12 @@ object Optimizer extends Extensions {
     case un:UnnestOp => 
       assert(un.filter == Constant(true))
 
-      val rattrs = un.v2.tp.attrs.keySet  
-      val rkeys = rattrs & keys
-      val rvalues = rattrs & values
+      val attrs = un.fields.toSet 
+      val rkeys = attrs & keys
+      val rvalues = attrs & values
 
-      val npush = pushAgg(un.v2, rkeys, rvalues)
+      val nv = Variable.freshFromBag(un.tp)
+      val npush = pushAgg(nv, rkeys, rvalues)
 
       if (un.outer) OuterUnnest(un.in, un.v, un.path, un.v2, npush, un.fields)
       else Unnest(un.in, un.v, un.path, un.v2, npush, un.fields)
@@ -218,7 +219,7 @@ object Optimizer extends Extensions {
 
     case v:Variable if keys.nonEmpty && values.nonEmpty =>
       CReduceBy(e, v, keys.toList, values.toList)
-      
+
   })
 
 }

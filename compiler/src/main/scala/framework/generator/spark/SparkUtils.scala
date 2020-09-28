@@ -120,6 +120,15 @@ trait SparkUtils {
       case (attr, Project(_, f)) => s"$v.$f"
       case (attr, expr) => sys.error(s"unsupported ${Printer.quote(expr)}")
     }.mkString(s"$name(", ", ", ")")
+  
+  def wrapOption(s: String, tp: Type): String = 
+      tp match { case OptionType(_) => s"Some($s)"; case _ => s}
+
+  def getRecord(v: Variable, vset: Set[String], rname: String): String = {
+    val gv = v.name
+    v.tp.attrs.map(f => if (vset(f._1)) wrapOption(s"$gv._2", f._2) 
+      else s"$gv._1.${f._1}").mkString(s"$rname(", ",", ")") 
+  }
 
   def rename(mtp: Map[String, Type], ocol: String, ncol: String): RecordCType = {
     val newColumn = Map(ncol -> mtp(ocol))

@@ -150,6 +150,7 @@ object AppWriter {
       |import org.apache.spark.sql.functions._
       |import org.apache.spark.sql.types._
       |import org.apache.spark.sql.expressions.scalalang._
+      |import scala.collection.mutable.HashMap
       |import sparkutils._
       |import sparkutils.loader._
       |import sparkutils.skew.SkewDataset._
@@ -178,6 +179,7 @@ object AppWriter {
         |import org.apache.spark.sql.functions._
         |import org.apache.spark.sql.types._
         |import org.apache.spark.sql.expressions.scalalang._
+        |import scala.collection.mutable.HashMap
         |import sparkutils._
         |import sparkutils.loader._
         |import sparkutils.skew.SkewDataset._
@@ -201,6 +203,7 @@ object AppWriter {
         |import org.apache.spark.sql.functions._
         |import org.apache.spark.sql.types._
         |import org.apache.spark.sql.expressions.scalalang._
+        |import scala.collection.mutable.HashMap
         |import sparkutils._
         |import sparkutils.loader._
         |import sparkutils.skew.SkewDataset._

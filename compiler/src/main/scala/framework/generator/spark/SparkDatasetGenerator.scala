@@ -7,8 +7,6 @@ import framework.utils.Utils.ind
 
 /**
   * Spark/Scala generator for Datasets. 
-  * This is the initial prototype implementation and is actively in development.
-  * @deprecated no longer supported, see dataset generator
   * @param cache boolean flag for caching intermediate outputs
   * @param evaluate boolean flag for evaluating intermediate outputs
   * @param skew boolean flag for skew-aware application (requires only minor adjustments)
@@ -136,7 +134,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
   /** This is specific to Dataset, when there is a projection 
     * then it is treated as a column reference
     */
-  def generateReference(e: CExpr, literal: Boolean = false): String = e match {
+  private def generateReference(e: CExpr, literal: Boolean = false): String = e match {
     case Project(v, f) => v.tp match {
       case LabelType(_) => s"""col("_LABEL").getField("$f")"""
       case _ => s"""col("$f")"""
@@ -155,11 +153,29 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case _ => generate(e)
   }
 
-  def defaultCastNull(expr: CExpr, col: String, literal: Boolean = false): List[String] = {
+  private def defaultCastNull(expr: CExpr, col: String, literal: Boolean = false): List[String] = {
     val baseCol = List(s"""|  .withColumn("$col", ${generateReference(expr, literal)})""")
     if (expr.tp.isNumeric) 
       baseCol :+ s""".withColumn("$col", when(col("$col").isNull, ${zero(expr.tp)}).otherwise(col("$col")))"""
     else baseCol
+  }
+
+  private def buildLocalAgg(path: String, nrec: Record, v2: String, vset: Set[String]): String = {
+
+    val keyRec = Record(nrec.fields.filter(f => !vset(f._1)))
+    val krec = generate(keyRec)
+    val ktp = generateType(keyRec.tp)
+
+    // only case for one item in values
+    val (vtp, vdefault, value) = ("Double", "0.0", vset.head)
+    
+    val resRec = getRecord(Variable(v2, nrec.tp), vset, generateType(nrec.tp))
+
+    s"""|       $path.foldLeft(HashMap.empty[$ktp, $vtp].withDefaultValue($vdefault))(
+        |         (acc, $v2) => { acc($krec) += $v2.$value; acc }
+        |       ).map($v2 => $resRec)
+        |""".stripMargin
+
   }
 
   def generate(e: CExpr): String = e match {
@@ -363,32 +379,43 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     case eu @ OuterUnnest(in, v, path, v2, filter, fields) =>
-
       val topAttrs = v.tp.project(fields).attrs.map(f => f._1 -> Project(v, f._1)) - path
-      val nv2 = Variable(v2.name, v2.tp.unouter)
-      val nextAttrs = nv2.tp.project(fields).attrs.map(f => f._1 -> COption(Project(nv2, f._1)))
-      val nrec0 = topAttrs ++ nv2.tp.project(fields).attrs.map(f => f._1 -> COption(Null))
+      val nv2 = Variable(v2.name, v2.tp.project(fields).unouter)
+      val nextAttrs = nv2.tp.attrs.map(f => f._1 -> COption(Project(nv2, f._1)))
+      val nrec0 = topAttrs ++ nv2.tp.attrs.map(f => f._1 -> COption(Null))
 
       val nrec1 = Record(topAttrs ++ nextAttrs)
       val gnrec1 = generate(nrec1)
-      val gnrec0 = s"${generateType(nrec1.tp)}(${nrec0.map(f => generate(f._2)).mkString(", ")})"
+      val nrec1tp = generateType(nrec1.tp)
+
+      val gnrec0 = s"$nrec1tp(${nrec0.map(f => generate(f._2)).mkString(", ")})"
       val gv = generate(v)
+      val gnv2 = generate(nv2)
+
+      val localAgg = filter match {
+          case CReduceBy(vin, vout, keys, values) => 
+            buildLocalAgg(path, nrec1, gnv2, values.toSet)
+          case _ => s"$path.map( $gnv2 => $gnrec1 )"
+        }
+
       val getPath = v.tp.attrs(path) match {
         case OptionType(_) => 
           s"""|   $gv.$path match {
-              |     case Some($path) if $path.nonEmpty => $path.map( ${generate(nv2)} => $gnrec1 )
+              |     case Some($path) if $path.nonEmpty => 
+              |       $localAgg
               |     case _ => Seq($gnrec0)
               |   }
               |""".stripMargin
         case _ => 
           s"""|   if ($gv.$path.isEmpty) Seq($gnrec0)
-              |   else $gv.$path.map( ${generate(nv2)} => $gnrec1 )
+              |   else $gv.$localAgg
               |""".stripMargin
       }
+
       s"""|${generate(in)}.flatMap{
           | case $gv => 
           |   $getPath
-          |}.as[${generateType(nrec1.tp)}]
+          |}.as[$nrec1tp]
           |""".stripMargin
 
     // Nest - Join => CoGroup
@@ -432,6 +459,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |   }).as[$nrec]
           |${generate(e2)}
           |""".stripMargin
+
+    case CReduceBy(vin, vout, keys, values) => generate(vin) 
 
     // primitive monoid
     case en @ Nest(in, v, key, Constant(c), Record(fs), nulls, tag) =>

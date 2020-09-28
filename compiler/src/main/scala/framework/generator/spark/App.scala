@@ -37,9 +37,9 @@ object App {
  
   def main(args: Array[String]){
     // runFlatToNested()
-    // runNestedToNested()
+    runNestedToNested()
     // runNestedToFlat()
-    runSkewHandling()
+    // runSkewHandling()
   }
 
   def runFlatToNested(){
@@ -58,7 +58,7 @@ object App {
     AppWriter.runDatasetInput(Test2FullFlat, Test2NN, "Flat,2")
     
     // shredded pipeline + unshredding
-    AppWriter.runDatasetInputShred(Test2Full, Test2NN, "Shred,2", unshred=true)
+    // AppWriter.runDatasetInputShred(Test2Full, Test2NN, "Shred,2", unshred=true)
 
   }
 
