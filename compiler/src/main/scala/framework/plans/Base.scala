@@ -298,6 +298,7 @@ trait BaseOperatorANF extends BaseANF {
           case o:Reduce => updateState(o)
           case o:AddIndex => updateState(o)
           case o:CDeDup => updateState(o)
+          case o @ CReduceBy(s:Select, _,_,_) => updateState(o)
           case _ => Def(e)
       }
     }

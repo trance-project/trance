@@ -52,7 +52,9 @@ trait Query extends Materialization
         println("\n after opt \n")
         val plan = Optimizer.applyAll(un)
         println(Printer.quote(plan))
-        anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
+        val anfed = anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
+        println(Printer.quote(anfed))
+        anfed 
     }
   }
 

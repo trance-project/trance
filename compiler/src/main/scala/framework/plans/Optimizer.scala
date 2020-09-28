@@ -183,7 +183,7 @@ object Optimizer extends Extensions {
       val attrs = v1.tp.attrs.keySet
       val nkeys = attrs & keys
       val nvalues = attrs & values
-      Select(CReduceBy(in, v1, nkeys.toList, nvalues.toList), v1, p, f1)
+      CReduceBy(e, v1, nkeys.toList, nvalues.toList)
 
     case Projection(in, v, f1, fs) if keys.nonEmpty && values.nonEmpty => 
       // capture mathops

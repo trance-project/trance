@@ -371,10 +371,18 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val topAttrs = v.tp.project(fields).attrs.map(f => f._1 -> Project(v, f._1)) - path
       val nextAttrs = v2.tp.project(fields).attrs.map(f => f._1 -> Project(v2, f._1))
       val nrec = Record(topAttrs ++ nextAttrs)
+      val gnrec = generate(nrec)
       val gv = generate(v)
+      val gv2 = generate(v2)
+
+      val localAgg = filter match {
+          case CReduceBy(vin, vout, keys, values) => 
+            buildLocalAgg(s"$gv.$path", nrec, gv2, values.toSet)
+          case _ => s"$gv.$path.map( $gv2 => $gnrec )"
+        }
 
       s"""|${generate(in)}.flatMap{ case $gv => 
-          | $gv.$path.map( ${generate(v2)} => ${generate(nrec)} )
+          | $localAgg
           |}.as[${generateType(nrec.tp)}]
           |""".stripMargin
 
@@ -460,7 +468,14 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |${generate(e2)}
           |""".stripMargin
 
-    case CReduceBy(vin, vout, keys, values) => generate(vin) 
+    case CReduceBy(vin, vout, keys, values) => 
+      //buildLocalAgg(path: String, nrec: Record, v2: String, vset: Set[String]): String
+      val nrec = Record(vout.tp.attrs.map(f => f._1 -> Project(vout, f._1)))
+      val v2 = vout.name
+      s"""|${generate(vin)}.mapPartitions(it => 
+          |   ${buildLocalAgg("it", nrec, vout.name, values.toSet)}.iterator
+          | )
+          |""".stripMargin
 
     // primitive monoid
     case en @ Nest(in, v, key, Constant(c), Record(fs), nulls, tag) =>
