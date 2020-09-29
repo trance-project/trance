@@ -165,6 +165,12 @@ object Optimizer extends Extensions {
     case _ => e
   }
 
+  private def isBase(e: CExpr): Boolean = e match {
+    case FlatDict(e1) => isBase(e1)
+    case AddIndex(e1, _) => isBase(e1)
+    case _:InputRef => true
+  }
+
   /** Push aggregates to local operations, while persisting orignal aggregation.
     * @param e plan or subplan
     * @param keys set of key values relevant to current location in plan
@@ -179,7 +185,7 @@ object Optimizer extends Extensions {
 
     // this will not be an index if dictionary
     // if keys does not contain a key column...
-    case Select(in @ AddIndex(e1, name), v1, p, f1) if keys.nonEmpty && values.nonEmpty =>
+    case Select(in, v1, p, f1) if keys.nonEmpty && values.nonEmpty && isBase(in) =>
       val attrs = v1.tp.attrs.keySet
       val nkeys = attrs & keys
       val nvalues = attrs & values

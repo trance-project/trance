@@ -160,6 +160,13 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     else baseCol
   }
 
+  private def defaultCastNull(col: String, oldCol: String, tp: Type): List[String] = {
+    val baseCol = List(s"""| .withColumnRenamed("$oldCol", "$col")""")
+    if (tp.isNumeric) 
+      baseCol :+ s""".withColumn("$col", when(col("$col").isNull, ${zero(tp)}).otherwise(col("$col")))"""
+    else baseCol
+  }
+
   private def buildLocalAgg(path: String, nrec: Record, v2: String, vset: Set[String]): String = {
 
     val keyRec = Record(nrec.fields.filter(f => !vset(f._1)))
@@ -278,11 +285,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       // override existing columns
       val renamedColumns = pat.fields.flatMap{
         // create a new column from an old column
-        case (col, Project(_, oldCol)) if col != oldCol => 
+        case (col, p @ Project(_, oldCol)) if col != oldCol => 
           // creates an additional column
           if (newCols(oldCol)) List(s"""| .withColumn("$col", $$"$oldCol")""")
           // overrides a column
-          else List(s"""| .withColumnRenamed("$oldCol", "$col")""")
+          else defaultCastNull(col, oldCol, p.tp)
 		      case _ => Nil
       } 
 
@@ -469,7 +476,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     case CReduceBy(vin, vout, keys, values) => 
-      //buildLocalAgg(path: String, nrec: Record, v2: String, vset: Set[String]): String
+
       val nrec = Record(vout.tp.attrs.map(f => f._1 -> Project(vout, f._1)))
       val v2 = vout.name
       s"""|${generate(vin)}.mapPartitions(it => 

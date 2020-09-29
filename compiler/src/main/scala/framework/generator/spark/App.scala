@@ -37,8 +37,8 @@ object App {
  
   def main(args: Array[String]){
     // runFlatToNested()
-    runNestedToNested()
-    // runNestedToFlat()
+    // runNestedToNested()
+    runNestedToFlat()
     // runSkewHandling()
   }
 
@@ -56,21 +56,21 @@ object App {
     
     // standard pipeline - all optimizations
     // AppWriter.runDatasetInput(Test0Full, Test0NN, "Flat,0")
-    AppWriter.runDatasetInput(Test2FullFlat, Test2NN, "Flat,2", optLevel = 1)
+    // AppWriter.runDatasetInput(Test2FullFlat, Test2NN, "Flat,2")
     
     // shredded pipeline + unshredding
-    // AppWriter.runDatasetInputShred(Test2Full, Test2NN, "Shred,2", unshred=true)
+    AppWriter.runDatasetInputShred(Test2Full, Test2NN, "Shred,2", unshred=true)
 
   }
 
   def runNestedToFlat(){
 
     // standard pipeline - all optimizations
-    AppWriter.runDatasetInput(Test1Full, Test1Agg1, "Flat,Standard,1")
-    AppWriter.runDatasetInput(Test2FullFlat, Test2Agg2, "Flat,Standard,2")
+    // AppWriter.runDatasetInput(Test1Full, Test1Agg1, "Flat,Standard,1")
+    // AppWriter.runDatasetInput(Test2FullFlat, Test2Agg2, "Flat,Standard,2")
 
     // shredded pipeline + unshredding
-    // AppWriter.runDatasetInputShred(Test2Full, Test2Agg2S, "Shred,Standard,2")
+    AppWriter.runDatasetInputShred(Test2Full, Test2Agg2S, "Shred,Standard,2")
   
   }
 

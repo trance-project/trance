@@ -311,17 +311,12 @@ object Variable {
       case BagDictCType(flat, dict) => Variable(s"x$id",flat.tp)
       case BagCType(RecordCType(ms)) if index != "" => Variable(s"x$id", RecordCType(ms ++ Map(index -> LongType)))
       case BagCType(tup) => Variable(s"x$id", tup)
+      case MatDictCType(key, value:BagCType) => Variable(s"x$id", RecordCType(value.tp.attrs + ("_1" -> key)))
       case _ => Variable(s"x$id", tp)
     }
   }
 
   def fromBag(name: String, tp: Type): Variable = Variable(name, RecordCType(tp.attrs))
-
-  // tp match {
-  //   case BagCType(tup) => Variable(name, tup)
-  //   case MatDictCType(lbl, bag) => Variable
-  //   case _ => sys.error(s"type not supported $tp")
-  // }
 
   def fresh(n: String = "x"): String = s"$n${newId()}"
   def newId(): Int = {

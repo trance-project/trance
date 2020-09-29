@@ -52,9 +52,7 @@ trait Query extends Materialization
         println("\n after opt \n")
         val plan = Optimizer.applyAll(un)
         println(Printer.quote(plan))
-        val anfed = anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
-        println(Printer.quote(anfed))
-        anfed 
+        anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
     }
   }
 
@@ -76,7 +74,7 @@ trait Query extends Materialization
     // println(quote(matInput.program))
     val inputC = normalizer.finalize(translate(matInput.program)).asInstanceOf[CExpr]
     val inputInitPlan = Unnester.unnest(inputC)(Map(), Map(), None, baseTag)
-    val inputPlan = Optimizer.push(compiler.finalize(inputInitPlan).asInstanceOf[CExpr])
+    val inputPlan = Optimizer.applyAll(compiler.finalize(inputInitPlan).asInstanceOf[CExpr])
     println(Printer.quote(inputPlan))
     val anfBase = new BaseOperatorANF{}
     val anfer = new Finalizer(anfBase)
@@ -88,7 +86,7 @@ trait Query extends Materialization
     println(quote(mat.program))
     val calc = normalizer.finalize(translate(mat.program)).asInstanceOf[CExpr]
     val initPlan = Unnester.unnest(calc)(Map(), Map(), None, baseTag)
-    val plan = Optimizer.push(compiler.finalize(initPlan).asInstanceOf[CExpr])
+    val plan = Optimizer.applyAll(compiler.finalize(initPlan).asInstanceOf[CExpr])
     println(Printer.quote(plan))
     // println(plan)
     val sanfBase = new BaseOperatorANF{}
@@ -131,9 +129,10 @@ trait Query extends Materialization
     val ncalc = normalizer.finalize(translate(matProg)).asInstanceOf[CExpr]
     // println(ncalc)
     val initPlan = Unnester.unnest(ncalc)(Map(), Map(), None, baseTag)
-    // println("plan before")
-    // println(Printer.quote(initPlan))
-    val plan = Optimizer.push(compiler.finalize(initPlan).asInstanceOf[CExpr])
+
+    // add flexibility for optimization level?
+    val plan = Optimizer.applyAll(compiler.finalize(initPlan).asInstanceOf[CExpr])
+
     println(Printer.quote(plan))
     val anfBase = new BaseOperatorANF{}
     val anfer = new Finalizer(anfBase)
