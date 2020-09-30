@@ -197,17 +197,22 @@ object Optimizer extends Extensions {
       Projection(pushAgg(in, keys, nvalues), v, f1, fs)
 
     case un:UnnestOp => 
-      assert(un.filter == Constant(true))
+      // assert(un.filter == Constant(true))
 
       val attrs = un.fields.toSet 
       val rkeys = attrs & keys
       val rvalues = attrs & values
 
-      val nv = Variable.freshFromBag(un.tp)
-      val npush = pushAgg(nv, rkeys, rvalues)
+      if (rkeys.nonEmpty && rvalues.nonEmpty){
+        val nv = Variable.freshFromBag(un.tp)
+        CReduceBy(un, nv, rkeys.toList, rvalues.toList)
+      }else e
 
-      if (un.outer) OuterUnnest(un.in, un.v, un.path, un.v2, npush, un.fields)
-      else Unnest(un.in, un.v, un.path, un.v2, npush, un.fields)
+      // val nv = Variable.freshFromBag(un.tp)
+      // val npush = pushAgg(nv, rkeys, rvalues)
+
+      // if (un.outer) OuterUnnest(un.in, un.v, un.path, un.v2, npush, un.fields)
+      // else Unnest(un.in, un.v, un.path, un.v2, npush, un.fields)
 
     case ej:JoinOp =>
 

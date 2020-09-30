@@ -4,10 +4,6 @@ import framework.common._
 import framework.plans._
 import framework.utils.Utils.ind
 
-case class COption(e: CExpr) extends CExpr {
-  def tp: OptionType = OptionType(e.tp)
-}
-
 /** 
   * Utility functions requried for generating Spark/Scala applications
   */

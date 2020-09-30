@@ -31,12 +31,13 @@ sealed trait Type { self =>
 
   def project(fields: List[String]): RecordCType = self match {
     case st @ RecordCType(ms) => 
-      if (fields.isEmpty) st
-      else RecordCType(ms.filter(x => fields.contains(x._1)))
+      val fs = fields.toSet
+      val ks = ms.keySet
+      if (fs.isEmpty || (fs & ks).isEmpty) st
+      else RecordCType(ms.filter(f => fs(f._1)))
     case BagCType(ms) => ms.project(fields)
-    case _ => ???
+    case t => sys.error(s"Issue calling project on $t")
   }
-
 
   def merge(tp: Type): RecordCType = (self, tp) match {
     case (RecordCType(ms1), RecordCType(ms2)) => 

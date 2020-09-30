@@ -306,6 +306,7 @@ object Variable {
   def freshFromBag(tp: Type, index: String = ""): Variable = {
     val id = newId()
     tp match {
+      case OptionType(bag) => freshFromBag(bag)
       case BagDictCType(BagCType(TTupleType(List(EmptyCType, BagCType(tup)))), tdict) => Variable(s"x$id", tup)
       case BagCType(TTupleType(List(EmptyCType, BagCType(tup)))) =>  Variable(s"x$id", tup)
       case BagDictCType(flat, dict) => Variable(s"x$id",flat.tp)

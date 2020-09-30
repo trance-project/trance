@@ -179,9 +179,67 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     val resRec = getRecord(Variable(v2, nrec.tp), vset, generateType(nrec.tp))
 
     s"""|       $path.foldLeft(HashMap.empty[$ktp, $vtp].withDefaultValue($vdefault))(
-        |         (acc, $v2) => { acc($krec) += $v2.$value; acc }
+        |         (acc, $v2) => { acc($krec) += $v2.$value.asInstanceOf[$vtp]; acc }
         |       ).map($v2 => $resRec)
         |""".stripMargin
+
+  }
+
+  // todo handle filter
+  private def generateUnnest(e: UnnestOp, pushAgg: Option[CExpr] = None): String = {
+
+    // generate references 
+    val gin = generate(e.in)
+    val gv = generate(e.v)
+    val gv2 = generate(e.v2)
+
+    // generate output record components
+    val topAttrs = e.topAttrs
+    val nrec = Record(topAttrs ++ e.nextAttrs)
+    val gnrec = generate(nrec)
+    val nrecName = generateType(nrec.tp)
+
+    val localMap = pushAgg match {
+      case Some(CReduceBy(_,_,_,values)) =>
+        buildLocalAgg(e.path, nrec, gv2, values.toSet)
+      case _ => s"${e.path}.map( $gv2 => $gnrec )"
+    }
+
+    if (e.outer){
+
+      // generate output record components for empty inner bags
+      val nrec0 = topAttrs ++ e.nextAttrs.map(f => f._1 -> COption(Null))
+      val gnrec0 = s"$nrecName(${nrec0.map(f => generate(f._2)).mkString(", ")})"
+      
+      // catch case where nested path attribute is of option type
+      val innerMatch = e.v.tp.attrs(e.path) match {
+        case OptionType(_) => 
+          s"""|   $gv.${e.path} match {
+              |     case Some(${e.path}) if ${e.path}.nonEmpty => 
+              |       $localMap
+              |     case _ => Seq($gnrec0)
+              |   }
+              |""".stripMargin
+        case _ => 
+          s"""|   if ($gv.${e.path}.isEmpty) Seq($gnrec0)
+              |   else $gv.$localMap
+              |""".stripMargin
+      }
+
+      // return flat map for outer unnest
+      s"""|$gin.flatMap{
+          | case $gv => 
+          |   $innerMatch
+          |}.as[$nrecName]
+          |""".stripMargin    
+
+    }else 
+
+      // return flat map for non-outer unnest
+      s"""|$gin.flatMap{ case $gv => 
+          |   $gv.$localMap
+          |}.as[$nrecName]
+          |""".stripMargin
 
   }
 
@@ -305,6 +363,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           | $ncast
           |""".stripMargin
 
+    // lookup case
     case ej @ OuterJoin(left, v1, right, v2, Equals(Project(_, p1), Project(_, p2 @ "_1")), filt) if right.tp.isDict =>
    
       // adjust lookup column of dictionary
@@ -372,66 +431,12 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
                   |""".stripMargin   
           }      
         }
-    
-    case eu @ Unnest(in, v, path, v2, filter, fields) =>
 
-      val topAttrs = v.tp.project(fields).attrs.map(f => f._1 -> Project(v, f._1)) - path
-      val nextAttrs = v2.tp.project(fields).attrs.map(f => f._1 -> Project(v2, f._1))
-      val nrec = Record(topAttrs ++ nextAttrs)
-      val gnrec = generate(nrec)
-      val gv = generate(v)
-      val gv2 = generate(v2)
+    // push local aggregation inside of unnest
+    case Bind(vu, un:UnnestOp, Bind(vc, cr @ CReduceBy(_, v1, keys, values), e2)) =>
+      s"val ${generate(vc)} = ${generateUnnest(un, Some(cr))}\n${generate(e2)}"
 
-      val localAgg = filter match {
-          case CReduceBy(vin, vout, keys, values) => 
-            buildLocalAgg(s"$gv.$path", nrec, gv2, values.toSet)
-          case _ => s"$gv.$path.map( $gv2 => $gnrec )"
-        }
-
-      s"""|${generate(in)}.flatMap{ case $gv => 
-          | $localAgg
-          |}.as[${generateType(nrec.tp)}]
-          |""".stripMargin
-
-    case eu @ OuterUnnest(in, v, path, v2, filter, fields) =>
-      val topAttrs = v.tp.project(fields).attrs.map(f => f._1 -> Project(v, f._1)) - path
-      val nv2 = Variable(v2.name, v2.tp.project(fields).unouter)
-      val nextAttrs = nv2.tp.attrs.map(f => f._1 -> COption(Project(nv2, f._1)))
-      val nrec0 = topAttrs ++ nv2.tp.attrs.map(f => f._1 -> COption(Null))
-
-      val nrec1 = Record(topAttrs ++ nextAttrs)
-      val gnrec1 = generate(nrec1)
-      val nrec1tp = generateType(nrec1.tp)
-
-      val gnrec0 = s"$nrec1tp(${nrec0.map(f => generate(f._2)).mkString(", ")})"
-      val gv = generate(v)
-      val gnv2 = generate(nv2)
-
-      val localAgg = filter match {
-          case CReduceBy(vin, vout, keys, values) => 
-            buildLocalAgg(path, nrec1, gnv2, values.toSet)
-          case _ => s"$path.map( $gnv2 => $gnrec1 )"
-        }
-
-      val getPath = v.tp.attrs(path) match {
-        case OptionType(_) => 
-          s"""|   $gv.$path match {
-              |     case Some($path) if $path.nonEmpty => 
-              |       $localAgg
-              |     case _ => Seq($gnrec0)
-              |   }
-              |""".stripMargin
-        case _ => 
-          s"""|   if ($gv.$path.isEmpty) Seq($gnrec0)
-              |   else $gv.$localAgg
-              |""".stripMargin
-      }
-
-      s"""|${generate(in)}.flatMap{
-          | case $gv => 
-          |   $getPath
-          |}.as[$nrec1tp]
-          |""".stripMargin
+    case eu:UnnestOp => generateUnnest(eu)
 
     // Nest - Join => CoGroup
     // if value contains only attributes from right relation
@@ -475,9 +480,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |${generate(e2)}
           |""".stripMargin
 
+    // local aggregation pushed to input relations
     case CReduceBy(vin, vout, keys, values) => 
 
-      val nrec = Record(vout.tp.attrs.map(f => f._1 -> Project(vout, f._1)))
+      val nrec = Record(e.tp.attrs.map(f => f._1 -> Project(vout, f._1)))
+      val gnrec = generate(nrec)
       val v2 = vout.name
       s"""|${generate(vin)}.mapPartitions(it => 
           |   ${buildLocalAgg("it", nrec, vout.name, values.toSet)}.iterator

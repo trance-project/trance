@@ -2,6 +2,10 @@ package framework.plans
 
 import framework.common._
 
+case class COption(e: CExpr) extends CExpr {
+  def tp: OptionType = OptionType(e.tp)
+}
+
 /** Operators of the plan language **/ 
 
 case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
@@ -35,6 +39,12 @@ trait UnnestOp extends CExpr {
 
   val outer: Boolean 
 
+  val topAttrs: Map[String, CExpr] = 
+    v.tp.project(fields).attrs.map(f => f._1 -> Project(v, f._1)) - path
+
+  val nextAttrs: Map[String, CExpr] = 
+    v2.tp.project(fields).attrs.map(f => f._1 -> Project(v2, f._1))
+
 }
 
 case class Unnest(in: CExpr, v: Variable, path: String, v2: Variable, filter: CExpr, fields: List[String]) extends UnnestOp {
@@ -43,10 +53,17 @@ case class Unnest(in: CExpr, v: Variable, path: String, v2: Variable, filter: CE
 }
 
 case class OuterUnnest(in: CExpr, v: Variable, path: String, v2: Variable, filter: CExpr, fields: List[String]) extends UnnestOp {
+  
   val index = Map(path+"_index" -> LongType)
+  
   def tp: BagCType = 
     BagCType(RecordCType((v.tp.attrs - path) ++ index).merge(v2.tp.outer).project(fields))
+  
   val outer: Boolean = true
+  
+  override val nextAttrs: Map[String, CExpr] = 
+    v2.tp.project(fields).attrs.map(f => f._1 -> COption(Project(v2, f._1)))
+
 }
 
 /** Join operators **/
@@ -115,4 +132,11 @@ case class Nest(in: CExpr, v: Variable, key: List[String], value: CExpr, filter:
 case class Reduce(in: CExpr, v: Variable, keys: List[String], values: List[String]) extends CExpr {
   def tp: BagCType = BagCType(v.tp.project(keys).merge(v.tp.project(values)))
 }
+
+
+
+
+
+
+
 

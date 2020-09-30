@@ -227,12 +227,12 @@ trait BaseCompiler extends Base {
   }
   def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = {
     val v = Variable.freshFromBag(in.tp)
-    val v2 = Variable.freshFromBag(v.tp.asInstanceOf[RecordCType].attrTps(path))
+    val v2 = Variable.freshFromBag(v.tp.attrs(path))
     Unnest(in, v, path, v2, filter(v2), fields)
   }
   def ounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = {
     val v = Variable.freshFromBag(in.tp)
-    val v2 = Variable.fresh(v.tp.asInstanceOf[RecordCType].attrTps(path).outer)
+    val v2 = Variable.freshFromBag(v.tp.attrs(path))//.outer)
     OuterUnnest(in, v, path, v2, filter(v2), fields)  
   }
   def join(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep = {
@@ -298,7 +298,7 @@ trait BaseOperatorANF extends BaseANF {
           case o:Reduce => updateState(o)
           case o:AddIndex => updateState(o)
           case o:CDeDup => updateState(o)
-          case o @ CReduceBy(s:Select, _,_,_) => updateState(o)
+          case o:CReduceBy => updateState(o)
           case _ => Def(e)
       }
     }
