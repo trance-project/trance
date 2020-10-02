@@ -126,7 +126,7 @@ object Unnester {
 
   }
 
-  def extendIf(ls: List[String], e: CExpr, v: Variable): CExpr = e match {
+  private def extendIf(ls: List[String], e: CExpr, v: Variable): CExpr = e match {
     case If(cond, Sng(Record(fs)), nextIf) => 
       val extendedAttrs = ls.map(l => l -> Project(v, l)).toMap
       val next = nextIf match { case Some(ni) => Some(extendIf(ls, ni, v)); case _ => None}
@@ -137,7 +137,7 @@ object Unnester {
     case _ => e
   }
 
-  def handleLevel(fs: Map[String, CExpr], exp: CExpr => CExpr)(implicit ctx: Ctx): CExpr = {
+  private def handleLevel(fs: Map[String, CExpr], exp: CExpr => CExpr)(implicit ctx: Ctx): CExpr = {
    fs.find(c => isNestedComp(c._2)) match {
     case Some((key, value)) =>
       val nE = unnest(value)((w, w, E, key))
@@ -155,4 +155,13 @@ object Unnester {
     }   
   }
 
+  private def liftFilter(f: CExpr, e: CExpr): CExpr = f match {
+    case Constant(true) => e
+    case _ => e match {
+      case Comprehension(e1, v, p, e2) => Comprehension(e1, v, normalizer.and(f, p), e2)
+      case If(cnd, e1, e2) => If(normalizer.and(f, cnd), e1, e2)
+      case Sng(e1) => If(f, e1, None)
+      case _ => sys.error(s"unsupported expression $e")
+    } 
+  }
 }

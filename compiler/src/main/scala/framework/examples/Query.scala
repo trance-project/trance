@@ -34,7 +34,7 @@ trait Query extends Materialization
 
   def normalize: CExpr = {
     val nc = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
-    //println(Printer.quote(nc))
+    // println(Printer.quote(nc))
     nc
   }
   
@@ -85,6 +85,7 @@ trait Query extends Materialization
     println(quote(this.program))
     println(quote(mat.program))
     val calc = normalizer.finalize(translate(mat.program)).asInstanceOf[CExpr]
+    println(Printer.quote(calc))
     val initPlan = Unnester.unnest(calc)(Map(), Map(), None, baseTag)
     val plan = Optimizer.applyAll(compiler.finalize(initPlan).asInstanceOf[CExpr])
     println(Printer.quote(plan))

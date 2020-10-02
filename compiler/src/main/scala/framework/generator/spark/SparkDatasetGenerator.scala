@@ -167,7 +167,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     else baseCol
   }
 
-  private def buildLocalAgg(path: String, nrec: Record, v2: String, vset: Set[String]): String = {
+  private def buildLocalAgg(path: String, nrec: Record, v2: String, vset: Set[String], filter: CExpr = Constant(true)): String = {
 
     val keyRec = Record(nrec.fields.filter(f => !vset(f._1)))
     val krec = generate(keyRec)
@@ -176,16 +176,27 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     // only case for one item in values
     val (vtp, vdefault, value) = ("Double", "0.0", vset.head)
     
-    val resRec = getRecord(Variable(v2, nrec.tp), vset, generateType(nrec.tp))
+    val nv = Variable(v2, nrec.tp)
+    val nv2 = Variable(v2, nrec.tp.unouter)
+    val resRec = getRecord(nv, vset, generateType(nrec.tp))
 
-    s"""|       $path.foldLeft(HashMap.empty[$ktp, $vtp].withDefaultValue($vdefault))(
-        |         (acc, $v2) => { acc($krec) += $v2.$value.asInstanceOf[$vtp]; acc }
-        |       ).map($v2 => $resRec)
-        |""".stripMargin
+    filter match {
+      case Constant(true) => 
+        s"""|       $path.foldLeft(HashMap.empty[$ktp, $vtp].withDefaultValue($vdefault))(
+            |         (acc, $v2) => {acc($krec) += $v2.$value.asInstanceOf[$vtp]; acc} 
+            |       ).map($v2 => $resRec)
+            |""".stripMargin
+      case _ => 
+        s"""|       $path.foldLeft(HashMap.empty[$ktp, $vtp].withDefaultValue($vdefault))(
+            |         (acc, $v2) => {
+            |           if (${accessOption(filter, nv2)}) { acc($krec) += $v2.$value.asInstanceOf[$vtp]; acc }
+            |           else acc
+            |       }).map($v2 => $resRec)
+            |""".stripMargin
+    }
 
   }
 
-  // todo handle filter
   private def generateUnnest(e: UnnestOp, pushAgg: Option[CExpr] = None): String = {
 
     // generate references 
@@ -199,10 +210,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     val gnrec = generate(nrec)
     val nrecName = generateType(nrec.tp)
 
-    val localMap = pushAgg match {
-      case Some(CReduceBy(_,_,_,values)) =>
-        buildLocalAgg(e.path, nrec, gv2, values.toSet)
-      case _ => s"${e.path}.map( $gv2 => $gnrec )"
+    val localMap = (pushAgg, e.filter) match {
+      case (Some(CReduceBy(_,_,_,values)), _) =>
+        buildLocalAgg(e.path, nrec, gv2, values.toSet, e.filter)
+      case (_, Constant(true)) => s"${e.path}.map( $gv2 => $gnrec )"
+      case _ => s"${e.path}.flatMap( $gv2 => if (${generate(e.filter)}) Seq($gnrec) else Seq() )"
     }
 
     if (e.outer){
@@ -363,7 +375,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           | $ncast
           |""".stripMargin
 
-    // lookup case
+    // lookup iteration translates to inner join 
     case ej @ OuterJoin(left, v1, right, v2, Equals(Project(_, p1), Project(_, p2 @ "_1")), filt) if right.tp.isDict =>
    
       // adjust lookup column of dictionary
@@ -393,7 +405,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       s"""|${generate(left)}$lcolumn
           |   .as[$gltp].equiJoin$classTags(
           |   ${generate(right)}.withColumnRenamed("${p2}", "$rcol").as[$grtp], 
-          |   Seq("$lcol", "$rcol"), "left_outer").drop("$lcol", "$rcol")
+          |   Seq("$lcol", "$rcol"), "inner").drop("$lcol", "$rcol")
           |   .as[${generateType(nrecTp)}]
           |""".stripMargin
 
@@ -439,10 +451,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case eu:UnnestOp => generateUnnest(eu)
 
     // Nest - Join => CoGroup
-    // if value contains only attributes from right relation
-    // note this also handles lookup in unshredding
     case Bind(vj, join:JoinOp, Bind(nv, nd @ Nest(in, v, key, value @ Record(fs), filter, nulls, tag), e2)) 
-      if (optLevel > 1 || unshred) && (ext.collect(value) subsetOf join.v2.tp.attrs.keySet) && join.isEquiJoin =>
+      if (unshred) && (ext.collect(value) subsetOf join.v2.tp.attrs.keySet) && join.isEquiJoin =>
       
       val (p1, p2) = (join.p1, join.p2)
       val gv = generate(join.v)

@@ -79,7 +79,7 @@ trait JoinOp extends CExpr {
     case Equals(Project(_, f1), Project(_, f2)) =>
       if (v.tp.attrs.contains(f1)) f1
       else f2
-    case _ => sys.error("can't be called on a non-equijoin") 
+    case _ => sys.error(s"can't be called on a non-equijoin $cond") 
   }
 
   val right: CExpr
@@ -88,7 +88,7 @@ trait JoinOp extends CExpr {
     case Equals(Project(_, f1), Project(_, f2)) =>
       if (v2.tp.attrs.contains(f1)) f1
       else f2
-    case _ => sys.error("can't be called on a non-equijoin") 
+    case _ => sys.error(s"can't be called on a non-equijoin $cond") 
   }
 
   val cond: CExpr

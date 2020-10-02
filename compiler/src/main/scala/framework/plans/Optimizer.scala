@@ -22,7 +22,7 @@ object Optimizer extends Extensions {
     o4
   }
 
-  def validateMatch(t1: Type, f1: String, t2: Type, f2: String): Boolean = 
+  private def validateMatch(t1: Type, f1: String, t2: Type, f2: String): Boolean = 
     (t1.attrs.get(f1).isDefined && t2.attrs.get(f2).isDefined) ||
       (t1.attrs.get(f2).isDefined && t2.attrs.get(f1).isDefined)
 
@@ -183,8 +183,6 @@ object Optimizer extends Extensions {
     case Reduce(e1, v, keys, value) =>
       Reduce(pushAgg(e1, keys.toSet, value.toSet), v, keys, value)
 
-    // this will not be an index if dictionary
-    // if keys does not contain a key column...
     case Select(in, v1, p, f1) if keys.nonEmpty && values.nonEmpty && isBase(in) =>
       val attrs = v1.tp.attrs.keySet
       val nkeys = attrs & keys
@@ -197,7 +195,6 @@ object Optimizer extends Extensions {
       Projection(pushAgg(in, keys, nvalues), v, f1, fs)
 
     case un:UnnestOp => 
-      // assert(un.filter == Constant(true))
 
       val attrs = un.fields.toSet 
       val rkeys = attrs & keys
@@ -207,12 +204,6 @@ object Optimizer extends Extensions {
         val nv = Variable.freshFromBag(un.tp)
         CReduceBy(un, nv, rkeys.toList, rvalues.toList)
       }else e
-
-      // val nv = Variable.freshFromBag(un.tp)
-      // val npush = pushAgg(nv, rkeys, rvalues)
-
-      // if (un.outer) OuterUnnest(un.in, un.v, un.path, un.v2, npush, un.fields)
-      // else Unnest(un.in, un.v, un.path, un.v2, npush, un.fields)
 
     case ej:JoinOp =>
 
@@ -232,5 +223,6 @@ object Optimizer extends Extensions {
       CReduceBy(e, v, keys.toList, values.toList)
 
   })
+
 
 }

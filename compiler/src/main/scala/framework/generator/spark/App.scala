@@ -36,7 +36,7 @@ object App {
   val pathout = "../executor/spark/src/main/scala/sparkutils/generated/"
  
   def main(args: Array[String]){
-    // runFlatToNested()
+    runFlatToNested()
     runNestedToNested()
     runNestedToFlat()
     runSkewHandling()
@@ -60,7 +60,6 @@ object App {
     
     // shredded pipeline + unshredding
     AppWriter.runDatasetInputShred(Test2Full, Test2NN, "Shred,2", unshred=true)
-
   }
 
   def runNestedToFlat(){
