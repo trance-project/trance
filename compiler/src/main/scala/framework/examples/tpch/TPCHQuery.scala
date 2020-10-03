@@ -14,14 +14,14 @@ trait TPCHBase extends Query {
   val tbls: Set[String]
 
   def loaders: Map[String, String] = Map(
-    "C" -> "loadCustomerDF()",
-    "O" -> "loadOrderDF()",
-    "L" -> "loadLineitemDF()",
-    "P" -> "loadPartDF()",
-    "PS" -> "loadPartSuppDF()",
-    "S" -> "loadSupplierDF()",
-    "N" -> "loadNationDF()",
-    "R" -> "loadRegionDF()")
+    "Customer" -> "loadCustomerDF()",
+    "Order" -> "loadOrderDF()",
+    "Lineitem" -> "loadLineitemDF()",
+    "Part" -> "loadPartDF()",
+    "PartSupp" -> "loadPartSuppDF()",
+    "Supplier" -> "loadSupplierDF()",
+    "Nation" -> "loadNationDF()",
+    "Region" -> "loadRegionDF()")
 
   val loaderName = "tpch"
 
@@ -45,28 +45,28 @@ trait TPCHBase extends Query {
 
   /** Input references **/
 
-  val relC = BagVarRef("C", TPCHSchema.customertype)
+  val relC = BagVarRef("Customer", TPCHSchema.customertype)
   val cr = TupleVarRef("c", TPCHSchema.customertype.tp)
 
-  val relO = BagVarRef("O", TPCHSchema.orderstype)
+  val relO = BagVarRef("Orders", TPCHSchema.orderstype)
   val or = TupleVarRef("o", TPCHSchema.orderstype.tp)
 
-  val relL = BagVarRef("L", TPCHSchema.lineittype)
+  val relL = BagVarRef("Lineitem", TPCHSchema.lineittype)
   val lr = TupleVarRef("l", TPCHSchema.lineittype.tp)
 
-  val relP = BagVarRef("P", TPCHSchema.parttype)
+  val relP = BagVarRef("Part", TPCHSchema.parttype)
   val pr = TupleVarRef("p", TPCHSchema.parttype.tp)
 
-  val relS = BagVarRef("S", TPCHSchema.suppliertype)
+  val relS = BagVarRef("Supplier", TPCHSchema.suppliertype)
   val sr = TupleVarRef("s", TPCHSchema.suppliertype.tp)
   
-  val relPS = BagVarRef("PS", TPCHSchema.partsupptype)
+  val relPS = BagVarRef("PartSupp", TPCHSchema.partsupptype)
   val psr = TupleVarRef("ps", TPCHSchema.partsupptype.tp)
 
-  val relN = BagVarRef("N", TPCHSchema.nationtype)
+  val relN = BagVarRef("Nation", TPCHSchema.nationtype)
   val nr = TupleVarRef("n", TPCHSchema.nationtype.tp)
 
-  val relR = BagVarRef("R", TPCHSchema.regiontype)
+  val relR = BagVarRef("Region", TPCHSchema.regiontype)
   val rr = TupleVarRef("r", TPCHSchema.regiontype.tp)
 
   /** Helper functions for writing queries with and without projections **/

@@ -36,19 +36,19 @@ object App {
   val pathout = "../executor/spark/src/main/scala/sparkutils/generated/"
  
   def main(args: Array[String]){
-    runFlatToNested()
-    runNestedToNested()
-    runNestedToFlat()
+    // runFlatToNested()
+    // runNestedToNested()
+    // runNestedToFlat()
     runSkewHandling()
   }
 
   def runFlatToNested(){
     
     // standard pipeline - all optimizations
-    AppWriter.flatDataset(Test2Flat, "Flat,2")
+    AppWriter.runDataset(Test2Flat, "Flat,2")
     
     // shredded pipeline + unshredding
-    AppWriter.shredDataset(Test2, "Shred,2", unshred=true)
+    AppWriter.runDatasetShred(Test2, "Shred,2", unshred=true)
 
   }
  
@@ -75,15 +75,17 @@ object App {
 
   def runSkewHandling(){
 
+    val schema = TPCHSchema.getSchema()
+
     // standard pipeline - all optimizations 
     // AppWriter.runDatasetInput(Test2Flat, Test2NNL, "Flat,Standard,2")
     // standard pipeline - skew-handling - all optimizations 
-    AppWriter.runDatasetInput(Test2Flat, Test2NNL, "Flat,Skew,2", skew = true)
+    AppWriter.runDatasetInput(Test2Flat, Test2NNL, "Flat,Skew,2", skew = true, schema = Some(schema))
 
     // shredded pipeline + unshredding
     // AppWriter.runDatasetInputShred(Test2, Test2NNL, "Shred,Standard,2", unshred=true)
     // shredded pipeline + unshredding - skew-handling 
-    AppWriter.runDatasetInputShred(Test2, Test2NNL, "Shred,Skew,2", unshred = true, skew = true)
+    AppWriter.runDatasetInputShred(Test2, Test2NNL, "Shred,Skew,2", unshred = true, skew = true, schema = Some(schema))
   
   }
 

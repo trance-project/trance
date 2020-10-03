@@ -1,12 +1,18 @@
 package framework.plans
 
 import framework.common._
+import framework.loader.csv._
+import scala.collection.mutable.ArrayBuffer
 
 /** Optimizer used for plans from BatchUnnester **/
-object Optimizer extends Extensions {
+class Optimizer(schema: Option[Schema] = None) extends Extensions {
 
   val extensions = new Extensions{}
   import extensions._
+  val thisSchema: Schema = schema match {
+    case None => Schema(ArrayBuffer.empty[Table])
+    case Some(s) => s
+  }
 
   def applyPush(e: CExpr): CExpr = {
     val o1 = pushUnnest(e)
@@ -171,6 +177,22 @@ object Optimizer extends Extensions {
     case _:InputRef => true
   }
 
+  private def baseKeyCheck(e: CExpr, keys: Set[String]): Boolean = e match {
+    case InputRef(name, tp) => thisSchema.findTable(name) match {
+        case Some(tbl) => tbl.primaryKey match {
+          case Some(pk) => pk.attributes.find(k => keys(k.name)) match {
+            case Some(b) => true
+            case _ => false
+          }
+          case _ => false
+        }
+        case _ => false
+      }
+    case AddIndex(e1, _) => baseKeyCheck(e1, keys)
+    case FlatDict(e1) => baseKeyCheck(e1, keys)
+    case _ => false
+  }
+
   /** Push aggregates to local operations, while persisting orignal aggregation.
     * @param e plan or subplan
     * @param keys set of key values relevant to current location in plan
@@ -185,9 +207,11 @@ object Optimizer extends Extensions {
 
     case Select(in, v1, p, f1) if keys.nonEmpty && values.nonEmpty && isBase(in) =>
       val attrs = v1.tp.attrs.keySet
-      val nkeys = attrs & keys
-      val nvalues = attrs & values
-      CReduceBy(e, v1, nkeys.toList, nvalues.toList)
+      if (!baseKeyCheck(in, attrs)){
+        val nkeys = attrs & keys
+        val nvalues = attrs & values
+        CReduceBy(e, v1, nkeys.toList, nvalues.toList)
+      }else e
 
     case Projection(in, v, f1, fs) if keys.nonEmpty && values.nonEmpty => 
       // capture mathops
@@ -224,5 +248,8 @@ object Optimizer extends Extensions {
 
   })
 
+}
 
+object Optimizer {
+  def apply(schema: Option[Schema] = None): Optimizer = new Optimizer(schema)
 }

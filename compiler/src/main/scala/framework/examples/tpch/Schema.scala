@@ -39,18 +39,6 @@ case class Nation(n_nationkey: Int, n_name: String, n_regionkey: Int, n_comment:
   def uniqueId: Long = n_nationkey.toLong
 }
 
-/** Case classes used primarily for local testing in scala tests, scala interpreter, and scala code generator **/
-
-case class Q1Flat(P__F: Int, C__F: Int, L__F: Int, O__F: Int, uniqueId: Long)
-
-case class Q1Flat2(Query4__F: Q1Flat, uniqueId: Long)
-
-case class Q3Flat(O__F: Int, C__F: Int, PS__F: Int, S__F: Int, L__F: Int, P__F: Int, uniqueId: Long)
-
-case class Q3Flat2(N__F: Int, Query7__F: Q3Flat, uniqueId: Long)
-
-case class Q3Flat3(Query7__F: Q3Flat, N__F: Int, uniqueId: Long)
-
 object TPCHSchema {
   val folderLocation = "/"
   val scalingFactor = 1
@@ -253,7 +241,8 @@ object TPCHSchema {
                                      regiontype.tp -> "Region")
   
 
-  def loadLine(tbl: String, tblname: String, df: String = ""): String = {
+  def loadLine(tblname: String, df: String = ""): String = {
+    val tbl = tblname
     val eval = if (df == "DF") s"$tbl.count" 
       else s"spark.sparkContext.runJob($tbl, (iter: Iterator[_]) => {})"
     s"""|val $tbl = tpch.load$tblname$df()
@@ -262,7 +251,8 @@ object TPCHSchema {
         |""".stripMargin
   }
 
-  def loadLineSkew(tbl: String, tblname: String, df: String = ""): String = {
+  def loadLineSkew(tblname: String, df: String = ""): String = {
+      val tbl = tblname
       val eval = if (df == "DF") s"${tbl}_L.count" 
       else s"spark.sparkContext.runJob(${tbl}_L, (iter: Iterator[_]) => {})"
       val empty = if (df == "DF") s"Seq.empty[$tblname].toDS()"
@@ -276,44 +266,44 @@ object TPCHSchema {
   }
   
   val dfs = 
-    Map("C" -> loadLine("C", "Customer", "DF"),
-        "O" -> loadLine("O", "Order", "DF"),
-        "L" -> loadLine("L", "Lineitem", "DF"),
-        "P" -> loadLine("P", "Part", "DF"),
-        "PS" -> loadLine("PS", "PartSupp", "DF"),
-        "S" -> loadLine("S", "Supplier", "DF"),
-        "N" -> loadLine("N", "Nation", "DF"),
-        "R" -> loadLine("R", "Region", "DF"))
+    Map("C" -> loadLine("Customer", "DF"),
+        "O" -> loadLine("Order", "DF"),
+        "L" -> loadLine("Lineitem", "DF"),
+        "P" -> loadLine("Part", "DF"),
+        "PS" -> loadLine("PartSupp", "DF"),
+        "S" -> loadLine("Supplier", "DF"),
+        "N" -> loadLine("Nation", "DF"),
+        "R" -> loadLine("Region", "DF"))
 
   val tblcmds = 
-    Map("C" -> loadLine("C", "Customer"),
-        "O" -> loadLine("O", "Order"),
-        "L" -> loadLine("L", "Lineitem"),
-        "P" -> loadLine("P", "Part"),
-        "PS" -> loadLine("PS", "PartSupp"),
-        "S" -> loadLine("S", "Supplier"),
-        "N" -> loadLine("N", "Nation"),
-        "R" -> loadLine("R", "Region"))
+    Map("C" -> loadLine("Customer"),
+        "O" -> loadLine("Order"),
+        "L" -> loadLine("Lineitem"),
+        "P" -> loadLine("Part"),
+        "PS" -> loadLine("PartSupp"),
+        "S" -> loadLine("Supplier"),
+        "N" -> loadLine("Nation"),
+        "R" -> loadLine("Region"))
 
   val skewcmds = 
-    Map("C" -> loadLineSkew("C", "Customer"),
-        "O" -> loadLineSkew("O", "Order"),
-        "L" -> loadLineSkew("L", "Lineitem"),
-        "P" -> loadLineSkew("P", "Part"),
-        "PS" -> loadLineSkew("PS", "PartSupp"),
-        "S" -> loadLineSkew("S", "Supplier"),
-        "N" -> loadLineSkew("N", "Nation"),
-        "R" -> loadLineSkew("R", "Region"))
+    Map("C" -> loadLineSkew("Customer"),
+        "O" -> loadLineSkew("Order"),
+        "L" -> loadLineSkew("Lineitem"),
+        "P" -> loadLineSkew("Part"),
+        "PS" -> loadLineSkew("PartSupp"),
+        "S" -> loadLineSkew("Supplier"),
+        "N" -> loadLineSkew("Nation"),
+        "R" -> loadLineSkew("Region"))
 
   val skewdfs = 
-    Map("C" -> loadLineSkew("C", "Customer", "DF"),
-        "O" -> loadLineSkew("O", "Order", "DF"),
-        "L" -> loadLineSkew("L", "Lineitem", "DF"),
-        "P" -> loadLineSkew("P", "Part", "DF"),
-        "PS" -> loadLineSkew("PS", "PartSupp", "DF"),
-        "S" -> loadLineSkew("S", "Supplier", "DF"),
-        "N" -> loadLineSkew("N", "Nation", "DF"),
-        "R" -> loadLineSkew("R", "Region", "DF"))
+    Map("C" -> loadLineSkew("Customer", "DF"),
+        "O" -> loadLineSkew("Order", "DF"),
+        "L" -> loadLineSkew("Lineitem", "DF"),
+        "P" -> loadLineSkew("Part", "DF"),
+        "PS" -> loadLineSkew("PartSupp", "DF"),
+        "S" -> loadLineSkew("Supplier", "DF"),
+        "N" -> loadLineSkew("Nation", "DF"),
+        "R" -> loadLineSkew("Region", "DF"))
 
   def loadDict(tbl: String, tblname: String, df: String = ""): String = {
     val name = s"IBag_${tbl}__D"

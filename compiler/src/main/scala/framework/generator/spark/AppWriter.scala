@@ -5,6 +5,7 @@ import framework.common._
 import framework.plans._
 import framework.examples.tpch._
 import framework.examples.Query
+import framework.loader.csv._
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -28,10 +29,11 @@ object AppWriter {
     printer.close
   }
 
-  def runDataset(query: Query, label: String, optLevel: Int = 2, skew: Boolean = false, notebk: Boolean = false): Unit = {
+  def runDataset(query: Query, label: String, optLevel: Int = 2, skew: Boolean = false, notebk: Boolean = false, 
+    schema: Option[Schema] = None): Unit = {
     
     val codegen = new SparkDatasetGenerator(false, false, optLevel = optLevel, skew = skew)
-    val gcode = codegen.generate(query.anf(optimizationLevel = optLevel))
+    val gcode = codegen.generate(query.anf(optimizationLevel = optLevel, schema = schema))
     val header = s"""|${codegen.generateHeader()}""".stripMargin
     val encoders = codegen.generateEncoders()
 
@@ -55,12 +57,13 @@ object AppWriter {
       printer.close 
   }
 
-  def runDatasetInput(inputQuery: Query, query: Query, label: String, optLevel: Int = 2, skew: Boolean = false): Unit = {
+  def runDatasetInput(inputQuery: Query, query: Query, label: String, optLevel: Int = 2, skew: Boolean = false, 
+    schema: Option[Schema] = None): Unit = {
     
     val codegenInput = new SparkDatasetGenerator(true, false, optLevel = optLevel, skew = skew)//,externalInputs = query.inputTypes(false))
     val inputCode = codegenInput.generate(inputQuery.anf()) 
     val codegen = new SparkDatasetGenerator(false, true, optLevel = optLevel, inputs = codegenInput.types, skew = skew) 
-    val gcode = codegen.generate(query.anf(optimizationLevel = optLevel))
+    val gcode = codegen.generate(query.anf(optimizationLevel = optLevel, schema = schema))
     val header = s"""|${codegen.generateHeader()}""".stripMargin
     val encoders = codegenInput.generateEncoders() + "\n" + codegen.generateEncoders()
 
@@ -86,10 +89,10 @@ object AppWriter {
       runDatasetShred(query, label, eliminateDomains, unshred, skew)
 
   def runDatasetShred(query: Query, label: String, eliminateDomains: Boolean = true, 
-    unshred: Boolean = false, skew: Boolean = false): Unit = {
+    unshred: Boolean = false, skew: Boolean = false, schema: Option[Schema] = None): Unit = {
     
     val codegen = new SparkDatasetGenerator(unshred, eliminateDomains, evalFinal = false, skew = skew)
-    val (gcodeShred, gcodeUnshred) = query.shredBatchPlan(unshred, eliminateDomains = eliminateDomains, anfed = true)
+    val (gcodeShred, gcodeUnshred) = query.shredBatchPlan(unshred, eliminateDomains = eliminateDomains, anfed = true, schema = schema)
     val gcode1 = codegen.generate(gcodeShred)
     val (header, gcodeSet, encoders) = if (unshred) {
       val codegen2 = new SparkDatasetGenerator(false, false, unshred = true, inputs = codegen.types, skew = skew)
@@ -112,10 +115,11 @@ object AppWriter {
   }
 
   def runDatasetInputShred(inputQuery: Query, query: Query, label: String, eliminateDomains: Boolean = true, 
-    unshred: Boolean = false, skew: Boolean = false): Unit = {
+    unshred: Boolean = false, skew: Boolean = false, schema: Option[Schema] = None): Unit = {
     
     val codegenInput = new SparkDatasetGenerator(true, true, evalFinal = false, skew = skew)
-    val (inputShred, queryShred, queryUnshred) = query.shredBatchWithInput(inputQuery, unshredRun = unshred, eliminateDomains = eliminateDomains)
+    val (inputShred, queryShred, queryUnshred) = query.shredBatchWithInput(inputQuery, unshredRun = unshred, 
+                                                    eliminateDomains = eliminateDomains, schema = schema)
     val inputCode = codegenInput.generate(inputShred)
     val codegen = new SparkDatasetGenerator(unshred, eliminateDomains, evalFinal = !unshred, inputs = codegenInput.types, skew = skew)
     val gcode1 = codegen.generate(queryShred)

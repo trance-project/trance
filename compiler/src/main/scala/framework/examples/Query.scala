@@ -3,6 +3,7 @@ package framework.examples
 import framework.common.Type
 import framework.nrc._
 import framework.plans._
+import framework.loader.csv._
 
 
 /** Base functionality of a query, which allows 
@@ -40,17 +41,18 @@ trait Query extends Materialization
   
   def unnest: CExpr = Unnester.unnest(this.normalize)(Map(), Map(), None, baseTag)
 
-  def anf(optimizationLevel: Int = 2): CExpr = {
+  def anf(optimizationLevel: Int = 2, schema: Option[Schema] = None): CExpr = {
     val anfBase = new BaseOperatorANF{}
     val anfer = new Finalizer(anfBase)
     val un = this.unnest
+    val optimizer = Optimizer(schema)
     // println(un)
     optimizationLevel match {
       case 0 => anfBase.anf(anfer.finalize(un).asInstanceOf[anfBase.Rep])
-      case 1 => anfBase.anf(anfer.finalize(Optimizer.applyPush(un)).asInstanceOf[anfBase.Rep])
+      case 1 => anfBase.anf(anfer.finalize(optimizer.applyPush(un)).asInstanceOf[anfBase.Rep])
       case _ => 
         println("\n after opt \n")
-        val plan = Optimizer.applyAll(un)
+        val plan = optimizer.applyAll(un)
         println(Printer.quote(plan))
         anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
     }
@@ -59,8 +61,9 @@ trait Query extends Materialization
 
   /** Shredded Pipeline Runners **/
 
-  def shredBatchWithInput(input: Query, unshredRun: Boolean = false, eliminateDomains: Boolean = true): (CExpr, CExpr, CExpr) = {
+  def shredBatchWithInput(input: Query, unshredRun: Boolean = false, eliminateDomains: Boolean = true, schema: Option[Schema] = None): (CExpr, CExpr, CExpr) = {
     val compiler = new Finalizer(new ShredOptimizer{})
+    val optimizer = Optimizer(schema)
 
     // materialize input
     val (inputShredded, inputShreddedCtx) = shredCtx(input.program.asInstanceOf[Program])
@@ -74,7 +77,7 @@ trait Query extends Materialization
     // println(quote(matInput.program))
     val inputC = normalizer.finalize(translate(matInput.program)).asInstanceOf[CExpr]
     val inputInitPlan = Unnester.unnest(inputC)(Map(), Map(), None, baseTag)
-    val inputPlan = Optimizer.applyAll(compiler.finalize(inputInitPlan).asInstanceOf[CExpr])
+    val inputPlan = optimizer.applyAll(compiler.finalize(inputInitPlan).asInstanceOf[CExpr])
     println(Printer.quote(inputPlan))
     val anfBase = new BaseOperatorANF{}
     val anfer = new Finalizer(anfBase)
@@ -87,7 +90,7 @@ trait Query extends Materialization
     val calc = normalizer.finalize(translate(mat.program)).asInstanceOf[CExpr]
     println(Printer.quote(calc))
     val initPlan = Unnester.unnest(calc)(Map(), Map(), None, baseTag)
-    val plan = Optimizer.applyAll(compiler.finalize(initPlan).asInstanceOf[CExpr])
+    val plan = optimizer.applyAll(compiler.finalize(initPlan).asInstanceOf[CExpr])
     println(Printer.quote(plan))
     // println(plan)
     val sanfBase = new BaseOperatorANF{}
@@ -121,8 +124,9 @@ trait Query extends Materialization
     }
 
   /** Shred plan for batch operator compilation **/
-  def shredBatchPlan(unshredRun: Boolean = false, eliminateDomains: Boolean = true, anfed: Boolean = true): (CExpr, CExpr) = {
+  def shredBatchPlan(unshredRun: Boolean = false, eliminateDomains: Boolean = true, anfed: Boolean = true, schema: Option[Schema] = None): (CExpr, CExpr) = {
     val compiler = new Finalizer(new ShredOptimizer{})
+    val optimizer = Optimizer(schema)
     // shredded pipeline for query
     val (matProg, ushred) = shred(eliminateDomains)
     println("RUNNING SHREDDED PIPELINE:\n")
@@ -132,7 +136,7 @@ trait Query extends Materialization
     val initPlan = Unnester.unnest(ncalc)(Map(), Map(), None, baseTag)
 
     // add flexibility for optimization level?
-    val plan = Optimizer.applyAll(compiler.finalize(initPlan).asInstanceOf[CExpr])
+    val plan = optimizer.applyAll(compiler.finalize(initPlan).asInstanceOf[CExpr])
 
     println(Printer.quote(plan))
     val anfBase = new BaseOperatorANF{}

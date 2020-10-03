@@ -35,10 +35,17 @@ object Compressed extends Constraint
 
 case class Schema(tables: ArrayBuffer[Table]) {
   def this(tables: List[Table]) = this(ArrayBuffer[Table]() ++ tables)
-  def findTable(name: String): Option[Table] = tables.find(t => t.name == name)
+  def findTable(name: String): Option[Table] = {
+    val ncheck = name match {
+      case y if name.contains("IBag") => y.split("_")(1)
+      case _ => name
+    }
+    tables.find(t => t.name.toLowerCase() == ncheck.toLowerCase())
+  }
   //def findTableByType(tpe: Type): Option[Table] = tables.find(t => t.name) //+ "Tuple" == tpe.name)
   def findAttribute(attrName: String): Option[Attribute] = tables.map(t => t.attributes).flatten.find(attr => attr.name == attrName)
 }
+
 case class Table(name: String, attributes: List[Attribute], constraints: ArrayBuffer[Constraint], resourceLocator: String, var rowCount: Long = -1) {
   def primaryKey: Option[PrimaryKey] = constraints.collectFirst { case pk: PrimaryKey => pk }
   def foreignKeys: List[ForeignKey] = constraints.collect { case fk: ForeignKey => fk }.toList
