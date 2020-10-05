@@ -40,7 +40,7 @@ object App {
     // runFlatToNested()
     // runNestedToNested()
     runNestedToFlat()
-    // runSkewHandling()
+    runSkewHandling()
   }
 
   def runFlatToNested(){

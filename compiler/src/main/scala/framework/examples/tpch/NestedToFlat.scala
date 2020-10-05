@@ -9,7 +9,7 @@ import framework.nrc.MaterializeNRC
 object Test0Agg0 extends TPCHBase {
 
   val name = "Test0Agg0"
-  val tbls: Set[String] = Set("L", "P")
+  val tbls: Set[String] = Set("Lineitem", "Part")
 
   val (parts, partRef) = varset(Test0Full.name, "l", Test0Full.program(Test0Full.name).varRef.asInstanceOf[BagExpr])
 
@@ -27,7 +27,7 @@ object Test0Agg0 extends TPCHBase {
 object Test0Agg0Full extends TPCHBase {
 
   val name = "Test0Agg0Full"
-  val tbls: Set[String] = Set("L", "P")
+  val tbls: Set[String] = Set("Lineitem", "Part")
 
   val (parts, partRef) = varset(Test0Full.name, "l", Test0Full.program(Test0Full.name).varRef.asInstanceOf[BagExpr])
 
@@ -46,7 +46,7 @@ object Test0Agg0Full extends TPCHBase {
 object Test1Agg1 extends TPCHBase {
 
   val name = "Test1Agg1"
-  val tbls: Set[String] = Set("L", "O", "P")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Part")
 
   val (orders, orderRef) = varset(Test1Full.name, "o", Test1Full.program(Test1Full.name).varRef.asInstanceOf[BagExpr])
   val (parts, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
@@ -66,7 +66,7 @@ object Test1Agg1 extends TPCHBase {
 object Test1Agg1Full extends TPCHBase {
 
   val name = "Test1Agg1Full"
-  val tbls: Set[String] = Set("L", "O", "P")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Part")
 
   val (orders, orderRef) = varset(Test1Full.name, "o", Test1Full.program(Test1Full.name).varRef.asInstanceOf[BagExpr])
   val (parts, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
@@ -89,7 +89,7 @@ object Test1Agg1Full extends TPCHBase {
 object Test1Agg1S extends TPCHBase {
 
   val name = "Test1Agg1S"
-  val tbls: Set[String] = Set("L", "O", "P")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Part")
 
   val (orders, orderRef) = varset(Test1Full.name, "o", Test1Full.program(Test1Full.name).varRef.asInstanceOf[BagExpr])
   val (parts, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
@@ -122,7 +122,7 @@ object Test1Agg1S extends TPCHBase {
 object Test1Agg1FullS extends TPCHBase {
 
   val name = "Test1Agg1FullS"
-  val tbls: Set[String] = Set("L", "O", "P")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Part")
 
   val (orders, orderRef) = varset(Test1Full.name, "o", Test1Full.program(Test1Full.name).varRef.asInstanceOf[BagExpr])
   val (parts, partRef) = varset("parts", "l", BagProject(orderRef, "o_parts"))
@@ -155,7 +155,7 @@ object Test1Agg1FullS extends TPCHBase {
 object Test2Agg2 extends TPCHBase {
 
   val name = "Test2Agg2"
-  val tbls: Set[String] = Set("L", "O", "C", "P")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Part")
 
   val (customers, customerRef) = varset(Test2Full.name, "c", Test2Full.program(Test2Full.name).varRef.asInstanceOf[BagExpr])
   val (orders, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
@@ -175,7 +175,7 @@ object Test2Agg2 extends TPCHBase {
 object Test2Agg2Full extends TPCHBase {
 
   val name = "Test2Agg2Full"
-  val tbls: Set[String] = Set("L", "O", "C", "P")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Part")
 
   val (customers, customerRef) = varset(Test2Full.name, "c", Test2Full.program(Test2Full.name).varRef.asInstanceOf[BagExpr])
   val (orders, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
@@ -197,7 +197,7 @@ object Test2Agg2Full extends TPCHBase {
 object Test2Agg2S extends TPCHBase {
 
   val name = "Test2Agg2S"
-  val tbls: Set[String] = Set("L", "O", "C", "P")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Part")
 
   val (customers, customerRef) = varset(Test2Full.name, "c", Test2Full.program(Test2Full.name).varRef.asInstanceOf[BagExpr])
   val (orders, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
@@ -242,7 +242,7 @@ object Test2Agg2S extends TPCHBase {
 object Test2Agg2FullS extends TPCHBase {
 
   val name = "Test2Agg2FullS"
-  val tbls: Set[String] = Set("L", "O", "C", "P")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Part")
 
   val (customers, customerRef) = varset(Test2Full.name, "c", Test2Full.program(Test2Full.name).varRef.asInstanceOf[BagExpr])
   val (orders, orderRef) = varset("orders", "o", BagProject(customerRef, "c_orders"))
@@ -287,7 +287,7 @@ object Test2Agg2FullS extends TPCHBase {
 object Test3Agg3 extends TPCHBase {
 
   val name = "Test3Agg3"
-  val tbls: Set[String] = Set("L", "O", "C", "P", "N")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Part", "Nation")
 
   val (nations, nationRef) = varset(Test3Full.name, "n", Test3Full.program(Test3Full.name).varRef.asInstanceOf[BagExpr])
   val (customers, customerRef) = varset("orders", "c", BagProject(nationRef, "n_custs"))
@@ -312,7 +312,7 @@ object Test3Agg3 extends TPCHBase {
 object Test3Agg3Full extends TPCHBase {
 
   val name = "Test3Agg3Full"
-  val tbls: Set[String] = Set("L", "O", "C", "P", "N")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Part", "Nation")
 
   val (nations, nationRef) = varset(Test3Full.name, "n", Test3Full.program(Test3Full.name).varRef.asInstanceOf[BagExpr])
   val (customers, customerRef) = varset("orders", "c", BagProject(nationRef, "n_custs"))
@@ -336,7 +336,7 @@ object Test3Agg3Full extends TPCHBase {
 object Test3Agg3S extends TPCHBase {
 
   val name = "Test3Agg3S"
-  val tbls: Set[String] = Set("L", "O", "C", "P", "N")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Part", "Nation")
 
   val (nations, nationRef) = varset(Test3Full.name, "n", Test3Full.program(Test3Full.name).varRef.asInstanceOf[BagExpr])
   val (customers, customerRef) = varset("orders", "c", BagProject(nationRef, "n_custs"))
@@ -394,7 +394,7 @@ object Test3Agg3S extends TPCHBase {
 object Test3Agg3FullS extends TPCHBase {
 
   val name = "Test3Agg3FullS"
-  val tbls: Set[String] = Set("L", "O", "C", "P", "N")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Part", "Nation")
 
   val (nations, nationRef) = varset(Test3Full.name, "n", Test3Full.program(Test3Full.name).varRef.asInstanceOf[BagExpr])
   val (customers, customerRef) = varset("orders", "c", BagProject(nationRef, "n_custs"))
@@ -452,7 +452,7 @@ object Test3Agg3FullS extends TPCHBase {
 object Test4Agg4S extends TPCHBase {
 
   val name = "Test4Agg4S"
-  val tbls: Set[String] = Set("L", "O", "C", "P", "N", "R")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Part", "Nation", "Region")
 
   val (regions, regionRef) = varset(Test4Full.name, "r", Test4Full.program(Test4Full.name).varRef.asInstanceOf[BagExpr])
   val (nations, nationRef) = varset("nations", "n", BagProject(regionRef, "r_nations"))
@@ -514,7 +514,7 @@ object Test4Agg4S extends TPCHBase {
 object Test4Agg4FullS extends TPCHBase {
 
   val name = "Test4Agg4FullS"
-  val tbls: Set[String] = Set("L", "O", "C", "P", "N", "R")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Part", "Nation", "Region")
 
   val (regions, regionRef) = varset(Test4Full.name, "r", Test4Full.program(Test4Full.name).varRef.asInstanceOf[BagExpr])
   val (nations, nationRef) = varset("nations", "n", BagProject(regionRef, "r_nations"))
