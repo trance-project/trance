@@ -41,7 +41,7 @@ trait Query extends Materialization
   
   def unnest: CExpr = Unnester.unnest(this.normalize)(Map(), Map(), None, baseTag)
 
-  def anf(optimizationLevel: Int = 2, schema: Option[Schema] = None): CExpr = {
+  def anf(optimizationLevel: Int = 2, schema: Schema = Schema()): CExpr = {
     val anfBase = new BaseOperatorANF{}
     val anfer = new Finalizer(anfBase)
     val un = this.unnest
@@ -61,7 +61,7 @@ trait Query extends Materialization
 
   /** Shredded Pipeline Runners **/
 
-  def shredBatchWithInput(input: Query, unshredRun: Boolean = false, eliminateDomains: Boolean = true, schema: Option[Schema] = None): (CExpr, CExpr, CExpr) = {
+  def shredBatchWithInput(input: Query, unshredRun: Boolean = false, eliminateDomains: Boolean = true, schema: Schema = Schema()): (CExpr, CExpr, CExpr) = {
     val compiler = new Finalizer(new ShredOptimizer{})
     val optimizer = Optimizer(schema)
 
@@ -124,7 +124,7 @@ trait Query extends Materialization
     }
 
   /** Shred plan for batch operator compilation **/
-  def shredBatchPlan(unshredRun: Boolean = false, eliminateDomains: Boolean = true, anfed: Boolean = true, schema: Option[Schema] = None): (CExpr, CExpr) = {
+  def shredBatchPlan(unshredRun: Boolean = false, eliminateDomains: Boolean = true, anfed: Boolean = true, schema: Schema = Schema()): (CExpr, CExpr) = {
     val compiler = new Finalizer(new ShredOptimizer{})
     val optimizer = Optimizer(schema)
     // shredded pipeline for query

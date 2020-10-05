@@ -5,21 +5,20 @@ import framework.loader.csv._
 import scala.collection.mutable.ArrayBuffer
 
 /** Optimizer used for plans from BatchUnnester **/
-class Optimizer(schema: Option[Schema] = None) extends Extensions {
+class Optimizer(schema: Schema = Schema()) extends Extensions {
 
   val extensions = new Extensions{}
   import extensions._
-  val thisSchema: Schema = schema match {
-    case None => Schema(ArrayBuffer.empty[Table])
-    case Some(s) => s
-  }
 
+  // push projections
   def applyPush(e: CExpr): CExpr = {
     val o1 = pushUnnest(e)
     val o2 = pushCondition(o1)
-    push(o2)
+    val o3 = push(o2)
+    push(o3)
   }
 
+  // push projections and aggregation
   def applyAll(e: CExpr): CExpr = {
     val o1 = pushUnnest(e)
   	val o2 = pushCondition(o1)
@@ -178,7 +177,7 @@ class Optimizer(schema: Option[Schema] = None) extends Extensions {
   }
 
   private def baseKeyCheck(e: CExpr, keys: Set[String]): Boolean = e match {
-    case InputRef(name, tp) => thisSchema.findTable(name) match {
+    case InputRef(name, tp) => schema.findTable(name) match {
         case Some(tbl) => tbl.primaryKey match {
           case Some(pk) => pk.attributes.find(k => keys(k.name)) match {
             case Some(b) => true
@@ -251,5 +250,5 @@ class Optimizer(schema: Option[Schema] = None) extends Extensions {
 }
 
 object Optimizer {
-  def apply(schema: Option[Schema] = None): Optimizer = new Optimizer(schema)
+  def apply(schema: Schema = Schema()): Optimizer = new Optimizer(schema)
 }

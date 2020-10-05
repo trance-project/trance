@@ -30,7 +30,7 @@ object AppWriter {
   }
 
   def runDataset(query: Query, label: String, optLevel: Int = 2, skew: Boolean = false, notebk: Boolean = false, 
-    schema: Option[Schema] = None): Unit = {
+    schema: Schema = Schema()): Unit = {
     
     val codegen = new SparkDatasetGenerator(false, false, optLevel = optLevel, skew = skew)
     val gcode = codegen.generate(query.anf(optimizationLevel = optLevel, schema = schema))
@@ -58,7 +58,7 @@ object AppWriter {
   }
 
   def runDatasetInput(inputQuery: Query, query: Query, label: String, optLevel: Int = 2, skew: Boolean = false, 
-    schema: Option[Schema] = None): Unit = {
+    schema: Schema = Schema()): Unit = {
     
     val codegenInput = new SparkDatasetGenerator(true, false, optLevel = optLevel, skew = skew)//,externalInputs = query.inputTypes(false))
     val inputCode = codegenInput.generate(inputQuery.anf()) 
@@ -89,7 +89,7 @@ object AppWriter {
       runDatasetShred(query, label, eliminateDomains, unshred, skew)
 
   def runDatasetShred(query: Query, label: String, eliminateDomains: Boolean = true, 
-    unshred: Boolean = false, skew: Boolean = false, schema: Option[Schema] = None): Unit = {
+    unshred: Boolean = false, skew: Boolean = false, schema: Schema = Schema()): Unit = {
     
     val codegen = new SparkDatasetGenerator(unshred, eliminateDomains, evalFinal = false, skew = skew)
     val (gcodeShred, gcodeUnshred) = query.shredBatchPlan(unshred, eliminateDomains = eliminateDomains, anfed = true, schema = schema)
@@ -115,7 +115,7 @@ object AppWriter {
   }
 
   def runDatasetInputShred(inputQuery: Query, query: Query, label: String, eliminateDomains: Boolean = true, 
-    unshred: Boolean = false, skew: Boolean = false, schema: Option[Schema] = None): Unit = {
+    unshred: Boolean = false, skew: Boolean = false, schema: Schema = Schema()): Unit = {
     
     val codegenInput = new SparkDatasetGenerator(true, true, evalFinal = false, skew = skew)
     val (inputShred, queryShred, queryUnshred) = query.shredBatchWithInput(inputQuery, unshredRun = unshred, 

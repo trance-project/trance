@@ -80,12 +80,12 @@ object App {
     // standard pipeline - all optimizations 
     // AppWriter.runDatasetInput(Test2Flat, Test2NNL, "Flat,Standard,2")
     // standard pipeline - skew-handling - all optimizations 
-    AppWriter.runDatasetInput(Test2Flat, Test2NNL, "Flat,Skew,2", skew = true, schema = Some(schema))
+    AppWriter.runDatasetInput(Test2Flat, Test2NNL, "Flat,Skew,2", skew = true, schema = schema)
 
     // shredded pipeline + unshredding
     // AppWriter.runDatasetInputShred(Test2, Test2NNL, "Shred,Standard,2", unshred=true)
     // shredded pipeline + unshredding - skew-handling 
-    AppWriter.runDatasetInputShred(Test2, Test2NNL, "Shred,Skew,2", unshred = true, skew = true, schema = Some(schema))
+    AppWriter.runDatasetInputShred(Test2, Test2NNL, "Shred,Skew,2", unshred = true, skew = true, schema = schema)
   
   }
 

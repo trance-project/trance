@@ -46,6 +46,10 @@ case class Schema(tables: ArrayBuffer[Table]) {
   def findAttribute(attrName: String): Option[Attribute] = tables.map(t => t.attributes).flatten.find(attr => attr.name == attrName)
 }
 
+object Schema{
+  def apply(): Schema = Schema(ArrayBuffer.empty[Table])
+}
+
 case class Table(name: String, attributes: List[Attribute], constraints: ArrayBuffer[Constraint], resourceLocator: String, var rowCount: Long = -1) {
   def primaryKey: Option[PrimaryKey] = constraints.collectFirst { case pk: PrimaryKey => pk }
   def foreignKeys: List[ForeignKey] = constraints.collect { case fk: ForeignKey => fk }.toList
