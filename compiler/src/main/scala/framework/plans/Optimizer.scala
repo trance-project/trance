@@ -27,35 +27,6 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     o4
   }
 
-  private def validateMatch(t1: Type, f1: String, t2: Type, f2: String): Boolean = 
-    (t1.attrs.get(f1).isDefined && t2.attrs.get(f2).isDefined) ||
-      (t1.attrs.get(f2).isDefined && t2.attrs.get(f1).isDefined)
-
-  def pushUnnest(e: CExpr): CExpr = fapply(e, {
-
-    case OuterUnnest(
-      AddIndex(OuterJoin(e1, x2, e2, x3, Constant(true), fs1), index),
-        x7, field, x4, Equals(Project(x4_expr, f1), Project(x5, f2)), fs2)
-          if validateMatch(x2.tp, f1, x4.tp, f2) => {
-
-        //        if(x4.toString.equals(x4_expr.toString)){
-        //      if(x2.tp.attrs.get(f1).isDefined && x4.tp.attrs.get(f2).isDefined){
-        val unnest: Unnest = Unnest(
-          AddIndex(e2, index), x3, field, x4, Constant(true), Nil)
-        val cond = Equals(Project(x4_expr, f1), Project(x5, f2))
-        OuterJoin(e1, x2, unnest, x7, cond, fs2)
-    }
-
-  })
-
-
-  def pushCondition(e: CExpr): CExpr = fapply(e, {
-  	case Projection(OuterJoin(e1, v1, e2, v2, Constant(true), fs1), v3,
-  		jc @ If(cond @ Equals(Project(_, f1), Project(_, f2)), s1, s2), fs2) =>
-  		Projection(OuterJoin(e1, v1, e2, v2, cond, fs1), v3, 
-  			If(Equals(Project(v3, f2), Null),s1, s2), fs2)
-  })
-
   /** Push projections in plans made of batch operations
     * @param e input plan from BatchUnnester
     * @param fs set of attributes, default empty set
@@ -170,12 +141,27 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     case _ => e
   }
 
+  /** Returns true if an expression is a base expression 
+    * (ie. the input relations or simple operations 
+    * on top of them).
+    * @param e CExpr input expression
+    * @return true if it is a base expression, false otherwise
+    **/
   private def isBase(e: CExpr): Boolean = e match {
     case FlatDict(e1) => isBase(e1)
     case AddIndex(e1, _) => isBase(e1)
     case _:InputRef => true
+    case _ => false
   }
 
+  /** Checks if a primary key is being used for an aggregate key
+    * This is done only for the "base" expressions, ie. the 
+    * input relations and simple operations on top of them
+    * (see isBase above).
+    * @param e expression that should represent the base input
+    * @param keys set of aggregation keys from pushAgg
+    * @return true if key set contains a primary key, else false
+    **/
   private def baseKeyCheck(e: CExpr, keys: Set[String]): Boolean = e match {
     case InputRef(name, tp) => schema.findTable(name) match {
         case Some(tbl) => tbl.primaryKey match {
@@ -245,6 +231,37 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     case v:Variable if keys.nonEmpty && values.nonEmpty =>
       CReduceBy(e, v, keys.toList, values.toList)
 
+  })
+
+  /** The below functions are partially integrated from the experiment_fix branch **/
+
+  private def validateMatch(t1: Type, f1: String, t2: Type, f2: String): Boolean = 
+    (t1.attrs.get(f1).isDefined && t2.attrs.get(f2).isDefined) ||
+      (t1.attrs.get(f2).isDefined && t2.attrs.get(f1).isDefined)
+
+  def pushUnnest(e: CExpr): CExpr = fapply(e, {
+
+    case OuterUnnest(
+      AddIndex(OuterJoin(e1, x2, e2, x3, Constant(true), fs1), index),
+        x7, field, x4, Equals(Project(x4_expr, f1), Project(x5, f2)), fs2)
+          if validateMatch(x2.tp, f1, x4.tp, f2) => {
+
+        //        if(x4.toString.equals(x4_expr.toString)){
+        //      if(x2.tp.attrs.get(f1).isDefined && x4.tp.attrs.get(f2).isDefined){
+        val unnest: Unnest = Unnest(
+          AddIndex(e2, index), x3, field, x4, Constant(true), Nil)
+        val cond = Equals(Project(x4_expr, f1), Project(x5, f2))
+        OuterJoin(e1, x2, unnest, x7, cond, fs2)
+    }
+
+  })
+
+
+  def pushCondition(e: CExpr): CExpr = fapply(e, {
+    case Projection(OuterJoin(e1, v1, e2, v2, Constant(true), fs1), v3,
+      jc @ If(cond @ Equals(Project(_, f1), Project(_, f2)), s1, s2), fs2) =>
+      Projection(OuterJoin(e1, v1, e2, v2, cond, fs1), v3, 
+        If(Equals(Project(v3, f2), Null),s1, s2), fs2)
   })
 
 }

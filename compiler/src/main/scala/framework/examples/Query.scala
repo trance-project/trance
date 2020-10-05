@@ -33,11 +33,7 @@ trait Query extends Materialization
     translate(program)
   }
 
-  def normalize: CExpr = {
-    val nc = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
-    // println(Printer.quote(nc))
-    nc
-  }
+  def normalize: CExpr = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
   
   def unnest: CExpr = Unnester.unnest(this.normalize)(Map(), Map(), None, baseTag)
 
@@ -46,15 +42,10 @@ trait Query extends Materialization
     val anfer = new Finalizer(anfBase)
     val un = this.unnest
     val optimizer = Optimizer(schema)
-    // println(un)
     optimizationLevel match {
       case 0 => anfBase.anf(anfer.finalize(un).asInstanceOf[anfBase.Rep])
       case 1 => anfBase.anf(anfer.finalize(optimizer.applyPush(un)).asInstanceOf[anfBase.Rep])
-      case _ => 
-        println("\n after opt \n")
-        val plan = optimizer.applyAll(un)
-        println(Printer.quote(plan))
-        anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
+      case _ => anfBase.anf(anfer.finalize(optimizer.applyAll(un)).asInstanceOf[anfBase.Rep])
     }
   }
 

@@ -11,18 +11,18 @@ object E2EApp extends App {
   override def main(args: Array[String]){
 
     // standard pipeline
-    AppWriter.flatDataset(HybridBySampleNew, "HybridBySampleNew,standard")
-    AppWriter.flatDataset(SampleNetworkNew, "SampleNetworkNew,standard")
-    AppWriter.flatDataset(EffectBySampleNew, "EffectBySampleNew,standard")
-    AppWriter.flatDataset(ConnectionBySampleNew, "ConnectionBySampleNew,standard")
-    AppWriter.flatDataset(GeneConnectivityNew, "GeneConnectivityNew,standard")
+    AppWriter.runDataset(HybridBySampleNew, "HybridBySampleNew,standard")
+    AppWriter.runDataset(SampleNetworkNew, "SampleNetworkNew,standard")
+    AppWriter.runDataset(EffectBySampleNew, "EffectBySampleNew,standard")
+    AppWriter.runDataset(ConnectionBySampleNew, "ConnectionBySampleNew,standard")
+    AppWriter.runDataset(GeneConnectivityNew, "GeneConnectivityNew,standard")
 
     // shredded pipeline
-    AppWriter.shredDataset(HybridBySampleNewS, "HybridBySampleNew,shredded")
-    AppWriter.shredDataset(SampleNetworkNew, "SampleNetworkNew,shredded")
-    AppWriter.shredDataset(EffectBySampleNew, "EffectBySampleNew,shredded")
-    AppWriter.shredDataset(ConnectionBySampleNew, "ConnectionBySampleNew,shredded")
-    AppWriter.shredDataset(GeneConnectivityNew, "GeneConnectivityNew,shredded")
+    AppWriter.runDatasetShred(HybridBySampleNewS, "HybridBySampleNew,shredded")
+    AppWriter.runDatasetShred(SampleNetworkNew, "SampleNetworkNew,shredded")
+    AppWriter.runDatasetShred(EffectBySampleNew, "EffectBySampleNew,shredded")
+    AppWriter.runDatasetShred(ConnectionBySampleNew, "ConnectionBySampleNew,shredded")
+    AppWriter.runDatasetShred(GeneConnectivityNew, "GeneConnectivityNew,shredded")
 
   }
 
@@ -39,7 +39,7 @@ object App {
   def main(args: Array[String]){
     // runFlatToNested()
     // runNestedToNested()
-    runNestedToFlat()
+    // runNestedToFlat()
     runSkewHandling()
   }
 

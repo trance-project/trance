@@ -94,7 +94,7 @@ trait JoinOp extends CExpr {
   val cond: CExpr
 
   val fields: List[String]
-  // change to bool
+  
   val jtype: String
 
   val isEquiJoin: Boolean = cond match {

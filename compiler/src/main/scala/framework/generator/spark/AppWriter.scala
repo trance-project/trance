@@ -17,9 +17,6 @@ object AppWriter {
   /** Standard pipeline: Dataset generator **/
   val pathout = "../executor/spark/src/main/scala/sparkutils/generated/"
 
-  def flatDataset(query: Query, label: String, skew: Boolean = false, optLevel: Int = 2, notebk: Boolean = false): Unit =
-    runDataset(query, label, optLevel, skew, notebk)
-
   def writeLoader(name: String, tp: List[(String, Type)], header: Boolean = true, delimiter: String = ","): Unit = {
     val tmaps = Map(tp -> name)
     val fname = s"../executor/spark/src/main/scala/sparkutils/loader/${name}Loader.scala"
@@ -83,10 +80,6 @@ object AppWriter {
   }
 
   /** Shredded pipeline: Dataset generator **/
-
-  def shredDataset(query: Query, label: String, eliminateDomains: Boolean = true, optLevel: Int = 2,
-    unshred: Boolean = false, skew: Boolean = false): Unit =
-      runDatasetShred(query, label, eliminateDomains, optLevel, unshred, skew)
 
   def runDatasetShred(query: Query, label: String, eliminateDomains: Boolean = true, optLevel: Int = 2,
     unshred: Boolean = false, skew: Boolean = false, schema: Schema = Schema()): Unit = {
