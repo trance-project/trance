@@ -6,7 +6,8 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.ArrayBuffer
 
 /**
-  * Code from: https://github.com/epfldata/dblab/tree/develop/components/src/main/scala/ch/epfl/data/dblab/schema
+  * Schema classes adapted from: 
+  * https://github.com/epfldata/dblab/tree/develop/components/src/main/scala/ch/epfl/data/dblab/schema
   */
 
 sealed trait Constraint
@@ -25,6 +26,7 @@ case class ForeignKey(ownTable: String, referencedTable: String, attributes: Lis
 case class NotNull(attribute: Attribute) extends Constraint
 case class Unique(attribute: Attribute) extends Constraint
 case class AutoIncrement(attribute: Attribute) extends Constraint
+
 /**
  * Specifies that the rows of a given table are continues (which means it is
  * also a preimary key) with respect to the given attribute. The offset specifies

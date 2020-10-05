@@ -34,21 +34,22 @@ object E2EApp extends App {
 object App {
 
   val pathout = "../executor/spark/src/main/scala/sparkutils/generated/"
+  val schema = TPCHSchema.getSchema()
  
   def main(args: Array[String]){
     // runFlatToNested()
     // runNestedToNested()
-    // runNestedToFlat()
-    runSkewHandling()
+    runNestedToFlat()
+    // runSkewHandling()
   }
 
   def runFlatToNested(){
     
     // standard pipeline - all optimizations
-    AppWriter.runDataset(Test2Flat, "Flat,2")
+    AppWriter.runDataset(Test2Flat, "Flat,2", schema = schema)
     
     // shredded pipeline + unshredding
-    AppWriter.runDatasetShred(Test2, "Shred,2", unshred=true)
+    AppWriter.runDatasetShred(Test2, "Shred,2", unshred=true, schema = schema)
 
   }
  
@@ -56,26 +57,24 @@ object App {
     
     // standard pipeline - all optimizations
     // AppWriter.runDatasetInput(Test0Full, Test0NN, "Flat,0")
-    AppWriter.runDatasetInput(Test2FullFlat, Test2NN, "Flat,2")
+    AppWriter.runDatasetInput(Test2FullFlat, Test2NN, "Flat,2", schema = schema)
     
     // shredded pipeline + unshredding
-    AppWriter.runDatasetInputShred(Test2Full, Test2NN, "Shred,2", unshred=true)
+    AppWriter.runDatasetInputShred(Test2Full, Test2NN, "Shred,2", unshred=true, schema = schema)
   }
 
   def runNestedToFlat(){
 
     // standard pipeline - all optimizations
     // AppWriter.runDatasetInput(Test1Full, Test1Agg1, "Flat,Standard,1")
-    AppWriter.runDatasetInput(Test2FullFlat, Test2Agg2, "Flat,Standard,2")
+    AppWriter.runDatasetInput(Test2FullFlat, Test2Agg2, "Flat,Standard,2", schema = schema)
 
     // shredded pipeline + unshredding
-    AppWriter.runDatasetInputShred(Test2Full, Test2Agg2S, "Shred,Standard,2")
+    AppWriter.runDatasetInputShred(Test2Full, Test2Agg2S, "Shred,Standard,2", schema = schema)
   
   }
 
   def runSkewHandling(){
-
-    val schema = TPCHSchema.getSchema()
 
     // standard pipeline - all optimizations 
     // AppWriter.runDatasetInput(Test2Flat, Test2NNL, "Flat,Standard,2")
