@@ -9,7 +9,7 @@ import framework.nrc.MaterializeNRC
 object Test0 extends TPCHBase {
 
   val name = "Test0"
-  val tbls = Set("L")
+  val tbls = Set("Lineitem")
  
   val query = 
   ForeachUnion(lr, relL, 
@@ -22,7 +22,7 @@ object Test0 extends TPCHBase {
 object Test0Full extends TPCHBase {
 
   val name = "Test0Full"
-  val tbls = Set("L")
+  val tbls = Set("Lineitem")
 
   val query = ForeachUnion(lr, relL, projectBaseTuple(lr))
 
@@ -33,7 +33,7 @@ object Test0Full extends TPCHBase {
 object Test1 extends TPCHBase {
 
   val name = "Test1"
-  val tbls = Set("L", "O")
+  val tbls = Set("Lineitem", "Order")
  
   val query = 
   ForeachUnion(or, relO,
@@ -49,7 +49,7 @@ object Test1 extends TPCHBase {
 object Test1Full extends TPCHBase {
 
   val name = "Test1Full"
-  val tbls = Set("L", "O")
+  val tbls = Set("Lineitem", "Order")
 
   val query = 
   ForeachUnion(or, relO,
@@ -65,7 +65,7 @@ object Test1Full extends TPCHBase {
 object Test2 extends TPCHBase {
 
   val name = "Test2"
-  val tbls = Set("L", "O", "C")
+  val tbls = Set("Lineitem", "Order", "Customer")
 
   val query = 
   ForeachUnion(cr, relC,
@@ -82,7 +82,7 @@ object Test2 extends TPCHBase {
 object Test2Filter extends TPCHBase {
 
   val name = "Test2Filter"
-  val tbls: Set[String] = Set("L", "O", "C")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer")
 
   val query = 
   ForeachUnion(cr, relC,
@@ -100,7 +100,7 @@ object Test2Filter extends TPCHBase {
 object Test2Full extends TPCHBase {
 
   val name = "Test2Full"
-  val tbls: Set[String] = Set("L", "O", "C")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer")
 
   val query = 
   ForeachUnion(cr, relC,
@@ -117,7 +117,7 @@ object Test2Full extends TPCHBase {
 object Test2Flat extends TPCHBase {
 
   val name = "Test2"
-  val tbls: Set[String] = Set("L", "O", "C")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer")
 
   val oquery = 
     ForeachUnion(or, relO,
@@ -140,7 +140,7 @@ object Test2Flat extends TPCHBase {
 object Test2FullFlat extends TPCHBase {
 
   val name = "Test2Full"
-  val tbls: Set[String] = Set("L", "O", "C")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer")
 
   val oquery = 
     ForeachUnion(or, relO,
@@ -163,7 +163,7 @@ object Test2FullFlat extends TPCHBase {
 object Test3 extends TPCHBase {
 
   val name = "Test3"
-  val tbls: Set[String] = Set("L", "O", "C", "N")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Nation")
 
   val query = 
   ForeachUnion(nr, relN,
@@ -185,7 +185,7 @@ object Test3 extends TPCHBase {
 object Test3Full extends TPCHBase {
 
   val name = "Test3Full"
-  val tbls: Set[String] = Set("L", "O", "C", "N")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Nation")
 
   val query = 
   ForeachUnion(nr, relN,
@@ -206,7 +206,7 @@ object Test3Full extends TPCHBase {
 object Test3Flat extends TPCHBase {
 
   val name = "Test3"
-  val tbls: Set[String] = Set("L", "O", "C", "N")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Nation")
 
   val oquery = 
     ForeachUnion(or, relO,
@@ -237,7 +237,7 @@ object Test3Flat extends TPCHBase {
 object Test3FullFlat extends TPCHBase {
 
   val name = "Test3Full"
-  val tbls: Set[String] = Set("L", "O", "C", "N")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Nation")
 
   val oquery = 
     ForeachUnion(or, relO,
@@ -267,7 +267,7 @@ object Test3FullFlat extends TPCHBase {
 object Test4 extends TPCHBase {
 
   val name = "Test4"
-  val tbls: Set[String] = Set("L", "O", "C", "N", "R")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Nation", "Region")
 
   val query = 
   ForeachUnion(rr, relR,
@@ -291,7 +291,7 @@ object Test4 extends TPCHBase {
 object Test4Full extends TPCHBase {
 
   val name = "Test4Full"
-  val tbls: Set[String] = Set("L", "O", "C", "N", "R")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Nation", "Region")
 
   val query = 
   ForeachUnion(rr, relR,
@@ -314,7 +314,7 @@ object Test4Full extends TPCHBase {
 object Test4Flat extends TPCHBase {
 
   val name = "Test4"
-  val tbls: Set[String] = Set("L", "O", "C", "N", "R")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Nation", "Region")
 
   val oquery = 
     ForeachUnion(or, relO,
@@ -355,7 +355,7 @@ object Test4Flat extends TPCHBase {
 object Test4FullFlat extends TPCHBase {
 
   val name = "Test4Full"
-  val tbls: Set[String] = Set("L", "O", "C", "N", "R")
+  val tbls: Set[String] = Set("Lineitem", "Order", "Customer", "Nation", "Region")
 
   val oquery = 
     ForeachUnion(or, relO,
@@ -398,7 +398,7 @@ object Test4FullFlat extends TPCHBase {
 object Test0Join extends TPCHBase {
 
   val name = "Test0"
-  val tbls: Set[String] = Set("L", "P")
+  val tbls: Set[String] = Set("Lineitem", "Part")
 
   val query = 
   ForeachUnion(lr, relL,
@@ -412,7 +412,7 @@ object Test0Join extends TPCHBase {
 object Test1Join extends TPCHBase {
 
   val name = "Test1"
-  val tbls: Set[String] = Set("O", "L", "P")
+  val tbls: Set[String] = Set("Order", "Lineitem", "Part")
 
   val query = 
   ForeachUnion(or, relO,
@@ -429,7 +429,7 @@ object Test1Join extends TPCHBase {
 object Test1JoinFlat extends TPCHBase {
 
   val name = "Test1"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val pquery = 
     ForeachUnion(lr, relL,
@@ -452,7 +452,7 @@ object Test1JoinFlat extends TPCHBase {
 object Test2Join extends TPCHBase {
 
   val name = "Test2"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val query = 
   ForeachUnion(cr, relC,
@@ -471,7 +471,7 @@ object Test2Join extends TPCHBase {
 object Test2JoinFlat extends TPCHBase {
 
   val name = "Test2"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val pquery = 
     ForeachUnion(lr, relL,
@@ -503,7 +503,7 @@ object Test2JoinFlat extends TPCHBase {
 object Test3Join extends TPCHBase {
 
   val name = "Test3"
-  val tbls: Set[String] = Set("C", "O", "L", "N", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Nation", "Part")
 
   val query = 
   ForeachUnion(nr, relN,
@@ -526,7 +526,7 @@ object Test3Join extends TPCHBase {
 object Test3JoinFlat extends TPCHBase {
 
   val name = "Test3"
-  val tbls: Set[String] = Set("C", "O", "L", "N", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Nation", "Part")
 
   val pquery = 
     ForeachUnion(lr, relL,
@@ -568,7 +568,7 @@ object Test3JoinFlat extends TPCHBase {
 object Test4Join extends TPCHBase {
 
   val name = "Test4"
-  val tbls: Set[String] = Set("C", "O", "L", "N", "R", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Nation", "Region", "Part")
 
   val query = 
   ForeachUnion(rr, relR,
@@ -593,7 +593,7 @@ object Test4Join extends TPCHBase {
 object Test4JoinFlat extends TPCHBase {
 
   val name = "Test4"
-  val tbls: Set[String] = Set("C", "O", "L", "N", "R", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Nation", "Region", "Part")
 
   val pquery = 
     ForeachUnion(lr, relL,
@@ -647,7 +647,7 @@ object Test4JoinFlat extends TPCHBase {
 
 object TestFN0 extends TPCHBase {
   val name = "TestFN0"
-  val tbls: Set[String] = Set("C", "O", "L")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem")
 
   val custs = 
       ForeachUnion(or, relO,
@@ -668,7 +668,7 @@ object TestFN0 extends TPCHBase {
 
 object TestFN1 extends TPCHBase {
   val name = "TestFN1"
-  val tbls: Set[String] = Set("C", "O", "L", "S")
+  val tbls: Set[String] = Set("Customer", "Order", "Linetime", "Supplier")
 
   val custs = 
       ForeachUnion(or, relO,
@@ -697,7 +697,7 @@ object TestFN1 extends TPCHBase {
 
 object TestFN2 extends TPCHBase {
   val name = "TestFN2"
-  val tbls: Set[String] = Set("C", "O", "L", "S", "N")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Supplier", "Nation")
 
   val custs = 
       ForeachUnion(or, relO,
@@ -728,7 +728,7 @@ object TestFN2 extends TPCHBase {
 
 object TestFN2Full extends TPCHBase {
   val name = "TestFN2"
-  val tbls: Set[String] = Set("C", "O", "L", "S", "N")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Supplier", "Nation")
 
   val custs = 
       ForeachUnion(or, relO,

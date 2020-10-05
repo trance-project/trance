@@ -70,7 +70,7 @@ object App {
     AppWriter.runDatasetInput(Test2FullFlat, Test2Agg2, "Flat,Standard,2", schema = schema)
 
     // shredded pipeline + unshredding
-    AppWriter.runDatasetInputShred(Test2Full, Test2Agg2S, "Shred,Standard,2", schema = schema)
+    AppWriter.runDatasetInputShred(Test2Full, Test2Agg2S, "Shred,Standard,2", optLevel = 1, schema = schema)
   
   }
 

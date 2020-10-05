@@ -48,7 +48,7 @@ trait TPCHBase extends Query {
   val relC = BagVarRef("Customer", TPCHSchema.customertype)
   val cr = TupleVarRef("c", TPCHSchema.customertype.tp)
 
-  val relO = BagVarRef("Orders", TPCHSchema.orderstype)
+  val relO = BagVarRef("Order", TPCHSchema.orderstype)
   val or = TupleVarRef("o", TPCHSchema.orderstype.tp)
 
   val relL = BagVarRef("Lineitem", TPCHSchema.lineittype)

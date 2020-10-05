@@ -61,7 +61,7 @@ trait Query extends Materialization
 
   /** Shredded Pipeline Runners **/
 
-  def shredBatchWithInput(input: Query, unshredRun: Boolean = false, eliminateDomains: Boolean = true, schema: Schema = Schema()): (CExpr, CExpr, CExpr) = {
+  def shredBatchWithInput(input: Query, unshredRun: Boolean = false, eliminateDomains: Boolean = true, optLevel: Int = 2, schema: Schema = Schema()): (CExpr, CExpr, CExpr) = {
     val compiler = new Finalizer(new ShredOptimizer{})
     val optimizer = Optimizer(schema)
 
@@ -90,7 +90,11 @@ trait Query extends Materialization
     val calc = normalizer.finalize(translate(mat.program)).asInstanceOf[CExpr]
     println(Printer.quote(calc))
     val initPlan = Unnester.unnest(calc)(Map(), Map(), None, baseTag)
-    val plan = optimizer.applyAll(compiler.finalize(initPlan).asInstanceOf[CExpr])
+    val plan = optLevel match {
+      case 0 => compiler.finalize(initPlan).asInstanceOf[CExpr]
+      case 1 => optimizer.applyPush(compiler.finalize(initPlan).asInstanceOf[CExpr])
+      case _ => optimizer.applyAll(compiler.finalize(initPlan).asInstanceOf[CExpr])
+    }
     println(Printer.quote(plan))
     // println(plan)
     val sanfBase = new BaseOperatorANF{}
@@ -124,7 +128,7 @@ trait Query extends Materialization
     }
 
   /** Shred plan for batch operator compilation **/
-  def shredBatchPlan(unshredRun: Boolean = false, eliminateDomains: Boolean = true, anfed: Boolean = true, schema: Schema = Schema()): (CExpr, CExpr) = {
+  def shredBatchPlan(unshredRun: Boolean = false, eliminateDomains: Boolean = true, anfed: Boolean = true, optLevel: Int = 2, schema: Schema = Schema()): (CExpr, CExpr) = {
     val compiler = new Finalizer(new ShredOptimizer{})
     val optimizer = Optimizer(schema)
     // shredded pipeline for query
@@ -135,8 +139,11 @@ trait Query extends Materialization
     // println(ncalc)
     val initPlan = Unnester.unnest(ncalc)(Map(), Map(), None, baseTag)
 
-    // add flexibility for optimization level?
-    val plan = optimizer.applyAll(compiler.finalize(initPlan).asInstanceOf[CExpr])
+    val plan = optLevel match {
+      case 0 => compiler.finalize(initPlan).asInstanceOf[CExpr]
+      case 1 => optimizer.applyPush(compiler.finalize(initPlan).asInstanceOf[CExpr])
+      case _ => optimizer.applyAll(compiler.finalize(initPlan).asInstanceOf[CExpr])
+    }
 
     println(Printer.quote(plan))
     val anfBase = new BaseOperatorANF{}

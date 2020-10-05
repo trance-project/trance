@@ -32,7 +32,7 @@ import framework.utils.Utils.Symbol
 
 object Query1 extends TPCHBase {
   val name = "Query1"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val query1_ljp = ForeachUnion(lr, relL,
                      ForeachUnion(pr, relP,
@@ -56,7 +56,7 @@ object Query1 extends TPCHBase {
 
 object Query1Full extends TPCHBase {
   val name = "Query1"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val query1 = ForeachUnion(cr, relC,
                 Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(or, relO,
@@ -73,7 +73,7 @@ object Query1Full extends TPCHBase {
 
 object Query1BU extends TPCHBase {
   val name = "Query1"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val lquery = ForeachUnion(lr, relL, 
     ForeachUnion(pr, relP, 
@@ -103,7 +103,7 @@ object Query1BU extends TPCHBase {
 
 object Query1Filter extends TPCHBase {
   val name = "Query1Filter"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val query1_ljp = ForeachUnion(lr, relL,
                      ForeachUnion(pr, relP,
@@ -137,7 +137,7 @@ For c2 in Query1 Union
 **/
 object Query2 extends TPCHBase {
   val name = "Query2"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val (q1r, cor) = varset(Query1.name, "c2",
     Query1.program(Query1.name).varRef.asInstanceOf[BagExpr])
@@ -176,7 +176,7 @@ object Query2 extends TPCHBase {
 **/
 object Query3 extends TPCHBase {
   val name = "Query3"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val (q1r, cor) = varset(Query1.name, "c2",
     Query1.program(Query1.name).varRef.asInstanceOf[BagExpr])
@@ -218,7 +218,7 @@ For c2 in Query1 Union
 **/
 object Query4 extends TPCHBase {
   val name = "Query4"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val (q1r, cor) = varset(Test2.name, "c2",
     Test2.program(Test2.name).varRef.asInstanceOf[BagExpr])
@@ -254,7 +254,7 @@ make the application of filters easier.
 **/
 object Query1Extended extends TPCHBase {
   val name = "Query1Extended"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val query1_ljp = ForeachUnion(lr, relL,
                      ForeachUnion(pr, relP,
@@ -278,7 +278,7 @@ object Query1Extended extends TPCHBase {
 
 object Query4Filter1 extends TPCHBase {
   val name = "Query4Filter1"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val (q1r, cor) = varset(Query1Extended.name, "c2",
     Query1Extended.program(Query1Extended.name).varRef.asInstanceOf[BagExpr])
@@ -312,7 +312,7 @@ object Query4Filter1 extends TPCHBase {
 
 object Query4Filter2 extends TPCHBase {
   val name = "Query4Filter2"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val (q1r, cor) = varset(Query1Extended.name, "c2",
     Query1Extended.program(Query1Extended.name).varRef.asInstanceOf[BagExpr])
@@ -359,7 +359,7 @@ For s in S Union
 
 object Query5 extends TPCHBase {
   val name = "Query5"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val custs = 
       ForeachUnion(or, relO,
@@ -399,7 +399,7 @@ For c in C Union
 **/
 object Query6Full extends TPCHBase {
   val name = "Query6Full"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
  
   val (q2r, cor) = varset(Query5.name, "co",
     Query5.program(Query5.name).varRef.asInstanceOf[BagExpr])
@@ -419,7 +419,7 @@ object Query6Full extends TPCHBase {
 
 object Query6GBK extends TPCHBase {
   val name = "Query6GBK"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
  
   val (q2r, cor) = varset(Query5.name, "co",
     Query5.program(Query5.name).varRef.asInstanceOf[BagExpr])
@@ -451,7 +451,7 @@ For c in C Union
 **/
 object Query6 extends TPCHBase {
   val name = "Query6"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
  
   val (q5r, cor) = varset(Query5.name, "co",
     Query5.program(Query5.name).varRef.asInstanceOf[BagExpr])
@@ -486,7 +486,7 @@ For c in C Union
 **/
 object Query7 extends TPCHBase {
   val name = "Query7"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val (q5r, cor) = varset(Query5.name, "co",
     Query5.program(Query5.name).varRef.asInstanceOf[BagExpr])
@@ -522,7 +522,7 @@ object Query7 extends TPCHBase {
   
 object TPCHQuery1Full extends TPCHBase {
   val name = "Query1Full"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val query1 = ForeachUnion(cr, relC,
     Singleton(Tuple("c_name" -> cr("c_name"), "c_orders" -> ForeachUnion(or, relO,
@@ -557,7 +557,7 @@ object TPCHQuery1Full extends TPCHBase {
 
 object TPCHQuery1 extends TPCHBase {
   val name = "Query1"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val query1_ljp = ForeachUnion(lr, relL,
                      ForeachUnion(pr, relP,
@@ -581,7 +581,7 @@ object TPCHQuery1 extends TPCHBase {
 
 object TPCHQuery1WK extends TPCHBase {
   val name = "Query1WK"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val query1_ljp = ForeachUnion(lr, relL,
                      ForeachUnion(pr, relP,
@@ -605,7 +605,7 @@ object TPCHQuery1WK extends TPCHBase {
 
 object TPCHQuery1Filter extends TPCHBase {
   val name = "Query1Filter"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val query1_ljp = ForeachUnion(lr, relL,
                      ForeachUnion(pr, relP,
@@ -631,7 +631,7 @@ object TPCHQuery1Filter extends TPCHBase {
 
 object TPCHQuery2Full extends TPCHBase {
   val name = "Query2Full"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val query2 = ForeachUnion(sr, relS,
             Singleton(Tuple("s_name" -> sr("s_name"), "customers2" -> ForeachUnion(lr, relL,
@@ -661,7 +661,7 @@ For s in S Union
 
 object TPCHQuery2 extends TPCHBase {
   val name = "Query2"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val resultInner = 
     //ForeachUnion(lr, relL,
@@ -686,7 +686,7 @@ object TPCHQuery2 extends TPCHBase {
 
 object TPCHQuery3Full extends TPCHBase{
   val name = "Query3Full"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val query3 = ForeachUnion(pr, relP,
                 Singleton(Tuple("p_name" -> pr("p_name"), "suppliers" -> ForeachUnion(psr, relPS,
@@ -736,7 +736,7 @@ object TPCHQuery3Full extends TPCHBase{
   **/
 object TPCHQuery3 extends TPCHBase {
   val name = "Query3"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
   
   val partsuppliers = ForeachUnion(psr, relPS,
                     ForeachUnion(sr, relS,
@@ -786,7 +786,7 @@ object TPCHQuery3 extends TPCHBase {
 
 object TPCHQuery4Full extends TPCHBase {
   val name = "Query4Full"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val (q1r, cor) = varset(TPCHQuery1Full.name, "c2",
     TPCHQuery1Full.program(TPCHQuery1Full.name).varRef.asInstanceOf[BagExpr])
@@ -824,7 +824,7 @@ For c in C Union
 
 object TPCHQuery6Full extends TPCHBase {
   val name = "Query6Full"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
  
   val (q2r, cor) = varset(TPCHQuery2Full.name, "co",
     TPCHQuery2Full.program(TPCHQuery2Full.name).varRef.asInstanceOf[BagExpr])
@@ -844,7 +844,7 @@ object TPCHQuery6Full extends TPCHBase {
 
 object TPCHQuery6 extends TPCHBase {
   val name = "Query6"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
  
   val (q2r, cor) = varset(TPCHQuery2Full.name, "co",
     TPCHQuery2Full.program(TPCHQuery2Full.name).varRef.asInstanceOf[BagExpr])
@@ -867,7 +867,7 @@ object TPCHQuery6 extends TPCHBase {
 
 object TPCHQuery6New extends TPCHBase {
   val name = "Query6New"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
  
   val (q2r, cor) = varset(TPCHQuery2Full.name, "co",
     TPCHQuery2Full.program(TPCHQuery2Full.name).varRef.asInstanceOf[BagExpr])
@@ -902,7 +902,7 @@ For n in N Union
 
 object TPCHQuery7Full extends TPCHBase {
   val name = "Query7Full"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val (q3r, cor) = varset(TPCHQuery3Full.name, "co",
     TPCHQuery3Full.program(TPCHQuery3Full.name).varRef.asInstanceOf[BagExpr])
@@ -931,7 +931,7 @@ object TPCHQuery7Full extends TPCHBase {
 
 object TPCHQuery7 extends TPCHBase {
   val name = "Query7"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val (q3r, cor) = varset(TPCHQuery3Full.name, "co",
     TPCHQuery3Full.program(TPCHQuery3Full.name).varRef.asInstanceOf[BagExpr])
@@ -959,7 +959,7 @@ object TPCHQuery7 extends TPCHBase {
 
 object TPCHQuery72 extends TPCHBase {
   val name = "Query72"
-  val tbls: Set[String] = Set("C", "O", "L", "P")
+  val tbls: Set[String] = Set("Customer", "Order", "Lineitem", "Part")
 
   val (q3r, cor) = varset(TPCHQuery3Full.name, "co",
     TPCHQuery3Full.program(TPCHQuery3Full.name).varRef.asInstanceOf[BagExpr])
