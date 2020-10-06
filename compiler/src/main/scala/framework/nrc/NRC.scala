@@ -300,7 +300,8 @@ trait NRC extends BaseExpr {
     def apply(n: String): Assignment = get(n) match {
       case Some(a) => a
       case None => throw new NoSuchElementException
-    }
+    }  
+  
   }
 
   object Program {
