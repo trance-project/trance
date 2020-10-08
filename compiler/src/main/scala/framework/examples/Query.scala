@@ -17,6 +17,7 @@ trait Query extends Materialization
   with NRCTranslator {
 
   val normalizer = new Finalizer(new BaseNormalizer{})
+  val newnormalizer = new NRCFinalizer(new BaseNRCCompiler{})
   val baseTag: String = "_2"
 
   val name: String
@@ -34,6 +35,10 @@ trait Query extends Materialization
   }
 
   def normalize: CExpr = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
+
+  def normalizeNew: Program = Program(
+    program.statements.map(s => Assignment(s.name, 
+      newnormalizer.finalize(s.rhs.asInstanceOf[newnormalizer.Expr]).asInstanceOf[Expr])))
   
   def unnest: CExpr = Unnester.unnest(this.normalize)(Map(), Map(), None, baseTag)
 
@@ -117,6 +122,13 @@ trait Query extends Materialization
       val unshredProg = unshred(optShredded, materializedProgram.ctx)
       (materializedProgram.program, unshredProg)
     }
+
+  def shredNew: Program = {
+    val (p1, p2) = shred() 
+    println(quote(p1))
+    Program(p1.statements.map(s => Assignment(s.name, 
+      newnormalizer.finalize(s.rhs.asInstanceOf[newnormalizer.Expr]).asInstanceOf[Expr])))
+  }
 
   /** Shred plan for batch operator compilation **/
   def shredBatchPlan(unshredRun: Boolean = false, eliminateDomains: Boolean = true, anfed: Boolean = true, optLevel: Int = 2, schema: Schema = Schema()): (CExpr, CExpr) = {

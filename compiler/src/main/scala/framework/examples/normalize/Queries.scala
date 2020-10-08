@@ -55,4 +55,51 @@ object NormalizationTests {
                 Singleton(Tuple("o1" -> xref("a"), "o2" -> yref("a")))))
   }
 
+  // N5
+  val query5 = {
+    import nrc._
+    val relationR = BagVarRef("R", BagType(itemTp))
+    val xref = TupleVarRef("x", itemTp)
+    val ms = Map.empty[String, TupleAttributeExpr]
+    ForeachUnion(xref, relationR, Singleton(Tuple(ms)))
+  }
+
+  val query6 = {
+    import nrc._
+    val relationR = BagVarRef("R", BagType(itemTp))
+    val xref = TupleVarRef("x", itemTp)
+    val yref = TupleVarRef("y", itemTp)
+    ForeachUnion(xref, relationR, 
+      ForeachUnion(yref, Singleton(Tuple("a" -> Const(1, IntType), "b" -> Const("2", StringType))), 
+        IfThenElse(Cmp(OpEq, xref("a"), yref("a")), 
+          Singleton(Tuple("c" -> xref("b"), "d" -> yref("b"))))))
+  }
+
+  // build example for query 8
+  val query8 = {
+    import nrc._
+    val relationR = BagVarRef("R", BagType(itemTp))
+    val relationS = BagVarRef("S", BagType(itemTp))
+    val relationT = BagVarRef("T", BagType(itemTp))
+    val wref = TupleVarRef("w", itemTp)
+    val xref = TupleVarRef("x", itemTp)
+    val yref = TupleVarRef("y", itemTp)
+    val zref = TupleVarRef("z", itemTp)
+    ForeachUnion(xref, relationR, 
+      ForeachUnion(yref, ForeachUnion(zref, relationS, 
+                          ForeachUnion(wref, relationT, 
+                            IfThenElse(Cmp(OpEq, zref("a"), wref("a")), 
+                              Singleton(Tuple("a" -> zref("a"), "b" -> wref("b")))))),
+        IfThenElse(Cmp(OpEq, xref("a"), yref("a")), 
+          Singleton(Tuple("c" -> xref("b"), "d" -> yref("b"))))))
+  }
+
+
+
+
+
+
+
+
+
 }
