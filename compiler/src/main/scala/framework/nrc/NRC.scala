@@ -166,7 +166,7 @@ trait NRC extends BaseExpr {
     val tp: TupleType = e2.tp
   }
 
-  sealed trait Cmp {
+  trait Cmp {
     def op: OpCmp
 
     def e1: Expr

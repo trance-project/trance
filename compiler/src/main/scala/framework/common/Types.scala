@@ -21,6 +21,8 @@ sealed trait Type { self =>
     case LabelType(fs) => fs
     case RecordCType(ms) => ms
     case BagCType(ms) => ms.attrs
+    case BagType(ms) => ms.attrs
+    case TupleType(fs) => fs
     case MatDictCType(LabelType(fs), bag) if fs.isEmpty => 
       Map("_1" -> StringType) ++ bag.attrs
     case MatDictCType(lt @ LabelType(ms), bag) => 
@@ -39,11 +41,41 @@ sealed trait Type { self =>
     case t => sys.error(s"Issue calling project on $t")
   }
 
+  def project(fields: Set[String]): TupleType = self match {
+    case t @ TupleType(fs) => 
+      val ks = fs.keySet
+      if (fields.isEmpty || (fields & ks).isEmpty) t
+      else TupleType(fs.filter(f => fields(f._1)))
+    case t => sys.error(s"Issue calling project on $t")
+  }
+
   def merge(tp: Type): RecordCType = (self, tp) match {
     case (RecordCType(ms1), RecordCType(ms2)) => 
       RecordCType(ms1 ++ ms2)
     case _ => ???
   } 
+
+  def merge2(tp: Type): TupleType = (self, tp) match {
+    case (TupleType(ms1), TupleType(ms2)) => 
+      TupleType(ms1 ++ ms2)
+    case _ => ???
+  }
+
+  def outer2: TupleType = self match {
+    case TupleType(fs) => 
+      TupleType(fs.mapValues(v => v match { 
+        case _:OptionType => v; case _ => OptionType(v)}))
+    case BagType(tup) => tup.outer2
+    case _ => sys.error(s"not supported $self")    
+  }
+
+  def unouter2: TupleType = self match {
+    case TupleType(fs) => 
+      TupleType(fs.mapValues(v => v match { 
+        case OptionType(o) => o; case _ => v}).asInstanceOf[Map[String, TupleAttributeType]])
+    case BagType(tup) => tup.unouter2
+    case _ => sys.error(s"not supported $self")
+  }
 
   def outer: RecordCType = self match {
     case RecordCType(ms) => 
@@ -139,7 +171,12 @@ object TupleDictType {
   def apply(attrTps: (String, TupleDictAttributeType)*): TupleDictType = TupleDictType(Map(attrTps: _*))
 }
 
-final case class MatDictType(keyTp: LabelType, valueTp: BagType) extends Type
+final case class MatDictType(keyTp: LabelType, valueTp: BagType) extends Type {
+  def tp: TupleType = {
+    val fs = valueTp.attrs + ("_1" -> keyTp)  
+    TupleType(fs.asInstanceOf[Map[String, TupleAttributeType]])
+  }
+}
 
 
 /**

@@ -22,6 +22,8 @@ trait BaseNRC extends NRC with NRCLabel with MaterializeNRC {
   def lbl(fs: Map[String, Rep], id: Int): Rep
   def projectlbl(e: Rep): Rep 
   def bagtodict(e: Rep): Rep
+  def dicttobag(e: Rep): Rep
+  def lookup(lbl: Rep, dict: Rep): Rep
 
 }
 
@@ -34,6 +36,7 @@ trait BaseNRCCompiler extends BaseNRC {
     case t:PrimitiveType => PrimitiveVarRef(n, t)
     case t:BagType => BagVarRef(n, t)
     case t:TupleType => TupleVarRef(n, t)
+    case t:MatDictType => MatDictVarRef(n, t)
     case _ => sys.error(s"unsupported type $tp")
   }
 
@@ -52,6 +55,7 @@ trait BaseNRCCompiler extends BaseNRC {
       case _:NumericType => NumericProject(tup, f)
       case _:PrimitiveType => PrimitiveProject(tup, f)
       case _:BagType => BagProject(tup, f)
+      case _:LabelType => LabelProject(tup, f)
     }
   }
 
@@ -67,8 +71,7 @@ trait BaseNRCCompiler extends BaseNRC {
   def tuple(fs: Map[String, Rep]): Rep = 
     Tuple(fs.asInstanceOf[Map[String, TupleAttributeExpr]])
 
-  def cmp(op: OpCmp, e1: Rep, e2: Rep): Rep = 
-    PrimitiveCmp(op, e1.asInstanceOf[PrimitiveExpr], e2.asInstanceOf[PrimitiveExpr])
+  def cmp(op: OpCmp, e1: Rep, e2: Rep): Rep = Cmp(op, e1, e2)
 
   // bag only for now
   def ifst(cnd: Rep, e1: Rep, e2: Option[Rep] = None): Rep = {
@@ -101,6 +104,12 @@ trait BaseNRCCompiler extends BaseNRC {
 
   def bagtodict(e: Rep): Rep = 
     BagToMatDict(e.asInstanceOf[BagExpr])
+
+  def dicttobag(e: Rep): Rep = 
+    MatDictToBag(e.asInstanceOf[MatDictExpr])
+
+  def lookup(lbl: Rep, dict: Rep): Rep = 
+    MatDictLookup(lbl.asInstanceOf[LabelExpr], dict.asInstanceOf[MatDictExpr])
 
   // get a fresh variable representing 
   // a tuple inside of a bag
@@ -178,6 +187,8 @@ class NRCFinalizer(val target: BaseNRC) extends NRC with MaterializeNRC with NRC
     case NewLabel(fs, id) => target.lbl(fs.map(f => f._1 -> finalize(f._2)), id)    
     case p:ProjectLabelParameter => target.projectlbl(finalize(p.e)) 
     case BagToMatDict(bag) => target.bagtodict(finalize(bag))
+    case MatDictToBag(dict) => target.dicttobag(finalize(dict))
+    case MatDictLookup(lbl, dict) => target.lookup(finalize(lbl), finalize(dict))
 
   }
 

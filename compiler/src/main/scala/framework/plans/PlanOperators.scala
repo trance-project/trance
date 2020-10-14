@@ -25,6 +25,7 @@ case class Projection(in: CExpr, v: Variable, filter: CExpr, fields: List[String
   def tp: BagCType = BagCType(filter.tp)
 }
 
+
 /** Unnest operators **/
 
 trait UnnestOp extends CExpr {

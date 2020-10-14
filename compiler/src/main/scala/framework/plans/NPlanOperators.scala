@@ -17,14 +17,21 @@ trait PlanOperator extends NRC with NRCLabel with MaterializeNRC with NRCPrinter
 
   case class Plan(name: String, plan: PExpr) extends PExpr {
     def tp: Type = plan.tp
+    override def toString: String = s"$name := $plan"
   }
 
   case class PlanSet(plans: List[PExpr]) extends PExpr {
     def tp: Type = BagType(TupleType(Map.empty[String, TupleAttributeType]))
+    override def toString: String = s"Plans: \n ${plans.mkString("\n")}"
   }
 
   case class Select(in: Expr, v: VarDef, p: Expr) extends PExpr {
-    def tp: BagType = in.tp.asInstanceOf[BagType]
+    def tp: BagType = in.tp match {
+      case mt:MatDictType => BagType(mt.tp)
+      case bt:BagType => bt
+      case _ => ???
+    }
+
     override def toString: String = p match {
       case c:Const if c.v.asInstanceOf[Boolean] => s"[${quote(in)}]"
       case _ => s"""|[\\sigma^{${quote(p)}}
@@ -47,7 +54,7 @@ trait PlanOperator extends NRC with NRCLabel with MaterializeNRC with NRCPrinter
       case ttp => sys.error(s"unsupported type $ttp")
     }
     override def toString: String = 
-      s"""[\\pi_{${quote(t)}}
+      s"""[\\pi_{${quote(t).replace("\n", "")}}
           |   $in]""".stripMargin
   }
 

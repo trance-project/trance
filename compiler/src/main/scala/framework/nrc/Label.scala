@@ -30,6 +30,10 @@ trait Label {
     val tp: LabelType = e1.tp
   }
 
+  final case class LabelCmp(op: OpCmp, e1: LabelExpr, e2: LabelExpr) extends CondExpr with Cmp {
+    assert(e1.tp == e2.tp)
+  }
+
   sealed trait ExtractLabel {
     def lbl: LabelExpr
 

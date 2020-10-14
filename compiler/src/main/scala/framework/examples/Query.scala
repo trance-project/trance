@@ -123,11 +123,14 @@ trait Query extends Materialization
       (materializedProgram.program, unshredProg)
     }
 
-  def shredNew: Program = {
+  def shredNew: (Program, Program) = {
     val (p1, p2) = shred() 
     println(quote(p1))
-    Program(p1.statements.map(s => Assignment(s.name, 
+    val sp = Program(p1.statements.map(s => Assignment(s.name, 
       newnormalizer.finalize(s.rhs.asInstanceOf[newnormalizer.Expr]).asInstanceOf[Expr])))
+    val usp = Program(p2.statements.map(s => Assignment(s.name, 
+      newnormalizer.finalize(s.rhs.asInstanceOf[newnormalizer.Expr]).asInstanceOf[Expr])))
+    (sp, usp)
   }
 
   /** Shred plan for batch operator compilation **/
