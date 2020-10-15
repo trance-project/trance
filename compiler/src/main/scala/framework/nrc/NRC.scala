@@ -74,7 +74,16 @@ trait NRC extends BaseExpr {
 
   final case class Udf(name: String, in: PrimitiveExpr, tp: NumericType) extends NumericExpr 
 
-  trait Project {
+  trait ProjectExpr {
+
+    def tuple: Expr
+
+    def field: String 
+
+    def tp: Type
+  }
+
+  trait Project extends ProjectExpr {
     def tuple: VarRef with Expr
 
     def field: String
@@ -100,6 +109,18 @@ trait NRC extends BaseExpr {
 
   final case class BagProject(tuple: TupleVarRef, field: String) extends BagExpr with TupleProject {
     override def tp: BagType = super.tp.asInstanceOf[BagType]
+  }
+
+  final case class NumericProjectExpr(tuple: TupleExpr, field: String) extends NumericExpr with ProjectExpr {
+    override def tp: NumericType = tuple.tp(field).asInstanceOf[NumericType]
+  }
+
+  final case class PrimitiveProjectExpr(tuple: TupleExpr, field: String) extends PrimitiveExpr with ProjectExpr {
+    override def tp: PrimitiveType = tuple.tp(field).asInstanceOf[PrimitiveType]
+  }
+
+  final case class BagProjectExpr(tuple: TupleExpr, field: String) extends BagExpr with ProjectExpr {
+    override def tp: BagType = tuple.tp(field).asInstanceOf[BagType]
   }
 
   final case class ForeachUnion(x: VarDef, e1: BagExpr, e2: BagExpr) extends BagExpr {

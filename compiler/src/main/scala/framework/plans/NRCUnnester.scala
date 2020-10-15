@@ -19,6 +19,7 @@ object NRCUnnester extends PlanOperator {
   def isNested(e: Expr): Boolean = e match {
     case _:ForeachUnion => true
     case _:MatDictLookup => true
+    case _:ReduceByKey => true
     case _ => false
   }
 
@@ -39,6 +40,10 @@ object NRCUnnester extends PlanOperator {
 
       val nE = OuterJoin(E.get, w.get, ne1, nv, cond, es)
       unnest(e2)((u, Some(w.get.batch(nE.tp)), Some(nE)))
+
+    case ForeachUnion(x, BagProjectExpr(e1, f), e2) => 
+      val nE = OuterUnnest(E.get, w.get, f, x, truef, es)
+      unnest(e2)((u, Some(w.get.batch(nE.tp)), Some(nE)))
     
     case ForeachUnion(x, e1, BagIfThenElse(cond, e2, None)) => 
       val ne1 = unnest(e1)((u, w, None))
@@ -56,6 +61,9 @@ object NRCUnnester extends PlanOperator {
     case Singleton(v:VarRef) => 
       val fs = v.tp.attrs.map(k => k._1 -> project(v.asInstanceOf[compiler.Expr], k._1))
       handleLevel(fs.asInstanceOf[Map[String, TupleAttributeExpr]], identity)(ctx)
+
+    // TODO
+    case ReduceByKey(e1, keys, values) => unnest(e1)(ctx)
 
     case BagVarRef(n, tp) => 
       val v = VarDef(Utils.Symbol.fresh(), tp.tp)

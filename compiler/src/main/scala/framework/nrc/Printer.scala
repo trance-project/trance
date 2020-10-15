@@ -18,7 +18,7 @@ trait Printer {
 	case Udf(n, e1, tp) => s"$n(${quote(e1)})"
 	case v: VarRef =>
       v.name
-    case p: Project =>
+    case p: ProjectExpr =>
       quote(p.tuple) + "." + p.field
     case ForeachUnion(x, e1, e2) =>
       s"""|For ${x.name} in ${quote(e1)} Union

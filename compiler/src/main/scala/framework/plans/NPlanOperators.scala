@@ -58,6 +58,16 @@ trait PlanOperator extends NRC with NRCLabel with MaterializeNRC with NRCPrinter
           |   $in]""".stripMargin
   }
 
+  case class OuterUnnest(in: PExpr, v: VarDef, path: String, v2: VarDef, filter: Expr, fields: Set[String]) extends PExpr {
+    def tp: BagType = {
+      val fs = TupleType((v.tp.attrs - path).asInstanceOf[Map[String, TupleAttributeType]])
+      BagType(fs.merge2(v2.tp.outer2).project(fields))
+    }
+    override def toString: String = 
+      s"""|[\\ounnest_{$path}
+          |   $in]""".stripMargin
+  }
+
   case class OuterJoin(lin: PExpr, lv: VarDef, rin: PExpr, rv: VarDef, cond: Expr, fields: Set[String]) extends PExpr {
     def tp: BagType = BagType(lv.tp.merge2(rv.tp.outer2).project(fields))
     override def toString: String = 

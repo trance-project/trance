@@ -17,7 +17,7 @@ trait Query extends Materialization
   with NRCTranslator {
 
   val normalizer = new Finalizer(new BaseNormalizer{})
-  val newnormalizer = new NRCFinalizer(new BaseNRCCompiler{})
+  val newnormalizer = new NRCFinalizer(new BaseNRCNormalizer{})
   val baseTag: String = "_2"
 
   val name: String

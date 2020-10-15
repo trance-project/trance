@@ -16,8 +16,10 @@ trait BaseNRC extends NRC with NRCLabel with MaterializeNRC {
   def sng(e: Rep): Rep
   def tuple(fs: Map[String, Rep]): Rep
   def cmp(op: OpCmp, e1: Rep, e2: Rep): Rep 
+  def arith(op: OpArithmetic, e1: Rep, e2: Rep): Rep 
   def ifst(cond: Rep, e1: Rep, e2: Option[Rep] = None): Rep
   def let(e1: Rep, e2: Rep => Rep): Rep 
+  def reducekey(e: Rep, keys: List[String], values: List[String]): Rep
 
   def lbl(fs: Map[String, Rep], id: Int): Rep
   def projectlbl(e: Rep): Rep 
@@ -31,6 +33,7 @@ trait BaseNRCCompiler extends BaseNRC {
 
   type Rep = Expr
 
+  // replace these with the factory versions?
   def vref(n: String, tp: Type): Rep = tp match {
     case t:NumericType => NumericVarRef(n, t)
     case t:PrimitiveType => PrimitiveVarRef(n, t)
@@ -50,12 +53,12 @@ trait BaseNRCCompiler extends BaseNRC {
   }
 
   def project(e: Rep, f: String): Rep = {
-    val tup = e.asInstanceOf[TupleVarRef]
+    val tup = e.asInstanceOf[TupleExpr]
     tup.tp(f) match {
-      case _:NumericType => NumericProject(tup, f)
-      case _:PrimitiveType => PrimitiveProject(tup, f)
-      case _:BagType => BagProject(tup, f)
-      case _:LabelType => LabelProject(tup, f)
+      case _:NumericType => NumericProjectExpr(tup, f)
+      case _:PrimitiveType => PrimitiveProjectExpr(tup, f)
+      case _:BagType => BagProjectExpr(tup, f)
+      case _:LabelType => LabelProjectExpr(tup, f)
     }
   }
 
@@ -72,6 +75,9 @@ trait BaseNRCCompiler extends BaseNRC {
     Tuple(fs.asInstanceOf[Map[String, TupleAttributeExpr]])
 
   def cmp(op: OpCmp, e1: Rep, e2: Rep): Rep = Cmp(op, e1, e2)
+
+  def arith(op: OpArithmetic, e1: Rep, e2: Rep): Rep = 
+    ArithmeticExpr(op, e1.asInstanceOf[NumericExpr], e2.asInstanceOf[NumericExpr])
 
   // bag only for now
   def ifst(cnd: Rep, e1: Rep, e2: Option[Rep] = None): Rep = {
@@ -95,6 +101,8 @@ trait BaseNRCCompiler extends BaseNRC {
     }
   }
 
+  def reducekey(e: Rep, keys: List[String], values: List[String]): Rep = 
+    ReduceByKey(e.asInstanceOf[BagExpr], keys, values)
 
   def lbl(fs: Map[String, Rep], id: Int): Rep = 
     NewLabel(fs.asInstanceOf[Map[String, LabelParameter]], id)
@@ -122,9 +130,12 @@ trait BaseNRCCompiler extends BaseNRC {
 
 trait BaseNRCNormalizer extends BaseNRCCompiler {
 
-  // need to support tuples that are expressions and not 
-  // just variables
-  // override def let(e1: Rep, e2: Rep => Rep): Rep = e2(e1)
+  override def project(e: Rep, f: String): Rep = e match {
+    case Tuple(fs) => fs(f)
+    case _ => super.project(e, f)
+  }
+
+  override def let(e1: Rep, e2: Rep => Rep): Rep = e2(e1)
 
   override def forunion(e1: Rep, e2: Rep => Rep): Rep = e1 match {
 
@@ -179,8 +190,13 @@ class NRCFinalizer(val target: BaseNRC) extends NRC with MaterializeNRC with NRC
     case l:Let => target.let(finalize(l.e1), 
       (r: target.Rep) => withMap(l.x -> r)(finalize(l.e2)))
 
+    case ReduceByKey(e1, keys, values) => 
+      target.reducekey(finalize(e1), keys, values)
+
     case c:Cmp => target.cmp(c.op, finalize(c.e1), finalize(c.e2))
-    case p:Project => target.project(finalize(p.tuple), p.field)
+    case a:ArithmeticExpr => target.arith(a.op, finalize(a.e1), finalize(a.e2))
+    // case p:Project => target.project(finalize(p.tuple), p.field)
+    case p:ProjectExpr => target.project(finalize(p.tuple), p.field)
     case c:Const => target.const(c.v)
     case v:VarRef => variableMap.getOrElse(v.varDef, target.vref(v.name, v.tp))
  

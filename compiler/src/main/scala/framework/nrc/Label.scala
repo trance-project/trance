@@ -18,6 +18,10 @@ trait Label {
     override def tp: LabelType = super.tp.asInstanceOf[LabelType]
   }
 
+  final case class LabelProjectExpr(tuple: TupleExpr, field: String) extends LabelExpr with ProjectExpr {
+    override def tp: LabelType = tuple.tp(field).asInstanceOf[LabelType]
+  }
+
   final case class LabelLet(x: VarDef, e1: Expr, e2: LabelExpr) extends LabelExpr with Let {
     assert(x.tp == e1.tp)
 
