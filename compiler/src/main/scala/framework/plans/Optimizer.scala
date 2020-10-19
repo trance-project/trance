@@ -216,11 +216,13 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
 
     case ej:JoinOp =>
 
+      val condkeys = collect(ej.cond)
+
       val lattrs = ej.v.tp.attrs.keySet
-      val lkeys = keys.filter(f => lattrs(f)) + ej.p1
+      val lkeys = keys.filter(f => lattrs(f)) ++ condkeys.filter(c => lattrs(c))
 
       val rattrs = ej.v2.tp.attrs.keySet
-      val rkeys = keys.filter(f => rattrs(f)) + ej.p2
+      val rkeys = keys.filter(f => rattrs(f)) ++ condkeys.filter(c => rattrs(c))
 
       val lpush = pushAgg(ej.left, lkeys, values.filter(f => lattrs(f)))
       val rpush = pushAgg(ej.right, rkeys, values.filter(f => rattrs(f)))

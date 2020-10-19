@@ -11,18 +11,18 @@ object E2EApp extends App {
   override def main(args: Array[String]){
 
     // standard pipeline
-    AppWriter.runDataset(HybridBySampleNew, "HybridBySampleNew,standard")
-    AppWriter.runDataset(SampleNetworkNew, "SampleNetworkNew,standard")
-    AppWriter.runDataset(EffectBySampleNew, "EffectBySampleNew,standard")
-    AppWriter.runDataset(ConnectionBySampleNew, "ConnectionBySampleNew,standard")
-    AppWriter.runDataset(GeneConnectivityNew, "GeneConnectivityNew,standard")
+    AppWriter.runDataset(HybridBySampleNew, "HybridBySampleNew,standard", optLevel = 1)
+    AppWriter.runDataset(SampleNetworkNew, "SampleNetworkNew,standard", optLevel = 1)
+    AppWriter.runDataset(EffectBySampleNew, "EffectBySampleNew,standard", optLevel = 1)
+    AppWriter.runDataset(ConnectionBySampleNew, "ConnectionBySampleNew,standard", optLevel = 1)
+    AppWriter.runDataset(GeneConnectivityNew, "GeneConnectivityNew,standard", optLevel = 1)
 
     // shredded pipeline
-    AppWriter.runDatasetShred(HybridBySampleNewS, "HybridBySampleNew,shredded")
-    AppWriter.runDatasetShred(SampleNetworkNew, "SampleNetworkNew,shredded")
-    AppWriter.runDatasetShred(EffectBySampleNew, "EffectBySampleNew,shredded")
-    AppWriter.runDatasetShred(ConnectionBySampleNew, "ConnectionBySampleNew,shredded")
-    AppWriter.runDatasetShred(GeneConnectivityNew, "GeneConnectivityNew,shredded")
+    AppWriter.runDatasetShred(HybridBySampleNewS, "HybridBySampleNew,shredded", optLevel = 1)
+    AppWriter.runDatasetShred(SampleNetworkNew, "SampleNetworkNew,shredded", optLevel = 1)
+    AppWriter.runDatasetShred(EffectBySampleNew, "EffectBySampleNew,shredded", optLevel = 1)
+    AppWriter.runDatasetShred(ConnectionBySampleNew, "ConnectionBySampleNew,shredded", optLevel = 1)
+    AppWriter.runDatasetShred(GeneConnectivityNew, "GeneConnectivityNew,shredded", optLevel = 1)
 
   }
 
