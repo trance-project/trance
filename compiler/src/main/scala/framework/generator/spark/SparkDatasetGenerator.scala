@@ -169,8 +169,17 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
   private def buildLocalAgg(path: String, nrec: Record, v2: String, vset: Set[String], filter: CExpr = Constant(true)): String = {
 
+    def adjustReduceType(t: Type): Type = t match {
+      case RecordCType(ms) => RecordCType(ms.map(m => 
+        if (vset(m._1)) m._2 match { 
+          case OptionType(_) => m._1 -> OptionType(DoubleType); case _ => m._1 -> DoubleType }
+        else m))
+      case _ => t
+    }
+
     val keyRec = Record(nrec.fields.filter(f => !vset(f._1)))
     val krec = generate(keyRec)
+
     val ktp = generateType(keyRec.tp)
 
     // only case for one item in values
@@ -178,7 +187,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     
     val nv = Variable(v2, nrec.tp)
     val nv2 = Variable(v2, nrec.tp.unouter)
-    val resRec = getRecord(nv, vset, generateType(nrec.tp))
+    val adjustType = adjustReduceType(nrec.tp)
+    handleType(adjustType)
+    val resRec = getRecord(nv, vset, generateType(adjustType))
 
     filter match {
       case Constant(true) => 

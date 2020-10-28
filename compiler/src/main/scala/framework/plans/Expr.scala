@@ -173,7 +173,7 @@ trait CombineOp extends CExpr {
 
 case class CReduceBy(e1: CExpr, v1: Variable, keys: List[String], values: List[String]) extends CExpr with CombineOp {
   val keysTp: RecordCType = RecordCType(keys.map(n => n -> v1.tp.attrs(n)).toMap)
-  val valuesTp: RecordCType = RecordCType(values.map(n => n -> v1.tp.attrs(n)).toMap)
+  val valuesTp: RecordCType = RecordCType(values.map(n => n -> DoubleType).toMap)//v1.tp.attrs(n)).toMap)
   def tp: BagCType = v1.tp.attrs get "_1" match {
     case Some(TTupleType(fs)) => 
       BagCType(TTupleType(fs :+ RecordCType((v1.tp.attrs - "_1") ++ valuesTp.attrTps)))
