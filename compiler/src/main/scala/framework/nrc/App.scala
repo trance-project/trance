@@ -61,32 +61,44 @@ object App extends MaterializeNRC with Printer {
     // println(quote(query1))
     // println(quote(query2))
 
-    val tbls = Map("C" -> TPCHSchema.customertype, 
+    var tbls = Map("C" -> TPCHSchema.customertype, 
                    "O" -> TPCHSchema.orderstype,
-                   "L" -> TPCHSchema.lineittype)
-    val q = 
+                   "L" -> TPCHSchema.lineittype, 
+                   "P" -> TPCHSchema.parttype)
+
+   val q1 = 
       s"""
         for c in C union 
           {(name := c.c_name, orders := for o in O union 
-              {(date := o.o_orderdate, ok := o.o_orderkey)}
+            if (c.c_custkey = o.o_custkey) then 
+              {(date := o.o_orderdate, ok := o.o_orderkey, parts := for l in L union
+                if (o.o_orderkey = l.l_orderkey) then
+                  {(qty := l.l_quantity, pk := l.l_partkey)}
+              )}
+          )}
       """
 
-          // )}
-      //       for o in O union 
-      //         {(date := o.o_orderdate, parts :=
-      //             for l in L union 
-      //               {(qty := l.l_qty, pk := l.l_partkey)}
-      //           )}
-      //     )}
-      // """
     val parser = Parser(tbls)
-    val p = parser.parse(q, parser.term)
-    println(quote(p.get.asInstanceOf[Expr]))
-        //   for o in O union
-        //     if (c.c_custkey == o.o_custkey)
-        //     then {(name := c.c_name, date := o.o_orderdate)}
+    val cop:BagExpr = parser.parse(q1, parser.term).get.asInstanceOf[BagExpr]
+    println(quote(cop))
 
-        // """
+    tbls += ("COP" -> cop.tp)
+
+    val q2 = 
+      s"""
+        for c in COP union
+          {(cname := c.name, corders := for o in c.orders union 
+            {(odate := o.date, oparts := (for l in o.parts union
+              for p in P union
+                if (l.pk = p.p_partkey) then
+                  {(pname := p.p_name, total := l.qty * p.p_retailprice)}).sumBy({pname}, {total})
+             )}
+          )}
+      """
+
+    val parser2 = Parser(tbls)
+    val cop2:BagExpr = parser2.parse(q2, parser2.term).get.asInstanceOf[BagExpr]
+    println(quote(cop2))
 
   }
 
