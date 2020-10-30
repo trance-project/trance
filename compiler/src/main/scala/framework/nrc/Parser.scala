@@ -17,17 +17,36 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
 
   def parse(input: String, p: Parser[Expr]): ParseResult[Expr] = parseAll(p, input)
 
+
+  /** Base types 
+    * this does not support long, 
+    * prevents floatingPointNumber from overriding wholeNumber
+    **/
+  def numeric: Parser[NumericConst] = floatingPointNumber ^^
+    { case v if !v.contains(".") => NumericConst(v.toInt, IntType) 
+      case v => NumericConst(v.toDouble, DoubleType) }
+  def primitive: Parser[PrimitiveConst] = booltype | strtype
+  def r(str:String) = ("(?i)" + str).r
+  def booltype: Parser[PrimitiveConst] = (r("true") | r("false")) ^^
+    { case v => PrimitiveConst(v.toBoolean, BoolType) }
+  def strtype: Parser[PrimitiveConst] = stringLiteral ^^
+    { case v => PrimitiveConst(v.toString, StringType) }
+    
+ 
+  /** Variable references
+    * Numeric and Primitive var references need implemented
+    **/  
+  def tuplevarref: Parser[String] = ident ^^
+    { case (s: String) => s }
+  def bagvarref: Parser[BagVarRef] = ident ^^
+    { case (s: String) => BagVarRef(s, tbls(s)) }
+
   def project: Parser[TupleAttributeExpr] = tuplevarref~"."~ident ^^
     { case (v:String)~"."~(l:String) => Project(defToRef(v), l) }
 
   def tuppair: Parser[(String, TupleAttributeExpr)] = ident~":="~tupleattr ^^
     { case (v:String)~":="~t => (v, t)}
 
-  def tuplevarref: Parser[String] = ident ^^
-    { case (s: String) => s}
-
-  def bagvarref: Parser[BagVarRef] = ident ^^
-    { case (s: String) => BagVarRef(s, tbls(s)) }
 
   def singleton: Parser[Singleton] = "{"~>tupleexpr<~"}" ^^ 
     { case t:TupleExpr => Singleton(t) } 
@@ -67,9 +86,10 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
 
   def arglist: Parser[List[String]] = "{"~>repsep(ident, ",")<~"}" ^^ 
     {case (l:List[_]) => l.asInstanceOf[List[String]] }
-  def sumby: Parser[ReduceByKey] = "("~bagexpr~").sumBy("~arglist~","~arglist~")" ^^
-    {case "("~(e1:BagExpr)~").sumBy("~(k:List[_])~","~(v:List[_])~")" => 
-        ReduceByKey(e1, k.asInstanceOf[List[String]], v.asInstanceOf[List[String]]) }
+  def sumby: Parser[ReduceByKey] = "("~>bagexpr~").sumBy("~arglist~","~arglist<~")" ^^
+    {case (e1:BagExpr)~").sumBy("~(k:List[_])~","~(v:List[_]) => 
+        ReduceByKey(e1, k.asInstanceOf[List[String]], v.asInstanceOf[List[String]]) 
+     case _ => sys.error("sumBy parameter error") }
 
   def tuple: Parser[Tuple] = "("~>repsep(tuppair, ",")<~")" ^^
     { case (l: List[_]) => (Tuple(l.asInstanceOf[List[(String, TupleAttributeExpr)]].toMap)) }

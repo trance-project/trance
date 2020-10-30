@@ -100,6 +100,21 @@ object App extends MaterializeNRC with Printer {
     val cop2:BagExpr = parser2.parse(q2, parser2.term).get.asInstanceOf[BagExpr]
     println(quote(cop2))
 
+    val q3 = 
+      s"""
+        ( for c in COP union
+          for o in c.orders union
+            for l in o.parts union
+              for p in P union
+                if (l.pk = p.p_partkey) then
+                  {(cname := c.name, total := l.qty * p.p_retailprice)}).sumBy({cname}, {total})
+      """
+     
+     val parser3 = Parser(tbls)
+     val cop3:BagExpr = parser3.parse(q3, parser3.term).get.asInstanceOf[BagExpr]
+     println(quote(cop3))
+
+
   }
 
 }
