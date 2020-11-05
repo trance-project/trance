@@ -37,8 +37,8 @@ object App {
   val schema = TPCHSchema.getSchema()
  
   def main(args: Array[String]){
-    // runFlatToNested()
-    // runNestedToNested()
+    runFlatToNested()
+    runNestedToNested()
     // runNestedToFlat()
     runSkewHandling()
   }
@@ -49,7 +49,7 @@ object App {
     AppWriter.runDataset(Test2Flat, "Flat,2", schema = schema)
     
     // shredded pipeline + unshredding
-    AppWriter.runDatasetShred(Test2, "Shred,2", unshred=true, schema = schema)
+    AppWriter.runDatasetShred(Test2, "Shred,2", unshred=false, schema = schema)
 
   }
  
@@ -60,7 +60,7 @@ object App {
     AppWriter.runDatasetInput(Test2FullFlat, Test2NN, "Flat,2", schema = schema)
     
     // shredded pipeline + unshredding
-    AppWriter.runDatasetInputShred(Test2Full, Test2NN, "Shred,2", unshred=true, schema = schema)
+    AppWriter.runDatasetInputShred(Test2Full, Test2NN, "Shred,2", unshred=false, schema = schema)
   }
 
   def runNestedToFlat(){
