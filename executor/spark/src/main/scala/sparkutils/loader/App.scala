@@ -16,7 +16,17 @@ object App {
 
      import spark.implicits._
 
-     // TESTING AREA FOR LOADERS
+	val vepLoader = new VepLoader(spark)
+	val mafLoader = new MAFLoader(spark)
+	val maf = mafLoader.loadFlat(s"/nfs_qc4/genomics/gdc/somatic/brca/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
+	val (muts, annots) = vepLoader.normalizeAnnots(maf)
+
+	muts.take(10).foreach(println(_))
+	println("the annotations")
+	annots.take(10).foreach(println(_))
+	println(annots.count)
+
+	// TESTING AREA FOR LOADERS
        
   }
 

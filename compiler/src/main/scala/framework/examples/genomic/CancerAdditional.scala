@@ -7,6 +7,45 @@ import framework.examples.Query
   * queries on the TCGA occurrence endpoint data
   **/
 
+/** Measure the cost of joining the set vs. 
+  * maintaining the normalization 
+  **/
+
+
+object BuildOccurrences1 extends DriverGene {
+
+	override def loadTables(shred:Boolean = false, skew:Boolean = false): String = loadMutations(shred, skew)
+
+	val name = "BuildOccurrences"
+	val query = ForeachUnion(mr, mutations, 
+		ForeachUnion(anr, annotations,
+			IfThenElse(Cmp(OpEq, mr("oid"), anr("vid")), 
+					projectTuple(mr, Map("transcript_consequences" -> 
+						ForeachUnion(tanr, BagProject(anr, "transcript_consequences"),
+							projectTuple(tanr, Map("consequence_terms" ->
+								ForeachUnion(canr, BagProject(tanr, "consequence_terms"),
+									Singleton(Tuple("term" -> canr("element"))))), List("flags"))))))))
+							
+	val program = Program(Assignment(name, query))
+
+}
+
+object BuildOccurrences2 extends DriverGene {
+
+	override def loadTables(shred:Boolean = false, skew:Boolean = false): String = loadMutations(shred, skew)
+
+	val attrs = mr.tp.attrTps.map(f => f._1 -> mr(s"${f._1}"))
+	val name = "BuildOccurrences"
+	val query = ForeachUnion(mr, mutations, 
+		ForeachUnion(anr, annotations,
+			IfThenElse(Cmp(OpEq, mr("oid"), anr("vid")), 
+				ForeachUnion(tanr, BagProject(anr, "transcript_consequences"),
+					projectTuple(tanr, attrs)))))
+							
+	val program = Program(Assignment(name, query))
+
+}
+
 // fails in shredded
 object QuantifyConsequence extends DriverGene {
 

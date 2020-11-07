@@ -16,6 +16,56 @@ import framework.examples.Query
   * CancerAdditional.scala.
   **/
 
+trait Mutations {
+  
+  def loadMutations(shred: Boolean = false, skew: Boolean = false): String = {
+	val baserun = if (shred)
+	s"""|val IBag_mutations__D = mutations
+		|IBag_mutations__D.cache
+		|IBag_mutations__D.count
+		|val (adict1, adict2, adict3) = vepLoader.shredAnnotations(annotations)
+		|val IBag_annotations__D = adict1
+		|IBag_annotations__D.cache
+		|IBag_annotations__D.count
+		|val IDict_annotations__D_transcript_consequences = adict2 
+		|IDict_annotations__D_transcript_consequences.cache
+		|IDict_annotations__D_transcript_consequences.count
+		|val IDict_annotations__D_transcript_consequences_consequence_terms = adict3
+		|IDict_annotations__D_transcript_consequences_consequence_terms.cache
+		|IDict_annotations__D_transcript_consequences_consequence_terms.count"""
+	else
+	  s"""|mutations.cache
+		  |mutations.count
+		  |annotations.cache
+		  |annotations.cache"""
+
+	s"""|val mafLoader = new MAFLoader(spark)
+		|val vepLoader = new VepLoader(spark)
+		|val maf = mafLoader.loadFlat(s"/nfs_qc4/genomics/gdc/somatic/brca/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
+		|//val maf = mafLoader.loadFlat(s"/nfs_qc4/genomics/gdc/somatic/brca/", true)
+		|val (mutations, annotations) = vepLoader.normalizeAnnots(maf)
+		|$baserun
+		|""".stripMargin
+  }
+
+  val mutations_type = TupleType(
+	"donorId" -> StringType, 
+	"vend" -> IntType, 
+	"projectId" -> StringType, 
+	"vstart" -> IntType, 
+	"Reference_Allele" -> StringType, 
+	"Tumor_Seq_Allele1" -> StringType, 
+	"Tumor_Seq_Allele2" -> StringType, 
+	"chromosome" -> StringType, 
+	"Hugo_Symbol" -> StringType, 
+	"biotype" -> StringType, 
+	"functionalImpact" -> StringType, 
+	"consequenceType" -> StringType, 
+	"all_effects" -> StringType,
+	"oid" -> StringType)
+
+}
+
 trait Occurrence extends Vep {
 
   val occurrence_type = TupleType(
@@ -462,7 +512,7 @@ trait GTFMap {
 
 trait DriverGene extends Query with Occurrence with Gistic with StringNetwork 
   with GeneExpression with Biospecimen with SOImpact with GeneProteinMap 
-  with CopyNumber with TCGAClinical with GTFMap {
+  with CopyNumber with TCGAClinical with GTFMap with Mutations {
   
   val basepath = "/nfs_qc4/genomics/gdc/"
   
@@ -514,6 +564,14 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 		|${loadOccurrence(true, skew)}
 		|""".stripMargin
   }
+
+  val mutations = BagVarRef("mutations", BagType(mutations_type))
+  val mr = TupleVarRef("m", mutations_type)
+
+  val annotations = BagVarRef("annotations", BagType(vep_type_full))
+  val anr = TupleVarRef("an", vep_type_full)
+  val tanr = TupleVarRef("tn", transcriptFull2)
+  val canr = TupleVarRef("ct", element)
 
   val occurrences = BagVarRef("occurrences", BagType(occurrence_type))
   val or = TupleVarRef("o", occurrence_type)

@@ -39,7 +39,11 @@ case class VepAnnotTrunc(vid: String, allele_string: String, assembly_name: Stri
 case class VepAnnotTrunc2(input: String, transcript_consequences: Seq[Transcript2])
 
 case class VariantVep(vid: String, vcontig: String, vstart: Int, vreference: String, genotypes: Seq[Call], vepCall: String)
-case class VepOccurrence(donorId: String, oid: String, vend: Int, projectId: String, vstart: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, vepCall:String)
+case class VepOccurrence(donorId: String, oid: String, vend: Int, projectId: String, vstart: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, vepCall: String)
+
+case class VepOccurrence2(donorId: String, oid: String, vend: Int, projectId: String, vstart: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String)
+case class VepOccurrence3(chromosome: String, vstart: Int, oid: String)
+
 
 case class OccurrenceNulls(oid: String, donorId: String, vend: Int, projectId: String, vstart: Int, Reference_Allele: String, Tumor_Seq_Allele1: String, Tumor_Seq_Allele2: String, chromosome: String, allele_string: Option[String], assembly_name: Option[String], end: Option[Long], vid: Option[String], input: Option[String], most_severe_consequence: Option[String], seq_region_name: Option[String], start: Option[Long], strand: Option[Long], transcript_consequences: Option[Seq[Transcript]])
 
@@ -238,6 +242,61 @@ ts_strand: Long,
 transcript_id: String,
 variant_allele: String)
 
+case class VepTranscriptFull(
+amino_acids: String,
+cdna_end: Long,
+cdna_start: Long,
+cds_end: Long,
+cds_start: Long,
+codons: String,
+consequence_terms: Seq[String],
+distance: Long,
+exon: String,
+flags: Seq[String],
+gene_id: String,
+impact: String,
+intron: String,
+polyphen_prediction: String,
+polyphen_score: Double,
+protein_end: Long,
+protein_start: Long,
+sift_prediction: String,
+sift_score: Double,
+ts_strand: Long,
+transcript_id: String,
+variant_allele: String)
+
+case class VepDict1(vid: String, allele_string: String, assembly_name: String, 
+end: Long, id: String, input: String, most_severe_consequence: String, seq_region_name: String, 
+start: Long, strand: Long, transcript_consequences: String)
+
+case class VepDict2(
+_1: String,
+amino_acids: String,
+cdna_end: Long,
+cdna_start: Long,
+cds_end: Long,
+cds_start: Long,
+codons: String,
+consequence_terms: String,
+distance: Long,
+exon: String,
+flags: Seq[String],
+gene_id: String,
+impact: String,
+intron: String,
+polyphen_prediction: String,
+polyphen_score: Double,
+protein_end: Long,
+protein_start: Long,
+sift_prediction: String,
+sift_score: Double,
+ts_strand: Long,
+transcript_id: String,
+variant_allele: String)
+
+case class VepDict3(_1: String, element: String)
+
 case class OccurTransDict2Mid(
   _1: String,
   case_id: String,
@@ -272,6 +331,10 @@ start: Long, strand: Long, transcript_consequences: Option[Seq[TranscriptFull]])
 case class VepAnnotMid(vid: String, allele_string: String, assembly_name: String, 
 end: Long, id: String, input: String, most_severe_consequence: String, seq_region_name: String, 
 start: Long, strand: Long, transcript_consequences: Option[Seq[TranscriptFull]])
+
+case class VepAnnotationFull(vid: String, allele_string: String, assembly_name: String, 
+end: Long, id: String, input: String, most_severe_consequence: String, seq_region_name: String, 
+start: Long, strand: Long, transcript_consequences: Seq[VepTranscriptFull])
 
 case class VepAnnotFull2(vid: String, allele_string: String, assembly_name: String, 
 colocated_variants: Seq[CoLocated2],

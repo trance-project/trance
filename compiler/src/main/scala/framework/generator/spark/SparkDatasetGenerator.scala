@@ -32,7 +32,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     * @return string representing all the records required to run the corresponding application
     */
   def generateHeader(names: List[String] = List()): String = {
-    val h1 = typelst.map(x => generateTypeDef(x)).mkString("\n")
+	val h1 = typelst.map(x => generateTypeDef(x)).mkString("\n")
     val h2 = inputs.withFilter(x => !names.contains(x._2)).map( x => generateTypeDef(x._1)).toList
     if (h2.nonEmpty) { s"$h1\n${h2.mkString("\n")}" } else { h1 }
   }
