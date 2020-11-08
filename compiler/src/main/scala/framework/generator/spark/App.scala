@@ -26,7 +26,8 @@ object E2EApp extends App {
 
 	  //AppWriter.runDataset(BuildOccurrences2, "Build,standard", optLevel = 1)
 	  //AppWriter.runDatasetShred(BuildOccurrences1, "Build,shredded", optLevel = 1)
-    AppWriter.runDataset(HybridBySampleMuts, "HybridScore,standard", optLevel = 1)
+    //AppWriter.runDataset(HybridBySampleMuts, "HybridScore,standard", optLevel = 1)
+    AppWriter.runDatasetShred(HybridBySampleMuts, "HybridScore,shredded", optLevel = 1)
 
   }
 

@@ -1514,9 +1514,9 @@ object HybridBySampleMuts extends DriverGene {
           ReduceByKey(
             ForeachUnion(tanr, BagProject(anr, "transcript_consequences"), 
               ForeachUnion(cncr, cnvCases,
-                IfThenElse(And(Cmp(OpEq, tanr("gene_id"), cncr("cn_gene_id")),
-                  Cmp(OpEq, cncr("cn_case_uuid"), mr("donorId"))), 
-                  Singleton(Tuple("hybrid_gene_id0" -> tanr("gene_id"),
+                IfThenElse(And(Cmp(OpEq, mr("donorId"), cncr("cn_case_uuid")),
+                    Cmp(OpEq, tanr("gene_id"), cncr("cn_gene_id"))),
+                    Singleton(Tuple("hybrid_gene_id0" -> tanr("gene_id"),
                     "hybrid_score0" -> hscore * (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))),
             List("hybrid_gene_id0"),
             List("hybrid_score0")))))))
