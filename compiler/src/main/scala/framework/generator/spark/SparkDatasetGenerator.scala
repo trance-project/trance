@@ -355,11 +355,13 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         // avoid column renaming
         case (col, Project(_, oldCol)) if col != oldCol => Nil
         case (col, expr) if !projectCols(col) => defaultCastNull(expr, col, true)
-        case (ncol, col @ Label(fs)) => fs.head match {
-          case (_, Project(_, "_1")) if fs.size == 1 => Nil
-          case (_, Project(_, pcol)) if ncol == pcol => Nil
-          case (_, expr) => defaultCastNull(expr, col, false)
-        }
+        case (ncol, col @ Label(fs)) => 
+          fs.head match {
+            case (_, Project(_, "_1")) if fs.size == 1 => Nil
+            // check this case
+            case (_, Project(_, pcol)) if (ncol == pcol && fs.size == 1) => Nil
+            case (_, expr) => defaultCastNull(col, ncol, false)
+          }
  		    case _ => Nil
       }
 
@@ -376,6 +378,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
       // ensure that new columns are made before renaming occurs
       val allColumns = (newColumns ++ renamedColumns)
+
+      println("in here with")
+      println(allColumns)
       val columns = allColumns.mkString("\n").stripMargin
 
       val ncast = if (in.tp.attrs.keySet == nfields && allColumns.isEmpty) ""
