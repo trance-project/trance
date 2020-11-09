@@ -1495,13 +1495,13 @@ object HybridBySampleMuts extends DriverGene {
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
     s"${super.loadTables(shred, skew)}\n${loadMutations(shred, skew)}\n${loadCopyNumber(shred, skew)}"
 
-  val mimpact = NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("HIGH", StringType)),
+  val mimpact = NumericIfThenElse(Cmp(OpEq, tanr("impact"), Const("HIGH", StringType)),
                     NumericConst(0.8, DoubleType),
-                    NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("MODERATE", StringType)),
+                    NumericIfThenElse(Cmp(OpEq, tanr("impact"), Const("MODERATE", StringType)),
                     NumericConst(0.5, DoubleType),
-                      NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("LOW", StringType)),
+                      NumericIfThenElse(Cmp(OpEq, tanr("impact"), Const("LOW", StringType)),
                         NumericConst(0.3, DoubleType),
-                        NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("MODIFIER", StringType)),
+                        NumericIfThenElse(Cmp(OpEq, tanr("impact"), Const("MODIFIER", StringType)),
                           NumericConst(0.15, DoubleType),
                           NumericConst(0.01, DoubleType)))))
 
@@ -1512,12 +1512,12 @@ object HybridBySampleMuts extends DriverGene {
       IfThenElse(Cmp(OpEq, mr("oid"), anr("vid")), 
         Singleton(Tuple("case_id" -> mr("donorId"), "interm_scores" -> 
           ReduceByKey(
-            ForeachUnion(tanr, BagProject(anr, "transcript_consequences"), 
-              ForeachUnion(cncr, cnvCases,
-                IfThenElse(And(Cmp(OpEq, mr("donorId"), cncr("cn_case_uuid")),
-                    Cmp(OpEq, tanr("gene_id"), cncr("cn_gene_id"))),
+            ForeachUnion(cncr, cnvCases,
+              IfThenElse(Cmp(OpEq, mr("donorId"), cncr("cn_case_uuid")),
+                ForeachUnion(tanr, BagProject(anr, "transcript_consequences"), 
+                  IfThenElse(Cmp(OpEq, tanr("gene_id"), cncr("cn_gene_id")),
                     Singleton(Tuple("hybrid_gene_id0" -> tanr("gene_id"),
-                    "hybrid_score0" -> hscore * (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType))))))),
+                    "hybrid_score0" -> hscore * (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType)))))))),
             List("hybrid_gene_id0"),
             List("hybrid_score0")))))))
 
@@ -1541,7 +1541,6 @@ object HybridBySampleMuts extends DriverGene {
   val program = Program(Assignment("cnvCases", mapCNV), Assignment("step1", step1Query), Assignment(name, query))
 
 }
-
 
 
 
