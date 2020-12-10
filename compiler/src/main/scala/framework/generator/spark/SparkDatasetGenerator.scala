@@ -378,9 +378,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
       // ensure that new columns are made before renaming occurs
       val allColumns = (newColumns ++ renamedColumns)
-
-      println("in here with")
-      println(allColumns)
       val columns = allColumns.mkString("\n").stripMargin
 
       val ncast = if (in.tp.attrs.keySet == nfields && allColumns.isEmpty) ""
