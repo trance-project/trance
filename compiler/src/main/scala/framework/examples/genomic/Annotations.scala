@@ -116,6 +116,7 @@ trait Vep {
     "flags" -> BagType(element),
     "gene_id" -> StringType,
     "impact" -> StringType,
+    "impact2" -> DoubleType,
     "intron" -> StringType,
     "polyphen_prediction" -> StringType,
     "polyphen_score" -> DoubleType,

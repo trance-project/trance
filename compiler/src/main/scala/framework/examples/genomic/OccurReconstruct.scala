@@ -208,3 +208,34 @@ object OccurCNVAggGroupByCaseMid extends DriverGene {
   val program = Program(Assignment("cnvCases", mapCNV), Assignment(name, query))
   
 }
+
+object ClinicalRunExample extends DriverGene {
+
+  val name = "ClinicalRunExample"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+      s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
+
+  val avgcn = ((cncr("max_copy_number").asNumeric + cncr("min_copy_number").asNumeric
+    + cncr("cn_copy_number").asNumeric + NumericConst(0.01, DoubleType)) / NumericConst(3.0, DoubleType)) 
+
+  val query = ForeachUnion(br, biospec,
+    Singleton(Tuple("sample" -> br("bcr_patient_uuid"), 
+      "mutations" ->
+      ForeachUnion(omr, occurmids, 
+        IfThenElse(Cmp(OpEq, omr("donorId"), br("bcr_patient_uuid")),
+          Singleton(Tuple("mutId" -> omr("vid"), 
+            "scores" -> ReduceByKey(
+              ForeachUnion(amr, BagProject(omr, "transcript_consequences"),
+                ForeachUnion(cncr, cnvCases,
+                  IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), omr("donorId")),
+                      Cmp(OpEq, amr("gene_id"), cncr("cn_gene_id"))),
+                    Singleton(Tuple("gene" -> amr("gene_id"), 
+                                "score" -> amr("impact2").asNumeric * (cncr("cn_copy_number").asNumeric + NumericConst(0.01, DoubleType))
+                                  * amr("sift_score").asNumeric * amr("polyphen_score").asNumeric))))),
+            List("gene"),
+            List("score")))))))))
+
+  val program = Program(Assignment("cnvCases", mapCNV), Assignment(name, query))
+  
+}
