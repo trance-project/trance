@@ -3,6 +3,20 @@ package framework.generator.spark
 import framework.examples.tpch._
 import framework.examples.genomic._
 
+object Sharing extends App {
+
+  override def main(args: Array[String]){
+    AppWriter.runDataset(HybridTP53, "HybridTP53,standard", optLevel = 1)
+    //AppWriter.runDataset(HybridBRCA, "HybridBRCA,standard", optLevel = 1)
+
+    //AppWriter.runDataset(HybridTP53, "HybridTP53,standard", optLevel = 1)
+    //AppWriter.runDataset(HybridBRCA, "HybridBRCA,standard", optLevel = 1)
+
+  }
+
+}
+
+
 /*
  * Generate Spark applications for the end-to-end pipeline of the biomedical benchmark.
  */

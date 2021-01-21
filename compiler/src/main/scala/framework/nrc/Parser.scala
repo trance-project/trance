@@ -100,7 +100,7 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
 
   //def numconst: Parser[NumericConst] = 
   //def primconst: Parser[PrimitiveConst] = 
-  def primexpr: Parser[PrimitiveExpr] = project.asInstanceOf[Parser[PrimitiveExpr]] 
+  def primexpr: Parser[PrimitiveExpr] = project.asInstanceOf[Parser[PrimitiveExpr]] | condexpr | primitive 
   def numexpr: Parser[NumericExpr] = project.asInstanceOf[Parser[NumericExpr]]
   def arithexpr: Parser[ArithmeticExpr] = numexpr~oparith~numexpr ^^ 
     { case (e1:NumericExpr)~(op:OpArithmetic)~(e2:NumericExpr) => ArithmeticExpr(op, e1, e2) }
