@@ -10,7 +10,7 @@ object E2EApp extends App {
 
   override def main(args: Array[String]){
 
-    standard pipeline
+    // standard pipeline
     AppWriter.runDataset(HybridBySampleNew, "HybridBySampleNew,standard", optLevel = 1)
     AppWriter.runDataset(SampleNetworkNew, "SampleNetworkNew,standard", optLevel = 1)
     AppWriter.runDataset(EffectBySampleNew, "EffectBySampleNew,standard", optLevel = 1)
