@@ -13,7 +13,7 @@ object HybridBySampleNew extends DriverGene {
   val name = "HybridBySampleNew"
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-    s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
+    s"${super.loadTables(shred, skew)}\n${loadOccurrence(shred, skew)}\n${loadCopyNumber(shred, skew)}"
 
   val siftImpact = NumericIfThenElse(Cmp(OpEq, amr("sift_score"), Const(0.0, DoubleType)),
               NumericConst(0.01, DoubleType), amr("sift_score").asNumeric)
@@ -60,7 +60,7 @@ object HybridBySampleNewS extends DriverGene {
   val name = "HybridBySampleNewS"
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-    s"${super.loadTables(shred, skew)}\n${loadCopyNumber(shred, skew)}"
+    s"${super.loadTables(shred, skew)}\n${loadOccurrence(shred, skew)}\n${loadCopyNumber(shred, skew)}"
 
   val siftImpact = NumericIfThenElse(Cmp(OpEq, amr("sift_score"), Const(0.0, DoubleType)),
               NumericConst(0.01, DoubleType), amr("sift_score").asNumeric)
@@ -110,6 +110,7 @@ object SampleNetworkNew extends DriverGene {
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
     s"""|${super.loadTables(shred, skew)}
+        |${loadOccurrence(shred, skew)}
         |${loadCopyNumber(shred, skew)}
         |${loadNetwork(shred, skew)}
         |${loadGeneProteinMap(shred, skew)}
@@ -153,6 +154,7 @@ object EffectBySampleNew extends DriverGene {
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
     s"""|${super.loadTables(shred, skew)}
+        |${loadOccurrence(shred, skew)}
         |${loadCopyNumber(shred, skew)}
         |${loadNetwork(shred, skew)}
         |${loadGeneProteinMap(shred, skew)}
@@ -199,6 +201,7 @@ object ConnectionBySampleNew extends DriverGene {
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
     s"""|${super.loadTables(shred, skew)}
+        |${loadOccurrence(shred, skew)}
         |${loadCopyNumber(shred, skew)}
         |${loadNetwork(shred, skew)}
         |${loadGeneProteinMap(shred, skew)}
@@ -230,6 +233,7 @@ object GeneConnectivityNew extends DriverGene {
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
     s"""|${super.loadTables(shred, skew)}
+        |${loadOccurrence(shred, skew)}
         |${loadCopyNumber(shred, skew)}
         |${loadNetwork(shred, skew)}
         |${loadGeneProteinMap(shred, skew)}

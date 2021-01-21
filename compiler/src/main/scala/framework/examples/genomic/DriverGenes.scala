@@ -16,6 +16,56 @@ import framework.examples.Query
   * CancerAdditional.scala.
   **/
 
+trait Mutations {
+  
+  def loadMutations(shred: Boolean = false, skew: Boolean = false): String = {
+	val baserun = if (shred)
+	s"""|val IBag_mutations__D = mutations
+  		|IBag_mutations__D.cache
+  		|IBag_mutations__D.count
+  		|val (adict1, adict2, adict3) = vepLoader.shredAnnotations(annotations)
+  		|val IBag_annotations__D = adict1
+  		|IBag_annotations__D.cache
+  		|IBag_annotations__D.count
+  		|val IDict_annotations__D_transcript_consequences = adict2 
+  		|IDict_annotations__D_transcript_consequences.cache
+  		|IDict_annotations__D_transcript_consequences.count
+  		|val IDict_annotations__D_transcript_consequences_consequence_terms = adict3
+  		|IDict_annotations__D_transcript_consequences_consequence_terms.cache
+  		|IDict_annotations__D_transcript_consequences_consequence_terms.count"""
+	else
+	  s"""|mutations.cache
+		  |mutations.count
+		  |annotations.cache
+		  |annotations.cache"""
+
+	s"""|val mafLoader = new MAFLoader(spark)
+  		|val vepLoader = new VepLoader(spark)
+  		|val maf = mafLoader.loadFlat(s"/nfs_qc4/genomics/gdc/somatic/brca/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
+  		|//val maf = mafLoader.loadFlat(s"/nfs_qc4/genomics/gdc/somatic/brca/", true)
+  		|val (mutations, annotations) = vepLoader.normalizeAnnots(maf)
+  		|$baserun
+  		|""".stripMargin
+  }
+
+  val mutations_type = TupleType(
+	"donorId" -> StringType, 
+	"vend" -> IntType, 
+	"projectId" -> StringType, 
+	"vstart" -> IntType, 
+	"Reference_Allele" -> StringType, 
+	"Tumor_Seq_Allele1" -> StringType, 
+	"Tumor_Seq_Allele2" -> StringType, 
+	"chromosome" -> StringType, 
+	"Hugo_Symbol" -> StringType, 
+	"biotype" -> StringType, 
+	"functionalImpact" -> StringType, 
+	"consequenceType" -> StringType, 
+	"all_effects" -> StringType,
+	"oid" -> StringType)
+
+}
+
 trait Occurrence extends Vep {
 
   val occurrence_type = TupleType(
@@ -462,7 +512,7 @@ trait GTFMap {
 
 trait DriverGene extends Query with Occurrence with Gistic with StringNetwork 
   with GeneExpression with Biospecimen with SOImpact with GeneProteinMap 
-  with CopyNumber with TCGAClinical with GTFMap {
+  with CopyNumber with TCGAClinical with GTFMap with Mutations {
   
   val basepath = "/nfs_qc4/genomics/gdc/"
   
@@ -480,7 +530,6 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 			|val consequences = (consequences_L, consequences_L.empty)
 			|consequences.cache
 			|consequences.count
-			|${loadOccurrence(shred, skew)}
 			|""".stripMargin
 	}else{
 		s"""|val basepath = "/nfs_qc4/genomics/gdc/"
@@ -492,7 +541,6 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 			|val consequences = consequenceLoader.loadSequential("/nfs_qc4/genomics/calc_variant_conseq.txt")
 			|consequences.cache
 			|consequences.count
-			|${loadOccurrence(shred, skew)}
 			|""".stripMargin
   	}
   }
@@ -501,19 +549,26 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
   	val biospecLoad = if (skew) "(biospec, biospec.empty)" else "biospec"
   	val conseqLoad = if (skew) "(conseq, conseq.empty)" else "conseq"
 	s"""|val basepath = "/nfs_qc4/genomics/gdc/"
-		|val biospecLoader = new BiospecLoader(spark)
-		|val biospec = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
-		|val IBag_biospec__D = $biospecLoad
-		|IBag_biospec__D.cache
-		|IBag_biospec__D.count
-		|val consequenceLoader = new ConsequenceLoader(spark)
-		|val conseq = consequenceLoader.loadSequential("/nfs_qc4/genomics/calc_variant_conseq.txt")
-		|val IBag_consequences__D = $conseqLoad
-		|IBag_consequences__D.cache
-		|IBag_consequences__D.count
-		|${loadOccurrence(true, skew)}
-		|""".stripMargin
+  		|val biospecLoader = new BiospecLoader(spark)
+  		|val biospec = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
+  		|val IBag_biospec__D = $biospecLoad
+  		|IBag_biospec__D.cache
+  		|IBag_biospec__D.count
+  		|val consequenceLoader = new ConsequenceLoader(spark)
+  		|val conseq = consequenceLoader.loadSequential("/nfs_qc4/genomics/calc_variant_conseq.txt")
+  		|val IBag_consequences__D = $conseqLoad
+  		|IBag_consequences__D.cache
+  		|IBag_consequences__D.count
+  		|""".stripMargin
   }
+
+  val mutations = BagVarRef("mutations", BagType(mutations_type))
+  val mr = TupleVarRef("m", mutations_type)
+
+  val annotations = BagVarRef("annotations", BagType(vep_type_full))
+  val anr = TupleVarRef("an", vep_type_full)
+  val tanr = TupleVarRef("tn", transcriptFull2)
+  val canr = TupleVarRef("ct", element)
 
   val occurrences = BagVarRef("occurrences", BagType(occurrence_type))
   val or = TupleVarRef("o", occurrence_type)
@@ -1430,7 +1485,62 @@ object GeneConnectivityNew100K extends DriverGene {
 
 }
 
+/** Hybrid score over mutations and annotations, 
+  * rather than the combined occurrences. 
+  **/
+object HybridBySampleMuts extends DriverGene {
 
+  val name = "HybridBySampleMuts"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"${super.loadTables(shred, skew)}\n${loadMutations(shred, skew)}\n${loadCopyNumber(shred, skew)}"
+
+  val mimpact = NumericIfThenElse(Cmp(OpEq, tanr("impact"), Const("HIGH", StringType)),
+                    NumericConst(0.8, DoubleType),
+                    NumericIfThenElse(Cmp(OpEq, tanr("impact"), Const("MODERATE", StringType)),
+                    NumericConst(0.5, DoubleType),
+                      NumericIfThenElse(Cmp(OpEq, tanr("impact"), Const("LOW", StringType)),
+                        NumericConst(0.3, DoubleType),
+                        NumericIfThenElse(Cmp(OpEq, tanr("impact"), Const("MODIFIER", StringType)),
+                          NumericConst(0.15, DoubleType),
+                          NumericConst(0.01, DoubleType)))))
+
+  val hscore = mimpact*tanr("polyphen_score").asNumeric * tanr("sift_score").asNumeric
+
+  val step1Query = ForeachUnion(mr, mutations, 
+    ForeachUnion(anr, annotations,
+      IfThenElse(Cmp(OpEq, mr("oid"), anr("vid")), 
+        Singleton(Tuple("case_id" -> mr("donorId"), "interm_scores" -> 
+          ReduceByKey(
+            ForeachUnion(cncr, cnvCases,
+              IfThenElse(Cmp(OpEq, mr("donorId"), cncr("cn_case_uuid")),
+                ForeachUnion(tanr, BagProject(anr, "transcript_consequences"), 
+                  IfThenElse(Cmp(OpEq, tanr("gene_id"), cncr("cn_gene_id")),
+                    Singleton(Tuple("hybrid_gene_id0" -> tanr("gene_id"),
+                    "hybrid_score0" -> hscore * (cncr("cn_copy_number").asNumeric + NumericConst(.01, DoubleType)))))))),
+            List("hybrid_gene_id0"),
+            List("hybrid_score0")))))))
+
+  val (step1, s1r) = varset("step1", "s1", step1Query)
+  val step12 = BagProject(s1r, "interm_scores")
+  val s2r = TupleVarRef("s2", step12.tp.tp)
+
+  val query = ForeachUnion(br, biospec,
+          Singleton(Tuple("hybrid_sample" -> br("bcr_patient_uuid"), 
+            "hybrid_aliquot" -> br("bcr_aliquot_uuid"),
+            "hybrid_center" -> br("center_id"),
+            "hybrid_genes" -> ReduceByKey(
+              ForeachUnion(s1r, step1, 
+                IfThenElse(Cmp(OpEq, s1r("case_id"), br("bcr_patient_uuid")),
+                  ForeachUnion(s2r, step12, 
+                    Singleton(Tuple("hybrid_gene_id" -> s2r("hybrid_gene_id0"),
+                      "hybrid_score" -> s2r("hybrid_score0")))))), 
+              List("hybrid_gene_id"),
+              List("hybrid_score")))))
+
+  val program = Program(Assignment("cnvCases", mapCNV), Assignment("step1", step1Query), Assignment(name, query))
+
+}
 
 
 

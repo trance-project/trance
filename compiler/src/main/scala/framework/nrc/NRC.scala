@@ -103,7 +103,7 @@ trait NRC extends BaseExpr {
   }
 
   final case class ForeachUnion(x: VarDef, e1: BagExpr, e2: BagExpr) extends BagExpr {
-    assert(x.tp == e1.tp.tp)
+	assert(x.tp == e1.tp.tp)
 
     val tp: BagType = e2.tp
   }

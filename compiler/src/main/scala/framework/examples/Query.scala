@@ -41,11 +41,16 @@ trait Query extends Materialization
     val anfBase = new BaseOperatorANF{}
     val anfer = new Finalizer(anfBase)
     val un = this.unnest
+    println("before opt")
+    println(Printer.quote(un))
     val optimizer = Optimizer(schema)
     optimizationLevel match {
       case 0 => anfBase.anf(anfer.finalize(un).asInstanceOf[anfBase.Rep])
       case 1 => anfBase.anf(anfer.finalize(optimizer.applyPush(un)).asInstanceOf[anfBase.Rep])
-      case _ => anfBase.anf(anfer.finalize(optimizer.applyAll(un)).asInstanceOf[anfBase.Rep])
+      case _ => 
+        val fp = optimizer.applyAll(un)
+        println(Printer.quote(fp))
+        anfBase.anf(anfer.finalize(fp).asInstanceOf[anfBase.Rep])
     }
   }
 

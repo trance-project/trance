@@ -70,7 +70,8 @@ trait SparkTypeHandler {
     case DoubleType => "Double"
     case LongType => "Long"
     case TTupleType(fs) => s"(${fs.map(generateType(_)).mkString(",")})"
-    case BagCType(tp) => s"$bagtype[${generateType(tp)}]" //combineByKey, etc. may need this to be iterable
+    case BagCType(tp) => 
+		s"$bagtype[${generateType(tp)}]" //combineByKey, etc. may need this to be iterable
     case MatDictCType(lbl, dict) => generateType(BagCType(RecordCType(tp.attrs)))//s"${generateType(dict)}"
     case BagDictCType(flat @ BagCType(TTupleType(fs)), dict) =>
       dict match {
