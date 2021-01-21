@@ -6,6 +6,7 @@ import framework.examples.genomic._
 object Sharing extends App {
 
   override def main(args: Array[String]){
+    //AppWriter.runDataset(HybridSamplesWithoutTP53, "HybridSamplesWithoutTP53,standard", optLevel = 1)
     AppWriter.runDataset(HybridTP53, "HybridTP53,standard", optLevel = 1)
     //AppWriter.runDataset(HybridBRCA, "HybridBRCA,standard", optLevel = 1)
 

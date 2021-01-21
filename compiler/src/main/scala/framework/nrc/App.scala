@@ -105,8 +105,9 @@ object App extends MaterializeNRC with Printer {
         ( for c in COP union
           for o in c.orders union
             for l in o.parts union
+              if (l.pk = 2) then
               for p in P union
-                if (l.pk = p.p_partkey) then
+                if (l.pk != p.p_partkey && l.pk = 2 || l.pk = 3 && ! (l.pk = 2 && l.pk = 2)) then
                   {(cname := c.name, total := l.qty * p.p_retailprice)}).sumBy({cname}, {total})
       """
      

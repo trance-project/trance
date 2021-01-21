@@ -25,7 +25,7 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
   def numeric: Parser[NumericConst] = floatingPointNumber ^^
     { case v if !v.contains(".") => NumericConst(v.toInt, IntType) 
       case v => NumericConst(v.toDouble, DoubleType) }
-  def primitive: Parser[PrimitiveConst] = booltype | strtype
+  def primitive: Parser[PrimitiveConst] = booltype | strtype | numeric.asInstanceOf[Parser[PrimitiveConst]]
   def r(str:String) = ("(?i)" + str).r
   def booltype: Parser[PrimitiveConst] = (r("true") | r("false")) ^^
     { case v => PrimitiveConst(v.toBoolean, BoolType) }
@@ -60,18 +60,19 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
 
   def cmp: Parser[PrimitiveCmp] = primexpr~opcmp~primexpr ^^
     { case (e1:PrimitiveExpr)~(o:OpCmp)~(e2:PrimitiveExpr) => PrimitiveCmp(o, e1, e2) }
-  def and: Parser[And] = condexpr~"&&"~condexpr ^^
+
+  def and: Parser[And] = cmp~"&&"~condexpr ^^ 
     { case (e1:CondExpr)~"&&"~(e2:CondExpr) => And(e1, e2) }
-  def or: Parser[Or] = condexpr~"||"~condexpr ^^
+  
+  def or: Parser[Or] = cmp~"||"~condexpr ^^
     { case (e1:CondExpr)~"||"~(e2:CondExpr) => Or(e1, e2) }
-  def not: Parser[Not] = "!"~condexpr ^^ 
-    { case "!"~(e1:CondExpr) => Not(e1); case s => sys.error(s"error reading not expression $s")}
+  def not: Parser[Not] = "!"~"("~condexpr~")" ^^ 
+    { case "!"~"("~(e1:CondExpr)~")" => Not(e1); case _ => sys.error("Not expression (!) improperly parsed.")}
 
-  // and, or, not broken
-  def condexpr: Parser[CondExpr] = cmp | and | or | not
+  def condexpr: Parser[CondExpr] = and | or | not | cmp
 
-  def bagifthenelse: Parser[BagIfThenElse] = "if"~"("~cmp~")"~"then"~bagexpr ^^
-    {case "if"~"("~(cond:CondExpr)~")"~"then"~(t:BagExpr) => BagIfThenElse(cond, t, None) }
+  def bagifthenelse: Parser[BagIfThenElse] = "if"~"("~condexpr~")"~"then"~bagexpr ^^
+    {case "if"~"("~(cond:CondExpr)~")"~"then"~(t:BagExpr) => BagIfThenElse(cond, t, None)}
   
   def forinit: Parser[(TupleVarRef, BagExpr)] = "for"~tuplevarref~"in"~bagexpr ^^
     {case "for"~(t:String)~"in"~(b1:BagExpr) => 
@@ -100,10 +101,17 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
 
   //def numconst: Parser[NumericConst] = 
   //def primconst: Parser[PrimitiveConst] = 
-  def primexpr: Parser[PrimitiveExpr] = project.asInstanceOf[Parser[PrimitiveExpr]] | condexpr | primitive 
+  def primexpr: Parser[PrimitiveExpr] = project.asInstanceOf[Parser[PrimitiveExpr]] | primitive 
   def numexpr: Parser[NumericExpr] = project.asInstanceOf[Parser[NumericExpr]]
   def arithexpr: Parser[ArithmeticExpr] = numexpr~oparith~numexpr ^^ 
     { case (e1:NumericExpr)~(op:OpArithmetic)~(e2:NumericExpr) => ArithmeticExpr(op, e1, e2) }
+
+  // this needs to handle appending to table and creating variable reference
+  def assign: Parser[Assignment] = ident~"<="~term ^^ 
+    { case (v:String)~"<="~t => Assignment(v, t) }
+
+  def dedup: Parser[DeDup] = "dedup("~>bagexpr<~")" ^^
+    { case (e1:BagExpr) => DeDup(e1) }
 
   def oparith: Parser[OpArithmetic] =  plus | minus | mult | divide | mod
   def plus: Parser[OpArithmetic] = "+" ^^ { case o => OpPlus }
@@ -113,9 +121,9 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
   def mod: Parser[OpArithmetic] = "mod" ^^ { case o => OpMod }
 
   def tupleattr: Parser[TupleAttributeExpr] = 
-    sumby | forunion | bagifthenelse | arithexpr | project | singleton | bagvarref
+    sumby | dedup | forunion | bagifthenelse | arithexpr | project | singleton | bagvarref
   def term: Parser[Expr] = 
-    sumby | forunion | bagifthenelse | singleton | tuple | project | bagvarref
+    sumby | dedup | forunion | bagifthenelse | singleton | tuple | project | bagvarref
 
 }
 
