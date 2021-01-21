@@ -178,6 +178,13 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     case _ => false
   }
 
+  // avoid doing local aggregation on a bag of single element tuples
+  private def singleElementBag(e: Type): Boolean = e match {
+    case BagCType(tup) => singleElementBag(tup)
+    case RecordCType(ms) => (ms.size == 1 && ms.head._1 == "element")
+    case _ => false
+  }
+
   /** Push aggregates to local operations, while persisting orignal aggregation.
     * @param e plan or subplan
     * @param keys set of key values relevant to current location in plan
@@ -199,9 +206,18 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       }else e
 
     case Projection(in, v, f1, fs) if keys.nonEmpty && values.nonEmpty => 
-      // capture mathops
-      val nvalues = collect(f1) -- keys
-      Projection(pushAgg(in, keys, nvalues), v, f1, fs)
+      // capture column renaming
+      val nameMap: Map[String, String] = f1 match {
+        case Record(ms) => ms.flatMap(f => f._2 match {
+          case Project(e2, f2) => List((f._1 -> f2))
+          case _ => Nil
+        }).toMap
+      }
+
+      val nkeys = keys.map(k => nameMap.getOrElse(k, k))
+      val nvalues = collect(f1).map(k => nameMap.getOrElse(k, k)) -- nkeys
+
+      Projection(pushAgg(in, nkeys, nvalues), v, f1, fs)
 
     case un:UnnestOp => 
 
@@ -209,18 +225,20 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val rkeys = attrs & keys
       val rvalues = attrs & values
 
-      if (rkeys.nonEmpty && rvalues.nonEmpty){
+      if (rkeys.nonEmpty && rvalues.nonEmpty && !singleElementBag(un.v2.tp)){
         val nv = Variable.freshFromBag(un.tp)
         CReduceBy(un, nv, rkeys.toList, rvalues.toList)
       }else e
 
     case ej:JoinOp =>
 
+      val condkeys = collect(ej.cond)
+
       val lattrs = ej.v.tp.attrs.keySet
-      val lkeys = keys.filter(f => lattrs(f)) + ej.p1
+      val lkeys = keys.filter(f => lattrs(f)) ++ condkeys.filter(c => lattrs(c))
 
       val rattrs = ej.v2.tp.attrs.keySet
-      val rkeys = keys.filter(f => rattrs(f)) + ej.p2
+      val rkeys = keys.filter(f => rattrs(f)) ++ condkeys.filter(c => rattrs(c))
 
       val lpush = pushAgg(ej.left, lkeys, values.filter(f => lattrs(f)))
       val rpush = pushAgg(ej.right, rkeys, values.filter(f => rattrs(f)))

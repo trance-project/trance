@@ -1,4 +1,5 @@
-## NRC Compilation Framework 
+# TraNCE
+### TRAnslating Nested Collections Efficiently: a framework for processing nested collection queries
 
 The framework is organized into two subfolders:
 * `compiler` contains all the components for running the standard and shredded pipeline, both skew-unaware and skew-aware. This goes from NRC to generated code.

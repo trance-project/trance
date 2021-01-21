@@ -8,8 +8,49 @@ import framework.examples.Query
   * This is a scale from HIGH to MODIFIER (.99 - .01)
   */ 
 trait Vep {
-
+  
   val element = TupleType("element" -> StringType)
+
+  val transcriptFull2 = TupleType(
+    "amino_acids" -> StringType,
+    "cdna_end" -> LongType,
+    "cdna_start" -> LongType,
+    "cds_end" -> LongType,
+    "cds_start" -> LongType,
+    "codons" -> StringType,
+    "consequence_terms" -> BagType(element),
+    "distance" -> LongType,
+    "exon" -> StringType,
+    "flags" -> BagType(element),
+    "gene_id" -> StringType,
+    "impact" -> StringType,
+    "intron" -> StringType,
+    "polyphen_prediction" -> StringType,
+    "polyphen_score" -> DoubleType,
+    "protein_end" -> LongType,
+    "protein_start" -> LongType,
+    "sift_prediction" -> StringType,
+    "sift_score" -> DoubleType,
+    "ts_strand" -> LongType,
+    "transcript_id" -> StringType,
+    "variant_allele" -> StringType
+  )
+ 
+
+  val vep_type_full = TupleType(
+  	"vid" -> StringType, 
+	"allele_string" -> StringType, 
+	"assembly_name" -> StringType,
+  	"end" -> LongType, 
+	"id" -> StringType, 
+	"input" -> StringType, 
+	"most_severe_consequence" -> StringType, 
+	"seq_region_name" -> StringType,
+  	"start" -> LongType, 
+	"strand" -> LongType, 
+	"transcript_consequences" -> BagType(transcriptFull2))
+  
+  
   //val element = TupleType("element" -> DoubleType)
   
   val intergenic = TupleType("consequence_terms" -> BagType(element),
@@ -116,6 +157,7 @@ trait Vep {
     "flags" -> BagType(element),
     "gene_id" -> StringType,
     "impact" -> StringType,
+    "impact2" -> DoubleType,
     "intron" -> StringType,
     "polyphen_prediction" -> StringType,
     "polyphen_score" -> DoubleType,
@@ -127,6 +169,7 @@ trait Vep {
     "transcript_id" -> StringType,
     "variant_allele" -> StringType
   )
+
 
   val vep_type = TupleType("allele_string" -> StringType, 
     "assembly_name" -> StringType, "end" -> LongType, "id" -> StringType,

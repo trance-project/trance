@@ -98,6 +98,7 @@ trait JoinOp extends CExpr {
   val jtype: String
 
   val isEquiJoin: Boolean = cond match {
+    // case And(e1:Equals, e2:Equals) => true
     case Equals(_:Project,_:Project) => true
     case _ => false
   }

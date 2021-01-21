@@ -32,7 +32,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     * @return string representing all the records required to run the corresponding application
     */
   def generateHeader(names: List[String] = List()): String = {
-    val h1 = typelst.map(x => generateTypeDef(x)).mkString("\n")
+	val h1 = typelst.map(x => generateTypeDef(x)).mkString("\n")
     val h2 = inputs.withFilter(x => !names.contains(x._2)).map( x => generateTypeDef(x._1)).toList
     if (h2.nonEmpty) { s"$h1\n${h2.mkString("\n")}" } else { h1 }
   }
@@ -169,8 +169,17 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
   private def buildLocalAgg(path: String, nrec: Record, v2: String, vset: Set[String], filter: CExpr = Constant(true)): String = {
 
+    def adjustReduceType(t: Type): Type = t match {
+      case RecordCType(ms) => RecordCType(ms.map(m => 
+        if (vset(m._1)) m._2 match { 
+          case OptionType(_) => m._1 -> OptionType(DoubleType); case _ => m._1 -> DoubleType }
+        else m))
+      case _ => t
+    }
+
     val keyRec = Record(nrec.fields.filter(f => !vset(f._1)))
     val krec = generate(keyRec)
+
     val ktp = generateType(keyRec.tp)
 
     // only case for one item in values
@@ -178,7 +187,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     
     val nv = Variable(v2, nrec.tp)
     val nv2 = Variable(v2, nrec.tp.unouter)
-    val resRec = getRecord(nv, vset, generateType(nrec.tp))
+    val adjustType = adjustReduceType(nrec.tp)
+    handleType(adjustType)
+    val resRec = getRecord(nv, vset, generateType(adjustType))
 
     filter match {
       case Constant(true) => 
@@ -344,11 +355,13 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         // avoid column renaming
         case (col, Project(_, oldCol)) if col != oldCol => Nil
         case (col, expr) if !projectCols(col) => defaultCastNull(expr, col, true)
-        case (ncol, col @ Label(fs)) => fs.head match {
-          case (_, Project(_, "_1")) if fs.size == 1 => Nil
-          case (_, Project(_, pcol)) if ncol == pcol => Nil
-          case (_, expr) => defaultCastNull(expr, col, false)
-        }
+        case (ncol, col @ Label(fs)) => 
+          fs.head match {
+            case (_, Project(_, "_1")) if fs.size == 1 => Nil
+            // check this case
+            case (_, Project(_, pcol)) if (ncol == pcol && fs.size == 1) => Nil
+            case (_, expr) => defaultCastNull(col, ncol, false)
+          }
  		    case _ => Nil
       }
 

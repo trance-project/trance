@@ -35,6 +35,13 @@ class VepLoader(spark: SparkSession) extends Serializable {
 	(c: String, s: Int, i: String, r: String, a1: String, a2: String) => s"$c\t$s\t$i\t$r\t$a1\t.\tPASS\t.\n$c\t$s\t$i\t$r\t$a2\t.\tPASS\t."
   }
 
+  val formatOccurrenceUdf2 = udf { 
+	(c: String, s: Int, r: String, a1: String, a2: String) => {
+		val id = s"$c:$s:r-$a1-$a2"
+		s"$c\t$s\t$id\t$r\t$a1\t.\tPASS\t.\n$c\t$s\t$id\t$r\t$a2\t.\tPASS\t."
+	}
+  }
+
   val extractIdUdf = udf {
 	(s: String) => s.split("\t")(2) 
   }
@@ -142,6 +149,43 @@ class VepLoader(spark: SparkSession) extends Serializable {
 				getString(t.transcript_id), getString(t.variant_allele))); case _ => Seq()})
 		).as[OccurrenceMid]
   }
+
+  def normalizeAnnots(variants: Dataset[OccurrencesTop]): (Dataset[VepOccurrence2], Dataset[VepAnnotationFull]) = {
+	val nullFill = Map("allele_string" -> "null", "assembly_name" -> "null", "end" -> -1, "vid" -> "null", 
+		"input" -> "null", "most_severe_consequence" -> "null", "seq_region_name" -> "null", "start" -> -1, 
+		"strand" -> -1)
+
+	val vindex = variants.withColumn("oid", 
+		formatOccurrenceUdf2(col("chromosome"), col("start"), col("Reference_Allele"), col("Tumor_Seq_Allele1"), col("Tumor_Seq_Allele2")))
+		.withColumnRenamed("start", "vstart").as[VepOccurrence2]
+	  
+	val prepQuery = vindex.select("chromosome", "vstart", "oid")
+		.distinct.sort($"chromosome", $"vstart").as[VepOccurrence3]
+ 	
+	val annots = spark.read.json(vindex.mapPartitions(it => 
+		callVep(it.map(i => i.oid).toList).iterator).toDF().as[String])
+		.withColumn("vid", extractIdUdf(col("input")))
+		.as[VepAnnotMid].na.fill(nullFill).as[VepAnnotMid].map(o => 
+			VepAnnotationFull(o.vid, o.allele_string, o.assembly_name, o.end, o.id, o.input, o.most_severe_consequence, 
+				o.seq_region_name, o.start, o.strand, o.transcript_consequences match {
+					case Some(tc) => tc.map(t => VepTranscriptFull(getString(t.amino_acids), 
+					getLong(t.cdna_end), getLong(t.cdna_start), 
+					getLong(t.cds_end), getLong(t.cds_start), getString(t.codons), t.consequence_terms match {
+					  	case Some(ct) => ct.map(c => c match { case null => "null"; case _ => c}) 
+					  	case _ => Seq()}, getLong(t.distance), getString(t.exon), t.flags match { 
+					  case Some(fs) => fs.map(f => f match { case null => "null"; case _ => f})
+					  case _ => Seq()}, getString(t.gene_id), getString(t.impact), getString(t.intron), 
+					  getString(t.polyphen_prediction), getDouble(t.polyphen_score), 
+					  getLong(t.protein_end), getLong(t.protein_start), getString(t.sift_prediction), 
+					  getDouble(t.sift_score), 
+					  getLong(t.strand), getString(t.transcript_id), getString(t.variant_allele))); case _ => Seq() }
+				)).as[VepAnnotationFull]
+	
+	val mutations = vindex.withColumn("oid", extractIdUdf(col("oid"))).as[VepOccurrence2]
+	(mutations, annots)
+	
+  }
+
 
   def loadOccurrencesFull(variants: Dataset[OccurrencesTop]): Dataset[OccurrenceFull] = {
 	//(Dataset[VepOccurrence], Dataset[VepAnnotFull2]) = {//Dataset[OccurrenceEverything]) = {
@@ -293,6 +337,25 @@ class VepLoader(spark: SparkSession) extends Serializable {
     val skew_dict3 = (dict3, dict3.empty, Some("_1"), spark.sparkContext.broadcast(Set.empty[String]))//.repartition[String](col("_1"))
     (skew_dict1, skew_dict2, skew_dict3)
 
+  }
+
+ def shredAnnotations(df: Dataset[VepAnnotationFull]): (Dataset[VepDict1], Dataset[VepDict2], Dataset[VepDict3]) = {
+	val dict1 = df.map(a => VepDict1(a.vid, a.allele_string, a.assembly_name,
+		a.end, a.id, a.input, a.most_severe_consequence, a.seq_region_name,
+		a.start, a.strand, a.vid)).as[VepDict1]
+
+	val tmp = df.flatMap(a => a.transcript_consequences.zipWithIndex.map{ case (t, id) => (a.vid, id, t) })
+	
+	val dict2 = tmp.map{ case (vid, index, t) => 
+		VepDict2(vid, t.amino_acids, t.cdna_end, t.cdna_start, t.cds_end, t.cds_start, t.codons, 
+			s"${vid}:${index}", t.distance, t.exon, t.flags, t.gene_id, t.impact, t.intron,
+			t.polyphen_prediction, t.polyphen_score, t.protein_end, t.protein_start, 
+			t.sift_prediction, t.sift_score, t.ts_strand, t.transcript_id, t.variant_allele)}.as[VepDict2]
+	
+	val dict3 = tmp.flatMap{ case (vid, index, t) => t.consequence_terms.map(c => 
+		VepDict3(s"${vid}:${index}", c)) }.as[VepDict3]
+	(dict1, dict2.repartition(col("_1")), dict3.repartition(col("_1")))
+	
   }
 
   private def callCategory(g: Genotype): Int = g match {
