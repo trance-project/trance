@@ -30,7 +30,7 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
   def booltype: Parser[PrimitiveConst] = (r("true") | r("false")) ^^
     { case v => PrimitiveConst(v.toBoolean, BoolType) }
   def strtype: Parser[PrimitiveConst] = stringLiteral ^^
-    { case v => PrimitiveConst(v.toString, StringType) }
+    { case v => PrimitiveConst(v.toString.replace("\"", ""), StringType) }
     
  
   /** Variable references
