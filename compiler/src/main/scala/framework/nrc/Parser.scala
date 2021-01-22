@@ -71,6 +71,14 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
 
   def condexpr: Parser[CondExpr] = and | or | not | cmp
 
+  def ifthen: Parser[IfThenElse] = "if"~"("~condexpr~")"~"then"~term~(("else"~>term)?) ^^
+    { case "if"~"("~(cond:CondExpr)~")"~"then"~(t:BagExpr)~Some(e:BagExpr) => BagIfThenElse(cond, t, Some(e)) 
+      case "if"~"("~(cond:CondExpr)~")"~"then"~(t:BagExpr)~None => BagIfThenElse(cond, t, None) 
+      case "if"~"("~(cond:CondExpr)~")"~"then"~(t:NumericExpr)~Some(e:NumericExpr) => NumericIfThenElse(cond, t, e) 
+      case "if"~"("~(cond:CondExpr)~")"~"then"~(t:PrimitiveExpr)~Some(e:PrimitiveExpr) => PrimitiveIfThenElse(cond, t, e) 
+      case _ => sys.error("if statement not formatted correctly") }
+       
+  // deprecated     
   def bagifthenelse: Parser[BagIfThenElse] = "if"~"("~condexpr~")"~"then"~bagexpr ^^
     {case "if"~"("~(cond:CondExpr)~")"~"then"~(t:BagExpr) => BagIfThenElse(cond, t, None)}
   
@@ -97,12 +105,19 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
 
   def tupleexpr: Parser[TupleExpr] = tuple
   def bagexpr: Parser[BagExpr] = 
-    sumby | forunion | bagifthenelse | singleton | project.asInstanceOf[Parser[BagExpr]] | bagvarref
+    sumby | forunion | ifthen.asInstanceOf[Parser[BagExpr]] | singleton | project.asInstanceOf[Parser[BagExpr]] | bagvarref
 
   //def numconst: Parser[NumericConst] = 
   //def primconst: Parser[PrimitiveConst] = 
-  def primexpr: Parser[PrimitiveExpr] = project.asInstanceOf[Parser[PrimitiveExpr]] | primitive 
-  def numexpr: Parser[NumericExpr] = project.asInstanceOf[Parser[NumericExpr]]
+  def primexpr: Parser[PrimitiveExpr] = 
+    ifthen.asInstanceOf[Parser[PrimitiveExpr]] | project.asInstanceOf[Parser[PrimitiveExpr]] | primitive 
+  def numexpr: Parser[NumericExpr] = 
+    ("["~>arithexpr<~"]").asInstanceOf[Parser[NumericExpr]] | ifthen.asInstanceOf[Parser[NumericExpr]] | project.asInstanceOf[Parser[NumericExpr]] | numeric
+  
+  //def arithplus: Parser[ArithmeticExpr] = numexpr~"+"~numexpr ^^ // | "-"~numexpr) ^^
+  //  { case (e1:NumericExpr)~"+"~(e2:NumericExpr) => ArithmeticExpr(OpPlus, e1, e2) }
+
+
   def arithexpr: Parser[ArithmeticExpr] = numexpr~oparith~numexpr ^^ 
     { case (e1:NumericExpr)~(op:OpArithmetic)~(e2:NumericExpr) => ArithmeticExpr(op, e1, e2) }
 
@@ -113,7 +128,8 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
   def dedup: Parser[DeDup] = "dedup("~>bagexpr<~")" ^^
     { case (e1:BagExpr) => DeDup(e1) }
 
-  def oparith: Parser[OpArithmetic] =  plus | minus | mult | divide | mod
+  def opplus: Parser[OpArithmetic] = plus | minus
+  def oparith: Parser[OpArithmetic] =  opplus | mult | divide | mod
   def plus: Parser[OpArithmetic] = "+" ^^ { case o => OpPlus }
   def minus: Parser[OpArithmetic] = "-" ^^ { case o => OpMinus }
   def mult: Parser[OpArithmetic] = "*" ^^ { case o => OpMultiply }
@@ -121,9 +137,10 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
   def mod: Parser[OpArithmetic] = "mod" ^^ { case o => OpMod }
 
   def tupleattr: Parser[TupleAttributeExpr] = 
-    sumby | dedup | forunion | bagifthenelse | arithexpr | project | singleton | bagvarref
+    sumby | dedup | forunion | arithexpr | ifthen.asInstanceOf[Parser[TupleAttributeExpr]] | project | singleton | bagvarref
+    
   def term: Parser[Expr] = 
-    sumby | dedup | forunion | bagifthenelse | singleton | tuple | project | bagvarref
+    sumby | dedup | forunion | arithexpr | ifthen.asInstanceOf[Parser[Expr]] | singleton | tuple | project | bagvarref | primexpr
 
 }
 

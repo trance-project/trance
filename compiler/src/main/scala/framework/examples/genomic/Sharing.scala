@@ -55,7 +55,10 @@ object HybridTP53 extends DriverGene {
             if (t.gene_id != "TP53") then  
               for c in cnvCases union
                 if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene_id) then
-                  {( gene := t.gene_id, score := t.impact )} )}
+                  {( gene := t.gene_id, score := if (t.impact = "HIGH") then 0.80 
+                      else if (t.impact = "MODERATE") then 0.50
+                      else if (t.impact = "LOW") then 0.30
+                      else 0.01 * c.cn_copy_number )} )}
     """
 
      val parser = Parser(tbls)
@@ -86,7 +89,10 @@ object HybridBRCA extends DriverGene {
             if (t.gene_id != "BRCA") then 
               for c in cnvCases union 
                 if ((o.donorId = c.cn_case_uuid) && (t.gene_id = c.cn_gene_id)) then
-                  {( gene := t.gene_id, score := t.impact * (c.cn_copy_num + 0.01))} )}
+                  {( gene := t.gene_id, score := if (t.impact = "HIGH") then 0.80 
+                      else if (t.impact = "MODERATE") then 0.50
+                      else if (t.impact = "LOW") then 0.30
+                      else 0.01 * c.cn_copy_number )} )}
      """
 
      val parser = Parser(tbls)
