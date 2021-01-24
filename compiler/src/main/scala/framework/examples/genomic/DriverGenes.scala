@@ -639,10 +639,6 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
   val mapCNV = ForeachUnion(cnr, copynum,
 		ForeachUnion(br, biospec,
 			IfThenElse(Cmp(OpEq, cnr("cn_aliquot_uuid"), br("bcr_aliquot_uuid")),
-				// Singleton(Tuple(
-          // "cn_case_uuid" -> br("bcr_patient_uuid"), 
-					// "cn_gene_id" -> cnr("cn_gene_id"),
-					// "cn_copy_number" -> cnr("cn_copy_number"))))))
 				projectTuple(cnr, Map("cn_case_uuid" -> br("bcr_patient_uuid"))))))
 
   val (cnvCases, cncr) = varset("cnvCases", "cnv", mapCNV)
