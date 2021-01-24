@@ -225,7 +225,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       case (Some(CReduceBy(_,_,_,values)), _) =>
         buildLocalAgg(e.path, nrec, gv2, values.toSet, e.filter)
       case (_, Constant(true)) => s"${e.path}.map( $gv2 => $gnrec )"
-      case _ => s"${e.path}.flatMap( $gv2 => if (${generate(e.filter)}) Seq($gnrec) else Seq() )"
+      case _ => s"${e.path}.flatMap( $gv2 => if (${accessOption(e.filter, e.v2)}) Seq($gnrec) else Seq() )"
     }
 
     if (e.outer){

@@ -51,14 +51,14 @@ object HybridTP53 extends DriverGene {
     s"""
       for o in occurrences union
         {( oid := o.oid, sid := o.donorId, cands := 
-          for t in o.transcript_consequences union
+          ( for t in o.transcript_consequences union
             if (t.gene_id != "TP53") then  
               for c in cnvCases union
                 if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene_id) then
-                  {( gene := t.gene_id, score := if (t.impact = "HIGH") then 0.80 
+                  {( gene := t.gene_id, score := c.cn_copy_number * if (t.impact = "HIGH") then 0.80 
                       else if (t.impact = "MODERATE") then 0.50
                       else if (t.impact = "LOW") then 0.30
-                      else 0.01 * c.cn_copy_number )} )}
+                      else 0.01 )}).sumBy({gene}, {score}) )}
     """
 
      val parser = Parser(tbls)
@@ -85,14 +85,14 @@ object HybridBRCA extends DriverGene {
     s"""
       for o in occurrences union
         {( oid := o.oid, sid := o.donorId, cands := 
-          for t in o.transcript_consequences union
+          ( for t in o.transcript_consequences union
             if (t.gene_id != "BRCA") then  
               for c in cnvCases union
                 if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene_id) then
-                  {( gene := t.gene_id, score := if (t.impact = "HIGH") then 0.80 
+                  {( gene := t.gene_id, score := c.cn_copy_number * if (t.impact = "HIGH") then 0.80 
                       else if (t.impact = "MODERATE") then 0.50
                       else if (t.impact = "LOW") then 0.30
-                      else 0.01 * c.cn_copy_number )} )}
+                      else 0.01 )}).sumBy({gene}, {score}) )}
     """
 
      val parser = Parser(tbls)
