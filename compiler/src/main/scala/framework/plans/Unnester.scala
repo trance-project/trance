@@ -71,8 +71,9 @@ object Unnester {
       assert(!E.isEmpty)
       val fields = ((w.keySet - p1) ++ (v1.tp.attrs.keySet - "_1"))
       val nv = wvar(w)
-      val joinCond = normalizer.and(Equals(Project(nv, p1), Project(v1, "_1")), filt)
-      val nE = OuterJoin(E.get, nv, dict, v1, joinCond, fields.toList)
+	  val fdict = Select(dict, v1, filt, v1)
+      val joinCond = Equals(Project(nv, p1), Project(v1, "_1"))
+      val nE = OuterJoin(E.get, nv, fdict, v1, joinCond, fields.toList)
       unnest(e2)((u, flat(w, v1.tp), Some(nE), tag))
 
     case Comprehension(e1:Comprehension, v, p, Constant(c)) => unnest(e1)((u, w, E, tag)) match {
@@ -86,7 +87,7 @@ object Unnester {
       val name = getName(e1)
       val right = AddIndex(e1, name+"_index")
       val nv = Variable(v.name, right.tp.tp)
-      val (nw, nE) = 
+	  val (nw, nE) = 
         if (u.isEmpty) (flat(w, nv.tp), Join(E.get, wvar(w), Select(right, nv, Constant(true), nv), nv, cond, Nil))
         else (flat(w, nv.tp.outer), OuterJoin(E.get, wvar(w), Select(right, nv, Constant(true), nv), nv, cond, Nil))
       unnest(e2)((u, nw, Some(nE), tag))

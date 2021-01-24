@@ -6,15 +6,17 @@ import framework.examples.genomic._
 object Sharing extends App {
 
   override def main(args: Array[String]){
-    //AppWriter.runDataset(HybridSamplesWithoutTP53, "HybridSamplesWithoutTP53,standard", optLevel = 1)
     //AppWriter.runDataset(HybridTP53, "HybridTP53,standard", optLevel = 1)
     //AppWriter.runDataset(HybridBRCA, "HybridBRCA,standard", optLevel = 1)
 
 	//AppWriter.runDataset(SequentialFilters, "SequentialFilters,standard", optLevel = 1)
-    AppWriter.runDataset(SharedFilters, "SharedFilters,standard", optLevel = 1)
+    //AppWriter.runDataset(SharedFilters, "SharedFilters,standard", optLevel = 1)
 
-    //AppWriter.runDataset(HybridTP53, "HybridTP53,standard", optLevel = 1)
-    //AppWriter.runDataset(HybridBRCA, "HybridBRCA,standard", optLevel = 1)
+	AppWriter.runDatasetShred(HybridTP53, "HybridTP53,shredded", optLevel = 1)
+    AppWriter.runDatasetShred(HybridBRCA, "HybridBRCA,shredded", optLevel = 1)
+
+	AppWriter.runDatasetShred(SequentialFilters, "SequentialFilters,shredded", optLevel = 1)
+    AppWriter.runDatasetShred(SharedFilters, "SharedFilters,shredded", optLevel = 1)
 
   }
 
