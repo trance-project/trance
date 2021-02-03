@@ -390,7 +390,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
     // lookup iteration translates to inner join 
     case ej @ OuterJoin(left, v1, right, v2, Equals(Project(_, p1), Project(_, p2 @ "_1")), filt) if right.tp.isDict =>
-   
       // adjust lookup column of dictionary
       val rcol = s"${p1}${p2}"
       val rtp = rename(right.tp.attrs, p2, rcol)
@@ -423,8 +422,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     // JOIN operator
-    case ej:JoinOp => 
-
+    case ej:JoinOp =>
       handleType(ej.tp.tp)
       val nrec = generateType(ej.tp.tp)
       val gright = generate(ej.right)
