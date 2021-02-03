@@ -18,13 +18,15 @@ object Sharing extends App {
 	// AppWriter.runDatasetShred(SequentialFilters, "SequentialFilters,shredded", optLevel = 1)
  //    AppWriter.runDatasetShred(SharedFilters, "SharedFilters,shredded", optLevel = 1)
 
-      AppWriter.runDataset(HybridImpact, "HybridImpact,shredded", optLevel = 1)
-    AppWriter.runDataset(HybridScores, "HybridScores,shredded", optLevel = 1)
-      AppWriter.runDatasetShred(HybridImpact, "HybridImpact,shredded", optLevel = 1)
-    AppWriter.runDatasetShred(HybridScores, "HybridScores,shredded", optLevel = 1)
+    //   AppWriter.runDataset(HybridImpact, "HybridImpact,shredded", optLevel = 1)
+    // AppWriter.runDataset(HybridScores, "HybridScores,shredded", optLevel = 1)
+    //   AppWriter.runDatasetShred(HybridImpact, "HybridImpact,shredded", optLevel = 1)
+    // AppWriter.runDatasetShred(HybridScores, "HybridScores,shredded", optLevel = 1)
 
-    //   AppWriter.runDatasetShred(SequentialFilters, "SequentialFilters,shredded", optLevel = 1)
-    // AppWriter.runDatasetShred(SharedFilters, "SharedFilters,shredded", optLevel = 1)
+      AppWriter.runDataset(SequentialFilters, "SequentialFilters,standard", optLevel = 1)
+    AppWriter.runDataset(SharedFilters, "SharedFilters,standard", optLevel = 1)
+      AppWriter.runDatasetShred(SequentialFilters, "SequentialFilters,shredded", optLevel = 1)
+    AppWriter.runDatasetShred(SharedFilters, "SharedFilters,shredded", optLevel = 1)
 
   }
 
