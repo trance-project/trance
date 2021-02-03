@@ -18,13 +18,25 @@ object App {
 
 	val vepLoader = new VepLoader(spark)
 	val mafLoader = new MAFLoader(spark)
-	val maf = mafLoader.loadFlat(s"/nfs_qc4/genomics/gdc/somatic/brca/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
-	val (muts, annots) = vepLoader.normalizeAnnots(maf)
+	/**val maf = mafLoader.loadFlat(s"/nfs_qc4/genomics/gdc/somatic/brca/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
+	val (muts, annots) = vepLoader.normalizeAnnots(maf)**/
 
-	muts.take(10).foreach(println(_))
+	val occurrences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/datasetBrca/").as[OccurrenceMid]
+	val (odict1, odict2, odict3) = vepLoader.shredMid(occurrences)
+	odict1.cache
+	odict1.count
+	odict2.cache
+	odict2.count
+	odict3.cache
+	odict3.count
+	odict1.write.json("file:///nfs_qc4/genomics/gdc/somatic/odictBrca1/")
+	odict2.write.json("file:///nfs_qc4/genomics/gdc/somatic/odictBrca2/")
+	odict3.write.json("file:///nfs_qc4/genomics/gdc/somatic/odictBrca3/")
+
+	/**muts.take(10).foreach(println(_))
 	println("the annotations")
 	annots.take(10).foreach(println(_))
-	println(annots.count)
+	println(annots.count)**/
 
 	// TESTING AREA FOR LOADERS
        
