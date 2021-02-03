@@ -197,8 +197,6 @@ object SharedFilters extends DriverGene {
 
 }
 
-
-
 /** Sharing with projection **/
 
 object HybridImpact extends DriverGene {
@@ -217,10 +215,13 @@ object HybridImpact extends DriverGene {
     s"""
       for o in occurrences union
         {( oid := o.oid, sid := o.donorId, cands := 
-          for t in o.transcript_consequences union 
-            for c in cnvCases union 
-              if ((o.donorId = c.cn_case_uuid) && (t.gene_id = c.cn_gene_id)) then
-                {( gene := t.gene_id, score := t.impact * (c.cn_copy_num + 0.01))} )}
+          ( for t in o.transcript_consequences union
+              for c in cnvCases union
+                if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene_id) then
+                  {( gene := t.gene_id, score := c.cn_copy_number * if (t.impact = "HIGH") then 0.80 
+                      else if (t.impact = "MODERATE") then 0.50
+                      else if (t.impact = "LOW") then 0.30
+                      else 0.01 )}).sumBy({gene}, {score}) )}
     """
 
      val parser = Parser(tbls)
@@ -246,15 +247,94 @@ object HybridScores extends DriverGene {
     s"""
       for o in occurrences union
         {( oid := o.oid, sid := o.donorId, cands := 
-          for t in o.transcript_consequences union 
-            for c in cnvCases union 
-              if ((o.donorId = c.cn_case_uuid) && (t.gene_id = c.cn_gene_id)) then
-                {( gene := t.gene_id, score := t.polyphen_score * t.sift_score * (c.cn_copy_num + 0.01))} )}
-     """
+          ( for t in o.transcript_consequences union
+              for c in cnvCases union
+                if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene_id) then
+                  {( gene := t.gene_id, score := c.cn_copy_number * t.polyphen_score )}).sumBy({gene}, {score}) )}
+    """
 
      val parser = Parser(tbls)
      val query: BagExpr = parser.parse(qstr, parser.term).get.asInstanceOf[BagExpr]
      
      val program = Program(Assignment("cnvCases", mapCNV), Assignment(name, query))
+
+}
+
+object SequentialProjections extends DriverGene {
+
+ override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${super.loadTables(shred, skew)}
+        |${loadOccurrence(shred, skew)}
+        |${loadCopyNumber(shred, skew)}""".stripMargin
+
+  val name = "SequentialProjections"
+
+  val impacts = HybridImpact.query
+  val scores = HybridScores.query
+
+  val program = Program(Assignment("cnvCases", mapCNV), 
+    Assignment(HybridImpact.name, HybridImpact.query.asInstanceOf[SequentialProjections.BagExpr]), 
+  Assignment(HybridScores.name, HybridScores.query.asInstanceOf[SequentialProjections.BagExpr]))
+
+}
+
+object SharedProjections extends DriverGene {
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${super.loadTables(shred, skew)}
+        |${loadOccurrence(shred, skew)}
+        |${loadCopyNumber(shred, skew)}""".stripMargin
+
+  val name = "SharedProjections"
+
+  val tbls = Map("occurrences" -> occurmids.tp, 
+                 "copynumber" -> copynum.tp, 
+         "samples" -> biospec.tp)
+  
+  val tbls2 = tbls
+
+  val occurShare = 
+    s"""
+      for o in occurrences union
+        {( oid := o.oid, sid := o.donorId, cands := 
+          (for t in o.transcript_consequences union
+            for c in cnvFilter union
+              if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene) then
+                {( gene := t.gene_id, score1 := c.cn_copy_number * (if (t.impact = "HIGH") then 0.80 
+                  else if (t.impact = "MODERATE") then 0.50
+                  else if (t.impact = "LOW") then 0.30
+                  else 0.01), score2 := c.cn_copy_number * t.polyphen_score )}).sumBy({gene}, {score}) )}
+    """
+
+  val occurParser = Parser(tbls2)
+  val occurQuery: BagExpr = occurParser.parse(occurShare, occurParser.term).get.asInstanceOf[BagExpr]
+ 
+  val tbls3 = tbls2 ++ Map("occurShare" -> occurQuery.tp)
+ 
+  val q1Rewrite = 
+    s"""
+      for o in occurShare union
+        {( oid := o.oid, sid := o.sid, cands := 
+           for t in o.cands union
+             {( gene := t.gene, score := t.score1 )} )}
+    """
+
+  val q1RewriteParser = Parser(tbls3)
+  val q1RewriteQuery: BagExpr = q1RewriteParser.parse(q1Rewrite, q1RewriteParser.term).get.asInstanceOf[BagExpr]
+
+  val q2Rewrite = 
+    s"""
+      for o in occurShare union
+        {( oid := o.oid, sid := o.sid, cands := 
+           for t in o.cands union
+             {( gene := t.gene, score := t.score2 )} )}
+    """
+
+  val q2RewriteParser = Parser(tbls3)
+  val q2RewriteQuery: BagExpr = q2RewriteParser.parse(q2Rewrite, q2RewriteParser.term).get.asInstanceOf[BagExpr]
+
+     
+  val program = Program(Assignment("cnvCases", mapCNV), Assignment("occurShare", occurQuery),
+    Assignment("RewriteImpact", q1RewriteQuery), Assignment("RewriteScores", q2RewriteQuery))
 
 }
