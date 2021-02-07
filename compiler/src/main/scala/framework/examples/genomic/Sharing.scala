@@ -288,7 +288,7 @@ object SharedProjections extends DriverGene {
   val name = "SharedProjections"
 
   val tbls = Map("occurrences" -> occurmids.tp, 
-                 "copynumber" -> copynum.tp, 
+                 "cnvCases" -> cnvCases.tp, 
          "samples" -> biospec.tp)
   
   val tbls2 = tbls
@@ -298,12 +298,12 @@ object SharedProjections extends DriverGene {
       for o in occurrences union
         {( oid := o.oid, sid := o.donorId, cands := 
           (for t in o.transcript_consequences union
-            for c in cnvFilter union
-              if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene) then
-                {( gene := t.gene_id, score1 := c.cn_copy_number * (if (t.impact = "HIGH") then 0.80 
+            for c in cnvCases union
+              if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene_id) then
+                {( gene := t.gene_id, score1 := c.cn_copy_number * if (t.impact = "HIGH") then 0.80 
                   else if (t.impact = "MODERATE") then 0.50
                   else if (t.impact = "LOW") then 0.30
-                  else 0.01), score2 := c.cn_copy_number * t.polyphen_score )}).sumBy({gene}, {score}) )}
+                  else 0.01, score2 := c.cn_copy_number * t.polyphen_score )}).sumBy({gene}, {score1, score2}) )}
     """
 
   val occurParser = Parser(tbls2)
