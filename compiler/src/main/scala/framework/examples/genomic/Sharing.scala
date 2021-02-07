@@ -407,3 +407,62 @@ object SharedProjections extends DriverGene {
     Assignment("RewriteImpact", q1RewriteQuery), Assignment("RewriteScores", q2RewriteQuery))
 
 }
+
+object SharedProjectionsNoNest extends DriverGene {
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${loadBiospec(shred, skew)}
+        |${loadOccurrence(shred, skew)}
+        |${loadCopyNumber(shred, skew)}""".stripMargin
+
+  val name = "SharedProjectionsNoNest"
+
+  val tbls = Map("occurrences" -> occurmids.tp, 
+                 "cnvCases" -> cnvCases.tp, 
+         "biospec" -> biospec.tp)
+  
+  val tbls2 = tbls
+
+  val occurShare = 
+    s"""
+      (for o in occurrences union
+        for t in o.transcript_consequences union
+          for c in cnvCases union
+            if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene_id) then
+              {( oid := o.oid, sid := o.donorId, gene := t.gene_id, cnum := c.cn_copy_number + 0.01, 
+                impact := if (t.impact = "HIGH") then 0.80 
+                  else if (t.impact = "MODERATE") then 0.50
+                  else if (t.impact = "LOW") then 0.30
+                  else 0.01, poly := t.polyphen_score )}).sumBy({oid, sid, gene}, {cnum, impact, poly})
+    """
+
+  val occurParser = Parser(tbls2)
+  val occurQuery: BagExpr = occurParser.parse(occurShare, occurParser.term).get.asInstanceOf[BagExpr]
+ 
+  val tbls3 = tbls2 ++ Map("occurShare" -> occurQuery.tp)
+ 
+  val q1Rewrite = 
+    s"""
+      (for o in occurShare union
+        {( oid := o.oid, sid := o.sid, gene := o.gene, 
+          score := o.cnum * o.impact )}).groupBy({oid, sid}, {gene, score}, "cands")
+    """
+
+  val q1RewriteParser = Parser(tbls3)
+  val q1RewriteQuery: BagExpr = q1RewriteParser.parse(q1Rewrite, q1RewriteParser.term).get.asInstanceOf[BagExpr]
+
+  val q2Rewrite = 
+    s"""
+      (for o in occurShare union
+        {( oid := o.oid, sid := o.sid, gene := o.gene, 
+          score := o.cnum * o.poly)}).groupBy({oid, sid}, {gene, score}, "cands")
+    """
+
+  val q2RewriteParser = Parser(tbls3)
+  val q2RewriteQuery: BagExpr = q2RewriteParser.parse(q2Rewrite, q2RewriteParser.term).get.asInstanceOf[BagExpr]
+
+     
+  val program = Program(Assignment("cnvCases", mapCNV), Assignment("occurShare", occurQuery),
+    Assignment("RewriteImpact", q1RewriteQuery), Assignment("RewriteScores", q2RewriteQuery))
+
+}
