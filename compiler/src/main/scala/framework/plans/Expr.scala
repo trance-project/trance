@@ -182,11 +182,11 @@ case class CReduceBy(e1: CExpr, v1: Variable, keys: List[String], values: List[S
 
 }
 
-case class CGroupBy(e1: CExpr, v1: Variable, keys: List[String], values: List[String]) extends CExpr with CombineOp {
+case class CGroupBy(e1: CExpr, v1: Variable, keys: List[String], values: List[String], groupName: String = "_2") extends CExpr with CombineOp {
   val e1Tp: RecordCType = v1.tp.asInstanceOf[RecordCType]
   val keysTp: RecordCType = RecordCType(keys.map(n => n -> e1Tp(n)).toMap)
   val valuesTp: BagCType = BagCType(RecordCType(values.map(n => n -> e1Tp(n)).toMap))
-  def tp: BagCType = BagCType(RecordCType(keysTp.attrTps ++ Map("_2" -> valuesTp)))
+  def tp: BagCType = BagCType(RecordCType(keysTp.attrTps ++ Map(groupName -> valuesTp)))
 }
 
 case class CNamed(name: String, e: CExpr) extends CExpr {

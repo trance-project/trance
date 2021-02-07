@@ -38,6 +38,8 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
     **/  
   def tuplevarref: Parser[String] = ident ^^
     { case (s: String) => s }
+  def tupvarref: Parser[TupleVarRef] = ident ^^ 
+    { case (s: String) => defToRef(s) }
   def bagvarref: Parser[BagVarRef] = ident ^^
     { case (s: String) => BagVarRef(s, tbls(s)) }
 
@@ -99,13 +101,17 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
     {case (e1:BagExpr)~").sumBy("~(k:List[_])~","~(v:List[_]) => 
         ReduceByKey(e1, k.asInstanceOf[List[String]], v.asInstanceOf[List[String]]) 
      case _ => sys.error("sumBy parameter error") }
+  def groupby: Parser[GroupByKey] = "("~>bagexpr~").groupBy("~arglist~","~arglist~","~stringLiteral<~")" ^^
+    {case (e1:BagExpr)~").groupBy("~(k:List[_])~","~(v:List[_])~","~(s:String) => 
+        GroupByKey(e1, k.asInstanceOf[List[String]], v.asInstanceOf[List[String]], s.replace("\"", "")) 
+     case _ => sys.error("groupBy parameter error") }
 
   def tuple: Parser[Tuple] = "("~>repsep(tuppair, ",")<~")" ^^
     { case (l: List[_]) => (Tuple(l.asInstanceOf[List[(String, TupleAttributeExpr)]].toMap)) }
 
-  def tupleexpr: Parser[TupleExpr] = tuple
+  def tupleexpr: Parser[TupleExpr] = tuple | tupvarref
   def bagexpr: Parser[BagExpr] = 
-    sumby | forunion | ifthen.asInstanceOf[Parser[BagExpr]] | singleton | project.asInstanceOf[Parser[BagExpr]] | bagvarref
+    groupby | sumby | forunion | ifthen.asInstanceOf[Parser[BagExpr]] | singleton | project.asInstanceOf[Parser[BagExpr]] | bagvarref
 
   //def numconst: Parser[NumericConst] = 
   //def primconst: Parser[PrimitiveConst] = 
@@ -137,10 +143,10 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
   def mod: Parser[OpArithmetic] = "mod" ^^ { case o => OpMod }
 
   def tupleattr: Parser[TupleAttributeExpr] = 
-    sumby | dedup | forunion | arithexpr | ifthen.asInstanceOf[Parser[TupleAttributeExpr]] | project | singleton | bagvarref
+    groupby | sumby | dedup | forunion | arithexpr | ifthen.asInstanceOf[Parser[TupleAttributeExpr]] | project | singleton | bagvarref
     
   def term: Parser[Expr] = 
-    sumby | dedup | forunion | arithexpr | ifthen.asInstanceOf[Parser[Expr]] | singleton | tuple | project | bagvarref | primexpr
+    groupby | sumby | dedup | forunion | arithexpr | ifthen.asInstanceOf[Parser[Expr]] | singleton | tuple | project | bagvarref | primexpr
 
 }
 

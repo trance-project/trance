@@ -36,7 +36,7 @@ trait Base {
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep
   def dedup(e1: Rep): Rep
   def bind(e1: Rep, e: Rep => Rep): Rep 
-  def groupby(e1: Rep, g: List[String], v: List[String]): Rep
+  def groupby(e1: Rep, g: List[String], v: List[String], gname: String): Rep
   def reduceby(e1: Rep, g: List[String], v: List[String]): Rep
   def named(n: String, e: Rep): Rep
   def linset(e: List[Rep]): Rep
@@ -103,9 +103,9 @@ trait BaseStringify extends Base{
     val x = Variable.fresh(StringType)
     s"{ ${e(x.quote)} | ${x.quote} := ${e1} }"
   }
-  def groupby(e1: Rep, g: List[String], v: List[String]): Rep = {
+  def groupby(e1: Rep, g: List[String], v: List[String], gname: String): Rep = {
     val v2 = Variable.fresh(StringType)
-    s"(${e1}).groupBy(${g.mkString(",")}, ${v.mkString(",")})"
+    s"""(${e1}).groupBy(${g.mkString(",")}, ${v.mkString(",")}, "$gname")"""
   }
   def reduceby(e1: Rep, g: List[String], v: List[String]): Rep = {
     val v2 = Variable.fresh(StringType)
@@ -193,9 +193,9 @@ trait BaseCompiler extends Base {
       val v = Variable.fresh(e1.tp)
       Bind(v, e1, e(v)) 
   }
-  def groupby(e1: Rep, g: List[String], v: List[String]): Rep = {
+  def groupby(e1: Rep, g: List[String], v: List[String], gname: String): Rep = {
     val v2 = Variable.freshFromBag(e1.tp)
-    CGroupBy(e1, v2, g, v) 
+    CGroupBy(e1, v2, g, v, gname) 
   }
   def reduceby(e1: Rep, g: List[String], v: List[String]): Rep = {
     val v2 = Variable.freshFromBag(e1.tp)
@@ -416,7 +416,7 @@ trait BaseANF extends Base {
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = compiler.comprehension(e1, p, e)
   def dedup(e1: Rep): Rep = compiler.dedup(e1)
   def bind(e1: Rep, e: Rep => Rep): Rep = compiler.bind(e1, e)
-  def groupby(e1: Rep, g: List[String], v: List[String]): Rep = compiler.groupby(e1, g, v)
+  def groupby(e1: Rep, g: List[String], v: List[String], gname: String): Rep = compiler.groupby(e1, g, v, gname)
   def reduceby(e1: Rep, g: List[String], v: List[String]): Rep = compiler.reduceby(e1, g, v)
   def named(n: String, e: Rep): Rep = {
     val d = compiler.named(n, e)
@@ -516,7 +516,7 @@ class Finalizer(val target: Base){
     case CDeDup(e1) => target.dedup(finalize(e1))
     case Bind(x, e1, e) =>
       target.bind(finalize(e1), (r: target.Rep) => withMap(x -> r)(finalize(e)))
-    case CGroupBy(e1, v2, g, v) => target.groupby(finalize(e1), g, v)
+    case CGroupBy(e1, v2, g, v, gname) => target.groupby(finalize(e1), g, v, gname)
     case CReduceBy(e1, v2, g, v) => target.reduceby(finalize(e1), g, v)
     case CNamed(n, e) => target.named(n, finalize(e))
     case LinearCSet(exprs) => 

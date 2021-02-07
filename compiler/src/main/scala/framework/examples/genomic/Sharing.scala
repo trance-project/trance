@@ -197,6 +197,75 @@ object SharedFilters extends DriverGene {
 
 }
 
+object SharedFiltersNoNest extends DriverGene {
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${loadBiospec(shred, skew, "samples")}
+        |${loadOccurrence(shred, skew)}
+        |${loadCopyNumber(shred, skew)}""".stripMargin
+
+  val name = "SharedFiltersNoNest"
+
+  val tbls = Map("occurrences" -> occurmids.tp, 
+                 "copynumber" -> copynum.tp, 
+         "samples" -> biospec.tp)
+ 
+  val cnvFilter = 
+    s"""
+    for c in copynumber union
+      if (c.cn_gene_id != "TP53" || c.cn_gene_id != "BRCA") then
+      for s in samples union 
+        if (c.cn_aliquot_uuid = s.bcr_aliquot_uuid) then 
+        {(cn_case_uuid := s.bcr_patient_uuid, cn_copy_num := c.cn_copy_number, cn_gene := c.cn_gene_id)}
+  """
+
+  val cnvParser = Parser(tbls)
+  val cnvQuery: BagExpr = cnvParser.parse(cnvFilter, cnvParser.term).get.asInstanceOf[BagExpr]
+  
+  val tbls2 = tbls ++ Map("cnvFilter" -> cnvQuery.tp)
+
+  val occurShare = 
+    s"""
+      (for o in occurrences union
+        for t in o.transcript_consequences union
+          if (t.gene_id != "BRCA" || t.gene_id != "TP53") then  
+            for c in cnvFilter union
+              if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene) then
+                {( oid := o.oid, sid := o.donorId, gene := t.gene_id, score := c.cn_copy_num * if (t.impact = "HIGH") then 0.80 
+                      else if (t.impact = "MODERATE") then 0.50
+                      else if (t.impact = "LOW") then 0.30
+                      else 0.01 )}).sumBy({oid, sid, gene}, {score})
+    """
+
+  val occurParser = Parser(tbls2)
+  val occurQuery: BagExpr = occurParser.parse(occurShare, occurParser.term).get.asInstanceOf[BagExpr]
+ 
+  val tbls3 = tbls2 ++ Map("occurShare" -> occurQuery.tp)
+ 
+  val tp53 = 
+    s"""
+      (for o in occurShare union 
+        if (o.gene != "TP53") then {o}).groupBy({oid, sid}, {gene, score}, "cands")
+    """
+
+  val tp53Parser = Parser(tbls3)
+  val tp53Query: BagExpr = tp53Parser.parse(tp53, tp53Parser.term).get.asInstanceOf[BagExpr]
+
+  val brca = 
+    s"""
+      (for o in occurShare union 
+        if (o.gene != "BRCA") then {o}).groupBy({oid, sid}, {gene, score}, "cands")
+    """
+
+  val brcaParser = Parser(tbls3)
+  val brcaQuery: BagExpr = brcaParser.parse(brca, brcaParser.term).get.asInstanceOf[BagExpr]
+
+     
+  val program = Program(Assignment("cnvFilter", cnvQuery), Assignment("occurShare", occurQuery),
+    Assignment("RewriteTP53", tp53Query), Assignment("RewriteBRCA", brcaQuery))
+
+}
+
 /** Sharing with projection **/
 
 object HybridImpact extends DriverGene {
