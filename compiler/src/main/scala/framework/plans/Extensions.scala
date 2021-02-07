@@ -38,7 +38,7 @@ trait Extensions {
     funct.applyOrElse(e, (ex: CExpr) => ex match {
 
       case CDeDup(e1) => CDeDup(fapply(e1, funct))
-      case CGroupBy(e1, v1, keys, values) => CGroupBy(fapply(e1, funct), v1, keys, values)
+      case CGroupBy(e1, v1, keys, values, gname) => CGroupBy(fapply(e1, funct), v1, keys, values, gname)
       case CReduceBy(e1, v1, keys, values) => CReduceBy(fapply(e1, funct), v1, keys, values)
 
       case CNamed(n, e1) => CNamed(n, fapply(e1, funct))
