@@ -117,6 +117,12 @@ object Unnester {
       case e2 => Reduce(e2, v1, keys, values)
     }
 
+    case CGroupBy(e1, v1, keys, values, gname) => 
+      val nE = unnest(e1)((u, w, E, gname)) 
+      val nv = wvar(w)
+      val tup = Record(values.map(v => v -> Project(nv, v)).toMap)
+      Nest(nE, nv, keys, tup, Constant(true), (w.keySet -- u.keySet).toList, gname)
+
     case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E, tag)))
     case Bind(x, e1, e2) => Bind(x, unnest(e1)((u, w, E, tag)), unnest(e2)((u, w, E, tag)))
     case FlatDict(e1) => FlatDict(unnest(e1)((u, w, E, tag)))
