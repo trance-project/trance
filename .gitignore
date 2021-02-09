@@ -35,7 +35,7 @@ local.properties
 # webapp Ignores #
 ##################
 # dependencies
-/node_modules
+webapp/node_modules
 /.pnp
 .pnp.js
 
