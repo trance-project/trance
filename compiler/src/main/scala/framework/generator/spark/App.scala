@@ -24,7 +24,7 @@ object Sharing extends App {
     // AppWriter.runDatasetShred(HybridScores, "HybridScores,shredded", optLevel = 1)
 
       // AppWriter.runDataset(SequentialFilters, "SequentialFilters,standard", optLevel = 1)
-    AppWriter.runDataset(SharedProjectionsNoNest, "SharedProjectionsNoNest,standard", optLevel = 1)
+    AppWriter.runDataset(SharedProjections, "SharedProjections,standard", optLevel = 1)
     //   AppWriter.runDatasetShred(SequentialFilters, "SequentialFilters,shredded", optLevel = 1)
     // AppWriter.runDatasetShred(SharedFilters, "SharedFilters,shredded", optLevel = 1)
 

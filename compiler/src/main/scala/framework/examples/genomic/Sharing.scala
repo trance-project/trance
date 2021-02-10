@@ -350,7 +350,7 @@ object SequentialProjections extends DriverGene {
 object SharedProjections extends DriverGene {
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-    s"""|${super.loadTables(shred, skew)}
+    s"""|${loadBiospec(shred, skew)}
         |${loadOccurrence(shred, skew)}
         |${loadCopyNumber(shred, skew)}""".stripMargin
 
@@ -358,7 +358,7 @@ object SharedProjections extends DriverGene {
 
   val tbls = Map("occurrences" -> occurmids.tp, 
                  "cnvCases" -> cnvCases.tp, 
-         "samples" -> biospec.tp)
+         "biospec" -> biospec.tp)
   
   val tbls2 = tbls
 
@@ -375,28 +375,57 @@ object SharedProjections extends DriverGene {
                   else 0.01, score2 := c.cn_copy_number * t.polyphen_score )}).sumBy({gene}, {score1, score2}) )}
     """
 
+  val occurShare = 
+    s"""
+      for o in occurrences union
+        {( oid := o.oid, sid := o.donorId, cands := 
+          (for t in o.transcript_consequences union
+            for c in cnvCases union
+              if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene_id) then
+                {( gene := t.gene_id, cnum := c.cn_copy_number + 0.01, impactNum := if (t.impact = "HIGH") then 0.80 
+                  else if (t.impact = "MODERATE") then 0.50
+                  else if (t.impact = "LOW") then 0.30
+                  else 0.01, poly := t.polyphen_score )}).sumBy({gene}, {cnum, impactNum, poly}) )}
+    """
+
   val occurParser = Parser(tbls2)
   val occurQuery: BagExpr = occurParser.parse(occurShare, occurParser.term).get.asInstanceOf[BagExpr]
  
   val tbls3 = tbls2 ++ Map("occurShare" -> occurQuery.tp)
  
+  // val q1Rewrite = 
+  //   s"""
+  //     for o in occurShare union
+  //       {( oid := o.oid, sid := o.sid, cands := 
+  //          for t in o.cands union
+  //            {( gene := t.gene, score := t.score1 )} )}
+  //   """
+
   val q1Rewrite = 
     s"""
       for o in occurShare union
         {( oid := o.oid, sid := o.sid, cands := 
            for t in o.cands union
-             {( gene := t.gene, score := t.score1 )} )}
+             {( gene := t.gene, score := t.impactNum * t.cnum )} )}
     """
 
   val q1RewriteParser = Parser(tbls3)
   val q1RewriteQuery: BagExpr = q1RewriteParser.parse(q1Rewrite, q1RewriteParser.term).get.asInstanceOf[BagExpr]
+
+  // val q2Rewrite = 
+  //   s"""
+  //     for o in occurShare union
+  //       {( oid := o.oid, sid := o.sid, cands := 
+  //          for t in o.cands union
+  //            {( gene := t.gene, score := t.score2 )} )}
+  //   """
 
   val q2Rewrite = 
     s"""
       for o in occurShare union
         {( oid := o.oid, sid := o.sid, cands := 
            for t in o.cands union
-             {( gene := t.gene, score := t.score2 )} )}
+             {( gene := t.gene, score := t.poly * t.cnum )} )}
     """
 
   val q2RewriteParser = Parser(tbls3)
