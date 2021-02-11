@@ -108,7 +108,7 @@ object App extends MaterializeNRC with Printer {
               if (l.pk = 2) then
               for p in P union
                 if (l.pk != p.p_partkey && l.pk = 2 || l.pk = 3 && ! (l.pk = 2 && l.pk = 2)) then
-                  {(cname := c.name, total := l.qty * p.p_retailprice)}).sumBy({cname}, {total})
+                  {(cname := c.name, total := (l.qty + 0.01) * (p.p_retailprice + 0.01) )}).sumBy({cname}, {total})
       """
      
      val parser3 = Parser(tbls)

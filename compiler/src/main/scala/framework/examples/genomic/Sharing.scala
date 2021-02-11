@@ -287,7 +287,7 @@ object HybridImpact extends DriverGene {
           ( for t in o.transcript_consequences union
               for c in cnvCases union
                 if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene_id) then
-                  {( gene := t.gene_id, score := c.cn_copy_number * if (t.impact = "HIGH") then 0.80 
+                  {( gene := t.gene_id, score := (c.cn_copy_number + 0.01) * if (t.impact = "HIGH") then 0.80 
                       else if (t.impact = "MODERATE") then 0.50
                       else if (t.impact = "LOW") then 0.30
                       else 0.01 )}).sumBy({gene}, {score}) )}
@@ -319,7 +319,7 @@ object HybridScores extends DriverGene {
           ( for t in o.transcript_consequences union
               for c in cnvCases union
                 if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene_id) then
-                  {( gene := t.gene_id, score := c.cn_copy_number * t.polyphen_score )}).sumBy({gene}, {score}) )}
+                  {( gene := t.gene_id, score := (c.cn_copy_number + 0.01) * t.polyphen_score )}).sumBy({gene}, {score}) )}
     """
 
      val parser = Parser(tbls)
@@ -362,7 +362,7 @@ object SharedProjections extends DriverGene {
   
   val tbls2 = tbls
 
-  val occurShare = 
+  /**val occurShare = 
     s"""
       for o in occurrences union
         {( oid := o.oid, sid := o.donorId, cands := 
@@ -373,7 +373,7 @@ object SharedProjections extends DriverGene {
                   else if (t.impact = "MODERATE") then 0.50
                   else if (t.impact = "LOW") then 0.30
                   else 0.01, score2 := c.cn_copy_number * t.polyphen_score )}).sumBy({gene}, {score1, score2}) )}
-    """
+    """**/
 
   val occurShare = 
     s"""
