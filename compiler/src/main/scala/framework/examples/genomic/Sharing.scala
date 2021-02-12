@@ -469,10 +469,10 @@ object SharedProjectionsNoNest extends DriverGene {
           for c in cnvCases union
             if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene_id) then
               {( oid := o.oid, sid := o.donorId, gene := t.gene_id, cnum := c.cn_copy_number + 0.01, 
-                impact := if (t.impact = "HIGH") then 0.80 
+                impactNum := if (t.impact = "HIGH") then 0.80 
                   else if (t.impact = "MODERATE") then 0.50
                   else if (t.impact = "LOW") then 0.30
-                  else 0.01, poly := t.polyphen_score )}).sumBy({oid, sid, gene}, {cnum, impact, poly})
+                  else 0.01, poly := t.polyphen_score )}).sumBy({oid, sid, gene}, {cnum, impactNum, poly})
     """
 
   val occurParser = Parser(tbls2)
@@ -484,7 +484,7 @@ object SharedProjectionsNoNest extends DriverGene {
     s"""
       (for o in occurShare union
         {( oid := o.oid, sid := o.sid, gene := o.gene, 
-          score := o.cnum * o.impact )}).groupBy({oid, sid}, {gene, score}, "cands")
+          score := o.cnum * o.impactNum )}).groupBy({oid, sid}, {gene, score}, "cands")
     """
 
   val q1RewriteParser = Parser(tbls3)
