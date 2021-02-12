@@ -13,16 +13,23 @@ case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
     case rt:RecordCType => BagCType(rt)
     case _ => x.tp
   }
+
+  override val label: String = x.label
+
 }
 
 case class AddIndex(e: CExpr, name: String) extends CExpr {
   def tp: BagCType = BagCType(RecordCType(e.tp.attrs ++ Map(name -> LongType)))
+  override val label  = e.label
 }
 
 // rename filter
 case class Projection(in: CExpr, v: Variable, filter: CExpr, fields: List[String]) extends CExpr {
 
   def tp: BagCType = BagCType(filter.tp)
+
+  override val label: String = in.label
+
 }
 
 /** Unnest operators **/
