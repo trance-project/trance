@@ -33,7 +33,8 @@ sealed trait Type { self =>
     case st @ RecordCType(ms) => 
       val fs = fields.toSet
       val ks = ms.keySet
-      if (fs.isEmpty || (fs & ks).isEmpty) st
+      if (fs.isEmpty) st
+      else if ((fs & ks).isEmpty) RecordCType(Map.empty[String, TupleAttributeType])
       else RecordCType(ms.filter(f => fs(f._1)))
     case BagCType(ms) => ms.project(fields)
     case t => sys.error(s"Issue calling project on $t")

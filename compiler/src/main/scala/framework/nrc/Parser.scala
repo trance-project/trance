@@ -16,6 +16,7 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
   }
 
   def parse(input: String, p: Parser[Expr]): ParseResult[Expr] = parseAll(p, input)
+  def parseProgram(input: String, p: Parser[Program]): ParseResult[Program] = parseAll(p, input)
 
 
   /** Base types 
@@ -128,7 +129,11 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
 
   // this needs to handle appending to table and creating variable reference
   def assign: Parser[Assignment] = ident~"<="~term ^^ 
-    { case (v:String)~"<="~t => Assignment(v, t) }
+    { case (v:String)~"<="~(t:Expr) => scope = scope + (v -> VarDef(v, t.tp)); Assignment(v, t) }
+
+  def assignTerm: Parser[Expr] = ident~"<="~term ^^ 
+    { case (v:String)~"<="~(t:Expr) => scope = scope + (v -> VarDef(v, t.tp)); t }
+
 
   def dedup: Parser[DeDup] = "dedup("~>bagexpr<~")" ^^
     { case (e1:BagExpr) => DeDup(e1) }
@@ -143,8 +148,12 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
   def tupleattr: Parser[TupleAttributeExpr] = 
     groupby | sumby | dedup | forunion | arithexpr | numexpr | ifthen.asInstanceOf[Parser[TupleAttributeExpr]] | project | singleton | bagvarref
     
+  def program: Parser[Program] = repsep(assign, ";") ^^ 
+    { case (l:List[_]) => Program(l.asInstanceOf[List[Assignment]]) }
+
   def term: Parser[Expr] = 
-    groupby | sumby | dedup | forunion | arithexpr | numexpr | ifthen.asInstanceOf[Parser[Expr]] | singleton | tuple | project | bagvarref | primexpr
+    assignTerm | groupby | sumby | dedup | forunion | arithexpr | numexpr | ifthen.asInstanceOf[Parser[Expr]] | singleton | tuple | project | bagvarref | primexpr
+
 
 }
 

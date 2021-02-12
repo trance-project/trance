@@ -6,32 +6,26 @@ import framework.nrc.Parser
 
 /** Queries for sharing benchmark with filters **/
 
-object HybridSamplesWithoutTP53 extends DriverGene {
+object SamplesFilterByTP53 extends DriverGene {
   
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-    s"""|${super.loadTables(shred, skew)}
-        |${loadOccurrence(shred, skew)}
-        |${loadCopyNumber(shred, skew)}""".stripMargin
+    s"""|${loadOccurrence(shred, skew)}""".stripMargin
 
-  val name = "HybridSamplesWithoutTP53"
+  val name = "SamplesFilterByTP53"
   
-  val tbls = Map("samples" -> biospec.tp,
-                 "occurrences" -> occurmids.tp, 
-                 "cnvCases" -> cnvCases.tp)
+  val tbls = Map("occurrences" -> occurmids.tp)
 
+  // all samples that have a TP53 mutation with non-high impact
   val sampleFilter = 
     s"""
-      dedup(for s in samples union 
-        for o in occurrences union
-          for t in o.transcript_consequences union
-            if (t.gene_id != "TP53") then 
-              {( cid := s.bcr_patient_uuid, aid := s.bcr_aliquot_uuid )}) 
+      FilterSamples <= dedup(for o in occurrences union
+        for t in o.transcript_consequences union
+          if (t.gene_id = "TP53" && t.impact != "HIGH") then 
+            {( sid := o.donorId )})
     """
 
     val parser = Parser(tbls)
-    val query: BagExpr = parser.parse(sampleFilter, parser.term).get.asInstanceOf[BagExpr]
-     
-    val program = Program(Assignment("FilterSamples", query)) //Program(Assignment("cnvCases", mapCNV), Assignment(name, query))
+    val program: Program = parser.parseProgram(sampleFilter, parser.program).get.asInstanceOf[Program]
 
 }
 

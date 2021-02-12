@@ -39,11 +39,13 @@ trait UnnestOp extends CExpr {
 
   val outer: Boolean 
 
-  val topAttrs: Map[String, CExpr] = 
+  val topAttrs: Map[String, CExpr] = {
     v.tp.project(fields).attrs.map(f => f._1 -> Project(v, f._1)) - path
+  }
 
-  val nextAttrs: Map[String, CExpr] = 
+  val nextAttrs: Map[String, CExpr] = {
     v2.tp.project(fields).attrs.map(f => f._1 -> Project(v2, f._1))
+  }
 
 }
 
