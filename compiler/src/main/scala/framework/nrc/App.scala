@@ -2,7 +2,7 @@ package framework.nrc
 
 import framework.common._
 import framework.examples.tpch.TPCHSchema
-import scala.collection.mutable.HashMap
+// import scala.collection.mutable.Map
 
 object App extends MaterializeNRC with Printer {
 

@@ -4,20 +4,28 @@ import framework.common._
 import scala.util.parsing.combinator.JavaTokenParsers
 import java.io.FileReader
 import java.io.FileInputStream
-import scala.collection.mutable.HashMap
+// import scala.collection.mutable.Map
 
 class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with MaterializeNRC with Factory {
 
-  var scope: Map[String, VarDef] = Map()
+  var scope: Map[String, VarDef] = Map.empty[String, VarDef]
+  for (t <- tbls){
+    scope = scope + (t._1 -> VarDef(t._1, t._2))
+  }
 
   def defToRef(v: String): TupleVarRef = {
     val vr = scope(v)
     TupleVarRef(vr.name, vr.tp.asInstanceOf[TupleType])
   }
 
-  def parse(input: String, p: Parser[Expr]): ParseResult[Expr] = parseAll(p, input)
-  def parseProgram(input: String, p: Parser[Program]): ParseResult[Program] = parseAll(p, input)
+  // parse programs (sequence of assignment operators separated by;)
+  def parse(input: String): ParseResult[Program] = parseAll(program, input)
 
+  def program: Parser[Program] = repsep(assign, ";") ^^ 
+    { case (l:List[_]) => Program(l.asInstanceOf[List[Assignment]]) }
+
+  // parse NRC terms only
+  def parse(input: String, p: Parser[Expr]): ParseResult[Expr] = parseAll(p, input)
 
   /** Base types 
     * this does not support long, 
@@ -42,7 +50,7 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
   def tupvarref: Parser[TupleVarRef] = ident ^^ 
     { case (s: String) => defToRef(s) }
   def bagvarref: Parser[BagVarRef] = ident ^^
-    { case (s: String) => BagVarRef(s, tbls(s)) }
+    { case (s: String) => BagVarRef(s, scope(s).tp.asInstanceOf[BagType]) }
 
   def project: Parser[TupleAttributeExpr] = tuplevarref~"."~ident ^^
     { case (v:String)~"."~(l:String) => Project(defToRef(v), l) }
@@ -147,9 +155,7 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
 
   def tupleattr: Parser[TupleAttributeExpr] = 
     groupby | sumby | dedup | forunion | arithexpr | numexpr | ifthen.asInstanceOf[Parser[TupleAttributeExpr]] | project | singleton | bagvarref
-    
-  def program: Parser[Program] = repsep(assign, ";") ^^ 
-    { case (l:List[_]) => Program(l.asInstanceOf[List[Assignment]]) }
+  
 
   def term: Parser[Expr] = 
     assignTerm | groupby | sumby | dedup | forunion | arithexpr | numexpr | ifthen.asInstanceOf[Parser[Expr]] | singleton | tuple | project | bagvarref | primexpr
