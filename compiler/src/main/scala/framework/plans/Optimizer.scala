@@ -138,6 +138,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
         val nv = Variable(v.name, RecordCType(tp.attrs.filter(f => fields(f._1))))
         Select(e, v, Constant(true), nv)
       } else InputRef(name, tp)
+    case CDeDup(e1) => CDeDup(push(e1, fs))
     case _ => e
   }
 

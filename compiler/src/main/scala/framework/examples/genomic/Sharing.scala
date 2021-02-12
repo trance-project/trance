@@ -6,32 +6,26 @@ import framework.nrc.Parser
 
 /** Queries for sharing benchmark with filters **/
 
-object HybridSamplesWithoutTP53 extends DriverGene {
+object SamplesFilterByTP53 extends DriverGene {
   
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-    s"""|${super.loadTables(shred, skew)}
-        |${loadOccurrence(shred, skew)}
-        |${loadCopyNumber(shred, skew)}""".stripMargin
+    s"""|${loadOccurrence(shred, skew)}""".stripMargin
 
-  val name = "HybridSamplesWithoutTP53"
+  val name = "SamplesFilterByTP53"
   
-  val tbls = Map("samples" -> biospec.tp,
-                 "occurrences" -> occurmids.tp, 
-                 "cnvCases" -> cnvCases.tp)
+  val tbls = Map("occurrences" -> occurmids.tp)
 
+  // all samples that have a TP53 mutation with non-high impact
   val sampleFilter = 
     s"""
-      dedup(for s in samples union 
-        for o in occurrences union
-          for t in o.transcript_consequences union
-            if (t.gene_id != "TP53") then 
-              {( cid := s.bcr_patient_uuid, aid := s.bcr_aliquot_uuid )}) 
+      FilterSamples <= dedup(for o in occurrences union
+        for t in o.transcript_consequences union
+          if (t.gene_id = "TP53" && t.impact != "HIGH") then 
+            {( sid := o.donorId )})
     """
 
     val parser = Parser(tbls)
-    val query: BagExpr = parser.parse(sampleFilter, parser.term).get.asInstanceOf[BagExpr]
-     
-    val program = Program(Assignment("FilterSamples", query)) //Program(Assignment("cnvCases", mapCNV), Assignment(name, query))
+    val program: Program = parser.parseProgram(sampleFilter, parser.program).get.asInstanceOf[Program]
 
 }
 
@@ -287,7 +281,7 @@ object HybridImpact extends DriverGene {
           ( for t in o.transcript_consequences union
               for c in cnvCases union
                 if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene_id) then
-                  {( gene := t.gene_id, score := c.cn_copy_number * if (t.impact = "HIGH") then 0.80 
+                  {( gene := t.gene_id, score := (c.cn_copy_number + 0.01) * if (t.impact = "HIGH") then 0.80 
                       else if (t.impact = "MODERATE") then 0.50
                       else if (t.impact = "LOW") then 0.30
                       else 0.01 )}).sumBy({gene}, {score}) )}
@@ -319,7 +313,7 @@ object HybridScores extends DriverGene {
           ( for t in o.transcript_consequences union
               for c in cnvCases union
                 if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene_id) then
-                  {( gene := t.gene_id, score := c.cn_copy_number * t.polyphen_score )}).sumBy({gene}, {score}) )}
+                  {( gene := t.gene_id, score := (c.cn_copy_number + 0.01) * t.polyphen_score )}).sumBy({gene}, {score}) )}
     """
 
      val parser = Parser(tbls)
@@ -350,7 +344,7 @@ object SequentialProjections extends DriverGene {
 object SharedProjections extends DriverGene {
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-    s"""|${super.loadTables(shred, skew)}
+    s"""|${loadBiospec(shred, skew)}
         |${loadOccurrence(shred, skew)}
         |${loadCopyNumber(shred, skew)}""".stripMargin
 
@@ -358,11 +352,11 @@ object SharedProjections extends DriverGene {
 
   val tbls = Map("occurrences" -> occurmids.tp, 
                  "cnvCases" -> cnvCases.tp, 
-         "samples" -> biospec.tp)
+         "biospec" -> biospec.tp)
   
   val tbls2 = tbls
 
-  val occurShare = 
+  /**val occurShare = 
     s"""
       for o in occurrences union
         {( oid := o.oid, sid := o.donorId, cands := 
@@ -373,6 +367,19 @@ object SharedProjections extends DriverGene {
                   else if (t.impact = "MODERATE") then 0.50
                   else if (t.impact = "LOW") then 0.30
                   else 0.01, score2 := c.cn_copy_number * t.polyphen_score )}).sumBy({gene}, {score1, score2}) )}
+    """**/
+
+  val occurShare = 
+    s"""
+      for o in occurrences union
+        {( oid := o.oid, sid := o.donorId, cands := 
+          (for t in o.transcript_consequences union
+            for c in cnvCases union
+              if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene_id) then
+                {( gene := t.gene_id, cnum := c.cn_copy_number + 0.01, impactNum := if (t.impact = "HIGH") then 0.80 
+                  else if (t.impact = "MODERATE") then 0.50
+                  else if (t.impact = "LOW") then 0.30
+                  else 0.01, poly := t.polyphen_score )}).sumBy({gene}, {cnum, impactNum, poly}) )}
     """
 
   val occurParser = Parser(tbls2)
@@ -380,23 +387,39 @@ object SharedProjections extends DriverGene {
  
   val tbls3 = tbls2 ++ Map("occurShare" -> occurQuery.tp)
  
+  // val q1Rewrite = 
+  //   s"""
+  //     for o in occurShare union
+  //       {( oid := o.oid, sid := o.sid, cands := 
+  //          for t in o.cands union
+  //            {( gene := t.gene, score := t.score1 )} )}
+  //   """
+
   val q1Rewrite = 
     s"""
       for o in occurShare union
         {( oid := o.oid, sid := o.sid, cands := 
            for t in o.cands union
-             {( gene := t.gene, score := t.score1 )} )}
+             {( gene := t.gene, score := t.impactNum * t.cnum )} )}
     """
 
   val q1RewriteParser = Parser(tbls3)
   val q1RewriteQuery: BagExpr = q1RewriteParser.parse(q1Rewrite, q1RewriteParser.term).get.asInstanceOf[BagExpr]
+
+  // val q2Rewrite = 
+  //   s"""
+  //     for o in occurShare union
+  //       {( oid := o.oid, sid := o.sid, cands := 
+  //          for t in o.cands union
+  //            {( gene := t.gene, score := t.score2 )} )}
+  //   """
 
   val q2Rewrite = 
     s"""
       for o in occurShare union
         {( oid := o.oid, sid := o.sid, cands := 
            for t in o.cands union
-             {( gene := t.gene, score := t.score2 )} )}
+             {( gene := t.gene, score := t.poly * t.cnum )} )}
     """
 
   val q2RewriteParser = Parser(tbls3)
