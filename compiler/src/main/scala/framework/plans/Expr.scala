@@ -6,19 +6,13 @@ import framework.common._
   * Plan Operators and Calculus
   */
 
-trait CExpr {
+trait CExpr { self =>
 
   def tp: Type
 
-  // id attributes
-  val label: String = ""
-  val attributes: Set[String] = Set()
-
 }
 
-case class InputRef(data: String, tp: Type) extends CExpr {
-  override val label = data
-}
+case class InputRef(data: String, tp: Type) extends CExpr
 
 case class Input(data: List[CExpr]) extends CExpr{
   def tp: BagCType = data match {

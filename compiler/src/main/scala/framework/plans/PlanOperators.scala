@@ -14,21 +14,16 @@ case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
     case _ => x.tp
   }
 
-  override val label: String = x.label
-
 }
 
 case class AddIndex(e: CExpr, name: String) extends CExpr {
   def tp: BagCType = BagCType(RecordCType(e.tp.attrs ++ Map(name -> LongType)))
-  override val label  = e.label
 }
 
 // rename filter
 case class Projection(in: CExpr, v: Variable, filter: CExpr, fields: List[String]) extends CExpr {
 
   def tp: BagCType = BagCType(filter.tp)
-
-  override val label: String = in.label
 
 }
 
@@ -117,6 +112,7 @@ trait JoinOp extends CExpr {
 case class Join(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond: CExpr, fields: List[String]) extends JoinOp {
   def tp: BagCType = BagCType(v.tp.merge(v2.tp).project(fields))
   val jtype = "inner"
+
 }
 
 case class OuterJoin(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond: CExpr, fields: List[String]) extends JoinOp {
@@ -130,6 +126,7 @@ case class OuterJoin(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond:
     }
   }
   val jtype = "left_outer"
+
 }
 
 case class Nest(in: CExpr, v: Variable, key: List[String], value: CExpr, filter: CExpr, nulls: List[String], ctag: String) extends CExpr {
