@@ -14,8 +14,7 @@ case class SE(subplan: CExpr, height: Int) {
 }
 
 /** Optimizer used for plans from BatchUnnester **/
-// class CacheOptimizer(schema: Schema = Schema()) extends Extensions {
-object CacheOptimizer extends Extensions {
+object SEBuilder extends Extensions {
 
   def signature(plan: CExpr): Integer = {
     equivSig(plan)(HashMap.empty[CExpr, Integer])
@@ -39,8 +38,8 @@ object CacheOptimizer extends Extensions {
         }
         hash(plan.getClass.toString + j.jtype + cond + lhash + rhash)
 
-      case n:Nest => 
-        hash(plan.getClass.toString + n.hashCode().toString)
+      // case n:Nest => 
+      //   hash(plan.getClass.toString + n.hashCode().toString)
       
       case u:UnnestOp => 
         val chash = equivSig(u.in)(sigmap)
@@ -86,6 +85,7 @@ object CacheOptimizer extends Extensions {
         val sig = subexprs(index)(i)
         sigmap(sig) = sigmap(sig) :+ SE(i, acc)
 
+      // should unnest be considered cache unfriendly?
       case o:UnaryOp =>
         val sig = subexprs(index)(o)
         sigmap(sig) = sigmap(sig) :+ SE(o, acc)

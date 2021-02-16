@@ -13,23 +13,29 @@ case class COption(e: CExpr) extends CExpr {
 /** Operators of the plan language **/ 
 
 case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr with UnaryOp {
-  def tp: Type = e.tp match {
-    case rt:RecordCType => BagCType(rt)
-    case _ => x.tp
-  }
+  def tp: Type = x.tp
+  // e.tp match {
+  //   case rt:RecordCType => BagCType(rt)
+  //   case _ => x.tp
+  // }
   val in: CExpr = x
+  override def vstr: String = s"Select(${x.vstr}, ${p.vstr})" 
 
 }
 
 case class AddIndex(e: CExpr, name: String) extends CExpr with UnaryOp {
   def tp: BagCType = BagCType(RecordCType(e.tp.attrs ++ Map(name -> LongType)))
   val in: CExpr = e
+  override def vstr: String = s"AddIndex(${e.vstr}, $name)" 
 }
 
 // rename filter
 case class Projection(in: CExpr, v: Variable, filter: CExpr, fields: List[String]) extends CExpr with UnaryOp {
 
   def tp: BagCType = BagCType(filter.tp)
+
+  override def vstr: String = 
+    s"""Projection(${in.vstr}, ${fields.mkString(",")})""" 
 
 }
 
@@ -135,7 +141,7 @@ case class OuterJoin(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond:
 
 }
 
-case class Nest(in: CExpr, v: Variable, key: List[String], value: CExpr, filter: CExpr, nulls: List[String], ctag: String) extends CExpr with UnaryOp {
+case class Nest(in: CExpr, v: Variable, key: List[String], value: CExpr, filter: CExpr, nulls: List[String], ctag: String) extends CExpr { //with UnaryOp {
   def tp: BagCType = value.tp match {
     case _:NumericType => BagCType(RecordCType(v.tp.project(key).attrTps ++ Map(ctag -> DoubleType)))
     case _ => BagCType(RecordCType(v.tp.project(key).attrTps ++ Map(ctag -> BagCType(value.tp.unouter))))
