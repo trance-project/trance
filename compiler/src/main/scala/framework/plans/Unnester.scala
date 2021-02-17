@@ -87,7 +87,8 @@ object Unnester {
       val name = getName(e1)
       val right = AddIndex(e1, name+"_index")
       val nv = Variable(v.name, right.tp.tp)
-	  val (nw, nE) = 
+
+	    val (nw, nE) = 
         if (u.isEmpty) (flat(w, nv.tp), Join(E.get, wvar(w), Select(right, nv, Constant(true), nv), nv, cond, Nil))
         else (flat(w, nv.tp.outer), OuterJoin(E.get, wvar(w), Select(right, nv, Constant(true), nv), nv, cond, Nil))
       unnest(e2)((u, nw, Some(nE), tag))

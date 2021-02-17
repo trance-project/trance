@@ -119,6 +119,8 @@ trait JoinOp extends CExpr {
     case _ => false
   }
 
+  override def vstr: String = s"Join$jtype(${left.vstr}, ${right.vstr}, $p1=$p2)"
+
 }
 
 case class Join(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond: CExpr, fields: List[String]) extends JoinOp {

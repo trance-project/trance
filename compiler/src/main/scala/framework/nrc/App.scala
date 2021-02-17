@@ -69,7 +69,8 @@ object App extends MaterializeNRC with Printer {
    val q1 = 
       s"""
         for c in C union 
-          {(name := c.c_name, orders := for o in O union 
+          if (c.c_custkey > 9)
+          then {(name := c.c_name, orders := for o in O union 
             if (c.c_custkey = o.o_custkey) then 
               {(date := o.o_orderdate, ok := o.o_orderkey, parts := for l in L union
                 if (o.o_orderkey = l.l_orderkey) then

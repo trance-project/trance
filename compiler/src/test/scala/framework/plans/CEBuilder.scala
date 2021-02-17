@@ -82,4 +82,58 @@ class TestCEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
 
   }
 
+  test("join covering"){
+
+    // with CE below
+    val joinQuery1 = parser.parse(
+      """
+        for o in Order union
+          if (o.o_orderkey > 10)
+          then for c in Customer union
+            if (c.c_custkey = o.o_custkey)
+            then {(cname := c.c_name, odate := o.o_orderdate )}
+      """, parser.term).get
+    val joinPlan1 = getPlan(joinQuery1.asInstanceOf[Expr])
+    
+    val joinQuery2 = parser.parse(
+      """
+        for o in Order union
+          if (o.o_orderkey > 15)
+          then for c in Customer union 
+            if (c.c_custkey = o.o_custkey)
+            then {(custkey := c.c_custkey, orderkey := o.o_orderkey )}
+      """, parser.term).get
+    val joinPlan2 = getPlan(joinQuery2.asInstanceOf[Expr])
+
+    // need to look at this case more
+    val ce = CEBuilder.buildCover(joinPlan1, joinPlan2)
+      .asInstanceOf[Projection].in.asInstanceOf[JoinOp]
+
+    val left = ce.left.asInstanceOf[Select].p.vstr
+    assert(left == "o_orderkey>10||o_orderkey>15")
+
+    // val ce2 = CEBuilder.buildCover(List(joinPlan1.in, joinPlan2.in))
+    // assert(ce.vstr == ce2.vstr)
+
+    // need this once selections work better
+    // val joinQuery1 = parser.parse(
+    //   """
+    //     for o in Order union
+    //       for c in Customer union
+    //         if (c.c_custkey = o.o_custkey)
+    //         then {(cname := c.c_name, odate := o.o_orderdate )}
+    //   """, parser.term).get
+    // val joinPlan1 = getPlan(joinQuery1.asInstanceOf[Expr]).asInstanceOf[Projection]
+    
+    // val joinQuery2 = parser.parse(
+    //   """
+    //     for o in Order union
+    //       for c in Customer union 
+    //         if (c.c_custkey = o.o_custkey)
+    //         then {(custkey := c.c_custkey, orderkey := o.o_orderkey )}
+    //   """, parser.term).get
+    // val joinPlan2 = getPlan(joinQuery2.asInstanceOf[Expr]).asInstanceOf[Projection]
+
+  }
+
 }

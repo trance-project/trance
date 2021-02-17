@@ -16,20 +16,41 @@ object CEBuilder extends Extensions {
 
   def buildCover(plan1: CExpr, plan2: CExpr): CExpr = (plan1, plan2) match {
     
-    case y if plan1 == plan2 => plan1
+    case y if plan1.vstr == plan2.vstr => plan1
+
+    // capture below joins
+    case (j1:JoinOp, j2:JoinOp) =>
+      assert(Set(j1.p1, j1.p2) == Set(j2.p1, j2.p2))
+
+      val (left, right) = 
+        if (SEBuilder.signature(j1.left) == SEBuilder.signature(j2.left))
+          (buildCover(j1.left, j2.left), buildCover(j1.right, j2.right))
+        else (buildCover(j1.left, j2.right), buildCover(j1.right, j2.left))
+
+      val v1 = Variable.freshFromBag(left.tp)
+      val v2 = Variable.freshFromBag(right.tp)
+      val cond = Equals(Project(v1, j1.p1), Project(v2, j1.p2))
+
+      if (j1.jtype == "inner") Join(left, v1, right, v2, cond, j1.fields ++ j2.fields)
+      else OuterJoin(left, v1, right, v2, cond, j1.fields ++ j2.fields)
     
+    // union columns
     case (Projection(in1, v1, f1:Record, fs1), Projection(in2, v2, f2:Record, fs2)) => 
       // assert(in1.tp == in2.tp)
       val r = Record(f1.fields ++ f2.fields)
       val v = Variable.fresh(r.tp)
-      Projection(in1, v, replace(r, v), fs1 ++ fs2)
+      // this needs tested more
+      val child = buildCover(in1, in2)
+      Projection(child, v, replace(r, v), fs1 ++ fs2)
 
+    // OR filters
     case (Select(in1, v1, f1, e1), Select(in2, v2, f2, e2)) =>
       assert(in1.tp == in2.tp)
       val v = Variable.fresh(in1.tp)
-      Select(in1, v, or(replace(f1, v), replace(f2, v)), v)
+      val child = buildCover(in1, in2)
+      Select(child, v, or(replace(f1, v), replace(f2, v)), v)
 
-    case _ =>  sys.error(s"unsupported operator )$plan1, $plan2)")
+    case _ =>  sys.error(s"unsupported operator $plan1, $plan2)")
 
   }
 
