@@ -103,7 +103,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     			 	Some(Sng(Record(f2.filter(f => vs(f._1))))))
     		case _ => ???
 	    } 
-	    val nfs = vs ++ fs ++ collect(nfilter)
+	    val nfs = collect(nfilter)//vs ++ fs ++ collect(nfilter)
       val pin = push(in, nfs)
       val nv = Variable.fromBag(v.name, pin.tp)
 

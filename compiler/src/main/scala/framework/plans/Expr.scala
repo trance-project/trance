@@ -129,7 +129,7 @@ case class MathOp(op: OpArithmetic, e1: CExpr, e2: CExpr) extends CExpr {
   override def vstr: String = e1.vstr+op+e2.vstr
 }
 
-case class Project(e1: CExpr, field: String) extends CExpr { self =>
+case class Project(e1: CExpr, field: String) extends CExpr { //self =>
   def tp: Type = e1.tp match {
     case t:RecordCType => t.attrTps get field match {
       case Some(fi) => fi
@@ -143,7 +143,7 @@ case class Project(e1: CExpr, field: String) extends CExpr { self =>
     case t:LabelType => t(field)
     case t:TupleDictCType => t(field)
     case t:BagDictCType => t(field)
-    case _ => sys.error("unsupported projection index "+self)
+    case _ => sys.error(s"unsupported projection index $field in $e1")
   }
   override def vstr: String = field
 

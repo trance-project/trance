@@ -136,4 +136,63 @@ class TestCEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
 
   }
 
+  test("unnest hash"){
+    val unnestQuery1 = parser.parse(
+      """
+        for o in Occur union
+          if (o.donorId = "fakeTest")
+          then for t in o.transcript_consequences union
+            if (t.gene_id = "geneA") 
+            then {( oid := o.oid, impact := t.impact )}
+      """, parser.term).get
+    val unnestPlan1 = getPlan(unnestQuery1.asInstanceOf[Expr]).asInstanceOf[CExpr]
+    
+    val unnestQuery2 = parser.parse(
+      """
+        for o in Occur union
+          if (o.oid = "test")
+          then for t in o.transcript_consequences union 
+            if (t.sift_score > 0.01)
+            then {( sid := o.donorId, poly := t.polyphen_score )}
+      """, parser.term).get
+    val unnestPlan2 = getPlan(unnestQuery2.asInstanceOf[Expr]).asInstanceOf[CExpr]
+
+    val ce = CEBuilder.buildCover(unnestPlan1, unnestPlan2).asInstanceOf[Projection]
+    val un = ce.in.asInstanceOf[UnnestOp]
+    assert(un.fields.toSet == Set("oid", "impact", "donorId", "polyphen_score"))
+    assert(un.path == "transcript_consequences")
+    assert(un.filter.vstr == "gene_id=geneA||sift_score>0.01")
+
+  }
+
+  test("covers from SEs"){
+    // with CE below
+    val joinQuery1 = parser.parse(
+      """
+        for o in Order union
+          if (o.o_orderkey > 10)
+          then for c in Customer union
+            if (c.c_custkey = o.o_custkey)
+            then {(cname := c.c_name, odate := o.o_orderdate )}
+      """, parser.term).get
+    val joinPlan1 = getPlan(joinQuery1.asInstanceOf[Expr])
+    
+    val joinQuery2 = parser.parse(
+      """
+        for o in Order union
+          if (o.o_orderkey > 15)
+          then for c in Customer union 
+            if (c.c_custkey = o.o_custkey)
+            then {(custkey := c.c_custkey, orderkey := o.o_orderkey )}
+      """, parser.term).get
+    val joinPlan2 = getPlan(joinQuery2.asInstanceOf[Expr])
+    val ses = SEBuilder.sharedSubs(Vector(joinPlan1, joinPlan2))
+
+    val ces = ses.map{
+      case (sig, subs) => sig -> CEBuilder.buildCoverFromSE(subs)
+    }
+    // todo some validation
+    // println(ces)
+  }
+
 }
