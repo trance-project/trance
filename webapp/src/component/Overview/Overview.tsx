@@ -1,6 +1,5 @@
 import React from 'react';
 import Link from '@material-ui/core/Link';
-import { makeStyles } from '@material-ui/core/styles';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
@@ -8,6 +7,10 @@ import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import {ButtonGroup} from "@material-ui/core";
 import Button from "@material-ui/core/Button";
+import Grid from "@material-ui/core/Grid";
+import Paper from "@material-ui/core/Paper";
+
+import overviewThemeStyle from "./OverviewThemeStyle";
 
 const createData = (id: number, date: string, name:string, tables: string, groupedBy: string) => ({id, date, name, tables, groupedBy, });
 
@@ -42,52 +45,49 @@ const rows = [
 
 const preventDefault = (event:  React.MouseEvent<HTMLAnchorElement, MouseEvent>) => event.preventDefault();
 
-const useStyle = makeStyles((theme) => ({
-    seeMore: {
-        marginTop: theme.spacing(3)
-    }
-}));
 
-const Queries = () => {
-    const classes = useStyle();
+const Overview = () => {
+    const classes = overviewThemeStyle();
     return (
-        <React.Fragment>
-        <h2>Recent Queries</h2>
-            <Table size="small">
-                <TableHead>
-                    <TableRow>
-                        <TableCell>Date</TableCell>
-                        <TableCell>Name</TableCell>
-                        <TableCell>Tables</TableCell>
-                        <TableCell>Group By</TableCell>
-                        <TableCell>Actions</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {rows.map((row) => (
-                        <TableRow key={row.id}>
-                            <TableCell>{row.date}</TableCell>
-                            <TableCell>{row.name}</TableCell>
-                            <TableCell>{row.tables}</TableCell>
-                            <TableCell>{row.groupedBy}</TableCell>
-                            <TableCell>
-                                <ButtonGroup color={"primary"} aria-label={"Contained primary button group"}>
-                                    <Button variant={"contained"} style={{'backgroundColor':'#2980b9'}}>Edit</Button>
-                                    <Button variant={"contained"} style={{'backgroundColor':'#2ecc71'}}>Execute</Button>
-                                    <Button variant={"contained"} style={{'backgroundColor':'#e74c3c'}}>Delete</Button>
-                                </ButtonGroup>
-                            </TableCell>
+        <Grid item xs={12} md={12} lg={12}>
+            <Paper className={classes.paper}>
+                <h2>Recent Queries</h2>
+                <Table size="small">
+                    <TableHead>
+                        <TableRow>
+                            <TableCell>Date</TableCell>
+                            <TableCell>Name</TableCell>
+                            <TableCell>Tables</TableCell>
+                            <TableCell>Group By</TableCell>
+                            <TableCell>Actions</TableCell>
                         </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-            <div className={classes.seeMore}>
-                <Link color="primary" href="#" onClick={preventDefault}>
-                    See more orders
-                </Link>
-            </div>
-        </React.Fragment>
+                    </TableHead>
+                    <TableBody>
+                        {rows.map((row) => (
+                            <TableRow key={row.id}>
+                                <TableCell>{row.date}</TableCell>
+                                <TableCell>{row.name}</TableCell>
+                                <TableCell>{row.tables}</TableCell>
+                                <TableCell>{row.groupedBy}</TableCell>
+                                <TableCell>
+                                    <ButtonGroup color={"primary"} aria-label={"Contained primary button group"}>
+                                        <Button variant={"contained"} style={{'backgroundColor':'#2980b9'}}>Edit</Button>
+                                        <Button variant={"contained"} style={{'backgroundColor':'#2ecc71'}}>Execute</Button>
+                                        <Button variant={"contained"} style={{'backgroundColor':'#e74c3c'}}>Delete</Button>
+                                    </ButtonGroup>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+                <div className={classes.seeMore}>
+                    <Link color="primary" href="#" onClick={preventDefault}>
+                        See more orders
+                    </Link>
+                </div>
+            </Paper>
+        </Grid>
     );
 }
 
-export default Queries;
+export default Overview;
