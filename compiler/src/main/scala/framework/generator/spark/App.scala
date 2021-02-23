@@ -18,6 +18,13 @@ object Sharing extends App {
 
 }
 
+object Genomic extends App {
+  override def main(args: Array[String]){
+    AppWriter.runDataset(GeneBurden, "GeneBurden,standard", optLevel = 1)
+    // AppWriter.runDatasetShred(GeneBurden, "GeneBurden,shred", optLevel = 1)
+  }
+}
+
 
 /*
  * Generate Spark applications for the end-to-end pipeline of the biomedical benchmark.
