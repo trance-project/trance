@@ -620,17 +620,17 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |${if (!cache) comment(n) else n}.cache
           |${if (!cache && !evalFinal) comment(n) else n}.count
           |""".stripMargin
-
     case Bind(v, CNamed(n, e1), e2) =>
       val gtp = if (skew) "[Int]" else ""
       val repart = if (n.contains("MDict")) s""".repartition$gtp($$"_1")""" else ""
       val gv = generate(v)
+      val ge2 = if (e2.isInstanceOf[Variable]) "" else generate(e2)
       s"""|val $gv = ${generate(e1)}
           |val $n = $gv$repart
           |//$n.print
           |${if (!cache || evalFinal) comment(n) else n}.cache
           |${if (!evaluate) comment(n) else n}.count
-          |${generate(e2)}
+          |$ge2
           |""".stripMargin
 
     case LinearCSet(fs) => ""
