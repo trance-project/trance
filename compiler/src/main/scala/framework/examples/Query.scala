@@ -113,14 +113,14 @@ trait Query extends Materialization
 
   }
 
-  def shred(eliminateDomains: Boolean = true): (Program, Program) = {
+  def shred(eliminateDomains: Boolean = true, runUnshred: Boolean = false): (Program, Program) = {
       println("INPUT QUERY:\n")
       println(quote(program))
       val (shredded, shreddedCtx) = shredCtx(program)
       val optShredded = optimize(shredded)
       println(quote(optShredded))
       val materializedProgram = materialize(optShredded, eliminateDomains = eliminateDomains)
-      val unshredProg = unshred(optShredded, materializedProgram.ctx)
+      val unshredProg = if (runUnshred) unshred(optShredded, materializedProgram.ctx) else Program(Nil)
       (materializedProgram.program, unshredProg)
     }
 
