@@ -26,8 +26,8 @@ trait GenomicSchema extends Query {
     else
       s"""|val vloader = new VariantLoader(spark, "/mnt/app_hdd/data/Data/Variants/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf")
           |val vcf = vloader.loadDS
-          |//variants.cache
-          |//variants.count
+          |//vcf.cache
+          |//vcf.count
           |
           |val gtfLoader = new GTFLoader(spark, "/mnt/app_hdd/data/Data/Map/Homo_sapiens.GRCh37.87.chr.gtf")
           |val genes = gtfLoader.loadDS
