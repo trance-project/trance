@@ -35,8 +35,7 @@ spark-submit --class sparkutils.generated.Test2Spark \
 ```
 
 ### Burden Covariance Example
-
-This query is only compatible with Scala 2.12 and [Spark 3.0.1](https://archive.apache.org/dist/spark/spark-3.0.1/spark-3.0.1-bin-hadoop2.7.tgz). Start a master and a slave. To start a slave with one core and 32G of memory:
+This query (source code [here](https://github.com/jacmarjorie/trance/blob/burden/executor/spark/src/main/scala/sparkutils/generated/GeneBurdenCovariance.scala)) is only compatible with Scala 2.12 and [Spark 3.0.1](https://archive.apache.org/dist/spark/spark-3.0.1/spark-3.0.1-bin-hadoop2.7.tgz). Start a master and a slave. To start a slave with one core and 32G of memory:
 ```
 sh start-slave.sh spark://<master-ip>:7077 -c 1 -m 32G
 ```
