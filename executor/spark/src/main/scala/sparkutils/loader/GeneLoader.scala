@@ -9,6 +9,7 @@ import sparkutils.Config
   *
   */
 
+
 case class Gene(name: String, description: String, chrom: String, g_type: String, start_hg19: Int, end_hg19: Int, 
   strand: String, ts_id: String, gene_type: String, gene_status: String, loci_level: Int, 
   alias_symbol: String, official_name: String)
@@ -32,6 +33,13 @@ class GeneLoader(spark: SparkSession) extends Table[Gene] {
     StructField("alias_symbol", StringType),
     StructField("official_name", StringType)))
 
+  val schema2 = StructType(Array(
+    StructField("g_gene_id", StringType),
+    StructField("g_gene_name", StringType),
+    StructField("g_contig", StringType),
+    StructField("g_start", IntegerType),
+    StructField("g_end", IntegerType)))
+
   val header: Boolean = true
   val delimiter: String = "\t"
 
@@ -40,5 +48,11 @@ class GeneLoader(spark: SparkSession) extends Table[Gene] {
     .option("delimiter", delimiter)
     .csv(path)
     .as[Gene].repartition(Config.minPartitions)
+
+  def loadGTF(path: String) = spark.read.schema(schema2)
+    .option("header", false)
+    .option("delimiter", "|")
+    .csv(path)
+    .as[GTF].repartition(Config.minPartitions)
 
 }

@@ -21,7 +21,7 @@ object GeneBurden0 extends GenomicSchema {
             then for c in v.genotypes union 
               {(sample := c.g_sample, gene := g.g_gene_name, burden := c.call)}).sumBy({sample, gene}, {burden});
 
-     Groups <= (Burden).groupBy({gene}, {sample, burden}, "burdens")
+     Groups <= (Burden).groupBy({sample}, {gene, burden}, "burdens")
     """
 
     val parser = Parser(tbls)
@@ -72,12 +72,11 @@ object GeneBurdenS extends GenomicSchema {
               {(sample := c.g_sample, call := c.call)} )};
 
       Burden <= 
-        (for g in GeneTags union 
-          for c in g.genotypes union 
-            {(gene := g.gene, sample := c.sample, burden := c.call)}).sumBy({gene, sample}, {burden});
+        for g in GeneTags union 
+          {(gene := g.gene, burdens :=
+            (for c in g.genotypes union 
+              {(sample := c.sample, burden := c.call)}).sumBy({sample}, {burden})
 
-
-      Group <= (Burden).groupBy({gene}, {sample, burden}, "burdens")
     """
 
     val parser = Parser(tbls)
