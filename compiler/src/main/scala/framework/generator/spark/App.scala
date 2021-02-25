@@ -20,9 +20,9 @@ object Sharing extends App {
 
 object Genomic extends App {
   override def main(args: Array[String]){
-    //AppWriter.runDataset(GeneBurden0, "GeneBurden0,standard", optLevel = 1)
+    AppWriter.runDatasetShred(GeneBurden0, "GeneBurden0,standard", optLevel = 1)
     //AppWriter.runDataset(GeneBurden, "GeneBurden,standard", optLevel = 1)
-    AppWriter.runDatasetShred(GeneBurdenS, "GeneBurdenS,standard", optLevel = 1, unshred = false)
+    //AppWriter.runDatasetShred(GeneBurdenS, "GeneBurdenS,standard", optLevel = 1, unshred = false)
     // AppWriter.runDatasetShred(GeneBurden, "GeneBurden,shred", optLevel = 1)
   }
 }

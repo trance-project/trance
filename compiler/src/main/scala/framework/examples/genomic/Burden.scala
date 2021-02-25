@@ -72,10 +72,11 @@ object GeneBurdenS extends GenomicSchema {
               {(sample := c.g_sample, call := c.call)} )};
 
       Burden <= 
-        for g in GeneTags union 
-          {(gene := g.gene, burdens :=
-            (for c in g.genotypes union 
-              {(sample := c.sample, burden := c.call)}).sumBy({sample}, {burden})
+        (for g in GeneTags union 
+          for c in g.genotypes union 
+            {(gene := g.gene, sample := c.sample, burden := c.call)}).sumBy({gene, sample}, {burden});
+
+      Groups <= (Burden).groupBy({sample}, {gene, burden}, "burdens")
 
     """
 
