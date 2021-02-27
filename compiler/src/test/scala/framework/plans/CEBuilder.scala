@@ -165,6 +165,30 @@ class TestCEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
 
   }
 
+  test("reduce covers"){
+    val reduceQuery1 = parser.parse(
+      """
+        (for c in Customer union 
+          for o in Order union
+            if (c.c_custkey = o.o_custkey)
+            then {(cname := c.c_name, orderkey := o.o_orderkey )}).sumBy({cname}, {orderkey})
+      """, parser.term).get
+    val reducePlan1 = getPlan(reduceQuery1.asInstanceOf[Expr]).asInstanceOf[CExpr]
+      
+    val reduceQuery2 = parser.parse(
+      """
+        (for o in Order union
+          for c in Customer union 
+            if (c.c_custkey = o.o_custkey)
+            then {(custkey := c.c_custkey, otherkey := o.o_custkey )}).sumBy({custkey}, {otherkey})
+      """, parser.term).get
+    val reducePlan2 = getPlan(reduceQuery2.asInstanceOf[Expr]).asInstanceOf[CExpr]
+    val ce = CEBuilder.buildCover(reducePlan1, reducePlan2).asInstanceOf[Reduce]
+    assert(ce.keys.toSet == Set("cname", "custkey"))
+    assert(ce.values.toSet == Set("orderkey", "otherkey"))
+    
+  }
+
   test("covers from SEs"){
     // with CE below
     val joinQuery1 = parser.parse(
@@ -186,13 +210,13 @@ class TestCEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
             then {(custkey := c.c_custkey, orderkey := o.o_orderkey )}
       """, parser.term).get
     val joinPlan2 = getPlan(joinQuery2.asInstanceOf[Expr])
-    val ses = SEBuilder.sharedSubs(Vector(joinPlan1, joinPlan2))
+    val ses = SEBuilder.sharedSubs(Vector(joinPlan1, joinPlan2).zipWithIndex)
 
     val ces = ses.map{
       case (sig, subs) => sig -> CEBuilder.buildCoverFromSE(subs)
     }
-    // todo some validation
-    // println(ces)
+    // todo some validation 
+
   }
 
 }

@@ -40,18 +40,20 @@ object Cost {
       println($name.hashCode()+","+$name.queryExecution.optimizedPlan.stats)
       """
     val fconts = writeApplication("GenerateCosts", data, ghead, gcode, genc)
-    println(fconts)
     printer.println(fconts)
     printer.close
   }
 
+  // def generateCode()
+
+  // uses spark-shell, which is super slow
   def getStats(plan: CNamed): Option[String] = {
     generateSpark(plan)
     val str = "spark-shell < test.scala" .!!
-    println(str)
     StatsRegex.findFirstIn(str)
   }
 
+  // this is a slightly faster solution
   def runCost(plan: CNamed): Unit = {
     generateSpark(plan)
     val costs = "sh compile.sh".!!

@@ -215,7 +215,7 @@ class TestSEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
 
     assert((p1.values.toSet & p3.values.toSet).nonEmpty)
 
-    val subs = SEBuilder.sharedSubs(Vector(cust1, cust2, joinPlan1))
+    val subs = SEBuilder.sharedSubs(Vector(cust1, cust2, joinPlan1).zipWithIndex)
     // input, index, selects
     assert(subs.size == 3)
     for (k <- p2.values){
@@ -243,7 +243,7 @@ class TestSEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
       """, parser.term).get
     val reducePlan2 = getPlan(reduceQuery2.asInstanceOf[Expr]).asInstanceOf[CExpr]
 
-    val subs = SEBuilder.sharedSubs(Vector(reducePlan1, reducePlan2))
+    val subs = SEBuilder.sharedSubs(Vector(reducePlan1, reducePlan2).zipWithIndex)
     assert(subs.size == 8)
 
   }

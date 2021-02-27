@@ -3,7 +3,7 @@ package framework.plans
 import framework.common._
 import scala.collection.mutable.{Map, HashMap}
 
-case class SE(subplan: CExpr, height: Int) {
+case class SE(wid: Int, subplan: CExpr, height: Int) {
   override def equals(that: Any): Boolean = that match {
     case that:SE => this.subplan == that.subplan
     case that:CExpr => this.subplan == that
@@ -17,16 +17,17 @@ case class SE(subplan: CExpr, height: Int) {
 object SEBuilder extends Extensions {
 
   def signature(plan: CExpr): Integer = {
-    equivSig(plan)(HashMap.empty[CExpr, Integer])
+    equivSig((plan, 0))(HashMap.empty[(CExpr, Int), Integer])
   }
 
-  def equivSig(plan: CExpr)(implicit sigmap: HashMap[CExpr, Integer]): Integer = {
+  def equivSig(plan: (CExpr, Int))(implicit sigmap: HashMap[(CExpr, Int), Integer]): Integer = {
 
-    val sig = plan match {
+    val wid = plan._2
+    val sig = plan._1 match {
 
       case j:JoinOp => 
-        var lhash = equivSig(j.left)(sigmap)
-        var rhash = equivSig(j.right)(sigmap)
+        var lhash = equivSig((j.left, wid))(sigmap)
+        var rhash = equivSig((j.right, wid))(sigmap)
         var cond = j.p1+"="+j.p2
         
         // agnostic to join order
@@ -42,11 +43,11 @@ object SEBuilder extends Extensions {
       //   hash(plan.getClass.toString + n.hashCode().toString)
       
       case u:UnnestOp => 
-        val chash = equivSig(u.in)(sigmap)
+        val chash = equivSig((u.in, wid))(sigmap)
         hash(plan.getClass.toString + u.outer + u.path + chash)
       
       case o:UnaryOp =>
-        val chash = equivSig(o.in)(sigmap)
+        val chash = equivSig((o.in, wid))(sigmap)
         hash(plan.getClass.toString + chash)
 
       case InputRef(n, t) => 
@@ -62,34 +63,41 @@ object SEBuilder extends Extensions {
 
   }
 
-  def subexpressions(plan: CExpr): HashMap[CExpr, Integer] = {
-    val subexprs = HashMap.empty[CExpr, Integer]
+  def subexpressions(plan: (CExpr, Int)): HashMap[(CExpr, Int), Integer] = {
+    val subexprs = HashMap.empty[(CExpr, Int), Integer]
     equivSig(plan)(subexprs)
     subexprs
   }
 
-  def sharedSubs(plans: Vector[CExpr]): Map[Integer, List[SE]] = {
+  // pass in programs
+  def sharedSubsFromProgram(plans: Vector[LinearCSet]): Map[Integer, List[SE]] = {
+    sharedSubs(plans.zipWithIndex.flatMap{ case (prog, id) => 
+      prog.exprs.map(e => (e, id))
+    })
+  }
+
+  def sharedSubs(plans: Vector[(CExpr, Int)]): Map[Integer, List[SE]] = {
     
     val subexprs = plans.map(subexpressions(_))
     val sigmap = Map.empty[Integer, List[SE]].withDefaultValue(Nil)
 
-    def traversePlan(plan: CExpr, index: Int, acc: Int = 0): Unit = plan match {
+    def traversePlan(plan: (CExpr, Int), index: Int, acc: Int = 0): Unit = plan match {
       // cache unfriendly
-      case n:Nest => traversePlan(n.in, index, acc+1)
-      case j:JoinOp => 
+      case (n:Nest, id) => traversePlan((n.in, id), index, acc+1)
+      case (j:JoinOp, id) => 
         val height = acc + 1
-        traversePlan(j.left, index, height); traversePlan(j.right, index, height)
+        traversePlan((j.left, id), index, height); traversePlan((j.right, id), index, height)
       
       // cache friendly
-      case i:InputRef => 
-        val sig = subexprs(index)(i)
-        sigmap(sig) = sigmap(sig) :+ SE(i, acc)
+      case (i:InputRef, id) => 
+        val sig = subexprs(index)(plan)
+        sigmap(sig) = sigmap(sig) :+ SE(id, i, acc)
 
       // should unnest be considered cache unfriendly?
-      case o:UnaryOp =>
-        val sig = subexprs(index)(o)
-        sigmap(sig) = sigmap(sig) :+ SE(o, acc)
-        traversePlan(o.in, index, acc+1)
+      case (o:UnaryOp, id) =>
+        val sig = subexprs(index)(plan)
+        sigmap(sig) = sigmap(sig) :+ SE(id, o, acc)
+        traversePlan((o.in, id), index, acc+1)
 
       case _ => 
 
