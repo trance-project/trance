@@ -39,13 +39,13 @@ object GeneBurdenCovariance {
    val spark = SparkSession.builder().config(conf).getOrCreate()
    
    import spark.implicits._
-   val vloader = new VariantLoader(spark, "/mnt/app_hdd/scratch/biodata/supersm.vcf") //"/mnt/app_hdd/data/Data/Variants/supersm.vcf")
+   val vloader = new VariantLoader(spark, "biodata/supersm.vcf") //"/mnt/app_hdd/data/Data/Variants/supersm.vcf")
 val vcf = vloader.loadDS
 vcf.cache
 vcf.count
 
 val gtfLoader = new GeneLoader(spark)
-val genes = gtfLoader.loadGTF("/mnt/app_hdd/scratch/biodata/genes.csv")    //"/mnt/app_hdd/data/Data/Map/genes.csv")
+val genes = gtfLoader.loadGTF("biodata/genes.csv")    //"/mnt/app_hdd/data/Data/Map/genes.csv")
 genes.cache
 genes.count
 
@@ -108,12 +108,12 @@ val rows = Groups.rdd.map(x => Vectors.dense(x.burdens.map(y => y.burden).toArra
 val mat = new IndexedRowMatrix(rows).toBlockMatrix
 val trans = mat.transpose
 val covariance = trans.multiply(mat)
-println(covariance.toLocalMatrix.toString())
-
+covariance.toLocalMatrix
 }
 var start = System.currentTimeMillis()
-f
+val res = f
 var end = System.currentTimeMillis() - start 
+   println(res.toString())
    println("GeneBurdenCovariance,standard,"+sf+","+end+",total,"+spark.sparkContext.applicationId)
  }
 }

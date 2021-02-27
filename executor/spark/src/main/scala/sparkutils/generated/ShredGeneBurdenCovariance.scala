@@ -38,7 +38,7 @@ object ShredGeneBurdenCovariance {
    val spark = SparkSession.builder().config(conf).getOrCreate()
    
    import spark.implicits._
-   val vloader = new VariantLoader(spark, "/mnt/app_hdd/scratch/biodata/supersm.vcf")
+   val vloader = new VariantLoader(spark, "biodata/supersm.vcf")
 val (vcf, genotypes) = vloader.shredDS
 val IBag_vcf__D = vcf
 val IDict_vcf__D_genotypes = genotypes
@@ -48,7 +48,7 @@ IDict_vcf__D_genotypes.cache
 IDict_vcf__D_genotypes.count
 
 val gtfLoader = new GeneLoader(spark)
-val Gtfs = gtfLoader.loadGTF("/mnt/app_hdd/scratch/biodata/genes.csv")
+val Gtfs = gtfLoader.loadGTF("biodata/genes.csv")
 val IBag_genes__D = Gtfs
 IBag_genes__D.cache
 IBag_genes__D.count
