@@ -13,7 +13,11 @@ case class COption(e: CExpr) extends CExpr {
 /** Operators of the plan language **/ 
 
 case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr with UnaryOp {
-  def tp: Type = x.tp
+  val projs = e.tp.attrs.keySet
+  def tp: Type = x.tp match {
+    case BagCType(ttp) => BagCType(RecordCType(ttp.attrs.filter(f => projs(f._1))))
+    case _ => ???
+  }
   // e.tp match {
   //   case rt:RecordCType => BagCType(rt)
   //   case _ => x.tp
@@ -152,6 +156,8 @@ case class Nest(in: CExpr, v: Variable, key: List[String], value: CExpr, filter:
 
 case class Reduce(in: CExpr, v: Variable, keys: List[String], values: List[String]) extends CExpr with UnaryOp {
   def tp: BagCType = BagCType(v.tp.project(keys).merge(v.tp.project(values)))
+  override def vstr: String = 
+    s"""Reduce(${in.vstr}, keys = ${keys.mkString(",")}, values = ${values.mkString(",")})""" 
 }
 
 
