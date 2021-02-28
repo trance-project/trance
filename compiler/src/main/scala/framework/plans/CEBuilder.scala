@@ -3,6 +3,8 @@ package framework.plans
 import framework.common._
 // import scala.collection.mutable.{Map, HashMap}
 
+case class CE(cover: CExpr, sig: Integer, ses: List[SE])
+
 object CEBuilder extends Extensions {
 
   val normalizer = new BaseNormalizer{}

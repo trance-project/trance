@@ -183,11 +183,14 @@ class TestSEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
     assert((p2 filterKeys p1.keySet).values.toSet == p1.values.toSet)
     assert((p3 filterKeys p1.keySet).values.toSet == p1.values.toSet)
 
-    val subs = SEBuilder.sharedSubs(Vector(cust1, cust2, cust3))
+    val subs = SEBuilder.sharedSubs(Vector(cust1.asInstanceOf[CExpr], 
+      cust2.asInstanceOf[CExpr], cust3.asInstanceOf[CExpr]).zipWithIndex)
     // shares inputs and shares filters
     assert(subs.size == 2)
-    assert(subs.head._2.toSet == Set(cust1))
-    assert(subs.last._2.toSet == Set(cust2, cust3))
+    val check1 = subs.filter(x => x._2.filter(y => y.wid == 0).nonEmpty).head._2.toSet
+    val check2 = subs.filter(x => x._2.filter(y => y.wid != 0).nonEmpty).head._2.toSet
+    assert(check1 == Set(cust1))
+    assert(check2 == Set(cust2, cust3))
 
   }
 

@@ -13,16 +13,18 @@ class TestCost extends FunSuite with MaterializeNRC with NRCTranslator {
 
   val occur = new Occurrence{}
   val cnum = new CopyNumber{}
-  val tbls = Map("Occur" -> BagType(occur.occurmid_type), 
-                 "copynumber" -> BagType(cnum.copyNumberType))
+  val samps = new Biospecimen{}
+  val tbls = Map("occurrences" -> BagType(occur.occurmid_type), 
+                 "copynumber" -> BagType(cnum.copyNumberType), 
+                 "samples" -> BagType(samps.biospecType))
 
   val parser = Parser(tbls)
   val normalizer = new Finalizer(new BaseNormalizer{})
   val optimizer = new Optimizer()
 
-  def getPlan(query: Program): CExpr = {
+  def getPlan(query: Program): LinearCSet = {
     val ncalc = normalizer.finalize(translate(query)).asInstanceOf[CExpr]
-    optimizer.applyPush(Unnester.unnest(ncalc)(Map(), Map(), None, "_2"))
+    optimizer.applyPush(Unnester.unnest(ncalc)(Map(), Map(), None, "_2")).asInstanceOf[LinearCSet]
   }
 
   test("simple copy number"){
@@ -33,20 +35,13 @@ class TestCost extends FunSuite with MaterializeNRC with NRCTranslator {
         then {(sid := c.cn_aliquot_uuid, cnum := c.cn_copy_number)}
       """ 
     val query1 = parser.parse(cnum1).get
-    val plan1 = getPlan(query1.asInstanceOf[Program].get("TestCnum").get).asInstanceOf[CNamed]
+    val plan1 = getPlan(query1.asInstanceOf[Program])
 
-    if (compileCost) Cost.runCost(plan1)
+    // if (compileCost) Cost.runCost(plan1)
 
   }
 
   test("aggregates"){
-
-    val occur = new Occurrence{}
-    val cnum = new CopyNumber{}
-    val samps = new Biospecimen{}
-    val tbls = Map("Occur" -> BagType(occur.occurmid_type), 
-                   "copynumber" -> BagType(cnum.copyNumberType), 
-                   "samples" -> BagType(samps.biospecType))
 
     val query1str = 
       s"""
@@ -60,14 +55,14 @@ class TestCost extends FunSuite with MaterializeNRC with NRCTranslator {
           for o in occurrences union
             {( oid := o.oid, sid := o.donorId, cands := 
               ( for t in o.transcript_consequences union
-                  for c in cnvCases union
+                  for c in cnvCases1 union
                     if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene_id) then
                       {( gene := t.gene_id, score := (c.cn_copy_number + 0.01) * if (t.impact = "HIGH") then 0.80 
                           else if (t.impact = "MODERATE") then 0.50
                           else if (t.impact = "LOW") then 0.30
                           else 0.01 )}).sumBy({gene}, {score}) )}
       """
-    val query1 = parser.parse(query1st).get
+    val query1 = parser.parse(query1str).get
     val plan1 = getPlan(query1.asInstanceOf[Program])
 
     val query2str = 
@@ -82,14 +77,24 @@ class TestCost extends FunSuite with MaterializeNRC with NRCTranslator {
           for o in occurrences union
             {( oid := o.oid, sid := o.donorId, cands := 
               ( for t in o.transcript_consequences union
-                  for c in cnvCases union
+                  for c in cnvCases2 union
                     if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene_id) then
                       {( gene := t.gene_id, score := (c.cn_copy_number + 0.01) * t.polyphen_score )}).sumBy({gene}, {score}) )}
       """
     val query2 = parser.parse(query2str).get
     val plan2 = getPlan(query2.asInstanceOf[Program])
 
+    // equivsig -> {SE}
     val subs = SEBuilder.sharedSubsFromProgram(Vector(plan1, plan2))
+    println(subs)
+    val ces = subs.map{
+      case (id, se) => 
+        val cover = CEBuilder.buildCoverFromSE(se)
+        CE(cover, id, se)
+    }.toList
+    println(ces)
+
+
 
   }
 

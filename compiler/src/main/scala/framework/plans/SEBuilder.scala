@@ -3,7 +3,7 @@ package framework.plans
 import framework.common._
 import scala.collection.mutable.{Map, HashMap}
 
-case class SE(wid: Int, subplan: CExpr, height: Int) {
+case class SE(wid: Int, name: String, subplan: CExpr, height: Int) {
   override def equals(that: Any): Boolean = that match {
     case that:SE => this.subplan == that.subplan
     case that:CExpr => this.subplan == that
@@ -11,6 +11,12 @@ case class SE(wid: Int, subplan: CExpr, height: Int) {
   }
 
   override def hashCode: Int = (subplan, height).hashCode
+}
+
+object SE {
+  // empty name
+  def apply(wid: Int, subplan: CExpr, height: Int): SE = SE(wid, "", subplan, height)
+  def apply(wid: Int, name: String, subplan: CExpr, height: Int): SE = SE(wid, name, subplan, height)
 }
 
 /** Optimizer used for plans from BatchUnnester **/
@@ -53,6 +59,8 @@ object SEBuilder extends Extensions {
       case InputRef(n, t) => 
         hash(plan.getClass.toString + n)
 
+      case CNamed(name, p) => equivSig((p, wid))
+ 
       // all other cases
       case _ => hash(plan.getClass.toString + plan.hashCode().toString)
 
@@ -63,6 +71,10 @@ object SEBuilder extends Extensions {
 
   }
 
+  def subexpressions(plan: CExpr): HashMap[(CExpr, Int), Integer] = {
+    subexpressions((plan, 0))
+  }
+
   def subexpressions(plan: (CExpr, Int)): HashMap[(CExpr, Int), Integer] = {
     val subexprs = HashMap.empty[(CExpr, Int), Integer]
     equivSig(plan)(subexprs)
@@ -71,9 +83,11 @@ object SEBuilder extends Extensions {
 
   // pass in programs
   def sharedSubsFromProgram(plans: Vector[LinearCSet]): Map[Integer, List[SE]] = {
-    sharedSubs(plans.zipWithIndex.flatMap{ case (prog, id) => 
+    val seInput = plans.zipWithIndex.flatMap{ case (prog, id) => 
       prog.exprs.map(e => (e, id))
-    })
+    }
+    println(seInput.size)
+    sharedSubs(seInput)
   }
 
   def sharedSubs(plans: Vector[(CExpr, Int)]): Map[Integer, List[SE]] = {
@@ -81,23 +95,27 @@ object SEBuilder extends Extensions {
     val subexprs = plans.map(subexpressions(_))
     val sigmap = Map.empty[Integer, List[SE]].withDefaultValue(Nil)
 
-    def traversePlan(plan: (CExpr, Int), index: Int, acc: Int = 0): Unit = plan match {
+    def traversePlan(plan: (CExpr, Int), index: Int, acc: Int = 0, name: String = ""): Unit = plan match {
       // cache unfriendly
-      case (n:Nest, id) => traversePlan((n.in, id), index, acc+1)
+      case (n:Nest, id) => traversePlan((n.in, id), index, acc+1, name)
       case (j:JoinOp, id) => 
         val height = acc + 1
-        traversePlan((j.left, id), index, height); traversePlan((j.right, id), index, height)
+        traversePlan((j.left, id), index, height, name); traversePlan((j.right, id), index, height, name)
       
       // cache friendly
       case (i:InputRef, id) => 
         val sig = subexprs(index)(plan)
-        sigmap(sig) = sigmap(sig) :+ SE(id, i, acc)
+        sigmap(sig) = sigmap(sig) :+ SE(id, name, i, acc)
 
       // should unnest be considered cache unfriendly?
       case (o:UnaryOp, id) =>
         val sig = subexprs(index)(plan)
-        sigmap(sig) = sigmap(sig) :+ SE(id, o, acc)
-        traversePlan((o.in, id), index, acc+1)
+        sigmap(sig) = sigmap(sig) :+ SE(id, name, o, acc)
+        traversePlan((o.in, id), index, acc+1, name)
+
+      // is this correct?
+      // case (c @ CNamed(name, p), id) => 
+      //   traversePlan((p, id), index, acc, name)
 
       case _ => 
 
