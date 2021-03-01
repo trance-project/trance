@@ -57,4 +57,12 @@ spark-submit --class sparkutils.generated.GeneBurdenCovariance \
       --jars /absolute/path/to/hadoop-bam-7.8.0.jar,/absolute/path/to/htsjdk-2.9.1.jar \ 
       target/scala-2.12/sparkutils_2.12-0.1.jar >> out
 ```
+Or in local mode 
+```
+spark-submit --class sparkutils.generated.GeneBurdenCovariance \
+      --master "local[1]" \
+      --driver-memory 32G \
+      --jars /absolute/path/to/hadoop-bam-7.8.0.jar,/absolute/path/to/htsjdk-2.9.1.jar \ 
+      target/scala-2.12/sparkutils_2.12-0.1.jar >> out
+```
 The covariance matrix and runtime will be written to `out`. To run the shredded pipeline use `--class sparkutils.generated.ShredGeneBurdenCovariance`.
