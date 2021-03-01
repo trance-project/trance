@@ -43,9 +43,9 @@ object App {
   //val gtfs = gtfLoader.loadDS
   //gtfs.coalesce(1).write.csv("/Users/jac/bioqueries/data/genes.csv")
        
-  val vcfLoader = new VariantLoader(spark, "/Users/jac/bioqueries/data/supersm.vcf")
+  val vcfLoader = new VariantLoader(spark, "biodata/supersm.vcf")
   val vcfs = vcfLoader.loadDS
-  vcfs.coalesce(1).write.json("/Users/jac/bioqueries/data/vcf.json")
+  vcfs.coalesce(1).write.json("biodata/vcf.json")
   
   }
 

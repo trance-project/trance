@@ -56,7 +56,7 @@ IBag_genes__D.count
     def f = {
  
  
-var start0 = System.currentTimeMillis()
+// var start0 = System.currentTimeMillis()
 val x24 = IBag_vcf__D.select("genotypes","contig","start")
  .as[Record3bc4aa8d5c684938b781a97bd584ba21] 
 val x26 = IBag_genes__D.select("g_start","g_gene_name","g_end","g_contig")
@@ -111,16 +111,16 @@ val rows = MBag_Groups_1.rdd.map(x => Vectors.dense(x.burdens.map(y => y.burden)
 val mat = new IndexedRowMatrix(rows).toBlockMatrix
 val trans = mat.transpose
 val covariance = trans.multiply(mat)
-println(covariance.toLocalMatrix.toString())
+// println(.toString())
 
-var end0 = System.currentTimeMillis() - start0
+// var end0 = System.currentTimeMillis() - start0
 //println("ShredGeneBurdenCovariance,shred,"+sf+","+end0+",query,"+spark.sparkContext.applicationId)
-    
+    covariance.toLocalMatrix
 }
 var start = System.currentTimeMillis()
-f
+val res = f
 var end = System.currentTimeMillis() - start
-    
+   println(res.toString())
    println("ShredGeneBurdenCovariance,standard,"+sf+","+end+",total,"+spark.sparkContext.applicationId)
  }
 }
