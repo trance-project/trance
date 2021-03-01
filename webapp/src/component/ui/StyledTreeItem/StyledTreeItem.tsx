@@ -5,6 +5,7 @@ import { TransitionProps } from '@material-ui/core/transitions';
 import { useSpring, animated } from 'react-spring/web.cjs'; // web.cjs is required for IE 11 support
 import Collapse from '@material-ui/core/Collapse';
 
+
 function TransitionComponent(props: TransitionProps) {
     const style = useSpring({
         from: { opacity: 0, transform: 'translate3d(20px,0,0)' },

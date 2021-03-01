@@ -6,7 +6,7 @@ const cardSelectorThemeStyle = makeStyles((theme) => ({
     root: {
         minWidth: 250,
         margin: "0 20px",
-        height: 100,
+        height: 30,
 
     },
     title: {

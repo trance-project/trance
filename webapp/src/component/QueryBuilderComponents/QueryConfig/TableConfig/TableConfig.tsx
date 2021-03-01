@@ -1,13 +1,13 @@
 import React, {useState} from 'react';
 import {TreeView} from "@material-ui/lab";
 
-import MinusSquare from "./ExpandedIcons/MinusSquare";
-import PlusSquare from "./ExpandedIcons/PlusSquare";
-import CloseSquare from "./ExpandedIcons/CloseSquare";
-import StyledTreeItem from "./StyledTreeItem/StyledTreeItem";
+import MinusSquare from "../../../ui/ExpandedIcons/MinusSquare";
+import PlusSquare from "../../../ui/ExpandedIcons/PlusSquare";
+import CloseSquare from "../../../ui/ExpandedIcons/CloseSquare";
+import StyledTreeItem from "../../../ui/StyledTreeItem/StyledTreeItem";
 import tableConfigThemeStyle from "./TableConfigThemeStyle";
-import ItemLabel from "./StyledTreeItem/ItemLabel/ItemLabel";
-import {Column, Table} from "../../../Interface/Public_Interfaces";
+import ItemLabel from "../../../ui/StyledTreeItem/ItemLabel/ItemLabel";
+import {Column, Table} from "../../../../Interface/Public_Interfaces";
 
 interface _TableConfigProps{
     tables: Table[];
