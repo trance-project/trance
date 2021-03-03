@@ -1,7 +1,5 @@
 import React from 'react';
-import {Typography} from "@material-ui/core";
 import {TreeView} from "@material-ui/lab";
-import Modal from '@material-ui/core/Modal';
 
 import { Query, Table} from "../../../Interface/Public_Interfaces";
 import StyledTreeItem from "../../ui/StyledTreeItem/StyledTreeItem";
@@ -10,18 +8,26 @@ import PlusSquare from "../../ui/ExpandedIcons/PlusSquare";
 import CloseSquare from "../../ui/ExpandedIcons/CloseSquare";
 import LabelView from "./LabelView/LabelView";
 import StringIdGenerator from "../../../classObjects/stringIdGenerator";
-import PopoverTreeDiagram from "./PopoverTreeDiagram/PopoverTreeDiagram";;
-
-
+import TreeDiagram from "../../ui/TreeDiagram/TreeDiagram";
+import {RawNodeDatum} from "react-d3-tree/lib/types/common";
+import AccountTreeIcon from '@material-ui/icons/AccountTree';
+import {IconButton, Popover} from "@material-ui/core";
+import {standardCompilationViewThemeStyle} from './standardCompilationViewThemeStyle';
+import Materializationlvl1 from "../QueryShredding/Materialzation/Materializationlvl1";
+import Materializationlvl2 from "../QueryShredding/Materialzation/Materializationlvl2";
 
 interface _QueryViewProps {
     query:Query | undefined;
     showDiagram:boolean;
-    openDiagram:()=>void;
     closeDiagram:()=>void;
+    hoverMaterializationLvl:number;
+    hoverMaterializationLvlClose: ()=>void;
+    hoverMaterializationLvlOpen:(index:number)=>void;
 }
 
+
 const StandardCompilationView = (props:_QueryViewProps) => {
+    const classes = standardCompilationViewThemeStyle();
     const stringIdGen = StringIdGenerator.getInstance()!;
     let statement = <div></div>;
 
@@ -82,26 +88,117 @@ const StandardCompilationView = (props:_QueryViewProps) => {
             >
      {/*{statement}*/}
     {/*    /!*Example set*!/*/}
-            <StyledTreeItem nodeId="1" label={<LabelView tableEl={'s'} tableName={'Samples'} columns={["same:= s.sample", "mutations:=" ]}/>}>
-                <StyledTreeItem nodeId="2" label={<LabelView tableEl={'o'} tableName={'Occurrences'} joinString={"s.sample == o.sample"} columns={["mutId := o.mutId", "scores :=" ]}/>}>
+            <StyledTreeItem nodeId="1" label={<LabelView tableEl={'s'} tableName={'Samples'} columns={["same:= s.sample", "mutations:=" ]}/>} onMouseEnter={()=>props.hoverMaterializationLvlOpen(1)}>
+                <Popover
+                    open={props.hoverMaterializationLvl === 1}
+                    onClose={props.hoverMaterializationLvlClose}
+                    anchorOrigin={{
+                        vertical: 'top',
+                        horizontal: 'right',
+                    }}
+                    transformOrigin={{
+                        vertical: 'top',
+                        horizontal: 'right',
+                    }}
+                >
+                    <Materializationlvl1/>
+                </Popover>
+                <StyledTreeItem nodeId="2" label={<LabelView tableEl={'o'} tableName={'Occurrences'} joinString={"s.sample == o.sample"} columns={["mutId := o.mutId", "scores :=" ]}/>} onMouseEnter={()=>props.hoverMaterializationLvlOpen(1)}>
+                    <Popover
+                        open={props.hoverMaterializationLvl === 2}
+                        onClose={props.hoverMaterializationLvlClose}
+                        anchorOrigin={{
+                            vertical: 'top',
+                            horizontal: 'right',
+                        }}
+                        transformOrigin={{
+                            vertical: 'top',
+                            horizontal: 'right',
+                        }}
+                    >
+                        <Materializationlvl2/>
+                    </Popover>
                     <StyledTreeItem nodeId="3" label={<LabelView sumBy tableEl={'t'} tableName={'o.candidate'} />}>
                         <StyledTreeItem nodeId="4" label={<LabelView tableEl={'c'} tableName={'CopyNumber'} joinString={'t.gene == c.gene && s.sample == o.sample'} columns={["gene := t.gene","score := t.impact * (c.num + 0.01) * t.sift * t.poly)}))})}"]}/>}/>
                     </StyledTreeItem>
                 </StyledTreeItem>
             </StyledTreeItem>
             </TreeView>
-            <Modal
-            open={props.showDiagram}
-            onClose={props.closeDiagram}
-            aria-labelledby="simple-modal-title"
-            aria-describedby="simple-modal-description"
-            >
-                <div>
-                    <PopoverTreeDiagram isOpen={props.showDiagram}/>
-                </div>
-            </Modal>
+            <TreeDiagram open={props.showDiagram} close={props.closeDiagram} treeData={treeDiagramData}/>
         </div>
     );
+};
+
+const treeDiagramData:RawNodeDatum ={
+    name: 'Sample,mutations',
+    attributes: {
+        level: '1',
+    },
+    children: [
+        {
+            name: 'mutId, candidates, sID, sample',
+            attributes: {
+                level: '2',
+            },
+            children: [
+                {
+                    name: 'gene,score,sID,sample,mutId',
+                    attributes: {
+                        level: '2',
+                    },
+                    children: [
+                        {
+                            name: 'impact*(cnum+0.01)*sift*polysID',
+                            attributes: {
+                                newLine:'sample, label, gene',
+                                level: '3',
+                            },
+                            children:[
+                                {
+                                    name:'sample.gene',
+                                    attributes: {
+                                        level: '3',
+                                    },
+                                    children:[
+                                        {
+                                            name:'candidates',
+                                            attributes: {
+                                                level: '3',
+                                            },
+                                            children:[
+                                                {
+                                                    name:'sample',
+                                                    attributes: {
+                                                        level: '2',
+                                                    },
+                                                    children:[
+                                                        {name: 'Occurrences',
+                                                            attributes: {
+                                                                level: '1',
+                                                            }},
+                                                        {name:'Samples',
+                                                            attributes: {
+                                                                level: '1',
+                                                            }}
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            name:'CopyNumber',
+                                            attributes: {
+                                                level: '3',
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                    ],
+                },
+            ],
+        },
+    ],
 };
 
 export default StandardCompilationView;

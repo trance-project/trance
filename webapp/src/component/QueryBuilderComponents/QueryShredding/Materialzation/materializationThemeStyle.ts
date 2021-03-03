@@ -16,13 +16,13 @@ const materializationThemeStyle = makeStyles(theme =>
             textAlign:'left'
         },
         accordion1lvl: {
-            backgroundColor: 'rgb(141, 158, 145,0.8)'
+            backgroundColor: 'rgba(141,158,145,0.8)'
         },
         accordion2lvl: {
-            backgroundColor: 'rgb(139, 122, 140,0.8)'
+            backgroundColor: 'rgba(139,122,140,0.8)'
         },
         accordion3lvl: {
-            backgroundColor: 'rgb(179, 130, 181, 0.8)'
+            backgroundColor: 'rgba(179,130,181,0.8)'
         },
         accordionWhite: {
             backgroundColor: 'rgba(255,255,255,0.3)'
