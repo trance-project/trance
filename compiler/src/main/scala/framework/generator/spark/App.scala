@@ -27,16 +27,16 @@ object E2EApp extends App {
   override def main(args: Array[String]){
 
     // standard pipeline
-    AppWriter.runDataset(HybridBySampleNew, "HybridBySampleNew,standard", optLevel = 1)
-    AppWriter.runDataset(SampleNetworkNew, "SampleNetworkNew,standard", optLevel = 1)
-    AppWriter.runDataset(EffectBySampleNew, "EffectBySampleNew,standard", optLevel = 1)
-    AppWriter.runDataset(ConnectionBySampleNew, "ConnectionBySampleNew,standard", optLevel = 1)
-    AppWriter.runDataset(GeneConnectivityNew, "GeneConnectivityNew,standard", optLevel = 1)
+    // AppWriter.runDataset(HybridBySampleNew, "HybridBySampleNew,standard", optLevel = 1)
+    // AppWriter.runDataset(SampleNetworkNew, "SampleNetworkNew,standard", optLevel = 1)
+    // AppWriter.runDataset(EffectBySampleNew, "EffectBySampleNew,standard", optLevel = 1)
+    // AppWriter.runDataset(ConnectionBySampleNew, "ConnectionBySampleNew,standard", optLevel = 1)
+    // AppWriter.runDataset(GeneConnectivityNew, "GeneConnectivityNew,standard", optLevel = 1)
 
-    // shredded pipeline
-    AppWriter.runDatasetShred(HybridBySampleNewS, "HybridBySampleNew,shredded", optLevel = 1)
-    AppWriter.runDatasetShred(SampleNetworkNew, "SampleNetworkNew,shredded", optLevel = 1)
-    AppWriter.runDatasetShred(EffectBySampleNew, "EffectBySampleNew,shredded", optLevel = 1)
+    // // shredded pipeline
+    // AppWriter.runDatasetShred(HybridBySampleNewS, "HybridBySampleNew,shredded", optLevel = 1)
+    // AppWriter.runDatasetShred(SampleNetworkNew, "SampleNetworkNew,shredded", optLevel = 1)
+    // AppWriter.runDatasetShred(EffectBySampleNew, "EffectBySampleNew,shredded", optLevel = 1)
     // known double label issue
     //AppWriter.runDatasetShred(ConnectionBySampleNew, "ConnectionBySampleNew,shredded", optLevel = 1)
     //AppWriter.runDatasetShred(GeneConnectivityNew, "GeneConnectivityNew,shredded", optLevel = 1)
@@ -46,6 +46,7 @@ object E2EApp extends App {
 	  // AppWriter.runDatasetShred(BuildOccurrences1, "Build,shredded", optLevel = 1)
     // AppWriter.runDataset(HybridBySampleMuts, "HybridScore,standard", optLevel = 1)
     //AppWriter.runDatasetShred(HybridBySampleMuts, "HybridScore,shredded", optLevel = 1)
+    AppWriter.runDataset(ClinicalRunExample, "Likelihood,standard", optLevel = 1)
 
   }
 

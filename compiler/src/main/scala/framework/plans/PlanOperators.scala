@@ -65,6 +65,12 @@ trait UnnestOp extends CExpr with UnaryOp {
     v2.tp.project(fields).attrs.map(f => f._1 -> Project(v2, f._1))
   }
 
+  override def vstr: String = {
+    val lbl = if (outer) "Outer" else "" 
+    s"""Unnest$lbl(${in.vstr}, $path, ${fields.mkString(",")})""" 
+  }
+
+
 }
 
 case class Unnest(in: CExpr, v: Variable, path: String, v2: Variable, filter: CExpr, fields: List[String]) extends UnnestOp {
@@ -152,6 +158,10 @@ case class Nest(in: CExpr, v: Variable, key: List[String], value: CExpr, filter:
     case _:NumericType => BagCType(RecordCType(v.tp.project(key).attrTps ++ Map(ctag -> DoubleType)))
     case _ => BagCType(RecordCType(v.tp.project(key).attrTps ++ Map(ctag -> BagCType(value.tp.unouter))))
   }
+
+  override def vstr: String = 
+    s"""Nest(${in.vstr}, key = ${key.mkString(",")}, value = ${key.mkString(",")})""" 
+
 }
 
 case class Reduce(in: CExpr, v: Variable, keys: List[String], values: List[String]) extends CExpr with UnaryOp {
