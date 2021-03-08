@@ -48,15 +48,17 @@ object Cost {
         // network cost of the largest relation, plus what it costs to 
         // perform the operation give estimated output rows
         val network = leftEst.network + rightEst.network + (leftEst.outRows * NETWORK) + (stat.rowCount * .00002)
-        val cpu = leftEst.cpu + rightEst.cpu
+        val cpu = leftEst.cpu + rightEst.cpu + (stat.rowCount * .00002)
 
-        val insize = leftEst.inSize + rightEst.inSize
+        val insize = leftEst.outSize + rightEst.outSize
         val inrows = leftEst.outRows * rightEst.outRows
 
         // some factor of cardinalities
-        val outsize = leftEst.outSize + rightEst.outSize 
+        //val outsize = leftEst.outSize + rightEst.outSize 
+        val outsize = stat.sizeInBytes
+        val outrows = stat.rowCount
 
-        Estimate(insize, outsize, inrows, stat.rowCount, network, cpu)
+        Estimate(insize, outsize, inrows, outrows, network, cpu)
 
       // same here with unnest, need to use average nested collection sizes
       // cpu time is more because we are grouping, network is quite a 
