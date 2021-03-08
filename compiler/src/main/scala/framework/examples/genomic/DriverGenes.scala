@@ -382,6 +382,37 @@ trait Biospecimen {
     ("volume", DoubleType))
   val biospecType = TupleType(biospecOtype.toMap)
 
+  def loadBiospec(shred: Boolean = false, skew: Boolean = false, name: String = "biospec"): String = {
+    if (shred) loadShredBiospec(skew, name)
+    else if (skew) {
+    s"""|val basepath = "/nfs_qc4/genomics/gdc/"
+        |val biospecLoader = new BiospecLoader(spark)
+        |val ${name}_L = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
+        |val $name = (biospec_L, biospec_L.empty)
+        |$name.cache
+        |$name.count
+        |""".stripMargin
+  }else{
+    s"""|val basepath = "/nfs_qc4/genomics/gdc/"
+        |val biospecLoader = new BiospecLoader(spark)
+        |val $name = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
+        |$name.cache
+        |$name.count
+        |""".stripMargin
+    }
+  }
+
+  def loadShredBiospec(skew: Boolean = false, name: String = "biospec"): String = {
+    val biospecLoad = if (skew) "($name, $name.empty)" else name
+  s"""|val basepath = "/nfs_qc4/genomics/gdc/"
+      |val biospecLoader = new BiospecLoader(spark)
+      |val $name = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
+      |val IBag_${name}__D = $biospecLoad
+      |IBag_${name}__D.cache
+      |IBag_${name}__D.count
+      |""".stripMargin
+  }
+
 }
 
 trait TCGAClinical {
@@ -464,41 +495,6 @@ trait GTFMap {
 
 }
 
-trait Biospec {
-
-  def loadBiospec(shred: Boolean = false, skew: Boolean = false, name: String = "biospec"): String = {
-    if (shred) loadShredBiospec(skew, name)
-    else if (skew) {
-    s"""|val basepath = "/nfs_qc4/genomics/gdc/"
-        |val biospecLoader = new BiospecLoader(spark)
-        |val ${name}_L = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
-        |val $name = (biospec_L, biospec_L.empty)
-        |$name.cache
-        |$name.count
-        |""".stripMargin
-  }else{
-    s"""|val basepath = "/nfs_qc4/genomics/gdc/"
-        |val biospecLoader = new BiospecLoader(spark)
-        |val $name = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
-        |$name.cache
-        |$name.count
-        |""".stripMargin
-    }
-  }
-
-  def loadShredBiospec(skew: Boolean = false, name: String = "biospec"): String = {
-    val biospecLoad = if (skew) "($name, $name.empty)" else name
-  s"""|val basepath = "/nfs_qc4/genomics/gdc/"
-      |val biospecLoader = new BiospecLoader(spark)
-      |val $name = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
-      |val IBag_${name}__D = $biospecLoad
-      |IBag_${name}__D.cache
-      |IBag_${name}__D.count
-      |""".stripMargin
-  }
-
-}
-
 trait Consequences {
 
   def loadConseqs(shred: Boolean = false, skew: Boolean = false): String = {
@@ -532,7 +528,7 @@ trait Consequences {
 
 trait DriverGene extends Query with Occurrence with Gistic with StringNetwork 
   with GeneExpression with Biospecimen with SOImpact with GeneProteinMap 
-  with CopyNumber with TCGAClinical with GTFMap with Mutations with Biospec with Consequences{
+  with CopyNumber with TCGAClinical with GTFMap with Mutations with Consequences{
   
   val basepath = "/nfs_qc4/genomics/gdc/"
   

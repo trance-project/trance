@@ -6,13 +6,14 @@ import framework.common._
   * Plan Operators and Calculus
   */
 
-trait CExpr {
+trait CExpr { self =>
 
   def tp: Type
+  def vstr: String = self.toString
 
 }
 
-case class InputRef(data: String, tp: Type) extends CExpr 
+case class InputRef(data: String, tp: Type) extends CExpr
 
 case class Input(data: List[CExpr]) extends CExpr{
   def tp: BagCType = data match {
@@ -29,6 +30,7 @@ case class Constant(data: Any) extends CExpr{
     case _:String => StringType
     case _:Boolean => BoolType
   }
+  override def vstr: String = s"$data"
 }
 
 case class CUdf(name: String, in: CExpr, tp: Type) extends CExpr
@@ -84,41 +86,50 @@ case class CGet(e1: CExpr) extends CExpr {
 
 case class Equals(e1: CExpr, e2: CExpr) extends CExpr {
   def tp: PrimitiveType = BoolType
+  override def vstr: String = e1.vstr+"="+e2.vstr
 }
 
 case class Lt(e1: CExpr, e2: CExpr) extends CExpr {
   def tp: PrimitiveType = BoolType
+  override def vstr: String = e1.vstr+"<"+e2.vstr
 }
 
 case class Lte(e1: CExpr, e2: CExpr) extends CExpr{
   def tp: PrimitiveType = BoolType
+  override def vstr: String = e1.vstr+"<="+e2.vstr
 }
 
 case class Gt(e1: CExpr, e2: CExpr) extends CExpr {
   def tp: PrimitiveType = BoolType
+  override def vstr: String = e1.vstr+">"+e2.vstr
 }
 
 case class Gte(e1: CExpr, e2: CExpr) extends CExpr {
   def tp: PrimitiveType = BoolType
+  override def vstr: String = e1.vstr+">="+e2.vstr
 }
 
 case class And(e1: CExpr, e2: CExpr) extends CExpr {
   def tp: PrimitiveType = BoolType
+  override def vstr: String = e1.vstr+"&&"+e2.vstr
 }
 
 case class Not(e1: CExpr) extends CExpr{
   def tp: PrimitiveType = BoolType
+  override def vstr: String = "!"+e1.vstr
 }
 
 case class Or(e1: CExpr, e2: CExpr) extends CExpr{
   def tp: PrimitiveType = BoolType
+  override def vstr: String = e1.vstr+"||"+e2.vstr
 }
 
 case class MathOp(op: OpArithmetic, e1: CExpr, e2: CExpr) extends CExpr {
   def tp: NumericType = NumericType.resolve(e1.tp, e2.tp)
+  override def vstr: String = e1.vstr+op+e2.vstr
 }
 
-case class Project(e1: CExpr, field: String) extends CExpr { self =>
+case class Project(e1: CExpr, field: String) extends CExpr { //self =>
   def tp: Type = e1.tp match {
     case t:RecordCType => t.attrTps get field match {
       case Some(fi) => fi
@@ -132,8 +143,9 @@ case class Project(e1: CExpr, field: String) extends CExpr { self =>
     case t:LabelType => t(field)
     case t:TupleDictCType => t(field)
     case t:BagDictCType => t(field)
-    case _ => sys.error("unsupported projection index "+self)
+    case _ => sys.error(s"unsupported projection index $field in $e1")
   }
+  override def vstr: String = field
 
 }
 

@@ -33,6 +33,8 @@ trait BaseNormalizer extends BaseCompiler {
     case (Constant(false), Constant(false)) => super.constant(false)
     case (Constant(true), _) => super.constant(true)
     case (_, Constant(true)) => super.constant(true)
+    // test this case
+    case (e1, e2) if e1.vstr == e2.vstr => e1
     case _ => super.or(e1, e2)
   }
 

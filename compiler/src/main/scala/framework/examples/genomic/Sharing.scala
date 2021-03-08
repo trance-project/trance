@@ -3,6 +3,7 @@ package framework.examples.genomic
 import framework.common._
 import framework.examples.Query
 import framework.nrc.Parser
+// import scala.collection.mutable.Map
 
 /** Queries for sharing benchmark with filters **/
 
@@ -13,7 +14,9 @@ object SamplesFilterByTP53 extends DriverGene {
 
   val name = "SamplesFilterByTP53"
   
-  val tbls = Map("occurrences" -> occurmids.tp)
+  val tbls = Map("occurrences" -> occurmids.tp, 
+                  "cnvCases" -> cnvCases.tp, 
+                  "samples" -> samples.tp)
 
   // all samples that have a TP53 mutation with non-high impact
   val sampleFilter = 
@@ -22,11 +25,24 @@ object SamplesFilterByTP53 extends DriverGene {
         for t in o.transcript_consequences union
           if (t.gene_id = "ENSG00000141510" && t.impact != "HIGH") then 
             {( sid := o.donorId )})
+
+      HybridScores <= for s in FilterSamples union
+        for o in occurrences union
+         if (s.sid = o.donorId) then 
+         {( oid := o.oid, sid := o.donorId, cands := 
+           ( for t in o.transcript_consequences union
+              for c in cnvCases union
+                if (o.donorId = c.cn_case_uuid && t.gene_id = c.cn_gene_id) then
+                  {( gene := t.gene_id, score := (c.cn_copy_number + 0.01) * if (t.impact = "HIGH") then 0.80 
+                      else if (t.impact = "MODERATE") then 0.50
+                      else if (t.impact = "LOW") then 0.30
+                      else 0.01 )}).sumBy({gene}, {score}) )}
     """
 
     val parser = Parser(tbls)
-    val program: Program = parser.parseProgram(sampleFilter, parser.program).get.asInstanceOf[Program]
+    val program0: Program = parser.parse(sampleFilter).get.asInstanceOf[Program]
 
+    val program = Program(Assignment("cnvCases", mapCNV) +: program0.statements)
 }
 
 object HybridTP53 extends DriverGene {
