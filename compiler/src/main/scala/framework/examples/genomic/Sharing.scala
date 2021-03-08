@@ -20,7 +20,7 @@ object SamplesFilterByTP53 extends DriverGene {
     s"""
       FilterSamples <= dedup(for o in occurrences union
         for t in o.transcript_consequences union
-          if (t.gene_id = "TP53" && t.impact != "HIGH") then 
+          if (t.gene_id = "ENSG00000141510" && t.impact != "HIGH") then 
             {( sid := o.donorId )})
     """
 
