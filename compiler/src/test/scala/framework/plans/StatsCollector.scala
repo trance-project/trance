@@ -7,7 +7,7 @@ import framework.examples.genomic._
 import framework.nrc._
 import framework.plans.{Equals => CEquals, Project => CProject}
 
-class TestCost extends FunSuite with MaterializeNRC with NRCTranslator {
+class TestStatsCollector extends FunSuite with MaterializeNRC with NRCTranslator {
 
   val compileCost = false
 
@@ -26,6 +26,20 @@ class TestCost extends FunSuite with MaterializeNRC with NRCTranslator {
     val ncalc = normalizer.finalize(translate(query)).asInstanceOf[CExpr]
     optimizer.applyPush(Unnester.unnest(ncalc)(Map(), Map(), None, "_2")).asInstanceOf[LinearCSet]
   }
+
+  // test("simple copy number"){
+  //   val cnum1 =  """ 
+  //     TestCnum <=
+  //     for c in copynumber union 
+  //       if (c.cn_copy_number > 0) 
+  //       then {(sid := c.cn_aliquot_uuid, cnum := c.cn_copy_number)}
+  //     """ 
+  //   val query1 = parser.parse(cnum1).get
+  //   val plan1 = getPlan(query1.asInstanceOf[Program])
+
+  //   // if (compileCost) Cost.runCost(plan1)
+
+  // }
 
   test("aggregates"){
 
@@ -79,21 +93,7 @@ class TestCost extends FunSuite with MaterializeNRC with NRCTranslator {
         CE(cover, id, se)
     }.toList
     
-    val stats = StatsCollector.getCost(ces)
-    for (s <- stats){
-      println(s)
-    }
-
-    val costs = ces.map{
-      case ce => 
-        val scosts = ce.ses.map(s => 
-            CostSE(s.wid, s.subplan, s.height, Cost.estimate(s.subplan, stats)))
-        CostCE(ce.cover, ce.sig, scosts, Cost.estimate(ce.cover, stats))
-    }
-
-    for (c <- costs){
-      println(c)
-    }
+    // StatsCollector.getCost(ces)
 
   }
 

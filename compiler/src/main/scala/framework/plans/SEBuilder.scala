@@ -13,12 +13,6 @@ case class SE(wid: Int, subplan: CExpr, height: Int) {
   override def hashCode: Int = (subplan, height).hashCode
 }
 
-// object SE {
-//   // empty name
-//   def apply(wid: Int, subplan: CExpr, height: Int): SE = SE(wid, "", subplan, height)
-//   def apply(wid: Int, name: String, subplan: CExpr, height: Int): SE = SE(wid, name, subplan, height)
-// }
-
 /** Optimizer used for plans from BatchUnnester **/
 object SEBuilder extends Extensions {
 
@@ -98,10 +92,11 @@ object SEBuilder extends Extensions {
 
     def traversePlan(plan: (CExpr, Int), index: Int, acc: Int = 0): Unit = plan match {
       
-      // cache unfriendly
-      case (n:Nest, id) => traversePlan((n.in, id), index, acc+1)
-
       case (j:JoinOp, id) => 
+
+        val sig = subexprs(index)(plan)
+        sigmap(sig) = sigmap(sig) :+ SE(id, j, acc)
+
         val height = acc + 1
         traversePlan((j.left, id), index, height); traversePlan((j.right, id), index, height)
       
@@ -114,9 +109,9 @@ object SEBuilder extends Extensions {
       case (o:UnaryOp, id) =>
         val sig = subexprs(index)(plan)
         sigmap(sig) = sigmap(sig) :+ SE(id, o, acc)
-        traversePlan((o.in, id), index, acc+1)
+        traversePlan((o.in, id), index, acc+1)   
 
-      case _ => 
+      case _ =>    
 
     }
 
