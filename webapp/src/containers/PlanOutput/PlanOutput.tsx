@@ -21,7 +21,7 @@ const PlanOutput = () => {
     };
 return (
     <React.Fragment>
-        <Button className={classes.iconView} variant={"contained"} style={{'backgroundColor':'#d66123'}} onClick={handleClickOpen} endIcon={<StarBorderIcon/>}>Statistics</Button>
+        <Button className={classes.iconView} variant={"contained"} style={{'backgroundColor':'#d66123'}} onClick={handleClickOpen} endIcon={<StarBorderIcon/>}>Metrics</Button>
         <Grid container spacing={3}>
             <Grid item xs={12}>
                 <Paper className={fixedHeightPaper}>

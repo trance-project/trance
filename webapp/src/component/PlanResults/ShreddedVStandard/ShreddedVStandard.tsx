@@ -53,18 +53,18 @@ interface _ShreddedVStandardProps{
                     <Grid container spacing={2} >
                         <Grid item xs={12} >
                                 <Paper className={classes.paper}>
-                                    <Typography variant={"h6"}>Shredded Plan Statistics</Typography>
+                                    <Typography variant={"h6"}>Shredded Plan Metrics</Typography>
                                     <SimpleBarGraphVShredded data={shred_part_dist}/>
                                 </Paper>
                         </Grid>
                         <Grid item xs={12} >
                             <Paper className={classes.paper}>
-                                <Typography variant={"h6"}>Standard Plan Statistics</Typography>
+                                <Typography variant={"h6"}>Standard Plan Metrics</Typography>
                                 <SimpleBarGraphVShredded data={stand_part_dist}/>
                             </Paper>
                         </Grid>
                     </Grid>
-                 <Button className={classes.btn} variant={"contained"} style={{'backgroundColor':'#d66123'}} onClick={()=> window.location.href = "http://localhost:18080"} endIcon={<StarBorderIcon/>}>Statistics</Button>
+                 <Button className={classes.btn} variant={"contained"} style={{'backgroundColor':'#d66123'}} onClick={()=> window.location.href = "http://localhost:18080"} endIcon={<StarBorderIcon/>}>Metrics</Button>
              </Dialog>
          </div>
      );
