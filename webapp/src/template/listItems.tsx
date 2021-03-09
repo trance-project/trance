@@ -8,6 +8,8 @@ import DeveloperModeIcon from '@material-ui/icons/DeveloperMode';
 import MapIcon from '@material-ui/icons/Map';
 import BarChartIcon from '@material-ui/icons/BarChart';
 import AssignmentIcon from '@material-ui/icons/Assignment';
+import CodeIcon from '@material-ui/icons/Code';
+import DeviceHubIcon from '@material-ui/icons/DeviceHub';
 import {Link} from 'react-router-dom';
 
 export const mainListItems = (
@@ -20,10 +22,18 @@ export const mainListItems = (
                 <ListItemText primary={"Dashboard"} />
             </ListItem>
         </Link>
+        <Link to={'/queryView'}>
+            <ListItem button>
+                <ListItemIcon>
+                    <DeviceHubIcon />
+                </ListItemIcon>
+                <ListItemText primary={"Query View"} />
+            </ListItem>
+        </Link>
         <Link to={'/builder'}>
             <ListItem button>
                 <ListItemIcon>
-                    <DeveloperModeIcon />
+                    <CodeIcon />
                 </ListItemIcon>
                 <ListItemText primary={"Query Builder"} />
             </ListItem>

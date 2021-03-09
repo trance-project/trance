@@ -5,31 +5,42 @@ import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import IconButton from "@material-ui/core/IconButton";
 import MenuIcon from "@material-ui/icons/Menu";
+import AddIcon from '@material-ui/icons/Add';
 import Typography from "@material-ui/core/Typography";
 import Drawer from "@material-ui/core/Drawer";
 import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
+import SearchIcon from '@material-ui/icons/Search';
 import Divider from "@material-ui/core/Divider";
 import List from "@material-ui/core/List";
 import {mainListItems, secondaryListItems} from "../../template/listItems";
 import Container from "@material-ui/core/Container";
 import Grid from "@material-ui/core/Grid";
 import Box from "@material-ui/core/Box";
+import MenuItem from '@material-ui/core/MenuItem';
+import Select from '@material-ui/core/Select';
 
 import LayoutThemeStyle from "./LayoutThemeStyle";
 import CopyRight from "../../component/CopyRight/CopyRight";
+import image from '../../static/images/planOperator/outer-unest.png';
 
 interface LayoutProps {
     children: React.ReactNode;
 }
 
 const Layout = (props:LayoutProps) => {
-        const [open, setOpen] = React.useState(true);
+        const [open, setOpen] = React.useState(false);
+        const [selectedQuery, setSelectedQuery] = React.useState('10');
+
         const handleDrawerOpen = () => {
             setOpen(true);
         }
         const handleDrawerClose = () => {
             setOpen(false);
         }
+
+    const handleChange = (event: React.ChangeEvent<{ value: unknown }>) => {
+        setSelectedQuery(event.target.value as string);
+    };
 
         const classes = LayoutThemeStyle();
 
@@ -47,8 +58,33 @@ const Layout = (props:LayoutProps) => {
                             <MenuIcon/>
                         </IconButton>
                         <Typography component={'h1'} variant={'h6'} color={'inherit'} noWrap className={classes.title}>
-                            Dashboard
+                            TraNCE
                         </Typography>
+                        <div className={classes.search}>
+                            <div className={classes.searchIcon}>
+                                <SearchIcon />
+                            </div>
+                            <Select
+                                labelId="demo-simple-select-filled-label"
+                                id="demo-simple-select-filled"
+                                value={selectedQuery}
+                                onChange={handleChange}
+                                classes={{
+                                    root: classes.inputRoot,
+                                    select: classes.inputInput,
+                                }}
+                            >
+                                <MenuItem value="">
+                                    <em>None</em>
+                                </MenuItem>
+                                <MenuItem value={10}>Biomedical Query</MenuItem>
+                                <MenuItem value={20}>Test 1</MenuItem>
+                                <MenuItem value={30}>Test 2</MenuItem>
+                            </Select>
+                        </div>
+                        <div>
+                            <AddIcon/>
+                        </div>
                     </Toolbar>
                 </AppBar>
                 <Drawer

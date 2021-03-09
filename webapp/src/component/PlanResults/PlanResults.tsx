@@ -53,17 +53,43 @@ const PlanResult = (props:_PlanResultsProps) => {
             </AppBar>
             <Grid container spacing={3} style={{height: '100vh'}}>
                 <Grid item xs={12} md={6}>
-                    <Tree
-                        data={treeDiagramData}
-                        orientation={"vertical"}
-                        pathFunc={"straight"}
-                        zoom={0.7}
-                        enableLegacyTransitions
-                        translate={{x:200, y:20}}
-                        transitionDuration={1500}
-                        renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
-                        separation={{siblings:1.7}}
-                    />
+                    <Grid item direction={"row"}>
+                        <Tree
+                            data={treeDiagramLvl1}
+                            orientation={"vertical"}
+                            pathFunc={"straight"}
+                            zoom={0.6}
+                            enableLegacyTransitions
+                            translate={{x:200, y:20}}
+                            transitionDuration={1500}
+                            renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
+                        />
+                    </Grid>
+                    <Grid item direction={"row"}>
+                        <Tree
+                            data={treeDiagramLvl2}
+                            orientation={"vertical"}
+                            pathFunc={"straight"}
+                            zoom={0.6}
+                            enableLegacyTransitions
+                            translate={{x:200, y:20}}
+                            transitionDuration={1500}
+                            renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
+                        />
+                    </Grid>
+                    <Grid item direction={"row"} style={{height:400}}>
+                        <Tree
+                            data={treeDiagramData}
+                            orientation={"vertical"}
+                            pathFunc={"straight"}
+                            zoom={0.6}
+                            enableLegacyTransitions
+                            translate={{x:200, y:20}}
+                            transitionDuration={1500}
+                            renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
+                            separation={{siblings:1.7}}
+                        />
+                    </Grid>
                 </Grid>
                 <Grid item xs={12} md={6}>
                     <Accordion className={classes.accordion1lvl} defaultExpanded>
@@ -145,23 +171,35 @@ const PlanResult = (props:_PlanResultsProps) => {
     );
 }
 
-const treeDiagramData:RawNodeDatum = {
+const treeDiagramLvl1:RawNodeDatum = {
     name: 'sample,mutations:=Newlabel(sample)',
     attributes: {
         level:'1'
     },
-    children: [
+    children:[
         {
-            name: 'mutId, scores:= NewLabel(sample)',
+            name: 'MatSamples',
             attributes: {
-                level:'2'
+                level: '1'
             },
-            children:[{
-                name:'MatOccurences',
-                attributes:{
-                    level:'2'
-                },
-                children:[{
+        }
+    ]
+}
+const treeDiagramLvl2:RawNodeDatum = {
+    name: 'mutId, scores:= NewLabel(sample)',
+    attributes: {
+        level:'2'
+    },
+    children:[
+        {
+            name: 'MatOccurences',
+            attributes: {
+                level: '2'
+            },
+        }
+    ]
+}
+const treeDiagramData:RawNodeDatum = {
                     name:'πlabel,gene,score',
                     attributes:{
                         level:'3'
@@ -207,11 +245,8 @@ const treeDiagramData:RawNodeDatum = {
                             ]
                         }]
                     }]
-                }]
-            }]
-        }
-    ]
-}
+                }
+
 
 // Here we're using `renderCustomNodeElement` to bind event handlers
 // to the DOM nodes of our choice.

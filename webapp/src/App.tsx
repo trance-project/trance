@@ -7,10 +7,11 @@ import {
 
 import Overview from "./component/Overview/Overview";
 import QueryBuilder from "./containers/QueryBuilder/QueryBuilder";
-
+import QueryView from "./component/Query/QueryView/QueryView";
 import Layout from "./hoc/Layout/Layout";
 
 import './App.css';
+import PlanOutput from "./containers/PlanOutput/PlanOutput";
 
 function App() {
   return (
@@ -18,11 +19,14 @@ function App() {
           <div className="App">
               <Layout>
                   <Switch>
-                      <Route path={"/reports"}>
-                          <h1> Reports to be constructed</h1>
+                      <Route path={"/report"}>
+                          <PlanOutput/>
                       </Route>
                       <Route path={"/tables"}>
                           <h1>Tables to be constructed</h1>
+                      </Route>
+                      <Route path={"/queryView"}>
+                          <QueryView/>
                       </Route>
                       <Route path={"/builder"}>
                             <QueryBuilder/>

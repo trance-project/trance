@@ -11,3 +11,8 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+@font-face {
+  font-family: 'EricaOne-Regular';
+  src: local('EricaOne-Regular'), url("./static/fonts/EricaOne-Regular.ttf") format('truetype');
+}

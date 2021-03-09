@@ -1,6 +1,6 @@
 import React from "react";
 import materializationThemeStyle
-    from "../../QueryBuilderComponents/QueryShredding/Materialzation/materializationThemeStyle";
+    from "../../Query/QueryBuilderComponents/QueryShredding/Materialzation/materializationThemeStyle";
 import {Typography} from "@material-ui/core";
 
 interface _spanInterface{

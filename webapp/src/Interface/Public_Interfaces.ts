@@ -23,5 +23,21 @@ export interface Query {
 
 export interface customTabElement {
     tabLabel:string;
-    jsxElement: React.ReactNode
+    jsxElement: React.ReactNode,
+    disable?:boolean
+}
+
+export interface planDemoOutput{
+    sample: string;
+    mutations:mutation[];
+}
+
+export interface mutation{
+    mutId:string;
+    scores:score[];
+}
+
+export interface score{
+    gene:string;
+    score:number;
 }

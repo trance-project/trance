@@ -14,7 +14,8 @@ const a11yProps = (index: any) => ({
 });
 
 interface _CustomTabs {
-  tabsElement : customTabElement[]
+  tabsElement : customTabElement[],
+  scrollable?: boolean;
 }
 
 const CustomTabs = (props:_CustomTabs) => {
@@ -33,7 +34,7 @@ const CustomTabs = (props:_CustomTabs) => {
    }
 
    props.tabsElement.forEach((element, i) => {
-       tabsAppbarLabel.push(<Tab key={i} label={element.tabLabel} {...a11yProps(i)} />);
+       tabsAppbarLabel.push(<Tab key={i} label={element.tabLabel} {...a11yProps(i)}  disabled={element.disable}/>);
        tabsPanel.push(
            <TabPanel key={i} index={valueState} value={i} dir={theme.direction}>
                {element.jsxElement}
@@ -49,8 +50,9 @@ const CustomTabs = (props:_CustomTabs) => {
                    onChange={handleTabChange}
                    indicatorColor={"primary"}
                    textColor={"primary"}
-                   variant={"standard"}
+                   variant={props.scrollable?"scrollable":"standard"}
                    aria-label={'full width tabs query view'}
+
                    >
                    {tabsAppbarLabel}
                </Tabs>
