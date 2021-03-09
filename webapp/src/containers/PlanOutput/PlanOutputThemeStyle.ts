@@ -12,9 +12,9 @@ export const planOutputThemeStyle = makeStyles((theme) => ({
     },
     iconView:{
         float:"right",
-        display:"inline-block",
         position:'relative',
-        marginLeft:'96%',
-        color: '#d66123'
+        color: '#fff',
+        marginBottom:5,
+        marginLeft:"auto"
     }
 }));
