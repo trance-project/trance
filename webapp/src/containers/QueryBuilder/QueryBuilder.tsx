@@ -2,6 +2,7 @@ import React, {useState} from "react";
 import Grid from "@material-ui/core/Grid";
 import Paper from "@material-ui/core/Paper";
 import Button from "@material-ui/core/Button";
+import SaveIcon from '@material-ui/icons/Save';
 
 import ViewSelector from "../../component/ViewSelector/ViewSelector";
 import QueryConfig from "../../component/Query/QueryBuilderComponents/QueryConfig/QueryConfig";
@@ -27,7 +28,12 @@ const QueryBuilder =()=>{
     const [showModalState, setShowModalState] = useState(false);
     const [requestLoadingState, setRequestLoadingState] = useState(false);
     const [showModalPlanState, setShowModalPlanState] = useState(false);
-    const [queryState, setQueryState] = useState<Query | undefined>();
+    const [queryState, setQueryState] = useState<Query | undefined>({
+        tables :testData,
+        groupBy: "",
+        Where: "",
+        selectedColumns:[]
+    });
 
 
 
@@ -107,7 +113,7 @@ const QueryBuilder =()=>{
                             query={queryState}
                         />
                         <ButtonGroup className={classes.queryBtnGroup} color={"primary"} aria-label={"Contained primary button group"}>
-                            <Button variant={"contained"} style={{'backgroundColor':'#2980b9'}} onClick={handleOpenModalState}>Compile</Button>
+                            <Button variant={"contained"} style={{'backgroundColor':'#2980b9'}} onClick={handleOpenModalState} endIcon={<SaveIcon/>}>Save</Button>
                         </ButtonGroup>
                     </Paper>
                 </Grid>

@@ -3,7 +3,7 @@ import {ButtonGroup, Grid, Paper, Typography, IconButton} from "@material-ui/cor
 import Button from "@material-ui/core/Button";
 import {standardCompilationViewThemeStyle} from './StandardCompilationView/standardCompilationViewThemeStyle'
 import AccountTreeIcon from "@material-ui/icons/AccountTree";
-
+import NoteIcon from '@material-ui/icons/Note';
 import {customTabElement, Query} from "../../../Interface/Public_Interfaces";
 import StandardCompilationView from "./StandardCompilationView/StandardCompilationView";
 import Materialization from "../QueryBuilderComponents/QueryShredding/Materialzation/Materialization";
@@ -13,6 +13,7 @@ import ShreddedPlan from "../../Plan/ShreddedPlan/ShreddedPlan";
 import ModelMessage from "../../ui/ModelMessage/ModelMessage";
 import StandardCompilationDiagram
     from "./StandardCompilationView/StandardCompilationDiagram/StandardCompilationDiagram";
+import PlanResults from "../../PlanResults/PlanResults";
 
 
 const QueryView = () => {
@@ -64,7 +65,6 @@ const QueryView = () => {
             tabLabel:"Source NRC",
             jsxElement: (
                 <React.Fragment>
-                    <Typography variant={"h5"}>Query View <IconButton className={classes.iconView} onClick={handleQueryTreeDiagramOpen}><AccountTreeIcon/></IconButton></Typography>
                     <StandardCompilationView
                         query={queryState}
                         showDiagram={queryTreeDiagramState}
@@ -74,9 +74,10 @@ const QueryView = () => {
                         hoverMaterializationLvlOpen={handleHoverMaterializationLvl}
                         abortHover={abortHoverHandler}
                     />
-                    <ButtonGroup className={classes.queryBtnGroup} color={"primary"} aria-label={"Contained primary button group"}>
-                        <Button variant={"contained"} style={{'backgroundColor':'#2980b9'}} onClick={handleOpenModalState}>Compile</Button>
-                    </ButtonGroup>
+
+                    <IconButton className={classes.queryBtnGroup} component={"span"} color={"primary"}><NoteIcon /></IconButton>
+                    <Button className={classes.queryBtnGroup} variant={"contained"} style={{'backgroundColor':'#2980b9' ,'color':'#fff'}} onClick={handleOpenModalState}>Compile</Button>
+
                 </React.Fragment>
             )
         },
@@ -92,16 +93,16 @@ const QueryView = () => {
             jsxElement:<StandardCompilationDiagram/>,
             disable: !hasCompileState
         },
-        // {
-        //     tabLabel:"Shredded Plan",
-        //     jsxElement: <ShreddedPlan/>,
-        //     disable:!hasCompileState
-        // },
         {
             tabLabel:"Shredded Plan",
             jsxElement: <ShreddedPlanDiagram/>,
             disable:!hasCompileState
-        }
+        },
+        {
+            tabLabel:"Shredded Plan & NRC",
+            jsxElement: <PlanResults/>,
+            disable:!hasCompileState
+        },
     ]
 
     return (

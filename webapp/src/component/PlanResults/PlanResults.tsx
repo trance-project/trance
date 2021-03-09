@@ -1,56 +1,35 @@
 import React from "react";
-import CloseIcon from '@material-ui/icons/Close';
-import Button from '@material-ui/core/Button';
 
 import {planResultsThemeStyle} from './planResultsThemeStyle';
-import {TransitionProps} from "@material-ui/core/transitions";
 import {
     Accordion,
     AccordionDetails,
     AccordionSummary,
-    AppBar,
-    Dialog,
     Grid,
-    IconButton,
-    Slide,
     Typography
 } from "@material-ui/core";
 
-import Toolbar from '@material-ui/core/Toolbar';
 import {CustomNodeElementProps, RawNodeDatum} from "react-d3-tree/lib/types/common";
 import Tree from "react-d3-tree";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 
 import S from "../ui/Span/S";
+import projection from "../../static/images/planOperator/Projection.png";
+import nest from "../../static/images/planOperator/Nest.png";
+import sumAggregate from "../../static/images/planOperator/Sum_aggregate.png";
+import leftOuterJoin from "../../static/images/planOperator/LeftOuterJoin.png";
+import unnest from "../../static/images/planOperator/Unnest.png";
+import equiJoin from "../../static/images/planOperator/Equijoin.png";
 
-const Transition = React.forwardRef((props:TransitionProps & {children?: React.ReactElement}, ref:React.Ref<unknown>)=>{
-    return <Slide direction={"up"} ref={ref} {...props}/>;
-});
 
 interface _PlanResultsProps{
-    open: boolean;
-    close: () => void;
-    successful: boolean
+
 }
 
 const PlanResult = (props:_PlanResultsProps) => {
     const classes = planResultsThemeStyle();
 
     return (
-        <Dialog open={props.open} fullScreen TransitionComponent={Transition}>
-            <AppBar className={classes.appBar}>
-                <Toolbar>
-                    <IconButton edge={'start'} color={'inherit'} onClick={props.close} aria-label={"close"}>
-                        <CloseIcon />
-                    </IconButton>
-                    <Typography variant={"h6"} className={classes.title}>
-                        Shredded Plan
-                    </Typography>
-                    <Button autoFocus color={"inherit"} onClick={props.close}>
-                        Download
-                    </Button>
-                </Toolbar>
-            </AppBar>
             <Grid container spacing={3} style={{height: '100vh'}}>
                 <Grid item xs={12} md={6}>
                     <Grid item direction={"row"}>
@@ -63,6 +42,7 @@ const PlanResult = (props:_PlanResultsProps) => {
                             translate={{x:200, y:20}}
                             transitionDuration={1500}
                             renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
+                            zoomable={false}
                         />
                     </Grid>
                     <Grid item direction={"row"}>
@@ -75,6 +55,7 @@ const PlanResult = (props:_PlanResultsProps) => {
                             translate={{x:200, y:20}}
                             transitionDuration={1500}
                             renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
+                            zoomable={false}
                         />
                     </Grid>
                     <Grid item direction={"row"} style={{height:400}}>
@@ -88,6 +69,7 @@ const PlanResult = (props:_PlanResultsProps) => {
                             transitionDuration={1500}
                             renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
                             separation={{siblings:1.7}}
+                            zoomable={false}
                         />
                     </Grid>
                 </Grid>
@@ -167,14 +149,14 @@ const PlanResult = (props:_PlanResultsProps) => {
                     </Accordion>
                 </Grid>
             </Grid>
-        </Dialog>
-    );
+        );
 }
 
 const treeDiagramLvl1:RawNodeDatum = {
     name: 'sample,mutations:=Newlabel(sample)',
     attributes: {
-        level:'1'
+        level:'1',
+        planOperator:'projection'
     },
     children:[
         {
@@ -188,7 +170,8 @@ const treeDiagramLvl1:RawNodeDatum = {
 const treeDiagramLvl2:RawNodeDatum = {
     name: 'mutId, scores:= NewLabel(sample)',
     attributes: {
-        level:'2'
+        level:'2',
+        planOperator:'projection'
     },
     children:[
         {
@@ -200,52 +183,56 @@ const treeDiagramLvl2:RawNodeDatum = {
     ]
 }
 const treeDiagramData:RawNodeDatum = {
-                    name:'πlabel,gene,score',
+    name:'label,gene,score',
+    attributes:{
+        level:'3',
+        planOperator:'projection'
+    },
+    children:[{
+        name:'impact*(cnum+0.01)*sift*poly',
+        attributes:{
+            newLine:'sample, label, gene',
+            level:'3',
+            planOperator:'sum-aggregate'
+        },
+        children:[{
+            name:'sample,gene',
+            attributes:{
+                level:'3',
+                planOperator:'equijoin'
+            },
+            children:[
+                {
+                    name:'label',
                     attributes:{
-                        level:'3'
+                        level:'3',
+                        planOperator:'equijoin'
                     },
-                    children:[{
-                        name:'impact*(cnum+0.01)*sift*poly',
-                        attributes:{
-                            newLine:'sample, label, gene',
-                            level:'3'
-                        },
-                        children:[{
-                            name:'sample,gene',
+                    children:[
+                        {
+                            name:'LabDomainmutations_scores',
                             attributes:{
                                 level:'3'
-                            },
-                            children:[
-                                {
-                                    name:'label',
-                                    attributes:{
-                                        level:'3'
-                                    },
-                                    children:[
-                                        {
-                                            name:'LabDomainmutations_scores',
-                                            attributes:{
-                                                level:'3'
-                                            }
-                                        },
-                                        {
-                                            name:'MatOccurencesmutations',
-                                            attributes:{
-                                                level:'3'
-                                            }
-                                        }
-                                    ]
-                                },
-                                {
-                                    name:'CopyNumber',
-                                    attributes:{
-                                        level:'3'
-                                    }
-                                }
-                            ]
-                        }]
-                    }]
+                            }
+                        },
+                        {
+                            name:'MatOccurencesmutations',
+                            attributes:{
+                                level:'3'
+                            }
+                        }
+                    ]
+                },
+                {
+                    name:'CopyNumber',
+                    attributes:{
+                        level:'3'
+                    }
                 }
+            ]
+        }]
+    }]
+}
 
 
 // Here we're using `renderCustomNodeElement` to bind event handlers
@@ -257,22 +244,54 @@ const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
     const levelColor = _colorPicker(diagramElProps.nodeDatum.attributes?.level!);
     return (
         <g>
+
             <circle r="15" onClick={diagramElProps.toggleNode} fill={levelColor}/>
-            <text fill="black" strokeWidth="0.5" x="20" onClick={diagramElProps.toggleNode}>
+            <foreignObject width={70} height={50}>
+                {getImagePlanOperator(diagramElProps.nodeDatum.attributes?.planOperator)}
+            </foreignObject>
+            <text fill="black" strokeWidth="0.5" x="50" y={"20"} onClick={diagramElProps.toggleNode}>
                 {diagramElProps.nodeDatum.name}
             </text>
             {diagramElProps.nodeDatum.attributes?.newLine && (
-                <text fill="black" x="20" dy="20" strokeWidth="0.5">
+                <text fill="black" x="50" dy="40" strokeWidth="0.5">
                     {diagramElProps.nodeDatum.attributes?.newLine}
                 </text>
             )}
             {diagramElProps.nodeDatum.attributes?.level && (
-                <text fill="black" x="20" dy={diagramElProps.nodeDatum.attributes?.newLine?"40":"20"} strokeWidth="1">
+                <text fill="black" x="50" dy={diagramElProps.nodeDatum.attributes?.newLine?"60":"40"} strokeWidth="1">
                     level: {diagramElProps.nodeDatum.attributes?.level}
                 </text>
             )}
         </g>
     );
+}
+
+const getImagePlanOperator = (planOperator:String | undefined) => {
+
+    let image;
+    switch (planOperator){
+        case 'projection':
+            image=projection;
+            break;
+        case 'nest':
+            image=nest;
+            break;
+        case 'sum-aggregate':
+            image=sumAggregate;
+            break;
+        case 'left-outer-join':
+            image=leftOuterJoin;
+            break;
+        case 'unnest':
+            image=unnest;
+            break;
+        case 'equijoin':
+            image=equiJoin;
+            break;
+        default:
+            return;
+    }
+    return <img src={image} alt={'planOperatorSymbol'} width={20} height={20}/>
 }
 
 const _colorPicker =(level:String)=>{

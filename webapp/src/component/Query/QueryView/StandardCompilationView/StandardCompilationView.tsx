@@ -166,7 +166,6 @@ const StandardCompilationView = (props:_QueryViewProps) => {
                 </StyledTreeItem>
             </StyledTreeItem>
             </TreeView>
-            <TreeDiagram open={props.showDiagram} close={props.closeDiagram} treeData={treeDiagramData}/>
         </div>
     );
 };

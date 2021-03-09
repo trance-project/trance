@@ -10,4 +10,11 @@ export const planOutputThemeStyle = makeStyles((theme) => ({
     fixedHeight: {
         height: 240,
     },
+    iconView:{
+        float:"right",
+        display:"inline-block",
+        position:'relative',
+        marginLeft:'96%',
+        color: '#d66123'
+    }
 }));

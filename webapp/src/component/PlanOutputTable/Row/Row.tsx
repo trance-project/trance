@@ -25,13 +25,13 @@ const Row = (props:_RowProps) => {
     const classes = rowThemeStyle();
     const row = props.row;
     const [open, setOpen] = React.useState(false);
-
+    const styleExpand = row.mutations.length>0?classes.expand:classes.noExpand;
     return (
         <React.Fragment>
             <TableRow className={classes.root}>
                 <TableCell className={classes.tableCell}>
-                    <IconButton aria-label="expand row" size="small" onClick={() => setOpen(!open)}>
-                        {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                    <IconButton aria-label="expand row" size="small" onClick={() => setOpen(!open)} className={styleExpand}>
+                        {open ? <KeyboardArrowUpIcon/> : <KeyboardArrowDownIcon />}
                     </IconButton>
                 </TableCell>
                 <TableCell component="th" scope="row" className={classes.tableCell}>
