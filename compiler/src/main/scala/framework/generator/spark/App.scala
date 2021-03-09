@@ -48,6 +48,7 @@ object E2EApp extends App {
     //AppWriter.runDatasetShred(HybridBySampleMuts, "HybridScore,shredded", optLevel = 1)
     //AppWriter.runDataset(ClinicalRunExample, "Likelihood,standard", optLevel = 1)
     AppWriter.runDatasetShred(ClinicalRunExample, "Likelihood,shredded", optLevel = 1)
+    // AppWriter.runDatasetShred(OccurCNVAggGroupByCaseMid, "Test,shredded", optLevel = 1)
 
   }
 

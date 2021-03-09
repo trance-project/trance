@@ -231,7 +231,7 @@ object ClinicalRunExample extends DriverGene {
                   IfThenElse(And(Cmp(OpEq, cncr("cn_case_uuid"), omr("donorId")),
                       Cmp(OpEq, amr("gene_id"), cncr("cn_gene_id"))),
                     Singleton(Tuple("gene" -> amr("gene_id"), 
-                                "score" -> matchImpact * (cncr("cn_copy_number").asNumeric + NumericConst(0.01, DoubleType))
+                                "score" -> matchImpactMid * (cncr("cn_copy_number").asNumeric + NumericConst(0.01, DoubleType))
                                   * amr("sift_score").asNumeric * amr("polyphen_score").asNumeric))))),
             List("gene"),
             List("score")))))))))
