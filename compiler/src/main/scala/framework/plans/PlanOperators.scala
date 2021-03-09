@@ -16,7 +16,8 @@ case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr with 
   val projs = e.tp.attrs.keySet
   def tp: Type = x.tp match {
     case BagCType(ttp) => BagCType(RecordCType(ttp.attrs.filter(f => projs(f._1))))
-    case _ => ???
+    case rt:RecordCType => BagCType(rt)
+	case t => t //sys.error(s"need to capture $t")
   }
   // e.tp match {
   //   case rt:RecordCType => BagCType(rt)
