@@ -15,10 +15,9 @@ import Slide from '@material-ui/core/Slide';
 
 import {shreddedVStandardThemeStyle} from './ShreddedVStandardThemeStyle';
 import {Grid, Paper} from "@material-ui/core";
-import SimpleBarGraphVShredded from "../../ui/Charts/SimpleBarChart/SimpleBarGraphVShredded";
+import SimpleAreaGraphVShredded from "../../ui/Charts/SimpleBarChart/SimpleAreaGraphVShredded";
 import StarBorderIcon from "@material-ui/icons/StarBorder";
-import {shred_part_dist} from '../../ui/Charts/SimpleBarChart/shred_part_dist';
-import {stand_part_dist} from '../../ui/Charts/SimpleBarChart/stand_part_dist';
+import {ordered_merged} from '../../ui/Charts/SimpleBarChart/ordered_merged';
 
 
 
@@ -50,18 +49,12 @@ interface _ShreddedVStandardProps{
                          </Typography>
                      </Toolbar>
                  </AppBar>
-                    <Grid container spacing={2} >
+                    <Grid container spacing={4} >
                         <Grid item xs={12} >
                                 <Paper className={classes.paper}>
-                                    <Typography variant={"h6"}>Shredded Plan Metrics</Typography>
-                                    <SimpleBarGraphVShredded data={shred_part_dist}/>
+                                    <Typography variant={"h6"}>Partition Size Distirbution</Typography>
+                                    <SimpleAreaGraphVShredded data={ordered_merged}/>
                                 </Paper>
-                        </Grid>
-                        <Grid item xs={12} >
-                            <Paper className={classes.paper}>
-                                <Typography variant={"h6"}>Standard Plan Metrics</Typography>
-                                <SimpleBarGraphVShredded data={stand_part_dist}/>
-                            </Paper>
                         </Grid>
                     </Grid>
                  <Button className={classes.btn} variant={"contained"} style={{'backgroundColor':'#d66123'}} onClick={()=> window.location.href = "http://localhost:18080"} endIcon={<StarBorderIcon/>}>Metrics</Button>
