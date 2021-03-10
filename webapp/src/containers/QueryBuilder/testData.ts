@@ -30,7 +30,7 @@ const testData:Table[] = [
                 {id: 122,name: "alternate", enable: true, children:[]},
                 {id: 123,name: "mutid", enable: true, children:[]},
                 {id: 124,name: "candidates", enable: true, children:[
-                        {name: "candidates.",
+                        {name: "candidates",
                             id: 125,
                             columns:
                                 [
@@ -39,7 +39,7 @@ const testData:Table[] = [
                                     {id: 128,name: "sift", enable: true, children:[]},
                                     {id: 129,name: "poly", enable: true, children:[]},
                                     {id: 130,name: "consequences", enable: true, children:[
-                                            {name: "consequences.",
+                                            {name: "consequences",
                                                 id: 131,
                                                 columns:
                                                     [
