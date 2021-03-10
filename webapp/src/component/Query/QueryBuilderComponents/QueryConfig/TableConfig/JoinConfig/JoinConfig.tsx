@@ -16,7 +16,7 @@ const tableData:Table[] = [
                 {id: 112,name: "turmorsite", enable: true, children:[]}
             ]
     },
-    {name: "Copy",
+    {name: "CopyNumber",
         id: 113,
         columns:
             [
