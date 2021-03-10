@@ -18,7 +18,7 @@ export const shreddedVStandardThemeStyle = makeStyles(theme => ({
         display: 'flex',
         overflow: 'auto',
         flexDirection: 'column',
-        height: 240,
+        height: 640,
     },
     btn:{
         margin:"auto",
