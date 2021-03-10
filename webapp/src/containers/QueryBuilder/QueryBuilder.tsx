@@ -30,7 +30,7 @@ const QueryBuilder =()=>{
     const [requestLoadingState, setRequestLoadingState] = useState(false);
     const [showModalPlanState, setShowModalPlanState] = useState(false);
     const [queryState, setQueryState] = useState<Query | undefined>({
-        tables :testData,
+        tables :testData.slice(0,3),
         groupBy: "",
         Where: "",
         selectedColumns:[]

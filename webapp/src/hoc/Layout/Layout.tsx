@@ -127,20 +127,20 @@ const Layout = (props:LayoutProps) => {
                                 <ListItemText primary={"Dashboard"} />
                             </ListItem>
                         </Link>
-                        <Link to={'/queryView'}>
-                            <ListItem className={activePageState===pageRoutes.VIEW?classes.drawerPaperActive:classes.drawerNav} button onClick={() => setActivePageState(pageRoutes.VIEW)}>
-                                <ListItemIcon>
-                                    <DeviceHubIcon />
-                                </ListItemIcon>
-                                <ListItemText primary={"Query View"} />
-                            </ListItem>
-                        </Link>
                         <Link to={'/builder'}>
                             <ListItem className={activePageState===pageRoutes.BUILDER?classes.drawerPaperActive:classes.drawerNav} button onClick={() => setActivePageState(pageRoutes.BUILDER)}>
                                 <ListItemIcon>
                                     <CodeIcon />
                                 </ListItemIcon>
                                 <ListItemText primary={"Query Builder"} />
+                            </ListItem>
+                        </Link>
+                        <Link to={'/queryView'}>
+                            <ListItem className={activePageState===pageRoutes.VIEW?classes.drawerPaperActive:classes.drawerNav} button onClick={() => setActivePageState(pageRoutes.VIEW)}>
+                                <ListItemIcon>
+                                    <DeviceHubIcon />
+                                </ListItemIcon>
+                                <ListItemText primary={"Compiler"} />
                             </ListItem>
                         </Link>
                         <Link to={'/tables'}>
@@ -156,7 +156,7 @@ const Layout = (props:LayoutProps) => {
                                 <ListItemIcon>
                                     <BarChartIcon/>
                                 </ListItemIcon>
-                                <ListItemText primary={"Reports"} />
+                                <ListItemText primary={"Results"} />
                             </ListItem>
                         </Link>
                     </List>

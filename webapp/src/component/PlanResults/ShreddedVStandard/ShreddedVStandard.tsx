@@ -46,7 +46,7 @@ interface _ShreddedVStandardProps{
                              <CloseIcon />
                          </IconButton>
                          <Typography variant="h6" className={classes.title}>
-                             Compilation metrics
+                             Runtime metrics
                          </Typography>
                      </Toolbar>
                  </AppBar>

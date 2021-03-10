@@ -17,21 +17,26 @@ interface _QueryConfigProps {
 
 const QueryConfig = (props: _QueryConfigProps) => {
     const tabPanel:customTabElement[] | undefined = props.query ? [
+        //remove tpch data
         {
-            tabLabel:"Table Config",
+            tabLabel:"Input Config",
             jsxElement:<TableConfig tables={props.query.tables} columnBoxClicked={props.config}/>
         },
         {
-            tabLabel:"Table Config",
+            tabLabel:"Filters",
             jsxElement:<ConditionContrainsts/>
+        },
+        {
+            tabLabel:"Projections",
+            jsxElement:<Typography>Projections Attributes to be constructed</Typography>
         },
         {
             tabLabel:"Group By",
             jsxElement:<Typography>Group By to be constructed</Typography>
         },
         {
-            tabLabel:"Table Joins",
-            jsxElement:<Typography>Table Joins to be constructed</Typography>
+            tabLabel:"Joins",
+            jsxElement:<Typography>Joins to be constructed</Typography>
         },
     ]: undefined;
 

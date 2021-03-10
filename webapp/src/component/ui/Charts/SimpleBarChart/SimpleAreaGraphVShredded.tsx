@@ -35,7 +35,7 @@ const SimpleAreaGraphVShredded = (props:_SimpleAreaGraphVShreddedProps) => {
             }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="pid" />
+            <XAxis dataKey="pid" domain={[0, 220]}/>
             <YAxis />
             <Tooltip />
             <Line type="monotone" dataKey="stand_write_size" stroke="#8884d8" fill="#8884d8" />
@@ -58,7 +58,7 @@ const SimpleAreaGraphVShredded = (props:_SimpleAreaGraphVShreddedProps) => {
           >
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="pid" />
-            <YAxis name="Size (KB)"/>
+            <YAxis name="Size (KB)" />
             <Tooltip />
             <Line type="monotone" dataKey="shred_write_size" stroke="#82ca9d" fill="#82ca9d" />
             <Brush />
