@@ -94,7 +94,7 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
                                             <LabelView
                                                 sumBy
                                                 tableEl={'t'}
-                                                tableName={'o.candidate'}
+                                                tableName={'o.candidates'}
                                             />}>
                             <StyledTreeItem nodeId="4" label={<LabelView tableEl={'c'} tableName={'CopyNumber'} joinString={'t.gene == c.gene && o.sample == c.sample'} columns={["gene := t.gene","score := t.impact * (c.num + 0.01) * t.sift * t.poly)}))})}"]}/>}/>
                         </StyledTreeItem>
