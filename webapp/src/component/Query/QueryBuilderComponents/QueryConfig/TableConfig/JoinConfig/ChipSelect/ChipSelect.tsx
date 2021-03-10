@@ -34,16 +34,13 @@ function getStyles(name: string, personName: string[], theme: Theme) {
 }
 interface _ChipSelectProps{
     table:Table;
+    columns:string[];
+    setColumns:(event: React.ChangeEvent<{ value: unknown }>)=>void;
 }
 
 const ChipSelect = (props:_ChipSelectProps) => {
     const classes = chipSelect();
     const theme = useTheme();
-    const [personName, setPersonName] = React.useState<string[]>([]);
-
-    const handleChange = (event: React.ChangeEvent<{ value: unknown }>) => {
-        setPersonName(event.target.value as string[]);
-    };
 
     const colorStyle = (index:number) =>{
         switch (index){
@@ -58,28 +55,17 @@ const ChipSelect = (props:_ChipSelectProps) => {
         }
 
     }
-
-    const handleChangeMultiple = (event: React.ChangeEvent<{ value: unknown }>) => {
-        const { options } = event.target as HTMLSelectElement;
-        const value: string[] = [];
-        for (let i = 0, l = options.length; i < l; i += 1) {
-            if (options[i].selected) {
-                value.push(options[i].value);
-            }
-        }
-        setPersonName(value);
-    };
     return(
         <React.Fragment>
             <FormControl className={classes.formControl}>
-                <InputLabel id="demo-mutiple-chip-label">{props.table.name}</InputLabel>
+                <InputLabel id={"demo-mutiple-chip-label"+props.table.name} >{props.table.name}</InputLabel>
                 <Select
-                    labelId="demo-mutiple-chip-label"
-                    id="demo-mutiple-chip"
+                    labelId={"demo-mutiple-chip-label"+props.table.name}
+                    id={"demo-mutiple-chip"+props.table.name}
                     multiple
-                    value={personName}
-                    onChange={handleChange}
-                    input={<Input id="select-multiple-chip" />}
+                    value={props.columns}
+                    onChange={props.setColumns}
+                    input={<Input id={"select-multiple-chip"+props.table.name} />}
                     renderValue={(selected) => (
                         <div className={classes.chips}>
                             {(selected as string[]).map((value, i) =>
@@ -92,7 +78,7 @@ const ChipSelect = (props:_ChipSelectProps) => {
                 >
                     {props.table.columns.map(column => (
                         <MenuItem key={column.id} value={column.name}
-                                  style={getStyles(column.name, personName, theme)}>
+                                  style={getStyles(column.name, props.columns, theme)}>
                             {column.name}
                         </MenuItem>
                     ))}

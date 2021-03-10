@@ -6,37 +6,25 @@ import TagFacesIcon from '@material-ui/icons/TagFaces';
 
 import {joinElementThemeStyle} from './JoinElementThemeStyle';
 
-interface ChipData {
-    key: number;
-    label: string;
+interface _ChipDataProps {
+    keyElement: number;
+    label: string[];
+    delete:(i:number)=>void;
 }
 
-const JoinElement = ()  => {
+const JoinElement = (props:_ChipDataProps)  => {
     const classes = joinElementThemeStyle();
-    const [chipData, setChipData] = React.useState<ChipData[]>([
-        { key: 0, label: 'Sample.sample' },
-        { key: 1, label: 'Occurrences.sample' },
-    ]);
 
-    const handleDelete = (chipToDelete: ChipData) => () => {
-        setChipData((chips) => chips.filter((chip) => chip.key !== chipToDelete.key));
-    };
+
 
     return (
         <Paper component="ul" className={classes.root}>
-            {chipData.map((data) => {
-                let icon;
-
-                if (data.label === 'React') {
-                    icon = <TagFacesIcon />;
-                }
-
+            {props.label.map((el) => {
                 return (
-                    <li key={data.key}>
+                    <li key={props.keyElement}>
                         <Chip
-                            icon={icon}
-                            label={data.label}
-                            onDelete={data.label === 'React' ? undefined : handleDelete(data)}
+                            label={el}
+                            onDelete={()=>props.delete(props.keyElement)}
                             className={classes.chip}
                         />
                     </li>
