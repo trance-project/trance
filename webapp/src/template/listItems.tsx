@@ -63,19 +63,19 @@ export const secondaryListItems = (
             <ListItemIcon>
                 <AssignmentIcon />
             </ListItemIcon>
-            <ListItemText primary={"Created Query demo_1"} />
+            <ListItemText primary={"Created GeneLikelihoodPer..."} />
         </ListItem>
         <ListItem button>
             <ListItemIcon>
                 <AssignmentIcon />
             </ListItemIcon>
-            <ListItemText primary={"Created Query demo_2"} />
+            <ListItemText primary={"Created GeneLikelihoodPer..."} />
         </ListItem>
         <ListItem button>
             <ListItemIcon>
                 <AssignmentIcon />
             </ListItemIcon>
-            <ListItemText primary={"Created Query demo_3"} />
+            <ListItemText primary={"Edited GeneLikelihoodPer..."} />
         </ListItem>
     </div>
 );
