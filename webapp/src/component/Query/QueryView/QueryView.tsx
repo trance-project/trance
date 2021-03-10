@@ -81,7 +81,7 @@ const QueryView = () => {
                         abortHover={abortHoverHandler}
                     />
 
-                    <Button className={classes.queryBtnGroup} variant={"outlined"} color={"primary"} endIcon={<NoteIcon />}>Notebook</Button>
+                    <Button className={classes.queryBtnGroup} variant={"outlined"} color={"primary"} endIcon={<NoteIcon />} onClick={()=> window.location.href = "http://localhost:8085/#/notebook/2FK1WGZDP"}>Notebook</Button>
                     <Button className={classes.queryBtnGroup} variant={"contained"} color={"primary"} onClick={handleOpenCompilationDialogState} endIcon={<ForwardIcon/>}>Compile</Button>
                 </React.Fragment>
             )
