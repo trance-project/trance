@@ -96,7 +96,7 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
                                                 tableEl={'t'}
                                                 tableName={'o.candidate'}
                                             />}>
-                            <StyledTreeItem nodeId="4" label={<LabelView tableEl={'c'} tableName={'CopyNumber'} joinString={'t.gene == c.gene && s.sample == o.sample'} columns={["gene := t.gene","score := t.impact * (c.num + 0.01) * t.sift * t.poly)}))})}"]}/>}/>
+                            <StyledTreeItem nodeId="4" label={<LabelView tableEl={'c'} tableName={'CopyNumber'} joinString={'t.gene == c.gene && o.sample == c.sample'} columns={["gene := t.gene","score := t.impact * (c.num + 0.01) * t.sift * t.poly)}))})}"]}/>}/>
                         </StyledTreeItem>
                     </StyledTreeItem>
                 </StyledTreeItem>
