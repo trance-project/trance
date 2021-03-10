@@ -16,31 +16,30 @@ const createData = (id: number, date: string, name:string, tables: string, group
 
 
 const rows = [
-    createData(0, '16 Mar, 2021', 'Query_1', 'Table_1,Table_5', 'Column_2'),
-    createData(1, '16 Mar, 2021', 'Query_2', 'Table_3,Table_4,Table_2,Table_11', 'Column_2, Column_4'),
-    createData(2, '16 Mar, 2021', 'Query_3', 'Table_1,Table_2', 'Column_2, Column_1, Column_5'),
-    createData(3, '16 Mar, 2021', 'Query_4', 'Table_21,Table_5', 'Column_1'),
-    createData(4, '15 Mar, 2021', 'Query_5', 'Table_41,Table_21,Table_10', 'Column_6'),
-    createData(5, '16 Mar, 2021', 'Query_1', 'Table_1,Table_5', 'Column_2'),
-    createData(6, '16 Mar, 2021', 'Query_2', 'Table_3,Table_4,Table_2,Table_11', 'Column_2, Column_4'),
-    createData(7, '16 Mar, 2021', 'Query_3', 'Table_1,Table_2', 'Column_2, Column_1, Column_5'),
-    createData(8, '16 Mar, 2021', 'Query_4', 'Table_21,Table_5', 'Column_1'),
-    createData(9, '15 Mar, 2021', 'Query_5', 'Table_41,Table_21,Table_10', 'Column_6'),
-    createData(10, '16 Mar, 2021', 'Query_1', 'Table_1,Table_5', 'Column_2'),
-    createData(11, '16 Mar, 2021', 'Query_2', 'Table_3,Table_4,Table_2,Table_11', 'Column_2, Column_4'),
-    createData(12, '16 Mar, 2021', 'Query_3', 'Table_1,Table_2', 'Column_2, Column_1, Column_5'),
-    createData(13, '16 Mar, 2021', 'Query_4', 'Table_21,Table_5', 'Column_1'),
-    createData(14, '15 Mar, 2021', 'Query_5', 'Table_41,Table_21,Table_10', 'Column_6'),
-    createData(15, '16 Mar, 2021', 'Query_1', 'Table_1,Table_5', 'Column_2'),
-    createData(16, '16 Mar, 2021', 'Query_2', 'Table_3,Table_4,Table_2,Table_11', 'Column_2, Column_4'),
-    createData(17, '16 Mar, 2021', 'Query_3', 'Table_1,Table_2', 'Column_2, Column_1, Column_5'),
-    createData(18, '16 Mar, 2021', 'Query_4', 'Table_21,Table_5', 'Column_1'),
-    createData(19, '15 Mar, 2021', 'Query_5', 'Table_41,Table_21,Table_10', 'Column_6'),
-    createData(20, '16 Mar, 2021', 'Query_1', 'Table_1,Table_5', 'Column_2'),
-    createData(21, '16 Mar, 2021', 'Query_2', 'Table_3,Table_4,Table_2,Table_11', 'Column_2, Column_4'),
-    createData(22, '16 Mar, 2021', 'Query_3', 'Table_1,Table_2', 'Column_2, Column_1, Column_5'),
-    createData(23, '16 Mar, 2021', 'Query_4', 'Table_21,Table_5', 'Column_1'),
-    createData(24, '15 Mar, 2021', 'Query_5', 'Table_41,Table_21,Table_10', 'Column_6'),
+    createData(0, '12 Mar, 2021', 'GeneLikelihoodPerMutation', 'Samples,Occurrences,CopyNumber', 'All'),
+    createData(1, '12 Mar, 2021', 'GeneLikelihoodPerSample', 'Samples,GeneLikelihoodPerMutation', 'Shredded'),
+    createData(2, '12 Mar, 2021', 'GeneImpactPerMutation', 'Samples,Occurrences', 'Standard'),
+    createData(3, '12 Mar, 2021', 'GeneImpactPerSample', 'Samples,Occurrences', 'All'),
+    createData(4, '12 Mar, 2021', 'HybridScoreMatrix', 'Occurrences,CopyNumber', 'Shredded'),
+    createData(5, '11 Mar, 2021', 'EffectScoreMatrix', 'HyrbidScoreMatrix,Network', 'Shredded'),
+    createData(6, '11 Mar, 2021', 'NetworkEffects', 'HybridScoreMatrix,GeneExpression', 'All'),
+    createData(7, '11 Mar, 2021', 'GeneBurden', 'Genes,Variants', 'All'),
+    createData(8, '11 Mar, 2021', 'PathwayBurden', 'GeneBurden', 'Standard'),
+    createData(9, '11 Mar, 2021', 'OccurrenceBySample', 'Sample,Occurrences', 'Shredded'),
+    createData(10, '10 Mar, 2021', 'HybridByMutation', 'Sample,Occurrences,CopyNumber', 'Standard'),
+    createData(11, '10 Mar, 2021', 'HybridBySample', 'Sample,Occurrences,CopyNumber', 'Shredded'),
+    createData(12, '10 Mar, 2021', 'GeneLikelihoodPerMutation', 'Samples,Occurrences,CopyNumber', 'All'),
+    createData(13, '10 Mar, 2021', 'GeneLikelihoodPerSample', 'Samples,GeneLikelihoodPerMutation', 'Shredded'),
+    createData(14, '10 Mar, 2021', 'GeneImpactPerMutation', 'Samples,Occurrences', 'Standard'),
+    createData(15, '9 Mar, 2021', 'GeneImpactPerSample', 'Samples,Occurrences', 'All'),
+    createData(16, '9 Mar, 2021', 'HybridScoreMatrix', 'Occurrences,CopyNumber', 'Shredded'),
+    createData(17, '9 Mar, 2021', 'EffectScoreMatrix', 'HyrbidScoreMatrix,Network', 'Shredded'),
+    createData(18, '9 Mar, 2021', 'NetworkEffects', 'HybridScoreMatrix,GeneExpression', 'All'),
+    createData(19, '8 Mar, 2021', 'GeneBurden', 'Genes,Variants', 'All'),
+    createData(20, '8 Mar, 2021', 'PathwayBurden', 'GeneBurden', 'Standard'),
+    createData(21, '8 Mar, 2021', 'OccurrenceBySample', 'Sample,Occurrences', 'Shredded'),
+    createData(22, '7 Mar, 2021', 'HybridByMutation', 'Sample,Occurrences,CopyNumber', 'Standard'),
+    createData(23, '6 Mar, 2021', 'HybridBySample', 'Sample,Occurrences,CopyNumber', 'Shredded'),
 ];
 
 const preventDefault = (event:  React.MouseEvent<HTMLAnchorElement, MouseEvent>) => event.preventDefault();
@@ -57,8 +56,8 @@ const Overview = () => {
                         <TableRow>
                             <TableCell>Date</TableCell>
                             <TableCell>Name</TableCell>
-                            <TableCell>Tables</TableCell>
-                            <TableCell>Group By</TableCell>
+                            <TableCell>Inputs</TableCell>
+                            <TableCell>Compilation</TableCell>
                             <TableCell>Actions</TableCell>
                         </TableRow>
                     </TableHead>
