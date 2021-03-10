@@ -5,6 +5,7 @@ import TableConfig from './TableConfig/TableConfig';
 import ConditionContrainsts from './ConditionContrainsts/ConditionContrainsts';
 import {Column, customTabElement, Query} from "../../../../Interface/Public_Interfaces";
 import CustomTabs from "../../../ui/CustomTabs/CustomTabs";
+import JoinConfig from "./TableConfig/JoinConfig/JoinConfig";
 
 
 
@@ -17,7 +18,6 @@ interface _QueryConfigProps {
 
 const QueryConfig = (props: _QueryConfigProps) => {
     const tabPanel:customTabElement[] | undefined = props.query ? [
-        //remove tpch data
         {
             tabLabel:"Input Config",
             jsxElement:<TableConfig tables={props.query.tables} columnBoxClicked={props.config}/>
@@ -36,7 +36,7 @@ const QueryConfig = (props: _QueryConfigProps) => {
         },
         {
             tabLabel:"Joins",
-            jsxElement:<Typography>Joins to be constructed</Typography>
+            jsxElement:<JoinConfig/>
         },
     ]: undefined;
 

@@ -20,39 +20,39 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
 
 
     //Recursive method used to iterate over query table object to layout the columns and if the supply nested data.
-    const querySelect = (table:Table) => {
-        if(!table.abr){
-            table.abr = stringIdGen.next();
-        }
-        let tableAbr =table.abr;
-        let childItem: JSX.Element[] = [<div></div>];
-        let columnsSelect: string[] = [];
-        if(containsNestedObject(table)){
-            for(const column of(table.columns)){
-                if(column.children.length > 0){
-                    childItem= column.children.map(t => querySelect(t));
-                }
-                if(column.enable){
-                    const columnName = column.children.length===0?`${tableAbr}.${column.name}`:"";
-                    columnsSelect.push(`${column.name}:=${columnName}`);
-                }
-            }
-            return (
-                <StyledTreeItem nodeId={table.id.toString()} label={<LabelView tableEl={tableAbr} tableName={table.name} columns={columnsSelect}/>}>
-                    {childItem}
-                </StyledTreeItem>
-            )
-        }else{
-            for(const column of(table.columns)){
-                if(column.enable){
-                    const columnName = column.children.length===0?`${tableAbr}.${column.name}`:"";
-                    columnsSelect.push(`${column.name}:=${columnName}`);
-                }
-            }
-            return <StyledTreeItem nodeId="2" label={<LabelView tableEl={tableAbr} tableName={table.name} columns={columnsSelect}/>}/>
-
-        }
-    }
+    // const querySelect = (table:Table) => {
+    //     if(!table.abr){
+    //         table.abr = stringIdGen.next();
+    //     }
+    //     let tableAbr =table.abr;
+    //     let childItem: JSX.Element[] = [<div></div>];
+    //     let columnsSelect: string[] = [];
+    //     if(containsNestedObject(table)){
+    //         for(const column of(table.columns)){
+    //             if(column.children.length > 0){
+    //                 childItem= column.children.map(t => querySelect(t));
+    //             }
+    //             if(column.enable){
+    //                 const columnName = column.children.length===0?`${tableAbr}.${column.name}`:"";
+    //                 columnsSelect.push(`${column.name}:=${columnName}`);
+    //             }
+    //         }
+    //         return (
+    //             <StyledTreeItem nodeId={table.id.toString()} label={<LabelView tableEl={tableAbr} tableName={table.name} columns={columnsSelect}/>}>
+    //                 {childItem}
+    //             </StyledTreeItem>
+    //         )
+    //     }else{
+    //         for(const column of(table.columns)){
+    //             if(column.enable){
+    //                 const columnName = column.children.length===0?`${tableAbr}.${column.name}`:"";
+    //                 columnsSelect.push(`${column.name}:=${columnName}`);
+    //             }
+    //         }
+    //         return <StyledTreeItem nodeId="2" label={<LabelView tableEl={tableAbr} tableName={table.name} columns={columnsSelect}/>}/>
+    //
+    //     }
+    // }
 
     const containsNestedObject = (table:Table) =>{
         return table.columns.some(c => c.children.length>0)
@@ -60,9 +60,9 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
 
 
     if(props.query) {
-        for(const table of props.query.tables){
-            statement=   querySelect(table);
-        }
+        // for(const table of props.query.tables){
+        //     statement=   querySelect(table);
+        // }
     }
 
     return (
