@@ -1,19 +1,19 @@
 import React, {useState} from "react";
-import {ButtonGroup, Grid, Paper, Typography, IconButton} from "@material-ui/core";
+import {Grid, Paper} from "@material-ui/core";
 import Button from "@material-ui/core/Button";
 import {standardCompilationViewThemeStyle} from './StandardCompilationView/standardCompilationViewThemeStyle'
-import AccountTreeIcon from "@material-ui/icons/AccountTree";
 import NoteIcon from '@material-ui/icons/Note';
+import ForwardIcon from '@material-ui/icons/Forward';
 import {customTabElement, Query} from "../../../Interface/Public_Interfaces";
 import StandardCompilationView from "./StandardCompilationView/StandardCompilationView";
 import Materialization from "../QueryBuilderComponents/QueryShredding/Materialzation/Materialization";
 import CustomTabs from "../../ui/CustomTabs/CustomTabs";
 import ShreddedPlanDiagram from "../../Plan/ShreddedPlan/ShreddedPlanDiagram/ShreddedPlanDiagram";
-import ShreddedPlan from "../../Plan/ShreddedPlan/ShreddedPlan";
 import ModelMessage from "../../ui/ModelMessage/ModelMessage";
 import StandardCompilationDiagram
     from "./StandardCompilationView/StandardCompilationDiagram/StandardCompilationDiagram";
 import PlanResults from "../../PlanResults/PlanResults";
+import ModalPromt from "../../ModalPromt/ModelPromt";
 
 
 const QueryView = () => {
@@ -46,13 +46,19 @@ const QueryView = () => {
     }
 
     const handleOpenModalState = () => {
-        setShowModalState(true);
+        setShowModalState(false);
         setRequestLoadingState(true);
         setTimeout(()=> {
             setRequestLoadingState(false);
-            setShowModalState(false);
             setHasCompileState(true);
         },2000);
+    }
+
+    const handleOpenCompilationDialogState = () => {
+        setShowModalState(true);
+    }
+    const handleCloseCompilationDialogState = () => {
+        setShowModalState(false);
     }
 
     const handleCloseModalState = () => {
@@ -75,9 +81,8 @@ const QueryView = () => {
                         abortHover={abortHoverHandler}
                     />
 
-                    <IconButton className={classes.queryBtnGroup} component={"span"} color={"primary"}><NoteIcon /></IconButton>
-                    <Button className={classes.queryBtnGroup} variant={"contained"} style={{'backgroundColor':'#2980b9' ,'color':'#fff'}} onClick={handleOpenModalState}>Compile</Button>
-
+                    <Button className={classes.queryBtnGroup} variant={"outlined"} color={"primary"} endIcon={<NoteIcon />}>Notebook</Button>
+                    <Button className={classes.queryBtnGroup} variant={"contained"} color={"primary"} onClick={handleOpenCompilationDialogState} endIcon={<ForwardIcon/>}>Compile</Button>
                 </React.Fragment>
             )
         },
@@ -114,7 +119,8 @@ const QueryView = () => {
                     </Paper>
                 </Grid>
             </Grid>
-            <ModelMessage open={showModalState} close={handleCloseModalState} successful={requestLoadingState} message={{title:"Compile Successful", content: ""}}/>
+            <ModelMessage open={requestLoadingState} close={handleCloseModalState}/>
+            <ModalPromt open={showModalState} close={handleCloseCompilationDialogState} openIsLoading={handleOpenModalState}/>
         </React.Fragment>
     )
 }

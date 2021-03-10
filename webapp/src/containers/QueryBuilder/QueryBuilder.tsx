@@ -18,6 +18,7 @@ import PlanResult from "../../component/PlanResults/PlanResults";
 import AccountTreeIcon from "@material-ui/icons/AccountTree";
 import StandardCompilationBuilder
     from "../../component/Query/QueryBuilderComponents/StandardCompilationBuilder/StandardCompilationBuilder";
+import PaperWithHeader from "../../component/ui/Paper/PaperWithHeader/PaperWithHeader";
 
 const QueryBuilder =()=>{
     const classes = queryBuilderThemeStyle();
@@ -105,17 +106,20 @@ const QueryBuilder =()=>{
     return(
         <React.Fragment>
             <Grid container spacing={3}>
-                <ViewSelector gridXS={12} gridMD={4} gridLG={3} style={{"height":"450px"}} tables={tablesState} clicked={createQueryHandler}/>
+                <Grid item xs={12} md={4} lg={3}>
+                    <PaperWithHeader heading={'Inputs'} height={450}>
+                        <ViewSelector tables={tablesState} clicked={createQueryHandler}/>
+                    </PaperWithHeader>
+                </Grid>
                 <Grid item xs={12} md={8} lg={9}>
-                    <Paper style={{"height":"450px"}} >
-                        <Typography variant={"h5"}>Query Builder</Typography>
+                    <PaperWithHeader height={450} heading={"Query Builder"}>
                         <StandardCompilationBuilder
                             query={queryState}
                         />
                         <ButtonGroup className={classes.queryBtnGroup} color={"primary"} aria-label={"Contained primary button group"}>
-                            <Button variant={"contained"} style={{'backgroundColor':'#2980b9'}} onClick={handleOpenModalState} endIcon={<SaveIcon/>}>Save</Button>
+                            <Button variant={"contained"} onClick={handleOpenModalState} endIcon={<SaveIcon/>}>Save</Button>
                         </ButtonGroup>
-                    </Paper>
+                    </PaperWithHeader>
                 </Grid>
                 <Grid item xs={12}>
                     <Paper style={{"height":"450px"}}>
@@ -123,7 +127,7 @@ const QueryBuilder =()=>{
                     </Paper>
                 </Grid>
             </Grid>
-            <ModelMessage open={showModalState} close={handleCloseModalState} successful={requestLoadingState} message={{title:"Validation Successful", content: ""}}/>
+            <ModelMessage open={showModalState} close={handleCloseModalState}/>
             {/*<PlanResult open={showModalPlanState} close={handleCloseModalPlanState} successful={requestLoadingState}/>*/}
         </React.Fragment>
     );

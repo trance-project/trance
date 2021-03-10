@@ -1,4 +1,4 @@
-import React, { PureComponent } from 'react';
+import React  from 'react';
 import {
   LineChart,
   Line,
@@ -6,12 +6,10 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   Brush,
-  AreaChart,
-  Area,
   ResponsiveContainer,
 } from 'recharts';
+import Typography from "@material-ui/core/Typography";
 
 interface _SimpleAreaGraphVShreddedProps{
     data: any[];
@@ -20,9 +18,9 @@ interface _SimpleAreaGraphVShreddedProps{
 const SimpleAreaGraphVShredded = (props:_SimpleAreaGraphVShreddedProps) => {
     return (
       <div style={{ width: '100%' }}>
-        <h4>Ordered by size</h4>
+        <Typography variant={'h6'}>Ordered by size</Typography>
 
-        <p>Standard</p>
+        <Typography>Standard</Typography>
         <ResponsiveContainer width="100%" height={200}>
           <LineChart
             width={500}
@@ -43,7 +41,7 @@ const SimpleAreaGraphVShredded = (props:_SimpleAreaGraphVShreddedProps) => {
             <Line type="monotone" dataKey="stand_write_size" stroke="#8884d8" fill="#8884d8" />
           </LineChart>
         </ResponsiveContainer>
-        <p>Shredded</p>
+        <Typography>Shredded</Typography>
 
         <ResponsiveContainer width="100%" height={200}>
           <LineChart

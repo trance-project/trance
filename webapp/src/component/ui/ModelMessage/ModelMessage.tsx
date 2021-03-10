@@ -6,8 +6,6 @@ import {Backdrop, CircularProgress, Dialog, DialogActions, DialogContent, Dialog
 interface _ModelMessageProps {
     open: boolean;
     close: () => void;
-    successful: boolean
-    message: {title:string,content:string} ;
 }
 
 const ModelMessage = (props: _ModelMessageProps) => {

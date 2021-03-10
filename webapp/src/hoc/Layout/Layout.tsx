@@ -22,14 +22,33 @@ import Select from '@material-ui/core/Select';
 import LayoutThemeStyle from "./LayoutThemeStyle";
 import CopyRight from "../../component/CopyRight/CopyRight";
 import image from '../../static/images/planOperator/outer-unest.png';
+import {Link} from "react-router-dom";
+import ListItem from "@material-ui/core/ListItem";
+import ListItemIcon from "@material-ui/core/ListItemIcon";
+import DashboardIcon from "@material-ui/icons/Dashboard";
+import ListItemText from "@material-ui/core/ListItemText";
+import DeviceHubIcon from "@material-ui/icons/DeviceHub";
+import CodeIcon from "@material-ui/icons/Code";
+import MapIcon from "@material-ui/icons/Map";
+import BarChartIcon from "@material-ui/icons/BarChart";
 
 interface LayoutProps {
     children: React.ReactNode;
 }
 
+enum pageRoutes {
+    DASHBOARD,
+    VIEW,
+    BUILDER,
+    TABLES,
+    REPORT
+}
+
 const Layout = (props:LayoutProps) => {
         const [open, setOpen] = React.useState(false);
         const [selectedQuery, setSelectedQuery] = React.useState('10');
+        const [activePageState, setActivePageState] = React.useState<pageRoutes>(pageRoutes.DASHBOARD);
+
 
         const handleDrawerOpen = () => {
             setOpen(true);
@@ -57,7 +76,7 @@ const Layout = (props:LayoutProps) => {
                             className={clsx(classes.menuButton, open && classes.menuButtonHidden)}>
                             <MenuIcon/>
                         </IconButton>
-                        <Typography component={'h1'} variant={'h6'} color={'inherit'} noWrap className={classes.title}>
+                        <Typography component={'h1'} variant={'h3'} color={'inherit'} noWrap className={classes.title}>
                             TraNCE
                         </Typography>
                         <div className={classes.search}>
@@ -99,7 +118,48 @@ const Layout = (props:LayoutProps) => {
                         </IconButton>
                     </div>
                     <Divider/>
-                    <List>{mainListItems}</List>
+                    <List className={classes.drawerElement}>
+                        <Link to={'/'}>
+                            <ListItem className={activePageState===pageRoutes.DASHBOARD?classes.drawerPaperActive:classes.drawerNav} button onClick={() => setActivePageState(pageRoutes.DASHBOARD)}>
+                                <ListItemIcon >
+                                    <DashboardIcon color={"inherit"}/>
+                                </ListItemIcon>
+                                <ListItemText primary={"Dashboard"} />
+                            </ListItem>
+                        </Link>
+                        <Link to={'/queryView'}>
+                            <ListItem className={activePageState===pageRoutes.VIEW?classes.drawerPaperActive:classes.drawerNav} button onClick={() => setActivePageState(pageRoutes.VIEW)}>
+                                <ListItemIcon>
+                                    <DeviceHubIcon />
+                                </ListItemIcon>
+                                <ListItemText primary={"Query View"} />
+                            </ListItem>
+                        </Link>
+                        <Link to={'/builder'}>
+                            <ListItem className={activePageState===pageRoutes.BUILDER?classes.drawerPaperActive:classes.drawerNav} button onClick={() => setActivePageState(pageRoutes.BUILDER)}>
+                                <ListItemIcon>
+                                    <CodeIcon />
+                                </ListItemIcon>
+                                <ListItemText primary={"Query Builder"} />
+                            </ListItem>
+                        </Link>
+                        <Link to={'/tables'}>
+                            <ListItem className={activePageState===pageRoutes.TABLES?classes.drawerPaperActive:classes.drawerNav} button onClick={() => setActivePageState(pageRoutes.TABLES)}>
+                                <ListItemIcon>
+                                    <MapIcon />
+                                </ListItemIcon>
+                                <ListItemText primary={"Schema Overview"} />
+                            </ListItem>
+                        </Link>
+                        <Link to={'/report'} className={activePageState===pageRoutes.REPORT?classes.drawerPaperActive:classes.drawerNav}>
+                            <ListItem button onClick={() => setActivePageState(pageRoutes.REPORT)}>
+                                <ListItemIcon>
+                                    <BarChartIcon/>
+                                </ListItemIcon>
+                                <ListItemText primary={"Reports"} />
+                            </ListItem>
+                        </Link>
+                    </List>
                     <Divider/>
                     <List>{secondaryListItems}</List>
                 </Drawer>

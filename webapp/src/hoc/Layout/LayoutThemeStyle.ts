@@ -66,6 +66,27 @@ const layoutThemeStyle = makeStyles((theme) => ({
             width: theme.spacing(9),
         },
     },
+    drawerElement:{
+        '& a':{
+            textDecoration:"none",
+            color:'#555'
+        },
+
+    },
+    drawerPaperActive: {
+        '& div':{
+            color:theme.palette.primary.main,
+            '& span':{
+                fontWeight:400
+            }
+        },
+        borderBottom: '3px solid ' + theme.palette.primary.main
+    },
+    drawerNav:{
+        '& span':{
+            fontWeight:400
+        }
+    },
     appBarSpacer: theme.mixins.toolbar,
     content: {
         flexGrow: 1,

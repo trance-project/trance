@@ -18,6 +18,7 @@ import {Grid, Paper} from "@material-ui/core";
 import SimpleAreaGraphVShredded from "../../ui/Charts/SimpleBarChart/SimpleAreaGraphVShredded";
 import StarBorderIcon from "@material-ui/icons/StarBorder";
 import {ordered_merged} from '../../ui/Charts/SimpleBarChart/ordered_merged';
+import PaperWithHeader from "../../ui/Paper/PaperWithHeader/PaperWithHeader";
 
 
 
@@ -45,16 +46,15 @@ interface _ShreddedVStandardProps{
                              <CloseIcon />
                          </IconButton>
                          <Typography variant="h6" className={classes.title}>
-                             Shredded vs Standard
+                             Compilation metrics
                          </Typography>
                      </Toolbar>
                  </AppBar>
                     <Grid container spacing={4} >
                         <Grid item xs={12} >
-                                <Paper className={classes.paper}>
-                                    <Typography variant={"h6"}>Partition Size Distirbution</Typography>
-                                    <SimpleAreaGraphVShredded data={ordered_merged}/>
-                                </Paper>
+                            <PaperWithHeader heading={"Partition Size Distirbution"} className={classes.paper}>
+                                <SimpleAreaGraphVShredded data={ordered_merged}/>
+                            </PaperWithHeader>
                         </Grid>
                     </Grid>
                  <Button className={classes.btn} variant={"contained"} style={{'backgroundColor':'#d66123'}} onClick={()=> window.location.href = "http://localhost:18080"} endIcon={<StarBorderIcon/>}>Metrics</Button>

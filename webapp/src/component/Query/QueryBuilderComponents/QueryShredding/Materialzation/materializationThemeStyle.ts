@@ -4,7 +4,7 @@ const materializationThemeStyle = makeStyles(theme =>
     createStyles({
         root: {
             width: '100%',
-            height: 650,
+            height: 720,
             overflowY: 'auto'
         },
         heading: {

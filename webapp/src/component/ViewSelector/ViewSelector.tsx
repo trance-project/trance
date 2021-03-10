@@ -8,10 +8,6 @@ import { FixedSizeList, ListChildComponentProps } from 'react-window';
 import {viewSelectorThemeStyle} from './ViewSelectorThemeStyle';
 
 interface _ViewSelectorProps{
-    gridXS: boolean | "auto" | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | undefined;
-    gridMD: boolean | "auto" | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | undefined;
-    gridLG: boolean | "auto" | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | undefined;
-    style: {};
     tables: Table[];
     clicked: (table:Table) => void;
 
@@ -60,14 +56,9 @@ const ViewSelector = (props:_ViewSelectorProps) => {
     }
 
     return (
-        <Grid item xs={props.gridXS} md={props.gridMD} lg={props.gridLG}>
-            <Paper style={props.style} className={classes.root}>
-                <Typography variant={"h5"}>Inputs</Typography>
-                <FixedSizeList height={400} width={300} itemSize={46} itemCount={itemCount}>
-                        {renderRow}
-                </FixedSizeList>
-            </Paper>
-        </Grid>
+        <FixedSizeList height={400} width={300} itemSize={46} itemCount={itemCount}>
+                {renderRow}
+        </FixedSizeList>
     );
 }
 

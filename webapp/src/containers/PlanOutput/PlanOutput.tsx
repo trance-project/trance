@@ -12,6 +12,7 @@ const PlanOutput = () => {
     const classes = planOutputThemeStyle();
     const fixedHeightPaper = clsx(classes.paper, classes.fixedHeight);
     const [open, setOpen] = React.useState(false);
+
     const handleClickOpen = () => {
         setOpen(true);
     };

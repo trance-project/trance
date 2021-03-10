@@ -1,13 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import {ThemeProvider} from '@material-ui/core/styles';
+
 import './static/fonts/EricaOne-Regular.ttf';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import {tranceTheme} from './hoc/TranceTheme/TranceTheme';
+
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+          <App />
   </React.StrictMode>,
   document.getElementById('root')
 );

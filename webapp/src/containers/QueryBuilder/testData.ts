@@ -1,6 +1,56 @@
 import {Table} from "../../Interface/Public_Interfaces";
 
 const testData:Table[] = [
+    {name: "Sample",
+        id: 110,
+        columns:
+            [
+                {id: 111,name: "sample", enable: true, children:[]},
+                {id: 112,name: "turmorsite", enable: true, children:[]}
+            ]
+    },
+    {name: "Copy",
+        id: 113,
+        columns:
+            [
+                {id: 114,name: "sample", enable: true, children:[]},
+                {id: 115,name: "gene", enable: true, children:[]} ,
+                {id: 116,name: "cnum", enable: true, children:[]},
+            ]
+    },
+    {name: "Occurrences",
+        id: 117,
+        columns:
+            [
+                {id: 118,name: "sample", enable: true, children:[]},
+                {id: 119,name: "contig", enable: true, children:[]} ,
+                {id: 120,name: "end", enable: true, children:[]},
+                {id: 121,name: "reference", enable: true, children:[]},
+                {id: 122,name: "alternate", enable: true, children:[]},
+                {id: 123,name: "mutid", enable: true, children:[]},
+                {id: 124,name: "candidates", enable: true, children:[
+                        {name: "Candidate",
+                            id: 125,
+                            columns:
+                                [
+                                    {id: 126,name: "gene", enable: true, children:[]},
+                                    {id: 127,name: "impact", enable: true, children:[]},
+                                    {id: 128,name: "sift", enable: true, children:[]},
+                                    {id: 129,name: "poly", enable: true, children:[]},
+                                    {id: 130,name: "consequences", enable: true, children:[
+                                            {name: "Consequence",
+                                                id: 131,
+                                                columns:
+                                                    [
+                                                        {id: 132,name: "conseq", enable: true, children:[]}
+                                                    ]
+                                            }
+                                        ]},
+                                ]
+                        }
+                    ]},
+            ]
+    },
     {name: "Customer",
         id: 14,
         columns:

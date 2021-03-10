@@ -31,7 +31,7 @@ const Row = (props:_RowProps) => {
             <TableRow className={classes.root}>
                 <TableCell className={classes.tableCell}>
                     <IconButton aria-label="expand row" size="small" onClick={() => setOpen(!open)} className={styleExpand}>
-                        {open ? <KeyboardArrowUpIcon/> : <KeyboardArrowDownIcon />}
+                        {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                     </IconButton>
                 </TableCell>
                 <TableCell component="th" scope="row" className={classes.tableCell}>
