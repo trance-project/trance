@@ -78,7 +78,7 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
                                     <LabelView
                                         tableEl={'s'}
                                         tableName={'Samples'}
-                                        columns={["same:= s.sample", "mutations:=" ]}
+                                        columns={["sample:= s.sample", "mutations:=" ]}
                                     />}
                 >
                     <StyledTreeItem nodeId="2"

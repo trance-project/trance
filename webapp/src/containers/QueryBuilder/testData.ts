@@ -6,10 +6,11 @@ const testData:Table[] = [
         columns:
             [
                 {id: 111,name: "sample", enable: true, children:[]},
-                {id: 112,name: "turmorsite", enable: true, children:[]}
+                {id: 112,name: "turmorsite", enable: true, children:[]},
+                {id: 133,name: "treatment_outcome", enable: true, children:[]},
             ]
     },
-    {name: "Copy",
+    {name: "CopyNumber",
         id: 113,
         columns:
             [
@@ -29,7 +30,7 @@ const testData:Table[] = [
                 {id: 122,name: "alternate", enable: true, children:[]},
                 {id: 123,name: "mutid", enable: true, children:[]},
                 {id: 124,name: "candidates", enable: true, children:[
-                        {name: "Candidate",
+                        {name: "candidates",
                             id: 125,
                             columns:
                                 [
@@ -38,7 +39,7 @@ const testData:Table[] = [
                                     {id: 128,name: "sift", enable: true, children:[]},
                                     {id: 129,name: "poly", enable: true, children:[]},
                                     {id: 130,name: "consequences", enable: true, children:[
-                                            {name: "Consequence",
+                                            {name: "consequences",
                                                 id: 131,
                                                 columns:
                                                     [
@@ -51,7 +52,7 @@ const testData:Table[] = [
                     ]},
             ]
     },
-    {name: "Customer",
+    {name: "GeneExpression",
         id: 14,
         columns:
             [
@@ -62,7 +63,7 @@ const testData:Table[] = [
                 {id: 11,name: "csequence", enable: true, children:[]}
             ]
     },
-    {name: "Order",
+    {name: "ProteinProteinInteractions",
         id: 12,
         columns:
             [
@@ -73,7 +74,7 @@ const testData:Table[] = [
                 {id: 17,name: "oclerk", enable: true, children:[]}
             ]
     },
-    {name: "Nation",
+    {name: "DrugResponse",
         id: 19,
         columns:
             [
@@ -83,7 +84,7 @@ const testData:Table[] = [
                 {id: 23,name: "ncountry", enable: true, children:[]}
             ]
     },
-    {name: "Region",
+    {name: "Enhancers",
         id: 24,
         columns:
             [
@@ -92,7 +93,7 @@ const testData:Table[] = [
                 {id: 27,name: "rnation", enable: true, children:[]},
             ]
     },
-    {name: "Lineitem",
+    {name: "Methylation",
         id: 28,
         columns:
             [
@@ -103,7 +104,7 @@ const testData:Table[] = [
                 {id: 33,name: "deliveryoption", enable: true, children:[]},
             ]
     },
-    {name: "Part",
+    {name: "Genes",
         id: 34,
         columns:
             [
@@ -113,7 +114,7 @@ const testData:Table[] = [
                 {id: 38,name: "pmanufacturer", enable: true, children:[]},
             ]
     },
-    {name: "Partsupp",
+    {name: "Pathways",
         id: 39,
         columns:
             [
@@ -123,7 +124,7 @@ const testData:Table[] = [
                 {id: 43,name: "description", enable: true, children:[]},
             ]
     },
-    {name: "Supplier",
+    {name: "Variants",
         id: 44,
         columns:
             [
@@ -132,63 +133,7 @@ const testData:Table[] = [
                 {id: 47,name: "sdescription", enable: true, children:[]},
                 {id: 48,name: "sprice", enable: true, children:[]},
             ]
-    },
-    {name: "COP",
-        id: 49,
-        columns:
-            [
-                {id: 50,name: "cname", enable: true, children:[]},
-                {id: 51,name: "corders", enable: true, children:[
-                        {name: "Order",
-                            id: 52,
-                            columns:
-                                [
-                                    {id: 53,name: "id", enable: true, children:[]},
-                                    {id: 54,name: "odate", enable: true, children:[]} ,
-                                    {id: 56,name: "odescription", enable: true, children:[]},
-                                    {id: 57,name: "oclerk", enable: true, children:[]},
-                                    {id: 55,name: "oparts", enable: true, children:[
-                                            {name: "Part",
-                                                id: 58,
-                                                columns:
-                                                    [
-                                                        {id: 59,name: "id", enable: true, children:[]},
-                                                        {id: 60,name: "pname", enable: true, children:[]},
-                                                        {id: 61,name: "pdescription", enable: true, children:[]},
-                                                        {id: 62,name: "pmanufacturer", enable: true, children:[]},
-                                                    ]
-                                            }
-                                        ]}
-                                ]
-                        }
-                    ]},
-            ]
     }
 ]
-// {name: "Table 1",
-//     id: 17,
-//     columns:
-//     [
-//         {id: 18,
-//             name: "Column_1(NestedObject)",
-//             enable: true,
-//             children:[{
-//                 name: "Column_1(NestedObject)",
-//                 id: 16,
-//                 columns: [
-//                     {id: 1, name:"child_column_1", enable: true, children:[]},
-//                     {id: 2,name:"child_column_2", enable: true, children:[]},
-//                     {id: 3,name:"child_column_3(NestedObject)", enable: true, children:[
-//                             {name: "child_column_3(NestedObject)",
-//                                 id: 15,
-//                                 columns: [
-//                                     {id: 4,name:"sub_child_column_1", enable: true, children:[]},
-//                                 ]}
-//                         ]}
-//                 ]}]
-//         },
-//         {id: 5,name: "Column 2", enable: true, children:[]},
-//         {id: 6,name: "Column 3", enable: true, children:[]}
-//     ]
-// },
+
 export default testData;
