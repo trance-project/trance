@@ -5,17 +5,19 @@ const materializationThemeStyle = makeStyles(theme =>
         root: {
             width: '100%',
             height: 720,
-            overflowY: 'auto'
+            overflowY: 'auto',
         },
         heading: {
             fontSize: theme.typography.pxToRem(15),
             fontWeight:theme.typography.fontWeightRegular,
+            fontFamily: 'Ubuntu Mono',
             height:20
         },
         body:{
             textAlign:'left',
             '& p':{
                 fontSize: theme.typography.pxToRem(12),
+                fontFamily: 'Ubuntu Mono',
             }
         },
 
@@ -32,14 +34,18 @@ const materializationThemeStyle = makeStyles(theme =>
             backgroundColor: 'rgba(255,255,255,0.3)'
         },
         spanHighLight: {
-            color: '#2000FF'
+            color: '#d1711b',
+            fontFamily: 'Ubuntu Mono',
+            fontWeight:700,
         },
         spanShrink:{
-            fontSize: theme.typography.pxToRem(11)
+            fontSize: theme.typography.pxToRem(11),
+            fontFamily: 'Ubuntu Mono',
         },
         spanAccent: {
             fontSize: theme.typography.pxToRem(11),
-            verticalAlign: 'text-top'
+            verticalAlign: 'text-top',
+            fontFamily: 'Ubuntu Mono',
         }
     })
 )
