@@ -6,6 +6,7 @@ import ConditionContrainsts from './ConditionContrainsts/ConditionContrainsts';
 import {Column, customTabElement, Query} from "../../../../Interface/Public_Interfaces";
 import CustomTabs from "../../../ui/CustomTabs/CustomTabs";
 import JoinConfig from "./TableConfig/JoinConfig/JoinConfig";
+import GroupByConfig from "./GroupBy/GroupByConfig";
 
 
 
@@ -27,12 +28,8 @@ const QueryConfig = (props: _QueryConfigProps) => {
             jsxElement:<ConditionContrainsts/>
         },
         {
-            tabLabel:"Projections",
-            jsxElement:<Typography>Projections Attributes to be constructed</Typography>
-        },
-        {
             tabLabel:"Group By",
-            jsxElement:<Typography>Group By to be constructed</Typography>
+            jsxElement:<GroupByConfig/>
         },
         {
             tabLabel:"Joins",
