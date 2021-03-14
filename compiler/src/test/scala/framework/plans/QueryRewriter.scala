@@ -6,8 +6,9 @@ import framework.examples.tpch._
 import framework.examples.genomic._
 import framework.nrc._
 import framework.plans.{Equals => CEquals, Project => CProject}
+import java.util.UUID.randomUUID
 
-class TestCEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
+class TestQueryRewriter extends FunSuite with MaterializeNRC with NRCTranslator {
 
   val occur = new Occurrence{}
   val tbls = Map("Customer" -> TPCHSchema.customertype,
@@ -29,19 +30,52 @@ class TestCEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
     val c1 = Variable.fresh(TPCHSchema.customertype.tp)
     val c2 = Variable.fresh(TPCHSchema.customertype.tp)
 
-    val cust1 = parser.parse("for c in Customer union if (custkey > 20) then { (cname := c.c_name ) }", parser.term).get
-    val custPlan1 = getPlan(cust1.asInstanceOf[Expr]).asInstanceOf[Projection]
-
-    val cust2 = parser.parse("for c in Customer union if (custkey < 2) then { (cname := c.c_name ) }", parser.term).get
-    val custPlan2 = getPlan(cust2.asInstanceOf[Expr]).asInstanceOf[Projection]
+    val cust1 = Select(InputRef("Customer", TPCHSchema.customertype), c1, Gt(CProject(c1, "custkey"), Constant(20)), c2)
+    val cust2 = Select(InputRef("Customer", TPCHSchema.customertype), c1, Lt(CProject(c2, "custkey"), Constant(2)), c2)
     
-    val ce1 = CEBuilder.buildCover(cust1, cust2).asInstanceOf[Select]
-    assert(ce1.p.vstr == "custkey>20||custkey<2")
+    val plan1 = LinearCSet(List(CNamed("Query1", cust1)))
+    val plan2 = LinearCSet(List(CNamed("Query2", cust2)))
 
-    val ce2 = CEBuilder.buildCover(List(cust1, cust2))
-    assert(ce1.vstr == ce2.vstr)
+    val subs = SEBuilder.sharedSubsFromProgram(Vector(plan1, plan2))
+
+    val ces = subs.map{
+      case (id, se) => 
+        val cover = CEBuilder.buildCoverFromSE(se)
+        val cnamed = Variable("Cover"+randomUUID().toString().replace("-", ""), cover.tp)
+        CE(cnamed, id, se)
+    }.toList
+
+    val newplans = ces.map{
+      case c => QueryRewriter.rewritePlans(c)
+    }
+    for(c <- newplans){
+      println(c.cover)
+      for (s <- c.ses){
+        println(s)
+      }
+    }
+
+
 
   }
+
+  // test("select and project covering"){
+  //   val c1 = Variable.fresh(TPCHSchema.customertype.tp)
+  //   val c2 = Variable.fresh(TPCHSchema.customertype.tp)
+
+  //   val cust1 = parser.parse("for c in Customer union if (custkey > 20) then { (cname := c.c_name ) }", parser.term).get
+  //   val custPlan1 = getPlan(cust1.asInstanceOf[Expr]).asInstanceOf[Projection]
+
+  //   val cust2 = parser.parse("for c in Customer union if (custkey < 2) then { (cname := c.c_name ) }", parser.term).get
+  //   val custPlan2 = getPlan(cust2.asInstanceOf[Expr]).asInstanceOf[Projection]
+    
+  //   val ce1 = CEBuilder.buildCover(cust1, cust2).asInstanceOf[Select]
+  //   assert(ce1.p.vstr == "custkey>20||custkey<2")
+
+  //   val ce2 = CEBuilder.buildCover(List(cust1, cust2))
+  //   assert(ce1.vstr == ce2.vstr)
+
+  // }
 
   /**test("project covering"){
 
