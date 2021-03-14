@@ -70,7 +70,7 @@ object CEBuilder extends Extensions {
       val nr = replace(r, v)
       Projection(child, v, nr, fs1 ++ fs2)
 
-    // OR filters
+   // OR filters
     case (Select(in1, v1, f1, e1), Select(in2, v2, f2, e2)) =>
       assert(in1.tp == in2.tp)
       val v = Variable.fresh(in1.tp)
