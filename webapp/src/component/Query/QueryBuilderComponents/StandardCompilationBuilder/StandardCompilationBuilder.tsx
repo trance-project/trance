@@ -1,5 +1,6 @@
-import React from 'react';
+import React, {useRef, useEffect,useState} from 'react';
 import {TreeView} from "@material-ui/lab";
+
 
 import { Query, Table} from "../../../../Interface/Public_Interfaces";
 import StyledTreeItem from "../../../ui/StyledTreeItem/StyledTreeItem";
@@ -16,7 +17,20 @@ interface _QueryBuilderProps {
 
 const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
     const stringIdGen = StringIdGenerator.getInstance()!;
+    const [selectedNodeState, setSelectedNodeState] = useState("1");
     let statement = <div></div>;
+
+    const focusNodeRef = useRef<HTMLButtonElement>(null);
+
+    const handleSelectedNode = (nodeId:string) => setSelectedNodeState(nodeId);
+
+
+    useEffect(()=>{
+        if(focusNodeRef.current){
+            focusNodeRef.current.click();
+        }
+    }, []);
+
 
 
     //Recursive method used to iterate over query table object to layout the columns and if the supply nested data.
@@ -68,7 +82,7 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
     return (
         <div>
             <TreeView
-                defaultExpanded={['1','2', '3']}
+                expanded={['1','2', '3']}
                 defaultCollapseIcon={<MinusSquare/>}
                 defaultEndIcon={<CloseSquare />}
                 defaultExpandIcon={<PlusSquare/>}
@@ -79,6 +93,9 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
                                         tableEl={'s'}
                                         tableName={'Samples'}
                                         columns={["sample:= s.sample", "mutations:=" ]}
+                                        ref={focusNodeRef}
+                                        selectNode={()=>handleSelectedNode("1")}
+                                        isSelected={selectedNodeState==="1"}
                                     />}
                 >
                     <StyledTreeItem nodeId="2"
@@ -87,7 +104,10 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
                                             tableEl={'o'}
                                             tableName={'Occurrences'}
                                             joinString={"s.sample == o.sample"}
-                                            columns={["mutId := o.mutId", "scores :=" ]}/>
+                                            columns={["mutId := o.mutId", "scores :=" ]}
+                                            selectNode={()=>handleSelectedNode("2")}
+                                            isSelected={selectedNodeState==="2"}
+                                        />
                                     }>
                         <StyledTreeItem nodeId="3"
                                         label={
@@ -95,8 +115,17 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
                                                 sumBy
                                                 tableEl={'t'}
                                                 tableName={'o.candidates'}
+                                                selectNode={()=>handleSelectedNode("3")}
+                                                isSelected={selectedNodeState==="3"}
                                             />}>
-                            <StyledTreeItem nodeId="4" label={<LabelView tableEl={'c'} tableName={'CopyNumber'} joinString={'t.gene == c.gene && o.sample == c.sample'} columns={["gene := t.gene","score := t.impact * (c.num + 0.01) * t.sift * t.poly)}))})}"]}/>}/>
+                            <StyledTreeItem nodeId="4" label={
+                                <LabelView tableEl={'c'}
+                                           tableName={'CopyNumber'}
+                                           joinString={'t.gene == c.gene && o.sample == c.sample'}
+                                           columns={["gene := t.gene","score := t.impact * (c.num + 0.01) * t.sift * t.poly)}))})}"]}
+                                           selectNode={()=>handleSelectedNode("4")}
+                                           isSelected={selectedNodeState==="4"}
+                                />}/>
                         </StyledTreeItem>
                     </StyledTreeItem>
                 </StyledTreeItem>
