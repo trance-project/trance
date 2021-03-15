@@ -1,14 +1,22 @@
 package framework.plans
 
 import framework.common._
-// import scala.collection.mutable.{Map, HashMap}
+import scala.collection.mutable.{Map, HashMap}
+import java.util.UUID.randomUUID
 
-case class CE(cover: CExpr, sig: Integer, ses: List[SE])
+case class CE(name: String, cover: CExpr, sig: Integer, ses: List[SE])
+
+object CE{
+  def apply(cover: CExpr, sig: Integer, ses: List[SE]): CE = 
+    CE("", cover, sig, ses)
+}
 
 object CEBuilder extends Extensions {
 
   val normalizer = new BaseNormalizer{}
   import normalizer._
+
+  val vmap = Map.empty[String, String]
 
   // todo preserve height
   def buildCoverFromSE(plans: List[SE]): CExpr = {
@@ -17,12 +25,21 @@ object CEBuilder extends Extensions {
     buildCover(plan1, ce1)
   }
 
+  // renames, assumes it is in the cache - used for testing
+  def buildCovers(subs: Map[Integer, List[SE]]): List[CE] = subs.map{
+    case (id, se) => 
+      val cover = CEBuilder.buildCoverFromSE(se)
+      val cnamed = "Cover"+randomUUID().toString().replace("-", "")
+      CE(cnamed, cover, id, se)
+  }.toList
+
   def buildCover(plans: List[CExpr]): CExpr = {
     val plan1 = plans.head
     val ce1 = plans.tail.reduce((ce, p) => buildCover(ce, p))
     buildCover(plan1, ce1)
   }
 
+  // cover should not rename anything
   def buildCover(plan1: CExpr, plan2: CExpr): CExpr = (plan1, plan2) match {
     
     case y if plan1.vstr == plan2.vstr => plan1
@@ -32,7 +49,8 @@ object CEBuilder extends Extensions {
       val ks = ks1.toSet ++ ks2.toSet
       val vs = vs1.toSet ++ vs2.toSet
       val v = Variable.freshFromBag(child.tp)
-      Reduce(child, v, ks.toList, vs.toList)
+      Reduce(child, v, ks.toList.map(k => vmap.getOrElse(k, k)), 
+        vs.toList.map(v => vmap.getOrElse(v, v)))
 
     case (u1:UnnestOp, u2:UnnestOp) => 
       assert(u1.path == u2.path)
@@ -61,12 +79,20 @@ object CEBuilder extends Extensions {
       else OuterJoin(left, v1, right, v2, cond, j1.fields ++ j2.fields)
     
     // union columns
+    // TODO no implicit renaming should happen in the cover expression
     case (Projection(in1, v1, f1:Record, fs1), Projection(in2, v2, f2:Record, fs2)) => 
-      // assert(in1.tp == in2.tp)
+    
       val child = buildCover(in1, in2)
-      val r = Record(f1.fields ++ f2.fields)
       val v = Variable.freshFromBag(child.tp)
-      // this needs tested more
+      def updateVmap(r: Record): scala.collection.immutable.Map[String, CExpr] = {
+        r.fields.map{
+          case (field1, Project(_, field2)) =>
+            vmap(field1) = field2
+            (field2, Project(v, field2))
+          case _ => ???
+        }.toMap
+      }
+      val r = Record(updateVmap(f1) ++ updateVmap(f2))
       val nr = replace(r, v)
       Projection(child, v, nr, fs1 ++ fs2)
 

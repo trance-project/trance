@@ -11,11 +11,13 @@ import java.util.UUID.randomUUID
 class TestQueryRewriter extends FunSuite with MaterializeNRC with NRCTranslator {
 
   val occur = new Occurrence{}
+  val copynumber = new CopyNumber{}
   val tbls = Map("Customer" -> TPCHSchema.customertype,
                  "Order" -> TPCHSchema.orderstype,
                  "Lineitem" -> TPCHSchema.lineittype,
                  "Part" -> TPCHSchema.parttype, 
-                 "Occur" -> BagType(occur.occurmid_type))
+                 "Occur" -> BagType(occur.occurmid_type),
+                 "CopyNumber" -> BagType(copynumber.copyNumberType))
 
   val parser = Parser(tbls)
   val normalizer = new Finalizer(new BaseNormalizer{})
@@ -25,6 +27,12 @@ class TestQueryRewriter extends FunSuite with MaterializeNRC with NRCTranslator 
     val ncalc = normalizer.finalize(translate(query)).asInstanceOf[CExpr]
     optimizer.applyPush(Unnester.unnest(ncalc)(Map(), Map(), None, "_2"))
   }
+
+  def getPlan(query: Program): LinearCSet = {
+    val ncalc = normalizer.finalize(translate(query)).asInstanceOf[CExpr]
+    optimizer.applyPush(Unnester.unnest(ncalc)(Map(), Map(), None, "_2")).asInstanceOf[LinearCSet]
+  }
+
 
   test("select covering"){
     val c1 = Variable.fresh(TPCHSchema.customertype.tp)
@@ -38,198 +46,107 @@ class TestQueryRewriter extends FunSuite with MaterializeNRC with NRCTranslator 
 
     val subs = SEBuilder.sharedSubsFromProgram(Vector(plan1, plan2))
 
-    val ces = subs.map{
-      case (id, se) => 
-        val cover = CEBuilder.buildCoverFromSE(se)
-        val cnamed = Variable("Cover"+randomUUID().toString().replace("-", ""), cover.tp)
-        CE(cnamed, id, se)
-    }.toList
+    val ces = CEBuilder.buildCovers(subs)
 
     val newplans = ces.map{
       case c => QueryRewriter.rewritePlans(c)
     }
-    for(c <- newplans){
-      println(c.cover)
-      for (s <- c.ses){
-        println(s)
-      }
-    }
 
-
+    // for(c <- newplans){
+    //   println(c.cover)
+    //   for (s <- c.ses){
+    //     println(s)
+    //   }
+    // }
 
   }
 
-  // test("select and project covering"){
-  //   val c1 = Variable.fresh(TPCHSchema.customertype.tp)
-  //   val c2 = Variable.fresh(TPCHSchema.customertype.tp)
-
-  //   val cust1 = parser.parse("for c in Customer union if (custkey > 20) then { (cname := c.c_name ) }", parser.term).get
-  //   val custPlan1 = getPlan(cust1.asInstanceOf[Expr]).asInstanceOf[Projection]
-
-  //   val cust2 = parser.parse("for c in Customer union if (custkey < 2) then { (cname := c.c_name ) }", parser.term).get
-  //   val custPlan2 = getPlan(cust2.asInstanceOf[Expr]).asInstanceOf[Projection]
-    
-  //   val ce1 = CEBuilder.buildCover(cust1, cust2).asInstanceOf[Select]
-  //   assert(ce1.p.vstr == "custkey>20||custkey<2")
-
-  //   val ce2 = CEBuilder.buildCover(List(cust1, cust2))
-  //   assert(ce1.vstr == ce2.vstr)
-
-  // }
-
-  /**test("project covering"){
+  test("project covering"){
+    val c1 = Variable.fresh(TPCHSchema.customertype.tp)
+    val c2 = Variable.fresh(TPCHSchema.customertype.tp)
 
     val cust1 = parser.parse("for c in Customer union { (cname := c.c_name ) }", parser.term).get
     val custPlan1 = getPlan(cust1.asInstanceOf[Expr]).asInstanceOf[Projection]
 
-    val cust2 = parser.parse("for c in Customer union { (custkey := c.c_custkey ) }", parser.term).get
+    val cust2 = parser.parse("for c in Customer union { (ckey := c.c_custkey ) }", parser.term).get
     val custPlan2 = getPlan(cust2.asInstanceOf[Expr]).asInstanceOf[Projection]
-    assert(custPlan1.fields.toSet == Set("c_name"))
-    assert(custPlan2.fields.toSet == Set("c_custkey"))
-
-    val ce1 = CEBuilder.buildCover(custPlan1, custPlan2).asInstanceOf[Projection]
-    assert(ce1.fields.toSet == Set("c_custkey", "c_name"))
-
-    val ce2 = CEBuilder.buildCover(List(custPlan1, custPlan2))
-    assert(ce1.vstr == ce2.vstr)
-
-  }
-
-  test("join covering"){
-
-    // with CE below
-    val joinQuery1 = parser.parse(
-      """
-        for o in Order union
-          if (o.o_orderkey > 10)
-          then for c in Customer union
-            if (c.c_custkey = o.o_custkey)
-            then {(cname := c.c_name, odate := o.o_orderdate )}
-      """, parser.term).get
-    val joinPlan1 = getPlan(joinQuery1.asInstanceOf[Expr])
     
-    val joinQuery2 = parser.parse(
-      """
-        for o in Order union
-          if (o.o_orderkey > 15)
-          then for c in Customer union 
-            if (c.c_custkey = o.o_custkey)
-            then {(custkey := c.c_custkey, orderkey := o.o_orderkey )}
-      """, parser.term).get
-    val joinPlan2 = getPlan(joinQuery2.asInstanceOf[Expr])
+    val plan1 = LinearCSet(List(CNamed("Query1", custPlan1)))
+    val plan2 = LinearCSet(List(CNamed("Query2", custPlan2)))
 
-    // need to look at this case more
-    val ce = CEBuilder.buildCover(joinPlan1, joinPlan2)
-      .asInstanceOf[Projection].in.asInstanceOf[JoinOp]
+    val subs = SEBuilder.sharedSubsFromProgram(Vector(plan1, plan2))
 
-    val left = ce.left.asInstanceOf[Select].p.vstr
-    assert(left == "o_orderkey>10||o_orderkey>15")
+    val ces = CEBuilder.buildCovers(subs)
 
-    // val ce2 = CEBuilder.buildCover(List(joinPlan1.in, joinPlan2.in))
-    // assert(ce.vstr == ce2.vstr)
-
-    // need this once selections work better
-    // val joinQuery1 = parser.parse(
-    //   """
-    //     for o in Order union
-    //       for c in Customer union
-    //         if (c.c_custkey = o.o_custkey)
-    //         then {(cname := c.c_name, odate := o.o_orderdate )}
-    //   """, parser.term).get
-    // val joinPlan1 = getPlan(joinQuery1.asInstanceOf[Expr]).asInstanceOf[Projection]
-    
-    // val joinQuery2 = parser.parse(
-    //   """
-    //     for o in Order union
-    //       for c in Customer union 
-    //         if (c.c_custkey = o.o_custkey)
-    //         then {(custkey := c.c_custkey, orderkey := o.o_orderkey )}
-    //   """, parser.term).get
-    // val joinPlan2 = getPlan(joinQuery2.asInstanceOf[Expr]).asInstanceOf[Projection]
-
-  }
-
-  test("unnest hash"){
-    val unnestQuery1 = parser.parse(
-      """
-        for o in Occur union
-          if (o.donorId = "fakeTest")
-          then for t in o.transcript_consequences union
-            if (t.gene_id = "geneA") 
-            then {( oid := o.oid, impact := t.impact )}
-      """, parser.term).get
-    val unnestPlan1 = getPlan(unnestQuery1.asInstanceOf[Expr]).asInstanceOf[CExpr]
-    
-    val unnestQuery2 = parser.parse(
-      """
-        for o in Occur union
-          if (o.oid = "test")
-          then for t in o.transcript_consequences union 
-            if (t.sift_score > 0.01)
-            then {( sid := o.donorId, poly := t.polyphen_score )}
-      """, parser.term).get
-    val unnestPlan2 = getPlan(unnestQuery2.asInstanceOf[Expr]).asInstanceOf[CExpr]
-
-    val ce = CEBuilder.buildCover(unnestPlan1, unnestPlan2).asInstanceOf[Projection]
-    val un = ce.in.asInstanceOf[UnnestOp]
-    assert(un.fields.toSet == Set("oid", "impact", "donorId", "polyphen_score"))
-    assert(un.path == "transcript_consequences")
-    assert(un.filter.vstr == "gene_id=geneA||sift_score>0.01")
-
-  }
-
-  test("reduce covers"){
-    val reduceQuery1 = parser.parse(
-      """
-        (for c in Customer union 
-          for o in Order union
-            if (c.c_custkey = o.o_custkey)
-            then {(cname := c.c_name, orderkey := o.o_orderkey )}).sumBy({cname}, {orderkey})
-      """, parser.term).get
-    val reducePlan1 = getPlan(reduceQuery1.asInstanceOf[Expr]).asInstanceOf[CExpr]
-      
-    val reduceQuery2 = parser.parse(
-      """
-        (for o in Order union
-          for c in Customer union 
-            if (c.c_custkey = o.o_custkey)
-            then {(custkey := c.c_custkey, otherkey := o.o_custkey )}).sumBy({custkey}, {otherkey})
-      """, parser.term).get
-    val reducePlan2 = getPlan(reduceQuery2.asInstanceOf[Expr]).asInstanceOf[CExpr]
-    val ce = CEBuilder.buildCover(reducePlan1, reducePlan2).asInstanceOf[Reduce]
-    assert(ce.keys.toSet == Set("cname", "custkey"))
-    assert(ce.values.toSet == Set("orderkey", "otherkey"))
-    
-  }
-
-  test("covers from SEs"){
-    // with CE below
-    val joinQuery1 = parser.parse(
-      """
-        for o in Order union
-          if (o.o_orderkey > 10)
-          then for c in Customer union
-            if (c.c_custkey = o.o_custkey)
-            then {(cname := c.c_name, odate := o.o_orderdate )}
-      """, parser.term).get
-    val joinPlan1 = getPlan(joinQuery1.asInstanceOf[Expr])
-    
-    val joinQuery2 = parser.parse(
-      """
-        for o in Order union
-          if (o.o_orderkey > 15)
-          then for c in Customer union 
-            if (c.c_custkey = o.o_custkey)
-            then {(custkey := c.c_custkey, orderkey := o.o_orderkey )}
-      """, parser.term).get
-    val joinPlan2 = getPlan(joinQuery2.asInstanceOf[Expr])
-    val ses = SEBuilder.sharedSubs(Vector(joinPlan1, joinPlan2).zipWithIndex)
-
-    val ces = ses.map{
-      case (sig, subs) => sig -> CEBuilder.buildCoverFromSE(subs)
+    val newplans = ces.map{
+      case c => QueryRewriter.rewritePlans(c)
     }
-    // todo some validation 
 
-  }**/
+    // for(c <- newplans){
+    //   println("cover")
+    //   println(Printer.quote(c.cover))
+    //   for (s <- c.ses){
+    //     println("and sub")
+    //     println(Printer.quote(s.subplan))
+    //   }
+    // }
+
+  }
+
+  test("flat aggregates"){
+
+    val query1str = 
+      s"""
+        Query1 <=
+        (for c in CopyNumber union
+          {(sid := c.cn_aliquot_uuid, 
+            gid := c.cn_gene_id, 
+            cnum := c.cn_copy_number)}).sumBy({sid, gid}, {cnum})
+      """
+
+    val query1 = parser.parse(query1str).get
+    val plan1 = getPlan(query1.asInstanceOf[Program])
+
+    val query2str = 
+      s"""
+        Query2 <=
+        (for c in CopyNumber union
+          {(sid := c.cn_aliquot_uuid, 
+            gid := c.cn_gene_id, 
+            cmax := c.max_copy_number)}).sumBy({sid, gid}, {cmax})
+      """
+
+    val query2 = parser.parse(query2str).get
+    val plan2 = getPlan(query2.asInstanceOf[Program])
+
+    val query3str = 
+      s"""
+        Query3 <=
+        (for c in CopyNumber union
+          {(sid := c.cn_aliquot_uuid, 
+            cmax := c.max_copy_number)}).sumBy({sid}, {cmax})
+      """
+
+    val query3 = parser.parse(query3str).get
+    val plan3 = getPlan(query3.asInstanceOf[Program])
+
+    // equivsig -> {SE}
+    val subs = SEBuilder.sharedSubsFromProgram(Vector(plan1, plan2, plan3))
+
+    val ces = CEBuilder.buildCovers(subs)
+
+    val newplans = ces.map{
+      case c => QueryRewriter.rewritePlans(c)
+    }
+
+    for(c <- newplans){
+      println("cover")
+      println(Printer.quote(c.cover))
+      for (s <- c.ses){
+        println("and sub")
+        println(Printer.quote(s.subplan))
+      }
+    }
+  }
 
 }

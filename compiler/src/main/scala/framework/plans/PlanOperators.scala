@@ -24,7 +24,7 @@ case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr with 
   //   case _ => x.tp
   // }
   val in: CExpr = x
-  override def vstr: String = s"Select(${x.vstr}, ${p.vstr})" 
+  override def vstr: String = s"""Select(${x.vstr}, ${p.vstr}, ${e.tp.attrs.mkString(",")})""" 
 
 }
 
