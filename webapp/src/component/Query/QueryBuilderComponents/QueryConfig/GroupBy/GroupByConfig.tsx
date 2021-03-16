@@ -32,9 +32,7 @@ interface GroupByAttributes{
 
 const initGroupDetail:GroupByAttributes[] = [
     {id:0,label:'Gene'},
-    {id:1,label:'Sample'},
-    {id:2,label:'Score'},
-    {id:3,label:'Mutid'},
+    {id:1,label:'Score'},
 ]
 
 const GroupByConfig = () => {

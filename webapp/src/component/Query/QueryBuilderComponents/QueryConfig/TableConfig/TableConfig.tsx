@@ -21,7 +21,6 @@ const TableConfig = (props: _TableConfigProps) => {
         const e = [...expanded];
         e.push(nodeId);
         setExpanded(e);
-        console.log(expanded)
     };
 
     //Recursive method used to iterate over query table object to layout the columns and if the supply nested data.

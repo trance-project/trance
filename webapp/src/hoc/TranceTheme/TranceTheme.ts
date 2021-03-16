@@ -21,7 +21,6 @@ export const tranceTheme = createMuiTheme({
     palette:{
         primary:{
             main:'#74b9ff',
-            light:'#55efc4'
         }
     },
 

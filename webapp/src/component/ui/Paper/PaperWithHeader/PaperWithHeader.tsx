@@ -8,13 +8,14 @@ interface _PaperWithHeaderProps {
     heading:string;
     height?: number;
     children?:React.ReactNode;
-    className?:string
+    className?:string;
+    width?:number;
 }
 
 const PaperWithHeader = (props:_PaperWithHeaderProps) => {
     const classes = paperWithHeaderThemeStyle();
     return (
-        <Paper style={{"height":props.height}} className={props.className}>
+        <Paper style={{"height":props.height, "width": props.width}} className={props.className}>
             <Typography className={classes.header} variant={"h6"}>{props.heading}</Typography>
             <Divider className={classes.divider}/>
             {props.children}
