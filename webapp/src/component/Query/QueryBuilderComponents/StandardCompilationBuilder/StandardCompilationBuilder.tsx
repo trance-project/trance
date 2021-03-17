@@ -48,10 +48,6 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
         }
     }
 
-    const handleLvl3GroupByChange = (input: React.ChangeEvent<HTMLInputElement>) => {
-        setLvl3GroupBy(input.target.value);
-    }
-
     const handleLvl3EditChange = (input: React.ChangeEvent<HTMLInputElement>) => {
         setLvl3Edit(input.target.value);
     }
@@ -61,6 +57,7 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
     };
 
     const handleCloseGroupByDialogState = () => {
+        setLvl3GroupBy("scene_Group");
         setOpeGroupDialogState(false);
     };
 
@@ -274,7 +271,7 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
                 onAssociationDelete={props.onAssociationDelete}
             />
             <QueryEditDialog open={openEditDialogState} close={handleCloseEditDialogState} value={lvl3Edit} onChangeEdit={handleLvl3EditChange}/>
-            <GroupByDialog close={handleCloseGroupByDialogState} open={openGroupByDialogState} groupByKey={lvl3GroupBy} onChangeGroupBy={handleLvl3GroupByChange}/>
+            <GroupByDialog close={handleCloseGroupByDialogState} open={openGroupByDialogState}/>
         </div>
     );
 };

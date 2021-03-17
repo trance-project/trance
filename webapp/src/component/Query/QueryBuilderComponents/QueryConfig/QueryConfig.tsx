@@ -49,7 +49,7 @@ const QueryConfig = (props: _QueryConfigProps) => {
         },
         {
             tabLabel:"Group By",
-            jsxElement:<GroupByConfig/>
+            jsxElement:<div></div> //<GroupByConfig onClickGroup={()=>{}}/>
         },
         {
             tabLabel:"Association",

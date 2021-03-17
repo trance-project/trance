@@ -80,7 +80,15 @@ const JoinConfig = (props: _JoinConfigProps) => {
     const handleOccurrencesColumnChange = (event: React.ChangeEvent<{ value: unknown }>) => {
         const columns = event.target.value as string[];
         setOccurrencesColumn(columns);
-        columns.forEach(column=>setTableJoinsState([...tableJoinsState,tableData[2].abr+"."+column]));
+        columns.forEach(column=> {
+            let abr_column;
+            if(column === "gene"){
+                abr_column="t."+column;
+            }else{
+                abr_column=tableData[2].abr + "." + column
+            }
+            return setTableJoinsState([...tableJoinsState, abr_column]);
+        });
     };
 
 

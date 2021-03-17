@@ -41,7 +41,7 @@ const LabelView = forwardRef((props:_LabelViewProps, ref:ForwardedRef<any>) => {
         enter: theme.transitions.duration.enteringScreen,
         exit: theme.transitions.duration.leavingScreen,
     };
-    const beginScope = props.columns?.length!>0?"{(":"";
+
     const endScope = props.sumBy?")}))})}":props.endScope;
     return(
          <div className={classes.container} ref={ref} onClick={props.selectNode}>
@@ -54,7 +54,7 @@ const LabelView = forwardRef((props:_LabelViewProps, ref:ForwardedRef<any>) => {
                 <Typography variant={"body1"}><Typography component={"span"}>for</Typography> {props.tableEl} <Typography component={"span"}> in </Typography> {props.tableName} <Typography component={"span"}> union </Typography></Typography>
                 {props.joinString?<Typography variant={"body1"}><Typography component={"span"}>if</Typography> {props.joinString} <Typography component={"span"}>then</Typography> </Typography>:null}
 
-                {props.columns?<Typography variant={"body1"}>{beginScope}{props.columns.join(" , ")}{beginScope.length>0?endScope:""}</Typography>:null}
+                {props.columns?<Typography variant={"body1"}>{'{('}{props.columns.join(" , ")}{endScope}</Typography>:null}
             </div>
              <Zoom
                  in={props.isSelected}

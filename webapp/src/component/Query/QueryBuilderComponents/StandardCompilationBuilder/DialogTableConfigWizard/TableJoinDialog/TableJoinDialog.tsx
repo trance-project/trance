@@ -10,7 +10,7 @@ import ViewSelector from "../../../../../ViewSelector/ViewSelector";
 import testData from "../../../../../../containers/QueryBuilder/testData";
 import {Table} from "../../../../../../Interface/Public_Interfaces";
 import TextField from '@material-ui/core/TextField';
-import TableJoinPane from "./TableJoinPane";
+
 
 interface _TableJoinDialogProps {
     open:boolean;

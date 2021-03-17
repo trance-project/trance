@@ -33,6 +33,7 @@ import DeviceHubIcon from "@material-ui/icons/DeviceHub";
 import CodeIcon from "@material-ui/icons/Code";
 import MapIcon from "@material-ui/icons/Map";
 import BarChartIcon from "@material-ui/icons/BarChart";
+import NewQueryDialog from "../../component/NewQueryDialog/NewQueryDialog";
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -48,11 +49,25 @@ enum pageRoutes {
 
 const Layout = (props:LayoutProps) => {
         const [open, setOpen] = React.useState(false);
-        const [selectedQuery, setSelectedQuery] = React.useState('');
+        const [selectedQuery, setSelectedQuery] = React.useState(0);
         const [activePageState, setActivePageState] = React.useState<pageRoutes>(pageRoutes.DASHBOARD);
+        const [openNewQueryState, setOpenNewQueryState] = React.useState<boolean>(false);
+        const [queryListState, setQueryListState] = React.useState<string[]>(queryList)
+
+        const handleOpenNewQueryState = () => {
+            setOpenNewQueryState(true)
+        }
+
+        const handleCloseNewQueryState = () => {
+            setOpenNewQueryState(false)
+        }
 
     const history = useHistory();
-    const handleNewQuery = () => {
+    const handleNewQuery = (input:string) => {
+        const newQueryList= [input,...queryListState];
+        setQueryListState(newQueryList);
+        setSelectedQuery(newQueryList.findIndex(el=> el===input)+1);
+        setOpenNewQueryState(false);
         history.push('/builder')
         setActivePageState(pageRoutes.BUILDER)
     }
@@ -66,7 +81,7 @@ const Layout = (props:LayoutProps) => {
         }
 
     const handleChange = (event: React.ChangeEvent<{ value: unknown }>) => {
-        setSelectedQuery(event.target.value as string);
+        setSelectedQuery(event.target.value as number);
     };
 
         const classes = LayoutThemeStyle();
@@ -101,16 +116,14 @@ const Layout = (props:LayoutProps) => {
                                     select: classes.inputInput,
                                 }}
                             >
-                                <MenuItem value="">
+                                <MenuItem value={0}>
                                     <em>None</em>
                                 </MenuItem>
-                                <MenuItem value={10}>Biomedical Query</MenuItem>
-                                <MenuItem value={20}>Test 1</MenuItem>
-                                <MenuItem value={30}>Test 2</MenuItem>
+                                {queryListState.map((el, index) => <MenuItem value={index+1} key={index}>{el}</MenuItem>)}
                             </Select>
                         </div>
                         <div>
-                            <IconButton onClick={handleNewQuery}>
+                            <IconButton onClick={handleOpenNewQueryState}>
                                 <AddIcon/>
                             </IconButton>
                         </div>
@@ -184,8 +197,12 @@ const Layout = (props:LayoutProps) => {
                         </Box>
                     </Container>
                 </main>
+                <NewQueryDialog open={openNewQueryState} close={handleCloseNewQueryState} onClickEvent={handleNewQuery}/>
             </div>
         );
 }
+
+
+const queryList = ['GeneLikelihoodPerMutation','GeneLikelihoodPerSample', 'GeneImpactPerMutation', 'GeneImpactPerSample','HybridScoreMatrix','EffectScoreMatrix', 'NetworkEffects', 'GeneBurden', 'PathwayBurden', 'OccurrenceBySample', 'HybridByMutation']
 
 export default Layout;

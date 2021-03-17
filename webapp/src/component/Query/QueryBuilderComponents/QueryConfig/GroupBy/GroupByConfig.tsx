@@ -10,6 +10,8 @@ import ListItemIcon from '@material-ui/core/ListItemIcon';
 import Checkbox from '@material-ui/core/Checkbox';
 import Button from '@material-ui/core/Button';
 import Divider from '@material-ui/core/Divider';
+import Radio from '@material-ui/core/Radio';
+import RadioGroup from '@material-ui/core/RadioGroup';
 
 import {groupByConfigThemeStyle} from './GroupByConfigThemeStyle';
 
@@ -30,17 +32,26 @@ interface GroupByAttributes{
     label:string;
 }
 
-const initGroupDetail:GroupByAttributes[] = [
+const initGroupDetailValue:GroupByAttributes[] = [
     {id:0,label:'Gene'},
     {id:1,label:'Score'},
 ]
 
-const GroupByConfig = () => {
+const initGroupDetailKey:GroupByAttributes[] = [
+    {id:0,label:'Gene'},
+    {id:1,label:'Score'},
+]
+
+interface _GroupByConfigProps {
+    onClickGroup: () => void;
+}
+
+const GroupByConfig = (props:_GroupByConfigProps) => {
     const classes = groupByConfigThemeStyle();
 
     const [checked, setChecked] = React.useState<GroupByAttributes[]>([]);
-    const [left, setLeft] = React.useState<GroupByAttributes[]>(initGroupDetail);
-    const [right, setRight] = React.useState<GroupByAttributes[]>([]);
+    const [left, setLeft] = React.useState<GroupByAttributes[]>(initGroupDetailValue);
+    const [right, setRight] = React.useState<GroupByAttributes[]>(initGroupDetailKey);
 
     const leftChecked = intersection(checked, left);
     const rightChecked = intersection(checked, right);
@@ -125,35 +136,35 @@ const GroupByConfig = () => {
                 <Grid item>{customList('Key Attributes', left)}</Grid>
                 <Grid item>
                     <Grid container direction="column" alignItems="center">
-                        <Button
-                            variant="outlined"
-                            size="small"
-                            className={classes.button}
-                            onClick={handleCheckedRight}
-                            disabled={leftChecked.length === 0}
-                            aria-label="move selected right"
-                        >
-                            &gt;
-                        </Button>
-                        <Button
-                            variant="outlined"
-                            size="small"
-                            className={classes.button}
-                            onClick={handleCheckedLeft}
-                            disabled={rightChecked.length === 0}
-                            aria-label="move selected left"
-                        >
-                            &lt;
-                        </Button>
+                        {/*<Button*/}
+                        {/*    variant="outlined"*/}
+                        {/*    size="small"*/}
+                        {/*    className={classes.button}*/}
+                        {/*    onClick={handleCheckedRight}*/}
+                        {/*    disabled={leftChecked.length === 0}*/}
+                        {/*    aria-label="move selected right"*/}
+                        {/*>*/}
+                        {/*    &gt;*/}
+                        {/*</Button>*/}
+                        {/*<Button*/}
+                        {/*    variant="outlined"*/}
+                        {/*    size="small"*/}
+                        {/*    className={classes.button}*/}
+                        {/*    onClick={handleCheckedLeft}*/}
+                        {/*    disabled={rightChecked.length === 0}*/}
+                        {/*    aria-label="move selected left"*/}
+                        {/*>*/}
+                        {/*    &lt;*/}
+                        {/*</Button>*/}
                         <Button
                             variant="contained"
                             size="small"
                             className={classes.button}
-                            onClick={handleCheckedLeft}
+                            onClick={props.onClickGroup}
                             // disabled={right.length > 0}
                             aria-label="Group right selected"
                         >
-                           Sum by
+                           Group by
                         </Button>
                     </Grid>
                 </Grid>
