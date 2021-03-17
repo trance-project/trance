@@ -5,6 +5,12 @@ export interface Table {
     name:string;
     columns : Column[];
     abr?:string;
+    join?:Table;
+}
+
+export interface Join {
+    tables:Table[];
+
 }
 
 export interface Column {
@@ -15,10 +21,14 @@ export interface Column {
 }
 
 export interface Query {
+    type: "select"|"join",
+    level: string;
     tables: Table[];
     Where: string;
     groupBy: string;
     selectedColumns:Column[];
+    associations: Associations[];
+    children?: Query
 }
 
 export interface customTabElement {
@@ -40,4 +50,9 @@ export interface mutation{
 export interface score{
     gene:string;
     score:number;
+}
+
+export interface Associations {
+    key: number;
+    label: string[];
 }

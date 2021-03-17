@@ -141,13 +141,16 @@ const StandardCompilationView = (props:_QueryViewProps) => {
                     <StyledTreeItem nodeId="3"
                                     label={
                                         <LabelView
+                                            tableEl={'c'}
+                                            nestedObjectEl={"t"}
+                                            nestedObjectJoin={"o.candidates"}
+                                            tableName={'CopyNumber'}
+                                            joinString={'t.gene == c.gene && s.sample == o.sample'}
+                                            columns={["gene := t.gene","score := t.impact * (c.num + 0.01) * t.sift * t.poly"]}
                                             sumBy
-                                            tableEl={'t'}
-                                            tableName={'o.candidate'}
                                             hoverEvent={()=>props.hoverMaterializationLvlOpen(3)}
                                             abortHover={props.abortHover}
                                         />}>
-                        <StyledTreeItem nodeId="4" label={<LabelView tableEl={'c'} tableName={'CopyNumber'} joinString={'t.gene == c.gene && s.sample == o.sample'} columns={["gene := t.gene","score := t.impact * (c.num + 0.01) * t.sift * t.poly)}))})}"]}/>}/>
                         <Popover
                             open={props.hoverMaterializationLvl === 3}
                             onClose={props.hoverMaterializationLvlClose}

@@ -13,27 +13,47 @@ import GroupByConfig from "./GroupBy/GroupByConfig";
 
 
 interface _QueryConfigProps {
-    query: Query | undefined;
+    query: Query;
     config: (column:Column) => void;
+    selectedNode: string;
 }
 
+
 const QueryConfig = (props: _QueryConfigProps) => {
-    const tabPanel:customTabElement[] | undefined = props.query ? [
+    const node = parseInt(props.selectedNode);
+    let nestedLvl = 0;
+    let queryObject:Query = props.query;
+
+    const selectedQuery = (query:Query) => {
+        nestedLvl++;
+        if(node === nestedLvl){
+            console.log("setting query in config " + nestedLvl + " " + node)
+            queryObject = query;
+        }else{
+            console.log("not found " + nestedLvl + " " + node)
+            if(query.children)
+            selectedQuery(query.children)
+        }
+
+    }
+    selectedQuery(props.query);
+
+    const tabPanel:customTabElement[] | undefined = queryObject ? [
         {
             tabLabel:"Input Config",
-            jsxElement:<TableConfig tables={props.query.tables} columnBoxClicked={props.config}/>
+            jsxElement:<TableConfig tables={queryObject.tables} columnBoxClicked={props.config}/>
         },
         {
-            tabLabel:"Filters",
+            tabLabel:"Filter",
             jsxElement:<ConditionContrainsts/>
         },
         {
             tabLabel:"Group By",
-            jsxElement:<GroupByConfig/>
+            jsxElement:<div></div> //<GroupByConfig onClickGroup={()=>{}}/>
         },
         {
-            tabLabel:"Joins",
-            jsxElement:<JoinConfig/>
+            tabLabel:"Association",
+            jsxElement: <div></div>//<JoinConfig/>
         },
     ]: undefined;
 

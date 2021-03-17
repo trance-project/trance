@@ -3,33 +3,36 @@ import {Table} from "../../Interface/Public_Interfaces";
 const testData:Table[] = [
     {name: "Sample",
         id: 110,
+        abr:"s",
         columns:
             [
-                {id: 111,name: "sample", enable: true, children:[]},
-                {id: 112,name: "turmorsite", enable: true, children:[]},
-                {id: 133,name: "treatment_outcome", enable: true, children:[]},
+                {id: 111,name: "sample", enable: false, children:[]},
+                {id: 112,name: "turmorsite", enable: false, children:[]},
+                {id: 133,name: "treatment_outcome", enable: false, children:[]},
             ]
     },
     {name: "CopyNumber",
         id: 113,
+        abr:"c",
         columns:
             [
-                {id: 114,name: "sample", enable: true, children:[]},
-                {id: 115,name: "gene", enable: true, children:[]} ,
-                {id: 116,name: "cnum", enable: true, children:[]},
+                {id: 114,name: "sample", enable: false, children:[]},
+                {id: 115,name: "gene", enable: false, children:[]} ,
+                {id: 116,name: "cnum", enable: false, children:[]},
             ]
     },
     {name: "Occurrences",
         id: 117,
+        abr:"o",
         columns:
             [
-                {id: 118,name: "sample", enable: true, children:[]},
-                {id: 119,name: "contig", enable: true, children:[]} ,
-                {id: 120,name: "end", enable: true, children:[]},
-                {id: 121,name: "reference", enable: true, children:[]},
-                {id: 122,name: "alternate", enable: true, children:[]},
-                {id: 123,name: "mutid", enable: true, children:[]},
-                {id: 124,name: "candidates", enable: true, children:[
+                {id: 118,name: "sample", enable: false, children:[]},
+                {id: 119,name: "contig", enable: false, children:[]} ,
+                {id: 120,name: "end", enable: false, children:[]},
+                {id: 121,name: "reference", enable: false, children:[]},
+                {id: 122,name: "alternate", enable: false, children:[]},
+                {id: 123,name: "mutid", enable: false, children:[]},
+                {id: 124,name: "candidates", enable: false, children:[
                         {name: "candidates",
                             id: 125,
                             columns:
