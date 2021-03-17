@@ -6,7 +6,7 @@ export const tranceTheme = createMuiTheme({
             'Lato'
         ].join('.'),
         fontSize:13,
-        fontWeightRegular:300,
+        fontWeightRegular:500,
         h6:{
             fontWeight:400,
             textTransform:'capitalize',
