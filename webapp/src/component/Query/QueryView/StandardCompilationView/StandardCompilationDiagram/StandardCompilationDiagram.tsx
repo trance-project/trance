@@ -25,16 +25,16 @@ const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
             <foreignObject width={70} height={50}>
                 {getImagePlanOperator(diagramElProps.nodeDatum.attributes?.planOperator)}
             </foreignObject>
-            <text fill="black" strokeWidth="0.5" x="50" y={"20"} onClick={diagramElProps.toggleNode}>
+            <text fill="black" strokeWidth="0.5" x="50" y={"20"} fontSize={27} onClick={diagramElProps.toggleNode}>
                 {diagramElProps.nodeDatum.name}
             </text>
             {diagramElProps.nodeDatum.attributes?.newLine && (
-                <text fill="black" x="50" dy="40" strokeWidth="0.5">
+                <text fill="black" x="50" dy="40" fontSize={25} strokeWidth="0.5">
                     {diagramElProps.nodeDatum.attributes?.newLine}
                 </text>
             )}
             {diagramElProps.nodeDatum.attributes?.level && (
-                <text fill="black" x="50" dy={diagramElProps.nodeDatum.attributes?.newLine?"60":"40"} strokeWidth="1">
+                <text fill="black" x="50" fontSize={18} dy={diagramElProps.nodeDatum.attributes?.newLine?"60":"40"} strokeWidth="1">
                     level: {diagramElProps.nodeDatum.attributes?.level}
                 </text>
             )}
@@ -58,13 +58,16 @@ const getImagePlanOperator = (planOperator:String | undefined) => {
         case 'left-outer-join':
             image=leftOuterJoin;
             break;
+         case 'outer-unnest':
+            image=outerUnnest;
+            break;
         case 'unnest':
             image=unnest;
             break;
         default:
             return;
     }
-    return <img src={image} alt={'planOperatorSymbol'} width={20} height={20}/>
+    return <img src={image} alt={'planOperatorSymbol'} width={30} height={30}/>
 }
 
 const _colorPicker =(level:String)=>{
@@ -98,51 +101,57 @@ const StandardCompilationDiagram = () => (
 export default StandardCompilationDiagram;
 
 const treeDiagramData:RawNodeDatum ={
-    name: 'Sample,mutations',
+    name: '',
     attributes: {
+        newLine: 'sample, mutations',
         level: '1',
         planOperator: 'projection'
     },
     children: [
         {
-            name: 'mutId, candidates, sID, sample',
+            name: '',
             attributes: {
+                newLine: 'mutId, candidates, sID, sample',
                 level: '2',
                 planOperator:'nest'
             },
             children: [
                 {
-                    name: 'gene,score,sID,sample,mutId',
+                    name: '',
                     attributes: {
+                        newLine: 'gene, score, sID, sample, mutId',
                         level: '2',
                         planOperator:'nest'
                     },
                     children: [
                         {
-                            name: 'impact*(cnum+0.01)*sift*polysID',
+                            name: 'impact*(cnum+0.01)*sift*poly',
                             attributes: {
-                                newLine:'sample, label, gene',
+                                newLine:'sample, gene, label, mutId, sID',
                                 level: '3',
                                 planOperator:'sum-aggregate'
                             },
                             children:[
                                 {
-                                    name:'sample.gene',
+                                    name:'',
                                     attributes: {
+                                        newLine: 'sample, gene',
                                         level: '3',
                                         planOperator:'left-outer-join'
                                     },
                                     children:[
                                         {
-                                            name:'candidates',
+                                            name:'',
                                             attributes: {
+                                                newLine: 'candidates',
                                                 level: '3',
-                                                planOperator:'unnest'
+                                                planOperator:'outer-unnest'
                                             },
                                             children:[
                                                 {
-                                                    name:'sample',
+                                                    name:'',
                                                     attributes: {
+                                                        newLine: 'sample',
                                                         level: '2',
                                                         planOperator:'left-outer-join'
                                                     },

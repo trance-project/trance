@@ -55,8 +55,9 @@ const ShreddedPlanDiagram = () => (
 );
 
 const treeDiagramLvl1:RawNodeDatum = {
-    name: 'sample,mutations:=Newlabel(sample)',
+    name: '', //'sample,mutations:=Newlabel(sample)',
     attributes: {
+        newLine: 'sample,mutations:=Newlabel(sample)',
         level:'1',
         planOperator:'projection'
     },
@@ -70,8 +71,9 @@ const treeDiagramLvl1:RawNodeDatum = {
     ]
 }
 const treeDiagramLvl2:RawNodeDatum = {
-    name: 'mutId, scores:= NewLabel(sample)',
+    name: '', //'mutId, scores:= NewLabel(sample)',
     attributes: {
+        newLine: 'mutId, scores:= NewLabel(sample)',
         level:'2',
         planOperator:'projection'
     },
@@ -85,40 +87,44 @@ const treeDiagramLvl2:RawNodeDatum = {
     ]
 }
 const treeDiagramData:RawNodeDatum = {
-    name:'label,gene,score',
+    name:'', //'label,gene,score',
     attributes:{
+        newLine: 'label,gene,score',
         level:'3',
         planOperator:'projection'
     },
     children:[{
-        name:'impact*(cnum+0.01)*sift*poly',
+        name: 'impact*(cnum+0.01)*sift*poly',
         attributes:{
-            newLine:'sample, label, gene',
+            //newLine: 'impact*(cnum+0.01)*sift*poly', 
+            newLine: 'sample, label, gene',
             level:'3',
             planOperator:'sum-aggregate'
         },
         children:[{
-            name:'sample,gene',
+            name:'',
             attributes:{
+                newLine: 'sample, gene',
                 level:'3',
                 planOperator:'equijoin'
             },
             children:[
                 {
-                    name:'label',
+                    name:'',
                     attributes:{
+                        newLine: 'label',
                         level:'3',
                         planOperator:'equijoin'
                     },
                     children:[
                         {
-                            name:'LabDomainmutations_scores',
+                            name:'LabDomain', //mut', //ations_scores',
                             attributes:{
                                 level:'3'
                             }
                         },
                         {
-                            name:'MatOccurencesmutations',
+                            name:'MatOccurences', //mutations',
                             attributes:{
                                 level:'3'
                             }
@@ -151,16 +157,16 @@ const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
             <foreignObject width={70} height={50}>
                 {getImagePlanOperator(diagramElProps.nodeDatum.attributes?.planOperator)}
             </foreignObject>
-            <text fill="black" strokeWidth="0.5" x="50" y={"20"} onClick={diagramElProps.toggleNode}>
+            <text fill="black" strokeWidth="0.5" x="50" y={"20"} fontSize={25} onClick={diagramElProps.toggleNode}>
                 {diagramElProps.nodeDatum.name}
             </text>
             {diagramElProps.nodeDatum.attributes?.newLine && (
-                <text fill="black" x="50" dy="40" strokeWidth="0.5">
+                <text fill="black" x="50" dy="40" strokeWidth="0.5" fontSize={27}>
                     {diagramElProps.nodeDatum.attributes?.newLine}
                 </text>
             )}
             {diagramElProps.nodeDatum.attributes?.level && (
-                <text fill="black" x="50" dy={diagramElProps.nodeDatum.attributes?.newLine?"60":"40"} strokeWidth="1">
+                <text fill="black" x="50" fontSize={18} dy={diagramElProps.nodeDatum.attributes?.newLine?"60":"40"} strokeWidth="1">
                     level: {diagramElProps.nodeDatum.attributes?.level}
                 </text>
             )}
@@ -204,7 +210,7 @@ const getImagePlanOperator = (planOperator:String | undefined) => {
         default:
             return;
     }
-    return <img src={image} alt={'planOperatorSymbol'} width={20} height={20}/>
+    return <img src={image} alt={'planOperatorSymbol'} width={30} height={30}/>
 }
 
 export default ShreddedPlanDiagram;

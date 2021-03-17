@@ -17,13 +17,13 @@ export const planResultsThemeStyle = makeStyles(theme => ({
         textAlign:'left'
     },
     accordion1lvl: {
-        backgroundColor: 'rgba(141,158,145,0.8)'
+        backgroundColor: 'rgba(141,158,145,0.3)'
     },
     accordion2lvl: {
-        backgroundColor: 'rgba(139,122,140,0.8)'
+        backgroundColor: 'rgba(139,122,140,0.3)'
     },
     accordion3lvl: {
-        backgroundColor: 'rgba(179,130,181,0.8)'
+        backgroundColor: 'rgba(179,130,181,0.3)'
     },
     accordionWhite: {
         backgroundColor: 'rgba(255,255,255,0.3)'

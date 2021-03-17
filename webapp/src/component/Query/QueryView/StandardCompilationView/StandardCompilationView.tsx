@@ -171,7 +171,7 @@ const StandardCompilationView = (props:_QueryViewProps) => {
 };
 
 const treeDiagramData:RawNodeDatum ={
-    name: 'Sample,mutations',
+    name: 'sample,mutations',
     attributes: {
         level: '1',
     },

@@ -121,16 +121,17 @@ const treeDiagramData:RawNodeDatum = {
         planOperator:'projection'
     },
     children:[{
-        name: '', //'impact*(cnum+0.01)*sift*poly',
+        name: 'impact*(cnum+0.01)*sift*poly',
         attributes:{
-            newLine: 'impact*(cnum+0.01)*sift*poly', //'sample, label, gene',
+            //newLine: 'impact*(cnum+0.01)*sift*poly', 
+            newLine: 'sample, label, gene',
             level:'3',
             planOperator:'sum-aggregate'
         },
         children:[{
             name:'',
             attributes:{
-                newLine: 'sample,gene',
+                newLine: 'sample, gene',
                 level:'3',
                 planOperator:'equijoin'
             },
@@ -187,7 +188,7 @@ const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
                 {diagramElProps.nodeDatum.name}
             </text>
             {diagramElProps.nodeDatum.attributes?.newLine && (
-                <text fill="black" x="50" dy="40" strokeWidth="0.5" fontSize={27}>
+                <text fill="black" x="50" dy="40" strokeWidth="0.5" fontSize={25}>
                     {diagramElProps.nodeDatum.attributes?.newLine}
                 </text>
             )}
