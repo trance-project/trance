@@ -44,7 +44,7 @@ const QueryConfig = (props: _QueryConfigProps) => {
             jsxElement:<TableConfig tables={queryObject.tables} columnBoxClicked={props.config}/>
         },
         {
-            tabLabel:"Filters",
+            tabLabel:"Filter",
             jsxElement:<ConditionContrainsts/>
         },
         {
@@ -52,7 +52,7 @@ const QueryConfig = (props: _QueryConfigProps) => {
             jsxElement:<GroupByConfig/>
         },
         {
-            tabLabel:"Joins",
+            tabLabel:"Association",
             jsxElement: <div></div>//<JoinConfig/>
         },
     ]: undefined;

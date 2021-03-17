@@ -24,15 +24,15 @@ const GroupByDialog = (props:_groupByDialogProps) => {
             <Dialog open={props.open} onClose={props.close} aria-labelledby="form-dialog-title-edit" fullWidth>
                 <DialogTitle id="form-dialog-title-edit">Group by</DialogTitle>
                 <DialogContent>
-                    <TextField
-                        autoFocus
-                        id="Group_By"
-                        label="key Attribute"
-                        type="groupBy"
-                        fullWidth
-                        value={props.groupByKey}
-                        onChange={props.onChangeGroupBy}
-                    />
+                    {/*<TextField*/}
+                    {/*    autoFocus*/}
+                    {/*    id="Group_By"*/}
+                    {/*    label="key Attribute"*/}
+                    {/*    type="groupBy"*/}
+                    {/*    fullWidth*/}
+                    {/*    value={props.groupByKey}*/}
+                    {/*    onChange={props.onChangeGroupBy}*/}
+                    {/*/>*/}
                     <PaperWithHeader heading={'Group By Attributes'} height={450}>
                         <GroupByConfig/>
                     </PaperWithHeader>

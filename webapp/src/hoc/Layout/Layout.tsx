@@ -1,4 +1,5 @@
 import React from "react";
+import { useHistory } from 'react-router-dom';
 import clsx from "clsx";
 import CssBaseline from "@material-ui/core/CssBaseline";
 import AppBar from "@material-ui/core/AppBar";
@@ -12,6 +13,7 @@ import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
 import SearchIcon from '@material-ui/icons/Search';
 import Divider from "@material-ui/core/Divider";
 import List from "@material-ui/core/List";
+import BuildIcon from '@material-ui/icons/Build';
 import {mainListItems, secondaryListItems} from "../../template/listItems";
 import Container from "@material-ui/core/Container";
 import Grid from "@material-ui/core/Grid";
@@ -46,8 +48,14 @@ enum pageRoutes {
 
 const Layout = (props:LayoutProps) => {
         const [open, setOpen] = React.useState(false);
-        const [selectedQuery, setSelectedQuery] = React.useState('10');
+        const [selectedQuery, setSelectedQuery] = React.useState('');
         const [activePageState, setActivePageState] = React.useState<pageRoutes>(pageRoutes.DASHBOARD);
+
+    const history = useHistory();
+    const handleNewQuery = () => {
+        history.push('/builder')
+        setActivePageState(pageRoutes.BUILDER)
+    }
 
 
         const handleDrawerOpen = () => {
@@ -102,7 +110,9 @@ const Layout = (props:LayoutProps) => {
                             </Select>
                         </div>
                         <div>
-                            <AddIcon/>
+                            <IconButton onClick={handleNewQuery}>
+                                <AddIcon/>
+                            </IconButton>
                         </div>
                     </Toolbar>
                 </AppBar>
@@ -130,7 +140,7 @@ const Layout = (props:LayoutProps) => {
                         <Link to={'/builder'}>
                             <ListItem className={activePageState===pageRoutes.BUILDER?classes.drawerPaperActive:classes.drawerNav} button onClick={() => setActivePageState(pageRoutes.BUILDER)}>
                                 <ListItemIcon>
-                                    <CodeIcon />
+                                    <BuildIcon />
                                 </ListItemIcon>
                                 <ListItemText primary={"Query Builder"} />
                             </ListItem>
@@ -148,7 +158,7 @@ const Layout = (props:LayoutProps) => {
                                 <ListItemIcon>
                                     <MapIcon />
                                 </ListItemIcon>
-                                <ListItemText primary={"Schema Overview"} />
+                                <ListItemText primary={"Schema"} />
                             </ListItem>
                         </Link>
                         <Link to={'/report'} className={activePageState===pageRoutes.REPORT?classes.drawerPaperActive:classes.drawerNav}>

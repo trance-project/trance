@@ -1,4 +1,4 @@
-import React, {useRef, useEffect,useState} from 'react';
+import React, {useRef, useEffect} from 'react';
 import {TreeView} from "@material-ui/lab";
 
 
@@ -37,7 +37,7 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
 
     const [lvl1AssociationKey, setLvl1AssociationKey] = React.useState<string>("")
     const [lvl2AssociationKey, setLvl2AssociationKey] = React.useState<string>("")
-    const [lvl3Edit, setLvl3Edit] = React.useState<string>("")
+    const [lvl3Edit, setLvl3Edit] = React.useState<string>("gene:=t.gene")
     const [lvl3GroupBy, setLvl3GroupBy] = React.useState<string>("")
 
     const handleAssociationChange = (input: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,6 +113,16 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
         return currentId.toString();
     }
 
+    const scope = () => {
+        if(expandedNodes.length === 1){
+            return ")}";
+        }else if(expandedNodes.length === 2){
+            return ")})}";
+        }else if(expandedNodes.length === 3) {
+            return ")})})}";
+        }
+    }
+
     let statement = <div></div>;
 
     const focusNodeRef = useRef<HTMLButtonElement>(null);
@@ -142,7 +152,7 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
         const treeNodeId=nextNodeId();
 
         if(query.associations){
-            association= query.associations.map(a => a.label.join(" == ")).join(",")
+            association= query.associations.map(a => a.label.join(" == ")).join(" && ")
         }
         // if(table.join){
         if(query.children){
@@ -153,15 +163,6 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
                         columnsSelect.push(`${column.name}:=${columnName}`);
                     }
             }
-            // for(const column of(table.columns)){
-            //     if(column.children.length > 0){
-            //         childItem= column.children.map(t => querySelect(t));
-            //     }
-            //     if(column.enable){
-            //         const columnName = column.children.length===0?`${tableAbr}.${column.name}`:"";
-            //         columnsSelect.push(`${column.name}:=${columnName}`);
-            //     }
-            // }
             if(associationNestedKey.length>0){
                 columnsSelect.push(associationNestedKey)
             }
@@ -191,10 +192,11 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
                 columnsSelect.push(associationNestedKey)
             }
             if (table.name==="CopyNumber") {
-                if(lvl3Edit.length>0){
+                if(columnsSelect.length>0){
+                    console.log('lvl3Edit', lvl3Edit.split(","))
                     columnsSelect = lvl3Edit.split(",");
                 }else{
-                    setLvl3Edit(columnsSelect.join(" , "));
+                    // setLvl3Edit(columnsSelect.join(" , "));
                 }
 
                 return <StyledTreeItem nodeId={treeNodeId} label={<LabelView
@@ -203,14 +205,15 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
                     nestedObjectJoin={"o.candidates"}
                     tableName={table.name}
                     columns={columnsSelect}
-                    // joinString={association}
-                    joinString={'t.gene == c.gene'}
+                    joinString={association}
+                    // joinString={'t.gene == c.gene'}
                     selectNode={() => props.onNodeClick(treeNodeId)}
                     isSelected={props.selectedNode === treeNodeId}
                     openJoinAction={handleClickOpenJoinDialog}
                     openEdit={handleClickOpenEditDialogState}
                     openGroupBy={handleClickOpenGroupByDialogState}
                     sumBy={lvl3GroupBy.length>0}
+                    endScope={scope()}
                 />}/>
             } else {
                 return <StyledTreeItem nodeId={treeNodeId} label={<LabelView
@@ -222,6 +225,7 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
                     isSelected={props.selectedNode === treeNodeId}
                     openJoinAction={handleClickOpenJoinDialog}
                     openEdit={handleClickOpenEditDialogState}
+                    endScope={scope()}
                 />}/>
             }
         }
@@ -236,8 +240,12 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
     }
 
     let joins: Associations[] = [];
-    if(props.query.children){
+    if(props.selectedNode === "1"){
+        if(props.query.children)
         joins =  props.query.children.associations
+    }else if(props.selectedNode === "2") {
+        if(props.query.children?.children)
+        joins =  props.query.children!.children!.associations
     }
 
     return (
@@ -270,6 +278,7 @@ const StandardCompilationBuilder = (props:_QueryBuilderProps) => {
         </div>
     );
 };
+
 
 
 export default StandardCompilationBuilder;

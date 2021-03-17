@@ -15,7 +15,7 @@ interface _PaperWithHeaderProps {
 const PaperWithHeader = (props:_PaperWithHeaderProps) => {
     const classes = paperWithHeaderThemeStyle();
     return (
-        <Paper style={{"height":props.height, "width": props.width}} className={props.className}>
+        <Paper style={{"height":props.height, "width": props.width}} className={props.className} elevation={4}>
             <Typography className={classes.header} variant={"h6"}>{props.heading}</Typography>
             <Divider className={classes.divider}/>
             {props.children}

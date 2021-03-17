@@ -144,13 +144,29 @@ const QueryBuilder =()=>{
 
     }
 
+    const toggleEnableColumn = (query:Query , column:Column) => {
+       query.tables.forEach(t=>{
+           t.columns.forEach(col=>{
+               if (col.name === column.name) {
+                   col.enable = !col.enable
+                   console.log("[change table column enable]", query)
+               }
+           })
+       })
+    }
+
     const ableDisableColumnHandler =(column: Column)=>{
         if(queryState) {
-            const querylocal = JSON.parse(JSON.stringify(queryState)) as Query;
-            querylocal.tables.forEach(el => {
-                formatData(el, column)
-            })
-            setQueryState(querylocal);
+            const immutableQuery = JSON.parse(JSON.stringify(queryState)) as Query;
+            if(selectedSubQueryState?.level === "1"){
+                toggleEnableColumn(immutableQuery, column);
+            }else if(selectedSubQueryState?.level === "2"){
+                console.log("[debug level two call]")
+                toggleEnableColumn(immutableQuery.children!, column);
+            }else if(selectedSubQueryState?.level === "3"){
+                toggleEnableColumn(immutableQuery.children?.children!, column);
+            }
+            setQueryState(immutableQuery);
         }
     }
 

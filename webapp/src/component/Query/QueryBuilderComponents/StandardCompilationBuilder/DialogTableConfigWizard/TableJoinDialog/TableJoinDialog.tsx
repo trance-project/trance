@@ -25,11 +25,9 @@ interface _TableJoinDialogProps {
     return (
         <div>
             <Dialog open={props.open} onClose={props.close} aria-labelledby="form-dialog-title" >
-                <DialogTitle id="form-dialog-title">Associations Object</DialogTitle>
+                <DialogTitle id="form-dialog-title">Association Object</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
-                        Please select a object to associate current object
-                        <br/>
                         <TextField id="filled-basic" label="Association Key" variant="filled" fullWidth  onChange={props.associationKeyChange} value={props.keyValue}/>
                     </DialogContentText>
                     <PaperWithHeader heading={'Inputs'} height={450}>

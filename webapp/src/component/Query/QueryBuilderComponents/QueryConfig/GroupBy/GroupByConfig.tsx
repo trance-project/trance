@@ -121,9 +121,8 @@ const GroupByConfig = () => {
     );
     return(
         <React.Fragment>
-        <Typography>Please select the nested attributes to be Grouped By</Typography>
             <Grid container spacing={2} justify="center" alignItems="center" className={classes.root}>
-                <Grid item>{customList('Select Attributes', left)}</Grid>
+                <Grid item>{customList('Key Attributes', left)}</Grid>
                 <Grid item>
                     <Grid container direction="column" alignItems="center">
                         <Button
@@ -154,11 +153,11 @@ const GroupByConfig = () => {
                             // disabled={right.length > 0}
                             aria-label="Group right selected"
                         >
-                           Group
+                           Sum by
                         </Button>
                     </Grid>
                 </Grid>
-                <Grid item>{customList('Chosen Attributes', right)}</Grid>
+                <Grid item>{customList('Value Attributes', right)}</Grid>
             </Grid>
         </React.Fragment>
     )

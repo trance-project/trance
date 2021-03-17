@@ -62,7 +62,6 @@ const ModalPromt = (props: _ModalPromtProps) => {
                 aria-labelledby="alert-dialog-slide-title"
                 aria-describedby="alert-dialog-slide-description"
             >
-                <DialogTitle id="alert-dialog-slide-title">Please select the following compilations to compile.</DialogTitle>
                 <DialogContent>
                     <DialogContentText id="alert-dialog-slide-description">
                         <FormControl required error={error} component="fieldset" className={classes.formControl}>
@@ -77,7 +76,6 @@ const ModalPromt = (props: _ModalPromtProps) => {
                                     label="Shredded"
                                 />
                             </FormGroup>
-                            <FormHelperText>Please select one compilation process</FormHelperText>
                         </FormControl>
                     </DialogContentText>
                 </DialogContent>
@@ -86,7 +84,7 @@ const ModalPromt = (props: _ModalPromtProps) => {
                         Cancel
                     </Button>
                     <Button onClick={props.openIsLoading} color="primary" variant={"contained"} disabled={error}>
-                        Compile
+                        Okay
                     </Button>
                 </DialogActions>
             </Dialog>

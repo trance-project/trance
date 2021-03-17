@@ -6,9 +6,9 @@ const testData:Table[] = [
         abr:"s",
         columns:
             [
-                {id: 111,name: "sample", enable: true, children:[]},
-                {id: 112,name: "turmorsite", enable: true, children:[]},
-                {id: 133,name: "treatment_outcome", enable: true, children:[]},
+                {id: 111,name: "sample", enable: false, children:[]},
+                {id: 112,name: "turmorsite", enable: false, children:[]},
+                {id: 133,name: "treatment_outcome", enable: false, children:[]},
             ]
     },
     {name: "CopyNumber",
@@ -16,9 +16,9 @@ const testData:Table[] = [
         abr:"c",
         columns:
             [
-                {id: 114,name: "sample", enable: true, children:[]},
-                {id: 115,name: "gene", enable: true, children:[]} ,
-                {id: 116,name: "cnum", enable: true, children:[]},
+                {id: 114,name: "sample", enable: false, children:[]},
+                {id: 115,name: "gene", enable: false, children:[]} ,
+                {id: 116,name: "cnum", enable: false, children:[]},
             ]
     },
     {name: "Occurrences",
@@ -31,8 +31,8 @@ const testData:Table[] = [
                 {id: 120,name: "end", enable: false, children:[]},
                 {id: 121,name: "reference", enable: false, children:[]},
                 {id: 122,name: "alternate", enable: false, children:[]},
-                {id: 123,name: "mutid", enable: true, children:[]},
-                {id: 124,name: "candidates", enable: true, children:[
+                {id: 123,name: "mutid", enable: false, children:[]},
+                {id: 124,name: "candidates", enable: false, children:[
                         {name: "candidates",
                             id: 125,
                             columns:

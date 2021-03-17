@@ -137,14 +137,13 @@ const JoinConfig = (props: _JoinConfigProps) => {
 
     return(
         <React.Fragment>
-            <Typography>Select a Table with Column you want to join two</Typography>
             <Grid container spacing={3}>
                 {chipSelect()}
                 <Grid item xs={props.tables.length>2?3:4}>
-                    <Button variant={"contained"} endIcon={<AddIcon/>} onClick={handleAddJoin}>Join</Button>
+                    <Button variant={"contained"} endIcon={<AddIcon/>} onClick={handleAddJoin}>Add</Button>
                 </Grid>
             </Grid>
-            <Typography variant={"h6"}>Query Joins</Typography>
+            <Typography variant={"h6"}></Typography>
             <Grid container spacing={3} direction={"row"}>
                 {props.associations.map(el =>
                     <Grid item xs={3} >
