@@ -136,7 +136,7 @@ class TestCEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
 
   }
 
-  test("unnest hash"){
+  test("unnest covers"){
     val unnestQuery1 = parser.parse(
       """
         for o in Occur union

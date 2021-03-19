@@ -139,6 +139,47 @@ class TestQueryRewriter extends FunSuite with MaterializeNRC with NRCTranslator 
       case c => QueryRewriter.rewritePlans(c)
     }
 
+    // for(c <- newplans){
+    //   println("cover")
+    //   println(Printer.quote(c.cover))
+    //   for (s <- c.ses){
+    //     println("and sub")
+    //     println(Printer.quote(s.subplan))
+    //   }
+    // }
+  }
+
+  test("unnest rewrites"){
+    val unnestQuery1 = parser.parse(
+      """
+        Query1 <= 
+        for o in Occur union
+          if (o.donorId = "fakeTest")
+          then for t in o.transcript_consequences union
+            if (t.gene_id = "geneA") 
+            then {( oid := o.oid, impact := t.impact )}
+      """).get
+    val plan1 = getPlan(unnestQuery1.asInstanceOf[Program])
+    
+    val unnestQuery2 = parser.parse(
+      """
+        Query2 <= 
+        for o in Occur union
+          if (o.oid = "test")
+          then for t in o.transcript_consequences union 
+            if (t.sift_score > 0.01)
+            then {( sid := o.donorId, poly := t.polyphen_score )}
+      """).get
+    val plan2 = getPlan(unnestQuery2.asInstanceOf[Program])
+
+    val subs = SEBuilder.sharedSubsFromProgram(Vector(plan1, plan2))
+
+    val ces = CEBuilder.buildCovers(subs)
+
+    val newplans = ces.map{
+      case c => QueryRewriter.rewritePlans(c)
+    }
+
     for(c <- newplans){
       println("cover")
       println(Printer.quote(c.cover))
@@ -147,6 +188,7 @@ class TestQueryRewriter extends FunSuite with MaterializeNRC with NRCTranslator 
         println(Printer.quote(s.subplan))
       }
     }
+
   }
 
 }

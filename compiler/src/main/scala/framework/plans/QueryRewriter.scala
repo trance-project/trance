@@ -1,5 +1,7 @@
 package framework.plans
 
+import framework.common._
+
 object QueryRewriter extends Extensions {
 
   // init rewrites give a ce
@@ -32,6 +34,10 @@ object QueryRewriter extends Extensions {
           val v1 = Variable.freshFromBag(p1.tp)
           Reduce(p1, v1, ks1, vs1)
         }  
+
+      case (u1:Unnest, u2:Unnest) => 
+        assert(u1.path == u2.path)
+        Projection(cover, v, replace(u1.filter, v), u1.fields)
 
       // reapply the projection
       case (p:Projection, _) => 
