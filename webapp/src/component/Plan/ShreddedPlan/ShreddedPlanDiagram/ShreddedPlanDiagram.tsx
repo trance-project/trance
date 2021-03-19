@@ -47,7 +47,7 @@ const ShreddedPlanDiagram = () => (
                 translate={{x:400, y:20}}
                 transitionDuration={1500}
                 renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
-                separation={{siblings:1.7}}
+                separation={{siblings:2.25}}
                 zoomable={false}
             />
         </Grid>
@@ -55,11 +55,11 @@ const ShreddedPlanDiagram = () => (
 );
 
 const treeDiagramLvl1:RawNodeDatum = {
-    name: '', //'sample,mutations:=Newlabel(sample)',
+    name: '',
     attributes: {
         newLine: 'sample,mutations:=Newlabel(sample)',
         level:'1',
-        planOperator:'projection'
+        planOperator:'PROJECT'
     },
     children:[
         {
@@ -71,11 +71,11 @@ const treeDiagramLvl1:RawNodeDatum = {
     ]
 }
 const treeDiagramLvl2:RawNodeDatum = {
-    name: '', //'mutId, scores:= NewLabel(sample)',
+    name: '',
     attributes: {
         newLine: 'mutId, scores:= NewLabel(sample)',
         level:'2',
-        planOperator:'projection'
+        planOperator:'PROJECT'
     },
     children:[
         {
@@ -87,26 +87,26 @@ const treeDiagramLvl2:RawNodeDatum = {
     ]
 }
 const treeDiagramData:RawNodeDatum = {
-    name:'', //'label,gene,score',
+    name:'',
     attributes:{
         newLine: 'label,gene,score',
         level:'3',
-        planOperator:'projection'
+        planOperator:'PROJECT'
     },
     children:[{
-        name: 'impact*(cnum+0.01)*sift*poly',
+        name: '',
         attributes:{
             //newLine: 'impact*(cnum+0.01)*sift*poly', 
             newLine: 'sample, label, gene',
             level:'3',
-            planOperator:'sum-aggregate'
+            planOperator:'SUM'
         },
         children:[{
             name:'',
             attributes:{
                 newLine: 'sample, gene',
                 level:'3',
-                planOperator:'equijoin'
+                planOperator:'JOIN'
             },
             children:[
                 {
@@ -114,17 +114,17 @@ const treeDiagramData:RawNodeDatum = {
                     attributes:{
                         newLine: 'label',
                         level:'3',
-                        planOperator:'equijoin'
+                        planOperator:'JOIN'
                     },
                     children:[
                         {
-                            name:'LabDomain', //mut', //ations_scores',
+                            name:'LabelDomain', //_mutations_scores',
                             attributes:{
                                 level:'3'
                             }
                         },
                         {
-                            name:'MatOccurences', //mutations',
+                            name:'MatOccurences_mutations',
                             attributes:{
                                 level:'3'
                             }
@@ -155,18 +155,21 @@ const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
 
             <circle r="15" onClick={diagramElProps.toggleNode} fill={levelColor}/>
             <foreignObject width={70} height={50}>
-                {getImagePlanOperator(diagramElProps.nodeDatum.attributes?.planOperator)}
+              {getImagePlanOperator(diagramElProps.nodeDatum.attributes?.planOperator)}
             </foreignObject>
-            <text fill="black" strokeWidth="0.5" x="50" y={"20"} fontSize={25} onClick={diagramElProps.toggleNode}>
+            <text fill="black" strokeWidth="0.5" x="50" y={"0"} fontSize={28} onClick={diagramElProps.toggleNode}>
+                {diagramElProps.nodeDatum.attributes?.planOperator}
+            </text>
+            <text fill="black" strokeWidth="0.5" x="50" y={"15"} fontSize={25} onClick={diagramElProps.toggleNode}>
                 {diagramElProps.nodeDatum.name}
             </text>
             {diagramElProps.nodeDatum.attributes?.newLine && (
-                <text fill="black" x="50" dy="40" strokeWidth="0.5" fontSize={27}>
+                <text fill="black" x="50" dy="30" fontSize={20} strokeWidth="0.5">
                     {diagramElProps.nodeDatum.attributes?.newLine}
                 </text>
             )}
             {diagramElProps.nodeDatum.attributes?.level && (
-                <text fill="black" x="50" fontSize={18} dy={diagramElProps.nodeDatum.attributes?.newLine?"60":"40"} strokeWidth="1">
+                <text fill="black" x="50" fontSize={18} dy={diagramElProps.nodeDatum.attributes?.newLine?"50":"40"} strokeWidth="1">
                     level: {diagramElProps.nodeDatum.attributes?.level}
                 </text>
             )}
@@ -177,11 +180,11 @@ const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
 const _colorPicker =(level:String)=>{
     switch (level) {
         case "1":
-            return "#8D9E91";
+            return "rgba(141,158,145,0.8)"; //"#8D9E91";
         case "2":
-            return "#8B7A8C";
+            return "rgba(0, 140, 212, 0.7)"; //"rgba(139,122,140,0.3)"; //"#8B7A8C";
         case "3":
-            return "#B382B5";
+            return "rgba(179,130,181,0.8)"; //"#B382B5";
     }
 }
 
@@ -189,22 +192,22 @@ const getImagePlanOperator = (planOperator:String | undefined) => {
 
     let image;
     switch (planOperator){
-        case 'projection':
+        case 'PROJECT':
             image=projection;
             break;
-        case 'nest':
+        case 'NEST':
             image=nest;
             break;
-        case 'sum-aggregate':
+        case 'SUM':
             image=sumAggregate;
             break;
-        case 'left-outer-join':
+        case 'OUTERJOIN':
             image=leftOuterJoin;
             break;
-        case 'unnest':
+        case 'UNNEST':
             image=unnest;
             break;
-        case 'equijoin':
+        case 'JOIN':
             image=equiJoin;
             break;
         default:

@@ -32,7 +32,7 @@ const Materializationlvl1 = () => {
                          aria-controls="panel2a-content"
                          id="panel2a-header"
                      >
-                         <Typography className={classes.heading}>LABDOMAIN<S variant={"shrink"}>mutations</S> {'<='}</Typography>
+                         <Typography className={classes.heading}>LABELDOMAIN<S variant={"shrink"}>mutations</S> {'<='}</Typography>
                      </AccordionSummary>
                      <AccordionDetails>
                          <Typography>

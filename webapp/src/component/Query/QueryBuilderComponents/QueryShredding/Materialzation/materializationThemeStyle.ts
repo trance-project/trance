@@ -26,7 +26,7 @@ const materializationThemeStyle = makeStyles(theme =>
             backgroundColor: 'rgba(141,158,145,0.3)'
         },
         accordion2lvl: {
-            backgroundColor: 'rgba(139,122,140,0.3)'
+            backgroundColor: 'rgba(0, 140, 212, 0.3)' //'rgba(139,122,140,0.3)'
         },
         accordion3lvl: {
             backgroundColor: 'rgba(179,130,181,0.3)'

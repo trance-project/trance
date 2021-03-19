@@ -41,7 +41,7 @@ const ShreddedPlan = () => {
                 </AccordionSummary>
                 <AccordionDetails>
                     <Typography className={classes.body} component={'div'}>
-                        <Typography variant={'body1'}><S variant={"highlight"}>for</S> l in LABDOMAIN<S
+                        <Typography variant={'body1'}><S variant={"highlight"}>for</S> l in LABELDOMAIN<S
                             variant={"shrink"}>mutations</S> <S variant={"highlight"}>union</S></Typography>
                         <Typography style={{textIndent: '10px'}} variant={'body1'}>groupBy<S
                             variant={"shrink"}>NewLabel(sample)</S>(</Typography>
@@ -58,7 +58,7 @@ const ShreddedPlan = () => {
                                 aria-controls="panel2a-content"
                                 id="panel2a-header"
                             >
-                                <Typography className={classes.heading}>LABDOMAIN<S
+                                <Typography className={classes.heading}>LABELDOMAIN<S
                                     variant={"shrink"}>mutations_scores</S> {'<='}</Typography>
                             </AccordionSummary>
                             <AccordionDetails>
@@ -83,7 +83,7 @@ const ShreddedPlan = () => {
                 </AccordionSummary>
                 <AccordionDetails>
                     <Typography className={classes.body} component={'div'}>
-                        <Typography><S variant={"highlight"}>for</S> l <S variant={"highlight"}>in</S> LABDOMAIN<S
+                        <Typography><S variant={"highlight"}>for</S> l <S variant={"highlight"}>in</S> LABELDOMAIN<S
                             variant={"shrink"}>mutations.scores</S> <S variant={"highlight"}>union</S></Typography>
                         <Typography style={{textIndent: '10px'}}>{'{(label:= l.label,'}</Typography>
                         <Typography style={{textIndent: '20px'}}>value:=<S variant={"highlight"}>match</S> l.label =

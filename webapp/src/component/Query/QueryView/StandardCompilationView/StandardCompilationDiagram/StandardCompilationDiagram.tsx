@@ -23,18 +23,21 @@ const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
 
             <circle r="15" onClick={diagramElProps.toggleNode} fill={levelColor}/>
             <foreignObject width={70} height={50}>
-                {getImagePlanOperator(diagramElProps.nodeDatum.attributes?.planOperator)}
+              {getImagePlanOperator(diagramElProps.nodeDatum.attributes?.planOperator)}
             </foreignObject>
-            <text fill="black" strokeWidth="0.5" x="50" y={"20"} fontSize={27} onClick={diagramElProps.toggleNode}>
+            <text fill="black" strokeWidth="0.5" x="50" y={"0"} fontSize={28} onClick={diagramElProps.toggleNode}>
+                {diagramElProps.nodeDatum.attributes?.planOperator}
+            </text>
+            <text fill="black" strokeWidth="0.5" x="50" y={"15"} fontSize={25} onClick={diagramElProps.toggleNode}>
                 {diagramElProps.nodeDatum.name}
             </text>
             {diagramElProps.nodeDatum.attributes?.newLine && (
-                <text fill="black" x="50" dy="40" fontSize={25} strokeWidth="0.5">
+                <text fill="black" x="50" dy="30" fontSize={20} strokeWidth="0.5">
                     {diagramElProps.nodeDatum.attributes?.newLine}
                 </text>
             )}
             {diagramElProps.nodeDatum.attributes?.level && (
-                <text fill="black" x="50" fontSize={18} dy={diagramElProps.nodeDatum.attributes?.newLine?"60":"40"} strokeWidth="1">
+                <text fill="black" x="50" fontSize={18} dy={diagramElProps.nodeDatum.attributes?.newLine?"50":"40"} strokeWidth="1">
                     level: {diagramElProps.nodeDatum.attributes?.level}
                 </text>
             )}
@@ -46,22 +49,22 @@ const getImagePlanOperator = (planOperator:String | undefined) => {
 
     let image;
     switch (planOperator){
-        case 'projection':
+        case 'PROJECT':
             image=projection;
             break;
-        case 'nest':
+        case 'NEST':
             image=nest;
             break;
-        case 'sum-aggregate':
+        case 'SUM':
             image=sumAggregate;
             break;
-        case 'left-outer-join':
+        case 'OUTERJOIN':
             image=leftOuterJoin;
             break;
-         case 'outer-unnest':
+         case 'OUTERUNNEST':
             image=outerUnnest;
             break;
-        case 'unnest':
+        case 'UNNEST':
             image=unnest;
             break;
         default:
@@ -73,11 +76,11 @@ const getImagePlanOperator = (planOperator:String | undefined) => {
 const _colorPicker =(level:String)=>{
     switch (level) {
         case "1":
-            return "#8D9E91";
+            return "#8D9E91"; //"rgba(141,158,145,0.3)";
         case "2":
-            return "#8B7A8C";
+            return "rgba(0, 140, 212, 0.7)"; //"#8B7A8C"; //"rgba(139,122,140,0.3)"; 
         case "3":
-            return "#B382B5";
+            return "#B382B5"; //"rgba(179,130,181,0.3)"; 
     }
 }
 
@@ -92,7 +95,7 @@ const StandardCompilationDiagram = () => (
         translate={{x:400, y:20}}
         transitionDuration={1500}
         renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
-        separation={{siblings:1.7}}
+        separation={{siblings:2.25}}
         zoomable={false}
     />
     </Grid>
@@ -105,7 +108,7 @@ const treeDiagramData:RawNodeDatum ={
     attributes: {
         newLine: 'sample, mutations',
         level: '1',
-        planOperator: 'projection'
+        planOperator: 'PROJECT'
     },
     children: [
         {
@@ -113,7 +116,7 @@ const treeDiagramData:RawNodeDatum ={
             attributes: {
                 newLine: 'mutId, candidates, sID, sample',
                 level: '2',
-                planOperator:'nest'
+                planOperator:'NEST'
             },
             children: [
                 {
@@ -121,15 +124,15 @@ const treeDiagramData:RawNodeDatum ={
                     attributes: {
                         newLine: 'gene, score, sID, sample, mutId',
                         level: '2',
-                        planOperator:'nest'
+                        planOperator:'NEST'
                     },
                     children: [
                         {
-                            name: 'impact*(cnum+0.01)*sift*poly',
+                            name: '', //impact*(cnum+0.01)*sift*poly',
                             attributes: {
                                 newLine:'sample, gene, label, mutId, sID',
                                 level: '3',
-                                planOperator:'sum-aggregate'
+                                planOperator:'SUM'
                             },
                             children:[
                                 {
@@ -137,7 +140,7 @@ const treeDiagramData:RawNodeDatum ={
                                     attributes: {
                                         newLine: 'sample, gene',
                                         level: '3',
-                                        planOperator:'left-outer-join'
+                                        planOperator:'OUTERJOIN'
                                     },
                                     children:[
                                         {
@@ -145,7 +148,7 @@ const treeDiagramData:RawNodeDatum ={
                                             attributes: {
                                                 newLine: 'candidates',
                                                 level: '3',
-                                                planOperator:'outer-unnest'
+                                                planOperator:'OUTERUNNEST'
                                             },
                                             children:[
                                                 {
@@ -153,7 +156,7 @@ const treeDiagramData:RawNodeDatum ={
                                                     attributes: {
                                                         newLine: 'sample',
                                                         level: '2',
-                                                        planOperator:'left-outer-join'
+                                                        planOperator:'OUTERJOIN'
                                                     },
                                                     children:[
                                                         {name: 'Occurrences',
