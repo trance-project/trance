@@ -87,6 +87,12 @@ object SEBuilder extends Extensions {
     sharedSubs(seInput, subexprs)
   }
 
+  def containsCacheUnfriendly(plan: CExpr): Boolean = plan match {
+    case o:UnaryOp => containsCacheUnfriendly(o.in)
+    case (_:Nest) | (_:JoinOp) => true
+    case _ => false
+  }
+
   def sharedSubs(plans: Vector[(CExpr, Int)], subexprs: HashMap[(CExpr, Int), Integer], 
     limit: Boolean = false): Map[Integer, List[SE]] = {
     
@@ -116,17 +122,20 @@ object SEBuilder extends Extensions {
         }
 
         val height = acc + 1
-        traversePlan((j.left, id), index, height); traversePlan((j.right, id), index, height)
+        traversePlan((j.left, id), index, height) 
+        traversePlan((j.right, id), index, height)
       
       case (i:InputRef, id) => 
         val sig = subexprs(plan)
         sigmap(sig) = sigmap(sig) :+ SE(id, i, acc)
 
       case (o:UnaryOp, id) =>
+        println("did we get here?")
+        println(Printer.quote(o))
         val sig = subexprs(plan)
         sigmap(sig) = sigmap(sig) :+ SE(id, o, acc)
 
-        if (!limit) traversePlan((o.in, id), index, acc+1)   
+        if (!limit) traversePlan((o.in, id), index, acc+1)
 
       case _ =>    
 
@@ -137,6 +146,14 @@ object SEBuilder extends Extensions {
     // values must have at least 
     // two elements to be shared
     sigmap.filter(_._2.size > 1)
+    // sigmap.filter{ ses => 
+    //   if (ses._2.nonEmpty) {
+    //     ses._2.head match {
+    //       case _:Nest | _:JoinOp => false
+    //       case _ => true
+    //     }  
+    //   } else false 
+    // }
 
   }
 

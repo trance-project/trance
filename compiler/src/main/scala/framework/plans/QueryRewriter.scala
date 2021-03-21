@@ -16,20 +16,20 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
       SE(s.wid, rewritePlan(s.subplan, ce.name, ce.cover), s.height)))
   }
 
-  // this should take the original plans as input
-  // iterate over and rewrite the covering expression
-  // at the level where the fingerprints match
   def rewritePlans(plans: Vector[(CExpr, Int)], covers: IMap[Integer, CNamed]): Vector[CExpr] = {
-    // for each plan 
-      // traverse the tree 
-        // if subtree finger print in selected cover plans
-          // replace subtree with cache
     plans.map(p => rewritePlanOverCover(p, covers))
-
   }
 
 
-  // todo avoid recreating the signature
+  // for each plan 
+  //   if plan is an immedate similar expression of cover in cache
+  //      then rewrite plan over cover 
+  //   else rewrite plan with recurse on subplan
+  //
+  // a join and a nest will never be a subexpression, so this makes sure that 
+  // anything beneath it gets replaced with the proper subexpression
+  // 
+  // this also handles the case where multiple subexpressions are in the cache
   def rewritePlanOverCover(plan: (CExpr, Int), covers: IMap[Integer, CNamed]): CExpr = {
 
     println("exploring")

@@ -200,56 +200,66 @@ class TestQueryRewriter extends FunSuite with MaterializeNRC with NRCTranslator 
 
   }
 
-  // TODO need a better case to test this...
-  test("join test"){
-    println("\nJOIN TEST\n")
-
+  test("nest test"){
+    println("\nNEST TEST\n")
+    
     val joinQuery1 = parser.parse(
       """
-        for c in Customer union 
-          for o in Order union
+        for c in Customer union
+          if (c.c_name = "test1")
+          then for o in Order union 
             if (c.c_custkey = o.o_custkey)
-            then {(cname := c.c_name, orderkey := o.o_orderkey )}
+            then {( cname := c.c_name, orderkey := o.o_orderkey )}
       """, parser.term).get
     val joinPlan1 = getPlan(joinQuery1.asInstanceOf[Expr]).asInstanceOf[CExpr]
     
     val joinQuery2 = parser.parse(
       """
-        for o in Order union
-          for c in Customer union 
+        for c in Customer union 
+          if (c.c_name = "test2")
+          then for o in Order union
             if (c.c_custkey = o.o_custkey)
-            then {(custkey := c.c_custkey, otherkey := o.o_custkey )}
+            then {( custkey := c.c_custkey, otherkey := o.o_custkey )}
       """, parser.term).get
     val joinPlan2 = getPlan(joinQuery2.asInstanceOf[Expr]).asInstanceOf[CExpr]
 
-    // val reduceQuery1 = parser.parse(
-    //   """
-    //     (for c in Customer union 
-    //       for o in Order union
-    //         if (c.c_custkey = o.o_custkey)
-    //         then {(cname := c.c_name, orderkey := o.o_orderkey )}).sumBy({cname}, {orderkey})
-    //   """, parser.term).get
-    // val reducePlan1 = getPlan(reduceQuery1.asInstanceOf[Expr]).asInstanceOf[CExpr]
+    val nestQuery1 = parser.parse(
+      """
+        for c in Customer union 
+          if (c.c_name = "test1")
+          then {(cname := c.c_name, c_orders := for o in Order union
+            if (c.c_custkey = o.o_custkey)
+            then {( orderkey := o.o_orderkey )})}
+      """, parser.term).get
+    val nestPlan1 = getPlan(nestQuery1.asInstanceOf[Expr]).asInstanceOf[CExpr]
     
-    // val reduceQuery2 = parser.parse(
-    //   """
-    //     (for o in Order union
-    //       for c in Customer union 
-    //         if (c.c_custkey = o.o_custkey)
-    //         then {(custkey := c.c_custkey, otherkey := o.o_custkey )}).sumBy({custkey}, {otherkey})
-    //   """, parser.term).get
-    // val reducePlan2 = getPlan(reduceQuery2.asInstanceOf[Expr]).asInstanceOf[CExpr]
+    val nestQuery2 = parser.parse(
+      """
+        for c in Customer union 
+          if (c.c_name = "test2")
+          then {(custkey := c.c_custkey, n_orders := for o in Order union
+            if (c.c_custkey = o.o_custkey)
+            then {( otherkey := o.o_custkey )})}
+      """, parser.term).get
+    val nestPlan2 = getPlan(nestQuery2.asInstanceOf[Expr]).asInstanceOf[CExpr]
 
     // first get the fingerprint map
-    val plans = Vector(joinPlan1, joinPlan2).zipWithIndex
+    val plans = Vector(joinPlan1, nestPlan1, joinPlan2, nestPlan2).zipWithIndex
 
     val subexprs = HashMap.empty[(CExpr, Int), Integer]
     plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
+    // println(subexprs)
 
     // only generate subs for things that are cache friendly
-    val subs = SEBuilder.sharedSubs(plans, subexprs, true)
+    val subs = SEBuilder.sharedSubs(plans, subexprs)
+    // println(subs)
+    // subs.foreach{ s =>
+    //   println("this fingerprint "+s._1)
+    //   s._2.foreach(p => println(Printer.quote(p.subplan)))
+    // }
 
     val ces = CEBuilder.buildCoverMap(subs)
+    // println(ces)
 
     val rewriter = QueryRewriter(subexprs)
     val newplans = rewriter.rewritePlans(plans, ces)

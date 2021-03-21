@@ -38,10 +38,12 @@ object CEBuilder extends Extensions {
       (sig, CNamed("Cover"+randomUUID().toString().replace("-", ""), buildCover(ses.map(_.subplan))))
   }.toMap
 
-  def buildCover(plans: List[CExpr]): CExpr = {
-    val plan1 = plans.head
-    val ce1 = plans.tail.reduce((ce, p) => buildCover(ce, p))
-    buildCover(plan1, ce1)
+  def buildCover(plans: List[CExpr]): CExpr = plans match {
+    case head :: Nil => head
+    case head :: tail => 
+      val ce1 = tail.reduce((ce, p) => buildCover(ce, p))
+      buildCover(head, ce1)
+    case _ => sys.error("empty subepxression list")
   }
 
   // cover should not rename anything
