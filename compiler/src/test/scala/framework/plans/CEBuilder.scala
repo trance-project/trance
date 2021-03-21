@@ -6,6 +6,7 @@ import framework.examples.tpch._
 import framework.examples.genomic._
 import framework.nrc._
 import framework.plans.{Equals => CEquals, Project => CProject}
+import scala.collection.mutable.HashMap
 
 class TestCEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
 
@@ -210,7 +211,12 @@ class TestCEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
             then {(custkey := c.c_custkey, orderkey := o.o_orderkey )}
       """, parser.term).get
     val joinPlan2 = getPlan(joinQuery2.asInstanceOf[Expr])
-    val ses = SEBuilder.sharedSubs(Vector(joinPlan1, joinPlan2).zipWithIndex)
+
+    val plans = Vector(joinPlan1, joinPlan2).zipWithIndex
+    val subexprs = HashMap.empty[(CExpr, Int), Integer]
+    plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
+
+    val ses = SEBuilder.sharedSubs(plans, subexprs)
 
     val ces = ses.map{
       case (sig, subs) => sig -> CEBuilder.buildCoverFromSE(subs)

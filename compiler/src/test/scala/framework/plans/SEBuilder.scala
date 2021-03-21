@@ -6,6 +6,7 @@ import framework.examples.tpch._
 import framework.examples.genomic._
 import framework.nrc._
 import framework.plans.{Equals => CEquals, Project => CProject}
+import scala.collection.mutable.HashMap
 
 class TestSEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
 
@@ -183,8 +184,12 @@ class TestSEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
     assert((p2 filterKeys p1.keySet).values.toSet == p1.values.toSet)
     assert((p3 filterKeys p1.keySet).values.toSet == p1.values.toSet)
 
-    val subs = SEBuilder.sharedSubs(Vector(cust1.asInstanceOf[CExpr], 
-      cust2.asInstanceOf[CExpr], cust3.asInstanceOf[CExpr]).zipWithIndex)
+    val plans = Vector(cust1.asInstanceOf[CExpr], 
+      cust2.asInstanceOf[CExpr], cust3.asInstanceOf[CExpr]).zipWithIndex
+    val subexprs = HashMap.empty[(CExpr, Int), Integer]
+    plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
+
+    val subs = SEBuilder.sharedSubs(plans, subexprs)
     // shares inputs and shares filters
     assert(subs.size == 2)
     val check1 = subs.filter(x => x._2.filter(y => y.wid == 0).nonEmpty).head._2.toSet
@@ -218,14 +223,50 @@ class TestSEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
 
     assert((p1.values.toSet & p3.values.toSet).nonEmpty)
 
-    val subs = SEBuilder.sharedSubs(Vector(cust1, cust2, joinPlan1).zipWithIndex)
+    val plans = Vector(cust1, cust2, joinPlan1).zipWithIndex
+    val subexprs = HashMap.empty[(CExpr, Int), Integer]
+    plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
+
+    val subs = SEBuilder.sharedSubs(plans, subexprs)
     // input, index, selects
     assert(subs.size == 3)
     for (k <- p2.values){
       assert(subs(k).size == 3) 
     }
 
-  }  
+  } 
+
+  test("two joins SEs"){
+    val joinQuery1 = parser.parse(
+      """
+        for c in Customer union 
+          for o in Order union
+            if (c.c_custkey = o.o_custkey)
+            then {(cname := c.c_name, orderkey := o.o_orderkey )}
+      """, parser.term).get
+    val joinPlan1 = getPlan(joinQuery1.asInstanceOf[Expr]).asInstanceOf[CExpr]
+    
+    val joinQuery2 = parser.parse(
+      """
+        for o in Order union
+          for c in Customer union 
+            if (c.c_custkey = o.o_custkey)
+            then {(custkey := c.c_custkey, otherkey := o.o_custkey )}
+      """, parser.term).get
+    val joinPlan2 = getPlan(joinQuery2.asInstanceOf[Expr]).asInstanceOf[CExpr]
+
+    val plans = Vector(joinPlan1, joinPlan2).zipWithIndex
+    val subexprs = HashMap.empty[(CExpr, Int), Integer]
+    plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
+
+    val subs = SEBuilder.sharedSubs(plans, subexprs)
+    assert(subs.size == 8)
+
+    val subsLimit = SEBuilder.sharedSubs(plans, subexprs, true)
+    assert(subsLimit.size == 1)
+    assert(subsLimit.head._2.size == 2)
+    
+  } 
 
   test("reduce SEs"){
     val reduceQuery1 = parser.parse(
@@ -246,9 +287,63 @@ class TestSEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
       """, parser.term).get
     val reducePlan2 = getPlan(reduceQuery2.asInstanceOf[Expr]).asInstanceOf[CExpr]
 
-    val subs = SEBuilder.sharedSubs(Vector(reducePlan1, reducePlan2).zipWithIndex)
-    // todo adjust to size of all subexpressions
-    // assert(subs.size == 8)
+    val plans = Vector(reducePlan1, reducePlan2).zipWithIndex
+    val subexprs = HashMap.empty[(CExpr, Int), Integer]
+    plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
+    val subs = SEBuilder.sharedSubs(plans, subexprs)
+    assert(subs.size == 9)
+
+    val subsLimit = SEBuilder.sharedSubs(plans, subexprs, true)
+    assert(subsLimit.size == 1)
+    assert(subsLimit.head._2.size == 2)
+
+  }
+
+  test("combined SEs"){
+    val joinQuery1 = parser.parse(
+      """
+        for c in Customer union 
+          for o in Order union
+            if (c.c_custkey = o.o_custkey)
+            then {(cname := c.c_name, orderkey := o.o_orderkey )}
+      """, parser.term).get
+    val joinPlan1 = getPlan(joinQuery1.asInstanceOf[Expr]).asInstanceOf[CExpr]
+    
+    val joinQuery2 = parser.parse(
+      """
+        for o in Order union
+          for c in Customer union 
+            if (c.c_custkey = o.o_custkey)
+            then {(custkey := c.c_custkey, otherkey := o.o_custkey )}
+      """, parser.term).get
+    val joinPlan2 = getPlan(joinQuery2.asInstanceOf[Expr]).asInstanceOf[CExpr]
+
+    val reduceQuery1 = parser.parse(
+      """
+        (for c in Customer union 
+          for o in Order union
+            if (c.c_custkey = o.o_custkey)
+            then {(cname := c.c_name, orderkey := o.o_orderkey )}).sumBy({cname}, {orderkey})
+      """, parser.term).get
+    val reducePlan1 = getPlan(reduceQuery1.asInstanceOf[Expr]).asInstanceOf[CExpr]
+    
+    val reduceQuery2 = parser.parse(
+      """
+        (for o in Order union
+          for c in Customer union 
+            if (c.c_custkey = o.o_custkey)
+            then {(custkey := c.c_custkey, otherkey := o.o_custkey )}).sumBy({custkey}, {otherkey})
+      """, parser.term).get
+    val reducePlan2 = getPlan(reduceQuery2.asInstanceOf[Expr]).asInstanceOf[CExpr]
+
+    val plans = Vector(reducePlan1, reducePlan2, joinPlan1, joinPlan2).zipWithIndex
+    val subexprs = HashMap.empty[(CExpr, Int), Integer]
+    plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
+    val subs = SEBuilder.sharedSubs(plans, subexprs)
+
+    val subsLimit = SEBuilder.sharedSubs(plans, subexprs, true)
+    println(subsLimit)
+    println(subsLimit.size)
 
   }
 

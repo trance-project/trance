@@ -7,6 +7,7 @@ import framework.examples.genomic._
 import framework.nrc._
 import framework.plans.{Equals => CEquals, Project => CProject}
 import java.util.UUID.randomUUID
+import scala.collection.mutable.HashMap
 
 class TestQueryRewriter extends FunSuite with MaterializeNRC with NRCTranslator {
 
@@ -40,24 +41,29 @@ class TestQueryRewriter extends FunSuite with MaterializeNRC with NRCTranslator 
 
     val cust1 = Select(InputRef("Customer", TPCHSchema.customertype), c1, Gt(CProject(c1, "custkey"), Constant(20)), c2)
     val cust2 = Select(InputRef("Customer", TPCHSchema.customertype), c1, Lt(CProject(c2, "custkey"), Constant(2)), c2)
-    
-    val plan1 = LinearCSet(List(CNamed("Query1", cust1)))
-    val plan2 = LinearCSet(List(CNamed("Query2", cust2)))
 
-    val subs = SEBuilder.sharedSubsFromProgram(Vector(plan1, plan2))
+    // first get the fingerprint map
+    val plans = Vector(cust1, cust2).zipWithIndex
 
-    val ces = CEBuilder.buildCovers(subs)
+    val subexprs = HashMap.empty[(CExpr, Int), Integer]
+    plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
 
-    val newplans = ces.map{
-      case c => QueryRewriter.rewritePlans(c)
-    }
+    // only generate subs for things that are cache friendly
+    val subs = SEBuilder.sharedSubs(plans, subexprs, true)
 
-    // for(c <- newplans){
-    //   println(c.cover)
-    //   for (s <- c.ses){
-    //     println(s)
-    //   }
-    // }
+    val ces = CEBuilder.buildCoverMap(subs)
+
+    val rewriter = QueryRewriter(subexprs)
+    val newplans = rewriter.rewritePlans(plans, ces)
+
+    // expected results
+    val cover = ces.head._2
+    val v = Variable.freshFromBag(cover.tp)
+    val expected1 = Select(cover, v, Gt(CProject(v, "custkey"), Constant(20)), v)
+    val expected2 = Select(cover, v, Lt(CProject(v, "custkey"), Constant(2)), v)
+
+    assert(newplans(0).vstr == expected1.vstr)
+    assert(newplans(1).vstr == expected2.vstr)
 
   }
 
@@ -70,26 +76,29 @@ class TestQueryRewriter extends FunSuite with MaterializeNRC with NRCTranslator 
 
     val cust2 = parser.parse("for c in Customer union { (ckey := c.c_custkey ) }", parser.term).get
     val custPlan2 = getPlan(cust2.asInstanceOf[Expr]).asInstanceOf[Projection]
-    
-    val plan1 = LinearCSet(List(CNamed("Query1", custPlan1)))
-    val plan2 = LinearCSet(List(CNamed("Query2", custPlan2)))
 
-    val subs = SEBuilder.sharedSubsFromProgram(Vector(plan1, plan2))
+    // first get the fingerprint map
+    val plans = Vector(custPlan1, custPlan2).zipWithIndex
 
-    val ces = CEBuilder.buildCovers(subs)
+    val subexprs = HashMap.empty[(CExpr, Int), Integer]
+    plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
 
-    val newplans = ces.map{
-      case c => QueryRewriter.rewritePlans(c)
-    }
+    // only generate subs for things that are cache friendly
+    val subs = SEBuilder.sharedSubs(plans, subexprs, true)
 
-    // for(c <- newplans){
-    //   println("cover")
-    //   println(Printer.quote(c.cover))
-    //   for (s <- c.ses){
-    //     println("and sub")
-    //     println(Printer.quote(s.subplan))
-    //   }
-    // }
+    val ces = CEBuilder.buildCoverMap(subs)
+
+    val rewriter = QueryRewriter(subexprs)
+    val newplans = rewriter.rewritePlans(plans, ces)
+
+    // expected results
+    val cover = ces.head._2
+    val v = Variable.freshFromBag(cover.tp)
+
+    val expected1 = Projection(cover, v, custPlan1.filter, List("cname"))
+    val expected2 = Projection(cover, v, custPlan2.filter, List("ckey"))
+    assert(newplans(0).vstr == expected1.vstr)
+    assert(newplans(1).vstr == expected2.vstr)
 
   }
 
@@ -131,13 +140,13 @@ class TestQueryRewriter extends FunSuite with MaterializeNRC with NRCTranslator 
     val plan3 = getPlan(query3.asInstanceOf[Program])
 
     // equivsig -> {SE}
-    val subs = SEBuilder.sharedSubsFromProgram(Vector(plan1, plan2, plan3))
+    // val subs = SEBuilder.sharedSubsFromProgram(Vector(plan1, plan2, plan3))
 
-    val ces = CEBuilder.buildCovers(subs)
+    // val ces = CEBuilder.buildCovers(subs)
 
-    val newplans = ces.map{
-      case c => QueryRewriter.rewritePlans(c)
-    }
+    // val newplans = ces.map{
+    //   case c => QueryRewriter.rewritePlans(c)
+    // }
 
     // for(c <- newplans){
     //   println("cover")
@@ -172,22 +181,79 @@ class TestQueryRewriter extends FunSuite with MaterializeNRC with NRCTranslator 
       """).get
     val plan2 = getPlan(unnestQuery2.asInstanceOf[Program])
 
-    val subs = SEBuilder.sharedSubsFromProgram(Vector(plan1, plan2))
+    // val subs = SEBuilder.sharedSubsFromProgram(Vector(plan1, plan2))
 
-    val ces = CEBuilder.buildCovers(subs)
+    // val ces = CEBuilder.buildCovers(subs)
 
-    val newplans = ces.map{
-      case c => QueryRewriter.rewritePlans(c)
-    }
+    // val newplans = ces.map{
+    //   case c => QueryRewriter.rewritePlans(c)
+    // }
 
-    for(c <- newplans){
-      println("cover")
-      println(Printer.quote(c.cover))
-      for (s <- c.ses){
-        println("and sub")
-        println(Printer.quote(s.subplan))
-      }
-    }
+    // for(c <- newplans){
+    //   println("cover")
+    //   println(Printer.quote(c.cover))
+    //   for (s <- c.ses){
+    //     println("and sub")
+    //     println(Printer.quote(s.subplan))
+    //   }
+    // }
+
+  }
+
+  // TODO need a better case to test this...
+  test("join test"){
+    println("\nJOIN TEST\n")
+
+    val joinQuery1 = parser.parse(
+      """
+        for c in Customer union 
+          for o in Order union
+            if (c.c_custkey = o.o_custkey)
+            then {(cname := c.c_name, orderkey := o.o_orderkey )}
+      """, parser.term).get
+    val joinPlan1 = getPlan(joinQuery1.asInstanceOf[Expr]).asInstanceOf[CExpr]
+    
+    val joinQuery2 = parser.parse(
+      """
+        for o in Order union
+          for c in Customer union 
+            if (c.c_custkey = o.o_custkey)
+            then {(custkey := c.c_custkey, otherkey := o.o_custkey )}
+      """, parser.term).get
+    val joinPlan2 = getPlan(joinQuery2.asInstanceOf[Expr]).asInstanceOf[CExpr]
+
+    // val reduceQuery1 = parser.parse(
+    //   """
+    //     (for c in Customer union 
+    //       for o in Order union
+    //         if (c.c_custkey = o.o_custkey)
+    //         then {(cname := c.c_name, orderkey := o.o_orderkey )}).sumBy({cname}, {orderkey})
+    //   """, parser.term).get
+    // val reducePlan1 = getPlan(reduceQuery1.asInstanceOf[Expr]).asInstanceOf[CExpr]
+    
+    // val reduceQuery2 = parser.parse(
+    //   """
+    //     (for o in Order union
+    //       for c in Customer union 
+    //         if (c.c_custkey = o.o_custkey)
+    //         then {(custkey := c.c_custkey, otherkey := o.o_custkey )}).sumBy({custkey}, {otherkey})
+    //   """, parser.term).get
+    // val reducePlan2 = getPlan(reduceQuery2.asInstanceOf[Expr]).asInstanceOf[CExpr]
+
+    // first get the fingerprint map
+    val plans = Vector(joinPlan1, joinPlan2).zipWithIndex
+
+    val subexprs = HashMap.empty[(CExpr, Int), Integer]
+    plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
+
+    // only generate subs for things that are cache friendly
+    val subs = SEBuilder.sharedSubs(plans, subexprs, true)
+
+    val ces = CEBuilder.buildCoverMap(subs)
+
+    val rewriter = QueryRewriter(subexprs)
+    val newplans = rewriter.rewritePlans(plans, ces)
+    newplans.foreach(p => println(Printer.quote(p)))
 
   }
 

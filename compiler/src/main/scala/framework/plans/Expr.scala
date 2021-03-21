@@ -13,7 +13,9 @@ trait CExpr { self =>
 
 }
 
-case class InputRef(data: String, tp: Type) extends CExpr
+case class InputRef(data: String, tp: Type) extends CExpr {
+  override def vstr: String = data
+}
 
 case class Input(data: List[CExpr]) extends CExpr{
   def tp: BagCType = data match {
@@ -203,6 +205,7 @@ case class CGroupBy(e1: CExpr, v1: Variable, keys: List[String], values: List[St
 
 case class CNamed(name: String, e: CExpr) extends CExpr {
   def tp: Type = e.tp
+  override def vstr: String = name
 }
 
 case class LinearCSet(exprs: List[CExpr]) extends CExpr {
@@ -299,6 +302,7 @@ case class Variable(name: String, override val tp: Type) extends CExpr { self =>
 
   override def hashCode: Int = (name, tp).hashCode()
   def quote: String = self.name
+  override def vstr: String = self.name
 
 }
 

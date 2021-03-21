@@ -28,10 +28,15 @@ object CEBuilder extends Extensions {
   // renames, assumes it is in the cache - used for testing
   def buildCovers(subs: Map[Integer, List[SE]]): List[CE] = subs.map{
     case (id, se) => 
-      val cover = CEBuilder.buildCoverFromSE(se)
+      val cover = buildCoverFromSE(se)
       val cnamed = "Cover"+randomUUID().toString().replace("-", "")
       CE(cnamed, cover, id, se)
   }.toList
+
+  def buildCoverMap(subs: Map[Integer, List[SE]]): scala.collection.immutable.Map[Integer, CNamed] = subs.map{
+    case (sig, ses) =>  
+      (sig, CNamed("Cover"+randomUUID().toString().replace("-", ""), buildCover(ses.map(_.subplan))))
+  }.toMap
 
   def buildCover(plans: List[CExpr]): CExpr = {
     val plan1 = plans.head

@@ -82,34 +82,51 @@ object SEBuilder extends Extensions {
         case CNamed(name, p) => (p, id)
         case _ => (e, id)
     })}
-    sharedSubs(seInput)
+    val subexprs = HashMap.empty[(CExpr, Int), Integer]
+    seInput.foreach(p => subexpressions(p))
+    sharedSubs(seInput, subexprs)
   }
 
-  def sharedSubs(plans: Vector[(CExpr, Int)]): Map[Integer, List[SE]] = {
+  def sharedSubs(plans: Vector[(CExpr, Int)], subexprs: HashMap[(CExpr, Int), Integer], 
+    limit: Boolean = false): Map[Integer, List[SE]] = {
     
-    val subexprs = plans.map(subexpressions(_))
     val sigmap = Map.empty[Integer, List[SE]].withDefaultValue(Nil)
 
     def traversePlan(plan: (CExpr, Int), index: Int, acc: Int = 0): Unit = plan match {
+
+      // the issue here is that the nest and the join should be 
+      // rewritten in order to use the cover expression
+      // if there is not a limit, we should probably put these in the 
+      // similar expression so that they will be rewritten IF the similar 
+      // expression is used (how does verona handle this case...)
+      case (n:Nest, id) => 
+        if (!limit){
+          val sig = subexprs(plan)
+          sigmap(sig) = sigmap(sig) :+ SE(id, n, acc)
+        }
+
+        traversePlan((n.in, id), index, acc+1)
       
+      // should be added to use the covering expression
       case (j:JoinOp, id) => 
 
-        val sig = subexprs(index)(plan)
-        sigmap(sig) = sigmap(sig) :+ SE(id, j, acc)
+        if (!limit){
+          val sig = subexprs(plan)
+          sigmap(sig) = sigmap(sig) :+ SE(id, j, acc)
+        }
 
         val height = acc + 1
         traversePlan((j.left, id), index, height); traversePlan((j.right, id), index, height)
       
-      // cache friendly
       case (i:InputRef, id) => 
-        val sig = subexprs(index)(plan)
+        val sig = subexprs(plan)
         sigmap(sig) = sigmap(sig) :+ SE(id, i, acc)
 
-      // should unnest be considered cache unfriendly?
       case (o:UnaryOp, id) =>
-        val sig = subexprs(index)(plan)
+        val sig = subexprs(plan)
         sigmap(sig) = sigmap(sig) :+ SE(id, o, acc)
-        traversePlan((o.in, id), index, acc+1)   
+
+        if (!limit) traversePlan((o.in, id), index, acc+1)   
 
       case _ =>    
 
