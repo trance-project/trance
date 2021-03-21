@@ -29,6 +29,7 @@ class TestQueryRewriter extends FunSuite with MaterializeNRC with NRCTranslator 
     optimizer.applyPush(Unnester.unnest(ncalc)(Map(), Map(), None, "_2"))
   }
 
+  // TODO test with apply all
   def getPlan(query: Program): LinearCSet = {
     val ncalc = normalizer.finalize(translate(query)).asInstanceOf[CExpr]
     optimizer.applyPush(Unnester.unnest(ncalc)(Map(), Map(), None, "_2")).asInstanceOf[LinearCSet]
@@ -248,22 +249,26 @@ class TestQueryRewriter extends FunSuite with MaterializeNRC with NRCTranslator 
 
     val subexprs = HashMap.empty[(CExpr, Int), Integer]
     plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
-    // println(subexprs)
 
     // only generate subs for things that are cache friendly
     val subs = SEBuilder.sharedSubs(plans, subexprs)
-    // println(subs)
     // subs.foreach{ s =>
     //   println("this fingerprint "+s._1)
     //   s._2.foreach(p => println(Printer.quote(p.subplan)))
     // }
 
     val ces = CEBuilder.buildCoverMap(subs)
-    // println(ces)
+    ces.foreach{c =>
+      println("fingerprint "+c._1)
+      println(Printer.quote(c._2)+"\n")
+    }
 
     val rewriter = QueryRewriter(subexprs)
     val newplans = rewriter.rewritePlans(plans, ces)
-    newplans.foreach(p => println(Printer.quote(p)))
+    newplans.foreach(p => println(Printer.quote(p)+"\n"))
+
+    // val codegen = new framework.generator.spark.SparkDatasetGenerator(false, false)
+    // println(codegen.generate(newplans(0)))
 
   }
 

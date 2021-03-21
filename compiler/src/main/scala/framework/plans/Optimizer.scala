@@ -15,7 +15,8 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     val o1 = pushUnnest(e)
     val o2 = pushCondition(o1)
     val o3 = push(o2)
-    push(o3)
+    o3
+    // push(o3)
   }
 
   // push projections and aggregation
@@ -87,7 +88,14 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val pfs = nkey ++ collect(value) ++ fs
       val pin = push(in, pfs)
       val nv = Variable.fromBag(v.name, pin.tp)
-      Nest(pin, nv, nkey.toList, replace(value, nv), filter, collect(value).toList, ctag)
+
+      // push projections before performing nest
+      val nrecFields = nkey.map(k => k -> Project(nv, k)).toMap ++ collect(replace(value, nv)).map(v1 => v1 -> Project(nv, v1))
+      val nrec = Record(nrecFields)
+      val npin = Projection(pin, nv, nrec, nrecFields.keySet.toList)
+      val nv2 = Variable.freshFromBag(npin.tp)
+
+      Nest(npin, nv2, nkey.toList, replace(value, nv2), filter, collect(value).toList, ctag)
 
     case Reduce(e1 @ Projection(in, v, filter, fields), v2, key, value) =>
       // adjust key

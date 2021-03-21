@@ -33,9 +33,11 @@ object CEBuilder extends Extensions {
       CE(cnamed, cover, id, se)
   }.toList
 
-  def buildCoverMap(subs: Map[Integer, List[SE]]): scala.collection.immutable.Map[Integer, CNamed] = subs.map{
+  def buildCoverMap(subs: Map[Integer, List[SE]]): scala.collection.immutable.Map[Integer, CNamed] = subs.flatMap{
     case (sig, ses) =>  
-      (sig, CNamed("Cover"+randomUUID().toString().replace("-", ""), buildCover(ses.map(_.subplan))))
+      if (!ses.head.subplan.isCacheUnfriendly){
+        Seq((sig, CNamed("Cover"+randomUUID().toString().replace("-", ""), buildCover(ses.map(_.subplan)))))
+      }else Nil
   }.toMap
 
   def buildCover(plans: List[CExpr]): CExpr = plans match {
@@ -82,8 +84,8 @@ object CEBuilder extends Extensions {
       val v2 = Variable.freshFromBag(right.tp)
       val cond = Equals(Project(v1, j1.p1), Project(v2, j1.p2))
 
-      if (j1.jtype == "inner") Join(left, v1, right, v2, cond, j1.fields ++ j2.fields)
-      else OuterJoin(left, v1, right, v2, cond, j1.fields ++ j2.fields)
+      if (j1.jtype == "left_outer" || j2.jtype == "left_outer") OuterJoin(left, v1, right, v2, cond, j1.fields ++ j2.fields)
+      else Join(left, v1, right, v2, cond, j1.fields ++ j2.fields)
     
     // union columns
     // TODO no implicit renaming should happen in the cover expression

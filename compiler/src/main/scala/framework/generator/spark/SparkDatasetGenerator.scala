@@ -345,8 +345,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val select = if (in.tp.attrs.keySet == nfields) ""
         else s".select(${nfields.toList.mkString("\"", "\", \"", "\"")})"
 
+      val projectNulls = fields.contains("remove_nulls")
       // input table attributes
-      val projectCols = fields.toSet
+      val projectCols = fields.toSet - "remove_nulls"
       // output attributes
       val newCols = pat.fields.keySet
 
@@ -383,7 +384,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val ncast = if (in.tp.attrs.keySet == nfields && allColumns.isEmpty) ""
         else s".as[${generateType(pat.tp)}]"
 
-      s"""|${generate(in)}$select
+      // project nulls needs more testing
+      s"""|${generate(in)}${if (projectNulls) ".na.drop()"}$select
           $columns
           | $ncast
           |""".stripMargin

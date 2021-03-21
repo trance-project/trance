@@ -37,7 +37,7 @@ object SEBuilder extends Extensions {
           rhash = saveLeft
           cond = j.p2+"="+j.p1
         }
-        hash(plan.getClass.toString + j.jtype + cond + lhash + rhash)
+        hash(plan.getClass.toString + cond + lhash + rhash)
 
       case n:Nest => 
         val chash = equivSig((n.in, wid))(sigmap)
@@ -87,12 +87,6 @@ object SEBuilder extends Extensions {
     sharedSubs(seInput, subexprs)
   }
 
-  def containsCacheUnfriendly(plan: CExpr): Boolean = plan match {
-    case o:UnaryOp => containsCacheUnfriendly(o.in)
-    case (_:Nest) | (_:JoinOp) => true
-    case _ => false
-  }
-
   def sharedSubs(plans: Vector[(CExpr, Int)], subexprs: HashMap[(CExpr, Int), Integer], 
     limit: Boolean = false): Map[Integer, List[SE]] = {
     
@@ -130,8 +124,6 @@ object SEBuilder extends Extensions {
         sigmap(sig) = sigmap(sig) :+ SE(id, i, acc)
 
       case (o:UnaryOp, id) =>
-        println("did we get here?")
-        println(Printer.quote(o))
         val sig = subexprs(plan)
         sigmap(sig) = sigmap(sig) :+ SE(id, o, acc)
 
@@ -146,14 +138,6 @@ object SEBuilder extends Extensions {
     // values must have at least 
     // two elements to be shared
     sigmap.filter(_._2.size > 1)
-    // sigmap.filter{ ses => 
-    //   if (ses._2.nonEmpty) {
-    //     ses._2.head match {
-    //       case _:Nest | _:JoinOp => false
-    //       case _ => true
-    //     }  
-    //   } else false 
-    // }
 
   }
 

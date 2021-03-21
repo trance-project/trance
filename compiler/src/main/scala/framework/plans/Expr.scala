@@ -10,6 +10,7 @@ trait CExpr { self =>
 
   def tp: Type
   def vstr: String = self.toString
+  val isCacheUnfriendly: Boolean = false
 
 }
 

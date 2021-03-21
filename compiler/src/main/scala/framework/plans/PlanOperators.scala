@@ -131,6 +131,7 @@ trait JoinOp extends CExpr {
   }
 
   override def vstr: String = s"Join$jtype(${left.vstr}, ${right.vstr}, $p1=$p2)"
+  override val isCacheUnfriendly: Boolean = true
 
 }
 
@@ -162,6 +163,8 @@ case class Nest(in: CExpr, v: Variable, key: List[String], value: CExpr, filter:
 
   override def vstr: String = 
     s"""Nest(${in.vstr}, key = ${key.mkString(",")}, value = ${key.mkString(",")})""" 
+
+  override val isCacheUnfriendly: Boolean = true
 
 }
 

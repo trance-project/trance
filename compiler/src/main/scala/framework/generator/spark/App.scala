@@ -7,11 +7,12 @@ object Sharing extends App {
 
   override def main(args: Array[String]){
 
+  AppWriter.runDataset(SimpleTest, "SimpleTest,standard", optLevel=2)
 
 	// AppWriter.runDatasetShred(SequentialFilters, "SequentialFilters,shredded", optLevel = 1)
   // AppWriter.runDatasetShred(SharedFilters, "SharedFilters,shredded", optLevel = 1)
   // AppWriter.runDataset(OccurGroupByCase, "OccurGroupByCase,standard", optLevel = 1)
-  AppWriter.runDataset(SamplesFilterByTP53, "SamplesFilterByTP53,standard", optLevel = 1)
+  // AppWriter.runDataset(SamplesFilterByTP53, "SamplesFilterByTP53,standard", optLevel = 1)
   // AppWriter.runDatasetShred(SamplesFilterByTP53, "SamplesFilterByTP53,standard", optLevel = 1)
 
   }

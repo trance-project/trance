@@ -5,6 +5,11 @@ import framework.common._
 /** Extensions for the plan language **/
 trait Extensions {
 
+  def containsCacheUnfriendly(plan: CExpr): Boolean = plan match {
+    case o:UnaryOp => containsCacheUnfriendly(o.in)
+    case _ => plan.isCacheUnfriendly
+  }
+
   def replace(e: CExpr, v: Variable): CExpr = e match {
     case Record(ms) => Record(ms.map(r => r._1 -> replace(r._2, v)))
     case Project(_, f) => Project(v, f)

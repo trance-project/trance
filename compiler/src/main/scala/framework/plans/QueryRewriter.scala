@@ -32,16 +32,11 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
   // this also handles the case where multiple subexpressions are in the cache
   def rewritePlanOverCover(plan: (CExpr, Int), covers: IMap[Integer, CNamed]): CExpr = {
 
-    println("exploring")
-    println(Printer.quote(plan._1))
-
     val sig = sigs(plan)
     covers.get(sig) match {
 
       // in subexpression list
       case Some(cover) => 
-        println("rewriting based on")
-        println(Printer.quote(cover))
         rewritePlan(plan._1, cover.name, cover.e)
 
       // not in cover, see if subexpression is
@@ -124,8 +119,13 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
         Projection(cover, v, replace(u1.filter, v), u1.fields)
 
       // reapply the projection
-      case (p:Projection, _) => 
-        Projection(cover, v, p.filter, p.filter.tp.attrs.keySet.toList)
+      case (p1:Projection, p2:Projection) => 
+        // handle outer to inner join
+        val fields = (p1.in, p2.in) match {
+          case (_:Join, _:OuterJoin) => p1.filter.tp.attrs.keySet.toList :+ "remove_nulls"
+          case _ => p1.filter.tp.attrs.keySet.toList
+        }
+        Projection(cover, v, p1.filter, fields)
 
       // reapply the filter
       case (s:Select, _) => 
