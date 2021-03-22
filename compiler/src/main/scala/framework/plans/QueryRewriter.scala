@@ -17,9 +17,23 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
   }
 
   def rewritePlans(plans: Vector[(CExpr, Int)], covers: IMap[Integer, CNamed]): Vector[CExpr] = {
-    plans.map(p => rewritePlanOverCover(p, covers))
+    // first rewrite covers over cover
+    val rewriteCovers = covers.transform((sig, cover) => 
+      CNamed(cover.name, rewriteCoverOverCover(cover.e, covers)))
+
+    // then rewrite plans over cover
+    plans.map(p => rewritePlanOverCover(p, rewriteCovers))
+
   }
 
+  // TODO
+  def rewriteCoverOverCover(plan: CExpr, covers: IMap[Integer, CNamed]): CExpr = plan match {
+    case u:UnaryOp => 
+      SEBuilder.equivSig((u.in, -1))(sigs)
+      rewritePlanOverCover((plan, -1), covers)
+    case i:InputRef => i
+    case _ => sys.error(s"unimplemented $plan")
+  }
 
   // for each plan 
   //   if plan is an immedate similar expression of cover in cache
@@ -29,10 +43,11 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
   // a join and a nest will never be a subexpression, so this makes sure that 
   // anything beneath it gets replaced with the proper subexpression
   // 
-  // this also handles the case where multiple subexpressions are in the cache
+  // TODO handle the case where the cover expression is rewritten over the other cover expressions
   def rewritePlanOverCover(plan: (CExpr, Int), covers: IMap[Integer, CNamed]): CExpr = {
 
-    val sig = sigs(plan)
+    val default:Integer = -1
+    val sig = sigs.getOrElse(plan, default)
     covers.get(sig) match {
 
       // in subexpression list
@@ -64,6 +79,7 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
           val v = Variable.freshFromBag(childCover.tp)
           Reduce(childCover, v, r.keys, r.values)
 
+        // handle the outer unnest case
         case (u:UnnestOp, id) => 
           val childCover = rewritePlanOverCover((u.in, id), covers)
           val v = Variable.freshFromBag(childCover.tp)

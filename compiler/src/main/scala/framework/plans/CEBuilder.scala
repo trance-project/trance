@@ -1,6 +1,7 @@
 package framework.plans
 
 import framework.common._
+import scala.collection.immutable.{Map => IMap}
 import scala.collection.mutable.{Map, HashMap}
 import java.util.UUID.randomUUID
 
@@ -33,7 +34,7 @@ object CEBuilder extends Extensions {
       CE(cnamed, cover, id, se)
   }.toList
 
-  def buildCoverMap(subs: Map[Integer, List[SE]]): scala.collection.immutable.Map[Integer, CNamed] = subs.flatMap{
+  def buildCoverMap(subs: Map[Integer, List[SE]]): IMap[Integer, CNamed] = subs.flatMap{
     case (sig, ses) =>  
       if (!ses.head.subplan.isCacheUnfriendly){
         Seq((sig, CNamed("Cover"+randomUUID().toString().replace("-", ""), buildCover(ses.map(_.subplan)))))
@@ -93,7 +94,7 @@ object CEBuilder extends Extensions {
     
       val child = buildCover(in1, in2)
       val v = Variable.freshFromBag(child.tp)
-      def updateVmap(r: Record): scala.collection.immutable.Map[String, CExpr] = {
+      def updateVmap(r: Record): IMap[String, CExpr] = {
         r.fields.map{
           case (field1, Project(_, field2)) =>
             vmap(field1) = field2

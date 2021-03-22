@@ -9,7 +9,7 @@ import scala.collection.immutable.{Map => IMap}
 import scala.collection.mutable.{HashMap, Map}
 import framework.plans.{Equals => CEquals, Project => CProject}
 
-class TestCost extends FunSuite with MaterializeNRC with NRCTranslator {
+class TestCachePlanner extends FunSuite with MaterializeNRC with NRCTranslator {
 
   val compileCost = false
 
@@ -145,7 +145,15 @@ class TestCost extends FunSuite with MaterializeNRC with NRCTranslator {
     val selectedCovers = cost.selectCovers(covers, subs)
 
     // empty stats will always default to true
-    assert(covers.size == selectedCovers.size)
+    val planner = new CachePlanner(selectedCovers)
+    val cache = planner.solve()
+    println(planner.knapsack)
+    assert(planner.knapsack.size == 1)
+
+    val planner2 = new CachePlanner(selectedCovers, capacity = 1.0)
+    val cache2 = planner2.solve()
+    println(planner2.knapsack)
+    assert(planner2.knapsack.size == 2)
 
   }
 

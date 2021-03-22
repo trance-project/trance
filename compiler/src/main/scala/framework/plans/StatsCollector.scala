@@ -26,6 +26,8 @@ object StatsCollector {
   val codeMap = Map.empty[String, String]
   val statsMap = Map.empty[String, Statistics]
 
+  val default = Statistics(1L, 1L, "None")
+
   val StatsRegex = "Stat\\((.*),(.*),(.*),(.*)\\)".r
 
   def readStats(s: String): (String, Statistics) = s match {

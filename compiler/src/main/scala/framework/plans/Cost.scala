@@ -1,14 +1,20 @@
 package framework.plans
 
-import scala.collection.mutable.Map
+import scala.collection.immutable.{Map => IMap}
+import scala.collection.mutable.{HashMap, Map}
 
 case class Estimate(inSize: Double, outSize: Double, 
-  inRows: Double, outRows: Double, cpu: Double, network: Double)
+  inRows: Double, outRows: Double, cpu: Double, network: Double){
+
+  def total: Double = inSize + outSize + inRows + outRows + cpu + network
+
+}
 
 case class CostSE(wid: Int, subplan: CExpr, height: Int, est: Estimate)
 case class CostCE(cover: CExpr, sig: Integer, ses: List[CostSE], est: Estimate)
+case class CostEstimate(plan: CExpr, profit: Double, est: Estimate)
 
-object Cost {
+class Cost(stats: Map[String, Statistics]) {
 
   val DISKREAD = 0.1
   val NETWORK = 10.0
@@ -20,6 +26,38 @@ object Cost {
 
   val NESTSIZE = 2.0
   val NESTROWS = 10.0
+
+  val default = Estimate(1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+
+  // estimate
+  def selectCovers(covers: IMap[Integer, CNamed], subs: Map[Integer, List[SE]]): Map[Integer, CostEstimate] = {
+
+    val selected = Map.empty[Integer, CostEstimate]
+
+    covers.foreach{ c =>
+      val ses = subs(c._1)
+      // total cost of evaluating all subexpressions
+      val totalwork = ses.map(s => estimate(s.subplan).total).reduce(_ + _) 
+
+      // total cost of cover + add cache + (access cache * accesses)
+      val cest = estimate(c._2.e)
+      val covercost = cest.total + estMaterialization(cest.outSize) + 
+        (estRetrieval(cest.outSize) * ses.size)
+
+      val profit = totalwork - covercost
+
+      if (profit > 0) selected(c._1) = CostEstimate(c._2, profit, cest)
+
+    }
+
+    selected
+
+  }
+
+  def estMaterialization(card: Double): Double = (card / 1024) * RAMWRITE
+
+  def estRetrieval(card: Double): Double = (card / 1024) * RAMREAD
+
 
   def compare(s1: (CExpr, Statistics), s2: (CExpr, Statistics)): CExpr = 
     if (s1._2.lessThan(s2._2)) s1._1 else s2._1
@@ -33,17 +71,20 @@ object Cost {
   def estNestColumn(plan: CExpr, attr: String): (Double, Double) = (NESTSIZE, NESTROWS)
 
   // single plan estimate
-  def estimate(plan: CExpr, stats: Map[String, Statistics]): Estimate = {
-    val stat = stats(plan.vstr)
+  def estimate(plan: CExpr): Estimate = {
+    val stat = stats.getOrElse(plan.vstr, StatsCollector.default)
     val sel = estSelectivity(plan)
     plan match {
+
+      // for testing
+      case y if stats.isEmpty => default
 
       // todo inner vs outer join
       // this is the simpliest approach right now, some combination of left and right
       // need to use cardinality information where possible
       case j:JoinOp =>
-        val leftEst = estimate(j.left, stats)
-        val rightEst = estimate(j.right, stats)
+        val leftEst = estimate(j.left)
+        val rightEst = estimate(j.right)
 
         // network cost of the largest relation, plus what it costs to 
         // perform the operation give estimated output rows
@@ -64,7 +105,7 @@ object Cost {
       // cpu time is more because we are grouping, network is quite a 
       // bit since potentially large collections are being shuffled
       case n:Nest => 
-        val childEst = estimate(n.in, stats)
+        val childEst = estimate(n.in)
         // some growth factor based on column, for now just nestsize
         val outsize = childEst.outSize * NESTSIZE
         val outrows = childEst.outRows * ((n.key.size * 1.0) / n.in.tp.attrs.size)
@@ -82,7 +123,7 @@ object Cost {
       // cpu cost should be evaluated, but seems to be slightly more than 
       // a simple operation; TODO what other factors should be considered?
       case r:Reduce => 
-        val childEst = estimate(r.in, stats)
+        val childEst = estimate(r.in)
         val factor = ((r.keys.size + r.values.size) * 1.0) / r.in.tp.attrs.size
 
         val outsize = childEst.outSize * factor
@@ -102,7 +143,7 @@ object Cost {
       // outrows should be the child outrows * some average rows in the nested collections
       // minor cpu addition, but no network cost
       case u:UnnestOp => 
-        val childEst = estimate(u.in, stats)
+        val childEst = estimate(u.in)
         val cpu = (childEst.outRows * NOSHUFF) + childEst.cpu
         val outsize = childEst.outSize * NESTSIZE
         val outrows = childEst.outRows * NESTROWS
@@ -112,7 +153,7 @@ object Cost {
       // outsize and rows are based on the selectivity of the filter
       // only minor cpu additions, no network cost 
       case s:Select => 
-        val childEst = estimate(s.in, stats)
+        val childEst = estimate(s.in)
         val cpu = (childEst.outRows * NOSHUFF) + childEst.cpu
         val (outsize, outrows) = s.p match {
           case Constant(true) => (childEst.outSize, childEst.outRows)
@@ -125,7 +166,7 @@ object Cost {
       // to the number of columns being removed
       // cpu addition is minor, but no changes to rows or network cost
       case p:Projection => 
-        val childEst = estimate(p.in, stats)
+        val childEst = estimate(p.in)
         val outsize = ((p.tp.attrs.size * 1.0) / p.in.tp.attrs.size) * childEst.outSize
         val cpu = childEst.cpu + (childEst.outRows * NOSHUFF)
 
@@ -135,7 +176,7 @@ object Cost {
       // adding the index will also take a small amount of cpu time
       // no network or additional rows added
       case i:AddIndex => 
-        val childEst = estimate(i.in, stats)
+        val childEst = estimate(i.in)
         val size = childEst.outSize * INDEXCOST
         val cpu = childEst.cpu + (childEst.outRows * NOSHUFF)
         Estimate(childEst.inSize, size, childEst.inRows, childEst.outRows, cpu, childEst.network)

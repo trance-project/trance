@@ -88,7 +88,7 @@ object SEBuilder extends Extensions {
   }
 
   def sharedSubs(plans: Vector[(CExpr, Int)], subexprs: HashMap[(CExpr, Int), Integer], 
-    limit: Boolean = false): Map[Integer, List[SE]] = {
+    limit: Boolean = true): Map[Integer, List[SE]] = {
     
     val sigmap = Map.empty[Integer, List[SE]].withDefaultValue(Nil)
 
@@ -123,11 +123,12 @@ object SEBuilder extends Extensions {
         val sig = subexprs(plan)
         sigmap(sig) = sigmap(sig) :+ SE(id, i, acc)
 
+      // handle outer unnests
       case (o:UnaryOp, id) =>
         val sig = subexprs(plan)
         sigmap(sig) = sigmap(sig) :+ SE(id, o, acc)
 
-        if (!limit) traversePlan((o.in, id), index, acc+1)
+        traversePlan((o.in, id), index, acc+1)
 
       case _ =>    
 
