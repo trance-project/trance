@@ -21,7 +21,7 @@ const Materializationlvl3 = () => {
                     </AccordionSummary>
                     <AccordionDetails>
                         <Typography className={classes.body} component={'div'}>
-                            <Typography variant={'body1'}><S variant={"highlight"}>for</S> l <S variant={"highlight"}>in</S> LABDOMAIN<S variant={"shrink"}>mutations</S> <S variant={"highlight"}>union</S></Typography>
+                            <Typography variant={'body1'}><S variant={"highlight"}>for</S> l <S variant={"highlight"}>in</S> LABELDOMAIN<S variant={"shrink"}>mutations</S> <S variant={"highlight"}>union</S></Typography>
                             <Typography style={{textIndent: '10px'}} variant={'body1'}>{'{(label:= l.label,'}</Typography>
                             <Typography style={{textIndent: '20px'}} variant={'body1'}>value:=<S variant={"highlight"}>match</S> l.label = Newlabel(s<S variant={"accent"}>F</S>.sample) <S variant={"highlight"}>then</S></Typography>
                             <Typography style={{textIndent: '30px'}} ><S variant={"highlight"}>for</S> o<S variant={"accent"}>F</S> <S variant={"highlight"}>in</S> MATOCCURRENCES</Typography>
@@ -33,7 +33,7 @@ const Materializationlvl3 = () => {
                                     aria-controls="panel2a-content"
                                     id="panel2a-header"
                                 >
-                                    <Typography className={classes.heading}>LABDOMAIN<S variant={"shrink"}>mutations_scores</S> {'<='}</Typography>
+                                    <Typography className={classes.heading}>LABELDOMAIN<S variant={"shrink"}>mutations_scores</S> {'<='}</Typography>
                                 </AccordionSummary>
                                 <AccordionDetails>
                                     <Typography>
@@ -53,7 +53,7 @@ const Materializationlvl3 = () => {
                 </AccordionSummary>
                 <AccordionDetails>
                     <Typography className={classes.body} component={'div'}>
-                        <Typography><S variant={"highlight"}>for</S> l <S variant={"highlight"}>in</S> LABDOMAIN<S variant={"shrink"}>mutations.scores</S> <S variant={"highlight"}>union</S></Typography>
+                        <Typography><S variant={"highlight"}>for</S> l <S variant={"highlight"}>in</S> LABELDOMAIN<S variant={"shrink"}>mutations.scores</S> <S variant={"highlight"}>union</S></Typography>
                         <Typography style={{textIndent: '10px'}}>{'{(label:= l.label,'}</Typography>
                         <Typography style={{textIndent: '20px'}}>value:=<S variant={"highlight"}>match</S> l.label = Newlabel(o<S variant={"accent"}>F</S>.sample, o<S variant={"accent"}>F</S>.mutations) <S variant={"highlight"}>then</S></Typography>
                         <Typography style={{textIndent: '30px'}}>{'sumBy^{score}_{gene}('}</Typography>
