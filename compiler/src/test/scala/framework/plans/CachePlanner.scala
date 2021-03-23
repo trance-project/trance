@@ -154,6 +154,10 @@ class TestCachePlanner extends FunSuite with MaterializeNRC with NRCTranslator {
     val cache5 = planner5.solve()
     assert(planner5.knapsack.size == 5)
 
+    val plannerFract = new CachePlanner(selectedCovers, capacity = 3.0)
+    val cacheFract = plannerFract.solve(fraction = .75)
+    assert(plannerFract.knapsack.size == 3)
+
   }
 
 }
