@@ -131,12 +131,9 @@ class TestCachePlanner extends FunSuite with MaterializeNRC with NRCTranslator {
 
     val subexprs = HashMap.empty[(CExpr, Int), Integer]
     plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
-    println(subexprs.size)
     
     val subs = SEBuilder.sharedSubs(plans, subexprs)
-    println(subs.size)
     val covers = CEBuilder.buildCoverMap(subs)
-    println(covers.size)
 
     // this will take covers and subs to generate statistics
     val stats = Map.empty[String, Statistics]
@@ -147,13 +144,15 @@ class TestCachePlanner extends FunSuite with MaterializeNRC with NRCTranslator {
     // empty stats will always default to true
     val planner = new CachePlanner(selectedCovers)
     val cache = planner.solve()
-    println(planner.knapsack)
     assert(planner.knapsack.size == 1)
 
-    val planner2 = new CachePlanner(selectedCovers, capacity = 1.0)
+    val planner2 = new CachePlanner(selectedCovers, capacity = 2.0)
     val cache2 = planner2.solve()
-    println(planner2.knapsack)
     assert(planner2.knapsack.size == 2)
+
+    val planner5 = new CachePlanner(selectedCovers, capacity = 5.0)
+    val cache5 = planner5.solve()
+    assert(planner5.knapsack.size == 5)
 
   }
 
