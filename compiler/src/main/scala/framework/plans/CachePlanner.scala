@@ -4,6 +4,9 @@ import framework.common._
 import scala.collection.mutable.Map
 import scala.collection.mutable.Stack
 
+// IDEAS:
+// only consider a pass that is globally maximal
+
 class CachePlanner(covers: Map[Integer, CostEstimate], capacity: Double = 1.0) {
 
 	val knapsack = Map.empty[Integer, CExpr]

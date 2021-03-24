@@ -385,7 +385,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         else s".as[${generateType(pat.tp)}]"
 
       // project nulls needs more testing
-      s"""|${generate(in)}${if (projectNulls) ".na.drop()"}$select
+      s"""|${generate(in)}${if (projectNulls) ".na.drop()" else ""}$select
           $columns
           | $ncast
           |""".stripMargin

@@ -6,12 +6,13 @@ import framework.generator.spark._
 import java.io._
 import java.util.UUID.randomUUID
 import scala.collection.mutable.Map
+import scala.collection.immutable.{Map => IMap}
 import scala.io.Source
 
-case class Statistics(sizeInBytes: Long, rowCount: Long, hints:String) {
+case class Statistics(sizeInBytes: Long, rowCount: Long) {
 
   def lessThan(s2: Any): Boolean = s2 match {
-    case Statistics(size, rows, _) => 
+    case Statistics(size, rows) => 
       if (rows > -1 && rowCount > -1) sizeInBytes <= size && rowCount <= rows
       else sizeInBytes <= size
     case _ => false
@@ -26,26 +27,28 @@ object StatsCollector {
   val codeMap = Map.empty[String, String]
   val statsMap = Map.empty[String, Statistics]
 
-  val default = Statistics(1L, 1L, "None")
+  // TODO statistics now have column attributes attached
+  val default = Statistics(1L, 1L)
 
-  val StatsRegex = "Stat\\((.*),(.*),(.*),(.*)\\)".r
+  val StatsRegex = "Stat\\((.*),(.*),(.*)\\)".r
+  var inc = 0
 
   def readStats(s: String): (String, Statistics) = s match {
-    case StatsRegex(n, sb, rc, h) => (n, Statistics(sb.toLong, rc.toLong, h))
+    case StatsRegex(n, sb, rc) => (n, Statistics(sb.toLong, rc.toLong))
     case _ => sys.error(s"Parse error $s")
   }
 
-  def readOutput(s: String): (String, Statistics) =    
+  //TODO
+  def readOutput(s: String): Option[(String, Statistics)] =    
     StatsRegex.findFirstIn(s) match {
-      case Some(str) => readStats(str)
-      case _ => sys.error(s"Parse error $s")
+      case Some(str) => Some(readStats(str))
+      case _ => None
     }
 
-  def generateSpark(plans: List[CNamed]): Unit = {
+  def generateSpark(plans: List[CNamed], notebk: Boolean = false): Unit = {
     val generator = new SparkDatasetGenerator(false, false, evalFinal=false)
     // var gcode = ""
     // todo could add map to avoid duplicate calls
-    var inc = 0
     for (p <- plans){
       val anfBase = new BaseOperatorANF{}
       val anfer = new Finalizer(anfBase)
@@ -64,14 +67,21 @@ object StatsCollector {
     }
     val ghead = generator.generateHeader()
     val genc = generator.generateEncoders()
-    val fname = "../executor/spark/src/main/scala/sparkutils/generated/GenerateCosts.scala"
-    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val data = s"""
       |   val copynumber = spark.table("copynumber")
       |   val occurrences = spark.table("occurrences")
       |   val samples = spark.table("samples")
       """
-    val fconts = writeApplication("GenerateCosts", data, ghead, codeMap.map(_._2).mkString("\n"), genc)
+    var fname = "../executor/spark/src/main/scala/sparkutils/generated/GenerateCosts"
+    val fconts = if (!notebk) {
+      fname+=".scala"
+      writeApplication("GenerateCosts", data, ghead, codeMap.map(_._2).mkString("\n"), genc)
+    }else {
+      fname+=".json"
+      val pcontents = writeParagraph("GenerateCosts", data, ghead, codeMap.map(_._2).mkString("\n"), genc)
+      new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
+    }
+    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     printer.println(fconts)
     printer.close
   }
@@ -87,7 +97,6 @@ object StatsCollector {
     }
   }
 
-  // todo reassociate these costs to the ce and se's 
   def getCost(plans: List[CE]): Map[String, Statistics] = {
     val cnames = plans.flatMap{
       case ce => 
@@ -101,14 +110,44 @@ object StatsCollector {
     runCost(cnames) 
   }
 
+  def getCost(subs: Map[Integer, List[SE]], covers: IMap[Integer, CNamed], notebk: Boolean = true): Map[String, Statistics] = {
+    val coverList = covers.values.toList
+    val plans = getSubs(subs) ++ coverList
+    // could handle duplicates better
+    coverList.foreach{ ce => updateNameMap(ce.name, ce.name) }
+    runCost(plans, notebk)
+  }
+
+  def getSubs(plans: Map[Integer, List[SE]]): List[CNamed] = {
+    plans.values.toList.flatMap{ ses => ses.map{
+      case se => 
+        val seName = updateNameMap(se.subplan.vstr, s"Cost${getUUID}")
+        CNamed(seName, se.subplan)
+      }
+    }
+  }
+
+  def getCoverCost(plans: IMap[Integer, CNamed], notebk: Boolean = true): Map[String, Statistics] = {
+    val cnames = plans.values.toList
+    cnames.foreach{ ce => updateNameMap(ce.e.vstr, ce.name) }
+    runCost(cnames, notebk) 
+  }
+
   // this is a slightly faster solution
-  def runCost(plans: List[CNamed]): Map[String, Statistics] = {
-    generateSpark(plans)
-    "sh compile.sh".!!
-    val costs = "cat out".!!
+  def runCost(plans: List[CNamed], notebk: Boolean = false): Map[String, Statistics] = {
+    generateSpark(plans, notebk)
+    nameMapRev.foreach(println(_))
+    if (!notebk){
+      "sh compile.sh".!!
+    }else{
+      "sh compile.sh notebk".!!
+    }
+    // TODO parse better
     for (line <- Source.fromFile("out").getLines){
-      val (name, stat) = readStats(line)
-      statsMap += (nameMapRev(name) -> stat)
+      readStats(line) match {
+        case Some((name, stat)) => statsMap += (nameMapRev(name) -> stat)
+        case None => 
+      }
     }
     statsMap
   }
@@ -127,7 +166,7 @@ object StatsCollector {
       |import sparkutils.loader._
       |import sparkutils.skew.SkewDataset._
       |$header
-      |case class Stat(name: String, sizeInBytes:String, rowCount:String, hints:String)
+      |case class Stat(name: String, sizeInBytes:String, rowCount:String)
       |object $appname {
       | def main(args: Array[String]){
       |   val conf = new SparkConf()
@@ -136,13 +175,34 @@ object StatsCollector {
       |   $encoders
       |   import spark.implicits._
       |   def genStat(n: String, s: Statistics): Stat = s.rowCount match {
-      |     case Some(rc) => Stat(n, s.sizeInBytes.toString, rc.toString, s.hints.toString)
-      |     case _ => Stat(n, s.sizeInBytes.toString, "-1", s.hints.toString)
+      |     case Some(rc) => Stat(n, s.sizeInBytes.toString, rc.toString)
+      |     case _ => Stat(n, s.sizeInBytes.toString, "-1")
       |   }
       |   $data
       |   $gcode
       | }
       |}""".stripMargin
+  }
+
+  def writeParagraph(appname: String, data: String, header: String, gcode: String, encoders: String): String  = {
+    s"""
+      |import org.apache.spark.sql._
+      |import org.apache.spark.sql.functions._
+      |import org.apache.spark.sql.catalyst.plans.logical._
+      |import sparkutils._
+      |import sparkutils.loader._
+      |import sparkutils.skew.SkewDataset._
+      |$header
+      |case class Stat(name: String, sizeInBytes:String, rowCount:String)
+      |$encoders
+      |import spark.implicits._
+      |def genStat(n: String, s: Statistics): Stat = s.rowCount match {
+      |  case Some(rc) => Stat(n, s.sizeInBytes.toString, rc.toString)
+      |  case _ => Stat(n, s.sizeInBytes.toString, "-1")
+      |}
+      |$data
+      |$gcode
+    """.stripMargin
   }
 
 

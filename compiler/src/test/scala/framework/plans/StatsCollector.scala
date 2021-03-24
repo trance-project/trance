@@ -6,6 +6,7 @@ import framework.examples.tpch._
 import framework.examples.genomic._
 import framework.nrc._
 import framework.plans.{Equals => CEquals, Project => CProject}
+import scala.collection.mutable.HashMap
 
 class TestStatsCollector extends FunSuite with MaterializeNRC with NRCTranslator {
 
@@ -84,16 +85,21 @@ class TestStatsCollector extends FunSuite with MaterializeNRC with NRCTranslator
     val query2 = parser.parse(query2str).get
     val plan2 = getPlan(query2.asInstanceOf[Program])
 
-    // equivsig -> {SE}
-    val subs = SEBuilder.sharedSubsFromProgram(Vector(plan1, plan2))
+    val progs = Vector(plan1, plan2).zipWithIndex
+    val plans = progs.flatMap{ case (prog, id) => 
+      prog.exprs.map(e => e match {
+        case CNamed(name, p) => (p, id)
+        case _ => (e, id)
+    })}
 
-    val ces = subs.map{
-      case (id, se) => 
-        val cover = CEBuilder.buildCoverFromSE(se)
-        CE(cover, id, se)
-    }.toList
+    val subexprs = HashMap.empty[(CExpr, Int), Integer]
+    plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
+    val subs = SEBuilder.sharedSubs(plans, subexprs)
+
+    val ces = CEBuilder.buildCoverMap(subs)
     
-    // StatsCollector.getCost(ces)
+    val stats = StatsCollector.getCost(subs, ces)
+    println(stats)
 
   }
 
