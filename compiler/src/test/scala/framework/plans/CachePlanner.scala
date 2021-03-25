@@ -81,7 +81,36 @@ class TestCachePlanner extends FunSuite with MaterializeNRC with NRCTranslator {
     val query2 = parser.parse(query2str).get
     val plan2 = getPlan(query2.asInstanceOf[Program])
 
-    val plans = Vector(plan1, plan2).zipWithIndex
+    val progs = Vector(plan1, plan2).zipWithIndex
+    val plans = progs.flatMap{ case (prog, id) => 
+      prog.exprs.map(e => e match {
+        case CNamed(name, p) => (p, id)
+        case _ => (e, id)
+    })}
+
+    val subexprs = HashMap.empty[(CExpr, Int), Integer]
+    plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
+    val subs = SEBuilder.sharedSubs(plans, subexprs)
+
+    val ces = CEBuilder.buildCoverMap(subs)
+    
+    val stats = StatsCollector.getCost(subs, ces)
+
+    val cost = new Cost(stats)
+    val selected = cost.selectCovers(ces, subs)
+
+    val totalSize = selected.map(s => s._2.est.outSize).reduce(_+_)
+    println(totalSize)
+
+    val planner = new CachePlanner(selected, 5000)
+    planner.solve()
+
+    val candidates = planner.knapsack
+    candidates.foreach{c => 
+      println(Printer.quote(c._2))
+    }
+
+
   }
 
   test("nest test"){
@@ -129,34 +158,34 @@ class TestCachePlanner extends FunSuite with MaterializeNRC with NRCTranslator {
     // first get the fingerprint map
     val plans = Vector(joinPlan1, nestPlan1, joinPlan2, nestPlan2).zipWithIndex
 
-    val subexprs = HashMap.empty[(CExpr, Int), Integer]
-    plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
+    // val subexprs = HashMap.empty[(CExpr, Int), Integer]
+    // plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
     
-    val subs = SEBuilder.sharedSubs(plans, subexprs)
-    val covers = CEBuilder.buildCoverMap(subs)
+    // val subs = SEBuilder.sharedSubs(plans, subexprs)
+    // val covers = CEBuilder.buildCoverMap(subs)
 
-    // this will take covers and subs to generate statistics
-    val stats = Map.empty[String, Statistics]
+    // // this will take covers and subs to generate statistics
+    // val stats = Map.empty[String, Statistics]
 
-    val cost = new Cost(stats)
-    val selectedCovers = cost.selectCovers(covers, subs)
+    // val cost = new Cost(stats)
+    // val selectedCovers = cost.selectCovers(covers, subs)
 
-    // empty stats will always default to true
-    val planner = new CachePlanner(selectedCovers)
-    val cache = planner.solve()
-    assert(planner.knapsack.size == 1)
+    // // empty stats will always default to true
+    // val planner = new CachePlanner(selectedCovers)
+    // val cache = planner.solve()
+    // assert(planner.knapsack.size == 1)
 
-    val planner2 = new CachePlanner(selectedCovers, capacity = 2.0)
-    val cache2 = planner2.solve()
-    assert(planner2.knapsack.size == 2)
+    // val planner2 = new CachePlanner(selectedCovers, capacity = 2.0)
+    // val cache2 = planner2.solve()
+    // assert(planner2.knapsack.size == 2)
 
-    val planner5 = new CachePlanner(selectedCovers, capacity = 5.0)
-    val cache5 = planner5.solve()
-    assert(planner5.knapsack.size == 5)
+    // val planner5 = new CachePlanner(selectedCovers, capacity = 5.0)
+    // val cache5 = planner5.solve()
+    // assert(planner5.knapsack.size == 5)
 
-    val plannerFract = new CachePlanner(selectedCovers, capacity = 3.0)
-    val cacheFract = plannerFract.solve(fraction = .75)
-    assert(plannerFract.knapsack.size == 3)
+    // val plannerFract = new CachePlanner(selectedCovers, capacity = 3.0)
+    // val cacheFract = plannerFract.solve(fraction = .75)
+    // assert(plannerFract.knapsack.size == 3)
 
   }
 

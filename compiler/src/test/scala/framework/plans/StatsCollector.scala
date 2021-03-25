@@ -99,7 +99,7 @@ class TestStatsCollector extends FunSuite with MaterializeNRC with NRCTranslator
     val ces = CEBuilder.buildCoverMap(subs)
     
     val stats = StatsCollector.getCost(subs, ces)
-    println(stats)
+    assert(stats.size == 25)
 
   }
 

@@ -33,16 +33,16 @@ object StatsCollector {
   val StatsRegex = "Stat\\((.*),(.*),(.*)\\)".r
   var inc = 0
 
-  def readStats(s: String): (String, Statistics) = s match {
-    case StatsRegex(n, sb, rc) => (n, Statistics(sb.toLong, rc.toLong))
-    case _ => sys.error(s"Parse error $s")
+  def readStats(s: String): (Option[String], Option[Statistics]) = s match {
+    case StatsRegex(n, sb, rc) => (Some(n), Some(Statistics(sb.toLong, rc.toLong)))
+    case _ => (None, None)
   }
 
   //TODO
-  def readOutput(s: String): Option[(String, Statistics)] =    
+  def readOutput(s: String): (Option[String], Option[Statistics]) =    
     StatsRegex.findFirstIn(s) match {
-      case Some(str) => Some(readStats(str))
-      case _ => None
+      case Some(str) => readStats(str) 
+      case _ => (None, None)
     }
 
   def generateSpark(plans: List[CNamed], notebk: Boolean = false): Unit = {
@@ -136,7 +136,6 @@ object StatsCollector {
   // this is a slightly faster solution
   def runCost(plans: List[CNamed], notebk: Boolean = false): Map[String, Statistics] = {
     generateSpark(plans, notebk)
-    nameMapRev.foreach(println(_))
     if (!notebk){
       "sh compile.sh".!!
     }else{
@@ -145,8 +144,9 @@ object StatsCollector {
     // TODO parse better
     for (line <- Source.fromFile("out").getLines){
       readStats(line) match {
-        case Some((name, stat)) => statsMap += (nameMapRev(name) -> stat)
-        case None => 
+        case (Some(name), Some(stat)) => 
+          statsMap += (nameMapRev(name) -> stat)
+        case _ => 
       }
     }
     statsMap

@@ -17,7 +17,7 @@ class CachePlanner(covers: Map[Integer, CostEstimate], capacity: Double = 1.0) {
 	def solve(availability: Double = 0.0, fraction: Double = 1.0, i: Int = 0): Unit = {
 
 		// restart with new fraction
-		if (i <= initialSize && fraction > .499){
+		if (i < initialSize && fraction > .499){
 
 			var newAvail = availability
 
@@ -28,6 +28,9 @@ class CachePlanner(covers: Map[Integer, CostEstimate], capacity: Double = 1.0) {
 
 				if (sizeWithAdd <= capacity) {
 
+					println("i've added this to my knapsack "+candidate.est.outSize)
+					println(Printer.quote(candidate.plan))
+
 					knapsack(sig) = candidate.plan
 					newAvail = sizeWithAdd
 
@@ -37,7 +40,8 @@ class CachePlanner(covers: Map[Integer, CostEstimate], capacity: Double = 1.0) {
 
 			}
 
-		}else solve(0.0, fraction * .75, 0)
+		}
+		//else solve(0.0, fraction * .75, 0)
 
 	}
 

@@ -81,7 +81,29 @@ class TestCost extends FunSuite with MaterializeNRC with NRCTranslator {
     val query2 = parser.parse(query2str).get
     val plan2 = getPlan(query2.asInstanceOf[Program])
 
-    val plans = Vector(plan1, plan2).zipWithIndex
+    val progs = Vector(plan1, plan2).zipWithIndex
+    val plans = progs.flatMap{ case (prog, id) => 
+      prog.exprs.map(e => e match {
+        case CNamed(name, p) => (p, id)
+        case _ => (e, id)
+    })}
+
+    val subexprs = HashMap.empty[(CExpr, Int), Integer]
+    plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
+    val subs = SEBuilder.sharedSubs(plans, subexprs)
+
+    val ces = CEBuilder.buildCoverMap(subs)
+    
+    val stats = StatsCollector.getCost(subs, ces)
+    // assert(stats.size == 25)
+
+    val cost = new Cost(stats)
+    // val selected = cost.selectCovers(ces, subs)
+    // assert(ces.size == selected.size)
+
+
+    cost.printEstimateAndStat(ces, subs)
+
   }
 
   test("nest test"){
@@ -131,12 +153,12 @@ class TestCost extends FunSuite with MaterializeNRC with NRCTranslator {
 
     val subexprs = HashMap.empty[(CExpr, Int), Integer]
     plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
-    println(subexprs.size)
+    // println(subexprs.size)
     
     val subs = SEBuilder.sharedSubs(plans, subexprs)
-    println(subs.size)
+    // println(subs.size)
     val covers = CEBuilder.buildCoverMap(subs)
-    println(covers.size)
+    // println(covers.size)
 
     // this will take covers and subs to generate statistics
     val stats = Map.empty[String, Statistics]

@@ -54,9 +54,29 @@ class Cost(stats: Map[String, Statistics]) {
 
   }
 
-  def estMaterialization(card: Double): Double = (card / 1024) * RAMWRITE
+  def printEstimateAndStat(covers: IMap[Integer, CNamed], subs: Map[Integer, List[SE]]): Unit = {
+    covers.foreach{ c =>
+      val plan = c._2.e
+      val est = estimate(plan)
+      println("Cover:")
+      println(Printer.quote(plan))
+      println(stats.getOrElse(plan.vstr, StatsCollector.default))
+      println(est)
+      println("Subs:")
+      val ses = subs(c._1)
+      ses.foreach{ s =>
+        val est = estimate(s.subplan)
+        println(Printer.quote(s.subplan))
+        println(stats.getOrElse(s.subplan.vstr, StatsCollector.default))
+        println(est)
+      }
+      println("")
+    }
+  }
 
-  def estRetrieval(card: Double): Double = (card / 1024) * RAMREAD
+  def estMaterialization(card: Double): Double = card * RAMWRITE
+
+  def estRetrieval(card: Double): Double = card * RAMREAD
 
 
   def compare(s1: (CExpr, Statistics), s2: (CExpr, Statistics)): CExpr = 
@@ -96,7 +116,7 @@ class Cost(stats: Map[String, Statistics]) {
 
         // some factor of cardinalities
         //val outsize = leftEst.outSize + rightEst.outSize 
-        val outsize = stat.sizeInBytes
+        val outsize = (stat.sizeInBytes / 1024)
         val outrows = stat.rowCount
 
         Estimate(insize, outsize, inrows, outrows, network, cpu)
@@ -186,7 +206,7 @@ class Cost(stats: Map[String, Statistics]) {
       // assume no network cost
       // cpu is just the time to scan
       case _ => 
-        val size = stat.sizeInBytes + 0.0
+        val size = (stat.sizeInBytes / 1024) + 0.0
         val rows = stat.rowCount + 0.0
         Estimate(size, size, rows, rows, stat.rowCount * DISKREAD, 0.0)
 
