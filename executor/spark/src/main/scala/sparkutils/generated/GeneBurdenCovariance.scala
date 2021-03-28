@@ -12,8 +12,10 @@ import sparkutils._
 import sparkutils.loader._
 import sparkutils.skew.SkewDataset._
 
-import org.apache.spark.mllib.linalg.Vectors
+import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.mllib.linalg.distributed.{IndexedRow, IndexedRowMatrix}
+
+import org.apache.spark.ml.regression._
 
 case class Record16c4ed668ea644029c4947ee51040b7c(g_sample: String, call: Double)
 case class Record314577fb8db2498d9da3023b7b54b32f(reference: String, genotypes: Seq[Record16c4ed668ea644029c4947ee51040b7c], alternate: String, vcf_index: Long, contig: String, start: Int)
@@ -39,15 +41,15 @@ object GeneBurdenCovariance {
    val spark = SparkSession.builder().config(conf).getOrCreate()
    
    import spark.implicits._
-   val vloader = new VariantLoader(spark, "/mnt/app_hdd/scratch/biodata/supersm.vcf") //"/mnt/app_hdd/data/Data/Variants/supersm.vcf")
+   val vloader = new VariantLoader(spark, "/Users/jac/data/burden/supersm.vcf")
 val vcf = vloader.loadDS
-vcf.cache
-vcf.count
+//vcf.cache
+//vcf.count
 
 val gtfLoader = new GeneLoader(spark)
-val genes = gtfLoader.loadGTF("/mnt/app_hdd/scratch/biodata/genes.csv")    //"/mnt/app_hdd/data/Data/Map/genes.csv")
-genes.cache
-genes.count
+val genes = gtfLoader.loadGTF("/Users/jac/data/burden/genes.csv")
+//genes.cache
+//genes.count
 
    def f = { 
  
@@ -103,13 +105,28 @@ val Groups = x34
 //Groups.cache
 //Groups.count
 
-val rows = Groups.rdd.map(x => Vectors.dense(x.burdens.map(y => y.burden).toArray))
+var i = 0
+val rows = Groups.map(x => ({val l = if ((i % 2) == 0){ i+=1; 1.0 } else { i+=1; 0.0 }; l}, Vectors.dense(x.burdens.map(y => y.burden).toArray))).toDF("label", "features")
+
+/**val training = spark.read.format("libsvm")
+  .load("/Users/jac/tech/spark-3.1.1-bin-hadoop2.7/data/mllib/sample_linear_regression_data.txt")
+println(training.printSchema)**/
+
+val lr = new LinearRegression()
+  .setMaxIter(10)
+  .setRegParam(0.3)
+  .setElasticNetParam(0.8)
+
+val lrModel = lr.fit(rows)
+println(s"Coefficients: ${lrModel.coefficients} Intercept: ${lrModel.intercept}")
+
+/**val rows = Groups.rdd.map(x => Vectors.dense(x.burdens.map(y => y.burden).toArray))
   .zipWithIndex.map{ case (v, i) => IndexedRow(i, v) }
 val mat = new IndexedRowMatrix(rows).toBlockMatrix
 val trans = mat.transpose
 val covariance = trans.multiply(mat)
 println(covariance.toLocalMatrix.toString())
-
+**/
 }
 var start = System.currentTimeMillis()
 f

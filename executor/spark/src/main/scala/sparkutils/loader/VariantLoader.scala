@@ -22,6 +22,8 @@ case class Variant(id: String, contig: String, start: Int, reference: String,
   alternate: String, genotypes: Seq[Call])
 case class IVariant(index: Long, contig: String, start: Int, reference: String, 
   alternate: String, genotypes: Seq[Call])
+case class VariantBig(id: String, contig: String, start: Long, reference: String, 
+  alternate: String, genotypes: Seq[Call])
 
 case class SCall(_1: Long, g_sample: String, call: Int)
 case class SVariant(contig: String, start: Int, reference: String,
