@@ -16,6 +16,7 @@ trait CExpr { self =>
 
 case class InputRef(data: String, tp: Type) extends CExpr {
   override def vstr: String = data
+  override val isCacheUnfriendly: Boolean = true
 }
 
 case class Input(data: List[CExpr]) extends CExpr{

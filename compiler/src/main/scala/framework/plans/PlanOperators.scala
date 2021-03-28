@@ -32,6 +32,7 @@ case class AddIndex(e: CExpr, name: String) extends CExpr with UnaryOp {
   def tp: BagCType = BagCType(RecordCType(e.tp.attrs ++ Map(name -> LongType)))
   val in: CExpr = e
   override def vstr: String = s"AddIndex(${e.vstr}, $name)" 
+  override val isCacheUnfriendly: Boolean = true
 }
 
 // rename filter

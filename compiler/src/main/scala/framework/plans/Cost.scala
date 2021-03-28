@@ -35,19 +35,22 @@ class Cost(stats: Map[String, Statistics]) {
     val selected = Map.empty[Integer, CostEstimate]
 
     covers.foreach{ c =>
-      val ses = subs(c._1)
-      // total cost of evaluating all subexpressions
-      val totalwork = ses.map(s => estimate(s.subplan).total).reduce(_ + _) 
+      if (!c._2.e.isCacheUnfriendly){
+        val ses = subs(c._1)
+        // total cost of evaluating all subexpressions
+        val totalwork = ses.map(s => estimate(s.subplan).total).reduce(_ + _) 
 
-      // total cost of cover + add cache + (access cache * accesses)
-      val cest = estimate(c._2.e)
-      val covercost = cest.total + estMaterialization(cest.outSize) + 
-        (estRetrieval(cest.outSize) * ses.size)
+        // total cost of cover + add cache + (access cache * accesses)
+        val cest = estimate(c._2.e)
+        println("estimate for cover")
+        println(Printer.quote(c._2.e))
+        val covercost = cest.total + estMaterialization(cest.outSize) + 
+          (estRetrieval(cest.outSize) * ses.size)
 
-      val profit = totalwork - covercost
+        val profit = totalwork - covercost
 
-      if (profit > 0) selected(c._1) = CostEstimate(c._2, profit, cest)
-
+        if (profit > 0) selected(c._1) = CostEstimate(c._2, profit, cest)
+      }
     }
 
     selected
@@ -116,7 +119,10 @@ class Cost(stats: Map[String, Statistics]) {
 
         // some factor of cardinalities
         //val outsize = leftEst.outSize + rightEst.outSize 
-        val outsize = (stat.sizeInBytes / 1024)
+        // val outsize = (stat.sizeInBytes / 1024)
+        //  this should be based on distincts, but doing this 
+        // for now
+        val outsize = Math.min(leftEst.outRows, rightEst.outRows)
         val outrows = stat.rowCount
 
         Estimate(insize, outsize, inrows, outrows, network, cpu)
@@ -197,9 +203,9 @@ class Cost(stats: Map[String, Statistics]) {
       // no network or additional rows added
       case i:AddIndex => 
         val childEst = estimate(i.in)
-        val size = childEst.outSize * INDEXCOST
+        val outsize = childEst.outSize * INDEXCOST
         val cpu = childEst.cpu + (childEst.outRows * NOSHUFF)
-        Estimate(childEst.inSize, size, childEst.inRows, childEst.outRows, cpu, childEst.network)
+        Estimate(childEst.inSize, outsize, childEst.inRows, childEst.outRows, cpu, childEst.network)
 
       // the base cost estimate for all input relations
       // size and rows directly from stats

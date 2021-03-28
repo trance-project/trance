@@ -95,9 +95,15 @@ class TestCachePlanner extends FunSuite with MaterializeNRC with NRCTranslator {
     val ces = CEBuilder.buildCoverMap(subs)
     
     val stats = StatsCollector.getCost(subs, ces)
-
+    stats.foreach(println(_))
+    
     val cost = new Cost(stats)
     val selected = cost.selectCovers(ces, subs)
+    selected.foreach{
+      s => 
+      println(Printer.quote(s._2.plan))
+      println(s._2.profit)
+    }
 
     val totalSize = selected.map(s => s._2.est.outSize).reduce(_+_)
     println(totalSize)
