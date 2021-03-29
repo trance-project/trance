@@ -50,6 +50,7 @@ object StatsCollector {
     // var gcode = ""
     // todo could add map to avoid duplicate calls
     for (p <- plans){
+      // println(p)
       val anfBase = new BaseOperatorANF{}
       val anfer = new Finalizer(anfBase)
       val anfed = anfBase.anf(anfer.finalize(p).asInstanceOf[anfBase.Rep])
@@ -189,6 +190,8 @@ object StatsCollector {
       |import org.apache.spark.sql._
       |import org.apache.spark.sql.functions._
       |import org.apache.spark.sql.catalyst.plans.logical._
+      |import org.apache.spark.sql.types._
+      |import org.apache.spark.sql.expressions.scalalang._
       |import sparkutils._
       |import sparkutils.loader._
       |import sparkutils.skew.SkewDataset._

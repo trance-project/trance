@@ -12,9 +12,9 @@ case class Estimate(inSize: Double, outSize: Double,
 
 case class CostSE(wid: Int, subplan: CExpr, height: Int, est: Estimate)
 case class CostCE(cover: CExpr, sig: Integer, ses: List[CostSE], est: Estimate)
-case class CostEstimate(plan: CExpr, profit: Double, est: Estimate)
+case class CostEstimate(plan: CExpr, profit: Double, est: Estimate, wids: IMap[Int, Int])
 
-class Cost(stats: Map[String, Statistics]) {
+class Cost(stats: Map[String, Statistics]) extends Extensions {
 
   val DISKREAD = 0.1
   val NETWORK = 10.0
@@ -30,9 +30,13 @@ class Cost(stats: Map[String, Statistics]) {
   val default = Estimate(1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
 
   // estimate
-  def selectCovers(covers: IMap[Integer, CNamed], subs: Map[Integer, List[SE]]): Map[Integer, CostEstimate] = {
+  def selectCovers(covers: IMap[Integer, CNamed], subs: Map[Integer, List[SE]], flexibility: Int = 0): Map[Integer, CostEstimate] = {
 
     val selected = Map.empty[Integer, CostEstimate]
+
+    println("these are all the covers ")
+    covers.foreach{ s => println(Printer.quote(s._2)) }
+    println("")
 
     covers.foreach{ c =>
       if (!c._2.e.isCacheUnfriendly){
@@ -42,19 +46,65 @@ class Cost(stats: Map[String, Statistics]) {
 
         // total cost of cover + add cache + (access cache * accesses)
         val cest = estimate(c._2.e)
-        println("estimate for cover")
-        println(Printer.quote(c._2.e))
+
+        // adjust the profit here
         val covercost = cest.total + estMaterialization(cest.outSize) + 
           (estRetrieval(cest.outSize) * ses.size)
 
         val profit = totalwork - covercost
 
-        if (profit > 0) selected(c._1) = CostEstimate(c._2, profit, cest)
+        if (profit > 0) {
+          // get wids with height
+          val wids = ses.map(s => (s.wid, s.height)).toMap
+          selected(c._1) = CostEstimate(c._2, profit, cest, wids)
+
+        }
+
       }
     }
 
-    selected
+    if (flexibility > 2) selected
+    else minimizeOverlap(selected, flexibility)
 
+  }
+
+
+  // TODO option to adjust profits of subexpressions if they are kept
+  def minimizeOverlap(covers: Map[Integer, CostEstimate], flexibility: Int = 0): Map[Integer, CostEstimate] = {
+    
+    var selected = covers
+    covers.foreach{ c1 => 
+
+      (covers - c1._1).foreach{ c2 =>
+
+        // if c1 is a descendent of c2
+        if (find(c2._2.plan, c1._2.plan)){
+
+          // do not allow subexpressions at all (verona)
+          if (flexibility == 0) selected = selected - c1._1
+          else{
+
+
+            val inSameQueries = c1._2.wids.keySet == c2._2.wids.keySet
+
+            // slightly more flexible, only remove if in same query
+            if (flexibility == 1 && inSameQueries) selected = selected - c1._1
+
+            // most flexible, only remove if there are not profit / weight advantages
+            else if (flexibility == 2 && inSameQueries && c1._2.profit <= c2._2.profit && c1._2.est.outSize >= c2._2.est.outSize){
+
+              selected = selected - c1._1
+
+            }
+
+          } 
+
+        }
+
+      }
+
+    }
+    selected
   }
 
   def printEstimateAndStat(covers: IMap[Integer, CNamed], subs: Map[Integer, List[SE]]): Unit = {

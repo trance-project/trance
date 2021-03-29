@@ -223,8 +223,6 @@ trait BaseCompiler extends Base {
     val v1 = Variable.freshFromBag(in.tp)
     val nr = filter(v1)
     val fs = ext.collect(nr)
-    println("in here")
-    println(fs)
     Projection(in, v1, nr, fs.toList)
   }
   def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = {

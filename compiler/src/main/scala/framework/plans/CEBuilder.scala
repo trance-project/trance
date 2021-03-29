@@ -87,24 +87,29 @@ object CEBuilder extends Extensions {
 
       if (j1.jtype == "left_outer" || j2.jtype == "left_outer") OuterJoin(left, v1, right, v2, cond, j1.fields ++ j2.fields)
       else Join(left, v1, right, v2, cond, j1.fields ++ j2.fields)
-    
+
     // union columns
     // TODO no implicit renaming should happen in the cover expression
     case (Projection(in1, v1, f1:Record, fs1), Projection(in2, v2, f2:Record, fs2)) => 
-    
       val child = buildCover(in1, in2)
       val v = Variable.freshFromBag(child.tp)
       def updateVmap(r: Record): IMap[String, CExpr] = {
         r.fields.map{
-          case (field1, Project(_, field2)) =>
-            vmap(field1) = field2
-            (field2, Project(v, field2))
-          case _ => ???
+          case (field1, Project(_, field2)) => vmap.get(field1) match {
+            case Some(f) => (f, Project(v, f))
+            case _ => vmap(field1) = field2; (field2, Project(v, field2))
+
+          }
+          // keep complex expressions, assuming they reduce the 
+          // overall amount of projections
+          case (field1, field2) => (field1, replace(field2, v))
         }.toMap
       }
       val r = Record(updateVmap(f1) ++ updateVmap(f2))
       val nr = replace(r, v)
-      Projection(child, v, nr, fs1 ++ fs2)
+      val nfs1 = fs1.toList.map(k => vmap.getOrElse(k, k))
+      val nfs2 = fs2.toList.map(k => vmap.getOrElse(k, k))
+      Projection(child, v, nr, nfs1 ++ nfs2)
 
    // OR filters
     case (Select(in1, v1, f1, e1), Select(in2, v2, f2, e2)) =>

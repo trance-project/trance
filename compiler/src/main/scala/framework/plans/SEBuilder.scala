@@ -45,8 +45,8 @@ object SEBuilder extends Extensions {
       
       case u:UnnestOp => 
         val chash = equivSig((u.in, wid))(sigmap)
-        hash(plan.getClass.toString + u.outer + u.path + chash)
-      
+        hash(plan.getClass.toString + u.path + chash)
+
       case o:UnaryOp =>
         val chash = equivSig((o.in, wid))(sigmap)
         hash(plan.getClass.toString + chash)
@@ -130,7 +130,7 @@ object SEBuilder extends Extensions {
 
         traversePlan((o.in, id), index, acc+1)
 
-      case _ =>    
+      case _ =>  sys.error(s"unimplemented $plan")  
 
     }
 

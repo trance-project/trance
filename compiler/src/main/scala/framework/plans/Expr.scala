@@ -207,7 +207,7 @@ case class CGroupBy(e1: CExpr, v1: Variable, keys: List[String], values: List[St
 
 case class CNamed(name: String, e: CExpr) extends CExpr {
   def tp: Type = e.tp
-  override def vstr: String = name
+  override def vstr: String = e.vstr
 }
 
 case class LinearCSet(exprs: List[CExpr]) extends CExpr {

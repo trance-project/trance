@@ -7,14 +7,14 @@ import scala.collection.mutable.Stack
 // IDEAS:
 // only consider a pass that is globally maximal
 
-class CachePlanner(covers: Map[Integer, CostEstimate], capacity: Double = 1.0) {
+class GreedyCachePlanner(covers: Map[Integer, CostEstimate], capacity: Double = 1.0) {
 
 	val knapsack = Map.empty[Integer, CExpr]
 
 	val sortedCovers = covers.toVector.sortBy(s => s._2.profit)
 	val initialSize = covers.size
 
-	def solve(availability: Double = 0.0, fraction: Double = 1.0, i: Int = 0): Unit = {
+	def solve(availability: Double = 0.0, fraction: Double = 1.0, i: Int = 0, retry: Boolean = false): Unit = {
 
 		// restart with new fraction
 		if (i < initialSize && fraction > .499){
@@ -28,9 +28,6 @@ class CachePlanner(covers: Map[Integer, CostEstimate], capacity: Double = 1.0) {
 
 				if (sizeWithAdd <= capacity) {
 
-					println("i've added this to my knapsack "+candidate.est.outSize)
-					println(Printer.quote(candidate.plan))
-
 					knapsack(sig) = candidate.plan
 					newAvail = sizeWithAdd
 
@@ -41,7 +38,11 @@ class CachePlanner(covers: Map[Integer, CostEstimate], capacity: Double = 1.0) {
 			}
 
 		}
-		//else solve(0.0, fraction * .75, 0)
+		else if (retry) { 
+			// reset and try again
+			knapsack.clear
+			solve(0.0, fraction * .75, 0, retry) 
+		}
 
 	}
 

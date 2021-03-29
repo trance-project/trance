@@ -10,6 +10,16 @@ trait Extensions {
     case _ => plan.isCacheUnfriendly
   }
 
+  def find(e1: CExpr, e2: CExpr): Boolean = e1 match {
+      case _ if (e1.vstr == e2.vstr) => true
+      case c:CNamed => find(c.e, e2)
+      case u:UnaryOp => find(u.in, e2)
+      case j:JoinOp => find(j.left, e2) || find(j.right, e2)
+      case n:Nest => find(n.in, e2)
+      case _ => false
+
+    }
+
   def replace(e: CExpr, v: Variable): CExpr = e match {
     case Record(ms) => Record(ms.map(r => r._1 -> replace(r._2, v)))
     case Project(_, f) => Project(v, f)
