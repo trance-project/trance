@@ -332,7 +332,7 @@ class TestGreedyCachePlanner extends FunSuite with MaterializeNRC with NRCTransl
     val selectedCovers = cost.selectCovers(covers, subs, 3)
 
     // empty stats will always default to true
-    val planner = new GreedyCachePlanner(selectedCovers)
+    val planner = new GreedyCachePlanner(selectedCovers, 1.0)
     val cache = planner.solve()
     assert(planner.knapsack.size == 1)
 

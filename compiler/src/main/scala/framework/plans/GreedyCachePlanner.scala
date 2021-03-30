@@ -7,7 +7,7 @@ import scala.collection.mutable.Stack
 // IDEAS:
 // only consider a pass that is globally maximal
 
-class GreedyCachePlanner(covers: Map[Integer, CostEstimate], capacity: Double = 1.0) {
+class GreedyCachePlanner(covers: Map[Integer, CostEstimate], capacity: Double) {
 
 	val knapsack = Map.empty[Integer, CExpr]
 
