@@ -62,7 +62,7 @@ sealed trait Type { self =>
   }
 
   // For debugging
-  override def toString: String = ""
+  // override def toString: String = ""
 }
 
 trait ReducibleType
@@ -169,10 +169,21 @@ final case class BagCType(tp: Type) extends Type {
 
 }
 
-final case class MatDictCType(keyTp: LabelType, valueTp: BagCType) extends Type {
+final case class MatDictCType(keyTp: LabelType, valueTp: BagCType) extends Type { self => 
   override def isDict: Boolean = true
   def toRecordType(col: String): RecordCType = 
     RecordCType(Map(s"${col}_1" -> keyTp, col -> valueTp))
+
+  def toFlatType(): BagCType = valueTp match {
+    case BagCType(RecordCType(rs)) => BagCType(RecordCType(rs + ("_1" -> keyTp)))
+    case _ => ???
+  }
+
+  override def equals(that: Any): Boolean = that match {
+    case bct:BagCType => self.toFlatType() == bct
+    case mct:MatDictCType => self.keyTp == mct.keyTp && self.valueTp == mct.valueTp
+    case _ => false
+  }
 
 }
 

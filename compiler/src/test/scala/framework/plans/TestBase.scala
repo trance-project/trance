@@ -26,8 +26,11 @@ trait TestBase extends FunSuite with Materialization with
   val optimizer = new Optimizer()
 
   def getPlan(query: Expr): CExpr = {
+    val compiler = new BaseCompiler{}
+    val compile = new Finalizer(compiler)
     val ncalc = normalizer.finalize(translate(query)).asInstanceOf[CExpr]
-    Unnester.unnest(ncalc)(Map(), Map(), None, "_2")
+    val opt = optimizer.applyPush(Unnester.unnest(ncalc)(IMap(), IMap(), None, "_2"))
+    compile.finalize(opt).asInstanceOf[CExpr]
   }
 
   def getProgPlan(query: Program, shred: Boolean = false): LinearCSet = {
@@ -72,6 +75,8 @@ trait TestBase extends FunSuite with Materialization with
   val plan1 = getProgPlan(query1)
   val splan1 = getProgPlan(query1, true)
 
+  println(Printer.quote(splan1))
+
   val query2str = 
     s"""
       cnvCases2 <= 
@@ -92,6 +97,8 @@ trait TestBase extends FunSuite with Materialization with
   val plan2 = getProgPlan(query2)
   val splan2 = getProgPlan(query2, true)
 
+  println(Printer.quote(splan2))
+
   // this will make sure things are being 
   // considered equivalent
   val query3str = 
@@ -111,7 +118,23 @@ trait TestBase extends FunSuite with Materialization with
   val plan3 = getProgPlan(query3)
   val splan3 = getProgPlan(query3, true)
 
+  println(Printer.quote(splan3))
+
   val progs = Vector(plan1, plan2, plan3).zipWithIndex
   val sprogs = Vector(splan1, splan2, splan3).zipWithIndex
+
+  def printSE(ses: IMap[Integer, List[SE]]): Unit = {
+    ses.foreach{ s => 
+      println(s._1)
+      s._2.foreach{ x => println(Printer.quote(x.subplan)) }
+    }
+  } 
+
+  def printCE(ses: IMap[Integer, CNamed]): Unit = {
+    ses.foreach{ s => 
+      println(s._1)
+      println(Printer.quote(s._2))
+    }
+  } 
 
 }

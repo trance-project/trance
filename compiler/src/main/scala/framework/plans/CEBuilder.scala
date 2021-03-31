@@ -118,6 +118,15 @@ object CEBuilder extends Extensions {
       val child = buildCover(in1, in2)
       Select(child, v, or(replace(f1, v), replace(f2, v)), v)
 
+    case (o, f:FlatDict) => o match {
+      case _:InputRef => buildCover(o, f.in)
+      case _:Select => 
+        val v = Variable.freshFromBag(f.tp)
+        buildCover(o, Select(f, v, Constant(true), v))
+    }
+
+    case (f:FlatDict, o) => buildCover(o,f)
+
     case _ =>  sys.error(s"unsupported operator $plan1, $plan2)")
 
   }

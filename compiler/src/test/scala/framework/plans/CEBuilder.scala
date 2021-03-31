@@ -8,22 +8,30 @@ import framework.nrc._
 import framework.plans.{Equals => CEquals, Project => CProject}
 import scala.collection.mutable.HashMap
 
-class TestCEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
+class TestCEBuilder extends TestBase {
 
-  val occur = new Occurrence{}
-  val tbls = Map("Customer" -> TPCHSchema.customertype,
-                 "Order" -> TPCHSchema.orderstype,
-                 "Lineitem" -> TPCHSchema.lineittype,
-                 "Part" -> TPCHSchema.parttype, 
-                 "Occur" -> BagType(occur.occurmid_type))
+  test("standard program compilation"){
 
-  val parser = Parser(tbls)
-  val normalizer = new Finalizer(new BaseNormalizer{})
-  val optimizer = new Optimizer()
+    val subexprs = HashMap.empty[(CExpr, Int), Integer]
+    progs.foreach(p => SEBuilder.equivSig(p)(subexprs))
+    val subs = SEBuilder.sharedSubs(progs, subexprs, false)
+    
+    val ces = CEBuilder.buildCoverMap(subs)
+    assert(ces.size == 5)
 
-  def getPlan(query: Expr): CExpr = {
-    val ncalc = normalizer.finalize(translate(query)).asInstanceOf[CExpr]
-    optimizer.applyPush(Unnester.unnest(ncalc)(Map(), Map(), None, "_2"))
+  }
+
+  test("shredded compilation"){
+    
+    val subexprs = HashMap.empty[(CExpr, Int), Integer]
+    sprogs.foreach(p => SEBuilder.equivSig(p)(subexprs))
+    val subs = SEBuilder.sharedSubs(sprogs, subexprs, false)
+
+    // printSE(subs)
+    val ces = CEBuilder.buildCoverMap(subs)
+    // printCE(ces)
+    assert(ces.size == 7)
+
   }
 
   test("input SEs"){
@@ -72,6 +80,7 @@ class TestCEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
 
     val cust2 = parser.parse("for c in Customer union { (custkey := c.c_custkey ) }", parser.term).get
     val custPlan2 = getPlan(cust2.asInstanceOf[Expr]).asInstanceOf[Projection]
+    println(custPlan2)
     assert(custPlan1.fields.toSet == Set("c_name"))
     assert(custPlan2.fields.toSet == Set("c_custkey"))
 
@@ -140,7 +149,7 @@ class TestCEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
   test("unnest covers"){
     val unnestQuery1 = parser.parse(
       """
-        for o in Occur union
+        for o in occurrences union
           if (o.donorId = "fakeTest")
           then for t in o.transcript_consequences union
             if (t.gene_id = "geneA") 
@@ -150,7 +159,7 @@ class TestCEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
     
     val unnestQuery2 = parser.parse(
       """
-        for o in Occur union
+        for o in occurrences union
           if (o.oid = "test")
           then for t in o.transcript_consequences union 
             if (t.sift_score > 0.01)
@@ -185,8 +194,8 @@ class TestCEBuilder extends FunSuite with MaterializeNRC with NRCTranslator {
       """, parser.term).get
     val reducePlan2 = getPlan(reduceQuery2.asInstanceOf[Expr]).asInstanceOf[CExpr]
     val ce = CEBuilder.buildCover(reducePlan1, reducePlan2).asInstanceOf[Reduce]
-    assert(ce.keys.toSet == Set("cname", "custkey"))
-    assert(ce.values.toSet == Set("orderkey", "otherkey"))
+    assert(ce.keys.toSet == Set("c_name", "c_custkey"))
+    assert(ce.values.toSet == Set("o_orderkey", "o_custkey"))
     
   }
 
