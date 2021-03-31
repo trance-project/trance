@@ -53,7 +53,15 @@ object SEBuilder extends Extensions {
 
       case InputRef(n, t) => 
         hash(plan.getClass.toString + n)
- 
+
+      case CNamed(n, t) => 
+        val chash = equivSig((t, wid))(sigmap)
+        hash(plan.getClass.toString + n + chash)
+
+      case LinearCSet(exps) => 
+        val chash = hash(exps.map(e => (equivSig((e, wid))(sigmap)).toString).reduce(_ + _))
+        hash(plan.getClass.toString + chash)
+
       // all other cases
       case _ => hash(plan.getClass.toString + plan.hashCode().toString)
 
@@ -92,7 +100,7 @@ object SEBuilder extends Extensions {
     
     val sigmap = Map.empty[Integer, List[SE]].withDefaultValue(Nil)
 
-    def traversePlan(plan: (CExpr, Int), index: Int, acc: Int = 0): Unit = plan match {
+    def traversePlan(plan: (CExpr, Int), acc: Int = 0): Unit = plan match {
 
       // the issue here is that the nest and the join should be 
       // rewritten in order to use the cover expression
@@ -105,7 +113,7 @@ object SEBuilder extends Extensions {
           sigmap(sig) = sigmap(sig) :+ SE(id, n, acc)
         }
 
-        traversePlan((n.in, id), index, acc+1)
+        traversePlan((n.in, id), acc+1)
       
       // should be added to use the covering expression
       case (j:JoinOp, id) => 
@@ -116,8 +124,8 @@ object SEBuilder extends Extensions {
         }
 
         val height = acc + 1
-        traversePlan((j.left, id), index, height) 
-        traversePlan((j.right, id), index, height)
+        traversePlan((j.left, id), height) 
+        traversePlan((j.right, id), height)
       
       case (i:InputRef, id) => 
         val sig = subexprs(plan)
@@ -128,13 +136,25 @@ object SEBuilder extends Extensions {
         val sig = subexprs(plan)
         sigmap(sig) = sigmap(sig) :+ SE(id, o, acc)
 
-        traversePlan((o.in, id), index, acc+1)
+        traversePlan((o.in, id), acc+1)
+
+      case (c:CNamed, id) => 
+        val sig = subexprs(plan)
+        sigmap(sig) = sigmap(sig) :+ SE(id, c, acc)
+
+        traversePlan((c.e, id), acc+1)
+
+      case (l:LinearCSet, id) => 
+        val sig = subexprs(plan)
+        sigmap(sig) = sigmap(sig) :+ SE(id, l, acc)
+
+        l.exprs.foreach(p => traversePlan((p, id), acc+1))
 
       case _ =>  sys.error(s"unimplemented $plan")  
 
     }
 
-    plans.zipWithIndex.map{ case (p, i) => traversePlan(p, i)}
+    plans.map(p => traversePlan(p))
 
     // values must have at least 
     // two elements to be shared

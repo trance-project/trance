@@ -33,11 +33,7 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
   def selectCovers(covers: IMap[Integer, CNamed], subs: Map[Integer, List[SE]], flexibility: Int = 0): Map[Integer, CostEstimate] = {
 
     val selected = Map.empty[Integer, CostEstimate]
-
-    println("these are all the covers ")
-    covers.foreach{ s => println(Printer.quote(s._2)) }
-    println("")
-
+    
     covers.foreach{ c =>
       if (!c._2.e.isCacheUnfriendly){
         val ses = subs(c._1)

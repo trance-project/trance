@@ -25,9 +25,12 @@ class DynamicCachePlanner(covers: Map[Integer, CostEstimate]) {
 			if (weight > capacity) solve(capacity, i+1, accum)
 			else {
 
-				val cont = solve(capacity - weight, i+1, Result(accum.profit + profit, accum.selected :+ (sig, item.plan)))
+				val cont = solve(capacity - weight, i+1, 
+					Result(accum.profit + profit, accum.selected :+ (sig, item.plan)))
+
 				val next = solve(capacity, i+1, accum)
-				solve(capacity, i+1, max(cont, next))
+				
+				max(cont, next)
 
 			}
 

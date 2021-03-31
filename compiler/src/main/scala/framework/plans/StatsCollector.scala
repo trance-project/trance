@@ -9,10 +9,10 @@ import scala.collection.mutable.Map
 import scala.collection.immutable.{Map => IMap}
 import scala.io.Source
 
-case class Statistics(sizeInBytes: Long, rowCount: Long) {
+case class Statistics(sizeInBytes: Long, rowCount: Long, colStats: String) {
 
   def lessThan(s2: Any): Boolean = s2 match {
-    case Statistics(size, rows) => 
+    case Statistics(size, rows, _) => 
       if (rows > -1 && rowCount > -1) sizeInBytes <= size && rowCount <= rows
       else sizeInBytes <= size
     case _ => false
@@ -28,13 +28,13 @@ object StatsCollector {
   val statsMap = Map.empty[String, Statistics]
 
   // TODO statistics now have column attributes attached
-  val default = Statistics(1L, 1L)
+  val default = Statistics(1L, 1L, Map().toString())
 
-  val StatsRegex = "Stat\\((.*),(.*),(.*)\\)".r
+  val StatsRegex = "Stat\\((.*),(.*),(.*),(.*)\\)".r
   var inc = 0
 
   def readStats(s: String): (Option[String], Option[Statistics]) = s match {
-    case StatsRegex(n, sb, rc) => (Some(n), Some(Statistics(sb.toLong, rc.toLong)))
+    case StatsRegex(n, sb, rc, cs) => (Some(n), Some(Statistics(sb.toLong, rc.toLong, cs)))
     case _ => (None, None)
   }
 
@@ -90,8 +90,10 @@ object StatsCollector {
   def getUUID: String = randomUUID().toString().replace("-", "")
 
   def updateNameMap(key: String, value: String): String = {
-    if (nameMap contains key) nameMap(key)
-    else {
+    if (nameMap contains key) {
+      nameMapRev += (value -> key)
+      nameMap(key)
+    }else {
       nameMap += (key -> value)
       nameMapRev += (value -> key)
       value
@@ -115,7 +117,7 @@ object StatsCollector {
     val coverList = covers.values.toList
     val plans = getSubs(subs) ++ coverList
     // could handle duplicates better
-    coverList.foreach{ ce => updateNameMap(ce.name, ce.name) }
+    coverList.foreach{ ce => updateNameMap(ce.vstr, ce.name) }
     runCost(plans, notebk)
   }
 
@@ -167,7 +169,7 @@ object StatsCollector {
       |import sparkutils.loader._
       |import sparkutils.skew.SkewDataset._
       |$header
-      |case class Stat(name: String, sizeInBytes:String, rowCount:String)
+      |case class Stat(name: String, sizeInBytes:String, rowCount:String, attributeStats: String)
       |object $appname {
       | def main(args: Array[String]){
       |   val conf = new SparkConf()
@@ -176,8 +178,8 @@ object StatsCollector {
       |   $encoders
       |   import spark.implicits._
       |   def genStat(n: String, s: Statistics): Stat = s.rowCount match {
-      |     case Some(rc) => Stat(n, s.sizeInBytes.toString, rc.toString)
-      |     case _ => Stat(n, s.sizeInBytes.toString, "-1")
+      |     case Some(rc) => Stat(n, s.sizeInBytes.toString, rc.toString, s.attributeStats.toString())
+      |     case _ => Stat(n, s.sizeInBytes.toString, "-1", s.attributeStats.toString())
       |   }
       |   $data
       |   $gcode
@@ -196,12 +198,12 @@ object StatsCollector {
       |import sparkutils.loader._
       |import sparkutils.skew.SkewDataset._
       |$header
-      |case class Stat(name: String, sizeInBytes:String, rowCount:String)
+      |case class Stat(name: String, sizeInBytes:String, rowCount:String, attributeStats: String)
       |$encoders
       |import spark.implicits._
       |def genStat(n: String, s: Statistics): Stat = s.rowCount match {
-      |  case Some(rc) => Stat(n, s.sizeInBytes.toString, rc.toString)
-      |  case _ => Stat(n, s.sizeInBytes.toString, "-1")
+      |  case Some(rc) => Stat(n, s.sizeInBytes.toString, rc.toString, s.attributeStats.toString())
+      |  case _ => Stat(n, s.sizeInBytes.toString, "-1", s.attributeStats.toString())
       |}
       |$data
       |$gcode

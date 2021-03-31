@@ -96,18 +96,22 @@ case class OuterUnnest(in: CExpr, v: Variable, path: String, v2: Variable, filte
 
 /** Join operators **/
 
-trait JoinOp extends CExpr {
+trait JoinOp extends CExpr { 
 
   def tp: BagCType
 
   val left: CExpr
   val v: Variable
 
+  val ext = new Extensions{}
+  val ps = ext.collect(cond)
+
+  // TODO actually fix this to work with and conditions
   def p1: String = cond match {
     case Equals(Project(_, f1), Project(_, f2)) =>
       if (v.tp.attrs.contains(f1)) f1
       else f2
-    case _ => sys.error(s"can't be called on a non-equijoin $cond") 
+    case _ => ps.filter(s => v.tp.attrs.contains(s)).mkString("&")
   }
 
   val right: CExpr
@@ -116,7 +120,7 @@ trait JoinOp extends CExpr {
     case Equals(Project(_, f1), Project(_, f2)) =>
       if (v2.tp.attrs.contains(f1)) f1
       else f2
-    case _ => sys.error(s"can't be called on a non-equijoin $cond") 
+    case _ => ps.filter(s => v2.tp.attrs.contains(s)).mkString("&")
   }
 
   val cond: CExpr
