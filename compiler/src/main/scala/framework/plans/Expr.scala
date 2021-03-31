@@ -169,8 +169,9 @@ case class Comprehension(e1: CExpr, v: Variable, p: CExpr, e: CExpr) extends CEx
   }
 }
 
-case class CDeDup(e1: CExpr) extends CExpr{
-  def tp: BagCType = e1.tp.asInstanceOf[BagCType]
+case class CDeDup(in: CExpr) extends CExpr with UnaryOp {
+  def tp: BagCType = in.tp.asInstanceOf[BagCType]
+  override def vstr: String = s"DeDup(${in.vstr})"
 }
 
 // replace all occurences of x with e1 in e1
@@ -227,17 +228,17 @@ case class CLookup(lbl: CExpr, dict: CExpr) extends CExpr {
   }
 }
 
-case class FlatDict(e: CExpr) extends CExpr {
-  def tp: BagCType = e.tp match {
+case class FlatDict(in: CExpr) extends CExpr with UnaryOp {
+  def tp: BagCType = in.tp match {
     case MatDictCType(lbl, BagCType(RecordCType(ms))) => 
       BagCType(RecordCType(ms + ("_1" -> lbl)))
-    case _ => sys.error(s"unsupported type ${e.tp}")
+    case _ => sys.error(s"unsupported type ${in.tp}")
   }
 }
 
-case class GroupDict(e: CExpr) extends CExpr {
+case class GroupDict(in: CExpr) extends CExpr with UnaryOp {
 
-  def tp: MatDictCType = e.tp match {
+  def tp: MatDictCType = in.tp match {
 
     case BagCType(RecordCType(ms)) => 
       val lbl = ms get "_1" match {
@@ -257,8 +258,9 @@ case class GroupDict(e: CExpr) extends CExpr {
       }
       MatDictCType(lbl, bag)
 
-    case _ => sys.error(s"unsupported type ${e.tp}")
+    case _ => sys.error(s"unsupported type ${in.tp}")
   }
+
 }
 
 case object EmptyCDict extends CExpr {
