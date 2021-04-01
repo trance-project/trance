@@ -1,4 +1,4 @@
-package framework.plans
+package framework.nrc
 
 import scala.collection.mutable._
 import net.liftweb.json._
@@ -12,41 +12,50 @@ import framework.nrc._
 import scala.collection.immutable.Map
 // import framework.plans.{Equals => CEquals, Project => CProject}
 
-object JsonWriter {
+object JsonWriter extends MaterializeNRC {
 
 	// very simple way 
-	def getJsonString(plan: CExpr): String = {
+	def getJsonString(query: Program): String = {
 		implicit val formats = DefaultFormats
-		writePretty(plan)
+		writePretty(query)
 	}
 
-	def produceJsonString(plan: CExpr, level: Int = 0): String = plan match {
-		case p:Projection => 
+	// obviously support for more types here...
+	def produceJsonString(tp: Type): String = tp match {
+		case BagType(t) => s"[${produceJsonString(t)}]"
+		case TupleType(fs) => 
+			val conts = fs.map(f => s""""${f._1}": ${produceJsonString(f._2)} """).mkString(",")
+			s"""{$conts}"""
+		case _ => s""" "${tp.toString()}" """
+	}
+
+	def produceJsonString(query: Assignment): String = 
+		s"""{"name": ${query.name}, "rhs": ${produceJsonString(query.rhs)}}"""
+
+	def produceJsonString(query: Program): String = 
+		s"""[{"assignments": ${query.statements.map(e => produceJsonString(e)).mkString(",")} }]"""
+
+	def produceJsonString(query: VarDef): String = 
+		s"""{ "name": ${query.name}, "type": ${produceJsonString(query.tp)} }"""
+
+	def produceJsonString(query: Expr): String = query match {
+		case f:ForeachUnion => 
 			s"""
 			|{
-			|	"name": "",
+			|	"exp": "for",
 			|	"attributes": {
-			|		"planOperator": "PROJECT",
-			|		"level": $level,
-			|		"attrs": "TODO",
-			| 		"newLine": { "${p.fields.mkString("\",\"")}"}
+			|		"var": "${produceJsonString(f.x)}",
+			|		"in": "${produceJsonString(f.e1)}",
 			|	},
-			|	"children": [${produceJsonString(p.in, level+1)}]
+			|	"union": [${produceJsonString(f.e2)}]
 			|}
 			""".stripMargin
-		case n:Nest => s"""{"todo": "TODO"}"""
-		case u:UnnestOp => s"""{"todo": "TODO"}"""
-		case j:JoinOp => s"""{"todo": "TODO"}"""
-		case s:Select => s"""{"todo": "TODO"}"""
-		case i:AddIndex => s"""{"todo": "TODO"}"""
-		case c:CNamed => s"""{"name": "${c.name}", "plan": ${produceJsonString(c.e)} }"""
-		case p:LinearCSet => s"""[${p.exprs.map(x => produceJsonString(x)).mkString(",")}]"""
 		case _ => s"""{"todo": "TODO"}"""
 	}
 
 }
 
-object JsonWriterTest extends App with MaterializeNRC with NRCTranslator {
+object JsonWriterTest extends App with MaterializeNRC {
 
 	val occur = new Occurrence{}
 	val cnum = new CopyNumber{}
@@ -60,13 +69,6 @@ object JsonWriterTest extends App with MaterializeNRC with NRCTranslator {
 	             "samples" -> BagType(samps.biospecType))
 
 	val parser = Parser(tbls)
-	val normalizer = new Finalizer(new BaseNormalizer{})
-	val optimizer = new Optimizer()
-
-	def getPlan(query: Program): LinearCSet = {
-		val ncalc = normalizer.finalize(translate(query)).asInstanceOf[CExpr]
-		optimizer.applyPush(Unnester.unnest(ncalc)(Map(), Map(), None, "_2")).asInstanceOf[LinearCSet]
-	}
 
 	val queryComplicate = 
       s"""
@@ -81,7 +83,7 @@ object JsonWriterTest extends App with MaterializeNRC with NRCTranslator {
             {( oid := o.oid, sid := o.donorId, cands := 
               ( for t in o.transcript_consequences union
                   for c in cnvCases1 union
-                    if (t.gene_id = c.cn_gene_id) then
+                    if (t.gene_id = c.cn_gene_id && c.cn_case_uuid = o.donorId) then
                       {( gene := t.gene_id, score := (c.cn_copy_number + 0.01) * if (t.impact = "HIGH") then 0.80 
                           else if (t.impact = "MODERATE") then 0.50
                           else if (t.impact = "LOW") then 0.30
@@ -107,15 +109,14 @@ object JsonWriterTest extends App with MaterializeNRC with NRCTranslator {
 			                          else if (t.impact = "LOW") then 0.30
 			                          else 0.01 )}).sumBy({gene}, {score}) )} )}
       """
-    val query1 = parser.parse(querySimple).get
-    val plan1 = getPlan(query1.asInstanceOf[Program])
+    val query1 = parser.parse(queryComplicate).get.asInstanceOf[JsonWriter.Program]
 
-	val jsonRep = JsonWriter.getJsonString(plan1)
+	val jsonRep = JsonWriter.getJsonString(query1)
 
 	val printer = new PrintWriter(new FileOutputStream(new File("test.json"), false))
     printer.println(jsonRep)
     printer.close
 
-    println(JsonWriter.produceJsonString(plan1))
+    println(JsonWriter.produceJsonString(query1))
 
 }
