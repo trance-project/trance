@@ -36,6 +36,7 @@ local.properties
 ##################
 # dependencies
 webapp_Demo/node_modules
+trance_webapp/node_modules
 /.pnp
 .pnp.js
 
