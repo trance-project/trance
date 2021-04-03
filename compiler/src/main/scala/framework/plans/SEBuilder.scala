@@ -16,6 +16,8 @@ case class SE(wid: Int, subplan: CExpr, height: Int) {
 /** Optimizer used for plans from BatchUnnester **/
 object SEBuilder extends Extensions {
 
+  val tmpMap: Map[String, Integer] = Map.empty[String, Integer]
+
   def signature(plan: CExpr): Integer = {
     equivSig((plan, 0))(HashMap.empty[(CExpr, Int), Integer])
   }
@@ -37,36 +39,44 @@ object SEBuilder extends Extensions {
           rhash = saveLeft
           cond = j.p2+"="+j.p1
         }
-        hash(plan.getClass.toString + cond + lhash + rhash)
+        hash(j.getClass.toString + cond + lhash + rhash)
 
       case n:Nest => 
         val chash = equivSig((n.in, wid))(sigmap)
-        hash(plan.getClass.toString + n.hashCode().toString + chash)
+        hash(n.getClass.toString + n.hashCode().toString + chash)
 
       case u:UnnestOp => 
         val chash = equivSig((u.in, wid))(sigmap)
-        hash(plan.getClass.toString + u.path + chash)
+        hash(u.getClass.toString + u.path + chash)
 
       case f:FlatDict => 
         equivSig((f.in, wid))(sigmap)
 
+      case g:GroupDict => 
+        equivSig((g.in, wid))(sigmap)
+
+      case r:Reduce =>
+        val chash = equivSig((r.in, wid))(sigmap)
+        hash(r.getClass.toString() + chash)
+
       case o:UnaryOp =>
         val chash = equivSig((o.in, wid))(sigmap)
-        hash(plan.getClass.toString + chash)
+        hash(o.getClass.toString() + chash)
 
-      case InputRef(n, t) => 
-        hash(plan.getClass.toString + n)
+      case i:InputRef => 
+        tmpMap.getOrElse(i.data, hash(i.getClass.toString + i.data))
 
-      case CNamed(n, t) => 
-        val chash = equivSig((t, wid))(sigmap)
-        hash(plan.getClass.toString + n + chash)
+      case c:CNamed => 
+        val chash = equivSig((c.e, wid))(sigmap)
+        tmpMap(c.name) = chash
+        hash(c.getClass.toString + c.name + chash)
 
-      case LinearCSet(exps) => 
-        val chash = hash(exps.map(e => (equivSig((e, wid))(sigmap)).toString).reduce(_ + _))
-        hash(plan.getClass.toString + chash)
+      case l:LinearCSet => 
+        val chash = hash(l.exprs.map(e => (equivSig((e, wid))(sigmap)).toString).reduce(_ + _))
+        hash(l.getClass.toString + chash)
 
       // all other cases
-      case _ => hash(plan.getClass.toString + plan.hashCode().toString)
+      case _ => hash(plan._2.getClass.toString + plan._2.hashCode().toString)
 
     }
 
@@ -131,21 +141,30 @@ object SEBuilder extends Extensions {
         traversePlan((j.right, id), height)
       
       case (i:InputRef, id) => 
+
+      case (f:FlatDict, id) => 
+        traversePlan((f.in, id), acc)
+
+      case (g:GroupDict, id) => 
+        traversePlan((g.in, id), acc)
+
+      case (a:AddIndex, id) => 
         val sig = subexprs(plan)
-        sigmap(sig) = sigmap(sig) :+ SE(id, i, acc)
+        sigmap(sig) = sigmap(sig) :+ SE(id, a, acc)
 
       // handle outer unnests
-      case (o:UnaryOp, id) =>
+      case (o:UnaryOp, id) => 
         val sig = subexprs(plan)
         sigmap(sig) = sigmap(sig) :+ SE(id, o, acc)
 
         traversePlan((o.in, id), acc+1)
 
-      case (c:CNamed, id) => 
-        val sig = subexprs(plan)
-        sigmap(sig) = sigmap(sig) :+ SE(id, c, acc)
-
-        traversePlan((c.e, id), acc+1)
+      // cname should never be a cover
+      // a domain should never be a cache candidate?
+      case (c:CNamed, id) =>
+        if (!c.name.contains("Dom")){
+          traversePlan((c.e, id), acc+1)
+        }
 
       case (l:LinearCSet, id) => 
         val sig = subexprs(plan)

@@ -130,6 +130,7 @@ trait TestBase extends FunSuite with Materialization with
     ses.foreach{ s => 
       println(s._1)
       s._2.foreach{ x => println(Printer.quote(x.subplan)) }
+      println("")
     }
   } 
 

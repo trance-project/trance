@@ -40,8 +40,8 @@ class TestQueryRewriter extends FunSuite with MaterializeNRC with NRCTranslator 
     val c1 = Variable.fresh(TPCHSchema.customertype.tp)
     val c2 = Variable.fresh(TPCHSchema.customertype.tp)
 
-    val cust1 = Select(InputRef("Customer", TPCHSchema.customertype), c1, Gt(CProject(c1, "custkey"), Constant(20)), c2)
-    val cust2 = Select(InputRef("Customer", TPCHSchema.customertype), c1, Lt(CProject(c2, "custkey"), Constant(2)), c2)
+    val cust1 = Select(InputRef("Customer", TPCHSchema.customertype), c1, Gt(CProject(c1, "custkey"), Constant(20)))
+    val cust2 = Select(InputRef("Customer", TPCHSchema.customertype), c1, Lt(CProject(c2, "custkey"), Constant(2)))
 
     // first get the fingerprint map
     val plans = Vector(cust1, cust2).zipWithIndex
@@ -60,8 +60,8 @@ class TestQueryRewriter extends FunSuite with MaterializeNRC with NRCTranslator 
     // expected results
     val cover = ces.head._2
     val v = Variable.freshFromBag(cover.tp)
-    val expected1 = Select(cover, v, Gt(CProject(v, "custkey"), Constant(20)), v)
-    val expected2 = Select(cover, v, Lt(CProject(v, "custkey"), Constant(2)), v)
+    val expected1 = Select(cover, v, Gt(CProject(v, "custkey"), Constant(20)))
+    val expected2 = Select(cover, v, Lt(CProject(v, "custkey"), Constant(2)))
 
     assert(newplans(0).vstr == expected1.vstr)
     assert(newplans(1).vstr == expected2.vstr)

@@ -35,11 +35,26 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     */
   def push(e: CExpr, fs: Set[String] = Set()): CExpr = e match {
     
+    // need to adjust this based on renaming
+    // case Projection(p:Projection, v2, f2, fs2) =>
+    //   Projection(p.in, v2, f2, fs2)
+
+    // add index and input ref as well??
+    case Projection(s:Select, v2, f2, fs2) => 
+      Projection(s.in, v2, f2, fs2)
+
     case Projection(in, v, filter, fields) => 
       val tfields = fields.toSet ++ collect(filter)
       val pin = push(in, tfields ++ fs)
       val nv = Variable.fromBag(v.name, pin.tp)
       Projection(pin, nv, replace(filter, nv), tfields.toList)
+
+    case s @ Select(in, v, p) =>
+      val ptp = v.tp.attrs.filter(f => fs(f._1))
+
+      val nv = Variable.freshFromBag(in.tp)
+      val nrec = Record(ptp.map(f => (f._1, Project(nv, f._1))))
+      Projection(s, nv, nrec, ptp.keySet.toList)
 
     case Unnest(in, v, path, v2, filter, fields) =>
       val pin = push(in, fields.toSet ++ fs + path)
@@ -128,26 +143,20 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val nv = Variable.fromBag(v.name, pin.tp)
       Reduce(pin, nv, nkey.toList, value)
 
-    case s @ Select(in, v, p, v2:Variable) =>
-      val ptp = v.tp.attrs.filter(f => fs(f._1))
-
-      val nv = Variable.freshFromBag(in.tp)
-      val nrec = Record(ptp.map(f => (f._1, Project(nv, f._1))))
-      Projection(s, nv, nrec, ptp.keySet.toList)
-
     case CGet(e1) => CGet(push(e1, fs))
     case AddIndex(e1, name) => AddIndex(push(e1, fs), name)
     case FlatDict(e1) => FlatDict(push(e1, fs))
     case GroupDict(e1) => GroupDict(push(e1, fs))
     case CNamed(n, e1) => CNamed(n, push(e1))
     case LinearCSet(fs) => LinearCSet(fs.map(f => push(f)))
-    case InputRef(name, tp) => 
+    case i @ InputRef(name, tp) => 
       val fields = fs & tp.attrs.keySet
       if (fields.nonEmpty) {
-        val v = Variable.fresh(RecordCType(tp.attrs))
-        val nv = Variable(v.name, RecordCType(tp.attrs.filter(f => fields(f._1))))
-        Select(e, v, Constant(true), nv)
-      } else InputRef(name, tp)
+        val v = Variable.freshFromBag(tp)
+        val nrec = Record(tp.attrs.flatMap( f => 
+          if (fields(f._1)) List((f._1, Project(v, f._1))) else Nil).toMap)
+        Projection(i, v, nrec, nrec.fields.keySet.toList)
+      } else i
     case CDeDup(e1) => CDeDup(push(e1, fs))
     case _ => e
   }
@@ -208,7 +217,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     case Reduce(e1, v, keys, value) =>
       Reduce(pushAgg(e1, keys.toSet, value.toSet), v, keys, value)
 
-    case Select(in, v1, p, f1) if keys.nonEmpty && values.nonEmpty && isBase(in) =>
+    case Select(in, v1, p) if keys.nonEmpty && values.nonEmpty && isBase(in) =>
       val attrs = v1.tp.attrs.keySet
       if (!baseKeyCheck(in, attrs)){
         val nkeys = attrs & keys

@@ -598,12 +598,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     // filter
-    case Select(x, v, filt, e2) => 
-      println("generating select with "+v.tp)
+    case Select(x, v, filt) => 
       handleType(v.tp)
       val filter = filt match {
         case Constant(true) => ""
-        case _ => s".filter(${generateReference(filt)}).as[${generateType(v.tp)}]"
+        case _ => s".filter(${generateReference(filt)})"
       }
       s"""|${generate(x)}$filter
           |""".stripMargin
@@ -618,6 +617,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |${if (!cache) comment(n) else n}.cache
           |${if (!cache && !evalFinal) comment(n) else n}.count
           |""".stripMargin
+
     case Bind(v, CNamed(n, e1), e2) =>
       val gtp = if (skew) "[Int]" else ""
       val repart = if (n.contains("MDict")) s""".repartition$gtp($$"_1")""" else ""

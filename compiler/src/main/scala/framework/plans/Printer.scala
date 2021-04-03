@@ -57,9 +57,7 @@ object Printer {
     case TupleCDict(fs) => tupledict(fs.map(f => f._1 -> quote(f._2)))
     case DictCUnion(e1, e2) => dictunion(quote(e1), quote(e2))
 
-    case Select(x, v, p, e) => 
-      // val attrs = e.tp.attrs.keySet.toList.mkString(",")
-      // s"""| <-- (${quote(v)}) -- SELECT[ ${quote(p)}, $attrs ](${quote(x)})""".stripMargin
+    case Select(x, v, p) => 
       s"""| <-- (${quote(v)}) -- SELECT[ ${quote(p)} ](${quote(x)})""".stripMargin
     case AddIndex(e1, name) => s"INDEX(${quote(e1)})"
     case Projection(e1, v, p, fields) => 

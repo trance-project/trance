@@ -15,9 +15,11 @@ class TestCEBuilder extends TestBase {
     val subexprs = HashMap.empty[(CExpr, Int), Integer]
     progs.foreach(p => SEBuilder.equivSig(p)(subexprs))
     val subs = SEBuilder.sharedSubs(progs, subexprs, false)
-    
+    // printSE(subs)
+
     val ces = CEBuilder.buildCoverMap(subs)
-    assert(ces.size == 5)
+    // printCE(ces)
+    assert(ces.size == 8) //5
 
   }
 
@@ -27,10 +29,10 @@ class TestCEBuilder extends TestBase {
     sprogs.foreach(p => SEBuilder.equivSig(p)(subexprs))
     val subs = SEBuilder.sharedSubs(sprogs, subexprs, false)
 
-    printSE(subs)
+    // printSE(subs)
     val ces = CEBuilder.buildCoverMap(subs)
     // printCE(ces)
-    assert(ces.size == 7)
+    assert(ces.size == 10)
 
   }
 
@@ -62,8 +64,8 @@ class TestCEBuilder extends TestBase {
     val c1 = Variable.fresh(TPCHSchema.customertype.tp)
     val c2 = Variable.fresh(TPCHSchema.customertype.tp)
 
-    val cust1 = Select(InputRef("Customer", TPCHSchema.customertype), c1, Gt(CProject(c1, "custkey"), Constant(20)), c2)
-    val cust2 = Select(InputRef("Customer", TPCHSchema.customertype), c1, Lt(CProject(c2, "custkey"), Constant(2)), c2)
+    val cust1 = Select(InputRef("Customer", TPCHSchema.customertype), c1, Gt(CProject(c1, "custkey"), Constant(20)))
+    val cust2 = Select(InputRef("Customer", TPCHSchema.customertype), c1, Lt(CProject(c2, "custkey"), Constant(2)))
     
     val ce1 = CEBuilder.buildCover(cust1, cust2).asInstanceOf[Select]
     assert(ce1.p.vstr == "custkey>20||custkey<2")
@@ -80,7 +82,7 @@ class TestCEBuilder extends TestBase {
 
     val cust2 = parser.parse("for c in Customer union { (custkey := c.c_custkey ) }", parser.term).get
     val custPlan2 = getPlan(cust2.asInstanceOf[Expr]).asInstanceOf[Projection]
-    println(custPlan2)
+
     assert(custPlan1.fields.toSet == Set("c_name"))
     assert(custPlan2.fields.toSet == Set("c_custkey"))
 

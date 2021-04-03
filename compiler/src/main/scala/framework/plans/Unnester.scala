@@ -47,7 +47,7 @@ object Unnester {
     case Comprehension(e1, v, p, e2) if u.isEmpty && w.isEmpty && E.isEmpty =>
       val ne1 = AddIndex(e1, getName(e1)+"_index")
       val nv = Variable(v.name, ne1.tp.tp)
-      unnest(e2)((u, nv.tp.attrs, Some(Select(ne1, nv, replace(p, nv), nv)), tag))
+      unnest(e2)((u, nv.tp.attrs, Some(Select(ne1, nv, replace(p, nv))), tag))
 
     case c @ Comprehension(e1 @ Project(e0, f), v, p, e2) if !w.isEmpty =>
       assert(!E.isEmpty)
@@ -71,7 +71,7 @@ object Unnester {
       assert(!E.isEmpty)
       val fields = ((w.keySet - p1) ++ (v1.tp.attrs.keySet - "_1"))
       val nv = wvar(w)
-	  val fdict = Select(dict, v1, filt, v1)
+	  val fdict = Select(dict, v1, filt)
       val joinCond = Equals(Project(nv, p1), Project(v1, "_1"))
       val nE = OuterJoin(E.get, nv, fdict, v1, joinCond, fields.toList)
       unnest(e2)((u, flat(w, v1.tp), Some(nE), tag))
@@ -89,8 +89,8 @@ object Unnester {
       val nv = Variable(v.name, right.tp.tp)
 
 	    val (nw, nE) = 
-        if (u.isEmpty) (flat(w, nv.tp), Join(E.get, wvar(w), Select(right, nv, Constant(true), nv), nv, cond, Nil))
-        else (flat(w, nv.tp.outer), OuterJoin(E.get, wvar(w), Select(right, nv, Constant(true), nv), nv, cond, Nil))
+        if (u.isEmpty) (flat(w, nv.tp), Join(E.get, wvar(w), Select(right, nv, Constant(true)), nv, cond, Nil))
+        else (flat(w, nv.tp.outer), OuterJoin(E.get, wvar(w), Select(right, nv, Constant(true)), nv, cond, Nil))
       unnest(e2)((u, nw, Some(nE), tag))
 
     case s @ If(cnd, Sng(t @ Record(fs)), nextIf) =>

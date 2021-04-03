@@ -52,8 +52,16 @@ object CEBuilder extends Extensions {
   // cover should not rename anything
   def buildCover(plan1: CExpr, plan2: CExpr): CExpr = (plan1, plan2) match {
     
+    // equivalence
     case y if plan1.vstr == plan2.vstr => plan1
 
+    // somehow need to ensure that cnvCases1 is actually selected 
+    // for this to work
+    // TODO
+    case (i1:AddIndex, i2:AddIndex) => i1
+    case (i1:InputRef, i2:InputRef) => i1
+
+    // cover building
     case (Reduce(in1, v1, ks1, vs1), Reduce(in2, v2, ks2, vs2)) => 
       val child = buildCover(in1, in2)
       val ks = ks1.toSet ++ ks2.toSet
@@ -112,20 +120,20 @@ object CEBuilder extends Extensions {
       Projection(child, v, nr, nfs1 ++ nfs2)
 
    // OR filters
-    case (Select(in1, v1, f1, e1), Select(in2, v2, f2, e2)) =>
+    case (Select(in1, v1, f1), Select(in2, v2, f2)) =>
       assert(in1.tp == in2.tp)
       val v = Variable.fresh(in1.tp)
       val child = buildCover(in1, in2)
-      Select(child, v, or(replace(f1, v), replace(f2, v)), v)
+      or(replace(f1, v), replace(f2, v)) match {
+        case Constant(true) => child
+        case cond => Select(child, v, cond)
+      }
 
-    case (o, f:FlatDict) => o match {
-      case _:InputRef => buildCover(o, f.in)
-      case _:Select => 
-        val v = Variable.freshFromBag(f.tp)
-        buildCover(o, Select(f, v, Constant(true), v))
-    }
+    case (o, f:FlatDict) => buildCover(o, f.in)
+    case (o, g:GroupDict) => buildCover(o, g.in)
 
     case (f:FlatDict, o) => buildCover(o,f)
+    case (g:GroupDict, o) => buildCover(o, g)
 
     case _ =>  sys.error(s"unsupported operator pair:\n $plan1\n$plan2)")
 

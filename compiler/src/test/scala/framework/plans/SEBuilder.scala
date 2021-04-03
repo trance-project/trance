@@ -41,8 +41,8 @@ class TestSEBuilder extends TestBase {
   test("select hash"){
     val c = Variable.fresh(TPCHSchema.customertype.tp)
 
-    val cust1 = Select(InputRef("Customer", TPCHSchema.customertype), c, Constant(true), c)
-    val cust2 = Select(InputRef("Customer", TPCHSchema.customertype), c, Lt(CProject(c, "custkey"), Constant(2)), c)
+    val cust1 = Select(InputRef("Customer", TPCHSchema.customertype), c, Constant(true))
+    val cust2 = Select(InputRef("Customer", TPCHSchema.customertype), c, Lt(CProject(c, "custkey"), Constant(2)))
     
     val p1 = SEBuilder.signature(cust1)
     val p2 = SEBuilder.signature(cust2)
@@ -174,8 +174,8 @@ class TestSEBuilder extends TestBase {
 
     val c = Variable.fresh(TPCHSchema.customertype.tp)
 
-    val cust2 = Select(InputRef("Customer", TPCHSchema.customertype), c, Gt(CProject(c, "custkey"), Constant(20)), c)
-    val cust3 = Select(InputRef("Customer", TPCHSchema.customertype), c, Lt(CProject(c, "custkey"), Constant(2)), c)
+    val cust2 = Select(InputRef("Customer", TPCHSchema.customertype), c, Gt(CProject(c, "custkey"), Constant(20)))
+    val cust3 = Select(InputRef("Customer", TPCHSchema.customertype), c, Lt(CProject(c, "custkey"), Constant(2)))
     
     val p2 = SEBuilder.subexpressions(cust2)
     val p3 = SEBuilder.subexpressions(cust3)
@@ -207,8 +207,8 @@ class TestSEBuilder extends TestBase {
     val cust = AddIndex(InputRef("Customer", TPCHSchema.customertype), "Customer_index")
     val c = Variable.fresh(cust.tp)
 
-    val cust1 = Select(cust, c, Gt(CProject(c, "custkey"), Constant(20)), c)
-    val cust2 = Select(cust, c, Lt(CProject(c, "custkey"), Constant(2)), c)
+    val cust1 = Select(cust, c, Gt(CProject(c, "custkey"), Constant(20)))
+    val cust2 = Select(cust, c, Lt(CProject(c, "custkey"), Constant(2)))
     
     val p1 = SEBuilder.subexpressions(cust1)
     val p2 = SEBuilder.subexpressions(cust2)

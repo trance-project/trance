@@ -94,7 +94,7 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
         case (s:Select, id) => 
           val childCover = rewritePlanOverCover((s.in, id), covers)
           val v = Variable.freshFromBag(childCover.tp)
-          Select(childCover, v, replace(s.p, v), v)
+          Select(childCover, v, replace(s.p, v))
 
         case (i:AddIndex, id) => 
           // is subexpression a cover?
@@ -145,7 +145,7 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
 
       // reapply the filter
       case (s:Select, _) => 
-        Select(cover, v, replace(s.p, v), v)
+        Select(cover, v, replace(s.p, v))
 
       // the index may or may not be needed...
       case (i:AddIndex, _) => AddIndex(cover, i.name)
