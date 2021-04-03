@@ -94,15 +94,15 @@ class TestCost extends FunSuite with MaterializeNRC with NRCTranslator {
 
     val ces = CEBuilder.buildCoverMap(subs)
     
-    val stats = StatsCollector.getCost(subs, ces)
-    // assert(stats.size == 25)
+    // val statsCollector = new StatsCollector(progs).getCost(subs, ces)
+    // // assert(stats.size == 25)
 
-    val cost = new Cost(stats)
+    // val cost = new Cost(stats)
     // val selected = cost.selectCovers(ces, subs)
     // assert(ces.size == selected.size)
 
 
-    cost.printEstimateAndStat(ces, subs)
+    // cost.printEstimateAndStat(ces, subs)
 
   }
 

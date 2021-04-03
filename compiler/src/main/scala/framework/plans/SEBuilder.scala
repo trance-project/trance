@@ -42,10 +42,13 @@ object SEBuilder extends Extensions {
       case n:Nest => 
         val chash = equivSig((n.in, wid))(sigmap)
         hash(plan.getClass.toString + n.hashCode().toString + chash)
-      
+
       case u:UnnestOp => 
         val chash = equivSig((u.in, wid))(sigmap)
         hash(plan.getClass.toString + u.path + chash)
+
+      case f:FlatDict => 
+        equivSig((f.in, wid))(sigmap)
 
       case o:UnaryOp =>
         val chash = equivSig((o.in, wid))(sigmap)

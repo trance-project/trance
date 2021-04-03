@@ -12,19 +12,22 @@ case class COption(e: CExpr) extends CExpr {
 
 /** Operators of the plan language **/ 
 
-case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr with UnaryOp {
+// e should be deprecated
+case class Select(x: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr with UnaryOp { self =>
   val projs = e.tp.attrs.keySet
-  def tp: Type = x.tp match {
-    case BagCType(ttp) => BagCType(RecordCType(ttp.attrs.filter(f => projs(f._1))))
-    case rt:RecordCType => BagCType(rt)
-	case t => t //sys.error(s"need to capture $t")
-  }
+
+  def tp:Type = x.tp 
+  // def tp: Type = x.tp match {
+  //   case BagCType(ttp) => BagCType(RecordCType(ttp.attrs.filter(f => projs(f._1))))
+  //   case rt:RecordCType => BagCType(rt)
+	 //  case t => t //sys.error(s"need to capture $t")
+  // }
   // e.tp match {
   //   case rt:RecordCType => BagCType(rt)
   //   case _ => x.tp
   // }
   val in: CExpr = x
-  override def vstr: String = s"""Select(${x.vstr}, ${p.vstr}, ${e.tp.attrs.mkString(",")})""" 
+  override def vstr: String = s"""Select(${x.vstr}, ${p.vstr})"""//, ${e.tp.attrs.mkString(",")})""" 
 
 }
 

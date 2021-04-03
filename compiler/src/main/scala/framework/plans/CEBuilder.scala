@@ -127,7 +127,7 @@ object CEBuilder extends Extensions {
 
     case (f:FlatDict, o) => buildCover(o,f)
 
-    case _ =>  sys.error(s"unsupported operator $plan1, $plan2)")
+    case _ =>  sys.error(s"unsupported operator pair:\n $plan1\n$plan2)")
 
   }
 

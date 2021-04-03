@@ -7,7 +7,7 @@ object Sharing extends App {
 
   override def main(args: Array[String]){
 
-  AppWriter.runDataset(SimpleTest, "SimpleTest,standard", optLevel=2)
+  AppWriter.runDatasetShred(TestBaseQuery, "Debugging,shredded", optLevel=1)
 
 	// AppWriter.runDatasetShred(SequentialFilters, "SequentialFilters,shredded", optLevel = 1)
   // AppWriter.runDatasetShred(SharedFilters, "SharedFilters,shredded", optLevel = 1)

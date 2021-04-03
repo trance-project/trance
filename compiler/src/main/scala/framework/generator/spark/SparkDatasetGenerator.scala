@@ -22,7 +22,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
   var types: Map[Type, String] = inputs
   var encoders: Map[String, Type] = Map()
-  override val bagtype: String = "Seq"
+  override val BAGTYPE: String = "Seq"
   val ext = new Extensions{}
 
   /** Generates the code for the set of case class records associated to the 
@@ -599,18 +599,14 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
     // filter
     case Select(x, v, filt, e2) => 
+      println("generating select with "+v.tp)
+      handleType(v.tp)
       val filter = filt match {
         case Constant(true) => ""
-        case _ => s".filter(${generateReference(filt)})"
+        case _ => s".filter(${generateReference(filt)}).as[${generateType(v.tp)}]"
       }
-      if ((v.tp.attrs.keySet -- e2.tp.attrs.keySet).isEmpty) 
-        s"${generate(x)}$filter"
-      else {
-        handleType(e2.tp)
-        val cols = e2.tp.attrs.keySet.toList.map(c => "\""+c+"\"").mkString(",")
-        s"""|${generate(x)}.select($cols)$filter
-            | .as[${generateType(e2.tp)}]""".stripMargin
-      }
+      s"""|${generate(x)}$filter
+          |""".stripMargin
 
     case Bind(v, CNamed(n, e1), LinearCSet(fs)) =>
       val gtp = if (skew) "[Int]" else ""

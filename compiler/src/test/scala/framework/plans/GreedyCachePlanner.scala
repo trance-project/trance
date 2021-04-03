@@ -82,7 +82,8 @@ class TestGreedyCachePlanner extends FunSuite with MaterializeNRC with NRCTransl
 
     val ces = CEBuilder.buildCoverMap(subs)
     
-    val stats = StatsCollector.getCost(subs, ces)
+    // val stats = StatsCollector.getCost(subs, ces)
+    val stats = Map.empty[String, Statistics]
 
     val cost = new Cost(stats)
     val selected0 = cost.selectCovers(ces, subs)
@@ -249,7 +250,8 @@ class TestGreedyCachePlanner extends FunSuite with MaterializeNRC with NRCTransl
 
     val ces = CEBuilder.buildCoverMap(subs)
     
-    val stats = StatsCollector.getCost(subs, ces)
+    // val stats = StatsCollector.getCost(subs, ces)
+    val stats = Map.empty[String, Statistics]
 
     val cost = new Cost(stats)
     val selected0 = cost.selectCovers(ces, subs, 1)

@@ -58,8 +58,9 @@ object Printer {
     case DictCUnion(e1, e2) => dictunion(quote(e1), quote(e2))
 
     case Select(x, v, p, e) => 
-      val attrs = e.tp.attrs.keySet.toList.mkString(",")
-      s"""| <-- (${quote(v)}) -- SELECT[ ${quote(p)}, $attrs ](${quote(x)})""".stripMargin
+      // val attrs = e.tp.attrs.keySet.toList.mkString(",")
+      // s"""| <-- (${quote(v)}) -- SELECT[ ${quote(p)}, $attrs ](${quote(x)})""".stripMargin
+      s"""| <-- (${quote(v)}) -- SELECT[ ${quote(p)} ](${quote(x)})""".stripMargin
     case AddIndex(e1, name) => s"INDEX(${quote(e1)})"
     case Projection(e1, v, p, fields) => 
       s"""|PROJECT[${fields.mkString(",")}, ${quote(p)}](${quote(e1)})""".stripMargin

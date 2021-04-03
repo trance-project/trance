@@ -28,6 +28,7 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
   val NESTROWS = 10.0
 
   val default = Estimate(1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+  val statDefault = Statistics(1L, 1L)
 
   // estimate
   def selectCovers(covers: IMap[Integer, CNamed], subs: Map[Integer, List[SE]], flexibility: Int = 0): Map[Integer, CostEstimate] = {
@@ -109,14 +110,14 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
       val est = estimate(plan)
       println("Cover:")
       println(Printer.quote(plan))
-      println(stats.getOrElse(plan.vstr, StatsCollector.default))
+      println(stats.getOrElse(plan.vstr, statDefault))
       println(est)
       println("Subs:")
       val ses = subs(c._1)
       ses.foreach{ s =>
         val est = estimate(s.subplan)
         println(Printer.quote(s.subplan))
-        println(stats.getOrElse(s.subplan.vstr, StatsCollector.default))
+        println(stats.getOrElse(s.subplan.vstr, statDefault))
         println(est)
       }
       println("")
@@ -141,7 +142,7 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
 
   // single plan estimate
   def estimate(plan: CExpr): Estimate = {
-    val stat = stats.getOrElse(plan.vstr, StatsCollector.default)
+    val stat = stats.getOrElse(plan.vstr, statDefault)
     val sel = estSelectivity(plan)
     plan match {
 

@@ -9,10 +9,10 @@ import scala.collection.mutable.Map
 import scala.collection.immutable.{Map => IMap}
 import scala.io.Source
 
-case class Statistics(sizeInBytes: Long, rowCount: Long, colStats: String) {
+case class Statistics(sizeInBytes: Long, rowCount: Long) {
 
   def lessThan(s2: Any): Boolean = s2 match {
-    case Statistics(size, rows, _) => 
+    case Statistics(size, rows) => 
       if (rows > -1 && rowCount > -1) sizeInBytes <= size && rowCount <= rows
       else sizeInBytes <= size
     case _ => false
@@ -20,21 +20,18 @@ case class Statistics(sizeInBytes: Long, rowCount: Long, colStats: String) {
 
 }
 
-object StatsCollector {
+class StatsCollector(progs: Vector[(CExpr, Int)]) {
 
   val nameMap = Map.empty[String, String]
   val nameMapRev = Map.empty[String, String]
   val codeMap = Map.empty[String, String]
   val statsMap = Map.empty[String, Statistics]
 
-  // TODO statistics now have column attributes attached
-  val default = Statistics(1L, 1L, Map().toString())
-
-  val StatsRegex = "Stat\\((.*),(.*),(.*),(.*)\\)".r
+  val StatsRegex = "Stat\\((.*),(.*),(.*)\\)".r
   var inc = 0
 
   def readStats(s: String): (Option[String], Option[Statistics]) = s match {
-    case StatsRegex(n, sb, rc, cs) => (Some(n), Some(Statistics(sb.toLong, rc.toLong, cs)))
+    case StatsRegex(n, sb, rc) => (Some(n), Some(Statistics(sb.toLong, rc.toLong)))
     case _ => (None, None)
   }
 
@@ -49,29 +46,44 @@ object StatsCollector {
     val generator = new SparkDatasetGenerator(false, false, evalFinal=false)
     // var gcode = ""
     // todo could add map to avoid duplicate calls
-    for (p <- plans){
+    for (p <- progs){
       // println(p)
+      val name = "Query"+p._2
       val anfBase = new BaseOperatorANF{}
       val anfer = new Finalizer(anfBase)
-      val anfed = anfBase.anf(anfer.finalize(p).asInstanceOf[anfBase.Rep])
+      val anfed = anfBase.anf(anfer.finalize(p._1).asInstanceOf[anfBase.Rep])
       val gcode = s"""
-        | /** ${Printer.quote(p)} **/
-        | def g$inc {
-        |   ${generator.generate(anfed)}
-        |   val stat = ${p.name}.queryExecution.optimizedPlan.stats
-        |   println(genStat("${p.name}", stat))
-        | }
-        | g$inc
+        | /** ${Printer.quote(p._1)} **/
+        | ${generator.generate(anfed)}
         """
-      codeMap += (p.name -> gcode)
-      inc += 1
+      codeMap += (name -> gcode)
     }
+
+    // for (p <- plans){
+    //   // println(p)
+    //   val anfBase = new BaseOperatorANF{}
+    //   val anfer = new Finalizer(anfBase)
+    //   val anfed = anfBase.anf(anfer.finalize(p).asInstanceOf[anfBase.Rep])
+    //   val gcode = s"""
+    //     | /** ${Printer.quote(p)} **/
+    //     | ${generator.generate(anfed)}
+    //     | val stat$inc = ${p.name}.queryExecution.optimizedPlan.stats
+    //     | println(genStat("${p.name}", stat$inc))
+    //     """
+    //   codeMap += (p.name -> gcode)
+    //   inc += 1
+    // }
     val ghead = generator.generateHeader()
     val genc = generator.generateEncoders()
     val data = s"""
       |   val copynumber = spark.table("copynumber")
       |   val occurrences = spark.table("occurrences")
       |   val samples = spark.table("samples")
+      |   val IBag_copynumber__D = copynumber
+      |   val IBag_samples__D = samples
+      |   val IBag_occurrences__D = spark.table("odict1")
+      |   val IDict_occurrences__D_transcript_consequences = spark.table("odict2")
+      |   val IDict_occurrences__D_transcript_consequences_consequence_terms = spark.table("odict3")
       """
     var fname = "../executor/spark/src/main/scala/sparkutils/generated/GenerateCosts"
     val fconts = if (!notebk) {
@@ -165,11 +177,13 @@ object StatsCollector {
       |import org.apache.spark.sql._
       |import org.apache.spark.sql.functions._
       |import org.apache.spark.sql.catalyst.plans.logical._
+      |import org.apache.spark.sql.types._
+      |import org.apache.spark.sql.expressions.scalalang._
       |import sparkutils._
       |import sparkutils.loader._
       |import sparkutils.skew.SkewDataset._
       |$header
-      |case class Stat(name: String, sizeInBytes:String, rowCount:String, attributeStats: String)
+      |case class Stat(name: String, sizeInBytes:String, rowCount:String)
       |object $appname {
       | def main(args: Array[String]){
       |   val conf = new SparkConf()
@@ -178,8 +192,8 @@ object StatsCollector {
       |   $encoders
       |   import spark.implicits._
       |   def genStat(n: String, s: Statistics): Stat = s.rowCount match {
-      |     case Some(rc) => Stat(n, s.sizeInBytes.toString, rc.toString, s.attributeStats.toString())
-      |     case _ => Stat(n, s.sizeInBytes.toString, "-1", s.attributeStats.toString())
+      |     case Some(rc) => Stat(n, s.sizeInBytes.toString, rc.toString)
+      |     case _ => Stat(n, s.sizeInBytes.toString, "-1")
       |   }
       |   $data
       |   $gcode
@@ -198,12 +212,12 @@ object StatsCollector {
       |import sparkutils.loader._
       |import sparkutils.skew.SkewDataset._
       |$header
-      |case class Stat(name: String, sizeInBytes:String, rowCount:String, attributeStats: String)
+      |case class Stat(name: String, sizeInBytes:String, rowCount:String)
       |$encoders
       |import spark.implicits._
       |def genStat(n: String, s: Statistics): Stat = s.rowCount match {
-      |  case Some(rc) => Stat(n, s.sizeInBytes.toString, rc.toString, s.attributeStats.toString())
-      |  case _ => Stat(n, s.sizeInBytes.toString, "-1", s.attributeStats.toString())
+      |  case Some(rc) => Stat(n, s.sizeInBytes.toString, rc.toString)
+      |  case _ => Stat(n, s.sizeInBytes.toString, "-1")
       |}
       |$data
       |$gcode

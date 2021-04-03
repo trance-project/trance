@@ -128,10 +128,12 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val nv = Variable.fromBag(v.name, pin.tp)
       Reduce(pin, nv, nkey.toList, value)
 
-    case Select(in, v, p, v2:Variable) =>
+    case s @ Select(in, v, p, v2:Variable) =>
       val ptp = v.tp.attrs.filter(f => fs(f._1))
-      val nv = Variable(v2.name, RecordCType(ptp))
-      Select(in, v, p, nv)
+
+      val nv = Variable.freshFromBag(in.tp)
+      val nrec = Record(ptp.map(f => (f._1, Project(nv, f._1))))
+      Projection(s, nv, nrec, ptp.keySet.toList)
 
     case CGet(e1) => CGet(push(e1, fs))
     case AddIndex(e1, name) => AddIndex(push(e1, fs), name)

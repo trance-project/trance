@@ -212,7 +212,10 @@ trait BaseCompiler extends Base {
 
   def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
     val v = Variable.freshFromBag(x.tp)
-    Select(x, v, p(v), e(v))
+    p(v) match {
+      case Constant(true) => x
+      case pv => Select(x, v, pv, e(v))
+    }
   }
 
   def addindex(in: Rep, name: String): Rep = in match {

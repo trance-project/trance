@@ -27,7 +27,7 @@ class TestCEBuilder extends TestBase {
     sprogs.foreach(p => SEBuilder.equivSig(p)(subexprs))
     val subs = SEBuilder.sharedSubs(sprogs, subexprs, false)
 
-    // printSE(subs)
+    printSE(subs)
     val ces = CEBuilder.buildCoverMap(subs)
     // printCE(ces)
     assert(ces.size == 7)
@@ -119,7 +119,7 @@ class TestCEBuilder extends TestBase {
     val ce = CEBuilder.buildCover(joinPlan1, joinPlan2)
       .asInstanceOf[Projection].in.asInstanceOf[JoinOp]
 
-    val left = ce.left.asInstanceOf[Select].p.vstr
+    val left = ce.left.asInstanceOf[Projection].in.asInstanceOf[Select].p.vstr
     assert(left == "o_orderkey>10||o_orderkey>15")
 
     // val ce2 = CEBuilder.buildCover(List(joinPlan1.in, joinPlan2.in))

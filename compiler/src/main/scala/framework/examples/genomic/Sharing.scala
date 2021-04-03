@@ -6,6 +6,59 @@ import framework.nrc.Parser
 // import scala.collection.mutable.Map
 
 /** Queries for sharing benchmark with filters **/
+object TestBaseQuery extends DriverGene {
+  
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|val samples = spark.table("samples")
+        |val IBag_samples__D = samples
+        |
+        |val copynumber = spark.table("copynumber")
+        |val IBag_copynumber__D = copynumber
+        |
+        |val odict1 = spark.table("odict1")
+        |val IBag_occurrences__D = odict1
+        |
+        |// issue with partial shredding here
+        |val odict2 = spark.table("odict2").drop("flags")
+        |val IDict_occurrences__D_transcript_consequences = odict2
+        |
+        |val odict3 = spark.table("odict3")
+        |val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
+        |""".stripMargin
+
+  val name = "TestBaseQuery"
+  
+  val tbls = Map("occurrences" -> occurmids.tp, 
+                  "copynumber" -> copynum.tp, 
+                  "samples" -> samples.tp)
+
+  // all samples that have a TP53 mutation with non-high impact
+  val query = 
+    s"""
+      cnvCases1 <= 
+        for s in samples union 
+          for c in copynumber union 
+            if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
+            then {(sid := s.bcr_patient_uuid, gene := c.cn_gene_id, cnum := c.cn_copy_number)};
+
+      hybridScore1 <= 
+          for o in occurrences union
+            {( oid := o.oid, sid := o.donorId, cands1 := 
+              ( for t in o.transcript_consequences union
+                  for c in cnvCases1 union
+                    if (t.gene_id = c.gene && o.donorId = c.sid) then
+                      {( gene := t.gene_id, score1 := (c.cnum + 0.01) * if (t.impact = "HIGH") then 0.80 
+                          else if (t.impact = "MODERATE") then 0.50
+                          else if (t.impact = "LOW") then 0.30
+                          else 0.01 )}).sumBy({gene}, {score1}) )}
+    """
+
+    val parser = Parser(tbls)
+    val program = parser.parse(query).get.asInstanceOf[Program]
+
+}
+
+
 
 object SamplesFilterByTP53 extends DriverGene {
   

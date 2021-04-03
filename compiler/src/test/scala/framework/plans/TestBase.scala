@@ -6,6 +6,7 @@ import framework.examples.tpch._
 import framework.examples.genomic._
 import framework.nrc._
 import scala.collection.immutable.{Map => IMap}
+import scala.collection.mutable.Map
 
 trait TestBase extends FunSuite with Materialization with 
   MaterializeNRC with NRCTranslator with Shredding {
@@ -13,7 +14,7 @@ trait TestBase extends FunSuite with Materialization with
   val occur = new Occurrence{}
   val cnum = new CopyNumber{}
   val samps = new Biospecimen{}
-  val tbls = Map("Customer" -> TPCHSchema.customertype,
+  val tbls = IMap("Customer" -> TPCHSchema.customertype,
                  "Order" -> TPCHSchema.orderstype,
                  "Lineitem" -> TPCHSchema.lineittype,
                  "Part" -> TPCHSchema.parttype, 
@@ -62,9 +63,10 @@ trait TestBase extends FunSuite with Materialization with
 
       hybridScore1 <= 
           for o in occurrences union
-            {( oid := o.oid, sid := o.donorId, cands := 
+            {( oid := o.oid, sid := o.donorId, cands1 := 
               ( for t in o.transcript_consequences union
-                  for c in cnvCases1 union
+                 if (t.sift_score > 0.0)
+                 then for c in cnvCases1 union
                     if (t.gene_id = c.gene && o.donorId = c.sid) then
                       {( gene := t.gene_id, score1 := (c.cnum + 0.01) * if (t.impact = "HIGH") then 0.80 
                           else if (t.impact = "MODERATE") then 0.50
@@ -75,7 +77,7 @@ trait TestBase extends FunSuite with Materialization with
   val plan1 = getProgPlan(query1)
   val splan1 = getProgPlan(query1, true)
 
-  println(Printer.quote(splan1))
+  // println(Printer.quote(splan1))
 
   val query2str = 
     s"""
@@ -87,9 +89,10 @@ trait TestBase extends FunSuite with Materialization with
 
       hybridScore2 <= 
         for o in occurrences union
-          {( oid := o.oid, sid := o.donorId, cands := 
+          {( oid := o.oid, sid := o.donorId, cands2 := 
             ( for t in o.transcript_consequences union
-                for c in cnvCases2 union
+               if (t.polyphen_score > 0.0)
+               then for c in cnvCases2 union
                   if (t.gene_id = c.gene && o.donorId = c.sid) then
                     {( gene := t.gene_id, score2 := (c.cnum + 0.01) * t.polyphen_score )}).sumBy({gene}, {score2}) )}
     """
@@ -97,7 +100,7 @@ trait TestBase extends FunSuite with Materialization with
   val plan2 = getProgPlan(query2)
   val splan2 = getProgPlan(query2, true)
 
-  println(Printer.quote(splan2))
+  // println(Printer.quote(splan2))
 
   // this will make sure things are being 
   // considered equivalent
@@ -109,7 +112,7 @@ trait TestBase extends FunSuite with Materialization with
 
       hybridScore3 <=
         for o in occurrences union 
-          {( oid := o.oid, sid := o.donorId, cands := 
+          {( oid := o.oid, sid := o.donorId, cands3 := 
             for t in o.transcript_consequences union 
               {( gene := t.gene_id, score := t.impact )} )}
     """
@@ -118,12 +121,12 @@ trait TestBase extends FunSuite with Materialization with
   val plan3 = getProgPlan(query3)
   val splan3 = getProgPlan(query3, true)
 
-  println(Printer.quote(splan3))
+  // println(Printer.quote(splan3))
 
   val progs = Vector(plan1, plan2, plan3).zipWithIndex
   val sprogs = Vector(splan1, splan2, splan3).zipWithIndex
 
-  def printSE(ses: IMap[Integer, List[SE]]): Unit = {
+  def printSE(ses: Map[Integer, List[SE]]): Unit = {
     ses.foreach{ s => 
       println(s._1)
       s._2.foreach{ x => println(Printer.quote(x.subplan)) }
