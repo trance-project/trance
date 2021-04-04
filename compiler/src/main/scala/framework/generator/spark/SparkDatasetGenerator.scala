@@ -16,7 +16,7 @@ import framework.utils.Utils.ind
   * @param inputs map of input types that should not be reproduced (important for programs)
   */
 class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = false, optLevel: Int = 2,
-  unshred: Boolean = false, evalFinal: Boolean = true, inputs: Map[Type, String] = Map()) extends SparkTypeHandler with SparkUtils {
+  unshred: Boolean = false, evalFinal: Boolean = true, inputs: Map[Type, String] = Map(), dedup: Boolean = true) extends SparkTypeHandler with SparkUtils {
 
   implicit def expToString(e: CExpr): String = generate(e)
 
@@ -286,7 +286,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case CUdf(n, e1, tp) => s"$n(${generateReference(e1)})"
 	  case Sng(e) => s"Seq(${generate(e)})"
     case CGet(e1) => s"${generate(e1)}.head"
-    case CDeDup(e1) => s"${generate(e1)}.distinct"
+    case CDeDup(e1) if dedup => s"${generate(e1)}.distinct"
+    case CDeDup(e1) => s"${generate(e1)}/** distinct removed for stats gathering **/"
     case Label(fs) if fs.size == 1 => generate(fs.head._2)
     case Record(fs) if fs.contains("element") && fs.size == 1 => fs("element")
     case Record(fs) => {
@@ -296,7 +297,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     }
     case Tuple(fs) => s"(${fs.map(f => generate(f)).mkString(",")})"
 
-    case Project(e1, "_LABEL") => s"${generate(e1)}"
+    // case Project(e1, "_LABEL") => s"${generate(e1)}._LABEL"
     case Project(e1, "element") => s"${generate(e1)}"
     case Project(e2 @ Record(fs), field) => 
       s"${generate(e2)}.${kvName(field)(fs.size)}"
@@ -419,7 +420,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       s"""|${generate(left)}$lcolumn
           |   .as[$gltp].equiJoin$classTags(
           |   ${generate(right)}.withColumnRenamed("${p2}", "$rcol").as[$grtp], 
-          |   Seq("$lcol", "$rcol"), "inner").drop("$lcol", "$rcol")
+          |   Seq("$lcol"), Seq("$rcol"), "inner").drop("$lcol", "$rcol")
           |   .as[${generateType(nrecTp)}]
           |""".stripMargin
 
@@ -432,7 +433,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
       if (ej.isEquiJoin){
 
-          val (p1, p2) = (ej.p1, ej.p2)
+          val (p1, p2) = (ej.p1s.mkString("\",\""), ej.p2s.mkString("\",\""))
 
           val classTags = if (!skew) ""
             else {

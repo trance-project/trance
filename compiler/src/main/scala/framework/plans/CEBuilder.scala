@@ -20,7 +20,10 @@ object CEBuilder extends Extensions {
   val vmap = Map.empty[String, String]
 
   def getFromVmap(k: String): String = vmap.get(k) match {
-    case Some(f) => f
+    case Some(f) => 
+      // need a better way to handle joins on domains
+      if (k == "_1" && vmap.contains("_LABEL")) "_LABEL"
+      else f
     case _ => k
   }
 
@@ -87,7 +90,7 @@ object CEBuilder extends Extensions {
 
     // capture below joins
     case (j1:JoinOp, j2:JoinOp) =>
-      assert(Set(j1.p1, j1.p2) == Set(j2.p1, j2.p2))
+      assert(j1.ps == j2.ps)
 
       val (left, right) = 
         if (SEBuilder.signature(j1.left) == SEBuilder.signature(j2.left))
@@ -96,7 +99,10 @@ object CEBuilder extends Extensions {
 
       val v1 = Variable.freshFromBag(left.tp)
       val v2 = Variable.freshFromBag(right.tp)
-      val cond = Equals(Project(v1, j1.p1), Project(v2, j1.p2))
+
+      var cond = j1.cond
+      // var cond = replace(j1.cond, v1, useType = true)
+      // cond = replace(cond, v2, useType = true)
 
       if (j1.jtype == "left_outer" || j2.jtype == "left_outer") OuterJoin(left, v1, right, v2, cond, j1.fields ++ j2.fields)
       else Join(left, v1, right, v2, cond, j1.fields ++ j2.fields)

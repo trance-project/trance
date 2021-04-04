@@ -26,8 +26,23 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
 
   val NESTSIZE = 2.0
   val NESTROWS = 10.0
+  val DEFAULTINC = 1.0
 
-  val default = Estimate(1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
+  val AVGELESIZE = {
+    val avgs = if (stats.nonEmpty){
+      var i = 0 
+      val summed = stats.map(s => {
+        if (s._2.rowCount < 0.0) 0.0 
+        else i+=1; (s._2.sizeInKB / s._2.rowCount)}
+      )
+      println(summed)
+      summed.reduce(_+_) / i
+    }else .5
+    println("this is the average "+avgs)
+    avgs
+  }
+
+  val default = Estimate(DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC)
   val statDefault = Statistics(1L, 1L)
 
   // estimate
@@ -159,7 +174,11 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
         // network cost of the largest relation, plus what it costs to 
         // perform the operation give estimated output rows
         val network = leftEst.network + rightEst.network + (leftEst.outRows * NETWORK) + (stat.rowCount * .00002)
-        val cpu = leftEst.cpu + rightEst.cpu + (stat.rowCount * .00002)
+        val rowCount = if (stat.rowCount < 0.0) stat.sizeInKB / AVGELESIZE else stat.rowCount + 0.0
+        println("these rows")
+        println(stat.rowCount)
+        println(rowCount)
+        val cpu = leftEst.cpu + rightEst.cpu + (rowCount * .00002)
 
         val insize = leftEst.outSize + rightEst.outSize
         val inrows = leftEst.outRows * rightEst.outRows
@@ -169,8 +188,11 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
         // val outsize = (stat.sizeInBytes / 1024)
         //  this should be based on distincts, but doing this 
         // for now
-        val outsize = Math.min(leftEst.outRows, rightEst.outRows)
-        val outrows = stat.rowCount
+        val outsize = Math.min(leftEst.outRows.toDouble, rightEst.outRows.toDouble)
+        val outrows = if (stat.rowCount < 0.0) stat.sizeInKB / AVGELESIZE else stat.rowCount + 0.0
+        println("these rows")
+        println(rowCount)
+        println(outrows)
 
         Estimate(insize, outsize, inrows, outrows, network, cpu)
 
@@ -259,9 +281,12 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
       // assume no network cost
       // cpu is just the time to scan
       case _ => 
-        val size = (stat.sizeInBytes / 1024) + 0.0
-        val rows = stat.rowCount + 0.0
-        Estimate(size, size, rows, rows, stat.rowCount * DISKREAD, 0.0)
+        val size = stat.sizeInKB + 0.0
+        val rows = if (stat.rowCount < 0.0) size / AVGELESIZE else stat.rowCount + 0.0
+        println("these rows")
+        println(stat.rowCount)
+        println(rows)
+        Estimate(size, size, rows, rows, rows * DISKREAD, 0.0)
 
     }
   }

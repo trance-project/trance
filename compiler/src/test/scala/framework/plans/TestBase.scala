@@ -137,6 +137,7 @@ trait TestBase extends FunSuite with Materialization with
   def printCE(ses: IMap[Integer, CNamed]): Unit = {
     ses.foreach{ s => 
       println(s._1)
+      println(s._2.vstr)
       println(Printer.quote(s._2))
       println("")
     }

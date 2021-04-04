@@ -18,7 +18,7 @@ sealed trait Type { self =>
   def isDict: Boolean = false
 
   def attrs: Map[String, Type] = self match {
-    case LabelType(fs) => fs
+    case LabelType(fs) => fs 
     case RecordCType(ms) => ms
     case BagCType(ms) => ms.attrs
     case MatDictCType(LabelType(fs), bag) if fs.isEmpty => 

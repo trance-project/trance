@@ -97,24 +97,27 @@ trait JoinOp extends CExpr {
   val v: Variable
 
   val ext = new Extensions{}
-  val ps = ext.collect(cond)
+  // val ps = ext.collect(cond)
+  val ps = ext.collectFromAnd(cond)
 
-  // TODO actually fix this to work with and conditions
-  def p1: String = cond match {
-    case Equals(Project(_, f1), Project(_, f2)) =>
-      if (v.tp.attrs.contains(f1)) f1
-      else f2
-    case _ => ps.filter(s => v.tp.attrs.contains(s)).mkString("\",\"")
+  // get around join with domain
+  def p1s: Set[String] = v.tp match {
+    case RecordCType(ms) => ms.get("_LABEL") match {
+      case Some(LabelType(fs)) =>
+        val keys = fs.keySet 
+        ps.filter(s => keys(s))
+      case _ => ps.filter(s => v.tp.attrs.contains(s))
+    }
+    case _ => ps.filter(s => v.tp.attrs.contains(s))
   }
+
+  def p1: String = p1s.mkString(",")
 
   val right: CExpr
   val v2: Variable
-  def p2: String = cond match {
-    case Equals(Project(_, f1), Project(_, f2)) =>
-      if (v2.tp.attrs.contains(f1)) f1
-      else f2
-    case _ => ps.filter(s => v2.tp.attrs.contains(s)).mkString("\",\"")
-  }
+
+  def p2s: Set[String] = ps.filter(s => v2.tp.attrs.contains(s))
+  def p2: String = p2s.mkString(",")
 
   val cond: CExpr
 
@@ -122,12 +125,9 @@ trait JoinOp extends CExpr {
   
   val jtype: String
 
-  val isEquiJoin: Boolean = cond match {
-    // case And(e1:Equals, e2:Equals) => true
-    case Equals(_:Project,_:Project) => true
-    case _ => false
-  }
+  val isEquiJoin: Boolean = ps.nonEmpty && (p1s.size == p2s.size)
 
+  // this needs fixed
   override def vstr: String = s"Join$jtype(${left.vstr}, ${right.vstr}, $p1=$p2)"
   override val isCacheUnfriendly: Boolean = true
 

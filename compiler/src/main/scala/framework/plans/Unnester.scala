@@ -71,10 +71,11 @@ object Unnester {
       assert(!E.isEmpty)
       val fields = ((w.keySet - p1) ++ (v1.tp.attrs.keySet - "_1"))
       val nv = wvar(w)
-	  val fdict = Select(dict, v1, filt)
-      val joinCond = Equals(Project(nv, p1), Project(v1, "_1"))
-      val nE = OuterJoin(E.get, nv, fdict, v1, joinCond, fields.toList)
-      unnest(e2)((u, flat(w, v1.tp), Some(nE), tag))
+      val nv1 = Variable.freshFromBag(dict.tp)
+	    val fdict = Select(dict, nv1, filt)
+      val joinCond = Equals(Project(nv, p1), Project(nv1, "_1"))
+      val nE = OuterJoin(E.get, nv, fdict, nv1, joinCond, fields.toList)
+      unnest(e2)((u, flat(w, nv1.tp), Some(nE), tag))
 
     case Comprehension(e1:Comprehension, v, p, Constant(c)) => unnest(e1)((u, w, E, tag)) match {
       case Nest(e2, v2, keys2, values2, filt, nulls, ntag) => 

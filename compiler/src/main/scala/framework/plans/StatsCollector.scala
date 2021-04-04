@@ -9,12 +9,12 @@ import scala.collection.mutable.Map
 import scala.collection.immutable.{Map => IMap}
 import scala.io.Source
 
-case class Statistics(sizeInBytes: Long, rowCount: Long) {
+case class Statistics(sizeInKB: Double, rowCount: Double) {
 
   def lessThan(s2: Any): Boolean = s2 match {
     case Statistics(size, rows) => 
-      if (rows > -1 && rowCount > -1) sizeInBytes <= size && rowCount <= rows
-      else sizeInBytes <= size
+      if (rows > -1 && rowCount > -1) sizeInKB <= size && rowCount <= rows
+      else sizeInKB <= size
     case _ => false
   }
 
@@ -27,11 +27,16 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) {
   val codeMap = Map.empty[String, String]
   val statsMap = Map.empty[String, Statistics]
 
+  val KB = BigDecimal(1024)
+
   val StatsRegex = "Stat\\((.*),(.*),(.*)\\)".r
   var inc = 0
 
   def readStats(s: String): (Option[String], Option[Statistics]) = s match {
-    case StatsRegex(n, sb, rc) => (Some(n), Some(Statistics(sb.toLong, rc.toLong)))
+    case StatsRegex(n, sb, rc) => 
+      val sbl = (BigDecimal(sb) / KB).toDouble
+      val src = rc match { case "-1" => -1.0; case _ => (BigDecimal(rc) / KB).toDouble }
+      (Some(n), Some(Statistics(sbl, src)))
     case _ => (None, None)
   }
 
@@ -43,12 +48,12 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) {
     }
 
   def generateSpark(plans: List[CNamed], notebk: Boolean = false): Unit = {
-    val generator = new SparkDatasetGenerator(false, false, evalFinal=false)
+    val generator = new SparkDatasetGenerator(false, false, evalFinal=false, dedup = false)
     // var gcode = ""
     // todo could add map to avoid duplicate calls
     var queries = ""
     for (p <- progs){
-      // println(p)
+
       val name = "Query"+p._2
       val anfBase = new BaseOperatorANF{}
       val anfer = new Finalizer(anfBase)
@@ -61,10 +66,10 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) {
     }
 
     for (p <- plans){
-      // println(p)
+
       val anfBase = new BaseOperatorANF{}
       val anfer = new Finalizer(anfBase)
-      println(Printer.quote(p))
+
       val anfed = anfBase.anf(anfer.finalize(p).asInstanceOf[anfBase.Rep])
       val gcode = s"""
         | /** ${Printer.quote(p)} **/
@@ -75,6 +80,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) {
       codeMap += (p.name -> gcode)
       inc += 1
     }
+
     val ghead = generator.generateHeader()
     val genc = generator.generateEncoders()
     val data = s"""
@@ -90,7 +96,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) {
     var fname = "../executor/spark/src/main/scala/sparkutils/generated/GenerateCosts"
     val fconts = if (!notebk) {
       fname+=".scala"
-      writeApplication("GenerateCosts", data, ghead, codeMap.map(_._2).mkString("\n"), genc)
+      writeApplication("GenerateCosts", data, ghead, queries+"\n"+codeMap.map(_._2).mkString("\n"), genc)
     }else {
       fname+=".json"
       val pcontents = writeParagraph("GenerateCosts", data, ghead, queries+"\n"+codeMap.map(_._2).mkString("\n"), genc)

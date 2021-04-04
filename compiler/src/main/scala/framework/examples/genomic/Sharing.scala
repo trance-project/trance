@@ -58,6 +58,56 @@ object TestBaseQuery extends DriverGene {
 
 }
 
+object TestBaseQuery2 extends DriverGene {
+  
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|val samples = spark.table("samples")
+        |val IBag_samples__D = samples
+        |
+        |val copynumber = spark.table("copynumber")
+        |val IBag_copynumber__D = copynumber
+        |
+        |val odict1 = spark.table("odict1")
+        |val IBag_occurrences__D = odict1
+        |
+        |// issue with partial shredding here
+        |val odict2 = spark.table("odict2").drop("flags")
+        |val IDict_occurrences__D_transcript_consequences = odict2
+        |
+        |val odict3 = spark.table("odict3")
+        |val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
+        |""".stripMargin
+
+  val name = "TestBaseQuery2"
+  
+  val tbls = Map("occurrences" -> occurmids.tp, 
+                  "copynumber" -> copynum.tp, 
+                  "samples" -> samples.tp)
+
+  // all samples that have a TP53 mutation with non-high impact
+  val query = 
+    s"""
+      cnvCases2 <= 
+        for s in samples union 
+          for c in copynumber union 
+            if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
+            then {(sid := s.bcr_patient_uuid, gene := c.cn_gene_id, cnum := c.cn_copy_number)};
+
+      hybridScore2 <= 
+        for o in occurrences union
+          {( oid := o.oid, sid2 := o.donorId, cands2 := 
+            ( for t in o.transcript_consequences union
+               if (t.polyphen_score > 0.0)
+               then for c in cnvCases2 union
+                  if (t.gene_id = c.gene && o.donorId = c.sid) then
+                    {( gene2 := t.gene_id, score2 := (c.cnum + 0.01) * t.polyphen_score )}).sumBy({gene2}, {score2}) )}
+    """
+
+    val parser = Parser(tbls)
+    val program = parser.parse(query).get.asInstanceOf[Program]
+
+}
+
 
 
 object SamplesFilterByTP53 extends DriverGene {

@@ -35,11 +35,11 @@ class TestStatsCollector extends TestBase {
     // printSE(subs)
 
     val ces = CEBuilder.buildCoverMap(subs)
-    // printCE(ces)
+    printCE(ces)
     
     val statCollector = new StatsCollector(sprogs)
-    val stats = statCollector.getCost(subs, ces, false)
-    // assert(stats.size == 25)
+    // val stats = statCollector.getCost(subs, ces)
+    // assert(stats.size == 24)
 
   }
 
