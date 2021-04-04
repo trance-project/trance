@@ -441,7 +441,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
             }
 
           s"""|${generate(ej.left)}.equiJoin$classTags($gright, 
-              | Seq("${p1}", "${p2}"), "${ej.jtype}").as[$nrec]
+              | Seq("${p1}"), Seq("${p2}"), "${ej.jtype}").as[$nrec]
               |""".stripMargin
 
         }else {

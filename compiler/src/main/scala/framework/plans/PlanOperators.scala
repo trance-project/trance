@@ -104,7 +104,7 @@ trait JoinOp extends CExpr {
     case Equals(Project(_, f1), Project(_, f2)) =>
       if (v.tp.attrs.contains(f1)) f1
       else f2
-    case _ => ps.filter(s => v.tp.attrs.contains(s)).mkString("&")
+    case _ => ps.filter(s => v.tp.attrs.contains(s)).mkString("\",\"")
   }
 
   val right: CExpr
@@ -113,7 +113,7 @@ trait JoinOp extends CExpr {
     case Equals(Project(_, f1), Project(_, f2)) =>
       if (v2.tp.attrs.contains(f1)) f1
       else f2
-    case _ => ps.filter(s => v2.tp.attrs.contains(s)).mkString("&")
+    case _ => ps.filter(s => v2.tp.attrs.contains(s)).mkString("\",\"")
   }
 
   val cond: CExpr

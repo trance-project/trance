@@ -46,6 +46,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) {
     val generator = new SparkDatasetGenerator(false, false, evalFinal=false)
     // var gcode = ""
     // todo could add map to avoid duplicate calls
+    var queries = ""
     for (p <- progs){
       // println(p)
       val name = "Query"+p._2
@@ -55,24 +56,25 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) {
       val gcode = s"""
         | /** ${Printer.quote(p._1)} **/
         | ${generator.generate(anfed)}
-        """
-      codeMap += (name -> gcode)
+        |"""
+      queries += gcode
     }
 
-    // for (p <- plans){
-    //   // println(p)
-    //   val anfBase = new BaseOperatorANF{}
-    //   val anfer = new Finalizer(anfBase)
-    //   val anfed = anfBase.anf(anfer.finalize(p).asInstanceOf[anfBase.Rep])
-    //   val gcode = s"""
-    //     | /** ${Printer.quote(p)} **/
-    //     | ${generator.generate(anfed)}
-    //     | val stat$inc = ${p.name}.queryExecution.optimizedPlan.stats
-    //     | println(genStat("${p.name}", stat$inc))
-    //     """
-    //   codeMap += (p.name -> gcode)
-    //   inc += 1
-    // }
+    for (p <- plans){
+      // println(p)
+      val anfBase = new BaseOperatorANF{}
+      val anfer = new Finalizer(anfBase)
+      println(Printer.quote(p))
+      val anfed = anfBase.anf(anfer.finalize(p).asInstanceOf[anfBase.Rep])
+      val gcode = s"""
+        | /** ${Printer.quote(p)} **/
+        | ${generator.generate(anfed)}
+        | val stat$inc = ${p.name}.queryExecution.optimizedPlan.stats
+        | println(genStat("${p.name}", stat$inc))
+        """
+      codeMap += (p.name -> gcode)
+      inc += 1
+    }
     val ghead = generator.generateHeader()
     val genc = generator.generateEncoders()
     val data = s"""
@@ -91,7 +93,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) {
       writeApplication("GenerateCosts", data, ghead, codeMap.map(_._2).mkString("\n"), genc)
     }else {
       fname+=".json"
-      val pcontents = writeParagraph("GenerateCosts", data, ghead, codeMap.map(_._2).mkString("\n"), genc)
+      val pcontents = writeParagraph("GenerateCosts", data, ghead, queries+"\n"+codeMap.map(_._2).mkString("\n"), genc)
       new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
     }
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
@@ -211,6 +213,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) {
       |import sparkutils._
       |import sparkutils.loader._
       |import sparkutils.skew.SkewDataset._
+      |import java.io._
       |$header
       |case class Stat(name: String, sizeInBytes:String, rowCount:String)
       |$encoders
@@ -222,6 +225,9 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) {
       |$data
       |$gcode
     """.stripMargin
+
+      // |val fname = "/Users/jac/code/trance/compiler/out"
+      // |val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
   }
 
 

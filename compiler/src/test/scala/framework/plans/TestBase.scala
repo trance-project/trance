@@ -63,15 +63,15 @@ trait TestBase extends FunSuite with Materialization with
 
       hybridScore1 <= 
           for o in occurrences union
-            {( oid := o.oid, sid := o.donorId, cands1 := 
+            {( oid := o.oid, sid1 := o.donorId, cands1 := 
               ( for t in o.transcript_consequences union
                  if (t.sift_score > 0.0)
                  then for c in cnvCases1 union
                     if (t.gene_id = c.gene && o.donorId = c.sid) then
-                      {( gene := t.gene_id, score1 := (c.cnum + 0.01) * if (t.impact = "HIGH") then 0.80 
+                      {( gene1 := t.gene_id, score1 := (c.cnum + 0.01) * if (t.impact = "HIGH") then 0.80 
                           else if (t.impact = "MODERATE") then 0.50
                           else if (t.impact = "LOW") then 0.30
-                          else 0.01 )}).sumBy({gene}, {score1}) )}
+                          else 0.01 )}).sumBy({gene1}, {score1}) )}
     """
   val query1 = parser.parse(query1str).get.asInstanceOf[Program]
   val plan1 = getProgPlan(query1)
@@ -89,12 +89,12 @@ trait TestBase extends FunSuite with Materialization with
 
       hybridScore2 <= 
         for o in occurrences union
-          {( oid := o.oid, sid := o.donorId, cands2 := 
+          {( oid := o.oid, sid2 := o.donorId, cands2 := 
             ( for t in o.transcript_consequences union
                if (t.polyphen_score > 0.0)
                then for c in cnvCases2 union
                   if (t.gene_id = c.gene && o.donorId = c.sid) then
-                    {( gene := t.gene_id, score2 := (c.cnum + 0.01) * t.polyphen_score )}).sumBy({gene}, {score2}) )}
+                    {( gene2 := t.gene_id, score2 := (c.cnum + 0.01) * t.polyphen_score )}).sumBy({gene2}, {score2}) )}
     """
   val query2 = parser.parse(query2str).get.asInstanceOf[Program]
   val plan2 = getProgPlan(query2)
@@ -112,9 +112,9 @@ trait TestBase extends FunSuite with Materialization with
 
       hybridScore3 <=
         for o in occurrences union 
-          {( oid := o.oid, sid := o.donorId, cands3 := 
+          {( oid := o.oid, sid3 := o.donorId, cands3 := 
             for t in o.transcript_consequences union 
-              {( gene := t.gene_id, score := t.impact )} )}
+              {( gene3 := t.gene_id, score3 := t.impact )} )}
     """
 
   val query3 = parser.parse(query3str).get.asInstanceOf[Program]
@@ -138,6 +138,7 @@ trait TestBase extends FunSuite with Materialization with
     ses.foreach{ s => 
       println(s._1)
       println(Printer.quote(s._2))
+      println("")
     }
   } 
 

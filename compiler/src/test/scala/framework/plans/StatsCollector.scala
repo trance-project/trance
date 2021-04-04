@@ -22,7 +22,8 @@ class TestStatsCollector extends TestBase {
     
     val statsCollector = new StatsCollector(progs)
     // val stats = statsCollector.getCost(subs, ces)
-    // assert(stats.size == 17)
+
+    // assert(stats.size == 26)
 
   }
 

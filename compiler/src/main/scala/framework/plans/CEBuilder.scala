@@ -19,6 +19,11 @@ object CEBuilder extends Extensions {
 
   val vmap = Map.empty[String, String]
 
+  def getFromVmap(k: String): String = vmap.get(k) match {
+    case Some(f) => f
+    case _ => k
+  }
+
   // todo preserve height
   def buildCoverFromSE(plans: List[SE]): CExpr = {
     val plan1 = plans.head.subplan
@@ -67,8 +72,8 @@ object CEBuilder extends Extensions {
       val ks = ks1.toSet ++ ks2.toSet
       val vs = vs1.toSet ++ vs2.toSet
       val v = Variable.freshFromBag(child.tp)
-      Reduce(child, v, ks.toList.map(k => vmap.getOrElse(k, k)), 
-        vs.toList.map(v => vmap.getOrElse(v, v)))
+      Reduce(child, v, ks.toList.map(k => getFromVmap(k)), 
+        vs.toList.map(k => getFromVmap(k)))
 
     case (u1:UnnestOp, u2:UnnestOp) => 
       assert(u1.path == u2.path)
@@ -99,24 +104,28 @@ object CEBuilder extends Extensions {
     // union columns
     // TODO no implicit renaming should happen in the cover expression
     case (Projection(in1, v1, f1:Record, fs1), Projection(in2, v2, f2:Record, fs2)) => 
+
       val child = buildCover(in1, in2)
       val v = Variable.freshFromBag(child.tp)
+
+      // not sure if this will work for everything...
       def updateVmap(r: Record): IMap[String, CExpr] = {
         r.fields.map{
-          case (field1, Project(_, field2)) => vmap.get(field1) match {
-            case Some(f) => (f, Project(v, f))
-            case _ => vmap(field1) = field2; (field2, Project(v, field2))
-
-          }
+          case (field1, Project(v, field2)) => (vmap.get(field1), vmap.get(field2)) match {
+              case (Some(n1), Some(n2)) => (n2, Project(v, n2))
+              case (Some(n1), None) => (n1, Project(v, n1))
+              case _ => vmap(field1) = field2; (field2, Project(v, field2))
+            }
           // keep complex expressions, assuming they reduce the 
           // overall amount of projections
           case (field1, field2) => (field1, replace(field2, v))
         }.toMap
       }
+
       val r = Record(updateVmap(f1) ++ updateVmap(f2))
       val nr = replace(r, v)
-      val nfs1 = fs1.toList.map(k => vmap.getOrElse(k, k))
-      val nfs2 = fs2.toList.map(k => vmap.getOrElse(k, k))
+      val nfs1 = fs1.toList.map(k => getFromVmap(k))
+      val nfs2 = fs2.toList.map(k => getFromVmap(k))
       Projection(child, v, nr, nfs1 ++ nfs2)
 
    // OR filters
