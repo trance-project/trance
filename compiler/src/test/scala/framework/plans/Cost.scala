@@ -17,13 +17,15 @@ class TestCost extends TestBase {
     progs.foreach(p => SEBuilder.equivSig(p)(subexprs))
     val subs = SEBuilder.sharedSubs(progs, subexprs)
 
+    printSE(subs)
     val ces = CEBuilder.buildCoverMap(subs)
     
     val statsCollector = new StatsCollector(progs)
-    val stats = statsCollector.getCost(subs, ces)
+    // val stats = statsCollector.getCost(subs, ces)
 
-    val cost = new Cost(stats)
-    val selectedCovers = cost.selectCovers(ces, subs)
+    // val cost = new Cost(stats)
+    // val selectedCovers = cost.selectCovers(ces, subs)
+    // cost.printEstimateAndStat(ces, subs)
 
     // assert(stats.size == 26)
 
@@ -37,10 +39,11 @@ class TestCost extends TestBase {
     // printSE(subs)
 
     val ces = CEBuilder.buildCoverMap(subs)
-    printCE(ces)
+    // printCE(ces)
     
     val statCollector = new StatsCollector(sprogs)
-    // val stats = statCollector.getCost(subs, ces)
+    val stats = statCollector.getCost(subs, ces)
+
     // assert(stats.size == 24)
 
   }

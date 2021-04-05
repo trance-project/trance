@@ -141,16 +141,14 @@ object SEBuilder extends Extensions {
         traversePlan((j.right, id), height)
       
       case (i:InputRef, id) => 
+        val sig = hash("input" + subexprs(plan))
+        sigmap(sig) = sigmap(sig) :+ SE(id, i, acc)
 
       case (f:FlatDict, id) => 
         traversePlan((f.in, id), acc)
 
       case (g:GroupDict, id) => 
         traversePlan((g.in, id), acc)
-
-      case (a:AddIndex, id) => 
-        val sig = subexprs(plan)
-        sigmap(sig) = sigmap(sig) :+ SE(id, a, acc)
 
       // handle outer unnests
       case (o:UnaryOp, id) => 
@@ -167,9 +165,6 @@ object SEBuilder extends Extensions {
         }
 
       case (l:LinearCSet, id) => 
-        val sig = subexprs(plan)
-        sigmap(sig) = sigmap(sig) :+ SE(id, l, acc)
-
         l.exprs.foreach(p => traversePlan((p, id), acc+1))
 
       case _ =>  sys.error(s"unimplemented $plan")  
@@ -178,9 +173,10 @@ object SEBuilder extends Extensions {
 
     plans.map(p => traversePlan(p))
 
+    // return all filter in covers
     // values must have at least 
     // two elements to be shared
-    sigmap.filter(_._2.size > 1)
+    sigmap
 
   }
 

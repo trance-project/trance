@@ -44,7 +44,7 @@ object CEBuilder extends Extensions {
 
   def buildCoverMap(subs: Map[Integer, List[SE]]): IMap[Integer, CNamed] = subs.flatMap{
     case (sig, ses) =>  
-      if (!ses.head.subplan.isCacheUnfriendly){
+      if (!ses.head.subplan.isCacheUnfriendly && ses.size > 1){
         Seq((sig, CNamed("Cover"+randomUUID().toString().replace("-", ""), buildCover(ses.map(_.subplan)))))
       }else Nil
   }.toMap

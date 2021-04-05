@@ -1,5 +1,6 @@
 package framework.plans
 
+import framework.common._
 import scala.sys.process._
 import scala.language.postfixOps
 import framework.generator.spark._
@@ -20,10 +21,12 @@ case class Statistics(sizeInKB: Double, rowCount: Double) {
 
 }
 
-class StatsCollector(progs: Vector[(CExpr, Int)]) {
+class StatsCollector(progs: Vector[(CExpr, Int)]) { //, inputs: Map[String, String] = Map.empty[String, String]) {
 
-  val nameMap = Map.empty[String, String]
+  val nameMap = Map.empty[String, String] //inputs
   val nameMapRev = Map.empty[String, String]
+  //nameMap.foreach{x => nameMapRev(x._2) = x._1}
+
   val codeMap = Map.empty[String, String]
   val statsMap = Map.empty[String, Statistics]
 
@@ -49,8 +52,9 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) {
 
   def generateSpark(plans: List[CNamed], notebk: Boolean = false): Unit = {
     val generator = new SparkDatasetGenerator(false, false, evalFinal=false, dedup = false)
-    // var gcode = ""
-    // todo could add map to avoid duplicate calls
+
+    // this ensures that the full program is defined 
+    // so that a call to a "materialized" query does not throw an error
     var queries = ""
     for (p <- progs){
 
@@ -65,19 +69,30 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) {
       queries += gcode
     }
 
+    // this should get stats for all covers
+    // and all subexpressions that are in non-filtered sig
     for (p <- plans){
+      p match {
+        case CNamed(name, i:InputRef) => 
+          val gcode = s"""
+            | /** ${Printer.quote(i)} **/
+            | val stat$inc = ${name}.queryExecution.optimizedPlan.stats
+            | println(genStat("${name}", stat$inc))
+            """
+          codeMap += (name -> gcode)
 
-      val anfBase = new BaseOperatorANF{}
-      val anfer = new Finalizer(anfBase)
-
-      val anfed = anfBase.anf(anfer.finalize(p).asInstanceOf[anfBase.Rep])
-      val gcode = s"""
-        | /** ${Printer.quote(p)} **/
-        | ${generator.generate(anfed)}
-        | val stat$inc = ${p.name}.queryExecution.optimizedPlan.stats
-        | println(genStat("${p.name}", stat$inc))
-        """
-      codeMap += (p.name -> gcode)
+        case _ =>
+          val anfBase = new BaseOperatorANF{}
+          val anfer = new Finalizer(anfBase)
+          val anfed = anfBase.anf(anfer.finalize(p).asInstanceOf[anfBase.Rep])
+          val gcode = s"""
+            | /** ${Printer.quote(p)} **/
+            | ${generator.generate(anfed)}
+            | val stat$inc = ${p.name}.queryExecution.optimizedPlan.stats
+            | println(genStat("${p.name}", stat$inc))
+            """
+          codeMap += (p.name -> gcode)
+        }
       inc += 1
     }
 
@@ -144,8 +159,10 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) {
   def getSubs(plans: Map[Integer, List[SE]]): List[CNamed] = {
     plans.values.toList.flatMap{ ses => ses.map{
       case se => 
-        val seName = updateNameMap(se.subplan.vstr, s"Cost${getUUID}")
-        CNamed(seName, se.subplan)
+        se.subplan match {
+          case i:InputRef => CNamed(updateNameMap(i.vstr, i.data), i)
+          case sp => CNamed(updateNameMap(sp.vstr, s"Cost${getUUID}"), sp)
+        }
       }
     }
   }

@@ -22,6 +22,10 @@ trait TestBase extends FunSuite with Materialization with
                  "copynumber" -> BagType(cnum.copyNumberType), 
                  "samples" -> BagType(samps.biospecType))
 
+  val inputs = Map(InputRef("occurrences", StringType).vstr-> "occurrences",
+                   InputRef("copynumber", StringType).vstr -> "copynumber",
+                   InputRef("samples", StringType).vstr -> "samples")
+
   val parser = Parser(tbls)
   val normalizer = new Finalizer(new BaseNormalizer{})
   val optimizer = new Optimizer()
