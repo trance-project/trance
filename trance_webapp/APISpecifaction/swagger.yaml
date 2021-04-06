@@ -1,0 +1,333 @@
+swagger: '2.0'
+info:
+  description: This is the API Specification of the Trance Web app
+  version: 1.0.0
+  title: Trance API
+  # put the contact info for your development or API team
+  contact:
+    email: brandon.moore@cs.ox.ac.uk
+
+  # To View file visit https://editor.swagger.io/ click file -> import file
+
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+
+# tags are used for organizing operations
+tags:
+- name: developers
+  description: Operations available to regular developers
+
+paths:
+  /object/schema:
+    get:
+      tags:
+      - developers
+      summary: gets a list of object
+      operationId: query/fetchObjectSummaryList
+      description: |
+        By passing in the appropriate options, limit the return of objects for pagination
+      produces:
+      - application/json
+      parameters:
+      - in: query
+        name: limit
+        description: maximum number of records to return
+        type: integer
+        format: int32
+        minimum: 0
+        maximum: 50
+      responses:
+        200:
+          description: Successful return objectSummary list
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ObjectItem'
+        400:
+          description: bad input parameter
+  /query:
+    post:
+      tags:
+      - developers
+      summary: creates new query and persist to a database
+      description: query gets built in and is save to the databases
+      responses:
+        200:
+          description: OK
+        400: 
+          description: invaild query
+  /query/list:
+    get:
+      tags:
+      - developers
+      summary: gets a list of saved quries
+      operationId: query/fetchQuerySummaryList
+      description: |
+        By passing in the appropriate options, limit the return of objects for pagination
+      produces:
+      - application/json
+      responses:
+        200:
+          description: Successful return query list
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/QuerySummary'
+        400:
+          description: bad input parameter
+  /query/{id}:
+    get:
+      tags:
+      - developers
+      summary: get a single query information
+      operationId: query/fetchQuery
+      description: |
+        By passing in the appropriate options, limit the return of objects for pagination
+      produces:
+      - application/json
+      parameters:
+      - name: id
+        in: path
+        description: get a query by id
+        required: true
+        type: string
+      responses:
+        200:
+          description: Successful return a query
+          schema:
+            $ref: '#/definitions/Query'
+        400:
+          description: bad input parameter
+        404:
+          description: query not found
+    post:
+      tags:
+      - developers
+      summary: updates query and persist to a database
+      description: query gets updated is save to the databases
+      parameters:
+      - name: id
+        in: path
+        description: get a query by id
+        required: true
+        type: string
+      responses:
+        200:
+          description: OK
+        400: 
+          description: invaild query
+    delete:
+      tags:
+      - developers
+      summary: deletes query from data base
+      description: deletes query
+      parameters:
+      - name: id
+        in: path
+        description: get a query by id
+        required: true
+        type: string
+      responses:
+        200:
+          description: OK
+        400: 
+          description: Could not delete
+  /query/{id}/shredded:
+    get:
+      tags:
+      - developers
+      summary: gets the querys shredded type
+      description: "used for when the user would like to return the querys shredded type"
+      parameters:
+      - name: id
+        in: path
+        description: get a query by id
+        required: true
+        type: string
+      responses:
+        200:
+          description: OK
+        400:
+          description: bad input parameter
+        404:
+          description: query not found
+  /plan/{queryId}:
+    get:
+      tags:
+      - developers
+      summary: return standard plan for query using query id
+      description: standard plan gets returned when a query is executed 
+      parameters:
+      - name: queryId
+        in: path
+        description: get a query by id
+        required: true
+        type: string
+      responses:
+        200:
+          description: OK
+        400:
+          description: bad input parameter
+        404:
+          description: query not found
+  /plan/{queryId}/shredded: 
+    get:
+      tags:
+      - developers
+      summary: returns shredded plan for query using query id
+      description: shredded plan gets returned when a query is executed 
+      parameters:
+      - name: queryId
+        in: path
+        description: get a query by id
+        required: true
+        type: string
+      responses:
+        200:
+          description: OK
+        400:
+          description: bad input parameter
+        404:
+          description: query not found
+  /results/{queryId}:
+      get:
+        tags:
+        - developers
+        summary: returns results from query id
+        description: returns object results from query 
+        parameters:
+        - name: queryId
+          in: path
+          description: get a query by id
+          required: true
+          type: string
+        responses:
+          200:
+            description: OK
+          400:
+            description: bad input parameter
+          404:
+            description: query not found  
+  /results/{queryId}/metrics:
+    get:
+      tags:
+      - developers
+      summary: returns metrics data from spark
+      description: "returns metrics data from spark using the query id as a ref to return meteric related to that query"
+      parameters:
+      - name: queryId
+        in: path
+        description: get a query by id
+        required: true
+        type: string
+      responses:
+        200:
+          description: OK
+        400:
+          description: bad input parameter
+        404:
+          description: query not found  
+    
+  
+          
+definitions:
+  ObjectItem:
+    type: object
+    required:
+    - id
+    - name
+    - abr
+    - columns
+    - releaseDate
+    properties:
+      id:
+        type: string
+        format: uuid
+        example: d290f1ee-6c54-4b01-90e6-d701748f0851
+      name:
+        type: string
+        example: sample
+      abr:
+        type: string
+        example: s
+      columns:
+        type: array
+        items:
+          $ref: '#/definitions/column'
+  column: 
+    required:
+    - id
+    - tableAssociation
+    - name
+    - enable
+    properties:
+      id:
+        type: string
+        format: uuid
+        example: d290f1ee-6c54-4b04-90e6-d701748f0851
+      tableAssociation:
+        type: string
+        example: s
+      name: 
+        type: string
+        example: sample
+      enable: 
+        type: boolean
+        example: false
+  QuerySummary: 
+    required:
+    - id
+    - date
+    - name
+    - objects
+    - groupedBy
+    properties:
+      id:
+        type: string
+        format: uuid
+        example: d290f1ee-6c54-4b04-90e6-d701748f0851
+      date:
+        type: string
+        format: date-time
+        example: 12 Mar, 2021
+      name: 
+        type: string
+        example: NetworkEffects
+      objects: 
+        type: string
+        example: Samples,Occurrences,CopyNumber
+      groupedBy:
+        type: string
+        example: All
+  Query:
+    required:
+      - id
+      - date
+      - name
+      - objects
+      - groupedBy
+    properties:
+        id:
+          type: string
+          format: uuid
+          example: d290f1ee-6c54-4b04-90e6-d701748f0851
+        date:
+          type: string
+          format: date-time
+          example: 12 Mar, 2021
+        name: 
+          type: string
+          example: NetworkEffects
+        objects: 
+          type: string
+          example: Samples,Occurrences,CopyNumber
+        groupedBy:
+          type: string
+          example: All
+  
+# Added by API Auto Mocking Plugin
+host: virtserver.swaggerhub.com
+basePath: /Trance/TranceAPI/1.0.0
+schemes:
+ - https
