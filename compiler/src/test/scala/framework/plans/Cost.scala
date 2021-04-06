@@ -21,10 +21,17 @@ class TestCost extends TestBase {
     val ces = CEBuilder.buildCoverMap(subs)
     
     val statsCollector = new StatsCollector(progs)
-    // val stats = statsCollector.getCost(subs, ces)
+    val stats = statsCollector.getCost(subs, ces)
 
-    // val cost = new Cost(stats)
-    // val selectedCovers = cost.selectCovers(ces, subs)
+    val cost = new Cost(stats)
+    val selectedCovers = cost.selectCovers(ces, subs)
+
+    selectedCovers.foreach{ s =>
+      println(s._1)
+      println(s._2.profit)
+      println(Printer.quote(s._2.plan))
+    }
+
     // cost.printEstimateAndStat(ces, subs)
 
     // assert(stats.size == 26)
@@ -44,7 +51,14 @@ class TestCost extends TestBase {
     val statCollector = new StatsCollector(sprogs)
     val stats = statCollector.getCost(subs, ces)
 
-    // assert(stats.size == 24)
+    val cost = new Cost(stats)
+    val selectedCovers = cost.selectCovers(ces, subs)
+
+    selectedCovers.foreach{ s =>
+      println(s._1)
+      println(s._2.profit)
+      println(Printer.quote(s._2.plan))
+    }
 
   }
 

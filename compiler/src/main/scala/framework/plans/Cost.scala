@@ -41,8 +41,6 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
 
   def estimateRows(rows: Double, size: Double): Double = {
     if (rows <= 1.0 && size > 1.0) {
-      println("in here with")
-      println(size)
       size / AVGSIZE
     }else {
       rows
@@ -55,7 +53,6 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
   // single plan estimate
   def estimate(plan: CExpr): Estimate = {
     val stat = stats.getOrElse(plan.vstr, statDefault)
-    if (stat.rowCount == 1L) println("defaulting for "+plan.vstr)
     val sel = estSelectivity(plan)
     plan match {
 
@@ -69,29 +66,27 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
         val leftEst = estimate(j.left)
         val rightEst = estimate(j.right)
 
+        // some factor of cardinalities
+        //val outsize = leftEst.outSize + rightEst.outSize 
+        // val outsize = (stat.sizeInBytes / 1024)
+        // this should be based on distincts, but doing this 
+        // for now
+        val outrows = Math.max(leftEst.outRows.toDouble, rightEst.outRows.toDouble)
+        val outsize = Math.min(leftEst.outSize.toDouble, rightEst.outSize.toDouble)
+
         // network cost of the largest relation, plus what it costs to 
         // perform the operation give estimated output rows
-        val rowCount = estimateRows(stat.rowCount + 0.0, stat.sizeInKB + 0.0)
-        println("estimated in join")
-        println(rowCount)
-        println(stat.sizeInKB)
-        println(leftEst.outRows)
-        println(rightEst.outRows)
-        val network = leftEst.network + rightEst.network + (leftEst.outRows * NETWORK) + (rowCount * .00002)
+        // val rowCount = estimateRows(stat.rowCount + 0.0, stat.sizeInKB + 0.0)
+        val network = leftEst.network + rightEst.network + (leftEst.outRows * NETWORK) + (outrows * .00002)
 
-        val cpu = leftEst.cpu + rightEst.cpu + (rowCount * .00002)
+        val cpu = leftEst.cpu + rightEst.cpu + (outrows * .00002)
 
         val insize = leftEst.outSize + rightEst.outSize
         val inrows = leftEst.outRows * rightEst.outRows
 
-        // some factor of cardinalities
-        //val outsize = leftEst.outSize + rightEst.outSize 
-        // val outsize = (stat.sizeInBytes / 1024)
-        //  this should be based on distincts, but doing this 
-        // for now
-        val outsize = Math.min(leftEst.outRows.toDouble, rightEst.outRows.toDouble)
 
-        Estimate(insize, outsize, inrows, rowCount, network, cpu)
+        // println("join stat found: "+outrows+", "+outsize)
+        Estimate(insize, outsize, inrows, outrows, network, cpu)
 
       // same here with unnest, need to use average nested collection sizes
       // cpu time is more because we are grouping, network is quite a 
@@ -107,6 +102,7 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
         // network could be dependent on the size of the values
         val network = (childEst.outRows * NETWORK) + childEst.network
 
+        // println("nest stat found: "+outrows+", "+outsize)
         Estimate(childEst.inSize, outsize, childEst.inRows, outrows, cpu, network)
 
       // TODO see what spark does for aggregation estimate
@@ -126,6 +122,7 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
         val cpu = (childEst.outRows * (.00002)) + childEst.cpu
         val network = (childEst.outRows * NETWORK) + childEst.network
 
+        // println("reduce stat found: "+outrows+", "+outsize)
         Estimate(childEst.inSize, outsize, childEst.inRows, outrows, cpu, network)
 
       // note statistics from spark seem to not be estimated for 
@@ -139,6 +136,7 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
         val cpu = (childEst.outRows * NOSHUFF) + childEst.cpu
         val outsize = childEst.outSize * NESTSIZE
         val outrows = childEst.outRows * NESTROWS
+        // println("unnest stat found: "+outrows+", "+outsize)
         Estimate(childEst.inSize, outsize, childEst.inRows, outrows, cpu, childEst.network)
 
       // TODO selectivity estmate, using default currently
@@ -151,6 +149,8 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
           case Constant(true) => (childEst.outSize, childEst.outRows)
           case _ => (childEst.outSize * sel, childEst.outRows * sel)
         }
+
+        // println("select stat found: "+outrows+", "+outsize)
         Estimate(childEst.inSize, outsize, childEst.inRows, outrows, cpu, childEst.network)
 
       // projection will reduce the number of columns, so should 
@@ -162,6 +162,7 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
         val outsize = ((p.tp.attrs.size * 1.0) / p.in.tp.attrs.size) * childEst.outSize
         val cpu = childEst.cpu + (childEst.outRows * NOSHUFF)
 
+        // println("projection stat found: "+childEst.inRows+", "+outsize)
         Estimate(childEst.inSize, outsize, childEst.inRows, outsize, cpu, childEst.network)
 
       // adding an index will add one column, so minor addition to size
@@ -171,6 +172,8 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
         val childEst = estimate(i.in)
         val outsize = childEst.outSize * INDEXCOST
         val cpu = childEst.cpu + (childEst.outRows * NOSHUFF)
+
+        // println("index stat found: "+childEst.outRows+", "+outsize+", ")
         Estimate(childEst.inSize, outsize, childEst.inRows, childEst.outRows, cpu, childEst.network)
 
       // the base cost estimate for all input relations
@@ -180,6 +183,8 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
       case _ => 
         val size = stat.sizeInKB + 0.0
         val rows = estimateRows(stat.rowCount + 0.0, size)
+        // println("base stat found: "+size+", "+rows)
+
         Estimate(size, size, rows, rows, rows * DISKREAD, 0.0)
 
     }

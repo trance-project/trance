@@ -34,7 +34,7 @@ case class Projection(in: CExpr, v: Variable, filter: CExpr, fields: List[String
   def tp: BagCType = BagCType(filter.tp)
 
   override def vstr: String = 
-    s"""Projection(${in.vstr}, ${fields.mkString(",")})""" 
+    s"""Projection(${in.vstr}, ${fields.toSet.mkString(",")})""" 
 
 }
 
@@ -62,7 +62,7 @@ trait UnnestOp extends CExpr with UnaryOp {
 
   override def vstr: String = {
     val lbl = if (outer) "Outer" else "" 
-    s"""Unnest$lbl(${in.vstr}, $path, ${fields.mkString(",")})""" 
+    s"""Unnest$lbl(${in.vstr}, $path, ${fields.toSet.mkString(",")})""" 
   }
 
 

@@ -59,12 +59,14 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     case Unnest(in, v, path, v2, filter, fields) =>
       val pin = push(in, fields.toSet ++ fs + path)
       val nv = Variable.fromBag(v.name, pin.tp)
-      Unnest(pin, nv, path, v2, filter, (fields.toSet ++ fs).toList)
+      val nfields = (fields.toSet ++ fs) & (nv.tp.attrs.keySet ++ v2.tp.attrs.keySet)
+      Unnest(pin, nv, path, v2, filter, nfields.toList)
 
     case OuterUnnest(in, v, path, v2, filter, fields) =>
       val pin = push(in, fields.toSet ++ fs + path)
       val nv = Variable.fromBag(v.name, pin.tp)
-      OuterUnnest(pin, nv, path, v2, filter, (fields.toSet ++ fs).toList)
+      val nfields = (fields.toSet ++ fs) & (nv.tp.attrs.keySet ++ v2.tp.attrs.keySet)
+      OuterUnnest(pin, nv, path, v2, filter, nfields.toList)
 
     case Join(left, v, right, v2, cond, fields) =>
       val jcols = collect(cond)
