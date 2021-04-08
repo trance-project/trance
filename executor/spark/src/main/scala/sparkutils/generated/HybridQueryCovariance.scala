@@ -134,11 +134,11 @@ object HybridQueryCovariance {
      
     val x51 = x50
     val HybridQuery = x51
-    // HybridQuery.print
+    //HybridQuery.print
     // HybridQuery.cache
-    // HybridQuery.count
+    //HybridQuery.count
 
-    val rows = HybridQuery.rdd.map(x => Vectors.dense(x.scores.map(y => y.score).toArray))
+    val rows = HybridQuery.rdd.filter(x => x.scores.nonEmpty).map(x => Vectors.dense(x.scores.map(y => y.score).toArray))
       .zipWithIndex.map{ case (v, i) => IndexedRow(i, v) }
     val mat = new IndexedRowMatrix(rows)
     
