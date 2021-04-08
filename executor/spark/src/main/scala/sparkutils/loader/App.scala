@@ -46,8 +46,14 @@ object App {
   // val vcfLoader = new VariantLoader(spark, "/Users/jac/bioqueries/data/supersm.vcf")
   // val vcfs = vcfLoader.loadDS
   // vcfs.coalesce(1).write.json("/Users/jac/bioqueries/data/vcf.json")
-  val occurrences = spark.read.json("file:///Users/jac/data/dlbc/occurrences").as[OccurrenceMid]
-	val (odict1, odict2, odict3) = vepLoader.shredMid(occurrences)
+  //val occurrences = spark.read.json("file:///Users/jac/data/dlbc/occurrences").as[OccurrenceMid]
+  //occurrences.coalesce(1).write.json("/Users/jac/data/dlbc/dlbc_occurrences.json")
+  val copynumber = spark.table("copynumber")
+  copynumber.coalesce(1).write.option("header", true).csv("/Users/jac/data/dlbc/dlbc_cnv.csv")
+  val samples = spark.table("samples")
+  samples.coalesce(1).write.option("header", true).csv("/Users/jac/data/dlbc/samples.csv")
+
+	/**val (odict1, odict2, odict3) = vepLoader.shredMid(occurrences)
 	odict1.cache
 	odict1.count
 	odict2.cache
@@ -56,7 +62,7 @@ object App {
 	odict3.count
 	odict1.write.json("file:///Users/jac/data/dlbc/odict1")
 	odict2.write.json("file:///Users/jac/data/dlbc/odict2")
-	odict3.write.json("file:///Users/jac/data/dlbc/odict3")
+	odict3.write.json("file:///Users/jac/data/dlbc/odict3") **/
   }
 
 }

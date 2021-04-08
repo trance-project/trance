@@ -16,7 +16,7 @@ case class CopyNumber(cn_gene_id: String, cn_gene_name: String, cn_chromosome: S
 class CopyNumberLoader(spark: SparkSession) {
  
    import spark.implicits._
-   val schema = StructType(Array(StructField("cn_gene_id", StringType),
+   val schemaInit = StructType(Array(StructField("cn_gene_id", StringType),
     StructField("cn_gene_name", StringType),
     StructField("cn_chromosome", StringType),
     StructField("cn_start", IntegerType),
@@ -24,6 +24,8 @@ class CopyNumberLoader(spark: SparkSession) {
     StructField("cn_copy_number", IntegerType, nullable=true),
     StructField("min_copy_number", IntegerType, nullable=true),
     StructField("max_copy_number", IntegerType, nullable=true)))
+   
+   val schema = StructType(schemaInit.fields :+ StructField("cn_aliquot_uuid", StringType))
 
    val header: Boolean = true
    val delimiter: String = "\t"
@@ -34,7 +36,7 @@ class CopyNumberLoader(spark: SparkSession) {
   def load(path: String, dir: Boolean = true): Dataset[CopyNumber] = {
     val files = if (dir) (new File(path)).listFiles().toSeq.map(f => s"$path/${f.getName}")
       else Seq(path)
-    spark.read.schema(schema)
+    spark.read.schema(schemaInit)
       .format("csv")
       .option("header", "true")
       .option("comment", "#")

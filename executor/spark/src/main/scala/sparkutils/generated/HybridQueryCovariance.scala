@@ -47,16 +47,21 @@ object HybridQueryCovariance {
      .set("spark.sql.shuffle.partitions", Config.maxPartitions.toString)
    val spark = SparkSession.builder().config(conf).getOrCreate()
    
+   val basepath = "/Users/jac/data/dlbc/dlbc"
    import spark.implicits._
-   val samples = spark.table("samples")
+   
+   val sloader = new BiospecLoader(spark)
+   val samples = sloader.load(s"$basepath/samples.txt")
    samples.cache
    samples.count
 
-  val copynumber = spark.table("copynumber")
+  val cloader = new CopyNumberLoader(spark)
+  val copynumber = spark.read.option("header", true).schema(cloader.schema)
+		   	.csv(s"$basepath/cnv.csv").as[CopyNumber]
   copynumber.cache
   copynumber.count
 
-  val occurrences = spark.table("occurrences")
+  val occurrences = spark.read.json(s"$basepath/occurrences.json").as[OccurrenceMid]
   occurrences.cache
   occurrences.count
 
@@ -104,7 +109,7 @@ object HybridQueryCovariance {
      
     val x42 = x40.select("polyphen_score", "bcr_patient_uuid", "impact", "gene_id", "sift_score", "min_copy_number", "max_copy_number", "cn_copy_number", "samples_index")
                 .withColumn("score", ((((((col("cn_copy_number") + col("min_copy_number")) + col("max_copy_number")) + 0.01 / 3) * when(col("impact") === "HIGH", 0.8).otherwise(when(col("impact") === "MODERATE", 0.5).otherwise(when(col("impact") === "LOW", 0.3).otherwise(0.01)))) * (col("polyphen_score") + 0.01)) * (col("sift_score") + 0.01)))
-    .withColumn("score", when(col("score").isNull, 0.0).otherwise(col("score")))
+    .withColumn("score", when(col("score").isNull, 0.0001).otherwise(col("score")))
      .withColumnRenamed("gene_id", "gene")
      .as[Record305b06356cb047938d48487c6bc710d1]
      
@@ -134,9 +139,9 @@ object HybridQueryCovariance {
      
     val x51 = x50
     val HybridQuery = x51
-    //HybridQuery.print
+    // HybridQuery.print
     // HybridQuery.cache
-    //HybridQuery.count
+    // HybridQuery.count
 
     val rows = HybridQuery.rdd.filter(x => x.scores.nonEmpty).map(x => Vectors.dense(x.scores.map(y => y.score).toArray))
       .zipWithIndex.map{ case (v, i) => IndexedRow(i, v) }
