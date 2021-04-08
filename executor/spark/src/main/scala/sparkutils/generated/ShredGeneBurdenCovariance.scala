@@ -68,7 +68,7 @@ val x31 = IDict_vcf__D_genotypes
 val x34 = x29.withColumnRenamed("genotypes", "genotypes_LABEL")
    .as[Record9ffd8a52ab93452ca8408ecfa7c4ed5e].equiJoin(
    x31.withColumnRenamed("_1", "genotypes_1").as[Record57075efce69645b3980259fa919398bd], 
-   Seq("genotypes_LABEL", "genotypes_1"), "inner").drop("genotypes_LABEL", "genotypes_1")
+   Seq("genotypes_LABEL"), Seq("genotypes_1"), "inner").drop("genotypes_LABEL", "genotypes_1")
    .as[Recordb7867f8e0637493ab4005cdf7c615b72]
  
 val x36 = x34
