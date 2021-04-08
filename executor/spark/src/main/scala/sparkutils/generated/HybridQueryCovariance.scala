@@ -1,6 +1,30 @@
 
 package sparkutils.generated
-/** Generated **/
+/** Generated 
+
+For s in samples Union
+  {( sample := s.bcr_patient_uuid,
+     scores := ReduceByKey([gene], [score],
+    For o in occurrences Union
+      If (s.bcr_patient_uuid = o.donorId) Then
+        For t in o.transcript_consequences Union
+          For c in copynumber Union
+            If (t.gene_id = c.cn_gene_id AND s.bcr_aliquot_uuid = c.cn_aliquot_uuid) Then
+              {( gene := t.gene_id,
+                 score := ((((((c.cn_copy_number + c.min_copy_number) + c.max_copy_number + 0.01) / 3) * If (t.impact = "HIGH") Then
+                0.8
+              Else
+                If (t.impact = "MODERATE") Then
+                  0.5
+                Else
+                  If (t.impact = "LOW") Then
+                    0.3
+                  Else
+                    0.01) * (t.polyphen_score + 0.01)) * (t.sift_score + 0.01)) )}
+  ) )}
+
+
+**/
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql._
@@ -109,7 +133,7 @@ object HybridQueryCovariance {
      
     val x42 = x40.select("polyphen_score", "bcr_patient_uuid", "impact", "gene_id", "sift_score", "min_copy_number", "max_copy_number", "cn_copy_number", "samples_index")
                 .withColumn("score", ((((((col("cn_copy_number") + col("min_copy_number")) + col("max_copy_number")) + 0.01 / 3) * when(col("impact") === "HIGH", 0.8).otherwise(when(col("impact") === "MODERATE", 0.5).otherwise(when(col("impact") === "LOW", 0.3).otherwise(0.01)))) * (col("polyphen_score") + 0.01)) * (col("sift_score") + 0.01)))
-    .withColumn("score", when(col("score").isNull, 0.0001).otherwise(col("score")))
+    .withColumn("score", when(col("score").isNull, 0.0).otherwise(col("score")))
      .withColumnRenamed("gene_id", "gene")
      .as[Record305b06356cb047938d48487c6bc710d1]
      
