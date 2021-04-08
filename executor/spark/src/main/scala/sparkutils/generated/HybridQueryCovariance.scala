@@ -103,7 +103,7 @@ object HybridQueryCovariance {
      Seq("gene_id","bcr_aliquot_uuid"), Seq("cn_gene_id","cn_aliquot_uuid"), "left_outer").as[Recordb077f93ea2be4331af2f1c94e3c3ec54]
      
     val x42 = x40.select("polyphen_score", "bcr_patient_uuid", "impact", "gene_id", "sift_score", "min_copy_number", "max_copy_number", "cn_copy_number", "samples_index")
-                .withColumn("score", ((((((col("cn_copy_number") + col("min_copy_number")) + col("max_copy_number")) / 3) * when(col("impact") === "HIGH", 0.8).otherwise(when(col("impact") === "MODERATE", 0.5).otherwise(when(col("impact") === "LOW", 0.3).otherwise(0.01)))) * col("polyphen_score")) * col("sift_score")))
+                .withColumn("score", ((((((col("cn_copy_number") + col("min_copy_number")) + col("max_copy_number")) + 0.01 / 3) * when(col("impact") === "HIGH", 0.8).otherwise(when(col("impact") === "MODERATE", 0.5).otherwise(when(col("impact") === "LOW", 0.3).otherwise(0.01)))) * (col("polyphen_score") + 0.01)) * (col("sift_score") + 0.01)))
     .withColumn("score", when(col("score").isNull, 0.0).otherwise(col("score")))
      .withColumnRenamed("gene_id", "gene")
      .as[Record305b06356cb047938d48487c6bc710d1]
