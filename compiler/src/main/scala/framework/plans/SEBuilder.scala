@@ -14,9 +14,16 @@ case class SE(wid: Int, subplan: CExpr, height: Int) {
 }
 
 /** Optimizer used for plans from BatchUnnester **/
-object SEBuilder extends Extensions {
+class SEBuilder(progs: Vector[(CExpr, Int)]) extends Extensions {
+
+  val subexprs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr, Int), Integer]
 
   val tmpMap: Map[String, Integer] = Map.empty[String, Integer]
+
+  def getSubexprs(): HashMap[(CExpr, Int), Integer] = subexprs
+  def getNameMap: Map[String, Integer] = Map.empty[String, Integer]
+
+  def updateSubexprs(): Unit = progs.foreach(p => equivSig(p)(subexprs))
 
   def signature(plan: CExpr): Integer = {
     equivSig((plan, 0))(HashMap.empty[(CExpr, Int), Integer])
@@ -95,21 +102,7 @@ object SEBuilder extends Extensions {
     subexprs
   }
 
-  // pass in programs
-  def sharedSubsFromProgram(plans: Vector[LinearCSet]): Map[Integer, List[SE]] = {
-    // for now by-pass cnamed
-    val seInput = plans.zipWithIndex.flatMap{ case (prog, id) => 
-      prog.exprs.map(e => e match {
-        case CNamed(name, p) => (p, id)
-        case _ => (e, id)
-    })}
-    val subexprs = HashMap.empty[(CExpr, Int), Integer]
-    seInput.foreach(p => subexpressions(p))
-    sharedSubs(seInput, subexprs)
-  }
-
-  def sharedSubs(plans: Vector[(CExpr, Int)], subexprs: HashMap[(CExpr, Int), Integer], 
-    limit: Boolean = true): Map[Integer, List[SE]] = {
+  def sharedSubs(limit: Boolean = true): Map[Integer, List[SE]] = {
     
     val sigmap = Map.empty[Integer, List[SE]].withDefaultValue(Nil)
 
@@ -161,6 +154,10 @@ object SEBuilder extends Extensions {
       // a domain should never be a cache candidate?
       case (c:CNamed, id) =>
         if (!c.name.contains("Dom")){
+
+          // val sig = subexprs(plan)
+          // sigmap(sig) = sigmap(sig) :+ SE(id, c, acc)
+
           traversePlan((c.e, id), acc+1)
         }
 
@@ -171,7 +168,7 @@ object SEBuilder extends Extensions {
 
     }
 
-    plans.map(p => traversePlan(p))
+    progs.map(p => traversePlan(p))
 
     // return all filter in covers
     // values must have at least 
@@ -181,5 +178,12 @@ object SEBuilder extends Extensions {
   }
 
   private def hash(label: String): Integer = util.hashing.MurmurHash3.stringHash(label)
+
+}
+
+object SEBuilder {
+
+  def apply(progs: Vector[(CExpr, Int)]): SEBuilder = new SEBuilder(progs)
+  def apply(): SEBuilder = new SEBuilder(Vector.empty[(CExpr, Int)])
 
 }

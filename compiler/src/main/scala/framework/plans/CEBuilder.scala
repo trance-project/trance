@@ -14,6 +14,8 @@ object CE{
 
 object CEBuilder extends Extensions {
 
+  val se = SEBuilder()
+
   val normalizer = new BaseNormalizer{}
   import normalizer._
 
@@ -93,7 +95,7 @@ object CEBuilder extends Extensions {
       assert(j1.ps == j2.ps)
 
       val (left, right) = 
-        if (SEBuilder.signature(j1.left) == SEBuilder.signature(j2.left))
+        if (se.signature(j1.left) == se.signature(j2.left))
           (buildCover(j1.left, j2.left), buildCover(j1.right, j2.right))
         else (buildCover(j1.left, j2.right), buildCover(j1.right, j2.left))
 

@@ -5,8 +5,10 @@ import scala.collection.immutable.{Map => IMap}
 import scala.collection.mutable.{Map, HashMap}
 
 // move the covers here as well..
-class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr, Int), Integer]) extends Extensions {
+class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr, Int), Integer], 
+  names: Map[String, Integer] = Map.empty[String, Integer]) extends Extensions {
 
+  val se = SEBuilder()
   // init rewrites give a ce
   // recall that a ce has:
   //   OR'd the filters
@@ -21,6 +23,11 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
     val rewriteCovers = covers.transform((sig, cover) => 
       CNamed(cover.name, rewriteCoverOverCover(cover.e, covers)))
 
+    println("rewrote covers:")
+    rewriteCovers.foreach{
+      p => println(Printer.quote(p._2))
+    }
+
     // then rewrite plans over cover
     plans.map(p => rewritePlanOverCover(p, rewriteCovers))
 
@@ -29,7 +36,7 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
   // TODO
   def rewriteCoverOverCover(plan: CExpr, covers: IMap[Integer, CNamed]): CExpr = plan match {
     case u:UnaryOp => 
-      SEBuilder.equivSig((u.in, -1))(sigs)
+      se.equivSig((u.in, -1))(sigs)
       rewritePlanOverCover((plan, -1), covers)
     case i:InputRef => i
     case _ => sys.error(s"unimplemented $plan")
@@ -48,6 +55,8 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
 
     val default:Integer = -1
     val sig = sigs.getOrElse(plan, default)
+    println(sig)
+    println(Printer.quote(plan._1))
     covers.get(sig) match {
 
       // in subexpression list
@@ -56,6 +65,19 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
 
       // not in cover, see if subexpression is
       case None => plan match {
+
+        case (i:InputRef, id) => names.get(i.data) match {
+            case Some(nsig) => 
+              val p = sigs.filter(_._2 == nsig)
+              println("found this")
+              println(Printer.quote(p.head._1._1))
+              i
+            case _ => i
+          }
+
+        case (c:CNamed, id) =>
+          val childCover = rewritePlanOverCover((c.e, id), covers)
+          CNamed(c.name, childCover)
 
         case (j:JoinOp, id) => 
           assert(j.isEquiJoin)
@@ -115,11 +137,17 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
 
     (plan, coverPlan) match {
 
+      case y if plan.vstr == coverPlan.vstr => coverPlan
+
       case (r1 @ Reduce(p @ Projection(in, _, r:Record, fs), _, ks1, vs1), r2:Reduce) =>
         
+        println("working on")
+        println(Printer.quote(plan))
+        println(Printer.quote(coverPlan))
+
         val names = r.fields.map(f => f match {
             case (field1, Project(_, field2)) => (field1, field2)
-            case _ => ???
+            case _ => sys.error(s"unsupported names $f")
           })
 
         if (ks1.map(k => names.getOrElse(k, k)).toSet == r2.keys.toSet) {

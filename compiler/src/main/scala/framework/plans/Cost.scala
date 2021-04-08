@@ -12,7 +12,7 @@ case class Estimate(inSize: Double, outSize: Double,
 
 case class CostSE(wid: Int, subplan: CExpr, height: Int, est: Estimate)
 case class CostCE(cover: CExpr, sig: Integer, ses: List[CostSE], est: Estimate)
-case class CostEstimate(plan: CExpr, profit: Double, est: Estimate, wids: IMap[Int, Int])
+case class CostEstimate(plan: CNamed, profit: Double, est: Estimate, wids: IMap[Int, Int])
 
 class Cost(stats: Map[String, Statistics]) extends Extensions {
 

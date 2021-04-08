@@ -5,6 +5,67 @@ import framework.examples.Query
 import framework.nrc.Parser
 // import scala.collection.mutable.Map
 
+object HybridQuery extends DriverGene {
+  
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    if (shred){
+      s"""|val samples = spark.table("samples")
+          |val IBag_samples__D = samples
+          |
+          |val copynumber = spark.table("copynumber")
+          |val IBag_copynumber__D = copynumber
+          |
+          |val odict1 = spark.table("odict1")
+          |val IBag_occurrences__D = odict1
+          |
+          |// issue with partial shredding here
+          |val odict2 = spark.table("odict2").drop("flags")
+          |val IDict_occurrences__D_transcript_consequences = odict2
+          |
+          |val odict3 = spark.table("odict3")
+          |val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
+          |""".stripMargin
+    }else{
+      s"""|val samples = spark.table("samples")
+          |
+          |val copynumber = spark.table("copynumber")
+          |
+          |val occurrences = spark.table("occurrences")
+          |""".stripMargin
+    }
+
+  val name = "HybridQuery"
+  
+  val tbls = Map("occurrences" -> occurmids.tp, 
+                  "copynumber" -> copynum.tp, 
+                  "samples" -> samples.tp)
+
+    val cnavg = "(((c.cn_copy_number + c.min_copy_number) + c.max_copy_number) / 3)"
+    val imp = """if (t.impact = "HIGH") then 0.80 
+                  else if (t.impact = "MODERATE") then 0.50
+                  else if (t.impact = "LOW") then 0.30
+                  else 0.01"""
+
+    val query = 
+      s"""
+        HybridQuery <=
+        for s in samples union 
+          {(sample := s.bcr_patient_uuid, scores := 
+            (for o in occurrences union 
+              if (s.bcr_patient_uuid = o.donorId) 
+              then for t in o.transcript_consequences union 
+                for c in copynumber union 
+                  if (t.gene_id = c.cn_gene_id && s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
+                  then {(gene := t.gene_id, score := ((($cnavg * $imp) * t.polyphen_score) * t.sift_score) )}).sumBy({gene}, {score})
+          )}
+
+      """
+
+    val parser = Parser(tbls)
+    val program = parser.parse(query).get.asInstanceOf[Program]
+
+}
+
 /** Queries for sharing benchmark with filters **/
 object TestBaseQuery extends DriverGene {
   

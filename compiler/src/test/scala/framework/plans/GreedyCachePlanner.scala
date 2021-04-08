@@ -17,9 +17,10 @@ class TestGreedyCachePlanner extends TestBase {
 
     println("STANDARD COMPILATION ROUTE!!!")
 
-    val subexprs = HashMap.empty[(CExpr, Int), Integer]
-    progs.foreach(p => SEBuilder.equivSig(p)(subexprs))
-    val subs = SEBuilder.sharedSubs(progs, subexprs)
+    val seBuilder = SEBuilder(sprogs)
+    seBuilder.updateSubexprs()
+
+    val subs = seBuilder.sharedSubs()
 
     val ces = CEBuilder.buildCoverMap(subs)
     
@@ -74,9 +75,10 @@ class TestGreedyCachePlanner extends TestBase {
 
   test("shred comilation route"){
 
-    val subexprs = HashMap.empty[(CExpr, Int), Integer]
-    sprogs.foreach(p => SEBuilder.equivSig(p)(subexprs))
-    val subs = SEBuilder.sharedSubs(sprogs, subexprs)
+    val seBuilder = SEBuilder(sprogs)
+    seBuilder.updateSubexprs()
+
+    val subs = seBuilder.sharedSubs()
     // printSE(subs)
 
     val ces = CEBuilder.buildCoverMap(subs)

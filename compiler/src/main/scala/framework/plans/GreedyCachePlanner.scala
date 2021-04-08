@@ -9,7 +9,7 @@ import scala.collection.mutable.Stack
 
 class GreedyCachePlanner(covers: Map[Integer, CostEstimate], capacity: Double) {
 
-	val knapsack = Map.empty[Integer, CExpr]
+	val knapsack = Map.empty[Integer, CNamed]
 
 	val sortedCovers = covers.toVector.sortBy(s => s._2.profit)
 	val initialSize = covers.size

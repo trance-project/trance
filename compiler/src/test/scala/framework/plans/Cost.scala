@@ -13,9 +13,10 @@ class TestCost extends TestBase {
 
   test("standard comilation route"){
 
-    val subexprs = HashMap.empty[(CExpr, Int), Integer]
-    progs.foreach(p => SEBuilder.equivSig(p)(subexprs))
-    val subs = SEBuilder.sharedSubs(progs, subexprs)
+    val seBuilder = SEBuilder(progs)
+    seBuilder.updateSubexprs()
+
+    val subs = seBuilder.sharedSubs()
 
     printSE(subs)
     val ces = CEBuilder.buildCoverMap(subs)
@@ -40,9 +41,10 @@ class TestCost extends TestBase {
 
   test("shred comilation route"){
 
-    val subexprs = HashMap.empty[(CExpr, Int), Integer]
-    sprogs.foreach(p => SEBuilder.equivSig(p)(subexprs))
-    val subs = SEBuilder.sharedSubs(sprogs, subexprs)
+    val seBuilder = SEBuilder(sprogs)
+    seBuilder.updateSubexprs()
+
+    val subs = seBuilder.sharedSubs()
     // printSE(subs)
 
     val ces = CEBuilder.buildCoverMap(subs)
@@ -107,11 +109,10 @@ class TestCost extends TestBase {
     // first get the fingerprint map
     val plans = Vector(joinPlan1, nestPlan1, joinPlan2, nestPlan2).zipWithIndex
 
-    val subexprs = HashMap.empty[(CExpr, Int), Integer]
-    plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
-    // println(subexprs.size)
-    
-    val subs = SEBuilder.sharedSubs(plans, subexprs)
+    val seBuilder = SEBuilder(plans)
+    seBuilder.updateSubexprs()
+
+    val subs = seBuilder.sharedSubs()
     // println(subs.size)
     val covers = CEBuilder.buildCoverMap(subs)
     // println(covers.size)

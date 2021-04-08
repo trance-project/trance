@@ -12,9 +12,10 @@ class TestCEBuilder extends TestBase {
 
   test("standard program compilation"){
 
-    val subexprs = HashMap.empty[(CExpr, Int), Integer]
-    progs.foreach(p => SEBuilder.equivSig(p)(subexprs))
-    val subs = SEBuilder.sharedSubs(progs, subexprs, false)
+    val seBuilder = SEBuilder(progs)
+    seBuilder.updateSubexprs()
+
+    val subs = seBuilder.sharedSubs(false)
     // printSE(subs)
 
     val ces = CEBuilder.buildCoverMap(subs)
@@ -25,9 +26,10 @@ class TestCEBuilder extends TestBase {
 
   test("shredded compilation"){
     
-    val subexprs = HashMap.empty[(CExpr, Int), Integer]
-    sprogs.foreach(p => SEBuilder.equivSig(p)(subexprs))
-    val subs = SEBuilder.sharedSubs(sprogs, subexprs, false)
+    val seBuilder = SEBuilder(sprogs)
+    seBuilder.updateSubexprs()
+
+    val subs = seBuilder.sharedSubs(false)
 
     // printSE(subs)
     val ces = CEBuilder.buildCoverMap(subs)
@@ -224,15 +226,12 @@ class TestCEBuilder extends TestBase {
     val joinPlan2 = getPlan(joinQuery2.asInstanceOf[Expr])
 
     val plans = Vector(joinPlan1, joinPlan2).zipWithIndex
-    val subexprs = HashMap.empty[(CExpr, Int), Integer]
-    plans.foreach(p => SEBuilder.equivSig(p)(subexprs))
+    val seBuilder = SEBuilder(plans)
+    seBuilder.updateSubexprs()
 
-    val ses = SEBuilder.sharedSubs(plans, subexprs)
+    val subs = seBuilder.sharedSubs()
 
-    val ces = ses.map{
-      case (sig, subs) => sig -> CEBuilder.buildCoverFromSE(subs)
-    }
-    // todo some validation 
+    val covers = CEBuilder.buildCoverMap(subs)
 
   }
 
