@@ -14,7 +14,9 @@ object Sharing extends App {
 
     // capacity in KB
     val genv = new GenomicEnv(5000)
+    val sgenv = new GenomicEnv(5000, true)
     AppWriter.runWithCache(genv, "CacheTest,standard")
+    AppWriter.runWithCache(sgenv, "CacheTest,shredded")
 
   // AppWriter.runDataset(HybridQuery, "Testing,standard", optLevel=1)
 

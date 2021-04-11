@@ -6,9 +6,11 @@ import framework.plans._
 import framework.loader.csv._
 
 
-class GenomicEnv(init_capacity: Int) extends Environment {
+class GenomicEnv(init_capacity: Int, init_shred: Boolean = false) extends Environment {
 	
 	val name = "GenomicEnv"
+
+	val shred: Boolean = init_shred
 
 	val capacity: Int = init_capacity
 
@@ -18,7 +20,7 @@ class GenomicEnv(init_capacity: Int) extends Environment {
                   "copynumber" -> dtp.copynum.tp, 
                   "samples" -> dtp.samples.tp)
 
-	override def setup(shred: Boolean = false, skew: Boolean = false, cache: Boolean = false): String = {
+	override def setup(shred: Boolean = shred, skew: Boolean = false, cache: Boolean = false): String = {
 		if (shred){
   		  s"""|val samples = spark.table("samples")
 	          |val IBag_samples__D = samples
@@ -58,7 +60,8 @@ class GenomicEnv(init_capacity: Int) extends Environment {
 
 	val queries: Vector[Query] = Vector(TestBaseQuery, TestBaseQuery2, TestBaseQuery3)
 
-	val plans: Vector[(CExpr, Int)] = queries.map(q => q.optimized(optLevel, schema).asInstanceOf[CExpr]).zipWithIndex
+	val plans: Vector[(CExpr, Int)] = queries.map(q => 
+		q.optimized(shred, optLevel, schema).asInstanceOf[CExpr]).zipWithIndex
 
 	val cacheStrategy: CacheFactory = new CacheFactory(plans, capacity)
 

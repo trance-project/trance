@@ -14,9 +14,11 @@ trait Environment {
 
 	val capacity: Int
 
+	val shred: Boolean
+
 	val tbls: Map[String, Type]
 
-	def setup(shred: Boolean = false, skew: Boolean = false, cache: Boolean = false): String
+	def setup(shred: Boolean = shred, skew: Boolean = false, cache: Boolean = false): String
 
 	val queries: Vector[Query]
 

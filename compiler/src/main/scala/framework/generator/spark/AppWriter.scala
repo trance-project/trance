@@ -60,8 +60,10 @@ object AppWriter {
     val codegen = new SparkDatasetGenerator(false, false, optLevel = env.optLevel, skew = skew)
     var gcode = ""
 
-    val covers = env.cacheStrategy.newcovers
-    val queries = env.cacheStrategy.newplans
+    val cstrat = env.cacheStrategy
+
+    val covers = cstrat.newcovers
+    val queries = cstrat.newplans
 
     for (q <- covers){
       val anfBase = new BaseOperatorANF{}
@@ -82,11 +84,12 @@ object AppWriter {
                        |${codegen.generateEncoders()}
                        |""".stripMargin
 
-    val qname = if (skew) s"${env.name}SkewSpark" else s"${env.name}Spark"
+    var qname = if (skew) s"${env.name}SkewSpark" else s"${env.name}Spark"
+    if (env.shred) qname = s"Shred$qname"
     val fname = if (notebk) s"$qname.json" else s"$pathout/$qname.scala" 
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val inputs = env.setup(shred = false, skew = skew, cache = cache)
+    val inputs = env.setup(skew = skew, cache = cache)
     val finalc = if (notebk){
         val pcontents = writeParagraph(qname, inputs, header, timedOne(gcode), label, encoders)
         new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
