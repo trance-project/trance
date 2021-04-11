@@ -13,13 +13,15 @@ class TestQueryRewriter extends TestBase {
 
   test("standard comilation route"){
 
-    val seBuilder = SEBuilder(sprogs)
+    val seBuilder = SEBuilder(progs)
     seBuilder.updateSubexprs()
 
     val subs = seBuilder.sharedSubs()
     val subexprs = seBuilder.getSubexprs()
 
-    val ces = CEBuilder.buildCoverMap(subs)
+    val nmap = seBuilder.getNameMap
+
+    val ces = CEBuilder.buildCoverMap(subs, nmap)
     
     // printCE(ces)
 
@@ -46,9 +48,95 @@ class TestQueryRewriter extends TestBase {
 
     val candidates0 = planner0.knapsack
 
-    val rewriter = QueryRewriter(subexprs)
-    val newplans = rewriter.rewritePlans(progs, ces)
+    // println("These are the input covers:")
+    // candidates0.foreach{
+    //   p => println(Printer.quote(p._2))
+    // }
 
+    val rewriter = QueryRewriter(subexprs, names = nmap)
+    val newplans = rewriter.rewritePlans(progs, candidates0.toMap)
+    val newcovers = rewriter.coverset
+
+    println("output covers:")
+    newcovers.foreach{
+      p => println(Printer.quote(p))
+    }
+
+    println("output queries:")
+    newplans.foreach{
+      p => println(Printer.quote(p))
+    }
+
+
+    // println("these were put in the knapsack from most strict - greedy")
+    // candidates0.foreach{ c => 
+    //   println(Printer.quote(c._2))
+    // }
+
+    // val planner1 = new DynamicCachePlanner(selected0)
+    // val results1 = planner1.solve(5000)
+
+    // val candidates1 = results1.selected
+    // println("these were put in the knapsack from most strict - dynamic")
+    // candidates1.foreach{ c => 
+    //   println(Printer.quote(c._2))
+    // }
+
+
+  }
+
+  test("shredded comilation route"){
+
+    val seBuilder = SEBuilder(sprogs)
+    seBuilder.updateSubexprs()
+
+    val subs = seBuilder.sharedSubs()
+    val subexprs = seBuilder.getSubexprs()
+
+    val nmap = seBuilder.getNameMap
+
+    val ces = CEBuilder.buildCoverMap(subs, nmap)
+    
+    // printCE(ces)
+
+    val statsCollector = new StatsCollector(sprogs)
+    val stats = statsCollector.getCost(subs, ces)
+
+    val cost = new Cost(stats)
+
+    // println("FLEXIBILITY 0")
+    val selected0 = cost.selectCovers(ces, subs)
+
+    // selected0.foreach{ s =>
+    //   println(s._1)
+    //   println(s._2.profit)
+    //   println(Printer.quote(s._2.plan))
+    // }
+
+    val totalSize = selected0.map(s => s._2.est.outSize).reduce(_+_)
+
+    // println(totalSize)
+    // total size is 4502.043333333335 (4/5)
+    val planner0 = new GreedyCachePlanner(selected0, 5000)
+    planner0.solve()
+
+    val candidates0 = planner0.knapsack
+
+    // println("These are the input covers:")
+    // candidates0.foreach{
+    //   p => println(Printer.quote(p._2))
+    // }
+
+    val rewriter = QueryRewriter(subexprs, names = nmap)
+    val newplans = rewriter.rewritePlans(sprogs, candidates0.toMap)
+    val newcovers = rewriter.coverset
+
+    println("output covers:")
+    newcovers.foreach{
+      p => println(Printer.quote(p))
+    }
+
+    println("output queries:")
     newplans.foreach{
       p => println(Printer.quote(p))
     }

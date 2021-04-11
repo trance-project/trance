@@ -14,8 +14,6 @@ object CE{
 
 object CEBuilder extends Extensions {
 
-  val se = SEBuilder()
-
   val normalizer = new BaseNormalizer{}
   import normalizer._
 
@@ -37,30 +35,30 @@ object CEBuilder extends Extensions {
   }
 
   // renames, assumes it is in the cache - used for testing
-  def buildCovers(subs: Map[Integer, List[SE]]): List[CE] = subs.map{
-    case (id, se) => 
-      val cover = buildCoverFromSE(se)
-      val cnamed = "Cover"+randomUUID().toString().replace("-", "")
-      CE(cnamed, cover, id, se)
-  }.toList
+  // def buildCovers(subs: Map[Integer, List[SE]]): List[CE] = subs.map{
+  //   case (id, se) => 
+  //     val cover = buildCoverFromSE(se)
+  //     val cnamed = "Cover"+randomUUID().toString().replace("-", "")
+  //     CE(cnamed, cover, id, se)
+  // }.toList
 
-  def buildCoverMap(subs: Map[Integer, List[SE]]): IMap[Integer, CNamed] = subs.flatMap{
+  def buildCoverMap(subs: Map[Integer, List[SE]], nameMap: Map[String, Integer] = Map.empty[String, Integer]): IMap[Integer, CNamed] = subs.flatMap{
     case (sig, ses) =>  
       if (!ses.head.subplan.isCacheUnfriendly && ses.size > 1){
-        Seq((sig, CNamed("Cover"+randomUUID().toString().replace("-", ""), buildCover(ses.map(_.subplan)))))
+        Seq((sig, CNamed("Cover"+randomUUID().toString().replace("-", ""), buildCovers(ses.map(_.subplan), nameMap))))
       }else Nil
   }.toMap
 
-  def buildCover(plans: List[CExpr]): CExpr = plans match {
+  def buildCovers(plans: List[CExpr], nameMap: Map[String, Integer] = Map.empty[String, Integer]): CExpr = plans match {
     case head :: Nil => head
     case head :: tail => 
-      val ce1 = tail.reduce((ce, p) => buildCover(ce, p))
-      buildCover(head, ce1)
+      val ce1 = tail.reduce((ce, p) => buildCover(ce, p, nameMap))
+      buildCover(head, ce1, nameMap)
     case _ => sys.error("empty subepxression list")
   }
 
   // cover should not rename anything
-  def buildCover(plan1: CExpr, plan2: CExpr): CExpr = (plan1, plan2) match {
+  def buildCover(plan1: CExpr, plan2: CExpr, nameMap: Map[String, Integer] = Map.empty[String, Integer]): CExpr = (plan1, plan2) match {
     
     // equivalence
     case y if plan1.vstr == plan2.vstr => plan1
@@ -73,7 +71,7 @@ object CEBuilder extends Extensions {
 
     // cover building
     case (Reduce(in1, v1, ks1, vs1), Reduce(in2, v2, ks2, vs2)) => 
-      val child = buildCover(in1, in2)
+      val child = buildCover(in1, in2, nameMap)
       val ks = ks1.toSet ++ ks2.toSet
       val vs = vs1.toSet ++ vs2.toSet
       val v = Variable.freshFromBag(child.tp)
@@ -82,7 +80,7 @@ object CEBuilder extends Extensions {
 
     case (u1:UnnestOp, u2:UnnestOp) => 
       assert(u1.path == u2.path)
-      val child = buildCover(u1.in, u2.in)
+      val child = buildCover(u1.in, u2.in, nameMap)
       val v = Variable.freshFromBag(child.tp)
       val v2 = Variable.freshFromBag(v.tp.asInstanceOf[RecordCType](u1.path))
       // assume lower level, since it should be pushed
@@ -94,10 +92,11 @@ object CEBuilder extends Extensions {
     case (j1:JoinOp, j2:JoinOp) =>
       assert(j1.ps == j2.ps)
 
+      val lsig = SEUtils.signature(j1.left, nameMap)
+      val rsig = SEUtils.signature(j2.left, nameMap)
       val (left, right) = 
-        if (se.signature(j1.left) == se.signature(j2.left))
-          (buildCover(j1.left, j2.left), buildCover(j1.right, j2.right))
-        else (buildCover(j1.left, j2.right), buildCover(j1.right, j2.left))
+        if (lsig == rsig) (buildCover(j1.left, j2.left, nameMap), buildCover(j1.right, j2.right, nameMap))
+        else (buildCover(j1.left, j2.right, nameMap), buildCover(j1.right, j2.left, nameMap))
 
       val v1 = Variable.freshFromBag(left.tp)
       val v2 = Variable.freshFromBag(right.tp)
@@ -113,7 +112,7 @@ object CEBuilder extends Extensions {
     // TODO no implicit renaming should happen in the cover expression
     case (Projection(in1, v1, f1:Record, fs1), Projection(in2, v2, f2:Record, fs2)) => 
 
-      val child = buildCover(in1, in2)
+      val child = buildCover(in1, in2, nameMap)
       val v = Variable.freshFromBag(child.tp)
 
       // not sure if this will work for everything...
@@ -138,21 +137,20 @@ object CEBuilder extends Extensions {
 
    // OR filters
     case (Select(in1, v1, f1), Select(in2, v2, f2)) =>
-      assert(in1.tp == in2.tp)
       val v = Variable.fresh(in1.tp)
-      val child = buildCover(in1, in2)
+      val child = buildCover(in1, in2, nameMap)
       or(replace(f1, v), replace(f2, v)) match {
         case Constant(true) => child
         case cond => Select(child, v, cond)
       }
 
-    case (o, f:FlatDict) => buildCover(o, f.in)
-    case (o, g:GroupDict) => buildCover(o, g.in)
+    case (o, f:FlatDict) => buildCover(o, f.in, nameMap)
+    case (o, g:GroupDict) => buildCover(o, g.in, nameMap)
 
-    case (f:FlatDict, o) => buildCover(o,f)
-    case (g:GroupDict, o) => buildCover(o, g)
+    case (f:FlatDict, o) => buildCover(o,f, nameMap)
+    case (g:GroupDict, o) => buildCover(o, g, nameMap)
 
-    case _ =>  sys.error(s"unsupported operator pair:\n $plan1\n$plan2)")
+    case _ =>  sys.error(s"unsupported operator pair:\n ${Printer.quote(plan1)}\n${Printer.quote(plan2)}")
 
   }
 

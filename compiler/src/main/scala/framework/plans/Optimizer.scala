@@ -14,7 +14,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
   def applyPush(e: CExpr): CExpr = {
     val o1 = pushUnnest(e)
     val o2 = pushCondition(o1)
-    val o3 = push(o2)
+    val o3 = removeUnnecProj(push(o2))
     o3
     // push(o3)
   }
@@ -23,7 +23,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
   def applyAll(e: CExpr): CExpr = {
     val o1 = pushUnnest(e)
   	val o2 = pushCondition(o1)
-  	val o3 = push(o2)
+  	val o3 = removeUnnecProj(push(o2))
     val o4 = pushAgg(o3)
     o4
   }
@@ -152,6 +152,14 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     case CDeDup(e1) => CDeDup(push(e1, fs))
     case _ => e
   }
+
+  def removeUnnecProj(e: CExpr): CExpr = fapply(e, {
+    case Projection(r:Reduce, v, p:Record, f) => 
+      val attrs = (r.keys ++ r.values).toSet
+      val outs = p.fields.keySet
+      if (attrs == outs) r
+      else e
+  })
 
   /** Returns true if an expression is a base expression 
     * (ie. the input relations or simple operations 

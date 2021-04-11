@@ -58,7 +58,7 @@ object Printer {
     case DictCUnion(e1, e2) => dictunion(quote(e1), quote(e2))
 
     case Select(x, v, p) => 
-      s"""| <-- (${quote(v)}) -- SELECT[ ${quote(p)} ](${quote(x)})
+      s"""| SELECT[ ${quote(p)} ](${quote(x)})
           | """.stripMargin
     case AddIndex(e1, name) => s"INDEX(${quote(e1)})"
     case Projection(e1, v, p, fields) => 
@@ -79,7 +79,9 @@ object Printer {
     case OuterJoin(left, v1, right, v2, cond, fields) => 
       s"""|${quote(left)} OUTERJOIN [${quote(cond)}, ${fields.mkString(",")}] ${quote(right)}
           |""".stripMargin
-    case Reduce(e1, v, grp, value) => quote(CReduceBy(e1, v, grp, value))
+    case Reduce(e1, v, grp, value) => 
+      s"""| REDUCE[ keys = {${grp.mkString(",")}} values = {${value.mkString(",")}} ](${quote(e1)})
+          | """.stripMargin
     
     case FlatDict(e1) => flatdict(quote(e1))
     case GroupDict(e1) => groupdict(quote(e1))

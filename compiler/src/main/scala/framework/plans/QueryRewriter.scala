@@ -8,7 +8,9 @@ import scala.collection.mutable.{Map, HashMap}
 class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr, Int), Integer], 
   names: Map[String, Integer] = Map.empty[String, Integer]) extends Extensions {
 
-  val se = SEBuilder()
+  var coverset: Set[CNamed] = Set.empty[CNamed]
+  val vmap: Map[String, String] = Map.empty[String, String]
+
   // init rewrites give a ce
   // recall that a ce has:
   //   OR'd the filters
@@ -19,24 +21,22 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
   }
 
   def rewritePlans(plans: Vector[(CExpr, Int)], covers: IMap[Integer, CNamed]): Vector[CExpr] = {
+    
     // first rewrite covers over cover
     val rewriteCovers = covers.transform((sig, cover) => 
       CNamed(cover.name, rewriteCoverOverCover(cover.e, covers)))
 
-    println("rewrote covers:")
-    rewriteCovers.foreach{
-      p => println(Printer.quote(p._2))
-    }
-
     // then rewrite plans over cover
-    plans.map(p => rewritePlanOverCover(p, rewriteCovers))
+    val rewriteQueries = plans.map(p => rewritePlanOverCover(p, rewriteCovers))
+
+    rewriteQueries
 
   }
 
   // TODO
   def rewriteCoverOverCover(plan: CExpr, covers: IMap[Integer, CNamed]): CExpr = plan match {
     case u:UnaryOp => 
-      se.equivSig((u.in, -1))(sigs)
+      SEUtils.equivSig((u.in, -1), names)(sigs)
       rewritePlanOverCover((plan, -1), covers)
     case i:InputRef => i
     case _ => sys.error(s"unimplemented $plan")
@@ -55,44 +55,30 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
 
     val default:Integer = -1
     val sig = sigs.getOrElse(plan, default)
-    println(sig)
-    println(Printer.quote(plan._1))
+
     covers.get(sig) match {
 
       // in subexpression list
       case Some(cover) => 
+        if (cover.vstr != plan._1.vstr) coverset = coverset + cover
         rewritePlan(plan._1, cover.name, cover.e)
 
       // not in cover, see if subexpression is
       case None => plan match {
 
-        case (i:InputRef, id) => names.get(i.data) match {
-            case Some(nsig) => 
-              val p = sigs.filter(_._2 == nsig)
-              println("found this")
-              println(Printer.quote(p.head._1._1))
-              i
-            case _ => i
-          }
-
-        case (c:CNamed, id) =>
-          val childCover = rewritePlanOverCover((c.e, id), covers)
-          CNamed(c.name, childCover)
-
         case (j:JoinOp, id) => 
-          assert(j.isEquiJoin)
+          // assert(j.isEquiJoin)
           val lCover = rewritePlanOverCover((j.left, id), covers)
           val rCover = rewritePlanOverCover((j.right, id), covers)
           val lv = Variable.freshFromBag(lCover.tp)
           val rv = Variable.freshFromBag(rCover.tp)
 
-          val cond = Equals(Project(lv, j.p1), Project(rv, j.p2))
-
-          if (j.jtype.contains("outer")) OuterJoin(lCover, lv, rCover, rv, cond, j.fields)
-          else Join(lCover, lv, rCover, rv, cond, j.fields)
+          if (j.jtype.contains("outer")) OuterJoin(lCover, lv, rCover, rv, j.cond, j.fields)
+          else Join(lCover, lv, rCover, rv, j.cond, j.fields)
 
         case (n: Nest, id) => 
           val childCover = rewritePlanOverCover((n.in, id), covers)
+
           val v = Variable.freshFromBag(childCover.tp)
           Nest(childCover, v, n.key, replace(n.value, v), replace(n.filter, v), n.nulls, n.ctag)
 
@@ -123,6 +109,18 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
           val childCover = rewritePlanOverCover((i.in, id), covers)
           AddIndex(childCover, i.name)
 
+        case (c:CNamed, id) => 
+          val nsig = names.getOrElse(c.name, default)
+          val childCover = covers.get(nsig) match {
+            case Some(cov:CNamed) => InputRef(cov.name, cov.tp)
+            case _ => rewritePlanOverCover((c.e, id), covers)
+          }
+
+          CNamed(c.name, childCover)
+          
+        case (l:LinearCSet, id) => 
+          LinearCSet(l.exprs.map( exp => rewritePlanOverCover((exp, id), covers)))
+
         case _ => plan._1
       }
 
@@ -140,18 +138,18 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
       case y if plan.vstr == coverPlan.vstr => coverPlan
 
       case (r1 @ Reduce(p @ Projection(in, _, r:Record, fs), _, ks1, vs1), r2:Reduce) =>
-        
-        println("working on")
-        println(Printer.quote(plan))
-        println(Printer.quote(coverPlan))
 
-        val names = r.fields.map(f => f match {
-            case (field1, Project(_, field2)) => (field1, field2)
-            case _ => sys.error(s"unsupported names $f")
+        // update name map here
+        r.fields.foreach(f => f match {
+            case (field1, Project(_, field2)) => vmap(field1) = field2
+            case _ => vmap(f._1) = f._1
           })
 
-        if (ks1.map(k => names.getOrElse(k, k)).toSet == r2.keys.toSet) {
-          Projection(cover, v, replace(r, v), fs)
+        val names = ks1.map(k => vmap.getOrElse(k, k))
+        if (names.toSet == r2.keys.toSet) {
+          val nrec = Record(r.fields.map(f => 
+            f._1 -> Project(v, vmap.getOrElse(f._1, f._1))))
+          Projection(cover, v, nrec, nrec.fields.keys.toList)
         } else {
           val p1 = Projection(cover, v, replace(r, v), fs)
           val v1 = Variable.freshFromBag(p1.tp)
@@ -164,6 +162,7 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
 
       // reapply the projection
       case (p1:Projection, p2:Projection) => 
+
         // handle outer to inner join
         val fields = (p1.in, p2.in) match {
           case (_:Join, _:OuterJoin) => p1.filter.tp.attrs.keySet.toList :+ "remove_nulls"
@@ -193,4 +192,5 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
 object QueryRewriter {
   def apply() = new QueryRewriter(sigs = HashMap.empty[(CExpr, Int), Integer])
   def apply(sigs: HashMap[(CExpr, Int), Integer]) = new QueryRewriter(sigs = sigs)
+  def apply(sigs: HashMap[(CExpr, Int), Integer], names: Map[String, Integer] = Map.empty[String, Integer]) = new QueryRewriter(sigs, names)
 }

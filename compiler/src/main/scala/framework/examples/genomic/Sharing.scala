@@ -104,14 +104,15 @@ object TestBaseQuery extends DriverGene {
 
       hybridScore1 <= 
           for o in occurrences union
-            {( oid := o.oid, sid := o.donorId, cands1 := 
+            {( oid := o.oid, sid1 := o.donorId, cands1 := 
               ( for t in o.transcript_consequences union
-                  for c in cnvCases1 union
+                 if (t.sift_score > 0.0)
+                 then for c in cnvCases1 union
                     if (t.gene_id = c.gene && o.donorId = c.sid) then
-                      {( gene := t.gene_id, score1 := (c.cnum + 0.01) * if (t.impact = "HIGH") then 0.80 
+                      {( gene1 := t.gene_id, score1 := (c.cnum + 0.01) * if (t.impact = "HIGH") then 0.80 
                           else if (t.impact = "MODERATE") then 0.50
                           else if (t.impact = "LOW") then 0.30
-                          else 0.01 )}).sumBy({gene}, {score1}) )}
+                          else 0.01 )}).sumBy({gene1}, {score1}) )}
     """
 
     val parser = Parser(tbls)
@@ -169,7 +170,34 @@ object TestBaseQuery2 extends DriverGene {
 
 }
 
+object TestBaseQuery3 extends DriverGene {
+  
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String = ""
 
+  val name = "TestBaseQuery3"
+  
+  val tbls = Map("occurrences" -> occurmids.tp, 
+                  "copynumber" -> copynum.tp, 
+                  "samples" -> samples.tp)
+
+  // all samples that have a TP53 mutation with non-high impact
+  val query = 
+    s"""
+      cnvCases3 <= 
+        for s in samples union  
+          {(sid := s.bcr_patient_uuid)};
+
+      hybridScore3 <=
+        for o in occurrences union 
+          {( oid := o.oid, sid3 := o.donorId, cands3 := 
+            for t in o.transcript_consequences union 
+              {( gene3 := t.gene_id, score3 := t.impact )} )}
+    """
+
+    val parser = Parser(tbls)
+    val program = parser.parse(query).get.asInstanceOf[Program]
+
+}
 
 object SamplesFilterByTP53 extends DriverGene {
   

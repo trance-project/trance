@@ -614,23 +614,29 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val gv = generate(v)
       s"""|val $gv = ${generate(e1)}
           |val $n = $gv$repart
-          |//$n.print
-          |${if (!cache) comment(n) else n}.cache
-          |${if (!cache && !evalFinal) comment(n) else n}.count
+          |//$n.count
           |""".stripMargin
+          // |${if (!cache) comment(n) else n}.cache
+          // |${if (!cache && !evalFinal) comment(n) else n}.count
 
     case Bind(v, CNamed(n, e1), e2) =>
       val gtp = if (skew) "[Int]" else ""
       val repart = if (n.contains("MDict")) s""".repartition$gtp($$"_1")""" else ""
       val gv = generate(v)
       val ge2 = if (e2.isInstanceOf[Variable]) "" else generate(e2)
-      s"""|val $gv = ${generate(e1)}
-          |val $n = $gv$repart
-          |//$n.print
-          |${if (!cache || evalFinal) comment(n) else n}.cache
-          |${if (!evaluate) comment(n) else n}.count
-          |$ge2
-          |""".stripMargin
+       s"""|val $gv = ${generate(e1)}
+           |val $n = $gv$repart  
+           |${if (cache) n else comment(n)}.cache
+           |${if (cache) n else comment(n)}.count
+           |$ge2
+           |""".stripMargin   
+      // s"""|val $gv = ${generate(e1)}
+      //     |val $n = $gv$repart
+      //     |//$n.print
+      //     |${if (!cache || evalFinal) comment(n) else n}.cache
+      //     |${if (!evaluate) comment(n) else n}.count
+      //     |$ge2
+      //     |""".stripMargin
 
     case LinearCSet(fs) => ""
     case Bind(v, e1, e2) => 

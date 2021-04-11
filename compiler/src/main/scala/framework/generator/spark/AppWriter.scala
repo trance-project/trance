@@ -4,7 +4,7 @@ import java.io._
 import framework.common._
 import framework.plans._
 import framework.examples.tpch._
-import framework.examples.Query
+import framework.examples.{Query, Environment}
 import framework.loader.csv._
 
 import scala.collection.mutable.ArrayBuffer
@@ -44,6 +44,49 @@ object AppWriter {
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val inputs = query.loadTables(shred = false, skew = skew)
+    val finalc = if (notebk){
+        val pcontents = writeParagraph(qname, inputs, header, timedOne(gcode), label, encoders)
+        new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
+      }else{
+        writeDataset(qname, inputs, header, timedOne(gcode), label, encoders)
+      }
+      printer.println(finalc)
+      printer.close 
+  }
+
+  def runWithCache(env: Environment, label: String, skew: Boolean = false, notebk: Boolean = false, cache: Boolean = false): Unit = {
+    
+    val cachegen = new SparkDatasetGenerator(true, false, optLevel = env.optLevel, skew = skew)
+    val codegen = new SparkDatasetGenerator(false, false, optLevel = env.optLevel, skew = skew)
+    var gcode = ""
+
+    val covers = env.cacheStrategy.newcovers
+    val queries = env.cacheStrategy.newplans
+
+    for (q <- covers){
+      val anfBase = new BaseOperatorANF{}
+      val anfer = new Finalizer(anfBase)
+      gcode += cachegen.generate(anfBase.anf(anfer.finalize(q).asInstanceOf[anfBase.Rep]))
+    }
+
+    for (q <- queries){
+      val anfBase = new BaseOperatorANF{}
+      val anfer = new Finalizer(anfBase)
+      gcode += codegen.generate(anfBase.anf(anfer.finalize(q).asInstanceOf[anfBase.Rep]))
+    }
+
+    val header = s"""|${cachegen.generateHeader()}
+                     |${codegen.generateHeader()}
+                     |""".stripMargin
+    val encoders = s"""|${cachegen.generateEncoders()}
+                       |${codegen.generateEncoders()}
+                       |""".stripMargin
+
+    val qname = if (skew) s"${env.name}SkewSpark" else s"${env.name}Spark"
+    val fname = if (notebk) s"$qname.json" else s"$pathout/$qname.scala" 
+    println(s"Writing out $qname to $fname")
+    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
+    val inputs = env.setup(shred = false, skew = skew, cache = cache)
     val finalc = if (notebk){
         val pcontents = writeParagraph(qname, inputs, header, timedOne(gcode), label, encoders)
         new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)

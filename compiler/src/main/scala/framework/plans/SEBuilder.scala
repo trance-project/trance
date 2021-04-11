@@ -13,30 +13,22 @@ case class SE(wid: Int, subplan: CExpr, height: Int) {
   override def hashCode: Int = (subplan, height).hashCode
 }
 
-/** Optimizer used for plans from BatchUnnester **/
-class SEBuilder(progs: Vector[(CExpr, Int)]) extends Extensions {
+object SEUtils {
 
-  val subexprs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr, Int), Integer]
+  def hash(label: String): Integer = util.hashing.MurmurHash3.stringHash(label)
 
-  val tmpMap: Map[String, Integer] = Map.empty[String, Integer]
-
-  def getSubexprs(): HashMap[(CExpr, Int), Integer] = subexprs
-  def getNameMap: Map[String, Integer] = Map.empty[String, Integer]
-
-  def updateSubexprs(): Unit = progs.foreach(p => equivSig(p)(subexprs))
-
-  def signature(plan: CExpr): Integer = {
-    equivSig((plan, 0))(HashMap.empty[(CExpr, Int), Integer])
+  def signature(plan: CExpr, nameMap: Map[String, Integer] = Map.empty[String, Integer]): Integer = {
+    equivSig((plan, 0), nameMap)(HashMap.empty[(CExpr, Int), Integer])
   }
 
-  def equivSig(plan: (CExpr, Int))(implicit sigmap: HashMap[(CExpr, Int), Integer]): Integer = {
+  def equivSig(plan: (CExpr, Int), nameMap: Map[String, Integer] = Map.empty[String, Integer])(implicit sigmap: HashMap[(CExpr, Int), Integer]): Integer = {
 
     val wid = plan._2
     val sig = plan._1 match {
 
       case j:JoinOp => 
-        var lhash = equivSig((j.left, wid))(sigmap)
-        var rhash = equivSig((j.right, wid))(sigmap)
+        var lhash = equivSig((j.left, wid), nameMap)(sigmap)
+        var rhash = equivSig((j.right, wid), nameMap)(sigmap)
         var cond = j.p1+"="+j.p2
         
         // agnostic to join order
@@ -49,37 +41,37 @@ class SEBuilder(progs: Vector[(CExpr, Int)]) extends Extensions {
         hash(j.getClass.toString + cond + lhash + rhash)
 
       case n:Nest => 
-        val chash = equivSig((n.in, wid))(sigmap)
+        val chash = equivSig((n.in, wid), nameMap)(sigmap)
         hash(n.getClass.toString + n.hashCode().toString + chash)
 
       case u:UnnestOp => 
-        val chash = equivSig((u.in, wid))(sigmap)
+        val chash = equivSig((u.in, wid), nameMap)(sigmap)
         hash(u.getClass.toString + u.path + chash)
 
       case f:FlatDict => 
-        equivSig((f.in, wid))(sigmap)
+        equivSig((f.in, wid), nameMap)(sigmap)
 
       case g:GroupDict => 
-        equivSig((g.in, wid))(sigmap)
+        equivSig((g.in, wid), nameMap)(sigmap)
 
       case r:Reduce =>
-        val chash = equivSig((r.in, wid))(sigmap)
+        val chash = equivSig((r.in, wid), nameMap)(sigmap)
         hash(r.getClass.toString() + chash)
 
       case o:UnaryOp =>
-        val chash = equivSig((o.in, wid))(sigmap)
+        val chash = equivSig((o.in, wid), nameMap)(sigmap)
         hash(o.getClass.toString() + chash)
 
       case i:InputRef => 
-        tmpMap.getOrElse(i.data, hash(i.getClass.toString + i.data))
+        nameMap.getOrElse(i.data, hash(i.getClass.toString + i.data))
 
       case c:CNamed => 
-        val chash = equivSig((c.e, wid))(sigmap)
-        tmpMap(c.name) = chash
+        val chash = equivSig((c.e, wid), nameMap)(sigmap)
+        nameMap(c.name) = chash
         hash(c.getClass.toString + c.name + chash)
 
       case l:LinearCSet => 
-        val chash = hash(l.exprs.map(e => (equivSig((e, wid))(sigmap)).toString).reduce(_ + _))
+        val chash = hash(l.exprs.map(e => (equivSig((e, wid), nameMap)(sigmap)).toString).reduce(_ + _))
         hash(l.getClass.toString + chash)
 
       // all other cases
@@ -101,6 +93,20 @@ class SEBuilder(progs: Vector[(CExpr, Int)]) extends Extensions {
     equivSig(plan)(subexprs)
     subexprs
   }
+
+}
+
+/** Optimizer used for plans from BatchUnnester **/
+class SEBuilder(progs: Vector[(CExpr, Int)]) extends Extensions {
+
+  val subexprs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr, Int), Integer]
+
+  val tmpMap: Map[String, Integer] = Map.empty[String, Integer]
+
+  def getSubexprs(): HashMap[(CExpr, Int), Integer] = subexprs
+  def getNameMap: Map[String, Integer] = tmpMap
+
+  def updateSubexprs(): Unit = progs.foreach(p => SEUtils.equivSig(p, tmpMap)(subexprs))
 
   def sharedSubs(limit: Boolean = true): Map[Integer, List[SE]] = {
     
@@ -134,7 +140,7 @@ class SEBuilder(progs: Vector[(CExpr, Int)]) extends Extensions {
         traversePlan((j.right, id), height)
       
       case (i:InputRef, id) => 
-        val sig = hash("input" + subexprs(plan))
+        val sig = SEUtils.hash("input" + subexprs(plan))
         sigmap(sig) = sigmap(sig) :+ SE(id, i, acc)
 
       case (f:FlatDict, id) => 
@@ -176,8 +182,6 @@ class SEBuilder(progs: Vector[(CExpr, Int)]) extends Extensions {
     sigmap
 
   }
-
-  private def hash(label: String): Integer = util.hashing.MurmurHash3.stringHash(label)
 
 }
 

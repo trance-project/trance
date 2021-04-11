@@ -1,13 +1,22 @@
 package framework.generator.spark
 
+import java.io._
+import framework.common._
+import framework.plans._
 import framework.examples.tpch._
 import framework.examples.genomic._
+import framework.examples.Query
+import framework.loader.csv._
 
 object Sharing extends App {
 
   override def main(args: Array[String]){
 
-  AppWriter.runDataset(HybridQuery, "Testing,standard", optLevel=1)
+    // capacity in KB
+    val genv = new GenomicEnv(5000)
+    AppWriter.runWithCache(genv, "CacheTest,standard")
+
+  // AppWriter.runDataset(HybridQuery, "Testing,standard", optLevel=1)
 
 	// AppWriter.runDatasetShred(SequentialFilters, "SequentialFilters,shredded", optLevel = 1)
   // AppWriter.runDatasetShred(SharedFilters, "SharedFilters,shredded", optLevel = 1)

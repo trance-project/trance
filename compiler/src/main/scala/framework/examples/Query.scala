@@ -5,7 +5,6 @@ import framework.nrc._
 import framework.plans._
 import framework.loader.csv._
 
-
 /** Base functionality of a query, which allows 
   * a query to be easily ran through various stages o
   * of the pipeline.
@@ -36,6 +35,16 @@ trait Query extends Materialization
   def normalize: CExpr = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
   
   def unnest: CExpr = Unnester.unnest(this.normalize)(Map(), Map(), None, baseTag)
+
+  def optimized(optLevel: Int = 2, schema: Schema = Schema()): CExpr = {
+    val optimizer = Optimizer(schema)
+    val un = this.unnest
+    optLevel match {
+      case 0 => un
+      case 1 => optimizer.applyPush(un)
+      case _ => optimizer.applyAll(un)
+    }
+  }
 
   def anf(optimizationLevel: Int = 2, schema: Schema = Schema()): CExpr = {
     val anfBase = new BaseOperatorANF{}
