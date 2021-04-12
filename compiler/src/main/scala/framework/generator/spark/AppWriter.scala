@@ -60,10 +60,7 @@ object AppWriter {
     val codegen = new SparkDatasetGenerator(false, false, optLevel = env.optLevel, skew = skew)
     var gcode = ""
 
-    val cstrat = env.cacheStrategy.execOrder
-
-    // val covers = cstrat.newcovers
-    // val queries = cstrat.newplans
+    val cstrat = if (cache) env.plans.map(_._1) else env.cacheStrategy.execOrder
 
     for (q <- cstrat){
       val anfBase = new BaseOperatorANF{}
@@ -77,12 +74,6 @@ object AppWriter {
       
     }
 
-    // for (q <- queries){
-    //   val anfBase = new BaseOperatorANF{}
-    //   val anfer = new Finalizer(anfBase)
-    //   gcode += codegen.generate(anfBase.anf(anfer.finalize(q).asInstanceOf[anfBase.Rep]))
-    // }
-
     val header = s"""|${cachegen.generateHeader()}
                      |${codegen.generateHeader()}
                      |""".stripMargin
@@ -90,7 +81,8 @@ object AppWriter {
                        |${codegen.generateEncoders()}
                        |""".stripMargin
 
-    var qname = if (skew) s"${env.name}SkewSpark" else s"${env.name}Spark"
+    val cname = if (cache) "CacheInputs" else ""
+    var qname = if (skew) s"${env.name}${cname}SkewSpark" else s"${env.name}${cname}Spark"
     if (env.shred) qname = s"Shred$qname"
     val fname = if (notebk) s"$qname.json" else s"$pathout/$qname.scala" 
     println(s"Writing out $qname to $fname")
