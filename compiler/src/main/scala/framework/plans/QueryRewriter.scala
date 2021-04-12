@@ -3,13 +3,26 @@ package framework.plans
 import framework.common._
 import scala.collection.immutable.{Map => IMap}
 import scala.collection.mutable.{Map, HashMap}
+import scala.collection.mutable.ListBuffer
 
 // move the covers here as well..
 class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr, Int), Integer], 
   names: Map[String, Integer] = Map.empty[String, Integer]) extends Extensions {
 
-  var coverset: Set[CNamed] = Set.empty[CNamed]
+  var coverset: ListBuffer[CExpr] = ListBuffer.empty[CExpr]
   val vmap: Map[String, String] = Map.empty[String, String]
+
+  val depmap: Map[String, Set[CExpr]] = Map[String, Set[CExpr]]().withDefaultValue(Set.empty[CExpr])
+  var ordered: Vector[CExpr] = Vector.empty[CExpr]
+
+  def updateOrder(e: CExpr): Unit = {
+    if (!ordered.contains(e)) {
+      ordered = ordered :+ e
+    }
+    if (coverset.contains(e)){
+      coverset = coverset - e
+    }
+  }
 
   // init rewrites give a ce
   // recall that a ce has:
@@ -24,22 +37,63 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
     
     // first rewrite covers over cover
     val rewriteCovers = covers.transform((sig, cover) => 
-      CNamed(cover.name, rewriteCoverOverCover(cover.e, covers)))
+      rewriteCoverOverCover(cover, covers))
+
+    // keep track of which inputs the covers are dependent on
+    rewriteCovers.foreach{ p => getInputs(p._2, p._2) }
 
     // then rewrite plans over cover
     val rewriteQueries = plans.map(p => rewritePlanOverCover(p, rewriteCovers))
+
+    rewriteQueries.foreach{
+      p => p match {
+        case l:LinearCSet => 
+          l.exprs.foreach{ p1 => 
+            updateOrder(p1)
+            getDeps(p1).foreach(f => 
+              updateOrder(f)
+            )
+          }
+        case _ => ???
+      }
+    }
+
+    ordered = coverset.toVector ++ ordered
+
+    // for each query 
+    //   if query is an input to a cover
+    //   then evaluate it before the cover
+    // after all queries have been addressed
+    // put the covers before
 
     rewriteQueries
 
   }
 
-  // TODO
-  def rewriteCoverOverCover(plan: CExpr, covers: IMap[Integer, CNamed]): CExpr = plan match {
+  def getDeps(p: CExpr): Set[CExpr] = p match {
+    case CNamed(n, e) => depmap.getOrElse(n, Set.empty[CExpr]) 
+    case _ => Set()
+  }
+
+  def rewriteCoverOverCover(plan: CNamed, covers: IMap[Integer, CNamed]): CNamed = plan.e match {
     case u:UnaryOp => 
       SEUtils.equivSig((u.in, -1), names)(sigs)
-      rewritePlanOverCover((plan, -1), covers)
-    case i:InputRef => i
+      val ncov = CNamed(plan.name, rewritePlanOverCover((plan.e, -1), covers))
+      if (ncov.vstr != plan.vstr) coverset = coverset :+ ncov
+      else coverset = ncov +: coverset 
+      ncov
+    case i:InputRef => CNamed(plan.name, i)
     case _ => sys.error(s"unimplemented $plan")
+  }
+
+  def getInputs(e: CExpr, cov: CExpr): Unit = e match {
+    case c:CNamed => getInputs(c.e, c)
+    case i:InputRef => depmap(i.data) = depmap(i.data) + cov//Set(i.data)
+    case v:Variable => depmap(v.name) = depmap(v.name) + cov//Set(v.name)
+    case u:UnaryOp => getInputs(u.in, cov)
+    case n:Nest => getInputs(n.in, cov)
+    case j:JoinOp => getInputs(j.left, cov); getInputs(j.right, cov)
+    case _ => 
   }
 
   // for each plan 
@@ -60,8 +114,8 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
 
       // in subexpression list
       case Some(cover) => 
-        if (cover.vstr != plan._1.vstr) coverset = coverset + cover
         rewritePlan(plan._1, cover.name, cover.e)
+
 
       // not in cover, see if subexpression is
       case None => plan match {
@@ -112,7 +166,9 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
         case (c:CNamed, id) => 
           val nsig = names.getOrElse(c.name, default)
           val childCover = covers.get(nsig) match {
-            case Some(cov:CNamed) => InputRef(cov.name, cov.tp)
+            case Some(cov:CNamed) => rewritePlan(c.e, cov.name, cov.e)
+              // println(Printer.quote(rwp))
+              // InputRef(cov.name, cov.tp)
             case _ => rewritePlanOverCover((c.e, id), covers)
           }
 
@@ -146,6 +202,7 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
           })
 
         val names = ks1.map(k => vmap.getOrElse(k, k))
+
         if (names.toSet == r2.keys.toSet) {
           val nrec = Record(r.fields.map(f => 
             f._1 -> Project(v, vmap.getOrElse(f._1, f._1))))

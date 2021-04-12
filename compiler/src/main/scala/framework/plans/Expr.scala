@@ -70,6 +70,8 @@ case class Record(fields: Map[String, CExpr]) extends CExpr{
   def apply(n: String) = fields(n)
   def project(n: List[String]) = Record(fields.filter(f => n.contains(f._1)))
 
+  override def vstr: String = fields.map(f => f._1).mkString(",")
+
 }
 
 case class Tuple(fields: List[CExpr]) extends CExpr {

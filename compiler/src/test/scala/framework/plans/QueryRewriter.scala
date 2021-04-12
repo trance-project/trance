@@ -59,7 +59,8 @@ class TestQueryRewriter extends TestBase {
 
     println("output covers:")
     newcovers.foreach{
-      p => println(Printer.quote(p))
+      p => 
+        println(Printer.quote(p))
     }
 
     println("output queries:")

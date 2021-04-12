@@ -55,30 +55,22 @@ trait Query extends Materialization
 
   def optimized(shred: Boolean = false, optLevel: Int = 2, schema: Schema = Schema()): CExpr = {
     val optimizer = Optimizer(schema)
-    if (shred){
+    val compiler = if (shred) new ShredOptimizer {} else new BaseCompiler{}
+    val compile = new Finalizer(compiler)
+    val unopt = if (shred){
       val (shredded, shreddedCtx) = shredCtx(program)
       val optShredded = optimize(shredded)
       val materialized = materialize(optShredded, eliminateDomains = true)
       val mprogram = materialized.program
-      val compiler = new ShredOptimizer{} 
-      val compile = new Finalizer(compiler)
-      val ncalc = normalizer.finalize(translate(program)).asInstanceOf[CExpr]
-      val unopt = Unnester.unnest(ncalc)(Map(), Map(), None, "_2")
-      val optimizer = Optimizer(schema)
-      val opt = optLevel match {
-        case 0 => unopt
-        case 1 => optimizer.applyPush(unopt).asInstanceOf[LinearCSet]
-        case _ => optimizer.applyAll(unopt).asInstanceOf[LinearCSet]
-      }
-      compile.finalize(opt).asInstanceOf[LinearCSet]
-    }else{
-      val un = this.unnest
-      optLevel match {
-        case 0 => un
-        case 1 => optimizer.applyPush(un)
-        case _ => optimizer.applyAll(un)
-      }
+      val ncalc = normalizer.finalize(translate(mprogram)).asInstanceOf[CExpr]
+      Unnester.unnest(ncalc)(Map(), Map(), None, "_2")
+    }else this.unnest
+    val opt = optLevel match {
+      case 0 => unopt
+      case 1 => optimizer.applyPush(unopt)
+      case _ => optimizer.applyAll(unopt)
     }
+    compile.finalize(opt).asInstanceOf[LinearCSet]
   }
 
 

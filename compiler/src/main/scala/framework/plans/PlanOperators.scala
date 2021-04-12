@@ -31,14 +31,10 @@ case class AddIndex(e: CExpr, name: String) extends CExpr with UnaryOp {
 // rename filter
 case class Projection(in: CExpr, v: Variable, filter: CExpr, fields: List[String]) extends CExpr with UnaryOp {
 
-  def tp: BagCType = {
-    // println("generating type with")
-    // println(filter)
-    BagCType(filter.tp)
-  }
+  def tp: BagCType = BagCType(filter.tp)
 
   override def vstr: String = 
-    s"""Projection(${in.vstr}, ${fields.toSet.mkString(",")})""" 
+    s"""Projection(${in.vstr}, {${filter.vstr}}, ${fields.toSet.mkString(",")})""" 
 
 }
 

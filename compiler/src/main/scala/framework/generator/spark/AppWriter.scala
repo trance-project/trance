@@ -60,22 +60,28 @@ object AppWriter {
     val codegen = new SparkDatasetGenerator(false, false, optLevel = env.optLevel, skew = skew)
     var gcode = ""
 
-    val cstrat = env.cacheStrategy
+    val cstrat = env.cacheStrategy.execOrder
 
-    val covers = cstrat.newcovers
-    val queries = cstrat.newplans
+    // val covers = cstrat.newcovers
+    // val queries = cstrat.newplans
 
-    for (q <- covers){
+    for (q <- cstrat){
       val anfBase = new BaseOperatorANF{}
       val anfer = new Finalizer(anfBase)
-      gcode += cachegen.generate(anfBase.anf(anfer.finalize(q).asInstanceOf[anfBase.Rep]))
+      q match {
+        case c:CNamed if c.name.contains("Cover") => 
+          gcode += cachegen.generate(anfBase.anf(anfer.finalize(q).asInstanceOf[anfBase.Rep]))
+        case _ => 
+          gcode += codegen.generate(anfBase.anf(anfer.finalize(q).asInstanceOf[anfBase.Rep]))
+      }
+      
     }
 
-    for (q <- queries){
-      val anfBase = new BaseOperatorANF{}
-      val anfer = new Finalizer(anfBase)
-      gcode += codegen.generate(anfBase.anf(anfer.finalize(q).asInstanceOf[anfBase.Rep]))
-    }
+    // for (q <- queries){
+    //   val anfBase = new BaseOperatorANF{}
+    //   val anfer = new Finalizer(anfBase)
+    //   gcode += codegen.generate(anfBase.anf(anfer.finalize(q).asInstanceOf[anfBase.Rep]))
+    // }
 
     val header = s"""|${cachegen.generateHeader()}
                      |${codegen.generateHeader()}

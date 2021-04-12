@@ -610,7 +610,10 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
     case Bind(v, CNamed(n, e1), LinearCSet(fs)) =>
       val gtp = if (skew) "[Int]" else ""
-      val repart = if (n.contains("MDict")) s""".repartition$gtp($$"_1")""" else ""
+      val repart = if (n.contains("MDict")){
+        if (e1.tp.attrs.contains("_LABEL")) s""".repartition$gtp($$"_LABEL")"""
+        else s""".repartition$gtp($$"_1")""" 
+      }else ""
       val gv = generate(v)
       s"""|val $gv = ${generate(e1)}
           |val $n = $gv$repart
@@ -621,7 +624,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
     case Bind(v, CNamed(n, e1), e2) =>
       val gtp = if (skew) "[Int]" else ""
-      val repart = if (n.contains("MDict")) s""".repartition$gtp($$"_1")""" else ""
+      val repart = if (n.contains("MDict")){
+        if (e1.tp.attrs.contains("_LABEL")) s""".repartition$gtp($$"_LABEL")"""
+        else s""".repartition$gtp($$"_1")""" 
+      }else ""
+
       val gv = generate(v)
       val ge2 = if (e2.isInstanceOf[Variable]) "" else generate(e2)
        s"""|val $gv = ${generate(e1)}

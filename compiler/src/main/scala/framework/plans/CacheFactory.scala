@@ -12,12 +12,12 @@ class CacheFactory(progs: Vector[(CExpr, Int)], capacity: Int) {
 
     val nmap = seBuilder.getNameMap
 
-    subs.foreach{
-        s => println(s._1)
-        s._2.foreach{ s2 =>
-            println(Printer.quote(s2.subplan))
-        }
-    }
+    // subs.foreach{
+    //     s => println(s._1)
+    //     s._2.foreach{ s2 =>
+    //         println(Printer.quote(s2.subplan))
+    //     }
+    // }
 
     val ces = CEBuilder.buildCoverMap(subs, nmap)
     
@@ -46,23 +46,18 @@ class CacheFactory(progs: Vector[(CExpr, Int)], capacity: Int) {
 
     val candidates = planner.knapsack
 
-    println("These are the input covers:")
-    candidates.foreach{
-      p => println(Printer.quote(p._2))
-    }
+    // println("These are the input covers:")
+    // candidates.foreach{
+    //   p => println(Printer.quote(p._2))
+    // }
 
     val rewriter = QueryRewriter(subexprs, names = nmap)
     val newplans = rewriter.rewritePlans(progs, candidates.toMap)
-    val newcovers = rewriter.coverset
+    // val newcovers = rewriter.coverset
+    val execOrder = rewriter.ordered
 
-    println("ordered covers:")
-    rewriter.coverset.foreach{
+    execOrder.foreach{
         p => println(Printer.quote(p))
-    }
-
-    println("output queries:")
-    newplans.foreach{
-      p => println(Printer.quote(p))
     }
 
 }
