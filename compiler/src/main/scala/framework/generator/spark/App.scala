@@ -12,9 +12,12 @@ object Sharing extends App {
 
   override def main(args: Array[String]){
 
+	val dlbctest = 5000
+	// upper bound
+	val brcatest = 8000000
     // capacity in KB
-    val genv = new GenomicEnv(5000)
-    val sgenv = new GenomicEnv(5000, true)
+    val genv = new GenomicEnv(8000000)
+    val sgenv = new GenomicEnv(8000000, true)
     AppWriter.runWithCache(genv, "CacheTest,standard,covers")
     AppWriter.runWithCache(sgenv, "CacheTest,shredded,covers")
 
