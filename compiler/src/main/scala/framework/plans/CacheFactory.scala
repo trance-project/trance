@@ -2,7 +2,7 @@ package framework.plans
 
 import framework.common._
 
-class CacheFactory(progs: Vector[(CExpr, Int)], capacity: Int) {
+class CacheFactory(progs: Vector[(CExpr, Int)], capacity: Int, flex: Int = 0) {
 
     val seBuilder = SEBuilder(progs)
     seBuilder.updateSubexprs()
@@ -28,8 +28,7 @@ class CacheFactory(progs: Vector[(CExpr, Int)], capacity: Int) {
 
     val cost = new Cost(stats)
 
-    // println("FLEXIBILITY 0")
-    val selected = cost.selectCovers(ces, subs)
+    val selected = cost.selectCovers(ces, subs, flexibility = flex)
 
     // selected0.foreach{ s =>
     //   println(s._1)
@@ -46,10 +45,10 @@ class CacheFactory(progs: Vector[(CExpr, Int)], capacity: Int) {
 
     val candidates = planner.knapsack
 
-    // println("These are the input covers:")
-    // candidates.foreach{
-    //   p => println(Printer.quote(p._2))
-    // }
+    println("These are the input covers:")
+    candidates.foreach{
+      p => println(Printer.quote(p._2))
+    }
 
     val rewriter = QueryRewriter(subexprs, names = nmap)
     val newplans = rewriter.rewritePlans(progs, candidates.toMap)

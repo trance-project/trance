@@ -89,10 +89,10 @@ object AppWriter {
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
     val inputs = env.setup(skew = skew, cache = cache)
     val finalc = if (notebk){
-        val pcontents = writeParagraph(qname, inputs, header, timedOne(gcode), label, encoders)
+        val pcontents = writeParagraph(qname, timedStart(inputs), header, timedEnd(gcode), label, encoders)
         new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
       }else{
-        writeDataset(qname, inputs, header, timedOne(gcode), label, encoders)
+        writeDataset(qname, timedStart(inputs), header, timedEnd(gcode), label, encoders)
       }
       printer.println(finalc)
       printer.close 
@@ -307,6 +307,21 @@ object AppWriter {
         |var start = System.currentTimeMillis()
         |f
         |var end = System.currentTimeMillis() - start """.stripMargin
+  }
+
+  def timedStart(e: String): String = {
+    s"""|def f = {
+        |  $e
+    """.stripMargin
+  }
+
+  def timedEnd(e: String): String = {
+    s"""|  $e
+        |}
+        |var start = System.currentTimeMillis()
+        |f
+        |var end = System.currentTimeMillis() - start 
+        |""".stripMargin
   }
 
 

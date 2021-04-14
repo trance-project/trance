@@ -14,6 +14,8 @@ class GenomicEnv(init_capacity: Int, init_shred: Boolean = false) extends Enviro
 
 	val capacity: Int = init_capacity
 
+	val flex: Int = flex
+
 	val dtp = new DriverGene{ val name: String = ""; val program: Program = Program(Nil)}
 
   	val tbls = Map("occurrences" -> dtp.occurmids.tp, 
