@@ -25,10 +25,11 @@ const TableConfig = (props: _TableConfigProps) => {
 
     //Recursive method used to iterate over query table object to layout the columns and if the supply nested data.
     const createParentTreeItem = (table:Table) =>{
-        const nodeIdString=table.id.toString();
+        const nodeIdString="1";
+        const tableName = table?table.name:"UND"
         return (<StyledTreeItem key={Math.random().toString()}
                                 nodeId={nodeIdString}
-                                label={<ItemLabel checkBoxClicked={() =>{}} labelText={table.name} />}
+                                label={<ItemLabel checkBoxClicked={() =>{}} labelText={tableName} />}
                                 onClick={()=>keepExpanded(nodeIdString)}
                                 >
             {

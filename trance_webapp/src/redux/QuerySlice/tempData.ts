@@ -1,4 +1,4 @@
-import {QuerySummaryList, Query, Table, Association} from "../../utils/Public_Interfaces";
+import {QuerySummaryList, Query, Table, Association, NewQuery} from "../../utils/Public_Interfaces";
 
 /**
  * this is temp data should be removed when rest web service is active
@@ -145,3 +145,34 @@ export const querySelected = {
     children:secondLevelQuerySelected,
     associations: [sample_Occurrences_Associations]
 } as Query
+
+export const newQuerySelected =  {
+    name: "QuerySimple",
+    key: "For s in samples Union ",
+    labels: [{
+        name: "sample",
+        key: "s.bcr_patient_uuid"
+        }, {
+        name: "mutations",
+        key: "For o in occurrences Union If (s.bcr_patient_uuid = o.donorId) Then ",
+        labels: [{
+            name: "mutId",
+            key: "o.oid",
+        }, {
+            name : "scores",
+            key : "ReduceByKey[gene], [score], For t in o.transcript_consequences Union For c in copynumber Union If (t.gene_id = c.cn_gene_id AND c.cn_aliquot_uuid = s.bcr_aliquot_uuid) Then ",
+            labels : [{
+                name: "gene",
+                key : "t.gene_id"
+            }, {
+                name : "score",
+                key : "((c.cn_copy_number + 0.01) * If (t.impact = HIGH) Then 0.8 Else If (t.impact = MODERATE) Then 0.5 Else If (t.impact = LOW) Then 0.3 Else 0.01   )"
+            } ]
+        }]
+    }]
+}  as NewQuery
+
+
+
+
+

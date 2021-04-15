@@ -5,7 +5,7 @@ import NoteIcon from '@material-ui/icons/Note';
 import ForwardIcon from '@material-ui/icons/Forward';
 
 import {standardCompilationViewThemeStyle} from '../../component/CompilerViewComponent/StandardCompilationView/standardCompilationViewThemeStyle';
-import {customTabElement, Query} from "../../utils/Public_Interfaces";
+import {customTabElement} from "../../utils/Public_Interfaces";
 import StandardCompilationView from "../../component/CompilerViewComponent/StandardCompilationView/StandardCompilationView";
 import ShreddedCompilationView
     from "../../component/CompilerViewComponent/ShreddedCompilationView/ShreddedCompilationView";
@@ -27,6 +27,7 @@ const CompilerView =()=> {
     const [queryTreeDiagramState, setQueryTreeDiagramState] = useState<boolean>(false);
 
     const query = useAppSelector(state => state.query.selectedQuery);
+
 
     let hoverTimeout: NodeJS.Timeout;
 

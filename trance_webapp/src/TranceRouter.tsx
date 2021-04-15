@@ -13,6 +13,9 @@ import {useAppSelector,useAppDispatch} from './redux/Hooks/hooks';
 import {goToRoute} from './redux/NavigationSlice/navigationSlice';
 import QueryBuilder from "./containers/QueryBuilder/QueryBuilder";
 import CompilerView from "./containers/CompilerView/CompilerView";
+import Blockly_Component
+    from "./component/Query/QueryBuilderComponents/StandardCompilationBuilder/BlocklyBuilder/Blockly/Blockly_Component";
+import PaperWithHeader from "./component/ui/Paper/PaperWithHeader/PaperWithHeader";
 
 function TranceRouter() {
 
@@ -41,7 +44,9 @@ function TranceRouter() {
                                 <QueryBuilder/>
                             </Route>
                             <Route path={"/"}>
-                                <h1>home to be constructed</h1>
+                                <div style={{height: '600px', width: '1000px'}}>
+                                    <Blockly_Component/>
+                                </div>
                             </Route>
                         </Switch>
                     </Layout>

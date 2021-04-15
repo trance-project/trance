@@ -27,7 +27,6 @@ const QueryBuilder =()=>{
     const [queryState, setQueryState] = useState<Query>({
         name: "Demo_Query",
         level:'1',
-        type:"select",
         table : testData[0],
         Where: "",
         selectedColumns:[],
@@ -131,15 +130,15 @@ const QueryBuilder =()=>{
                 </Grid>
                 <Grid item xs={12} md={8} lg={9}>
                     <PaperWithHeader height={450} heading={"Query Builder"}>
-                        <StandardCompilationBuilder
-                            query={queryState}
-                            joinAction={createJoinHandler}
-                            onAssociationDelete={handleDeleteQueryAssociation}
-                            onAssociation={handleQueryAssociation}
-                            associations={queryState}
-                            onNodeClick={handleSelectedNodeStateChanged}
-                            selectedNode={selectedNodeState}
-                        />
+                        {/*<StandardCompilationBuilder*/}
+                        {/*    query={queryState}*/}
+                        {/*    joinAction={createJoinHandler}*/}
+                        {/*    onAssociationDelete={handleDeleteQueryAssociation}*/}
+                        {/*    onAssociation={handleQueryAssociation}*/}
+                        {/*    associations={queryState}*/}
+                        {/*    onNodeClick={handleSelectedNodeStateChanged}*/}
+                        {/*    selectedNode={selectedNodeState}*/}
+                        {/*/>*/}
                         <ButtonGroup className={classes.queryBtnGroup} color={"primary"} aria-label={"Contained primary button group"}>
                             <Button variant={"contained"} onClick={handleOpenModalState} endIcon={<SaveIcon/>}>Save</Button>
                         </ButtonGroup>

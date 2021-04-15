@@ -38,7 +38,7 @@ const QueryConfig = (props: _QueryConfigProps) => {
     const tabPanel:customTabElement[] | undefined = queryObject ? [
         {
             tabLabel:"Input Config",
-            jsxElement:<TableConfig table={queryObject.table} columnBoxClicked={props.config}/>
+            jsxElement: <div></div>//<TableConfig table={queryObject.table} columnBoxClicked={props.config}/>
         },
         {
             tabLabel:"Filter",

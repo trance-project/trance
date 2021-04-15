@@ -5,7 +5,6 @@ export interface Table {
     name:string;
     columns : Column[];
     abr?:string;
-    join?:Table;
 }
 
 export interface QuerySummaryList {
@@ -14,11 +13,6 @@ export interface QuerySummaryList {
     name:string;
     tables: string;
     groupedBy: string;
-}
-
-export interface Join {
-    tables:Table[];
-
 }
 
 export interface Column {
@@ -31,7 +25,6 @@ export interface Column {
 
 export interface Query {
     name: String;
-    type: "select"|"association"|"groupBy"|"sumBy";
     level: string;
     table: Table;
     Where?: string;
@@ -73,5 +66,13 @@ export type LabelAssociation = {
     join: string;
     tables?: Table[];
 }
+
+
+export interface NewQuery {
+    name?: string;
+    key: string;
+    labels? : NewQuery[]
+}
+
 
 
