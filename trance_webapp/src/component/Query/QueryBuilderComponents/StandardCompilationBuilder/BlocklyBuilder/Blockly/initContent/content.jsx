@@ -371,6 +371,9 @@ const INITIAL_TOOLBOX_XML = '<xml xmlns="http://www.w3.org/1999/xhtml" id="toolb
   + '    <block type="object_association"/>\n'
   + '    <block type="association_on"/>\n'
   + '    <block type="group_by"/>\n'
+  + '    <block type="sng_tuple"/>\n'
+  + '    <block type="tuple_attr"/>\n'
+  + '    <block type="forunion"/>\n'
   + '  </category>\n'
   + '</xml>';
 

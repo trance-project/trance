@@ -22,53 +22,6 @@ Blockly.defineBlocksWithJsonArray([{
 
     },
     {
-        "type": "tuple",
-        "message0": "{(%1)}",
-        "args0": [
-            {
-                "type": "input_statement",
-                "name": "ATTRIBUTES"
-            }
-        ],
-        "colour": 255,
-        "previousStatement": null,
-        "nextStatement": null,
-        "tooltip": "tuple",
-
-    },
-    {
-        "type": "brackets",
-        "message0": "(%1)",
-        "args0": [
-            {
-                "type": "input_statement",
-                "name": "GROUP_BY"
-            }
-        ],
-        "colour": 33,
-        "previousStatement": true,
-        "nextStatement": true,
-        "tooltip": "brackets",
-    },
-    {
-        "type": "or",
-        "message0": "||",
-        "colour": 50,
-        "previousStatement": null,
-        "nextStatement": null,
-        "tooltip": "or",
-
-    },
-    {
-        "type": "and",
-        "message0": "&&",
-        "colour": 142,
-        "previousStatement": null,
-        "nextStatement": null,
-        "tooltip": "and",
-
-    },
-    {
         "type": "tuple_el",
         "message0": "%1 %2 %3",
         "args0": [
@@ -115,6 +68,53 @@ Blockly.defineBlocksWithJsonArray([{
         "previousStatement": null,
         "nextStatement": null,
         "tooltip": "tuple_el_iteration",
+    },
+    {
+        "type": "tuple",
+        "message0": "{(%1)}",
+        "args0": [
+            {
+                "type": "input_statement",
+                "name": "ATTRIBUTES"
+            }
+        ],
+        "colour": 255,
+        "previousStatement": null,
+        "nextStatement": null,
+        "tooltip": "tuple",
+
+    },
+    {
+        "type": "brackets",
+        "message0": "(%1)",
+        "args0": [
+            {
+                "type": "input_statement",
+                "name": "GROUP_BY"
+            }
+        ],
+        "colour": 33,
+        "previousStatement": true,
+        "nextStatement": true,
+        "tooltip": "brackets",
+    },
+    {
+        "type": "or",
+        "message0": "||",
+        "colour": 50,
+        "previousStatement": null,
+        "nextStatement": null,
+        "tooltip": "or",
+
+    },
+    {
+        "type": "and",
+        "message0": "&&",
+        "colour": 142,
+        "previousStatement": null,
+        "nextStatement": null,
+        "tooltip": "and",
+
     },
     {
         "type": "object_association",
@@ -175,5 +175,60 @@ Blockly.defineBlocksWithJsonArray([{
         "previousStatement": true,
         "nextStatement": true,
         "tooltip": "group_by",
-    }
+    },
+    {
+        "type": "tuple_attr",
+        "message0": "%1 := %2",
+        "args0": [
+            {
+                "type": "field_input",
+                "name": "ATTRIBUTE_VALUE"
+            },
+            {
+                "type": "input_statement",
+                "name": "ATTRIBUTES"
+            }
+        ],
+        "colour": 33,
+        "previousStatement": ":=",
+        "nextStatement": ":=",
+        "tooltip": "brackets",
+    },
+    {
+        "type": "sng_tuple",
+        "message0": "Sng %1",
+        "args0": [
+            {
+                "type": "input_statement",
+                "name": "SINGLETON",
+                "check": [":="]
+            }
+        ],
+        // can be null here since
+        "previousStatement": null,
+        "colour": 33,
+    },
+    {
+        "type": "forunion",
+        "message0": "for %1 in %2 union",
+        "args0": [
+            {
+                "type": "field_input",
+                "name": "OBJECT_KEY",
+                "text": ""
+            },
+            {
+                "type": "field_input",
+                "name": "ATTRIBUTE_VALUE",
+                // this isn't working for singleton
+                "check": ["for", "Sng"]
+            },
+
+        ],
+        "colour": 142,
+        "nextStatement": true,
+        "previousStatement": true,
+        "tooltip": "forunion",
+
+    },
 ]);

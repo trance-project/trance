@@ -66,6 +66,22 @@ BlocklyJS['and'] = function (block){
     return ' && '
 }
 
+BlocklyJS['sng_tuple'] = function (block){
+    const attributes = Blockly.JavaScript.statementToCode(block, 'SINGLETON');
+    return `{(${attributes})}`;
+}
+
+BlocklyJS['tuple_attr'] = function (block){
+    const attributes = Blockly.JavaScript.statementToCode(block, 'ATTRIBUTES');
+    return `(${attributes})`;
+}
+
+BlocklyJS['forunion'] = function (block){
+    const assignment = validate(block.getFieldValue('OBJECT_KEY'));
+    const object = validate(block.getFieldValue( 'ATTRIBUTE_VALUE'));
+    return `For ${assignment} In ${object} Union \n`
+}
+
 
 
 const validate = (codeBlock) =>{
