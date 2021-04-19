@@ -168,33 +168,34 @@ The next step is to write and run an application that will generate the code for
 
 For now code generation is setup to use helper functions specific to benchmarking. See `src/main/scala/generator/spark/App.scala` for examples of how the benchmark experiments were created. Here we will define our own application to call the queries defined in the above section. 
 
-In `src/main/scala/generator/spark/` make a file called GenomicApp.scala. This will be the application you use to generate code from the above. Write the following in the application file:
+In `src/main/scala/generator/spark/` make a file called UdfTestApp.scala. This will be the application you use to generate code from the above. Write the following in the application file:
 
 ```
 package framework.generator.spark
 
 import framework.examples._
+import framework.examples.genomic._
 
-object TestApp extends App {
+object UdfTestApp extends App {
  
   override def main(args: Array[String]){
     
     // runs the standard pipeline
-    AppWriter.flatDataset(GenomicQuery1, "test")
+    AppWriter.runDataset(ExampleQuery, "ExampleTest,standard", optLevel = 1)
     
     // runs the shredded pipeline
-    AppWriter.shredDataset(GenomicQuery1, "test", unshred = true)
+    AppWriter.runDatasetShred(ExampleQuery, "ExampleTest,standard", optLevel = 1)
   }
 }
 ```
 
-Now, run `sbt run` from the `compiler` folder. This should give you four application numbers. Select the application number specific to `framework.generator.spark.TestApp`. You should see the NRC written out to the console and the corresponding plan underneath.
+Now, run `sbt run` from the `compiler` folder. This should give you four application numbers. Select the application number specific to `framework.generator.spark.UdfTestApp`. You should see the NRC written out to the console and the corresponding plan underneath.
 
 ### Execution
 
 After you have completed the above, the code will be written to `shredder/executor/spark/src/main/scala/sparkutils/generated/`. cd to `shredder/exectuor/spark`, compile the jar like in the example (`sbt package`). And run the jar specifying your query: 
 
 ```
-spark-submit --class sparkutils.generated.GenomicQuery1 \
+spark-submit --class sparkutils.generated.ExampleQuery \
   --master "local[*]" target/scala-2.12/sparkutils_2.12-0.1.jar
 ```
