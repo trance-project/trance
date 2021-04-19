@@ -42,6 +42,11 @@ BlocklyJS['tuple_el_iteration'] = function (block){
 
 BlocklyJS['object_association'] = function (block){
     const object_association = validate(BlocklyJS.statementToCode(block,'OBJECT_ASSOCIATION'));
+    return [`If ${object_association} Then\n`, 0];
+}
+// Todo Change name
+BlocklyJS['object_association_2'] = function (block){
+    const object_association = validate(BlocklyJS.statementToCode(block,'OBJECT_ASSOCIATION'));
     return `If ${object_association} Then\n`;
 }
 

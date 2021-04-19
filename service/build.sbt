@@ -1,4 +1,4 @@
-import sbt.Keys._
+import sqbt.Keys._
 import play.sbt.PlaySettings
 
 lazy val root = (project in file("."))
