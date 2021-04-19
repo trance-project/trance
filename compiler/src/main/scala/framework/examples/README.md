@@ -89,6 +89,7 @@ object ExampleQuery extends DriverGene {
 }
 ```
 
+Now you can follow the 'Code Generation` section below to compile and run a Spark application.
 
 
 #### Example: Defining a query from scratch
