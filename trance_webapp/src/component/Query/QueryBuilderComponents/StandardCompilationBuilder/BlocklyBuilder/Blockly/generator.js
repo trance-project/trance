@@ -17,7 +17,7 @@ BlocklyJS['text'] = function(block) {
 /**
  *  NRC Generator
  */
-BlocklyJS['for_loop'] = function (block){
+BlocklyJS['forunion'] = function (block){
     const assignment = validate(block.getFieldValue('OBJECT_KEY'));
     const object = validate(block.getFieldValue( 'ATTRIBUTE_VALUE'));
     return `For ${assignment} In ${object} Union \n`
@@ -40,12 +40,14 @@ BlocklyJS['tuple_el_iteration'] = function (block){
     return `${attribute_Name} :=\n${attribute_value}`;
 }
 
-BlocklyJS['object_association'] = function (block){
+BlocklyJS['ifstmt_primitive'] = function (block){
     const object_association = validate(BlocklyJS.statementToCode(block,'OBJECT_ASSOCIATION'));
-    return [`If ${object_association} Then\n`, 0];
+    const attributes = validate(BlocklyJS.statementToCode(block, 'ATTRIBUTES'));
+    return [`If ${object_association} Then\n ${attributes}`, 0];
 }
-// Todo Change name
-BlocklyJS['object_association_2'] = function (block){
+
+// Todo see above, conditional association, then a statement 
+BlocklyJS['ifstmt_bag'] = function (block){
     const object_association = validate(BlocklyJS.statementToCode(block,'OBJECT_ASSOCIATION'));
     return `If ${object_association} Then\n`;
 }
@@ -70,23 +72,6 @@ BlocklyJS['or'] = function (block){
 BlocklyJS['and'] = function (block){
     return ' && '
 }
-
-BlocklyJS['sng_tuple'] = function (block){
-    const attributes = Blockly.JavaScript.statementToCode(block, 'SINGLETON');
-    return `{(${attributes})}`;
-}
-
-BlocklyJS['tuple_attr'] = function (block){
-    const attributes = Blockly.JavaScript.statementToCode(block, 'ATTRIBUTES');
-    return `(${attributes})`;
-}
-
-BlocklyJS['forunion'] = function (block){
-    const assignment = validate(block.getFieldValue('OBJECT_KEY'));
-    const object = validate(block.getFieldValue( 'ATTRIBUTE_VALUE'));
-    return `For ${assignment} In ${object} Union \n`
-}
-
 
 
 const validate = (codeBlock) =>{

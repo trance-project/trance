@@ -1,7 +1,7 @@
 import Blockly from 'blockly';
 
 Blockly.defineBlocksWithJsonArray([{
-        "type": "for_loop",
+        "type": "forunion",
         "message0": "for %1 in %2 union",
         "args0": [
             {
@@ -18,7 +18,7 @@ Blockly.defineBlocksWithJsonArray([{
         "colour": 142,
         "nextStatement": "Bag",
         "previousStatement": "Bag",
-        "tooltip": "for_loop",
+        "tooltip": "For Union: Bag Type",
 
     },
     {
@@ -96,8 +96,8 @@ Blockly.defineBlocksWithJsonArray([{
             }
         ],
         "colour": 33,
-        "previousStatement": "DEFAULT",
-        "nextStatement":"DEFAULT",
+        "previousStatement": null,
+        "nextStatement": null,
         "tooltip": "brackets",
     },
     {
@@ -119,12 +119,17 @@ Blockly.defineBlocksWithJsonArray([{
 
     },
     {
-        "type": "object_association",
-        "message0": "if %1 then ",
+        "type": "ifstmt_primitive",
+        "message0": "if %1 then %2",
         "args0": [
             {
                 "type": "input_statement",
                 "name": "OBJECT_ASSOCIATION",
+                "check": "Primitive"
+            },
+            {
+                "type": "input_statement",
+                "name": "ATTRIBUTES",
                 "check": "Primitive"
             }
         ],
@@ -132,11 +137,11 @@ Blockly.defineBlocksWithJsonArray([{
         "output" : "Primitive",
         // "previousStatement": "Primitive",
         // "nextStatement": "Primitive",
-        "tooltip": "object_association",
+        "tooltip": "If Statement: Primitive Type",
 
     },
     {
-        "type": "object_association_2",
+        "type": "ifstmt_bag",
         "message0": "if %1 then",
         "args0": [
             {
@@ -148,9 +153,14 @@ Blockly.defineBlocksWithJsonArray([{
         "colour": 10,
         "previousStatement": "Bag",
         "nextStatement": "Bag",
-        "tooltip": "object_association_2",
+        "tooltip": "If Statment: Bag Type",
 
     },
+    // this should be a conditional 
+    // ==, ||, &&, <, etc. in dropdown
+    // Boolean type, with Primitive for now
+    // was also thinking it could be 
+    // a middle piece, if possible 
     {
         "type": "association_on",
         "message0": "%1 %2 %3",
@@ -172,8 +182,9 @@ Blockly.defineBlocksWithJsonArray([{
             }
         ],
         "colour": 142,
-        "previousStatement": "DEFAULT",
-        "nextStatement": "DEFAULT",
+        // "output": "Primitive",
+        "previousStatement": "Primitive",
+        "nextStatement": "Primitive",
         "tooltip": "association_on",
     },
     {
@@ -192,63 +203,8 @@ Blockly.defineBlocksWithJsonArray([{
             }
         ],
         "colour": 130,
-        "previousStatement": "DEFAULT",
-        "nextStatement": "DEFAULT",
+        "previousStatement": "Bag",
+        "nextStatement": "Bag",
         "tooltip": "group_by",
-    },
-    // {
-    //     "type": "tuple_attr",
-    //     "message0": "%1 := %2",
-    //     "args0": [
-    //         {
-    //             "type": "field_input",
-    //             "name": "ATTRIBUTE_VALUE"
-    //         },
-    //         {
-    //             "type": "input_statement",
-    //             "name": "ATTRIBUTES"
-    //         }
-    //     ],
-    //     "colour": 33,
-    //     "previousStatement": ":=",
-    //     "nextStatement": ":=",
-    //     "tooltip": "brackets",
-    // },
-    // {
-    //     "type": "sng_tuple",
-    //     "message0": "Sng %1",
-    //     "args0": [
-    //         {
-    //             "type": "input_statement",
-    //             "name": "SINGLETON",
-    //             "check": [":="]
-    //         }
-    //     ],
-    //     // can be null here since
-    //     "previousStatement": "DEFAULT",
-    //     "colour": 33,
-    // },
-    // {
-    //     "type": "forunion",
-    //     "message0": "for %1 in %2 union",
-    //     "args0": [
-    //         {
-    //             "type": "field_input",
-    //             "name": "OBJECT_KEY",
-    //             "text": ""
-    //         },
-    //         {
-    //             "type": "field_input",
-    //             "name": "ATTRIBUTE_VALUE",
-    //             // this isn't working for singleton
-    //             "check": ["for", "Sng"]
-    //         },
-    //
-    //     ],
-    //     "colour": 142,
-    //     "nextStatement": "DEFAULT",
-    //     "previousStatement": "DEFAULT",
-    //     "tooltip": "forunion",
-    //
-    // },
+    }
 ]);
