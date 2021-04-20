@@ -132,7 +132,6 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
 
         case (n: Nest, id) => 
           val childCover = rewritePlanOverCover((n.in, id), covers)
-
           val v = Variable.freshFromBag(childCover.tp)
           Nest(childCover, v, n.key, replace(n.value, v), replace(n.filter, v), n.nulls, n.ctag)
 
@@ -213,9 +212,12 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
           Reduce(p1, v1, ks1, vs1)
         }  
 
+      // need to handle outer case
       case (u1:UnnestOp, u2:UnnestOp) => 
         assert(u1.path == u2.path)
-        Projection(cover, v, replace(u1.filter, v), u1.fields)
+        val fs = (u1.fields ++ u2.fields).toSet
+        val nrec = Record(fs.map(f => f -> Project(v, f)).toMap)
+        Projection(cover, v, nrec, fs.toList)
 
       // reapply the projection
       case (p1:Projection, p2:Projection) => 

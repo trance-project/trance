@@ -16,6 +16,10 @@ trait Environment {
 
 	val shred: Boolean
 
+	val flex: Int
+
+	val plannerType: String
+
 	val tbls: Map[String, Type]
 
 	def setup(shred: Boolean = shred, skew: Boolean = false, cache: Boolean = false): String

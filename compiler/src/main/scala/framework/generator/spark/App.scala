@@ -12,12 +12,17 @@ object Sharing extends App {
 
   override def main(args: Array[String]){
 
+  // val dlbctest = 371520
+  // total is ~4500 so way underestimated
 	val dlbctest = 5000
 	// upper bound
 	val brcatest = 8000000
     // capacity in KB
-    val genv = new GenomicEnv(8000000)
-    val sgenv = new GenomicEnv(8000000, true)
+    val flex = 3
+    val ptype = "dynamic"
+    // val ptype = "greedy"
+    val genv = new GenomicEnv(dlbctest, init_flex = flex, ptype = ptype)
+    val sgenv = new GenomicEnv(dlbctest, init_shred = true, init_flex = flex, ptype = ptype)
     AppWriter.runWithCache(genv, "CacheTest,standard,covers")
     AppWriter.runWithCache(sgenv, "CacheTest,shredded,covers")
 

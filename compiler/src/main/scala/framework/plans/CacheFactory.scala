@@ -2,7 +2,7 @@ package framework.plans
 
 import framework.common._
 
-class CacheFactory(progs: Vector[(CExpr, Int)], capacity: Int, flex: Int = 0) {
+class CacheFactory(progs: Vector[(CExpr, Int)], capacity: Int, flex: Int = 0, ptype: String = "greedy") {
 
     val seBuilder = SEBuilder(progs)
     seBuilder.updateSubexprs()
@@ -40,10 +40,18 @@ class CacheFactory(progs: Vector[(CExpr, Int)], capacity: Int, flex: Int = 0) {
 
     // println(totalSize)
 
-    val planner = new GreedyCachePlanner(selected, capacity)
-    planner.solve()
+    val candidates = ptype match {
+        case "dynamic" =>
+            val planner = new DynamicCachePlanner(selected)
+            planner.solve(capacity).selected
 
-    val candidates = planner.knapsack
+        case "greedy" => 
+            val planner = new GreedyCachePlanner(selected, capacity)
+            planner.solve()
+            planner.knapsack
+
+        case _ => sys.error(s"unsupported cache type $ptype")
+    }
 
     println("These are the input covers:")
     candidates.foreach{
@@ -55,6 +63,7 @@ class CacheFactory(progs: Vector[(CExpr, Int)], capacity: Int, flex: Int = 0) {
     // val newcovers = rewriter.coverset
     val execOrder = rewriter.ordered
 
+    println("Execution order:")
     execOrder.foreach{
         p => println(Printer.quote(p))
     }
