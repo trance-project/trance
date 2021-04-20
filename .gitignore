@@ -62,3 +62,5 @@ yarn.lock
 service/docs/
 service/gatling/
 service/logs/
+service/project/project
+service/projeect/target
