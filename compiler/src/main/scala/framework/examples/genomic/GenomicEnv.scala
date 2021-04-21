@@ -6,7 +6,7 @@ import framework.plans._
 import framework.loader.csv._
 
 
-class GenomicEnv(init_capacity: Int, init_shred: Boolean = false, init_flex: Int = 0, ptype: String = "greedy") extends Environment {
+class GenomicEnv(init_capacity: Int, init_shred: Boolean = false, init_flex: Int = 0, ptype: String = "greedy", repeat: Int = 1) extends Environment {
 	
 	val name = "GenomicEnv"
 
@@ -62,7 +62,7 @@ class GenomicEnv(init_capacity: Int, init_shred: Boolean = false, init_flex: Int
 		}
 	}
 
-	val queries: Vector[Query] = Vector(TestBaseQuery, TestBaseQuery2, TestBaseQuery3)
+	val queries: Vector[Query] = Vector(TestBaseQuery, TestBaseQuery2) //, TestBaseQuery3)
 
 	val plans: Vector[(CExpr, Int)] = queries.map(q => 
 		q.optimized(shred, optLevel, schema).asInstanceOf[CExpr]).zipWithIndex
