@@ -69,13 +69,23 @@ trait ReducibleType
 trait TupleAttributeType extends Type
 
 trait PrimitiveType extends TupleAttributeType
-case object BoolType extends PrimitiveType
-case object StringType extends PrimitiveType
+case object BoolType extends PrimitiveType{
+  override def toString() = "bool"
+}
+case object StringType extends PrimitiveType{
+  override def toString() = "string"
+}
 
 trait NumericType extends PrimitiveType with ReducibleType
-case object IntType extends NumericType
-case object LongType extends NumericType
-case object DoubleType extends NumericType
+case object IntType extends NumericType {
+  override def toString() = "int"
+}
+case object LongType extends NumericType {
+  override def toString() = "long"
+}
+case object DoubleType extends NumericType{
+  override def toString() = "double"
+}
 
 object NumericType {
 

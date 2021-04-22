@@ -8,6 +8,11 @@ import play.api.{Logger, MarkerContext}
 
 import scala.concurrent.Future
 
+import framework.common._
+import framework.examples.genomic._
+import framework.nrc._
+import scala.collection.immutable.Map
+
 final case class QueryData(id: QueryId, title: String, body: String)
 
 class QueryId private (val underlying: Int) extends AnyVal {
@@ -21,14 +26,28 @@ object QueryId {
   }
 }
 
+class QueryString private (val underlying: String) extends AnyVal {
+  override def toString: String = underlying.toString
+}
+
+object QueryString {
+  def apply(raw: String): QueryString = {
+    require(raw != null)
+    new QueryString(raw)
+  }
+}
+
 class QueryExecutionContext @Inject()(actorSystem: ActorSystem)
     extends CustomExecutionContext(actorSystem, "repository.dispatcher")
 
 /**
   * A pure non-blocking interface for the QueryRepository.
   */
-trait QueryRepository {
+trait QueryRepository { //extends MaterializeNRC{
+
   def create(data: QueryData)(implicit mc: MarkerContext): Future[QueryId]
+
+  def compile(data: QueryData)(implicit mc: MarkerContext): Future[QueryString]
 
   def list()(implicit mc: MarkerContext): Future[Iterable[QueryData]]
 
@@ -45,6 +64,8 @@ trait QueryRepository {
 @Singleton
 class QueryRepositoryImpl @Inject()()(implicit ec: QueryExecutionContext)
     extends QueryRepository {
+      // with Printer {
+      // this: MaterializeNRC =>
 
   private val logger = Logger(this.getClass)
 
@@ -55,6 +76,15 @@ class QueryRepositoryImpl @Inject()()(implicit ec: QueryExecutionContext)
     QueryData(QueryId("4"), "query4", "for a in boop"),
     QueryData(QueryId("5"), "query5", "for b in baap")
   )
+
+  // private val occur = new Occurrence{}
+  // private val cnum = new CopyNumber{}
+  // private val samps = new Biospecimen{}
+  // private val tbls = Map("occurrences" -> BagType(occur.occurmid_type), 
+  //              "copynumber" -> BagType(cnum.copyNumberType), 
+  //              "samples" -> BagType(samps.biospecType))
+
+  // private val parser = Parser(tbls)
 
   override def list()(
       implicit mc: MarkerContext): Future[Iterable[QueryData]] = {
@@ -76,6 +106,16 @@ class QueryRepositoryImpl @Inject()()(implicit ec: QueryExecutionContext)
     Future {
       logger.trace(s"create: data = $data")
       data.id
+    }
+  }
+
+  def compile(data: QueryData)(implicit mc: MarkerContext): Future[QueryString] = {
+    Future {
+      logger.trace(s"compile ${data.title}")
+      val program = "fake program!!!"
+      // val program = parser.parse(data.body).get.asInstanceOf[Program]
+      // logger.trace(s"compiled ${quote(program)}")
+      QueryString(program)//quote(program))
     }
   }
 

@@ -60,6 +60,11 @@ class QueryRouter @Inject()(controller: QueryController) extends SimpleRouter {
       // but it should actually call out to the compiler
       controller.getQuery(id)
 
+    case POST(p"/") =>
+      // this should accept a query string and 
+      // parser, compile, etc.
+      controller.compileQuery
+
     case r => 
       sys.error(s"Route not found: $r")
       

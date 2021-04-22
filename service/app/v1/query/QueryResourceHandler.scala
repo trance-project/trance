@@ -35,6 +35,15 @@ class QueryResourceHandler @Inject()(
     }
   }
 
+  def compile(queryInput: QueryFormInput)(
+      implicit mc: MarkerContext): Future[QueryResource] = {
+    val data = QueryData(QueryId("999"), queryInput.title, queryInput.body)
+    // We don't actually create the query, so return what we have
+    queryRepository.compile(data).map { program =>
+      createQueryResource(QueryData(data.id, data.title, program.toString()))
+    }
+  }
+
   def lookup(id: String)(
       implicit mc: MarkerContext): Future[Option[QueryResource]] = {
     val queryFuture = queryRepository.get(QueryId(id))

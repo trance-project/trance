@@ -11,3 +11,5 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.8" % "test"
 // https://mvnrepository.com/artifact/org.apache.spark/spark-mllib
 libraryDependencies += "org.apache.spark" %% "spark-mllib" % sparkVersion
 libraryDependencies += "net.liftweb" %% "lift-json" % "3.3.0-M3"
+libraryDependencies += "io.spray" %%  "spray-json" % "1.3.6"
+libraryDependencies += "com.typesafe.play" %% "play-json" % "2.10.0-RC2"

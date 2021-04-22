@@ -46,6 +46,14 @@ class QueryController @Inject()(cc: QueryControllerComponents)(
     processJsonQuery()
   }
 
+  def compileQuery: Action[AnyContent] = QueryAction.async { implicit request =>
+    logger.trace("update query: id = $id")
+    // this just processes the submitted json, 
+    // but it should update the entry in mongo 
+    // with the appropriate values in the posted json
+    processJsonQuery()
+  }
+
   def getQuery(id: String): Action[AnyContent] = QueryAction.async {
     implicit request =>
       logger.trace(s"get query: id = $id")
