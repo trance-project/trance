@@ -21,14 +21,14 @@ object Sharing extends App {
     val flex = 0
     // val ptype = "dynamic"
     val ptype = "greedy"
-    val genv = new GenomicEnv(dlbctest, init_flex = flex, ptype = ptype)
+    // val genv = new GenomicEnv(dlbctest, init_flex = flex, ptype = ptype)
     val sgenv = new GenomicEnv(dlbctest, init_shred = true, init_flex = flex, ptype = ptype)
-    AppWriter.runWithCache(genv, "CacheTest,standard,covers")
+    // AppWriter.runWithCache(genv, "CacheTest,standard,covers")
     AppWriter.runWithCache(sgenv, "CacheTest,shredded,covers")
 
     // cache inputs
-    AppWriter.runWithCache(genv, "CacheTest,standard,cacheinputs", cache = true)
-    AppWriter.runWithCache(sgenv, "CacheTest,shredded,cacheinputs", cache = true)
+    // AppWriter.runWithCache(genv, "CacheTest,standard,cacheinputs", cache = true)
+    // AppWriter.runWithCache(sgenv, "CacheTest,shredded,cacheinputs", cache = true)
 
   // AppWriter.runDataset(HybridQuery, "Testing,standard", optLevel=1)
 
