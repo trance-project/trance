@@ -1,3 +1,5 @@
 minPartitions=400
 maxPartitions=1000
 threshold=.0025
+vephome=vep
+vepcache=/mnt/app_hdd/shredder/executor/spark/homo_sapiens

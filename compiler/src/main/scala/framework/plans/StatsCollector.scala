@@ -99,14 +99,14 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) { //, inputs: Map[String, Stri
     val ghead = generator.generateHeader()
     val genc = generator.generateEncoders()
     val data = s"""
-      |   val copynumber = spark.table("copynumber")
-      |   val occurrences = spark.table("occurrences")
-      |   val samples = spark.table("samples")
+      |   val copynumber = spark.table("fcopynumber")
+      |   val occurrences = spark.table("foccurrences")
+      |   val samples = spark.table("fsamples")
       |   val IBag_copynumber__D = copynumber
       |   val IBag_samples__D = samples
-      |   val IBag_occurrences__D = spark.table("odict1")
-      |   val IDict_occurrences__D_transcript_consequences = spark.table("odict2")
-      |   val IDict_occurrences__D_transcript_consequences_consequence_terms = spark.table("odict3")
+      |   val IBag_occurrences__D = spark.table("fodict1")
+      |   val IDict_occurrences__D_transcript_consequences = spark.table("fodict2")
+      |   val IDict_occurrences__D_transcript_consequences_consequence_terms = spark.table("fodict3")
       """
     var fname = "../executor/spark/src/main/scala/sparkutils/generated/GenerateCosts"
     val fconts = if (!notebk) {
