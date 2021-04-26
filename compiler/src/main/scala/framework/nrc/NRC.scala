@@ -143,12 +143,14 @@ trait NRC extends BaseExpr {
     def apply(fs: (String, TupleAttributeExpr)*): Tuple = Tuple(Map(fs: _*))
   }
 
-  trait Let {
+  trait Let extends Expr {
     def x: VarDef
 
     def e1: Expr
 
     def e2: Expr
+
+    def tp: Type
   }
 
   final case class NumericLet(x: VarDef, e1: Expr, e2: NumericExpr) extends NumericExpr with Let {
