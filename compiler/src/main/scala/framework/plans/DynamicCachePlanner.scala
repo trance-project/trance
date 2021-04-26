@@ -3,14 +3,14 @@ package framework.plans
 import framework.common._
 import scala.collection.mutable.Map
 
-case class Result(profit: Double, selected: Vector[(Integer, CExpr)])
+case class Result(profit: Double, selected: Vector[(Integer, CNamed)])
 
 class DynamicCachePlanner(covers: Map[Integer, CostEstimate]) {
 
 	val initialSize = covers.size
 	val coverSet = covers.toVector
 
-	val init = Result(0.0, Vector.empty[(Integer, CExpr)])
+	val init = Result(0.0, Vector.empty[(Integer, CNamed)])
 
 	def max(x: Result, y: Result): Result = if (x.profit >= y.profit) x else y
 

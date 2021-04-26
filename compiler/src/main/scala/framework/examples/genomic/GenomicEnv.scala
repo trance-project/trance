@@ -6,7 +6,7 @@ import framework.plans._
 import framework.loader.csv._
 
 
-class GenomicEnv(init_capacity: Int, init_shred: Boolean = false) extends Environment {
+class GenomicEnv(init_capacity: Int, init_shred: Boolean = false, init_flex: Int = 0, ptype: String = "greedy", repeat: Int = 1) extends Environment {
 	
 	val name = "GenomicEnv"
 
@@ -14,7 +14,9 @@ class GenomicEnv(init_capacity: Int, init_shred: Boolean = false) extends Enviro
 
 	val capacity: Int = init_capacity
 
-	val flex: Int = flex
+	val flex: Int = init_flex
+
+	val plannerType: String = ptype
 
 	val dtp = new DriverGene{ val name: String = ""; val program: Program = Program(Nil)}
 
@@ -60,11 +62,11 @@ class GenomicEnv(init_capacity: Int, init_shred: Boolean = false) extends Enviro
 		}
 	}
 
-	val queries: Vector[Query] = Vector(TestBaseQuery, TestBaseQuery2, TestBaseQuery3)
+	val queries: Vector[Query] = Vector(TestBaseQuery, TestBaseQuery2) //, TestBaseQuery3)
 
 	val plans: Vector[(CExpr, Int)] = queries.map(q => 
 		q.optimized(shred, optLevel, schema).asInstanceOf[CExpr]).zipWithIndex
 
-	val cacheStrategy: CacheFactory = new CacheFactory(plans, capacity)
+	val cacheStrategy: CacheFactory = new CacheFactory(plans, capacity, flex = init_flex, ptype = plannerType)
 
 }

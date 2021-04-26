@@ -12,18 +12,23 @@ object Sharing extends App {
 
   override def main(args: Array[String]){
 
+  // val dlbctest = 371520
+  // total is ~4500 so way underestimated
 	val dlbctest = 5000
 	// upper bound
 	val brcatest = 8000000
     // capacity in KB
-    val genv = new GenomicEnv(8000000)
-    val sgenv = new GenomicEnv(8000000, true)
-    AppWriter.runWithCache(genv, "CacheTest,standard,covers")
+    val flex = 0
+    // val ptype = "dynamic"
+    val ptype = "greedy"
+    // val genv = new GenomicEnv(dlbctest, init_flex = flex, ptype = ptype)
+    val sgenv = new GenomicEnv(dlbctest, init_shred = true, init_flex = flex, ptype = ptype)
+    // AppWriter.runWithCache(genv, "CacheTest,standard,covers")
     AppWriter.runWithCache(sgenv, "CacheTest,shredded,covers")
 
     // cache inputs
-    AppWriter.runWithCache(genv, "CacheTest,standard,cacheinputs", cache = true)
-    AppWriter.runWithCache(sgenv, "CacheTest,shredded,cacheinputs", cache = true)
+    // AppWriter.runWithCache(genv, "CacheTest,standard,cacheinputs", cache = true)
+    // AppWriter.runWithCache(sgenv, "CacheTest,shredded,cacheinputs", cache = true)
 
   // AppWriter.runDataset(HybridQuery, "Testing,standard", optLevel=1)
 
@@ -82,10 +87,10 @@ object App {
   val schema = TPCHSchema.getSchema()
  
   def main(args: Array[String]){
-    runFlatToNested()
+    // runFlatToNested()
     runNestedToNested()
     // runNestedToFlat()
-    runSkewHandling()
+    // runSkewHandling()
   }
 
   def runFlatToNested(){
@@ -105,7 +110,7 @@ object App {
     AppWriter.runDatasetInput(Test2FullFlat, Test2NN, "Flat,2", schema = schema)
     
     // shredded pipeline + unshredding
-    AppWriter.runDatasetInputShred(Test2Full, Test2NN, "Shred,2", unshred=false, schema = schema)
+    // AppWriter.runDatasetInputShred(Test2Full, Test2NN, "Shred,2", unshred=false, schema = schema)
   }
 
   def runNestedToFlat(){
