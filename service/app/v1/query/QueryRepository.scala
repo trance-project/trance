@@ -8,11 +8,6 @@ import play.api.{Logger, MarkerContext}
 
 import scala.concurrent.Future
 
-import framework.common._
-import framework.examples.genomic._
-import framework.nrc._
-import scala.collection.immutable.Map
-
 final case class QueryData(id: QueryId, title: String, body: String)
 
 class QueryId private (val underlying: Int) extends AnyVal {
