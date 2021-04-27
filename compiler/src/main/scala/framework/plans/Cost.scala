@@ -50,6 +50,14 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
   val default = Estimate(DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC)
   val statDefault = Statistics(1L, 1L)
 
+  def estimate(plans: Vector[(CExpr, Int)]): Map[Int, Estimate] = {
+    val ests = Map.empty[Int, Estimate]
+    plans.foreach{ p =>
+      ests(p._2) = estimate(p._1)
+    }
+    ests
+  }
+
   // single plan estimate
   def estimate(plan: CExpr): Estimate = {
     val stat = stats.getOrElse(plan.vstr, statDefault)

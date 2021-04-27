@@ -420,7 +420,7 @@ object TestMaterialization extends App
 
   def testLet(): Unit = {
 
-    val tbls = genomic.LetTest0.tbls
+    val tbls = genomic.LetTest0().tbls
 
     val imp = """if (t.impact = "HIGH") then 0.80 
                   else if (t.impact = "MODERATE") then 0.50

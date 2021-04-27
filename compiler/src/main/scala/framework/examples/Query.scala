@@ -15,7 +15,9 @@ trait Query extends Materialization
   with Shredding
   with NRCTranslator {
 
-  val normalizer = new Finalizer(new BaseNormalizer{})
+  val letOpt: Boolean = false
+  val normal = new BaseNormalizer(letOpt)
+  val normalizer = new Finalizer(normal)
   val baseTag: String = "_2"
 
   val name: String
@@ -29,10 +31,19 @@ trait Query extends Materialization
   def calculus: CExpr = {
     println("RUNNING STANDARD PIPELINE:\n")
     println(quote(program))
-    translate(program)
+    val c = translate(program)
+    println("this calculus")
+    println(Printer.quote(c))
+    c
   }
 
-  def normalize: CExpr = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
+  def normalize: CExpr = {
+    println("running normalizer with "+letOpt)
+    val n = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
+    println("this is normalized")
+    println(Printer.quote(n))
+    n
+  }
   
   def unnest: CExpr = Unnester.unnest(this.normalize)(Map(), Map(), None, baseTag)
 
@@ -65,6 +76,8 @@ trait Query extends Materialization
       val ncalc = normalizer.finalize(translate(mprogram)).asInstanceOf[CExpr]
       Unnester.unnest(ncalc)(Map(), Map(), None, "_2")
     }else this.unnest
+    println("before optimization")
+    println(Printer.quote(unopt))
     val opt = optLevel match {
       case 0 => unopt
       case 1 => optimizer.applyPush(unopt)

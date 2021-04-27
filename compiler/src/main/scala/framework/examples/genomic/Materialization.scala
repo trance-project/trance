@@ -4,8 +4,8 @@ import framework.common._
 import framework.examples.Query
 import framework.nrc.Parser
 
-object LetTest0 extends DriverGene {
-  
+class LetTest0(override val letOpt: Boolean = false) extends DriverGene {
+
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
     if (shred){
       s"""|val samples = spark.table("samples")
@@ -46,7 +46,8 @@ object LetTest0 extends DriverGene {
 
     val query = 
     	s"""
-	      	let cnvCases := 
+        initScores <= 
+	      let cnvCases := 
 		        for s in samples union 
 		          for c in copynumber union 
 		            if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
@@ -56,22 +57,26 @@ object LetTest0 extends DriverGene {
     				for t in o.transcript_consequences union 
     					for c in cnvCases union 
     						if (o.donorId = c.sid && t.gene_id = c.gene)
-    						then {(hybrid_case := o.donorId, hybrid_gene := t.gene_id, hybrid_score := $imp * (c.cnum + 0.01))}).sumBy({hybrid_case, hybrid_gene}, {hybrid_score})
+    						then {(hybrid_case := o.donorId, hybrid_gene := t.gene_id, hybrid_score := $imp * (c.cnum + 0.01))}).sumBy({hybrid_case, hybrid_gene}, {hybrid_score});
+    	
+        LetTest0 <= 
+    		for s in samples union 
+    			{( hybrid_sample := s.bcr_patient_uuid,
+    			   hybrid_aliquot := s.bcr_aliquot_uuid,
+    			   hybrid_center := s.center_id,
+    			   hybrid_genes := for i in initScores union
+    			   	if (s.bcr_patient_uuid = i.hybrid_case)
+    			   	then {(hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_gene)})}
     	"""
-    	    		// let initScores :=
-    	// 	in
-    	// 	for s in samples union 
-    	// 		{( hybrid_sample := s.bcr_patient_uuid,
-    	// 		   hybrid_aliquot := s.bcr_aliquot_uuid,
-    	// 		   hybrid_center := s.center_id,
-    	// 		   hybrid_genes := for i in initScores union
-    	// 		   	if (s.bcr_patient_uuid = i.hybrid_case)
-    	// 		   	then {(hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_gene)})}
-    	// """
 
     val parser = Parser(tbls)
-    // val program = parser.parse(query).get.asInstanceOf[Program]
-    val bagexpr = parser.parse(query, parser.term).get.asInstanceOf[BagExpr]
-    val program = Program(Assignment(name, bagexpr))
+    val program = parser.parse(query).get.asInstanceOf[Program]
+    // val bagexpr = parser.parse(query, parser.term).get.asInstanceOf[BagExpr]
+    // val program = Program(Assignment(name, bagexpr))
 
+}
+
+object LetTest0 {
+  def apply(letOpt: Boolean = false): Query = new LetTest0(letOpt)
+  def apply(): LetTest0 = new LetTest0()
 }

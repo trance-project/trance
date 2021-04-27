@@ -60,18 +60,22 @@ object AppWriter {
     val codegen = new SparkDatasetGenerator(false, false, optLevel = env.optLevel, skew = skew)
     var gcode = ""
 
-    val cstrat = if (cache) env.plans.map(_._1) else env.cacheStrategy.execOrder
+    val cstrat = env.cacheStrategy match {
+      case Some(cs) if !cache => cs.execOrder
+      case _ => env.plans.map(_._1) 
+    }
 
+    println("Evaluating these plans")
     for (q <- cstrat){
       val anfBase = new BaseOperatorANF{}
       val anfer = new Finalizer(anfBase)
+      // println(Printer.quote(q))
       q match {
         case c:CNamed if c.name.contains("Cover") => 
           gcode += cachegen.generate(anfBase.anf(anfer.finalize(q).asInstanceOf[anfBase.Rep]))
         case _ => 
           gcode += codegen.generate(anfBase.anf(anfer.finalize(q).asInstanceOf[anfBase.Rep]))
       }
-      
     }
 
     val header = s"""|${cachegen.generateHeader()}

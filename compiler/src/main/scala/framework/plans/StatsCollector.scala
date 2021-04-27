@@ -50,7 +50,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) { //, inputs: Map[String, Stri
       case _ => (None, None)
     }
 
-  def generateSpark(plans: List[CNamed], notebk: Boolean = false): Unit = {
+  def generateSpark(plans: Seq[CNamed], notebk: Boolean = false): Unit = {
     val generator = new SparkDatasetGenerator(false, false, evalFinal=false, dedup = false)
 
     // this ensures that the full program is defined 
@@ -148,16 +148,29 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) { //, inputs: Map[String, Stri
     runCost(cnames) 
   }
 
+  def getStats(notebk: Boolean = true): Map[String, Statistics] = {
+    def toCname(id: Int, e:CExpr): CNamed = e match {
+      case CNamed(n, e1) => CNamed(n+id, e1)
+      case _ => ???
+    }
+
+    val cplans = progs.flatMap{ p => p match {
+      case (LinearCSet(cs), id) => cs.map(c => toCname(id, c)).toSeq
+      case _ => Seq(toCname(p._2, p._1))
+    }}.toSeq
+    runCost(cplans, notebk)
+  }
+
   def getCost(subs: Map[Integer, List[SE]], covers: IMap[Integer, CNamed], notebk: Boolean = true): Map[String, Statistics] = {
-    val coverList = covers.values.toList
+    val coverList = covers.values.toSeq
     val plans = getSubs(subs) ++ coverList
     // could handle duplicates better
     coverList.foreach{ ce => updateNameMap(ce.vstr, ce.name) }
     runCost(plans, notebk)
   }
 
-  def getSubs(plans: Map[Integer, List[SE]]): List[CNamed] = {
-    plans.values.toList.flatMap{ ses => ses.map{
+  def getSubs(plans: Map[Integer, List[SE]]): Seq[CNamed] = {
+    plans.values.toSeq.flatMap{ ses => ses.map{
       case se => 
         se.subplan match {
           case i:InputRef => CNamed(updateNameMap(i.vstr, i.data), i)
@@ -168,13 +181,13 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) { //, inputs: Map[String, Stri
   }
 
   def getCoverCost(plans: IMap[Integer, CNamed], notebk: Boolean = true): Map[String, Statistics] = {
-    val cnames = plans.values.toList
+    val cnames = plans.values
     cnames.foreach{ ce => updateNameMap(ce.e.vstr, ce.name) }
-    runCost(cnames, notebk) 
+    runCost(cnames.toSeq, notebk) 
   }
 
   // this is a slightly faster solution
-  def runCost(plans: List[CNamed], notebk: Boolean = false): Map[String, Statistics] = {
+  def runCost(plans: Seq[CNamed], notebk: Boolean = false): Map[String, Statistics] = {
     generateSpark(plans, notebk)
     if (!notebk){
       "sh compile.sh".!!

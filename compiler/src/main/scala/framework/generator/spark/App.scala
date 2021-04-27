@@ -11,8 +11,13 @@ import framework.loader.csv._
 object LetExplore extends App {
   override def main(args: Array[String]){
     val dlbctest = 5000
-    val lenv = new LetTestEnv(dlbctest, init_shred=true)
-    AppWriter.runWithCache(lenv, "LetTest,shredded,cacheinputs", cache = true)
+    val lenv = new LetTestEnv(dlbctest) //, init_shred=true)
+    val ests = lenv.estimates
+    lenv.plans.foreach{ p =>
+      println(Printer.quote(p._1))
+      println("\nCost: "+ests(p._2)+"\n")
+    }
+    // AppWriter.runWithCache(lenv, "LetTest,shredded,cacheinputs", cache = true)
   }
 }
 

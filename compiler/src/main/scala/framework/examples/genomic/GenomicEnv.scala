@@ -67,11 +67,13 @@ class GenomicEnv(init_capacity: Int, init_shred: Boolean = false, init_flex: Int
 	val plans: Vector[(CExpr, Int)] = queries.map(q => 
 		q.optimized(shred, optLevel, schema).asInstanceOf[CExpr]).zipWithIndex
 
-	val cacheStrategy: CacheFactory = new CacheFactory(plans, capacity, flex = init_flex, ptype = plannerType)
+	val cacheStrategy: Option[CacheFactory] = 
+		Some(new CacheFactory(plans, capacity, flex = init_flex, ptype = plannerType))
 
 }
 
-class LetTestEnv(init_capacity: Int, init_shred: Boolean = false, init_flex: Int = 0, ptype: String = "greedy", repeat: Int = 1) extends Environment {
+class LetTestEnv(init_capacity: Int, init_shred: Boolean = false, 
+	init_flex: Int = 0, ptype: String = "greedy", repeat: Int = 1) extends Environment {
 	
 	val name = "LetTestEnv"
 
@@ -127,12 +129,22 @@ class LetTestEnv(init_capacity: Int, init_shred: Boolean = false, init_flex: Int
 		}
 	}
 
-	val queries: Vector[Query] = Vector(LetTest0)
+	// normalize lets
+	val query1 = LetTest0()
+	// don't normalize let's
+	val query2 = LetTest0(true)
+
+	val queries: Vector[Query] = Vector(query1, query2)
 
 	val plans: Vector[(CExpr, Int)] = queries.map(q => 
 		q.optimized(shred, optLevel, schema).asInstanceOf[CExpr]).zipWithIndex
 
-	// change this to an option
-	val cacheStrategy: CacheFactory = new CacheFactory(plans, capacity, flex = init_flex, ptype = plannerType)
+	val stater = new StatsCollector(plans)
+	val stats = stater.getStats()
+	print(stats)
+	val cost = new Cost(stats)
+	val estimates = cost.estimate(plans)
+
+	val cacheStrategy: Option[CacheFactory] = None
 
 }
