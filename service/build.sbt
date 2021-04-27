@@ -1,11 +1,12 @@
 import sbt.Keys._
 import play.sbt.PlaySettings
 
+scalaVersion := "2.12.8"
+
 lazy val root = (project in file("."))
   .enablePlugins(PlayService, PlayLayoutPlugin, Common)
   .settings(
     name := "trance-service",
-    scalaVersion := "2.13.5",
     libraryDependencies ++= Seq(
       guice,
       "org.joda" % "joda-convert" % "2.2.1",
@@ -25,7 +26,6 @@ lazy val gatlingVersion = "3.3.1"
 lazy val gatling = (project in file("gatling"))
   .enablePlugins(GatlingPlugin)
   .settings(
-    scalaVersion := "2.12.13",
     libraryDependencies ++= Seq(
       "io.gatling.highcharts" % "gatling-charts-highcharts" % gatlingVersion % Test,
       "io.gatling" % "gatling-test-framework" % gatlingVersion % Test
