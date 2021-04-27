@@ -1,1 +1,26 @@
-->		   /v1/query			   v1.query.QueryRouter
+# Trance Objects
+GET       /tranceObject                      v1.TranceObjectController.getAll
+GET       /tranceObject/:id                  v1.TranceObjectController.getTranceObject(id: java.util.UUID)
++ nocsrf
+POST      /tranceObject                      v1.TranceObjectController.createTranceObject
++ nocsrf
+PATCH     /tranceObject/:id                 v1.TranceObjectController.updateTranceObject(id: java.util.UUID)
++ nocsrf
+DELETE    /tranceObject/:id                 v1.TranceObjectController.delete(id: java.util.UUID)
+
+GET       /query                      v1.QueryController.getAll
+GET       /query/:id                  v1.QueryController.getQuery(id: java.util.UUID)
++ nocsrf
+POST      /query                      v1.QueryController.createQuery
++ nocsrf
+PATCH     /query/:id                 v1.QueryController.updateUpdateQuery(id: java.util.UUID)
++ nocsrf
+DELETE    /query/:id                 v1.QueryController.delete(id: java.util.UUID)
+
+# Swagger docs
+GET       /                           v1.ApiDocsController.redirectToDocs
+GET       /swagger.json               controllers.ApiHelpController.getResources
+GET       /api-docs                   v1.ApiDocsController.redirectToDocs
+
+# Map static resources from the /public folder to the /assets URL path
+GET       /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
