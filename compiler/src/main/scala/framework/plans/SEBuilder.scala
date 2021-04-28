@@ -160,10 +160,10 @@ class SEBuilder(progs: Vector[(CExpr, Int)]) extends Extensions {
       // a domain should never be a cache candidate?
       case (c:CNamed, id) =>
         if (!c.name.contains("Dom")){
-
-          // val sig = subexprs(plan)
-          // sigmap(sig) = sigmap(sig) :+ SE(id, c, acc)
-
+          // if (!limit){
+          //   val sig = subexprs(plan)
+          //   sigmap(sig) = sigmap(sig) :+ SE(id, c, acc)
+          // }
           traversePlan((c.e, id), acc+1)
         }
 

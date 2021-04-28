@@ -50,11 +50,17 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
   val default = Estimate(DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC)
   val statDefault = Statistics(1L, 1L)
 
-  def estimate(plans: Vector[(CExpr, Int)]): Map[Int, Estimate] = {
-    val ests = Map.empty[Int, Estimate]
-    plans.foreach{ p =>
-      ests(p._2) = estimate(p._1)
-    }
+  def estimate(plans: Vector[(CExpr, Int)]): Map[String, Estimate] = {
+    val ests = Map.empty[String, Estimate]
+    plans.foreach{ p => p._1 match {
+      case LinearCSet(cs) => cs.foreach{ 
+        c => c match {
+          case c1:CNamed => ests(c1.name) = estimate(c1)
+          case _ => ???
+        }
+      }
+      case p1 => ??? //ests(p._2+"") = estimate(p1)
+    }}
     ests
   }
 
@@ -188,6 +194,12 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
       // size and rows directly from stats
       // assume no network cost
       // cpu is just the time to scan
+
+      case c:CNamed => 
+        println(c.name)
+        println(stat)
+        estimate(c.e)
+
       case _ => 
         val size = stat.sizeInKB + 0.0
         val rows = estimateRows(stat.rowCount + 0.0, size)
@@ -198,7 +210,6 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
     }
   }
 
-    // estimate
   def selectCovers(covers: IMap[Integer, CNamed], subs: Map[Integer, List[SE]], flexibility: Int = 0): Map[Integer, CostEstimate] = {
 
     val selected = Map.empty[Integer, CostEstimate]

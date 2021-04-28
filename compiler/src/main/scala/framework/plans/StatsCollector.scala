@@ -50,23 +50,33 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) { //, inputs: Map[String, Stri
       case _ => (None, None)
     }
 
-  def generateSpark(plans: Seq[CNamed], notebk: Boolean = false): Unit = {
+  def generateSpark(plans: List[CNamed], notebk: Boolean = false, wprogs: Boolean = true): Unit = {
     val generator = new SparkDatasetGenerator(false, false, evalFinal=false, dedup = false)
 
     // this ensures that the full program is defined 
     // so that a call to a "materialized" query does not throw an error
     var queries = ""
-    for (p <- progs){
-
-      val name = "Query"+p._2
-      val anfBase = new BaseOperatorANF{}
-      val anfer = new Finalizer(anfBase)
-      val anfed = anfBase.anf(anfer.finalize(p._1).asInstanceOf[anfBase.Rep])
-      val gcode = s"""
-        | /** ${Printer.quote(p._1)} **/
-        | ${generator.generate(anfed)}
-        |"""
-      queries += gcode
+    if (wprogs){
+      for (p <- progs){
+        val name = p match { 
+          case (LinearCSet(cs), _) => 
+            val cn = cs.last.asInstanceOf[CNamed]
+            updateNameMap(cn.vstr, cn.name)
+            cn.name
+          case _ => "Query"+p._2 
+        }
+        val anfBase = new BaseOperatorANF{}
+        val anfer = new Finalizer(anfBase)
+        val anfed = anfBase.anf(anfer.finalize(p._1).asInstanceOf[anfBase.Rep])
+        val gcode = s"""
+          | /** ${Printer.quote(p._1)} **/
+          | ${generator.generate(anfed)}
+          | val stat$inc = ${name}.queryExecution.optimizedPlan.stats
+          | println(genStat("${name}", stat$inc))
+          |"""
+        queries += gcode
+        inc += 1
+      }
     }
 
     // this should get stats for all covers
@@ -79,7 +89,8 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) { //, inputs: Map[String, Stri
             | val stat$inc = ${name}.queryExecution.optimizedPlan.stats
             | println(genStat("${name}", stat$inc))
             """
-          codeMap += (name -> gcode)
+          println("updating codeMap "+name)
+          if (wprogs) codeMap += (name -> gcode) else queries += gcode
 
         case _ =>
           val anfBase = new BaseOperatorANF{}
@@ -91,7 +102,8 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) { //, inputs: Map[String, Stri
             | val stat$inc = ${p.name}.queryExecution.optimizedPlan.stats
             | println(genStat("${p.name}", stat$inc))
             """
-          codeMap += (p.name -> gcode)
+          println("updating codeMap "+p.name)
+          if (wprogs) codeMap += (p.name -> gcode) else queries += gcode
         }
       inc += 1
     }
@@ -148,29 +160,32 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) { //, inputs: Map[String, Stri
     runCost(cnames) 
   }
 
-  def getStats(notebk: Boolean = true): Map[String, Statistics] = {
-    def toCname(id: Int, e:CExpr): CNamed = e match {
-      case CNamed(n, e1) => CNamed(n+id, e1)
-      case _ => ???
-    }
+  def getStats(subs: Map[Integer, List[SE]], notebk: Boolean = true): Map[String, Statistics] = {
+    // def toCname(id: Int, e:CExpr): CNamed = e match {
+    //   case CNamed(n, e1) => 
+    //     updateNameMap(e.vstr, n)
+    //     CNamed(n, e1)
+    //   case _ => ???
+    // }
 
-    val cplans = progs.flatMap{ p => p match {
-      case (LinearCSet(cs), id) => cs.map(c => toCname(id, c)).toSeq
-      case _ => Seq(toCname(p._2, p._1))
-    }}.toSeq
-    runCost(cplans, notebk)
+    // val cplans = progs.toList.flatMap{ p => p match {
+    //   case (LinearCSet(cs), id) => cs.map(c => toCname(id, c))
+    //   case _ => List(toCname(p._2, p._1))
+    // }} ++ 
+    val cplans = getSubs(subs)
+    runCost(cplans, notebk) //, wprogs = false)
   }
 
   def getCost(subs: Map[Integer, List[SE]], covers: IMap[Integer, CNamed], notebk: Boolean = true): Map[String, Statistics] = {
-    val coverList = covers.values.toSeq
+    val coverList = covers.values.toList
     val plans = getSubs(subs) ++ coverList
     // could handle duplicates better
     coverList.foreach{ ce => updateNameMap(ce.vstr, ce.name) }
     runCost(plans, notebk)
   }
 
-  def getSubs(plans: Map[Integer, List[SE]]): Seq[CNamed] = {
-    plans.values.toSeq.flatMap{ ses => ses.map{
+  def getSubs(plans: Map[Integer, List[SE]]): List[CNamed] = {
+    plans.values.toList.flatMap{ ses => ses.map{
       case se => 
         se.subplan match {
           case i:InputRef => CNamed(updateNameMap(i.vstr, i.data), i)
@@ -181,14 +196,14 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) { //, inputs: Map[String, Stri
   }
 
   def getCoverCost(plans: IMap[Integer, CNamed], notebk: Boolean = true): Map[String, Statistics] = {
-    val cnames = plans.values
+    val cnames = plans.values.toList
     cnames.foreach{ ce => updateNameMap(ce.e.vstr, ce.name) }
-    runCost(cnames.toSeq, notebk) 
+    runCost(cnames, notebk) 
   }
 
   // this is a slightly faster solution
-  def runCost(plans: Seq[CNamed], notebk: Boolean = false): Map[String, Statistics] = {
-    generateSpark(plans, notebk)
+  def runCost(plans: List[CNamed], notebk: Boolean = false, wprogs: Boolean = true): Map[String, Statistics] = {
+    generateSpark(plans, notebk, wprogs = wprogs)
     if (!notebk){
       "sh compile.sh".!!
     }else{

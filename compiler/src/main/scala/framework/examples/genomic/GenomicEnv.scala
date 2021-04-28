@@ -132,18 +132,35 @@ class LetTestEnv(init_capacity: Int, init_shred: Boolean = false,
 	// normalize lets
 	val query1 = LetTest0()
 	// don't normalize let's
-	val query2 = LetTest0(true)
+	// val query2 = LetTest0(true)
+	val query2 = LetTest1
 
 	val queries: Vector[Query] = Vector(query1, query2)
+	// val queries1: Vector[Query] = Vector(query1) //, query2)
+	// val queries2: Vector[Query] = Vector(query2)
 
 	val plans: Vector[(CExpr, Int)] = queries.map(q => 
 		q.optimized(shred, optLevel, schema).asInstanceOf[CExpr]).zipWithIndex
+	// val plans1: Vector[(CExpr, Int)] = queries1.map(q => 
+	// 	q.optimized(shred, optLevel, schema).asInstanceOf[CExpr]).zipWithIndex
+	// val plans2: Vector[(CExpr, Int)] = queries2.map(q => 
+	// 	q.optimized(shred, optLevel, schema).asInstanceOf[CExpr]).zipWithIndex
+
+ 	val seBuilder = SEBuilder(plans)
+ 	seBuilder.updateSubexprs()
+ 	val subs = seBuilder.sharedSubs(limit = false)
 
 	val stater = new StatsCollector(plans)
-	val stats = stater.getStats()
-	print(stats)
+	val stats = stater.getStats(subs)
+
 	val cost = new Cost(stats)
 	val estimates = cost.estimate(plans)
+	estimates.foreach{
+		p => 
+			println("estimate for "+p._1)
+			println(p._2)
+			println(p._2.total)
+	}
 
 	val cacheStrategy: Option[CacheFactory] = None
 

@@ -69,6 +69,8 @@ trait Query extends Materialization
     val compiler = if (shred) new ShredOptimizer {} else new BaseCompiler{}
     val compile = new Finalizer(compiler)
     val unopt = if (shred){
+      println("SHREDDING THIS")
+      println(quote(program))
       val (shredded, shreddedCtx) = shredCtx(program)
       val optShredded = optimize(shredded)
       val materialized = materialize(optShredded, eliminateDomains = true)
