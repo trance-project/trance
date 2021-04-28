@@ -461,6 +461,11 @@ trait BaseANF extends Base {
   *
   */
 class Finalizer(val target: Base){
+
+  val letOpt = target match {
+    case n:BaseNormalizer => n.letOpt
+    case _ => false
+  }
   
   var variableMap: Map[CExpr, target.Rep] = Map[CExpr, target.Rep]()
   
@@ -481,6 +486,16 @@ class Finalizer(val target: Base){
   }
 
   def finalize(e: CExpr): target.Rep = e match {
+    /** Let optimization specific **/
+    // let optimization within a named expression
+    case CNamed(n1, Bind(x, e1, e)) if letOpt =>
+      val name = x match { case v:Variable => v.name; case _ => ??? }
+      target.linset(List(target.named(name, finalize(e1)), target.named(n1, finalize(e))))
+    // not in a named expression
+    case Bind(x, e1, e) if letOpt =>
+      val name = x match { case v:Variable => v.name; case _ => ??? }
+      target.linset(List(target.named(name, finalize(e1)), finalize(e)))
+
     case InputRef(x, tp) => target.inputref(x, tp)
     case Input(x) => target.input(x.map(finalize(_)))
     case Constant(x) => target.constant(x)
@@ -517,6 +532,7 @@ class Finalizer(val target: Base){
       target.comprehension(finalize(e1), (r: target.Rep) => withMap(v -> r)(finalize(p)), 
         (r: target.Rep) => withMap(v -> r)(finalize(e)))
     case CDeDup(e1) => target.dedup(finalize(e1))
+
     case Bind(x, e1, e) =>
       target.bind(finalize(e1), (r: target.Rep) => withMap(x -> r)(finalize(e)))
     case CGroupBy(e1, v2, g, v, gname) => target.groupby(finalize(e1), g, v, gname)

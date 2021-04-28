@@ -38,7 +38,7 @@ object Unnester {
     case InputRef(name, _) => name
     case FlatDict(e1) => getName(e1)
     case Variable(n, tp) => n
-    case _ => sys.error(s"unsupported name extraction $e")
+    case _ => sys.error(s"unsupported name extraction ${Printer.quote(e)}")
   }
 
   def unnest(e: CExpr)(implicit ctx: Ctx): CExpr = e match {
@@ -126,11 +126,13 @@ object Unnester {
       Nest(nE, nv, keys, tup, Constant(true), (w.keySet -- u.keySet).toList, gname)
 
     case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E, tag)))
-    case Bind(x, e1, e2) => Bind(x, unnest(e1)((u, w, E, tag)), unnest(e2)((u, w, E, tag)))
+    case Bind(x, e1, e2) => 
+      Bind(x, unnest(e1)((u, w, E, tag)), unnest(e2)((u, w, E, tag)))
     case FlatDict(e1) => FlatDict(unnest(e1)((u, w, E, tag)))
     case GroupDict(e1) => GroupDict(unnest(e1)((u, w, E, tag)))
     case LinearCSet(exprs) => LinearCSet(exprs.map(unnest(_)((u, w, E, tag))))
-    case CNamed(n, exp) => CNamed(n, unnest(exp)((u, w, E, tag)))
+    case CNamed(n, exp) => 
+      CNamed(n, unnest(exp)((u, w, E, tag)))
     case _ => e
 
   }

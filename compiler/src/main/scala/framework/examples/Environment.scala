@@ -28,6 +28,6 @@ trait Environment {
 
 	val plans: Vector[(CExpr, Int)] 
 
-	val cacheStrategy: CacheFactory
+	val cacheStrategy: Option[CacheFactory]
 
 }

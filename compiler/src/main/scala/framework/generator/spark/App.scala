@@ -8,14 +8,24 @@ import framework.examples.genomic._
 import framework.examples.Query
 import framework.loader.csv._
 
+object LetExplore extends App {
+  override def main(args: Array[String]){
+    val dlbctest = 5000
+    val lenv = new LetTestEnv(dlbctest, init_shred=true)
+    val ests = lenv.estimates
+    AppWriter.runDatasetShred(lenv.queries.head, "Inlined,shredded", optLevel = 1)
+    AppWriter.runDatasetShred(lenv.queries.last, "Sequential,shredded", optLevel = 1)
+  }
+}
+
 object Sharing extends App {
 
   override def main(args: Array[String]){
 
   // val dlbctest = 371520
   // total is ~4500 so way underestimated
-	val dlbctest = 5000
 	// upper bound
+  val dlbctest = 5000
 	val brcatest = 8000000
     // capacity in KB
     val flex = 0
