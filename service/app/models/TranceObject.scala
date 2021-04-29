@@ -1,11 +1,10 @@
 package models
 
-import play.api.libs.json.OFormat
 import play.modules.reactivemongo.ReactiveMongoApi
 import reactivemongo.api.bson.BSONDocument
 import reactivemongo.api.bson.collection.BSONCollection
 import reactivemongo.api.commands.WriteResult
-
+import reactivemongo.play.json.compat.json2bson.{toDocumentReader, toDocumentWriter}
 
 import java.util.UUID
 import javax.inject.Inject
@@ -18,23 +17,22 @@ final case class TranceObject(
                        _id: Option[UUID],
                        name: String,
                        abr: Option[String],
+//                       column: List[Column]
                        )
 
-class QueryId private (val underlying: UUID) extends AnyVal {
-  override def toString: String = underlying.toString
-}
+final case class Column(name: String, children: TranceObject)
+
 object TranceObject {
   import play.api.libs.json._
 
   implicit val tableObjectFormat: OFormat[TranceObject] = Json.format[TranceObject]
+//  implicit val columnFormat: OFormat[Column] = Json.format[Column]
 }
 
 class TranceObjectRepository @Inject()(
                                 implicit ec: ExecutionContext,
                                 reactiveMongoApi: ReactiveMongoApi
                               ){
-  import reactivemongo.play.json.compat.json2bson.toDocumentReader
-  import reactivemongo.play.json.compat.json2bson.toDocumentWriter
 
   //def object name in database
   private def collection: Future[BSONCollection] =
@@ -55,7 +53,8 @@ class TranceObjectRepository @Inject()(
     val updateModifier = BSONDocument (
       f"$$set" -> BSONDocument(
         "name" -> tranceObject.name,
-        "abr" -> tranceObject.abr
+        "abr" -> tranceObject.abr,
+//        "columns" -> tranceObject.column. todo update a list collection type in mongo
       )
     )
     collection.flatMap(_.findAndUpdate(

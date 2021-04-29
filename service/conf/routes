@@ -1,21 +1,23 @@
-# Trance Objects
+# Trance objects
 GET       /tranceObject                      v1.TranceObjectController.getAll
 GET       /tranceObject/:id                  v1.TranceObjectController.getTranceObject(id: java.util.UUID)
-+ nocsrf
 POST      /tranceObject                      v1.TranceObjectController.createTranceObject
-+ nocsrf
-PATCH     /tranceObject/:id                 v1.TranceObjectController.updateTranceObject(id: java.util.UUID)
-+ nocsrf
-DELETE    /tranceObject/:id                 v1.TranceObjectController.delete(id: java.util.UUID)
+PATCH     /tranceObject/:id                  v1.TranceObjectController.updateTranceObject(id: java.util.UUID)
+DELETE    /tranceObject/:id                  v1.TranceObjectController.delete(id: java.util.UUID)
 
-GET       /query                      v1.QueryController.getAll
-GET       /query/:id                  v1.QueryController.getQuery(id: java.util.UUID)
-+ nocsrf
-POST      /query                      v1.QueryController.createQuery
-+ nocsrf
-PATCH     /query/:id                 v1.QueryController.updateUpdateQuery(id: java.util.UUID)
-+ nocsrf
-DELETE    /query/:id                 v1.QueryController.delete(id: java.util.UUID)
+# NRC objects
+GET       /nrccode                      v1.QueryController.getAll
+GET       /nrccode/:id                  v1.QueryController.getQuery(id: java.util.UUID)
+POST      /nrccode                      v1.QueryController.createQuery
+PATCH     /nrccode/:id                  v1.QueryController.updateUpdateQuery(id: java.util.UUID)
+DELETE    /nrccode/:id                  v1.QueryController.delete(id: java.util.UUID)
+
+# Blockly objects
+GET       /blockly                      v1.BlocklyDocumentController.getAll
+GET       /blockly/:id                  v1.BlocklyDocumentController.getBlocklyDocument(id: java.util.UUID)
+POST      /blockly                      v1.BlocklyDocumentController.createBlocklyDocument
+PATCH     /blockly/:id                  v1.BlocklyDocumentController.updateBlocklyDocument(id: java.util.UUID)
+DELETE    /blockly/:id                  v1.BlocklyDocumentController.delete(id: java.util.UUID)
 
 # Swagger docs
 GET       /                           v1.ApiDocsController.redirectToDocs

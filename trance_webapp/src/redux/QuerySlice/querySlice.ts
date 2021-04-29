@@ -8,6 +8,7 @@ import * as api from './thunkQueryApiCalls';
 interface QueryState {
     queryListSummary: QuerySummaryList[];
     selectedQuery: Query | undefined;
+    responseQuery: String;
 
     //used to show Indications to user is error or if a request is made and waiting for response
     loading: "idle" | "loading" | "error";
@@ -20,6 +21,7 @@ interface QueryState {
 const initialState: QueryState = {
     queryListSummary: [],
     selectedQuery: undefined,
+    responseQuery: "",
 
     loading: "idle",
     error:""
@@ -43,6 +45,9 @@ export const querySlice = createSlice({
         });
         builder.addCase(api.fetchSelectedQuery.fulfilled, (state, action: PayloadAction<Query>) => {
             state.selectedQuery = action.payload
+        })
+        builder.addCase(api.sendStandardNrcCode.fulfilled, (state, action: PayloadAction<String>) => {
+            state.responseQuery = action.payload
         })
     }
 });

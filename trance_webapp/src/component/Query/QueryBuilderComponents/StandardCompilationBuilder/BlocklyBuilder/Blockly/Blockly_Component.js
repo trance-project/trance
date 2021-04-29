@@ -1,19 +1,25 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import '../../../../../../App.css';
 import React from 'react';
-import ReactBlockly from 'react-blockly'
+import ReactBlockly from 'react-blockly';
 import Blockly from 'blockly';
 import BlocklyJS from 'blockly/javascript';
+import Button from '@material-ui/core/Button';
+
 import ConfigFiles from './initContent/content';
 import parseWorkspaceXml from './BlocklyHelper';
 import './customBlocks/custom_Blocks';
 import './generator';
+import {sendStandardNrcCode} from '../../../../../../redux/QuerySlice/thunkQueryApiCalls';
+import {useAppDispatch} from "../../../../../../redux/Hooks/hooks"
+import SendNrcCodeButton from "./SendNrcCodeButton";
 
 class TestEditor extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
             toolboxCategories: parseWorkspaceXml(ConfigFiles.INITIAL_TOOLBOX_XML),
+            nrcCode: ""
         };
     }
 
@@ -72,29 +78,36 @@ class TestEditor extends React.Component {
 
         const code = BlocklyJS.workspaceToCode(workspace);
         document.getElementById('code').value = code;
+        this.state.nrcCode = code;
     }
 
-    render = () => (
-        <React.Fragment>
-            <ReactBlockly
-            toolboxCategories={this.state.toolboxCategories}
-            workspaceConfiguration={{
-                grid: {
-                    spacing: 20,
-                    length: 3,
-                    colour: '#ccc',
-                    snap: true,
-                },
-            }}
-            initialXml={ConfigFiles.INITIAL_XML}
-            wrapperDivClassName="fill-height"
-            workspaceDidChange={this.workspaceDidChange}
-        />
-            <pre id="generated-xml">
+    render = () => {
+        return (
+            <React.Fragment>
+                <ReactBlockly
+                    toolboxCategories={this.state.toolboxCategories}
+                    workspaceConfiguration={{
+                        grid: {
+                            spacing: 20,
+                            length: 3,
+                            colour: '#ccc',
+                            snap: true,
+                        },
+                    }}
+                    initialXml={ConfigFiles.INITIAL_XML}
+                    wrapperDivClassName="fill-height"
+                    workspaceDidChange={this.workspaceDidChange}
+                />
+                <pre id="generated-xml">
       </pre>
-            <textarea id="code" style={{ height: "200px", width: "1300px" }} value=""></textarea>
-        </React.Fragment>
-    )
+                <textarea id="code" style={{height: "200px", width: "1300px"}} value=""></textarea>
+                <SendNrcCodeButton nrc={{
+                    title: "Test Post send",
+                    body: this.state.nrcCode
+                }}/>
+            </React.Fragment>
+        )
+    }
 }
 
 export default TestEditor;

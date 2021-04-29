@@ -3,9 +3,9 @@
  * please use this file if you would like do api called and ref them back into the querySlice.ts as a extra reducers
  */
 import {createAsyncThunk} from "@reduxjs/toolkit";
-import axiosInstance from "../../AxiosConfig";
+import axiosInstance, {trancePlayInstance} from "../../AxiosConfig";
 import {rows, querySelected} from "./tempData";
-import {Query, QuerySummaryList} from "../../utils/Public_Interfaces";
+import {BlocklyNrcCode, Query, QuerySummaryList} from "../../utils/Public_Interfaces";
 
 
 export const fetchQueryListSummary = createAsyncThunk(
@@ -35,6 +35,18 @@ export const fetchSelectedQuery = createAsyncThunk(
         }  catch (error){
             console.log("[Error Occured fetchSelectedQuery]" , error);
             return thunkAPI.rejectWithValue({error: error.message});
+        }
+    }
+)
+
+export const sendStandardNrcCode = createAsyncThunk(
+    "query/sendStandardNrcCode", async  (arg: BlocklyNrcCode, thunkAPI) => {
+        try{
+            const response = await  trancePlayInstance.post("/nrccode", {...arg});
+            return response.data as string;
+        } catch (error){
+            console.log("[Error Occurred sendStandardNrcCode]", error.message)
+            return thunkAPI.rejectWithValue({error: error.message})
         }
     }
 )

@@ -37,6 +37,7 @@ import {QuerySummaryList} from '../../utils/Public_Interfaces';
 import {useAppDispatch, useAppSelector} from "../../redux/Hooks/hooks";
 
 import {fetchQueryListSummary, fetchSelectedQuery} from '../../redux/QuerySlice/thunkQueryApiCalls';
+import {fetchTranceObjectList} from '../../redux/TranceObjectSlice/thunkTranceObjectApiCalls';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -73,6 +74,7 @@ const Layout = (props:LayoutProps) => {
             props.goto_Route(page(location.pathname));
         }
         dispatch(fetchQueryListSummary());
+        dispatch(fetchTranceObjectList());
 
     },
         // eslint-disable-next-line

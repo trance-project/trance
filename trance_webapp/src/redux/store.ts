@@ -1,6 +1,7 @@
 import {configureStore} from '@reduxjs/toolkit';
 import navigationReducer from "./NavigationSlice/navigationSlice";
 import queryReducer from "./QuerySlice/querySlice";
+import tranceObjectReducer from "./TranceObjectSlice/tranceObjectSlice";
 
 /**
  * Using the Redux Toolkit to create a central store for ease of access of methods and state across the webapp.
@@ -10,7 +11,8 @@ import queryReducer from "./QuerySlice/querySlice";
 const store =  configureStore({
     reducer:{
         navigation: navigationReducer,
-        query: queryReducer
+        query: queryReducer,
+        tranceObject: tranceObjectReducer
     }
 });
 
@@ -20,7 +22,7 @@ const store =  configureStore({
 export type RootState = ReturnType<typeof store.getState>
 
 /**
- * Inferred type: {navigation: NavigationState, query: QueryState}
+ * Inferred type: {navigation: NavigationState, query: QueryState, tranceObject: TranceObjectState}
  */
 export type AppDispatch = typeof store.dispatch
 

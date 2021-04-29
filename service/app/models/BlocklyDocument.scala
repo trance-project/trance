@@ -5,6 +5,7 @@ import play.modules.reactivemongo.ReactiveMongoApi
 import reactivemongo.api.bson.BSONDocument
 import reactivemongo.api.bson.collection.BSONCollection
 import reactivemongo.api.commands.WriteResult
+import reactivemongo.play.json.compat.json2bson.{toDocumentReader, toDocumentWriter}
 
 import java.util.UUID
 import javax.inject.Inject
@@ -20,8 +21,6 @@ object BlocklyDocument {
 class BlocklyDocumentRepository @Inject() (implicit ec: ExecutionContext,
                                       reactiveMongoApi: ReactiveMongoApi){
 
-  import reactivemongo.play.json.compat.json2bson.toDocumentReader
-  import reactivemongo.play.json.compat.json2bson.toDocumentWriter
 
   //def object name in database
   private def collection: Future[BSONCollection] =

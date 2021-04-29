@@ -10,7 +10,7 @@ import javax.inject.Inject
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-@Api(value = "/query")
+@Api(value = "/nrccode")
 class QueryController @Inject()(
                                cc: ControllerComponents,
                                queryRepository: QueryRepository
@@ -53,14 +53,16 @@ class QueryController @Inject()(
   @ApiImplicitParams(Array(
     new ApiImplicitParam(value = "The new Query in Json Format", required = true, dataType = "models.Query", paramType = "body")
   ))
-  def createQuery() = Action.async(parse.json) {
+  def createQuery() =
+    Action.async(parse.json) {
     println("JSON PARSES!!!!!")
-    queryRepository.addEntity(Query.apply(_id = None, title = "Test me", body = "Some empty String"))
+      val responseBody = "{\n    name: \"QuerySimple\",\n    key: \"For s in samples Union \",\n    labels: [{\n        name: \"sample\",\n        key: \"s.bcr_patient_uuid\"\n        }, {\n        name: \"mutations\",\n        key: \"For o in occurrences Union If (s.bcr_patient_uuid = o.donorId) Then \",\n        labels: [{\n            name: \"mutId\",\n            key: \"o.oid\",\n        }, {\n            name : \"scores\",\n            key : \"ReduceByKey[gene], [score], For t in o.transcript_consequences Union For c in copynumber Union If (t.gene_id = c.cn_gene_id AND c.cn_aliquot_uuid = s.bcr_aliquot_uuid) Then \",\n            labels : [{\n                name: \"gene\",\n                key : \"t.gene_id\"\n            }, {\n                name : \"score\",\n                key : \"((c.cn_copy_number + 0.01) * If (t.impact = HIGH) Then 0.8 Else If (t.impact = MODERATE) Then 0.5 Else If (t.impact = LOW) Then 0.3 Else 0.01   )\"\n            } ]\n        }]\n    }]\n}"
+//    queryRepository.addEntity(Query.apply(_id = None, title = "Test me", body = "Some empty String"))
     _.body.validate[Query].map { query =>
       queryRepository.addEntity(query).map{ _ =>
-        Created
+        Created(responseBody)
       }
-    }.getOrElse(Future.successful(BadRequest("Invalid Todo format")))
+    }.getOrElse(Future.successful(BadRequest("Invalid nrc format")))
   }
 
   @ApiOperation(

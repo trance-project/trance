@@ -7,6 +7,17 @@ export interface Table {
     abr?:string;
 }
 
+export interface TempTable {
+    _id:string;
+    name:string;
+    abr?:string;
+}
+
+export interface BlocklyNrcCode {
+    title: string;
+    body: string;
+}
+
 export interface QuerySummaryList {
     id: string;
     date: string;

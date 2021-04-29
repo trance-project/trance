@@ -50,7 +50,7 @@ class TranceObjectController @Inject()(
     new ApiResponse(code = 400, message = "Invalid Trance Object format")
   ))
   @ApiImplicitParams(Array(
-    new ApiImplicitParam(value = "The new Trance Object in Json Format", required = true, dataType = "models.TranceObject", paramType = "body")
+    new ApiImplicitParam(value = "The new Trance Object in Json Format", required = true, dataType = "models.Query", paramType = "body")
   ))
   def createTranceObject() = Action.async(parse.json) {
     println("JSON PARSES!!!!!")
