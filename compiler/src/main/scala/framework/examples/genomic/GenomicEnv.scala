@@ -130,7 +130,8 @@ class LetTestEnv(init_capacity: Int, init_shred: Boolean = false,
 	}
 
 	// normalize lets
-	val query1 = LetTest0()
+	// val query1 = LetTest0()
+	val query1 = LetTest2
 	// don't normalize let's
 	// val query2 = LetTest0(true)
 	val query2 = LetTest1
@@ -160,6 +161,7 @@ class LetTestEnv(init_capacity: Int, init_shred: Boolean = false,
 			println("estimate for "+p._1)
 			println(p._2)
 			println(p._2.total)
+			println(p._2.cost)
 	}
 
 	val cacheStrategy: Option[CacheFactory] = None
