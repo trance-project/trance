@@ -8,9 +8,9 @@ object TestingPavlos extends App {
   override def main(args: Array[String]){
 
     // runs the standard pipeline
-    AppWriter.runDataset(TestQuery, "TestQuery,standard", optLevel = 1)
+    AppWriter.runDataset(TestQuery, "TestExample,standard", optLevel = 1)
 
     // runs the shredded pipeline
-    AppWriter.runDatasetShred(TestQuery, "TestQuery,standard", optLevel = 1)
+    AppWriter.runDatasetShred(TestQuery, "TestExample,standard", optLevel = 1)
   }
 }

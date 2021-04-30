@@ -31,12 +31,11 @@ object TestQuery extends DriverGene {
 
   val query =
     s"""
-      TestOccurences <=
-         for s in samples union
-            for c in copynumber union
-              if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
-              then {(sid := s.bcr_patient_uuid, gene = c.gn_gene_id)}
-
+      cnvCases1 <=
+        for s in samples union
+          for c in copynumber union
+            if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
+            then {(sid := s.bcr_patient_uuid, gene := c.cn_gene_id, cnum := c.cn_copy_number)};
     """
   val parser = Parser(tbls)
   val program = parser.parse(query).get.asInstanceOf[Program]
