@@ -11,9 +11,7 @@ import framework.loader.csv._
 object Sharing extends App {
 
   override def main(args: Array[String]){
-    //test1
-    //30/04 test
-
+  // another thing to test
   // val dlbctest = 371520
   // total is ~4500 so way underestimated
 	val dlbctest = 5000
