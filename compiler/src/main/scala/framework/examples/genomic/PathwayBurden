@@ -25,13 +25,12 @@ object TestQuery extends DriverGene {
 
   val name = "TestQuery"
 
-  val tbls = Map("occurrences" -> occurmids.tp,
-    "copynumber" -> copynum.tp,
-    "samples" -> samples.tp
-  )
+    val tbls = Map("occurrences" -> occurmids.tp,
+                   "copynumber" -> copynum.tp,
+                   "samples" -> samples.tp)
 
   val query =
-    s """
+    s"""
       TestOccurences <=
          for s in samples union
             for c in copynumber union
