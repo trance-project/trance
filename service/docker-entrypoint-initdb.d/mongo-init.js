@@ -1,3 +1,8 @@
+
+// Method used to hack the Mongo UUID object and only print out the UUID string
+const generateUUID = () => {
+    return UUID().toString().split('UUID(').join("").split(')').join("").split("\"").join("");
+}
 /*
     This is the init data when you would like to reset db state it should revert to this state
  */
@@ -5,7 +10,7 @@
 /////////TRANCE_OBJECTS////////////////
 const objects = [
     {
-        _id: "72e52011-5523-44d8-885b-b3677321aa62",
+        _id: generateUUID(),
         name: "Sample",
         abr:"s",
         columns:
@@ -16,7 +21,7 @@ const objects = [
             ]
     },
     {
-        _id: "1f03516d-51f0-4cd1-840c-d78115edab63",
+        _id: generateUUID(),
         name: "CopyNumber",
         abr:"c",
         columns:
@@ -27,7 +32,7 @@ const objects = [
             ]
     },
     {
-        _id: "1f03516d-51f0-4cd1-840c-d78115dbab67",
+        _id: generateUUID(),
         name: "Occurrences",
         abr:"o",
         columns:
@@ -40,7 +45,6 @@ const objects = [
                 {name: "mutid", children:{}},
                 {name: "candidates", children:
                     {name: "candidates",
-                        _id: "1f03516d-51f0-4cd1-840c-d78115dbdb57",
                         columns:
                             [
                                 {name: "gene", children:{}},
@@ -49,7 +53,6 @@ const objects = [
                                 {name: "poly", children:{}},
                                 {name: "consequences", children:
                                         {name: "consequences",
-                                            _id: "1f03573c-51f1-4cd1-840c-d78115dbcc66",
                                             columns:
                                                 [
                                                     {name: "conseq", children: {}}
@@ -63,7 +66,7 @@ const objects = [
     }
 ]
  const queryObject = [{
-     _id: "1c3d54f8-a876-418e-adaa-fb997e0f1405",
+     _id: generateUUID(),
     title: "Test",
      body: "1234wjew"
  }]

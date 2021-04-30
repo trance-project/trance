@@ -1,7 +1,7 @@
 import sbt.Keys._
 import play.sbt.PlaySettings
 
-val reactiveMongoVer = "1.0.0-play26"
+val reactiveMongoVer = "1.0.0-play27"
 val swaggerVer = "1.7.1" // https://github.com/swagger-api/swagger-play
 
 lazy val root = (project in file("."))

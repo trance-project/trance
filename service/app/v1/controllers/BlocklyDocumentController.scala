@@ -1,9 +1,10 @@
-package v1
+package v1.controllers
 
-import io.swagger.annotations.{Api, ApiImplicitParam, ApiImplicitParams, ApiOperation, ApiResponse, ApiResponses}
-import models.{BlocklyDocument, BlocklyDocumentRepository, TranceObject}
+import io.swagger.annotations._
+import models.{BlocklyDocument, TranceObject}
 import play.api.libs.json.Json
 import play.api.mvc.{AbstractController, ControllerComponents}
+import v1.repository.BlocklyDocumentRepository
 
 import java.util.UUID
 import javax.inject.Inject
@@ -35,7 +36,7 @@ class BlocklyDocumentController @Inject()(
     new ApiResponse(code = 404, message = "Blockly Document not found")
   ))
   def getBlocklyDocument(id: UUID) =
-    Action.async{ reg =>
+    Action.async{ _ =>
       blocklyDocumentRepository.getSingleItem(id).map{ maybeBlocklyDocument =>
         maybeBlocklyDocument.map{ blocklyDocument =>
           Ok(Json.toJson(blocklyDocument))

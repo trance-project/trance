@@ -1,9 +1,10 @@
-package v1
+package v1.controllers
 
-import io.swagger.annotations.{Api, ApiImplicitParam, ApiImplicitParams, ApiOperation, ApiParam, ApiResponse, ApiResponses}
-import models.{Query, QueryRepository, TranceObject}
+import io.swagger.annotations._
+import models.{Query, TranceObject}
 import play.api.libs.json.Json
 import play.api.mvc.{AbstractController, ControllerComponents}
+import v1.repository.QueryRepository
 
 import java.util.UUID
 import javax.inject.Inject

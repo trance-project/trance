@@ -1,28 +1,28 @@
 # Trance objects
-GET       /tranceObject                      v1.TranceObjectController.getAll
-GET       /tranceObject/:id                  v1.TranceObjectController.getTranceObject(id: java.util.UUID)
-POST      /tranceObject                      v1.TranceObjectController.createTranceObject
-PATCH     /tranceObject/:id                  v1.TranceObjectController.updateTranceObject(id: java.util.UUID)
-DELETE    /tranceObject/:id                  v1.TranceObjectController.delete(id: java.util.UUID)
+GET       /tranceObject                     v1.controllers.TranceObjectController.getAll
+GET       /tranceObject/:id                 v1.controllers.TranceObjectController.getTranceObject(id: java.util.UUID)
+POST      /tranceObject                     v1.controllers.TranceObjectController.createTranceObject
+PATCH     /tranceObject/:id                 v1.controllers.TranceObjectController.updateTranceObject(id: java.util.UUID)
+DELETE    /tranceObject/:id                 v1.controllers.TranceObjectController.delete(id: java.util.UUID)
 
 # NRC objects
-GET       /nrccode                      v1.QueryController.getAll
-GET       /nrccode/:id                  v1.QueryController.getQuery(id: java.util.UUID)
-POST      /nrccode                      v1.QueryController.createQuery
-PATCH     /nrccode/:id                  v1.QueryController.updateUpdateQuery(id: java.util.UUID)
-DELETE    /nrccode/:id                  v1.QueryController.delete(id: java.util.UUID)
+GET       /nrccode                     v1.controllers.QueryController.getAll
+GET       /nrccode/:id                 v1.controllers.QueryController.getQuery(id: java.util.UUID)
+POST      /nrccode                     v1.controllers.QueryController.createQuery
+PATCH     /nrccode/:id                 v1.controllers.QueryController.updateUpdateQuery(id: java.util.UUID)
+DELETE    /nrccode/:id                 v1.controllers.QueryController.delete(id: java.util.UUID)
 
 # Blockly objects
-GET       /blockly                      v1.BlocklyDocumentController.getAll
-GET       /blockly/:id                  v1.BlocklyDocumentController.getBlocklyDocument(id: java.util.UUID)
-POST      /blockly                      v1.BlocklyDocumentController.createBlocklyDocument
-PATCH     /blockly/:id                  v1.BlocklyDocumentController.updateBlocklyDocument(id: java.util.UUID)
-DELETE    /blockly/:id                  v1.BlocklyDocumentController.delete(id: java.util.UUID)
+GET       /blockly                     v1.controllers.BlocklyDocumentController.getAll
+GET       /blockly/:id                 v1.controllers.BlocklyDocumentController.getBlocklyDocument(id: java.util.UUID)
+POST      /blockly                     v1.controllers.BlocklyDocumentController.createBlocklyDocument
+PATCH     /blockly/:id                 v1.controllers.BlocklyDocumentController.updateBlocklyDocument(id: java.util.UUID)
+DELETE    /blockly/:id                 v1.controllers.BlocklyDocumentController.delete(id: java.util.UUID)
 
 # Swagger docs
-GET       /                           v1.ApiDocsController.redirectToDocs
+GET       /                          v1.controllers.ApiDocsController.redirectToDocs
 GET       /swagger.json               controllers.ApiHelpController.getResources
-GET       /api-docs                   v1.ApiDocsController.redirectToDocs
+GET       /api-docs                  v1.controllers.ApiDocsController.redirectToDocs
 
 # Map static resources from the /public folder to the /assets URL path
 GET       /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)

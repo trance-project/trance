@@ -1,9 +1,10 @@
-package v1
+package v1.controllers
 
 import io.swagger.annotations._
-import models.{TranceObject, TranceObjectRepository}
+import models.{TranceObject}
 import play.api.libs.json.Json
 import play.api.mvc.{AbstractController, ControllerComponents}
+import v1.repository.TranceObjectRepository
 
 import java.util.UUID
 import javax.inject.Inject
@@ -34,7 +35,7 @@ class TranceObjectController @Inject()(
     new ApiResponse(code = 404, message = "Trance Object not found")
   ))
   def getTranceObject(@ApiParam(value="The id of the Trance Object to fetch") id: UUID) =
-    Action.async{ req =>
+    Action.async{ _ =>
       tranceObjectRepository.getSingleItem(id).map{ maybeTranceObject =>
         maybeTranceObject.map { tranceObject =>
           Ok(Json.toJson(tranceObject))
@@ -54,7 +55,7 @@ class TranceObjectController @Inject()(
   ))
   def createTranceObject() = Action.async(parse.json) {
     println("JSON PARSES!!!!!")
-        tranceObjectRepository.addEntity(TranceObject.apply(_id = None, name = "Test me", abr = None))
+//        tranceObjectRepository.addEntity(TranceObject.apply(_id = None, name = "Test me", abr = None, column = []))
     _.body.validate[TranceObject].map { tranceObject =>
       tranceObjectRepository.addEntity(tranceObject).map{ _ =>
         Created

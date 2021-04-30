@@ -1,6 +1,5 @@
-package v1
+package v1.controllers
 
-import javax.inject._
 import play.api._
 import play.api.mvc._
 
