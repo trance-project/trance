@@ -405,8 +405,15 @@ trait Extensions {
       case (_, acc) => acc
     }
 
-  def labelParameters(e: Expr): Set[LabelParameter] = 
-    labelParameters(e, Map.empty).toSet
+  def labelParameters(e: Expr, ctx: Map[String, ShredExpr]): Set[LabelParameter] =
+    labelParameters(e, ctx.flatMap { case (k, v) =>
+      val fname = flatName(k)
+      val dname = dictName(k)
+      Map(fname -> VarDef(fname, v.flat.tp), dname -> VarDef(dname, v.dict.tp))
+  }).toSet
+
+  def labelParameters(e: Expr): Set[LabelParameter] =
+    labelParameters(e, Map.empty[String, VarDef]).toSet
 
   protected def labelParameters(e: Expr, scope: Map[String, VarDef]): List[LabelParameter] = collect(e, {
     case v: VarRef =>
@@ -497,7 +504,6 @@ trait Extensions {
 
   protected def inputVars(a: ShredAssignment, scope: Map[String, VarDef]): Set[VarRef] =
     inputVars(a.rhs.flat, scope).toSet ++ inputVars(a.rhs.dict, scope).toSet
-
 
   def addOutputField(f: (String, TupleAttributeExpr), t: TupleExpr): TupleExpr = t match {
     case Tuple(fs) if fs.contains(f._1) => (fs(f._1), f._2) match {

@@ -11,7 +11,7 @@ trait BaseShredding {
 
   def flatTp(tp: Type): Type = tp match {
     case _: PrimitiveType => tp
-    case bt: BagType => LabelType()
+    case _: BagType => LabelType()
     case TupleType(as) =>
       TupleType(as.map { case (n, t) => n -> flatTp(t).asInstanceOf[TupleAttributeType] })
     case _ => sys.error("Unknown flat type of " + tp)
@@ -40,7 +40,10 @@ trait BaseShredding {
 trait Shredding extends BaseShredding with Extensions {
   this: MaterializeNRC =>
 
-  def shred(e: Expr): ShredExpr = shred(e, Map.empty)
+  def context(vars: Set[VarRef]): Map[String, ShredExpr] =
+    vars.map(v => v.name -> shred(v.asInstanceOf[Expr], Map.empty[String, ShredExpr])).toMap
+
+  def shred(e: Expr): ShredExpr = shred(e, context(inputVars(e)))
 
   private def shred(e: Expr, ctx: Map[String, ShredExpr]): ShredExpr = e match {
     case _: Const => ShredExpr(e, EmptyDict)
@@ -78,7 +81,7 @@ trait Shredding extends BaseShredding with Extensions {
       val flat =
         BagLet(xDict, dict1.tupleDict,
           ForeachUnion(xFlat, resolved1, resolved2))
-      val lbl = NewLabel(labelParameters(flat))
+      val lbl = NewLabel(labelParameters(flat, ctx))
       val tupleDict = dict2.tupleDict
 
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), tupleDict))
@@ -88,19 +91,19 @@ trait Shredding extends BaseShredding with Extensions {
       val ShredExpr(l2: LabelExpr, dict2: BagDictExpr) = shred(e2, ctx)
       val flat = ShredUnion(dict1.lookup(l1), dict2.lookup(l2))
       val dictUnion = TupleDictUnion(dict1.tupleDict, dict2.tupleDict)
-      val lbl = NewLabel(labelParameters(flat))
+      val lbl = NewLabel(labelParameters(flat, ctx))
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dictUnion))
 
     case Singleton(e1) =>
       val ShredExpr(t: TupleExpr, dict: TupleDictExpr) = shred(e1, ctx)
       val flat = Singleton(t)
-      val lbl = NewLabel(labelParameters(flat))
+      val lbl = NewLabel(labelParameters(flat, ctx))
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict))
 
     case DeDup(e1) =>
       val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
       val flat = DeDup(dict1.lookup(lbl1))
-      val lbl = NewLabel(labelParameters(flat))
+      val lbl = NewLabel(labelParameters(flat, ctx))
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict1.tupleDict))
 
     case Get(e1) =>
@@ -119,7 +122,7 @@ trait Shredding extends BaseShredding with Extensions {
       val xDict = VarDef(dictName(l.x.name), se1.dict.tp)
       val se2 = shred(l.e2, ctx + (l.x.name -> ShredExpr(VarRef(xFlat), se1.dict)))
       val flat = Let(xDict, se1.dict, Let(xFlat, se1.flat, se2.flat))
-      val dict = DictLet(xDict, se1.dict, se2.dict)
+      val dict = DictLet(xDict, se1.dict, DictLet(xFlat, se1.flat, se2.dict))
       ShredExpr(flat, dict)
 
     case c: Cmp =>
@@ -167,31 +170,36 @@ trait Shredding extends BaseShredding with Extensions {
     case GroupByKey(e1, ks, vs, n) =>
       val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
       val flat = GroupByKey(dict1.lookup(lbl1), ks, vs, n)
-      val lbl = NewLabel(labelParameters(flat))
+      val lbl = NewLabel(labelParameters(flat, ctx))
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict1.tupleDict))
 
     case ReduceByKey(e1, ks, vs) =>
       val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
       val flat = ReduceByKey(dict1.lookup(lbl1), ks, vs)
-      val lbl = NewLabel(labelParameters(flat))
+      val lbl = NewLabel(labelParameters(flat, ctx))
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict1.tupleDict))
 
     case _ => sys.error("Cannot shred expr " + e)
   }
 
-  def shred(stmt: Assignment): ShredAssignment = shred(stmt, Map.empty)
+  def shred(a: Assignment): ShredAssignment = shred(a, context(inputVars(a)))
 
-  private def shred(stmt: Assignment, ctx: Map[String, ShredExpr]): ShredAssignment =
-    ShredAssignment(stmt.name, shred(stmt.rhs, ctx))
+  private def shred(a: Assignment, ctx: Map[String, ShredExpr]): ShredAssignment =
+    ShredAssignment(a.name, shred(a.rhs, ctx))
 
-  def shred(program: Program): ShredProgram =
-    shredCtx(program, Map.empty[String, ShredExpr])._1
+  def shred(p: Program): ShredProgram = shred(p, context(inputVars(p)))
 
-  def shredCtx(program: Program, ctx: Map[String, ShredExpr] = Map.empty): (ShredProgram, Map[String, ShredExpr]) =
-    program.statements.foldLeft (ShredProgram(), ctx) {
+  private def shred(p: Program, ctx: Map[String, ShredExpr]): ShredProgram =
+    shredCtx(p, ctx)._1
+
+  def shredCtx(p: Program): (ShredProgram, Map[String, ShredExpr]) =
+    shredCtx(p, context(inputVars(p)))
+
+  def shredCtx(p: Program, ctx: Map[String, ShredExpr]): (ShredProgram, Map[String, ShredExpr]) = {
+    p.statements.foldLeft(ShredProgram(), ctx) {
       case ((acc, ctx), stmt) =>
         val sa = shred(stmt, ctx)
         (ShredProgram(acc.statements :+ sa), ctx + (sa.name -> sa.rhs))
     }
-
+  }
 }

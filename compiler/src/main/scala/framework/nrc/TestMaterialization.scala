@@ -427,17 +427,17 @@ object TestMaterialization extends App
                   else if (t.impact = "LOW") then 0.30
                   else 0.01"""
 
-    val query = 
+    val query =
       s"""
-          let cnvCases := 
-            for s in samples union 
-              for c in copynumber union 
+          let cnvCases :=
+            for s in samples union
+              for c in copynumber union
                 if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
                 then {(sid := s.bcr_patient_uuid, gene := c.cn_gene_id, cnum := c.cn_copy_number)}
-        in 
-          (for o in occurrences union 
-            for t in o.transcript_consequences union 
-              for c in cnvCases union 
+        in
+          (for o in occurrences union
+            for t in o.transcript_consequences union
+              for c in cnvCases union
                 if (o.donorId = c.sid && t.gene_id = c.gene)
                 then {(hybrid_case := o.donorId, hybrid_gene := t.gene_id, hybrid_score := $imp * (c.cnum + 0.01))}).sumBy({hybrid_case, hybrid_gene}, {hybrid_score})
       """
