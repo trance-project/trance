@@ -12,9 +12,8 @@ object ExampleQuery extends DriverGene {
     if (shred){
       s""// TODO""
     }else{
-      s"""|val sloader = new BiospecLoader("/mnt/app_hdd/data/biospecimen/nationwidechildrens.org_biospecimen_aliquot_dlbc.txt")
-      	  |val samples = sloader.load("samples")
-          |
+      s"""|val sloader = new BiospecLoader(spark)
+          |val samples = sloader.load("/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_dlbc.txt")
           |val cloader = new CopyNumberLoader(spark)
           |val copynumber = cloader.load("/mnt/app_hdd/data/cnv", true)
           |
@@ -29,9 +28,9 @@ object ExampleQuery extends DriverGene {
   val name = "ExampleQuery"
   
   // a map of input types for the parser
-  val tbls = Map("occurrences" -> occurmids.tp, 
-                  "copynumber" -> copynum.tp, 
-                  "samples" -> samples.tp)
+    val tbls = Map("occurrences" -> occurmids.tp,
+                    "copynumber" -> copynum.tp,
+                    "samples" -> samples.tp)
 
   // a query string that is passed to the parser
   // note that a list of assignments should be separated with ";"
