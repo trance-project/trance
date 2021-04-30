@@ -1,1 +1,4 @@
+<<<<<<< HEAD
+datapath=/nfs/home/pavlos/trance/executor/spark/data/tpch
+=======
 "datapath=$PWD/data/tpch" 
