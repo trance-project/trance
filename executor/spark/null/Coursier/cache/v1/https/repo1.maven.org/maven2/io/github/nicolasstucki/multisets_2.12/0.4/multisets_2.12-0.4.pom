@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>io.github.nicolasstucki</groupId>
+    <artifactId>multisets_2.12</artifactId>
+    <packaging>jar</packaging>
+    <description>multisets</description>
+    <version>0.4</version>
+    <name>multisets</name>
+    <organization>
+        <name>io.github.nicolasstucki</name>
+    </organization>
+    <url>https://github.com/nicolasstucki/multisets</url>
+    <licenses>
+        <license>
+            <name>BSD-style</name>
+            <url>http://www.opensource.org/licenses/bsd-license.php</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <scm>
+        <url>git@github.com:nicolasstucki/multisets.git</url>
+        <connection>scm:git:git@github.com:nicolasstucki/multisets.git</connection>
+    </scm>
+    <developers>
+        <developer>
+            <id>nicolas.stucki</id>
+            <name>Nicolas Stucki</name>
+            <url>http://io.github.nicolasstucki</url>
+        </developer>
+    </developers>
+    <dependencies>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>2.12.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.storm-enroute</groupId>
+            <artifactId>scalameter_2.12</artifactId>
+            <version>0.8.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_2.12</artifactId>
+            <version>3.0.0</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

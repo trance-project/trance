@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.typelevel</groupId>
+    <artifactId>spire-util_2.12</artifactId>
+    <packaging>jar</packaging>
+    <description>util</description>
+    <url>https://typelevel.org/spire/</url>
+    <version>0.17.0-M1</version>
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>http://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <name>util</name>
+    <organization>
+        <name>org.typelevel</name>
+        <url>https://typelevel.org/spire/</url>
+    </organization>
+    <scm>
+        <url>https://github.com/typelevel/spire</url>
+        <connection>scm:git:https://github.com/typelevel/spire.git</connection>
+        <developerConnection>scm:git:git@github.com:typelevel/spire.git</developerConnection>
+    </scm>
+    <developers>
+        <developer>
+            <id>d_m</id>
+            <name>Erik Osheim</name>
+            <url>http://github.com/non/</url>
+        </developer>
+        <developer>
+            <id>tixxit</id>
+            <name>Tom Switzer</name>
+            <url>http://github.com/tixxit/</url>
+        </developer>
+    </developers>
+    <dependencies>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>2.12.8</version>
+        </dependency>
+        <dependency>
+            <groupId>org.typelevel</groupId>
+            <artifactId>spire-macros_2.12</artifactId>
+            <version>0.17.0-M1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-reflect</artifactId>
+            <version>2.12.8</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.typelevel</groupId>
+            <artifactId>machinist_2.12</artifactId>
+            <version>0.6.8</version>
+        </dependency>
+        <dependency>
+            <groupId>org.typelevel</groupId>
+            <artifactId>algebra_2.12</artifactId>
+            <version>2.0.0-M2</version>
+        </dependency>
+    </dependencies>
+</project>

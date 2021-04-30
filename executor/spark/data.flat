@@ -1,3 +1,1 @@
-minPartitions=400
-maxPartitions=1000
-threshold=.0025
+"datapath=$PWD/data/tpch" 
