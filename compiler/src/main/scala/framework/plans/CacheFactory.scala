@@ -2,7 +2,8 @@ package framework.plans
 
 import framework.common._
 
-class CacheFactory(progs: Vector[(CExpr, Int)], capacity: Int, flex: Int = 0, ptype: String = "greedy") {
+class CacheFactory(progs: Vector[(CExpr, Int)], capacity: Int, flex: Int = 0, ptype: String = "greedy", 
+    zhost: String = "localhost", zport: Int = 8085) {
 
     val seBuilder = SEBuilder(progs)
     seBuilder.updateSubexprs()
@@ -23,7 +24,7 @@ class CacheFactory(progs: Vector[(CExpr, Int)], capacity: Int, flex: Int = 0, pt
     
     // printCE(ces)
 
-    val statsCollector = new StatsCollector(progs)
+    val statsCollector = new StatsCollector(progs, zhost = zhost, zport = zport)
     val stats = statsCollector.getCost(subs, ces)
 
     val cost = new Cost(stats)

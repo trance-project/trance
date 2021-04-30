@@ -8,13 +8,22 @@ import framework.examples.genomic._
 import framework.examples.Query
 import framework.loader.csv._
 
+
+
+object TestZeppelin extends App {
+  override def main(args: Array[String]){
+    AppWriter.runDataset(ExampleQuery, "ExampleQuery,standard", optLevel = 1, 
+      zhost = "localhost", zport = 8085, notebk = true)
+  }
+}
+
 object LetExplore extends App {
   override def main(args: Array[String]){
     val dlbctest = 5000
-    val lenv = new LetTestEnv(dlbctest, init_shred=true)
+    val lenv = new LetTestEnv(dlbctest, shred=true)
     val ests = lenv.estimates
     AppWriter.runDatasetShred(lenv.queries.head, "Inlined,shredded", optLevel = 1)
-    AppWriter.runDatasetShred(lenv.queries.last, "Sequential,shredded", optLevel = 1)
+    // AppWriter.runDatasetShred(lenv.queries.last, "Sequential,shredded", optLevel = 1)
   }
 }
 
@@ -32,7 +41,7 @@ object Sharing extends App {
     // val ptype = "dynamic"
     val ptype = "greedy"
     // val genv = new GenomicEnv(dlbctest, init_flex = flex, ptype = ptype)
-    val sgenv = new GenomicEnv(dlbctest, init_shred = true, init_flex = flex, ptype = ptype)
+    val sgenv = new GenomicEnv(dlbctest, shred = true, flex = flex, ptype = ptype)
     // AppWriter.runWithCache(genv, "CacheTest,standard,covers")
     AppWriter.runWithCache(sgenv, "CacheTest,shredded,covers")
 

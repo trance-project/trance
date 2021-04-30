@@ -6,15 +6,17 @@ import framework.plans._
 import framework.loader.csv._
 
 
-class GenomicEnv(init_capacity: Int, init_shred: Boolean = false, init_flex: Int = 0, ptype: String = "greedy", repeat: Int = 1) extends Environment {
+class GenomicEnv(val capacity: Int, val shred: Boolean = false, val flex: Int = 0, 
+	ptype: String = "greedy", repeat: Int = 1,
+	val zhost: String = "localhost", val zport: Int = 8085) extends Environment {
 	
 	val name = "GenomicEnv"
 
-	val shred: Boolean = init_shred
+	// val shred: Boolean = init_shred
 
-	val capacity: Int = init_capacity
+	// val capacity: Int = init_capacity
 
-	val flex: Int = init_flex
+	// val flex: Int = init_flex
 
 	val plannerType: String = ptype
 
@@ -68,20 +70,21 @@ class GenomicEnv(init_capacity: Int, init_shred: Boolean = false, init_flex: Int
 		q.optimized(shred, optLevel, schema).asInstanceOf[CExpr]).zipWithIndex
 
 	val cacheStrategy: Option[CacheFactory] = 
-		Some(new CacheFactory(plans, capacity, flex = init_flex, ptype = plannerType))
+		Some(new CacheFactory(plans, capacity, flex = flex, ptype = plannerType))
 
 }
 
-class LetTestEnv(init_capacity: Int, init_shred: Boolean = false, 
-	init_flex: Int = 0, ptype: String = "greedy", repeat: Int = 1) extends Environment {
+class LetTestEnv(val capacity: Int, val shred: Boolean = false, 
+	val flex: Int = 0, ptype: String = "greedy", repeat: Int = 1, 
+	val zhost: String = "localhost", val zport: Int = 8085) extends Environment {
 	
 	val name = "LetTestEnv"
 
-	val shred: Boolean = init_shred
+	// val shred: Boolean = init_shred
 
-	val capacity: Int = init_capacity
+	// val capacity: Int = init_capacity
 
-	val flex: Int = init_flex
+	// val flex: Int = init_flex
 
 	val plannerType: String = ptype
 
@@ -151,7 +154,7 @@ class LetTestEnv(init_capacity: Int, init_shred: Boolean = false,
  	seBuilder.updateSubexprs()
  	val subs = seBuilder.sharedSubs(limit = false)
 
-	val stater = new StatsCollector(plans)
+	val stater = new StatsCollector(plans, zhost = zhost, zport = zport)
 	val stats = stater.getStats(subs)
 
 	val cost = new Cost(stats)

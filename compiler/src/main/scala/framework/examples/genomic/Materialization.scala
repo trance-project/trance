@@ -240,9 +240,9 @@ object LetTest2 extends DriverGene {
          {( hybrid_sample := s.bcr_patient_uuid,
             hybrid_aliquot := s.bcr_aliquot_uuid,
             hybrid_center := s.center_id,
-            hybrid_genes := for i in $initScores union
+            hybrid_genes := (for i in $initScores union
              if (s.bcr_patient_uuid = i.hybrid_case)
-             then {(hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)}
+             then {(hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)}).sumBy({hybrid_gene}, {hybrid_score})
          )}
      """
 
