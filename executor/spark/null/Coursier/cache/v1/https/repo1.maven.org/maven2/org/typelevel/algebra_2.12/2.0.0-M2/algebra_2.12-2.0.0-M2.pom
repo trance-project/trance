@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.typelevel</groupId>
+    <artifactId>algebra_2.12</artifactId>
+    <packaging>jar</packaging>
+    <description>core</description>
+    <url>http://typelevel.org/algebra</url>
+    <version>2.0.0-M2</version>
+    <licenses>
+        <license>
+            <name>MIT</name>
+            <url>http://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <name>core</name>
+    <organization>
+        <name>org.typelevel</name>
+        <url>http://typelevel.org/algebra</url>
+    </organization>
+    <scm>
+        <url>https://github.com/typelevel/algebra</url>
+        <connection>scm:git:https://github.com/typelevel/algebra.git</connection>
+        <developerConnection>scm:git:git@github.com:typelevel/algebra.git</developerConnection>
+    </scm>
+    <developers>
+        <developer>
+            <id>johnynek</id>
+            <name>P. Oscar Boykin</name>
+            <url>https://github.com/johnynek/</url>
+        </developer>
+        <developer>
+            <id>avibryant</id>
+            <name>Avi Bryant</name>
+            <url>https://github.com/avibryant/</url>
+        </developer>
+        <developer>
+            <id>non</id>
+            <name>Erik Osheim</name>
+            <url>http://github.com/non/</url>
+        </developer>
+        <developer>
+            <id>tixxit</id>
+            <name>Tom Switzer</name>
+            <url>http://github.com/tixxit/</url>
+        </developer>
+    </developers>
+    <properties>
+        <info.apiURL>https://typelevel.org/algebra/api/</info.apiURL>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>2.12.8</version>
+        </dependency>
+        <dependency>
+            <groupId>org.typelevel</groupId>
+            <artifactId>cats-kernel_2.12</artifactId>
+            <version>2.0.0-M4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.typelevel</groupId>
+            <artifactId>cats-testkit_2.12</artifactId>
+            <version>2.0.0-M4</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

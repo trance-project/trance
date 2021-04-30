@@ -1,0 +1,682 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to you under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.apache</groupId>
+    <artifactId>apache</artifactId>
+    <version>16</version>
+  </parent>
+
+  <!-- The basics. -->
+  <groupId>org.apache.calcite</groupId>
+  <artifactId>calcite</artifactId>
+  <packaging>pom</packaging>
+  <version>1.2.0-incubating</version>
+
+  <!-- More project information. -->
+  <name>Calcite</name>
+  <description>Calcite is a dynamic data management framework</description>
+  <url>http://calcite.incubator.apache.org</url>
+  <inceptionYear>2012</inceptionYear>
+
+  <mailingLists>
+    <mailingList>
+      <name>Apache Calcite developers list</name>
+      <subscribe>dev-subscribe@calcite.incubator.apache.org</subscribe>
+      <unsubscribe>dev-unsubscribe@calcite.incubator.apache.org</unsubscribe>
+      <post>dev@calcite.incubator.apache.org</post>
+      <archive>http://mail-archives.apache.org/mod_mbox/incubator-calcite-dev</archive>
+    </mailingList>
+  </mailingLists>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <top.dir>${project.basedir}</top.dir>
+    <version.major>1</version.major>
+    <version.minor>2</version.minor>
+  </properties>
+
+  <issueManagement>
+    <system>Jira</system>
+    <url>https://issues.apache.org/jira/browse/CALCITE</url>
+  </issueManagement>
+
+  <scm>
+    <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-calcite.git</connection>
+    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-calcite.git</developerConnection>
+    <url>https://github.com/apache/incubator-calcite</url>
+    <tag>calcite-1.2.0-incubating</tag>
+  </scm>
+
+  <modules>
+    <module>avatica</module>
+    <module>avatica-server</module>
+    <module>core</module>
+    <module>example</module>
+    <module>linq4j</module>
+    <module>mongodb</module>
+    <module>plus</module>
+    <module>spark</module>
+    <module>splunk</module>
+    <module>ubenchmark</module>
+  </modules>
+
+  <!-- No dependencies here. Declare dependency VERSIONS in
+       dependencyManagement, below, and each dependency in the module that uses
+       it. -->
+  <dependencies />
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- Sorted by groupId, artifactId; calcite dependencies first. -->
+      <dependency>
+        <groupId>org.apache.calcite</groupId>
+        <artifactId>calcite-avatica</artifactId>
+        <version>1.2.0-incubating</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.calcite</groupId>
+        <artifactId>calcite-avatica</artifactId>
+        <version>1.2.0-incubating</version>
+        <type>test-jar</type>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.calcite</groupId>
+        <artifactId>calcite-avatica-server</artifactId>
+        <version>1.2.0-incubating</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.calcite</groupId>
+        <artifactId>calcite-core</artifactId>
+        <version>1.2.0-incubating</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.calcite</groupId>
+        <artifactId>calcite-core</artifactId>
+        <type>test-jar</type>
+        <version>1.2.0-incubating</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.calcite</groupId>
+        <artifactId>calcite-linq4j</artifactId>
+        <version>1.2.0-incubating</version>
+      </dependency>
+
+      <!-- Now third-party dependencies, sorted by groupId and artifactId. -->
+      <dependency>
+        <groupId>commons-dbcp</groupId>
+        <artifactId>commons-dbcp</artifactId>
+        <version>1.4</version>
+      </dependency>
+      <dependency>
+        <groupId>commons-logging</groupId>
+        <artifactId>commons-logging</artifactId>
+        <version>1.1.3</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-core</artifactId>
+        <version>2.1.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-annotations</artifactId>
+        <version>2.1.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>2.1.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.code.findbugs</groupId>
+        <artifactId>jsr305</artifactId>
+        <version>1.3.9</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <!-- We support versions as old as 14.0.1 (the version used by Hive)
+             but prefer more recent versions. -->
+        <version>14.0.1</version>
+      </dependency>
+      <dependency>
+        <groupId>javax.servlet</groupId>
+        <artifactId>javax.servlet-api</artifactId>
+        <version>3.0.1</version>
+      </dependency>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.11</version>
+      </dependency>
+      <dependency>
+        <groupId>io.airlift.tpch</groupId>
+        <artifactId>tpch</artifactId>
+        <version>0.1</version>
+      </dependency>
+      <dependency>
+        <groupId>mysql</groupId>
+        <artifactId>mysql-connector-java</artifactId>
+        <version>5.1.20</version>
+      </dependency>
+      <dependency>
+        <groupId>net.hydromatic</groupId>
+        <artifactId>eigenbase-properties</artifactId>
+        <version>1.1.5</version>
+      </dependency>
+      <dependency>
+        <groupId>net.hydromatic</groupId>
+        <artifactId>foodmart-data-hsqldb</artifactId>
+        <version>0.3</version>
+      </dependency>
+      <dependency>
+        <groupId>net.hydromatic</groupId>
+        <artifactId>foodmart-queries</artifactId>
+        <version>0.4.1</version>
+      </dependency>
+      <dependency>
+        <groupId>net.hydromatic</groupId>
+        <artifactId>quidem</artifactId>
+        <version>0.3</version>
+      </dependency>
+      <dependency>
+        <groupId>net.hydromatic</groupId>
+        <artifactId>scott-data-hsqldb</artifactId>
+        <version>0.1</version>
+      </dependency>
+      <dependency>
+        <groupId>net.hydromatic</groupId>
+        <artifactId>tpcds</artifactId>
+        <version>0.3</version>
+      </dependency>
+      <dependency>
+        <groupId>net.sf.opencsv</groupId>
+        <artifactId>opencsv</artifactId>
+        <version>2.3</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>3.2</version>
+      </dependency>
+      <dependency>
+        <groupId>org.scala-lang</groupId>
+        <artifactId>scala-library</artifactId>
+        <version>2.10.3</version>
+      </dependency>
+      <dependency>
+        <groupId>org.codehaus.janino</groupId>
+        <artifactId>janino</artifactId>
+        <version>2.7.6</version>
+      </dependency>
+      <dependency>
+        <groupId>org.codehaus.janino</groupId>
+        <artifactId>commons-compiler</artifactId>
+        <version>2.7.6</version>
+      </dependency>
+      <dependency>
+        <groupId>org.hamcrest</groupId>
+        <artifactId>hamcrest-core</artifactId>
+        <version>1.3</version>
+      </dependency>
+      <dependency>
+        <groupId>org.hsqldb</groupId>
+        <artifactId>hsqldb</artifactId>
+        <version>2.3.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.incava</groupId>
+        <artifactId>java-diff</artifactId>
+        <version>1.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.pentaho</groupId>
+        <artifactId>pentaho-aggdesigner-algorithm</artifactId>
+        <version>5.1.5-jhyde</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.spark</groupId>
+        <artifactId>spark-core_2.10</artifactId>
+        <version>0.9.0-incubating</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-server</artifactId>
+        <version>9.2.7.v20150116</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-util</artifactId>
+        <version>9.2.7.v20150116</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mongodb</groupId>
+        <artifactId>mongo-java-driver</artifactId>
+        <version>2.12.3</version>
+      </dependency>
+      <dependency>
+        <groupId>org.openjdk.jmh</groupId>
+        <artifactId>jmh-core</artifactId>
+        <version>0.7.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.openjdk.jmh</groupId>
+        <artifactId>jmh-generator-annprocess</artifactId>
+        <version>0.7.1</version>
+      </dependency>
+      <dependency>
+        <groupId>xerces</groupId>
+        <artifactId>xercesImpl</artifactId>
+        <version>2.9.1</version>
+      </dependency>
+      <dependency>
+        <groupId>xalan</groupId>
+        <artifactId>xalan</artifactId>
+        <version>2.7.1</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>jar-no-fork</goal>
+              <goal>test-jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.7</source>
+          <target>1.7</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>validate</id>
+            <phase>validate</phase>
+            <configuration>
+              <configLocation>${top.dir}/src/main/config/checkstyle/checker.xml</configLocation>
+              <suppressionsLocation>${top.dir}/src/main/config/checkstyle/suppressions.xml</suppressionsLocation>
+              <consoleOutput>true</consoleOutput>
+              <headerLocation>${top.dir}/src/main/config/checkstyle/header.txt</headerLocation>
+              <failOnViolation>true</failOnViolation>
+              <includeTestSourceDirectory>true</includeTestSourceDirectory>
+            </configuration>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <!-- override default version 2.8 for access to additional config settings -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>2.10</version>
+        <executions>
+          <execution>
+            <id>analyze</id>
+            <goals>
+              <goal>analyze-only</goal>
+            </goals>
+            <configuration>
+              <failOnWarning>true</failOnWarning>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <!-- Override apache parent POM's definition of release
+             plugin. If we don't specify gitexe version, git doesn't
+             commit during release process. -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.maven.scm</groupId>
+            <artifactId>maven-scm-provider-gitexe</artifactId>
+            <version>1.9.1</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <!-- Make sure every sub-project has LICENSE, NOTICE and
+             git.properties in its jar's META-INF directory. -->
+        <executions>
+          <execution>
+            <id>add-resource</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>add-resource</goal>
+              <goal>add-test-resource</goal>
+            </goals>
+            <configuration>
+              <resources>
+                <resource>
+                  <directory>${top.dir}</directory>
+                  <targetPath>META-INF</targetPath>
+                  <includes>
+                    <include>LICENSE</include>
+                    <include>NOTICE</include>
+                  </includes>
+                </resource>
+                <resource>
+                  <directory>${top.dir}/target</directory>
+                  <targetPath>META-INF</targetPath>
+                  <includes>
+                    <include>git.properties</include>
+                  </includes>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+
+    <pluginManagement>
+      <plugins>
+        <!-- Sorted by groupId, artifactId. -->
+        <plugin>
+          <groupId>com.googlecode.fmpp-maven-plugin</groupId>
+          <artifactId>fmpp-maven-plugin</artifactId>
+          <version>1.0</version>
+          <dependencies>
+            <dependency>
+              <groupId>org.freemarker</groupId>
+              <artifactId>freemarker</artifactId>
+              <version>2.3.19</version>
+            </dependency>
+          </dependencies>
+        </plugin>
+        <plugin>
+          <groupId>net.hydromatic</groupId>
+          <artifactId>hydromatic-resource-maven-plugin</artifactId>
+          <version>0.4</version>
+        </plugin>
+        <plugin>
+          <groupId>net.ju-n.maven.plugins</groupId>
+          <artifactId>checksum-maven-plugin</artifactId>
+          <version>1.2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-checkstyle-plugin</artifactId>
+          <version>2.12.1</version>
+        </plugin>
+        <plugin>
+          <!-- keep version in sync with surefire -->
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>2.18</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>2.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>2.4</version>
+        </plugin>
+        <plugin>
+          <!-- override version 2.17 in apache-16 -->
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>2.18</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>1.9</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>javacc-maven-plugin</artifactId>
+          <version>2.4</version>
+        </plugin>
+        <plugin>
+          <groupId>pl.project13.maven</groupId>
+          <artifactId>git-commit-id-plugin</artifactId>
+          <version>2.1.9</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <links>
+            <link>http://docs.oracle.com/javase/8/docs/api/</link>
+          </links>
+          <excludePackageNames>org.apache.calcite.sql.parser.impl</excludePackageNames>
+          <tags>
+            <tag>
+              <name>sql.92</name>
+              <placement>a</placement>
+              <head>SQL 92 spec:</head>
+            </tag>
+            <tag>
+              <name>sql.99</name>
+              <placement>a</placement>
+              <head>SQL 99 spec:</head>
+            </tag>
+            <tag>
+              <name>sql.2003</name>
+              <placement>a</placement>
+              <head>SQL 2003 spec:</head>
+            </tag>
+          </tags>
+          <additionalparam>-tag sql.2003:a:xxx</additionalparam>
+        </configuration>
+      </plugin>
+    </plugins>
+  </reporting>
+
+  <repositories>
+    <repository>
+      <id>central</id>
+      <name>Central Repository</name>
+      <url>http://repo.maven.apache.org/maven2</url>
+      <layout>default</layout>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <releases>
+        <enabled>true</enabled>
+        <updatePolicy>always</updatePolicy>
+        <checksumPolicy>warn</checksumPolicy>
+      </releases>
+      <id>conjars</id>
+      <name>Conjars</name>
+      <url>http://conjars.org/repo</url>
+      <layout>default</layout>
+    </repository>
+  </repositories>
+
+  <profiles>
+    <profile>
+      <!-- This profile adds/overrides few features of the 'apache-release'
+           profile in the parent pom. -->
+      <id>apache-release</id>
+      <build>
+        <plugins>
+          <!-- Apache-RAT checks for files without headers.
+               If run on a messy developer's sandbox, it will fail.
+               This serves as a reminder to only build a release in a clean
+               sandbox! -->
+          <plugin>
+            <groupId>org.apache.rat</groupId>
+            <artifactId>apache-rat-plugin</artifactId>
+            <configuration>
+              <excludes>
+                <exclude>*.md</exclude>
+                <exclude>doc/*.md</exclude>
+                <exclude>src/main/resources/META-INF/services/java.sql.Driver</exclude>
+                <exclude>**/src/test/resources/**/*.csv</exclude>
+                <exclude>**/src/test/resources/bug/archers.json</exclude>
+              </excludes>
+            </configuration>
+            <executions>
+              <execution>
+                <phase>verify</phase>
+                <goals>
+                  <goal>check</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>net.ju-n.maven.plugins</groupId>
+            <artifactId>checksum-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>artifacts</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <algorithms>
+                <algorithm>MD5</algorithm>
+                <algorithm>SHA-1</algorithm>
+              </algorithms>
+              <failOnError>false</failOnError>
+            </configuration>
+          </plugin>
+          <!-- Override the parent assembly execution to customize the assembly
+               descriptor and final name. -->
+          <plugin>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>source-release-assembly</id>
+                <phase>package</phase>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+                <configuration>
+                  <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
+                  <appendAssemblyId>false</appendAssemblyId>
+                  <descriptor>src/main/config/assemblies/source-assembly.xml</descriptor>
+                  <finalName>apache-calcite-${project.version}-src</finalName>
+                  <tarLongFileMode>gnu</tarLongFileMode>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <!-- CALCITE-537: workaround for MRRESOURCES-91
+        Avoid overwrite of the destination file if the produced
+        contents is the same.
+        Apache pom overwrites NOTICE, DEPENDENCIES, and LICENSE files, however
+        we do not want recompile the module every time. -->
+      <id>skip-apache-licenses</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+        <file><exists>target/maven-shared-archive-resources/META-INF/LICENSE</exists></file>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-remote-resources-plugin</artifactId>
+            <configuration>
+              <skip>true</skip>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <!-- Generate git.properties on first build -->
+      <id>generate-git-id</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+        <!-- Note: <missing> here does NOT support interpolation,
+        so technically, this profile is active for sub-modules.
+        It would be nice to use ${top.dir}/target/... here, but
+        it is not possible.
+        However sub-modules lack .git folder, so no git.properties
+        is generated. -->
+        <file>
+          <missing>target/git.properties</missing>
+        </file>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>pl.project13.maven</groupId>
+            <artifactId>git-commit-id-plugin</artifactId>
+            <inherited>false</inherited>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>revision</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <dateFormat>yyyy-MM-dd'T'HH:mm:ssZ</dateFormat>
+              <verbose>false</verbose>
+              <skipPoms>false</skipPoms>
+              <generateGitPropertiesFile>true</generateGitPropertiesFile>
+              <generateGitPropertiesFilename>target/git.properties</generateGitPropertiesFilename>
+              <failOnNoGitDirectory>false</failOnNoGitDirectory>
+              <gitDescribe>
+                <skip>false</skip>
+                <always>false</always>
+                <abbrev>7</abbrev>
+                <dirty>-dirty</dirty>
+                <forceLongFormat>true</forceLongFormat>
+              </gitDescribe>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>
