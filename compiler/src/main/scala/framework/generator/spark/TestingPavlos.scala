@@ -3,7 +3,7 @@ package framework.generator.spark
 import framework.examples._
 import framework.examples.genomic._
 
-object TestApp extends App {
+object TestingPavlos extends App {
 
   override def main(args: Array[String]){
 
