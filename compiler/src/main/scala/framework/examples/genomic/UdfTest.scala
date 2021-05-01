@@ -53,7 +53,7 @@ object ExampleQuery extends DriverGene {
                       {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
                                                 else if (t.impact = "MODERATE") then 0.50
                                                 else if (t.impact = "LOW") then 0.30
-                                                else 0.01)}).sumBy({sid}, {score}))}
+                                                else 0.01)}).sumBy({sid}, {burden}))}
 
     """
 
