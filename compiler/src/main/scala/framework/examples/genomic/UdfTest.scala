@@ -1,6 +1,7 @@
 package framework.examples.genomic
 
 import java.util.Base64
+import framework.common._
 // test
 
 // this is just the example from the 
