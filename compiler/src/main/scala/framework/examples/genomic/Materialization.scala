@@ -317,7 +317,7 @@ object LetTest3 extends DriverGene {
               hybrid_center := s.center_id,
               hybrid_genes := for i in initScores1 union
                if (s.bcr_patient_uuid = i.hybrid_case)
-               then {(hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)})}
+               then {(hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)})};
 
         finalMatrix <= 
           (for s in intermMatrix union 
