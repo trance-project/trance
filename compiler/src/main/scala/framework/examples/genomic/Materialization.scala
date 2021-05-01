@@ -84,12 +84,7 @@ class LetTest0(override val letOpt: Boolean = false) extends DriverGene {
                if (o.donorId = c.sid && t.gene_id = c.gene)
                then {(hybrid_case := o.donorId, hybrid_gene := t.gene_id, hybrid_score := (c.cnum + 0.01) * $imp )}).sumBy({hybrid_case, hybrid_gene}, {hybrid_score})
       """
-    // val query = 
-    //  s"""
-    //   initScores0 <= 
-    //     $initScores;
 
-        // LetTest0 <= 
       val lettest = 
         s"""
          for s in samples union 
@@ -108,8 +103,6 @@ class LetTest0(override val letOpt: Boolean = false) extends DriverGene {
           in let initScores0 := $initScores 
           in $lettest
       """
-    print("parsing")
-    print(query)
 
     val parser = Parser(tbls)
     val program = parser.parse(query).get.asInstanceOf[Program]
