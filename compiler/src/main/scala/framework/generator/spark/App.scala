@@ -31,19 +31,13 @@ object Sharing extends App {
 
   override def main(args: Array[String]){
 
-<<<<<<< HEAD
+
     // val dlbctest = 371520
     // total is ~4500 so way underestimated
     // upper bound
     val dlbctest = 5000
     val brcatest = 8000000
-=======
-  // val dlbctest = 371520
-  // total is ~4500 so way underestimated
-	// upper bound
-  val dlbctest = 5000
-	val brcatest = 8000000
->>>>>>> 5d9a0af8f6d3efa40ac0af9ecbb0112de3682c9a
+
     // capacity in KB
     val flex = 0
     // val ptype = "dynamic"
