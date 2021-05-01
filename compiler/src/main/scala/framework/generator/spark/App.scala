@@ -31,7 +31,6 @@ object Sharing extends App {
 
   override def main(args: Array[String]){
 
-
     // val dlbctest = 371520
     // total is ~4500 so way underestimated
     // upper bound

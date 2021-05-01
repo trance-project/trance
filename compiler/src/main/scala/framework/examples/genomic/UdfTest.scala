@@ -44,7 +44,7 @@ object ExampleQuery extends DriverGene {
   val query = 
     s"""
         GMB <=
-          for p in pathway union
+          for p in pathways union
             {(pathway := p.p_name, burdens :=
               (for o in occurences union
                 for t in o.candidates union
