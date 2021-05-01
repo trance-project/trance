@@ -3,7 +3,7 @@ name := "sparkutils"
 version := "0.1"
 
 scalaVersion := "2.12.8"
-val sparkVersion = "3.1.1"
+val sparkVersion = "3.0.1"
 
 libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value
 libraryDependencies += "org.apache.spark" %% "spark-core" % sparkVersion
