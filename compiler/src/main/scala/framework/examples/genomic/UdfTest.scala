@@ -20,7 +20,7 @@ object ExampleQuery extends DriverGene {
           |val copynumber = cloader.load("/mnt/app_hdd/data/cnv", true)
           |
           |val geLoader = new GeneExpressionLoader(spark)
-          |val expression = geLoader.load("/mnt/app_hdd/data/expression", true)
+          |val expression = geLoader.load("/mnt/app_hdd/data/expression", true, aliquot_file = "/mnt/app_hdd/data/fpkm_uq_case_aliquot.txt")
           |
           |val occurrences = spark.read.json("/mnt/app_hdd/data/somatic/datasetPRAD")
           |val pathways =

@@ -420,27 +420,37 @@ object TestMaterialization extends App
 
   def testLet(): Unit = {
 
-    val tbls = genomic.LetTest0().tbls
+    val lettest = genomic.LetTest0()
+    val tbls = lettest.tbls
 
-    val imp = """if (t.impact = "HIGH") then 0.80 
-                  else if (t.impact = "MODERATE") then 0.50
-                  else if (t.impact = "LOW") then 0.30
-                  else 0.01"""
+    // val imp = """if (t.impact = "HIGH") then 0.80 
+    //               else if (t.impact = "MODERATE") then 0.50
+    //               else if (t.impact = "LOW") then 0.30
+    //               else 0.01"""
 
-    val query = 
-      s"""
-          let cnvCases := 
-            for s in samples union 
-              for c in copynumber union 
-                if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
-                then {(sid := s.bcr_patient_uuid, gene := c.cn_gene_id, cnum := c.cn_copy_number)}
-        in 
-          (for o in occurrences union 
-            for t in o.transcript_consequences union 
-              for c in cnvCases union 
-                if (o.donorId = c.sid && t.gene_id = c.gene)
-                then {(hybrid_case := o.donorId, hybrid_gene := t.gene_id, hybrid_score := $imp * (c.cnum + 0.01))}).sumBy({hybrid_case, hybrid_gene}, {hybrid_score})
-      """
+    // val query =
+    //   s"""
+    //       let cnvCases :=
+    //         for s in samples union
+    //           for c in copynumber union
+    //             if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
+    //             then {(sid := s.bcr_patient_uuid, gene := c.cn_gene_id, cnum := c.cn_copy_number)}
+    //     in
+    //       (for o in occurrences union
+    //         for t in o.transcript_consequences union
+    //           for c in cnvCases union
+    //             if (o.donorId = c.sid && t.gene_id = c.gene)
+    //             then {(hybrid_case := o.donorId, hybrid_gene := t.gene_id, hybrid_score := $imp * (c.cnum + 0.01))}).sumBy({hybrid_case, hybrid_gene}, {hybrid_score})
+    //   """
+
+    // you can see this version in the file where the query is defined, 
+    // but it just has multiple lets:
+    // LetTest0 <= 
+    //   let cnvCases := $cnvs
+    //   in let initScores0 := $initScores 
+    //   in $lettest
+        
+    val query = lettest.query
 
     val parser = Parser(tbls)
     // val program = parser.parse(query).get.asInstanceOf[Program]

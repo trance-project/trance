@@ -19,10 +19,21 @@ class ZeppelinFactory(host: String = "localhost", port: Int = 8085) {
 
 	val zep = s"http://$host:$port"
 	val zepnote = s"$zep/api/notebook"
+	val zepint = (id:String) => s"$zep/api/interpreter/setting/restart/$id"
 	val zepdel = (id: String) => s"$zep/api/notebook/$id"
 	val zeppara = (id: String) => s"$zep/api/notebook/$id/paragraph"
 	val zeprun = (nid: String, pid: String) => s"$zep/api/notebook/run/$nid/$pid"
 
+	def restartInterpreter(id: String = "spark"): Boolean = {
+		// curl --request PUT http://localhost:8085/api/interpreter/setting/restart/spark
+		val response = Http(zepint(id))
+			.option(HttpOptions.connTimeout(10000))
+			.option(HttpOptions.readTimeout(50000))
+			.postForm
+			.method("PUT").asString
+		if (response.isError){ print(response); false }
+		else true		
+	}
 
 	def listNotes: String = {
 		val request: HttpRequest = Http(zepnote)
