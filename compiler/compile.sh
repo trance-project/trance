@@ -1,9 +1,9 @@
 
 JSON=../executor/spark/src/main/scala/sparkutils/generated/GenerateCosts.json
-NOTE=2G1GEVEUX
-#NOTE=2G4DWEWA6
-#ZEP=qc-3:8085
-ZEP=localhost:8085
+#NOTE=2G1GEVEUX
+#ZEP=localhost:8085
+NOTE=2G4DWEWA6
+ZEP=qc-3:8085
 
 if [ $1="notebk" ]; then
  (curl --request POST --header "Content-Type: application/json" --data @$JSON http://$ZEP/api/notebook/$NOTE/paragraph > tmp)

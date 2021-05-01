@@ -116,7 +116,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     		case If(cond, Sng(Record(f1)), Some(Sng(Record(f2)))) => 
     			 If(cond, Sng(Record(f1.filter(f => vs(f._1)))), 
     			 	Some(Sng(Record(f2.filter(f => vs(f._1))))))
-    		case _ => ???
+    		case _ => sys.error(s"implementation missing for $filter")
 	    } 
 	    val nfs = collect(nfilter)//vs ++ fs ++ collect(nfilter)
       val pin = push(in, nfs)

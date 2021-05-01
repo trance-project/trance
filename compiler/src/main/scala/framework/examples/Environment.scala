@@ -20,6 +20,10 @@ trait Environment {
 
 	val plannerType: String
 
+	val zhost: String
+
+	val zport: Int
+
 	val tbls: Map[String, Type]
 
 	def setup(shred: Boolean = shred, skew: Boolean = false, cache: Boolean = false): String
@@ -28,6 +32,6 @@ trait Environment {
 
 	val plans: Vector[(CExpr, Int)] 
 
-	val cacheStrategy: CacheFactory
+	val cacheStrategy: Option[CacheFactory]
 
 }

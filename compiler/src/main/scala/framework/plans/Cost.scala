@@ -7,6 +7,7 @@ case class Estimate(inSize: Double, outSize: Double,
   inRows: Double, outRows: Double, cpu: Double, network: Double){
 
   def total: Double = inSize + outSize + inRows + outRows + cpu + network
+  def cost: Double = outSize + outRows + cpu + network
 
 }
 
@@ -50,6 +51,20 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
   val default = Estimate(DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC)
   val statDefault = Statistics(1L, 1L)
 
+  def estimate(plans: Vector[(CExpr, Int)]): Map[String, Estimate] = {
+    val ests = Map.empty[String, Estimate]
+    plans.foreach{ p => p._1 match {
+      case LinearCSet(cs) => cs.foreach{ 
+        c => c match {
+          case c1:CNamed => ests(c1.name) = estimate(c1)
+          case _ => ???
+        }
+      }
+      case p1 => ??? //ests(p._2+"") = estimate(p1)
+    }}
+    ests
+  }
+
   // single plan estimate
   def estimate(plan: CExpr): Estimate = {
     val stat = stats.getOrElse(plan.vstr, statDefault)
@@ -71,18 +86,23 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
         // val outsize = (stat.sizeInBytes / 1024)
         // this should be based on distincts, but doing this 
         // for now
-        val outrows = Math.max(leftEst.outRows.toDouble, rightEst.outRows.toDouble)
-        val outsize = Math.min(leftEst.outSize.toDouble, rightEst.outSize.toDouble)
+        val lrows = leftEst.outRows.toDouble
+        val rrows = rightEst.outRows.toDouble
+        val lsize = leftEst.outSize.toDouble
+        val rsize = rightEst.outSize.toDouble
+
+        val outrows = if (j.cond == Constant(true)) lrows * rrows else Math.max(lrows, rrows)
+        val outsize = if (j.cond == Constant(true)) lsize * rsize else Math.min(lsize, rsize)
 
         // network cost of the largest relation, plus what it costs to 
         // perform the operation give estimated output rows
         // val rowCount = estimateRows(stat.rowCount + 0.0, stat.sizeInKB + 0.0)
-        val network = leftEst.network + rightEst.network + (leftEst.outRows * NETWORK) + (outrows * .00002)
+        val network = leftEst.network + rightEst.network + (lrows * NETWORK) + (outrows * .00002)
 
         val cpu = leftEst.cpu + rightEst.cpu + (outrows * .00002)
 
-        val insize = leftEst.outSize + rightEst.outSize
-        val inrows = leftEst.outRows * rightEst.outRows
+        val insize = lsize + rsize
+        val inrows = lrows * rrows
 
 
         // println("join stat found: "+outrows+", "+outsize)
@@ -180,6 +200,12 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
       // size and rows directly from stats
       // assume no network cost
       // cpu is just the time to scan
+
+      case c:CNamed => 
+        println(c.name)
+        println(stat)
+        estimate(c.e)
+
       case _ => 
         val size = stat.sizeInKB + 0.0
         val rows = estimateRows(stat.rowCount + 0.0, size)
@@ -190,7 +216,6 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
     }
   }
 
-    // estimate
   def selectCovers(covers: IMap[Integer, CNamed], subs: Map[Integer, List[SE]], flexibility: Int = 0): Map[Integer, CostEstimate] = {
 
     val selected = Map.empty[Integer, CostEstimate]

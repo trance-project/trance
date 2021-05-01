@@ -21,8 +21,9 @@ case class Statistics(sizeInKB: Double, rowCount: Double) {
 
 }
 
-class StatsCollector(progs: Vector[(CExpr, Int)]) { //, inputs: Map[String, String] = Map.empty[String, String]) {
+class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String, zport: Int) { //, inputs: Map[String, String] = Map.empty[String, String]) {
 
+  val zep = new ZeppelinFactory(host = zhost, port = zport)
   val nameMap = Map.empty[String, String] //inputs
   val nameMapRev = Map.empty[String, String]
   //nameMap.foreach{x => nameMapRev(x._2) = x._1}
@@ -50,23 +51,33 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) { //, inputs: Map[String, Stri
       case _ => (None, None)
     }
 
-  def generateSpark(plans: List[CNamed], notebk: Boolean = false): Unit = {
+  def generateSpark(plans: List[CNamed], notebk: Boolean = false, wprogs: Boolean = true): String = {
     val generator = new SparkDatasetGenerator(false, false, evalFinal=false, dedup = false)
 
     // this ensures that the full program is defined 
     // so that a call to a "materialized" query does not throw an error
     var queries = ""
-    for (p <- progs){
-
-      val name = "Query"+p._2
-      val anfBase = new BaseOperatorANF{}
-      val anfer = new Finalizer(anfBase)
-      val anfed = anfBase.anf(anfer.finalize(p._1).asInstanceOf[anfBase.Rep])
-      val gcode = s"""
-        | /** ${Printer.quote(p._1)} **/
-        | ${generator.generate(anfed)}
-        |"""
-      queries += gcode
+    if (wprogs){
+      for (p <- progs){
+        val name = p match { 
+          case (LinearCSet(cs), _) => 
+            val cn = cs.last.asInstanceOf[CNamed]
+            updateNameMap(cn.vstr, cn.name)
+            cn.name
+          case _ => "Query"+p._2 
+        }
+        val anfBase = new BaseOperatorANF{}
+        val anfer = new Finalizer(anfBase)
+        val anfed = anfBase.anf(anfer.finalize(p._1).asInstanceOf[anfBase.Rep])
+        val gcode = s"""
+          | /** ${Printer.quote(p._1)} **/
+          | ${generator.generate(anfed)}
+          | val stat$inc = ${name}.queryExecution.optimizedPlan.stats
+          | println(genStat("${name}", stat$inc))
+          |"""
+        queries += gcode
+        inc += 1
+      }
     }
 
     // this should get stats for all covers
@@ -79,7 +90,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) { //, inputs: Map[String, Stri
             | val stat$inc = ${name}.queryExecution.optimizedPlan.stats
             | println(genStat("${name}", stat$inc))
             """
-          codeMap += (name -> gcode)
+          if (wprogs) codeMap += (name -> gcode) else queries += gcode
 
         case _ =>
           val anfBase = new BaseOperatorANF{}
@@ -91,7 +102,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) { //, inputs: Map[String, Stri
             | val stat$inc = ${p.name}.queryExecution.optimizedPlan.stats
             | println(genStat("${p.name}", stat$inc))
             """
-          codeMap += (p.name -> gcode)
+          if (wprogs) codeMap += (p.name -> gcode) else queries += gcode
         }
       inc += 1
     }
@@ -99,27 +110,34 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) { //, inputs: Map[String, Stri
     val ghead = generator.generateHeader()
     val genc = generator.generateEncoders()
     val data = s"""
-      |   val copynumber = spark.table("copynumber")
-      |   val occurrences = spark.table("occurrences")
-      |   val samples = spark.table("samples")
+      |   val copynumber = spark.table("fcopynumber")
+      |   val occurrences = spark.table("foccurrences")
+      |   val samples = spark.table("fsamples")
       |   val IBag_copynumber__D = copynumber
       |   val IBag_samples__D = samples
-      |   val IBag_occurrences__D = spark.table("odict1")
-      |   val IDict_occurrences__D_transcript_consequences = spark.table("odict2")
-      |   val IDict_occurrences__D_transcript_consequences_consequence_terms = spark.table("odict3")
+      |   val IBag_occurrences__D = spark.table("fodict1")
+      |   val IDict_occurrences__D_transcript_consequences = spark.table("fodict2")
+      |   val IDict_occurrences__D_transcript_consequences_consequence_terms = spark.table("fodict3")
       """
-    var fname = "../executor/spark/src/main/scala/sparkutils/generated/GenerateCosts"
-    val fconts = if (!notebk) {
-      fname+=".scala"
-      writeApplication("GenerateCosts", data, ghead, queries+"\n"+codeMap.map(_._2).mkString("\n"), genc)
+    val bname = "GenerateCosts"
+    if (!notebk) {
+      var fname = "../executor/spark/src/main/scala/sparkutils/generated/${bname}.scala"
+      val fconts = writeApplication("GenerateCosts", data, ghead, queries+"\n"+codeMap.map(_._2).mkString("\n"), genc)
+      val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
+      printer.println(fconts)
+      printer.close
+      "DONE"
     }else {
-      fname+=".json"
-      val pcontents = writeParagraph("GenerateCosts", data, ghead, queries+"\n"+codeMap.map(_._2).mkString("\n"), genc)
-      new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
+      val noteid = zep.addNote(bname)
+      // println(s"Writing to notebook: $noteid")
+      val pcontents = writeParagraph(bname, data, ghead, queries+"\n"+codeMap.map(_._2).mkString("\n"), genc)
+      val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
+      val pid = zep.writeParagraph(noteid, para)
+      // println(s"Writing to paragraph: $pid")
+      val status = zep.runParaSync(noteid, pid)
+      zep.deleteNote(noteid)
+      status
     }
-    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    printer.println(fconts)
-    printer.close
   }
 
   def getUUID: String = randomUUID().toString().replace("-", "")
@@ -148,6 +166,11 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) { //, inputs: Map[String, Stri
     runCost(cnames) 
   }
 
+  def getStats(subs: Map[Integer, List[SE]], notebk: Boolean = true): Map[String, Statistics] = {
+    val cplans = getSubs(subs)
+    runCost(cplans, notebk) //, wprogs = false)
+  }
+
   def getCost(subs: Map[Integer, List[SE]], covers: IMap[Integer, CNamed], notebk: Boolean = true): Map[String, Statistics] = {
     val coverList = covers.values.toList
     val plans = getSubs(subs) ++ coverList
@@ -174,15 +197,9 @@ class StatsCollector(progs: Vector[(CExpr, Int)]) { //, inputs: Map[String, Stri
   }
 
   // this is a slightly faster solution
-  def runCost(plans: List[CNamed], notebk: Boolean = false): Map[String, Statistics] = {
-    generateSpark(plans, notebk)
-    if (!notebk){
-      "sh compile.sh".!!
-    }else{
-      "sh compile.sh notebk".!!
-    }
-    // TODO parse better
-    for (line <- Source.fromFile("out").getLines){
+  def runCost(plans: List[CNamed], notebk: Boolean = false, wprogs: Boolean = true): Map[String, Statistics] = {
+    val out = generateSpark(plans, notebk, wprogs = wprogs)
+    for (line <- out.split("\n")){
       readStats(line) match {
         case (Some(name), Some(stat)) => 
           statsMap += (nameMapRev(name) -> stat)

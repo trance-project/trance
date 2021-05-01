@@ -136,6 +136,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     */
   private def generateReference(e: CExpr, literal: Boolean = false): String = e match {
     case Project(v, f) => v.tp match {
+      case LabelType(fs) if fs.size == 1 => s"""col("_LABEL")"""
       case LabelType(_) => s"""col("_LABEL").getField("$f")"""
       case _ => s"""col("$f")"""
     }
