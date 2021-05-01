@@ -2,6 +2,8 @@ package framework.examples.genomic
 
 import java.util.Base64
 import framework.common._
+import framework.examples.Query
+import framework.nrc.Parser
 // test
 
 // this is just the example from the 
@@ -55,8 +57,8 @@ object ExampleQuery extends DriverGene {
 
     """
 
-    // finally define the parser, note that it takes the input types 
-    // map as input and pass the query string to the parser to 
+    // finally define the parser, note that it takes the input types
+    // map as input and pass the query string to the parser to
     // generate the program.
     val parser = Parser(tbls)
     val program = parser.parse(query).get.asInstanceOf[Program]
