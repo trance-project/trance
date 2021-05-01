@@ -12,17 +12,22 @@ object ExampleQuery extends DriverGene {
     if (shred){
       s""// TODO""
     }else{
-      s"""|val sloader = new BiospecLoader(spark)
-      	  |val samples = sloader.load("/mnt/app_hdd/data/biospecimen/nationwidechildrens.org_biospecimen_aliquot_dlbc.txt")
-          |
-          |val cloader = new CopyNumberLoader(spark)
-          |val copynumber = cloader.load("/mnt/app_hdd/data/cnv", true)
-          |
-          |val geLoader = new GeneExpressionLoader(spark)
-          |val expression = geLoader.load("/mnt/app_hdd/data/expression", true)
-          |
-          |val occurrences = spark.read.json("/mnt/app_hdd/data/somatic/datasetPRAD")
-          |""".stripMargin
+      // s"""|val sloader = new BiospecLoader(spark)
+      // 	  |val samples = sloader.load("/mnt/app_hdd/data/biospecimen/nationwidechildrens.org_biospecimen_aliquot_dlbc.txt")
+      //     |
+      //     |val cloader = new CopyNumberLoader(spark)
+      //     |val copynumber = cloader.load("/mnt/app_hdd/data/cnv", true)
+      //     |
+      //     |val geLoader = new GeneExpressionLoader(spark)
+      //     |val expression = geLoader.load("/mnt/app_hdd/data/expression", true)
+      //     |
+      //     |val occurrences = spark.read.json("/mnt/app_hdd/data/somatic/datasetPRAD")
+      //     |""".stripMargin
+      s"""
+        |val samples = spark.table("samples")
+        |val copynumber = spark.table("copynumber")
+        |val occurrences = spark.table("occurrences")
+      """.stripMargin
     }
   
   // name to identify your query
