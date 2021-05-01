@@ -154,7 +154,7 @@ class LetTestEnv(val capacity: Int, val shred: Boolean = false,
  	seBuilder.updateSubexprs()
  	val subs = seBuilder.sharedSubs(limit = false)
 
-	val stater = new StatsCollector(plans, zhost = zhost, zport = zport)
+	val stater = new StatsCollector(plans, zhost = zhost, zport = zport, inputs = this.setup(shred = shred))
 	val stats = stater.getStats(subs)
 
 	val cost = new Cost(stats)

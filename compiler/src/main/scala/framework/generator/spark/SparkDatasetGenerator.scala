@@ -146,9 +146,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       case LabelType(_) => s"""col("_LABEL").getField("$f")"""
       case _ => s"""col("$f")"""
     }
-    case Label(fs) if fs.isEmpty => 
-      println(s"in here with $e")
-      "TODO?"
     case Label(fs) if fs.size == 1 => 
       generateReference(fs.head._2)
     case Label(fs) => 

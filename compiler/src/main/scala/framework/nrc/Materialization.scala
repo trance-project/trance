@@ -37,7 +37,7 @@ trait BaseMaterialization {
 trait MaterializationContext extends BaseMaterialization with MaterializationDomain with Printer {
   this: MaterializeNRC =>
 
-  class DictInfo(val dict: BagDictExpr, val ref: Option[VarRef], val parent: Option[(BagDictExpr, String)])
+  class DictInfo(val dict: BagDictExpr, val ref: VarRef, val parent: Option[(BagDictExpr, String)])
 
   class LabelInfo(val isTopLevel: Boolean)
 
@@ -48,10 +48,7 @@ trait MaterializationContext extends BaseMaterialization with MaterializationDom
     def this() = this(Map.empty, Map.empty, Map.empty)
 
     def addDict(dict: BagDictExpr, ref: VarRef, parent: Option[(BagDictExpr, String)]): Context =
-      new Context(dictCtx + (dict -> new DictInfo(dict, Some(ref), parent)), labelCtx, scope)
-
-    def addDict(dict: BagDictExpr): Context =
-      new Context(dictCtx + (dict -> new DictInfo(dict, None, None)), labelCtx, scope)
+      new Context(dictCtx + (dict -> new DictInfo(dict, ref, parent)), labelCtx, scope)
 
     def addDictAlias(dict: BagDictExpr, alias: BagDictExpr): Context =
       new Context(dictCtx + (alias -> dictCtx(dict)), labelCtx, scope)
@@ -60,11 +57,7 @@ trait MaterializationContext extends BaseMaterialization with MaterializationDom
 
     def isTopLevel(d: BagDictExpr): Boolean = dictCtx(d).parent.isEmpty
 
-    def isMaterialized(d: BagDictExpr): Boolean = dictCtx(d).ref.nonEmpty
-
-    def matVarRef(d: BagDictExpr): VarRef = dictCtx(d).ref.get
-
-    def dictDef(d: BagDictExpr): BagDictExpr = dictCtx(d).dict
+    def matVarRef(d: BagDictExpr): VarRef = dictCtx(d).ref
 
     def children(d: BagDictExpr): Map[String, BagDictExpr] = {
       val reference = dictCtx(d).dict
@@ -128,18 +121,9 @@ trait MaterializationContext extends BaseMaterialization with MaterializationDom
     case (v: VarRef, ctx) if ctx.contains(v.name) =>
       (VarRef(ctx.varDef(v.name)), ctx)
 
-    case (Lookup(l, d), ctx) if ctx.isTopLevel(d) && ctx.isMaterialized(d) =>
+    case (Lookup(l, d), ctx) if ctx.isTopLevel(d) =>
       assert(ctx.isTopLevel(l))  // sanity check
       (ctx.matVarRef(d).asInstanceOf[BagVarRef], ctx)
-
-    case (Lookup(l, d), ctx) if ctx.isTopLevel(d) =>
-      ctx.dictDef(d) match {
-        case BagDict(lblTp, flat, _) =>
-          assert(l.tp == lblTp)   // sanity check
-          (flat, ctx)
-        case _ =>
-          sys.error("Unexpected dictionary type: " + d)
-      }
 
     case (Lookup(l, d), ctx) =>
       assert(ctx.contains(d))  // sanity check
@@ -223,32 +207,11 @@ trait Materialization extends MaterializationContext {
 
   private def materialize(a: ShredAssignment, ctx: Context, eliminateDomains: Boolean): MaterializedProgram =
     a.rhs match {
-      case ShredExpr(l: NewLabel, d: BagDictExpr) =>
-        assert(l.tp == d.tp.lblTp)   // sanity check
-        materializeDict(d, a.name, ctx, eliminateDomains)
+      case ShredExpr(l: NewLabel, d: BagDict) =>
+        assert(l.tp == d.lblTp)   // sanity check
+        materializeBagDict(d, a.name, ctx, None, eliminateDomains)
       case _ =>
         sys.error("Materialization not supported for "+ quote(a))
-    }
-
-  @scala.annotation.tailrec
-  private def materializeDict(d: BagDictExpr,
-                              name: String,
-                              ctx: Context,
-                              eliminateDomains: Boolean): MaterializedProgram =
-    d match {
-      case BagDictLet(x, e1: NewLabel, e2: BagDictExpr) =>
-        val ctx2 = ctx.addLabel(LabelVarRef(x.name, e1.tp), isTopLevel = e1.params.isEmpty)
-        materializeDict(e2, name, ctx2, eliminateDomains)
-
-      case BagDictLet(x, e1: BagDictExpr, e2: BagDictExpr) =>
-        val ctx2 = ctx.addDict(e1).addDictAlias(e1, BagDictVarRef(x.name, e1.tp))
-        materializeDict(e2, name, ctx2, eliminateDomains)
-
-      case d2: BagDict =>
-        materializeBagDict(d2, name, ctx, None, eliminateDomains)
-
-      case _ =>
-        sys.error("Dictionary materialization not supported for "+ quote(d))
     }
 
   private def materializeBagDict(dict: BagDict,
@@ -387,33 +350,13 @@ trait Materialization extends MaterializationContext {
   }
 
   private def unshred(a: ShredAssignment, ctx: Context): Program = a.rhs match {
-    case ShredExpr(l: NewLabel, d: BagDictExpr) =>
-      assert(l.tp == d.tp.lblTp)   // sanity check
-      val (p, b) = unshredDict(d, l, ctx)
+    case ShredExpr(l: NewLabel, d: BagDict) =>
+      assert(l.tp == d.lblTp)   // sanity check
+      val (p, b) = unshredBagDict(d, l, ctx, isTopLevel = true)
       Program(p.statements :+ Assignment(a.name, b))
     case _ =>
       sys.error("Unshredding not supported for " + quote(a))
   }
-
-  @scala.annotation.tailrec
-  private def unshredDict(d: BagDictExpr,
-                          lbl: LabelExpr,
-                          ctx: Context): (Program, BagExpr) =
-    d match {
-      case BagDictLet(x, e1: NewLabel, e2: BagDictExpr) =>
-        val ctx2 = ctx.addLabel(LabelVarRef(x.name, e1.tp), isTopLevel = e1.params.isEmpty)
-        unshredDict(e2, lbl, ctx2)
-
-      case BagDictLet(x, e1: BagDictExpr, e2: BagDictExpr) =>
-        val ctx2 = ctx.addDict(e1).addDictAlias(e1, BagDictVarRef(x.name, e1.tp))
-        unshredDict(e2, lbl, ctx2)
-
-      case d2: BagDict =>
-        unshredBagDict(d2, lbl, ctx, isTopLevel = true)
-
-      case _ =>
-        sys.error("Dictionary unshredding not supported for "+ quote(d))
-    }
 
   private def unshredBagDict(dict: BagDict, lbl: LabelExpr, ctx: Context, isTopLevel: Boolean): (Program, BagExpr) =
     dict match {
