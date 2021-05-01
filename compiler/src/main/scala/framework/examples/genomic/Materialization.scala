@@ -80,24 +80,36 @@ class LetTest0(override val letOpt: Boolean = false) extends DriverGene {
       s"""
          (for o in occurrences union 
            for t in o.transcript_consequences union 
-             for c in $cnvs union 
+             for c in cnvCases union 
                if (o.donorId = c.sid && t.gene_id = c.gene)
                then {(hybrid_case := o.donorId, hybrid_gene := t.gene_id, hybrid_score := (c.cnum + 0.01) * $imp )}).sumBy({hybrid_case, hybrid_gene}, {hybrid_score})
       """
-    val query = 
-     s"""
-      initScores0 <= 
-        $initScores;
+    // val query = 
+    //  s"""
+    //   initScores0 <= 
+    //     $initScores;
 
-      LetTest0 <= 
-       for s in samples union 
-         {( hybrid_sample := s.bcr_patient_uuid,
-            hybrid_aliquot := s.bcr_aliquot_uuid,
-            hybrid_center := s.center_id,
-            hybrid_genes := for i in initScores0 union
-             if (s.bcr_patient_uuid = i.hybrid_case)
-             then {(hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)})}
-     """
+        // LetTest0 <= 
+      val lettest = 
+        s"""
+         for s in samples union 
+           {( hybrid_sample := s.bcr_patient_uuid,
+              hybrid_aliquot := s.bcr_aliquot_uuid,
+              hybrid_center := s.center_id,
+              hybrid_genes := for i in initScores0 union
+               if (s.bcr_patient_uuid = i.hybrid_case)
+               then {(hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)})}
+       """
+
+    val query =
+      s"""
+        LetTest0 <= 
+          let cnvCases := $cnvs
+          in let initScores0 := $initScores 
+          in $lettest
+      """
+    print("parsing")
+    print(query)
 
     val parser = Parser(tbls)
     val program = parser.parse(query).get.asInstanceOf[Program]
