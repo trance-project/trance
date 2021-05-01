@@ -32,7 +32,7 @@ object ExampleQuery extends DriverGene {
   // a map of input types for the parser
     val tbls = Map("occurrences" -> occurmids.tp,
                     "copynumber" -> copynum.tp,
-                    "samples" -> samples.tp
+                    "samples" -> samples.tp,
                     "pathways" -> BagType(pathtype))
 
 
