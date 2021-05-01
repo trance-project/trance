@@ -164,16 +164,16 @@ object LetTest1 extends DriverGene {
            for t in o.transcript_consequences union 
              for c in cnvCases union 
                if (o.donorId = c.sid && t.gene_id = c.gene)
-               then {(hybrid_case := o.donorId, hybrid_gene := t.gene_id, hybrid_score := (c.cnum + 0.01) * $imp )}).sumBy({hybrid_case, hybrid_gene}, {hybrid_score});
+               then {(hybrid_case0 := o.donorId, hybrid_gene0 := t.gene_id, hybrid_score0 := (c.cnum + 0.01) * $imp )}).sumBy({hybrid_case0, hybrid_gene0}, {hybrid_score0});
       
         LetTest1 <= 
          for s in samples union 
            {( hybrid_sample := s.bcr_patient_uuid,
               hybrid_aliquot := s.bcr_aliquot_uuid,
               hybrid_center := s.center_id,
-              hybrid_genes := for i in initScores1 union
-               if (s.bcr_patient_uuid = i.hybrid_case)
-               then {(hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)})}
+              hybrid_genes0 := for i in initScores1 union
+               if (s.bcr_patient_uuid = i.hybrid_case0)
+               then {(hybrid_gene := i.hybrid_gene0, hybrid_score := i.hybrid_score0)})}
      """
 
     val parser = Parser(tbls)
@@ -236,7 +236,7 @@ object LetTest2 extends DriverGene {
            for t in o.transcript_consequences union 
              for c in $cnvs union 
                if (o.donorId = c.sid && t.gene_id = c.gene)
-               then {(hybrid_case := o.donorId, hybrid_gene := t.gene_id, hybrid_score := (c.cnum + 0.01) * $imp )}
+               then {(hybrid_case1 := o.donorId, hybrid_gene1 := t.gene_id, hybrid_score1 := (c.cnum + 0.01) * $imp )}
       """
     val query = 
      s"""
@@ -245,9 +245,9 @@ object LetTest2 extends DriverGene {
          {( hybrid_sample := s.bcr_patient_uuid,
             hybrid_aliquot := s.bcr_aliquot_uuid,
             hybrid_center := s.center_id,
-            hybrid_genes := (for i in $initScores union
-             if (s.bcr_patient_uuid = i.hybrid_case)
-             then {(hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)}).sumBy({hybrid_gene}, {hybrid_score})
+            hybrid_genes1 := (for i in $initScores union
+             if (s.bcr_patient_uuid = i.hybrid_case1)
+             then {(hybrid_gene := i.hybrid_gene1, hybrid_score := i.hybrid_score1)}).sumBy({hybrid_gene}, {hybrid_score})
          )}
      """
 
