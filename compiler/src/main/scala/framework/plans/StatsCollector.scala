@@ -21,8 +21,20 @@ case class Statistics(sizeInKB: Double, rowCount: Double) {
 
 }
 
-class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String, zport: Int) { //, inputs: Map[String, String] = Map.empty[String, String]) {
+class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String, zport: Int, inputs: String = "") { //, inputs: Map[String, String] = Map.empty[String, String]) {
 
+  val data: String = if (inputs.isEmpty){
+    s"""|   val copynumber = spark.table("fcopynumber")
+        |   val occurrences = spark.table("foccurrences")
+        |   val samples = spark.table("fsamples")
+        |   val IBag_copynumber__D = copynumber
+        |   val IBag_samples__D = samples
+        |   val IBag_occurrences__D = spark.table("fodict1")
+        |   val IDict_occurrences__D_transcript_consequences = spark.table("fodict2")
+        |   val IDict_occurrences__D_transcript_consequences_consequence_terms = spark.table("fodict3")
+      """
+  }else inputs 
+  
   val zep = new ZeppelinFactory(host = zhost, port = zport)
   val nameMap = Map.empty[String, String] //inputs
   val nameMapRev = Map.empty[String, String]
@@ -109,16 +121,6 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String, zport: Int) { /
 
     val ghead = generator.generateHeader()
     val genc = generator.generateEncoders()
-    val data = s"""
-      |   val copynumber = spark.table("fcopynumber")
-      |   val occurrences = spark.table("foccurrences")
-      |   val samples = spark.table("fsamples")
-      |   val IBag_copynumber__D = copynumber
-      |   val IBag_samples__D = samples
-      |   val IBag_occurrences__D = spark.table("fodict1")
-      |   val IDict_occurrences__D_transcript_consequences = spark.table("fodict2")
-      |   val IDict_occurrences__D_transcript_consequences_consequence_terms = spark.table("fodict3")
-      """
     val bname = "GenerateCosts"
     if (!notebk) {
       var fname = "../executor/spark/src/main/scala/sparkutils/generated/${bname}.scala"

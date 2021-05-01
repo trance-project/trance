@@ -75,6 +75,8 @@ trait Query extends Materialization
       val optShredded = optimize(shredded)
       val materialized = materialize(optShredded, eliminateDomains = true)
       val mprogram = materialized.program
+      println("materialized:")
+      println(quote(mprogram))
       val ncalc = normalizer.finalize(translate(mprogram)).asInstanceOf[CExpr]
       Unnester.unnest(ncalc)(Map(), Map(), None, "_2")
     }else this.unnest

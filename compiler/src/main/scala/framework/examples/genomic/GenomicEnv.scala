@@ -133,13 +133,13 @@ class LetTestEnv(val capacity: Int, val shred: Boolean = false,
 	}
 
 	// normalize lets
-	val query1 = LetTest0()
-	// val query1 = LetTest2
+	// val query1 = LetTest0()
+	val query1 = LetTest2
 	// don't normalize let's
 	// val query2 = LetTest0(true)
-	// val query2 = LetTest1
+	val query2 = LetTest1
 
-	val queries: Vector[Query] = Vector(query1)//, query2)
+	val queries: Vector[Query] = Vector(query1, query2)
 	// val queries1: Vector[Query] = Vector(query1) //, query2)
 	// val queries2: Vector[Query] = Vector(query2)
 
@@ -154,7 +154,7 @@ class LetTestEnv(val capacity: Int, val shred: Boolean = false,
  	seBuilder.updateSubexprs()
  	val subs = seBuilder.sharedSubs(limit = false)
 
-	val stater = new StatsCollector(plans, zhost = zhost, zport = zport)
+	val stater = new StatsCollector(plans, zhost = zhost, zport = zport, inputs = this.setup(shred = shred))
 	val stats = stater.getStats(subs)
 
 	val cost = new Cost(stats)
