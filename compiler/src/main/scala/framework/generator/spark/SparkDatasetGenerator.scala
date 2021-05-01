@@ -37,6 +37,12 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     if (h2.nonEmpty) { s"$h1\n${h2.mkString("\n")}" } else { h1 }
   }
 
+  def generateHeaderList(names: List[String] = List()): Seq[String] = {
+  val h1 = typelst.map(x => generateTypeDef(x)).toSeq
+    val h2 = inputs.withFilter(x => !names.contains(x._2)).map( x => generateTypeDef(x._1)).toSeq
+    if (h2.nonEmpty) { h1 ++ h2 } else { h1 }
+  }
+
   /** Generates the code for the set of implicit encoders associated to the 
     * records in the generated program.
     *
