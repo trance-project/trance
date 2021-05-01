@@ -11,26 +11,25 @@ import scala.collection.mutable.HashMap
 import sparkutils._
 import sparkutils.loader._
 import sparkutils.skew.SkewDataset._
-case class Record3394c2db27f8492da9aa2d7a608bea8c(date_of_shipment: String, quantity: Double, bcr_patient_uuid: String, biospecimen_barcode_bottom: String, is_derived_from_ffpe: String, concentration: Double, plate_row: String, plate_column: Int, bcr_sample_barcode: String, bcr_aliquot_uuid: String, plate_id: String, source_center: Int, bcr_aliquot_barcode: String, center_id: String, volume: Double, samples_index: Long)
-case class Record521d782ca27b409ebf810198dc69b60c(bcr_patient_uuid: String, bcr_aliquot_uuid: String)
-case class Record50d57db519c1498a8b5ce1e0950b267e(cn_end: Int, cn_chromosome: String, cn_start: Int, cn_aliquot_uuid: String, cn_gene_name: String, copynumber_index: Long, cn_gene_id: String, min_copy_number: Int, max_copy_number: Int, cn_copy_number: Int)
-case class Record2918b5590b2a49e4815f67b1a08599c9(cn_aliquot_uuid: String, cn_gene_id: String, cn_copy_number: Int)
-case class Recordbf0116ae52c3477689280dfb113991f6(bcr_patient_uuid: String, cn_aliquot_uuid: String, cn_gene_id: String, bcr_aliquot_uuid: String, cn_copy_number: Int)
-case class Recordda8cb4f93cd64c169c1de235152ef5b7(sid: String, gene: String, cnum: Int)
-case class Recordaa14ce664f264b63adcf71a8efcd97bb(element: String)
-case class Record9cb295cb40604caca5e94cd59a65f607(polyphen_score: Double, sift_prediction: String, polyphen_prediction: String, flags: Seq[String], protein_end: Long, ts_strand: Long, impact: String, gene_id: String, amino_acids: String, sift_score: Double, cdna_start: Long, transcript_id: String, cdna_end: Long, exon: String, cds_end: Long, cds_start: Long, intron: String, consequence_terms: Seq[String], case_id: String, protein_start: Long, variant_allele: String, codons: String, distance: Long)
-case class Record645752081f9548b0a6629e5a5d7e2318(vid: String, vend: Long, Tumor_Seq_Allele1: String, allele_string: String, Reference_Allele: String, oid: String, vstart: Long, projectId: String, donorId: String, seq_region_name: String, transcript_consequences: Seq[Record9cb295cb40604caca5e94cd59a65f607], chromosome: String, occurrences_index: Long, assembly_name: String, end: Long, Tumor_Seq_Allele2: String, strand: Long, start: Long, input: String, most_severe_consequence: String)
-case class Recordbcb9bc39d6e542a2a45de3a042775da8(oid: String, donorId: String, transcript_consequences: Seq[Record9cb295cb40604caca5e94cd59a65f607], occurrences_index: Long)
-case class Recordb8497a4607b64b9db860e950b2f21d81(transcript_consequences_index: Long, oid: String, donorId: String, transcript_consequences: Seq[Record9cb295cb40604caca5e94cd59a65f607], occurrences_index: Long)
-case class Record53432ca5d8634b89941f5870918a234e(oid: String, impact: Option[String], gene_id: Option[String], donorId: String, occurrences_index: Long)
-case class Recordb606fd21c8144411baad5493addbb19d(sid: String, gene: String, cnum: Int, cnvCases1_index: Long)
-case class Record7908de6a47c14c00a2779de9a1051ae9(cnum: Option[Int], oid: String, impact: Option[String], gene_id: Option[String], donorId: String, occurrences_index: Long, gene: Option[String], sid: Option[String])
-case class Record477ce21113d94d3ebc75f25d382b09bc(oid: String, gene1: Option[String], donorId: String, score1: Double, occurrences_index: Long)
-case class Record914c4a1cfd1e4564934250e6bc0788c4(oid: String, gene1: Option[String], donorId: String, occurrences_index: Long)
-case class Recordd8341bd87066476aacdabce1b3fae4f4(oid: String, donorId: String, occurrences_index: Long)
-case class Record384fb3c2ab3d4d76aa37de3ca1d1c643(gene1: String, score1: Double)
-case class Record3e711ef3f1294720a339d586191ee3cc(oid: String, donorId: String, occurrences_index: Long, cands1: Seq[Record384fb3c2ab3d4d76aa37de3ca1d1c643])
-case class Recordce1010d43fd6438d844511fcb4293722(oid: String, sid1: String, cands1: Seq[Record384fb3c2ab3d4d76aa37de3ca1d1c643])
+case class Record00c81f9a2414494ea3f51cd50474eece(name: String)
+case class Record291a0417a75448b2a6e435d8f0ba5d67(p_name: String, url: String, gene_set: Seq[Record00c81f9a2414494ea3f51cd50474eece], pathways_index: Long)
+case class Record77167a89da6d445e94165bf5ba8c20cc(p_name: String, gene_set: Seq[Record00c81f9a2414494ea3f51cd50474eece], pathways_index: Long)
+case class Record217f06d7a86241ddb40bf77d9b15d6a2(element: String)
+case class Record7bc4f14c267b45239dc8464b1a602e47(polyphen_score: Double, sift_prediction: String, polyphen_prediction: String, flags: Seq[String], protein_end: Long, ts_strand: Long, impact: String, gene_id: String, amino_acids: String, sift_score: Double, cdna_start: Long, transcript_id: String, cdna_end: Long, exon: String, cds_end: Long, cds_start: Long, intron: String, consequence_terms: Seq[String], case_id: String, protein_start: Long, variant_allele: String, codons: String, distance: Long)
+case class Recordaeadfbc3723e478fade2d9e571356794(vid: String, vend: Long, Tumor_Seq_Allele1: String, allele_string: String, Reference_Allele: String, oid: String, vstart: Long, projectId: String, donorId: String, seq_region_name: String, transcript_consequences: Seq[Record7bc4f14c267b45239dc8464b1a602e47], chromosome: String, occurrences_index: Long, assembly_name: String, end: Long, Tumor_Seq_Allele2: String, strand: Long, start: Long, input: String, most_severe_consequence: String)
+case class Record7c60a1a9035c4007a89dfa61aa4c886c(donorId: String, transcript_consequences: Seq[Record7bc4f14c267b45239dc8464b1a602e47])
+case class Record977e6e23259342d193fbd087ffb39b3f(p_name: String, donorId: Option[String], transcript_consequences: Option[Seq[Record7bc4f14c267b45239dc8464b1a602e47]], pathways_index: Long, gene_set: Seq[Record00c81f9a2414494ea3f51cd50474eece])
+case class Record96de1ab0317848eeb15764ca2bde3ec0(p_name: String, transcript_consequences_index: Long, donorId: Option[String], transcript_consequences: Option[Seq[Record7bc4f14c267b45239dc8464b1a602e47]], pathways_index: Long, gene_set: Seq[Record00c81f9a2414494ea3f51cd50474eece])
+case class Record461f05e2969248cba8d84a6c1f3c6fad(p_name: String, impact: Option[String], donorId: Option[String], pathways_index: Long, gene_set: Seq[Record00c81f9a2414494ea3f51cd50474eece])
+case class Recordf39afeb52bef4e3581418642717634ed(p_name: String, gene_set_index: Long, impact: Option[String], donorId: Option[String], pathways_index: Long, gene_set: Seq[Record00c81f9a2414494ea3f51cd50474eece])
+case class Record9e56c95f438140d19a3a56c4e98dd79e(p_name: String, impact: Option[String], donorId: Option[String], pathways_index: Long)
+case class Record141fb3775f2c41b9b3f724a9f80744a6(p_name: String, burden: Double, pathways_index: Long, sid: Option[String])
+case class Record65d3fb2d4d48473d8bf7df104937e650(p_name: String, pathways_index: Long, sid: Option[String], burden: Double)
+case class Recorddd4508feeefa4042b03486d9dda81c7a(p_name: String, pathways_index: Long, sid: Option[String])
+case class Record34d5440be46144f394b1aea5756c99fa(p_name: String, pathways_index: Long)
+case class Record91ae3498cee94ec68ec1f8202ac49bc1(sid: String, burden: Double)
+case class Recordab058d8cbffe4206bada9678bb32ff08(p_name: String, pathways_index: Long, burdens: Seq[Record91ae3498cee94ec68ec1f8202ac49bc1])
+case class Recordc015e4b12cca461f9449bcf7efcf292f(pathway: String, burdens: Seq[Record91ae3498cee94ec68ec1f8202ac49bc1])
 object ExampleQueryProjSpark {
  def main(args: Array[String]){
    val sf = Config.datapath.split("/").last
@@ -49,94 +48,79 @@ val geLoader = new GeneExpressionLoader(spark)
 val expression = geLoader.load("/mnt/app_hdd/data/expression", true)
 
 val occurrences = spark.read.json("/mnt/app_hdd/data/somatic/datasetPRAD")
+val pathways =
 
    def f = { 
  
- val x21 = samples.withColumn("samples_index", monotonically_increasing_id())
- .as[Record3394c2db27f8492da9aa2d7a608bea8c]
+ val x17 = pathways.withColumn("pathways_index", monotonically_increasing_id())
+ .as[Record291a0417a75448b2a6e435d8f0ba5d67]
  
-val x24 = x21.select("bcr_patient_uuid", "bcr_aliquot_uuid")
+val x20 = x17.select("p_name", "gene_set", "pathways_index")
           
- .as[Record521d782ca27b409ebf810198dc69b60c]
+ .as[Record77167a89da6d445e94165bf5ba8c20cc]
  
-val x25 = copynumber.withColumn("copynumber_index", monotonically_increasing_id())
- .as[Record50d57db519c1498a8b5ce1e0950b267e]
+val x21 = occurrences.withColumn("occurrences_index", monotonically_increasing_id())
+ .as[Recordaeadfbc3723e478fade2d9e571356794]
  
-val x28 = x25.select("cn_aliquot_uuid", "cn_gene_id", "cn_copy_number")
+val x24 = x21.select("donorId", "transcript_consequences")
           
- .as[Record2918b5590b2a49e4815f67b1a08599c9]
+ .as[Record7c60a1a9035c4007a89dfa61aa4c886c]
  
-val x31 = x24.equiJoin(x28, 
- Seq("bcr_aliquot_uuid"), Seq("cn_aliquot_uuid"), "inner").as[Recordbf0116ae52c3477689280dfb113991f6]
+val x27 = x20.crossJoin(x24)
+  .as[Record977e6e23259342d193fbd087ffb39b3f]
  
-val x33 = x31.select("bcr_patient_uuid", "cn_gene_id", "cn_copy_number")
-           .withColumnRenamed("bcr_patient_uuid", "sid")
- .withColumnRenamed("cn_gene_id", "gene")
- .withColumnRenamed("cn_copy_number", "cnum")
-.withColumn("cnum", when(col("cnum").isNull, 0).otherwise(col("cnum")))
- .as[Recordda8cb4f93cd64c169c1de235152ef5b7]
+val x28 = x27.withColumn("transcript_consequences_index", monotonically_increasing_id())
+ .as[Record96de1ab0317848eeb15764ca2bde3ec0]
  
-val x34 = x33
-val cnvCases1 = x34  
-//cnvCases1.cache
-//cnvCases1.count
-val x35 = occurrences.withColumn("occurrences_index", monotonically_increasing_id())
- .as[Record645752081f9548b0a6629e5a5d7e2318]
- 
-val x38 = x35.select("oid", "donorId", "transcript_consequences", "occurrences_index")
-          
- .as[Recordbcb9bc39d6e542a2a45de3a042775da8]
- 
-val x39 = x38.withColumn("transcript_consequences_index", monotonically_increasing_id())
- .as[Recordb8497a4607b64b9db860e950b2f21d81]
- 
-val x42 = x39.flatMap{
- case x40 => 
-      if (x40.transcript_consequences.isEmpty) Seq(Record53432ca5d8634b89941f5870918a234e(x40.oid, None, None, x40.donorId, x40.occurrences_index))
-   else x40.transcript_consequences.flatMap( x41 => if (x41.sift_score > 0.0) Seq(Record53432ca5d8634b89941f5870918a234e(x40.oid, Some(x41.impact), Some(x41.gene_id), x40.donorId, x40.occurrences_index)) else Seq() )
+val x32 = x28.flatMap{
+ case x29 => 
+      x29.transcript_consequences match {
+     case Some(transcript_consequences) if transcript_consequences.nonEmpty => 
+       transcript_consequences.map( x31 => Record461f05e2969248cba8d84a6c1f3c6fad(x29.p_name, Some(x31.impact), x29.donorId, x29.pathways_index, x29.gene_set) )
+     case _ => Seq(Record461f05e2969248cba8d84a6c1f3c6fad(x29.p_name, None, x29.donorId, x29.pathways_index, x29.gene_set))
+   }
 
-}.as[Record53432ca5d8634b89941f5870918a234e]
+}.as[Record461f05e2969248cba8d84a6c1f3c6fad]
  
-val x43 = cnvCases1.withColumn("cnvCases1_index", monotonically_increasing_id())
- .as[Recordb606fd21c8144411baad5493addbb19d]
+val x33 = x32.withColumn("gene_set_index", monotonically_increasing_id())
+ .as[Recordf39afeb52bef4e3581418642717634ed]
  
-val x46 = x43.select("sid", "gene", "cnum")
-          
- .as[Recordda8cb4f93cd64c169c1de235152ef5b7]
+val x36 = x33.flatMap{
+ case x34 => 
+      if (x34.gene_set.isEmpty) Seq(Record9e56c95f438140d19a3a56c4e98dd79e(x34.p_name, x34.impact, x34.donorId, x34.pathways_index))
+   else x34.gene_set.flatMap( x35 => if (x35.name == x35.gene_id) Seq(Record9e56c95f438140d19a3a56c4e98dd79e(x34.p_name, x34.impact, x34.donorId, x34.pathways_index)) else Seq() )
+
+}.as[Record9e56c95f438140d19a3a56c4e98dd79e]
  
-val x49 = x42.equiJoin(x46, 
- Seq("gene_id","donorId"), Seq("gene","sid"), "left_outer").as[Record7908de6a47c14c00a2779de9a1051ae9]
+val x38 = x36
+            .withColumn("burden", when(col("impact") === "HIGH", 0.8).otherwise(when(col("impact") === "MODERATE", 0.5).otherwise(when(col("impact") === "LOW", 0.3).otherwise(0.01))))
+.withColumn("burden", when(col("burden").isNull, 0.0).otherwise(col("burden")))
+ .withColumnRenamed("donorId", "sid")
+ .as[Record141fb3775f2c41b9b3f724a9f80744a6]
  
-val x51 = x49.select("cnum", "oid", "impact", "gene_id", "donorId", "occurrences_index")
-            .withColumn("score1", ((col("cnum") + 0.01) * when(col("impact") === "HIGH", 0.8).otherwise(when(col("impact") === "MODERATE", 0.5).otherwise(when(col("impact") === "LOW", 0.3).otherwise(0.01)))))
-.withColumn("score1", when(col("score1").isNull, 0.0).otherwise(col("score1")))
- .withColumnRenamed("gene_id", "gene1")
- .as[Record477ce21113d94d3ebc75f25d382b09bc]
+val x40 = x38.groupByKey(x39 => Recorddd4508feeefa4042b03486d9dda81c7a(x39.p_name, x39.pathways_index, x39.sid))
+ .agg(typed.sum[Record141fb3775f2c41b9b3f724a9f80744a6](x39 => x39.burden)
+).mapPartitions{ it => it.map{ case (key, burden) =>
+   Record65d3fb2d4d48473d8bf7df104937e650(key.p_name, key.pathways_index, key.sid, burden)
+}}.as[Record65d3fb2d4d48473d8bf7df104937e650]
  
-val x53 = x51.groupByKey(x52 => Record914c4a1cfd1e4564934250e6bc0788c4(x52.oid, x52.gene1, x52.donorId, x52.occurrences_index))
- .agg(typed.sum[Record477ce21113d94d3ebc75f25d382b09bc](x52 => x52.score1)
-).mapPartitions{ it => it.map{ case (key, score1) =>
-   Record477ce21113d94d3ebc75f25d382b09bc(key.oid, key.gene1, key.donorId, score1, key.occurrences_index)
-}}.as[Record477ce21113d94d3ebc75f25d382b09bc]
- 
-val x55 = x53.groupByKey(x54 => Recordd8341bd87066476aacdabce1b3fae4f4(x54.oid, x54.donorId, x54.occurrences_index)).mapGroups{
+val x42 = x40.groupByKey(x41 => Record34d5440be46144f394b1aea5756c99fa(x41.p_name, x41.pathways_index)).mapGroups{
  case (key, value) => 
-   val grp = value.flatMap(x54 => 
-    (x54.gene1) match {
+   val grp = value.flatMap(x41 => 
+    (x41.sid) match {
       case (None) => Seq()
-      case _ => Seq(Record384fb3c2ab3d4d76aa37de3ca1d1c643(x54.gene1 match { case Some(x) => x; case _ => "null" }, x54.score1))
+      case _ => Seq(Record91ae3498cee94ec68ec1f8202ac49bc1(x41.sid match { case Some(x) => x; case _ => "null" }, x41.burden))
    }).toSeq
-   Record3e711ef3f1294720a339d586191ee3cc(key.oid, key.donorId, key.occurrences_index, grp)
- }.as[Record3e711ef3f1294720a339d586191ee3cc]
+   Recordab058d8cbffe4206bada9678bb32ff08(key.p_name, key.pathways_index, grp)
+ }.as[Recordab058d8cbffe4206bada9678bb32ff08]
  
-val x57 = x55.select("oid", "donorId", "cands1")
-           .withColumnRenamed("donorId", "sid1")
- .as[Recordce1010d43fd6438d844511fcb4293722]
+val x44 = x42.select("p_name", "burdens")
+           .withColumnRenamed("p_name", "pathway")
+ .as[Recordc015e4b12cca461f9449bcf7efcf292f]
  
-val x58 = x57
-val hybridScore1 = x58
-//hybridScore1.count
-
+val x45 = x44
+val GMB = x45
+//GMB.count
 
 }
 var start = System.currentTimeMillis()
