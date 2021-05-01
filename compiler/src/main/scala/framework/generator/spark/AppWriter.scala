@@ -44,7 +44,7 @@ object AppWriter {
     val qname = if (skew) s"${query.name}${flatTag}SkewSpark" else s"${query.name}${flatTag}Spark"
     val fname = s"$pathout/$qname.scala" 
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))    
-    val finalc = if (notebk){
+    if (notebk){
       val zep = new ZeppelinFactory(zhost, zport)
       val noteid = zep.addNote(qname)
       println(s"Writing out to $qname notebook with id: $noteid")
@@ -53,15 +53,18 @@ object AppWriter {
       val pid = zep.writeParagraph(noteid, para)
       zep.restartInterpreter()
       println(s"Writing case classes out to $fname")
-      header
+      val finalc = header
+      printer.println(finalc)
+      printer.close 
+      "sh compile.sh".!!
     }else{
       println(s"Writing out $qname to $fname")
-      writeDataset(qname, inputs, header, timedOne(gcode), label, encoders)
+      val finalc = writeDataset(qname, inputs, header, timedOne(gcode), label, encoders)
+      printer.println(finalc)
+      printer.close 
     }
-    printer.println(finalc)
-    printer.close 
 
-    "sh compile.sh".!!
+
 
   }
 
