@@ -28,37 +28,37 @@ class GenomicEnv(val capacity: Int, val shred: Boolean = false, val flex: Int = 
 
 	override def setup(shred: Boolean = shred, skew: Boolean = false, cache: Boolean = false): String = {
 		if (shred){
-  		  s"""|val samples = spark.table("samples")
+  		  s"""|val samples = spark.table("fsamples")
 	          |val IBag_samples__D = samples
 	          |${if (cache) "IBag_samples__D.cache; IBag_samples__D.count" else ""}
 	          |
-	          |val copynumber = spark.table("copynumber")
+	          |val copynumber = spark.table("fcopynumber")
 	          |val IBag_copynumber__D = copynumber
 	          |${if (cache) "IBag_copynumber__D.cache; IBag_copynumber__D.count" else ""}
 	          |
-	          |val odict1 = spark.table("odict1")
+	          |val odict1 = spark.table("fodict1")
 	          |val IBag_occurrences__D = odict1
 	          |${if (cache) "IBag_copynumber__D.cache; IBag_copynumber__D.count" else ""}
 	          |
 	          |// issue with partial shredding here
-	          |val odict2 = spark.table("odict2").drop("flags")
+	          |val odict2 = spark.table("fodict2").drop("flags")
 	          |val IDict_occurrences__D_transcript_consequences = odict2
 	          |${if (cache) "IDict_occurrences__D_transcript_consequences.cache" else ""}
 	          |${if (cache) "IDict_occurrences__D_transcript_consequences.count" else ""}
 	          |
-	          |val odict3 = spark.table("odict3")
+	          |val odict3 = spark.table("fodict3")
 	          |val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
 	          |${if (cache) "IDict_occurrences__D_transcript_consequences_consequence_terms.cache" else ""}
 	          |${if (cache) "IDict_occurrences__D_transcript_consequences_consequence_terms.count" else ""}
 	          |""".stripMargin
 		}else{
-  		  s"""|val samples = spark.table("samples")
+  		  s"""|val samples = spark.table("fsamples")
 	          |${if (cache) "samples.cache; samples.count" else ""}
 	          |
-	          |val copynumber = spark.table("copynumber")
+	          |val copynumber = spark.table("fcopynumber")
 	          |${if (cache) "copynumber.cache; copynumber.count" else ""}
 	          |
-	          |val occurrences = spark.table("occurrences")
+	          |val occurrences = spark.table("foccurrences")
 	          |${if (cache) "occurrences.cache; occurrences.count" else ""}
 	          |""".stripMargin
 		}
