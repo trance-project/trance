@@ -46,7 +46,7 @@ object ExampleQuery extends DriverGene {
         GMB <=
           for p in pathways union
             {(pathway := p.p_name, burdens :=
-              (for o in occurences union
+              (for o in occurrences union
                 for t in o.candidates union
                   for g in p.gene_set union
                     if (g.name = t.gene) then
