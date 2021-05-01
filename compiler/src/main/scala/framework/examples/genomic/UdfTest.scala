@@ -40,9 +40,19 @@ object ExampleQuery extends DriverGene {
         for s in samples union 
           for c in copynumber union 
             if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
-            then {(sid := s.bcr_patient_uuid, gene := c.cn_gene_id, cnum := c.cn_copy_number)}
+            then {(sid := s.bcr_patient_uuid, gene := c.cn_gene_id, cnum := c.cn_copy_number)};
 
-
+      hybridScore1 <=
+          for o in occurrences union
+            {( oid := o.oid, sid1 := o.donorId, cands1 :=
+              ( for t in o.transcript_consequences union
+                 if (t.sift_score > 0.0)
+                 then for c in cnvCases1 union
+                    if (t.gene_id = c.gene && o.donorId = c.sid) then
+                      {( gene1 := t.gene_id, score1 := (c.cnum + 0.01) * if (t.impact = "HIGH") then 0.80
+                          else if (t.impact = "MODERATE") then 0.50
+                          else if (t.impact = "LOW") then 0.30
+                          else 0.01 )}).sumBy({gene1}, {score1}) )}
     """
 
     // finally define the parser, note that it takes the input types 
