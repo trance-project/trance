@@ -302,14 +302,13 @@ object LetTest3 extends DriverGene {
               for c in copynumber union 
                 if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
                 then {(sid := s.bcr_patient_uuid, gene := c.cn_gene_id, cnum := c.cn_copy_number)};
-
         initScores1 <=  
          (for o in occurrences union 
            for t in o.transcript_consequences union 
              for c in cnvCases union 
                if (o.donorId = c.sid && t.gene_id = c.gene)
                then {(hybrid_case := o.donorId, hybrid_gene := t.gene_id, hybrid_score := (c.cnum + 0.01) * $imp )}).sumBy({hybrid_case, hybrid_gene}, {hybrid_score});
-      
+        
         intermMatrix <= 
          for s in samples union 
            {( hybrid_sample := s.bcr_patient_uuid,
@@ -317,14 +316,14 @@ object LetTest3 extends DriverGene {
               hybrid_center := s.center_id,
               hybrid_genes := for i in initScores1 union
                if (s.bcr_patient_uuid = i.hybrid_case)
-               then {(hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)})};
+               then {(hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)})}
+    """
+     //    finalMatrix <= 
+     //      (for s in intermMatrix union 
+     //        for h in intermMatrix.hybrid_genes union 
+     //          {(hybrid_gene := h.hybrid_gene, hybrid_score := h.hybrid_score)}).sumBy({hybrid_gene}, {hybrid_score})
 
-        finalMatrix <= 
-          (for s in intermMatrix union 
-            for h in intermMatrix.hybrid_genes union 
-              {(hybrid_gene := h.hybrid_gene, hybrid_score := h.hybrid_score)}).sumBy({hybrid_gene}, {hybrid_score})
-
-     """
+     // """
 
     val parser = Parser(tbls)
     val program = parser.parse(query).get.asInstanceOf[Program]
