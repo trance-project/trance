@@ -57,10 +57,9 @@ object ExampleQuery extends DriverGene {
           for p in mapPathways union
             {(pathway := p.pathway, burdens :=
               (for o in occurrences union
-                  for g in p.gene_set union
-                      for t in o.transcript_consequences union
-                        if (g.name = t.gene_id) then
-                           {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
+                   for t in o.transcript_consequences union
+                      if (p.name = t.gene_id) then
+                         {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
                                                       else if (t.impact = "MODERATE") then 0.50
                                                       else if (t.impact = "LOW") then 0.30
                                                       else 0.01)}).sumBy({sid}, {burden}))}
