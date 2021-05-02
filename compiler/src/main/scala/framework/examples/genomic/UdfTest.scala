@@ -23,7 +23,10 @@ object ExampleQuery extends DriverGene {
           |val expression = geLoader.load("/mnt/app_hdd/data/expression", true, aliquot_file = "/mnt/app_hdd/data/fpkm_uq_case_aliquot.txt")
           |
           |val occurrences = spark.read.json("/mnt/app_hdd/data/somatic/datasetPRAD")
-          |val pathways =
+          |val ploader = new PathwayLoader(spark)
+          |val pathways = ploader.load("/mnt/app_hdd/data/pathway/c2.cp.v7.1.symbols.gmt")
+          |val gtfLoader = new GTFLoader(spark, "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf")
+          |val genemap = gtfLoader.loadDS
           |""".stripMargin
     }
   
@@ -36,7 +39,8 @@ object ExampleQuery extends DriverGene {
     val tbls = Map("occurrences" -> occurmids.tp,
                     "copynumber" -> copynum.tp,
                     "samples" -> samples.tp,
-                    "pathways" -> BagType(pathtype))
+                    "pathways" -> BagType(pathtype),
+                    "genemap" -> gtf.tp)
 
 
   // a query string that is passed to the parser
@@ -47,13 +51,15 @@ object ExampleQuery extends DriverGene {
           for p in pathways union
             {(pathway := p.p_name, burdens :=
               (for o in occurrences union
-                for t in o.transcript_consequences union
                   for g in p.gene_set union
-                    if (g.name = t.gene_id) then
-                      {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
-                                                else if (t.impact = "MODERATE") then 0.50
-                                                else if (t.impact = "LOW") then 0.30
-                                                else 0.01)}).sumBy({sid}, {burden}))}
+                    for g2 in genemap union
+                      if (g.name = g2.g_gene_name) then
+                        for t in o.transcript_consequences union
+                          if (g2.g_gene_id = t.gene_id) then
+                            {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
+                                                      else if (t.impact = "MODERATE") then 0.50
+                                                      else if (t.impact = "LOW") then 0.30
+                                                      else 0.01)}).sumBy({sid}, {burden}))}
 
     """
 
