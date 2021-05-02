@@ -53,9 +53,10 @@ object ExampleQuery extends DriverGene {
                 for g2 in genemap union
                   if (g.name = g2.g_gene_name) then
                      {(name := g2.g_gene_id)}))};
+
         GMB <=
           for p in mapPathways union
-            {(pathway := p.p_name, burdens :=
+            {(pathway := p.pathway, burdens :=
               (for o in occurrences union
                   for g in p.gene_set union
                     for g2 in genemap union
