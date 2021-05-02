@@ -4,7 +4,7 @@ import java.util.Base64
 import framework.common._
 import framework.examples.Query
 import framework.nrc.Parser
-// test
+// test2
 
 // this is just the example from the 
 object ExampleQuery extends DriverGene {
