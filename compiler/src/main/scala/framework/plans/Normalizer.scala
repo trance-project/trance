@@ -126,11 +126,18 @@ class BaseNormalizer(val letOpt: Boolean = false) extends BaseCompiler {
       case Comprehension(e2, v2, p2, e3) if (!letOpt) =>  
           Comprehension(e2, v2, p2, normalizeIf(comprehension(e3, p, e)))
 
+      // how to normalize in a nested??
+      case CReduceBy(in, v, ks, vs) if (!letOpt) => 
+        val nc = comprehension(in, (i: Rep) => Constant(true), (i: Rep) => i)
+        val v2 = Variable.freshFromBag(nc.tp)
+        CReduceBy(nc, v2, ks, vs)
+
       case _ => // standard case (return self)
         val v = Variable.freshFromBag(e1.tp)
         e(v) match {
           case If(cond, e4, None) => Comprehension(e1, v, and(p(v), cond), e4)
-          case ev => Comprehension(e1, v, p(v), ev)
+          case ev => 
+            Comprehension(e1, v, p(v), ev)
         }
 
       }
