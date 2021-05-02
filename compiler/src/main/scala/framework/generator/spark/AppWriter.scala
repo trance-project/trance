@@ -6,7 +6,6 @@ import framework.plans._
 import framework.examples.tpch._
 import framework.examples.{Query, Environment}
 import framework.loader.csv._
-import scala.sys.process._
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -42,29 +41,21 @@ object AppWriter {
     }
     val inputs = query.loadTables(shred = false, skew = skew)
     val qname = if (skew) s"${query.name}${flatTag}SkewSpark" else s"${query.name}${flatTag}Spark"
-    val fname = s"$pathout/$qname.scala" 
-    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))    
     if (notebk){
       val zep = new ZeppelinFactory(zhost, zport)
       val noteid = zep.addNote(qname)
       println(s"Writing out to $qname notebook with id: $noteid")
-      val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcode), label, encoders)
+      val pcontents = writeParagraph(qname, inputs, header, timeOp(qname, gcode), label, encoders)
       val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
       val pid = zep.writeParagraph(noteid, para)
-      zep.restartInterpreter()
-      println(s"Writing case classes out to $fname")
-      val finalc = header
-      printer.println(finalc)
-      printer.close 
-      "sh compile.sh".!!
     }else{
+      val fname = s"$pathout/$qname.scala" 
       println(s"Writing out $qname to $fname")
+      val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
       val finalc = writeDataset(qname, inputs, header, timedOne(gcode), label, encoders)
       printer.println(finalc)
       printer.close 
     }
-
-
 
   }
 
@@ -243,7 +234,6 @@ object AppWriter {
         |import sparkutils._
         |import sparkutils.loader._
         |import sparkutils.skew.SkewDataset._
-        |import sparkutils.generated._
         |$header
         |$encoders
         |import spark.implicits._
