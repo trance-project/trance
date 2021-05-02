@@ -11,6 +11,6 @@ object UdfTestApp extends App {
     AppWriter.runDataset(ExampleQuery, "ExampleTest,standard", optLevel = 1)
 
     // runs the shredded pipeline
-    AppWriter.runDatasetShred(ExampleQuery, "ExampleTest,standard", optLevel = 1)
+//    AppWriter.runDatasetShred(ExampleQuery, "ExampleTest,standard", optLevel = 1)
   }
 }
