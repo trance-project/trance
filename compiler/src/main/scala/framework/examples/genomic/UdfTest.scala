@@ -48,7 +48,7 @@ object ExampleQuery extends DriverGene {
     s"""
         mapPathways <=
           for p in pathways union
-            {(pathway := p.pathway, gene_set :=
+            {(pathway := p.p_name, gene_set :=
               for g in p.gene_set union
                 for g2 in genemap union
                   if (g.name = g2.g_gene_name)
