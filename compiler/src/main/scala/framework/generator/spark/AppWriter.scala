@@ -53,7 +53,7 @@ object AppWriter {
       val pid = zep.writeParagraph(noteid, para)
       zep.restartInterpreter()
       println(s"Writing case classes out to $fname")
-      val finalc = header
+      val finalc = "package sparkutils.generated\n"+header
       printer.println(finalc)
       printer.close 
       "sh compile.sh".!!
