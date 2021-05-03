@@ -15,8 +15,7 @@ object ExampleQuery extends DriverGene {
       s""// TODO""
     }else{
       s"""|val sloader = new BiospecLoader(spark)
-          |val samples = sloader.load("/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_dlbc.txt")
-          |val cloader = new CopyNumberLoader(spark)
+          |val samples = sloader.load("/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_prad.txt")          |val cloader = new CopyNumberLoader(spark)
           |val copynumber = cloader.load("/mnt/app_hdd/data/cnv", true)
           |
           |val geLoader = new GeneExpressionLoader(spark)
