@@ -21,10 +21,10 @@ object ExampleQuery extends DriverGene {
           |
           |val geLoader = new GeneExpressionLoader(spark)
           |
-          |val occurrences = spark.read.json("/mnt/app_hdd/data/somatic/datasetPRAD")
+          |val occurrences = spark.read.json("/mnt/app_hdd/data/somatic/datasetDLBC")
           |val ploader = new PathwayLoader(spark)
           |val pathways = ploader.load("/mnt/app_hdd/data/pathway/c2.cp.v7.1.symbols.gmt")
-          |val gtfLoader = new GTFLoader(spark, "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf")
+          |val gtfLoader = new GTFLoader(spark, "/mnt/app_hdd/data/genes/Homo_sapiens.GRCh37.87.chr.gtf")
           |val genemap = gtfLoader.loadDS
           |""".stripMargin
     }
@@ -49,20 +49,18 @@ object ExampleQuery extends DriverGene {
     s"""
         mapPathways <=
           for p in pathways union
-            {(pathway := p.p_name, gene_set :=
               for g in p.gene_set union
                 for g2 in genemap union
                   if (g.name = g2.g_gene_name) then
-                     {(name := g2.g_gene_id)})};
+                     {(pathway := p.p_name, name := g2.g_gene_id)};
 
         GMB <=
           for p in mapPathways union
             {(pathway := p.pathway, burdens :=
               (for o in occurrences union
-                  for g in p.gene_set union
-                      for t in o.transcript_consequences union
-                        if (g.name = t.gene_id) then
-                           {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
+                   for t in o.transcript_consequences union
+                      if (p.name = t.gene_id) then
+                         {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
                                                       else if (t.impact = "MODERATE") then 0.50
                                                       else if (t.impact = "LOW") then 0.30
                                                       else 0.01)}).sumBy({sid}, {burden}))}
