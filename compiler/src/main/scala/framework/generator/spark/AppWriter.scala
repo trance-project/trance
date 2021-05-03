@@ -63,9 +63,49 @@ object AppWriter {
       printer.println(finalc)
       printer.close 
     }
+  }
 
+  def runDatasetShred(query: Query, label: String, eliminateDomains: Boolean = true, optLevel: Int = 2,
+    unshred: Boolean = false, skew: Boolean = false, schema: Schema = Schema(), notebk: Boolean = false, 
+    zhost: String = "localhost", zport: Int = 8085): Unit = {
+    
+    val codegen = new SparkDatasetGenerator(unshred, eliminateDomains, evalFinal = false, skew = skew)
+    val (gcodeShred, gcodeUnshred) = query.shredBatchPlan(unshred, eliminateDomains = eliminateDomains, 
+      optLevel = optLevel, anfed = true, schema = schema)
+    val gcode1 = codegen.generate(gcodeShred)
+    val (header, gcodeSet, encoders) = if (unshred) {
+      val codegen2 = new SparkDatasetGenerator(false, false, unshred = true, inputs = codegen.types, skew = skew)
+      val ugcode = codegen2.generate(gcodeUnshred)
+      val encoders1 = codegen.generateEncoders() +"\n"+ codegen2.generateEncoders()
+      (s"""|${codegen2.generateHeader()}""".stripMargin, List(gcode1, ugcode), encoders1)
+    } else 
+      (s"""|${codegen.generateHeader()}""".stripMargin, List(gcode1), codegen.generateEncoders())
+   
+    val us = if (unshred) "Unshred" else ""
 
-
+    val inputs = query.loadTables(shred = true, skew = skew)
+    val qname = if (skew) s"Shred${query.name}${us}SkewSpark" else s"Shred${query.name}${us}Spark"
+    val fname = s"$pathout/$qname.scala"
+    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))    
+    if (notebk){
+      val zep = new ZeppelinFactory(zhost, zport)
+      val noteid = zep.addNote(qname)
+      println(s"Writing out to $qname notebook with id: $noteid")
+      val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
+      val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
+      val pid = zep.writeParagraph(noteid, para)
+      zep.restartInterpreter()
+      println(s"Writing case classes out to $fname")
+      val finalc = "package sparkutils.generated\n"+header
+      printer.println(finalc)
+      printer.close 
+      "sh compile.sh".!!
+    }else{
+      println(s"Writing out $qname to $fname")
+      val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet), label, encoders)
+      printer.println(finalc)
+      printer.close 
+    } 
   }
 
   def runWithCache(env: Environment, label: String, skew: Boolean = false, notebk: Boolean = false, cache: Boolean = false): Unit = {
@@ -142,33 +182,6 @@ object AppWriter {
   }
 
   /** Shredded pipeline: Dataset generator **/
-
-  def runDatasetShred(query: Query, label: String, eliminateDomains: Boolean = true, optLevel: Int = 2,
-    unshred: Boolean = false, skew: Boolean = false, schema: Schema = Schema()): Unit = {
-    
-    val codegen = new SparkDatasetGenerator(unshred, eliminateDomains, evalFinal = false, skew = skew)
-    val (gcodeShred, gcodeUnshred) = query.shredBatchPlan(unshred, eliminateDomains = eliminateDomains, 
-      optLevel = optLevel, anfed = true, schema = schema)
-    val gcode1 = codegen.generate(gcodeShred)
-    val (header, gcodeSet, encoders) = if (unshred) {
-      val codegen2 = new SparkDatasetGenerator(false, false, unshred = true, inputs = codegen.types, skew = skew)
-      val ugcode = codegen2.generate(gcodeUnshred)
-      val encoders1 = codegen.generateEncoders() +"\n"+ codegen2.generateEncoders()
-      (s"""|${codegen2.generateHeader()}""".stripMargin, List(gcode1, ugcode), encoders1)
-    } else 
-      (s"""|${codegen.generateHeader()}""".stripMargin, List(gcode1), codegen.generateEncoders())
-   
-    val us = if (unshred) "Unshred" else ""
-    val qname = if (skew) s"Shred${query.name}${us}SkewSpark" else s"Shred${query.name}${us}Spark"
-    val fname = s"$pathout/$qname.scala"
-    println(s"Writing out $qname to $fname")
-    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val inputs = query.loadTables(shred = true, skew = skew)
-    val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet), label, encoders)
-    printer.println(finalc)
-    printer.close
-  
-  }
 
   def runDatasetInputShred(inputQuery: Query, query: Query, label: String, eliminateDomains: Boolean = true, 
     optLevel: Int = 2, unshred: Boolean = false, skew: Boolean = false, schema: Schema = Schema()): Unit = {
