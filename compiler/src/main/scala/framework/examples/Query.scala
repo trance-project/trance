@@ -77,7 +77,12 @@ trait Query extends Materialization
       val mprogram = materialized.program
       println("materialized:")
       println(quote(mprogram))
-      val ncalc = normalizer.finalize(translate(mprogram)).asInstanceOf[CExpr]
+      val calc = translate(mprogram)
+      println("calculus:")
+      println(Printer.quote(calc))
+      val ncalc = normalizer.finalize(calc).asInstanceOf[CExpr]
+      println("normalized:")
+      println(Printer.quote(ncalc))
       Unnester.unnest(ncalc)(Map(), Map(), None, "_2")
     }else this.unnest
     println("before optimization")

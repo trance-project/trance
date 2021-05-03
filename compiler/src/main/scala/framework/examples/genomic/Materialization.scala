@@ -91,7 +91,7 @@ class LetTest0(override val letOpt: Boolean = false) extends DriverGene {
            {( hybrid_sample := s.bcr_patient_uuid,
               hybrid_aliquot := s.bcr_aliquot_uuid,
               hybrid_center := s.center_id,
-              hybrid_genes := for i in initScores0 union
+              hybrid_genes := for i in $initScores union
                if (s.bcr_patient_uuid = i.hybrid_case)
                then {(hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)})}
        """
@@ -309,29 +309,16 @@ object LetTest3 extends DriverGene {
              for c in cnvCases union 
                if (o.donorId = c.sid && t.gene_id = c.gene)
                then {(hybrid_case := o.donorId, hybrid_gene := t.gene_id, hybrid_score := (c.cnum + 0.01) * $imp )}).sumBy({hybrid_case, hybrid_gene}, {hybrid_score});
-        
+            
         intermMatrix <= 
-          for s in samples union 
-            for i in initScores1 union
-              if (s.bcr_patient_uuid = i.hybrid_case)
-              then {(hybrid_sample := s.bcr_aliquot_uuid, hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)}
-
-     """      
-     //    intermMatrix <= 
-     //     for s in samples union 
-     //       {( hybrid_sample := s.bcr_patient_uuid,
-     //          hybrid_aliquot := s.bcr_aliquot_uuid,
-     //          hybrid_center := s.center_id,
-     //          hybrid_genes := for i in initScores1 union
-     //           if (s.bcr_patient_uuid = i.hybrid_case)
-     //           then {(hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)})};
-
-     //    finalMatrix <= 
-     //      (for s in intermMatrix union 
-     //        for h in intermMatrix.hybrid_genes union 
-     //          {(hybrid_gene := h.hybrid_gene, hybrid_score := h.hybrid_score)}).sumBy({hybrid_gene}, {hybrid_score})
-
-     // """
+         for s in samples union 
+           {( hybrid_sample := s.bcr_patient_uuid,
+              hybrid_aliquot := s.bcr_aliquot_uuid,
+              hybrid_center := s.center_id,
+              hybrid_genes := for i in initScores1 union
+               if (s.bcr_patient_uuid = i.hybrid_case)
+               then {(hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)})};
+      """
 
     val parser = Parser(tbls)
     val program = parser.parse(query).get.asInstanceOf[Program]

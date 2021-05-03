@@ -134,7 +134,11 @@ trait JoinOp extends CExpr {
 }
 
 case class Join(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond: CExpr, fields: List[String]) extends JoinOp {
-  def tp: BagCType = BagCType(v.tp.merge(v2.tp).project(fields))
+  def tp: BagCType = {
+    println(Printer.quote(left))
+    println(Printer.quote(right))
+    BagCType(v.tp.merge(v2.tp).project(fields))
+  }
   val jtype = "inner"
 
 }

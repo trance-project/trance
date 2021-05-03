@@ -43,7 +43,7 @@ sealed trait Type { self =>
   def merge(tp: Type): RecordCType = (self, tp) match {
     case (RecordCType(ms1), RecordCType(ms2)) => 
       RecordCType(ms1 ++ ms2)
-    case _ => ???
+    case _ => sys.error(s"cannot merge $self and $tp")
   } 
 
   def outer: RecordCType = self match {
