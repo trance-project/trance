@@ -234,6 +234,7 @@ case class FlatDict(in: CExpr) extends CExpr with UnaryOp {
   def tp: BagCType = in.tp match {
     case MatDictCType(lbl, BagCType(RecordCType(ms))) => 
       BagCType(RecordCType(ms + ("_1" -> lbl)))
+    case bt:BagCType => bt
     case _ => sys.error(s"unsupported type ${in.tp}")
   }
 }

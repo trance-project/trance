@@ -289,10 +289,28 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
         val unnest: Unnest = Unnest(
           AddIndex(e2, index), x3, field, x4, Constant(true), Nil)
         val cond = Equals(Project(x4_expr, f1), Project(x5, f2))
-        OuterJoin(e1, x2, unnest, x7, cond, fs2)
+        OuterJoin(pushUnnest(e1), x2, unnest, x7, cond, fs2)
     }
 
-  })
+    // case OuterUnnest(o, v, path, v2, filter, fs) => o match {
+    //   case AddIndex(o1:OuterJoin, _) => 
+    //     if (o1.left.tp.attrs.contains(path)){
+    //       println("found it in the left "+path)
+    //       println(Printer.quote(o1))
+    //     }else{
+    //       println("found it in the right "+path)
+    //       println(Printer.quote(o1))
+    //     }
+    //     OuterUnnest(pushUnnest(o), v, path, v2, filter, fs)
+    //   case _ => 
+    //     println("missing")
+    //     println(Printer.quote(o))
+    //     OuterUnnest(pushUnnest(o), v, path, v2, filter, fs)
+    // }
+
+   }
+
+  )
 
 
   def pushCondition(e: CExpr): CExpr = fapply(e, {

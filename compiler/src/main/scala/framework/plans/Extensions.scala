@@ -76,17 +76,23 @@ trait Extensions {
       case AddIndex(in, v) => AddIndex(fapply(in, funct), v)
       case Projection(in, v, filter, fields) =>
         Projection(fapply(in, funct), v, filter, fields)
+      
       case Nest(in, v, key, value, filter, nulls, ctag) => 
         Nest(fapply(in, funct), v, key, value, filter, nulls, ctag)
+      
+      case OuterUnnest(in, v, path, v2, filter, fields) =>
+        OuterUnnest(fapply(in, funct), v, path, v2, filter, fields)
       case Unnest(in, v, path, v2, filter, fields) =>
         Unnest(fapply(in, funct), v, path, v2, filter, fields)
+      
       case Join(left, v, right, v2, cond, fields) =>
         Join(fapply(left, funct), v, fapply(right, funct), v2, cond, fields)
       case OuterJoin(left, v, right, v2, cond, fields) =>
         OuterJoin(fapply(left, funct), v, fapply(right, funct), v2, cond, fields)
+      
       case Reduce(e1, v1, key, value) => 
 	  	  Reduce(fapply(e1, funct), v1, key, value)
-
+      
       case GroupDict(e1) => GroupDict(fapply(e1, funct))
       case FlatDict(e1) => FlatDict(fapply(e1, funct))
 

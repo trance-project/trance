@@ -74,10 +74,14 @@ object Printer {
       s"""|OUTERUNNEST[${quote(v)}.$path, ${quote(filter)}, ${fields.mkString(",")}](${quote(e1)})
           |""".stripMargin
     case Join(left, v1, right, v2, cond, fields) => 
-      s"""|${quote(left)} JOIN [${quote(cond)}, ${fields.mkString(",")}] ${quote(right)}
+      s"""|${quote(left)} 
+          |JOIN [${quote(cond)}, ${fields.mkString(",")}] 
+          |${quote(right)}
           |""".stripMargin
     case OuterJoin(left, v1, right, v2, cond, fields) => 
-      s"""|${quote(left)} OUTERJOIN [${quote(cond)}, ${fields.mkString(",")}] ${quote(right)}
+      s"""|${quote(left)} 
+          |OUTERJOIN [${quote(cond)}, ${fields.mkString(",")}] 
+          |${quote(right)}
           |""".stripMargin
     case Reduce(e1, v, grp, value) => 
       s"""| REDUCE[ keys = {${grp.mkString(",")}} values = {${value.mkString(",")}} ](${quote(e1)})

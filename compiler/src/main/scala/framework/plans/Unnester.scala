@@ -59,6 +59,9 @@ object Unnester {
         val nv = Variable(v.name, ne1.tp.tp)
         val nw = flat(w - f, nv.tp)
         val nE = OuterUnnest(ne1, wvar(nw), f, v, p, Nil)
+        // println("in here with")
+        // println(p)
+        // println(Printer.quote(e2))
         unnest(e2)((u - f), flat(nw - f, v.tp.outer), Some(nE), tag)
       }
 
