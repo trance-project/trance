@@ -24,7 +24,7 @@ object ExampleQuery extends DriverGene {
           |val occurrences = spark.read.json("/mnt/app_hdd/data/somatic/datasetDLBC")
           |val ploader = new PathwayLoader(spark)
           |val pathways = ploader.load("/mnt/app_hdd/data/pathway/c2.cp.v7.1.symbols.gmt")
-          |val gtfLoader = new GTFLoader(spark, "/mnt/app_hdd/data/genes/Homo_sapiens.GRCh37.87.chr.gtf"
+          |val gtfLoader = new GTFLoader(spark, "/mnt/app_hdd/data/genes/Homo_sapiens.GRCh37.87.chr.gtf")
           |val genemap = gtfLoader.loadDS
           |""".stripMargin
     }
