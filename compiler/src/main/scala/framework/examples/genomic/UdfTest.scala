@@ -117,10 +117,10 @@ object ExampleQuery2 extends DriverGene {
             {(pathway := p.p_name, burdens :=
               (for g in p.gene_set union 
                 for g2 in genemap union 
-                  if (g.name = g2.g_gene_name)
-                  then for o impactScores union 
-                    if (g2.g_gene_id = o.gene_id) then
-                      {(sid := o.sid, burden := o.burden)}).sumBy({sid}, {burden}))}
+                  if (g.name = g2.g_gene_name) then 
+                    for o in impactScores union 
+                      if (g2.g_gene_id = o.gid) then
+                        {(sid := o.sid, burden := o.burden)}).sumBy({sid}, {burden}))}
 
     """
 

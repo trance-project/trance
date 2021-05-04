@@ -55,7 +55,8 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
   def bagvarrefs: Parser[String] = ident ^^
     { case (s:String) => s}
   def bagvarref: Parser[BagVarRef] = ident ^^
-    { case (s: String) => BagVarRef(s, scope(s).tp.asInstanceOf[BagType]) }
+    { case (s: String) => 
+        BagVarRef(s, scope(s).tp.asInstanceOf[BagType]) }
 
   def project: Parser[TupleAttributeExpr] = tuplevarref~"."~ident ^^
     { case (v:String)~"."~(l:String) => Project(defToRef(v), l) }
