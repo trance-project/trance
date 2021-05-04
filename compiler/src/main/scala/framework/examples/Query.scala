@@ -73,6 +73,8 @@ trait Query extends Materialization
       println(quote(program))
       val (shredded, shreddedCtx) = shredCtx(program)
       val optShredded = optimize(shredded)
+      println("shredded:")
+      println(quote(optShredded))
       val materialized = materialize(optShredded, eliminateDomains = true)
       val mprogram = materialized.program
       println("materialized:")

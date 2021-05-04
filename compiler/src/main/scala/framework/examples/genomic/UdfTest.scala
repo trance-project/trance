@@ -47,25 +47,16 @@ object ExampleQuery extends DriverGene {
   // note that a list of assignments should be separated with ";"
   val query = 
     s"""
-        mapPathways <=
-          for p in pathways union
-            {(pathway := p.p_name, gene_set :=
-              for g in p.gene_set union
-                for g2 in genemap union
-                  if (g.name = g2.g_gene_name) then
-                     {(name := g2.g_gene_id)})};
-
         GMB <=
-          for p in mapPathways union
-            {(pathway := p.pathway, burdens :=
+          for g in genemap union
+            {(gene:= g.g_gene_name, burdens :=
               (for o in occurrences union
-                  for g in p.gene_set union
-                      for t in o.transcript_consequences union
-                        if (g.name = t.gene_id) then
-                           {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
-                                                      else if (t.impact = "MODERATE") then 0.50
-                                                      else if (t.impact = "LOW") then 0.30
-                                                      else 0.01)}).sumBy({sid}, {burden}))}
+                for t in o.transcript_consequences union
+                  if (g.g_gene_id = t.gene_id) then
+                     {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
+                                                else if (t.impact = "MODERATE") then 0.50
+                                                else if (t.impact = "LOW") then 0.30
+                                                else 0.01)}).sumBy({sid}, {burden}))}
 
     """
 
@@ -114,20 +105,16 @@ object ExampleQuery2 extends DriverGene {
   // note that a list of assignments should be separated with ";"
   val query = 
     s"""
-        mapPathways <=
+        PMB <=
           for p in pathways union
-            for g in p.gene_set union
-              for g2 in genemap union
-                if (g.name = g2.g_gene_name) then
-                  {(pathway := p.p_name, name := g2.g_gene_id)};
-
-        GMB <=
-          for p in mapPathways union
-            {(pathway := p.pathway, burdens :=
-              (for o in occurrences union
-                for t in o.transcript_consequences union
-                  if (p.name = t.gene_id) then
-                    {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
+            {(pathway := p.p_name, burdens :=
+              (for g in p.gene_set union 
+                for g2 in genemap union 
+                  if (g.name = g2.g_gene_name)
+                  then for o in occurrences union
+                    for t in o.transcript_consequences union
+                      if (g2.g_gene_id = t.gene_id) then
+                        {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
                                                     else if (t.impact = "MODERATE") then 0.50
                                                     else if (t.impact = "LOW") then 0.30
                                                     else 0.01)}).sumBy({sid}, {burden}))}

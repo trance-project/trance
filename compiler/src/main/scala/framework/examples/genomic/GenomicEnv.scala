@@ -132,10 +132,10 @@ class LetTestEnv(val capacity: Int, val shred: Boolean = false,
 		}
 	}
 
-	val query1 = LetTest2
-	val query2 = LetTest1
-	// val query1 = LetTest3
-	// val query2 = LetTest4
+	// val query1 = LetTest2
+	// val query2 = LetTest1
+	val query1 = LetTest3
+	val query2 = LetTest4
 
 	val queries: Vector[Query] = Vector(query1, query2)
 	// val queries1: Vector[Query] = Vector(query1) //, query2)
