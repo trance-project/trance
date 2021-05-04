@@ -110,8 +110,8 @@ object ExampleQuery2 extends DriverGene {
   val query =
     s"""
         impactScores <=
-          (for o in occurrences union
-            for t in o.transcript_consequences union
+          for o in occurrences union
+            (for t in o.transcript_consequences union
               {(gid := t.gene_id, sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
                                                 else if (t.impact = "MODERATE") then 0.50
                                                 else if (t.impact = "LOW") then 0.30
