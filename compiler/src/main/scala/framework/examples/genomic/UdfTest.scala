@@ -8,26 +8,24 @@ import framework.nrc.Parser
 
 // this is just the example from the 
 object ExampleQuery extends DriverGene {
-  
-  // TODO: update this with the loading functionality in ExampleQuery2
-  override def loadTables(shred: Boolean = false, skew: Boolean = false): String = 
-    if (shred){
-      s""// TODO""
-    }else{
-      s"""|val sloader = new BiospecLoader(spark)
-          |val samples = sloader.load("/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_dlbc.txt")
-          |val cloader = new CopyNumberLoader(spark)
-          |val copynumber = cloader.load("/mnt/app_hdd/data/cnv", true)
-          |
-          |val geLoader = new GeneExpressionLoader(spark)
-          |
-          |val occurrences = spark.read.json("/mnt/app_hdd/data/somatic/datasetDLBC")
-          |val ploader = new PathwayLoader(spark)
-          |val pathways = ploader.load("/mnt/app_hdd/data/pathway/c2.cp.v7.1.symbols.gmt")
-          |val gtfLoader = new GTFLoader(spark, "/mnt/app_hdd/data/genes/Homo_sapiens.GRCh37.87.chr.gtf")
-          |val genemap = gtfLoader.loadDS
-          |""".stripMargin
-    }
+  val sampleFile = "/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_prad.txt"
+  val cnvFile = "/mnt/app_hdd/data/cnv"
+  val occurFile = "/mnt/app_hdd/data/somatic/"
+  val occurName = "datasetPRAD"
+  val occurDicts = ("odictPrad1", "odictPrad2", "odictPrad3")
+  val pathFile = "/mnt/app_hdd/data/c2.cp.v7.1.symbols.gmt"
+  val gtfFile = "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf"
+
+  // in DriverGenes.scala you can see traits for several datatypes, these
+  // are inherited from DriverGene trait (around line 549)
+  // checkout individuals traits to see what the load functions are doing
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
+        |${loadCopyNumber(shred, skew, fname = cnvFile)}
+        |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
+        |${loadPathway(shred, skew, fname = pathFile)}
+        |${loadGtfTable(shred, skew, fname = gtfFile)}
+        |""".stripMargin
   
   // name to identify your query
   val name = "ExampleQuery"
@@ -86,17 +84,17 @@ object ExampleQuery2 extends DriverGene {
   val pathFile = "/mnt/app_hdd/data/c2.cp.v7.1.symbols.gmt"
   val gtfFile = "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf"
 
-  // in DriverGenes.scala you can see traits for several datatypes, these 
+  // in DriverGenes.scala you can see traits for several datatypes, these
   // are inherited from DriverGene trait (around line 549)
   // checkout individuals traits to see what the load functions are doing
-  override def loadTables(shred: Boolean = false, skew: Boolean = false): String = 
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
     s"""|${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
         |${loadCopyNumber(shred, skew, fname = cnvFile)}
         |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
         |${loadPathway(shred, skew, fname = pathFile)}
         |${loadGtfTable(shred, skew, fname = gtfFile)}
         |""".stripMargin
-  
+
   // name to identify your query
   val name = "ExampleQuery2"
 
