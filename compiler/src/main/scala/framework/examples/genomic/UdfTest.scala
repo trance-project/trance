@@ -73,7 +73,7 @@ object ExampleQuery extends DriverGene {
 }
 
 // this is just the example from the 
-object PMB extends DriverGene {
+object ExampleQuery2 extends DriverGene {
 
   val sampleFile = "/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_prad.txt"
   val cnvFile = "/mnt/app_hdd/data/cnv"
