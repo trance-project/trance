@@ -120,7 +120,7 @@ object ExampleQuery2 extends DriverGene {
                       if (g2.g_gene_id = t.gene_id) then
                         {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
                                                      else if (t.impact = "MODERATE") then 0.50
-                                                     else if (t.imapct = "LOW") then 0.30
+                                                     else if (t.impact = "LOW") then 0.30
                                                      else 0.01)}).sumBy({sid}, {burden}))}
     """
 
