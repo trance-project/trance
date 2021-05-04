@@ -95,7 +95,7 @@ object ExampleQuery2 extends DriverGene {
         |""".stripMargin
 
   // name to identify your query
-  val name = "PMB"
+  val name = "ExampleQuery2"
 
   // a map of input types for the parser
     val tbls = Map("occurrences" -> occurmids.tp,
