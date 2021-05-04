@@ -105,19 +105,22 @@ object ExampleQuery2 extends DriverGene {
   // note that a list of assignments should be separated with ";"
   val query = 
     s"""
+        impactScores <= 
+          (for o in occurrences union
+            for t in o.transcript_consequences union
+              {(gid := t.gene_id, sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
+                                                else if (t.impact = "MODERATE") then 0.50
+                                                else if (t.impact = "LOW") then 0.30
+                                                else 0.01)}).sumBy({gid, sid}, {burden});
         PMB <=
           for p in pathways union
             {(pathway := p.p_name, burdens :=
               (for g in p.gene_set union 
                 for g2 in genemap union 
                   if (g.name = g2.g_gene_name)
-                  then for o in occurrences union
-                    for t in o.transcript_consequences union
-                      if (g2.g_gene_id = t.gene_id) then
-                        {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
-                                                    else if (t.impact = "MODERATE") then 0.50
-                                                    else if (t.impact = "LOW") then 0.30
-                                                    else 0.01)}).sumBy({sid}, {burden}))}
+                  then for o impactScores union 
+                    if (g2.g_gene_id = o.gene_id) then
+                      {(sid := o.sid, burden := o.burden)}).sumBy({sid}, {burden}))}
 
     """
 
