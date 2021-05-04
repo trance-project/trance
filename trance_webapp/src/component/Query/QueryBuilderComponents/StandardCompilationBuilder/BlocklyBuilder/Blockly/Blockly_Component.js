@@ -4,15 +4,13 @@ import React from 'react';
 import ReactBlockly from 'react-blockly';
 import Blockly from 'blockly';
 import BlocklyJS from 'blockly/javascript';
-import Button from '@material-ui/core/Button';
 
 import ConfigFiles from './initContent/content';
 import parseWorkspaceXml from './BlocklyHelper';
 import './customBlocks/custom_Blocks';
 import './generator';
-import {sendStandardNrcCode} from '../../../../../../redux/QuerySlice/thunkQueryApiCalls';
-import {useAppDispatch} from "../../../../../../redux/Hooks/hooks"
 import SendNrcCodeButton from "./SendNrcCodeButton";
+import {connect} from 'react-redux'
 
 class TestEditor extends React.Component {
     constructor(props) {
@@ -22,6 +20,10 @@ class TestEditor extends React.Component {
             nrcCode: ""
         };
     }
+
+    // shouldComponentUpdate =(nextProps, nextState) => {
+    //     return (this.props.tranceObject.objects != nextProps.tranceObject.objects)
+    // }
 
     componentDidMount = () => {
         window.setTimeout(() => {
@@ -78,10 +80,14 @@ class TestEditor extends React.Component {
 
         const code = BlocklyJS.workspaceToCode(workspace);
         document.getElementById('code').value = code;
-        this.state.nrcCode = code;
+        console.log("[code]" , code)
+        this.setState({nrcCode:code})
+        console.log(this.state.nrcCode)
     }
 
     render = () => {
+        console.log("[state for nrc code gen]", this.state.nrcCode)
+        console.log('[props]',this.props.tranceObject.objects)
         return (
             <React.Fragment>
                 <ReactBlockly
@@ -108,6 +114,11 @@ class TestEditor extends React.Component {
             </React.Fragment>
         )
     }
+
 }
 
-export default TestEditor;
+const mapStateToProps = ({tranceObject: tranceObject}) => ({
+    tranceObject
+})
+
+export default connect(mapStateToProps, null)(TestEditor);

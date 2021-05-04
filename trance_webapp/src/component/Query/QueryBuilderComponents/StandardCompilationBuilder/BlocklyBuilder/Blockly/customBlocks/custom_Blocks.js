@@ -1,6 +1,8 @@
 import Blockly from 'blockly';
 
-Blockly.defineBlocksWithJsonArray([{
+
+Blockly.defineBlocksWithJsonArray([
+    {
         "type": "forunion",
         "message0": "for %1 in %2 union",
         "args0": [
@@ -10,15 +12,16 @@ Blockly.defineBlocksWithJsonArray([{
                 "text": ""
             },
             {
-                "type": "field_input",
-                "name": "ATTRIBUTE_VALUE"
+                "type": "input_dummy",
+                "name": "DROPDOWN_PLACEHOLDER",
             },
-
         ],
+        "extensions": ["dynamic_menu_extension"],
         "colour": 142,
         "nextStatement": "Bag",
         "previousStatement": "Bag",
         "tooltip": "For Union: Bag Type",
+        "inputsInline": true,
 
     },
     {
@@ -208,3 +211,7 @@ Blockly.defineBlocksWithJsonArray([{
         "tooltip": "group_by",
     }
 ]);
+
+
+
+

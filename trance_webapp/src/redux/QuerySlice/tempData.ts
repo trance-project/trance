@@ -13,7 +13,7 @@ const createData = (id: string, date: string, name:string, tables: string, group
 /**
  * @Tables Data
  */
-const sampleTable = {name: "Sample",
+export const sampleTable = {name: "Sample",
     id: 1,
     abr:"s",
     columns:
@@ -24,7 +24,7 @@ const sampleTable = {name: "Sample",
         ]
 } as Table
 
-const CopyNumberTable = {name: "CopyNumber",
+export const CopyNumberTable = {name: "CopyNumber",
     id: 113,
     abr:"c",
     columns:
@@ -35,7 +35,7 @@ const CopyNumberTable = {name: "CopyNumber",
         ]
 } as Table
 
-const OccurrencesTable = {name: "Occurrences",
+export const OccurrencesTable = {name: "Occurrences",
     id: 117,
     abr:"o",
     columns:

@@ -11,8 +11,6 @@ import testData from "./testData";
 import {ButtonGroup} from "@material-ui/core";
 import {queryBuilderThemeStyle} from './queryBuilderThemeStyle';
 import ModelMessage from "../../component/ui/ModelMessage/ModelMessage";
-import StandardCompilationBuilder
-    from "../../component/Query/QueryBuilderComponents/StandardCompilationBuilder/StandardCompilationBuilder";
 import PaperWithHeader from "../../component/ui/Paper/PaperWithHeader/PaperWithHeader";
 
 const QueryBuilder =()=>{
@@ -23,7 +21,6 @@ const QueryBuilder =()=>{
     const [tablesState] = useState<Table[]>(testData);
     const [showModalState, setShowModalState] = useState(false);
     const [requestLoadingState, setRequestLoadingState] = useState(false);
-    const [showModalPlanState, setShowModalPlanState] = useState(false);
     const [queryState, setQueryState] = useState<Query>({
         name: "Demo_Query",
         level:'1',
@@ -32,11 +29,6 @@ const QueryBuilder =()=>{
         selectedColumns:[],
         associations:[]
     });
-
-   const handleSelectedNodeStateChanged = (nodeId:string)=>{
-       setSelectedNodeState(nodeId);
-       setSelectedQuery(queryState);
-   }
 
     const setSelectedQuery = (query:Query) => {
         if(query.level === selectedNodeState){
@@ -66,17 +58,12 @@ const QueryBuilder =()=>{
 
     //TODO refactor to use redux
     const createQueryHandler = (table:Table) => {
-
-    }
-
-    //TODO refactor to use redux
-    const createJoinHandler = (joinTable:Table) => {
-
+        console.log(table)
     }
 
     //TODO refactor to use redux
     const toggleEnableColumn = (query:Query , column:Column) => {
-
+       console.log(query,column)
     }
 
     const ableDisableColumnHandler =(column: Column)=>{
@@ -93,28 +80,6 @@ const QueryBuilder =()=>{
             setQueryState(immutableQuery);
         }
     }
-
-    const handleQueryAssociation = (objectAssociations:string[]) => {
-        // const immutableQuery = JSON.parse(JSON.stringify(queryState)) as Query
-        //
-        // if(selectedNodeState==="2"){
-        //     const query = immutableQuery.children;
-        //     query?.children?.associations.push({key: immutableQuery.associations.length+1, label: objectAssociations});
-        //     immutableQuery.children=query;
-        // }else{
-        //     immutableQuery.children?.associations.push({key: immutableQuery.associations.length+1, label: objectAssociations})
-        // }
-        // setQueryState(immutableQuery);
-    };
-
-    const handleDeleteQueryAssociation = (key:number) => {
-        const immutableQuery = JSON.parse(JSON.stringify(queryState)) as Query
-        if(immutableQuery.children){
-            let data = immutableQuery.children.associations!
-            // data.filter(el=> el.key !== key);
-        }
-        setQueryState(immutableQuery);
-    };
 
     console.log("[query object]", queryState);
     console.log("[query NodeId]", selectedNodeState);

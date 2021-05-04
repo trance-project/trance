@@ -13,9 +13,8 @@ import {useAppSelector,useAppDispatch} from './redux/Hooks/hooks';
 import {goToRoute} from './redux/NavigationSlice/navigationSlice';
 import QueryBuilder from "./containers/QueryBuilder/QueryBuilder";
 import CompilerView from "./containers/CompilerView/CompilerView";
-import Blockly_Component
+import BlocklyComponent
     from "./component/Query/QueryBuilderComponents/StandardCompilationBuilder/BlocklyBuilder/Blockly/Blockly_Component";
-import PaperWithHeader from "./component/ui/Paper/PaperWithHeader/PaperWithHeader";
 
 function TranceRouter() {
 
@@ -45,7 +44,7 @@ function TranceRouter() {
                             </Route>
                             <Route path={"/"}>
                                 <div style={{height: '600px', width: '1000px'}}>
-                                    <Blockly_Component/>
+                                    <BlocklyComponent/>
                                 </div>
                             </Route>
                         </Switch>

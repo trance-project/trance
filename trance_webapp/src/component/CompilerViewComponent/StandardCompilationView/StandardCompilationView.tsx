@@ -9,19 +9,13 @@ import {TreeView} from "@material-ui/lab";
 
 
 import {
-    Association,
     Query,
-    Table,
-    ObjectAssociation,
-    LabelAssociation,
     NewQuery
 } from "../../../utils/Public_Interfaces";
 import StyledTreeItem from "../../ui/StyledTreeItem/StyledTreeItem";
 import MinusSquare from "../../ui/ExpandedIcons/MinusSquare";
 import PlusSquare from "../../ui/ExpandedIcons/PlusSquare";
 import CloseSquare from "../../ui/ExpandedIcons/CloseSquare";
-import LabelView from "../../Query/QueryBuilderComponents/StandardCompilationBuilder/LabelView/LabelView";
-import {standardCompilationViewThemeStyle} from './standardCompilationViewThemeStyle';
 import NewLabelView from "../../Query/QueryBuilderComponents/StandardCompilationBuilder/LabelView/NewLabelView";
 
 
@@ -44,7 +38,7 @@ type LabelType = {
 
 
 const StandardCompilationView = (props:_QueryViewProps) => {
-    const classes = standardCompilationViewThemeStyle();
+    // const classes = standardCompilationViewThemeStyle();
 
     const newQuerySelected =  {
         // name: "QuerySimple",
@@ -75,9 +69,6 @@ const StandardCompilationView = (props:_QueryViewProps) => {
     let statement = <div></div>;
 
     const expandedNode: string[] = [];
-
-    //ShallowCopy of parent Association to be used in child node
-    let shallowAssociation: Association[] | undefined;
 
     //Recursive method used to iterate over query table object to layout the columns and if the supply nested data.
     const newQuerySelect = (query:NewQuery) => {
@@ -202,51 +193,6 @@ const StandardCompilationView = (props:_QueryViewProps) => {
     //     }
     // }
 
-    /**
-     * @Params columns
-     * method used to return only columns that are enabled
-     */
-    const checkColumnsEnable = (table: Table) =>{
-        let tableAbr = table.abr?table.abr:"UDF";
-        const columnsSelected: string[] = [];
-        for(const column of(table.columns)){
-            if(column.enable){
-                const columnName = `${tableAbr}.${column.name}`;
-                columnsSelected.push(`${column.name}:=${columnName}`);
-            }
-        }
-        return columnsSelected;
-    }
-
-    /**
-     * Method used to filter the Association and verify Association
-     * @param association
-     */
-    const checkAssociation=(association: ObjectAssociation) => {
-            const associationString: string[] = [];
-        association.objectAssociation.forEach(column => {
-            if(column.children){
-               associationString.push(columnChildrenFilter(column.children));
-            }else{
-                associationString.push(`${column.tableAssociation}.${column.name}`);
-            }
-
-        });
-        return associationString.join(' == ');
-    }
-
-    const columnChildrenFilter = (table: Table) => {
-        let columnAssociation: string = "";
-        table.columns.forEach(column => {
-            if(column.children){
-                columnChildrenFilter(column.children);
-            }else{
-                columnAssociation =`${column.tableAssociation}.${column.name}`;
-            }
-        });
-        return columnAssociation;
-    }
-
 
 
     if(props.query) {
@@ -269,10 +215,6 @@ const StandardCompilationView = (props:_QueryViewProps) => {
         </div>
     );
 };
-
-const replaceBetween = ( string: number, end: number, replaceString: string) =>{
-    return
-}
 
 export default StandardCompilationView;
 
