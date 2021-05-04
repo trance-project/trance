@@ -81,7 +81,7 @@ object ExampleQuery2 extends DriverGene {
   val occurName = "datasetPRAD"
   val occurDicts = ("odictPrad1", "odictPrad2", "odictPrad3")
   val pathFile = "/mnt/app_hdd/data/c2.cp.v7.1.symbols.gmt"
-  val gtfFile = "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf"
+  val gtfFile = "/mnt/app_hdd/data/genes/Homo_sapiens.GRCh37.87.chr.gtf")
 
   // in DriverGenes.scala you can see traits for several datatypes, these
   // are inherited from DriverGene trait (around line 549)
@@ -98,32 +98,32 @@ object ExampleQuery2 extends DriverGene {
   val name = "ExampleQuery2"
 
   // a map of input types for the parser
-    val tbls = Map("occurrences" -> occurmids.tp,
-                    "copynumber" -> copynum.tp,
-                    "samples" -> samples.tp,
-                    "pathways" -> pathway.tp,
-                    "genemap" -> gtf.tp)
+  val tbls = Map("occurrences" -> occurmids.tp,
+    "copynumber" -> copynum.tp,
+    "samples" -> samples.tp,
+    "pathways" -> pathway.tp,
+    "genemap" -> gtf.tp)
 
 
   // a query string that is passed to the parser
   // note that a list of assignments should be separated with ";"
-  val query = 
-    s"""
-      PMB <=
-        for p in pathways union
-          {(pathway := p.p_name, burdens :=
-            (for g in p.gene_set union
-              for g2 in genemap union
-                if (g.name = g2.g_gene_name)
+  val query =
+  s"""
+        PMB <=
+          for p in pathways union
+            {(pathway := p.p_name, burdens :=
+              (for g in p.gene_set union
+                for g2 in genemap union
+                  if (g.name = g2.g_gene_name)
                   then for o in occurrences union
                     for t in o.transcript_consequences union
                       if (g2.g_gene_id = t.gene_id) then
                         {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
-                                                     else if (t.impact = "MODERATE") then 0.50
-                                                     else if (t.impact = "LOW") then 0.30
-                                                     else 0.01)}).sumBy({sid}, {burden}))}
-    """
+                                                    else if (t.impact = "MODERATE") then 0.50
+                                                    else if (t.impact = "LOW") then 0.30
+                                                    else 0.01)}).sumBy({sid}, {burden}))}
 
+    """
     // finally define the parser, note that it takes the input types
     // map as input and pass the query string to the parser to
     // generate the program.
