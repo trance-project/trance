@@ -11,11 +11,28 @@ import javax.inject.Inject
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+import framework.common._
+import framework.nrc._
+import framework.examples.genomic._
+
 @Api(value = "/nrccode")
 class QueryController @Inject()(
                                cc: ControllerComponents,
                                queryRepository: QueryRepository
-                               ) extends AbstractController (cc){
+                               ) extends AbstractController (cc) 
+                                 with MaterializeNRC {
+
+
+  // think about where these should go... these are the schemas!
+  private val occur = new Occurrence{}
+  private val cnum = new CopyNumber{}
+  private val samps = new Biospecimen{}
+
+  private val tbls = Map("occurrences" -> BagType(occur.occurmid_type), 
+               "copynumber" -> BagType(cnum.copyNumberType), 
+               "samples" -> BagType(samps.biospecType))
+
+  private val parser = Parser(tbls)
 
   @ApiOperation(
     value = "Find all Querys",
@@ -54,15 +71,25 @@ class QueryController @Inject()(
   @ApiImplicitParams(Array(
     new ApiImplicitParam(value = "The new Query in Json Format", required = true, dataType = "models.Query", paramType = "body")
   ))
+
   def createQuery() =
     Action.async(parse.json) {
-    println("JSON PARSES!!!!!")
-      val responseBody = "{\n    name: \"QuerySimple\",\n    key: \"For s in samples Union \",\n    labels: [{\n        name: \"sample\",\n        key: \"s.bcr_patient_uuid\"\n        }, {\n        name: \"mutations\",\n        key: \"For o in occurrences Union If (s.bcr_patient_uuid = o.donorId) Then \",\n        labels: [{\n            name: \"mutId\",\n            key: \"o.oid\",\n        }, {\n            name : \"scores\",\n            key : \"ReduceByKey[gene], [score], For t in o.transcript_consequences Union For c in copynumber Union If (t.gene_id = c.cn_gene_id AND c.cn_aliquot_uuid = s.bcr_aliquot_uuid) Then \",\n            labels : [{\n                name: \"gene\",\n                key : \"t.gene_id\"\n            }, {\n                name : \"score\",\n                key : \"((c.cn_copy_number + 0.01) * If (t.impact = HIGH) Then 0.8 Else If (t.impact = MODERATE) Then 0.5 Else If (t.impact = LOW) Then 0.3 Else 0.01   )\"\n            } ]\n        }]\n    }]\n}"
-//    queryRepository.addEntity(Query.apply(_id = None, title = "Test me", body = "Some empty String"))
+      
     _.body.validate[Query].map { query =>
-      queryRepository.addEntity(query).map{ _ =>
-        Created(responseBody)
-      }
+
+        // make sure we are sending a program (requires at least one <= assignment)
+        val qbody = if (!query.body.contains("=>")) s"${query.title} <= ${query.body}" else query.body
+        // parse the input query string
+        val parsed = parser.parse(qbody).get.asInstanceOf[JsonWriter.Program]
+        // use the json writer from framework.nrc to write 'er
+        val responseBody = JsonWriter.produceJsonString(parsed)
+
+        queryRepository.addEntity(query).map{ _ =>
+          Created(responseBody)
+        }
+
+    // note that my parser does not return any valuable information 
+    // so we will need some better error catching there
     }.getOrElse(Future.successful(BadRequest("Invalid nrc format")))
   }
 

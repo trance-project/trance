@@ -27,9 +27,10 @@ class QueryRepository  @Inject()(
   def getSingleItem(id: UUID): Future[Option[Query]] =
     collection.flatMap(_.find(BSONDocument("_id" -> id)).one[Query])
 
-  def addEntity(query: Query): Future[WriteResult] =
+  def addEntity(query: Query): Future[WriteResult] = {
     collection.flatMap(_.insert.one(
       query.copy(_id = Some(UUID.randomUUID()))))
+  }
 
   def updateEntity(id: UUID, query: Query): Future[Option[Query]] = {
     val updateModifier = BSONDocument (
