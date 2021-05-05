@@ -116,7 +116,8 @@ object SampleNetworkNew extends DriverGene {
   val occurDicts = ("odictBrca1", "odictBrca2", "odictBrca3")
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-    s"""|${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
+    s"""|${loadBiospec(shred, skew, fname = sampleFile)}
+        |${loadConseqs(shred, skew)}
         |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
         |${loadCopyNumber(shred, skew, fname = cnvFile)}
         |${loadNetwork(shred, skew)}
