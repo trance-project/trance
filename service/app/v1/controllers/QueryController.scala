@@ -20,7 +20,9 @@ class QueryController @Inject()(
                                cc: ControllerComponents,
                                queryRepository: QueryRepository
                                ) extends AbstractController (cc) 
-                                 with MaterializeNRC {
+                                 with Materialization 
+                                 with MaterializeNRC 
+                                 with Shredding {
 
 
   // think about where these should go... these are the schemas!
@@ -33,6 +35,27 @@ class QueryController @Inject()(
                "samples" -> BagType(samps.biospecType))
 
   private val parser = Parser(tbls)
+
+  // could move this to an nrc utility in framework
+  private def parseProgram(query: Query, shred: Boolean = false): String = {
+    // make sure we are sending a program (requires at least one <= assignment)
+    val qbody = if (!query.body.contains("=>")) s"${query.title} <= ${query.body}" else query.body
+    
+    // parse the input query string
+    val program = parser.parse(qbody).get.asInstanceOf[Program]
+
+    // shred if necessary
+    val compiled = if (shred){
+      val (shredded, shreddedCtx) = shredCtx(program)
+      val optShredded = optimize(shredded)
+      val materializedProgram = materialize(optShredded, eliminateDomains = true)
+      materializedProgram.program
+    }else program
+    
+    // use the json writer from framework.nrc to write 'er
+    JsonWriter.produceJsonString(compiled.asInstanceOf[JsonWriter.Program])
+
+  }
 
   @ApiOperation(
     value = "Find all Querys",
@@ -71,18 +94,39 @@ class QueryController @Inject()(
   @ApiImplicitParams(Array(
     new ApiImplicitParam(value = "The new Query in Json Format", required = true, dataType = "models.Query", paramType = "body")
   ))
-
   def createQuery() =
     Action.async(parse.json) {
-      
+
     _.body.validate[Query].map { query =>
 
-        // make sure we are sending a program (requires at least one <= assignment)
-        val qbody = if (!query.body.contains("=>")) s"${query.title} <= ${query.body}" else query.body
-        // parse the input query string
-        val parsed = parser.parse(qbody).get.asInstanceOf[JsonWriter.Program]
-        // use the json writer from framework.nrc to write 'er
-        val responseBody = JsonWriter.produceJsonString(parsed)
+        val responseBody = parseProgram(query)
+
+        queryRepository.addEntity(query).map{ _ =>
+          Created(responseBody)
+        }
+
+    // note that my parser does not return any valuable information 
+    // so we will need some better error catching there
+    }.getOrElse(Future.successful(BadRequest("Invalid nrc format")))
+  }
+
+  @ApiOperation(
+    value = "Add a Query to the list",
+    response = classOf[Void],
+    code=201
+  )
+  @ApiResponses(Array(
+    new ApiResponse(code = 400, message = "Invalid Query format")
+  ))
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(value = "The new Query in Json Format", required = true, dataType = "models.Query", paramType = "body")
+  ))
+  def shredQuery() =
+    Action.async(parse.json) {
+
+    _.body.validate[Query].map { query =>
+
+        val responseBody = parseProgram(query, shred = true)
 
         queryRepository.addEntity(query).map{ _ =>
           Created(responseBody)
