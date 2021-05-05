@@ -20,10 +20,11 @@ object TestZeppelin extends App {
 object LetExplore extends App {
   override def main(args: Array[String]){
     val dlbctest = 5000
-    val lenv = new LetTestEnv(dlbctest, shred=true)
-    val ests = lenv.estimates
-    AppWriter.runDatasetShred(lenv.queries.head, "Inlined,shredded", optLevel = 1)
-    AppWriter.runDatasetShred(lenv.queries.last, "Sequential,shredded", optLevel = 1)
+    // val lenv = new LetTestEnv(dlbctest, shred=true)
+    // val ests = lenv.estimates
+    AppWriter.runDatasetShred(LetTest0(), "Inlined,shredded", optLevel = 1)
+    // AppWriter.runDatasetShred(lenv.queries.head, "Inlined,shredded", optLevel = 1)
+    // AppWriter.runDatasetShred(lenv.queries.last, "Sequential,shredded", optLevel = 1)
   }
 }
 

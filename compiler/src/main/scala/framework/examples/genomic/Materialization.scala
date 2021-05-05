@@ -99,10 +99,19 @@ class LetTest0(override val letOpt: Boolean = false) extends DriverGene {
     val query =
       s"""
         LetTest0 <= 
-          let cnvCases := $cnvs
-          in let initScores0 := $initScores 
-          in $lettest
+          for o in occurrences union 
+            {(sid := o.donorId, cons := 
+              for t in o.transcript_consequences union 
+                {(gene := t.gene_id)}
+            )}
       """
+
+      // s"""
+      //   LetTest0 <= 
+      //     let cnvCases := $cnvs
+      //     in let initScores0 := $initScores 
+      //     in $lettest
+      // """
 
     val parser = Parser(tbls)
     val program = parser.parse(query).get.asInstanceOf[Program]
