@@ -43,10 +43,16 @@ trait JsonBasedPrinter extends Printer {
       })
       s"""${lbls.mkString(",\n")}"""
       //s"( ${fs.map { case (k, v) => k + " := " + quote(v) }.mkString(",\n   ")} )"
-    case l: Let =>
-      s"""|Let ${l.x.name} =
-          |${ind(quote(l.e1))} 
-          |In ${quote(l.e2)}""".stripMargin
+    case l: Let => l.e1 match {
+      case _:Tuple => 
+        s"""|Let ${l.x.name} =
+            |${ind(super.quote(l.e1))} 
+            |In ${quote(l.e2)}""".stripMargin
+      case _ => 
+        s"""|Let ${l.x.name} =
+            |${ind(quote(l.e1))} 
+            |In ${quote(l.e2)}""".stripMargin
+    }
     case c: Cmp =>
       s"${quote(c.e1)} ${c.op} ${quote(c.e2)}"
     case And(e1, e2) =>
@@ -243,12 +249,7 @@ object JsonWriterTest extends App with Printer with Materialization with Materia
 
     val soSimple = 
       s"""
-        ShredTest <=
-          for o in occurrences union 
-            {(sid := o.donorId, cons := 
-              for t in o.transcript_consequences union 
-                {(gene := t.gene_id)}
-            )}
+        ShredTest <= for o in occurrences union {(sid := o.donorId, cons := for t in o.transcript_consequences union {(gene := t.gene_id)})}
       """
 
     val s = parseProgram(soSimple, shred = true).replace("\n", "")

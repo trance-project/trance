@@ -32,3 +32,12 @@ With an assignment:
   "body": "TestQuery <= for o in occurrences union {(sid := o.donorId)}"
 }
 ```
+
+Nested test:
+```
+{
+  "_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "title": "NestTest",
+  "body": "NestTest <= for o in occurrences union {(sid := o.donorId, cons := for t in o.transcript_consequences union {(gene := t.gene_id)})}"
+}
+```

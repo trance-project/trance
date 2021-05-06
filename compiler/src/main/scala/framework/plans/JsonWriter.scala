@@ -1,8 +1,7 @@
 package framework.plans
 
 import scala.collection.mutable._
-import net.liftweb.json._
-import net.liftweb.json.Serialization.writePretty
+import play.api.libs.json.Json
 import java.io._
 
 import framework.common._
@@ -14,12 +13,6 @@ import scala.collection.immutable.Map
 
 object JsonWriter {
 
-	// very simple way 
-	def getJsonString(plan: CExpr): String = {
-		implicit val formats = DefaultFormats
-		writePretty(plan)
-	}
-
 	def produceJsonString(plan: CExpr, level: Int = 0): String = plan match {
 		case p:Projection => 
 			s"""
@@ -29,7 +22,7 @@ object JsonWriter {
 			|		"planOperator": "PROJECT",
 			|		"level": $level,
 			|		"attrs": "TODO",
-			| 		"newLine": { "${p.fields.mkString("\",\"")}"}
+			| 		"newLine": [ "${p.fields.mkString("\",\"")}" ]
 			|	},
 			|	"children": [${produceJsonString(p.in, level+1)}]
 			|}
@@ -107,15 +100,30 @@ object JsonWriterTest extends App with MaterializeNRC with NRCTranslator {
 			                          else if (t.impact = "LOW") then 0.30
 			                          else 0.01 )}).sumBy({gene}, {score}) )} )}
       """
-    val query1 = parser.parse(querySimple).get
-    val plan1 = getPlan(query1.asInstanceOf[Program])
+    // val query1 = parser.parse(querySimple).get
+    // val plan1 = getPlan(query1.asInstanceOf[Program])
 
-	val jsonRep = JsonWriter.getJsonString(plan1)
+	// val jsonRep = JsonWriter.getJsonString(plan1)
 
-	val printer = new PrintWriter(new FileOutputStream(new File("test.json"), false))
-    printer.println(jsonRep)
-    printer.close
+    val soSimple = 
+      s"""
+        ShredTest <= for o in occurrences union {(sid := o.donorId, cons := for t in o.transcript_consequences union {(gene := t.gene_id)})}
+      """
 
-    println(JsonWriter.produceJsonString(plan1))
+    val query2 = parser.parse(soSimple).get
+    val plan2 = getPlan(query2.asInstanceOf[Program])
+
+	val jsonRep2 = JsonWriter.produceJsonString(plan2)
+	println(jsonRep2)
+
+    val jsValue = Json parse jsonRep2
+    val pj = Json prettyPrint jsValue
+    println(pj)
+
+	// val printer = new PrintWriter(new FileOutputStream(new File("test.json"), false))
+ //    printer.println(jsonRep)
+ //    printer.close
+
+ //    println(JsonWriter.produceJsonString(plan1))
 
 }
