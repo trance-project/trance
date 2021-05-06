@@ -21,6 +21,6 @@ services:
     ports:
       - 8082:8080
     environment:
-      ZEPPELIN_LOG_DIR: /logs
-      ZEPPELIN_NOTEBOOK_DIR: /notebook
+      ZEPPELIN_LOG_DIR: ./logs
+      ZEPPELIN_NOTEBOOK_DIR: ./notebook
       ZEPPELIN_IN_DOCKER: "true"
