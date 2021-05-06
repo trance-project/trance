@@ -15,6 +15,11 @@ class BlocklyReactField extends Blockly.Field {
         return new BlocklyReactField(options['text']);
     }
 
+    onSelected (event) {
+        console.log("[event!!!!!!!]", event)
+        // this.setValue(event.)
+}
+
     showEditor_() {
         this.div_ = Blockly.DropDownDiv.getContentDiv();
         ReactDOM.render(this.render(),
@@ -33,7 +38,7 @@ class BlocklyReactField extends Blockly.Field {
     }
 
     render() {
-        return <FieldRenderComponent />
+        return <FieldRenderComponent onSelect={this.onSelect}/>
     }
 }
 

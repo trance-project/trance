@@ -68,6 +68,11 @@ BlocklyJS['association_on'] = function (block){
     const object_associationB = validate(block.getFieldValue('ATTRIBUTE_A'));
     return `${object_associationA} == ${object_associationB}`;
 }
+BlocklyJS['association_on_assisted'] = function (block){
+    const object_associationA = validate(block.getFieldValue('ATTRIBUTE_A'));
+    const object_associationB = validate(block.getFieldValue('ATTRIBUTE_A'));
+    return `${object_associationA} == ${object_associationB}`;
+}
 BlocklyJS['group_by'] = function (block){
     const attribute_key = validate(block.getFieldValue('ATTRIBUTE_KEY'))
     const attribute_value = validate(block.getFieldValue('ATTRIBUTE_VALUE'))

@@ -207,6 +207,33 @@ Blockly.defineBlocksWithJsonArray([
         "tooltip": "association_on",
     },
     {
+        "type": "association_on_assisted",
+        "message0": "%1 %2 %3",
+        "args0": [
+            {
+                "type": "input_value",
+                "name": "ATTRIBUTE_A",
+                "text": ""
+            },
+            {
+                "type": "field_label",
+                "name": "COLON",
+                "text": "=="
+            },
+            {
+                "type": "input_value",
+                "name": "ATTRIBUTE_B",
+                "text": ""
+            }
+        ],
+        "inputsInline": true,
+        "colour": 142,
+        // "output": "Primitive",
+        "previousStatement": "Primitive",
+        "nextStatement": "Primitive",
+        "tooltip": "association_on",
+    },
+    {
         "type": "group_by",
         "message0": "Group by %1_%2 ",
         "args0": [
@@ -228,7 +255,7 @@ Blockly.defineBlocksWithJsonArray([
     }
 ]);
 
-var testReactField = {
+const testReactField = {
     "type": "customReactComponent",
     "message0": "Object & attribute custom field %1",
     "args0": [
