@@ -8,6 +8,7 @@ import Blockly from "blockly";
  */
 interface TranceObjectState {
     objects: TempTable[];
+    selectedObjects: TempTable[];
     loading: "idle" | "loading" | "error";
     error: string
 }
@@ -17,6 +18,7 @@ interface TranceObjectState {
  */
 const initialState: TranceObjectState = {
     objects: [],
+    selectedObjects: [],
     loading: "idle",
     error: ""
 }
@@ -27,17 +29,28 @@ const initialState: TranceObjectState = {
 export const tranceObjectSlice = createSlice({
     name: 'tranceObjectReducer',
     initialState,
-    reducers: {},
+    reducers: {
+        // use the PayloadAction type to declare the contents of the action.payload
+        addToSelectedObjects: (state, action: PayloadAction<TempTable>) => {
+            state.selectedObjects = [...state.selectedObjects, action.payload]
+        },
+        modifySelectedObjectKeyValue: (state, action:PayloadAction<TempTable>) => {
+            // remove Temp object from selected list to replace it for new modify one
+            const selectedObjects = state.selectedObjects.filter(o => o._id !== action.payload._id)
+            selectedObjects.push(action.payload);
+            state.selectedObjects = selectedObjects;
+        }
+    },
     extraReducers: builder => {
         builder.addCase(api.fetchTranceObjectList.fulfilled, (state, action: PayloadAction<TempTable[]>) => {
             state.objects = action.payload;
-
             Blockly.Extensions.register('dynamic_menu_extension', function (){
                 // @ts-ignore
                 this.getInput('DROPDOWN_PLACEHOLDER')
                     .appendField(new Blockly.FieldDropdown(
                         ()=>{
                             const options: any[] = [];
+                            options.push(["select a object", "null"])
                             if(action.payload){
                                 action.payload.forEach(t => {
                                     options.push([t.name, t.name]);
@@ -47,6 +60,26 @@ export const tranceObjectSlice = createSlice({
                         }
                     ), 'ATTRIBUTE_VALUE');
             })
+            Blockly.Extensions.register('dynamic_object_attribute_list_extension', function (){
+                // @ts-ignore
+                this.getInput('DROPDOWN_PLACEHOLDER')
+                    .appendField(new Blockly.FieldDropdown(
+                        ()=>{
+                            const options: any[] = [];
+                            options.push(["select a attribute", "null"])
+                            if(action.payload){
+                                action.payload.forEach(t => {
+                                    const key = t.abr
+                                    t.columns.forEach(c => {
+                                        options.push([`${t.name}.${c.name}`, `${key}.${c.name}`]);
+                                    })
+
+                                })
+                            }
+                            return options
+                        }
+                    ), 'ATTRIBUTE');
+            })
         });
         // builder.addCase(api.fetchTranceObjectList.rejected, (state, action: PayloadAction<String>) => {
         //     state.error = action.payload;
@@ -54,4 +87,5 @@ export const tranceObjectSlice = createSlice({
     }
 })
 
+export const {addToSelectedObjects, modifySelectedObjectKeyValue} = tranceObjectSlice.actions;
 export default tranceObjectSlice.reducer

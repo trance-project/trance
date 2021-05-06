@@ -1,4 +1,4 @@
-const INITIAL_XML = '<xml xmlns="http://www.w3.org/1999/xhtml"><block type="text" x="70" y="30"><field name="TEXT"></field></block></xml>';
+const INITIAL_XML = '<xml xmlns="http://www.w3.org/1999/xhtml"></xml>';
 
 const INITIAL_TOOLBOX_XML = '<xml xmlns="http://www.w3.org/1999/xhtml" id="toolbox" style="display: none;">\n'
   + '  <category name="Logic" colour="#5C81A6">\n'
@@ -363,6 +363,8 @@ const INITIAL_TOOLBOX_XML = '<xml xmlns="http://www.w3.org/1999/xhtml" id="toolb
   + '  <category name="Nrc" colour="#5C81A6">\n'
   + '    <block type="forunion"/>\n'
   + '    <block type="tuple"/>\n'
+  + '    <block type="objects_attribute_list"/>\n'
+  + '    <block type="customReactComponent"/>\n'
   + '    <block type="brackets"/>\n'
   + '    <block type="and"/>\n'
   + '    <block type="or"/>\n'

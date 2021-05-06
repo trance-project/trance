@@ -1,4 +1,5 @@
 import Blockly from 'blockly';
+import "../fields/BlocklyReactField";
 
 
 Blockly.defineBlocksWithJsonArray([
@@ -48,6 +49,21 @@ Blockly.defineBlocksWithJsonArray([
         "previousStatement": null,
         "nextStatement": null,
         "tooltip": "tuple_el"
+    },
+    {
+        "type": "objects_attribute_list",
+        "message0": "%1",
+        "args0": [
+            {
+                "type": "input_dummy",
+                "name": "DROPDOWN_PLACEHOLDER",
+            }
+        ],
+        "extensions": ["dynamic_object_attribute_list_extension"],
+        "output": null,
+        "colour": 230,
+        "tooltip": "",
+
     },
     {
         "type": "tuple_el_iteration",
@@ -211,6 +227,27 @@ Blockly.defineBlocksWithJsonArray([
         "tooltip": "group_by",
     }
 ]);
+
+var testReactField = {
+    "type": "customReactComponent",
+    "message0": "Object & attribute custom field %1",
+    "args0": [
+        {
+            "type": "field_react_component",
+            "name": "FIELD",
+            "text": "Click me"
+        },
+    ],
+    "previousStatement": null,
+    "nextStatement": null,
+};
+
+Blockly.Blocks['customReactComponent'] = {
+    init: function() {
+        this.jsonInit(testReactField);
+        this.setStyle('loop_blocks');
+    }
+};
 
 
 

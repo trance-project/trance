@@ -11,6 +11,19 @@ export interface TempTable {
     _id:string;
     name:string;
     abr?:string;
+    columns : TempColumn[];
+}
+
+export interface TempColumn {
+    name: string;
+}
+
+export interface Column {
+    id: number;
+    name: string;
+    tableAssociation: string;
+    enable: boolean;
+    children: Table;
 }
 
 export interface BlocklyNrcCode {
