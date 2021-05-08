@@ -12,8 +12,9 @@ object ExampleQuery extends DriverGene {
   val occurFile = "/mnt/app_hdd/data/somatic/"
   val occurName = "datasetPRAD"
   val occurDicts = ("odictPrad1", "odictPrad2", "odictPrad3")
-  val pathFile = "/mnt/app_hdd/data/c2.cp.v7.1.symbols.gmt"
-  val gtfFile = "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf"
+  val pathFile = "/mnt/app_hdd/data/pathway/c2.cp.v7.1.symbols.gmt"
+  val gtfFile = "/mnt/app_hdd/data/genes/Homo_sapiens.GRCh37.87.chr.gtf"
+
 
   // in DriverGenes.scala you can see traits for several datatypes, these
   // are inherited from DriverGene trait (around line 549)
