@@ -223,7 +223,7 @@ trait Materialization extends MaterializationContext {
 
   private def materialize(a: ShredAssignment, ctx: Context, eliminateDomains: Boolean): MaterializedProgram =
     a.rhs match {
-      case ShredExpr(l: NewLabel, d: BagDictExpr) =>
+      case ShredExpr(l: LabelExpr, d: BagDictExpr) =>
         assert(l.tp == d.tp.lblTp)   // sanity check
         materializeDict(d, a.name, ctx, eliminateDomains)
       case _ =>
@@ -387,7 +387,7 @@ trait Materialization extends MaterializationContext {
   }
 
   private def unshred(a: ShredAssignment, ctx: Context): Program = a.rhs match {
-    case ShredExpr(l: NewLabel, d: BagDictExpr) =>
+    case ShredExpr(l: LabelExpr, d: BagDictExpr) =>
       assert(l.tp == d.tp.lblTp)   // sanity check
       val (p, b) = unshredDict(d, l, ctx)
       Program(p.statements :+ Assignment(a.name, b))

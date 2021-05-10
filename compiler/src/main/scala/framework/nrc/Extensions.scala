@@ -405,17 +405,7 @@ trait Extensions {
       case (_, acc) => acc
     }
 
-  def labelParameters(e: Expr, ctx: Map[String, ShredExpr]): Set[LabelParameter] =
-    labelParameters(e, ctx.flatMap { case (k, v) =>
-      val fname = flatName(k)
-      val dname = dictName(k)
-      Map(fname -> VarDef(fname, v.flat.tp), dname -> VarDef(dname, v.dict.tp))
-  }).toSet
-
-  def labelParameters(e: Expr): Set[LabelParameter] =
-    labelParameters(e, Map.empty[String, VarDef]).toSet
-
-  protected def labelParameters(e: Expr, scope: Map[String, VarDef]): List[LabelParameter] = collect(e, {
+  def labelParameters(e: Expr, scope: Map[String, VarDef]): List[LabelParameter] = collect(e, {
     case v: VarRef =>
       filterByScope(v, scope).map(_ => VarRefLabelParameter(v)).toList
     case p: Project =>

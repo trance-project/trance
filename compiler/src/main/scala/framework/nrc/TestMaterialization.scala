@@ -505,7 +505,7 @@ object TestMaterialization extends App
   testLet()
   // empty labels, but domain still 
   // created and not removed
-  testLabels()
+//  testLabels()
 
 
 
