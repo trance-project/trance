@@ -10,24 +10,25 @@ import framework.nrc.Parser
 object ExampleQuery extends DriverGene {
   
   // TODO: update this with the loading functionality in ExampleQuery2
+  val sampleFile = "/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_prad.txt"
+  val cnvFile = "/mnt/app_hdd/data/cnv"
+  val occurFile = "/mnt/app_hdd/data/somatic/"
+  val occurName = "datasetPRAD"
+  val occurDicts = ("odictPrad1", "odictPrad2", "odictPrad3")
+  val pathFile = "/mnt/app_hdd/data/c2.cp.v7.1.symbols.gmt"
+  val gtfFile = "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf"
+  val pradFile = "/mnt/app_hdd/data/biospecimen/clinical/nationwidechildrens.org_clinical_patient_prad.txt"
+
+  // in DriverGenes.scala you can see traits for several datatypes, these 
+  // are inherited from DriverGene trait (around line 549)
+  // checkout individuals traits to see what the load functions are doing
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String = 
-    if (shred){
-      s""// TODO""
-    }else{
-      s"""|val sloader = new BiospecLoader(spark)
-          |val samples = sloader.load("/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_dlbc.txt")
-          |val cloader = new CopyNumberLoader(spark)
-          |val copynumber = cloader.load("/mnt/app_hdd/data/cnv", true)
-          |
-          |val geLoader = new GeneExpressionLoader(spark)
-          |
-          |val occurrences = spark.read.json("/mnt/app_hdd/data/somatic/datasetPRAD")
-          |val ploader = new PathwayLoader(spark)
-          |val pathways = ploader.load("/mnt/app_hdd/data/pathway/c2.cp.v7.1.symbols.gmt")
-          |val gtfLoader = new GTFLoader(spark, "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf")
-          |val genemap = gtfLoader.loadDS
-          |""".stripMargin
-    }
+    s"""|${loadBiospec(shred, skew, fname = pradFile, name = "clinical", func = "Prad")}
+        |${loadCopyNumber(shred, skew, fname = cnvFile)}
+        |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
+        |${loadPathway(shred, skew, fname = pathFile)}
+        |${loadGtfTable(shred, skew, fname = gtfFile)}
+        |""".stripMargin
   
   // name to identify your query
   val name = "ExampleQuery"
@@ -40,26 +41,64 @@ object ExampleQuery extends DriverGene {
                     "copynumber" -> copynum.tp,
                     "samples" -> samples.tp,
                     "pathways" -> pathway.tp,
-                    "genemap" -> gtf.tp)
+                    "genemap" -> gtf.tp, 
+                    "clinical" -> BagType(pradType))
 
 
   // a query string that is passed to the parser
   // note that a list of assignments should be separated with ";"
   val query = 
+    // notes from discussion
+    // s"""
+    //     // defined some udfs
+    //     def pivot(df): ... // todo
+    //     def sepDF(df): (X,y) // todo
+    //     def chi_square(X,y): ... // todo
+
+
+    //     GMB <=
+    //       for g in genemap union
+    //         {(gene:= g.g_gene_name, burdens :=
+    //           (for o in occurrences union
+    //             for t in o.transcript_consequences union
+    //               if (g.g_gene_id = t.gene_id) then
+    //                  {(sid := o.donorId, lbl := , burden := if (t.impact = "HIGH") then 0.80
+    //                                             else if (t.impact = "MODERATE") then 0.50
+    //                                             else if (t.impact = "LOW") then 0.30
+    //                                             else 0.01)}).sumBy({sid}, {burden}))}
+
+
+    //     matrix <= pivot(GMB)
+    //     (X,y) <= sepDF(matrix)
+    //     selected_genes <= chi_square(X,y) // user could specify a gene set
+    //     matrix <= matrix[selected_genes] // subset
+
+    // """
+
     s"""
         GMB <=
           for g in genemap union
             {(gene:= g.g_gene_name, burdens :=
               (for o in occurrences union
-                for t in o.transcript_consequences union
-                  if (g.g_gene_id = t.gene_id) then
-                     {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
-                                                else if (t.impact = "MODERATE") then 0.50
-                                                else if (t.impact = "LOW") then 0.30
-                                                else 0.01)}).sumBy({sid}, {burden}))}
+                for s in clinical union 
+                  if (o.donorId = s.bcr_patient_uuid) then
+                    for t in o.transcript_consequences union
+                      if (g.g_gene_id = t.gene_id) then
+                         {(sid := o.donorId, 
+                           lbl := if (s.gleason_pattern_primary = 2) then 0 
+                            else if (s.gleason_pattern_primary = 3) then 0
+                            else if (s.gleason_pattern_primary = 4) then 1
+                            else if (s.gleason_pattern_primary = 5) then 1
+                            else -1, 
+                           burden := if (t.impact = "HIGH") then 0.80
+                                                    else if (t.impact = "MODERATE") then 0.50
+                                                    else if (t.impact = "LOW") then 0.30
+                                                    else 0.01
+                          )}
+              ).sumBy({sid, lbl}, {burden})
+            )}
 
     """
-
     // finally define the parser, note that it takes the input types
     // map as input and pass the query string to the parser to
     // generate the program.
