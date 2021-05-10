@@ -108,10 +108,18 @@ object SampleNetworkNew extends DriverGene {
 
   val name = "SampleNetworkNew"
 
+  // brca specific
+  val sampleFile = "/nfs_qc4/genomics/gdc/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_brca.txt"
+  val cnvFile = "/nfs_qc4/genomics/gdc/gene_level/brca/"
+  val occurFile = "/nfs_qc4/genomics/gdc/somatic/"
+  val occurName = "datasetBrca"
+  val occurDicts = ("odictBrca1", "odictBrca2", "odictBrca3")
+
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-    s"""|${super.loadTables(shred, skew)}
-        |${loadOccurrence(shred, skew)}
-        |${loadCopyNumber(shred, skew)}
+    s"""|${loadBiospec(shred, skew, fname = sampleFile)}
+        |${loadConseqs(shred, skew)}
+        |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
+        |${loadCopyNumber(shred, skew, fname = cnvFile)}
         |${loadNetwork(shred, skew)}
         |${loadGeneProteinMap(shred, skew)}
         |""".stripMargin
