@@ -177,6 +177,8 @@ object SkewDataset{
 
     def union: DataFrame = (light, heavy).union
 
+    def distinct: (DataFrame, DataFrame) = (light, heavy).distinct
+
     def select(col: String, cols: String*): (DataFrame, DataFrame, Option[String], Broadcast[Set[K]])= {
       (light.select(col, cols:_*), heavy.select(col, cols:_*), key, heavyKeys)
     }
@@ -235,9 +237,9 @@ object SkewDataset{
     def print: Unit = (light, heavy).print
 
     def count: Long = {
-	  //println(s"heavy key size: ${heavyKeys.value.size}")
-	  (light, heavy).count
-	}
+	   //println(s"heavy key size: ${heavyKeys.value.size}")
+	   (light, heavy).count
+	  }
 
     def cache: Unit = (light, heavy).cache
 
@@ -259,6 +261,8 @@ object SkewDataset{
 
     /** Unions the light and heavy components **/
     def union: Dataset[T] = (light, heavy).union
+
+    def distinct: (Dataset[T], Dataset[T]) = (light, heavy).distinct
 
     def select(col: String, cols: String*): (DataFrame, DataFrame) = {
       (light.select(col, cols:_*), heavy.select(col, cols:_*))
@@ -449,13 +453,13 @@ object SkewDataset{
     /** counts the light and heavy component, returns as sum **/
     def count: Long = if (heavy.rdd.getNumPartitions == 1) {
 	  	val l = light.count
-		println(s"light: $l, heavy: 0")
-		l
+		  println(s"light: $l, heavy: 0")
+		  l
       } else {
         val l = light.count
         val h = heavy.count
-		println(s"light: $l, heavy: $h")
-		l + h
+		    println(s"light: $l, heavy: $h")
+		    l + h
       }
 
     /** prints the light and heavy components **/
@@ -473,6 +477,8 @@ object SkewDataset{
       */
     def union: DataFrame = if (heavy.rdd.getNumPartitions == 1) light 
       else light.union(heavy)
+
+    def distinct: (DataFrame, DataFrame) = (light.distinct, heavy.distinct)
 
     def select(col: String, cols: String*): (DataFrame, DataFrame) = {
       (light.select(col, cols:_*), heavy.select(col, cols:_*))
@@ -531,7 +537,7 @@ object SkewDataset{
         val lc = light.count
         val hc = heavy.count
         println(s"light: $lc, heavy: $hc")
-		lc + hc
+		    lc + hc
       }
 
     /** prints the light and heavy components **/
@@ -570,6 +576,8 @@ object SkewDataset{
       */
     def union: Dataset[T] = if (heavy.rdd.getNumPartitions == 1) light 
       else light.union(heavy)
+
+    def distinct: (Dataset[T], Dataset[T]) = (light.distinct, heavy.distinct)
 
     def select(col: String, cols: String*): (DataFrame, DataFrame) = {
       (light.select(col, cols:_*), heavy.select(col, cols:_*))
@@ -611,8 +619,8 @@ object SkewDataset{
       val dfull = dfs.union
       val keys = strategy match {
         case "full" => fullHeavyKeys[K](dfull, key)
-		case "partial" => partialHeavyKeys[K](dfull, key)
-		case "sample" => sampleHeavyKeys[K](dfull, key)
+    		case "partial" => partialHeavyKeys[K](dfull, key)
+    		case "sample" => sampleHeavyKeys[K](dfull, key)
         case "slice" => sliceHeavyKeys[K](dfull, key)
         case _ => sys.error(s"unsupported heavy key strategy: $strategy.")
       }

@@ -15,7 +15,7 @@ trait Biospecimen {
     ("volume", DoubleType))
   val biospecType = TupleType(biospecOtype.toMap)
 
-  val pradOtype = List("bcr_patient_uuid"->StringType,
+  val pradType = TupleType(Map("bcr_patient_uuid"->StringType,
 	"bcr_patient_barcode"->StringType,
 	"form_completion_date"->StringType,
 	"histologic_diagnosis"->StringType,
@@ -84,8 +84,18 @@ trait Biospecimen {
 	"stage_other"->StringType,
 	"system_version"->StringType,
 	"tissue_source_site"->StringType,
-	"tumor_tissue_site"->StringType)
-  val pradType = TupleType(pradOtype.toMap)
+	"tumor_tissue_site"->StringType))
+
+  val tcgaType = TupleType(
+  	"sample" -> StringType,
+  	"gender" -> StringType,
+  	"race" -> StringType,
+  	"ethnicity" -> StringType,
+  	"tumor_tissue_type" -> StringType,
+  	"histological_type" -> StringType
+  )
+
+  // this loads aliquot files or prad specific clinical information
 
   def loadBiospec(shred: Boolean = false, skew: Boolean = false, fname: String = "", name: String = "biospec", func: String = ""): String = {
     if (shred) loadShredBiospec(skew, fname, name, func)
@@ -115,4 +125,33 @@ trait Biospecimen {
         |""".stripMargin
   }  
 
+  // this loads all the histology data
+
+  def loadTcga(shred: Boolean = false, skew: Boolean = false, fname: String = "", name: String = "clinical"): String = {
+    if (shred) loadShredTcga(skew, fname, name)
+    else if (skew) {
+    s"""|val tcgaLoader = new TCGALoader(spark)
+        |val ${name}_L = tcgaLoader.load("$fname", dir = true)
+        |val $name = (${name}_L, ${name}_L.empty)
+        |$name.cache
+        |$name.count
+        |""".stripMargin
+  }else{
+    s"""|val tcgaLoader = new TCGALoader(spark)
+        |val $name = tcgaLoader.load("$fname", dir = true)
+        |$name.cache
+        |$name.count
+        |""".stripMargin
+    }
+  }
+  
+  def loadShredTcga(skew: Boolean = false, fname: String = "", name: String = "clinical"): String = {
+    val biospecLoad = if (skew) s"($name, $name.empty)" else name
+    s"""|val tcgaLoader = new TCGALoader(spark)
+        |val $name = tcgaLoader.load("$fname", dir = true)
+        |val IBag_${name}__D = $biospecLoad
+        |IBag_${name}__D.cache
+        |IBag_${name}__D.count
+        |""".stripMargin
+  }  
 }

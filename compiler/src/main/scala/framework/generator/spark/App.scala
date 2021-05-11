@@ -8,6 +8,12 @@ import framework.examples.genomic._
 import framework.examples.Query
 import framework.loader.csv._
 
+object SkewTest extends App {
+  override def main(args: Array[String]){
+    AppWriter.runDatasetShred(SkewTest0, "SkewTest0,shredded", optLevel = 1)
+    AppWriter.runDatasetShred(SkewTest0, "SkewTest0,shredded", optLevel = 1, skew = true)
+  }
+}
 
 
 object TestZeppelin extends App {

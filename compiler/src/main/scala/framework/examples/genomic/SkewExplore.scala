@@ -2,12 +2,69 @@ package framework.examples.genomic
 
 import framework.common._
 import framework.examples.Query
+import framework.nrc.Parser
 
 /** This file contains some exploratory queries 
   * for running the skew-aware pipeline on 
   * the cancer datasets of the biomedical benchmark.
   *
   **/
+
+object SkewTest0 extends DriverGene {
+
+  val name = "SkewTest0"
+
+  val clinDir = "/nfs_qc4/genomics/gdc/biospecimen/clinical/"
+  val occurFile = "/nfs_qc4/genomics/gdc/somatic/"
+  val occurName = "datasetFull"
+  val occurDicts = ("odict1Full", "odict2Full", "odict3Full")
+  val cnvFile = "/nfs_qc4/genomics/gdc/gene_level/"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${loadTcga(shred, skew, fname = clinDir)}
+        |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
+        |${loadCopyNumber(shred, skew, fname = cnvFile)}
+    """.stripMargin
+
+  val tbls = Map("occurrences" -> occurmids.tp, 
+                  "clinical" -> BagType(tcgaType))
+
+  val query = 
+    // s"""
+    //   SkewTest0 <= 
+    //   for c in clinical union 
+    //     {(tumor_tissue_type := c.tumor_tissue_type, mutations := 
+    //       for o in occurrences union 
+    //         if (o.donorId = c.sample) then
+    //         {(oid := o.oid, sid := o.donorId, cands := 
+    //           for t in o.transcript_consequences union 
+    //             {(gid := t.gene_id, impact := t.impact)}
+    //         )}
+    //     )}
+    // """.stripMargin
+    s"""
+      CancerTypes <= 
+        dedup(
+          for c in clinical union 
+            {(ctype := c.tumor_tissue_type)}
+        );
+
+      SkewTest0 <= 
+      for c in CancerTypes union 
+        {(tumor_tissue_type := c.ctype, mutations := 
+          for s in clinical union 
+            for o in occurrences union 
+              if (s.sample = o.donorId && c.ctype = s.tumor_tissue_type) then 
+              {(oid := o.oid, sid := o.donorId, cands := 
+                for t in o.transcript_consequences union 
+                  {( gid := t.gene_id, impact := t.impact )}
+              )}
+        )}
+    """.stripMargin
+  val parser = Parser(tbls)
+  val program = parser.parse(query).get.asInstanceOf[Program]
+
+}
 
 object SkewTest1 extends DriverGene {
   val name = "SkewTest1"
