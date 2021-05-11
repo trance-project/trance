@@ -7,17 +7,13 @@ import framework.nrc.Parser
 
 // this is the Gene Mutation Burden Example
 object ExampleQuery extends DriverGene {
-<<<<<<< HEAD
-=======
-  
+
   // TODO: update this with the loading functionality in ExampleQuery2
->>>>>>> cb62a760f83f02a91e0f51b863607a8eb089d3eb
   val sampleFile = "/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_prad.txt"
   val cnvFile = "/mnt/app_hdd/data/cnv"
   val occurFile = "/mnt/app_hdd/data/somatic/"
   val occurName = "datasetPRAD"
   val occurDicts = ("odictPrad1", "odictPrad2", "odictPrad3")
-<<<<<<< HEAD
   val pathFile = "/mnt/app_hdd/data/pathway/c2.cp.v7.1.symbols.gmt"
   val gtfFile = "/mnt/app_hdd/data/genes/Homo_sapiens.GRCh37.87.chr.gtf"
 
@@ -27,7 +23,6 @@ object ExampleQuery extends DriverGene {
   // checkout individuals traits to see what the load functions are doing
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
     s"""|${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
-=======
   val pathFile = "/mnt/app_hdd/data/c2.cp.v7.1.symbols.gmt"
   val gtfFile = "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf"
   val pradFile = "/mnt/app_hdd/data/biospecimen/clinical/nationwidechildrens.org_clinical_patient_prad.txt"
@@ -35,19 +30,14 @@ object ExampleQuery extends DriverGene {
   // in DriverGenes.scala you can see traits for several datatypes, these 
   // are inherited from DriverGene trait (around line 549)
   // checkout individuals traits to see what the load functions are doing
-  override def loadTables(shred: Boolean = false, skew: Boolean = false): String = 
+
     s"""|${loadBiospec(shred, skew, fname = pradFile, name = "clinical", func = "Prad")}
->>>>>>> cb62a760f83f02a91e0f51b863607a8eb089d3eb
-        |${loadCopyNumber(shred, skew, fname = cnvFile)}
+          |${loadCopyNumber(shred, skew, fname = cnvFile)}
         |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
         |${loadPathway(shred, skew, fname = pathFile)}
         |${loadGtfTable(shred, skew, fname = gtfFile)}
         |""".stripMargin
-<<<<<<< HEAD
-
-=======
-  
->>>>>>> cb62a760f83f02a91e0f51b863607a8eb089d3eb
+        |
   // name to identify your query
   val name = "ExampleQuery"
   // moved these to DriverGenes.scala Pathway train (line 19)
@@ -65,7 +55,6 @@ object ExampleQuery extends DriverGene {
 
   // a query string that is passed to the parser
   // note that a list of assignments should be separated with ";"
-<<<<<<< HEAD
   val query =
     s"""
       GMB <=
@@ -80,8 +69,7 @@ object ExampleQuery extends DriverGene {
                                                 else 0.01)}).sumBy({sid}, {burden}))}
 
 
-=======
-  val query = 
+  val query =
     // notes from discussion
     // s"""
     //     // defined some udfs
@@ -128,7 +116,6 @@ object ExampleQuery extends DriverGene {
                           )}
               ).sumBy({sid, lbl}, {burden})
             )}
->>>>>>> cb62a760f83f02a91e0f51b863607a8eb089d3eb
     """
     // finally define the parser, note that it takes the input types
     // map as input and pass the query string to the parser to
@@ -175,11 +162,7 @@ object ExampleQuery2 extends DriverGene {
   // note that a list of assignments should be separated with ";"
   val query =
     s"""
-<<<<<<< HEAD
         impactScores <=
-=======
-        impactScores <= 
->>>>>>> cb62a760f83f02a91e0f51b863607a8eb089d3eb
           (for o in occurrences union
             for t in o.transcript_consequences union
               {(gid := t.gene_id, sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
@@ -189,17 +172,14 @@ object ExampleQuery2 extends DriverGene {
         PMB <=
           for p in pathways union
             {(pathway := p.p_name, burdens :=
-<<<<<<< HEAD
               (for g in p.gene_set union
                 for g2 in genemap union
                   if (g.name = g2.g_gene_name) then
                     for o in impactScores union
-=======
-              (for g in p.gene_set union 
+              (for g in p.gene_set union
                 for g2 in genemap union 
                   if (g.name = g2.g_gene_name) then 
                     for o in impactScores union 
->>>>>>> cb62a760f83f02a91e0f51b863607a8eb089d3eb
                       if (g2.g_gene_id = o.gid) then
                         {(sid := o.sid, burden := o.burden)}).sumBy({sid}, {burden}))}
 
