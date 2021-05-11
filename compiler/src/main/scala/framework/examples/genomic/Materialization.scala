@@ -91,7 +91,7 @@ class LetTest0(override val letOpt: Boolean = false) extends DriverGene {
            {( hybrid_sample := s.bcr_patient_uuid,
               hybrid_aliquot := s.bcr_aliquot_uuid,
               hybrid_center := s.center_id,
-              hybrid_genes := for i in initScores0 union
+              hybrid_genes := for i in $initScores union
                if (s.bcr_patient_uuid = i.hybrid_case)
                then {(hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)})}
        """
@@ -99,10 +99,19 @@ class LetTest0(override val letOpt: Boolean = false) extends DriverGene {
     val query =
       s"""
         LetTest0 <= 
-          let cnvCases := $cnvs
-          in let initScores0 := $initScores 
-          in $lettest
+          for o in occurrences union 
+            {(sid := o.donorId, cons := 
+              for t in o.transcript_consequences union 
+                {(gene := t.gene_id)}
+            )}
       """
+
+      // s"""
+      //   LetTest0 <= 
+      //     let cnvCases := $cnvs
+      //     in let initScores0 := $initScores 
+      //     in $lettest
+      // """
 
     val parser = Parser(tbls)
     val program = parser.parse(query).get.asInstanceOf[Program]
@@ -288,7 +297,9 @@ object LetTest3 extends DriverGene {
   
   val tbls = Map("occurrences" -> occurmids.tp, 
                   "copynumber" -> copynum.tp, 
-                  "samples" -> samples.tp)
+                  "samples" -> samples.tp,
+                  "network" -> network.tp, 
+                  "genemap" -> gpmap.tp)
 
     val imp = """if (t.impact = "HIGH") then 0.80 
                   else if (t.impact = "MODERATE") then 0.50
@@ -304,34 +315,39 @@ object LetTest3 extends DriverGene {
                 then {(sid := s.bcr_patient_uuid, gene := c.cn_gene_id, cnum := c.cn_copy_number)};
 
         initScores1 <=  
-         (for o in occurrences union 
-           for t in o.transcript_consequences union 
-             for c in cnvCases union 
-               if (o.donorId = c.sid && t.gene_id = c.gene)
-               then {(hybrid_case := o.donorId, hybrid_gene := t.gene_id, hybrid_score := (c.cnum + 0.01) * $imp )}).sumBy({hybrid_case, hybrid_gene}, {hybrid_score});
-        
-        intermMatrix <= 
-          for s in samples union 
-            for i in initScores1 union
-              if (s.bcr_patient_uuid = i.hybrid_case)
-              then {(hybrid_sample := s.bcr_aliquot_uuid, hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)}
+          (for o in occurrences union 
+            for t in o.transcript_consequences union 
+              for c in cnvCases union 
+                if (o.donorId = c.sid && t.gene_id = c.gene)
+                then {(hybrid_case := o.donorId, hybrid_gene := t.gene_id, hybrid_score := (c.cnum + 0.01) * $imp )}).sumBy({hybrid_case, hybrid_gene}, {hybrid_score});
 
-     """      
-     //    intermMatrix <= 
-     //     for s in samples union 
-     //       {( hybrid_sample := s.bcr_patient_uuid,
-     //          hybrid_aliquot := s.bcr_aliquot_uuid,
-     //          hybrid_center := s.center_id,
-     //          hybrid_genes := for i in initScores1 union
-     //           if (s.bcr_patient_uuid = i.hybrid_case)
-     //           then {(hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)})};
+        hybridScores1 <= 
+           for s in samples union 
+             {( hybrid_sample := s.bcr_patient_uuid,
+                hybrid_aliquot := s.bcr_aliquot_uuid,
+                hybrid_center := s.center_id,
+                hybrid_genes := for i in initScores1 union
+                  if (s.bcr_patient_uuid = i.hybrid_case)
+                  then for t in i.scores union 
+                    {( hybrid_gene := t.hybrid_gene, hybrid_score := t.hybrid_score )})};
 
-     //    finalMatrix <= 
-     //      (for s in intermMatrix union 
-     //        for h in intermMatrix.hybrid_genes union 
-     //          {(hybrid_gene := h.hybrid_gene, hybrid_score := h.hybrid_score)}).sumBy({hybrid_gene}, {hybrid_score})
+        flatNetwork1 <= 
+          for n in network union 
+            for e in n.edges union 
+              for g in genemap union 
+                if (e.edge_protein = g.protein_stable_id)
+                then {(network_node := n.node_protein, network_edge := g.gene_stable_id, network_combined := e.combined_score)};
 
-     // """
+        sampleNetwork <= 
+          for h in hybridScores1 union 
+            {(network_sample := h.hybrid_sample, 
+              network_aliquot := h.hybrid_aliquot, 
+              network_genes := (for g in h.hybrid_genes union 
+                for s in flatNetwork1 union 
+                  if (s.network_edge = g.hybrid_gene)
+                  then {(network_protein_id := s.network_node, distance := s.network_combined * g.hybrid_score )}).sumBy({network_protein_id}, {distance})
+            )}
+      """
 
     val parser = Parser(tbls)
     val program = parser.parse(query).get.asInstanceOf[Program]
@@ -373,7 +389,9 @@ object LetTest4 extends DriverGene {
   
   val tbls = Map("occurrences" -> occurmids.tp, 
                   "copynumber" -> copynum.tp, 
-                  "samples" -> samples.tp)
+                  "samples" -> samples.tp,
+                  "network" -> network.tp, 
+                  "genemap" -> gpmap.tp)
 
     val imp = """if (t.impact = "HIGH") then 0.80 
                   else if (t.impact = "MODERATE") then 0.50
@@ -389,25 +407,45 @@ object LetTest4 extends DriverGene {
       """
     val initScores = 
       s"""
-         (for o in occurrences union 
-           for t in o.transcript_consequences union 
-             for c in $cnvs union 
-               if (o.donorId = c.sid && t.gene_id = c.gene)
-               then {(hybrid_case := o.donorId, hybrid_gene := t.gene_id, hybrid_score := (c.cnum + 0.01) * $imp )}).sumBy({hybrid_case, hybrid_gene}, {hybrid_score})
+        (for o in occurrences union 
+          for t in o.transcript_consequences union 
+            for c in $cnvs union 
+              if (o.donorId = c.sid && t.gene_id = c.gene)
+              then {(hybrid_case := o.donorId, hybrid_gene := t.gene_id, hybrid_score := (c.cnum + 0.01) * $imp )}).sumBy({hybrid_case, hybrid_gene}, {hybrid_score})
       """
-    val query = 
+    val hybridScores = 
      s"""
-      samples2 <= 
-        for s1 in samples union 
-          {(sid2 := s1.bcr_patient_uuid, aid2 := s1.bcr_aliquot_uuid)};
-
-      intermMatrix2 <= 
-        for s2 in samples2 union 
-          for i in $initScores union
-            if (s2.sid2 = i.hybrid_case)
-            then {(hybrid_sample := s2.aid2, hybrid_gene := i.hybrid_gene, hybrid_score := i.hybrid_score)}
-
+       for s in samples union 
+         {( hybrid_sample := s.bcr_patient_uuid,
+            hybrid_aliquot := s.bcr_aliquot_uuid,
+            hybrid_genes := for i in $initScores union
+              if (s.bcr_patient_uuid = i.hybrid_case)
+              then {( hybrid_gene := t.hybrid_gene, hybrid_score := t.hybrid_score )}
+          )}
      """
+
+    val flatNetwork = 
+      s"""
+        for n in network union 
+          for e in n.edges union 
+            for g in genemap union 
+              if (e.edge_protein = g.protein_stable_id)
+              then {(network_node := n.node_protein, network_edge := g.gene_stable_id, network_combined := e.combined_score)}
+      """
+
+    val query = 
+      s"""
+        sampleNetwork <= 
+          for h in $hybridScores union 
+            {(network_sample := h.hybrid_sample, 
+              network_aliquot := h.hybrid_aliquot, 
+              network_genes := (for g in h.hybrid_genes union 
+                for s in $flatNetwork union 
+                  if (s.network_edge = g.hybrid_gene)
+                  then {(network_protein_id := s.network_node, distance := s.network_combined * g.hybrid_score )}
+              ).sumBy({network_protein_id}, {distance})
+            )}
+      """
 
     val parser = Parser(tbls)
     val program = parser.parse(query).get.asInstanceOf[Program]

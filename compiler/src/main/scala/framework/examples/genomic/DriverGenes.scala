@@ -393,49 +393,6 @@ trait CopyNumber {
 
 }
 
-trait Biospecimen {
-
-  val biospecOtype = List(
-    ("bcr_patient_uuid", StringType), ("bcr_sample_barcode", StringType), 
-    ("bcr_aliquot_barcode", StringType), ("bcr_aliquot_uuid", StringType), 
-    ("biospecimen_barcode_bottom", StringType), ("center_id", StringType), 
-    ("concentration", DoubleType), ("date_of_shipment", StringType), 
-    ("is_derived_from_ffpe", StringType), ("plate_column", IntType),
-    ("plate_id", StringType), ("plate_row", StringType), 
-    ("quantity", DoubleType), ("source_center", IntType), 
-    ("volume", DoubleType))
-  val biospecType = TupleType(biospecOtype.toMap)
-
-  def loadBiospec(shred: Boolean = false, skew: Boolean = false, fname: String = "", name: String = "biospec"): String = {
-    if (shred) loadShredBiospec(skew, fname, name)
-    else if (skew) {
-    s"""|val biospecLoader = new BiospecLoader(spark)
-        |val ${name}_L = biospecLoader.load("$fname")
-        |val $name = (biospec_L, biospec_L.empty)
-        |$name.cache
-        |$name.count
-        |""".stripMargin
-  }else{
-    s"""|val biospecLoader = new BiospecLoader(spark)
-        |val $name = biospecLoader.load("$fname")
-        |$name.cache
-        |$name.count
-        |""".stripMargin
-    }
-  }
-  
-  def loadShredBiospec(skew: Boolean = false, fname: String = "", name: String = "biospec"): String = {
-    val biospecLoad = if (skew) "($name, $name.empty)" else name
-    s"""|val biospecLoader = new BiospecLoader(spark)
-        |val $name = biospecLoader.load("$fname")
-        |val IBag_${name}__D = $biospecLoad
-        |IBag_${name}__D.cache
-        |IBag_${name}__D.count
-        |""".stripMargin
-  }  
-
-}
-
 trait TCGAClinical {
 
   def loadClinical(shred: Boolean = false, skew: Boolean = false): String = {
