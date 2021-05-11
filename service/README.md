@@ -10,6 +10,8 @@ cd ../compiler
 sbt package
 cp target/scala-2.12/framework_2.12-0.1.jar ../service/lib/
 ```
+Add the framework_2.12-0.1.jar in the lib folder to the External libraries found on you favorite 
+IDE project settings.
 
 ### Example requests
 

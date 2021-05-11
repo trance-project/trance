@@ -8,6 +8,8 @@ import ReactDOM from 'react-dom';
 import FieldRenderComponent from './FieldRenderComponent'
 
 import * as Blockly from 'blockly/core';
+import {Provider} from 'react-redux';
+import store from '../../../../../../../redux/store';
 
 class BlocklyReactField extends Blockly.Field {
 
@@ -16,16 +18,24 @@ class BlocklyReactField extends Blockly.Field {
     }
 
     onSelected (event) {
-        console.log("[event!!!!!!!]", event)
-        // this.setValue(event.)
-}
+        this.setValue(event.name);
+    }
+
+    getText_() {
+        return this.value_;
+    }
+
 
     showEditor_() {
         this.div_ = Blockly.DropDownDiv.getContentDiv();
-        ReactDOM.render(this.render(),
+        ReactDOM.render(
+            //added provider to allow the blockly custom component to access the redux store
+            <Provider store={store}>
+                {this.render()}
+            </Provider>,
             this.div_);
 
-        var border = this.sourceBlock_.getColourBorder();
+        let border = this.sourceBlock_.getColourBorder();
         border = border.colourBorder || border.colourLight;
         Blockly.DropDownDiv.setColour(this.sourceBlock_.getColour(), border);
 
@@ -38,7 +48,7 @@ class BlocklyReactField extends Blockly.Field {
     }
 
     render() {
-        return <FieldRenderComponent onSelect={this.onSelect}/>
+        return <FieldRenderComponent onSelect={(event) => this.onSelected(event)}/>
     }
 }
 

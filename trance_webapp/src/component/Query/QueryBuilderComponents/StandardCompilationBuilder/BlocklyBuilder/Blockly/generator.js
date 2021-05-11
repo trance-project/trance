@@ -34,15 +34,10 @@ BlocklyJS['tuple_el'] = function (block){
     return `${attribute_Name} := ${attribute_value}`;
 }
 
-BlocklyJS['objects_attribute_list'] = function (block){
-    const object_attribute = validate(block.getFieldValue('field_react_component'))
-    return [object_attribute, 0];
-    // return ['console.log(\'custom block\');\n', 0];
-    // return 'console.log(\'custom block\');\n';
-}
-
 BlocklyJS['customReactComponent'] = function (block){
-    return 'custom block\n';
+    console.log('[customReactComponent]', block)
+    const code = validate(block.getField('FIELD').getText())
+    return [code,0];
 }
 
 BlocklyJS['tuple_el_iteration'] = function (block){

@@ -51,21 +51,6 @@ Blockly.defineBlocksWithJsonArray([
         "tooltip": "tuple_el"
     },
     {
-        "type": "objects_attribute_list",
-        "message0": "%1",
-        "args0": [
-            {
-                "type": "input_dummy",
-                "name": "DROPDOWN_PLACEHOLDER",
-            }
-        ],
-        "extensions": ["dynamic_object_attribute_list_extension"],
-        "output": null,
-        "colour": 230,
-        "tooltip": "",
-
-    },
-    {
         "type": "tuple_el_iteration",
         "message0": "%1 %2 %3",
         "args0": [
@@ -229,7 +214,6 @@ Blockly.defineBlocksWithJsonArray([
         "inputsInline": true,
         "colour": 142,
         // "output": "Primitive",
-        "previousStatement": "Primitive",
         "nextStatement": "Primitive",
         "tooltip": "association_on",
     },
@@ -257,16 +241,16 @@ Blockly.defineBlocksWithJsonArray([
 
 const testReactField = {
     "type": "customReactComponent",
-    "message0": "Object & attribute custom field %1",
+    "message0": "%1",
     "args0": [
         {
             "type": "field_react_component",
             "name": "FIELD",
-            "text": "Click me"
+            "text": "select attribute",
         },
     ],
-    "previousStatement": null,
-    "nextStatement": null,
+    "output": "Primitive",
+
 };
 
 Blockly.Blocks['customReactComponent'] = {

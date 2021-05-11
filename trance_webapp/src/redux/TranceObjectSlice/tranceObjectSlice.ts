@@ -60,26 +60,6 @@ export const tranceObjectSlice = createSlice({
                         }
                     ), 'ATTRIBUTE_VALUE');
             })
-            Blockly.Extensions.register('dynamic_object_attribute_list_extension', function (){
-                // @ts-ignore
-                this.getInput('DROPDOWN_PLACEHOLDER')
-                    .appendField(new Blockly.FieldDropdown(
-                        ()=>{
-                            const options: any[] = [];
-                            options.push(["select a attribute", "null"])
-                            if(action.payload){
-                                action.payload.forEach(t => {
-                                    const key = t.abr
-                                    t.columns.forEach(c => {
-                                        options.push([`${t.name}.${c.name}`, `${key}.${c.name}`]);
-                                    })
-
-                                })
-                            }
-                            return options
-                        }
-                    ), 'ATTRIBUTE');
-            })
         });
         // builder.addCase(api.fetchTranceObjectList.rejected, (state, action: PayloadAction<String>) => {
         //     state.error = action.payload;
