@@ -7,7 +7,6 @@ import framework.nrc.Parser
 
 // this is the Gene Mutation Burden Example
 object ExampleQuery extends DriverGene {
-  
   // TODO: update this with the loading functionality in ExampleQuery2
   val sampleFile = "/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_prad.txt"
   val cnvFile = "/mnt/app_hdd/data/cnv"
@@ -47,7 +46,7 @@ object ExampleQuery extends DriverGene {
   // note that a list of assignments should be separated with ";"
   // this was the query before labels	  
   /**val query =
-     s"""
+    s"""
       GMB <=
           for g in genemap union
             {(gene:= g.g_gene_name, burdens :=
