@@ -58,6 +58,7 @@ object ExampleQuery extends DriverGene {
                                                 else if (t.impact = "LOW") then 0.30
                                                 else 0.01)}).sumBy({sid}, {burden}))}
      """
+  **/
   val query = 
     // notes from discussion
     // s"""
