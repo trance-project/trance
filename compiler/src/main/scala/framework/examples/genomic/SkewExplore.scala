@@ -23,7 +23,6 @@ object SkewTest0 extends DriverGene {
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
     s"""|${loadTcga(shred, skew, fname = clinDir)}
         |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
-        |${loadCopyNumber(shred, skew, fname = cnvFile)}
     """.stripMargin
 
   val tbls = Map("occurrences" -> occurmids.tp, 
@@ -53,8 +52,9 @@ object SkewTest0 extends DriverGene {
       for c in CancerTypes union 
         {(tumor_tissue_type := c.ctype, mutations := 
           for s in clinical union 
+            if (c.ctype = s.tumor_tissue_type) then
             for o in occurrences union 
-              if (s.sample = o.donorId && c.ctype = s.tumor_tissue_type) then 
+              if (s.sample = o.donorId) then 
               {(oid := o.oid, sid := o.donorId, cands := 
                 for t in o.transcript_consequences union 
                   {( gid := t.gene_id, impact := t.impact )}
