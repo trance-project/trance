@@ -12,7 +12,7 @@ object UdfTestApp extends App {
       //zhost = "localhost",
       zport = 8085)
 
-    AppWriter.runDatasetShred(ExampleQuery, "ExampleTest,standard", optLevel = 1)
+    //AppWriter.runDatasetShred(ExampleQuery, "ExampleTest,standard", optLevel = 1)
 
   }
 }
