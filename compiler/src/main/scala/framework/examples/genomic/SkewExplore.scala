@@ -45,14 +45,14 @@ object SkewTest0 extends DriverGene {
       CancerTypes <= 
         dedup(
           for c in clinical union 
-            {(ctype := c.tumor_tissue_type)}
+            {(ctype := c.tumor_tissue_site)}
         );
 
       SkewTest0 <= 
       for c in CancerTypes union 
-        {(tumor_tissue_type := c.ctype, mutations := 
+        {(tumor_tissue_site := c.ctype, mutations := 
           for s in clinical union 
-            if (c.ctype = s.tumor_tissue_type) then
+            if (c.ctype = s.tumor_tissue_site) then
             for o in occurrences union 
               if (s.sample = o.donorId) then 
               {(oid := o.oid, sid := o.donorId, cands := 

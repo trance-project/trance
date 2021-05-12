@@ -563,7 +563,10 @@ object SkewDataset{
       */
     def repartition[K: ClassTag](partitionExpr: Column): (Dataset[T], Dataset[T], Option[String], Broadcast[Set[K]]) = {
       val key = partitionExpr.toString
+	  println("are we in here??")
+	  println(key)
       val (dfull, hkeys) = heavyKeys[K](key)
+	  println(hkeys.size)
       if (hkeys.nonEmpty){
         val hk = dfull.sparkSession.sparkContext.broadcast(hkeys)
         (dfull.lfilter[K](col(key), hk).repartition(Seq(partitionExpr):_*), dfull.hfilter[K](col(key), hk), Some(key), hk)
@@ -619,8 +622,8 @@ object SkewDataset{
       val dfull = dfs.union
       val keys = strategy match {
         case "full" => fullHeavyKeys[K](dfull, key)
-    		case "partial" => partialHeavyKeys[K](dfull, key)
-    		case "sample" => sampleHeavyKeys[K](dfull, key)
+    	case "partial" => partialHeavyKeys[K](dfull, key)
+    	case "sample" => sampleHeavyKeys[K](dfull, key)
         case "slice" => sliceHeavyKeys[K](dfull, key)
         case _ => sys.error(s"unsupported heavy key strategy: $strategy.")
       }
@@ -632,7 +635,7 @@ object SkewDataset{
 		of partitions as the final filter?
 	**/
 	def fullHeavyKeys[K: ClassTag](dfull: Dataset[T], key: String): Set[K] = {
-      dfull.select(key).rdd.mapPartitions(it => {
+      val keyset = dfull.select(key).rdd.mapPartitions(it => {
         var cnt = 0
         val acc = HashMap.empty[Row, Int].withDefaultValue(0)
         it.foreach{ c => 
@@ -641,7 +644,9 @@ object SkewDataset{
             case _ => acc(c) += 1 }}		
         acc.filter(_._2 > (cnt*thresh)).iterator
       }).reduceByKey(_+_).filter(_._2 > partitions).map(r => r._1.getAs[K](0)).collect.toSet
-    }
+      println(keyset)
+	  keyset
+	}
 
 	def partialHeavyKeys[K: ClassTag](dfull: Dataset[T], key: String): Set[K] = {
       dfull.select(key).rdd.mapPartitions(it => {
