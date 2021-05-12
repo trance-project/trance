@@ -91,7 +91,7 @@ trait Biospecimen {
   	"gender" -> StringType,
   	"race" -> StringType,
   	"ethnicity" -> StringType,
-  	"tumor_tissue_type" -> StringType,
+  	"tumor_tissue_site" -> StringType,
   	"histological_type" -> StringType
   )
 
