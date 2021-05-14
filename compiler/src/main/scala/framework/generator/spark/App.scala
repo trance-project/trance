@@ -10,8 +10,8 @@ import framework.loader.csv._
 
 object SkewTest extends App {
   override def main(args: Array[String]){
-    AppWriter.runDatasetShred(SkewTest0, "SkewTest0,shredded", optLevel = 1)
-    AppWriter.runDatasetShred(SkewTest0, "SkewTest0,shredded", optLevel = 1, skew = true)
+    AppWriter.runDatasetShred(SkewTestSmall0, "SkewTest0,shredded", optLevel = 1)
+    AppWriter.runDatasetShred(SkewTestSmall0, "SkewTest0,shredded", optLevel = 1, skew = true)
   }
 }
 

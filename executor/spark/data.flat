@@ -1,2 +1,3 @@
 datapath=/nfs/home/pavlos/trance/executor/spark/data/tpch
-heavyKeyStrategy=full
+heavyKeyStrategy=slice
+threshold=100

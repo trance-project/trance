@@ -187,7 +187,11 @@ object SkewDataset{
       * does not alter the key
       */
     def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U], Option[String], Broadcast[Set[K]]) = {
-      if (heavy.rdd.getNumPartitions == 1) {
+      println("in here trying to cast to dataset "+key+" "+heavyKeys)
+      light.print
+      heavy.print
+      println(heavy.rdd.getNumPartitions)
+      if (heavy.rdd.getNumPartitions <= 1) {
         (light.as[U], light.empty[U], key, heavyKeys)
       }
       else (light.as[U], heavy.as[U], key, heavyKeys)
@@ -282,7 +286,7 @@ object SkewDataset{
 
     /** Cast a skew-triple of Dataset to a new skew-triple of Dataset **/
     def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U], Option[String], Broadcast[Set[K]]) = {
-      if (heavy.rdd.getNumPartitions == 1){
+      if (heavy.rdd.getNumPartitions <= 1){
         (light.as[U], light.empty[U], key, heavyKeys)
       }else (light.as[U], heavy.as[U], key, heavyKeys)
     }
@@ -451,7 +455,7 @@ object SkewDataset{
     val heavy = dfs._2
 
     /** counts the light and heavy component, returns as sum **/
-    def count: Long = if (heavy.rdd.getNumPartitions == 1) {
+    def count: Long = if (heavy.rdd.getNumPartitions <= 1) {
 	  	val l = light.count
 		  println(s"light: $l, heavy: 0")
 		  l
@@ -475,13 +479,14 @@ object SkewDataset{
     /** union the light and heavy component, 
       * if heavy is empty then just return light 
       */
-    def union: DataFrame = if (heavy.rdd.getNumPartitions == 1) light 
+    def union: DataFrame = if (heavy.rdd.getNumPartitions <= 1) light 
       else light.union(heavy)
 
     def distinct: (DataFrame, DataFrame) = (light.distinct, heavy.distinct)
 
     def select(col: String, cols: String*): (DataFrame, DataFrame) = {
-      (light.select(col, cols:_*), heavy.select(col, cols:_*))
+      (light.select(col, cols:_*), 
+        heavy.select(col, cols:_*))
     }
 
     def filter(condition: Column): (DataFrame, DataFrame) = {
@@ -497,7 +502,7 @@ object SkewDataset{
     }
 
     def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U]) = {
-      if (heavy.rdd.getNumPartitions == 1){
+      if (heavy.rdd.getNumPartitions <= 1){
         (light.as[U], light.empty[U])
       }else (light.as[U], heavy.as[U])
     }
@@ -529,7 +534,7 @@ object SkewDataset{
     val strategy = Config.heavyKeyStrategy
 
     /** counts the light and heavy component, returns as sum **/
-    def count: Long = if (heavy.rdd.getNumPartitions == 1) {
+    def count: Long = if (heavy.rdd.getNumPartitions <= 1) {
 	  	val l = light.count 
 		  println(s"light: $l, heavy: 0")
 		  l
@@ -563,10 +568,10 @@ object SkewDataset{
       */
     def repartition[K: ClassTag](partitionExpr: Column): (Dataset[T], Dataset[T], Option[String], Broadcast[Set[K]]) = {
       val key = partitionExpr.toString
-	  println("are we in here??")
-	  println(key)
+  	  println("are we in here??")
+  	  println(key)
       val (dfull, hkeys) = heavyKeys[K](key)
-	  println(hkeys.size)
+	    println(hkeys.size)
       if (hkeys.nonEmpty){
         val hk = dfull.sparkSession.sparkContext.broadcast(hkeys)
         (dfull.lfilter[K](col(key), hk).repartition(Seq(partitionExpr):_*), dfull.hfilter[K](col(key), hk), Some(key), hk)
@@ -577,7 +582,7 @@ object SkewDataset{
     /** union the light and heavy component, 
       * if heavy is empty then just return light 
       */
-    def union: Dataset[T] = if (heavy.rdd.getNumPartitions == 1) light 
+    def union: Dataset[T] = if (heavy.rdd.getNumPartitions <= 1) light 
       else light.union(heavy)
 
     def distinct: (Dataset[T], Dataset[T]) = (light.distinct, heavy.distinct)
@@ -598,7 +603,7 @@ object SkewDataset{
       (light.drop(colNames:_*), heavy.drop(colNames:_*))
     }
 
-    def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U]) = if (heavy.rdd.getNumPartitions == 1) (light.as[U], light.empty[U])
+    def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U]) = if (heavy.rdd.getNumPartitions <= 1) (light.as[U], light.empty[U])
       else (light.as[U], heavy.as[U])
 
     def withColumn(colName: String, col: Column): (DataFrame, DataFrame) = {
@@ -635,16 +640,15 @@ object SkewDataset{
 		of partitions as the final filter?
 	**/
 	def fullHeavyKeys[K: ClassTag](dfull: Dataset[T], key: String): Set[K] = {
-      val keyset = dfull.select(key).rdd.mapPartitions(it => {
-        var cnt = 0
-        val acc = HashMap.empty[Row, Int].withDefaultValue(0)
-        it.foreach{ c => 
-          cnt +=1
-          c match { case null => Unit
-            case _ => acc(c) += 1 }}		
-        acc.filter(_._2 > (cnt*thresh)).iterator
-      }).reduceByKey(_+_).filter(_._2 > partitions).map(r => r._1.getAs[K](0)).collect.toSet
-      println(keyset)
+    val keyset = dfull.select(key).rdd.mapPartitions(it => {
+      var cnt = 0
+      val acc = HashMap.empty[Row, Int].withDefaultValue(0)
+      it.foreach{ c => 
+        cnt +=1
+        c match { case null => Unit
+          case _ => acc(c) += 1 }}		
+      acc.filter(_._2 > (cnt*thresh)).iterator
+    }).reduceByKey(_+_).filter(_._2 > partitions).map(r => r._1.getAs[K](0)).collect.toSet
 	  keyset
 	}
 
@@ -679,10 +683,10 @@ object SkewDataset{
         while (cnt < sampled && it.hasNext) { cnt += 1; it.next match { case null => Unit; case c => acc(c) += 1 }}
         if (cnt < sampled) Iterator()
         else {
-		  val accsize = acc.size
-		  val accsum = acc.values.sum
+    		  val accsize = acc.size
+    		  val accsum = acc.values.sum
           val avg = accsum / accsize
-		  acc.filter(_._2 > avg*thresh).map(r => r._1.getAs[K](0)).iterator
+  		    acc.filter(_._2 > avg*thresh).map(r => r._1.getAs[K](0)).iterator
         }
       }).collect.toSet
     }

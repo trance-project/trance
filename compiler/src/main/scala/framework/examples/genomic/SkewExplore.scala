@@ -16,21 +16,23 @@ object SkewTestSmall0 extends DriverGene {
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
     if (shred){
-      s"""|val samples = spark.table("samples")
-          |val IBag_samples__D = samples
+      s"""|val bloader = new BiospecLoader(spark)
+          |val samples = bloader.load("/Users/jac/data/dlbc/nationwidechildrens.org_biospecimen_aliquot_dlbc.txt")
+          |val IBag_samples__D = ${if (skew) "(samples, samples.empty)" else "samples"}
           |
-          |val copynumber = spark.table("copynumber")
-          |val IBag_copynumber__D = copynumber
+          | val cnLoader = new CopyNumberLoader(spark)
+          |val copynumber = cnLoader.load("/Users/jac/data/dlbc/cnv/")
+          |val IBag_copynumber__D = ${if (skew) "(copynumber, copynumber.empty)" else "copynumber"}
           |
-          |val odict1 = spark.table("odict1")
-          |val IBag_occurrences__D = odict1
+          |val odict1 = spark.read.json("/Users/jac/data/dlbc/odict1").as[OccurrDict1]
+          |val IBag_occurrences__D = ${if (skew) "(odict1, odict1.empty)" else "odict1"}
           |
           |// issue with partial shredding here
-          |val odict2 = spark.table("odict2").drop("flags")
-          |val IDict_occurrences__D_transcript_consequences = odict2
+          |val odict2 = spark.read.json("/Users/jac/data/dlbc/odict2").as[OccurTransDict2Mid]
+          |val IDict_occurrences__D_transcript_consequences = ${if (skew) "(odict2, odict2.empty)" else "odict2"}
           |
-          |val odict3 = spark.table("odict3")
-          |val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
+          |val odict3 = spark.read.json("/Users/jac/data/dlbc/odict3").as[OccurrTransConseqDict3]
+          |val IDict_occurrences__D_transcript_consequences_consequence_terms = ${if (skew) "(odict3, odict3)" else "odict3"}
           |""".stripMargin
     }else{
       s"""|val samples = spark.table("samples")
@@ -40,8 +42,6 @@ object SkewTestSmall0 extends DriverGene {
           |val occurrences = spark.table("occurrences")
           |""".stripMargin
     }
-
-  val name = "SkewTestSmall0"
   
   val tbls = Map("occurrences" -> occurmids.tp, 
                   "copynumber" -> copynum.tp, 
