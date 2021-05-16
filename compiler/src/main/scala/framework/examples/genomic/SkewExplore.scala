@@ -78,46 +78,39 @@ object SkewTest0 extends DriverGene {
   val occurName = "datasetFull"
   val occurDicts = ("odict1Full", "odict2Full", "odict3Full")
   val cnvFile = "/nfs_qc4/genomics/gdc/gene_level/"
+  val pathFile = "/nfs_qc4/genomics/c2.cp.v7.1.symbols.gmt"
+  val gtfFile = "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf"
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
     s"""|${loadTcga(shred, skew, fname = clinDir)}
         |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
+        |${loadPathway(shred, skew, fname = pathFile)}
+        |${loadGtfTable(shred, skew, fname = gtfFile)}
     """.stripMargin
 
   val tbls = Map("occurrences" -> occurmids.tp, 
-                  "clinical" -> BagType(tcgaType))
-
+                  "clinical" -> BagType(tcgaType),
+                  "pathways" -> pathway.tp,
+                  "genemap" -> gtf.tp)
   val query = 
-    // s"""
-    //   SkewTest0 <= 
-    //   for c in clinical union 
-    //     {(tumor_tissue_type := c.tumor_tissue_type, mutations := 
-    //       for o in occurrences union 
-    //         if (o.donorId = c.sample) then
-    //         {(oid := o.oid, sid := o.donorId, cands := 
-    //           for t in o.transcript_consequences union 
-    //             {(gid := t.gene_id, impact := t.impact)}
-    //         )}
-    //     )}
-    // """.stripMargin
     s"""
-      CancerTypes <= 
-        dedup(
-          for c in clinical union 
-            {(ctype := c.tumor_tissue_site)}
-        );
+      FlatOccur <= 
+        for o in occurrences union 
+          for t in o.transcript_consequences union 
+            {(oid := o.oid, sid := o.donorId, 
+                            gid := t.gene_id, impact := t.impact )};
 
       SkewTest0 <= 
-      for c in CancerTypes union 
-        {(tumor_tissue_site := c.ctype, mutations := 
-          for s in clinical union 
-			if ( c.ctype = s.tumor_tissue_site ) then
-		      for o in occurrences union 
-				if (s.sample = o.donorId) then 
-				  for t in o.transcript_consequences union 
-                   {(oid := o.oid, sid := o.donorId, 
-                     gid := t.gene_id, impact := t.impact )}
-        )}
+        for p in pathways union 
+          {(pathway := p.p_name, mutations := 
+            for g in p.gene_set union 
+              for g2 in genemap union 
+                if (g.name = g2.g_gene_name) then 
+                  for o in FlatOccur union 
+                    if (g2.g_gene_id = o.gid) then
+                      {(oid := o.oid, sid := o.sid, 
+                          gid := o.gid, impact := o.impact )}
+          )}
     """.stripMargin
   val parser = Parser(tbls)
   val program = parser.parse(query).get.asInstanceOf[Program]
