@@ -529,7 +529,7 @@ object SkewDataset{
     val heavy = dfs._2
     val partitions = light.rdd.getNumPartitions
     val random = scala.util.Random
-	  val thresh = Config.threshold
+	val thresh = Config.threshold
     val sampled = Config.sample
     val strategy = Config.heavyKeyStrategy
 
@@ -571,7 +571,7 @@ object SkewDataset{
   	  println("are we in here??")
   	  println(key)
       val (dfull, hkeys) = heavyKeys[K](key)
-	    println(hkeys.size)
+	  println(hkeys.size)
       if (hkeys.nonEmpty){
         val hk = dfull.sparkSession.sparkContext.broadcast(hkeys)
         (dfull.lfilter[K](col(key), hk).repartition(Seq(partitionExpr):_*), dfull.hfilter[K](col(key), hk), Some(key), hk)
@@ -648,8 +648,10 @@ object SkewDataset{
         c match { case null => Unit
           case _ => acc(c) += 1 }}		
       acc.filter(_._2 > (cnt*thresh)).iterator
-    }).reduceByKey(_+_).filter(_._2 > partitions).map(r => r._1.getAs[K](0)).collect.toSet
-	  keyset
+    }).reduceByKey(_+_)
+	keyset.foreach(println(_))
+	  keyset.filter(_._2 > partitions).map(r => r._1.getAs[K](0)).collect.toSet
+	  //keyset
 	}
 
 	def partialHeavyKeys[K: ClassTag](dfull: Dataset[T], key: String): Set[K] = {

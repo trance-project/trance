@@ -58,10 +58,9 @@ object SkewTestSmall0 extends DriverGene {
       SkewTestSmall0 <= 
       for c in Centers union 
         {(center := c.center, mutations := 
-          for s in samples union 
-            if (s.source_center = c.center) then
-            for o in occurrences union 
-              if (s.bcr_patient_uuid = o.donorId) then 
+          for o in occurrences union 
+		    for s in samples union 
+              if (s.bcr_patient_uuid = o.donorId && s.source_center = c.center) then
                 {( oid := o.oid, sid := o.donorId )}
         )}
     """.stripMargin
@@ -74,7 +73,7 @@ object SkewTest0 extends DriverGene {
 
   val name = "SkewTest0"
 
-  val clinDir = "/nfs_qc4/genomics/gdc/biospecimen/clinical/"
+  val clinDir = "/nfs_qc4/genomics/gdc/biospecimen/clinical/patient/"
   val occurFile = "/nfs_qc4/genomics/gdc/somatic/"
   val occurName = "datasetFull"
   val occurDicts = ("odict1Full", "odict2Full", "odict3Full")
@@ -112,13 +111,12 @@ object SkewTest0 extends DriverGene {
       for c in CancerTypes union 
         {(tumor_tissue_site := c.ctype, mutations := 
           for s in clinical union 
-            if (c.ctype = s.tumor_tissue_site) then
-            for o in occurrences union 
-              if (s.sample = o.donorId) then 
-              {(oid := o.oid, sid := o.donorId, cands := 
-                for t in o.transcript_consequences union 
-                  {( gid := t.gene_id, impact := t.impact )}
-              )}
+			if ( c.ctype = s.tumor_tissue_site ) then
+		      for o in occurrences union 
+				if (s.sample = o.donorId) then 
+				  for t in o.transcript_consequences union 
+                   {(oid := o.oid, sid := o.donorId, 
+                     gid := t.gene_id, impact := t.impact )}
         )}
     """.stripMargin
   val parser = Parser(tbls)
