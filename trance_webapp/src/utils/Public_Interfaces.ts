@@ -98,5 +98,26 @@ export interface NewQuery {
     labels? : NewQuery[]
 }
 
+export interface planDemoOutput{
+    sample: string;
+    mutations:mutation[];
+}
+
+export interface mutation{
+    mutId:string;
+    scores:score[];
+}
+
+export interface score{
+    gene:string;
+    score:number;
+}
+
+export type AbstractTable = {
+    name: string;
+    columnNames: string[];
+    subTables?: AbstractTable[];
+}
+
 
 

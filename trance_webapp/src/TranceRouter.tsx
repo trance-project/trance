@@ -13,6 +13,7 @@ import {useAppSelector,useAppDispatch} from './redux/Hooks/hooks';
 import {goToRoute} from './redux/NavigationSlice/navigationSlice';
 import QueryBuilder from "./containers/QueryBuilder/QueryBuilder";
 import CompilerView from "./containers/CompilerView/CompilerView";
+import PlanOutput from "./containers/PlanOutput/PlanOutput";
 import BlocklyComponent
     from "./component/Query/QueryBuilderComponents/StandardCompilationBuilder/BlocklyBuilder/Blockly/Blockly_Component";
 
@@ -31,7 +32,7 @@ function TranceRouter() {
                     <Layout activePage={activePage} goto_Route={goto_Route}>
                         <Switch>
                             <Route path={"/report"}>
-                                <h1>Report to be constructed</h1>
+                                <PlanOutput/>
                             </Route>
                             <Route path={"/tables"}>
                                 <h1>Tables to be constructed</h1>
