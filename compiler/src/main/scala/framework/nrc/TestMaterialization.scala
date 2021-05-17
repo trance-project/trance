@@ -473,7 +473,42 @@ object TestMaterialization extends App
 
   }
 
-  testLet()
+  def testLabels(): Unit = {
+
+    // val lettest = genomic.LetTest3
+    // val tbls = lettest.tbls
+        
+    // val query = lettest.query
+
+    // val parser = Parser(tbls)
+    // // val program = parser.parse(query).get.asInstanceOf[Program]
+    // val bagexpr = parser.parse(query, parser.term).get.asInstanceOf[BagExpr]
+    val program = genomic.LetTest3.program.asInstanceOf[Program] //Program(Assignment("LetTest3", bagexpr))
+
+    println("Program: \n" + quote(program) + "\n")
+
+    val (shredded, _) = shredCtx(program)
+    println("Shredded program: \n" + quote(shredded) + "\n")
+
+    val optShredded = optimize(shredded)
+    println("Shredded program optimized: \n" + quote(optShredded) + "\n")
+
+    val materializedProgram = materialize(optShredded, eliminateDomains = true)
+    println("Materialized program (if hoists + dict iteration): \n" + quote(materializedProgram.program) + "\n")
+
+    val unshredded = unshred(optShredded, materializedProgram.ctx)
+    println("Unshredded program: \n" + quote(unshredded) + "\n")
+
+  }
+
+  // test multiple lets
+  // testLet()
+  // empty labels, but domain still 
+  // created and not removed
+  testLabels()
+
+
+
 //  runSequential()
 //   runSequential2()
 //   domainTest()

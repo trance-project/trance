@@ -405,10 +405,7 @@ trait Extensions {
       case (_, acc) => acc
     }
 
-  def labelParameters(e: Expr): Set[LabelParameter] = 
-    labelParameters(e, Map.empty).toSet
-
-  protected def labelParameters(e: Expr, scope: Map[String, VarDef]): List[LabelParameter] = collect(e, {
+  def labelParameters(e: Expr, scope: Map[String, VarDef]): List[LabelParameter] = collect(e, {
     case v: VarRef =>
       filterByScope(v, scope).map(_ => VarRefLabelParameter(v)).toList
     case p: Project =>
