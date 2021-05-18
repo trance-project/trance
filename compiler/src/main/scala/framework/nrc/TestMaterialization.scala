@@ -473,7 +473,7 @@ object TestMaterialization extends App
 
   }
 
-  def testLabels(): Unit = {
+  def testDicts(): Unit = {
 
     // val lettest = genomic.LetTest3
     // val tbls = lettest.tbls
@@ -483,7 +483,7 @@ object TestMaterialization extends App
     // val parser = Parser(tbls)
     // // val program = parser.parse(query).get.asInstanceOf[Program]
     // val bagexpr = parser.parse(query, parser.term).get.asInstanceOf[BagExpr]
-    val program = genomic.LetTest3.program.asInstanceOf[Program] //Program(Assignment("LetTest3", bagexpr))
+    val program = genomic.LetTest5.program.asInstanceOf[Program] //Program(Assignment("LetTest3", bagexpr))
 
     println("Program: \n" + quote(program) + "\n")
 
@@ -503,9 +503,9 @@ object TestMaterialization extends App
 
   // test multiple lets
   // testLet()
-  // empty labels, but domain still 
-  // created and not removed
-  testLabels()
+  // issue here when i do a nested aggregation, maintain 
+  // input structure and then later associate them
+  testDicts()
 
 
 

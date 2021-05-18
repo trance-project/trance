@@ -508,16 +508,18 @@ object LetTest5 extends DriverGene {
       s"""
         for o in occurrences union 
           {(hybrid_case := o.donorId, hybrid_scores := 
-              for t in o.transcript_consequences union 
+              (for t in o.transcript_consequences union 
                 for c in $cnvs union 
                   if (o.donorId = c.sid && t.gene_id = c.gene)
                   then {(hybrid_gene := t.gene_id, hybrid_score := (c.cnum + 0.01) * $imp )}).sumBy({hybrid_gene}, {hybrid_score})
+          )}
       """
     val query = 
      s"""
-       (for i in $initScores union
+       LetTest5 <= 
+        for i in $initScores union
          for h in i.hybrid_scores union 
-           {(hybrid_gene := t.hybrid_gene, hybrid_score := t.hybrid_score)}).sumBy({hybrid_gene}, {hybrid_score})
+           {(hybrid_gene := h.hybrid_gene, hybrid_score := h.hybrid_score)}
      """
 
     val parser = Parser(tbls)
