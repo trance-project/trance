@@ -8,9 +8,11 @@ import KeyboardArrowUpIcon from "@material-ui/icons/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@material-ui/icons/KeyboardArrowDown";
 
 interface _RowProps {
-    elementNested: Boolean;
     elementColumn: JSX.Element[];
     elementCollapseRow: JSX.Element[];
+    elementNested?: Boolean;
+    elementCollapsable?: Boolean
+
 }
 
 const Row = (props: _RowProps) => {
@@ -21,11 +23,13 @@ const Row = (props: _RowProps) => {
     return(
         <React.Fragment>
             <TableRow>
-                <TableCell className={classes.tableCell}>
-                    <IconButton aria-label="expand row" size="small" onClick={() => setOpen(!open)} className={styleExpand}>
-                        {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                    </IconButton>
-                </TableCell>
+                {props.elementCollapsable?
+                    <TableCell className={classes.tableCell}>
+                        <IconButton aria-label="expand row" size="small" onClick={() => setOpen(!open)}
+                                    className={styleExpand}>
+                            {open ? <KeyboardArrowUpIcon/> : <KeyboardArrowDownIcon/>}
+                        </IconButton>
+                    </TableCell>:null}
                 {props.elementColumn}
             </TableRow>
             {props.elementCollapseRow}

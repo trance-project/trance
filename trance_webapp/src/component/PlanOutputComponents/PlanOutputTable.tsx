@@ -34,52 +34,27 @@ const PlanOutputTable = (props: _PlanOutputTableProps) => {
         const elementCollapseRow: JSX.Element[] = [];
         const elementColumn: JSX.Element[] = [];
         let hasNestedElement = false;
+        let collapsable = false;
         for( let [key] of Object.entries(nestedObject)){
             if(key === table.subTables?.name){
                 hasNestedElement = nestedObject[key].length>0;
+                collapsable = true
                 elementCollapseRow.push(setCollapsableTable(table.subTables, nestedObject[key]))
             }else{
                 elementColumn.push((
-                    <TableCell style={{paddingBottom: 0, paddingTop: 0}} colSpan={6}>
+                    <TableCell>
                         {nestedObject[key]}
                     </TableCell>
                 ))
             }
         }
         return (
-            <NewRow elementNested={hasNestedElement} elementColumn={elementColumn} elementCollapseRow={elementCollapseRow}/>
+            <NewRow elementNested={hasNestedElement} elementColumn={elementColumn} elementCollapseRow={elementCollapseRow} elementCollapsable={collapsable}/>
         );
     }
 
-    const processTable2 = (table: AbstractTable, nestedObject: any) => {
-        console.log("[processTable2]", nestedObject)
-        const elementCollapseRow: JSX.Element[] = [];
-        const elementColumn: JSX.Element[] = [];
-        for( let [key] of Object.entries(nestedObject)){
-            if(key !== table.subTables?.name)
-                elementColumn.push((
-                    <TableCell style={{paddingBottom: 0, paddingTop: 0}} colSpan={6}>
-                        {nestedObject[key]}
-                    </TableCell>
-                ))
-        }
-        return (
-            <React.Fragment>
-                <TableRow>
-                    <TableCell className={classes.tableCell}>
-                        <IconButton aria-label="expand row" size="small" onClick={() => {}} className={styleExpand}>
-                            {<KeyboardArrowUpIcon />}
-                        </IconButton>
-                    </TableCell>
-                    {elementColumn}
-                </TableRow>
-                {elementCollapseRow}
-            </React.Fragment>
-        );
-    }
 
     const setCollapsableTable = (table: AbstractTable, nestedObject: any[]) => {
-        console.log("[setCollapsableTable]", nestedObject[0])
         const heading = table.columnNames.map((e) => <TableCell key={e.concat(Math.random().toString())}>{e}</TableCell>);
        const subTableElement = nestedObject.map(o => {
             if(table.subTables){
@@ -100,7 +75,7 @@ const PlanOutputTable = (props: _PlanOutputTableProps) => {
                             <Table size="small" aria-label="Mutations">
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell/>
+                                        {table.subTables?<TableCell/>:null}
                                         {heading}
                                     </TableRow>
                                 </TableHead>
@@ -114,24 +89,6 @@ const PlanOutputTable = (props: _PlanOutputTableProps) => {
             </TableRow>
         )
     }
-
-    // const setTable = (table: AbstractTable, nestedObject: any[]) => {
-    //     const nestTables: JSX.Element[] = [];
-    //     if(table.subTables){
-    //         const subTableName = table.subTables.name;
-    //         const subTableColumnNames = table.subTables.columnNames;
-    //
-    //         const collapsable = setTable(table.subTables, nestedObject[subTableName]);
-    //         return <CollapsableTable collapsableTableElement={collapsable} rows={rows} columnsHeading={table.columnNames}/>
-    //     }else{
-    //             return rows.map((nestedObject: { [x: string]: any; }) => {
-    //                const singleData = nestedObject[table.name];
-    //                 console.log("[data]", singleData)
-    //                return (<NewRow data={nestedObject} table={table}/>)
-    //                 })
-    //     }
-    //
-    // }
 
     const element = props.tableHeaders ? props.tableHeaders.columnNames.map((e) => <TableCell key={e.concat(Math.random().toString())}>{e}</TableCell>):null;
     const body = props.tableHeaders ? rows.map((row) => {
