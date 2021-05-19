@@ -7,9 +7,11 @@ import framework.examples.genomic._
 import framework.nrc._
 import framework.plans.{Equals => CEquals, Project => CProject}
 import java.util.UUID.randomUUID
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.{Map, HashMap}
 
 class TestQueryRewriter extends TestBase {
+
+  val zep = false
 
   test("standard comilation route"){
 
@@ -26,7 +28,9 @@ class TestQueryRewriter extends TestBase {
     // printCE(ces)
 
     val statsCollector = new StatsCollector(progs)
-    val stats = statsCollector.getCost(subs, ces)
+    val stats = if (zep){
+      statsCollector.getCost(subs, ces)
+    }else Map.empty[String, Statistics]
 
     val cost = new Cost(stats)
 
@@ -101,7 +105,9 @@ class TestQueryRewriter extends TestBase {
     // printCE(ces)
 
     val statsCollector = new StatsCollector(sprogs)
-    val stats = statsCollector.getCost(subs, ces)
+    val stats = if (zep){
+      statsCollector.getCost(subs, ces)
+    }else Map.empty[String, Statistics]
 
     val cost = new Cost(stats)
 

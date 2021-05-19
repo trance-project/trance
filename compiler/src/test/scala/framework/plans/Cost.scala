@@ -11,6 +11,8 @@ import framework.plans.{Equals => CEquals, Project => CProject}
 
 class TestCost extends TestBase {
 
+  val zep = false
+
   test("standard comilation route"){
 
     val seBuilder = SEBuilder(progs)
@@ -22,7 +24,9 @@ class TestCost extends TestBase {
     val ces = CEBuilder.buildCoverMap(subs)
     
     val statsCollector = new StatsCollector(progs)
-    val stats = statsCollector.getCost(subs, ces)
+    val stats = if (zep){
+      statsCollector.getCost(subs, ces)
+    }else Map.empty[String, Statistics]
 
     val cost = new Cost(stats)
     val selectedCovers = cost.selectCovers(ces, subs)
@@ -47,20 +51,22 @@ class TestCost extends TestBase {
     val subs = seBuilder.sharedSubs()
     // printSE(subs)
 
-    val ces = CEBuilder.buildCoverMap(subs)
-    // printCE(ces)
+    // val ces = CEBuilder.buildCoverMap(subs)
+    // // printCE(ces)
     
-    val statCollector = new StatsCollector(sprogs)
-    val stats = statCollector.getCost(subs, ces)
+    // val statsCollector = new StatsCollector(sprogs)
+    // val stats = if (zep){
+    //   statsCollector.getCost(subs, ces)
+    // }else Map.empty[String, Statistics]
 
-    val cost = new Cost(stats)
-    val selectedCovers = cost.selectCovers(ces, subs)
+    // val cost = new Cost(stats)
+    // val selectedCovers = cost.selectCovers(ces, subs)
 
-    selectedCovers.foreach{ s =>
-      println(s._1)
-      println(s._2.profit)
-      println(Printer.quote(s._2.plan))
-    }
+    // selectedCovers.foreach{ s =>
+    //   println(s._1)
+    //   println(s._2.profit)
+    //   println(Printer.quote(s._2.plan))
+    // }
 
   }
 

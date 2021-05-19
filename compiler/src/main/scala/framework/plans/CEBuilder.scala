@@ -150,7 +150,7 @@ object CEBuilder extends Extensions {
     case (f:FlatDict, o) => buildCover(o,f, nameMap)
     case (g:GroupDict, o) => buildCover(o, g, nameMap)
 
-    case _ =>  sys.error(s"unsupported operator pair:\n ${Printer.quote(plan1)}\n${Printer.quote(plan2)}")
+    case _ =>  sys.error(s"unsupported operator pair:\n first: ${Printer.quote(plan1)}\n second: ${Printer.quote(plan2)}")
 
   }
 

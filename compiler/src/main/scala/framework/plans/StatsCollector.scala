@@ -21,7 +21,7 @@ case class Statistics(sizeInKB: Double, rowCount: Double) {
 
 }
 
-class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String, zport: Int, inputs: String = "") { //, inputs: Map[String, String] = Map.empty[String, String]) {
+class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", zport: Int = 8085, inputs: String = "") { //, inputs: Map[String, String] = Map.empty[String, String]) {
 
   val data: String = if (inputs.isEmpty){
     s"""|   val db = spark.catalog.currentDatabase
