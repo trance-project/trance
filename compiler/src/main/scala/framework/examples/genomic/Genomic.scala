@@ -17,10 +17,10 @@ trait GenomicSchema extends Query {
           |//IDict_variants__D_genotypes.count
           |
           |val gtfLoader = new GTFLoader(spark, "/mnt/app_hdd/data/Data/Map/Homo_sapiens.GRCh37.87.chr.gtf")
-          |val Gtfs = gtfLoader.loadDS
-          |val IBag_Gtfs__D = Gtfs
-          |//IBag_Gtfs__D.cache
-          |//IBag_Gtfs__D.count
+          |val gtf = gtfLoader.loadDS
+          |val IBag_gtf__D = gtf
+          |//IBag_gtf__D.cache
+          |//IBag_gtf__D.count
           |""".stripMargin
 
     else

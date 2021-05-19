@@ -34,15 +34,15 @@ object GeneBurden extends GenomicSchema {
   val name = "GeneBurden"
   
 
-  val tbls = Map("genes" -> BagType(gtfType), 
-                 "vcf" -> BagType(variantType))
+  val tbls = Map("gtf" -> BagType(gtfType), 
+                 "variants" -> BagType(variantType))
 
   val burden = 
     s""" 
       Burden <=
-        for g in genes union 
+        for g in gtf union 
           {(gene := g.g_gene_name, burdens := 
-            (for v in vcf union 
+            (for v in variants union 
               if (v.contig = g.g_contig && v.start >= g.g_start && g.g_end >= v.start)
                 then for c in v.genotypes union 
                   {(sample := c.g_sample, burden := c.call)}).sumBy({sample}, {burden})

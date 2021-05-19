@@ -15,6 +15,12 @@ object SkewTest extends App {
   }
 }
 
+object ScaleTest extends App {
+  override def main(args: Array[String]){
+    AppWriter.runDatasetShred(GeneBurden, "GeneBurden,shredded", optLevel = 1)
+  }
+}
+
 
 object TestZeppelin extends App {
   override def main(args: Array[String]){
