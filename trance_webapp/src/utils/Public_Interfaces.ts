@@ -116,7 +116,7 @@ export interface score{
 export type AbstractTable = {
     name: string;
     columnNames: string[];
-    subTables?: AbstractTable[];
+    subTables?: AbstractTable;
 }
 
 

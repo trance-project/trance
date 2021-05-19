@@ -25,12 +25,11 @@ const PlanOutput = () => {
             const tableInfo: AbstractTable = {
                 name: name,
                 columnNames: [],
-                subTables:[]
             }
             for( let [key, value] of Object.entries(jsonObject)){
                 if(Array.isArray(value)){
                     const newObject = jsonObject[key]
-                    tableInfo.subTables!.push(process_columns(key,newObject[0]));
+                    tableInfo.subTables = (process_columns(key,newObject[0]));
                 }else{
                     tableInfo.columnNames.push(key);
                 }
