@@ -24,7 +24,8 @@ case class Statistics(sizeInKB: Double, rowCount: Double) {
 class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String, zport: Int, inputs: String = "") { //, inputs: Map[String, String] = Map.empty[String, String]) {
 
   val data: String = if (inputs.isEmpty){
-    s"""|   val copynumber = spark.table("fcopynumber")
+    s"""|   val db = spark.catalog.currentDatabase
+        |   val copynumber = spark.table("fcopynumber")
         |   val occurrences = spark.table("foccurrences")
         |   val samples = spark.table("fsamples")
         |   val IBag_copynumber__D = copynumber
