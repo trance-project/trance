@@ -13,18 +13,21 @@ import Table from "@material-ui/core/Table";
 import TableHead from "@material-ui/core/TableHead";
 import TableBody from "@material-ui/core/TableBody";
 
-import {AbstractTable, planDemoOutput} from '../../../utils/Public_Interfaces';
-import RowLvl2 from "./RowLvl2";
-import TableContainer from "@material-ui/core/TableContainer";
+import {AbstractTable} from '../../../utils/Public_Interfaces';
+import Row from "./NewRow";
 
 
 interface _RowProps{
     table: AbstractTable;
     show: boolean;
-    subTableElement: JSX.Element;
+    object: any[];
+
 }
 
 const CollapsableTable = (props:_RowProps) => {
+    const subTableElement = props.object.map(o => {
+        return <Row table={props.table} nestedObject={o}/>
+    })
     return (
         <React.Fragment>
             <TableRow>
@@ -37,12 +40,12 @@ const CollapsableTable = (props:_RowProps) => {
                             <Table size="small" aria-label="Mutations">
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell/>
+                                        {props.table.subTables?<TableCell/>:null}
                                         {props.table.columnNames.map((e) => <TableCell key={e.concat(Math.random().toString())}>{e}</TableCell>)}
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {props.subTableElement}
+                                    {subTableElement}
                                 </TableBody>
                             </Table>
                         </Box>
