@@ -94,21 +94,35 @@ object SkewTest0 extends DriverGene {
                   "genemap" -> gtf.tp)
   val query = 
     s"""
-      FlatOccur <= 
+      MapGene <= 
         for o in occurrences union 
-          for t in o.transcript_consequences union 
-            {(oid := o.oid, sid := o.donorId, 
-                            gid := t.gene_id, impact := t.impact )};
+          {(oid := o.oid, sid := o.donorId, cands := 
+            for t in o.transcript_consequences union 
+              for g in genemap union 
+                if (t.gene_id = g.g_gene_id) then
+                  {(gid := g.g_gene_name, impact := t.impact )}
+          )};
+
+      FlatOccur <= 
+        for o in MapGene union 
+          for t in o.cands union 
+            {(oid := o.oid, sid := o.sid, 
+                gid := t.gid, impact := t.impact)};
+
+      PathMap <= 
+        for p in pathways union 
+          {(pathway := p.p_name, genes := 
+            for g in p.gene_set union 
+              {(gene := g.name)}
+          )};
 
       SkewTest0 <= 
-        for p in pathways union 
-          {(pathway := p.p_name, mutations := 
-            for g in p.gene_set union 
-              for g2 in genemap union 
-                if (g.name = g2.g_gene_name) then 
-                  for o in FlatOccur union 
-                    if (g2.g_gene_id = o.gid) then
-                      {(oid := o.oid, sid := o.sid, 
+        for p in PathMap union 
+          {(pathway := p.pathway, mutations := 
+              for o in FlatOccur union 
+                for g in p.genes union 
+                  if (g.gene = o.gid) then
+                    {(oid := o.oid, sid := o.sid, 
                           gid := o.gid, impact := o.impact )}
           )}
     """.stripMargin

@@ -617,10 +617,17 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     case Bind(v, CNamed(n, e1), LinearCSet(fs)) =>
-      val gtp = if (skew) "[Int]" else ""
+      val (gtp, lbl) = 
+        e1.tp.attrs.get("_LABEL") match {
+          case Some(t) => 
+            (if (skew) s"[${generateType(t)}]" else "", "_LABEL")
+          case _ => e1.tp.attrs.get("_1") match {
+            case Some(tt) => (if (skew) s"[${generateType(tt)}]" else "", "_1")
+            case _ => ("", "")
+          }
+        }
       val repart = if (n.contains("MDict")){
-        if (e1.tp.attrs.contains("_LABEL")) s""".repartition$gtp($$"_LABEL")"""
-        else s""".repartition$gtp($$"_1")""" 
+        s""".repartition$gtp($$"$lbl")"""
       }else ""
       val gv = generate(v)
       s"""|val $gv = ${generate(e1)}
@@ -631,12 +638,18 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           // |${if (!cache && !evalFinal) comment(n) else n}.count
 
     case Bind(v, CNamed(n, e1), e2) =>
-      val gtp = if (skew) "[Int]" else ""
+      val (gtp, lbl) = 
+        e1.tp.attrs.get("_LABEL") match {
+          case Some(t) => 
+            (if (skew) s"[${generateType(t)}]" else "", "_LABEL")
+          case _ => e1.tp.attrs.get("_1") match {
+            case Some(tt) => (if (skew) s"[${generateType(tt)}]" else "", "_1")
+            case _ => ("", "")
+          }
+        }
       val repart = if (n.contains("MDict")){
-        if (e1.tp.attrs.contains("_LABEL")) s""".repartition$gtp($$"_LABEL")"""
-        else s""".repartition$gtp($$"_1")""" 
+        s""".repartition$gtp($$"$lbl")"""
       }else ""
-
       val gv = generate(v)
       val ge2 = if (e2.isInstanceOf[Variable]) "" else generate(e2)
        s"""|val $gv = ${generate(e1)}

@@ -516,10 +516,8 @@ object LetTest5 extends DriverGene {
       """
     val query = 
      s"""
-       initScores <= $initScores; 
-
        LetTest5 <= 
-        for i in initScores union
+        for i in $initScores union
          for h in i.hybrid_scores union 
            {(hybrid_gene := h.hybrid_gene, hybrid_score := h.hybrid_score)}
      """
