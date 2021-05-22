@@ -175,8 +175,12 @@ trait Query extends Materialization
     val (matProg, ushred) = shred(eliminateDomains)
     println("RUNNING SHREDDED PIPELINE:\n")
     println(quote(matProg))
-    val ncalc = normalizer.finalize(translate(matProg)).asInstanceOf[CExpr]
-    // println(ncalc)
+    val calc = translate(matProg)
+    println("calculus")
+    println(Printer.quote(calc))
+    val ncalc = normalizer.finalize(calc).asInstanceOf[CExpr]
+    println("normalized")
+    println(Printer.quote(ncalc))
     val initPlan = Unnester.unnest(ncalc)(Map(), Map(), None, baseTag)
 
     val plan = optLevel match {
