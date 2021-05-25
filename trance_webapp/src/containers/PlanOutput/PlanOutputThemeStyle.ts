@@ -8,7 +8,7 @@ export const planOutputThemeStyle = makeStyles((theme) => ({
         flexDirection: 'column',
     },
     fixedHeight: {
-        height: 240,
+        height: 300,
     },
     iconView:{
         float:"right",

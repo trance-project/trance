@@ -21,12 +21,11 @@ interface _RowProps{
     table: AbstractTable;
     show: boolean;
     object: any[];
-
 }
 
 const CollapsableTable = (props:_RowProps) => {
     const subTableElement = props.object.map(o => {
-        return <Row table={props.table} nestedObject={o}/>
+        return <Row table={props.table} nestedObject={o} />
     })
     return (
         <React.Fragment>

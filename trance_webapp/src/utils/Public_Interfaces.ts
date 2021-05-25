@@ -113,10 +113,21 @@ export interface score{
     score:number;
 }
 
+export interface RunTimeMetrics{
+    pid: number,
+    shred_write_size: number,
+    stand_write_size: number,
+}
+
 export type AbstractTable = {
     name: string;
     columnNames: string[];
     subTables?: AbstractTable;
+}
+
+export interface TableGraphMetaInfo {
+    id: number;
+    count:number;
 }
 
 

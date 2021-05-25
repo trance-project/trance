@@ -7,7 +7,7 @@ import PlanOutputTable from "../../component/PlanOutputComponents/PlanOutputTabl
 import SimpleBarGraph from "../../component/ui/charts/SimpleBarChart/SimpleBarGraph";
 import StarBorderIcon from '@material-ui/icons/StarBorder';
 import RuntimeMetrics from "../../component/RuntimeMetrics/RuntimeMetrics";
-import {AbstractTable} from '../../utils/Public_Interfaces';
+import {AbstractTable,TableGraphMetaInfo} from '../../utils/Public_Interfaces';
 import {rows} from '../../component/PlanOutputComponents/DemoData';
 
 const PlanOutput = () => {
@@ -15,6 +15,7 @@ const PlanOutput = () => {
     const fixedHeightPaper = clsx(classes.paper, classes.fixedHeight);
     const [open, setOpen] = React.useState(false);
     const [tableColumnsState, setTableColumnsState] = React.useState<AbstractTable>()
+    const [tableListState, setTableListState] = React.useState<TableGraphMetaInfo[]>()
 
     /**
      * useEffect for componentDidMount to calculate to table headers
@@ -37,8 +38,12 @@ const PlanOutput = () => {
             return tableInfo;
             // headers.push(tableInfo);
         }
-        console.log('[processColumns]',process_columns("sample",rows[0]));
-            setTableColumnsState(process_columns("sample",rows[0]));
+        const tableInfo = process_columns("sample",rows[0])
+        const tableGraphData = graphData(tableInfo, rows);
+        console.log("[tableInfo]", tableInfo);
+        console.log("[tableGraphData]", tableGraphData);
+            setTableColumnsState(tableInfo);
+
     }, []);
 
     const handleClickOpen = () => {
@@ -48,18 +53,35 @@ const PlanOutput = () => {
     const handleClose = () => {
         setOpen(false);
     };
+
+    const graphData = (tableInfo: AbstractTable, data: any[]) =>{
+        if(tableInfo.subTables){
+            // @ts-ignore
+           const graphData = data.map((d,i) =>{
+                let count = 0;
+               // @ts-ignore
+               if(Array.isArray(d[tableInfo.subTables!.name])){
+                   // @ts-ignore
+                   count = d[tableInfo.subTables!.name].length
+               }
+                   // @ts-ignore
+               return {id: i, count: count}
+            }) as TableGraphMetaInfo[]
+            setTableListState(graphData)
+        }
+    }
 return (
     <React.Fragment>
         <Button className={classes.iconView} variant={"contained"} style={{'backgroundColor':'#d66123'}} onClick={handleClickOpen} endIcon={<StarBorderIcon/>}>Metrics</Button>
         <Grid container spacing={3}>
             <Grid item xs={12}>
                 <Paper className={fixedHeightPaper}>
-                    <SimpleBarGraph/>
+                    <SimpleBarGraph height={250} data={tableListState}/>
                 </Paper>
             </Grid>
             <Grid item xs={12}>
                 <Paper className={classes.paper}>
-                    <PlanOutputTable tableHeaders={tableColumnsState}/>
+                    <PlanOutputTable tableHeaders={tableColumnsState} onSelect={graphData}/>
                 </Paper>
             </Grid>
         </Grid>

@@ -12,6 +12,7 @@ import CollapsableTable from "./CollapsableTable";
 interface _RowProps {
     table: AbstractTable;
     nestedObject: any;
+    onSelect?: (tableInfo: AbstractTable, data: any[]) => void
 
 }
 
@@ -39,12 +40,18 @@ const Row = (props: _RowProps) => {
 
     const styleExpand = hasNestedElement?classes.expand:classes.noExpand;
 
+    const onClick = () => {
+        if(props.table.subTables && props.onSelect)
+        props.onSelect(props.table.subTables, props.nestedObject[props.table.subTables.name])
+        setOpen(!open)
+    }
+
     return(
         <React.Fragment>
             <TableRow>
                 {collapsable?
                     <TableCell className={classes.tableCell}>
-                        <IconButton aria-label="expand row" size="small" onClick={() => setOpen(!open)}
+                        <IconButton aria-label="expand row" size="small" onClick={onClick}
                                     className={styleExpand}>
                             {open ? <KeyboardArrowUpIcon/> : <KeyboardArrowDownIcon/>}
                         </IconButton>
