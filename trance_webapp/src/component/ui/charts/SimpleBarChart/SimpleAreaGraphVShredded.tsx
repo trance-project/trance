@@ -1,14 +1,4 @@
 import React, {useState,useEffect, useRef}  from 'react';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Brush,
-  ResponsiveContainer,
-} from 'recharts';
 import Typography from "@material-ui/core/Typography";
 import * as d3 from 'd3';
 
@@ -21,32 +11,47 @@ interface _SimpleAreaGraphVShreddedProps{
 }
 
 const SimpleAreaGraphVShredded = (props:_SimpleAreaGraphVShreddedProps) => {
+    const margin = { top: 20, right: 5, bottom: 20, left: 50 };
+    const width = 1050;
+    const height= 250;
 
     const [lineChartPath, setLineChartPath] = useState<{path: any, fill:string}[]>()
-    const [xScale, setXScale] = useState<number[] & d3.ScaleLinear<number, number>>()
-    const [yScale, setYScale] = useState<number[] & d3.ScaleLinear<number, number>>()
+    const [currentZoomState, setCurrentZoomState] = useState()
 
     // @ts-ignore
-    const xAxis = d3.axisBottom();
-    const xAxisRef = useRef(null);
-    // @ts-ignore
-    const yAxis = useRef(d3.axisLeft());
+    const yAxis = d3.axisLeft();
+
+    const yAxisRef = useRef(null);
+    const brushRef=useRef(null);
+    const svgRef=useRef(null);
+    const linesRef=useRef(null);
 
     useEffect(()=>{
+        const svg = d3.select(svgRef.current);
         const extentX = d3.extent(props.data, d=>d.pid);
 
         const xScale = d3.scaleTime()
             // @ts-ignore
-            .domain(extentX).range([0,1050])
+            .domain(extentX).range([margin.left,width - margin.right])
 
-        const highMax = d3.max(props.data, d => d.shred_write_size + 500)
+        const highMax = d3.max(props.data, d => d.stand_write_size)
         const lowMin = d3.min(props.data, d => d.stand_write_size)
 
 
         const yScale = d3.scaleLinear()
             // @ts-ignore
             .domain([lowMin, highMax])
-            .range([200, 0])
+            .range([height-margin.bottom, margin.top])
+
+        if (currentZoomState) {
+            // @ts-ignore
+            const newXScale = currentZoomState!.rescaleX(xScale);
+
+            // @ts-ignore
+            const newYScale = currentZoomState!.rescaleY(yScale);
+            // xScale.domain(newXScale.domain());
+            yScale.domain(newYScale.domain());
+        }
 
         // @ts-ignore
         const line = d3.line().x(d => xScale(d.pid))
@@ -59,65 +64,87 @@ const SimpleAreaGraphVShredded = (props:_SimpleAreaGraphVShreddedProps) => {
             {path: line.y(d=>yScale(d.stand_write_size))(props.data), fill:"blue"},
         ]
 
+        if(yAxisRef.current){
+            // @ts-ignore
+            yAxis.scale(yScale)
+            // @ts-ignore
+            d3.select(yAxisRef.current).call(yAxis);
+        }
+
+        // zoom
+        const zoomBehavior = d3.zoom()
+            .scaleExtent([1, 1000])
+            .translateExtent([
+                [margin.left, margin.top],
+                [width - margin.right, height-margin.bottom]
+            ])
+            .on("zoom", (event) => {
+                const zoomState = event.transform;
+                setCurrentZoomState(zoomState);
+            });
+
+        // @ts-ignore
+        svg.call(zoomBehavior)
+
+        // const brushEffect = d3.brush()
+        //     .extent([
+        //         [margin.left, margin.top],
+        //         [width - margin.right, height-margin.bottom]
+        //     ])
+        //     .on("end", (e)=>{
+        //         const s= e.selection;
+        //         console.log('[BrushEffect]', s);
+        //         if(s){
+        //             xScale.domain([s[0][0], s[1][0]].map(xScale.invert, xScale));
+        //             yScale.domain([s[1][1], s[0][1]].map(yScale.invert, yScale));
+        //             // d3.select(brushRef.current).call()
+        //         }
+        //         zoom()
+        //     });
+        //
+        // const zoom = () =>
+        // {
+        //     d3.zoom()
+        //         .scaleExtent([1, 32])
+        //         .extent([[margin.left, 0], [width - margin.right, height]])
+        //         .translateExtent([[margin.left, -Infinity], [width - margin.right, Infinity]])
+        //         .on("zoom", zoomed)
+        // }
+
+
+        // @ts-ignore
+        // d3.select(brushRef.current).call(brushEffect);
+
+
+
+
         // @ts-ignore
         setLineChartPath(linePath);
 
-    }, []);
+    }, [currentZoomState]);
 
+    /**
+     * Function that handles the brushEffect + Zoom
+     */
+
+
+    const brushEnd = () => {
+        // console.log("[brush Select]", d3.)
+    }
+
+    console.log('[currentZoomState]', currentZoomState)
     return (
       <div style={{ width: '100%' }}>
         <Typography variant={'h6'}>Ordered by size</Typography>
-
-        {/*<Typography>Standard</Typography>*/}
-        {/*<ResponsiveContainer width="100%" height={200}>*/}
-        {/*  <LineChart*/}
-        {/*    width={500}*/}
-        {/*    height={200}*/}
-        {/*    data={props.data}*/}
-        {/*    syncId="pid"*/}
-        {/*    margin={{*/}
-        {/*      top: 10,*/}
-        {/*      right: 30,*/}
-        {/*      left: 0,*/}
-        {/*      bottom: 0,*/}
-        {/*    }}*/}
-        {/*  >*/}
-        {/*    <CartesianGrid strokeDasharray="3 3" />*/}
-        {/*    <XAxis dataKey="pid" domain={[0, 220]}/>*/}
-        {/*    <YAxis />*/}
-        {/*    <Tooltip />*/}
-        {/*    <Line type="monotone" dataKey="stand_write_size" name="Size (KB)" stroke="#8884d8" fill="#8884d8" />*/}
-        {/*  </LineChart>*/}
-        {/*</ResponsiveContainer>*/}
-        {/*<Typography>Shredded</Typography>*/}
-
-        {/*<ResponsiveContainer width="100%" height={200}>*/}
-        {/*  <LineChart*/}
-        {/*    width={500}*/}
-        {/*    height={200}*/}
-        {/*    data={props.data}*/}
-        {/*    syncId="pid"*/}
-        {/*    margin={{*/}
-        {/*      top: 10,*/}
-        {/*      right: 30,*/}
-        {/*      left: 0,*/}
-        {/*      bottom: 0,*/}
-        {/*    }}*/}
-        {/*  >*/}
-        {/*    <CartesianGrid strokeDasharray="3 3" />*/}
-        {/*    <XAxis dataKey="pid" />*/}
-        {/*    <YAxis name="Size (KB)" />*/}
-        {/*    <Tooltip />*/}
-        {/*    <Line type="monotone" dataKey="shred_write_size" name="Size (KB)" stroke="#82ca9d" fill="#82ca9d" />*/}
-        {/*    <Brush />*/}
-        {/*  </LineChart>*/}
-        {/*</ResponsiveContainer>*/}
-          <svg height={900} width={1500}>
-              {lineChartPath?.map(d => (
-                      <path d={d.path} fill={"none"} strokeWidth={2} stroke={d.fill}/>
-                  )
-              )}
-
+          <svg height={height} width={width} ref={svgRef}>
+              <g ref={linesRef}>
+                  {lineChartPath?.map(d => (
+                          <path d={d.path} fill={"none"} strokeWidth={2} stroke={d.fill}/>
+                      )
+                  )}
+              </g>
+            <g ref={yAxisRef} transform={`translate(${margin.left}, 0)`}/>
+              <g ref={brushRef}/>
           </svg>
       </div>
     );
