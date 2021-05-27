@@ -20,7 +20,7 @@ BlocklyJS['text'] = function(block) {
 BlocklyJS['forunion'] = function (block){
     const assignment = validate(block.getFieldValue('OBJECT_KEY'));
     const object = validate(block.getFieldValue( 'ATTRIBUTE_VALUE'));
-    return `For ${assignment} In ${object} Union \n`
+    return `for ${assignment} in ${object} union \n`
 }
 
 BlocklyJS['tuple'] = function (block){
@@ -49,36 +49,37 @@ BlocklyJS['tuple_el_iteration'] = function (block){
 BlocklyJS['ifstmt_primitive'] = function (block){
     const object_association = validate(BlocklyJS.statementToCode(block,'OBJECT_ASSOCIATION'));
     const attributes = validate(BlocklyJS.statementToCode(block, 'ATTRIBUTES'));
-    return [`If ${object_association} Then\n ${attributes}`, 0];
+    return [`if ${object_association} then\n ${attributes}`, 0];
 }
 
 // Todo see above, conditional association, then a statement 
 BlocklyJS['ifstmt_bag'] = function (block){
     const object_association = validate(BlocklyJS.statementToCode(block,'OBJECT_ASSOCIATION'));
-    return `If ${object_association} Then\n`;
+    return `if ${object_association} then\n`;
 }
 
 BlocklyJS['association_on'] = function (block){
     const object_associationA = validate(block.getFieldValue('ATTRIBUTE_A'));
     const object_associationB = validate(block.getFieldValue('ATTRIBUTE_A'));
-    return `${object_associationA} == ${object_associationB}`;
+    return `(${object_associationA} = ${object_associationB})`;
 }
 BlocklyJS['association_on_assisted'] = function (block){
     const object_associationA = validate(block.getFieldValue('ATTRIBUTE_A'));
     const object_associationB = validate(block.getFieldValue('ATTRIBUTE_A'));
-    return `${object_associationA} == ${object_associationB}`;
+    return `(${object_associationA} = ${object_associationB})`;
 }
+// add a sumby function
 BlocklyJS['group_by'] = function (block){
     const attribute_key = validate(block.getFieldValue('ATTRIBUTE_KEY'))
     const attribute_value = validate(block.getFieldValue('ATTRIBUTE_VALUE'))
-    return `GROUP BY ${attribute_key}_${attribute_value}`
+    return `groupBy({${attribute_key}}, {${attribute_value}})`
 }
 BlocklyJS['brackets'] = function (block){
     const group_by = validate(BlocklyJS.statementToCode(block,'GROUP_BY'))
     return `\n(${group_by})`
 }
 BlocklyJS['or'] = function (block){
-    return ' or '
+    return ' || '
 }
 BlocklyJS['and'] = function (block){
     return ' && '

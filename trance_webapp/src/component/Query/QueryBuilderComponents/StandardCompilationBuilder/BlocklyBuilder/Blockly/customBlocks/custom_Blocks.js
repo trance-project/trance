@@ -92,11 +92,21 @@ Blockly.defineBlocksWithJsonArray([
     },
     {
         "type": "brackets",
-        "message0": "(%1)",
+        "message0": "(%1).groupBy({%2}, {%3})",
         "args0": [
             {
                 "type": "input_statement",
                 "name": "GROUP_BY"
+            },
+            {
+                "type": "field_input",
+                "name": "ATTRIBUTE_KEY",
+                "text": ""
+            },
+            {
+                "type": "field_input",
+                "name": "ATTRIBUTE_VALUE",
+                "text": ""
             }
         ],
         "colour": 33,
