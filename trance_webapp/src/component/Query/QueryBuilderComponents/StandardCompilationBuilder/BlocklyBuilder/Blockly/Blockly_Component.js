@@ -12,19 +12,21 @@ import './generator';
 import SendNrcCodeButton from "./SendNrcCodeButton";
 import {connect} from 'react-redux';
 import {addToSelectedObjects, modifySelectedObjectKeyValue} from '../../../../../../redux/TranceObjectSlice/tranceObjectSlice'
+import {updateBlocklyQuery} from '../../../../../../redux/QuerySlice/querySlice';
 
 class TestEditor extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
             toolboxCategories: parseWorkspaceXml(ConfigFiles.INITIAL_TOOLBOX_XML),
+            blocklyXml: "",
             nrcCode: ""
         };
     }
 
-    // shouldComponentUpdate =(nextProps, nextState) => {
-    //     return (this.props.tranceObject.objects != nextProps.tranceObject.objects)
-    // }
+    shouldComponentUpdate =(nextProps, nextState) => {
+        return (this.props.query.selectedQuery != nextProps.query.selectedQuery)
+    }
 
     componentDidMount = () => {
         window.setTimeout(() => {
@@ -73,6 +75,7 @@ class TestEditor extends React.Component {
     }
 
 
+
     workspaceDidChange = (workspace) => {
         const firstFunction = (event) => {
             if(event.type === Blockly.Events.CHANGE){
@@ -105,13 +108,16 @@ class TestEditor extends React.Component {
         workspace.addChangeListener(firstFunction);
         console.log("[workspaceDidChange]", workspace);
         const newXml = Blockly.Xml.domToText(Blockly.Xml.workspaceToDom(workspace));
-        document.getElementById('generated-xml').innerText = newXml;
+        this.props.updateBlocklyQuery(newXml);
 
         const code = BlocklyJS.workspaceToCode(workspace);
-        document.getElementById('code').value = code;
         console.log("[code]" , code)
-        this.setState({nrcCode:code})
+        this.setState({
+            nrcCode:code,
+            blocklyXml: newXml
+        })
         console.log(this.state.nrcCode)
+        console.log(this.state.blocklyXml)
     }
 
     addTranceObjectByName = (objectName) => {
@@ -142,43 +148,43 @@ class TestEditor extends React.Component {
 
     render = () => {
         console.log("[state for nrc code gen]", this.state.nrcCode)
-        console.log('[props]',this.props.tranceObject.objects)
-        return (
-            <React.Fragment>
-                <ReactBlockly
-                    toolboxCategories={this.state.toolboxCategories}
-                    workspaceConfiguration={{
-                        grid: {
-                            spacing: 20,
-                            length: 3,
-                            colour: '#ccc',
-                            snap: true,
-                        },
-                    }}
-                    initialXml={ConfigFiles.INITIAL_XML}
-                    wrapperDivClassName="fill-height"
-                    workspaceDidChange={this.workspaceDidChange}
-                />
-                <pre id="generated-xml">
-      </pre>
-                <textarea id="code" style={{height: "200px", width: "1300px"}} value=""></textarea>
-                <SendNrcCodeButton nrc={{
-                    title: "Test Post send",
-                    body: this.state.nrcCode
-                }}/>
-            </React.Fragment>
-        )
+        console.log("[props for init XMl]", this.props.query.selectedQuery)
+        console.log('[props]',this.props)
+        const selectedQueryBlock = this.props.query.selectedQuery;
+        const blockly = selectedQueryBlock?
+            (
+                <React.Fragment>
+                    <ReactBlockly
+                        toolboxCategories={this.state.toolboxCategories}
+                        workspaceConfiguration={{
+                            grid: {
+                                spacing: 20,
+                                length: 3,
+                                colour: '#ccc',
+                                snap: true,
+                            },
+                        }}
+                        initialXml={selectedQueryBlock.xmlDocument}
+                        wrapperDivClassName="fill-height"
+                        workspaceDidChange={this.workspaceDidChange}
+                    />
+                    <SendNrcCodeButton _id={this.props.query.selectedQuery._id} xmlDocument={this.state.blocklyXml}/>
+                </React.Fragment>
+            ) :<h1>Select or create a new query</h1>;
+        return blockly;
     }
 
 }
 
-const mapStateToProps = ({tranceObject: tranceObject}) => ({
-    tranceObject
+const mapStateToProps = ({tranceObject: tranceObject, query:query}) => ({
+    tranceObject,
+    query
 })
 
 const mapDispatchToProps = {
     addToSelectedObjects,
-    modifySelectedObjectKeyValue
+    modifySelectedObjectKeyValue,
+    updateBlocklyQuery
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(TestEditor);

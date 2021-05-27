@@ -33,10 +33,10 @@ import NewQueryDialog from "../../component/NewQueryDialog/NewQueryDialog";
 import {ListSubheader} from "@material-ui/core";
 import AssignmentIcon from "@material-ui/icons/Assignment";
 import {pageRoutes} from '../../utils/Public_enums';
-import {QuerySummaryList} from '../../utils/Public_Interfaces';
+import {Query, QuerySummary} from '../../utils/Public_Interfaces';
 import {useAppDispatch, useAppSelector} from "../../redux/Hooks/hooks";
 
-import {fetchQueryListSummary, fetchSelectedQuery} from '../../redux/QuerySlice/thunkQueryApiCalls';
+import {fetchQueryListSummary, fetchSelectedQuery, blocklyCreateNew} from '../../redux/QuerySlice/thunkQueryApiCalls';
 import {fetchTranceObjectList} from '../../redux/TranceObjectSlice/thunkTranceObjectApiCalls';
 
 interface LayoutProps {
@@ -57,8 +57,9 @@ const Layout = (props:LayoutProps) => {
 
     const [open, setOpen] = React.useState(false);
     const [openNewQueryState, setOpenNewQueryState] = React.useState<boolean>(false);
+    const [selectedQueryIndexState, setSelectedQueryState] = React.useState<string>(" ");
 
-    const selectedQuery = useAppSelector(state => state.query.selectedQuery);
+
     const queryList = useAppSelector(state => state.query.queryListSummary);
 
     const location = useLocation();
@@ -97,7 +98,7 @@ const Layout = (props:LayoutProps) => {
         }
     }
 
-        const setSelectedQuery = (querySummary: QuerySummaryList) => {
+        const setSelectedQuery = (querySummary: QuerySummary) => {
             dispatch(fetchSelectedQuery(querySummary));
         }
 
@@ -111,12 +112,16 @@ const Layout = (props:LayoutProps) => {
 
     const history = useHistory();
     const handleNewQuery = (input:string) => {
-        // const newQueryList= [input,...queryListState];
-        // setQueryListState(newQueryList);
-        // setSelectedQuery(newQueryList.findIndex(el=> el===input)+1);
+        const newQuery: QuerySummary = {
+            name: input,
+            xmlDocument: '<xml xmlns="http://www.w3.org/1999/xhtml"></xml>'
+        }
+
+        dispatch(blocklyCreateNew(newQuery));
+
         setOpenNewQueryState(false);
-        history.push('/builder')
-        props.goto_Route(pageRoutes.BUILDER)
+        // history.push('/builder')
+        // props.goto_Route(pageRoutes.BUILDER)
     }
 
 
@@ -128,12 +133,19 @@ const Layout = (props:LayoutProps) => {
         }
 
     const handleChange = (event: React.ChangeEvent<{ value: unknown }>) => {
-        const querySummary = queryList.find(el => el.id === event.target.value as string)
+        const value = event.target.value as string;
+        if(value === " "){
+            setSelectedQueryState(value);
+            return;
+        }
+        const querySummary = queryList[event.target.value as number];
 
-        //avoid calling setSelected when None is Selected
         if(querySummary) {
             setSelectedQuery(querySummary);
+            history.push('/builder')
+            props.goto_Route(pageRoutes.BUILDER)
         }
+        setSelectedQueryState(value);
     };
 
         const classes = LayoutThemeStyle();
@@ -161,7 +173,7 @@ const Layout = (props:LayoutProps) => {
                             <Select
                                 labelId="demo-simple-select-filled-label"
                                 id="demo-simple-select-filled"
-                                value={selectedQuery? selectedQuery.name: " "}
+                                value={selectedQueryIndexState}
                                 onChange={handleChange}
                                 classes={{
                                     root: classes.inputRoot,
@@ -171,7 +183,7 @@ const Layout = (props:LayoutProps) => {
                                 <MenuItem value={" "}>
                                     <em>None</em>
                                 </MenuItem>
-                                {queryList.map((el, index) => <MenuItem value={el.id} key={index}>{el.name}</MenuItem>)}
+                                {queryList.map((el, index) => <MenuItem value={index}  key={index}>{el.name}</MenuItem>)}
                             </Select>
                         </div>
                         <div>

@@ -136,7 +136,7 @@ const SimpleAreaGraphVShredded = (props:_SimpleAreaGraphVShreddedProps) => {
     return (
       <div style={{ width: '100%' }}>
         <Typography variant={'h6'}>Ordered by size</Typography>
-          <svg height={height} width={width} ref={svgRef}>
+          <svg height={height - margin.bottom} width={width} ref={svgRef}>
               <g ref={linesRef}>
                   {lineChartPath?.map(d => (
                           <path d={d.path} fill={"none"} strokeWidth={2} stroke={d.fill}/>

@@ -1,14 +1,5 @@
-import {QuerySummaryList, Query, Table, Association, NewQuery} from "../../utils/Public_Interfaces";
+import { Query, Table, Association, NewQuery} from "../../utils/Public_Interfaces";
 
-/**
- * this is temp data should be removed when rest web service is active
- * @param id
- * @param date
- * @param name
- * @param tables
- * @param groupedBy
- */
-const createData = (id: string, date: string, name:string, tables: string, groupedBy: string) => ({id, date, name, tables, groupedBy, });
 
 /**
  * @Tables Data
@@ -127,15 +118,15 @@ const secondLevelQuerySelected = {
     associations:[Occurrences_CopyNumber_Associations]
 } as Query;
 
-export const rows: QuerySummaryList[] = [
-    createData("0", '12 Mar, 2021', 'GeneLikelihoodPerMutation', 'Samples,Occurrences,CopyNumber', 'All'),
-    createData("1", '12 Mar, 2021', 'GeneLikelihoodPerSample', 'Samples,GeneLikelihoodPerMutation', 'Shredded'),
-    createData("2", '12 Mar, 2021', 'GeneImpactPerMutation', 'Samples,Occurrences', 'Standard'),
-    createData("3", '12 Mar, 2021', 'GeneImpactPerSample', 'Samples,Occurrences', 'All'),
-    createData("4", '12 Mar, 2021', 'HybridScoreMatrix', 'Occurrences,CopyNumber', 'Shredded'),
-    createData("5", '11 Mar, 2021', 'EffectScoreMatrix', 'HyrbidScoreMatrix,Network', 'Shredded'),
-    createData("Demo_query_6", '11 Mar, 2021', 'NetworkEffects', 'HybridScoreMatrix,GeneExpression', 'All')
-];
+// export const rows: QuerySummaryList[] = [
+//     createData("0", '12 Mar, 2021', 'GeneLikelihoodPerMutation', 'Samples,Occurrences,CopyNumber', 'All'),
+//     createData("1", '12 Mar, 2021', 'GeneLikelihoodPerSample', 'Samples,GeneLikelihoodPerMutation', 'Shredded'),
+//     createData("2", '12 Mar, 2021', 'GeneImpactPerMutation', 'Samples,Occurrences', 'Standard'),
+//     createData("3", '12 Mar, 2021', 'GeneImpactPerSample', 'Samples,Occurrences', 'All'),
+//     createData("4", '12 Mar, 2021', 'HybridScoreMatrix', 'Occurrences,CopyNumber', 'Shredded'),
+//     createData("5", '11 Mar, 2021', 'EffectScoreMatrix', 'HyrbidScoreMatrix,Network', 'Shredded'),
+//     createData("Demo_query_6", '11 Mar, 2021', 'NetworkEffects', 'HybridScoreMatrix,GeneExpression', 'All')
+// ];
 
 export const querySelected = {
     name: "Demo_query_6",

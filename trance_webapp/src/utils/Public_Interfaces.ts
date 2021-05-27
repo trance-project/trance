@@ -1,4 +1,6 @@
 import React from "react";
+import Blockly, {Xml} from "blockly/blockly";
+import xml = Blockly.utils.xml;
 
 export interface Table {
     id:number;
@@ -31,12 +33,13 @@ export interface BlocklyNrcCode {
     body: string;
 }
 
-export interface QuerySummaryList {
-    id: string;
-    date: string;
+export interface QuerySummary {
+    _id?: string;
+    date?: string;
     name:string;
-    tables: string;
-    groupedBy: string;
+    xmlDocument: string;
+    tables?: string;
+    groupedBy?: string;
 }
 
 export interface Column {
@@ -48,15 +51,17 @@ export interface Column {
 }
 
 export interface Query {
-    name: String;
+    id?: string;
+    name: string;
     level: string;
-    table: Table;
+    table?: Table;
     Where?: string;
     groupBy?: GroupBy;
     selectedColumns?:Column[];
     associations?: Association[];
     children?: Query;
     filters?: string[];
+    BlocklyDocument?: string;
 }
 
 export interface GroupBy {

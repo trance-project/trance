@@ -1,5 +1,4 @@
 import React, {useEffect, useState, useRef} from "react";
-import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer} from 'recharts';
 import * as d3 from "d3";
 import {TableGraphMetaInfo} from '../../../../utils/Public_Interfaces';
 
@@ -94,7 +93,7 @@ const SimpleBarGraph = (props: _SimpleBarGraphProps) => {
 
          processData();
 
-    }, [props.data])
+    }, [props.data, props.height])
 
     console.log('[bars]', bars);
 

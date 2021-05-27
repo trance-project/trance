@@ -101,6 +101,7 @@ class QueryController @Inject()(
         }.getOrElse(NotFound)
       }}
 
+
   @ApiOperation(
     value = "Add a Query to the list",
     response = classOf[Void],
