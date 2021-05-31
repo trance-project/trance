@@ -155,6 +155,7 @@ class TestEditor extends React.Component {
             (
                 <React.Fragment>
                     <ReactBlockly
+                        key={selectedQueryBlock._id}
                         toolboxCategories={this.state.toolboxCategories}
                         workspaceConfiguration={{
                             grid: {
@@ -167,6 +168,7 @@ class TestEditor extends React.Component {
                         initialXml={selectedQueryBlock.xmlDocument}
                         wrapperDivClassName="fill-height"
                         workspaceDidChange={this.workspaceDidChange}
+
                     />
                     <SendNrcCodeButton _id={this.props.query.selectedQuery._id} xmlDocument={this.state.blocklyXml}/>
                 </React.Fragment>
