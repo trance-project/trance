@@ -2,12 +2,134 @@ package framework.examples.genomic
 
 import framework.common._
 import framework.examples.Query
+import framework.nrc.Parser
 
 /** This file contains some exploratory queries 
   * for running the skew-aware pipeline on 
   * the cancer datasets of the biomedical benchmark.
   *
   **/
+
+object SkewTestSmall0 extends DriverGene {
+
+  val name = "SkewTestSmall0"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    if (shred){
+      s"""|val bloader = new BiospecLoader(spark)
+          |val samples = bloader.load("/Users/jac/data/dlbc/nationwidechildrens.org_biospecimen_aliquot_dlbc.txt")
+          |val IBag_samples__D = ${if (skew) "(samples, samples.empty)" else "samples"}
+          |
+          | val cnLoader = new CopyNumberLoader(spark)
+          |val copynumber = cnLoader.load("/Users/jac/data/dlbc/cnv/")
+          |val IBag_copynumber__D = ${if (skew) "(copynumber, copynumber.empty)" else "copynumber"}
+          |
+          |val odict1 = spark.read.json("/Users/jac/data/dlbc/odict1").as[OccurrDict1]
+          |val IBag_occurrences__D = ${if (skew) "(odict1, odict1.empty)" else "odict1"}
+          |
+          |// issue with partial shredding here
+          |val odict2 = spark.read.json("/Users/jac/data/dlbc/odict2").as[OccurTransDict2Mid]
+          |val IDict_occurrences__D_transcript_consequences = ${if (skew) "(odict2, odict2.empty)" else "odict2"}
+          |
+          |val odict3 = spark.read.json("/Users/jac/data/dlbc/odict3").as[OccurrTransConseqDict3]
+          |val IDict_occurrences__D_transcript_consequences_consequence_terms = ${if (skew) "(odict3, odict3)" else "odict3"}
+          |""".stripMargin
+    }else{
+      s"""|val samples = spark.table("samples")
+          |
+          |val copynumber = spark.table("copynumber")
+          |
+          |val occurrences = spark.table("occurrences")
+          |""".stripMargin
+    }
+  
+  val tbls = Map("occurrences" -> occurmids.tp, 
+                  "copynumber" -> copynum.tp, 
+                  "samples" -> samples.tp)
+
+  val query = 
+    s"""
+      Centers <= 
+        dedup(
+          for s in samples union 
+            {(center := s.source_center)}
+        );
+
+      SkewTestSmall0 <= 
+      for c in Centers union 
+        {(center := c.center, mutations := 
+          for o in occurrences union 
+		    for s in samples union 
+              if (s.bcr_patient_uuid = o.donorId && s.source_center = c.center) then
+                {( oid := o.oid, sid := o.donorId )}
+        )}
+    """.stripMargin
+  val parser = Parser(tbls)
+  val program = parser.parse(query).get.asInstanceOf[Program]
+
+}
+
+object SkewTest0 extends DriverGene {
+
+  val name = "SkewTest0"
+
+  val clinDir = "/nfs_qc4/genomics/gdc/biospecimen/clinical/patient/"
+  val occurFile = "/nfs_qc4/genomics/gdc/somatic/"
+  val occurName = "datasetFull"
+  val occurDicts = ("odict1Full", "odict2Full", "odict3Full")
+  val cnvFile = "/nfs_qc4/genomics/gdc/gene_level/"
+  val pathFile = "/nfs_qc4/genomics/c2.cp.v7.1.symbols.gmt"
+  val gtfFile = "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${loadTcga(shred, skew, fname = clinDir)}
+        |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
+        |${loadPathway(shred, skew, fname = pathFile)}
+        |${loadGtfTable(shred, skew, fname = gtfFile)}
+    """.stripMargin
+
+  val tbls = Map("occurrences" -> occurmids.tp, 
+                  "clinical" -> BagType(tcgaType),
+                  "pathways" -> pathway.tp,
+                  "genemap" -> gtf.tp)
+  val query = 
+    s"""
+      MapGene <= 
+        for o in occurrences union 
+          {(oid := o.oid, sid := o.donorId, cands := 
+            for t in o.transcript_consequences union 
+              for g in genemap union 
+                if (t.gene_id = g.g_gene_id) then
+                  {(gid := g.g_gene_name, impact := t.impact )}
+          )};
+
+      FlatOccur <= 
+        for o in MapGene union 
+          for t in o.cands union 
+            {(oid := o.oid, sid := o.sid, 
+                gid := t.gid, impact := t.impact)};
+
+      PathMap <= 
+        for p in pathways union 
+          {(pathway := p.p_name, genes := 
+            for g in p.gene_set union 
+              {(gene := g.name)}
+          )};
+
+      SkewTest0 <= 
+        for p in PathMap union 
+          {(pathway := p.pathway, mutations := 
+              for o in FlatOccur union 
+                for g in p.genes union 
+                  if (g.gene = o.gid) then
+                    {(oid := o.oid, sid := o.sid, 
+                          gid := o.gid, impact := o.impact )}
+          )}
+    """.stripMargin
+  val parser = Parser(tbls)
+  val program = parser.parse(query).get.asInstanceOf[Program]
+
+}
 
 object SkewTest1 extends DriverGene {
   val name = "SkewTest1"
