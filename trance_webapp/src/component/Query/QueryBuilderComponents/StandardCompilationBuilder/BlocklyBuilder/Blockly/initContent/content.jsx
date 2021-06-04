@@ -1,5 +1,113 @@
 const INITIAL_XML = '<xml xmlns="http://www.w3.org/1999/xhtml"></xml>';
 
+const INITIAL_TOOLBOX_JSON = {
+  kind: "categoryToolbox",
+  contents: [
+    {
+      kind: "category",
+      name: "Logic",
+      colour: "#5C81A6",
+      contents: [
+        {
+          kind: "block",
+          type: "controls_if",
+        },
+        {
+          kind: "block",
+          type: "logic_compare",
+        },
+      ],
+    },
+    {
+      kind: "category",
+      name:"nrc.1.0",
+      colour:210,
+      contents: [
+        {
+          kind: "block",
+          type:"forunion",
+          // blockxml: '<block type="forunion"/>'
+        },
+        {
+          kind: "block",
+          type:"tuple",
+          // blockxml: '<block type="tuple"/>'
+        },
+        {
+          kind: "block",
+          type:"customReactComponent",
+          // blockxml: '<block type="customReactComponent"/>'
+        },
+        {
+          kind: "block",
+          type:"brackets",
+          // blockxml: '<block type="brackets"/>'
+        },
+        {
+          kind: "block",
+          type:"and",
+          // blockxml: '<block type="and"/>'
+        },
+        {
+          kind: "block",
+          type:"or",
+          // blockxml: '<block type="or"/>'
+        },
+        {
+          kind: "block",
+          type:"tuple_el",
+          // blockxml: '<block type="tuple_el"/>'
+        },
+        {
+          kind: "block",
+          type:"tuple_el_iteration",
+          // blockxml: '<block type="tuple_el_iteration"/>'
+        },
+        {
+          kind: "block",
+          type:"ifstmt_primitive",
+          // blockxml: '<block type="ifstmt_primitive"/>'
+        },
+        {
+          kind: "block",
+          type:"ifstmt_bag",
+          // blockxml: '<block type="ifstmt_bag"/>'
+        },
+        {
+          kind: "block",
+          type:"association_on",
+          // blockxml: '<block type="association_on"/>'
+        },
+        {
+          kind: "block",
+          type:"association_on_assisted",
+          // blockxml: '<block type="association_on_assisted"/>'
+        },
+        {
+          kind: "block",
+          type:"group_by",
+          // blockxml: '<block type="group_by"/>'
+        }
+      ]
+    },
+    {
+      kind: "category",
+      name: "Custom",
+      colour: "#5CA699",
+      contents: [
+        {
+          kind: "block",
+          type: "new_boundary_function",
+        },
+        {
+          kind: "block",
+          type: "return",
+        },
+      ],
+    },
+  ]
+}
+
 const INITIAL_TOOLBOX_XML = '<xml xmlns="http://www.w3.org/1999/xhtml" id="toolbox" style="display: none;">\n'
   // + '  <category name="Logic" colour="#5C81A6">\n'
   // + '    <block type="controls_if"></block>\n'
@@ -437,6 +545,7 @@ const ConfigFiles = {
   INITIAL_XML,
   INITIAL_TOOLBOX_XML,
   INITIAL_TOOLBOX_CATEGORIES,
+  INITIAL_TOOLBOX_JSON
 };
 
 export default ConfigFiles;

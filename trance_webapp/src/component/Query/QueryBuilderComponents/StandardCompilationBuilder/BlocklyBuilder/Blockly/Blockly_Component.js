@@ -7,7 +7,7 @@ import BlocklyJS from 'blockly/javascript';
 
 import ConfigFiles from './initContent/content';
 import parseWorkspaceXml from './BlocklyHelper';
-import './customBlocks/custom_Blocks';
+import './customBlocks/custom_Blocks_old';
 import './generator';
 import SendNrcCodeButton from "./SendNrcCodeButton";
 import {connect} from 'react-redux';
