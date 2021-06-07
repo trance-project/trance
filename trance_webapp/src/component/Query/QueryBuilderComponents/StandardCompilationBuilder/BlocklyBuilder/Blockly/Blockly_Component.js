@@ -4,6 +4,7 @@ import React from 'react';
 import ReactBlockly from 'react-blockly';
 import Blockly from 'blockly';
 import BlocklyJS from 'blockly/javascript';
+import Grid from "@material-ui/core/Grid";
 
 import ConfigFiles from './initContent/content';
 import parseWorkspaceXml from './BlocklyHelper';
@@ -13,6 +14,9 @@ import SendNrcCodeButton from "./SendNrcCodeButton";
 import {connect} from 'react-redux';
 import {addToSelectedObjects, modifySelectedObjectKeyValue} from '../../../../../../redux/TranceObjectSlice/tranceObjectSlice'
 import {updateBlocklyQuery} from '../../../../../../redux/QuerySlice/querySlice';
+import NrcCodeView from "./nrcCodeView/NrcCodeView";
+
+
 
 class TestEditor extends React.Component {
     constructor(props) {
@@ -29,50 +33,10 @@ class TestEditor extends React.Component {
     }
 
     componentDidMount = () => {
-        window.setTimeout(() => {
-            this.setState({
-                toolboxCategories: this.state.toolboxCategories.concat([
-                    {
-                        blocks: [
-                            { type: 'text' },
-                            {
-                                type: 'text_print',
-                                values: {
-                                    TEXT: {
-                                        type: 'text',
-                                        shadow: true,
-                                        fields: {
-                                            TEXT: 'abc',
-                                        },
-                                    },
-                                },
-                            },
-                        ],
-                    },
-                ]),
-            });
-        }, 2000);
 
-        window.setTimeout(() => {
-            this.setState({
-                toolboxCategories: [
-                    ...this.state.toolboxCategories.slice(0, this.state.toolboxCategories.length - 1),
-                    {
-                        ...this.state.toolboxCategories[this.state.toolboxCategories.length - 1],
-                        blocks: [
-                            { type: 'text' },
-                        ],
-                    },
-                ],
-            });
-        }, 4000);
-
-        window.setTimeout(() => {
-            this.setState({
-                toolboxCategories: this.state.toolboxCategories.slice(0, this.state.toolboxCategories.length - 1),
-            });
-        }, 10000);
     }
+
+
 
 
 
@@ -153,25 +117,30 @@ class TestEditor extends React.Component {
         const selectedQueryBlock = this.props.query.selectedQuery;
         const blockly = selectedQueryBlock?
             (
-                <React.Fragment>
-                    <ReactBlockly
-                        key={selectedQueryBlock._id}
-                        toolboxCategories={this.state.toolboxCategories}
-                        workspaceConfiguration={{
-                            grid: {
-                                spacing: 20,
-                                length: 3,
-                                colour: '#ccc',
-                                snap: true,
-                            },
-                        }}
-                        initialXml={selectedQueryBlock.xmlDocument}
-                        wrapperDivClassName="fill-height"
-                        workspaceDidChange={this.workspaceDidChange}
+                <Grid container spacing={2}>
+                    <Grid item md={9} xs={12}>
+                        <ReactBlockly
+                            key={selectedQueryBlock._id}
+                            toolboxCategories={this.state.toolboxCategories}
+                            workspaceConfiguration={{
+                                grid: {
+                                    spacing: 20,
+                                    length: 10,
+                                    colour: '#ccc',
+                                    snap: true,
+                                },
+                            }}
+                            initialXml={selectedQueryBlock.xmlDocument}
+                            wrapperDivClassName="fill-height"
+                            workspaceDidChange={this.workspaceDidChange}
 
-                    />
-                    <SendNrcCodeButton _id={this.props.query.selectedQuery._id} xmlDocument={this.state.blocklyXml}/>
-                </React.Fragment>
+                        />
+                        <SendNrcCodeButton _id={this.props.query.selectedQuery._id} xmlDocument={this.state.blocklyXml}/>
+                    </Grid>
+                    <Grid item md={3} xs={12}>
+                        <NrcCodeView nrcCode={this.state.nrcCode}/>
+                    </Grid>
+                </Grid>
             ) :<h1>Select or create a new query</h1>;
         return blockly;
     }
@@ -189,4 +158,10 @@ const mapDispatchToProps = {
     updateBlocklyQuery
 }
 
+
+
 export default connect(mapStateToProps, mapDispatchToProps)(TestEditor);
+
+
+
+

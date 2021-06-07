@@ -107,7 +107,7 @@ const BlocklyComponent = () => {
                     spacing: 20,
                     length: 3,
                     colour: "#ccc",
-                    snap: true,
+                    snap: false,
                 },
             }}
             initialXml={ConfigFiles.INITIAL_XML}
