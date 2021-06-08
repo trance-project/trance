@@ -187,10 +187,8 @@ object SkewDataset{
       * does not alter the key
       */
     def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U], Option[String], Broadcast[Set[K]]) = {
-      println("in here trying to cast to dataset "+key+" "+heavyKeys)
       light.print
       heavy.print
-      println(heavy.rdd.getNumPartitions)
       if (heavy.rdd.getNumPartitions <= 1) {
         (light.as[U], light.empty[U], key, heavyKeys)
       }
@@ -568,10 +566,7 @@ object SkewDataset{
       */
     def repartition[K: ClassTag](partitionExpr: Column): (Dataset[T], Dataset[T], Option[String], Broadcast[Set[K]]) = {
       val key = partitionExpr.toString
-  	  println("are we in here??")
-  	  println(key)
       val (dfull, hkeys) = heavyKeys[K](key)
-	  println(hkeys.size)
       if (hkeys.nonEmpty){
         val hk = dfull.sparkSession.sparkContext.broadcast(hkeys)
         (dfull.lfilter[K](col(key), hk).repartition(Seq(partitionExpr):_*), dfull.hfilter[K](col(key), hk), Some(key), hk)
@@ -603,8 +598,14 @@ object SkewDataset{
       (light.drop(colNames:_*), heavy.drop(colNames:_*))
     }
 
+<<<<<<< HEAD
     def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U]) = if (heavy.rdd.getNumPartitions <= 1) (light.as[U], light.empty[U])
+=======
+    def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U]) = { 
+      if (heavy.rdd.getNumPartitions <= 1) (light.as[U], light.empty[U])
+>>>>>>> master
       else (light.as[U], heavy.as[U])
+    }
 
     def withColumn(colName: String, col: Column): (DataFrame, DataFrame) = {
       (light.withColumn(colName, col), heavy.withColumn(colName, col))
@@ -649,7 +650,6 @@ object SkewDataset{
           case _ => acc(c) += 1 }}		
       acc.filter(_._2 > (cnt*thresh)).iterator
     }).reduceByKey(_+_)
-	keyset.foreach(println(_))
 	  keyset.filter(_._2 > partitions).map(r => r._1.getAs[K](0)).collect.toSet
 	  //keyset
 	}
