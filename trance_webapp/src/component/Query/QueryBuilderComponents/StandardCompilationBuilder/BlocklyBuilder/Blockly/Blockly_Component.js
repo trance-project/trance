@@ -138,7 +138,7 @@ class TestEditor extends React.Component {
                         <SendNrcCodeButton _id={this.props.query.selectedQuery._id} xmlDocument={this.state.blocklyXml}/>
                     </Grid>
                     <Grid item md={3} xs={12}>
-                        <NrcCodeView nrcCode={this.state.nrcCode}/>
+                        <NrcCodeView id={selectedQueryBlock._id} nrcCode={this.state.nrcCode}/>
                     </Grid>
                 </Grid>
             ) :<h1>Select or create a new query</h1>;

@@ -90,3 +90,31 @@ const validate = (codeBlock) =>{
     return codeBlock?codeBlock:"UND";
 }
 
+
+/**
+ * nrc 2.0 code generation
+ */
+
+Blockly.JavaScript['forUnion2.0'] = function(block) {
+    const text_object_key = block.getFieldValue('OBJECT_KEY');
+    const dropdown_dropdown_placeholder = block.getFieldValue('DROPDOWN_PLACEHOLDER');
+    const statements_name = Blockly.JavaScript.statementToCode(block, 'NAME');
+    // TODO: Assemble JavaScript into code variable.
+    const code = '...;\n';
+    return code;
+};
+
+Blockly.JavaScript['forUnionTuple2.0'] = function(block) {
+    const text_object_key = block.getFieldValue('OBJECT_KEY');
+    const dropdown_dropdown_placeholder = block.getFieldValue('DROPDOWN_PLACEHOLDER');
+    const statements_name = Blockly.JavaScript.statementToCode(block, 'NAME');
+    // TODO: Assemble JavaScript into code variable.
+    const code = '...;\n';
+    return code;
+};
+
+// Todo see above, conditional association, then a statement
+Blockly.JavaScript['ifstmt_bag2.0'] = function (block){
+    const object_association = validate(BlocklyJS.statementToCode(block,'OBJECT_ASSOCIATION'));
+    return `if ${object_association} then\n`;
+}

@@ -287,10 +287,143 @@ Blockly.Blocks['new_boundary_function'] = {
 BlocklyJS['new_boundary_function'] = function (block) {
     const text_name = block.getFieldValue('Name');
     const statements_content = BlocklyJS.statementToCode(block, 'Content');
-    // TODO: Assemble Python into code variable.
+    // TODO: Assemble into code variable.
     const code = 'def ' + text_name + '(_object,**kwargs):\n' + statements_content + '\n';
     return code;
 };
+
+
+/**
+ * NRC 2.0 style guide
+ */
+
+const forUnionTuple2 = {
+    "type": "forUnionTuple2.0",
+    "message0": "for %1 in %2 union {{ %3 %4 }}" ,
+    "args0": [
+        {
+            "type": "field_input",
+            "name": "OBJECT_KEY",
+            "text": ""
+        },
+        {
+            "type": "field_dropdown",
+            "name": "DROPDOWN_PLACEHOLDER",
+            "options": [
+                [
+                    "option",
+                    "OPTIONNAME"
+                ],
+                [
+                    "option",
+                    "OPTIONNAME"
+                ],
+                [
+                    "option",
+                    "OPTIONNAME"
+                ]
+            ]
+        },
+        {
+            "type": "input_dummy"
+        },
+        {
+            "type": "input_statement",
+            "name": "NAME"
+        }
+    ],
+    "colour": 150,
+    "nextStatement": "Bag",
+    "previousStatement": "Bag",
+    "tooltip": "For Union: Bag Type",
+    "helpUrl": ""
+};
+
+Blockly.Blocks['forUnionTuple2.0'] = {
+    init: function() {
+        this.jsonInit(forUnionTuple2);
+        this.setStyle('loop_blocks');
+    }
+};
+
+const forUnion2 = {
+    "type": "forUnion2.0",
+    "message0": "for %1 in %2 union ( %3 %4 )" ,
+    "args0": [
+        {
+            "type": "field_input",
+            "name": "OBJECT_KEY",
+            "text": ""
+        },
+        {
+            "type": "field_dropdown",
+            "name": "DROPDOWN_PLACEHOLDER",
+            "options": [
+                [
+                    "option",
+                    "OPTIONNAME"
+                ],
+                [
+                    "option",
+                    "OPTIONNAME"
+                ],
+                [
+                    "option",
+                    "OPTIONNAME"
+                ]
+            ]
+        },
+        {
+            "type": "input_dummy"
+        },
+        {
+            "type": "input_statement",
+            "name": "NAME"
+        }
+    ],
+    "colour": 315,
+    "nextStatement": "Bag",
+    "previousStatement": "Bag",
+    "tooltip": "For Union: Bag Type",
+    "helpUrl": ""
+};
+
+
+Blockly.Blocks['forUnion2.0'] = {
+    init: function() {
+        this.jsonInit(forUnion2);
+    }
+};
+
+const ifstmt_bag2 = {
+    "type": "ifstmt_bag2.0",
+    "message0": "if %1 %2 then",
+    "args0": [
+        {
+            "type": "input_dummy"
+        },
+        {
+            "type": "input_statement",
+            "name": "OBJECT_ASSOCIATION",
+            "check": "Bag"
+        }
+    ],
+    "mutator": "controls_if_mutatorss",
+    "colour": 10,
+    "previousStatement": "Bag",
+    "nextStatement": "Bag",
+    "tooltip": "If Statment: Bag Type",
+};
+
+Blockly.Blocks['ifstmt_bag2.0'] = {
+    init: function() {
+        this.jsonInit(ifstmt_bag2);
+    }
+};
+
+Blockly.Extensions.registerMutator('controls_if_mutatorss',
+    Blockly.Constants.Logic.CONTROLS_IF_MUTATOR_MIXIN, null,
+    ['or', 'and']);
 
 
 

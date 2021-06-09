@@ -43,7 +43,6 @@ const Overview = () => {
                                 <TableCell>
                                     <ButtonGroup color={"primary"} aria-label={"Contained primary button group"}>
                                         <Button variant={"contained"} style={{'backgroundColor':'#2980b9'}}>Edit</Button>
-                                        <Button variant={"contained"} style={{'backgroundColor':'#2ecc71'}}>Execute</Button>
                                         <Button variant={"contained"} style={{'backgroundColor':'#e74c3c'}}>Delete</Button>
                                     </ButtonGroup>
                                 </TableCell>

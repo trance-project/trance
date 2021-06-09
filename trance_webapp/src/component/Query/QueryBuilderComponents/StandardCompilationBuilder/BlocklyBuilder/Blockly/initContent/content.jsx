@@ -483,6 +483,23 @@ const INITIAL_TOOLBOX_XML = '<xml xmlns="http://www.w3.org/1999/xhtml" id="toolb
   + '    <block type="association_on_assisted"/>\n'
   + '    <block type="group_by"/>\n'
   + '  </category>\n'
+  + '  <category name="Nrc2.0" colour="#B75D69">\n'
+  + '    <block type="forUnionTuple2.0"/>\n'
+  + '    <block type="forUnion2.0"/>\n'
+  + '    <block type="ifstmt_bag2.0"/>\n'
+  // + '    <block type="tuple"/>\n'
+  // + '    <block type="customReactComponent"/>\n'
+  // + '    <block type="brackets"/>\n'
+  // + '    <block type="and"/>\n'
+  // + '    <block type="or"/>\n'
+  // + '    <block type="tuple_el"/>\n'
+  // + '    <block type="tuple_el_iteration"/>\n'
+  // + '    <block type="ifstmt_primitive"/>\n'
+  // + '    <block type="ifstmt_bag"/>\n'
+  // + '    <block type="association_on"/>\n'
+  // + '    <block type="association_on_assisted"/>\n'
+  // + '    <block type="group_by"/>\n'
+  + '  </category>\n'
   + '</xml>';
 
 const INITIAL_TOOLBOX_CATEGORIES = [
