@@ -28,9 +28,11 @@ trait Dictionary {
     def tp: TupleDictType
   }
 
-  final case class BagDictVarRef(name: String, tp: BagDictType) extends BagDictExpr with VarRef
+  trait DictVarRef extends VarRef
 
-  final case class TupleDictVarRef(name: String, tp: TupleDictType) extends TupleDictExpr with VarRef
+  final case class BagDictVarRef(name: String, tp: BagDictType) extends BagDictExpr with DictVarRef
+
+  final case class TupleDictVarRef(name: String, tp: TupleDictType) extends TupleDictExpr with DictVarRef
 
   final case class BagDict(lblTp: LabelType, flat: BagExpr, dict: TupleDictExpr) extends BagDictExpr {
     val tp: BagDictType = BagDictType(lblTp, flat.tp, dict.tp)

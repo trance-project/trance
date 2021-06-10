@@ -11,7 +11,7 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
   import compiler._
 
   def translate(e: Type): Type = e match {
-    case MatDictType(lbl, dict) => 
+    case KeyValueMapType(lbl, dict) =>
       MatDictCType(translate(lbl).asInstanceOf[LabelType], translate(dict).asInstanceOf[BagCType])
     case BagType(t) => BagCType(translate(t))
     case LabelType(fs) => LabelType(fs.map(f => f._1 -> translate(f._2)))
@@ -99,9 +99,9 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
     case Get(e1) => CGet(translate(e1))
     
     // new flexible dictionary handling
-    case MatDictLookup(lbl, dict) => CLookup(translate(lbl), translate(dict))
-    case MatDictToBag(bd) => FlatDict(translate(bd))
-    case BagToMatDict(bd) => GroupDict(translate(bd))
+    case KeyValueMapLookup(lbl, dict) => CLookup(translate(lbl), translate(dict))
+    case KeyValueMapToBag(bd) => FlatDict(translate(bd))
+    case BagToKeyValueMap(bd) => GroupDict(translate(bd))
 
     // catch existing dictionary types that may persist in NRC, 
     // these are likely deprecated cases that no longer exist with new 

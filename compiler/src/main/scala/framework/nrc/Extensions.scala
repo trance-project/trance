@@ -71,11 +71,11 @@ trait Extensions {
         collect(l, f) ++ collect(d, f)
 
       // Materialization extensions
-      case MatDictLookup(l, d) =>
+      case KeyValueMapLookup(l, d) =>
         collect(l, f) ++ collect(d, f)
-      case BagToMatDict(b) =>
+      case BagToKeyValueMap(b) =>
         collect(b, f)
-      case MatDictToBag(d) =>
+      case KeyValueMapToBag(d) =>
         collect(d, f)
 
       case _ => List()
@@ -213,16 +213,16 @@ trait Extensions {
         rd.lookup(rl) -> ctx2
 
       // Materialization extensions
-      case (MatDictLookup(l, d), ctx0) =>
+      case (KeyValueMapLookup(l, d), ctx0) =>
         val (rl: LabelExpr, ctx1) = replace(l, ctx0, f)
-        val (rd: MatDictExpr, ctx2) = replace(d, ctx1, f)
-        MatDictLookup(rl, rd) -> ctx2
-      case (BagToMatDict(b), ctx0) =>
+        val (rd: KeyValueMapExpr, ctx2) = replace(d, ctx1, f)
+        KeyValueMapLookup(rl, rd) -> ctx2
+      case (BagToKeyValueMap(b), ctx0) =>
         val (r: BagExpr, ctx1) = replace(b, ctx0, f)
-        BagToMatDict(r) -> ctx1
-      case (MatDictToBag(d), ctx0) =>
-        val (r: MatDictExpr, ctx1) = replace(d, ctx0, f)
-        MatDictToBag(r) -> ctx1
+        BagToKeyValueMap(r) -> ctx1
+      case (KeyValueMapToBag(d), ctx0) =>
+        val (r: KeyValueMapExpr, ctx1) = replace(d, ctx0, f)
+        KeyValueMapToBag(r) -> ctx1
 
       case _ => x
     })
@@ -323,16 +323,16 @@ trait Extensions {
         rd.lookup(rl)
 
       // Materialization extensions
-      case MatDictLookup(l, d) =>
+      case KeyValueMapLookup(l, d) =>
         val rl = replace(l, f).asInstanceOf[LabelExpr]
-        val rd = replace(d, f).asInstanceOf[MatDictExpr]
-        MatDictLookup(rl, rd)
-      case BagToMatDict(b) =>
+        val rd = replace(d, f).asInstanceOf[KeyValueMapExpr]
+        KeyValueMapLookup(rl, rd)
+      case BagToKeyValueMap(b) =>
         val r = replace(b, f).asInstanceOf[BagExpr]
-        BagToMatDict(r)
-      case MatDictToBag(d) =>
-        val r = replace(d, f).asInstanceOf[MatDictExpr]
-        MatDictToBag(r)
+        BagToKeyValueMap(r)
+      case KeyValueMapToBag(d) =>
+        val r = replace(d, f).asInstanceOf[KeyValueMapExpr]
+        KeyValueMapToBag(r)
 
       case _ => ex
     })

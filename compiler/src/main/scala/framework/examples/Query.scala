@@ -203,7 +203,7 @@ trait Query extends Materialization
     (qplan, usplan)
   }
 
-  def shred: (ShredProgram, MaterializedProgram) = {
+  def shred: (ShredProgram, MProgram) = {
     val sprog = optimize(shred(program))
     (sprog, materialize(sprog))
   }

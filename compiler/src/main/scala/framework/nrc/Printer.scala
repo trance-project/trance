@@ -15,7 +15,7 @@ trait Printer {
       "\"" + c.v + "\""
     case c: Const =>
       c.v.toString
-	case Udf(n, e1, tp) => s"$n(${quote(e1)})"
+	case Udf(n, e1, _) => s"$n(${quote(e1)})"
 	case v: VarRef =>
       v.name
     case p: Project =>
@@ -107,12 +107,12 @@ trait Printer {
       s"Lookup(${quote(lbl)}, ${quote(dict)})"
 
     // Materialization extensions
-    case MatDictLookup(lbl, dict) =>
-      s"MatDictLookup(${quote(lbl)}, ${quote(dict)})"
-    case BagToMatDict(b) =>
-      s"BagToMatDict(${quote(b)})"
-    case MatDictToBag(d) =>
-      s"MatDictToBag(${quote(d)})"
+    case KeyValueMapLookup(lbl, dict) =>
+      s"KeyValueMapLookup(${quote(lbl)}, ${quote(dict)})"
+    case BagToKeyValueMap(b) =>
+      s"BagToKeyValueMap(${quote(b)})"
+    case KeyValueMapToBag(d) =>
+      s"KeyValueMapToBag(${quote(d)})"
 
     case _ =>
       sys.error("Cannot print unknown expression " + e)
@@ -157,8 +157,8 @@ trait Printer {
         s"dictTp := ${quote(t.dictTp, verbose)})"
     case t: TupleDictType =>
       s"TupleDictType(${quote(t.attrTps, verbose)})"
-    case t: MatDictType =>
-      s"MatDictType(keyTp := ${quote(t.keyTp)}, valueTp := ${quote(t.valueTp)})"
+    case t: KeyValueMapType =>
+      s"KeyValueMapType(keyTp := ${quote(t.keyTp)}, valueTp := ${quote(t.valueTp)})"
     case _ =>
       sys.error("Cannot print unknown type " + tp)
   }

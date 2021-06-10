@@ -496,8 +496,8 @@ object TestMaterialization extends App
     val materializedProgram = materialize(optShredded, eliminateDomains = true)
     println("Materialized program (if hoists + dict iteration): \n" + quote(materializedProgram.program) + "\n")
 
-    val unshredded = unshred(optShredded, materializedProgram.ctx)
-    println("Unshredded program: \n" + quote(unshredded) + "\n")
+//    val unshredded = unshred(optShredded, materializedProgram.ctx)
+//    println("Unshredded program: \n" + quote(unshredded) + "\n")
 
   }
 

@@ -1,24 +1,25 @@
 package framework.nrc
 
-import framework.common.{BagType, LabelType, MatDictType, OpEq, TupleType, VarDef}
+import framework.common.{BagType, LabelType, KeyValueMapType, OpEq, TupleType, VarDef}
 import framework.utils.Utils.Symbol
 
 trait MaterializationDomain extends Printer {
   this: MaterializeNRC with MaterializationContext =>
 
   def eliminateDomain(lblTp: LabelType, b: BagExpr, ctx: Context): Option[(BagExpr, Context)] = {
-    val newCtx = lblTp.attrTps.foldLeft (ctx) {
-      case (acc, (n, t)) => acc.addVarDef(VarDef(n, t))
-    }
-    val (flatBag: BagExpr, flatCtx) = rewriteUsingContext(b, newCtx)
-    val iv = inputVars(flatBag).filterNot(x =>
-      x.tp.isInstanceOf[MatDictType] || x.tp.isInstanceOf[BagType])
-
-    val flatBag2 = eliminateDomain(flatBag, iv)
-    val iv2 = inputVars(flatBag2).filterNot(x =>
-      x.tp.isInstanceOf[MatDictType] || x.tp.isInstanceOf[BagType])
-
-    if (iv2.isEmpty) Some(flatBag2, flatCtx) else None
+    None
+//    val newCtx = lblTp.attrTps.foldLeft (ctx) {
+//      case (acc, (n, t)) => acc.addVarDef(VarDef(n, t))
+//    }
+//    val (flatBag: BagExpr, flatCtx) = rewriteUsingContext(b, newCtx)
+//    val iv = inputVars(flatBag).filterNot(x =>
+//      x.tp.isInstanceOf[MatDictType] || x.tp.isInstanceOf[BagType])
+//
+//    val flatBag2 = eliminateDomain(flatBag, iv)
+//    val iv2 = inputVars(flatBag2).filterNot(x =>
+//      x.tp.isInstanceOf[MatDictType] || x.tp.isInstanceOf[BagType])
+//
+//    if (iv2.isEmpty) Some(flatBag2, flatCtx) else None
   }
 
   private def eliminateDomain(b: BagExpr, iv: Set[VarRef]): BagExpr =
@@ -41,8 +42,8 @@ trait MaterializationDomain extends Printer {
           addOutputField(KEY_ATTR_NAME -> lbl, eliminateDomain(b2, iv)))
 
       // Dictionary iteration
-      case ForeachUnion(x, MatDictLookup(l: VarRef, d), b2) if iv.contains(l) =>
-        val dictBag = MatDictToBag(d)
+      case ForeachUnion(x, KeyValueMapLookup(l: VarRef, d), b2) if iv.contains(l) =>
+        val dictBag = KeyValueMapToBag(d)
         val kv = TupleVarRef(Symbol.fresh(name = "kv"), dictBag.tp.tp)
         val lbl = LabelProject(kv, KEY_ATTR_NAME)
         val attrs = kv.tp.attrTps.keys.filter(_ != KEY_ATTR_NAME).map(k => k -> kv(k)).toMap
@@ -69,19 +70,19 @@ trait MaterializationDomain extends Printer {
 
     }).asInstanceOf[BagExpr]
 
-  @deprecated
-  def eliminateDomainOld(lblTp: LabelType, b: BagExpr, ctx: Context): Option[(BagExpr, Context)] = {
-    val newCtx = lblTp.attrTps.foldLeft (ctx) {
-      case (acc, (n, t)) => acc.addVarDef(VarDef(n, t))
-    }
-    val (flatBag: BagExpr, flatCtx) = rewriteUsingContext(b, newCtx)
-    eliminateDomainOld(flatBag).map(_ -> flatCtx)
-  }
+//  @deprecated
+//  def eliminateDomainOld(lblTp: LabelType, b: BagExpr, ctx: Context): Option[(BagExpr, Context)] = {
+//    val newCtx = lblTp.attrTps.foldLeft (ctx) {
+//      case (acc, (n, t)) => acc.addVarDef(VarDef(n, t))
+//    }
+//    val (flatBag: BagExpr, flatCtx) = rewriteUsingContext(b, newCtx)
+//    eliminateDomainOld(flatBag).map(_ -> flatCtx)
+//  }
 
   @deprecated
   private def eliminateDomainOld(b: BagExpr): Option[BagExpr] = {
     val iv = inputVars(b).filterNot(x =>
-      x.tp.isInstanceOf[MatDictType] || x.tp.isInstanceOf[BagType])
+      x.tp.isInstanceOf[KeyValueMapType] || x.tp.isInstanceOf[BagType])
     eliminateDomainIfHoisting(b, iv) orElse
       eliminateDomainDictIteration(b, iv) orElse
         eliminateDomainAggregation(b, iv)
@@ -107,8 +108,8 @@ trait MaterializationDomain extends Printer {
 
   @deprecated
   private def eliminateDomainDictIteration(b: BagExpr, iv: Set[VarRef]): Option[BagExpr] = b match {
-    case ForeachUnion(x, MatDictLookup(l: VarRef, d), b2) if iv == Set(l) =>
-      val dictBag = MatDictToBag(d)
+    case ForeachUnion(x, KeyValueMapLookup(l: VarRef, d), b2) if iv == Set(l) =>
+      val dictBag = KeyValueMapToBag(d)
       val kv = TupleVarRef(Symbol.fresh(name = "kv"), dictBag.tp.tp)
       val lbl = LabelProject(kv, KEY_ATTR_NAME)
       val attrs = kv.tp.attrTps.keys.filter(_ != KEY_ATTR_NAME).map(k => k -> kv(k)).toMap
@@ -134,33 +135,54 @@ trait MaterializationDomain extends Printer {
     case _ => None
   }
 
-  def createLabelDomain(varRef: VarRef, topLevel: Boolean, field: String): Assignment = {
-    val domain = if (topLevel) {
-      val bagVarRef = varRef.asInstanceOf[BagVarRef]
-      val x = TupleVarRef(Symbol.fresh(), bagVarRef.tp.tp)
-      val lbl = LabelProject(x, field)
-      DeDup(
-        ForeachUnion(x, bagVarRef,
-          Singleton(Tuple(LABEL_ATTR_NAME -> lbl)))
-      )
-    }
-    else {
-      val matDictVarRef = varRef.asInstanceOf[MatDictVarRef]
-      val kvTp =
-        TupleType(
-          matDictVarRef.tp.valueTp.tp.attrTps +
-            (KEY_ATTR_NAME -> matDictVarRef.tp.keyTp))
+  def createLabelDomain(dict: MExpr, field: String): MBag = {
+    val labels = dict match {
+      case d: MBag =>
+        val bagVarRef = d.varRef
+        val x = TupleVarRef(Symbol.fresh(), bagVarRef.tp.tp)
+        DeDup(ForeachUnion(x, bagVarRef,
+          Singleton(Tuple(LABEL_ATTR_NAME -> LabelProject(x, field)))))
 
-      val kv = TupleVarRef(Symbol.fresh(name = "kv"), kvTp)
-      val lbl = LabelProject(kv, field)
-      DeDup(
-        ForeachUnion(kv, MatDictToBag(matDictVarRef),
-          Singleton(Tuple(LABEL_ATTR_NAME -> lbl)))
-      )
+      case d: MKeyValueMap =>
+        val matDictVarRef = d.varRef
+        val kvTp =
+          TupleType(
+            matDictVarRef.tp.valueTp.tp.attrTps +
+              (KEY_ATTR_NAME -> matDictVarRef.tp.keyTp))
+        val kv = TupleVarRef(Symbol.fresh(name = "kv"), kvTp)
+        DeDup(
+          ForeachUnion(kv, KeyValueMapToBag(matDictVarRef),
+            Singleton(Tuple(LABEL_ATTR_NAME -> LabelProject(kv, field)))))
     }
-
-    val bagRef = BagVarRef(domainName(Symbol.fresh(field + "_")), domain.tp)
-    Assignment(bagRef.name, domain)
+    val name = Symbol.fresh(dict.name + "_" + field)
+    MBag(domainName(name), labels)
   }
+
+//  def createLabelDomain(varRef: VarRef, topLevel: Boolean, field: String): NamedExpr = {
+//    val domain = if (topLevel) {
+//      val bagVarRef = varRef.asInstanceOf[BagVarRef]
+//      val x = TupleVarRef(Symbol.fresh(), bagVarRef.tp.tp)
+//      val lbl = LabelProject(x, field)
+//      DeDup(
+//        ForeachUnion(x, bagVarRef,
+//          Singleton(Tuple(LABEL_ATTR_NAME -> lbl))))
+//    }
+//    else {
+//      val matDictVarRef = varRef.asInstanceOf[KeyValueDictVarRef]
+//      val kvTp =
+//        TupleType(
+//          matDictVarRef.tp.valueTp.tp.attrTps +
+//            (KEY_ATTR_NAME -> matDictVarRef.tp.keyTp))
+//
+//      val kv = TupleVarRef(Symbol.fresh(name = "kv"), kvTp)
+//      val lbl = LabelProject(kv, field)
+//      DeDup(
+//        ForeachUnion(kv, KeyValueDictToBag(matDictVarRef),
+//          Singleton(Tuple(LABEL_ATTR_NAME -> lbl))))
+//    }
+//
+//    val bagRef = BagVarRef(domainName(Symbol.fresh(field + "_")), domain.tp)
+//    MDict(bagRef.name, domain)
+//  }
 
 }
