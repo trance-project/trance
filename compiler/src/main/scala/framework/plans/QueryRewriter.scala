@@ -166,9 +166,6 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
           val nsig = names.getOrElse(c.name, default)
           val childCover = covers.get(nsig) match {
             case Some(cov:CNamed) => 
-              println("in this case with "+c.name+" "+cov.name)
-              // rewritePlan(c.e, cov.name, cov.e)
-              // println(Printer.quote(rwp))
               InputRef(cov.name, cov.tp)
             case _ => rewritePlanOverCover((c.e, id), covers)
           }

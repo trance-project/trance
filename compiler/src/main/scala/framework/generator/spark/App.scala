@@ -47,29 +47,20 @@ object Sharing extends App {
     // val dlbctest = 371520
     // total is ~4500 so way underestimated
     // upper bound
-    val dlbctest = 5000
+    val dlbctest = 5
     val brcatest = 8000000
 
     // capacity in KB
-    val flex = 0
+    val flex = 3
     // val ptype = "dynamic"
-    val ptype = "greedy"
+    // val ptype = "greedy"
+    val ptype = "qlearn"
     // val genv = new GenomicEnv(dlbctest, init_flex = flex, ptype = ptype)
     val sgenv = new GenomicEnv(dlbctest, shred = true, flex = flex, ptype = ptype)
     // AppWriter.runWithCache(genv, "CacheTest,standard,covers")
     AppWriter.runWithCache(sgenv, "CacheTest,shredded,covers")
 
-    // cache inputs
-    // AppWriter.runWithCache(genv, "CacheTest,standard,cacheinputs", cache = true)
-    // AppWriter.runWithCache(sgenv, "CacheTest,shredded,cacheinputs", cache = true)
 
-    // AppWriter.runDataset(HybridQuery, "Testing,standard", optLevel=1)
-
-    // AppWriter.runDatasetShred(SequentialFilters, "SequentialFilters,shredded", optLevel = 1)
-    // AppWriter.runDatasetShred(SharedFilters, "SharedFilters,shredded", optLevel = 1)
-    // AppWriter.runDataset(OccurGroupByCase, "OccurGroupByCase,standard", optLevel = 1)
-    // AppWriter.runDataset(SamplesFilterByTP53, "SamplesFilterByTP53,standard", optLevel = 1)
-    // AppWriter.runDatasetShred(SamplesFilterByTP53, "SamplesFilterByTP53,standard", optLevel = 1)
 
   }
 
