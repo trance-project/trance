@@ -50,34 +50,42 @@ trait MaterializeNRC extends ShredNRC with Optimizer {
     def tp: BagType = dict.tp.valueTp
   }
 
-  trait MaterializedExpr extends NamedExpr {
+  trait NamedExpr {
     def name: String
 
     def e: Expr
-
-    def isBag: Boolean
-
-    def varRef: VarRef with Expr
   }
+
+  trait MaterializedExpr extends NamedExpr
 
   type MExpr = MaterializedExpr
 
-  final case class MBag(name: String, e: BagExpr) extends MaterializedExpr {
-    def isBag: Boolean = true
-
+  final case class MBag(name: String, e: BagExpr) extends MExpr {
     def varRef: BagVarRef = BagVarRef(name, e.tp)
   }
 
-  final case class MKeyValueMap(name: String, e: KeyValueMapExpr) extends MaterializedExpr {
-    def isBag: Boolean = false
-
+  final case class MKeyValueMap(name: String, e: KeyValueMapExpr) extends MExpr {
     def varRef: KeyValueMapVarRef = KeyValueMapVarRef(name, e.tp)
   }
 
-  final case class MTuple(name: String, e: TupleExpr) extends MaterializedExpr {
-    def isBag: Boolean = false
+  final case class MTuple(fields: Map[String, MExpr]) extends MExpr {
+    def name: String = "MTuple"
 
-    def varRef: TupleVarRef = TupleVarRef(name, e.tp)
+    def e: Tuple = Tuple(fields.map(x => x._1 -> x._2.e.asInstanceOf[TupleAttributeExpr]))
+
+    def apply(n: String): MExpr = fields(n)
+  }
+
+  final case class MLet(n: String, e1: Expr, m2: MExpr) extends MExpr {
+    def name: String = "MLet"
+
+    def e: Expr = Let(n, e1, m2.e)
+  }
+
+  final case class MIfThenElse(c: CondExpr, m1: MExpr, m2: MExpr) extends MExpr {
+    def name: String = "MIfThenElse"
+
+    def e: Expr = IfThenElse(c, m1.e, m2.e)
   }
 
 }

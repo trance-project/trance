@@ -46,9 +46,9 @@ trait MaterializationContext extends BaseMaterialization with MaterializationDom
   this: MaterializeNRC =>
 
   class DictionaryContext(private val mapper: Map[DictExpr, MExpr],
-                          private val mexprs: Map[MExpr, Option[(MExpr, String)]]) {
+                          private val mexprs: Set[(MExpr, Option[(MExpr, String)])]) {
 
-    def this() = this(Map.empty, Map.empty)
+    def this() = this(Map.empty, Set.empty)
 
     def ++(c: DictionaryContext): DictionaryContext =
       new DictionaryContext(mapper ++ c.mapper, mexprs ++ c.mexprs)
@@ -56,16 +56,37 @@ trait MaterializationContext extends BaseMaterialization with MaterializationDom
     def add(d: DictExpr, m: MExpr, parent: Option[(MExpr, String)]): DictionaryContext =
       new DictionaryContext(mapper + (d -> m), mexprs + (m -> parent))
 
+    def add(m: MExpr, parent: Option[(MExpr, String)]): DictionaryContext =
+      new DictionaryContext(mapper, mexprs + (m -> parent))
+
     def contains(d: DictExpr): Boolean = mapper.contains(d)
 
-    def apply(d: DictExpr): MExpr = mapper(d)
+    def apply(d: DictExpr): MExpr = d match {
+      case _: DictVarRef => mapper(d)
+      case _: BagDict => mapper(d)
+      case a: TupleDict =>
+        MTuple(a.fields.collect { case (n, e: BagDictExpr) => n -> apply(e) })
+      case a: BagDictProject =>
+        apply(a.tuple).asInstanceOf[MTuple].apply(a.field)
+      case a: TupleDictProject =>
+        MTuple(childrenOf(apply(a.dict)))
+      case a: DictLet if a.e1.isInstanceOf[DictExpr] =>
+        val d1 = a.e1.asInstanceOf[DictExpr]
+        val m1 = apply(d1)
+        val ctx = add(DictVarRef(a.x.name, d1.tp), m1, None)  // don't care about parent as recur down
+        MLet(a.x.name, m1.e, ctx(a.e2))
+      case a: DictLet =>
+        MLet(a.x.name, a.e1, apply(a.e2))
+      case a: DictIfThenElse =>
+        MIfThenElse(a.cond, apply(a.e1), apply(a.e2.get))
+      case _ =>
+        sys.error("[DictionaryContext.apply] Unexpected dictionary " + d)
+    }
+
+    def childrenOf(d: DictExpr): Map[String, MExpr] = childrenOf(mapper(d))
 
     def childrenOf(m: MExpr): Map[String, MExpr] =
-      mexprs.collect {
-        case (child, Some((parent, field))) if parent == m => field -> child
-      }
-
-    def find(e: Expr): Option[MExpr] = mexprs.keys.find(_.e == e)
+      mexprs.collect { case (child, Some((p, f))) if p == m => f -> child }.toMap
   }
 
   type Context = DictionaryContext
@@ -98,84 +119,16 @@ trait MaterializationContext extends BaseMaterialization with MaterializationDom
     sys.error("Not implemented")
   }
 
-//  def rewriteUsingContext(e0: Expr, ctx0: Context): (Expr, Context) = replace[Context](e0, ctx0, {
-//    case (v: VarRef, ctx) if ctx.contains(v.name) =>
-//      (VarRef(ctx.varDef(v.name)), ctx)
-//
-//    case (Lookup(l, d), ctx) if ctx.isTopLevel(d) && ctx.isMaterialized(d) =>
-//      assert(ctx.isTopLevel(l))  // sanity check
-//      (ctx.matVarRef(d).asInstanceOf[BagVarRef], ctx)
-//
-//    case (Lookup(l, d), ctx) if ctx.isTopLevel(d) =>
-//      ctx.dictDef(d) match {
-//        case BagDict(lblTp, flat, _) =>
-//          assert(l.tp == lblTp)   // sanity check
-//          (flat, ctx)
-//        case _ =>
-//          sys.error("Unexpected dictionary type: " + d)
-//      }
-//
-//    case (Lookup(l, d), ctx) =>
-//      assert(ctx.contains(d))  // sanity check
-//      val dict = ctx.matVarRef(d).asInstanceOf[MatDictExpr]
-//      val (lbl: LabelExpr, ctx1) = rewriteUsingContext(l, ctx)
-//      (MatDictLookup(lbl, dict), ctx1)
-//
-//    case (BagLet(x, TupleDictProject(d), e2), ctx) =>
-//      assert(ctx.contains(d))  // sanity check
-//      val newCtx = ctx.children(d).foldLeft (ctx) {
-//        case (acc, (n, dict)) =>
-//          val tr = TupleDictVarRef(x.name, x.tp.asInstanceOf[TupleDictType])
-//          acc.addDictAlias(dict, BagDictProject(tr, n))
-//      }
-//      rewriteUsingContext(e2, newCtx)
-//
-//    case (l: NewLabel, ctx) =>
-//      val (ps1, ctx1) =
-//        l.params.foldLeft (Map.empty[String, LabelParameter], ctx) {
-//          case ((acc, ctx), (_, VarRefLabelParameter(l: LabelExpr)))
-//            if ctx.contains(l) && ctx.isTopLevel(l) =>
-//            (acc, ctx)
-//          case ((acc, ctx), (_, VarRefLabelParameter(d: BagDictExpr))) =>
-//            assert(ctx.contains(d))  // sanity check
-//            (acc, ctx)
-//          case ((acc, ctx), (n, ProjectLabelParameter(d: BagDictExpr))) =>
-//            assert(ctx.contains(d))  // sanity check
-//            val ctx1 = ctx.addDictAlias(d, BagDictVarRef(n, d.tp))
-//            (acc, ctx1)
-//          case ((acc, ctx), (n, p0)) =>
-//            val (p1: LabelParameter, ctx1) = rewriteUsingContext(p0, ctx)
-//            (acc + (n -> p1), ctx1)
-//        }
-//      (NewLabel(ps1, l.id), ctx1)
-//
-//    case (ForeachUnion(x, e1, e2), ctx) =>
-//      val (r1: BagExpr, ctx1) = rewriteUsingContext(e1, ctx)
-//      val xd = VarDef(x.name, r1.tp.tp)
-//      val ctx2 = ctx1.addVarDef(xd)
-//      val (r2: BagExpr, ctx3) = rewriteUsingContext(e2, ctx2)
-//      (ForeachUnion(xd, r1, r2), ctx3)
-//
-//    case (l: Let, ctx) =>
-//      val (r1, ctx1) = rewriteUsingContext(l.e1, ctx)
-//      val xd = VarDef(l.x.name, r1.tp)
-//      val ctx2 = ctx1.addVarDef(xd)
-//      val (r2, ctx3) = rewriteUsingContext(l.e2, ctx2)
-//      (Let(xd, r1, r2), ctx3)
-//
-//    case (x: ExtractLabel, ctx) =>
-//      val (l: LabelExpr, ctx1) = rewriteUsingContext(x.lbl, ctx)
-//      val ctx2 = l.tp.attrTps.foldLeft (ctx1) {
-//        case (acc, (n, t)) => acc.addVarDef(VarDef(n, t))
-//      }
-//      val (r, ctx3) = rewriteUsingContext(x.e, ctx2)
-//      (ExtractLabel(l, r), ctx3)
-//  })
-//}
-
   protected def rewriteUsingContext(e0: Expr, ctx: Context): Expr = replace(e0, {
-    case v: DictVarRef =>
-      ctx(v.asInstanceOf[DictExpr]).varRef
+
+    case l: Let if l.e1.isInstanceOf[DictExpr] =>
+      val d1 = l.e1.asInstanceOf[DictExpr]
+      val m1 = ctx(d1)
+      val ctx2 = ctx.add(DictVarRef(l.x.name, d1.tp), m1, None)   // don't care about parent as recur down
+      val r2 = rewriteUsingContext(l.e2, ctx2)
+      Let(l.x.name, m1.e, r2)
+
+    case d: DictExpr => ctx(d).e
 
     case Lookup(l, d) =>
       rewriteUsingContext(d, ctx) match {
@@ -184,47 +137,6 @@ trait MaterializationContext extends BaseMaterialization with MaterializationDom
           val l2 = rewriteUsingContext(l, ctx).asInstanceOf[LabelExpr]
           KeyValueMapLookup(l2, e)
       }
-
-    case BagDictProject(t, f) =>
-      rewriteUsingContext(t, ctx).asInstanceOf[TupleVarRef].apply(f)
-
-    case TupleDictProject(v: BagDictVarRef) =>
-      val mparent = ctx(v)
-      val children = ctx.childrenOf(mparent)
-      val fields = children.map(m => m._1 -> m._2.varRef.asInstanceOf[TupleAttributeExpr])
-      Tuple(fields)
-
-    case TupleDictProject(p: BagDictProject) =>
-      val mgrandparent = ctx(p.tuple).asInstanceOf[MTuple]
-      val mparent = ctx.find(mgrandparent.e(p.field)).get
-      val children = ctx.childrenOf(mparent)
-      val fields = children.map(m => m._1 -> m._2.varRef.asInstanceOf[TupleAttributeExpr])
-      Tuple(fields)
-
-    case l: Let if l.e1.isInstanceOf[DictExpr] =>
-      val xref = DictVarRef(l.x.name, l.e1.tp.asInstanceOf[DictType])
-      rewriteUsingContext(l.e1, ctx) match {
-        case r1: BagExpr =>
-          val ctx2 = ctx.add(xref, MBag(l.x.name, r1), None)
-          val r2 = rewriteUsingContext(l.e2, ctx2)
-          Let(VarDef(l.x.name, r1.tp), r1, r2)
-        case r1: KeyValueMapExpr =>
-          val ctx2 = ctx.add(xref, MKeyValueMap(l.x.name, r1), None)
-          val r2 = rewriteUsingContext(l.e2, ctx2)
-          Let(VarDef(l.x.name, r1.tp), r1, r2)
-        case r1: TupleExpr =>
-          val ctx2 = ctx.add(xref, MTuple(l.x.name, r1), None)
-          val r2 = rewriteUsingContext(l.e2, ctx2)
-          Let(VarDef(l.x.name, r1.tp), r1, r2)
-      }
-
-    case d: TupleDict if d.isEmpty => Tuple()
-
-    case _: BagDict =>
-      sys.error("[rewriteUsingContext] Unexpected BagDict")
-
-    case _: TupleDict =>
-      sys.error("[rewriteUsingContext] Unexpected TupleDict")
   })
 }
 
@@ -256,13 +168,17 @@ trait Materialization extends MaterializationContext {
 
       case ShredExpr(l: LabelExpr, d: BagDictExpr) =>
         assert(l.tp == d.tp.lblTp)   // sanity check
-        val (mexprs, ctx2) = materializeDictExpr(d, a.name, ctx, None, eliminateDomains)
+        val (mexprs, ctx2) =
+          materializeDictExpr(d, dictName(a.name), ctx, None, eliminateDomains)
         val p = Program(mexprs.map(m => Assignment(m.name, m.e)))
         new MProgram(p, ctx2)
 
-      case ShredExpr(t: TupleExpr, d: TupleDictExpr) =>
-        // TODO: this case
-        sys.error("Materialization not supported for " + quote(a))
+      // TODO: test this
+      case ShredExpr(_: TupleExpr, d: TupleDictExpr) =>
+        val (mexprs, ctx2) =
+          materializeDictExpr(d, dictName(a.name), ctx, None, eliminateDomains)
+        val p = Program(mexprs.map(m => Assignment(m.name, m.e)))
+        new MProgram(p, ctx2)
 
       case _ =>
         sys.error("Materialization not supported for " + quote(a))
@@ -272,27 +188,18 @@ trait Materialization extends MaterializationContext {
                                    name: String,
                                    ctx: Context,
                                    parent: Option[(MExpr, String)],
-                                   eliminateDomains: Boolean
-                                 ): (List[MExpr], Context) =
+                                   eliminateDomains: Boolean): (List[MExpr], Context) =
     dict match {
-      case l: Let if l.e1.isInstanceOf[DictExpr] =>
+      case EmptyDict | EmptyDictUnion => (Nil, ctx)
+
+      case _: DictVarRef => (Nil, ctx)
+
+      case BagDict(tp, ShredUnion(b1, b2), TupleDictUnion(d1, d2)) =>
         val (ee1, ctx1) =
-          materializeDictExpr(l.e1.asInstanceOf[DictExpr], l.x.name, ctx, parent, eliminateDomains)
+          materializeDictExpr(BagDict(tp, b1, d1), name, ctx, parent, eliminateDomains)
         val (ee2, ctx2) =
-          materializeDictExpr(l.e2.asInstanceOf[DictExpr], name, ctx1, parent, eliminateDomains)
-
-        // Prefix each expression in ee2 with a let expression over ee1
-        val ee2let = ee2.map(m => MExpr(m.name, Let(ee1, m.e)))
-        (ee2let, ctx2)
-
-      case l: Let =>
-        val r1 = rewriteUsingContext(l.e1, ctx)
-        val (ee2, ctx2) =
-          materializeDictExpr(l.e2.asInstanceOf[DictExpr], name, ctx, parent, eliminateDomains)
-
-        // Prefix each expression in ee2 with a let expression with r1
-        val ee2let = ee2.map(m => MExpr(m.name, Let(l.x, r1, m.e)))
-        (ee2let, ctx2)
+          materializeDictExpr(BagDict(tp, b2, d2), name, ctx, parent, eliminateDomains)
+        (ee1 ++ ee2, ctx1 ++ ctx2)
 
       case d: BagDict =>
         materializeBagDict(d, name, ctx, parent, eliminateDomains)
@@ -300,72 +207,58 @@ trait Materialization extends MaterializationContext {
       case d: TupleDict =>
         materializeTupleDict(d, name, ctx, parent, eliminateDomains)
 
-      case d @ TupleDictProject(v: BagDictVarRef) =>
-        val mparent = ctx(v)
-        val children = ctx.childrenOf(mparent)
-        if (children.isEmpty) (Nil, ctx) else {
-          val fields = children.map(m => m._1 -> m._2.varRef.asInstanceOf[TupleAttributeExpr])
-          val mexpr = MExpr(matTupleName(name), Tuple(fields))
-          // Extend context
-          val ctx2 = ctx.add(TupleDictVarRef(name, d.tp), mexpr, Some(mparent -> "tupleDict"))
-          (List(mexpr), ctx2)
-        }
+      case d: BagDictProject =>       // (Nil, ctx)
+        materializeDictExpr(d.tuple, name, ctx, parent, eliminateDomains)
 
-      case d @ TupleDictProject(p: BagDictProject) =>
-        val mgrandparent = ctx(p.tuple).asInstanceOf[MTuple]
-        val mparent = ctx.find(mgrandparent.e(p.field)).get
-        val children = ctx.childrenOf(mparent)
-        if (children.isEmpty) (Nil, ctx) else {
-          val fields = children.map(m => m._1 -> m._2.varRef.asInstanceOf[TupleAttributeExpr])
-          val mexpr = MExpr(matTupleName(name), Tuple(fields))
-          // Extend context
-          val ctx2 = ctx.add(TupleDictVarRef(name, d.tp), mexpr, Some(mparent -> "tupleDict"))
-          (List(mexpr), ctx2)
-        }
+      case d: TupleDictProject =>     // (Nil, ctx)
+        materializeDictExpr(d.dict, name, ctx, parent, eliminateDomains)
 
+      case l: DictLet if l.e1.isInstanceOf[DictExpr] =>
+        val d1 = l.e1.asInstanceOf[DictExpr]
+        val (ee1, ctx1) =
+          materializeDictExpr(d1, l.x.name, ctx, parent, eliminateDomains)
+        val ctx2 =
+          ctx1.add(DictVarRef(l.x.name, d1.tp), ctx1(d1), None)    // don't care about parent as recur down
+        val (ee2, ctx3) =
+          materializeDictExpr(l.e2, name, ctx2, parent, eliminateDomains)
 
-//        val mtuple = ctx(p.tuple).asInstanceOf[MTuple]
-//        val mfield = mtuple.e(p.field)
-//        val children = ctx.childrenOf(mfield)
-//        val fields = children.map(m => m._1 -> m._2.varRef.asInstanceOf[TupleAttributeExpr])
-//        Tuple(fields)
+        // Prefix each expression in ee2 with a let expression over ee1
+        val ee2let = ee2.map(m => MExpr(m.name, Let(ee1, m.e)))
+        (ee2let, ctx3)
 
-      //      case d: DictVarRef => (ctx(d), Nil)
-//
-//      case _: BagDictProject => (Nil, ctx)
-//
-//      case _: BagDictIfThenElse => (Nil, ctx)
-//
-//      case _: TupleDictIfThenElse => (Nil, ctx)
+      case l: DictLet =>
+        val r1 = rewriteUsingContext(l.e1, ctx)
+        val (ee2, ctx2) =
+          materializeDictExpr(l.e2, name, ctx, parent, eliminateDomains)
 
-//      case BagDictLet(x, e1: NewLabel, e2: BagDictExpr) =>
-//        val ctx2 = ctx.addLabel(LabelVarRef(x.name, e1.tp), isTopLevel = e1.params.isEmpty)
-//        val seq2 = materializeBagDict(e2, name, ctx2, eliminateDomains)
-//        val ss2 = seq2.exprs.map(s => s._1 -> makeLet(List(x.name -> e1), s._2))
-//        new NamedSequence(ss2, seq2.ctx)
+        // Prefix each expression in ee2 with a let expression with r1
+        val ee2let = ee2.map(m => MExpr(m.name, Let(l.x.name, r1, m.e)))
+        (ee2let, ctx2)
+
+      case i: DictIfThenElse =>
+        val (ee1, ctx1) =
+          materializeDictExpr(i.e1, name, ctx, parent, eliminateDomains)
+        val (ee2, ctx2) =
+          materializeDictExpr(i.e2.get, name, ctx, parent, eliminateDomains)
+        (ee1 ++ ee2, ctx1 ++ ctx2)
+
+      case d: DictUnion =>
+        val (ee1, ctx1) =
+          materializeDictExpr(d.dict1, name, ctx, parent, eliminateDomains)
+        val (ee2, ctx2) =
+          materializeDictExpr(d.dict2, name, ctx, parent, eliminateDomains)
+        (ee1 ++ ee2, ctx1 ++ ctx2)
 
       case _ =>
-        sys.error("Dictionary materialization not supported for "+ quote(dict))
+        sys.error("Dictionary materialization not supported for " + quote(dict))
     }
 
   private def materializeBagDict( dict: BagDict,
                                   name: String,
                                   ctx: Context,
                                   parent: Option[(MExpr, String)],
-                                  eliminateDomains: Boolean
-                                ): (List[MExpr], Context) =
+                                  eliminateDomains: Boolean): (List[MExpr], Context) =
     dict match {
-      case BagDict(tp, ShredUnion(b1, b2), TupleDictUnion(d1, d2)) =>
-        val (ee1, ctx1) = {
-          val bd1 = BagDict(tp, b1, d1)
-          materializeBagDict(bd1, name, ctx, parent, eliminateDomains)
-        }
-        val (ee2, ctx2) = {
-          val bd2 = BagDict(tp, b2, d2)
-          materializeBagDict(bd2, name, ctx, parent, eliminateDomains)
-        }
-        (ee1 ++ ee2, ctx1 ++ ctx2)
-
       case BagDict(_, flat, tupleDict: TupleDictExpr) if parent.isEmpty =>
           // 1. Eliminate symbolic dictionaries from flat expression
           val flatBag = rewriteUsingContext(flat, ctx).asInstanceOf[BagExpr]
@@ -375,7 +268,9 @@ trait Materialization extends MaterializationContext {
           val mexpr = MExpr(matBagName(suffix), flatBag)
 
           // 3. Extend context
-          val ctx2 = ctx.add(BagDictVarRef(name, dict.tp), mexpr, parent)
+          val ctx2 = ctx
+            .add(dict, mexpr, parent)
+            .add(BagDictVarRef(name, dict.tp), mexpr, parent)
 
           // 4. Materialize children
           val (children, ctx3) =
@@ -384,18 +279,12 @@ trait Materialization extends MaterializationContext {
           (mexpr :: children, ctx3)
 
       case BagDict(_, flat, tupleDict: TupleDictExpr) =>
-        val (parentDict, field) = parent.get
+        val isEliminated = if (eliminateDomains) eliminateDomain(flat, ctx) else None
 
-        // Get new label type for flat lambda expression
-        val newLabelTp = parentDict match {
-          case d: MBag => d.e.tp.tp(field).asInstanceOf[LabelType]
-          case d: MKeyValueMap => d.e.tp.valueTp.tp(field).asInstanceOf[LabelType]
-        }
-
-        val eliminated = if (eliminateDomains) eliminateDomain(newLabelTp, flat, ctx) else None
-
-        eliminated match {
+        isEliminated match {
           case None =>
+            val (parentDict, field) = parent.get
+
             // 1. Create label domain
             val domain = createLabelDomain(parentDict, field)
             val domainRef = domain.varRef
@@ -414,7 +303,7 @@ trait Materialization extends MaterializationContext {
             val mexpr = MExpr(matMapName(suffix), BagToKeyValueMap(dictBag2))
 
             // 4. Extend context
-            val ctx2 = ctx.add(BagDictVarRef(name, dict.tp), mexpr, parent)
+            val ctx2 = ctx.add(dict, mexpr, parent)
 
             // 5. Materialize children if needed
             val (children, ctx3) =
@@ -422,14 +311,13 @@ trait Materialization extends MaterializationContext {
 
             (domain :: mexpr :: children, ctx3)
 
-          case Some((flatBag, flatCtx)) =>
+          case Some(flatBag) =>
             // 1. Create named expression
             val suffix = Symbol.fresh(name + "_")
-            val kvDict = BagToKeyValueMap(flatBag)
-            val mexpr = MExpr(matMapName(suffix), kvDict)
+            val mexpr = MExpr(matMapName(suffix), BagToKeyValueMap(flatBag))
 
             // 2. Extend context
-            val ctx2 = flatCtx.add(BagDictVarRef(name, dict.tp), mexpr, parent)
+            val ctx2 = ctx.add(dict, mexpr, parent)
 
             // 3. Materialize children if needed
             val (children, ctx3) =
@@ -446,24 +334,22 @@ trait Materialization extends MaterializationContext {
                                    name: String,
                                    ctx: Context,
                                    parent: Option[(MExpr, String)],
-                                   eliminateDomains: Boolean
-                                  ): (List[MExpr], Context) = {
+                                   eliminateDomains: Boolean): (List[MExpr], Context) = {
     dict.fields.foldLeft (List.empty[MExpr], ctx) {
-      case ((alist, actx), (n: String, d: BagDictExpr)) =>
+      case (acc, (_, EmptyDict)) => acc
+
+      case ((ee1, ctx1), (f: String, d: BagDictExpr)) =>
         // Materialize child dictionary
-        val cparent = parent.map(_._1 -> n)
-        val (clist, cctx) =
-          materializeDictExpr(d, name + "_" + n, ctx, cparent, eliminateDomains)
-        (alist ++ clist, actx ++ cctx)
-
-      case (acc, (_, EmptyDict)) =>
-        acc
-
+        val p = parent.map(_._1 -> f)
+        val (ee2, ctx2) =
+          materializeDictExpr(d, name + "_" + f, ctx1, p, eliminateDomains)
+        val ctx3 = ctx2.add(ctx2(d), p)
+        (ee1 ++ ee2, ctx3)
       case (_, (_, d)) =>
         sys.error("[materializeTupleDict] Unsupported dictionary type: " + d)
     }
+    // TODO: add TupleDictVarRef -> MTuple() if parent = None
   }
-
 
   def unshred(p: ShredProgram, ctx: Context): Program = {
     Symbol.freshClear()

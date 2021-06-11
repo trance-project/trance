@@ -25,6 +25,8 @@ object TestMaterialization extends App
     val optShredded = optimize(shredded)
     println("Shredded program optimized: \n" + quote(optShredded) + "\n")
 
+    val materializedProgramUnopt = materialize(shredded, eliminateDomains = true)
+
     val materializedProgram = materialize(optShredded, eliminateDomains = true)
     println("Materialized program: \n" + quote(materializedProgram.program) + "\n")
 
@@ -496,39 +498,37 @@ object TestMaterialization extends App
     val materializedProgram = materialize(optShredded, eliminateDomains = true)
     println("Materialized program (if hoists + dict iteration): \n" + quote(materializedProgram.program) + "\n")
 
-//    val unshredded = unshred(optShredded, materializedProgram.ctx)
-//    println("Unshredded program: \n" + quote(unshredded) + "\n")
+    val unshredded = unshred(optShredded, materializedProgram.ctx)
+    println("Unshredded program: \n" + quote(unshredded) + "\n")
 
   }
 
   // test multiple lets
-  // testLet()
+//   testLet()
   // issue here when i do a nested aggregation, maintain 
   // input structure and then later associate them
-  testDicts()
-
-
+//  testDicts()
 
 //  runSequential()
 //   runSequential2()
 //   domainTest()
 
-  // dualConditionLabels()
-  // dualConditionLabels2()
-  // matFailedAssertion()
+//   dualConditionLabels()
+//   dualConditionLabels2()
+//   matFailedAssertion()
   
-  //matTupleDictUnsupported1()
-  //matTupleDictUnsupported2()
-  //matTupleDictUnsupported3()
-  // matTupleDictUnsupported4()
+//  matTupleDictUnsupported1()
+//  matTupleDictUnsupported2()
+//  matTupleDictUnsupported3()
+//   matTupleDictUnsupported4()
   // similar query that projects less attributes, and passes
-  //matTupleDictUnsupported5()
+//  matTupleDictUnsupported5()
 
 
 //  run(tpch.Query1.program.asInstanceOf[Program])
 //  run(tpch.Query2.program.asInstanceOf[Program])
 //  run(tpch.Query3.program.asInstanceOf[Program])
-//  run(tpch.Query4.program.asInstanceOf[Program])
+  run(tpch.Query4.program.asInstanceOf[Program])
 //  run(tpch.Query5.program.asInstanceOf[Program])
 //  run(tpch.Query6.program.asInstanceOf[Program])
 //  run(tpch.Query7.program.asInstanceOf[Program])

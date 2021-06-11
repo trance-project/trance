@@ -106,7 +106,7 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
       (xr, e1)
     }
 
-  def let: Parser[Let] = letinit~"in"~term ^^ 
+  def let: Parser[Expr] = letinit~"in"~term ^^
     { case (x1:VarDef, e1:Expr)~"in"~(e2:Expr) => e2.tp match {
         case _:BagType => BagLet(x1, e1, e2.asInstanceOf[BagExpr])
         case _:TupleType => TupleLet(x1, e1, e2.asInstanceOf[TupleExpr])

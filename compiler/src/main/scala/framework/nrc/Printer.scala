@@ -11,15 +11,11 @@ trait Printer {
   import framework.utils.Utils.ind
 
   def quote(e: Expr): String = e match {
-    case c: Const if c.tp == StringType =>
-      "\"" + c.v + "\""
-    case c: Const =>
-      c.v.toString
-	case Udf(n, e1, _) => s"$n(${quote(e1)})"
-	case v: VarRef =>
-      v.name
-    case p: Project =>
-      quote(p.tuple) + "." + p.field
+    case c: Const if c.tp == StringType => "\"" + c.v + "\""
+    case c: Const => c.v.toString
+    case Udf(n, e1, _) => s"$n(${quote(e1)})"
+    case v: VarRef => v.name
+    case p: Project => quote(p.tuple) + "." + p.field
     case ForeachUnion(x, e1, e2) =>
       s"""|For ${x.name} in ${quote(e1)} Union
           |${ind(quote(e2))}""".stripMargin
@@ -36,14 +32,10 @@ trait Printer {
       s"""|Let ${l.x.name} =
           |${ind(quote(l.e1))} 
           |In ${quote(l.e2)}""".stripMargin
-    case c: Cmp =>
-      s"${quote(c.e1)} ${c.op} ${quote(c.e2)}"
-    case And(e1, e2) =>
-      s"${quote(e1)} AND ${quote(e2)}"
-    case Or(e1, e2) =>
-      s"${quote(e1)} OR ${quote(e2)}"
-    case Not(e1) =>
-      s"NOT ${quote(e1)}"
+    case c: Cmp => s"${quote(c.e1)} ${c.op} ${quote(c.e2)}"
+    case And(e1, e2) => s"${quote(e1)} AND ${quote(e2)}"
+    case Or(e1, e2) => s"${quote(e1)} OR ${quote(e2)}"
+    case Not(e1) => s"NOT ${quote(e1)}"
     case i: IfThenElse =>
       if (i.e2.isDefined)
         s"""|If (${quote(i.cond)}) Then
@@ -53,8 +45,7 @@ trait Printer {
       else
         s"""|If (${quote(i.cond)}) Then
             |${ind(quote(i.e1))}""".stripMargin
-    case ArithmeticExpr(op, e1, e2) =>
-      s"(${quote(e1)} $op ${quote(e2)})"
+    case ArithmeticExpr(op, e1, e2) => s"(${quote(e1)} $op ${quote(e2)})"
     case Count(e1) => s"Count(${quote(e1)})"
     case Sum(e1, fs) =>
       s"Sum(${quote(e1)}, (${fs.mkString(", ")}))"
@@ -79,8 +70,7 @@ trait Printer {
       s"NewLabel(${(l.id :: ps).mkString(", ")})"
 
     // Dictionary extensions
-    case EmptyDict =>
-      "Nil"
+    case EmptyDict => "Nil"
     case BagDict(tp, flat, dict) =>
       val params = tp.attrTps.keys.mkString(", ")
 //      val params = tp.attrTps.map(x => x._1 + ": " + quote(x._2)).mkString(", ")

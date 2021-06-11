@@ -31,16 +31,22 @@ trait BaseExpr {
     def tp: BagType
   }
 
+  trait GroupByExpr extends BagExpr {
+    def e: BagExpr
+
+    def keys: List[String]
+
+    def keysTp: TupleType
+
+    def values: List[String]
+
+    def valuesTp: Type
+  }
+
   trait AbstractTuple
 
   trait TupleExpr extends Expr with AbstractTuple {
     def tp: TupleType
-  }
-
-  trait NamedExpr {
-    def name: String
-
-    def e: Expr
   }
 }
 
@@ -52,6 +58,8 @@ trait NRC extends BaseExpr {
   val GROUP_ATTR_NAME: String = "_GROUP"
 
   sealed trait Const {
+    this: Expr =>
+
     def v: Any
 
     def tp: PrimitiveType
@@ -62,11 +70,11 @@ trait NRC extends BaseExpr {
   final case class PrimitiveConst(v: Any, tp: PrimitiveType) extends PrimitiveExpr with Const
 
   trait VarRef {
+    this: Expr =>
+
     def varDef: VarDef = VarDef(name, tp)
 
     def name: String
-
-    def tp: Type
   }
 
   final case class NumericVarRef(name: String, tp: NumericType) extends NumericExpr with VarRef
@@ -77,18 +85,20 @@ trait NRC extends BaseExpr {
 
   final case class TupleVarRef(name: String, tp: TupleType) extends TupleExpr with VarRef
 
-  // TODO: change in to args
+  // TODO: change to args
   final case class Udf(name: String, in: PrimitiveExpr, tp: NumericType) extends NumericExpr
 
   trait Project {
+    this: Expr =>
+
     def tuple: VarRef with Expr
 
     def field: String
-
-    def tp: Type
   }
 
   trait TupleProject extends Project {
+    this: Expr =>
+
     def tuple: TupleVarRef
 
     def field: String
@@ -140,14 +150,14 @@ trait NRC extends BaseExpr {
     def apply(fs: (String, TupleAttributeExpr)*): Tuple = Tuple(Map(fs: _*))
   }
 
-  trait Let extends Expr {
+  trait Let {
+    this: Expr =>
+
     def x: VarDef
 
     def e1: Expr
 
     def e2: Expr
-
-    def tp: Type
   }
 
   final case class NumericLet(x: VarDef, e1: Expr, e2: NumericExpr) extends NumericExpr with Let {
@@ -193,6 +203,8 @@ trait NRC extends BaseExpr {
   final case class Not(c: CondExpr) extends CondExpr
 
   trait IfThenElse {
+    this: Expr =>
+
     def cond: CondExpr
 
     def e1: Expr
@@ -247,23 +259,10 @@ trait NRC extends BaseExpr {
       TupleType(fields.map(n => n -> e.tp.tp(n)).toMap)
   }
 
-  trait GroupByExpr extends BagExpr {
-    def e: BagExpr
-
-    def keys: List[String]
-
-    def keysTp: TupleType
-
-    def values: List[String]
-
-    def valuesTp: Type
-  }
-
   final case class GroupByKey(e: BagExpr,
                               keys: List[String],
                               values: List[String],
-                              groupAttrName: String = GROUP_ATTR_NAME
-                             ) extends GroupByExpr {
+                              groupAttrName: String = GROUP_ATTR_NAME) extends GroupByExpr {
     assert(keys.size == keys.distinct.size, "Duplicated group-by keys")
 
     val keysTp: TupleType =
