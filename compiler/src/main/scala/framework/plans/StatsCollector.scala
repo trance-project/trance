@@ -25,15 +25,15 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
 
   val data: String = if (inputs.isEmpty){
     s"""|   val db = spark.catalog.currentDatabase
-        |   val copynumber = spark.table("fcopynumber")
-        |   val occurrences = spark.table("foccurrences")
-        |   val samples = spark.table("fsamples")
+        |   val copynumber = spark.table("copynumber")
+        |   val occurrences = spark.table("occurrences")
+        |   val samples = spark.table("samples")
         |   val IBag_copynumber__D = copynumber
         |   val IBag_samples__D = samples
-        |   val IBag_occurrences__D = spark.table("fodict1")
-        |   val IDict_occurrences__D_transcript_consequences = spark.table("fodict2")
-        |   val IDict_occurrences__D_transcript_consequences_consequence_terms = spark.table("fodict3")
-      """
+        |   val IBag_occurrences__D = spark.table("odict1")
+        |   val IDict_occurrences__D_transcript_consequences = spark.table("odict2")
+        |   val IDict_occurrences__D_transcript_consequences_consequence_terms = spark.table("odict3")
+      """.stripMargin
   }else inputs 
   
   val zep = new ZeppelinFactory(host = zhost, port = zport)
@@ -138,7 +138,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
       val pid = zep.writeParagraph(noteid, para)
       // println(s"Writing to paragraph: $pid")
       val status = zep.runParaSync(noteid, pid)
-      zep.deleteNote(noteid)
+      // zep.deleteNote(noteid)
       status
     }
   }

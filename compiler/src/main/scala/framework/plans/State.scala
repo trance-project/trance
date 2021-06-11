@@ -12,7 +12,11 @@ import scala.collection.mutable.Map
 case class CacheAction(sig: Integer, cand: CostEstimate)
 
 case class CacheState(candidatePool: Map[Integer, CostEstimate], 
-	selected: Map[Integer, CNamed], size: Double, profit: Double)
+	selected: Map[Integer, CNamed], size: Double, profit: Double){
+	override def toString(): String = {
+		s"Selected: ${selected.keySet}, size: $size, profit: $profit\n"
+	}
+}
 
 trait Environment{
 
@@ -32,20 +36,24 @@ object CacheSelectionProblem{
 
 			override def step(currentState: CacheState, actionTaken: CacheAction): (CacheState, Double) = {
 				
+				println(s"in here with state: $currentState")
 				val curr_weight = actionTaken.cand.est.outSize
 				val curr_profit = actionTaken.cand.profit
 
 				val acc_size = currentState.size - curr_weight
 				val acc_profit = currentState.profit + curr_profit
 
-				val nextState = 
-					if ((acc_size - curr_weight) < 0.0) currentState
-					else {
-						val updatedPool = currentState.candidatePool - actionTaken.sig
-						CacheState(updatedPool, currentState.selected + (actionTaken.sig -> actionTaken.cand.plan), acc_size, acc_profit)
-					}
+				// TODO FIX THIS MESS
+				val updatedPool = currentState.candidatePool - actionTaken.sig
+				val (currentSelection, ssize) = 
+					if (acc_size < 0.0) (currentState.selected, currentState.size)
+					else (currentState.selected + (actionTaken.sig -> actionTaken.cand.plan), acc_size)
+
+
+				val nextState = CacheState(updatedPool, currentSelection, ssize, acc_profit)
 
 				val reward = if (isTerminal(nextState)) -1.0 else 0.0
+				println(s"and completed with state: $nextState")
 
 				(nextState, reward)
 
@@ -97,11 +105,16 @@ class CacheQLearner(candidates: Map[Integer, CostEstimate], capacity: Double) {
 
 	}
 
-	def run(): Map[Integer, CNamed] = {
+	def run(episodes: Int = 10): Map[Integer, CNamed] = {
 		var start = System.currentTimeMillis()
-		while(!env.isTerminal(cacheState)) step()
-		val currState = cacheState
-		endOfEpisode()
+		var i = 0 
+		var currState = cacheState
+		for (i <- 1 to episodes){
+			while(!env.isTerminal(cacheState)) step()
+			endOfEpisode()
+			currState = cacheState
+			println(s"ended episode with: ${currState.profit}")
+		}
 		var end = System.currentTimeMillis() - start
 		println(s"QLearning took: $end ms")
 		currState.selected

@@ -47,7 +47,7 @@ object Sharing extends App {
     // val dlbctest = 371520
     // total is ~4500 so way underestimated
     // upper bound
-    val dlbctest = 5
+    val dlbctest = 3000
     val brcatest = 8000000
 
     // capacity in KB
