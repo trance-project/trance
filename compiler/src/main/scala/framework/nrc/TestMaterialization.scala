@@ -503,11 +503,37 @@ object TestMaterialization extends App
 
   }
 
+  def testTuple(): Unit = {
+    val query1 = Tuple("y" -> tpch.Query1.query1.asInstanceOf[TupleAttributeExpr])
+    val bag1 = BagProject(TupleVarRef("A", query1.tp), "y")
+    val query2 =
+      ForeachUnion(
+        VarDef("x", bag1.tp.tp), bag1,
+        Singleton(Tuple("c" -> PrimitiveProject(TupleVarRef("x", bag1.tp.tp), "c_name")))
+    )
+
+    val program = Program(Assignment("A", query1), Assignment("B", query2))
+
+    println("Program: \n" + quote(program) + "\n")
+
+    val (shredded, _) = shredCtx(program)
+    println("Shredded program: \n" + quote(shredded) + "\n")
+
+    val optShredded = optimize(shredded)
+    println("Shredded program optimized: \n" + quote(optShredded) + "\n")
+
+    val materializedProgram = materialize(optShredded, eliminateDomains = true)
+    println("Materialized program (if hoists + dict iteration): \n" + quote(materializedProgram.program) + "\n")
+
+    val unshredded = unshred(optShredded, materializedProgram.ctx)
+    println("Unshredded program: \n" + quote(unshredded) + "\n")
+  }
+
   // test multiple lets
 //   testLet()
   // issue here when i do a nested aggregation, maintain 
   // input structure and then later associate them
-//  testDicts()
+  testDicts()
 
 //  runSequential()
 //   runSequential2()
@@ -528,8 +554,10 @@ object TestMaterialization extends App
 //  run(tpch.Query1.program.asInstanceOf[Program])
 //  run(tpch.Query2.program.asInstanceOf[Program])
 //  run(tpch.Query3.program.asInstanceOf[Program])
-  run(tpch.Query4.program.asInstanceOf[Program])
+//  run(tpch.Query4.program.asInstanceOf[Program])
 //  run(tpch.Query5.program.asInstanceOf[Program])
 //  run(tpch.Query6.program.asInstanceOf[Program])
 //  run(tpch.Query7.program.asInstanceOf[Program])
+
+//  testTuple()/**/
 }

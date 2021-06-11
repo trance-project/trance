@@ -130,13 +130,12 @@ trait MaterializationContext extends BaseMaterialization with MaterializationDom
 
     case d: DictExpr => ctx(d).e
 
-    case Lookup(l, d) =>
-      rewriteUsingContext(d, ctx) match {
-        case e: BagExpr => e
-        case e: KeyValueMapExpr =>
-          val l2 = rewriteUsingContext(l, ctx).asInstanceOf[LabelExpr]
-          KeyValueMapLookup(l2, e)
-      }
+    case Lookup(l, d) => ctx(d) match {
+      case e: MBag => e.varRef
+      case e: MKeyValueMap =>
+        val l2 = rewriteUsingContext(l, ctx).asInstanceOf[LabelExpr]
+        KeyValueMapLookup(l2, e.varRef)
+    }
   })
 }
 
@@ -173,7 +172,6 @@ trait Materialization extends MaterializationContext {
         val p = Program(mexprs.map(m => Assignment(m.name, m.e)))
         new MProgram(p, ctx2)
 
-      // TODO: test this
       case ShredExpr(_: TupleExpr, d: TupleDictExpr) =>
         val (mexprs, ctx2) =
           materializeDictExpr(d, dictName(a.name), ctx, None, eliminateDomains)
@@ -303,7 +301,9 @@ trait Materialization extends MaterializationContext {
             val mexpr = MExpr(matMapName(suffix), BagToKeyValueMap(dictBag2))
 
             // 4. Extend context
-            val ctx2 = ctx.add(dict, mexpr, parent)
+            val ctx2 =
+              ctx.add(dict, mexpr, parent)
+//                 .add(BagDictVarRef(name, dict.tp), mexpr, parent)
 
             // 5. Materialize children if needed
             val (children, ctx3) =
@@ -317,7 +317,9 @@ trait Materialization extends MaterializationContext {
             val mexpr = MExpr(matMapName(suffix), BagToKeyValueMap(flatBag))
 
             // 2. Extend context
-            val ctx2 = ctx.add(dict, mexpr, parent)
+            val ctx2 =
+              ctx.add(dict, mexpr, parent)
+//                 .add(BagDictVarRef(name, dict.tp), mexpr, parent)
 
             // 3. Materialize children if needed
             val (children, ctx3) =
@@ -335,20 +337,28 @@ trait Materialization extends MaterializationContext {
                                    ctx: Context,
                                    parent: Option[(MExpr, String)],
                                    eliminateDomains: Boolean): (List[MExpr], Context) = {
-    dict.fields.foldLeft (List.empty[MExpr], ctx) {
-      case (acc, (_, EmptyDict)) => acc
+    val (ff2, ee2, ctx2) =
+      dict.fields.foldLeft (Map.empty[String, MExpr], List.empty[MExpr], ctx) {
+        case (acc, (_, EmptyDict)) => acc
 
-      case ((ee1, ctx1), (f: String, d: BagDictExpr)) =>
-        // Materialize child dictionary
-        val p = parent.map(_._1 -> f)
-        val (ee2, ctx2) =
-          materializeDictExpr(d, name + "_" + f, ctx1, p, eliminateDomains)
-        val ctx3 = ctx2.add(ctx2(d), p)
-        (ee1 ++ ee2, ctx3)
-      case (_, (_, d)) =>
-        sys.error("[materializeTupleDict] Unsupported dictionary type: " + d)
-    }
-    // TODO: add TupleDictVarRef -> MTuple() if parent = None
+        case ((ff1, ee1, ctx1), (f: String, d: BagDictExpr)) =>
+          // Materialize child dictionary
+          val p = parent.map(_._1 -> f)
+          val (ee2, ctx2) =
+            materializeDictExpr(d, name + "_" + f, ctx1, p, eliminateDomains)
+          val md = ctx2(d)
+//          val varRef = md match {
+//            case m: MBag => m.varRef
+//            case m: MKeyValueMap => m.varRef
+//          }
+          (ff1 + (f -> md), ee1 ++ ee2, ctx2.add(ctx2(d), p))
+        case (_, (_, d)) =>
+          sys.error("[materializeTupleDict] Unsupported dictionary type: " + d)
+      }
+    if (parent.isEmpty)
+      (ee2, ctx2.add(TupleDictVarRef(name, dict.tp), MTuple(ff2), parent))
+    else
+      (ee2, ctx2)
   }
 
   def unshred(p: ShredProgram, ctx: Context): Program = {
@@ -357,10 +367,13 @@ trait Materialization extends MaterializationContext {
   }
 
   private def unshred(a: ShredAssignment, ctx: Context): Program = a.rhs match {
+//    case ShredExpr(e: PrimitiveExpr, EmptyDict) =>
+
     case ShredExpr(l: LabelExpr, d: BagDictExpr) =>
       assert(l.tp == d.tp.lblTp)   // sanity check
       val (p, b) = unshredDict(d, l, ctx)
       Program(p.statements :+ Assignment(a.name, b))
+
     case _ =>
       sys.error("Unshredding not supported for " + quote(a))
   }
