@@ -218,7 +218,9 @@ trait Shredding extends BaseShredding with Extensions {
     p.statements.foldLeft(shredEnv(inputVars(p)), (ShredProgram(), tpResolver)) {
       case ((env, (acc, ctx)), stmt) =>
         val sa = shred(env, ctx, stmt)
-        (env ++ shredEnv(stmt.name, stmt.rhs.tp),
+        (env +
+          (flatName(stmt.name) -> VarDef(flatName(stmt.name), sa.rhs.flat.tp)) +
+          (dictName(stmt.name) -> VarDef(dictName(stmt.name), sa.rhs.dict.tp)),
           (ShredProgram(acc.statements :+ sa), ctx + (sa.name -> (sa.rhs.flat.tp, sa.rhs.dict.tp))))
     }._2
 
