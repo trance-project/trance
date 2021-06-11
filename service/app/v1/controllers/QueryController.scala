@@ -100,7 +100,7 @@ class QueryController @Inject()(
 
   private def runProgram(plan: CExpr, queryId: String): String = {
 
-    val zep = new ZeppelinFactory(host = "localhost", port = 8085)
+    val zep = new ZeppelinFactory(host = "localhost", port = 8082)
 
     val anfBase = new BaseOperatorANF{}
     val anfer = new Finalizer(anfBase)
@@ -112,8 +112,9 @@ class QueryController @Inject()(
     val pcontents = writeParagraph(queryId, generator.generateHeader(), code, generator.generateEncoders())
     val para = new ZJsonWriter().buildParagraph("Generated paragraph test", pcontents)
     val pid = zep.writeParagraph(noteid, para)
-    val status = zep.runParaSync(noteid, pid)
-    status
+    // val status = zep.runParaSync(noteid, pid)
+    // status
+    pid
 
   }
 

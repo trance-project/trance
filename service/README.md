@@ -9,8 +9,12 @@ mkdir lib
 cd ../compiler
 sbt package
 cp target/scala-2.12/framework_2.12-0.1.jar ../service/lib/
+
+cd ../executor/spark
+sbt package 
+cp target/scala-2.12/sparkutils_2.12-0.1.jar ../../service/lib
 ```
-Add the framework_2.12-0.1.jar in the lib folder to the External libraries found on you favorite 
+Add these jars to the lib folder to the External libraries found on your favorite 
 IDE project settings.
 
 ### Example requests
