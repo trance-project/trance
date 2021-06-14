@@ -53,9 +53,13 @@ class BaseNormalizer(val letOpt: Boolean = false) extends BaseCompiler {
   } 
 
   // N1, N2
-  override def bind(e1: Rep, e: Rep => Rep): Rep = {
-    if (letOpt) super.bind(e1, e) 
-    else e(e1)
+  // override def bind(e1: Rep, e: Rep => Rep): Rep = {
+  //   if (letOpt) super.bind(e1, e) 
+  //   else e(e1)
+  // }
+  override def bind(e1: Rep, e: Rep => Rep): Rep = e1 match {
+    case _:CNamed => super.bind(e1, e)
+    case _ => e(e1)
   }
 
   // N3 (a := e1, b: = e2).a = e1

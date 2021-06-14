@@ -1,12 +1,12 @@
 package framework.plans
 
 import framework.common._
-import framework.nrc.{Printer => NRCPrinter, MaterializeNRC}
+import framework.nrc.{Printer => NRCPrinter, MaterializeNRC, Materialization}
 
 /** Translate NRC from standard and shredded pipeline into 
   * a comprehension language that supports normalization. 
   */
-trait NRCTranslator extends MaterializeNRC with NRCPrinter {
+trait NRCTranslator extends Materialization with MaterializeNRC with NRCPrinter {
   val compiler = new BaseCompiler{}
   import compiler._
 
@@ -117,5 +117,6 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
 
   def translate(a: Assignment): CExpr = CNamed(a.name, translate(a.rhs))
   def translate(p: Program): LinearCSet = LinearCSet(p.statements.map(translate))
+  def translate(p: MProgram): LinearCSet = translate(p.program)
 
 }

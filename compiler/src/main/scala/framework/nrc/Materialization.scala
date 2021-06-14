@@ -142,7 +142,9 @@ trait MaterializationContext extends BaseMaterialization with MaterializationDom
 trait Materialization extends MaterializationContext {
   this: MaterializeNRC with Optimizer with Printer =>
 
-  class MProgram(val program: Program, val ctx: Context)
+  class MProgram(val program: Program, val ctx: Context){
+    override def toString: String = quote(program)
+  }
 
   def materialize(p: ShredProgram,
                   ctx: Context = new Context,
