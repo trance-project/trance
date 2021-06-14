@@ -5,8 +5,6 @@
 
 import React from 'react';
 import {BrowserRouter, Route, Switch} from "react-router-dom";
-import Grid from '@material-ui/core/Grid';
-import Paper from '@material-ui/core/Paper';
 
 import Layout from "./hoc/Layout/Layout";
 import './App.css';
@@ -18,18 +16,15 @@ import PlanOutput from "./containers/PlanOutput/PlanOutput";
 import BlocklyComponent
     from "./component/Query/QueryBuilderComponents/StandardCompilationBuilder/BlocklyBuilder/Blockly/Blockly_Component";
 import Overview from "./component/Overview/Overview";
-import PaperWithHeader from "./component/ui/Paper/PaperWithHeader/PaperWithHeader";
 
 function TranceRouter() {
 
-    const height = 600
-
     const activePage = useAppSelector(state => state.navigation.activePage);
-    const selectedQuery = useAppSelector(state => state.query.selectedQuery)
     const dispatch = useAppDispatch();
 
     const goto_Route = (page: pageRoutes) => {
         dispatch(goToRoute(page));
+
     }
 
     return (

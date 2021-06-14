@@ -2,6 +2,7 @@ import {configureStore} from '@reduxjs/toolkit';
 import navigationReducer from "./NavigationSlice/navigationSlice";
 import queryReducer from "./QuerySlice/querySlice";
 import tranceObjectReducer from "./TranceObjectSlice/tranceObjectSlice";
+import restApiErrorHandlerReducer from "./RestApiErrorHandlerSlice/restApiErrorHandlerSlice";
 
 /**
  * Using the Redux Toolkit to create a central store for ease of access of methods and state across the webapp.
@@ -12,7 +13,8 @@ const store =  configureStore({
     reducer:{
         navigation: navigationReducer,
         query: queryReducer,
-        tranceObject: tranceObjectReducer
+        tranceObject: tranceObjectReducer,
+        restErrorHandle: restApiErrorHandlerReducer
     }
 });
 
@@ -22,7 +24,8 @@ const store =  configureStore({
 export type RootState = ReturnType<typeof store.getState>
 
 /**
- * Inferred type: {navigation: NavigationState, query: QueryState, tranceObject: TranceObjectState}
+ * Inferred type: {navigation: NavigationState, query: QueryState,
+ * tranceObject: TranceObjectState, restErrorHandle: restApiErrorHandlerReducer}
  */
 export type AppDispatch = typeof store.dispatch
 

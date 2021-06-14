@@ -11,11 +11,11 @@ const generateUUID = () => {
 const objects = [
     {
         _id: generateUUID(),
-        name: "Sample",
+        name: "samples",
         abr:"s",
         columns:
             [
-                {name: "sample", children:{}},
+                {name: "bcr_patient_uuid", children:{}},
                 {name: "turmorsite", children:{}},
                 {name: "treatment_outcome", children:{}},
             ]

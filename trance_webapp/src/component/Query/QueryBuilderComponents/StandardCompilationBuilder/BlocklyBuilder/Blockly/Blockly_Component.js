@@ -10,10 +10,11 @@ import ConfigFiles from './initContent/content';
 import parseWorkspaceXml from './BlocklyHelper';
 import './customBlocks/custom_Blocks_old';
 import './generator';
-import SendNrcCodeButton from "./SendNrcCodeButton";
+import SaveButton from "./BlocklyActionButtons/SaveButton";
+import SendButton from "./BlocklyActionButtons/SendButton";
 import {connect} from 'react-redux';
 import {addToSelectedObjects, modifySelectedObjectKeyValue} from '../../../../../../redux/TranceObjectSlice/tranceObjectSlice'
-import {updateBlocklyQuery} from '../../../../../../redux/QuerySlice/querySlice';
+import {updateBlocklyQuery, setNrcCode} from '../../../../../../redux/QuerySlice/querySlice';
 import NrcCodeView from "./nrcCodeView/NrcCodeView";
 
 
@@ -80,6 +81,7 @@ class TestEditor extends React.Component {
             nrcCode:code,
             blocklyXml: newXml
         })
+        this.props.setNrcCode(code);
         console.log(this.state.nrcCode)
         console.log(this.state.blocklyXml)
     }
@@ -117,6 +119,7 @@ class TestEditor extends React.Component {
         const selectedQueryBlock = this.props.query.selectedQuery;
         const blockly = selectedQueryBlock?
             (
+                <>
                 <Grid container spacing={2}>
                     <Grid item md={9} xs={12}>
                         <ReactBlockly
@@ -135,12 +138,14 @@ class TestEditor extends React.Component {
                             workspaceDidChange={this.workspaceDidChange}
 
                         />
-                        <SendNrcCodeButton _id={this.props.query.selectedQuery._id} xmlDocument={this.state.blocklyXml}/>
+                        <SaveButton />
                     </Grid>
                     <Grid item md={3} xs={12}>
                         <NrcCodeView id={selectedQueryBlock._id} nrcCode={this.state.nrcCode}/>
+                        <SendButton />
                     </Grid>
                 </Grid>
+                </>
             ) :<h1>Select or create a new query</h1>;
         return blockly;
     }
@@ -155,7 +160,8 @@ const mapStateToProps = ({tranceObject: tranceObject, query:query}) => ({
 const mapDispatchToProps = {
     addToSelectedObjects,
     modifySelectedObjectKeyValue,
-    updateBlocklyQuery
+    updateBlocklyQuery,
+    setNrcCode
 }
 
 

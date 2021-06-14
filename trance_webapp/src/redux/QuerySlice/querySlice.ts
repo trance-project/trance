@@ -8,11 +8,9 @@ import * as api from './thunkQueryApiCalls';
 interface QueryState {
     queryListSummary: QuerySummary[];
     selectedQuery: QuerySummary | undefined;
-    responseQuery: String;
+    responseQuery: string;
+    nrcQuery: string
 
-    //used to show Indications to user is error or if a request is made and waiting for response
-    loading: "idle" | "loading" | "error";
-    error: string;
 }
 
 /**
@@ -22,9 +20,7 @@ const initialState: QueryState = {
     queryListSummary: [],
     selectedQuery: undefined,
     responseQuery: "",
-
-    loading: "idle",
-    error:""
+    nrcQuery: "",
 }
 
 /**
@@ -37,6 +33,7 @@ export const querySlice = createSlice({
          // Use the PayloadAction type to declare the contents of `action.payload`
          SetSelectedQuery: (state, action: PayloadAction<QuerySummary>) => {
              state.selectedQuery = action.payload
+             state.nrcQuery = "";
          },
          createNewQuery: (state, action: PayloadAction<QuerySummary>) => {
              state.selectedQuery = action.payload
@@ -45,7 +42,10 @@ export const querySlice = createSlice({
              const newSelectedQuery = {...state.selectedQuery} as QuerySummary;
              newSelectedQuery.xmlDocument = action.payload;
              state.selectedQuery = newSelectedQuery;
-         }
+         },
+        setNrcCode: (state, action: PayloadAction<string>) => {
+             state.nrcQuery = action.payload;
+        }
     },
     extraReducers: builder => {
         builder.addCase(api.fetchQueryListSummary.fulfilled, (state, action: PayloadAction<QuerySummary[]>) => {
@@ -54,7 +54,7 @@ export const querySlice = createSlice({
         builder.addCase(api.fetchSelectedQuery.fulfilled, (state, action: PayloadAction<QuerySummary>) => {
             state.selectedQuery = action.payload
         });
-        builder.addCase(api.sendStandardNrcCode.fulfilled, (state, action: PayloadAction<String>) => {
+        builder.addCase(api.sendStandardNrcCode.fulfilled, (state, action: PayloadAction<string>) => {
             state.responseQuery = action.payload
         });
         builder.addCase(api.blocklyCreateNew.fulfilled, (state, action: PayloadAction<QuerySummary>) => {
@@ -71,6 +71,6 @@ export const querySlice = createSlice({
     }
 });
 
-export const {SetSelectedQuery, createNewQuery , updateBlocklyQuery} = querySlice.actions;
+export const {SetSelectedQuery, createNewQuery , updateBlocklyQuery, setNrcCode} = querySlice.actions;
 
 export default querySlice.reducer;

@@ -12,12 +12,13 @@ export const fetchQueryListSummary = createAsyncThunk(
     "query/fetchQuerySummaryList", async (arg, thunkAPI) => {
         try{
             const response = await trancePlayInstance.get("/blockly");
+            if(response)
 
             console.log("[Api call fetchQueryListSummary]", response);
             return response.data as QuerySummary[];
         } catch (error){
             console.log("[Error Occured fetchQueryListSummary]" , error)
-            return thunkAPI.rejectWithValue({error: error.message})
+            return thunkAPI.rejectWithValue(error.message);
         }
 
     }
@@ -52,7 +53,7 @@ export const fetchSelectedQuery = createAsyncThunk(
             return response.data as QuerySummary;
         }  catch (error){
             console.log("[Error Occured fetchSelectedQuery]" , error);
-            return thunkAPI.rejectWithValue({error: error.message});
+            return thunkAPI.rejectWithValue("error occuredssss");
         }
     }
 )
@@ -84,10 +85,18 @@ export const sendStandardNrcCode = createAsyncThunk(
     "query/sendStandardNrcCode", async  (arg: BlocklyNrcCode, thunkAPI) => {
         try{
             const response = await  trancePlayInstance.post("/nrccode", {...arg});
+            if(response.status === 201){
+                // return response.data as string;
+                return thunkAPI.rejectWithValue(response.data as string);
+            }else if(response.status === 500){
+                return thunkAPI.rejectWithValue(`Internal Server Error`);
+            }else if(response.status === 400){
+                return thunkAPI.rejectWithValue(`Invalid Query format`);
+            }
             return response.data as string;
         } catch (error){
             console.log("[Error Occurred sendStandardNrcCode]", error.message)
-            return thunkAPI.rejectWithValue({error: error.message})
+            return thunkAPI.rejectWithValue(error.message)
         }
     }
 )
