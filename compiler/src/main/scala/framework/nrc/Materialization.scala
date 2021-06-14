@@ -117,6 +117,15 @@ trait MaterializationContext extends BaseMaterialization with MaterializationDom
   // TODO:
   private def addInputDict(d: TupleDictVarRef, ctx: Context, parent: Option[(MExpr, String)]): Context = {
     sys.error("Not implemented")
+//    val (ff2, ctx2) =
+//      d.tp.attrTps.foldLeft (Map.empty[String, MExpr], ctx) {
+//        case (acc, (n, t: BagDictType)) =>
+//          val child = BagDictVarRef(d.name + "_" + n, t)
+//          addInputDict(child, acc, Some(matExpr -> n))
+//        case (acc, (_, EmptyDictType)) => acc
+//      }
+//
+//    if (parent.isEmpty) ctx2.add(d, MTuple(ff2), parent) else ctx2
   }
 
   protected def rewriteUsingContext(e0: Expr, ctx: Context): Expr = replace(e0, {
@@ -125,8 +134,7 @@ trait MaterializationContext extends BaseMaterialization with MaterializationDom
       val d1 = l.e1.asInstanceOf[DictExpr]
       val m1 = ctx(d1)
       val ctx2 = ctx.add(DictVarRef(l.x.name, d1.tp), m1, None)   // don't care about parent as recur down
-      val r2 = rewriteUsingContext(l.e2, ctx2)
-      Let(l.x.name, m1.e, r2)
+      rewriteUsingContext(l.e2, ctx2)
 
     case d: DictExpr => ctx(d).e
 
@@ -301,9 +309,7 @@ trait Materialization extends MaterializationContext {
             val mexpr = MExpr(matMapName(suffix), BagToKeyValueMap(dictBag2))
 
             // 4. Extend context
-            val ctx2 =
-              ctx.add(dict, mexpr, parent)
-//                 .add(BagDictVarRef(name, dict.tp), mexpr, parent)
+            val ctx2 = ctx.add(dict, mexpr, parent)
 
             // 5. Materialize children if needed
             val (children, ctx3) =
@@ -317,9 +323,7 @@ trait Materialization extends MaterializationContext {
             val mexpr = MExpr(matMapName(suffix), BagToKeyValueMap(flatBag))
 
             // 2. Extend context
-            val ctx2 =
-              ctx.add(dict, mexpr, parent)
-//                 .add(BagDictVarRef(name, dict.tp), mexpr, parent)
+            val ctx2 = ctx.add(dict, mexpr, parent)
 
             // 3. Materialize children if needed
             val (children, ctx3) =
@@ -347,11 +351,7 @@ trait Materialization extends MaterializationContext {
           val (ee2, ctx2) =
             materializeDictExpr(d, name + "_" + f, ctx1, p, eliminateDomains)
           val md = ctx2(d)
-//          val varRef = md match {
-//            case m: MBag => m.varRef
-//            case m: MKeyValueMap => m.varRef
-//          }
-          (ff1 + (f -> md), ee1 ++ ee2, ctx2.add(ctx2(d), p))
+          (ff1 + (f -> md), ee1 ++ ee2, ctx2.add(md, p))
         case (_, (_, d)) =>
           sys.error("[materializeTupleDict] Unsupported dictionary type: " + d)
       }
