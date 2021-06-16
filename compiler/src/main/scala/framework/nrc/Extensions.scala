@@ -273,7 +273,7 @@ trait Extensions {
     scope.get(name) match {
       case Some(v) =>
         // Sanity check
-         assert(tp == v.tp, "[coveredByScope] Types differ: " + tp + " and " + v.tp)
+         assert(tp == v.tp, s"[coveredByScope] Types differ for $name: " + tp + " and " + v.tp)
         true
       case None => false
     }
