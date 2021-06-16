@@ -78,6 +78,13 @@ trait Factory {
         case tp => sys.error("Cannot create Project for dictionary type " + tp)
       }
     }
+
+    def apply(n: DictNode, field: String): DictNode = n match {
+      case a: STuple => a.fields(field)
+      case a: SLet => SLet(a.name, a.e1, Project(a.n2, field))
+      case a: SIfThenElse => SIfThenElse(a.cond, Project(a.n1, field), Project(a.n2, field))
+      case _ => sys.error("Cannot create Project for dictionary info " + n)
+    }
   }
 
   object Let {
@@ -160,6 +167,7 @@ trait Factory {
 
   object ExtractLabel {
     def apply(lbl: LabelExpr, e: Expr): Expr = e match {
+      case _ if lbl.tp.attrTps.isEmpty => e
       case a: NumericExpr => NumericExtractLabel(lbl, a)
       case a: PrimitiveExpr => PrimitiveExtractLabel(lbl, a)
       case a: BagExpr => BagExtractLabel(lbl, a)
@@ -178,11 +186,12 @@ trait Factory {
     }
   }
 
-  object MExpr {
-    def apply(n: String, e: Expr): MExpr = e match {
+  object MaterializedDict {
+    def apply(n: String, e: Expr): MaterializedDict = e match {
       case a: BagExpr => MBag(n, a)
       case a: KeyValueMapExpr => MKeyValueMap(n, a)
-      case _ => sys.error("Cannot create MExpr for type " + e.tp)
+      case _ => sys.error("Cannot create MaterializedDict for type " + e.tp)
     }
   }
+
 }

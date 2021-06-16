@@ -475,17 +475,7 @@ object TestMaterialization extends App
 
   }
 
-  def testDicts(): Unit = {
-
-    // val lettest = genomic.LetTest3
-    // val tbls = lettest.tbls
-        
-    // val query = lettest.query
-
-    // val parser = Parser(tbls)
-    // // val program = parser.parse(query).get.asInstanceOf[Program]
-    // val bagexpr = parser.parse(query, parser.term).get.asInstanceOf[BagExpr]
-    val program = genomic.LetTest5.program.asInstanceOf[Program] //Program(Assignment("LetTest3", bagexpr))
+  def testDicts(program: Program): Unit = {
 
     println("Program: \n" + quote(program) + "\n")
 
@@ -533,7 +523,10 @@ object TestMaterialization extends App
 //   testLet()
   // issue here when i do a nested aggregation, maintain 
   // input structure and then later associate them
-  testDicts()
+//  testDicts(genomic.LetTest5.program.asInstanceOf[Program])
+//  testDicts(genomic.LetTest5.program2.asInstanceOf[Program])
+//  testDicts(genomic.LetTest5.f2fprogram.asInstanceOf[Program])
+  testDicts(genomic.LetTest5.f2fprogram2.asInstanceOf[Program])
 
 //  runSequential()
 //   runSequential2()

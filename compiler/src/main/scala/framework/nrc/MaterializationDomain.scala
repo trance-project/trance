@@ -63,7 +63,7 @@ trait MaterializationDomain extends Printer {
 
     }).asInstanceOf[BagExpr]
 
-  def createLabelDomain(dict: MExpr, field: String): MBag = {
+  def createLabelDomain(dict: MaterializedDict, field: String): MBag = {
     val labels = dict match {
       case d: MBag =>
         val bagVarRef = d.varRef

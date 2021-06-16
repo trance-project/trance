@@ -522,9 +522,42 @@ object LetTest5 extends DriverGene {
          for h in i.hybrid_scores union 
            {(hybrid_gene := h.hybrid_gene, hybrid_score := h.hybrid_score)}
      """
+    val query2 =
+    s"""
+       LetTest5 <=
+       for i in $initScores union
+         for h in i.hybrid_scores union
+           {(hybrid_gene := h.hybrid_gene, hybrid_score := h.hybrid_score)}
+     """
+    val f2fquery =
+    s"""
+       Flat2FlatTest <=
+           let samplesCopy :=
+             for s in samples union
+             {( sid := s.bcr_patient_uuid,
+                bag := for c1 in copynumber union
+                         if (s.bcr_aliquot_uuid = c1.cn_aliquot_uuid)
+                         then {(gene := c1.cn_gene_id, cnum := c1.cn_copy_number)} )}
+           in for x in samplesCopy union
+                {( sid := x.sid )}""".stripMargin
+    val f2fquery2 =
+    s"""
+       Flat2FlatTest2 <=
+           let samplesCopy :=
+             for s in samples union
+             {( sid := s.bcr_patient_uuid,
+                bag := for c1 in copynumber union
+                         if (s.bcr_aliquot_uuid = c1.cn_aliquot_uuid)
+                         then {(gene := c1.cn_gene_id, cnum := c1.cn_copy_number)} )}
+           in for x in samplesCopy union
+                for y in x.bag union
+                  {( sid := x.sid, gene := y.gene )}""".stripMargin
 
     val parser = Parser(tbls)
     val program = parser.parse(query).get.asInstanceOf[Program]
+    val program2 = parser.parse(query2).get.asInstanceOf[Program]
+    val f2fprogram = parser.parse(f2fquery).get.asInstanceOf[Program]
+    val f2fprogram2 = parser.parse(f2fquery2).get.asInstanceOf[Program]
 }
 
 object LetTest0 {
