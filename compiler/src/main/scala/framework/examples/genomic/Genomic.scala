@@ -7,7 +7,7 @@ trait GenomicSchema extends Query {
 
   def loadTables(shred: Boolean = false, skew: Boolean = false): String = {
     if (shred)
-      s"""|val vloader = new VariantLoader(spark, "/mnt/app_hdd/data/Data/Variants/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf")
+      s"""|val vloader = new VariantLoader(spark, "/nfs_qc4/genomics/1000g/ALL.chr1-4.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz")
           |val (variants, genotypes) = vloader.shredDS
           |val IBag_variants__D = variants
           |val IDict_variants__D_genotypes = genotypes
@@ -16,7 +16,7 @@ trait GenomicSchema extends Query {
           |//IDict_variants__D_genotypes.cache
           |//IDict_variants__D_genotypes.count
           |
-          |val gtfLoader = new GTFLoader(spark, "/mnt/app_hdd/data/Data/Map/Homo_sapiens.GRCh37.87.chr.gtf")
+          |val gtfLoader = new GTFLoader(spark, "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf")
           |val gtf = gtfLoader.loadDS
           |val IBag_gtf__D = gtf
           |//IBag_gtf__D.cache

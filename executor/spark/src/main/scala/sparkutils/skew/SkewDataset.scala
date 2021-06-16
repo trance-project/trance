@@ -56,7 +56,8 @@ object SkewDataset{
       * @return Light component of this Dataset
       */
     def lfilter[K](col: Column, hkeys: Broadcast[Set[K]]): Dataset[T] = {
-      left.filter(!col.isInCollection(hkeys.value) || col.isNull)
+	  val filt = left.filter(!col.isInCollection(hkeys.value) || col.isNull)
+	  filt
     }
 
     /** Create the heavy component of this Dataset 
@@ -66,7 +67,8 @@ object SkewDataset{
       * @return Heavy component of this Dataset
       */
     def hfilter[K](col: Column, hkeys: Broadcast[Set[K]]): Dataset[T] = {
-      left.filter((col.isInCollection(hkeys.value)))
+	  val filt = left.filter((col.isInCollection(hkeys.value)))
+	  filt
     }
 
     /** Equi-join this Dataset with the right, this is experimental for the skew implicits 
@@ -187,8 +189,6 @@ object SkewDataset{
       * does not alter the key
       */
     def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U], Option[String], Broadcast[Set[K]]) = {
-      light.print
-      heavy.print
       if (heavy.rdd.getNumPartitions <= 1) {
         (light.as[U], light.empty[U], key, heavyKeys)
       }
@@ -239,7 +239,6 @@ object SkewDataset{
     def print: Unit = (light, heavy).print
 
     def count: Long = {
-	   //println(s"heavy key size: ${heavyKeys.value.size}")
 	   (light, heavy).count
 	  }
 
@@ -568,8 +567,9 @@ object SkewDataset{
       val key = partitionExpr.toString
       val (dfull, hkeys) = heavyKeys[K](key)
       if (hkeys.nonEmpty){
-        val hk = dfull.sparkSession.sparkContext.broadcast(hkeys)
-        (dfull.lfilter[K](col(key), hk).repartition(Seq(partitionExpr):_*), dfull.hfilter[K](col(key), hk), Some(key), hk)
+		println("repartitioned with "+hkeys.size)
+		val hk = dfull.sparkSession.sparkContext.broadcast(hkeys)
+		(dfull.lfilter[K](col(key), hk).repartition(Seq(partitionExpr):_*), dfull.hfilter[K](col(key), hk), Some(key), hk)
       }else (light.repartition(Seq(partitionExpr):_*), heavy.repartition(Seq(partitionExpr):_*),
         None, light.sparkSession.sparkContext.broadcast(Set.empty[K]))
     }
@@ -577,8 +577,11 @@ object SkewDataset{
     /** union the light and heavy component, 
       * if heavy is empty then just return light 
       */
-    def union: Dataset[T] = if (heavy.rdd.getNumPartitions <= 1) light 
-      else light.union(heavy)
+    def union: Dataset[T] = if (heavy.rdd.getNumPartitions <= 1) {
+		light 
+      }else{
+		light.union(heavy)
+	  }
 
     def distinct: (Dataset[T], Dataset[T]) = (light.distinct, heavy.distinct)
 
@@ -628,7 +631,6 @@ object SkewDataset{
         case "slice" => sliceHeavyKeys[K](dfull, key)
         case _ => sys.error(s"unsupported heavy key strategy: $strategy.")
       }
-      //println(s"heavy keys for $key: ${keys.size}")
 	  (dfull, keys.asInstanceOf[Set[K]])
     }
 
@@ -636,17 +638,15 @@ object SkewDataset{
 		of partitions as the final filter?
 	**/
 	def fullHeavyKeys[K: ClassTag](dfull: Dataset[T], key: String): Set[K] = {
-    val keyset = dfull.select(key).rdd.mapPartitions(it => {
-      var cnt = 0
-      val acc = HashMap.empty[Row, Int].withDefaultValue(0)
-      it.foreach{ c => 
-        cnt +=1
-        c match { case null => Unit
-          case _ => acc(c) += 1 }}		
-      acc.filter(_._2 > (cnt*thresh)).iterator
-    }).reduceByKey(_+_)
-	  keyset.filter(_._2 > partitions).map(r => r._1.getAs[K](0)).collect.toSet
-	  //keyset
+      dfull.select(key).rdd.mapPartitions(it => {
+        var cnt = 0
+        val acc = HashMap.empty[Row, Int].withDefaultValue(0)
+        it.foreach{ c => 
+          cnt +=1
+          c match { case null => Unit
+            case _ => acc(c) += 1 }}		
+        acc.filter(_._2 > (cnt*thresh)).iterator
+      }).reduceByKey(_+_).filter(_._2 > partitions).map(r => r._1.getAs[K](0)).collect.toSet
 	}
 
 	def partialHeavyKeys[K: ClassTag](dfull: Dataset[T], key: String): Set[K] = {
@@ -665,7 +665,7 @@ object SkewDataset{
       dfull.select(key).rdd.mapPartitions(it => {
         var cnt = 0
         val acc = HashMap.empty[Row, Int].withDefaultValue(0)
-        it.foreach{ c => 
+		it.foreach{ c => 
           cnt +=1
           c match { case null => Unit
             case _ => if (random.nextDouble <= .1) acc(c) += 1 }}
@@ -730,19 +730,27 @@ object SkewDataset{
     (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
       val usingColumns = leftCols ++ rightCols
       val nkey = usingColumns(0)
+	  val pss = usingColumns.contains("gname") && usingColumns.contains("name")
       val (dfull, hk) = heavyKeys[K](nkey)
-      if (hk.nonEmpty){
-        val hkeys = dfull.sparkSession.sparkContext.broadcast(hk)
+	  if (hk.nonEmpty && usingColumns.contains("gname") && usingColumns.contains("name")){
+        println("join heavy keys "+hk.size)
+		val hkeys = dfull.sparkSession.sparkContext.broadcast(hk)
         (dfull.lfilter[K](col(nkey), hkeys), dfull.hfilter[K](col(nkey), hkeys), Some(nkey), hkeys).equiJoin[S,K](right, leftCols, rightCols, joinType)
       }else{
-        (dfull.equiJoin(right.union, leftCols, rightCols, joinType), light.emptyDF, Some(nkey), light.sparkSession.sparkContext.broadcast(Set.empty[K]))
+		val ru = right.union
+        (dfull.equiJoin(ru, leftCols, rightCols, joinType), light.emptyDF, Some(nkey), light.sparkSession.sparkContext.broadcast(Set.empty[K]))
       }
     }
     
     def equiJoin[S: Encoder : ClassTag, K: ClassTag](right: (Dataset[S], Dataset[S], Option[String], Broadcast[Set[K]]), leftCols: Seq[String], rightCols: Seq[String], joinType: String)(implicit arg0: Encoder[K]): 
       (DataFrame, DataFrame, Option[String], Broadcast[Set[K]]) = {
-        equiJoin[S,K]((right.light, right.heavy), leftCols, rightCols, joinType)
-    }
+		val rk = rightCols(0)
+		if (rk.contains("_1") || rk.contains("_LABEL")){
+			right.equiJoin[T,K]((light, heavy), rightCols, leftCols, joinType)
+		}else if (right.heavyKeys.value.isEmpty){ 
+		  equiJoin[S,K]((right.light, right.heavy), leftCols, rightCols, joinType)
+    	}else right.equiJoin[T,K]((light, heavy), rightCols, leftCols, joinType)
+	}
  
     /** Default join for complex join conditions **/
     def join[S: Encoder : ClassTag](right: (Dataset[S], Dataset[S]), cond: Column, joinType: String): (DataFrame, DataFrame) = {
