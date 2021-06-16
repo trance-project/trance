@@ -26,7 +26,7 @@ object QLearner{
 				(CacheAction, ActionResult => QLearner) = {
 
 					// initialize with profits
-					val validActions = state.candidatePool.map(x => CacheAction(x._1, x._2) -> x._2.profit).toMap
+					val validActions = state.candidatePool.map(x => CacheAction(x._1, x._2) -> 0.0).toMap
 
 					val actionValues = agentData.q.getOrElse(state, validActions)
 
@@ -35,7 +35,7 @@ object QLearner{
 					val updateStateActionValue: ActionResult => QLearner = {
 						actionResult => 
 
-							val validActions = state.candidatePool.map(x => CacheAction(x._1, x._2) -> x._2.profit).toMap
+							val validActions = state.candidatePool.map(x => CacheAction(x._1, x._2) -> 0.0).toMap
 
 							val nextStateActionValues = 
 								agentData.q.getOrElse(actionResult.nextState, validActions)
@@ -43,6 +43,9 @@ object QLearner{
 							val maxNextStateActionValue = 
 								nextStateActionValues.values.fold(Double.MinValue)(_ max _)
 
+							// lr is how often you accept the old value verse the new value
+							// reward is just the profit
+							// gamma is the discount factor, balances future rewards
 							val updatedActionValue = 
 								currentActionValue + agentData.lr * (actionResult.reward + agentData.gamma * maxNextStateActionValue - currentActionValue)
 

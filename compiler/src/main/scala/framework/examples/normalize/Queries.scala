@@ -55,4 +55,16 @@ object NormalizationTests {
                 Singleton(Tuple("o1" -> xref("a"), "o2" -> yref("a")))))
   }
 
+  val query4 = {
+    import nrc._
+    val relationR = BagVarRef("R", BagType(itemTp))
+    val xref = TupleVarRef("x", itemTp)
+    val yref = TupleVarRef("y", itemTp)
+    val z = DeDup(ForeachUnion(xref, relationR, Singleton(Tuple("o1" -> yref("a"), "o2" -> yref("a")))))
+    val zref = TupleVarRef("z", z.tp.tp)
+    ForeachUnion(xref, relationR,
+              ForeachUnion(zref, z,
+                Singleton(Tuple("o1" -> xref("a"), "o2" -> zref("o2")))))
+  }
+
 }

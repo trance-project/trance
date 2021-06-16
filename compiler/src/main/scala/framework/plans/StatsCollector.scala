@@ -31,8 +31,8 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
         |   val IBag_copynumber__D = copynumber
         |   val IBag_samples__D = samples
         |   val IBag_occurrences__D = spark.table("odict1")
-        |   val IDict_occurrences__D_transcript_consequences = spark.table("odict2")
-        |   val IDict_occurrences__D_transcript_consequences_consequence_terms = spark.table("odict3")
+        |   val IMap_occurrences__D_transcript_consequences = spark.table("odict2")
+        |   val IMap_occurrences__D_transcript_consequences_consequence_terms = spark.table("odict3")
       """.stripMargin
   }else inputs 
   
@@ -138,7 +138,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
       val pid = zep.writeParagraph(noteid, para)
       // println(s"Writing to paragraph: $pid")
       val status = zep.runParaSync(noteid, pid)
-      // zep.deleteNote(noteid)
+      zep.deleteNote(noteid)
       status
     }
   }

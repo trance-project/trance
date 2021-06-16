@@ -22,7 +22,7 @@ trait Factory {
       case _: TupleType => TupleVarRef(n, tp.asInstanceOf[TupleType])
       case _: LabelType => LabelVarRef(n, tp.asInstanceOf[LabelType])
       case _: DictType => DictVarRef(n, tp.asInstanceOf[DictType])
-      case _: MatDictType => MatDictVarRef(n, tp.asInstanceOf[MatDictType])
+      case _: KeyValueMapType => KeyValueMapVarRef(n, tp.asInstanceOf[KeyValueMapType])
       case t => sys.error("Cannot create VarRef for type " + t)
     }
   }
@@ -58,6 +58,7 @@ trait Factory {
         case _: PrimitiveType => PrimitiveProject(v, field)
         case _: BagType => BagProject(v, field)
         case _: LabelType => LabelProject(v, field)
+        case _: KeyValueMapType => KeyValueMapProject(v, field)
         case tp => sys.error("Cannot create Project for tuple type " + tp)
       }
     }
@@ -80,20 +81,30 @@ trait Factory {
   }
 
   object Let {
+    def apply(n: String, e1: Expr, e2: Expr): Expr =
+      apply(VarDef(n, e1.tp), e1, e2)
+
     def apply(x: VarDef, e1: Expr, e2: Expr): Expr = e2 match {
       case b: NumericExpr => NumericLet(x, e1, b)
       case b: PrimitiveExpr => PrimitiveLet(x, e1, b)
       case b: BagExpr => BagLet(x, e1, b)
       case b: TupleExpr => TupleLet(x, e1, b)
       case b: LabelExpr => LabelLet(x, e1, b)
+      case b: KeyValueMapExpr => KeyValueMapLet(x, e1, b)
       case b: DictExpr => DictLet(x, e1, b)
       case _ => sys.error("Cannot create Let for type " + e2.tp)
     }
 
     def apply(x: VarDef, e1: Expr, e2: DictExpr): DictExpr = DictLet(x, e1, e2)
+
+    def apply(ee: List[NamedExpr], e: Expr): Expr =
+      ee.foldRight (e) ((e1, acc) => Let(e1.name, e1.e, acc))
   }
 
   object DictLet {
+    def apply(n: String, e1: Expr, e2: DictExpr): DictExpr =
+      apply(VarDef(n, e1.tp), e1, e2)
+
     def apply(x: VarDef, e1: Expr, e2: DictExpr): DictExpr = e2 match {
       case EmptyDict => EmptyDict
       case b: BagDictExpr => BagDictLet(x, e1, b)
@@ -116,6 +127,7 @@ trait Factory {
       case (a: BagExpr, b: BagExpr) => BagIfThenElse(c, a, Some(b))
       case (a: TupleExpr, b: TupleExpr) => TupleIfThenElse(c, a, b)
       case (a: LabelExpr, b: LabelExpr) => LabelIfThenElse(c, a, Some(b))
+      case (a: KeyValueMapExpr, b: KeyValueMapExpr) => KeyValueMapIfThenElse(c, a, Some(b))
       case (a: DictExpr, b: DictExpr) => DictIfThenElse(c, a, b)
       case _ => sys.error("Cannot create IfThenElse for types " + e1.tp + " and " + e2.tp)
     }
@@ -123,6 +135,7 @@ trait Factory {
     def apply(c: CondExpr, e: Expr): Expr = e match {
       case a: BagExpr => IfThenElse(c, a)
       case a: LabelExpr => IfThenElse(c, a)
+      case a: KeyValueMapExpr => IfThenElse(c, a)
       case _ => sys.error("Cannot create IfThen for type " + e.tp)
     }
 
@@ -131,6 +144,9 @@ trait Factory {
 
     def apply(c: CondExpr, e: LabelExpr): LabelIfThenElse =
       LabelIfThenElse(c, e, None)
+
+    def apply(c: CondExpr, e: KeyValueMapExpr): KeyValueMapIfThenElse =
+      KeyValueMapIfThenElse(c, e, None)
   }
 
   object DictIfThenElse {
@@ -162,4 +178,11 @@ trait Factory {
     }
   }
 
+  object MExpr {
+    def apply(n: String, e: Expr): MExpr = e match {
+      case a: BagExpr => MBag(n, a)
+      case a: KeyValueMapExpr => MKeyValueMap(n, a)
+      case _ => sys.error("Cannot create MExpr for type " + e.tp)
+    }
+  }
 }

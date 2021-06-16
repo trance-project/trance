@@ -43,16 +43,15 @@ object CacheSelectionProblem{
 				val acc_size = currentState.size - curr_weight
 				val acc_profit = currentState.profit + curr_profit
 
-				// TODO FIX THIS MESS
 				val updatedPool = currentState.candidatePool - actionTaken.sig
-				val (currentSelection, ssize) = 
-					if (acc_size < 0.0) (currentState.selected, currentState.size)
-					else (currentState.selected + (actionTaken.sig -> actionTaken.cand.plan), acc_size)
+				val (currentSelection, ssize, sprofit, reward) = 
+					if (acc_size < 0.0) (currentState.selected, currentState.size, currentState.profit, 0.0)
+					else (currentState.selected + (actionTaken.sig -> actionTaken.cand.plan), acc_size, acc_profit, curr_profit)
 
 
-				val nextState = CacheState(updatedPool, currentSelection, ssize, acc_profit)
+				val nextState = CacheState(updatedPool, currentSelection, ssize, sprofit)
 
-				val reward = if (isTerminal(nextState)) -1.0 else 0.0
+				// val reward = if (isTerminal(nextState)) -1.0 else 0.0
 				println(s"and completed with state: $nextState")
 
 				(nextState, reward)
@@ -105,14 +104,13 @@ class CacheQLearner(candidates: Map[Integer, CostEstimate], capacity: Double) {
 
 	}
 
-	def run(episodes: Int = 10): Map[Integer, CNamed] = {
+	def run(episodes: Int = 1): Map[Integer, CNamed] = {
 		var start = System.currentTimeMillis()
-		var i = 0 
 		var currState = cacheState
 		for (i <- 1 to episodes){
 			while(!env.isTerminal(cacheState)) step()
-			endOfEpisode()
 			currState = cacheState
+			endOfEpisode()
 			println(s"ended episode with: ${currState.profit}")
 		}
 		var end = System.currentTimeMillis() - start

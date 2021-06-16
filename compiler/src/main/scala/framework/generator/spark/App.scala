@@ -31,6 +31,7 @@ object TestZeppelin extends App {
 
 object LetExplore extends App {
   override def main(args: Array[String]){
+
     val dlbctest = 5000
     // val lenv = new LetTestEnv(dlbctest, shred=true)
     // val ests = lenv.estimates
@@ -47,14 +48,17 @@ object Sharing extends App {
     // val dlbctest = 371520
     // total is ~4500 so way underestimated
     // upper bound
-    val dlbctest = 3000
+    // This is the total size: 418119.25389783055
+    // val dlbctest = 200000
+    val dlbctest = 4000
     val brcatest = 8000000
 
     // capacity in KB
     val flex = 3
-    // val ptype = "dynamic"
+    // val flex = 0
+    val ptype = "dynamic"
     // val ptype = "greedy"
-    val ptype = "qlearn"
+    // val ptype = "qlearn"
     // val genv = new GenomicEnv(dlbctest, init_flex = flex, ptype = ptype)
     val sgenv = new GenomicEnv(dlbctest, shred = true, flex = flex, ptype = ptype)
     // AppWriter.runWithCache(genv, "CacheTest,standard,covers")

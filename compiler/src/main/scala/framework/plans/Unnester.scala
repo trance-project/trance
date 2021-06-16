@@ -38,6 +38,7 @@ object Unnester {
     case InputRef(name, _) => name
     case FlatDict(e1) => getName(e1)
     case Variable(n, tp) => n
+    case CDeDup(_) => "dedup"
     case _ => sys.error(s"unsupported name extraction ${Printer.quote(e)}")
   }
 
@@ -70,13 +71,17 @@ object Unnester {
       val nv = Variable.fresh(e1.tp.tp)
       unnest(Comprehension(e1, nv, Constant(true), Sng(nv)))((u, w, E, tag))
 
-    case Comprehension(e1 @ CLookup(Project(_, p1), dict), v1, filt, e2) => 
+    case Comprehension(CLookup(lbl, e1), v1, filt, e2) => 
       assert(!E.isEmpty)
-      val fields = ((w.keySet - p1) ++ (v1.tp.attrs.keySet - "_1"))
+      val dict = unnest(e1)((u, w, E, tag))
       val nv = wvar(w)
       val nv1 = Variable.freshFromBag(dict.tp)
-	    val fdict = Select(dict, nv1, filt)
-      val joinCond = Equals(Project(nv, p1), Project(nv1, "_1"))
+      val (joinCond, fields) = lbl match {
+        case Project(_, p1) => 
+          (Equals(Project(nv, p1), Project(nv1, "_1")), ((w.keySet - p1) ++ (v1.tp.attrs.keySet - "_1")))
+        case _ => (Equals(lbl, Project(nv1, "_1")), (w.keySet ++ (v1.tp.attrs.keySet - "_1")))
+      }
+      val fdict = Select(dict, nv1, filt)
       val nE = OuterJoin(E.get, nv, fdict, nv1, joinCond, fields.toList)
       unnest(e2)((u, flat(w, nv1.tp), Some(nE), tag))
 
@@ -89,7 +94,7 @@ object Unnester {
     case Comprehension(e1, v, cond, e2) if !w.isEmpty =>
       assert(!E.isEmpty)
       val name = getName(e1)
-      val right = AddIndex(e1, name+"_index")
+      val right = AddIndex(unnest(e1)((u, w, E, tag)), name+"_index")
       val nv = Variable(v.name, right.tp.tp)
 
 	    val (nw, nE) = 

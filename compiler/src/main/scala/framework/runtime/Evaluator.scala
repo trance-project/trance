@@ -147,13 +147,13 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
       evalBagDict(d, ctx)(evalLabel(l, ctx))
 
     // Materialization extensions
-    case MatDictLookup(l, d) =>
+    case KeyValueMapLookup(l, d) =>
       evalMatDict(d, ctx)(evalLabel(l, ctx))
-    case BagToMatDict(b) =>
+    case BagToKeyValueMap(b) =>
       evalBag(b, ctx).asInstanceOf[List[Map[String, _]]].map(x =>
         x(KEY_ATTR_NAME).asInstanceOf[RLabel] -> (x - KEY_ATTR_NAME)
       ).groupBy(_._1).mapValues(_.map(_._2))
-    case MatDictToBag(d) =>
+    case KeyValueMapToBag(d) =>
       evalMatDict(d, ctx).toList.flatMap {
         case (k, v) => v.asInstanceOf[List[Map[String, _]]].map(_ + (KEY_ATTR_NAME -> k))
       }
@@ -214,7 +214,7 @@ trait Evaluator extends MaterializeNRC with ScalaRuntime {
     case OpGe => o.gteq(v1, v2)
   }
 
-  protected def evalMatDict(e: MatDictExpr, ctx: RuntimeContext): Map[RLabel, List[_]] = {
+  protected def evalMatDict(e: KeyValueMapExpr, ctx: RuntimeContext): Map[RLabel, List[_]] = {
     eval(e, ctx).asInstanceOf[Map[RLabel, List[_]]]
   }
 
