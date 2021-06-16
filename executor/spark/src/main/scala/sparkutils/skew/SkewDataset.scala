@@ -601,7 +601,8 @@ object SkewDataset{
       (light.drop(colNames:_*), heavy.drop(colNames:_*))
     }
 
-    def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U]) = if (heavy.rdd.getNumPartitions <= 1) (light.as[U], light.empty[U])
+    def as[U: Encoder : TypeTag]: (Dataset[U], Dataset[U]) = 
+      if (heavy.rdd.getNumPartitions <= 1) (light.as[U], light.empty[U])
       else (light.as[U], heavy.as[U])
 
     def withColumn(colName: String, col: Column): (DataFrame, DataFrame) = {

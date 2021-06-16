@@ -16,6 +16,7 @@ trait Query extends Materialization
   with NRCTranslator {
 
   val letOpt: Boolean = false
+  
   val normal = new BaseNormalizer(letOpt)
   val normalizer = new Finalizer(normal)
   val baseTag: String = "_2"
@@ -32,16 +33,16 @@ trait Query extends Materialization
     println("RUNNING STANDARD PIPELINE:\n")
     println(quote(program))
     val c = translate(program)
-    println("this calculus")
-    println(Printer.quote(c))
+    // println("this calculus")
+    // println(Printer.quote(c))
     c
   }
 
   def normalize: CExpr = {
-    println("running normalizer with "+letOpt)
+    // println("running normalizer with "+letOpt)
     val n = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
-    println("this is normalized")
-    println(Printer.quote(n))
+    // println("this is normalized")
+    // println(Printer.quote(n))
     n
   }
   
