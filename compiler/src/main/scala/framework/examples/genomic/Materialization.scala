@@ -560,6 +560,81 @@ object LetTest5 extends DriverGene {
     val f2fprogram2 = parser.parse(f2fquery2).get.asInstanceOf[Program]
 }
 
+object LetTest6 extends DriverGene {
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    if (shred){
+      s"""|val samples = spark.table("samples")
+          |val IBag_samples__D = samples
+          |
+          |val copynumber = spark.table("copynumber")
+          |val IBag_copynumber__D = copynumber
+          |
+          |val odict1 = spark.table("odict1")
+          |val IBag_occurrences__D = odict1
+          |
+          |// issue with partial shredding here
+          |val odict2 = spark.table("odict2").drop("flags")
+          |val IDict_occurrences__D_transcript_consequences = odict2
+          |
+          |val odict3 = spark.table("odict3")
+          |val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
+          |""".stripMargin
+    }else{
+      s"""|val samples = spark.table("samples")
+          |
+          |val copynumber = spark.table("copynumber")
+          |
+          |val occurrences = spark.table("occurrences")
+          |""".stripMargin
+    }
+
+  val name = "LetTest6"
+  
+  val tbls = Map("occurrences" -> occurmids.tp, 
+                  "copynumber" -> copynum.tp, 
+                  "samples" -> samples.tp,
+                  "network" -> network.tp, 
+                  "genemap" -> gpmap.tp)
+
+    val imp = """if (t.impact = "HIGH") then 0.80 
+                  else if (t.impact = "MODERATE") then 0.50
+                  else if (t.impact = "LOW") then 0.30
+                  else 0.01"""
+
+    val cnvs = 
+      s"""
+      for s in samples union 
+        for c1 in copynumber union 
+          if (s.bcr_aliquot_uuid = c1.cn_aliquot_uuid)
+          then {(sid := s.bcr_patient_uuid, gene := c1.cn_gene_id, cnum := c1.cn_copy_number)}
+      """
+    val initScores = 
+      s"""
+        for o in occurrences union 
+          {(hybrid_case := o.donorId, hybrid_scores := 
+              (for t in o.transcript_consequences union 
+                for c in $cnvs union 
+                  if (o.donorId = c.sid && t.gene_id = c.gene)
+                  then {(hybrid_gene := t.gene_id, hybrid_score := (c.cnum + 0.01) * $imp )}).sumBy({hybrid_gene}, {hybrid_score})
+          )}
+      """
+    val query = 
+     s"""
+       LetTest6 <= 
+       let initScores := $initScores 
+       in for s in samples union 
+        {(sid := s.bcr_patient_uuid, scores := 
+         for i in initScores union
+          if (s.bcr_patient_uuid = i.hybrid_case)
+          then for h in i.hybrid_scores union 
+             {(hybrid_gene := h.hybrid_gene, hybrid_score := h.hybrid_score)})}
+     """
+
+    val parser = Parser(tbls)
+    val program = parser.parse(query).get.asInstanceOf[Program]
+}
+
 object LetTest0 {
   def apply(letOpt: Boolean = false): Query = new LetTest0(letOpt)
   def apply(): LetTest0 = new LetTest0()

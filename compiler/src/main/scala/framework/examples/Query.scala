@@ -156,27 +156,24 @@ trait Query extends Materialization
 
   }
 
-  def shred(eliminateDomains: Boolean = true): (Program, Program) = {
-      println("INPUT QUERY:\n")
-      println(quote(program))
-      val (shredded, shreddedCtx) = shredCtx(program)
-      val optShredded = optimize(shredded)
-      println(quote(optShredded))
-      val materializedProgram = materialize(optShredded, eliminateDomains = eliminateDomains)
-      val unshredProg = unshred(optShredded, materializedProgram.ctx)
-      (materializedProgram.program, unshredProg)
-    }
-
   /** Shred plan for batch operator compilation **/
   def shredBatchPlan(unshredRun: Boolean = false, eliminateDomains: Boolean = true, anfed: Boolean = true, optLevel: Int = 2, schema: Schema = Schema()): (CExpr, CExpr) = {
     val compiler = new Finalizer(new ShredOptimizer{})
     val optimizer = Optimizer(schema)
     // shredded pipeline for query
-    val (matProg, ushred) = shred(eliminateDomains)
+    // val (matProg, ushred) = shred(eliminateDomains)
+    val (shredded, shreddedCtx) = shredCtx(program)
+    val optShredded = optimize(shredded)
+    println(quote(optShredded))
+    val matProg = materialize(optShredded, eliminateDomains = eliminateDomains).asInstanceOf[MProgram]
     println("RUNNING SHREDDED PIPELINE:\n")
-    println(quote(matProg))
-    val ncalc = normalizer.finalize(translate(matProg)).asInstanceOf[CExpr]
-    // println(ncalc)
+    println(matProg)
+    val bcalc = translate(matProg)
+    println("before norm")
+    println(Printer.quote(bcalc))
+    val ncalc = normalizer.finalize(bcalc).asInstanceOf[CExpr]
+    println("normalized shred")
+    println(ncalc)
     val initPlan = Unnester.unnest(ncalc)(Map(), Map(), None, baseTag)
 
     val plan = optLevel match {
@@ -185,6 +182,7 @@ trait Query extends Materialization
       case _ => optimizer.applyAll(compiler.finalize(initPlan).asInstanceOf[CExpr])
     }
 
+    println("here is the plan before anf")
     println(Printer.quote(plan))
     val anfBase = new BaseOperatorANF{}
     val anfer = new Finalizer(anfBase)
@@ -192,6 +190,7 @@ trait Query extends Materialization
 
     //shredded pipeline for unshredding 
     val usplan = if (unshredRun){
+      val ushred = unshred(optShredded, matProg.ctx)
       val uncalc = normalizer.finalize(translate(ushred)).asInstanceOf[CExpr]
       val uinitPlan = Unnester.unnest(uncalc)(Map(), Map(), None, baseTag)
       val uplan = compiler.finalize(uinitPlan).asInstanceOf[CExpr]
