@@ -403,6 +403,7 @@ trait Materialization extends MaterializationContext {
             materializeDictExpr(d, name + "_" + f, ctx1, p, opts, outputDict)
           val n = ctx2(d)
           (ff1 + (f -> n), ee1 ++ ee2, ctx2.add(n, p))
+
         case (_, (_, d)) =>
           sys.error("[materializeTupleDict] Unsupported dictionary type: " + d)
       }
@@ -414,109 +415,149 @@ trait Materialization extends MaterializationContext {
 
   def unshred(p: ShredProgram, ctx: Context): Program = {
     Symbol.freshClear()
-//    Program(p.statements.flatMap(unshred(_, ctx).statements))
-    Program()
+    optimize(Program(p.statements.flatMap(unshred(_, ctx).statements)))
   }
 
   private def unshred(a: ShredAssignment, ctx: Context): Program = a.rhs match {
-//    case ShredExpr(e: PrimitiveExpr, EmptyDict) =>
+    case ShredExpr(e: PrimitiveExpr, EmptyDict) =>
+      val e2 = rewriteUsingContext(e, ctx)
+      Program(Assignment(a.name, e2))
 
     case ShredExpr(l: LabelExpr, d: BagDictExpr) =>
       assert(l.tp == d.tp.lblTp)   // sanity check
-      val (p, b) = unshredDict(d, l, ctx)
-      Program(p.statements :+ Assignment(a.name, b))
+      val l2 = rewriteUsingContext(l, ctx).asInstanceOf[LabelExpr]
+      val (prg, bag) = unshredBagDictExpr(d, l2, ctx)
+      Program(prg.statements :+ Assignment(a.name, bag))
+
+    case ShredExpr(t: TupleExpr, d: TupleDictExpr) =>
+      val t2 = rewriteUsingContext(t, ctx).asInstanceOf[TupleExpr]
+      val (prg, tpl) = unshredTupleDictExpr(d, t2, ctx)
+      Program(prg.statements :+ Assignment(a.name, tpl))
 
     case _ =>
       sys.error("Unshredding not supported for " + quote(a))
   }
 
-  private def unshredDict(d: BagDictExpr,
-                          lbl: LabelExpr,
-                          ctx: Context): (Program, BagExpr) = {
-    d match {
-//      case BagDictLet(x, e1: NewLabel, e2: BagDictExpr) =>
-//        val ctx2 = ctx.addLabel(LabelVarRef(x.name, e1.tp), isTopLevel = e1.params.isEmpty)
-//        unshredDict(e2, lbl, ctx2)
-//
-//      case BagDictLet(x, e1: BagDictExpr, e2: BagDictExpr) =>
-//        val ctx2 = ctx.addDict(e1).addDictAlias(e1, BagDictVarRef(x.name, e1.tp))
-//        unshredDict(e2, lbl, ctx2)
-//
-//      case d2: BagDict =>
-//        unshredBagDict(d2, lbl, ctx, isTopLevel = true)
+  private def unshredBagDictExpr(dict: BagDictExpr, lbl: LabelExpr, ctx: Context): (Program, BagExpr) = {
+    dict match {
+      case BagDict(tp, ShredUnion(b1, b2), TupleDictUnion(d1, d2)) =>
+        val (p1, r1) = unshredBagDict(BagDict(tp, b1, d1), lbl, ctx)
+        val (p2, r2) = unshredBagDict(BagDict(tp, b2, d2), lbl, ctx)
+        (p1 ++ p2, Union(r1, r2))
+
+      case d: BagDict =>
+        unshredBagDict(d, lbl, ctx)
+
+      case d: BagDictProject =>
+        (Program(), resolveLookup(lbl, ctx(d)))
+
+      case l: BagDictLet if l.e1.isInstanceOf[DictExpr] =>
+        val d1 = l.e1.asInstanceOf[DictExpr]
+        val ctx2 = ctx.add(DictVarRef(l.x.name, d1.tp), ctx(d1), None)
+        unshredBagDictExpr(l.e2, lbl, ctx2)
+
+      case l: BagDictLet =>
+        val (prg, bag) = unshredBagDictExpr(l.e2, lbl, ctx)
+        (prg, BagLet(l.x, l.e1, bag))
+
+      case i: BagDictIfThenElse =>
+        val c = rewriteUsingContext(i.cond, ctx).asInstanceOf[CondExpr]
+        val (prg1, bag1) = unshredBagDictExpr(i.e1, lbl, ctx)
+        val (prg2, bag2) = unshredBagDictExpr(i.e2.get, lbl, ctx)
+        (prg1 ++ prg2, BagIfThenElse(c, bag1, Some(bag2)))
+
+      case d: BagDictUnion =>
+        val (prg1, bag1) = unshredBagDictExpr(d.dict1, lbl, ctx)
+        val (prg2, bag2) = unshredBagDictExpr(d.dict2, lbl, ctx)
+        (prg1 ++ prg2, Union(bag1, bag2))
 
       case _ =>
-        sys.error("Dictionary unshredding not supported for "+ quote(d))
+        sys.error("Dictionary unshredding not supported for "+ quote(dict))
     }
   }
 
-  private def unshredBagDict(dict: BagDict, lbl: LabelExpr, ctx: Context, isTopLevel: Boolean): (Program, BagExpr) =
+  private def unshredTupleDictExpr(dict: TupleDictExpr, tuple: TupleExpr, ctx: Context): (Program, TupleExpr) =
     dict match {
-//      case BagDict(tp, ShredUnion(b1, b2), TupleDictUnion(d1, d2)) =>
-//        val dict1 = BagDict(tp, b1, d1)
-//        val dict2 = BagDict(tp, b2, d2)
-//        val (prog1, bag1) = unshredBagDict(dict1, lbl, ctx, isTopLevel)
-//        val (prog2, bag2) = unshredBagDict(dict2, lbl, ctx, isTopLevel)
-//        (prog1 ++ prog2, Union(bag1, bag2))
-//
-//      case BagDict(_, _, tupleDict: TupleDict) if isTopLevel && tupleDict.isEmpty =>
-//        val bagRef = ctx.matVarRef(dict).asInstanceOf[BagVarRef]
-//        (Program(), bagRef)
-//
-//      case BagDict(_, _, tupleDict: TupleDict) if isTopLevel =>
-//        val bagDictRef = ctx.matVarRef(dict).asInstanceOf[BagVarRef]
-//        val tupleRef = TupleVarRef(Symbol.fresh(), bagDictRef.tp.tp)
-//
-//        // 1. Unshred children
-//        val (childProgram, childTuple) = unshredTupleDict(tupleDict, tupleRef, ctx)
-//
-//        // 2. Compute nested object
-//        val nestedBag = ForeachUnion(tupleRef.varDef, bagDictRef, Singleton(childTuple))
-//
-//        (Program(childProgram.statements), nestedBag)
-//
-//      case BagDict(_, _, tupleDict: TupleDict) if tupleDict.isEmpty =>
-//        val matDictRef = ctx.matVarRef(dict).asInstanceOf[MatDictVarRef]
-//        (Program(), MatDictLookup(lbl, matDictRef))
-//
-//      case BagDict(_, _, tupleDict: TupleDict) =>
-//        val matDictRef = ctx.matVarRef(dict).asInstanceOf[MatDictVarRef]
-//        val kvDict = MatDictToBag(matDictRef)
-//        val kvRef = TupleVarRef(Symbol.fresh(name = "kv"), kvDict.tp.tp)
-//
-//        // 1. Unshred children
-//        val (childProgram, childTuple) = unshredTupleDict(tupleDict, kvRef, ctx)
-//
-//        // 2. Compute nested object
-//        val key = LabelProject(kvRef, KEY_ATTR_NAME)
-//        val kvPairsNested =
-//          BagToMatDict(
-//            ForeachUnion(kvRef.varDef, kvDict,
-//              Singleton(Tuple(childTuple.fields + (KEY_ATTR_NAME -> key)))))
-//
-//        // 3. Materialize unshredded dictionary
-//        val uName = matDictRef.name.replace(MAT_DICT_PREFIX, UNSHRED_PREFIX)
-//        val uDict = MatDictVarRef(uName, kvPairsNested.tp)
-//        val uStmt = Assignment(uDict.name, kvPairsNested)
-//
-//        (Program(childProgram.statements :+ uStmt), MatDictLookup(lbl, uDict))
+      case d: TupleDict =>
+        unshredTupleDict(d, tuple, ctx)
+
+      case l: TupleDictLet if l.e1.isInstanceOf[DictExpr] =>
+        val d1 = l.e1.asInstanceOf[DictExpr]
+        val ctx2 = ctx.add(DictVarRef(l.x.name, d1.tp), ctx(d1), None)
+        unshredTupleDictExpr(l.e2, tuple, ctx2)
+
+      case l: TupleDictLet =>
+        val (prg, tpl) = unshredTupleDictExpr(l.e2, tuple, ctx)
+        (prg, TupleLet(l.x, l.e1, tpl))
+
+      case i: TupleDictIfThenElse =>
+        val c = rewriteUsingContext(i.cond, ctx).asInstanceOf[CondExpr]
+        val (prg1, tpl1) = unshredTupleDictExpr(i.e1, tuple, ctx)
+        val (prg2, tpl2) = unshredTupleDictExpr(i.e2.get, tuple, ctx)
+        (prg1 ++ prg2, TupleIfThenElse(c, tpl1, tpl2))
+
+      case _ =>
+        sys.error("[unshredTupleDict] Unexpected dictionary type: " + dict)
+    }
+
+  private def unshredBagDict(dict: BagDict, lbl: LabelExpr, ctx: Context): (Program, BagExpr) =
+    dict match {
+      case d: BagDict if d.tupleDict.tp.isEmpty =>
+        (Program(), resolveLookup(lbl, ctx(d)))
+
+      case d: BagDict =>
+        ctx(dict) match {
+          case m: MBag =>
+            val bagDictRef = m.varRef
+            val tupleRef = TupleVarRef(Symbol.fresh(), bagDictRef.tp.tp)
+
+            // 1. Unshred children
+            val (childProgram, childTuple) = unshredTupleDictExpr(d.tupleDict, tupleRef, ctx)
+
+            // 2. Compute nested object
+            val nestedBag = ForeachUnion(tupleRef.varDef, bagDictRef, Singleton(childTuple))
+
+            (Program(childProgram.statements), nestedBag)
+
+          case m: MKeyValueMap =>
+            val matDictRef = m.varRef
+            val kvDict = KeyValueMapToBag(matDictRef)
+            val kvRef = TupleVarRef(Symbol.fresh(name = "kv"), kvDict.tp.tp)
+
+            // 1. Unshred children
+            val (childProgram, childTuple) = unshredTupleDictExpr(d.tupleDict, kvRef, ctx)
+
+            // 2. Compute nested object
+            val key = LabelProject(kvRef, KEY_ATTR_NAME)
+            val kvPairsNested =
+              BagToKeyValueMap(
+                ForeachUnion(kvRef.varDef, kvDict,
+                  Singleton(addOutputField(KEY_ATTR_NAME -> key, childTuple))))
+
+            // 3. Materialize unshredded dictionary
+            val uName = matDictRef.name.replace(MAT_MAP_PREFIX, UNSHRED_PREFIX)
+            val uDict = KeyValueMapVarRef(uName, kvPairsNested.tp)
+            val uStmt = Assignment(uDict.name, kvPairsNested)
+
+            (Program(childProgram.statements :+ uStmt), KeyValueMapLookup(lbl, uDict))
+        }
 
       case _ =>
         sys.error("[unshredBagDict] Unexpected dictionary type: " + dict)
     }
 
-  private def unshredTupleDict(dict: TupleDict, tuple: TupleVarRef, ctx: Context): (Program, Tuple) =
+  private def unshredTupleDict(dict: TupleDict, tuple: TupleExpr, ctx: Context): (Program, TupleExpr) =
     dict.fields.foldLeft (Program(), Tuple()) {
-      case ((prog, tpl), (n, d: BagDict)) =>
-        val lbl = LabelProject(tuple, n)
-        val (p1, b1) = unshredBagDict(d, lbl, ctx, isTopLevel = false)
-        (prog ++ p1, Tuple(tpl.fields + (n -> b1)))
+      case ((prg, tpl), (n, d: BagDictExpr)) =>
+        val lbl = Project(tuple, n).asInstanceOf[LabelExpr]
+        val (p1, b1) = unshredBagDictExpr(d, lbl, ctx)
+        (prg ++ p1, Tuple(tpl.fields + (n -> b1)))
 
-      case ((prog, tpl), (n, EmptyDict)) =>
-        (prog, Tuple(tpl.fields + (n -> tuple(n))))
+      case ((prg, tpl), (n, EmptyDict)) =>
+        (prg, Tuple(tpl.fields + (n -> tuple(n))))
 
       case (_, (n, d)) =>
-        sys.error("Unexpected dictionary " + n + " = " + d)
+        sys.error("[unshredTupleDict] Unexpected dictionary " + n + " = " + d)
     }
 
 }

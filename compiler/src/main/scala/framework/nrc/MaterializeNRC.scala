@@ -63,11 +63,11 @@ trait MaterializeNRC extends ShredNRC with Optimizer {
   sealed trait MaterializedDict extends DictNode with NamedExpr
 
   final case class MBag(name: String, e: BagExpr) extends MaterializedDict {
-    override def varRef: BagExpr = BagVarRef(name, e.tp)
+    override def varRef: BagVarRef = BagVarRef(name, e.tp)
   }
 
   final case class MKeyValueMap(name: String, e: KeyValueMapExpr) extends MaterializedDict {
-    override def varRef: KeyValueMapExpr = KeyValueMapVarRef(name, e.tp)
+    override def varRef: KeyValueMapVarRef = KeyValueMapVarRef(name, e.tp)
   }
 
   sealed trait SymbolicDict extends DictNode
