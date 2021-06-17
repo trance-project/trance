@@ -480,34 +480,34 @@ object TestMaterialization extends App
    testLet(opts)
   // issue here when i do a nested aggregation, maintain
   // input structure and then later associate them
-  testDicts(genomic.LetTest5.program.asInstanceOf[Program], opts)
+  // testDicts(genomic.LetTest5.program.asInstanceOf[Program], opts)
   testDicts(genomic.LetTest5.program2.asInstanceOf[Program], opts)
-  testDicts(genomic.LetTest5.f2fprogram.asInstanceOf[Program], opts)
-  testDicts(genomic.LetTest5.f2fprogram2.asInstanceOf[Program], opts)
+  // testDicts(genomic.LetTest5.f2fprogram.asInstanceOf[Program], opts)
+  // testDicts(genomic.LetTest5.f2fprogram2.asInstanceOf[Program], opts)
 
-  runSequential(opts)
-  runSequential2(opts)
-  domainTest(opts)
+  // runSequential(opts)
+  // runSequential2(opts)
+  // domainTest(opts)
 
-  dualConditionLabels(opts)
-  dualConditionLabels2(opts)
-  matFailedAssertion(opts)
+  // dualConditionLabels(opts)
+  // dualConditionLabels2(opts)
+  // matFailedAssertion(opts)
 
-  matTupleDictUnsupported1(opts)
-  matTupleDictUnsupported2(opts)
-  matTupleDictUnsupported3(opts)
-  matTupleDictUnsupported4(opts)
-  // similar query that projects less attributes, and passes
-  matTupleDictUnsupported5(opts)
+  // matTupleDictUnsupported1(opts)
+  // matTupleDictUnsupported2(opts)
+  // matTupleDictUnsupported3(opts)
+  // matTupleDictUnsupported4(opts)
+  // // similar query that projects less attributes, and passes
+  // matTupleDictUnsupported5(opts)
 
 
-  run(tpch.Query1.program.asInstanceOf[Program], opts)
-  run(tpch.Query2.program.asInstanceOf[Program], opts)
-  run(tpch.Query3.program.asInstanceOf[Program], opts)
-  run(tpch.Query4.program.asInstanceOf[Program], opts)
-  run(tpch.Query5.program.asInstanceOf[Program], opts)
-  run(tpch.Query6.program.asInstanceOf[Program], opts)
-  run(tpch.Query7.program.asInstanceOf[Program], opts)
+  // run(tpch.Query1.program.asInstanceOf[Program], opts)
+  // run(tpch.Query2.program.asInstanceOf[Program], opts)
+  // run(tpch.Query3.program.asInstanceOf[Program], opts)
+  // run(tpch.Query4.program.asInstanceOf[Program], opts)
+  // run(tpch.Query5.program.asInstanceOf[Program], opts)
+  // run(tpch.Query6.program.asInstanceOf[Program], opts)
+  // run(tpch.Query7.program.asInstanceOf[Program], opts)
 
-  testTuple(opts)
+  // testTuple(opts)
 }
