@@ -15,9 +15,10 @@ import framework.common._
 import framework.nrc._
 import framework.plans.{CExpr, NRCTranslator}
 import framework.plans.{BaseNormalizer, Finalizer}
-import framework.plans.{Optimizer, Unnester}
+import framework.plans.{Optimizer, Unnester, BaseOperatorANF}
 import framework.plans.{JsonWriter => PJsonWriter}
 import framework.examples.genomic._
+import framework.generator.spark.{SparkDatasetGenerator, ZeppelinFactory, JsonWriter => ZJsonWriter}
 
 @Api(value = "/nrccode")
 class QueryController @Inject()(
@@ -75,6 +76,48 @@ class QueryController @Inject()(
     PJsonWriter.produceJsonString(plan)
   }
 
+  private def writeParagraph(appname: String, header: String, gcode: String, encoders: String): String  = {
+    s"""
+      |import org.apache.spark.sql._
+      |import org.apache.spark.sql.functions._
+      |import org.apache.spark.sql.catalyst.plans.logical._
+      |import org.apache.spark.sql.types._
+      |import org.apache.spark.sql.expressions.scalalang._
+      |import sparkutils._
+      |import sparkutils.loader._
+      |import sparkutils.skew.SkewDataset._
+      |import java.io._
+      |$header
+      |case class Stat(name: String, sizeInBytes:String, rowCount:String)
+      |$encoders
+      |import spark.implicits._
+      |val samples = spark.table("samples")
+      |val occurrrences = spark.table("occurrences")
+      |val copynumber = spark.table("copynumber")
+      |$gcode
+    """.stripMargin
+  }
+
+  private def runProgram(plan: CExpr, queryId: String): String = {
+
+    val zep = new ZeppelinFactory(host = "localhost", port = 8082)
+
+    val anfBase = new BaseOperatorANF{}
+    val anfer = new Finalizer(anfBase)
+    val anfed = anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
+    val generator = new SparkDatasetGenerator(false, false, evalFinal=true)
+    val code = generator.generate(anfed)
+
+    val noteid = zep.addNote(queryId)
+    val pcontents = writeParagraph(queryId, generator.generateHeader(), code, generator.generateEncoders())
+    val para = new ZJsonWriter().buildParagraph("Generated paragraph test", pcontents)
+    val pid = zep.writeParagraph(noteid, para)
+    // val status = zep.runParaSync(noteid, pid)
+    // status
+    pid
+
+  }
+
   @ApiOperation(
     value = "Find all Querys",
     response = classOf[Query],
@@ -128,6 +171,44 @@ class QueryController @Inject()(
         // also note that the JsonWriter in framework.plans is not complete,
         // so will need to do that
         val responseBody = s"""{"nrc": $nrc, "standard_plan": $standard_plan}"""
+
+        queryRepository.addEntity(query).map{ _ =>
+          Created(responseBody)
+        }
+
+    // note that my parser does not return any valuable information
+    // so we will need some better error catching there
+    }.getOrElse(Future.successful(BadRequest("Invalid nrc format")))
+  }
+
+  @ApiOperation(
+    value = "Execute query",
+    response = classOf[Void],
+    code=201
+  )
+  @ApiResponses(Array(
+    new ApiResponse(code = 400, message = "Invalid Query format")
+  ))
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(value = "The id of the query", required = true, dataType = "models.Query", paramType = "body")
+  ))
+  def executeQuery() =
+    Action.async(parse.json) {
+
+    _.body.validate[Query].map { query =>
+
+        val qid = query._id match { 
+          case Some(id) => id.toString
+          case _ => sys.error("Id not found.")
+        }
+        val program = parseProgram(query)
+        val nrc = getJsonProgram(program)
+
+        val plan = compileProgram(program)
+
+        val runstatus = runProgram(plan, qid)
+
+        val responseBody = s"""{"status": $runstatus}"""
 
         queryRepository.addEntity(query).map{ _ =>
           Created(responseBody)
