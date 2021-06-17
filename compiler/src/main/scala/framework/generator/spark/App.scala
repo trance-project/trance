@@ -50,7 +50,19 @@ object Sharing extends App {
     // upper bound
     // This is the total size: 418119.25389783055
     // val dlbctest = 200000
-    val dlbctest = 4000
+    // in kilobytes
+    val dlbcSizes = Map[String, Double]("clinical" -> 11.4, 
+      "copynumber" -> 390100.0, 
+      // "occurrences" -> 51000, 
+      "odict1" -> 3000.0,
+      "odict2" -> 93600.0, 
+      "odict3" -> 11400.0, 
+      "samples" -> 166800.0)
+
+    // allocate half the space to the cache
+    val dlbctest = (dlbcSizes.foldLeft(0.0)(_+_._2)  * .5).asInstanceOf[Int]
+    println("this is the cache size: "+dlbctest)
+    // val dlbctest = 4000
     val brcatest = 8000000
 
     // capacity in KB
@@ -59,9 +71,7 @@ object Sharing extends App {
     val ptype = "dynamic"
     // val ptype = "greedy"
     // val ptype = "qlearn"
-    // val genv = new GenomicEnv(dlbctest, init_flex = flex, ptype = ptype)
     val sgenv = new GenomicEnv(dlbctest, shred = true, flex = flex, ptype = ptype)
-    // AppWriter.runWithCache(genv, "CacheTest,standard,covers")
     AppWriter.runWithCache(sgenv, "CacheTest,shredded,covers")
 
 
