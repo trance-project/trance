@@ -214,8 +214,15 @@ trait Shredding extends BaseShredding with Extensions {
   def shredCtx(p: Program): (ShredProgram, Map[String, (Type, DictType)]) =
     shredCtx(p, Map.empty)
 
-  def shredCtx(p: Program, tpResolver: Map[String, (Type, DictType)]): (ShredProgram, Map[String, (Type, DictType)]) =
-    p.statements.foldLeft(shredEnv(inputVars(p)), (ShredProgram(), tpResolver)) {
+  def shredCtx(p: Program, tpResolver: Map[String, (Type, DictType)]): (ShredProgram, Map[String, (Type, DictType)]) = {
+    val env0 = inputVars(p).flatMap { v =>
+      val (ftp, dtp) = tpResolver.getOrElse(v.name, flatTp(v.tp) -> dictTp(v.tp))
+      Map(
+        flatName(v.name) -> VarDef(flatName(v.name), ftp),
+        dictName(v.name) -> VarDef(dictName(v.name), dtp)
+      )
+    }.toMap
+    p.statements.foldLeft(env0, (ShredProgram(), tpResolver)) {
       case ((env, (acc, ctx)), stmt) =>
         val sa = shred(env, ctx, stmt)
         (env +
@@ -223,5 +230,6 @@ trait Shredding extends BaseShredding with Extensions {
           (dictName(stmt.name) -> VarDef(dictName(stmt.name), sa.rhs.dict.tp)),
           (ShredProgram(acc.statements :+ sa), ctx + (sa.name -> (sa.rhs.flat.tp, sa.rhs.dict.tp))))
     }._2
+  }
 
 }

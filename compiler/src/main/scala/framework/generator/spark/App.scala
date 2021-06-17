@@ -35,6 +35,7 @@ object LetExplore extends App {
     val dlbctest = 5000
     // val lenv = new LetTestEnv(dlbctest, shred=true)
     // val ests = lenv.estimates
+    AppWriter.runDatasetShred(LetTest5Seq, "Sequential,shredded", optLevel = 1)
     AppWriter.runDatasetShred(LetTest5, "Inlined,shredded", optLevel = 1)
     // AppWriter.runDatasetShred(lenv.queries.head, "Inlined,shredded", optLevel = 1)
     // AppWriter.runDatasetShred(lenv.queries.last, "Sequential,shredded", optLevel = 1)

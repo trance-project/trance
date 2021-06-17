@@ -42,8 +42,6 @@ trait Dictionary {
 
   final case class TupleDict(fields: Map[String, TupleDictAttributeExpr]) extends TupleDictExpr {
     val tp: TupleDictType = TupleDictType(fields.map(f => f._1 -> f._2.tp))
-
-    def isEmpty: Boolean = fields.forall(_._2 == EmptyDict)
   }
 
   trait DictProject extends Project { this: DictExpr => }

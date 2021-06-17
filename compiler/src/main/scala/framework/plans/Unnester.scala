@@ -27,6 +27,7 @@ object Unnester {
 
   val extensions = new Extensions{}
   val normalizer = new BaseNormalizer{}
+  val normalize = new Finalizer(normalizer)
   import extensions._
 
   def flat(tp1: Map[String, Type], tp2: Type): Map[String, Type] =
@@ -38,8 +39,7 @@ object Unnester {
     case InputRef(name, _) => name
     case FlatDict(e1) => getName(e1)
     case Variable(n, tp) => n
-    case CDeDup(_) => "dedup"
-    case _ => sys.error(s"unsupported name extraction ${Printer.quote(e)}")
+    case _ => Variable.fresh(StringType).name 
   }
 
   def unnest(e: CExpr)(implicit ctx: Ctx): CExpr = e match {
@@ -60,9 +60,6 @@ object Unnester {
         val nv = Variable(v.name, ne1.tp.tp)
         val nw = flat(w - f, nv.tp)
         val nE = OuterUnnest(ne1, wvar(nw), f, v, p, Nil)
-        // println("in here with")
-        // println(p)
-        // println(Printer.quote(e2))
         unnest(e2)((u - f), flat(nw - f, v.tp.outer), Some(nE), tag)
       }
 
@@ -77,9 +74,11 @@ object Unnester {
       val nv = wvar(w)
       val nv1 = Variable.freshFromBag(dict.tp)
       val (joinCond, fields) = lbl match {
-        case Project(_, p1) => 
-          (Equals(Project(nv, p1), Project(nv1, "_1")), ((w.keySet - p1) ++ (v1.tp.attrs.keySet - "_1")))
-        case _ => (Equals(lbl, Project(nv1, "_1")), (w.keySet ++ (v1.tp.attrs.keySet - "_1")))
+        case Project(e3, p1) => 
+          val rev = normalize.finalize(replace(e3, nv, useType = false)).asInstanceOf[CExpr]
+          (Equals(Project(rev, p1), Project(nv1, "_1")), ((w.keySet - p1) ++ (v1.tp.attrs.keySet - "_1")))
+        case _ => 
+          (Equals(lbl, Project(nv1, "_1")), (w.keySet ++ (v1.tp.attrs.keySet - "_1")))
       }
       val fdict = Select(dict, nv1, filt)
       val nE = OuterJoin(E.get, nv, fdict, nv1, joinCond, fields.toList)

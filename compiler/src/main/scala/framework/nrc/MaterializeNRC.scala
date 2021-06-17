@@ -54,38 +54,30 @@ trait MaterializeNRC extends ShredNRC with Optimizer {
     def name: String
 
     def e: Expr
+
+    def varRef: Expr = VarRef(name, e.tp)
   }
 
-  trait MaterializedExpr extends NamedExpr
+  sealed trait DictNode
 
-  type MExpr = MaterializedExpr
+  sealed trait MaterializedDict extends DictNode with NamedExpr
 
-  final case class MBag(name: String, e: BagExpr) extends MExpr {
-    def varRef: BagVarRef = BagVarRef(name, e.tp)
+  final case class MBag(name: String, e: BagExpr) extends MaterializedDict {
+    override def varRef: BagVarRef = BagVarRef(name, e.tp)
   }
 
-  final case class MKeyValueMap(name: String, e: KeyValueMapExpr) extends MExpr {
-    def varRef: KeyValueMapVarRef = KeyValueMapVarRef(name, e.tp)
+  final case class MKeyValueMap(name: String, e: KeyValueMapExpr) extends MaterializedDict {
+    override def varRef: KeyValueMapVarRef = KeyValueMapVarRef(name, e.tp)
   }
 
-  final case class MTuple(fields: Map[String, MExpr]) extends MExpr {
-    def name: String = "MTuple"
+  sealed trait SymbolicDict extends DictNode
 
-    def e: Tuple = Tuple(fields.map(x => x._1 -> x._2.e.asInstanceOf[TupleAttributeExpr]))
+  final case class SDict(d: BagDict) extends SymbolicDict
 
-    def apply(n: String): MExpr = fields(n)
-  }
+  final case class STuple(fields: Map[String, DictNode]) extends SymbolicDict
 
-  final case class MLet(n: String, e1: Expr, m2: MExpr) extends MExpr {
-    def name: String = "MLet"
+  final case class SLet(name: String, e1: Expr, n2: DictNode) extends SymbolicDict
 
-    def e: Expr = Let(n, e1, m2.e)
-  }
-
-  final case class MIfThenElse(c: CondExpr, m1: MExpr, m2: MExpr) extends MExpr {
-    def name: String = "MIfThenElse"
-
-    def e: Expr = IfThenElse(c, m1.e, m2.e)
-  }
+  final case class SIfThenElse(cond: CondExpr, n1: DictNode, n2: DictNode) extends SymbolicDict
 
 }

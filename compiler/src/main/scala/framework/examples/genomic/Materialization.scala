@@ -19,10 +19,10 @@ class LetTest0(override val letOpt: Boolean = false) extends DriverGene {
           |
           |// issue with partial shredding here
           |val odict2 = spark.table("odict2").drop("flags")
-          |val IDict_occurrences__D_transcript_consequences = odict2
+          |val IMap_occurrences__D_transcript_consequences = odict2
           |
           |val odict3 = spark.table("odict3")
-          |val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
+          |val IMap_occurrences__D_transcript_consequences_consequence_terms = odict3
           |""".stripMargin
     }else{
       s"""|val samples = spark.table("samples")
@@ -135,10 +135,10 @@ object LetTest1 extends DriverGene {
           |
           |// issue with partial shredding here
           |val odict2 = spark.table("odict2").drop("flags")
-          |val IDict_occurrences__D_transcript_consequences = odict2
+          |val IMap_occurrences__D_transcript_consequences = odict2
           |
           |val odict3 = spark.table("odict3")
-          |val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
+          |val IMap_occurrences__D_transcript_consequences_consequence_terms = odict3
           |""".stripMargin
     }else{
       s"""|val samples = spark.table("samples")
@@ -207,10 +207,10 @@ object LetTest2 extends DriverGene {
           |
           |// issue with partial shredding here
           |val odict2 = spark.table("odict2").drop("flags")
-          |val IDict_occurrences__D_transcript_consequences = odict2
+          |val IMap_occurrences__D_transcript_consequences = odict2
           |
           |val odict3 = spark.table("odict3")
-          |val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
+          |val IMap_occurrences__D_transcript_consequences_consequence_terms = odict3
           |""".stripMargin
     }else{
       s"""|val samples = spark.table("samples")
@@ -279,10 +279,10 @@ object LetTest3 extends DriverGene {
           |
           |// issue with partial shredding here
           |val odict2 = spark.table("odict2").drop("flags")
-          |val IDict_occurrences__D_transcript_consequences = odict2
+          |val IMap_occurrences__D_transcript_consequences = odict2
           |
           |val odict3 = spark.table("odict3")
-          |val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
+          |val IMap_occurrences__D_transcript_consequences_consequence_terms = odict3
           |""".stripMargin
     }else{
       s"""|val samples = spark.table("samples")
@@ -375,10 +375,10 @@ object LetTest4 extends DriverGene {
           |
           |// issue with partial shredding here
           |val odict2 = spark.table("odict2").drop("flags")
-          |val IDict_occurrences__D_transcript_consequences = odict2
+          |val IMap_occurrences__D_transcript_consequences = odict2
           |
           |val odict3 = spark.table("odict3")
-          |val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
+          |val IMap_occurrences__D_transcript_consequences_consequence_terms = odict3
           |""".stripMargin
     }else{
       s"""|val samples = spark.table("samples")
@@ -470,10 +470,10 @@ object LetTest5 extends DriverGene {
           |
           |// issue with partial shredding here
           |val odict2 = spark.table("odict2").drop("flags")
-          |val IDict_occurrences__D_transcript_consequences = odict2
+          |val IMap_occurrences__D_transcript_consequences = odict2
           |
           |val odict3 = spark.table("odict3")
-          |val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
+          |val IMap_occurrences__D_transcript_consequences_consequence_terms = odict3
           |""".stripMargin
     }else{
       s"""|val samples = spark.table("samples")
@@ -521,9 +521,119 @@ object LetTest5 extends DriverGene {
          for h in i.hybrid_scores union 
            {(hybrid_gene := h.hybrid_gene, hybrid_score := h.hybrid_score)}
      """
+    val query2 =
+     s"""
+       LetTest5 <= 
+       let initScores := $initScores 
+       in for i in initScores union
+         for h in i.hybrid_scores union 
+           {(hybrid_gene := h.hybrid_gene, hybrid_score := h.hybrid_score)}
+     """
+    val f2fquery =
+    s"""
+       Flat2FlatTest <=
+           let samplesCopy :=
+             for s in samples union
+             {( sid := s.bcr_patient_uuid,
+                bag := for c1 in copynumber union
+                         if (s.bcr_aliquot_uuid = c1.cn_aliquot_uuid)
+                         then {(gene := c1.cn_gene_id, cnum := c1.cn_copy_number)} )}
+           in for x in samplesCopy union
+                {( sid := x.sid )}""".stripMargin
+    val f2fquery2 =
+    s"""
+       Flat2FlatTest2 <=
+           let samplesCopy :=
+             for s in samples union
+             {( sid := s.bcr_patient_uuid,
+                bag := for c1 in copynumber union
+                         if (s.bcr_aliquot_uuid = c1.cn_aliquot_uuid)
+                         then {(gene := c1.cn_gene_id, cnum := c1.cn_copy_number)} )}
+           in for x in samplesCopy union
+                for y in x.bag union
+                  {( sid := x.sid, gene := y.gene )}""".stripMargin
 
     val parser = Parser(tbls)
     val program = parser.parse(query).get.asInstanceOf[Program]
+    val program2 = parser.parse(query2).get.asInstanceOf[Program]
+    val f2fprogram = parser.parse(f2fquery).get.asInstanceOf[Program]
+    val f2fprogram2 = parser.parse(f2fquery2).get.asInstanceOf[Program]
+}
+
+object LetTest5Seq extends DriverGene {
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    if (shred){
+      s"""|val samples = spark.table("samples")
+          |val IBag_samples__D = samples
+          |
+          |val copynumber = spark.table("copynumber")
+          |val IBag_copynumber__D = copynumber
+          |
+          |val odict1 = spark.table("odict1")
+          |val IBag_occurrences__D = odict1
+          |
+          |// issue with partial shredding here
+          |val odict2 = spark.table("odict2").drop("flags")
+          |val IMap_occurrences__D_transcript_consequences = odict2
+          |
+          |val odict3 = spark.table("odict3")
+          |val IMap_occurrences__D_transcript_consequences_consequence_terms = odict3
+          |""".stripMargin
+    }else{
+      s"""|val samples = spark.table("samples")
+          |
+          |val copynumber = spark.table("copynumber")
+          |
+          |val occurrences = spark.table("occurrences")
+          |""".stripMargin
+    }
+
+  val name = "LetTest5Seq"
+  
+  val tbls = Map("occurrences" -> occurmids.tp, 
+                  "copynumber" -> copynum.tp, 
+                  "samples" -> samples.tp,
+                  "network" -> network.tp, 
+                  "genemap" -> gpmap.tp)
+
+    val imp = """if (t.impact = "HIGH") then 0.80 
+                  else if (t.impact = "MODERATE") then 0.50
+                  else if (t.impact = "LOW") then 0.30
+                  else 0.01"""
+
+    val cnvs = 
+      s"""
+      for s in samples union 
+        for c1 in copynumber union 
+          if (s.bcr_aliquot_uuid = c1.cn_aliquot_uuid)
+          then {(sid := s.bcr_patient_uuid, gene := c1.cn_gene_id, cnum := c1.cn_copy_number)}
+      """
+    val initScores = 
+      s"""
+        for o in occurrences union 
+          {(hybrid_case := o.donorId, hybrid_scores := 
+              (for t in o.transcript_consequences union 
+                for c in $cnvs union 
+                  if (o.donorId = c.sid && t.gene_id = c.gene)
+                  then {(hybrid_gene := t.gene_id, hybrid_score := (c.cnum + 0.01) * $imp )}).sumBy({hybrid_gene}, {hybrid_score})
+          )}
+      """
+    val query = 
+     s"""
+       cnvTmp <= $cnvs;
+       
+       initScores <= $initScores; 
+
+       LetTest5 <= 
+         for i in initScores union
+           for h in i.hybrid_scores union 
+             {(hybrid_gene := h.hybrid_gene, hybrid_score := h.hybrid_score)}
+     """
+
+    val parser = Parser(tbls)
+    val program = parser.parse(query).get.asInstanceOf[Program]
+
 }
 
 object LetTest6 extends DriverGene {
@@ -541,10 +651,10 @@ object LetTest6 extends DriverGene {
           |
           |// issue with partial shredding here
           |val odict2 = spark.table("odict2").drop("flags")
-          |val IDict_occurrences__D_transcript_consequences = odict2
+          |val IMap_occurrences__D_transcript_consequences = odict2
           |
           |val odict3 = spark.table("odict3")
-          |val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
+          |val IMap_occurrences__D_transcript_consequences_consequence_terms = odict3
           |""".stripMargin
     }else{
       s"""|val samples = spark.table("samples")

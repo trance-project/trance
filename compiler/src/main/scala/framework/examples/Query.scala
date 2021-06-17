@@ -28,6 +28,8 @@ trait Query extends Materialization
 
   val program: Program
 
+  val opts = Set[MaterializationOption](MOptEliminateDomains)
+
   // nrc to plan language
   def calculus: CExpr = {
     println("RUNNING STANDARD PIPELINE:\n")
@@ -76,7 +78,7 @@ trait Query extends Materialization
       val optShredded = optimize(shredded)
       println("shredded:")
       println(quote(optShredded))
-      val materialized = materialize(optShredded, eliminateDomains = true)
+      val materialized = materialize(optShredded, opts)
       val mprogram = materialized.program
       println("materialized:")
       println(quote(mprogram))
@@ -107,10 +109,10 @@ trait Query extends Materialization
 
     // materialize input
     val (inputShredded, inputShreddedCtx) = shredCtx(input.program.asInstanceOf[Program])
-    val matInput = materialize(optimize(inputShredded), eliminateDomains = eliminateDomains)
+    val matInput = materialize(optimize(inputShredded), opts)
     val (shredded, _) = shredCtx(program, inputShreddedCtx)
     val optShredded = optimize(shredded)
-    val mat = materialize(optShredded, matInput.ctx, eliminateDomains = eliminateDomains)
+    val mat = materialize(optShredded, matInput.ctx, opts)
 
     // shredded pipeline plan for input
     // println("RUNNING SHREDDED PIPELINE:\n")
@@ -166,7 +168,7 @@ trait Query extends Materialization
     val (shredded, shreddedCtx) = shredCtx(program)
     val optShredded = optimize(shredded)
     println(quote(optShredded))
-    val matProg = materialize(optShredded, eliminateDomains = eliminateDomains).asInstanceOf[MProgram]
+    val matProg = materialize(optShredded, opts).asInstanceOf[MProgram]
     println("RUNNING SHREDDED PIPELINE:\n")
     println(matProg)
     val bcalc = translate(matProg)

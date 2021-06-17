@@ -142,6 +142,8 @@ final case class BagDictType(lblTp: LabelType, flatTp: BagType, dictTp: TupleDic
 
 final case class TupleDictType(attrTps: Map[String, TupleDictAttributeType]) extends DictType {
   def apply(n: String): TupleDictAttributeType = attrTps(n)
+
+  def isEmpty: Boolean = attrTps.forall(_._2 == EmptyDictType)
 }
 
 object TupleDictType {
