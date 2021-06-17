@@ -17,6 +17,11 @@ import BlocklyComponent
     from "./component/Query/QueryBuilderComponents/StandardCompilationBuilder/BlocklyBuilder/Blockly/Blockly_Component";
 import Overview from "./component/Overview/Overview";
 
+/**
+ * This Component is used for navigation, if you would like
+ * to add a new page this the webapp this is the place you will do it
+ * @constructor
+ */
 function TranceRouter() {
 
     const activePage = useAppSelector(state => state.navigation.activePage);

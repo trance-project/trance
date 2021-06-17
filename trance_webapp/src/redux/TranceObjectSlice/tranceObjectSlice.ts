@@ -36,9 +36,10 @@ export const tranceObjectSlice = createSlice({
         },
         modifySelectedObjectKeyValue: (state, action:PayloadAction<TempTable>) => {
             // remove Temp object from selected list to replace it for new modify one
-            const selectedObjects = state.selectedObjects.filter(o => o._id !== action.payload._id)
+            const selectedObjects = state.objects.filter(o => o._id !== action.payload._id)
+            console.log("[Passed here]")
             selectedObjects.push(action.payload);
-            state.selectedObjects = selectedObjects;
+            state.objects = selectedObjects;
         }
     },
     extraReducers: builder => {

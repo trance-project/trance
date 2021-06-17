@@ -14,7 +14,8 @@ import ShreddedPlan from "../../component/CompilerViewComponent/ShreddedPlan/Shr
 import ModelMessage from "../../component/ui/ModelMessage/ModelMessage";
 import StandardPlan from "../../component/CompilerViewComponent/StandardPlan/StandardPlan";
 import ModalPrompt from "../../component/CompilerViewComponent/ModalPrompt/ModelPrompt";
-import {useAppSelector} from '../../redux/Hooks/hooks'
+import {useAppSelector} from '../../redux/Hooks/hooks';
+import {newQuerySelected} from '../../redux/QuerySlice/tempData'
 
 const CompilerView =()=> {
     const classes = standardCompilationViewThemeStyle();
@@ -72,15 +73,15 @@ const CompilerView =()=> {
             tabLabel:"Source NRC",
             jsxElement: (
                 <React.Fragment>
-                    {/*<StandardCompilationView*/}
-                    {/*    query={query}*/}
-                    {/*    showDiagram={queryTreeDiagramState}*/}
-                    {/*    closeDiagram={handleQueryTreeDiagramClose}*/}
-                    {/*    hoverMaterializationLvl={showHoverMaterializationState}*/}
-                    {/*    hoverMaterializationLvlClose={closeHoverMaterializationLvl}*/}
-                    {/*    hoverMaterializationLvlOpen={handleHoverMaterializationLvl}*/}
-                    {/*    abortHover={abortHoverHandler}*/}
-                    {/*/>*/}
+                    <StandardCompilationView
+                        query={newQuerySelected}
+                        showDiagram={queryTreeDiagramState}
+                        closeDiagram={handleQueryTreeDiagramClose}
+                        hoverMaterializationLvl={showHoverMaterializationState}
+                        hoverMaterializationLvlClose={closeHoverMaterializationLvl}
+                        hoverMaterializationLvlOpen={handleHoverMaterializationLvl}
+                        abortHover={abortHoverHandler}
+                    />
 
                     <Button className={classes.queryBtnGroup} variant={"outlined"} color={"primary"} endIcon={<NoteIcon />} onClick={()=> window.location.href = "http://localhost:8085/#/notebook/2FK1WGZDP"}>Notebook</Button>
                     <Button className={classes.queryBtnGroup} variant={"contained"} color={"primary"} onClick={handleOpenCompilationDialogState} endIcon={<ForwardIcon/>}>Compile & Run</Button>

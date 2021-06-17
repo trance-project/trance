@@ -22,7 +22,7 @@ const objects = [
     },
     {
         _id: generateUUID(),
-        name: "CopyNumber",
+        name: "copyNumber",
         abr:"c",
         columns:
             [
@@ -33,7 +33,7 @@ const objects = [
     },
     {
         _id: generateUUID(),
-        name: "Occurrences",
+        name: "occurrences",
         abr:"o",
         columns:
             [
@@ -43,27 +43,130 @@ const objects = [
                 {name: "reference", children:{}},
                 {name: "alternate", children:{}},
                 {name: "mutid", children:{}},
-                {name: "candidates", children:
-                    {name: "candidates",
-                        columns:
-                            [
-                                {name: "gene", children:{}},
-                                {name: "impact", children:{}},
-                                {name: "sift", children:{}},
-                                {name: "poly", children:{}},
-                                {name: "consequences", children:
-                                        {name: "consequences",
-                                            columns:
-                                                [
-                                                    {name: "conseq", children: {}}
-                                                ]
-                                        }
-                                    },
-                            ]
-                    }
-                },
+                {name: "candidates", children:{}},
             ]
-    }
+    },
+    {
+        _id: generateUUID(),
+        name: "candidates",
+        abr:"cc",
+        columns:
+            [
+                {name: "gene", children:{}},
+                {name: "impact", children:{}} ,
+                {name: "sift",  children:{}},
+                {name: "poly", children:{}},
+                {name: "consequences", children:{}},
+            ]
+    },
+    {
+        _id: generateUUID(),
+        name: "consequences",
+        abr:"cs",
+        columns:
+            [
+                {name: "conseq", children:{}},
+            ]
+    },
+    {
+        _id: generateUUID(),
+        name: "geneExpression",
+        abr:"ge",
+        columns:
+            [
+                {name: "id", children:{}},
+                {name: "cname", children:{}},
+                {name: "corders", children:{}},
+                {name: "cdescription", children:{}},
+                {name: "csequence", children:{}},
+            ]
+    },
+    {
+        _id: generateUUID(),
+        name: "proteinInteractions",
+        abr:"pi",
+        columns:
+            [
+                {name: "id", children:{}},
+                {name: "odate", children:{}},
+                {name: "oparts", children:{}},
+                {name: "odescription", children:{}},
+                {name: "oclerk", children:{}},
+            ]
+    },
+    {
+        _id: generateUUID(),
+        name: "drugResponse",
+        abr:"dr",
+        columns:
+            [
+                {name: "id", children:{}},
+                {name: "nname", children:{}},
+                {name: "ncusts", children:{}},
+                {name: "ncountry", children:{}},
+            ]
+    },
+    {
+        _id: generateUUID(),
+        name: "enhancers",
+        abr:"e",
+        columns:
+            [
+                {name: "id", children:{}},
+                {name: "rname", children:{}},
+                {name: "rnation", children:{}},
+            ]
+    },
+    {
+        _id: generateUUID(),
+        name: "methylation",
+        abr:"m",
+        columns:
+            [
+                {name: "id", children:{}},
+                {name: "qty", children:{}},
+                {name: "orderid", children:{}},
+                {name: "price", children:{}},
+                {name: "deliveroption", children:{}},
+            ]
+    },
+    {
+        _id: generateUUID(),
+        name: "genes",
+        abr:"g",
+        columns:
+            [
+                {name: "id", children:{}},
+                {name: "pname", children:{}},
+                {name: "pdescription", children:{}},
+                {name: "pmanufacturer", children:{}},
+            ]
+    },
+    {
+        _id: generateUUID(),
+        name: "pathways",
+        abr:"p",
+        columns:
+            [
+                {name: "id", children:{}},
+                {name: "qty", children:{}},
+                {name: "price", children:{}},
+                {name: "description", children:{}},
+            ]
+    },
+    {
+        _id: generateUUID(),
+        name: "variants",
+        abr:"p",
+        columns:
+            [
+                {name: "id", children:{}},
+                {name: "sname", children:{}},
+                {name: "sdescription", children:{}},
+                {name: "sprice", children:{}},
+            ]
+    },
+
 ]
  const queryObject = [{
      _id: generateUUID(),

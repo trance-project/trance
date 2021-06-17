@@ -19,7 +19,7 @@ const FieldRenderComponent = (props: _FieldRenderComponentProps) => {
         return option.columns.map(c => {
             return{
                 table: option.name,
-                ...c,
+                name: `${option.abr}.${c.name}`,
             }
         });
     }).reduce((previousValue, currentValue) => previousValue.concat(currentValue), []);

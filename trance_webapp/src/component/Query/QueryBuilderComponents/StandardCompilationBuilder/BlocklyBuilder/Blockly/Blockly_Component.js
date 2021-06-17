@@ -57,8 +57,9 @@ class TestEditor extends React.Component {
                             }
                             case "OBJECT_KEY" : {
                                 console.log('[block]', block.getFieldValue( 'ATTRIBUTE_VALUE'));
+                                console.log('[New Value]',event.newValue);
                                 const block_attribute_value = block.getFieldValue( 'ATTRIBUTE_VALUE');
-                                if(block_attribute_value !== "null"){
+                                if(block_attribute_value !== "null" && event.newValue != ""){
                                     this.modifyTranceObjectByName(block_attribute_value, event.newValue)
                                 }
                                 break;
@@ -98,8 +99,14 @@ class TestEditor extends React.Component {
         }
     }
 
+    /**
+     * Function used to modify the the forUnion drop down
+     * and add a abbreviation/key to object for easy search in dropdown
+     * @param objectName
+     * @param object_key
+     */
     modifyTranceObjectByName = (objectName, object_key) => {
-        const object = this.props.tranceObject.selectedObjects.find(o => objectName===o.name)
+        const object = this.props.tranceObject.objects.find(o => objectName===o.name)
         if(object && object.abr !== object_key){
             const newObject = JSON.parse(JSON.stringify(object));
             newObject.abr = object_key;

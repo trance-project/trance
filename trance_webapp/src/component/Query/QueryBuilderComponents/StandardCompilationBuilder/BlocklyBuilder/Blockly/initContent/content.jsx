@@ -487,6 +487,7 @@ const INITIAL_TOOLBOX_XML = '<xml xmlns="http://www.w3.org/1999/xhtml" id="toolb
   + '    <block type="forUnionTuple2.0"/>\n'
   + '    <block type="forUnion2.0"/>\n'
   + '    <block type="ifstmt_bag2.0"/>\n'
+  + '    <block type="forUnionNested"/>\n'
   // + '    <block type="tuple"/>\n'
   // + '    <block type="customReactComponent"/>\n'
   // + '    <block type="brackets"/>\n'

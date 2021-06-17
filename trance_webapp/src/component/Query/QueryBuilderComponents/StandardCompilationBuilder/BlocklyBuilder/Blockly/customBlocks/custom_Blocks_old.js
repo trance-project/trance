@@ -53,7 +53,7 @@ Blockly.defineBlocksWithJsonArray([
     },
     {
         "type": "tuple_el_iteration",
-        "message0": "%1 %2 %3",
+        "message0": "%1 %2 %3 %4",
         "args0": [
             {
                 "type": "field_input",
@@ -64,6 +64,9 @@ Blockly.defineBlocksWithJsonArray([
                 "type": "field_label",
                 "name": "COLON",
                 "text": ":="
+            },
+            {
+                "type": "input_dummy"
             },
             {
                 "type": "input_statement",
@@ -188,7 +191,7 @@ Blockly.defineBlocksWithJsonArray([
             {
                 "type": "field_label",
                 "name": "COLON",
-                "text": "=="
+                "text": "="
             },
             {
                 "type": "field_input",
@@ -214,7 +217,7 @@ Blockly.defineBlocksWithJsonArray([
             {
                 "type": "field_label",
                 "name": "COLON",
-                "text": "=="
+                "text": "="
             },
             {
                 "type": "input_value",
@@ -225,8 +228,9 @@ Blockly.defineBlocksWithJsonArray([
         "inputsInline": true,
         "colour": 142,
         // "output": "Primitive",
-        "nextStatement": "Primitive",
-        "tooltip": "association_on",
+        "nextStatement": "Bag",
+        "previousStatement": "Bag",
+        "tooltip": "association_on_assisted",
     },
     {
         "type": "group_by",
@@ -418,6 +422,35 @@ const ifstmt_bag2 = {
 Blockly.Blocks['ifstmt_bag2.0'] = {
     init: function() {
         this.jsonInit(ifstmt_bag2);
+    }
+};
+
+const forUnionNested = {
+    "type": "forUnionNested",
+    "message0": "for %1 in %2 union",
+    "args0": [
+        {
+            "type": "field_input",
+            "name": "OBJECT_KEY",
+            "text": ""
+        },
+        {
+            "type": "field_react_component",
+            "name": "FIELD",
+            "text": "select attribute",
+        },
+    ],
+    "colour": 211,
+    "nextStatement": "Bag",
+    "previousStatement": "Bag",
+    "tooltip": "For Union Nested: Bag Type",
+    "inputsInline": true,
+};
+
+
+Blockly.Blocks['forUnionNested'] = {
+    init: function() {
+        this.jsonInit(forUnionNested);
     }
 };
 

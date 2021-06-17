@@ -9,7 +9,6 @@ import {TreeView} from "@material-ui/lab";
 
 
 import {
-    Query,
     NewQuery
 } from "../../../utils/Public_Interfaces";
 import StyledTreeItem from "../../ui/StyledTreeItem/StyledTreeItem";
@@ -20,7 +19,7 @@ import NewLabelView from "../../Query/QueryBuilderComponents/StandardCompilation
 
 
 interface _QueryViewProps {
-    query:Query | undefined;
+    query:NewQuery | undefined;
     showDiagram:boolean;
     closeDiagram:()=>void;
     hoverMaterializationLvl:number;

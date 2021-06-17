@@ -31,11 +31,11 @@ BlocklyJS['tuple'] = function (block){
 BlocklyJS['tuple_el'] = function (block){
     const attribute_Name = validate(block.getFieldValue('ATTRIBUTE_NAME'))
     const attribute_value = validate(BlocklyJS.valueToCode(block,'ATTRIBUTE_VALUE',0));
-    return `${attribute_Name} := ${attribute_value}`;
+    const comma = moreThenOneAttribute(block);
+    return `${comma}${attribute_Name} := ${attribute_value}`;
 }
 
 BlocklyJS['customReactComponent'] = function (block){
-    console.log('[customReactComponent]', block)
     const code = validate(block.getField('FIELD').getText())
     return [code,0];
 }
@@ -43,7 +43,8 @@ BlocklyJS['customReactComponent'] = function (block){
 BlocklyJS['tuple_el_iteration'] = function (block){
     const attribute_Name = validate(block.getFieldValue('ATTRIBUTE_NAME'))
     const attribute_value = validate(BlocklyJS.statementToCode(block,'ATTRIBUTE_VALUE',0));
-    return `${attribute_Name} :=\n${attribute_value}`;
+    const comma = moreThenOneAttribute(block);
+    return `${comma}${attribute_Name} :=\n${attribute_value}`;
 }
 
 BlocklyJS['ifstmt_primitive'] = function (block){
@@ -64,8 +65,8 @@ BlocklyJS['association_on'] = function (block){
     return `(${object_associationA} = ${object_associationB})`;
 }
 BlocklyJS['association_on_assisted'] = function (block){
-    const object_associationA = validate(block.getFieldValue('ATTRIBUTE_A'));
-    const object_associationB = validate(block.getFieldValue('ATTRIBUTE_A'));
+    const object_associationA = validate(BlocklyJS.valueToCode(block,'ATTRIBUTE_A',0));
+    const object_associationB = validate(BlocklyJS.valueToCode(block,'ATTRIBUTE_B',0));
     return `(${object_associationA} = ${object_associationB})`;
 }
 // add a sumby function
@@ -88,6 +89,27 @@ BlocklyJS['and'] = function (block){
 
 const validate = (codeBlock) =>{
     return codeBlock?codeBlock:"UND";
+}
+
+/**
+ * Function used to check the tuple code block to include a
+ * comma if more then one attribute is selected
+ * @param block
+ * @returns {string|null}
+ */
+const moreThenOneAttribute = (block) =>{
+    const parentBlock = block.parentBlock_;
+    if(parentBlock){
+        switch (parentBlock.type){
+            case "tuple_el" :{
+               return ", "
+            }
+            default : {
+                return ""
+            }
+        }
+    }
+    return "";
 }
 
 
@@ -118,3 +140,10 @@ Blockly.JavaScript['ifstmt_bag2.0'] = function (block){
     const object_association = validate(BlocklyJS.statementToCode(block,'OBJECT_ASSOCIATION'));
     return `if ${object_association} then\n`;
 }
+
+Blockly.JavaScript['forUnionNested'] = function (block){
+    const assignment = validate(block.getFieldValue('OBJECT_KEY'));
+    const object = validate(block.getField('FIELD').getText())
+    return `for ${assignment} in ${object} union \n`
+}
+

@@ -33,7 +33,7 @@ import NewQueryDialog from "../../component/NewQueryDialog/NewQueryDialog";
 import {ListSubheader} from "@material-ui/core";
 import AssignmentIcon from "@material-ui/icons/Assignment";
 import {pageRoutes} from '../../utils/Public_enums';
-import {Query, QuerySummary} from '../../utils/Public_Interfaces';
+import {QuerySummary} from '../../utils/Public_Interfaces';
 import {useAppDispatch, useAppSelector} from "../../redux/Hooks/hooks";
 
 import {fetchQueryListSummary, fetchSelectedQuery, blocklyCreateNew} from '../../redux/QuerySlice/thunkQueryApiCalls';
