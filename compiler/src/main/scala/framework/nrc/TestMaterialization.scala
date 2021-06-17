@@ -33,6 +33,59 @@ object TestMaterialization extends App
     val unshredded = unshred(optShredded, materializedProgram.ctx)
     println("Unshredded program: \n" + quote(unshredded) + "\n")
 
+//    val lDict = List[Map[String, Any]](
+//      Map("l_orderkey" -> 1, "l_partkey" -> 42, "l_suppkey" -> 789, "l_quantity" -> 7.0)
+//    )
+//    val pDict = List[Map[String, Any]](
+//      Map("p_partkey" -> 42, "p_name" -> "Kettle", "p_retailprice" -> 12.45)
+//    )
+//    val cDict = List[Map[String, Any]](
+//      Map("c_custkey" -> 10, "c_name" -> "Alice")
+//    )
+//    val oDict = List[Map[String, Any]](
+//      Map("o_orderkey" -> 1, "o_custkey" -> 10, "o_orderdate" -> 20200317)
+//    )
+//    val sDict = List[Map[String, Any]](
+//      Map("s_suppkey" -> 789, "s_name" -> "Supplier#1")
+//    )
+//
+//    val ctx = new RuntimeContext
+//    ctx.add(VarDef(inputBagName("Lineitem__D"), TPCHSchema.lineittype), lDict)
+//    ctx.add(VarDef(inputBagName("Part__D"), TPCHSchema.parttype), pDict)
+//    ctx.add(VarDef(inputBagName("Customer__D"), TPCHSchema.customertype), cDict)
+//    ctx.add(VarDef(inputBagName("Order__D"), TPCHSchema.orderstype), oDict)
+//    ctx.add(VarDef(inputBagName("Supplier__D"), TPCHSchema.suppliertype), sDict)
+//
+//    println("Program eval: ")
+//    eval(materializedProgram.program, ctx)
+//    materializedProgram.program.statements.foreach { s =>
+//      println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
+//    }
+//
+//    println("Unshredded program eval: ")
+//    eval(unshredded, ctx)
+//    program.statements.foreach { s =>
+//      println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
+//    }
+  }
+
+  def runSequential(opts: Set[MaterializationOption]): Unit = {
+    val q1 = tpch.Test2.program.asInstanceOf[Program]
+
+    println("Program: \n" + quote(q1) + "\n")
+
+    val (shredded, shreddedCtx) = shredCtx(q1)
+    println("Shredded program: \n" + quote(shredded) + "\n")
+
+    val optShredded = optimize(shredded)
+    println("Shredded program optimized: \n" + quote(optShredded) + "\n")
+
+    val materializedProgram = materialize(optShredded, opts)
+    println("Materialized program: \n" + quote(materializedProgram.program) + "\n")
+
+    val unshredded = unshred(optShredded, materializedProgram.ctx)
+    println("Unshredded program: \n" + quote(unshredded) + "\n")
+
     val lDict = List[Map[String, Any]](
       Map("l_orderkey" -> 1, "l_partkey" -> 42, "l_suppkey" -> 789, "l_quantity" -> 7.0)
     )
@@ -64,62 +117,9 @@ object TestMaterialization extends App
 
     println("Unshredded program eval: ")
     eval(unshredded, ctx)
-    program.statements.foreach { s =>
+    q1.statements.foreach { s =>
       println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
     }
-  }
-
-  def runSequential(opts: Set[MaterializationOption]): Unit = {
-    val q1 = tpch.Test2.program.asInstanceOf[Program]
-
-    println("Program: \n" + quote(q1) + "\n")
-
-    val (shredded, shreddedCtx) = shredCtx(q1)
-    println("Shredded program: \n" + quote(shredded) + "\n")
-
-    val optShredded = optimize(shredded)
-    println("Shredded program optimized: \n" + quote(optShredded) + "\n")
-
-    val materializedProgram = materialize(optShredded, opts)
-    println("Materialized program: \n" + quote(materializedProgram.program) + "\n")
-
-    val unshredded = unshred(optShredded, materializedProgram.ctx)
-    println("Unshredded program: \n" + quote(unshredded) + "\n")
-
-//    val lDict = List[Map[String, Any]](
-//      Map("l_orderkey" -> 1, "l_partkey" -> 42, "l_suppkey" -> 789, "l_quantity" -> 7.0)
-//    )
-//    val pDict = List[Map[String, Any]](
-//      Map("p_partkey" -> 42, "p_name" -> "Kettle", "p_retailprice" -> 12.45)
-//    )
-//    val cDict = List[Map[String, Any]](
-//      Map("c_custkey" -> 10, "c_name" -> "Alice")
-//    )
-//    val oDict = List[Map[String, Any]](
-//      Map("o_orderkey" -> 1, "o_custkey" -> 10, "o_orderdate" -> 20200317)
-//    )
-//    val sDict = List[Map[String, Any]](
-//      Map("s_suppkey" -> 789, "s_name" -> "Supplier#1")
-//    )
-
-//    val ctx = new RuntimeContext
-//    ctx.add(VarDef(inputBagName("Lineitem__D"), TPCHSchema.lineittype), lDict)
-//    ctx.add(VarDef(inputBagName("Part__D"), TPCHSchema.parttype), pDict)
-//    ctx.add(VarDef(inputBagName("Customer__D"), TPCHSchema.customertype), cDict)
-//    ctx.add(VarDef(inputBagName("Order__D"), TPCHSchema.orderstype), oDict)
-//    ctx.add(VarDef(inputBagName("Supplier__D"), TPCHSchema.suppliertype), sDict)
-//
-//    println("Program eval: ")
-//    eval(materializedProgram.program, ctx)
-//    materializedProgram.program.statements.foreach { s =>
-//      println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
-//    }
-//
-//    println("Unshredded program eval: ")
-//    eval(unshredded, ctx)
-//    q1.statements.foreach { s =>
-//      println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
-//    }
 
     val q4 = tpch.Query4.program.asInstanceOf[Program]
 
@@ -137,17 +137,17 @@ object TestMaterialization extends App
     val unshredded4 = unshred(optShredded4, materializedProgram4.ctx)
     println("Unshredded program: \n" + quote(unshredded4) + "\n")
 
-//    println("Program eval: ")
-//    eval(materializedProgram4.program, ctx)
-//    materializedProgram4.program.statements.foreach { s =>
-//      println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
-//    }
-//
-//    println("Unshredded program eval: ")
-//    eval(unshredded4, ctx)
-//    q4.statements.foreach { s =>
-//      println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
-//    }
+    println("Program eval: ")
+    eval(materializedProgram4.program, ctx)
+    materializedProgram4.program.statements.foreach { s =>
+      println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
+    }
+
+    println("Unshredded program eval: ")
+    eval(unshredded4, ctx)
+    q4.statements.foreach { s =>
+      println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
+    }
 
   }
 
@@ -168,41 +168,6 @@ object TestMaterialization extends App
     val unshredded = unshred(optShredded, materializedProgram.ctx)
     println("Unshredded program: \n" + quote(unshredded) + "\n")
 
-//    val lDict = List[Map[String, Any]](
-//      Map("l_orderkey" -> 1, "l_partkey" -> 42, "l_suppkey" -> 789, "l_quantity" -> 7.0)
-//    )
-//    val pDict = List[Map[String, Any]](
-//      Map("p_partkey" -> 42, "p_name" -> "Kettle", "p_retailprice" -> 12.45)
-//    )
-//    val cDict = List[Map[String, Any]](
-//      Map("c_custkey" -> 10, "c_name" -> "Alice")
-//    )
-//    val oDict = List[Map[String, Any]](
-//      Map("o_orderkey" -> 1, "o_custkey" -> 10, "o_orderdate" -> 20200317)
-//    )
-//    val sDict = List[Map[String, Any]](
-//      Map("s_suppkey" -> 789, "s_name" -> "Supplier#1")
-//    )
-
-//    val ctx = new RuntimeContext
-//    ctx.add(VarDef(inputBagName("L__D"), TPCHSchema.lineittype), lDict)
-//    ctx.add(VarDef(inputBagName("P__D"), TPCHSchema.parttype), pDict)
-//    ctx.add(VarDef(inputBagName("C__D"), TPCHSchema.customertype), cDict)
-//    ctx.add(VarDef(inputBagName("O__D"), TPCHSchema.orderstype), oDict)
-//    ctx.add(VarDef(inputBagName("S__D"), TPCHSchema.suppliertype), sDict)
-//
-//    println("Program eval: ")
-//    eval(materializedProgram.program, ctx)
-//    materializedProgram.program.statements.foreach { s =>
-//      println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
-//    }
-//
-//    println("Unshredded program eval: ")
-//    eval(unshredded, ctx)
-//    q1.statements.foreach { s =>
-//      println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
-//    }
-
     val q4 = Program(Assignment(tpch.Test2NN.name, tpch.Test2NN.query.asInstanceOf[Expr]))
 
     println("Program: \n" + quote(q4) + "\n")
@@ -218,19 +183,6 @@ object TestMaterialization extends App
 
     val unshredded4 = unshred(optShredded4, materializedProgram4.ctx)
     println("Unshredded program: \n" + quote(unshredded4) + "\n")
-
-//    println("Program eval: ")
-//    eval(materializedProgram4.program, ctx)
-//    materializedProgram4.program.statements.foreach { s =>
-//      println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
-//    }
-//
-//    println("Unshredded program eval: ")
-//    eval(unshredded4, ctx)
-//    q4.statements.foreach { s =>
-//      println("  " + s.name + " = " + ctx(VarDef(s.name, s.rhs.tp)))
-//    }
-
   }
 
   def domainTest(opts: Set[MaterializationOption]): Unit = {
@@ -524,38 +476,38 @@ object TestMaterialization extends App
 //  val opts = Set[MaterializationOption](MOptInlineLets)
 //  val opts = Set[MaterializationOption](MOptEliminateDomains, MOptInlineLets)
 
-//  // test multiple lets
-//   testLet(opts)
-//  // issue here when i do a nested aggregation, maintain
-//  // input structure and then later associate them
-//  testDicts(genomic.LetTest5.program.asInstanceOf[Program], opts)
-//  testDicts(genomic.LetTest5.program2.asInstanceOf[Program], opts)
-//  testDicts(genomic.LetTest5.f2fprogram.asInstanceOf[Program], opts)
-//  testDicts(genomic.LetTest5.f2fprogram2.asInstanceOf[Program], opts)
-//
-//  runSequential(opts)
-//  runSequential2(opts)
-//  domainTest(opts)
-//
-//  dualConditionLabels(opts)
-//  dualConditionLabels2(opts)
-//  matFailedAssertion(opts)
-//
-//  matTupleDictUnsupported1(opts)
-//  matTupleDictUnsupported2(opts)
-//  matTupleDictUnsupported3(opts)
-//  matTupleDictUnsupported4(opts)
-//  // similar query that projects less attributes, and passes
-//  matTupleDictUnsupported5(opts)
-//
-//
-//  run(tpch.Query1.program.asInstanceOf[Program], opts)
-//  run(tpch.Query2.program.asInstanceOf[Program], opts)
-//  run(tpch.Query3.program.asInstanceOf[Program], opts)
-//  run(tpch.Query4.program.asInstanceOf[Program], opts)
-//  run(tpch.Query5.program.asInstanceOf[Program], opts)
-//  run(tpch.Query6.program.asInstanceOf[Program], opts)
-//  run(tpch.Query7.program.asInstanceOf[Program], opts)
+  // test multiple lets
+   testLet(opts)
+  // issue here when i do a nested aggregation, maintain
+  // input structure and then later associate them
+  testDicts(genomic.LetTest5.program.asInstanceOf[Program], opts)
+  testDicts(genomic.LetTest5.program2.asInstanceOf[Program], opts)
+  testDicts(genomic.LetTest5.f2fprogram.asInstanceOf[Program], opts)
+  testDicts(genomic.LetTest5.f2fprogram2.asInstanceOf[Program], opts)
 
-//  testTuple(opts)
+  runSequential(opts)
+  runSequential2(opts)
+  domainTest(opts)
+
+  dualConditionLabels(opts)
+  dualConditionLabels2(opts)
+  matFailedAssertion(opts)
+
+  matTupleDictUnsupported1(opts)
+  matTupleDictUnsupported2(opts)
+  matTupleDictUnsupported3(opts)
+  matTupleDictUnsupported4(opts)
+  // similar query that projects less attributes, and passes
+  matTupleDictUnsupported5(opts)
+
+
+  run(tpch.Query1.program.asInstanceOf[Program], opts)
+  run(tpch.Query2.program.asInstanceOf[Program], opts)
+  run(tpch.Query3.program.asInstanceOf[Program], opts)
+  run(tpch.Query4.program.asInstanceOf[Program], opts)
+  run(tpch.Query5.program.asInstanceOf[Program], opts)
+  run(tpch.Query6.program.asInstanceOf[Program], opts)
+  run(tpch.Query7.program.asInstanceOf[Program], opts)
+
+  testTuple(opts)
 }
