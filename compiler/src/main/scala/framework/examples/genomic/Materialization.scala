@@ -461,26 +461,28 @@ object LetTest5 extends DriverGene {
     if (shred){
       s"""|val samples = spark.table("samples")
           |val IBag_samples__D = samples
-          |
+          |IBag_samples__D.cache; IBag_samples__D.count
           |val copynumber = spark.table("copynumber")
           |val IBag_copynumber__D = copynumber
-          |
-          |val odict1 = spark.table("odict1")
+          |IBag_copynumber__D.cache; IBag_copynumber__D.count
+          |val odict1 = spark.table("fodict1")
           |val IBag_occurrences__D = odict1
-          |
+          |IBag_occurrences__D.cache; IBag_occurrences__D.count
           |// issue with partial shredding here
-          |val odict2 = spark.table("odict2").drop("flags")
+          |val odict2 = spark.table("fodict2").drop("flags")
           |val IMap_occurrences__D_transcript_consequences = odict2
-          |
-          |val odict3 = spark.table("odict3")
+          |IMap_occurrences__D_transcript_consequences.cache; IMap_occurrences__D_transcript_consequences.count
+          |val odict3 = spark.table("fodict3")
           |val IMap_occurrences__D_transcript_consequences_consequence_terms = odict3
+		  |IMap_occurrences__D_transcript_consequences_consequence_terms.cache
+		  |IMap_occurrences__D_transcript_consequences_consequence_terms.count
           |""".stripMargin
     }else{
       s"""|val samples = spark.table("samples")
           |
           |val copynumber = spark.table("copynumber")
           |
-          |val occurrences = spark.table("occurrences")
+          |val occurrences = spark.table("foccurrences")
           |""".stripMargin
     }
 
@@ -566,19 +568,21 @@ object LetTest5Seq extends DriverGene {
     if (shred){
       s"""|val samples = spark.table("samples")
           |val IBag_samples__D = samples
-          |
+          |IBag_samples__D.cache; IBag_samples__D.count
           |val copynumber = spark.table("copynumber")
           |val IBag_copynumber__D = copynumber
-          |
-          |val odict1 = spark.table("odict1")
+          |IBag_copynumber__D.cache; IBag_copynumber__D.count
+          |val odict1 = spark.table("fodict1")
           |val IBag_occurrences__D = odict1
-          |
+          |IBag_occurrences__D.cache; IBag_occurrences__D.count
           |// issue with partial shredding here
-          |val odict2 = spark.table("odict2").drop("flags")
+          |val odict2 = spark.table("fodict2").drop("flags")
           |val IMap_occurrences__D_transcript_consequences = odict2
-          |
-          |val odict3 = spark.table("odict3")
+          |IMap_occurrences__D_transcript_consequences.cache; IMap_occurrences__D_transcript_consequences.count
+          |val odict3 = spark.table("fodict3")
           |val IMap_occurrences__D_transcript_consequences_consequence_terms = odict3
+		  |IMap_occurrences__D_transcript_consequences_consequence_terms.cache
+		  |IMap_occurrences__D_transcript_consequences_consequence_terms.count
           |""".stripMargin
     }else{
       s"""|val samples = spark.table("samples")
