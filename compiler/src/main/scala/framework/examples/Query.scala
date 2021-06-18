@@ -175,8 +175,8 @@ trait Query extends Materialization
     println("before norm")
     println(Printer.quote(bcalc))
     val ncalc = normalizer.finalize(bcalc).asInstanceOf[CExpr]
-    println("normalized shred")
-    println(ncalc)
+    // println("normalized shred")
+    // println(ncalc)
     val initPlan = Unnester.unnest(ncalc)(Map(), Map(), None, baseTag)
 
     val plan = optLevel match {

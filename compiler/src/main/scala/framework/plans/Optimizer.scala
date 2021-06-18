@@ -3,6 +3,7 @@ package framework.plans
 import framework.common._
 import framework.loader.csv._
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{Map => MMap}
 
 /** Optimizer used for plans from BatchUnnester **/
 class Optimizer(schema: Schema = Schema()) extends Extensions {
@@ -10,11 +11,15 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
   val extensions = new Extensions{}
   import extensions._
 
+
+  var joinConds = List.empty[CExpr]
+
   // push projections
   def applyPush(e: CExpr): CExpr = {
     val o1 = pushUnnest(e)
     val o2 = pushCondition(o1)
     val o3 = removeUnnecProj(push(o2))
+    println(joinConds)
     o3
     // push(o3)
   }
@@ -25,6 +30,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
   	val o2 = pushCondition(o1)
   	val o3 = removeUnnecProj(push(o2))
     val o4 = pushAgg(o3)
+    println(joinConds)
     o4
   }
 
@@ -68,7 +74,20 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val nfields = (fields.toSet ++ fs) & (nv.tp.attrs.keySet ++ v2.tp.attrs.keySet)
       OuterUnnest(pin, nv, path, v2, filter, nfields.toList)
 
+    // // catch a cartesian join
+    // case Join(left, v, right, v2, Constant(true), fields) =>
+    //   var nfields = fs
+    //   val lpin = push(left, nfields) 
+    //   val rpin = push(right, nfields)
+    //   val cond = joinConds.head
+    //   val jcols = collect(cond)
+    //   nfields = nfields ++ jcols
+    //   val lv = Variable.fromBag(v.name, lpin.tp)
+    //   val rv = Variable.fromBag(v2.name, rpin.tp)
+    //   Join(lpin, lv, rpin, rv, cond, nfields.toList)
+
     case Join(left, v, right, v2, cond, fields) =>
+      joinConds = joinConds :+ cond
       val jcols = collect(cond)
       val nfields = fs ++ jcols
       val lpin = push(left, nfields) 
