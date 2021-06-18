@@ -125,17 +125,18 @@ class BaseNormalizer(val letOpt: Boolean = false) extends BaseCompiler {
       // { e(v) | v <- { e3 | v2 <- e2, p2 }, p(v) }
       // { { e(v) | v <- e3 } | v2 <- e2, p2 }
       case Comprehension(e2, v2, p2, e3:If) => normalizeIf(e1)
-        
+
       // normalize let's per usual
       case Comprehension(e2, v2, p2, e3) if (!letOpt) =>  
+          println("do i come in here at all?")
+          println(Printer.quote(e3))
           Comprehension(e2, v2, p2, normalizeIf(comprehension(e3, p, e)))
 
       case _ => // standard case (return self)
         val v = Variable.freshFromBag(e1.tp)
         e(v) match {
           case If(cond, e4, None) => Comprehension(e1, v, and(p(v), cond), e4)
-          case ev => 
-            Comprehension(e1, v, p(v), ev)
+          case ev => Comprehension(e1, v, p(v), ev)
         }
 
       }

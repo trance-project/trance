@@ -123,7 +123,15 @@ object Unnester {
         val nr = Record((keys ++ values).map(k => k -> Project(nv2, k)).toMap)
         Nest(crd, nv2, keys2, nr, filter, nulls, ctag)
 
-      case e2 => Reduce(e2, v1, keys, values)
+      case e2 => E match {
+        case Some(e3) => 
+          println("in here with")
+          println(e3)
+          println("these keys")
+          println(keys :+ "_1")
+          Reduce(e2, v1, keys :+ "_1", values)
+        case _ => Reduce(e2, v1, keys, values)
+      }
     }
 
     case CGroupBy(e1, v1, keys, values, gname) => 
