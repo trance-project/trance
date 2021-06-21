@@ -476,7 +476,7 @@ Blockly.Blocks['ifstmt_bag2.0'] = {
 
 const forUnionNested = {
     "type": "forUnionNested",
-    "message0": "for %1 in %2 union",
+    "message0": "for %1 in %2 union %3 %4",
     "args0": [
         {
             "type": "field_input",
@@ -488,6 +488,13 @@ const forUnionNested = {
             "name": "FIELD",
             "text": "select attribute",
         },
+        {
+            "type": "input_dummy"
+        },
+        {
+            "type": "input_statement",
+            "name": "NRC_STATEMENT"
+        }
     ],
     "colour": 211,
     "nextStatement": "Bag",

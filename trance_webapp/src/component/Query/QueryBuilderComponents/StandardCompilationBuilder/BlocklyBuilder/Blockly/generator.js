@@ -147,7 +147,8 @@ Blockly.JavaScript['ifstmt_bag2.0'] = function (block){
 Blockly.JavaScript['forUnionNested'] = function (block){
     const assignment = validate(block.getFieldValue('OBJECT_KEY'));
     const object = validate(block.getField('FIELD').getText())
-    return `for ${assignment} in ${object} union \n`
+    const statements = validate(BlocklyJS.statementToCode(block, 'NRC_STATEMENT'));
+    return `for ${assignment} in ${object} union \n ${statements}`
 }
 
 Blockly.JavaScript['nrc_filters'] = function(block) {
