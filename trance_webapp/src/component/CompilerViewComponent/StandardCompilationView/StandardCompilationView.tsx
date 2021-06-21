@@ -39,11 +39,11 @@ type LabelType = {
 const StandardCompilationView = (props:_QueryViewProps) => {
     // const classes = standardCompilationViewThemeStyle();
 
-    const newQuerySelected =  {
-        // name: "QuerySimple",
+    const newQuerySelected = {
+        name: "QuerySimple",
         key: "For s in samples Union ",
         labels: [{
-            name: "sample",
+            name: "{( sample",
             key: "s.bcr_patient_uuid"
         }, {
             name: "mutations",
@@ -59,7 +59,7 @@ const StandardCompilationView = (props:_QueryViewProps) => {
                     key : "t.gene_id"
                 }, {
                     name : "score",
-                    key : "((c.cn_copy_number + 0.01) * If (t.impact = HIGH) Then 0.8 Else If (t.impact = MODERATE) Then 0.5 Else If (t.impact = LOW) Then 0.3 Else 0.01   )"
+                    key : "((c.cn_copy_number + 0.01) * If (t.impact = HIGH) Then 0.8 Else If (t.impact = MODERATE) Then 0.5 Else If (t.impact = LOW) Then 0.3 Else 0.01   ) })})})"
                 } ]
             }]
         }]
@@ -198,17 +198,15 @@ const StandardCompilationView = (props:_QueryViewProps) => {
             statement=   newQuerySelect(newQuerySelected);
         }
 
-    console.log('[nodeID]', expandedNode);
     return (
         <div>
             <TreeView
-            // defaultExpanded={expandedNode}
             defaultCollapseIcon={<MinusSquare/>}
             defaultEndIcon={<CloseSquare />}
             defaultExpandIcon={<PlusSquare/>}
+            expanded={expandedNode}
             >
      {statement}
-    {/*    /!*Example set*!/*/}
 
             </TreeView>
         </div>

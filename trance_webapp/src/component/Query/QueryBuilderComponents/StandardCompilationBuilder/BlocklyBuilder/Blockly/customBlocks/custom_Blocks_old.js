@@ -6,7 +6,7 @@ import "../fields/BlocklyReactField";
 Blockly.defineBlocksWithJsonArray([
     {
         "type": "forunion",
-        "message0": "for %1 in %2 union",
+        "message0": "for %1 in %2 union %3 %4",
         "args0": [
             {
                 "type": "field_input",
@@ -17,6 +17,13 @@ Blockly.defineBlocksWithJsonArray([
                 "type": "input_dummy",
                 "name": "DROPDOWN_PLACEHOLDER",
             },
+            {
+                "type": "input_dummy"
+            },
+            {
+                "type": "input_statement",
+                "name": "NRC_STATEMENT"
+            }
         ],
         "extensions": ["dynamic_menu_extension"],
         "colour": 142,
@@ -189,9 +196,30 @@ Blockly.defineBlocksWithJsonArray([
                 "text": ""
             },
             {
-                "type": "field_label",
-                "name": "COLON",
-                "text": "="
+                "type": "field_dropdown",
+                "name": "DROPDOWN_OPTIONS",
+                "options": [
+                    [
+                        "==",
+                        "=="
+                    ],
+                    [
+                        "||",
+                        "||"
+                    ],
+                    [
+                        "&&",
+                        "&&"
+                    ],
+                    [
+                        ">",
+                        ">"
+                    ],
+                    [
+                        "<",
+                        "<"
+                    ]
+                ]
             },
             {
                 "type": "field_input",
@@ -207,7 +235,7 @@ Blockly.defineBlocksWithJsonArray([
     },
     {
         "type": "association_on_assisted",
-        "message0": "%1 %2 %3",
+        "message0": "(%1 %2 %3)",
         "args0": [
             {
                 "type": "input_value",
@@ -215,9 +243,30 @@ Blockly.defineBlocksWithJsonArray([
                 "text": ""
             },
             {
-                "type": "field_label",
-                "name": "COLON",
-                "text": "="
+                "type": "field_dropdown",
+                "name": "DROPDOWN_OPTIONS",
+                "options": [
+                    [
+                        "==",
+                        "=="
+                    ],
+                    [
+                        "||",
+                        "||"
+                    ],
+                    [
+                        "&&",
+                        "&&"
+                    ],
+                    [
+                        ">",
+                        ">"
+                    ],
+                    [
+                        "<",
+                        "<"
+                    ]
+                ]
             },
             {
                 "type": "input_value",
@@ -451,6 +500,53 @@ const forUnionNested = {
 Blockly.Blocks['forUnionNested'] = {
     init: function() {
         this.jsonInit(forUnionNested);
+    }
+};
+
+const nrc_filters = {
+    "type": "nrc_filters",
+    "message0": "%1 %2 %3",
+    "args0": [
+    {
+        "type": "input_value",
+        "name": "INPUT_ONE"
+    },
+    {
+        "type": "field_dropdown",
+        "name": "OPERATORS",
+        "options": [
+            [
+                "+",
+                "ADD"
+            ],
+            [
+                "-",
+                "SUBTRACT"
+            ],
+            [
+                "*",
+                "MULTIPLY"
+            ],
+            [
+                "/",
+                "DIVISION"
+            ]
+        ]
+    },
+    {
+        "type": "input_value",
+        "name": "INPUT_TWO"
+    }
+],
+    "inputsInline": true,
+    "colour": 80,
+    "tooltip": "",
+    "helpUrl": ""
+}
+
+Blockly.Blocks['nrc_filters'] = {
+    init: function() {
+        this.jsonInit(nrc_filters);
     }
 };
 

@@ -20,7 +20,8 @@ BlocklyJS['text'] = function(block) {
 BlocklyJS['forunion'] = function (block){
     const assignment = validate(block.getFieldValue('OBJECT_KEY'));
     const object = validate(block.getFieldValue( 'ATTRIBUTE_VALUE'));
-    return `for ${assignment} in ${object} union \n`
+    const statements = validate(BlocklyJS.statementToCode(block, 'NRC_STATEMENT'));
+    return `for ${assignment} in ${object} union \n ${statements}`
 }
 
 BlocklyJS['tuple'] = function (block){
@@ -61,13 +62,15 @@ BlocklyJS['ifstmt_bag'] = function (block){
 
 BlocklyJS['association_on'] = function (block){
     const object_associationA = validate(block.getFieldValue('ATTRIBUTE_A'));
-    const object_associationB = validate(block.getFieldValue('ATTRIBUTE_A'));
-    return `(${object_associationA} = ${object_associationB})`;
+    const dropdown_options = block.getFieldValue('DROPDOWN_OPTIONS');
+    const object_associationB = validate(block.getFieldValue('ATTRIBUTE_B'));
+    return `(${object_associationA} ${dropdown_options} ${object_associationB})`;
 }
 BlocklyJS['association_on_assisted'] = function (block){
     const object_associationA = validate(BlocklyJS.valueToCode(block,'ATTRIBUTE_A',0));
+    const dropdown_options = block.getFieldValue('DROPDOWN_OPTIONS');
     const object_associationB = validate(BlocklyJS.valueToCode(block,'ATTRIBUTE_B',0));
-    return `(${object_associationA} = ${object_associationB})`;
+    return `(${object_associationA} ${dropdown_options} ${object_associationB})`;
 }
 // add a sumby function
 BlocklyJS['group_by'] = function (block){
@@ -146,4 +149,12 @@ Blockly.JavaScript['forUnionNested'] = function (block){
     const object = validate(block.getField('FIELD').getText())
     return `for ${assignment} in ${object} union \n`
 }
+
+Blockly.JavaScript['nrc_filters'] = function(block) {
+    const value_one = Blockly.JavaScript.valueToCode(block, 'INPUT_ONE', Blockly.JavaScript.ORDER_ATOMIC);
+    const dropdown_operators = block.getFieldValue('OPERATORS');
+    const value_two = Blockly.JavaScript.valueToCode(block, 'INPUT_TWO', Blockly.JavaScript.ORDER_ATOMIC);
+    const code = `${value_one}${dropdown_operators}${value_two}`;
+    return code;
+};
 
