@@ -12,7 +12,7 @@ import framework.loader.csv._
 
 object TestZeppelin extends App {
   override def main(args: Array[String]){
-    AppWriter.runDataset(ExampleQuery2, "ExampleQuery,standard", optLevel = 1, notebk = true,
+    AppWriter.runDataset(ExampleQuery, "ExampleQuery,standard", optLevel = 1, notebk = true,
       zhost = "oda-compute-0-6", zport = 8085)
   }
 }

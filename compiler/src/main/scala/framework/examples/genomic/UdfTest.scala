@@ -62,7 +62,7 @@ object ExampleQuery extends DriverGene {
                                                 else if (t.impact = "LOW") then 0.30
                                                 else 0.01)}).sumBy({sid}, {burden}))}
      """**/
-  val query = 
+  val query = {
     // notes from discussion
     // s"""
     //     // defined some udfs
@@ -87,30 +87,54 @@ object ExampleQuery extends DriverGene {
     //     matrix <= matrix[selected_genes] // subset
     // """
 
-    s"""
+//    s"""
+//        GMB <=
+//          for g in genemap union
+//            {(gene:= g.g_gene_name, burdens :=
+//              (for o in occurrences union
+//                for s in clinical union
+//                  if (o.donorId = s.bcr_patient_uuid) then
+//                    for t in o.transcript_consequences union
+//                      if (g.g_gene_id = t.gene_id) then
+//                         {(sid := o.donorId,
+//                           lbl := if (s.gleason_pattern_primary = 2) then 0
+//                            else if (s.gleason_pattern_primary = 3) then 0
+//                            else if (s.gleason_pattern_primary = 4) then 1
+//                            else if (s.gleason_pattern_primary = 5) then 1
+//                            else -1,
+//                           burden := if (t.impact = "HIGH") then 0.80
+//                                                    else if (t.impact = "MODERATE") then 0.50
+//                                                    else if (t.impact = "LOW") then 0.30
+//                                                    else 0.01
+//                          )}
+//              ).sumBy({sid, lbl}, {burden})
+//            )}
+//    """
+
+  // defined using fpkm only (Gene Expression)
+  s"""
         GMB <=
           for g in genemap union
-            {(gene:= g.g_gene_name, burdens :=
-              (for o in occurrences union
-                for s in clinical union 
-                  if (o.donorId = s.bcr_patient_uuid) then
-                    for t in o.transcript_consequences union
-                      if (g.g_gene_id = t.gene_id) then
-                         {(sid := o.donorId, 
-                           lbl := if (s.gleason_pattern_primary = 2) then 0 
-                            else if (s.gleason_pattern_primary = 3) then 0
-                            else if (s.gleason_pattern_primary = 4) then 1
-                            else if (s.gleason_pattern_primary = 5) then 1
-                            else -1, 
-                           burden := if (t.impact = "HIGH") then 0.80
-                                                    else if (t.impact = "MODERATE") then 0.50
-                                                    else if (t.impact = "LOW") then 0.30
-                                                    else 0.01
+            {(gene:= g.g_gene_name, fpkm :=
+              (for e in expression union
+                for c in clinical union
+                  for s in samples union
+                   if (s.bcr_patient_uuid = c.bcr_patient_uuid) then
+                    if (e.ge_aliquot = s.bcr_aliquot_uuid) then
+                      if (g.g_gene_id = e.ge_gene_id) then
+                         {(sid := e.ge_aliquot,
+                           lbl := if (c.gleason_pattern_primary = 2) then 0
+                            else if (c.gleason_pattern_primary = 3) then 0
+                            else if (c.gleason_pattern_primary = 4) then 1
+                            else if (c.gleason_pattern_primary = 5) then 1
+                            else -1,
+                           fpkm := e.ge_fpkm
                           )}
-              ).sumBy({sid, lbl}, {burden})
+              ).sumBy({sid, lbl}, {fpkm})
             )}
     """
-    // finally define the parser, note that it takes the input types
+  }
+  // finally define the parser, note that it takes the input types
     // map as input and pass the query string to the parser to
     // generate the program.
     val parser = Parser(tbls)
