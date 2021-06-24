@@ -158,10 +158,10 @@ object ExampleQuery extends DriverGene {
                                     else if (c.gleason_pattern_primary = 4) then 1
                                     else if (c.gleason_pattern_primary = 5) then 1
                                     else -1,
-                                   burden := (if (t.impact = "HIGH") then 0.80)*e.ge_fpkm
-                                                            (else if (t.impact = "MODERATE") then 0.50)*e.ge_fpkm
-                                                            (else if (t.impact = "LOW") then 0.30)*e.ge_fpkm
-                                                            (else 0.01)*e.ge_fpkm
+                                   burden := (if (t.impact = "HIGH") then 0.80
+                                                            else if (t.impact = "MODERATE") then 0.50
+                                                            else if (t.impact = "LOW") then 0.30
+                                                            else 0.01)*e.ge_fpkm
                               )}
               ).sumBy({sid, lbl}, {burden})
             )}
