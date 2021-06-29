@@ -77,7 +77,7 @@ val x48 = IBag_samples__D.select("bcr_patient_uuid", "bcr_aliquot_uuid")
           
  .as[Recorda908d3982c4943dc997ff37b92332b9b]
  
-val x51 = x46.crossJoin(x48)
+val x51 = x46.join(x48, col("donorId") === col("bcr_patient_uuid"))
   .as[Recordaf661ff228054b5e8e0d2dc2f9a9dd3b]
  
 val x53 = IBag_copynumber__D.select("cn_aliquot_uuid", "cn_gene_id", "cn_copy_number")
