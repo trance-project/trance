@@ -177,7 +177,7 @@ val x112 = x110
  
 val x113 = x112
 val MBag_LetTest5__D_1 = x113
-//MBag_LetTest5__D_1.count
+MBag_LetTest5__D_1.count
 
 
 
