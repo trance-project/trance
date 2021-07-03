@@ -79,9 +79,7 @@ trait NRC extends BaseExpr {
   final case class TupleVarRef(name: String, tp: TupleType) extends TupleExpr with VarRef { self => 
     def in(in: (BagVarRef, BagExpr)): ForeachUnion = ForeachUnion(self.varDef, in._1, in._2)
     def <--(in: BagVarRef): ForeachUnion = ForeachUnion(self.varDef, in, Singleton(self))
-  }
-
-  final case class Udf(name: String, in: PrimitiveExpr, tp: NumericType) extends NumericExpr 
+  } 
 
   trait Project {
     def tuple: VarRef with Expr
@@ -142,6 +140,26 @@ trait NRC extends BaseExpr {
   object Tuple {
     def apply(fs: (String, TupleAttributeExpr)*): Tuple = Tuple(Map(fs: _*))
   }
+
+  // name is the input udf, in is the expression passed in, 
+  // and the type is the output type
+  trait Udf extends Expr {
+
+    def name: String 
+
+    def in: Expr
+
+    def otp: Type
+
+    def tp: Type
+
+  }
+
+  // TODO define more types, such as how the various let expressions are defined before
+  final case class PrimitiveUdf(name: String, in: Expr, otp: PrimitiveType) extends PrimitiveExpr with Udf {
+    def tp: PrimitiveType = otp
+  }
+
 
   trait Let extends Expr {
     def x: VarDef

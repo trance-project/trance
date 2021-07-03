@@ -16,3 +16,13 @@ object UdfTestApp extends App {
 
   }
 }
+
+object UdfDevApp extends App {
+
+  override def main(args: Array[String]){
+
+    // runs the standard pipeline
+    AppWriter.runDatasetShred(SimpleUDFExample, "ExampleTest,standard", optLevel = 1)
+
+  }
+}
