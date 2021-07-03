@@ -173,6 +173,7 @@ trait Query extends Materialization
     val optimizer = Optimizer(schema)
     // shredded pipeline for query
     val (matProg, ushred) = shred(eliminateDomains)
+
     println("RUNNING SHREDDED PIPELINE:\n")
     println(quote(matProg))
     val ncalc = normalizer.finalize(translate(matProg)).asInstanceOf[CExpr]
@@ -204,6 +205,8 @@ trait Query extends Materialization
   }
 
   def shred: (ShredProgram, MaterializedProgram) = {
+    println("Here is the input program in source NRC:")
+    println(quote(program))
     val sprog = optimize(shred(program))
     (sprog, materialize(sprog))
   }

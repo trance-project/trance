@@ -15,7 +15,7 @@ trait Printer {
       "\"" + c.v + "\""
     case c: Const =>
       c.v.toString
-	case Udf(n, e1, tp) => s"$n(${quote(e1)})"
+	case u:Udf => s"${u.name}(${quote(u.in)})"
 	case v: VarRef =>
       v.name
     case p: Project =>
