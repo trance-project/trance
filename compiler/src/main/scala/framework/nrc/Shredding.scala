@@ -176,6 +176,10 @@ trait Shredding extends BaseShredding with Extensions {
       val lbl = NewLabel(labelParameters(flat))
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict1.tupleDict))
 
+    case PrimitiveUdf(name, in, otp) =>
+      val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(in, ctx)
+      ShredExpr(PrimitiveUdf(name, dict1.lookup(lbl),otp), EmptyDict)
+
     case _ => sys.error("Cannot shred expr " + e)
   }
 
