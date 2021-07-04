@@ -274,7 +274,7 @@ object SimpleUDFExample extends DriverGene {
     Singleton(Tuple(
       "sample" -> PrimitiveUdf("myudf", br("bcr_patient_uuid"), StringType), 
       "aliquot" -> br("bcr_aliquot_uuid"))))
- 
+
   val program = Program(Assignment(name, query))
 
 }
