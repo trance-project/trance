@@ -176,9 +176,15 @@ trait Shredding extends BaseShredding with Extensions {
       val lbl = NewLabel(labelParameters(flat))
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict1.tupleDict))
 
-    case PrimitiveUdf(name, in : PrimitiveExpr, otp) =>
-      val ShredExpr(flat: PrimitiveExpr, dict: TupleDictExpr) = shred(in, ctx)
-      ShredExpr(PrimitiveUdf(name,flat,otp), dict)
+    case PrimitiveUdf(name, in, otp) =>
+      // returns ShredExpr, instead of casting it, just save it to a variable of ShredExpr type
+      // see ShredNRC.scala for the definition of ShredExpr
+      val sresult:ShredExpr = shred(in, ctx)
+      // then just refer to them 
+      val flat = sresult.flat
+      val dict = sresult.dict
+      // now just build the shredded expression to return
+      ShredExpr(PrimitiveUdf(name, flat ,otp), dict)
 
     case _ => sys.error("Cannot shred expr " + e)
   }
