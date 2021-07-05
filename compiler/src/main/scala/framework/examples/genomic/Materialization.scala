@@ -741,7 +741,7 @@ object LetTest7 extends DriverGene {
           |""".stripMargin
     }
 
-  val name = "LetTest7"
+  val name = "LetTest7a"
   
   val tbls = Map("occurrences" -> occurmids.tp, 
                   "copynumber" -> copynum.tp, 
@@ -753,10 +753,9 @@ object LetTest7 extends DriverGene {
      s"""
       for s in samples union 
         {( bcr_patient_uuid := s.bcr_patient_uuid, cnvs := 
-          (for c in copynumber union 
+          for c in copynumber union 
             if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
-            then {( cn_patient_uuid := s.bcr_patient_uuid, cn_gene_id := c.cn_gene_id, cn_copy_number := c.cn_copy_number + 0.001 )}).sumBy({cn_gene_id, cn_patient_uuid}, {cn_copy_number})
-
+            then {( cn_patient_uuid := s.bcr_patient_uuid, cn_gene_id := c.cn_gene_id, cn_copy_number := c.cn_copy_number + 0.001 )}
         )}
      """
 
@@ -803,7 +802,7 @@ object LetTest7Seq extends DriverGene {
           |""".stripMargin
     }
 
-  val name = "LetTest7Seq"
+  val name = "LetTest7aSeq"
   
   val tbls = Map("occurrences" -> occurmids.tp, 
                   "copynumber" -> copynum.tp, 
@@ -815,10 +814,9 @@ object LetTest7Seq extends DriverGene {
      s"""
       for s in samples union 
         {( bcr_patient_uuid := s.bcr_patient_uuid, cnvs := 
-          (for c in copynumber union 
+          for c in copynumber union 
             if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
-            then {( cn_aliquot_uuid := c.cn_aliquot_uuid, cn_gene_id := c.cn_gene_id, cn_copy_number := c.cn_copy_number + 0.001 )}).sumBy({cn_gene_id, cn_aliquot_uuid}, {cn_copy_number})
-
+            then {( cn_aliquot_uuid := c.cn_aliquot_uuid, cn_gene_id := c.cn_gene_id, cn_copy_number := c.cn_copy_number + 0.001 )}
         )}
      """
 
