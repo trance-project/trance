@@ -178,7 +178,8 @@ trait Query extends Materialization
     println("normalized shred")
     println(Printer.quote(ncalc))
     val initPlan = Unnester.unnest(ncalc)(Map(), Map(), None, baseTag)
-
+    println("output of unnesting")
+    println(Printer.quote(initPlan))
     val plan = optLevel match {
       case 0 => compiler.finalize(initPlan).asInstanceOf[CExpr]
       case 1 => optimizer.applyPush(compiler.finalize(initPlan).asInstanceOf[CExpr])

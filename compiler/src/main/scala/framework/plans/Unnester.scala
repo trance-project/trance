@@ -90,6 +90,11 @@ object Unnester {
       case _ => ???
     }
 
+    case Comprehension(e1:CReduceBy, v, cond, e2) if !w.isEmpty =>
+      val nE = unnest(e1)((u, w, E, tag))
+      val nw = flat(w, nE.tp.asInstanceOf[BagCType].tp)
+      unnest(e2)((u, nw, Some(nE), tag))
+
     case Comprehension(e1, v, cond, e2) if !w.isEmpty =>
       assert(!E.isEmpty)
       val name = getName(e1)
@@ -125,11 +130,8 @@ object Unnester {
 
       case e2 => E match {
         case Some(e3) => 
-          println("in here with")
-          println(e3)
-          println("these keys")
-          println(keys :+ "_1")
-          Reduce(e2, v1, keys :+ "_1", values)
+          val nkeys = (w.keySet ++ keys.toSet).toList
+          Reduce(e2, v1, nkeys :+ "_1", values)
         case _ => Reduce(e2, v1, keys, values)
       }
     }
@@ -172,7 +174,7 @@ object Unnester {
       val nw = w + (key -> nv.tp)
       unnest(exp(Sng(nr)))((u, nw, Some(nE), tag))
     case y if u.isEmpty => 
-      Projection(E.get, wvar(w), exp(Record(fs)), Nil)
+      Projection(E.get, wvar(w), exp(Record(fs)), w.keySet.toList)
     case _ => 
       val nv = wvar(w)
       val tup = exp(Record(fs))
