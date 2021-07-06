@@ -788,7 +788,7 @@ object LetTest7 extends DriverGene {
         LetTest7 <= 
         for t in $agg1 union 
           for x in t.cnvs union 
-            {( bcr_patient_uuid := t.bcr_patient_uuid, cn_gene_id := x.cn_gene_id, cn_copy_number := x.cn_copy_number )}
+            {( bcr_patient_uuid := t.bcr_patient_uuid, cn_gene_id := x.cn_gene_id, cn_copy_number := x.cn_copy_number + 0.001 )}
 
       """
 
@@ -871,7 +871,7 @@ object LetTest7Seq extends DriverGene {
         LetTest7 <= 
         for t in Agg1 union 
           for x in t.cnvs union 
-            {(bcr_patient_uuid := t.bcr_patient_uuid, cn_gene_id := x.cn_gene_id, cn_copy_number := x.cn_copy_number  )}
+            {(bcr_patient_uuid := t.bcr_patient_uuid, cn_gene_id := x.cn_gene_id, cn_copy_number := x.cn_copy_number + 0.001 )}
 
       """
 

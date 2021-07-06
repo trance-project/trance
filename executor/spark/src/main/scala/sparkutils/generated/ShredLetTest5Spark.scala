@@ -34,22 +34,50 @@ object ShredLetTest5Spark {
    val spark = SparkSession.builder().config(conf).getOrCreate()
    
    import spark.implicits._
-   val samples = spark.table("samples")
+
+val biospecLoader = new BiospecLoader(spark)
+val biospec = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
+//val biospec = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_brca.txt")
+
+val IBag_samples__D = biospec
+IBag_samples__D.cache
+IBag_samples__D.count
+
+val odict1 = spark.read.json(s"/nfs_qc4/genomics/gdc/somatic//odict1Full/").as[OccurrDict1]
+//val odict1 = spark.table("fodict1")
+val IBag_occurrences__D = odict1
+IBag_occurrences__D.cache
+IBag_occurrences__D.count
+val odict2 = spark.read.json(s"/nfs_qc4/genomics/gdc/somatic//odict2Full/").as[OccurTransDict2Mid]
+//val odict2 = spark.table("fodict2")
+val IMap_occurrences__D_transcript_consequences = odict2
+IMap_occurrences__D_transcript_consequences.cache
+IMap_occurrences__D_transcript_consequences.count
+
+
+val cnLoader = new CopyNumberLoader(spark)
+val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/", true)
+.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
+val IBag_copynumber__D = copynumber
+IBag_copynumber__D.cache
+IBag_copynumber__D.count
+
+/**   val samples = spark.table("samples")
 val IBag_samples__D = samples
 
 val copynumber = spark.table("copynumber")
 val IBag_copynumber__D = copynumber
 
-val odict1 = spark.table("odict1")
+val odict1 = spark.table("fodict1")
 val IBag_occurrences__D = odict1
 
 // issue with partial shredding here
-val odict2 = spark.table("odict2").drop("flags")
+val odict2 = spark.table("fodict2").drop("flags")
 val IMap_occurrences__D_transcript_consequences = odict2
 
-val odict3 = spark.table("odict3")
+val odict3 = spark.table("fodict3")
 val IMap_occurrences__D_transcript_consequences_consequence_terms = odict3
-
+**/
     def f = {
  
  
@@ -109,7 +137,7 @@ val x65 = x63.select("hybrid_gene", "hybrid_score")
  
 val x66 = x65
 val MBag_LetTest5__D_1 = x66
-MBag_LetTest5__D_1.print
+MBag_LetTest5__D_1.count
 
 var end0 = System.currentTimeMillis() - start0
 println("Inlined,shredded,"+end0+",query,"+spark.sparkContext.applicationId)
