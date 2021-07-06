@@ -19,9 +19,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     val o1 = pushUnnest(e)
     val o2 = pushCondition(o1)
     val o3 = removeUnnecProj(push(o2))
-    println(joinConds)
     o3
-    // push(o3)
   }
 
   // push projections and aggregation
@@ -30,7 +28,6 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
   	val o2 = pushCondition(o1)
   	val o3 = removeUnnecProj(push(o2))
     val o4 = pushAgg(o3)
-    println(joinConds)
     o4
   }
 
@@ -73,18 +70,6 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val nv = Variable.fromBag(v.name, pin.tp)
       val nfields = (fields.toSet ++ fs) & (nv.tp.attrs.keySet ++ v2.tp.attrs.keySet)
       OuterUnnest(pin, nv, path, v2, filter, nfields.toList)
-
-    // // catch a cartesian join
-    // case Join(left, v, right, v2, Constant(true), fields) =>
-    //   var nfields = fs
-    //   val lpin = push(left, nfields) 
-    //   val rpin = push(right, nfields)
-    //   val cond = joinConds.head
-    //   val jcols = collect(cond)
-    //   nfields = nfields ++ jcols
-    //   val lv = Variable.fromBag(v.name, lpin.tp)
-    //   val rv = Variable.fromBag(v2.name, rpin.tp)
-    //   Join(lpin, lv, rpin, rv, cond, nfields.toList)
 
     case Join(left, v, right, v2, cond, fields) =>
       joinConds = joinConds :+ cond
@@ -129,15 +114,19 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val nkey0 = (key.toSet & fs) ++ indices 
       val nkey = if (nkey0.isEmpty) key.toSet else nkey0
 
-      val vs = nkey ++  value.toSet
+      val vs = nkey ++ value.toSet
+
       val nfilter = filter match {
-    		case Record(ffs) => Record(ffs.filter(f => vs(f._1)))
-    		case If(cond, Sng(Record(f1)), Some(Sng(Record(f2)))) => 
+    		case Record(ffs) => 
+          Record(ffs.filter(f => vs(f._1)) ++ (fs ++ indices).map(f => f -> Project(v, f)))
+    		// may need to handle the below as the line above
+        case If(cond, Sng(Record(f1)), Some(Sng(Record(f2)))) => 
     			 If(cond, Sng(Record(f1.filter(f => vs(f._1)))), 
     			 	Some(Sng(Record(f2.filter(f => vs(f._1))))))
     		case _ => sys.error(s"implementation missing for $filter")
 	    } 
-	    val nfs = collect(nfilter)//vs ++ fs ++ collect(nfilter)
+
+	    val nfs = collect(nfilter) // vs ++ fs ++ collect(nfilter)
       val pin = push(in, nfs)
       val nv = Variable.fromBag(v.name, pin.tp)
 
@@ -155,11 +144,18 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       Reduce(pin, nv, nkey.toList, value)
 
     case CGet(e1) => CGet(push(e1, fs))
-    case AddIndex(e1, name) => AddIndex(push(e1, fs), name)
+
+    case AddIndex(e1, name) => 
+      val ks = e.tp.attrs.keySet & fs.filter(k => k.contains("index"))
+      if (ks.nonEmpty) AddIndex(push(e1, fs), name)
+      else push(e1, fs)
+
     case FlatDict(e1) => FlatDict(push(e1, fs))
     case GroupDict(e1) => GroupDict(push(e1, fs))
     case CNamed(n, e1) => CNamed(n, push(e1))
+
     case LinearCSet(fs) => LinearCSet(fs.map(f => push(f)))
+
     case i @ InputRef(name, tp) => 
       val fields = fs & tp.attrs.keySet
       if (fields.nonEmpty) {
@@ -168,7 +164,9 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
           if (fields(f._1)) List((f._1, Project(v, f._1))) else Nil).toMap)
         Projection(i, v, nrec, nrec.fields.keySet.toList)
       } else i
+
     case CDeDup(e1) => CDeDup(push(e1, fs))
+
     case _ => e
   }
 

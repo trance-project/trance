@@ -753,13 +753,33 @@ object LetTest7 extends DriverGene {
                   "network" -> network.tp, 
                   "genemap" -> gpmap.tp)
 
+    // val agg1 = 
+    //  s"""
+    //   for s in samples union 
+    //     {( bcr_patient_uuid := s.bcr_patient_uuid, cnvs := 
+    //       dedup(for c in copynumber union 
+    //         if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
+    //         then {( cn_patient_uuid := s.bcr_patient_uuid, cn_gene_id := c.cn_gene_id, cn_copy_number := c.cn_copy_number + 0.001 )})
+    //     )}
+    //  """
+
+    // val query = 
+    //   s"""
+    //     LetTest7 <= 
+    //     for t in $agg1 union 
+    //       for x in t.cnvs union 
+    //         if (t.bcr_patient_uuid = x.cn_patient_uuid)
+    //         then {(bcr_patient_uuid := t.bcr_patient_uuid, cn_gene_id := x.cn_gene_id, cn_copy_number := x.cn_copy_number )}
+
+    //   """
+
     val agg1 = 
      s"""
       for s in samples union 
         {( bcr_patient_uuid := s.bcr_patient_uuid, cnvs := 
-          dedup(for c in copynumber union 
+          (for c in copynumber union 
             if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
-            then {( cn_patient_uuid := s.bcr_patient_uuid, cn_gene_id := c.cn_gene_id, cn_copy_number := c.cn_copy_number + 0.001 )})
+            then {( cn_gene_id := c.cn_gene_id, cn_copy_number := c.cn_copy_number + 0.001 )}).sumBy({cn_gene_id}, {cn_copy_number})
         )}
      """
 
@@ -768,8 +788,7 @@ object LetTest7 extends DriverGene {
         LetTest7 <= 
         for t in $agg1 union 
           for x in t.cnvs union 
-            if (t.bcr_patient_uuid = x.cn_patient_uuid)
-            then {(bcr_patient_uuid := t.bcr_patient_uuid, cn_gene_id := x.cn_gene_id, cn_copy_number := x.cn_copy_number )}
+            {( bcr_patient_uuid := t.bcr_patient_uuid, cn_gene_id := x.cn_gene_id, cn_copy_number := x.cn_copy_number )}
 
       """
 
@@ -814,13 +833,34 @@ object LetTest7Seq extends DriverGene {
                   "network" -> network.tp, 
                   "genemap" -> gpmap.tp)
 
+    // val agg1 = 
+    //  s"""
+    //   for s in samples union 
+    //     {( bcr_patient_uuid := s.bcr_patient_uuid, cnvs := 
+    //       dedup(for c in copynumber union 
+    //         if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
+    //         then {( cn_aliquot_uuid := c.cn_aliquot_uuid, cn_gene_id := c.cn_gene_id, cn_copy_number := c.cn_copy_number + 0.001 )})
+    //     )}
+    //  """
+
+    // val query = 
+    //   s"""
+    //     Agg1 <= $agg1;
+
+    //     LetTest7 <= 
+    //     for t in Agg1 union 
+    //       for x in t.cnvs union 
+    //         {(bcr_patient_uuid := t.bcr_patient_uuid, cn_gene_id := x.cn_gene_id, cn_copy_number := x.cn_copy_number  )}
+
+    //   """
+
     val agg1 = 
      s"""
       for s in samples union 
         {( bcr_patient_uuid := s.bcr_patient_uuid, cnvs := 
-          dedup(for c in copynumber union 
+          (for c in copynumber union 
             if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
-            then {( cn_aliquot_uuid := c.cn_aliquot_uuid, cn_gene_id := c.cn_gene_id, cn_copy_number := c.cn_copy_number + 0.001 )})
+            then {( cn_gene_id := c.cn_gene_id, cn_copy_number := c.cn_copy_number + 0.001 )}).sumBy({cn_gene_id},{cn_copy_number})
         )}
      """
 
