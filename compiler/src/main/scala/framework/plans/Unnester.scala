@@ -95,6 +95,11 @@ object Unnester {
       val nw = flat(w, nE.tp.asInstanceOf[BagCType].tp)
       unnest(e2)((u, nw, Some(nE), tag))
 
+    case Comprehension(CDeDup(e1), v, cond, e2) if !w.isEmpty =>
+      val nE = CDeDup(unnest(e1)((u, w, E, tag)))
+      val nw = flat(w, nE.tp.asInstanceOf[BagCType].tp)
+      unnest(e2)((u, nw, Some(nE), tag))
+
     case Comprehension(e1, v, cond, e2) if !w.isEmpty =>
       assert(!E.isEmpty)
       val name = getName(e1)

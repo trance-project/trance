@@ -37,7 +37,7 @@ object LetExplore extends App {
     // val ests = lenv.estimates
     // AppWriter.runDatasetShred(LetTest5Seq, "Sequential,shredded", optLevel = 1)
     AppWriter.runDatasetShred(LetTest7, "InlinedNoAgg,shredded", optLevel = 1)
-    AppWriter.runDatasetShred(LetTest7Seq, "SequentialNoAgg,shredded", optLevel = 1)
+    // AppWriter.runDatasetShred(LetTest7Seq, "SequentialNoAgg,shredded", optLevel = 1)
     // AppWriter.runDatasetShred(lenv.queries.head, "Inlined,shredded", optLevel = 1)
     // AppWriter.runDatasetShred(lenv.queries.last, "Sequential,shredded", optLevel = 1)
   }
