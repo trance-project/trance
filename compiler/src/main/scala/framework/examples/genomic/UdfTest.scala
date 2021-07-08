@@ -276,6 +276,6 @@ object ExampleQuery2 extends DriverGene {
 //      "aliquot" -> br("bcr_aliquot_uuid"))))
 //
 //  val program = Program(Assignment(name, query))
-
-}
+//
+//}
 
