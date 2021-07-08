@@ -30,10 +30,11 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
   val DEFAULTINC = 1.0
 
   // used to estimate row count from size
-  val AVGSIZE = if (stats.nonEmpty){
+  val fstats = stats.filter(s => s._2.rowCount > 1.0)
+  val AVGSIZE = if (fstats.nonEmpty){
       var i = 0
       // get the estimate size per element
-      val summed = stats.filter(s => s._2.rowCount > 1.0).map(s => 
+      val summed = fstats.map(s => 
         {i+=1; (s._2.sizeInKB / s._2.rowCount)}
       ).reduce(_+_)
       // average size per element

@@ -580,20 +580,20 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case er @ Reduce(in, v, key, value) =>
       val intp = generateType(in.tp.asInstanceOf[BagCType].tp)
       val ntp = er.tp.tp match {
-		case RecordCType(fs) => 
-			val adjust = fs.map(f => {
-			  if (value.contains(f._1)){
-			  	f._2 match {
-				  case OptionType(t) => f._1 -> OptionType(DoubleType)
-				  case _:NumericType => f._1 -> DoubleType
-				  case t => f._1 -> t
-				}
-			  }else f})
-			RecordCType(adjust)
-		case _ => ???
-	  }
-	  handleType(ntp)
-	  val gtp = generateType(ntp)
+    		case RecordCType(fs) => 
+    			val adjust = fs.map(f => {
+    			  if (value.contains(f._1)){
+    			  	f._2 match {
+    				  case OptionType(t) => f._1 -> OptionType(DoubleType)
+    				  case _:NumericType => f._1 -> DoubleType
+    				  case t => f._1 -> t
+    				}
+    			  }else f})
+    			RecordCType(adjust)
+    		case _ => ???
+	    }
+  	  handleType(ntp)
+  	  val gtp = generateType(ntp)
 
       val gv = generate(v)
       val rkey = Record(key.map(k => k -> Project(v, k)).toMap)

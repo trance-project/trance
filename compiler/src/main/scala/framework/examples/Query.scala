@@ -97,6 +97,8 @@ trait Query extends Materialization
       case 1 => optimizer.applyPush(unopt)
       case _ => optimizer.applyAll(unopt)
     }
+    println("after optimization")
+    println(Printer.quote(opt))
     compile.finalize(opt).asInstanceOf[LinearCSet]
   }
 

@@ -43,21 +43,29 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     //   Projection(p.in, v2, f2, fs2)
 
     // add index and input ref as well??
-    case Projection(s:Select, v2, f2, fs2) => 
-      Projection(s.in, v2, f2, fs2)
+    // case Projection(s:Select, v2, f2, fs2) => 
+    //   println("this is the projection")
+    //   println(Printer.quote(e))
+    //   val nfs = fs ++ collect(f2)
+    //   Projection(s.in, v2, f2, fs2.filter(f => nfs(f)))
 
     case Projection(in, v, filter, fields) => 
-      val tfields = fields.toSet ++ collect(filter)
+      val tfields = fs ++ collect(filter)
       val pin = push(in, tfields ++ fs)
       val nv = Variable.fromBag(v.name, pin.tp)
       Projection(pin, nv, replace(filter, nv), tfields.toList)
 
     case s @ Select(in, v, p) =>
       val ptp = v.tp.attrs.filter(f => fs(f._1))
-
-      val nv = Variable.freshFromBag(in.tp)
+      val pin = push(in, ptp.keySet)
+      val nv = Variable.freshFromBag(pin.tp)
       val nrec = Record(ptp.map(f => (f._1, Project(nv, f._1))))
-      Projection(s, nv, nrec, ptp.keySet.toList)
+      p match {
+        case Constant(true) => 
+          removeUnnecProj(Projection(pin, nv, nrec, ptp.keySet.toList))
+        case _ => Projection(Select(pin, nv, p), nv, nrec, ptp.keySet.toList)
+      }
+      
 
     case Unnest(in, v, path, v2, filter, fields) =>
       val pin = push(in, fields.toSet ++ fs + path)
@@ -109,6 +117,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       Nest(npin, nv2, nkey.toList, replace(value, nv2), filter, collect(value).toList, ctag)
 
     case Reduce(e1 @ Projection(in, v, filter, fields), v2, key, value) =>
+
       // adjust key
       val indices = key.filter(k => k.contains("index")).toSet
       val nkey0 = (key.toSet & fs) ++ indices 
@@ -176,6 +185,8 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val outs = p.fields.keySet
       if (attrs == outs) r
       else e
+    case Projection(r:Projection, v, p, f) => 
+      Projection(r.in, v, p, f)
   })
 
   /** Returns true if an expression is a base expression 

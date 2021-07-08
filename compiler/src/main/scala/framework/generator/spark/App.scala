@@ -75,6 +75,7 @@ object Sharing extends App {
     // val ptype = "qlearn"
     val sgenv = new GenomicEnv(dlbctest, shred = true, flex = flex, ptype = ptype)
     AppWriter.runWithCache(sgenv, "CacheTest,shredded,covers")
+    // AppWriter.runDatasetShred(SW6, "TestCompile,shredded", optLevel = 1)
 
 
 

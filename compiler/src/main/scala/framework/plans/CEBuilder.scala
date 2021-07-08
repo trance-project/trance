@@ -125,11 +125,14 @@ object CEBuilder extends Extensions {
             }
           // keep complex expressions, assuming they reduce the 
           // overall amount of projections
-          case (field1, field2) => (field1, replace(field2, v))
+          case (field1, field2) => 
+            vmap(field1) = field1
+            (field1, replace(field2, v))
         }.toMap
       }
 
       val r = Record(updateVmap(f1) ++ updateVmap(f2))
+
       val nr = replace(r, v)
       val nfs1 = fs1.toList.map(k => getFromVmap(k))
       val nfs2 = fs2.toList.map(k => getFromVmap(k))

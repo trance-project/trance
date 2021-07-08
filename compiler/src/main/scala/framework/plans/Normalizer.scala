@@ -128,8 +128,6 @@ class BaseNormalizer(val letOpt: Boolean = false) extends BaseCompiler {
 
       // normalize let's per usual
       case Comprehension(e2, v2, p2, e3) if (!letOpt) =>  
-          println("do i come in here at all?")
-          println(Printer.quote(e3))
           Comprehension(e2, v2, p2, normalizeIf(comprehension(e3, p, e)))
 
       case _ => // standard case (return self)
