@@ -175,7 +175,7 @@ object ExampleQuery extends DriverGene {
             {(gene := g.gene, burdens :=
               (for b in g.burdens union
                 for e in mapExpression union
-                  if (b.sid = e.ge_aliquot && g.gene = e.gene) then
+                  if (b.sid = e.sid && g.gene = e.gene) then
                     {(gene_name := b.gene_name, sid := b.sid, lbl := b.lbl, burden := b.burden*e.fpkm)}.sumBy({sid,lbl}, {burden})
                      )}
     """
