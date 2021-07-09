@@ -1,7 +1,8 @@
 package framework.nrc
 
 import javax.lang.model.`type`.PrimitiveType
-
+import framework.common._
+import framework.utils.Utils
 /**
   * Base NRC expressions
   */
