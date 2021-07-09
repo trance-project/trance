@@ -156,6 +156,7 @@ object ExampleQuery extends DriverGene {
                     for t in o.transcript_consequences union
                       if (g.g_gene_id = t.gene_id) then
                          {(sid := o.donorId,
+                           gene_id := g.g_gene_id,
                            lbl := if (s.gleason_pattern_primary = 2) then 0
                             else if (s.gleason_pattern_primary = 3) then 0
                             else if (s.gleason_pattern_primary = 4) then 1
@@ -174,7 +175,7 @@ object ExampleQuery extends DriverGene {
             {(gene := g.gene, burdens :=
               (for b in g.burdens union
                 for e in mapExpression union
-                  if (g.sid = e.sid && g.gene = e.gene) then
+                  if (g.sid = e.ge_aliquot && g.gene_id = e.ge_gene_id) then
                     {(sid := g.sid, lbl := g.lbl, burden := b.burden*e.fpkm)}.sumBy({sid,lbl}, {burden})
                      )}
     """
