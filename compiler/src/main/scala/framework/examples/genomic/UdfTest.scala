@@ -145,7 +145,7 @@ object ExampleQuery extends DriverGene {
           for s in samples union
             for e in expression union
               if (s.bcr_aliquot_uuid = e.ge_aliquot) then
-                {(sid := s.bcr_patient_uuid, gene := e.gene, fpkm := e.fpkm)};
+                {(sid := s.bcr_patient_uuid, gene := e.ge_gene_id, fpkm := e.ge_fpkm)};
 
          impactGMB <=
           for g in genemap union
