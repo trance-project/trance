@@ -149,14 +149,14 @@ object ExampleQuery extends DriverGene {
 
          impactGMB <=
           for g in genemap union
-            {(gene:= g.g_gene_name, burdens :=
+            {(gene:= g.g_gene_id, burdens :=
               (for o in occurrences union
                 for s in clinical union
                   if (o.donorId = s.bcr_patient_uuid) then
                     for t in o.transcript_consequences union
                       if (g.g_gene_id = t.gene_id) then
                          {(sid := o.donorId,
-                           gene_id := g.g_gene_id,
+                           gene_name := g.g_gene_name,
                            lbl := if (s.gleason_pattern_primary = 2) then 0
                             else if (s.gleason_pattern_primary = 3) then 0
                             else if (s.gleason_pattern_primary = 4) then 1
@@ -175,8 +175,8 @@ object ExampleQuery extends DriverGene {
             {(gene := g.gene, burdens :=
               (for b in g.burdens union
                 for e in mapExpression union
-                  if (g.sid = e.ge_aliquot && g.gene_id = e.ge_gene_id) then
-                    {(sid := g.sid, lbl := g.lbl, burden := b.burden*e.fpkm)}.sumBy({sid,lbl}, {burden})
+                  if (b.sid = e.ge_aliquot && g.gene = e.gene) then
+                    {(gene_name := b.gene_name, sid := b.sid, lbl := b.lbl, burden := b.burden*e.fpkm)}.sumBy({sid,lbl}, {burden})
                      )}
     """
 
