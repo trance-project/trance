@@ -90,7 +90,7 @@ object ExampleQuery extends DriverGene {
 
 //// Using Occurences (Impact score)
 //    s"""
-//        impactGMB <=
+//        GMB <=
 //          for g in genemap union
 //            {(gene:= g.g_gene_name, burdens :=
 //              (for o in occurrences union
@@ -252,44 +252,45 @@ object ExampleQuery2 extends DriverGene {
     val program = parser.parse(query).get.asInstanceOf[Program]
 
 }
-//
-//object SimpleUDFExample extends DriverGene {
-//
-//  val sampleFile = "/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_prad.txt"
-//
-//  // in DriverGenes.scala you can see traits for several datatypes, these
-//  // are inherited from DriverGene trait (around line 549)
-//  // checkout individuals traits to see what the load functions are doing
-//  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-//    s"""|${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
-//        |""".stripMargin
-//
-//  // name to identify your query
-//  val name = "SimpleUDF"
-//
-//  // a map of input types for the parser
-//  val tbls = Map("samples" -> samples.tp)
-//
-//
-//  // the parser part will be a bit involved, so i'm starting with
-//  // directly defining the queries as their case classes
-//  // val query =
-//  //   s"""
-//  //     def myudf input String output String
-//  //     Example <=
-//  //       for s in samples union
-//  //         {( sample := myudf(s.bcr_patient_uuid), aliquot := s.bcr_aliquot_uuid )}
-//  //   """
-//
-//  // let's say we define a udf (myudf) that takes an input string
-//  // and outputs an input string - so it will take a patient id and
-//  // translate it to something like "JustTesting"
-//  val query = ForeachUnion(br, samples,
-//    Singleton(Tuple(
-//      "sample" -> PrimitiveUdf("myudf", br("bcr_patient_uuid"), StringType),
-//      "aliquot" -> br("bcr_aliquot_uuid"))))
-//
-//  val program = Program(Assignment(name, query))
-//
-//}
+
+object SimpleUDFExample extends DriverGene {
+
+  val sampleFile = "/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_prad.txt"
+
+  // in DriverGenes.scala you can see traits for several datatypes, these
+  // are inherited from DriverGene trait (around line 549)
+  // checkout individuals traits to see what the load functions are doing
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
+        |""".stripMargin
+
+  // name to identify your query
+  val name = "SimpleUDF"
+
+  // a map of input types for the parser
+  val tbls = Map("samples" -> samples.tp)
+
+
+  // the parser part will be a bit involved, so i'm starting with
+  // directly defining the queries as their case classes
+  // val query =
+  //   s"""
+  //     def myudf input String output String
+  //     Example <=
+  //       for s in samples union
+  //         {( sample := myudf(s.bcr_patient_uuid), aliquot := s.bcr_aliquot_uuid )}
+  //   """
+
+  // let's say we define a udf (myudf) that takes an input string
+  // and outputs an input string - so it will take a patient id and
+  // translate it to something like "JustTesting"
+  val query = ForeachUnion(br, samples,
+    Singleton(Tuple(
+      "sample" -> PrimitiveUdf("myudf", br("bcr_patient_uuid"), StringType),
+//      "sample" -> NumericUdf("udf_numeric", br("bcr_patient_uuid"), StringType )
+      "aliquot" -> br("bcr_aliquot_uuid"))))
+
+  val program = Program(Assignment(name, query))
+
+}
 

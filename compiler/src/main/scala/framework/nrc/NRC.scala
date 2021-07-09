@@ -1,7 +1,6 @@
 package framework.nrc
 
-import framework.common._
-import framework.utils.Utils
+import javax.lang.model.`type`.PrimitiveType
 
 /**
   * Base NRC expressions
@@ -155,7 +154,21 @@ trait NRC extends BaseExpr {
 
   }
 
-  // TODO define more types, such as how the various let expressions are defined before
+  final case class NumericUdf(name: String, in: Expr, otp: NumericType) extends NumericExpr with Udf{
+
+    val tp: NumericType = otp
+  }
+
+  final case class BagUdf(name: String, in: Expr, otp: BagType) extends BagExpr with Udf{
+
+    val tp: BagType = otp
+  }
+
+  final case class TupleUdf(name: String, in: Expr, otp: TupleType) extends BagExpr with Udf{
+
+    val tp: UdfType = otp
+  }
+
   final case class PrimitiveUdf(name: String, in: Expr, otp: PrimitiveType) extends PrimitiveExpr with Udf {
     def tp: PrimitiveType = otp
   }
