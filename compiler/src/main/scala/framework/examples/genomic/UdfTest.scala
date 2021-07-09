@@ -144,7 +144,7 @@ object ExampleQuery extends DriverGene {
         mapExpression <=
           for s in samples union
             for e in expression union
-              if (s.aliquot = e.aliquot) then
+              if (s.bcr_aliquot_uuid = e.ge_aliquot) then
                 {(sid := s.bcr_patient_uuid, gene := e.gene, fpkm := e.fpkm)};
 
          impactGMB <=
