@@ -156,7 +156,7 @@ trait NRC extends BaseExpr {
 
   final case class NumericUdf(name: String, in: Expr, otp: NumericType) extends NumericExpr with Udf{
 
-    val tp: NumericType = otp
+    val tp: NumericType
   }
 
   final case class BagUdf(name: String, in: Expr, otp: BagType) extends BagExpr with Udf{
