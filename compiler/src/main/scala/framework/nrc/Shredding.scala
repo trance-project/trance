@@ -187,7 +187,6 @@ trait Shredding extends BaseShredding with Extensions {
       ShredExpr(PrimitiveUdf(name, flat ,otp), dict)
 
     case NumericUdf(name, in, otp) =>
-
       val sresult:ShredExpr = shred(in, ctx)
       val flat = sresult.flat
       val dict = sresult.dict
