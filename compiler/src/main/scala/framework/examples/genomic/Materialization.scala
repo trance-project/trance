@@ -1086,6 +1086,156 @@ object LetTest7bSeq extends DriverGene {
     val program = parser.parse(query).get.asInstanceOf[Program]
 }
 
+object LetTest8 extends DriverGene {
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    if (shred){
+      s"""|val samples = spark.table("samples")
+          |val IBag_samples__D = samples
+          |IBag_samples__D.cache; IBag_samples__D.count
+          |
+          |val copynumber = spark.table("copynumber")
+          |val IBag_copynumber__D = copynumber
+          |IBag_copynumber__D.cache; IBag_copynumber__D.count
+          |
+          |val IBag_pathways__D = spark.table("pathtop")
+          |IBag_pathways__D.cache; IBag_pathways__D.count
+          |
+          |val IMap_pathways__D_gene_set = spark.table("pathdict")
+          |IMap_pathways__D_gene_set.cache; IMap_pathways__D_gene_set.count
+          |
+          |val IBag_gtfmap__D = spark.table("gtfmap")
+          |IBag_gtfmap__D.cache; IBag_gtfmap__D.count
+          |""".stripMargin
+    }else{
+      s"""|val samples = spark.table("samples")
+          |
+          |val copynumber = spark.table("copynumber")
+          |
+          |val occurrences = spark.table("occurrences")
+          |""".stripMargin
+    }
+  val name = "LetTest8"
+  
+  val tbls = Map("occurrences" -> occurmids.tp, 
+                  "copynumber" -> copynum.tp, 
+                  "samples" -> samples.tp,
+                  "network" -> network.tp, 
+                  "gtfmap" -> BagType(gtfType), 
+                  "pathways" -> pathway.tp)
+
+    val fpath = 
+      s"""
+        for p in pathways union 
+          for g in p.gene_set union 
+            for g2 in gtfmap union 
+              if (g.name = g2.g_gene_name)
+              then {( pname := p.p_name, pgid := g2.g_gene_id )}
+      """
+
+    val agg1 = 
+     s"""
+      for s in samples union 
+        {( bcr_patient_uuid := s.bcr_patient_uuid, cnvs := 
+          (for c in copynumber union 
+            if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
+            then for g in PWays union 
+                if (c.cn_gene_id = g.pgid)
+                then {( path := g.pname, cnum := c.cn_copy_number + 0.001 )}).sumBy({path},{cnum})
+        )}
+     """
+
+    val query = 
+      s"""
+        PWays <= $fpath; 
+
+        LetTest7 <= 
+        for t in $agg1 union 
+          for x in t.cnvs union 
+            {(bcr_patient_uuid := t.bcr_patient_uuid, path := x.path, cnum2 := x.cnum )}
+
+      """
+
+    val parser = Parser(tbls)
+    val program = parser.parse(query).get.asInstanceOf[Program]
+}
+
+object LetTest8Seq extends DriverGene {
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    if (shred){
+      s"""|val samples = spark.table("samples")
+          |val IBag_samples__D = samples
+          |IBag_samples__D.cache; IBag_samples__D.count
+          |
+          |val copynumber = spark.table("copynumber")
+          |val IBag_copynumber__D = copynumber
+          |IBag_copynumber__D.cache; IBag_copynumber__D.count
+          |
+          |val IBag_pathways__D = spark.table("pathtop")
+          |IBag_pathways__D.cache; IBag_pathways__D.count
+          |
+          |val IMap_pathways__D_gene_set = spark.table("pathdict")
+          |IMap_pathways__D_gene_set.cache; IMap_pathways__D_gene_set.count
+          |
+          |val IBag_gtfmap__D = spark.table("gtfmap")
+          |IBag_gtfmap__D.cache; IBag_gtfmap__D.count
+          |""".stripMargin
+    }else{
+      s"""|val samples = spark.table("samples")
+          |
+          |val copynumber = spark.table("copynumber")
+          |
+          |val occurrences = spark.table("occurrences")
+          |""".stripMargin
+    }
+  val name = "LetTest8Seq"
+  
+  val tbls = Map("occurrences" -> occurmids.tp, 
+                  "copynumber" -> copynum.tp, 
+                  "samples" -> samples.tp,
+                  "network" -> network.tp, 
+                  "gtfmap" -> BagType(gtfType), 
+                  "pathways" -> pathway.tp)
+
+    val fpath = 
+      s"""
+        for p in pathways union 
+          for g in p.gene_set union 
+            for g2 in gtfmap union 
+              if (g.name = g2.g_gene_name)
+              then {( pname := p.p_name, pgid := g2.g_gene_id )}
+      """
+
+    val agg1 = 
+     s"""
+      for s in samples union 
+        {( bcr_patient_uuid := s.bcr_patient_uuid, cnvs := 
+          (for c in copynumber union 
+            if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
+            then for g in PWays union 
+                if (c.cn_gene_id = g.pgid)
+                then {( path := g.pname, cnum := c.cn_copy_number + 0.001 )}).sumBy({path},{cnum})
+        )}
+     """
+
+    val query = 
+      s"""
+        PWays <= $fpath; 
+
+        Agg1 <= $agg1;
+
+        LetTest7 <= 
+        for t in Agg1 union 
+          for x in t.cnvs union 
+            {(bcr_patient_uuid := t.bcr_patient_uuid, path := x.path, cnum2 := x.cnum )}
+
+      """
+
+    val parser = Parser(tbls)
+    val program = parser.parse(query).get.asInstanceOf[Program]
+}
+
 object LetTest0 {
   def apply(letOpt: Boolean = false): Query = new LetTest0(letOpt)
   def apply(): LetTest0 = new LetTest0()
