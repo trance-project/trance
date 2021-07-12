@@ -179,7 +179,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
 
     case CDeDup(Projection(in, v, f1:Record, f2)) => 
       val ids = v.tp.attrs.keySet.filter(f => f.contains("_index"))
-      val atts = fs ++ ids
+      val atts = fs ++ collect(f1) ++ ids
       val nrec = if (fs.nonEmpty) Record(f1.fields.filter(f => atts.contains(f._1))) else f1
       val pin = push(in, atts)
       val nv = Variable.fromBag(v.name, pin.tp)
