@@ -42,7 +42,7 @@ object LetExplore extends App {
     // AppWriter.runDatasetShred(LetTest5b, "InlinedNoAgg,shredded", optLevel = 1)
     // AppWriter.runDatasetShred(LetTest5bSeq, "SequentialNoAgg,shredded", optLevel = 1)
 
-    // AppWriter.runDatasetShred(LetTest7a, "InlinedNoAgg,shredded", optLevel = 1)
+    AppWriter.runDatasetShred(LetTest7a, "InlinedNoAgg,shredded", optLevel = 1)
     // AppWriter.runDatasetShred(LetTest7aSeq, "SequentialNoAgg,shredded", optLevel = 1)
     AppWriter.runDatasetShred(LetTest7b, "InlinedAgg,shredded", optLevel = 1)
     // AppWriter.runDatasetShred(LetTest7bSeq, "SequentialAgg,shredded", optLevel = 1)
