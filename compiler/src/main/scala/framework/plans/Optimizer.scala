@@ -123,25 +123,28 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val nkey0 = (key.toSet & fs) ++ indices 
       val nkey = if (nkey0.isEmpty) key.toSet else nkey0
 
-      val vs = nkey ++ value.toSet
+      // collect variables
+      val vs = nkey ++ value.toSet ++ fs ++ indices
 
+      // filter out unnecessary values in record
       val nfilter = filter match {
-    		case Record(ffs) => 
-          Record(ffs.filter(f => vs(f._1)) ++ (fs ++ indices).map(f => f -> Project(v, f)))
-    		// may need to handle the below as the line above
+    		case Record(ffs) => Record(ffs.filter(f => vs(f._1)))
         case If(cond, Sng(Record(f1)), Some(Sng(Record(f2)))) => 
     			 If(cond, Sng(Record(f1.filter(f => vs(f._1)))), 
     			 	Some(Sng(Record(f2.filter(f => vs(f._1))))))
     		case _ => sys.error(s"implementation missing for $filter")
 	    } 
 
-	    val nfs = collect(nfilter) // vs ++ fs ++ collect(nfilter)
+      // create a new projection
+	    val nfs = collect(nfilter)
       val pin = push(in, nfs)
       val nv = Variable.fromBag(v.name, pin.tp)
-
       val pin2 = Projection(pin, nv, nfilter, nfs.toList)
+
+      // creat a new reduce
       val nv2 = Variable.fromBag(v2.name, pin2.tp)
-      Reduce(pin2, nv2, nkey.toList, value)
+      val scheck = nfilter.tp.attrs.keySet
+      Reduce(pin2, nv2, (nkey & scheck).toList, value)
 
     case Reduce(in, v, key, value) =>
       //adjust key
@@ -174,7 +177,14 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
         Projection(i, v, nrec, nrec.fields.keySet.toList)
       } else i
 
+    case CDeDup(Projection(in, v, f1:Record, f2)) => 
+      val nrec = if (fs.nonEmpty) Record(f1.fields.filter(f => fs.contains(f._1))) else f1
+      val pin = push(in, fs)
+      val nv = Variable.fromBag(v.name, pin.tp)
+      CDeDup(Projection(pin, nv, nrec, fs.toList))
+
     case CDeDup(e1) => CDeDup(push(e1, fs))
+    case RemoveNulls(in) => RemoveNulls(push(in, fs))
 
     case _ => e
   }

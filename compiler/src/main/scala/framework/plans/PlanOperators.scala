@@ -10,6 +10,10 @@ case class COption(e: CExpr) extends CExpr {
   def tp: OptionType = OptionType(e.tp)
 }
 
+case class RemoveNulls(e1: CExpr) extends CExpr {
+  def tp: Type = e1.tp
+}
+
 /** Operators of the plan language **/ 
 
 case class Select(x: CExpr, v: Variable, p: CExpr) extends CExpr with UnaryOp { self =>

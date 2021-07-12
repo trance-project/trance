@@ -30,6 +30,8 @@ object Unnester {
   val normalize = new Finalizer(normalizer)
   import extensions._
 
+  var varset = Set.empty[String]
+
   def flat(tp1: Map[String, Type], tp2: Type): Map[String, Type] =
     RecordCType(tp1).merge(tp2).attrs
 
@@ -46,8 +48,12 @@ object Unnester {
 
     /** Base case for unnesting algorithm: Rule C4 **/
     case Comprehension(e1, v, p, e2) if u.isEmpty && w.isEmpty && E.isEmpty =>
-      val ne1 = AddIndex(e1, getName(e1)+"_index")
-      val nv = Variable(v.name, ne1.tp.tp)
+      // do not index a domain
+      val ne1 = getName(e1) match {
+        case en if en.contains("Dom") => e1
+        case en => AddIndex(e1, en+"_index")
+      }
+      val nv = Variable(v.name, ne1.tp.asInstanceOf[BagCType].tp)
       unnest(e2)((u, nv.tp.attrs, Some(Select(ne1, nv, replace(p, nv))), tag))
 
     case c @ Comprehension(e1 @ Project(e0, f), v, p, e2) if !w.isEmpty =>
@@ -80,9 +86,10 @@ object Unnester {
         case _ => 
           (Equals(lbl, Project(nv1, "_1")), (w.keySet ++ (v1.tp.attrs.keySet - "_1")))
       }
+      val rfs = collect(joinCond)
       val fdict = Select(dict, nv1, filt)
       val nE = OuterJoin(E.get, nv, fdict, nv1, joinCond, fields.toList)
-      unnest(e2)((u, flat(w, nv1.tp), Some(nE), tag))
+      unnest(e2)((u.filter(x => !rfs(x._1)), flat(w.filter(x => !rfs(x._1)), nv1.tp), Some(nE), tag))
 
     case Comprehension(e1:Comprehension, v, p, Constant(c)) => unnest(e1)((u, w, E, tag)) match {
       case Nest(e2, v2, keys2, values2, filt, nulls, ntag) => 
@@ -90,13 +97,17 @@ object Unnester {
       case _ => ???
     }
 
-    case Comprehension(e1:CReduceBy, v, cond, e2) if !w.isEmpty =>
-      val nE = unnest(e1)((u, w, E, tag))
+    case Comprehension(e1:CReduceBy, v, cond, e2) if !w.isEmpty => 
+      val nE = unnest(e1)((w, w, E, tag)) match {
+        case Nest(e2:Reduce, _, _, _, _, _, _) => RemoveNulls(e2)
+        case r:Reduce =>  RemoveNulls(r)
+        case _ => ???
+      }
       val nw = flat(w, nE.tp.asInstanceOf[BagCType].tp)
       unnest(e2)((u, nw, Some(nE), tag))
 
-    case Comprehension(CDeDup(e1), v, cond, e2) if !w.isEmpty =>
-      val nE = CDeDup(unnest(e1)((u, w, E, tag)))
+    case Comprehension(e1:CDeDup, v, cond, e2) if !w.isEmpty =>
+      val nE = RemoveNulls(unnest(e1)((w, w, E, tag)))
       val nw = flat(w, nE.tp.asInstanceOf[BagCType].tp)
       unnest(e2)((u, nw, Some(nE), tag))
 
@@ -121,6 +132,15 @@ object Unnester {
       val fs = tp.attrs.map(k => k._1 -> Project(v, k._1))
       handleLevel(fs, identity)((u, w, E, tag))
 
+    case CDeDup(e1) => unnest(e1)((u, w, E, tag)) match {
+      case Nest(e2, v2, keys, values, filter, nulls, ctag) =>
+        val indices = u.keySet.filter(x => x.contains("_index"))
+        val keys2 = (indices ++ keys).toList
+        CDeDup(Projection(e2, v2, replace(extendIf(keys2, values, v2), v2), Nil))
+      case s =>  CDeDup(s)
+    }
+
+    // note to self you need to update varset here..
     case CReduceBy(e1, v1, keys, values) => unnest(e1)((u, w, E, tag)) match {
       case Nest(e2, v2, keys2, values2, filter, nulls, ctag) =>
         // adjust input for reduce operation
@@ -147,7 +167,6 @@ object Unnester {
       val tup = Record(values.map(v => v -> Project(nv, v)).toMap)
       Nest(nE, nv, keys, tup, Constant(true), (w.keySet -- u.keySet).toList, gname)
 
-    case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E, tag)))
     case Bind(x, e1, e2) => 
       Bind(x, unnest(e1)((u, w, E, tag)), unnest(e2)((u, w, E, tag)))
     case FlatDict(e1) => FlatDict(unnest(e1)((u, w, E, tag)))
@@ -185,8 +204,8 @@ object Unnester {
       val tup = exp(Record(fs))
       val rtup = replace(tup, nv)
       Nest(E.get, nv, u.keys.toList, rtup, Constant(true), (w.keySet -- u.keySet).toList, tag)
-    }   
-  }
+    }  
+  } 
 
   private def liftFilter(f: CExpr, e: CExpr): CExpr = f match {
     case Constant(true) => e

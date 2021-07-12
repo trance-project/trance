@@ -299,6 +299,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Label(fs) if fs.size == 1 => generate(fs.head._2)
     case Record(fs) if fs.contains("element") && fs.size == 1 => fs("element")
     case Record(fs) => {
+      println("in here with this record")
+      println(Printer.quote(e))
       handleType(e.tp)
       val rcnts = e.tp.attrs.map(f => generate(fs(f._1))).mkString(", ")
       s"${generateType(e.tp)}($rcnts)"
@@ -600,11 +602,13 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val rvalues = value.map(vs => 
         s"typed.sum[$intp](${matchOption(v, vs)})\n").mkString("agg(", ",", ")")
 
+      println("in here with")
+      println(er.tp.tp)
       val nrec = er.tp.tp.attrs.map(k => 
         if (value.contains(k._1)) k._2 match {
 		  case _:OptionType => s"Some(${k._1})"
-          case _ => k._1 
-        }else s"key.${k._1}").mkString(s"$gtp(", ", ", ")")
+        case _ => k._1 
+      }else s"key.${k._1}").mkString(s"$gtp(", ", ", ")")
 
       s"""|${generate(in)}.groupByKey($gv => ${generate(rkey)})
           | .$rvalues.mapPartitions{ it => it.map{ case (key, ${value.mkString(", ")}) =>
@@ -619,6 +623,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           | .as[$nrec]
           |""".stripMargin
 
+    case RemoveNulls(e1) => s"${generate(e1)}.na.drop()"
+ 
     // filter
     case Select(x, v, filt) => 
       handleType(v.tp)

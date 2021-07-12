@@ -75,6 +75,7 @@ trait Extensions {
       case LinearCSet(es) => LinearCSet(es.map(e1 => fapply(e1, funct)))
 
       case AddIndex(in, v) => AddIndex(fapply(in, funct), v)
+      case RemoveNulls(in) => RemoveNulls(in)
         
       case Projection(in, v, filter, fields) =>
         Projection(fapply(in, funct), v, filter, fields)

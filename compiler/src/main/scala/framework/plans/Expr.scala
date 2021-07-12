@@ -139,8 +139,7 @@ case class Project(e1: CExpr, field: String) extends CExpr { self =>
   def tp: Type = e1.tp match {
     case t:RecordCType => t.attrTps get field match {
       case Some(fi) => fi
-      case _ => 
-	  	sys.error(s"$field not found in $t")
+      case _ => sys.error(s"$field not found in $t")
     }
     case t:TTupleType => field match {
       case "_1" => t(0)

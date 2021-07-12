@@ -51,6 +51,7 @@ trait Base {
   // plan operators
   def select(x: Rep, p: Rep => Rep): Rep
   def addindex(in: Rep, name: String): Rep 
+  def nanull(in: Rep): Rep 
   def projection(in: Rep, filter: Rep => Rep, fields: List[String]): Rep
   def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep
   def ounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep
@@ -134,6 +135,7 @@ trait BaseStringify extends Base{
     s""" | SELECT[ ${p(v)} ]( ${x} )""".stripMargin
   }
   def addindex(in: Rep, name: String): Rep = "/** Top-down, see Printer.scala **/"
+  def nanull(in: Rep): Rep = "/** Top-down, see Printer.scala **/"
   def projection(in: Rep, filter: Rep => Rep, fields: List[String]): Rep = ""
   def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = "/** Top-down, see Printer.scala **/"
   def ounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = "/** Top-down, see Printer.scala **/"
@@ -222,6 +224,7 @@ trait BaseCompiler extends Base {
     case AddIndex(in1, _) => AddIndex(in, name)
     case _ => AddIndex(in, name)  
   }
+  def nanull(in: Rep): Rep = RemoveNulls(in)
   def projection(in: Rep, filter: Rep => Rep, fields: List[String]): Rep = {
     val v1 = Variable.freshFromBag(in.tp)
     val nr = filter(v1)
@@ -439,6 +442,7 @@ trait BaseANF extends Base {
   def select(x: Rep, p: Rep => Rep): Rep = compiler.select(x, p)
   
   def addindex(in: Rep, name: String) = compiler.addindex(in, name)
+  def nanull(in: Rep): Rep = compiler.nanull(in)
   def projection(in: Rep, filter: Rep => Rep, fields: List[String]): Rep = 
     compiler.projection(in, filter, fields)
   def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = 
@@ -555,9 +559,10 @@ class Finalizer(val target: Base){
       target.select(finalize(x), (r: target.Rep) => withMap(v -> r)(finalize(p)))
 
     case AddIndex(in, name) => target.addindex(finalize(in), name)    
-      
+    case RemoveNulls(in) => target.nanull(finalize(in))    
     case Projection(in, v, filter, fields) => 
-      target.projection(finalize(in), (r: target.Rep) => withMap(v -> r)(finalize(filter)), fields)
+      val filt = (r: target.Rep) => withMap(v -> r)(finalize(filter))
+      target.projection(finalize(in), filt, fields)
     case Unnest(in, v, path, v2, filter, fields) => 
       target.unnest(finalize(in), path, (r: target.Rep) => withMap(v2 -> r)(finalize(filter)), fields)
     case OuterUnnest(in, v, path, v2, filter, fields) => 
@@ -573,11 +578,12 @@ class Finalizer(val target: Base){
         (r: target.Rep) => withMap(v -> r)(finalize(filter)), nulls, ctag)
     case Reduce(in, v, keys, values) => 
       target.reduce(finalize(in), keys, values)
-
     case FlatDict(e1) => target.flatdict(finalize(e1))
     case GroupDict(e1) => target.groupdict(finalize(e1))
 
-    case v @ Variable(_, _) => variableMap.getOrElse(v, target.inputref(v.name, v.tp))
+    case v @ Variable(_, _) => 
+      val falback = target.inputref(v.name, v.tp)
+      variableMap.getOrElse(v, falback)
   }
 
 }
