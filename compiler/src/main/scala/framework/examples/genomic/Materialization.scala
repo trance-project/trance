@@ -876,9 +876,11 @@ object LetTest7a extends DriverGene {
     if (shred){
       s"""|val samples = spark.table("samples")
           |val IBag_samples__D = samples
+          |IBag_samples__D.cache; IBag_samples__D.count
           |
           |val copynumber = spark.table("copynumber")
           |val IBag_copynumber__D = copynumber
+          |IBag_copynumber__D.cache; IBag_copynumber__D.count
           |
           |""".stripMargin
     }else{
@@ -927,9 +929,11 @@ object LetTest7aSeq extends DriverGene {
     if (shred){
       s"""|val samples = spark.table("samples")
           |val IBag_samples__D = samples
+          |IBag_samples__D.cache; IBag_samples__D.count
           |
           |val copynumber = spark.table("copynumber")
           |val IBag_copynumber__D = copynumber
+          |IBag_copynumber__D.cache; IBag_copynumber__D.count
           |
           |""".stripMargin
     }else{
@@ -980,9 +984,11 @@ object LetTest7b extends DriverGene {
     if (shred){
       s"""|val samples = spark.table("samples")
           |val IBag_samples__D = samples
+          |IBag_samples__D.cache; IBag_samples__D.count
           |
           |val copynumber = spark.table("copynumber")
           |val IBag_copynumber__D = copynumber
+          |IBag_copynumber__D.cache; IBag_copynumber__D.count
           |
           |""".stripMargin
     }else{
@@ -1008,7 +1014,7 @@ object LetTest7b extends DriverGene {
         {( bcr_patient_uuid := s.bcr_patient_uuid, cnvs := 
           (for c in copynumber union 
             if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
-            then {( cn_gene_id := c.cn_gene_id, cn_copy_number := c.cn_copy_number + 0.001 )}).sumBy({cn_gene_id}, {cn_copy_number})
+            then {( cn_gene_id := c.cn_gene_id, cnum := c.cn_copy_number + 0.001 )}).sumBy({cn_gene_id}, {cnum})
         )}
      """
 
@@ -1017,7 +1023,7 @@ object LetTest7b extends DriverGene {
         LetTest7 <= 
         for t in $agg1 union 
           for x in t.cnvs union 
-            {( bcr_patient_uuid := t.bcr_patient_uuid, cn_gene_id := x.cn_gene_id, cn_copy_number := x.cn_copy_number + 0.001 )}
+            {( bcr_patient_uuid := t.bcr_patient_uuid, cn_gene_id := x.cn_gene_id, cnum2 := x.cnum )}
 
       """
 
@@ -1031,19 +1037,12 @@ object LetTest7bSeq extends DriverGene {
     if (shred){
       s"""|val samples = spark.table("samples")
           |val IBag_samples__D = samples
+          |IBag_samples__D.cache; IBag_samples__D.count
           |
           |val copynumber = spark.table("copynumber")
           |val IBag_copynumber__D = copynumber
+          |IBag_copynumber__D.cache; IBag_copynumber__D.count
           |
-          |val odict1 = spark.table("odict1")
-          |val IBag_occurrences__D = odict1
-          |
-          |// issue with partial shredding here
-          |val odict2 = spark.table("odict2").drop("flags")
-          |val IMap_occurrences__D_transcript_consequences = odict2
-          |
-          |val odict3 = spark.table("odict3")
-          |val IMap_occurrences__D_transcript_consequences_consequence_terms = odict3
           |""".stripMargin
     }else{
       s"""|val samples = spark.table("samples")
@@ -1053,7 +1052,6 @@ object LetTest7bSeq extends DriverGene {
           |val occurrences = spark.table("occurrences")
           |""".stripMargin
     }
-
   val name = "LetTest7bSeq"
   
   val tbls = Map("occurrences" -> occurmids.tp, 
@@ -1069,7 +1067,7 @@ object LetTest7bSeq extends DriverGene {
         {( bcr_patient_uuid := s.bcr_patient_uuid, cnvs := 
           (for c in copynumber union 
             if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
-            then {( cn_gene_id := c.cn_gene_id, cn_copy_number := c.cn_copy_number + 0.001 )}).sumBy({cn_gene_id},{cn_copy_number})
+            then {( cn_gene_id := c.cn_gene_id, cnum := c.cn_copy_number + 0.001 )}).sumBy({cn_gene_id},{cnum})
         )}
      """
 
@@ -1080,7 +1078,7 @@ object LetTest7bSeq extends DriverGene {
         LetTest7 <= 
         for t in Agg1 union 
           for x in t.cnvs union 
-            {(bcr_patient_uuid := t.bcr_patient_uuid, cn_gene_id := x.cn_gene_id, cn_copy_number := x.cn_copy_number + 0.001 )}
+            {(bcr_patient_uuid := t.bcr_patient_uuid, cn_gene_id := x.cn_gene_id, cnum2 := x.cnum )}
 
       """
 
