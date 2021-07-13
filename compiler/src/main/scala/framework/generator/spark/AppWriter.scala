@@ -90,6 +90,11 @@ object AppWriter {
     if (notebk){
       val zep = new ZeppelinFactory(zhost, zport)
       val noteid = zep.addNote(qname)
+      // finally, we just need to write the function definitions out to a paragraph 
+      // in the notebook - that is defined before the NRC query. 
+      // access the codegen.udfsUsed variable to grab the context of the 
+      // *.udf files in the compiler/udfs folder and then write their 
+      // contents to a paragraph using the writeParagraph call on the next line:
       println(s"Writing out to $qname notebook with id: $noteid")
       val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
       val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)

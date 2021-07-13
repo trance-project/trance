@@ -1,0 +1,3 @@
+def myudf(x: String): String = {
+	s"${x}_myudf"
+}

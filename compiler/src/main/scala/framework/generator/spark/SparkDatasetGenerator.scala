@@ -25,6 +25,10 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
   override val BAGTYPE: String = "Seq"
   val ext = new Extensions{}
 
+  // create a mutable sequence where 
+  // we will store the udfs
+  var udfsUsed = Seq()
+
   /** Generates the code for the set of case class records associated to the 
     * records in the generated program.
     *
@@ -291,7 +295,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case InputRef(name, tp) => name
     case Constant(s:String) => "\"" + s + "\""
     case Constant(x) => x.toString
-    case CUdf(n, e1, tp) => s"$n(${generateReference(e1)})"
+    // now in the CUdf case, append to the sequence list 
+    // to make sure that the udf is called to 
+    // be generated...
+    case CUdf(n, e1, tp) => 
+      s"$n(${generateReference(e1)})"
 	  case Sng(e) => s"Seq(${generate(e)})"
     case CGet(e1) => s"${generate(e1)}.head"
     case CDeDup(e1) if dedup => s"${generate(e1)}.distinct"
