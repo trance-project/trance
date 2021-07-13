@@ -320,7 +320,7 @@ object TupleUDFExample extends DriverGene {
     Singleton(
       Tuple(
       "sample" -> Singleton(
-        TupleUdf("tupleudf", br("bcr_patient_uuid"), otp1)), 
+        TupleUdf("tupleudf", br("bcr_patient_uuid"), otp)),
       "aliquot" -> br("bcr_aliquot_uuid"))))
 
   // tupleudf takes a string (pid) and returns a tuple (one := pid, two := pid)
