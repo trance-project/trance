@@ -279,3 +279,36 @@ object SimpleUDFExample extends DriverGene {
 
 }
 
+object TupleUDFExample extends DriverGene {
+
+  val sampleFile = "/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_prad.txt"
+
+  // in DriverGenes.scala you can see traits for several datatypes, these
+  // are inherited from DriverGene trait (around line 549)
+  // checkout individuals traits to see what the load functions are doing
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
+        |""".stripMargin
+
+  // name to identify your query
+  val name = "SimpleUDF"
+
+  // a map of input types for the parser
+  val tbls = Map("samples" -> samples.tp)
+
+  val otp = TupleType("one" -> StringType, "two" -> StringType)
+
+  val otp1 = TupleType(("one", StringType), ("two", StringType))
+
+  val query = ForeachUnion(br, samples, 
+    Singleton(
+      Tuple(
+      "sample" -> Singleton(
+        TupleUdf("tupleudf", br("bcr_patient_uuid"), otp1)), 
+      "aliquot" -> br("bcr_aliquot_uuid"))))
+
+  // tupleudf takes a string (pid) and returns a tuple (one := pid, two := pid)
+
+  val program = Program(Assignment(name, query))
+
+}
