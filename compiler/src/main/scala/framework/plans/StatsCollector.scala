@@ -25,16 +25,16 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
 
   val data: String = if (inputs.isEmpty){
     s"""|   val db = spark.catalog.currentDatabase
-        |   val copynumber = spark.table("copynumber")
-        |   val occurrences = spark.table("occurrences")
-        |   val samples = spark.table("samples")
+        |   val copynumber = spark.table("fcopynumber")
+        |   //val occurrences = spark.table("occurrences")
+        |   val samples = spark.table("fsamples")
         |   val clinical = spark.table("clinical")
         |   val IBag_copynumber__D = copynumber
         |   val IBag_samples__D = samples
         |   val IBag_clinical__D = clinical
-        |   val IBag_occurrences__D = spark.table("odict1")
-        |   val IMap_occurrences__D_transcript_consequences = spark.table("odict2")
-        |   val IMap_occurrences__D_transcript_consequences_consequence_terms = spark.table("odict3")
+        |   //val IBag_occurrences__D = spark.table("odict1")
+        |   //val IMap_occurrences__D_transcript_consequences = spark.table("odict2")
+        |   //val IMap_occurrences__D_transcript_consequences_consequence_terms = spark.table("odict3")
       """.stripMargin
   }else inputs 
   
@@ -133,7 +133,8 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
       printer.close
       "DONE"
     }else {
-      val noteid = zep.addNote(bname)
+      println("attempting a zeppelin connection to "+zhost+" "+zport)
+	  val noteid = zep.addNote(bname)
       // println(s"Writing to notebook: $noteid")
       val pcontents = writeParagraph(bname, data, ghead, queries+"\n"+codeMap.map(_._2).mkString("\n"), genc)
       val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)

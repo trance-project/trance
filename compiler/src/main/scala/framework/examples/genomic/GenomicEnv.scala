@@ -81,7 +81,7 @@ class GenomicEnv(val capacity: Int, val shred: Boolean = false, val flex: Int = 
 		q.optimized(shred, optLevel, schema).asInstanceOf[CExpr]).zipWithIndex
 
 	val cacheStrategy: Option[CacheFactory] = 
-		Some(new CacheFactory(plans, capacity, flex = flex, ptype = plannerType))
+		Some(new CacheFactory(plans, capacity, flex = flex, ptype = plannerType, zhost = zhost, zport = zport))
 
 }
 
@@ -107,11 +107,11 @@ class LetTestEnv(val capacity: Int, val shred: Boolean = false,
 
 	override def setup(shred: Boolean = shred, skew: Boolean = false, cache: Boolean = false): String = {
 		if (shred){
-  		  s"""|val samples = spark.table("samples")
+  		  s"""|val samples = spark.table("fsamples")
 	          |val IBag_samples__D = samples
 	          |${if (cache) "IBag_samples__D.cache; IBag_samples__D.count" else ""}
 	          |
-	          |val copynumber = spark.table("copynumber")
+	          |val copynumber = spark.table("fcopynumber")
 	          |val IBag_copynumber__D = copynumber
 	          |${if (cache) "IBag_copynumber__D.cache; IBag_copynumber__D.count" else ""}
 	          |

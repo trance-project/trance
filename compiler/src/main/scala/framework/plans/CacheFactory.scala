@@ -63,7 +63,7 @@ class CacheFactory(progs: Vector[(CExpr, Int)], capacity: Int, flex: Int = 0, pt
     }
 
     println("These are the input covers:")
-    candidates.foreach{
+   	candidates.foreach{
       p => println(Printer.quote(p._2))
     }
 
