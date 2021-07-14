@@ -20,7 +20,7 @@ class GenomicEnv(val capacity: Int, val shred: Boolean = false, val flex: Int = 
 
 	val plannerType: String = ptype
 
-	val dtp = new DriverGene{ val name: String = ""; val program: Program = Program(Nil)}
+	val dtp = new DriverGene{ val name: String = ""; val program: Program = Program(Nil) }
 
   	val tbls = Map("occurrences" -> dtp.occurmids.tp, 
                   "copynumber" -> dtp.copynum.tp, 
@@ -75,7 +75,7 @@ class GenomicEnv(val capacity: Int, val shred: Boolean = false, val flex: Int = 
 	// these are the queries that were used for the microexperiment
 	// val queries: Vector[Query] = Vector(TestBaseQuery, TestBaseQuery2)
 
-	val queries: Vector[Query] = Vector(SW0, SW1) //, SW2, SW3, SW4, SW5, SW6) //, SW7)
+	val queries: Vector[Query] = Vector(SW0, SW1, SW0, SW1) //, SW2, SW3, SW4, SW5, SW6) //, SW7)
 
 	val plans: Vector[(CExpr, Int)] = queries.map(q => 
 		q.optimized(shred, optLevel, schema).asInstanceOf[CExpr]).zipWithIndex

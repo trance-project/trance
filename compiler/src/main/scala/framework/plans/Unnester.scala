@@ -73,11 +73,11 @@ object Unnester {
       assert(!E.isEmpty)
 
       // u is empty C7
-      if (u.isEmpty)
+      if (u.isEmpty){
         val nE = Unnest(E.get, wvar(w), f, v, p, Nil)
         unnest(e2)((u, flat((w - f), v.tp), Some(nE), tag))
       // u is nonEmpty C10
-      else{
+      }else{
         val ne1 = AddIndex(E.get, f+"_index")
         val nv = Variable(v.name, ne1.tp.tp)
         val nw = flat(w - f, nv.tp)
