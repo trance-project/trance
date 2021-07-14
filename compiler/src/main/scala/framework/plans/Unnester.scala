@@ -7,9 +7,14 @@ import framework.common._
   * This is a batch version of the unnesting procedure introduced in the paper. 
   * Rather than the tuple stream version of Fegaras and Maier, 
   * every operator returns an intermediate result.
+  * 
   */
 object Unnester {
   
+  // The general structure of the algorithm is [ { e | r } ]^{u}_{w} E
+  // Here we define the follow as the full context (Ctx): u, w, E 
+  // where u is the set of parent attributes when inside of an nest, 
+  // and w is the set of attributes coming from the context E.
   type Ctx = (Map[String, Type], Map[String, Type], Option[CExpr], String)
   @inline def u(implicit ctx: Ctx): Map[String, Type] = ctx._1
   @inline def w(implicit ctx: Ctx): Map[String, Type] = ctx._2
@@ -32,6 +37,9 @@ object Unnester {
 
   var varset = Set.empty[String]
 
+  // since we use a set of attributes, and not a list of tupled variables 
+  // like in fegaras and maier - this just flattens out all the attributes 
+  // in the context into one tuple
   def flat(tp1: Map[String, Type], tp2: Type): Map[String, Type] =
     RecordCType(tp1).merge(tp2).attrs
 
@@ -44,9 +52,12 @@ object Unnester {
     case _ => Variable.fresh(StringType).name 
   }
 
+
+  // This is the start of the unnest algorithm, you can see that 
+  // Ctx is provided at each call.
   def unnest(e: CExpr)(implicit ctx: Ctx): CExpr = e match {
 
-    /** Base case for unnesting algorithm: Rule C4 **/
+    // Base case for unnesting algorithm: Rule C4 
     case Comprehension(e1, v, p, e2) if u.isEmpty && w.isEmpty && E.isEmpty =>
       // do not index a domain
       val ne1 = getName(e1) match {
@@ -56,12 +67,17 @@ object Unnester {
       val nv = Variable(v.name, ne1.tp.asInstanceOf[BagCType].tp)
       unnest(e2)((u, nv.tp.attrs, Some(Select(ne1, nv, replace(p, nv))), tag))
 
+    // Case for Unnest operator (C7 and C10)
+    // outer operator is generated when u is non empty 
     case c @ Comprehension(e1 @ Project(e0, f), v, p, e2) if !w.isEmpty =>
       assert(!E.isEmpty)
 
-      if (u.isEmpty)
-        unnest(e2)((u, flat((w - f), v.tp), Some(Unnest(E.get, wvar(w), f, v, p, Nil)), tag))
-      else{
+      // u is empty C7
+      if (u.isEmpty){
+        val nE = Unnest(E.get, wvar(w), f, v, p, Nil)
+        unnest(e2)((u, flat((w - f), v.tp), Some(nE), tag))
+      // u is nonEmpty C10
+      }else{
         val ne1 = AddIndex(E.get, f+"_index")
         val nv = Variable(v.name, ne1.tp.tp)
         val nw = flat(w - f, nv.tp)
@@ -69,16 +85,22 @@ object Unnester {
         unnest(e2)((u - f), flat(nw - f, v.tp.outer), Some(nE), tag)
       }
 
+    // Case of a lookup in the head
     case e1 @ CLookup(lbl, dict) => 
       assert(!E.isEmpty)
       val nv = Variable.fresh(e1.tp.tp)
       unnest(Comprehension(e1, nv, Constant(true), Sng(nv)))((u, w, E, tag))
 
+    // case of a lookup as a generator
+    // translates to outerjoin, and drops label attributes
     case Comprehension(CLookup(lbl, e1), v1, filt, e2) => 
       assert(!E.isEmpty)
+
       val dict = unnest(e1)((u, w, E, tag))
       val nv = wvar(w)
       val nv1 = Variable.freshFromBag(dict.tp)
+
+      // capture join conditions and remove dropped attributes
       val (joinCond, fields) = lbl match {
         case Project(e3, p1) => 
           val rev = normalize.finalize(replace(e3, nv, useType = false)).asInstanceOf[CExpr]
@@ -86,62 +108,26 @@ object Unnester {
         case _ => 
           (Equals(lbl, Project(nv1, "_1")), (w.keySet ++ (v1.tp.attrs.keySet - "_1")))
       }
+
+      // generate the outer join and make recursive call
       val rfs = collect(joinCond)
       val fdict = Select(dict, nv1, filt)
       val nE = OuterJoin(E.get, nv, fdict, nv1, joinCond, fields.toList)
       unnest(e2)((u.filter(x => !rfs(x._1)), flat(w.filter(x => !rfs(x._1)), nv1.tp), Some(nE), tag))
 
+    // Deprecated: primitive monoid case, this was only relevant when we were using count 
+    // and weighted singleton - all functionality is replaced by SumBy
     case Comprehension(e1:Comprehension, v, p, Constant(c)) => unnest(e1)((u, w, E, tag)) match {
       case Nest(e2, v2, keys2, values2, filt, nulls, ntag) => 
         Nest(e2, v2, keys2, Constant(c), values2, nulls, ntag)
       case _ => ???
     }
 
-    case Comprehension(e1:CReduceBy, v, cond, e2) if !w.isEmpty => 
-      val nE = unnest(e1)((w, w, E, tag)) match {
-        case Nest(e2:Reduce, _, _, _, _, _, _) => RemoveNulls(e2)
-        case r:Reduce =>  RemoveNulls(r)
-        case _ => ???
-      }
-      val nw = flat(w, nE.tp.asInstanceOf[BagCType].tp)
-      unnest(e2)((u, nw, Some(nE), tag))
-
-    case Comprehension(e1:CDeDup, v, cond, e2) if !w.isEmpty =>
-      val nE = RemoveNulls(unnest(e1)((w, w, E, tag)))
-      val nw = flat(w, nE.tp.asInstanceOf[BagCType].tp)
-      unnest(e2)((u, nw, Some(nE), tag))
-
-    case Comprehension(e1, v, cond, e2) if !w.isEmpty =>
-      assert(!E.isEmpty)
-      val name = getName(e1)
-      val right = AddIndex(unnest(e1)((u, w, E, tag)), name+"_index")
-      val nv = Variable(v.name, right.tp.tp)
-
-	    val (nw, nE) = 
-        if (u.isEmpty) (flat(w, nv.tp), Join(E.get, wvar(w), Select(right, nv, Constant(true)), nv, cond, Nil))
-        else (flat(w, nv.tp.outer), OuterJoin(E.get, wvar(w), Select(right, nv, Constant(true)), nv, cond, Nil))
-      unnest(e2)((u, nw, Some(nE), tag))
-
-    case s @ If(cnd, Sng(t @ Record(fs)), nextIf) =>
-      handleLevel(fs, x => If(cnd, Sng(x), nextIf))((u, w, E, tag))
-
-    case s @ Sng(t @ Record(fs)) if !w.isEmpty =>
-      handleLevel(fs, identity)((u, w, E, tag))
-
-    case Sng(v @ Variable(_, tp)) if !w.isEmpty => 
-      val fs = tp.attrs.map(k => k._1 -> Project(v, k._1))
-      handleLevel(fs, identity)((u, w, E, tag))
-
-    case CDeDup(e1) => unnest(e1)((u, w, E, tag)) match {
-      case Nest(e2, v2, keys, values, filter, nulls, ctag) =>
-        val indices = u.keySet.filter(x => x.contains("_index"))
-        val keys2 = (indices ++ keys).toList
-        CDeDup(Projection(e2, v2, replace(extendIf(keys2, values, v2), v2), Nil))
-      case s =>  CDeDup(s)
-    }
-
-    // note to self you need to update varset here..
+    // all sumBy handling
+    // you first unnest the input (e1), then match the response - 
     case CReduceBy(e1, v1, keys, values) => unnest(e1)((u, w, E, tag)) match {
+      // if Gamma is returned then this means that this SumBy was 
+      // generated by some parent context: {(sumBy(e1) | r }
       case Nest(e2, v2, keys2, values2, filter, nulls, ctag) =>
         // adjust input for reduce operation
         val pattern = replace(extendIf(keys2, values2, v2), v2)
@@ -152,7 +138,9 @@ object Unnester {
         val nv2 = wvar(v2.tp.attrs ++ crd.tp.attrs)
         val nr = Record((keys ++ values).map(k => k -> Project(nv2, k)).toMap)
         Nest(crd, nv2, keys2, nr, filter, nulls, ctag)
-
+      
+      // else the sumby was applied at the top-level 
+      // of a comprehension: sumBy({ e | r })
       case e2 => E match {
         case Some(e3) => 
           val nkeys = (w.keySet ++ keys.toSet).toList
@@ -161,12 +149,69 @@ object Unnester {
       }
     }
 
+    // sumBy generator 
+    // handles the same as the above case
+    case Comprehension(e1:CReduceBy, v, cond, e2) if !w.isEmpty => 
+      val nE = unnest(e1)((w, w, E, tag)) match {
+        case Nest(e2:Reduce, _, _, _, _, _, _) => RemoveNulls(e2)
+        case r:Reduce =>  RemoveNulls(r)
+        case _ => ???
+      }
+      val nw = flat(w, nE.tp.asInstanceOf[BagCType].tp)
+      unnest(e2)((u, nw, Some(nE), tag))
+
+    // same as the sumBy handling, except catching dedup
+    case CDeDup(e1) => unnest(e1)((u, w, E, tag)) match {
+      // if it came from above then 
+      case Nest(e2, v2, keys, values, filter, nulls, ctag) =>
+        val indices = u.keySet.filter(x => x.contains("_index"))
+        val keys2 = (indices ++ keys).toList
+        CDeDup(Projection(e2, v2, replace(extendIf(keys2, values, v2), v2), Nil))
+      case s =>  CDeDup(s)
+    }
+
+    // Dedup generator
+    // handles the same as the above case
+    case Comprehension(e1:CDeDup, v, cond, e2) if !w.isEmpty =>
+      val nE = RemoveNulls(unnest(e1)((w, w, E, tag)))
+      val nw = flat(w, nE.tp.asInstanceOf[BagCType].tp)
+      unnest(e2)((u, nw, Some(nE), tag))
+
+    // Rule C6/C9: all other generator types translate to joins
+    // inner or outer depending on if u is empty
+    case Comprehension(e1, v, cond, e2) if !w.isEmpty =>
+      assert(!E.isEmpty)
+      val name = getName(e1)
+      val right = AddIndex(unnest(e1)((u, w, E, tag)), name+"_index")
+      val nv = Variable(v.name, right.tp.tp)
+
+      // if u is empty generate inner join, if not then outer
+	    val (nw, nE) = 
+        if (u.isEmpty) (flat(w, nv.tp), Join(E.get, wvar(w), Select(right, nv, Constant(true)), nv, cond, Nil))
+        else (flat(w, nv.tp.outer), OuterJoin(E.get, wvar(w), Select(right, nv, Constant(true)), nv, cond, Nil))
+      unnest(e2)((u, nw, Some(nE), tag))
+
+    // translate a groupBy directly into a Gamma
     case CGroupBy(e1, v1, keys, values, gname) => 
       val nE = unnest(e1)((u, w, E, gname)) 
       val nv = wvar(w)
       val tup = Record(values.map(v => v -> Project(nv, v)).toMap)
       Nest(nE, nv, keys, tup, Constant(true), (w.keySet -- u.keySet).toList, gname)
 
+    // the next three cases are going into a new 
+    // level - this will trigger rule C12
+    // see handleLevel function below
+    case s @ If(cnd, Sng(t @ Record(fs)), nextIf) =>
+      handleLevel(fs, x => If(cnd, Sng(x), nextIf))((u, w, E, tag))
+
+    case s @ Sng(t @ Record(fs)) if !w.isEmpty =>
+      handleLevel(fs, identity)((u, w, E, tag))
+
+    case Sng(v @ Variable(_, tp)) if !w.isEmpty => 
+      val fs = tp.attrs.map(k => k._1 -> Project(v, k._1))
+      handleLevel(fs, identity)((u, w, E, tag))
+
+    // all these cases just pass through
     case Bind(x, e1, e2) => 
       Bind(x, unnest(e1)((u, w, E, tag)), unnest(e2)((u, w, E, tag)))
     case FlatDict(e1) => FlatDict(unnest(e1)((u, w, E, tag)))
@@ -178,6 +223,7 @@ object Unnester {
 
   }
 
+  // organization of key and value attributes when there is a primitive if condition
   private def extendIf(ls: List[String], e: CExpr, v: Variable): CExpr = e match {
     case If(cond, Sng(Record(fs)), nextIf) => 
       val extendedAttrs = ls.map(l => l -> Project(v, l)).toMap
@@ -189,16 +235,24 @@ object Unnester {
     case _ => e
   }
 
+  // the function that controls the actual unnesting, rule c12
+  // when there is a comprehension in the head, this will capture 
+  // it and apply the proper unnesting rule
   private def handleLevel(fs: Map[String, CExpr], exp: CExpr => CExpr)(implicit ctx: Ctx): CExpr = {
+    // if there is a nested comprehension in the head then
    fs.find(c => isNestedComp(c._2)) match {
+    // unnest it and then bind the value to variable v in the body
     case Some((key, value)) =>
       val nE = unnest(value)((w, w, E, key))
       val nv = Variable.freshFromBag(nE.tp)
       val nr = Record(fs.map(f => f._1 -> replace(f._2, nv)) + (key -> Project(nv, key)))
       val nw = w + (key -> nv.tp)
       unnest(exp(Sng(nr)))((u, nw, Some(nE), tag))
+    // when u is empty this is just a projection C5
     case y if u.isEmpty => 
       Projection(E.get, wvar(w), exp(Record(fs)), w.keySet.toList)
+    // when u is not empty and there are no other comprehensions in the 
+    // head then rule C8
     case _ => 
       val nv = wvar(w)
       val tup = exp(Record(fs))
