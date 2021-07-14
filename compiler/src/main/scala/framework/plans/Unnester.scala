@@ -223,6 +223,7 @@ object Unnester {
 
   }
 
+  // organization of key and value attributes when there is a primitive if condition
   private def extendIf(ls: List[String], e: CExpr, v: Variable): CExpr = e match {
     case If(cond, Sng(Record(fs)), nextIf) => 
       val extendedAttrs = ls.map(l => l -> Project(v, l)).toMap
