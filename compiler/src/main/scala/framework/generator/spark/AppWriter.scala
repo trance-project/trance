@@ -7,7 +7,6 @@ import framework.examples.tpch._
 import framework.examples.{Query, Environment}
 import framework.loader.csv._
 import scala.sys.process._
-import framework.generator.spark.SparkDatasetGenerator
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -105,7 +104,7 @@ object AppWriter {
 //      val udfNames: Seq[String] = (codegen.udfsUsed)
 //      val udfFiles = getListOfFiles(new File("/trance/compiler/udfs"), udfNames)
 //      val udfContents = udfFiles.
-      for (u in codegen.udfsUsed){
+      for (u <- codegen.udfsUsed) {
         val bufferedSource = scala.io.Source.fromFile(u)
         val text = bufferedSource.getLines().mkString
         bufferedSource.close()
