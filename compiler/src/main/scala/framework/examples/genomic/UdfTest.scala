@@ -179,6 +179,9 @@ object ExampleQuery extends DriverGene {
                      )}
     """
 
+// Use the new
+
+
 
   }
   // finally define the parser, note that it takes the input types
@@ -286,9 +289,8 @@ object SimpleUDFExample extends DriverGene {
   // translate it to something like "JustTesting"
   val query = ForeachUnion(br, samples,
     Singleton(Tuple(
-      //"sample" -> PrimitiveUdf("myudf", br("bcr_patient_uuid"), StringType),
-      "sample" -> NumericUdf("udf_numeric", br("bcr_patient_uuid"), LongType),
-      //"sample" -> TupleUdf("udf_tuple", br("bcr_patient_uuid"),StringType),
+      "sample" -> PrimitiveUdf("myudf", br("bcr_patient_uuid"), StringType),
+      //"sample" -> NumericUdf("udf_numeric", br("bcr_patient_uuid"), LongType),
       "aliquot" -> br("bcr_aliquot_uuid"))))
 
   val program = Program(Assignment(name, query))
