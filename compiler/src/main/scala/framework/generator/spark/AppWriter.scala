@@ -7,7 +7,7 @@ import framework.examples.tpch._
 import framework.examples.{Query, Environment}
 import framework.loader.csv._
 import scala.sys.process._
-import framework.generator.spark._
+import framework.generator.spark.SparkDatasetGenerator
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -97,15 +97,18 @@ object AppWriter {
       // *.udf files in the compiler/udfs folder and then write their 
       // contents to a paragraph using the writeParagraph call on the next line:
       println(s"Writing out to $qname notebook with id: $noteid")
-      def getListOfFiles(dir: File, extensions: Seq[String]): Seq[File] = {
-        dir.listFiles.filter(_.isFile).toList.filter { file =>
-          extensions.exists(file.getName.endsWith(_))
-        }
-      }
-      val udfNames: Seq[String] = (codegen.udfsUsed)
-      val udfFiles = getListOfFiles(new File("/trance/compiler/udfs"), udfNames)
-      //val udfContents = udfFiles.
-
+//      def getListOfFiles(dir: File, extensions: Seq[String]): Seq[File] = {
+//        dir.listFiles.filter(_.isFile).toList.filter { file =>
+//          extensions.exists(file.getName.endsWith(_))
+//        }
+//      }
+//      val udfNames: Seq[String] = (codegen.udfsUsed)
+//      val udfFiles = getListOfFiles(new File("/trance/compiler/udfs"), udfNames)
+//      val udfContents = udfFiles.
+      for u in (codegen.udfsUsed):
+        val bufferedSource = scala.io.Source.fromFile(u)
+        val text = bufferedSource.getLines().mkString
+        bufferedSource.close()
 
       val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
       val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
