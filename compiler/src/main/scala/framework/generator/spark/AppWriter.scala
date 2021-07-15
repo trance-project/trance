@@ -102,7 +102,7 @@ object AppWriter {
           extensions.exists(file.getName.endsWith(_))
         }
       }
-      val udfNames = (codegen.udfsUsed).foreach((element:String) => println(element))
+      val udfNames: List[String] = (codegen.udfsUsed).foreach((element:String) => println(element))
       val udfFiles = getListOfFiles(new File("/trance/compiler/udfs"), udfNames)
       //val udfFiles: Array[File] = (new File("/trance/compiler/udfs")).listFiles.filter(_.)
 
