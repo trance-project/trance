@@ -97,9 +97,14 @@ object AppWriter {
       // *.udf files in the compiler/udfs folder and then write their 
       // contents to a paragraph using the writeParagraph call on the next line:
       println(s"Writing out to $qname notebook with id: $noteid")
-
+      def getListOfFiles(dir: File, extensions: List[String]): List[File] = {
+        dir.listFiles.filter(_.isFile).toList.filter { file =>
+          extensions.exists(file.getName.endsWith(_))
+        }
+      }
       val udfNames = (codegen.udfsUsed).foreach((element:String) => println(element))
-      val udfFiles: Array[File] = (new File("/trance/compiler/udfs")).listFiles.filter(udfNames)
+      val udfFiles = getListOfFiles(new File("/trance/compiler/udfs"), udfNames)
+      //val udfFiles: Array[File] = (new File("/trance/compiler/udfs")).listFiles.filter(_.)
 
 
       val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
