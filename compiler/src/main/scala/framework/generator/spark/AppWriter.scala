@@ -1,9 +1,15 @@
 package framework.generator.spark
 
 import java.io._
+import framework.common._
+import framework.plans._
+import framework.examples.tpch._
+import framework.examples.{Query, Environment}
+import framework.loader.csv._
 import scala.sys.process._
+//import compiler.udfs._
+
 import scala.collection.mutable.ArrayBuffer
-import scala.reflect.internal.util.FileUtils
 
 /** 
   * Utility functions for generating Spark applications 
@@ -92,13 +98,11 @@ object AppWriter {
       // contents to a paragraph using the writeParagraph call on the next line:
       println(s"Writing out to $qname notebook with id: $noteid")
 
-      //val udfNames = (codegen.udfsUsed).foreach((element:String) => println(element))
-      //val udfFiles: Array[File] = (new File("/trance/compiler/udfs")).listFiles.filter(udfNames.isFile)
-      //val udfContents = FileUtils.readFileToString(udfFiles)
+      val udfNames = (codegen.udfsUsed).foreach((element:String) => println(element))
+      val filesUdf: Array[File] = (new File("/trance/compiler/udfs")).listFiles.filter(udfNames.isFile)
+      val contentsUdf = filesUdf.applyReader
 
       val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
-
-      //val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
       val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
       val pid = zep.writeParagraph(noteid, para)
       zep.restartInterpreter()
