@@ -7,6 +7,7 @@ import framework.examples.tpch._
 import framework.examples.{Query, Environment}
 import framework.loader.csv._
 import scala.sys.process._
+import framework.generator.spark._
 //import compiler.udfs._
 
 import scala.collection.mutable.ArrayBuffer
@@ -102,8 +103,8 @@ object AppWriter {
           extensions.exists(file.getName.endsWith(_))
         }
       }
-      val udfNames: List[String] = (codegen.udfsUsed).foreach((element:String) => println(element))
-      val udfFiles = getListOfFiles(new File("/trance/compiler/udfs"), udfNames)
+      //val udfNames: List[String] = (codegen.udfsUsed).foreach((element:String) => println(element))
+      val udfFiles = getListOfFiles(new File("/trance/compiler/udfs"), udfsUsed)
       //val udfFiles: Array[File] = (new File("/trance/compiler/udfs")).listFiles.filter(_.)
 
 
