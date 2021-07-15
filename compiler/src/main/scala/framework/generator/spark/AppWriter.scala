@@ -92,8 +92,8 @@ object AppWriter {
       // contents to a paragraph using the writeParagraph call on the next line:
       println(s"Writing out to $qname notebook with id: $noteid")
 
-      val udfNames = (codegen.udfsUsed).foreach((element:String) => println(element))
-      val udfFiles: Array[File] = (new File("/trance/compiler/udfs")).listFiles.filter(udfNames.isFile)
+      //val udfNames = (codegen.udfsUsed).foreach((element:String) => println(element))
+      //val udfFiles: Array[File] = (new File("/trance/compiler/udfs")).listFiles.filter(udfNames.isFile)
       //val udfContents = FileUtils.readFileToString(udfFiles)
 
       val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
