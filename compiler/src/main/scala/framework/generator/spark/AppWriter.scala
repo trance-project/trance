@@ -105,7 +105,7 @@ object AppWriter {
 //      val udfNames: Seq[String] = (codegen.udfsUsed)
 //      val udfFiles = getListOfFiles(new File("/trance/compiler/udfs"), udfNames)
 //      val udfContents = udfFiles.
-      for u in (codegen.udfsUsed):
+      for (u in codegen.udfsUsed):
         val bufferedSource = scala.io.Source.fromFile(u)
         val text = bufferedSource.getLines().mkString
         bufferedSource.close()
