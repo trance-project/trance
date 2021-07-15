@@ -2,7 +2,7 @@ package framework.plans
 
 import framework.common._
 
-/** Extensions for the plan language **/
+/** Extensions to the plan language **/
 trait Extensions {
 
   def containsCacheUnfriendly(plan: CExpr): Boolean = plan match {
@@ -20,6 +20,7 @@ trait Extensions {
 
     }
 
+	//Query: replaces all variables in expression e by v?? I see it is different from the implementation in the master branch within the base cases
   def replace(e: CExpr, v: Variable, useType: Boolean = false): CExpr = e match {
     case Record(ms) => Record(ms.map(r => r._1 -> replace(r._2, v, useType)))
     case Label(ms) => Label(ms.map(r => r._1 -> replace(r._2, v, useType)))
