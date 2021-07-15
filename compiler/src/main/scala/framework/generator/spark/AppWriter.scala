@@ -103,9 +103,14 @@ object AppWriter {
         bufferedSource.close()
       }
 
+      val udfcontents = writeParagraph(qname, text, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
+      val udfpara = new JsonWriter().buildParagraph("Generated paragraph $qname", udfcontents)
+      val udfpid = zep.writeParagraph(noteid, udfpara)
+
       val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
       val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
       val pid = zep.writeParagraph(noteid, para)
+
       zep.restartInterpreter()
       println(s"Writing case classes out to $fname")
       val finalc = "package sparkutils.generated\n"+header
