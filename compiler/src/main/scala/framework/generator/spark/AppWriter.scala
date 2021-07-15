@@ -98,10 +98,6 @@ object AppWriter {
       // contents to a paragraph using the writeParagraph call on the next line:
       println(s"Writing out to $qname notebook with id: $noteid")
 
-      val udfNames = (codegen.udfsUsed).foreach((element:String) => println(element))
-      val filesUdf: Array[File] = (new File("/trance/compiler/udfs")).listFiles.filter(udfNames.isFile)
-      val contentsUdf = filesUdf.applyReader
-
       val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
       val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
       val pid = zep.writeParagraph(noteid, para)
