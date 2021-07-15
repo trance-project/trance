@@ -98,7 +98,7 @@ object AppWriter {
       println(s"Writing out to $qname notebook with id: $noteid")
 
       for (u <- codegen.udfsUsed) {
-        val bufferedSource = scala.io.Source.fromFile(u)
+        val bufferedSource = scala.io.Source.fromFile(s"udfs/${u}.udf")
         val text = bufferedSource.getLines().mkString
         bufferedSource.close()
       }
