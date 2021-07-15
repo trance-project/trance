@@ -27,7 +27,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
   // create a mutable sequence where 
   // we will store the udfs
-  var udfsUsed = List[String]()
+  var udfsUsed = Seq[String]()
 
   /** Generates the code for the set of case class records associated to the 
     * records in the generated program.

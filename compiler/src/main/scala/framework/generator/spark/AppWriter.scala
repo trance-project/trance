@@ -8,7 +8,6 @@ import framework.examples.{Query, Environment}
 import framework.loader.csv._
 import scala.sys.process._
 import framework.generator.spark._
-//import compiler.udfs._
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -98,14 +97,14 @@ object AppWriter {
       // *.udf files in the compiler/udfs folder and then write their 
       // contents to a paragraph using the writeParagraph call on the next line:
       println(s"Writing out to $qname notebook with id: $noteid")
-      def getListOfFiles(dir: File, extensions: List[String]): List[File] = {
+      def getListOfFiles(dir: File, extensions: Seq[String]): Seq[File] = {
         dir.listFiles.filter(_.isFile).toList.filter { file =>
           extensions.exists(file.getName.endsWith(_))
         }
       }
-      val udfNames: List[String] = (codegen.udfsUsed)
+      val udfNames: Seq[String] = (codegen.udfsUsed)
       val udfFiles = getListOfFiles(new File("/trance/compiler/udfs"), udfNames)
-      //val udfFiles: Array[File] = (new File("/trance/compiler/udfs")).listFiles.filter(_.)
+      //val udfContents = udfFiles.
 
 
       val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
