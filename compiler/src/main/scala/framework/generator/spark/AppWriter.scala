@@ -100,11 +100,25 @@ object AppWriter {
       // collect the contents of the files
       var udftext : String = "Input is:"
 
+//      for (u <- codegen.udfsUsed) {
+//        val bufferedSource = scala.io.Source.fromFile(s"udfs/${u}.udf")
+//        udftext = udftext :+ bufferedSource.getLines().mkString
+//        bufferedSource.close()
+//      }
+
       for (u <- codegen.udfsUsed) {
-        val bufferedSource = scala.io.Source.fromFile(s"udfs/${u}.udf")
-        udftext = udftext :+ bufferedSource.getLines().mkString
-        bufferedSource.close()
+          val bufferedSource = scala.io.Source.fromFile(s"udfs/${u}.udf")
+          val stringAdd = bufferedSource.getLines().mkString
+          udftext = udftext.concat(stringAdd)
+          bufferedSource.close()
       }
+
+
+
+
+
+
+
       // define the udf paragraph output
       val udfcontents = writeParagraph(qname, udftext, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
       val udfpara = new JsonWriter().buildParagraph("Generated paragraph $qname", udfcontents)
