@@ -1,6 +1,4 @@
 package framework.generator.spark
-import org.apache.commons.io.FileUtils
-import sun.nio.cs.StandardCharsets
 
 import java.io._
 import scala.sys.process._
@@ -96,10 +94,11 @@ object AppWriter {
 
       val udfNames = (codegen.udfsUsed).foreach((element:String) => println(element))
       val udfFiles: Array[File] = (new File("/trance/compiler/udfs")).listFiles.filter(udfNames.isFile)
-      val udfContents = FileUtils.readFileToString(udfFiles)
-      val pcontents = writeParagraph(qname, udfContents, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
+      //val udfContents = FileUtils.readFileToString(udfFiles)
 
       val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
+
+      //val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
       val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
       val pid = zep.writeParagraph(noteid, para)
       zep.restartInterpreter()
