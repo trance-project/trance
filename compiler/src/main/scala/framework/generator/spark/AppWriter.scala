@@ -96,14 +96,7 @@ object AppWriter {
       // *.udf files in the compiler/udfs folder and then write their 
       // contents to a paragraph using the writeParagraph call on the next line:
       println(s"Writing out to $qname notebook with id: $noteid")
-//      def getListOfFiles(dir: File, extensions: Seq[String]): Seq[File] = {
-//        dir.listFiles.filter(_.isFile).toList.filter { file =>
-//          extensions.exists(file.getName.endsWith(_))
-//        }
-//      }
-//      val udfNames: Seq[String] = (codegen.udfsUsed)
-//      val udfFiles = getListOfFiles(new File("/trance/compiler/udfs"), udfNames)
-//      val udfContents = udfFiles.
+
       for (u <- codegen.udfsUsed) {
         val bufferedSource = scala.io.Source.fromFile(u)
         val text = bufferedSource.getLines().mkString
