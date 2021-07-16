@@ -228,6 +228,8 @@ object Unnester {
 
   // organization of key and value attributes when there is a primitive if condition
   // return a record type or a record type with an if condition when necessary
+	//in the intended application, e will be the head of a simple comprehension, ls a list of attributes
+	//the goal is just to append v.l for l in ls to the head
   private def extendIf(ls: List[String], e: CExpr, v: Variable): CExpr = e match {
     case If(cond, Sng(Record(fs)), nextIf) => 
       val extendedAttrs = ls.map(l => l -> Project(v, l)).toMap
