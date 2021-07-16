@@ -1124,6 +1124,12 @@ object LetTest8 extends DriverGene {
                   "gtfmap" -> BagType(gtfType), 
                   "pathways" -> pathway.tp)
 
+      val samps = 
+      s"""
+        dedup(for s in samples union 
+          {(bcr_patient_uuid_d := s.bcr_patient_uuid)})
+      """
+
     val fpath = 
       s"""
         for p in pathways union 
@@ -1135,11 +1141,13 @@ object LetTest8 extends DriverGene {
 
     val agg1 = 
      s"""
-      for s in samples union 
-        {( bcr_patient_uuid := s.bcr_patient_uuid, cnvs := 
-          (for c in copynumber union 
-            if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
-            then for g in PWays union 
+      for a in $samps union 
+        {( bcr_patient_uuid := a.bcr_patient_uuid_d, cnvs := 
+          (for s in samples union 
+            if (s.bcr_patient_uuid = a.bcr_patient_uuid_d)
+            then for c in copynumber union 
+              if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
+              then for g in PWays union 
                 if (c.cn_gene_id = g.pgid)
                 then {( path := g.pname, cnum := c.cn_copy_number + 0.001 )}).sumBy({path},{cnum})
         )}
@@ -1198,6 +1206,12 @@ object LetTest8Seq extends DriverGene {
                   "gtfmap" -> BagType(gtfType), 
                   "pathways" -> pathway.tp)
 
+    val samps = 
+      s"""
+        dedup(for s in samples union 
+          {(bcr_patient_uuid_d := s.bcr_patient_uuid)})
+      """
+
     val fpath = 
       s"""
         for p in pathways union 
@@ -1209,11 +1223,13 @@ object LetTest8Seq extends DriverGene {
 
     val agg1 = 
      s"""
-      for s in samples union 
-        {( bcr_patient_uuid := s.bcr_patient_uuid, cnvs := 
-          (for c in copynumber union 
-            if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
-            then for g in PWays union 
+      for a in DSamples union 
+        {( bcr_patient_uuid := a.bcr_patient_uuid_d, cnvs := 
+          (for s in samples union 
+            if (s.bcr_aliquot_uuid = a.bcr_patient_uuid_d)
+            then for c in copynumber union 
+              if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
+              then for g in PWays union 
                 if (c.cn_gene_id = g.pgid)
                 then {( path := g.pname, cnum := c.cn_copy_number + 0.001 )}).sumBy({path},{cnum})
         )}
@@ -1221,6 +1237,8 @@ object LetTest8Seq extends DriverGene {
 
     val query = 
       s"""
+        DSamples <= $samps;
+
         PWays <= $fpath; 
 
         Agg1 <= $agg1;

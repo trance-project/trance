@@ -60,9 +60,12 @@ object Unnester {
     // Base case for unnesting algorithm: Rule C4 
     case Comprehension(e1, v, p, e2) if u.isEmpty && w.isEmpty && E.isEmpty =>
       // do not index a domain
-      val ne1 = getName(e1) match {
-        case en if en.contains("Dom") => e1
-        case en => AddIndex(e1, en+"_index")
+      println("in here with ")
+      println(Printer.quote(e1))
+      val nE = unnest(e1)((u, w, E, tag))
+      val ne1 = getName(nE) match {
+        case en if en.contains("Dom") => nE
+        case en => AddIndex(nE, en+"_index")
       }
       val nv = Variable(v.name, ne1.tp.asInstanceOf[BagCType].tp)
       unnest(e2)((u, nv.tp.attrs, Some(Select(ne1, nv, replace(p, nv))), tag))

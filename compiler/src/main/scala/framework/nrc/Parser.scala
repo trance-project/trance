@@ -143,7 +143,7 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
 
   def tupleexpr: Parser[TupleExpr] = tuple | tupvarref
   def bagexpr: Parser[BagExpr] = 
-    groupby | sumby | forunion | ifthen.asInstanceOf[Parser[BagExpr]] | singleton | project.asInstanceOf[Parser[BagExpr]] | bagvarref
+    dedup | groupby | sumby | forunion | ifthen.asInstanceOf[Parser[BagExpr]] | singleton | project.asInstanceOf[Parser[BagExpr]] | bagvarref
 
   //def numconst: Parser[NumericConst] = 
   //def primconst: Parser[PrimitiveConst] = 
