@@ -224,11 +224,10 @@ object Unnester {
   }
 
   // organization of key and value attributes when there is a primitive if condition
-	//QUERY: ???
+  // return a record type or a record type with an if condition when necessary
   private def extendIf(ls: List[String], e: CExpr, v: Variable): CExpr = e match {
     case If(cond, Sng(Record(fs)), nextIf) => 
       val extendedAttrs = ls.map(l => l -> Project(v, l)).toMap
-	  // QUERY: IS LINE ABOVE CUT AND PASTE ERROR?
       val next = nextIf match { case Some(ni) => Some(extendIf(ls, ni, v)); case _ => None}
       If(cond, Sng(extendIf(ls, Record(fs), v)), next)
     case Record(ms) => 
