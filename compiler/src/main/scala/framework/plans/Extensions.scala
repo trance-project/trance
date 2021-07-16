@@ -20,7 +20,10 @@ trait Extensions {
 
     }
 
-	//Query: replaces all variables in expression e by v?? I see it is different from the implementation in the master branch within the base cases
+  // Given an expression e replaces all variable occurrences in e with v. 
+  // example: (a := x1.a, b := x2.b) => (a := v.a, b := v.b)
+  // 
+  // optional type check (useType)
   def replace(e: CExpr, v: Variable, useType: Boolean = false): CExpr = e match {
     case Record(ms) => Record(ms.map(r => r._1 -> replace(r._2, v, useType)))
     case Label(ms) => Label(ms.map(r => r._1 -> replace(r._2, v, useType)))
