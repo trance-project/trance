@@ -44,19 +44,23 @@ object App {
   val schema = TPCHSchema.getSchema()
  
   def main(args: Array[String]){
-    // runFlatToNested()
+    runFlatToNested()
     // runNestedToNested()
     // runNestedToFlat()
-    runSkewHandling()
+    // runSkewHandling()
   }
 
   def runFlatToNested(){
     
     // standard pipeline - all optimizations
-    AppWriter.runDataset(Test2Flat, "Flat,2", schema = schema)
+    // AppWriter.runDataset(Test2Flat, "Flat,2", schema = schema)
     
-    // shredded pipeline + unshredding
-    AppWriter.runDatasetShred(Test2, "Shred,2", unshred=true, schema = schema)
+    // // shredded pipeline + unshredding
+    // AppWriter.runDatasetShred(Test2, "Shred,2", unshred=true, schema = schema)
+    // AppWriter.runDatasetShred(Test1, "Shred,1", unshred=true, schema = schema) //narrow schema, unshredding pipeline, level 1
+    AppWriter.runDatasetShred(Test1Full, "Shred,1", unshred=true, schema = schema) //wide schema, unshredding pipeline, level 1
+    AppWriter.runDatasetShred(Test2Full, "Shred,2", unshred=true, schema = schema) //wide schema, unshredding pipeline , level 2
+    AppWriter.runDatasetShred(Test3Full, "Shred,3", unshred=true, schema = schema) //wide schema, unshredding pipeline, level 3
 
   }
  
