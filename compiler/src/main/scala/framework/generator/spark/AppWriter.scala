@@ -109,7 +109,7 @@ object AppWriter {
 
 
       // define the udf paragraph output
-      val udfcontents = writeParagraph(qname, udftext, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
+      val udfcontents = writeParagraph(qname, udftext, "", "", label, encoders)
       val udfpara = new JsonWriter().buildParagraph("Generated paragraph $qname", udfcontents)
       val udfpid = zep.writeParagraph(noteid, udfpara)
 
