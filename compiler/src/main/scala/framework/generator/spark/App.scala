@@ -152,10 +152,11 @@ object App {
   val schema = TPCHSchema.getSchema()
 
   def main(args: Array[String]){
-    // runFlatToNested()
+    AppWriter.runDatasetShred(SimpleTest2, "Shred,2", unshred = false, schema = schema)
+    runFlatToNested()
     // runNestedToNested()
     // runNestedToFlat()
-    runSkewHandling()
+    // runSkewHandling()
   }
 
   def runFlatToNested(){

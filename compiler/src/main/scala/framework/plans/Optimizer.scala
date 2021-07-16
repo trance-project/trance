@@ -19,6 +19,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     val o1 = pushUnnest(e)
     val o2 = pushCondition(o1)
     val o3 = removeUnnecProj(push(o2))
+    println("we have pushed and removed")
     o3
   }
 
@@ -27,6 +28,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     val o1 = pushUnnest(e)
   	val o2 = pushCondition(o1)
   	val o3 = removeUnnecProj(push(o2))
+    println("we have pushed and removed")
     val o4 = pushAgg(o3)
     o4
   }
@@ -99,6 +101,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       // push projections before performing nest
       val nrecFields = nkey.map(k => k -> Project(nv, k)).toMap ++ collect(replace(value, nv)).map(v1 => v1 -> Project(nv, v1))
       val nrec = Record(nrecFields)
+      // this creates a nasty double projection issue
       val npin = Projection(pin, nv, nrec, nrecFields.keySet.toList)
       val nv2 = Variable.freshFromBag(npin.tp)
 
@@ -189,8 +192,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val attrs = (r.keys ++ r.values).toSet
       val outs = p.fields.keySet
       if (attrs == outs) r else e
-    case Projection(r:Projection, v, p, f) => 
-      Projection(r.in, v, p, f)
+    case Projection(in, _, r @ Record(fs), _) if fs.keySet == collect(r) => in
   })
 
   /** Returns true if an expression is a base expression 
