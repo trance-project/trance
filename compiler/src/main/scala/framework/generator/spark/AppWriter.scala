@@ -100,23 +100,12 @@ object AppWriter {
       // collect the contents of the files
       var udftext : String = ""
 
-//      for (u <- codegen.udfsUsed) {
-//        val bufferedSource = scala.io.Source.fromFile(s"udfs/${u}.udf")
-//        udftext = udftext :+ bufferedSource.getLines().mkString
-//        bufferedSource.close()
-//      }
-
       for (u <- codegen.udfsUsed) {
           val bufferedSource = scala.io.Source.fromFile(s"udfs/${u}.udf")
           val stringAdd = bufferedSource.getLines().mkString
           udftext = udftext.concat(stringAdd)
           bufferedSource.close()
       }
-
-
-
-
-
 
 
       // define the udf paragraph output
