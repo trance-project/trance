@@ -150,12 +150,16 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
         case (p:Projection, id) => 
           val childCover = rewritePlanOverCover((p.in, id), covers)
           val v = Variable.freshFromBag(childCover.tp)
-          Projection(childCover, v, replace(p.filter, v), p.fields)
+          Projection(childCover, v, replace(p.pattern, v), p.fields)
 
         case (s:Select, id) => 
           val childCover = rewritePlanOverCover((s.in, id), covers)
           val v = Variable.freshFromBag(childCover.tp)
           Select(childCover, v, replace(s.p, v))
+
+        case (d:CDeDup, id) => 
+          val childCover = rewritePlanOverCover((d.in, id), covers)
+          CDeDup(childCover)
 
         case (i:AddIndex, id) => 
           // is subexpression a cover?
@@ -223,10 +227,10 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
 
         // handle outer to inner join
         val fields = (p1.in, p2.in) match {
-          case (_:Join, _:OuterJoin) => p1.filter.tp.attrs.keySet.toList :+ "remove_nulls"
-          case _ => p1.filter.tp.attrs.keySet.toList
+          case (_:Join, _:OuterJoin) => p1.pattern.tp.attrs.keySet.toList :+ "remove_nulls"
+          case _ => p1.pattern.tp.attrs.keySet.toList
         }
-        Projection(cover, v, p1.filter, fields)
+        Projection(cover, v, p1.pattern, fields)
 
       // reapply the filter
       case (s:Select, _) => 
@@ -237,6 +241,8 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
 
       // input refs just are replaced with the cover
       case (i:InputRef, _) => cover
+
+      case (d:CDeDup, _) => CDeDup(cover)
 
       // all other cases don't rewrite
       case _ => plan

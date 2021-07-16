@@ -65,7 +65,7 @@ object Sharing extends App {
     // This is the total size: 418119.25389783055
     // val dlbctest = 200000
     // in kilobytes
-    val dlbcSizes = Map[String, Double]("clinical" -> 11.4, 
+    val dataSizes = Map[String, Double]("clinical" -> 11.4, 
       "copynumber" -> 390100.0, 
       // "occurrences" -> 51000, 
       "odict1" -> 3000.0,
@@ -73,9 +73,21 @@ object Sharing extends App {
       "odict3" -> 11400.0, 
       "samples" -> 166800.0)
 
+    /**
+    val dataSizes = Map[String, Double](
+      "clinical" -> 1407.9, 
+      "copynumber" -> 61300000, 
+      // "occurrences" -> 51000, 
+      // "odict1" -> 3000.0,
+      // "odict2" -> 93600.0, 
+      // "odict3" -> 11400.0, 
+      "samples" -> 34288.44)
+    **/
+
     // allocate half the space to the cache
-    val dlbctest = (dlbcSizes.foldLeft(0.0)(_+_._2)  * .5).asInstanceOf[Int]
-    println("this is the cache size: "+dlbctest)
+    // val cachesize = (dataSizes.foldLeft(0.0)(_+_._2)  * .5).asInstanceOf[Int]
+    val cachesize = 20
+    println("this is the cache size: "+cachesize)
     // val dlbctest = 4000
     val brcatest = 8000000
 
@@ -85,8 +97,9 @@ object Sharing extends App {
     val ptype = "dynamic"
     // val ptype = "greedy"
     // val ptype = "qlearn"
-    val sgenv = new GenomicEnv(dlbctest, shred = true, flex = flex, ptype = ptype)
+    val sgenv = new GenomicEnv(cachesize, shred = true, flex = flex, ptype = ptype)
     AppWriter.runWithCache(sgenv, "CacheTest,shredded,covers")
+    AppWriter.runWithCache(sgenv, "CacheTest,shredded,covers", cache = true)
     // AppWriter.runDatasetShred(SW6, "TestCompile,shredded", optLevel = 1)
 
 

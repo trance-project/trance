@@ -51,15 +51,15 @@ object SW0 extends SharedQuery {
 
 	val name = "SW0"
 
-  	val parser = Parser(tbls)
+  val parser = Parser(tbls)
 
-	val query = 
+	val query = (n: String) =>
 		s"""
-			TumorSites <= dedup(for c in clinical union 
+			TumorSites${n} <= dedup(for c in clinical union 
 				{(tsite := c.tumor_tissue_site)});
 
-			SW0 <=
-				for t in TumorSites union 
+			$n <=
+				for t in TumorSites${n} union 
 					{(tsite := t.tsite, sids :=
 						for c in clinical union
 							if (t.tsite = c.tumor_tissue_site) then
@@ -71,19 +71,26 @@ object SW0 extends SharedQuery {
 									    tissue := c.tumor_tissue_site )} )}
 		"""
 
-    val program = parser.parse(query).get.asInstanceOf[Program]
+    val program = parser.parse(query(name)).get.asInstanceOf[Program]
 
+}
+
+object SW0a extends SharedQuery {
+	val name = "SW0a"
+	val parser = Parser(tbls)
+	val query = SW0.query(name)
+	val program = parser.parse(query).get.asInstanceOf[Program]
 }
 
 object SW1 extends SharedQuery {
 
 	val name = "SW1"
 
-  	val parser = Parser(tbls)
+  val parser = Parser(tbls)
 
-	val query = 
+	val query = (n: String) =>
 		s"""
-			SW1 <=
+			$n <=
 				for s in samples union 
 					for c in clinical union 
 						if (s.bcr_patient_uuid = c.sample)
@@ -93,8 +100,15 @@ object SW1 extends SharedQuery {
 							    tissue := c.tumor_tissue_site )}
 		"""
 
-    val program = parser.parse(query).get.asInstanceOf[Program]
+    val program = parser.parse(query(name)).get.asInstanceOf[Program]
 
+}
+
+object SW1a extends SharedQuery {
+	val name = "SW1a"
+	val parser = Parser(tbls)
+	val query = SW1.query(name)
+	val program = parser.parse(query).get.asInstanceOf[Program]
 }
 
 object SW2 extends SharedQuery {

@@ -37,17 +37,6 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     * @todo capture attributes from filter
     */
   def push(e: CExpr, fs: Set[String] = Set()): CExpr = e match {
-    
-    // need to adjust this based on renaming
-    // case Projection(p:Projection, v2, f2, fs2) =>
-    //   Projection(p.in, v2, f2, fs2)
-
-    // add index and input ref as well??
-    // case Projection(s:Select, v2, f2, fs2) => 
-    //   println("this is the projection")
-    //   println(Printer.quote(e))
-    //   val nfs = fs ++ collect(f2)
-    //   Projection(s.in, v2, f2, fs2.filter(f => nfs(f)))
 
     case Projection(in, v, filter, fields) => 
       val tfields = fs ++ collect(filter)
@@ -66,7 +55,6 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
         case _ => Projection(Select(pin, nv, p), nv, nrec, ptp.keySet.toList)
       }
       
-
     case Unnest(in, v, path, v2, filter, fields) =>
       val pin = push(in, fields.toSet ++ fs + path)
       val nv = Variable.fromBag(v.name, pin.tp)
@@ -158,8 +146,12 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     case CGet(e1) => CGet(push(e1, fs))
 
     case AddIndex(e1, name) => 
-      val ks = e.tp.attrs.keySet & fs.filter(k => k.contains("index"))
-      if (ks.nonEmpty) AddIndex(push(e1, fs), name)
+      // val ks = e.tp.attrs.keySet & fs.filter(k => k.contains("index"))
+      // println("in here with")
+      // println(ks)
+      // if (ks.nonEmpty) AddIndex(push(e1, fs), name)
+      // else push(e1, fs)
+      if (fs(name)) AddIndex(push(e1, fs), name)
       else push(e1, fs)
 
     case FlatDict(e1) => FlatDict(push(e1, fs))
@@ -177,15 +169,16 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
         Projection(i, v, nrec, nrec.fields.keySet.toList)
       } else i
 
-    case CDeDup(Projection(in, v, f1:Record, f2)) => 
+    case RemoveNulls(CDeDup(Projection(in, v, f1:Record, f2))) => 
       val ids = v.tp.attrs.keySet.filter(f => f.contains("_index"))
       val atts = fs ++ collect(f1) ++ ids
       val nrec = if (fs.nonEmpty) Record(f1.fields.filter(f => atts.contains(f._1))) else f1
       val pin = push(in, atts)
       val nv = Variable.fromBag(v.name, pin.tp)
-      CDeDup(Projection(pin, nv, nrec, fs.toList))
+      RemoveNulls(CDeDup(Projection(pin, nv, nrec, fs.toList)))
 
     case CDeDup(e1) => CDeDup(push(e1, fs))
+
     case RemoveNulls(in) => RemoveNulls(push(in, fs))
 
     case _ => e
@@ -195,8 +188,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     case Projection(r:Reduce, v, p:Record, f) => 
       val attrs = (r.keys ++ r.values).toSet
       val outs = p.fields.keySet
-      if (attrs == outs) r
-      else e
+      if (attrs == outs) r else e
     case Projection(r:Projection, v, p, f) => 
       Projection(r.in, v, p, f)
   })

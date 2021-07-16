@@ -7,16 +7,10 @@ import framework.loader.csv._
 
 
 class GenomicEnv(val capacity: Int, val shred: Boolean = false, val flex: Int = 0, 
-	ptype: String = "greedy", repeat: Int = 1,
+	val ptype: String = "greedy", repeat: Int = 1,
 	val zhost: String = "localhost", val zport: Int = 8085) extends Environment {
 	
 	val name = "GenomicEnv"
-
-	// val shred: Boolean = init_shred
-
-	// val capacity: Int = init_capacity
-
-	// val flex: Int = init_flex
 
 	val plannerType: String = ptype
 
@@ -75,7 +69,7 @@ class GenomicEnv(val capacity: Int, val shred: Boolean = false, val flex: Int = 
 	// these are the queries that were used for the microexperiment
 	// val queries: Vector[Query] = Vector(TestBaseQuery, TestBaseQuery2)
 
-	val queries: Vector[Query] = Vector(SW0, SW1, SW0, SW1) //, SW2, SW3, SW4, SW5, SW6) //, SW7)
+	val queries: Vector[Query] = Vector(SW0, SW1, SW0a, SW1a) //, SW2, SW3, SW4, SW5, SW6) //, SW7)
 
 	val plans: Vector[(CExpr, Int)] = queries.map(q => 
 		q.optimized(shred, optLevel, schema).asInstanceOf[CExpr]).zipWithIndex
@@ -86,16 +80,10 @@ class GenomicEnv(val capacity: Int, val shred: Boolean = false, val flex: Int = 
 }
 
 class LetTestEnv(val capacity: Int, val shred: Boolean = false, 
-	val flex: Int = 0, ptype: String = "greedy", repeat: Int = 1, 
+	val flex: Int = 0, val ptype: String = "greedy", repeat: Int = 1, 
 	val zhost: String = "localhost", val zport: Int = 8085) extends Environment {
 	
 	val name = "LetTestEnv"
-
-	// val shred: Boolean = init_shred
-
-	// val capacity: Int = init_capacity
-
-	// val flex: Int = init_flex
 
 	val plannerType: String = ptype
 

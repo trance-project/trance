@@ -116,15 +116,18 @@ object CEBuilder extends Extensions {
       val v = Variable.freshFromBag(child.tp)
 
       // not sure if this will work for everything...
-      def updateVmap(r: Record): IMap[String, CExpr] = {
+      def updateVmap(r: Record, fromLabel: Boolean = false): IMap[String, CExpr] = {
         r.fields.map{
-          case (field1, Project(v, field2)) => (vmap.get(field1), vmap.get(field2)) match {
-              case (Some(n1), Some(n2)) => (n2, Project(v, n2))
-              case (Some(n1), None) => (n1, Project(v, n1))
-              case _ => vmap(field1) = field2; (field2, Project(v, field2))
+          case (field1, Project(v, field2)) => 
+            (vmap.get(field1), vmap.get(field2)) match {
+              case (Some(n1), Some(n2)) => (if (fromLabel) field1 else n2, Project(v, n2))
+              case (Some(n1), None) => (if (fromLabel) field1 else n1, Project(v, n1))
+              case _ => vmap(field1) = field2; (if (fromLabel) field1 else field2, Project(v, field2))
             }
           // keep complex expressions, assuming they reduce the 
           // overall amount of projections
+          case (field1, Label(fs)) => 
+            (field1, Label(updateVmap(Record(fs), fromLabel = true))) 
           case (field1, field2) => 
             vmap(field1) = field1
             (field1, replace(field2, v))
@@ -132,6 +135,12 @@ object CEBuilder extends Extensions {
       }
 
       val r = Record(updateVmap(f1) ++ updateVmap(f2))
+      println("made this record")
+      println(r)
+      println("from")
+      println(f1)
+      println(f2)
+      println(v)
 
       val nr = replace(r, v)
       val nfs1 = fs1.toList.map(k => getFromVmap(k))

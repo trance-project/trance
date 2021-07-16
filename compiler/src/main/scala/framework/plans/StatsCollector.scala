@@ -25,9 +25,9 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
 
   val data: String = if (inputs.isEmpty){
     s"""|   val db = spark.catalog.currentDatabase
-        |   val copynumber = spark.table("fcopynumber")
+        |   val copynumber = spark.table("copynumber")
         |   //val occurrences = spark.table("occurrences")
-        |   val samples = spark.table("fsamples")
+        |   val samples = spark.table("samples")
         |   val clinical = spark.table("clinical")
         |   val IBag_copynumber__D = copynumber
         |   val IBag_samples__D = samples

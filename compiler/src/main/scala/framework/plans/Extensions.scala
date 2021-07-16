@@ -68,6 +68,7 @@ trait Extensions {
     funct.applyOrElse(e, (ex: CExpr) => ex match {
 
       case CDeDup(e1) => CDeDup(fapply(e1, funct))
+
       case CGroupBy(e1, v1, keys, values, gname) => CGroupBy(fapply(e1, funct), v1, keys, values, gname)
       case CReduceBy(e1, v1, keys, values) => CReduceBy(fapply(e1, funct), v1, keys, values)
 
@@ -75,7 +76,7 @@ trait Extensions {
       case LinearCSet(es) => LinearCSet(es.map(e1 => fapply(e1, funct)))
 
       case AddIndex(in, v) => AddIndex(fapply(in, funct), v)
-      case RemoveNulls(in) => RemoveNulls(in)
+      case RemoveNulls(in) => RemoveNulls(fapply(in, funct))
         
       case Projection(in, v, filter, fields) =>
         Projection(fapply(in, funct), v, filter, fields)

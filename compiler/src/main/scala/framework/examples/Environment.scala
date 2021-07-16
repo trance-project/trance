@@ -18,7 +18,7 @@ trait Environment {
 
 	val flex: Int
 
-	val plannerType: String
+	val ptype: String
 
 	val zhost: String
 
