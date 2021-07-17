@@ -178,7 +178,7 @@ object Unnester {
     case Comprehension(e1:CDeDup, v, cond, e2) if !w.isEmpty =>
       val nE = RemoveNulls(unnest(e1)((w, w, E, tag)))
       val nw = flat(w, nE.tp.asInstanceOf[BagCType].tp)
-      unnest(e2)((u, nw, Some(nE), tag))
+      unnest(liftFilter(cond, e2))((u, nw, Some(nE), tag))
 
     // Rule C6/C9: all other generator types translate to joins
     // inner or outer depending on if u is empty
