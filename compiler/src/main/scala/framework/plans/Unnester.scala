@@ -267,6 +267,14 @@ object Unnester {
     }  
   } 
 
+  /**
+   *  Extends the condition to the next step:
+   *  ex: 
+   * 
+   *  input { (x.a, y.c) | y <- DeDup(Lookup(x.b, Y)), y.d < 2 )}^{()}_{w} E
+   *  output { if (y.d < 2) (x.a, y.c) | }^{()}_{w, y} E  
+   *
+   **/
   private def liftFilter(f: CExpr, e: CExpr): CExpr = f match {
     case Constant(true) => e
     case _ => e match {
