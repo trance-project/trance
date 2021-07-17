@@ -25,6 +25,7 @@ case class COption(e: CExpr) extends CExpr {
 
 /** 
  * Operator for removing nulls when moving from set to bag comprehensions 
+ * QUERY: what does this mean? 
  */
 case class RemoveNulls(e1: CExpr) extends CExpr {
   def tp: Type = e1.tp
