@@ -25,7 +25,11 @@ case class COption(e: CExpr) extends CExpr {
 
 /** 
  * Operator for removing nulls when moving from set to bag comprehensions 
- * QUERY: what does this mean? 
+ * ex: { (x.a, y.c ) | x <- X, y <- DeDup(Lookup(x.b, Y)) }
+ * when entering DeDup u is non-empty and produces outer operators generating null 
+ * values whenever x.b does not have a match in Y; however, there should be 
+ * no Nulls in the final output, ie. (x.a, Null). 
+ * 
  */
 case class RemoveNulls(e1: CExpr) extends CExpr {
   def tp: Type = e1.tp
