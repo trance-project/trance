@@ -127,7 +127,7 @@ object AppWriter {
       "sh compile.sh".!!
     }else{
       println(s"Writing out $qname to $fname")
-      val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet), label, encoders+"\n"+udftext)
+      val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet), label, encoders)//+"\n"+udftext)
       printer.println(finalc)
       printer.close 
     } 
