@@ -44,8 +44,8 @@ object ExampleQuery extends DriverGene {
                     "expression" -> fexpression.tp,
                     "samples" -> samples.tp,
                     "pathways" -> pathway.tp,
-                    "genemap" -> gtf.tp,
-                    "clinical" -> BagType(tcgaType))
+                    "genemap" -> gtf.tp
+                    //"clinical" -> BagType(pradType))
 
 
   // a query string that is passed to the parser
