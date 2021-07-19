@@ -147,13 +147,13 @@ trait Occurrence extends Vep {
     				|IBag_occurrences__D.cache
     				|IBag_occurrences__D.count
             |val odict2 = spark.read.json(s"$fname/${dictNames._2}/").as[OccurTransDict2Mid]
-            |val IDict_occurrences__D_transcript_consequences = ${odict(2)}
-    				|IDict_occurrences__D_transcript_consequences.cache
-    				|IDict_occurrences__D_transcript_consequences.count
+            |val IMap_occurrences__D_transcript_consequences = ${odict(2)}
+    				|IMap_occurrences__D_transcript_consequences.cache
+    				|IMap_occurrences__D_transcript_consequences.count
             |val odict3 = spark.read.json("$fname/${dictNames._3}/").as[OccurrTransConseqDict3]
-            |val IDict_occurrences__D_transcript_consequences_consequence_terms = ${odict(3)}
-    				|IDict_occurrences__D_transcript_consequences_consequence_terms.cache
-    				|IDict_occurrences__D_transcript_consequences_consequence_terms.count
+            |val IMap_occurrences__D_transcript_consequences_consequence_terms = ${odict(3)}
+    				|IMap_occurrences__D_transcript_consequences_consequence_terms.cache
+    				|IMap_occurrences__D_transcript_consequences_consequence_terms.count
     				|""".stripMargin
     	}else if (skew){
     		s"""|val occurrences_L = spark.read.json("$fname/$iname/").as[OccurrenceMid]
