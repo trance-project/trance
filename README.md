@@ -18,7 +18,7 @@ Links to papers:
 
 ### System Requirements
 
-The framework has been tested with `Scala 2.12` and `Spark 2.4.2`, pre-built with Scala 2.12 support. See [spark.apache.org](https://spark.apache.org/releases/spark-release-2-4-2.html) for more details. 
+The framework has been tested with `Scala 2.12` and associated Spark versions (2.4.2, 3.1.1 etc). 
 
 ### Example Usage
 
