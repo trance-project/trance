@@ -4,9 +4,8 @@ import java.io._
 import framework.common._
 import framework.plans._
 import framework.examples.tpch._
-import framework.examples.{Query, Environment}
+import framework.examples.Query
 import framework.loader.csv._
-import scala.sys.process._
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -28,7 +27,7 @@ object AppWriter {
   }
 
   def runDataset(query: Query, label: String, optLevel: Int = 2, skew: Boolean = false, notebk: Boolean = false, 
-    schema: Schema = Schema(), zhost: String = "localhost", zport: Int = 8085): Unit = {
+    schema: Schema = Schema()): Unit = {
     
     val codegen = new SparkDatasetGenerator(false, false, optLevel = optLevel, skew = skew)
     val gcode = codegen.generate(query.anf(optimizationLevel = optLevel, schema = schema))
@@ -40,142 +39,16 @@ object AppWriter {
       case 1 => "Proj"
       case _ => ""
     }
-    val inputs = query.loadTables(shred = false, skew = skew)
     val qname = if (skew) s"${query.name}${flatTag}SkewSpark" else s"${query.name}${flatTag}Spark"
-    val fname = s"$pathout/$qname.scala" 
-    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))    
-    if (notebk){
-      val zep = new ZeppelinFactory(zhost, zport)
-      val noteid = zep.addNote(qname)
-      println(s"Writing out to $qname notebook with id: $noteid")
-      val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcode), label, encoders)
-      val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
-      val pid = zep.writeParagraph(noteid, para)
-      zep.restartInterpreter()
-      println(s"Writing case classes out to $fname")
-      val finalc = "package sparkutils.generated\n"+header
-      printer.println(finalc)
-      printer.close 
-      "sh compile.sh".!!
-    }else{
-      println(s"Writing out $qname to $fname")
-      val finalc = writeDataset(qname, inputs, header, timedOne(gcode), label, encoders)
-      printer.println(finalc)
-      printer.close 
-    }
-  }
-
-  def runDatasetShred(query: Query, label: String, eliminateDomains: Boolean = true, optLevel: Int = 2,
-    unshred: Boolean = false, skew: Boolean = false, schema: Schema = Schema(), notebk: Boolean = false, 
-    zhost: String = "localhost", zport: Int = 8085): Unit = {
-    
-    val codegen = new SparkDatasetGenerator(unshred, eliminateDomains, evalFinal = false, skew = skew)
-    val (gcodeShred, gcodeUnshred) = query.shredBatchPlan(unshred, eliminateDomains = eliminateDomains, 
-      optLevel = optLevel, anfed = true, schema = schema)
-    val gcode1 = codegen.generate(gcodeShred)
-    val (header, gcodeSet, encoders) = if (unshred) {
-      val codegen2 = new SparkDatasetGenerator(false, false, unshred = true, inputs = codegen.types, skew = skew)
-      val ugcode = codegen2.generate(gcodeUnshred)
-      val encoders1 = codegen.generateEncoders() +"\n"+ codegen2.generateEncoders()
-      (s"""|${codegen2.generateHeader()}""".stripMargin, List(gcode1, ugcode), encoders1)
-    } else 
-      (s"""|${codegen.generateHeader()}""".stripMargin, List(gcode1), codegen.generateEncoders())
-   
-    val us = if (unshred) "Unshred" else ""
-
-    val inputs = query.loadTables(shred = true, skew = skew)
-    val qname = if (skew) s"Shred${query.name}${us}SkewSpark" else s"Shred${query.name}${us}Spark"
-    val fname = s"$pathout/$qname.scala"
-    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-
-
-    if (notebk){
-      val zep = new ZeppelinFactory(zhost, zport)
-      val noteid = zep.addNote(qname)
-      // finally, we just need to write the function definitions out to a paragraph 
-      // in the notebook - that is defined before the NRC query. 
-      // access the codegen.udfsUsed variable to grab the context of the 
-      // *.udf files in the compiler/udfs folder and then write their 
-      // contents to a paragraph using the writeParagraph call on the next line:
-      println(s"Writing out to $qname notebook with id: $noteid")
-
-      // collect the contents of the files
-//      var udftext : String = ""
-//
-//      for (u <- codegen.udfsUsed) {
-//          val bufferedSource = scala.io.Source.fromFile(s"udfs/${u}.udf")
-//          val stringAdd = bufferedSource.getLines().mkString
-//          udftext = udftext.concat(stringAdd)
-//          bufferedSource.close()
-//      }
-//
-//
-      // define the udf paragraph output
-//      val udfcontents = writeParagraph(qname, udftext, "", "", "", "")
-//      val udfpara = new JsonWriter().buildParagraph("Generated paragraph $qname", udfcontents)
-//      val udfpid = zep.writeParagraph(noteid, udfpara)
-
-      val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
-      val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
-      val pid = zep.writeParagraph(noteid, para)
-
-      zep.restartInterpreter()
-      println(s"Writing case classes out to $fname")
-      val finalc = "package sparkutils.generated\n"+header
-      printer.println(finalc)
-      printer.close 
-      "sh compile.sh".!!
-    }else{
-      println(s"Writing out $qname to $fname")
-      val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet), label, encoders +"\n"+udftext)
-      printer.println(finalc)
-      printer.close 
-    } 
-  }
-
-  def runWithCache(env: Environment, label: String, skew: Boolean = false, notebk: Boolean = false, cache: Boolean = false): Unit = {
-    
-    val cachegen = new SparkDatasetGenerator(true, false, optLevel = env.optLevel, skew = skew)
-    val codegen = new SparkDatasetGenerator(false, false, optLevel = env.optLevel, skew = skew)
-    var gcode = ""
-
-    val cstrat = env.cacheStrategy match {
-      case Some(cs) if !cache => cs.execOrder
-      case _ => env.plans.map(_._1) 
-    }
-
-    println("Evaluating these plans")
-    for (q <- cstrat){
-      val anfBase = new BaseOperatorANF{}
-      val anfer = new Finalizer(anfBase)
-      // println(Printer.quote(q))
-      q match {
-        case c:CNamed if c.name.contains("Cover") => 
-          gcode += cachegen.generate(anfBase.anf(anfer.finalize(q).asInstanceOf[anfBase.Rep]))
-        case _ => 
-          gcode += codegen.generate(anfBase.anf(anfer.finalize(q).asInstanceOf[anfBase.Rep]))
-      }
-    }
-
-    val header = s"""|${cachegen.generateHeader()}
-                     |${codegen.generateHeader()}
-                     |""".stripMargin
-    val encoders = s"""|${cachegen.generateEncoders()}
-                       |${codegen.generateEncoders()}
-                       |""".stripMargin
-
-    val cname = if (cache) s"CacheInputs${env.flex}" else s"${env.flex}${env.ptype}"
-    var qname = if (skew) s"${env.name}${cname}SkewSpark" else s"${env.name}${cname}Spark"
-    if (env.shred) qname = s"Shred$qname"
     val fname = if (notebk) s"$qname.json" else s"$pathout/$qname.scala" 
     println(s"Writing out $qname to $fname")
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
-    val inputs = env.setup(skew = skew, cache = cache)
+    val inputs = query.loadTables(shred = false, skew = skew)
     val finalc = if (notebk){
-        val pcontents = writeParagraph(qname, timedStart(inputs), header, timedEnd(gcode), label, encoders)
+        val pcontents = writeParagraph(qname, inputs, header, timedOne(gcode), label, encoders)
         new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
       }else{
-        writeDataset(qname, timedStart(inputs), header, timedEnd(gcode), label, encoders)
+        writeDataset(qname, inputs, header, timedOne(gcode), label, encoders)
       }
       printer.println(finalc)
       printer.close 
@@ -207,6 +80,33 @@ object AppWriter {
   }
 
   /** Shredded pipeline: Dataset generator **/
+
+  def runDatasetShred(query: Query, label: String, eliminateDomains: Boolean = true, optLevel: Int = 2,
+    unshred: Boolean = false, skew: Boolean = false, schema: Schema = Schema()): Unit = {
+    
+    val codegen = new SparkDatasetGenerator(unshred, eliminateDomains, evalFinal = false, skew = skew)
+    val (gcodeShred, gcodeUnshred) = query.shredBatchPlan(unshred, eliminateDomains = eliminateDomains, 
+      optLevel = optLevel, anfed = true, schema = schema)
+    val gcode1 = codegen.generate(gcodeShred)
+    val (header, gcodeSet, encoders) = if (unshred) {
+      val codegen2 = new SparkDatasetGenerator(false, false, unshred = true, inputs = codegen.types, skew = skew)
+      val ugcode = codegen2.generate(gcodeUnshred)
+      val encoders1 = codegen.generateEncoders() +"\n"+ codegen2.generateEncoders()
+      (s"""|${codegen2.generateHeader()}""".stripMargin, List(gcode1, ugcode), encoders1)
+    } else 
+      (s"""|${codegen.generateHeader()}""".stripMargin, List(gcode1), codegen.generateEncoders())
+   
+    val us = if (unshred) "Unshred" else ""
+    val qname = if (skew) s"Shred${query.name}${us}SkewSpark" else s"Shred${query.name}${us}Spark"
+    val fname = s"$pathout/$qname.scala"
+    println(s"Writing out $qname to $fname")
+    val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
+    val inputs = query.loadTables(shred = true, skew = skew)
+    val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet), label, encoders)
+    printer.println(finalc)
+    printer.close
+  
+  }
 
   def runDatasetInputShred(inputQuery: Query, query: Query, label: String, eliminateDomains: Boolean = true, 
     optLevel: Int = 2, unshred: Boolean = false, skew: Boolean = false, schema: Schema = Schema()): Unit = {
@@ -281,11 +181,9 @@ object AppWriter {
         |import sparkutils._
         |import sparkutils.loader._
         |import sparkutils.skew.SkewDataset._
-        |import sparkutils.generated._
         |$header
         |$encoders
         |import spark.implicits._
-        |$data
         |$gcode""".stripMargin
 
   }
@@ -343,7 +241,7 @@ object AppWriter {
       |var start$i = System.currentTimeMillis()
       |$e
       |var end$i = System.currentTimeMillis() - start$i
-      |println("$appname,"+end$i+",$query,"+spark.sparkContext.applicationId)
+      |println("$appname,"+sf+","+end$i+",$query,"+spark.sparkContext.applicationId)
     """.stripMargin
   }
 
@@ -365,21 +263,6 @@ object AppWriter {
         |var start = System.currentTimeMillis()
         |f
         |var end = System.currentTimeMillis() - start """.stripMargin
-  }
-
-  def timedStart(e: String): String = {
-    s"""|def f = {
-        |  $e
-    """.stripMargin
-  }
-
-  def timedEnd(e: String): String = {
-    s"""|  $e
-        |}
-        |var start = System.currentTimeMillis()
-        |f
-        |var end = System.currentTimeMillis() - start 
-        |""".stripMargin
   }
 
 
