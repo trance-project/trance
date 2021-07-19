@@ -27,7 +27,7 @@ object AppWriter {
     printer.close
   }
 
-  def runDataset(query: Query, label: String, optLevel: Int = 2, skew: Boolean = false, notebk: Boolean = false, 
+  def sset(query: Query, label: String, optLevel: Int = 2, skew: Boolean = false, notebk: Boolean = false,
     schema: Schema = Schema(), zhost: String = "localhost", zport: Int = 8085): Unit = {
     
     val codegen = new SparkDatasetGenerator(false, false, optLevel = optLevel, skew = skew)
@@ -109,9 +109,9 @@ object AppWriter {
       println(s"Writing out to $qname notebook with id: $noteid")
 
       // define the udf paragraph output
-      val udfcontents = writeParagraph(qname, udftext, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
-      val udfpara = new JsonWriter().buildParagraph("Generated paragraph $qname", udfcontents)
-      val udfpid = zep.writeParagraph(noteid, udfpara)
+//      val udfcontents = writeParagraph(qname, udftext, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
+//      val udfpara = new JsonWriter().buildParagraph("Generated paragraph $qname", udfcontents)
+//      val udfpid = zep.writeParagraph(noteid, udfpara)
 
       val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
       val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
@@ -125,7 +125,7 @@ object AppWriter {
       "sh compile.sh".!!
     }else{
       println(s"Writing out $qname to $fname")
-      val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet), label, encoders+"\n"+udftext)
+      val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet), label, encoders)//+"\n"+udftext)
       printer.println(finalc)
       printer.close 
     } 
