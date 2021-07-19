@@ -1,0 +1,3 @@
+def bagudf(x: Column): Column = {
+	concat(x, lit("_myudf"))
+}

@@ -22,7 +22,8 @@ object ExampleQuery extends DriverGene {
   // are inherited from DriverGene trait (around line 549)
   // checkout individuals traits to see what the load functions are doing
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-    s"""|${loadBiospec(shred, skew, fname = pradFile, name = "clinical", func = "Prad")}
+    s"""|val tcgaLoader = new TCGALoader(spark)
+        |val tcgaData = tcgaLoader.load("/mnt/app_hdd/data/biospecimen/clinical", dir = true)
         |${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
         |${loadCopyNumber(shred, skew, fname = cnvFile)}
         |${loadGeneExpr(shred, skew, fname = exprFile, aname = aexprFile)}
@@ -89,29 +90,29 @@ object ExampleQuery extends DriverGene {
 
 
 //// Using Occurences (Impact score)
-//    s"""
-//        GMB <=
-//          for g in genemap union
-//            {(gene:= g.g_gene_name, burdens :=
-//              (for o in occurrences union
-//                for s in clinical union
-//                  if (o.donorId = s.bcr_patient_uuid) then
-//                    for t in o.transcript_consequences union
-//                      if (g.g_gene_id = t.gene_id) then
-//                         {(sid := o.donorId,
-//                           lbl := if (s.gleason_pattern_primary = 2) then 0
-//                            else if (s.gleason_pattern_primary = 3) then 0
-//                            else if (s.gleason_pattern_primary = 4) then 1
-//                            else if (s.gleason_pattern_primary = 5) then 1
-//                            else -1,
-//                           burden := if (t.impact = "HIGH") then 0.80
-//                                                    else if (t.impact = "MODERATE") then 0.50
-//                                                    else if (t.impact = "LOW") then 0.30
-//                                                    else 0.01
-//                          )}
-//              ).sumBy({sid, lbl}, {burden})
-//            )}
-//    """
+    s"""
+        GMB <=
+          for g in genemap union
+            {(gene:= g.g_gene_name, burdens :=
+              (for o in occurrences union
+                for s in clinical union
+                  if (o.donorId = s.bcr_patient_uuid) then
+                    for t in o.transcript_consequences union
+                      if (g.g_gene_id = t.gene_id) then
+                         {(sid := o.donorId,
+                           lbl := if (s.gleason_pattern_primary = 2) then 0
+                            else if (s.gleason_pattern_primary = 3) then 0
+                            else if (s.gleason_pattern_primary = 4) then 1
+                            else if (s.gleason_pattern_primary = 5) then 1
+                            else -1,
+                           burden := if (t.impact = "HIGH") then 0.80
+                                                    else if (t.impact = "MODERATE") then 0.50
+                                                    else if (t.impact = "LOW") then 0.30
+                                                    else 0.01
+                          )}
+              ).sumBy({sid, lbl}, {burden})
+            )}
+    """
 
 
   // Using only Gene Expression (fpkm)
@@ -139,48 +140,45 @@ object ExampleQuery extends DriverGene {
 
 
 // Integrating occurences and gene expression
-
-    s"""
-        mapExpression <=
-          for s in samples union
-            for e in expression union
-              if (s.bcr_aliquot_uuid = e.ge_aliquot) then
-                {(sid := s.bcr_patient_uuid, gene := e.ge_gene_id, fpkm := e.ge_fpkm)};
-
-         impactGMB <=
-          for g in genemap union
-            {(gene_name := g.g_gene_name, gene_id:= g.g_gene_id, burdens :=
-              (for o in occurrences union
-                for s in clinical union
-                  if (o.donorId = s.bcr_patient_uuid) then
-                    for t in o.transcript_consequences union
-                      if (g.g_gene_id = t.gene_id) then
-                         {(sid := o.donorId,
-                           lbl := if (s.gleason_pattern_primary = 2) then 0
-                            else if (s.gleason_pattern_primary = 3) then 0
-                            else if (s.gleason_pattern_primary = 4) then 1
-                            else if (s.gleason_pattern_primary = 5) then 1
-                            else -1,
-                           burden := if (t.impact = "HIGH") then 0.80
-                                                    else if (t.impact = "MODERATE") then 0.50
-                                                    else if (t.impact = "LOW") then 0.30
-                                                    else 0.01
-                          )}
-              ).sumBy({sid, lbl}, {burden})
-            )};
-
-        GMB <=
-          for g in impactGMB union
-            {(gene_name := g.gene_name, gene_id := g.gene_id, burdens :=
-              (for b in g.burdens union
-                for e in mapExpression union
-                  if (b.sid = e.sid && g.gene_id = e.gene) then
-                    {(sid := b.sid, lbl := b.lbl, burden := b.burden*e.fpkm)}).sumBy({sid,lbl}, {burden})
-                     )}
-    """
-
-// Use the new
-
+//
+//    s"""
+//        mapExpression <=
+//          for s in samples union
+//            for e in expression union
+//              if (s.bcr_aliquot_uuid = e.ge_aliquot) then
+//                {(sid := s.bcr_patient_uuid, gene := e.ge_gene_id, fpkm := e.ge_fpkm)};
+//
+//         impactGMB <=
+//          for g in genemap union
+//            {(gene_name := g.g_gene_name, gene_id:= g.g_gene_id, burdens :=
+//              (for o in occurrences union
+//                for s in clinical union
+//                  if (o.donorId = s.bcr_patient_uuid) then
+//                    for t in o.transcript_consequences union
+//                      if (g.g_gene_id = t.gene_id) then
+//                         {(sid := o.donorId,
+//                           lbl := if (s.gleason_pattern_primary = 2) then 0
+//                            else if (s.gleason_pattern_primary = 3) then 0
+//                            else if (s.gleason_pattern_primary = 4) then 1
+//                            else if (s.gleason_pattern_primary = 5) then 1
+//                            else -1,
+//                           burden := if (t.impact = "HIGH") then 0.80
+//                                                    else if (t.impact = "MODERATE") then 0.50
+//                                                    else if (t.impact = "LOW") then 0.30
+//                                                    else 0.01
+//                          )}
+//              ).sumBy({sid, lbl}, {burden})
+//            )};
+//
+//        GMB <=
+//          for g in impactGMB union
+//            {(gene_name := g.gene_name, gene_id := g.gene_id, burdens :=
+//              (for b in g.burdens union
+//                for e in mapExpression union
+//                  if (b.sid = e.sid && g.gene_id = e.gene) then
+//                    {(sid := b.sid, lbl := b.lbl, burden := b.burden*e.fpkm)}).sumBy({sid,lbl}, {burden})
+//                     )}
+//    """
 
 
   }
@@ -208,6 +206,7 @@ object ExampleQuery2 extends DriverGene {
   // checkout individuals traits to see what the load functions are doing
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
     s"""|${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
+        |${loadBiospec(shred, skew, fname = pradFile, name = "clinical", func = "Prad")}
         |${loadCopyNumber(shred, skew, fname = cnvFile)}
         |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
         |${loadPathway(shred, skew, fname = pathFile)}
@@ -291,6 +290,32 @@ object SimpleUDFExample extends DriverGene {
     Singleton(Tuple(
       "sample" -> PrimitiveUdf("myudf", br("bcr_patient_uuid"), StringType),
       //"sample" -> NumericUdf("udf_numeric", br("bcr_patient_uuid"), LongType),
+      "aliquot" -> br("bcr_aliquot_uuid"))))
+
+  val program = Program(Assignment(name, query))
+
+}
+
+object BagUDFExample extends DriverGene {
+
+  val sampleFile = "/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_prad.txt"
+
+  // in DriverGenes.scala you can see traits for several datatypes, these
+  // are inherited from DriverGene trait (around line 549)
+  // checkout individuals traits to see what the load functions are doing
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
+        |""".stripMargin
+
+  // name to identify your query
+  val name = "BagUDF"
+
+  // a map of input types for the parser
+  val tbls = Map("samples" -> samples.tp)
+
+  val query = ForeachUnion(br, samples,
+    Singleton(Tuple(
+      "sample" -> BagUdf("myudf", br("bcr_patient_uuid"), StringType),
       "aliquot" -> br("bcr_aliquot_uuid"))))
 
   val program = Program(Assignment(name, query))
