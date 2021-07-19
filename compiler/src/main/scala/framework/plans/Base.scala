@@ -36,7 +36,7 @@ trait Base {
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep
   def dedup(e1: Rep): Rep
   def bind(e1: Rep, e: Rep => Rep): Rep 
-  def groupby(e1: Rep, g: List[String], v: List[String]): Rep
+  def groupby(e1: Rep, g: List[String], v: List[String], gname: String): Rep
   def reduceby(e1: Rep, g: List[String], v: List[String]): Rep
   def named(n: String, e: Rep): Rep
   def linset(e: List[Rep]): Rep
@@ -49,8 +49,9 @@ trait Base {
   def dictunion(d1: Rep, d2: Rep): Rep
 
   // plan operators
-  def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep
+  def select(x: Rep, p: Rep => Rep): Rep
   def addindex(in: Rep, name: String): Rep 
+  def nanull(in: Rep): Rep 
   def projection(in: Rep, filter: Rep => Rep, fields: List[String]): Rep
   def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep
   def ounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep
@@ -103,9 +104,9 @@ trait BaseStringify extends Base{
     val x = Variable.fresh(StringType)
     s"{ ${e(x.quote)} | ${x.quote} := ${e1} }"
   }
-  def groupby(e1: Rep, g: List[String], v: List[String]): Rep = {
+  def groupby(e1: Rep, g: List[String], v: List[String], gname: String): Rep = {
     val v2 = Variable.fresh(StringType)
-    s"(${e1}).groupBy(${g.mkString(",")}, ${v.mkString(",")})"
+    s"""(${e1}).groupBy(${g.mkString(",")}, ${v.mkString(",")}, "$gname")"""
   }
   def reduceby(e1: Rep, g: List[String], v: List[String]): Rep = {
     val v2 = Variable.fresh(StringType)
@@ -129,11 +130,12 @@ trait BaseStringify extends Base{
     s"(${fs.map(f => f._1 + " := " + f._2).mkString(",")})"
   def dictunion(d1: Rep, d2: Rep): Rep = s"${d1} U ${d2}"
   
-  def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = { 
+  def select(x: Rep, p: Rep => Rep): Rep = { 
     val v = Variable.fresh(StringType).quote
-    s""" | SELECT[ ${p(v)}, ${e(v)} ](${x} )""".stripMargin
+    s""" | SELECT[ ${p(v)} ]( ${x} )""".stripMargin
   }
   def addindex(in: Rep, name: String): Rep = "/** Top-down, see Printer.scala **/"
+  def nanull(in: Rep): Rep = "/** Top-down, see Printer.scala **/"
   def projection(in: Rep, filter: Rep => Rep, fields: List[String]): Rep = ""
   def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = "/** Top-down, see Printer.scala **/"
   def ounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = "/** Top-down, see Printer.scala **/"
@@ -193,9 +195,9 @@ trait BaseCompiler extends Base {
       val v = Variable.fresh(e1.tp)
       Bind(v, e1, e(v)) 
   }
-  def groupby(e1: Rep, g: List[String], v: List[String]): Rep = {
+  def groupby(e1: Rep, g: List[String], v: List[String], gname: String): Rep = {
     val v2 = Variable.freshFromBag(e1.tp)
-    CGroupBy(e1, v2, g, v) 
+    CGroupBy(e1, v2, g, v, gname) 
   }
   def reduceby(e1: Rep, g: List[String], v: List[String]): Rep = {
     val v2 = Variable.freshFromBag(e1.tp)
@@ -210,15 +212,19 @@ trait BaseCompiler extends Base {
   def tupledict(fs: Map[String, Rep]): Rep = TupleCDict(fs)
   def dictunion(d1: Rep, d2: Rep): Rep = DictCUnion(d1, d2)
 
-  def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
+  def select(x: Rep, p: Rep => Rep): Rep = {
     val v = Variable.freshFromBag(x.tp)
-    Select(x, v, p(v), e(v))
+    p(v) match {
+      case Constant(true) => x
+      case pv => Select(x, v, pv)
+    }
   }
 
   def addindex(in: Rep, name: String): Rep = in match {
     case AddIndex(in1, _) => AddIndex(in, name)
     case _ => AddIndex(in, name)  
   }
+  def nanull(in: Rep): Rep = RemoveNulls(in)
   def projection(in: Rep, filter: Rep => Rep, fields: List[String]): Rep = {
     val v1 = Variable.freshFromBag(in.tp)
     val nr = filter(v1)
@@ -261,7 +267,9 @@ trait BaseCompiler extends Base {
 }
 
 trait ShredOptimizer extends BaseCompiler {
-  override def addindex(in: Rep, name: String): Rep = in
+
+  // override def addindex(in: Rep, name: String): Rep = in
+
 }
 
 /**
@@ -416,7 +424,7 @@ trait BaseANF extends Base {
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = compiler.comprehension(e1, p, e)
   def dedup(e1: Rep): Rep = compiler.dedup(e1)
   def bind(e1: Rep, e: Rep => Rep): Rep = compiler.bind(e1, e)
-  def groupby(e1: Rep, g: List[String], v: List[String]): Rep = compiler.groupby(e1, g, v)
+  def groupby(e1: Rep, g: List[String], v: List[String], gname: String): Rep = compiler.groupby(e1, g, v, gname)
   def reduceby(e1: Rep, g: List[String], v: List[String]): Rep = compiler.reduceby(e1, g, v)
   def named(n: String, e: Rep): Rep = {
     val d = compiler.named(n, e)
@@ -431,9 +439,10 @@ trait BaseANF extends Base {
   def tupledict(fs: Map[String, Rep]): Rep = compiler.tupledict(fs.map(f => (f._1, defToExpr(f._2))))
   def dictunion(d1: Rep, d2: Rep): Rep = compiler.dictunion(d1, d2)
 
-  def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = compiler.select(x, p, e)
+  def select(x: Rep, p: Rep => Rep): Rep = compiler.select(x, p)
   
   def addindex(in: Rep, name: String) = compiler.addindex(in, name)
+  def nanull(in: Rep): Rep = compiler.nanull(in)
   def projection(in: Rep, filter: Rep => Rep, fields: List[String]): Rep = 
     compiler.projection(in, filter, fields)
   def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = 
@@ -458,6 +467,11 @@ trait BaseANF extends Base {
   *
   */
 class Finalizer(val target: Base){
+
+  val letOpt = target match {
+    case n:BaseNormalizer => n.letOpt
+    case _ => false
+  }
   
   var variableMap: Map[CExpr, target.Rep] = Map[CExpr, target.Rep]()
   
@@ -478,6 +492,16 @@ class Finalizer(val target: Base){
   }
 
   def finalize(e: CExpr): target.Rep = e match {
+    /** Let optimization specific **/
+    // let optimization within a named expression
+    case CNamed(n1, Bind(x, e1, e)) if letOpt =>
+      val name = x match { case v:Variable => v.name; case _ => ??? }
+      target.linset(List(target.named(name, finalize(e1)), target.named(n1, finalize(e))))
+    // not in a named expression
+    case Bind(x, e1, e) if letOpt =>
+      val name = x match { case v:Variable => v.name; case _ => ??? }
+      target.linset(List(target.named(name, finalize(e1)), finalize(e)))
+
     case InputRef(x, tp) => target.inputref(x, tp)
     case Input(x) => target.input(x.map(finalize(_)))
     case Constant(x) => target.constant(x)
@@ -514,9 +538,10 @@ class Finalizer(val target: Base){
       target.comprehension(finalize(e1), (r: target.Rep) => withMap(v -> r)(finalize(p)), 
         (r: target.Rep) => withMap(v -> r)(finalize(e)))
     case CDeDup(e1) => target.dedup(finalize(e1))
+
     case Bind(x, e1, e) =>
       target.bind(finalize(e1), (r: target.Rep) => withMap(x -> r)(finalize(e)))
-    case CGroupBy(e1, v2, g, v) => target.groupby(finalize(e1), g, v)
+    case CGroupBy(e1, v2, g, v, gname) => target.groupby(finalize(e1), g, v, gname)
     case CReduceBy(e1, v2, g, v) => target.reduceby(finalize(e1), g, v)
     case CNamed(n, e) => target.named(n, finalize(e))
     case LinearCSet(exprs) => 
@@ -530,12 +555,14 @@ class Finalizer(val target: Base){
     case TupleCDict(fs) => target.tupledict(fs.map(f => f._1 -> finalize(f._2)))
     case DictCUnion(d1, d2) => target.dictunion(finalize(d1), finalize(d2))
 
-    case Select(x, v, p, e) =>
-      target.select(finalize(x), (r: target.Rep) => 
-        withMap(v -> r)(finalize(p)), (r: target.Rep) => withMap(v -> r)(finalize(e)))
+    case Select(x, v, p) =>
+      target.select(finalize(x), (r: target.Rep) => withMap(v -> r)(finalize(p)))
+
     case AddIndex(in, name) => target.addindex(finalize(in), name)    
+    case RemoveNulls(in) => target.nanull(finalize(in))    
     case Projection(in, v, filter, fields) => 
-      target.projection(finalize(in), (r: target.Rep) => withMap(v -> r)(finalize(filter)), fields)
+      val filt = (r: target.Rep) => withMap(v -> r)(finalize(filter))
+      target.projection(finalize(in), filt, fields)
     case Unnest(in, v, path, v2, filter, fields) => 
       target.unnest(finalize(in), path, (r: target.Rep) => withMap(v2 -> r)(finalize(filter)), fields)
     case OuterUnnest(in, v, path, v2, filter, fields) => 
@@ -551,11 +578,12 @@ class Finalizer(val target: Base){
         (r: target.Rep) => withMap(v -> r)(finalize(filter)), nulls, ctag)
     case Reduce(in, v, keys, values) => 
       target.reduce(finalize(in), keys, values)
-
     case FlatDict(e1) => target.flatdict(finalize(e1))
     case GroupDict(e1) => target.groupdict(finalize(e1))
 
-    case v @ Variable(_, _) => variableMap.getOrElse(v, target.inputref(v.name, v.tp))
+    case v @ Variable(_, _) => 
+      val falback = target.inputref(v.name, v.tp)
+      variableMap.getOrElse(v, falback)
   }
 
 }

@@ -94,7 +94,7 @@ trait Implicits {
         case BagDict(tp, flat, _) if tp == lbl.tp =>
           lbl match {
             case l: NewLabel => applyLambda(l, flat)
-            case _ => BagExtractLabel(lbl, flat)
+            case _ => ExtractLabel(lbl, flat).asInstanceOf[BagExpr]
           }
         case _ => Lookup(lbl, d)
       }

@@ -19,10 +19,10 @@ object GeneBurden0 extends GenomicSchema {
           for g in genes union 
             if (v.contig = g.g_contig && v.start >= g.g_start && g.g_end >= v.start)
             then for c in v.genotypes union 
-              {(sample := c.g_sample, gene := g.g_gene_name, burden := c.call)}).sumBy({sample, gene}, {burden});
-
-     Groups <= (Burden).groupBy({sample}, {gene, burden}, "burdens")
-    """
+              {(sample := c.g_sample, gene := g.g_gene_name, burden := c.call)}).sumBy({sample, gene}, {burden})
+	"""
+    // Groups <= (Burden).groupBy({sample}, {gene, burden}, "burdens")
+    //"""
 
     val parser = Parser(tbls)
     val program: Program = parser.parse(burden).get.asInstanceOf[Program]
