@@ -100,14 +100,14 @@ object AppWriter {
       println(s"Writing out to $qname notebook with id: $noteid")
 
       // collect the contents of the files
-//      var udftext : String = ""
-//
-//      for (u <- codegen.udfsUsed) {
-//          val bufferedSource = scala.io.Source.fromFile(s"udfs/${u}.udf")
-//          val stringAdd = bufferedSource.getLines().mkString
-//          udftext = udftext.concat(stringAdd)
-//          bufferedSource.close()
-//      }
+      var udftext : String = ""
+
+      for (u <- codegen.udfsUsed) {
+          val bufferedSource = scala.io.Source.fromFile(s"udfs/${u}.udf")
+          val stringAdd = bufferedSource.getLines().mkString
+          udftext = udftext.concat(stringAdd)
+          bufferedSource.close()
+      }
 //
 //
 //      // define the udf paragraph output
