@@ -2,6 +2,7 @@ package framework.examples
 
 import framework.common._
 import framework.plans._
+import framework.optimize.CacheFactory
 import framework.loader.csv._
 
 trait Environment {

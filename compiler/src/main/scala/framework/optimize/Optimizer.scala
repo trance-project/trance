@@ -1,9 +1,10 @@
-package framework.plans
+package framework.optimize
 
 import framework.common._
 import framework.loader.csv._
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.{Map => MMap}
+import framework.plans._
 
 /** Optimizer used for plans from BatchUnnester **/
 class Optimizer(schema: Schema = Schema()) extends Extensions {
@@ -19,7 +20,6 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     val o1 = pushUnnest(e)
     val o2 = pushCondition(o1)
     val o3 = removeUnnecProj(push(o2))
-    println("we have pushed and removed")
     o3
   }
 
@@ -28,7 +28,6 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     val o1 = pushUnnest(e)
   	val o2 = pushCondition(o1)
   	val o3 = removeUnnecProj(push(o2))
-    println("we have pushed and removed")
     val o4 = pushAgg(o3)
     o4
   }

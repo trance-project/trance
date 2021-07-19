@@ -1,6 +1,7 @@
-package framework.plans
+package framework.optimize
 
 import framework.common._
+import framework.plans._
 
 class CacheFactory(progs: Vector[(CExpr, Int)], capacity: Int, flex: Int = 0, ptype: String = "greedy", 
     zhost: String = "localhost", zport: Int = 8085) {

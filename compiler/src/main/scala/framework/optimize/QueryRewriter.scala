@@ -1,9 +1,10 @@
-package framework.plans
+package framework.optimize
 
 import framework.common._
 import scala.collection.immutable.{Map => IMap}
 import scala.collection.mutable.{Map, HashMap}
 import scala.collection.mutable.ListBuffer
+import framework.plans._
 
 // move the covers here as well..
 class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr, Int), Integer], 

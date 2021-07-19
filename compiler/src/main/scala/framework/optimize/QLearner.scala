@@ -1,4 +1,4 @@
-package framework.plans
+package framework.optimize
 
 /**
  * Based on https://cb372.github.io/rl-in-scala/
@@ -6,6 +6,7 @@ package framework.plans
  */
 
 import scala.util.Random
+import framework.plans._
 // import scala.collection.mutable.Map
 
 case class QLearner(lr: Double, gamma: Double, epsilon: Double, q: Map[CacheState, Map[CacheAction, Double]])

@@ -1,9 +1,10 @@
-package framework.plans
+package framework.optimize
 
 import framework.common._
 import scala.collection.immutable.{Map => IMap}
 import scala.collection.mutable.{Map, HashMap}
 import java.util.UUID.randomUUID
+import framework.plans._
 
 case class CE(name: String, cover: CExpr, sig: Integer, ses: List[SE])
 
@@ -134,13 +135,8 @@ object CEBuilder extends Extensions {
         }.toMap
       }
 
+      // renaming issue here
       val r = Record(updateVmap(f1) ++ updateVmap(f2))
-      println("made this record")
-      println(r)
-      println("from")
-      println(f1)
-      println(f2)
-      println(v)
 
       val nr = replace(r, v)
       val nfs1 = fs1.toList.map(k => getFromVmap(k))

@@ -1,4 +1,4 @@
-package framework.plans
+package framework.optimize
 
 import framework.common._
 import scala.sys.process._
@@ -9,6 +9,7 @@ import java.util.UUID.randomUUID
 import scala.collection.mutable.Map
 import scala.collection.immutable.{Map => IMap}
 import scala.io.Source
+import framework.plans._
 
 case class Statistics(sizeInKB: Double, rowCount: Double) {
 

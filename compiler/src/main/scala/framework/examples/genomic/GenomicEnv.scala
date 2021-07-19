@@ -3,6 +3,7 @@ package framework.examples.genomic
 import framework.common._
 import framework.examples.{Query, Environment}
 import framework.plans._
+import framework.optimize._
 import framework.loader.csv._
 
 

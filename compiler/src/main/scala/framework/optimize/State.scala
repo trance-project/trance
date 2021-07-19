@@ -1,9 +1,10 @@
-package framework.plans
+package framework.optimize
 
 /**
  * Based on https://cb372.github.io/rl-in-scala/
  * Pole balancing problem
  */
+ import framework.plans._
 
 import java.lang.Math._
 import scala.collection.immutable.{Map => IMap}

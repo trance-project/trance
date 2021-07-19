@@ -299,8 +299,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Label(fs) if fs.size == 1 => generate(fs.head._2)
     case Record(fs) if fs.contains("element") && fs.size == 1 => fs("element")
     case Record(fs) => {
-      println("in here with this record")
-      println(Printer.quote(e))
       handleType(e.tp)
       val rcnts = e.tp.attrs.map(f => generate(fs(f._1))).mkString(", ")
       s"${generateType(e.tp)}($rcnts)"
@@ -401,39 +399,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           | $ncast
           |""".stripMargin
 
-    // lookup iteration translates to inner join 
-    case ej @ OuterJoin(left, v1, right, v2, Equals(Project(_, p1), Project(_, p2 @ "_1")), filt) if right.tp.isDict =>
-      // adjust lookup column of dictionary
-      val rcol = s"${p1}${p2}"
-      val rtp = rename(right.tp.attrs, p2, rcol)
-	    handleType(rtp)
-      val grtp = generateType(rtp)
-
-      // adjust label lookup column
-      val lcol = s"${p1}_LABEL"
-      val (lcolumn, ltp) = v1.tp.attrs get "_LABEL" match {
-        case Some(LabelType(ms)) if ms.size > 1 =>
-          (s""".withColumn("$lcol", col("_LABEL").getField("$p1"))""", 
-            RecordCType(left.tp.attrs))
-        case _ => 
-          (s""".withColumnRenamed("${p1}", "$lcol")""",
-            rename(left.tp.attrs, p1, lcol))
-      }
-      handleType(ltp)
-      val gltp = generateType(ltp)
-
-      val nrecTp = RecordCType(ltp.merge(rtp).attrs -- Set(rcol,lcol))
-      handleType(nrecTp)
-      val classTags = if (!skew) ""
-        else s"[$grtp, ${generateType(right.tp.attrs(p2))}]"
-
-      s"""|${generate(left)}$lcolumn
-          |   .as[$gltp].equiJoin$classTags(
-          |   ${generate(right)}.withColumnRenamed("${p2}", "$rcol").as[$grtp], 
-          |   Seq("$lcol"), Seq("$rcol"), "inner").drop("$lcol", "$rcol")
-          |   .as[${generateType(nrecTp)}]
-          |""".stripMargin
-
     // JOIN operator
     case ej:JoinOp =>
       handleType(ej.tp.tp)
@@ -445,14 +410,21 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
           val (p1, p2) = (ej.p1s.mkString("\",\""), ej.p2s.mkString("\",\""))
 
-          val classTags = if (!skew) ""
+          val jtype = p2 match {
+            case "LABEL_1" => "inner" // case of a lookup iteration
+            case _ => ej.jtype
+          }
+
+          val (classTags, rightCast) = if (!skew) ("", gright)
             else {
               handleType(RecordCType(rtp))
-              s"[${generateType(RecordCType(rtp))}, ${generateType(rtp(p2))}]"
+              val grtp = generateType(RecordCType(rtp))
+              val ct = s"[$grtp, ${generateType(rtp(p2))}]"
+              (ct, s"$gright.as[$grtp]")            
             }
 
-          s"""|${generate(ej.left)}.equiJoin$classTags($gright, 
-              | Seq("${p1}"), Seq("${p2}"), "${ej.jtype}").as[$nrec]
+          s"""|${generate(ej.left)}.equiJoin$classTags($rightCast, 
+              | Seq("${p1}"), Seq("${p2}"), "${jtype}").as[$nrec]
               |""".stripMargin
 
         }else {
@@ -602,8 +574,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val rvalues = value.map(vs => 
         s"typed.sum[$intp](${matchOption(v, vs)})\n").mkString("agg(", ",", ")")
 
-      println("in here with")
-      println(er.tp.tp)
       val nrec = er.tp.tp.attrs.map(k => 
         if (value.contains(k._1)) k._2 match {
 		  case _:OptionType => s"Some(${k._1})"

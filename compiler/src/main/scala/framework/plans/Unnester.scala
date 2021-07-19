@@ -60,8 +60,6 @@ object Unnester {
     // Base case for unnesting algorithm: Rule C4 
     case Comprehension(e1, v, p, e2) if u.isEmpty && w.isEmpty && E.isEmpty =>
       // do not index a domain
-      println("in here with ")
-      println(Printer.quote(e1))
       val nE = unnest(e1)((u, w, E, tag))
       val ne1 = getName(nE) match {
         case en if en.contains("Dom") => nE
@@ -102,21 +100,24 @@ object Unnester {
       val dict = unnest(e1)((u, w, E, tag))
       val nv = wvar(w)
       val nv1 = Variable.freshFromBag(dict.tp)
+      val pdict = Projection(dict, nv1, Record(nv1.tp.attrs.map(x => x._1 match {
+        case "_1" =>  "LABEL_1" -> Project(nv1, x._1); case _ => x._1 -> Project(nv1, x._1)})), Nil)
+      val nv2 = Variable.freshFromBag(pdict.tp)
 
       // capture join conditions and remove dropped attributes
-      val (joinCond, fields) = lbl match {
+      val joinCond = lbl match {
         case Project(e3, p1) => 
           val rev = normalize.finalize(replace(e3, nv, useType = false)).asInstanceOf[CExpr]
-          (Equals(Project(rev, p1), Project(nv1, "_1")), ((w.keySet - p1) ++ (v1.tp.attrs.keySet - "_1")))
+          Equals(Project(rev, p1), Project(nv2, "LABEL_1"))
         case _ => 
-          (Equals(lbl, Project(nv1, "_1")), (w.keySet ++ (v1.tp.attrs.keySet - "_1")))
+          Equals(lbl, Project(nv2, "LABEL_1"))
       }
 
       // generate the outer join and make recursive call
       val rfs = collect(joinCond)
-      val fdict = Select(dict, nv1, filt)
-      val nE = OuterJoin(E.get, nv, fdict, nv1, joinCond, fields.toList)
-      unnest(e2)((u.filter(x => !rfs(x._1)), flat(w.filter(x => !rfs(x._1)), nv1.tp), Some(nE), tag))
+      // val fdict = Select(dict, nv1, filt)
+      val nE = OuterJoin(E.get, nv, pdict, nv2, joinCond, (w.keySet ++ v1.tp.attrs.keySet).toList)
+      unnest(e2)((u, flat(w, nv2.tp), Some(nE), tag))
 
     // Deprecated: primitive monoid case, this was only relevant when we were using count 
     // and weighted singleton - all functionality is replaced by SumBy

@@ -1,7 +1,8 @@
-package framework.plans
+package framework.optimize
 
 import scala.collection.immutable.{Map => IMap}
 import scala.collection.mutable.{HashMap, Map}
+import framework.plans._
 
 case class Estimate(inSize: Double, outSize: Double, 
   inRows: Double, outRows: Double, cpu: Double, network: Double){

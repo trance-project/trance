@@ -228,15 +228,9 @@ case class Join(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond: CExp
 }
 
 case class OuterJoin(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond: CExpr, fields: List[String]) extends JoinOp {
-  def tp: BagCType = { (cond, right.tp.isDict) match {
-    case (Equals(Project(_, p1), Project(_, p2 @ "_1")), true) =>
-      val nvtp = RecordCType(v.tp.attrs - p1)
-      val nv2tp = RecordCType(v2.tp.attrs - "_1")
-      BagCType(nvtp.merge(nv2tp).project(fields))
-    case _ => 
-      BagCType(v.tp.merge(v2.tp.outer).project(fields))
-    }
-  }
+  
+  def tp: BagCType = BagCType(v.tp.merge(v2.tp.outer).project(fields))
+  
   val jtype = "left_outer"
 
 }
