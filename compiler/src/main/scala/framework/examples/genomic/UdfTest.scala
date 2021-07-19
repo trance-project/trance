@@ -23,11 +23,9 @@ object ExampleQuery extends DriverGene {
   // are inherited from DriverGene trait (around line 549)
   // checkout individuals traits to see what the load functions are doing
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-    s"""|val tcgaLoader = new TCGALoader(spark)
-        |val tcgaData = tcgaLoader.load("/mnt/app_hdd/data/biospecimen/clinical", dir = true)
+    s"""|${loadTcga(shred, skew, fname = clinDir)}
         |${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
         |${loadCopyNumber(shred, skew, fname = cnvFile)}
-        |${loadTCGA(shred, skew, fname = clinDir)}
         |${loadGeneExpr(shred, skew, fname = exprFile, aname = aexprFile)}
         |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
         |${loadPathway(shred, skew, fname = pathFile)}
