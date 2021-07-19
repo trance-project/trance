@@ -3,12 +3,18 @@
 
 The framework is organized into two subfolders:
 * `compiler` contains all the components for running the standard and shredded pipeline, both skew-unaware and skew-aware. This goes from NRC to generated code.
-* `executor` contains plan operator implementations specific to the targets of the code generator. Currently, we support Spark 2.4.2. This organization avoids running the compiler with Spark-specific dependencies.
+* `executor` contains plan operator implementations specific to the targets of the code generator. We support Scala 2.12 based versions of Spark (2.4.2, 3.1.1, etc). This organization avoids running the compiler with Spark-specific dependencies.
 
 ### Supplementary Materials
 
 Supplementary materials can be found in the base directory `supplementary.pdf`. Also in the base 
 directory, `external.tar.gz` contains the source files for TPC-H benchmark queries written in external systems. 
+
+Links to papers: 
+
+[Scalable querying of nested data](https://arxiv.org/abs/2011.06381) 
+
+[Scalable analysis of multi-modal biomedical data](https://www.biorxiv.org/content/10.1101/2020.12.14.422781v1)
 
 ### System Requirements
 
