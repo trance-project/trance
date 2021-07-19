@@ -28,9 +28,13 @@ trait Dictionary {
     def tp: TupleDictType
   }
 
-  final case class BagDictVarRef(name: String, tp: BagDictType) extends BagDictExpr with VarRef
+  trait DictVarRef extends VarRef {
+    this: DictExpr =>
+  }
 
-  final case class TupleDictVarRef(name: String, tp: TupleDictType) extends TupleDictExpr with VarRef
+  final case class BagDictVarRef(name: String, tp: BagDictType) extends BagDictExpr with DictVarRef
+
+  final case class TupleDictVarRef(name: String, tp: TupleDictType) extends TupleDictExpr with DictVarRef
 
   final case class BagDict(lblTp: LabelType, flat: BagExpr, dict: TupleDictExpr) extends BagDictExpr {
     val tp: BagDictType = BagDictType(lblTp, flat.tp, dict.tp)
@@ -38,52 +42,45 @@ trait Dictionary {
 
   final case class TupleDict(fields: Map[String, TupleDictAttributeExpr]) extends TupleDictExpr {
     val tp: TupleDictType = TupleDictType(fields.map(f => f._1 -> f._2.tp))
-
-    def isEmpty: Boolean = fields.forall(_._2 == EmptyDict)
   }
 
-  trait DictProject extends Project { this: Expr =>
-    def tuple: TupleDictVarRef
-
-    def field: String
-
-    def tp: TupleDictAttributeType = tuple.tp(field)
-  }
+  trait DictProject extends Project { this: DictExpr => }
 
   final case class BagDictProject(tuple: TupleDictVarRef, field: String) extends BagDictExpr with DictProject {
-    override def tp: BagDictType = super.tp.asInstanceOf[BagDictType]
+    override def tp: BagDictType = tuple.tp(field).asInstanceOf[BagDictType]
   }
 
   final case class TupleDictProject(dict: BagDictExpr) extends TupleDictExpr {
     val tp: TupleDictType = dict.tp.dictTp
   }
 
-  final case class BagDictLet(x: VarDef, e1: Expr, e2: BagDictExpr) extends BagDictExpr with Let {
+  trait DictLet extends Let {
+    this: DictExpr =>
+
+    def e2: DictExpr
+  }
+
+  final case class BagDictLet(x: VarDef, e1: Expr, e2: BagDictExpr) extends BagDictExpr with DictLet {
     assert(x.tp == e1.tp)
 
     val tp: BagDictType = e2.tp
   }
 
-  final case class TupleDictLet(x: VarDef, e1: Expr, e2: TupleDictExpr) extends TupleDictExpr with Let {
+  final case class TupleDictLet(x: VarDef, e1: Expr, e2: TupleDictExpr) extends TupleDictExpr with DictLet {
     assert(x.tp == e1.tp)
 
     val tp: TupleDictType = e2.tp
   }
 
-  // final case class BagDictUdf(name: String, in: BagDictExpr, otp: Type) extends BagDictExpr with Udf {
+  trait DictIfThenElse extends IfThenElse {
+    this: DictExpr =>
 
-  //   val tp: BagDictType = e2.tp
-    
-  // }
+    def e1: DictExpr
 
-  // final case class TupleDictUdf(x: VarDef, e1: Expr, e2: TupleDictExpr) extends TupleDictExpr with Udf {
-  //   assert(x.tp == e1.tp)
+    def e2: Option[DictExpr]
+  }
 
-  //   val tp: TupleDictType = e2.tp
-  // }
-
-
-  final case class BagDictIfThenElse(cond: CondExpr, e1: BagDictExpr, d2: BagDictExpr) extends BagDictExpr with IfThenElse {
+  final case class BagDictIfThenElse(cond: CondExpr, e1: BagDictExpr, d2: BagDictExpr) extends BagDictExpr with DictIfThenElse {
     assert(e1.tp == d2.tp)
 
     val tp: BagDictType = e1.tp
@@ -91,7 +88,7 @@ trait Dictionary {
     def e2: Option[BagDictExpr] = Some(d2)
   }
 
-  final case class TupleDictIfThenElse(cond: CondExpr, e1: TupleDictExpr, d2: TupleDictExpr) extends TupleDictExpr with IfThenElse {
+  final case class TupleDictIfThenElse(cond: CondExpr, e1: TupleDictExpr, d2: TupleDictExpr) extends TupleDictExpr with DictIfThenElse {
     assert(e1.tp == d2.tp)
 
     val tp: TupleDictType = e1.tp
@@ -100,6 +97,8 @@ trait Dictionary {
   }
 
   sealed trait DictUnion {
+    this: DictExpr =>
+
     def dict1: DictExpr
 
     def dict2: DictExpr

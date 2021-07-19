@@ -3,88 +3,88 @@ package framework.examples.genomic
 import framework.common._
 import framework.examples.{Query, Environment}
 import framework.plans._
+import framework.optimize._
 import framework.loader.csv._
 
 
 class GenomicEnv(val capacity: Int, val shred: Boolean = false, val flex: Int = 0, 
-	ptype: String = "greedy", repeat: Int = 1,
+	val ptype: String = "greedy", repeat: Int = 1,
 	val zhost: String = "localhost", val zport: Int = 8085) extends Environment {
 	
 	val name = "GenomicEnv"
 
-	// val shred: Boolean = init_shred
-
-	// val capacity: Int = init_capacity
-
-	// val flex: Int = init_flex
-
 	val plannerType: String = ptype
 
-	val dtp = new DriverGene{ val name: String = ""; val program: Program = Program(Nil)}
+	val dtp = new DriverGene{ val name: String = ""; val program: Program = Program(Nil) }
 
   	val tbls = Map("occurrences" -> dtp.occurmids.tp, 
                   "copynumber" -> dtp.copynum.tp, 
                   "samples" -> dtp.samples.tp)
 
 	override def setup(shred: Boolean = shred, skew: Boolean = false, cache: Boolean = false): String = {
+		val big = "" //"f"
 		if (shred){
-  		  s"""|val samples = spark.table("fsamples")
+  		  s"""|val samples = spark.table("${big}samples")
 	          |val IBag_samples__D = samples
 	          |${if (cache) "IBag_samples__D.cache; IBag_samples__D.count" else ""}
 	          |
-	          |val copynumber = spark.table("fcopynumber")
+	          |val copynumber = spark.table("${big}copynumber")
 	          |val IBag_copynumber__D = copynumber
 	          |${if (cache) "IBag_copynumber__D.cache; IBag_copynumber__D.count" else ""}
 	          |
-	          |val odict1 = spark.table("fodict1")
+	          |val clinical = spark.table("${big}clinical")
+	          |val IBag_clinical__D = clinical
+	          |${if (cache) "IBag_clinical__D.cache; IBag_clinical__D.count" else ""}
+	          |
+	          |val odict1 = spark.table("${big}odict1")
 	          |val IBag_occurrences__D = odict1
 	          |${if (cache) "IBag_copynumber__D.cache; IBag_copynumber__D.count" else ""}
 	          |
 	          |// issue with partial shredding here
-	          |val odict2 = spark.table("fodict2").drop("flags")
-	          |val IDict_occurrences__D_transcript_consequences = odict2
-	          |${if (cache) "IDict_occurrences__D_transcript_consequences.cache" else ""}
-	          |${if (cache) "IDict_occurrences__D_transcript_consequences.count" else ""}
+	          |val odict2 = spark.table("${big}odict2").drop("flags")
+	          |val IMap_occurrences__D_transcript_consequences = odict2
+	          |${if (cache) "IMap_occurrences__D_transcript_consequences.cache" else ""}
+	          |${if (cache) "IMap_occurrences__D_transcript_consequences.count" else ""}
 	          |
-	          |val odict3 = spark.table("fodict3")
-	          |val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
-	          |${if (cache) "IDict_occurrences__D_transcript_consequences_consequence_terms.cache" else ""}
-	          |${if (cache) "IDict_occurrences__D_transcript_consequences_consequence_terms.count" else ""}
+	          |val odict3 = spark.table("${big}odict3")
+	          |val IMap_occurrences__D_transcript_consequences_consequence_terms = odict3
+	          |${if (cache) "IMap_occurrences__D_transcript_consequences_consequence_terms.cache" else ""}
+	          |${if (cache) "IMap_occurrences__D_transcript_consequences_consequence_terms.count" else ""}
 	          |""".stripMargin
 		}else{
-  		  s"""|val samples = spark.table("fsamples")
+  		  s"""|val samples = spark.table("${big}samples")
 	          |${if (cache) "samples.cache; samples.count" else ""}
 	          |
-	          |val copynumber = spark.table("fcopynumber")
+	          |val clinical = spark.table("${big}clinical")
+	          |${if (cache) "clinical.cache; clinical.count" else ""}
+	          |
+	          |val copynumber = spark.table("${big}copynumber")
 	          |${if (cache) "copynumber.cache; copynumber.count" else ""}
 	          |
-	          |val occurrences = spark.table("foccurrences")
+	          |val occurrences = spark.table("${big}occurrences")
 	          |${if (cache) "occurrences.cache; occurrences.count" else ""}
 	          |""".stripMargin
 		}
 	}
 
-	val queries: Vector[Query] = Vector(TestBaseQuery, TestBaseQuery2)
+	// these are the queries that were used for the microexperiment
+	// val queries: Vector[Query] = Vector(TestBaseQuery, TestBaseQuery2)
+
+	val queries: Vector[Query] = Vector(SW0, SW1) //, SW0a, SW1a) //, SW2, SW3, SW4, SW5, SW6) //, SW7)
 
 	val plans: Vector[(CExpr, Int)] = queries.map(q => 
 		q.optimized(shred, optLevel, schema).asInstanceOf[CExpr]).zipWithIndex
 
 	val cacheStrategy: Option[CacheFactory] = 
-		Some(new CacheFactory(plans, capacity, flex = flex, ptype = plannerType))
+		Some(new CacheFactory(plans, capacity, flex = flex, ptype = plannerType, zhost = zhost, zport = zport))
 
 }
 
 class LetTestEnv(val capacity: Int, val shred: Boolean = false, 
-	val flex: Int = 0, ptype: String = "greedy", repeat: Int = 1, 
+	val flex: Int = 0, val ptype: String = "greedy", repeat: Int = 1, 
 	val zhost: String = "localhost", val zport: Int = 8085) extends Environment {
 	
 	val name = "LetTestEnv"
-
-	// val shred: Boolean = init_shred
-
-	// val capacity: Int = init_capacity
-
-	// val flex: Int = init_flex
 
 	val plannerType: String = ptype
 
@@ -96,11 +96,11 @@ class LetTestEnv(val capacity: Int, val shred: Boolean = false,
 
 	override def setup(shred: Boolean = shred, skew: Boolean = false, cache: Boolean = false): String = {
 		if (shred){
-  		  s"""|val samples = spark.table("samples")
+  		  s"""|val samples = spark.table("fsamples")
 	          |val IBag_samples__D = samples
 	          |${if (cache) "IBag_samples__D.cache; IBag_samples__D.count" else ""}
 	          |
-	          |val copynumber = spark.table("copynumber")
+	          |val copynumber = spark.table("fcopynumber")
 	          |val IBag_copynumber__D = copynumber
 	          |${if (cache) "IBag_copynumber__D.cache; IBag_copynumber__D.count" else ""}
 	          |

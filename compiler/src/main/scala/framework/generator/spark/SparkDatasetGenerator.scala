@@ -300,7 +300,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     // be generated...
     case CUdf(n, e1, tp) =>
       udfsUsed = udfsUsed :+ n
-      s"$n(${generateReference(e1)})"
+      s"""$n(${e1.map(f => generateReference(f)).mkString(",")})"""
 	  case Sng(e) => s"Seq(${generate(e)})"
     case CGet(e1) => s"${generate(e1)}.head"
     case CDeDup(e1) if dedup => s"${generate(e1)}.distinct"
@@ -408,39 +408,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           | $ncast
           |""".stripMargin
 
-    // lookup iteration translates to inner join 
-    case ej @ OuterJoin(left, v1, right, v2, Equals(Project(_, p1), Project(_, p2 @ "_1")), filt) if right.tp.isDict =>
-      // adjust lookup column of dictionary
-      val rcol = s"${p1}${p2}"
-      val rtp = rename(right.tp.attrs, p2, rcol)
-	    handleType(rtp)
-      val grtp = generateType(rtp)
-
-      // adjust label lookup column
-      val lcol = s"${p1}_LABEL"
-      val (lcolumn, ltp) = v1.tp.attrs get "_LABEL" match {
-        case Some(LabelType(ms)) if ms.size > 1 =>
-          (s""".withColumn("$lcol", col("_LABEL").getField("$p1"))""", 
-            RecordCType(left.tp.attrs))
-        case _ => 
-          (s""".withColumnRenamed("${p1}", "$lcol")""",
-            rename(left.tp.attrs, p1, lcol))
-      }
-      handleType(ltp)
-      val gltp = generateType(ltp)
-
-      val nrecTp = RecordCType(ltp.merge(rtp).attrs -- Set(rcol,lcol))
-      handleType(nrecTp)
-      val classTags = if (!skew) ""
-        else s"[$grtp, ${generateType(right.tp.attrs(p2))}]"
-
-      s"""|${generate(left)}$lcolumn
-          |   .as[$gltp].equiJoin$classTags(
-          |   ${generate(right)}.withColumnRenamed("${p2}", "$rcol").as[$grtp], 
-          |   Seq("$lcol"), Seq("$rcol"), "inner").drop("$lcol", "$rcol")
-          |   .as[${generateType(nrecTp)}]
-          |""".stripMargin
-
     // JOIN operator
     case ej:JoinOp =>
       handleType(ej.tp.tp)
@@ -452,14 +419,21 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
           val (p1, p2) = (ej.p1s.mkString("\",\""), ej.p2s.mkString("\",\""))
 
-          val classTags = if (!skew) ""
+          val jtype = p2 match {
+            case "LABEL_1" => "inner" // case of a lookup iteration
+            case _ => ej.jtype
+          }
+
+          val (classTags, rightCast) = if (!skew) ("", gright)
             else {
               handleType(RecordCType(rtp))
-              s"[${generateType(RecordCType(rtp))}, ${generateType(rtp(p2))}]"
+              val grtp = generateType(RecordCType(rtp))
+              val ct = s"[$grtp, ${generateType(rtp(p2))}]"
+              (ct, s"$gright.as[$grtp]")            
             }
 
-          s"""|${generate(ej.left)}.equiJoin$classTags($gright, 
-              | Seq("${p1}"), Seq("${p2}"), "${ej.jtype}").as[$nrec]
+          s"""|${generate(ej.left)}.equiJoin$classTags($rightCast, 
+              | Seq("${p1}"), Seq("${p2}"), "${jtype}").as[$nrec]
               |""".stripMargin
 
         }else {
@@ -587,9 +561,22 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     case er @ Reduce(in, v, key, value) =>
-      handleType(er.tp.tp)
       val intp = generateType(in.tp.asInstanceOf[BagCType].tp)
-      val gtp = generateType(er.tp.tp)
+      val ntp = er.tp.tp match {
+    		case RecordCType(fs) => 
+    			val adjust = fs.map(f => {
+    			  if (value.contains(f._1)){
+    			  	f._2 match {
+    				  case OptionType(t) => f._1 -> OptionType(DoubleType)
+    				  case _:NumericType => f._1 -> DoubleType
+    				  case t => f._1 -> t
+    				}
+    			  }else f})
+    			RecordCType(adjust)
+    		case _ => ???
+	    }
+  	  handleType(ntp)
+  	  val gtp = generateType(ntp)
 
       val gv = generate(v)
       val rkey = Record(key.map(k => k -> Project(v, k)).toMap)
@@ -598,9 +585,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
       val nrec = er.tp.tp.attrs.map(k => 
         if (value.contains(k._1)) k._2 match {
-          case _:OptionType => s"Some(${k._1})"
-          case _ => k._1 
-        }else s"key.${k._1}").mkString(s"$gtp(", ", ", ")")
+		  case _:OptionType => s"Some(${k._1})"
+        case _ => k._1 
+      }else s"key.${k._1}").mkString(s"$gtp(", ", ", ")")
 
       s"""|${generate(in)}.groupByKey($gv => ${generate(rkey)})
           | .$rvalues.mapPartitions{ it => it.map{ case (key, ${value.mkString(", ")}) =>
@@ -615,6 +602,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           | .as[$nrec]
           |""".stripMargin
 
+    case RemoveNulls(e1) => s"${generate(e1)}.na.drop()"
+ 
     // filter
     case Select(x, v, filt) => 
       handleType(v.tp)
@@ -626,10 +615,17 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     case Bind(v, CNamed(n, e1), LinearCSet(fs)) =>
-      val gtp = if (skew) "[Int]" else ""
+      val (gtp, lbl) = 
+        e1.tp.attrs.get("_LABEL") match {
+          case Some(t) => 
+            (if (skew) s"[${generateType(t)}]" else "", "_LABEL")
+          case _ => e1.tp.attrs.get("_1") match {
+            case Some(tt) => (if (skew) s"[${generateType(tt)}]" else "", "_1")
+            case _ => ("", "")
+          }
+        }
       val repart = if (n.contains("MDict")){
-        if (e1.tp.attrs.contains("_LABEL")) s""".repartition$gtp($$"_LABEL")"""
-        else s""".repartition$gtp($$"_1")""" 
+        s""".repartition$gtp($$"$lbl")"""
       }else ""
       val gv = generate(v)
       s"""|val $gv = ${generate(e1)}
@@ -640,12 +636,18 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           // |${if (!cache && !evalFinal) comment(n) else n}.count
 
     case Bind(v, CNamed(n, e1), e2) =>
-      val gtp = if (skew) "[Int]" else ""
+      val (gtp, lbl) = 
+        e1.tp.attrs.get("_LABEL") match {
+          case Some(t) => 
+            (if (skew) s"[${generateType(t)}]" else "", "_LABEL")
+          case _ => e1.tp.attrs.get("_1") match {
+            case Some(tt) => (if (skew) s"[${generateType(tt)}]" else "", "_1")
+            case _ => ("", "")
+          }
+        }
       val repart = if (n.contains("MDict")){
-        if (e1.tp.attrs.contains("_LABEL")) s""".repartition$gtp($$"_LABEL")"""
-        else s""".repartition$gtp($$"_1")""" 
+        s""".repartition$gtp($$"$lbl")"""
       }else ""
-
       val gv = generate(v)
       val ge2 = if (e2.isInstanceOf[Variable]) "" else generate(e2)
        s"""|val $gv = ${generate(e1)}

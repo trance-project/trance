@@ -2,7 +2,7 @@ package framework.plans
 
 import framework.common._
 
-/** Extensions for the plan language **/
+/** Extensions to the plan language **/
 trait Extensions {
 
   def containsCacheUnfriendly(plan: CExpr): Boolean = plan match {
@@ -20,8 +20,13 @@ trait Extensions {
 
     }
 
+  // Given an expression e replaces all variable occurrences in e with v. 
+  // example: (a := x1.a, b := x2.b) => (a := v.a, b := v.b)
+  // 
+  // optional type check (useType)
   def replace(e: CExpr, v: Variable, useType: Boolean = false): CExpr = e match {
     case Record(ms) => Record(ms.map(r => r._1 -> replace(r._2, v, useType)))
+    case Label(ms) => Label(ms.map(r => r._1 -> replace(r._2, v, useType)))
     case Project(_, f) => Project(v, f)
     case If(cond, s1, Some(s2)) => If(replace(cond, v, useType), replace(s1, v, useType), Some(replace(s2, v, useType)))
     case If(cond, s1, None) => If(replace(cond, v, useType), replace(s1, v, useType), None)
@@ -47,7 +52,7 @@ trait Extensions {
     case Gte(e1, e2) => collect(e1) ++ collect(e2)
     case Lte(e1, e2) => collect(e1) ++ collect(e2)
     case Project(e1, f) => Set(f)
-  	case CUdf(n, e1, tp) => collect(e1)
+  	case CUdf(n, e1, tp) => e1.flatMap(f => collect(f)).toSet
   	case _ => Set()
   }
 
@@ -67,6 +72,7 @@ trait Extensions {
     funct.applyOrElse(e, (ex: CExpr) => ex match {
 
       case CDeDup(e1) => CDeDup(fapply(e1, funct))
+
       case CGroupBy(e1, v1, keys, values, gname) => CGroupBy(fapply(e1, funct), v1, keys, values, gname)
       case CReduceBy(e1, v1, keys, values) => CReduceBy(fapply(e1, funct), v1, keys, values)
 
@@ -74,6 +80,8 @@ trait Extensions {
       case LinearCSet(es) => LinearCSet(es.map(e1 => fapply(e1, funct)))
 
       case AddIndex(in, v) => AddIndex(fapply(in, funct), v)
+      case RemoveNulls(in) => RemoveNulls(fapply(in, funct))
+        
       case Projection(in, v, filter, fields) =>
         Projection(fapply(in, funct), v, filter, fields)
       

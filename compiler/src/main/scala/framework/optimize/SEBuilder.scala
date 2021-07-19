@@ -1,7 +1,8 @@
-package framework.plans
+package framework.optimize
 
 import framework.common._
 import scala.collection.mutable.{Map, HashMap}
+import framework.plans._
 
 case class SE(wid: Int, subplan: CExpr, height: Int) {
   override def equals(that: Any): Boolean = that match {

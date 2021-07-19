@@ -1,17 +1,17 @@
 package framework.plans
 
 import framework.common._
-import framework.nrc.{Printer => NRCPrinter, MaterializeNRC}
+import framework.nrc.{Printer => NRCPrinter, MaterializeNRC, Materialization}
 
 /** Translate NRC from standard and shredded pipeline into 
   * a comprehension language that supports normalization. 
   */
-trait NRCTranslator extends MaterializeNRC with NRCPrinter {
+trait NRCTranslator extends Materialization with MaterializeNRC with NRCPrinter {
   val compiler = new BaseCompiler{}
   import compiler._
 
   def translate(e: Type): Type = e match {
-    case MatDictType(lbl, dict) => 
+    case KeyValueMapType(lbl, dict) =>
       MatDictCType(translate(lbl).asInstanceOf[LabelType], translate(dict).asInstanceOf[BagCType])
     case BagType(t) => BagCType(translate(t))
     case LabelType(fs) => LabelType(fs.map(f => f._1 -> translate(f._2)))
@@ -61,7 +61,7 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
     case Tuple(fs) if fs.isEmpty => unit
     case Tuple(fs) => record(fs.map(f => f._1 -> translate(f._2)))
     case p: Project => project(translate(p.tuple), p.field)
-	  case u:Udf => CUdf(u.name, translate(u.in), translate(u.tp))
+	  case u:Udf => CUdf(u.name, Seq(translate(u.in)), translate(u.tp))
 	  case ift: IfThenElse => ift.e2 match {
       case Some(a) => ifthen(translate(ift.cond), translate(ift.e1), Option(translate(a)))
       case _ => ifthen(translate(ift.cond), translate(ift.e1))
@@ -99,9 +99,9 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
     case Get(e1) => CGet(translate(e1))
     
     // new flexible dictionary handling
-    case MatDictLookup(lbl, dict) => CLookup(translate(lbl), translate(dict))
-    case MatDictToBag(bd) => FlatDict(translate(bd))
-    case BagToMatDict(bd) => GroupDict(translate(bd))
+    case KeyValueMapLookup(lbl, dict) => CLookup(translate(lbl), translate(dict))
+    case KeyValueMapToBag(bd) => FlatDict(translate(bd))
+    case BagToKeyValueMap(bd) => GroupDict(translate(bd))
 
     // catch existing dictionary types that may persist in NRC, 
     // these are likely deprecated cases that no longer exist with new 
@@ -111,11 +111,13 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
     case TupleDict(fs) => TupleCDict(fs.map(f => f._1 -> translate(f._2)))
     case TupleDictProject(dict) => project(translate(dict), "_2")
     case d: DictUnion => DictCUnion(translate(d.dict1), translate(d.dict2))
+    case ShredUdf(n, f, d, tp) => CUdf(n, Seq(translate(f), translate(d)), translate(tp))
 
     case _ => sys.error("cannot translate "+quote(e))
   }
 
   def translate(a: Assignment): CExpr = CNamed(a.name, translate(a.rhs))
   def translate(p: Program): LinearCSet = LinearCSet(p.statements.map(translate))
+  def translate(p: MProgram): LinearCSet = translate(p.program)
 
 }

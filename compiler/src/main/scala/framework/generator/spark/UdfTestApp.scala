@@ -21,7 +21,7 @@ object UdfDevApp extends App {
 
   override def main(args: Array[String]){
 
-    // runs the standard pipeline
-    AppWriter.runDatasetShred(BagUDFExample, "ExampleTest,standard", optLevel = 1)
+    // runs the shredded pipeline to file
+    AppWriter.runDatasetShred(BagInputUDFExample, "ExampleTest,standard", optLevel = 1)
   }
 }

@@ -1,4 +1,4 @@
-package framework.plans
+package framework.optimize
 
 import framework.common._
 import scala.sys.process._
@@ -9,6 +9,7 @@ import java.util.UUID.randomUUID
 import scala.collection.mutable.Map
 import scala.collection.immutable.{Map => IMap}
 import scala.io.Source
+import framework.plans._
 
 case class Statistics(sizeInKB: Double, rowCount: Double) {
 
@@ -21,18 +22,21 @@ case class Statistics(sizeInKB: Double, rowCount: Double) {
 
 }
 
-class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String, zport: Int, inputs: String = "") { //, inputs: Map[String, String] = Map.empty[String, String]) {
+class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", zport: Int = 8085, inputs: String = "") { //, inputs: Map[String, String] = Map.empty[String, String]) {
 
   val data: String = if (inputs.isEmpty){
-    s"""|   val copynumber = spark.table("fcopynumber")
-        |   val occurrences = spark.table("foccurrences")
-        |   val samples = spark.table("fsamples")
+    s"""|   val db = spark.catalog.currentDatabase
+        |   val copynumber = spark.table("copynumber")
+        |   //val occurrences = spark.table("occurrences")
+        |   val samples = spark.table("samples")
+        |   val clinical = spark.table("clinical")
         |   val IBag_copynumber__D = copynumber
         |   val IBag_samples__D = samples
-        |   val IBag_occurrences__D = spark.table("fodict1")
-        |   val IDict_occurrences__D_transcript_consequences = spark.table("fodict2")
-        |   val IDict_occurrences__D_transcript_consequences_consequence_terms = spark.table("fodict3")
-      """
+        |   val IBag_clinical__D = clinical
+        |   //val IBag_occurrences__D = spark.table("odict1")
+        |   //val IMap_occurrences__D_transcript_consequences = spark.table("odict2")
+        |   //val IMap_occurrences__D_transcript_consequences_consequence_terms = spark.table("odict3")
+      """.stripMargin
   }else inputs 
   
   val zep = new ZeppelinFactory(host = zhost, port = zport)
@@ -130,7 +134,8 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String, zport: Int, inp
       printer.close
       "DONE"
     }else {
-      val noteid = zep.addNote(bname)
+      println("attempting a zeppelin connection to "+zhost+" "+zport)
+	  val noteid = zep.addNote(bname)
       // println(s"Writing to notebook: $noteid")
       val pcontents = writeParagraph(bname, data, ghead, queries+"\n"+codeMap.map(_._2).mkString("\n"), genc)
       val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)

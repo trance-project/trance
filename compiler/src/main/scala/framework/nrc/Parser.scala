@@ -6,7 +6,7 @@ import java.io.FileReader
 import java.io.FileInputStream
 // import scala.collection.mutable.Map
 
-class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with MaterializeNRC with Factory {
+class Parser(tbls: Map[String, BagType], udfTypes: Map[String, Type] = Map.empty[String, Type]) extends JavaTokenParsers with MaterializeNRC with Factory {
 
   var scope: Map[String, VarDef] = Map.empty[String, VarDef]
   for (t <- tbls){
@@ -56,8 +56,6 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
 
   def bagvarref: Parser[BagVarRef] = ident ^^
     { case (s: String) => 
-        println("for some reason i am in here...")
-          println(s)
         BagVarRef(s, scope(s).tp.asInstanceOf[BagType]) }
 
   def project: Parser[TupleAttributeExpr] = tuplevarref~"."~ident ^^
@@ -108,7 +106,7 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
       (xr, e1)
     }
 
-  def let: Parser[Let] = letinit~"in"~term ^^ 
+  def let: Parser[Expr] = letinit~"in"~term ^^
     { case (x1:VarDef, e1:Expr)~"in"~(e2:Expr) => e2.tp match {
         case _:BagType => BagLet(x1, e1, e2.asInstanceOf[BagExpr])
         case _:TupleType => TupleLet(x1, e1, e2.asInstanceOf[TupleExpr])
@@ -145,7 +143,7 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
 
   def tupleexpr: Parser[TupleExpr] = tuple | tupvarref
   def bagexpr: Parser[BagExpr] = 
-    groupby | sumby | forunion | ifthen.asInstanceOf[Parser[BagExpr]] | singleton | project.asInstanceOf[Parser[BagExpr]] | bagvarref
+    dedup | groupby | sumby | forunion | ifthen.asInstanceOf[Parser[BagExpr]] | singleton | project.asInstanceOf[Parser[BagExpr]] | bagvarref
 
   //def numconst: Parser[NumericConst] = 
   //def primconst: Parser[PrimitiveConst] = 
@@ -172,14 +170,16 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
   // todo add all the type
   def strToType(s: String): Type = s match {
     case "IntType" => IntType
-    case _ => StringType // catch and translate all types
+    case "LongType" => LongType
+    case "DoubleType" => DoubleType
+    case "StringType" => StringType
+    case _ => ??? // catch and translate all types
   }
 
+  // todo multiple inputs...
   def udf: Parser[Expr] = ident~"("~bagexpr~")" ^^ 
-    { case (f:String)~"("~(e1:Expr)~")" => 
-      val gtp = f.split("_")
-      val name = gtp.dropRight(1).mkString("_")
-      Udf(name, e1, strToType(gtp.last)).asInstanceOf[Expr] }
+    { case (name:String)~"("~(e1:Expr)~")" => 
+      Udf(name, e1, udfTypes(name)).asInstanceOf[Expr] }
 
 
   def dedup: Parser[DeDup] = "dedup("~>bagexpr<~")" ^^
@@ -203,4 +203,5 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
 
 object Parser {
   def apply(tbls: Map[String, BagType]): Parser = new Parser(tbls)
+  def apply(tbls: Map[String, BagType], udfTypes: Map[String, Type]): Parser = new Parser(tbls, udfTypes)
 }

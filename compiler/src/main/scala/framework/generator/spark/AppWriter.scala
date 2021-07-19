@@ -87,6 +87,17 @@ object AppWriter {
     val qname = if (skew) s"Shred${query.name}${us}SkewSpark" else s"Shred${query.name}${us}Spark"
     val fname = s"$pathout/$qname.scala"
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))    
+
+    // collect the contents of the files
+    var udftext : String = ""
+
+    for (u <- codegen.udfsUsed) {
+        val bufferedSource = scala.io.Source.fromFile(s"udfs/${u}.udf")
+        val stringAdd = bufferedSource.getLines().mkString
+        udftext = udftext.concat(stringAdd)
+        bufferedSource.close()
+    }
+
     if (notebk){
       val zep = new ZeppelinFactory(zhost, zport)
       val noteid = zep.addNote(qname)
@@ -96,17 +107,6 @@ object AppWriter {
       // *.udf files in the compiler/udfs folder and then write their 
       // contents to a paragraph using the writeParagraph call on the next line:
       println(s"Writing out to $qname notebook with id: $noteid")
-
-      // collect the contents of the files
-      var udftext : String = ""
-
-      for (u <- codegen.udfsUsed) {
-          val bufferedSource = scala.io.Source.fromFile(s"udfs/${u}.udf")
-          val stringAdd = bufferedSource.getLines().mkString
-          udftext = udftext.concat(stringAdd)
-          bufferedSource.close()
-      }
-
 
       // define the udf paragraph output
       val udfcontents = writeParagraph(qname, udftext, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
@@ -125,7 +125,7 @@ object AppWriter {
       "sh compile.sh".!!
     }else{
       println(s"Writing out $qname to $fname")
-      val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet), label, encoders)
+      val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet), label, encoders+"\n"+udftext)
       printer.println(finalc)
       printer.close 
     } 
@@ -162,7 +162,7 @@ object AppWriter {
                        |${codegen.generateEncoders()}
                        |""".stripMargin
 
-    val cname = if (cache) s"CacheInputs${env.flex}" else s"${env.flex}"
+    val cname = if (cache) s"CacheInputs${env.flex}" else s"${env.flex}${env.ptype}"
     var qname = if (skew) s"${env.name}${cname}SkewSpark" else s"${env.name}${cname}Spark"
     if (env.shred) qname = s"Shred$qname"
     val fname = if (notebk) s"$qname.json" else s"$pathout/$qname.scala" 

@@ -16,7 +16,7 @@ object App {
 
      import spark.implicits._
 
-	// val vepLoader = new VepLoader(spark)
+	val vepLoader = new VepLoader(spark)
 	//val mafLoader = new MAFLoader(spark)
 	//val maf = mafLoader.loadFlat(s"/nfs_qc4/genomics/gdc/somatic/brca/TCGA.BRCA.mutect.995c0111-d90b-4140-bee7-3845436c3b42.DR-10.0.somatic.maf")
 	//val maf = mafLoader.loadFlat("/nfs_qc4/genomics/gdc/somatic/mafs/prad/")
@@ -27,23 +27,23 @@ object App {
 	//vepLoader.testVep
 	//val occurrences = vepLoader.loadOccurrencesMid(maf)
 	//occurrences.write.json("/nfs_qc4/genomics/gdc/somatic/datasetPRAD/")
-	//val occurrences = spark.table("foccurrences")
+	val occurrences = spark.table("foccurrences").sample(.20, 0).as[OccurrenceMid]
 	//spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/datasetFull/").as[OccurrenceMid]
 	//val pradoc = occurrences.filter($"donorId".isin(samples:_*))
 	//pradoc.show()
 	//pradoc.write.json("file:///nfs_qc4/genomics/gdc/somatic/datasetPRDA/")
 	//val occurrences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/datasetBrca/").as[OccurrenceMid]
-	/**val occurrences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/datasetPRAD/").as[OccurrenceMid]
+	//val occurrences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/datasetPRAD/").as[OccurrenceMid]
 	val (odict1, odict2, odict3) = vepLoader.shredMid(occurrences)
-	odict1.cache
+	/**odict1.cache
 	odict1.count
 	odict2.cache
 	odict2.count
 	odict3.cache
-	odict3.count
-	odict1.write.json("file:///nfs_qc4/genomics/gdc/somatic/odictPrad1/")
-	odict2.write.json("file:///nfs_qc4/genomics/gdc/somatic/odictPrad2/")
-	odict3.write.json("file:///nfs_qc4/genomics/gdc/somatic/odictPrad3/")**/
+	odict3.count**/
+	odict1.write.json("file:///nfs_qc4/genomics/gdc/somatic/osample20dict1/")
+	odict2.write.json("file:///nfs_qc4/genomics/gdc/somatic/osample20dict2/")
+	odict3.write.json("file:///nfs_qc4/genomics/gdc/somatic/osample20dict3/")
 
 	/**muts.take(10).foreach(println(_))
 	println("the annotations")
