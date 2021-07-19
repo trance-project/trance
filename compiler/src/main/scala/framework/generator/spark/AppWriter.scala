@@ -98,20 +98,20 @@ object AppWriter {
       println(s"Writing out to $qname notebook with id: $noteid")
 
       // collect the contents of the files
-      var udftext : String = ""
-
-      for (u <- codegen.udfsUsed) {
-          val bufferedSource = scala.io.Source.fromFile(s"udfs/${u}.udf")
-          val stringAdd = bufferedSource.getLines().mkString
-          udftext = udftext.concat(stringAdd)
-          bufferedSource.close()
-      }
-
-
-      // define the udf paragraph output
-      val udfcontents = writeParagraph(qname, udftext, "", "", "", "")
-      val udfpara = new JsonWriter().buildParagraph("Generated paragraph $qname", udfcontents)
-      val udfpid = zep.writeParagraph(noteid, udfpara)
+//      var udftext : String = ""
+//
+//      for (u <- codegen.udfsUsed) {
+//          val bufferedSource = scala.io.Source.fromFile(s"udfs/${u}.udf")
+//          val stringAdd = bufferedSource.getLines().mkString
+//          udftext = udftext.concat(stringAdd)
+//          bufferedSource.close()
+//      }
+//
+//
+//      // define the udf paragraph output
+//      val udfcontents = writeParagraph(qname, udftext, "", "", "", "")
+//      val udfpara = new JsonWriter().buildParagraph("Generated paragraph $qname", udfcontents)
+//      val udfpid = zep.writeParagraph(noteid, udfpara)
 
       val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
       val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
