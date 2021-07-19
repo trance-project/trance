@@ -27,7 +27,7 @@ object ExampleQuery extends DriverGene {
         |val tcgaData = tcgaLoader.load("/mnt/app_hdd/data/biospecimen/clinical", dir = true)
         |${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
         |${loadCopyNumber(shred, skew, fname = cnvFile)}
-        |${loadTcga(shred, skew, fname = clinDir)
+        |${loadTcga(shred, skew, fname = clinDir)}
         |${loadGeneExpr(shred, skew, fname = exprFile, aname = aexprFile)}
         |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
         |${loadPathway(shred, skew, fname = pathFile)}
