@@ -14,6 +14,7 @@ object ExampleQuery extends DriverGene {
   val occurFile = "/mnt/app_hdd/data/somatic/"
 //  val occurName = "datasetPRAD"
 //  val occurDicts = ("odictPrad1", "odictPrad2", "odictPrad3")
+  // For the tcga loader
   val occurName = "datasetFull"
   val occurDicts = ("odictMutect1", "odictMutect2", "odictMutect3")
   val pathFile = "/mnt/app_hdd/data/pathway/c2.cp.v7.1.symbols.gmt"
