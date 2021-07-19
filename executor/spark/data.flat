@@ -1,1 +1,3 @@
-datapath=/nfs/home/pavlos/trance/executor/spark/data/tpch
+datapath=/Users/jac/code/trance/executor/spark/data/tpch
+heavyKeyStrategy=full
+threshold=.25

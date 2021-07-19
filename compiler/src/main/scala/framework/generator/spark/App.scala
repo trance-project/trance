@@ -8,6 +8,18 @@ import framework.examples.genomic._
 import framework.examples.Query
 import framework.loader.csv._
 
+object SkewTest extends App {
+  override def main(args: Array[String]){
+    AppWriter.runDataset(SkewTest2, "SkewTest2Genes,standard", optLevel = 1)
+    AppWriter.runDataset(SkewTest2, "SkewTest2Genes,standard", optLevel = 1, skew = true)
+  }
+}
+
+object ScaleTest extends App {
+  override def main(args: Array[String]){
+    AppWriter.runDatasetShred(TestBaseQuery, "TestBaseQuery,shredded", optLevel = 1)
+  }
+}
 
 
 object TestZeppelin extends App {
@@ -19,10 +31,25 @@ object TestZeppelin extends App {
 
 object LetExplore extends App {
   override def main(args: Array[String]){
+
     val dlbctest = 5000
     // val lenv = new LetTestEnv(dlbctest, shred=true)
     // val ests = lenv.estimates
-    AppWriter.runDatasetShred(LetTest0(), "Inlined,shredded", optLevel = 1)
+    // AppWriter.runDatasetShred(LetTest5Seq, "Sequential,shredded", optLevel = 1)
+
+    // AppWriter.runDatasetShred(LetTest5, "InlinedAgg,shredded", optLevel = 1)
+    // AppWriter.runDatasetShred(LetTest5Seq, "SequentiaAgg,shredded", optLevel = 1)
+    // AppWriter.runDatasetShred(LetTest5b, "InlinedNoAgg,shredded", optLevel = 1)
+    // AppWriter.runDatasetShred(LetTest5bSeq, "SequentialNoAgg,shredded", optLevel = 1)
+
+    // AppWriter.runDatasetShred(LetTest7a, "InlinedNoAgg,shredded", optLevel = 1)
+    // AppWriter.runDatasetShred(LetTest7aSeq, "SequentialNoAgg,shredded", optLevel = 1)
+    // AppWriter.runDatasetShred(LetTest7b, "InlinedAgg,shredded", optLevel = 1)
+    // AppWriter.runDatasetShred(LetTest7bSeq, "SequentialAgg,shredded", optLevel = 1)
+
+    AppWriter.runDatasetShred(LetTest8, "InlinedAgg,shredded", optLevel = 1)
+    AppWriter.runDatasetShred(LetTest8Seq, "SequentialAgg,shredded", optLevel = 1)
+
     // AppWriter.runDatasetShred(lenv.queries.head, "Inlined,shredded", optLevel = 1)
     // AppWriter.runDatasetShred(lenv.queries.last, "Sequential,shredded", optLevel = 1)
   }
@@ -35,29 +62,47 @@ object Sharing extends App {
     // val dlbctest = 371520
     // total is ~4500 so way underestimated
     // upper bound
-    val dlbctest = 5000
+    // This is the total size: 418119.25389783055
+    // val dlbctest = 200000
+    // in kilobytes
+    val dataSizes = Map[String, Double]("clinical" -> 11.4, 
+      "copynumber" -> 390100.0, 
+      // "occurrences" -> 51000, 
+      "odict1" -> 3000.0,
+      "odict2" -> 93600.0, 
+      "odict3" -> 11400.0, 
+      "samples" -> 166800.0)
+
+    /**
+    val dataSizes = Map[String, Double](
+      "clinical" -> 1407.9, 
+      "copynumber" -> 61300000, 
+      // "occurrences" -> 51000, 
+      // "odict1" -> 3000.0,
+      // "odict2" -> 93600.0, 
+      // "odict3" -> 11400.0, 
+      "samples" -> 34288.44)
+    **/
+
+    // allocate half the space to the cache
+    // val cachesize = (dataSizes.foldLeft(0.0)(_+_._2)  * .5).asInstanceOf[Int]
+    val cachesize = 20
+    println("this is the cache size: "+cachesize)
+    // val dlbctest = 4000
     val brcatest = 8000000
 
     // capacity in KB
-    val flex = 0
-    // val ptype = "dynamic"
-    val ptype = "greedy"
-    // val genv = new GenomicEnv(dlbctest, init_flex = flex, ptype = ptype)
-    val sgenv = new GenomicEnv(dlbctest, shred = true, flex = flex, ptype = ptype)
-    // AppWriter.runWithCache(genv, "CacheTest,standard,covers")
+    val flex = 3
+    // val flex = 0
+    val ptype = "dynamic"
+    // val ptype = "greedy"
+    // val ptype = "qlearn"
+    val sgenv = new GenomicEnv(cachesize, shred = true, flex = flex, ptype = ptype)
     AppWriter.runWithCache(sgenv, "CacheTest,shredded,covers")
+    AppWriter.runWithCache(sgenv, "CacheTest,shredded,covers", cache = true)
+    // AppWriter.runDatasetShred(SW6, "TestCompile,shredded", optLevel = 1)
 
-    // cache inputs
-    // AppWriter.runWithCache(genv, "CacheTest,standard,cacheinputs", cache = true)
-    // AppWriter.runWithCache(sgenv, "CacheTest,shredded,cacheinputs", cache = true)
 
-    // AppWriter.runDataset(HybridQuery, "Testing,standard", optLevel=1)
-
-    // AppWriter.runDatasetShred(SequentialFilters, "SequentialFilters,shredded", optLevel = 1)
-    // AppWriter.runDatasetShred(SharedFilters, "SharedFilters,shredded", optLevel = 1)
-    // AppWriter.runDataset(OccurGroupByCase, "OccurGroupByCase,standard", optLevel = 1)
-    // AppWriter.runDataset(SamplesFilterByTP53, "SamplesFilterByTP53,standard", optLevel = 1)
-    // AppWriter.runDatasetShred(SamplesFilterByTP53, "SamplesFilterByTP53,standard", optLevel = 1)
 
   }
 
@@ -78,7 +123,6 @@ object E2EApp extends App {
     // AppWriter.runDataset(ConnectionBySampleNew, "ConnectionBySampleNew,standard", optLevel = 1)
     // AppWriter.runDataset(GeneConnectivityNew, "GeneConnectivityNew,standard", optLevel = 1)
 
-    // // shredded pipeline
     // AppWriter.runDatasetShred(HybridBySampleNewS, "HybridBySampleNew,shredded", optLevel = 1)
     AppWriter.runDatasetShred(SampleNetworkNew, "SampleNetworkNew,shredded", optLevel = 1)
     // AppWriter.runDatasetShred(EffectBySampleNew, "EffectBySampleNew,shredded", optLevel = 1)
@@ -108,8 +152,8 @@ object App {
   val schema = TPCHSchema.getSchema()
 
   def main(args: Array[String]){
-    // runFlatToNested()
-    runNestedToNested()
+    runFlatToNested()
+    // runNestedToNested()
     // runNestedToFlat()
     // runSkewHandling()
   }
@@ -118,26 +162,24 @@ object App {
 
     // standard pipeline - all optimizations
     AppWriter.runDataset(Test2Flat, "Flat,2", schema = schema)
-
+    
     // shredded pipeline + unshredding
-    AppWriter.runDatasetShred(Test2, "Shred,2", unshred=false, schema = schema)
+    AppWriter.runDatasetShred(Test2, "Shred,2", unshred=true, schema = schema)
 
   }
 
   def runNestedToNested(){
 
     // standard pipeline - all optimizations
-    // AppWriter.runDatasetInput(Test0Full, Test0NN, "Flat,0")
     AppWriter.runDatasetInput(Test2FullFlat, Test2NN, "Flat,2", schema = schema)
 
     // shredded pipeline + unshredding
-    // AppWriter.runDatasetInputShred(Test2Full, Test2NN, "Shred,2", unshred=false, schema = schema)
+    AppWriter.runDatasetInputShred(Test2Full, Test2NN, "Shred,2", unshred=true, schema = schema)
   }
 
   def runNestedToFlat(){
 
     // standard pipeline - all optimizations
-    // AppWriter.runDatasetInput(Test1Full, Test1Agg1, "Flat,Standard,1")
     AppWriter.runDatasetInput(Test2FullFlat, Test2Agg2, "Flat,Standard,2", schema = schema)
 
     // shredded pipeline + unshredding

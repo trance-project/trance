@@ -11,7 +11,7 @@ trait BaseShredding {
 
   def flatTp(tp: Type): Type = tp match {
     case _: PrimitiveType => tp
-    case bt: BagType => LabelType()
+    case _: BagType => LabelType()
     case TupleType(as) =>
       TupleType(as.map { case (n, t) => n -> flatTp(t).asInstanceOf[TupleAttributeType] })
     case _ => sys.error("Unknown flat type of " + tp)
@@ -37,169 +37,201 @@ trait BaseShredding {
 /**
   * Shredding transformation
   */
-trait Shredding extends BaseShredding with Extensions {
+trait Shredding extends BaseShredding with Extensions with Printer {
   this: MaterializeNRC =>
 
-  def shred(e: Expr): ShredExpr = shred(e, Map.empty)
+  protected def shredEnv(vv: Iterable[VarRef]): Map[String, VarDef] =
+    vv.flatMap(shredEnv).toMap
 
-  private def shred(e: Expr, ctx: Map[String, ShredExpr]): ShredExpr = e match {
+  protected def shredEnv(v: VarRef): Map[String, VarDef] =
+    shredEnv(v.name, v.tp)
+
+  protected def shredEnv(n: String, tp: Type): Map[String, VarDef] =
+    Map(
+      flatName(n) -> VarDef(flatName(n), flatTp(tp)),
+      dictName(n) -> VarDef(dictName(n), dictTp(tp))
+    )
+
+  def shred(e: Expr): ShredExpr =
+    shred(shredEnv(inputVars(e)), Map.empty, e)
+
+  protected def shred(env: Map[String, VarDef],
+                      tpResolver: Map[String, (Type, DictType)],
+                      e: Expr): ShredExpr = e match {
+
     case _: Const => ShredExpr(e, EmptyDict)
 
-    /* ctx ensures correct type when dealing with labels
-     * because flatTp returns empty LabelType()
+    /* tpResolver ensures correct type when dealing with labels
+     * because flatTp always returns empty LabelType()
      */
-    case v: VarRef if ctx.contains(v.name) =>
-      val sv = ctx(v.name)
+    case v: VarRef if tpResolver.contains(v.name) =>
       ShredExpr(
-        VarRef(flatName(v.name), sv.flat.tp),
-        DictVarRef(dictName(v.name), sv.dict.tp))
+        VarRef(flatName(v.name), tpResolver(v.name)._1),
+        DictVarRef(dictName(v.name), tpResolver(v.name)._2)
+      )
 
     case v: VarRef =>
       ShredExpr(
         VarRef(flatName(v.name), flatTp(v.tp)),
-        DictVarRef(dictName(v.name), dictTp(v.tp)))
+        DictVarRef(dictName(v.name), dictTp(v.tp))
+      )
 
     case p: Project =>
-      val ShredExpr(flat: TupleExpr, dict: TupleDictExpr) = shred(p.tuple, ctx)
+      val ShredExpr(flat: TupleExpr, dict: TupleDictExpr) = shred(env, tpResolver, p.tuple)
       ShredExpr(Project(flat, p.field), dict(p.field))
 
     case ForeachUnion(x, e1, e2) =>
       // Shredding e1
-      val ShredExpr(l1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      val ShredExpr(l1: LabelExpr, dict1: BagDictExpr) = shred(env, tpResolver, e1)
       val resolved1 = dict1.lookup(l1)
-      // Create x^F
+      // Create x^F and x^D
       val xFlat = VarDef(flatName(x.name), resolved1.tp.tp)
       val xDict = VarDef(dictName(x.name), dict1.tp.dictTp)
       // Shredding e2
-      val ctx2 = ctx + (x.name -> ShredExpr(VarRef(xFlat), dict1.tupleDict))
-      val ShredExpr(l2: LabelExpr, dict2: BagDictExpr) = shred(e2, ctx2)
+      val tpResolverEx = tpResolver + (x.name -> (xFlat.tp, xDict.tp.asInstanceOf[DictType]))
+      val ShredExpr(l2: LabelExpr, dict2: BagDictExpr) =
+        shred(env + (xDict.name -> xDict), tpResolverEx, e2)
       val resolved2 = dict2.lookup(l2)
       // Output flat bag
       val flat =
         BagLet(xDict, dict1.tupleDict,
           ForeachUnion(xFlat, resolved1, resolved2))
-      val lbl = NewLabel(labelParameters(flat))
-      val tupleDict = dict2.tupleDict
+      val tupleDict =
+        TupleDictLet(xDict, dict1.tupleDict, dict2.tupleDict)
+      val lbl = NewLabel(labelParameters(flat, env).toSet)
 
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), tupleDict))
 
     case Union(e1, e2) =>
-      val ShredExpr(l1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
-      val ShredExpr(l2: LabelExpr, dict2: BagDictExpr) = shred(e2, ctx)
+      val ShredExpr(l1: LabelExpr, dict1: BagDictExpr) = shred(env, tpResolver, e1)
+      val ShredExpr(l2: LabelExpr, dict2: BagDictExpr) = shred(env, tpResolver, e2)
       val flat = ShredUnion(dict1.lookup(l1), dict2.lookup(l2))
       val dictUnion = TupleDictUnion(dict1.tupleDict, dict2.tupleDict)
-      val lbl = NewLabel(labelParameters(flat))
+      val lbl = NewLabel(labelParameters(flat, env).toSet)
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dictUnion))
 
     case Singleton(e1) =>
-      val ShredExpr(t: TupleExpr, dict: TupleDictExpr) = shred(e1, ctx)
+      val ShredExpr(t: TupleExpr, dict: TupleDictExpr) = shred(env, tpResolver, e1)
       val flat = Singleton(t)
-      val lbl = NewLabel(labelParameters(flat))
+      val lbl = NewLabel(labelParameters(flat, env).toSet)
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict))
 
     case DeDup(e1) =>
-      val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(env, tpResolver, e1)
       val flat = DeDup(dict1.lookup(lbl1))
-      val lbl = NewLabel(labelParameters(flat))
+      val lbl = NewLabel(labelParameters(flat, env).toSet)
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict1.tupleDict))
 
     case Get(e1) =>
-      val ShredExpr(flat: TupleExpr, dict: TupleDictExpr) = shred(e1, ctx)
+      val ShredExpr(flat: TupleExpr, dict: TupleDictExpr) = shred(env, tpResolver, e1)
       ShredExpr(Get(Singleton(flat)), dict)
 
     case Tuple(fs) =>
-      val shredFs = fs.map(f => f._1 -> shred(f._2, ctx))
+      val shredFs = fs.map(f => f._1 -> shred(env, tpResolver, f._2))
       val flatFs = shredFs.map(f => f._1 -> f._2.flat.asInstanceOf[TupleAttributeExpr])
       val dictFs = shredFs.map(f => f._1 -> f._2.dict.asInstanceOf[TupleDictAttributeExpr])
       ShredExpr(Tuple(flatFs), TupleDict(dictFs))
 
     case l: Let =>
-      val se1 = shred(l.e1, ctx)
+      val se1 = shred(env, tpResolver, l.e1)
       val xFlat = VarDef(flatName(l.x.name), se1.flat.tp)
       val xDict = VarDef(dictName(l.x.name), se1.dict.tp)
-      val se2 = shred(l.e2, ctx + (l.x.name -> ShredExpr(VarRef(xFlat), se1.dict)))
+      val tpResolverEx = tpResolver + (l.x.name -> (xFlat.tp, xDict.tp.asInstanceOf[DictType]))
+      val se2 = shred(env ++ Map(xDict.name -> xDict, xFlat.name -> xFlat), tpResolverEx, l.e2)
       val flat = Let(xDict, se1.dict, Let(xFlat, se1.flat, se2.flat))
-      val dict = DictLet(xDict, se1.dict, se2.dict)
+      val dict = DictLet(xDict, se1.dict, DictLet(xFlat, se1.flat, se2.dict))
       ShredExpr(flat, dict)
 
     case c: Cmp =>
-      val ShredExpr(c1: PrimitiveExpr, EmptyDict) = shred(c.e1, ctx)
-      val ShredExpr(c2: PrimitiveExpr, EmptyDict) = shred(c.e2, ctx)
+      val ShredExpr(c1: PrimitiveExpr, EmptyDict) = shred(env, tpResolver, c.e1)
+      val ShredExpr(c2: PrimitiveExpr, EmptyDict) = shred(env, tpResolver, c.e2)
       ShredExpr(Cmp(c.op, c1, c2), EmptyDict)
 
     case And(e1, e2) =>
-      val ShredExpr(c1: CondExpr, EmptyDict) = shred(e1, ctx)
-      val ShredExpr(c2: CondExpr, EmptyDict) = shred(e2, ctx)
+      val ShredExpr(c1: CondExpr, EmptyDict) = shred(env, tpResolver, e1)
+      val ShredExpr(c2: CondExpr, EmptyDict) = shred(env, tpResolver, e2)
       ShredExpr(And(c1, c2), EmptyDict)
 
     case Or(e1, e2) =>
-      val ShredExpr(c1: CondExpr, EmptyDict) = shred(e1, ctx)
-      val ShredExpr(c2: CondExpr, EmptyDict) = shred(e2, ctx)
+      val ShredExpr(c1: CondExpr, EmptyDict) = shred(env, tpResolver, e1)
+      val ShredExpr(c2: CondExpr, EmptyDict) = shred(env, tpResolver, e2)
       ShredExpr(Or(c1, c2), EmptyDict)
 
     case Not(e1) =>
-      val ShredExpr(c1: CondExpr, EmptyDict) = shred(e1, ctx)
+      val ShredExpr(c1: CondExpr, EmptyDict) = shred(env, tpResolver, e1)
       ShredExpr(Not(c1), EmptyDict)
 
     case i: IfThenElse =>
-      val ShredExpr(c: CondExpr, EmptyDict) = shred(i.cond, ctx)
-      val se1 = shred(i.e1, ctx)
+      val ShredExpr(c: CondExpr, EmptyDict) = shred(env, tpResolver, i.cond)
+      val se1 = shred(env, tpResolver, i.e1)
       if (i.e2.isDefined) {
-        val se2 = shred(i.e2.get, ctx)
+        val se2 = shred(env, tpResolver, i.e2.get)
         ShredExpr(IfThenElse(c, se1.flat, se2.flat), DictIfThenElse(c, se1.dict, se2.dict))
       }
       else
         ShredExpr(IfThenElse(c, se1.flat), se1.dict)
 
     case a: ArithmeticExpr =>
-      val ShredExpr(n1: NumericExpr, EmptyDict) = shred(a.e1, ctx)
-      val ShredExpr(n2: NumericExpr, EmptyDict) = shred(a.e2, ctx)
+      val ShredExpr(n1: NumericExpr, EmptyDict) = shred(env, tpResolver, a.e1)
+      val ShredExpr(n2: NumericExpr, EmptyDict) = shred(env, tpResolver, a.e2)
       ShredExpr(ArithmeticExpr(a.op, n1, n2), EmptyDict)
 
     case Count(e1) =>
-      val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(env, tpResolver, e1)
       ShredExpr(Count(dict1.lookup(lbl)), EmptyDict)
 
     case Sum(e1, fs) =>
-      val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      val ShredExpr(lbl: LabelExpr, dict1: BagDictExpr) = shred(env, tpResolver, e1)
       ShredExpr(Sum(dict1.lookup(lbl), fs), EmptyDict)
 
     case GroupByKey(e1, ks, vs, n) =>
-      val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(env, tpResolver, e1)
       val flat = GroupByKey(dict1.lookup(lbl1), ks, vs, n)
-      val lbl = NewLabel(labelParameters(flat))
+      val lbl = NewLabel(labelParameters(flat, env).toSet)
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict1.tupleDict))
 
     case ReduceByKey(e1, ks, vs) =>
-      val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(e1, ctx)
+      val ShredExpr(lbl1: LabelExpr, dict1: BagDictExpr) = shred(env, tpResolver, e1)
       val flat = ReduceByKey(dict1.lookup(lbl1), ks, vs)
-      val lbl = NewLabel(labelParameters(flat))
+      val lbl = NewLabel(labelParameters(flat, env).toSet)
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict1.tupleDict))
 
-    case PrimitiveUdf(name, in, otp) =>
-      // returns ShredExpr, instead of casting it, just save it to a variable of ShredExpr type
-      // see ShredNRC.scala for the definition of ShredExpr
-      val sresult:ShredExpr = shred(in, ctx)
-      // then just refer to them 
-      val flat = sresult.flat
-      val dict = sresult.dict
-      // now just build the shredded expression to return
-      ShredExpr(PrimitiveUdf(name, flat ,otp), dict)
+    // restrict input to be variable, then the input will
+    // be all the materialized dictionaries of the input 
+    // for shredding - list of variable references / type
+    case u:Udf => (u.in.tp, u.tp) match {
 
-    case NumericUdf(name, in, otp) =>
-      val sresult:ShredExpr = shred(in, ctx)
-      val flat = sresult.flat
-      val dict = sresult.dict
-      ShredExpr(NumericUdf(name, flat ,otp), dict)
+      // ex. take a nested bag, return the identity
+      case (_:BagType, otp:BagType) => 
+         val ShredExpr(lbl1: LabelExpr, dict1:BagDictExpr) = shred(env, tpResolver, u.in)
+         // this should be a shred udf that takes the top-level
+         val flat = BagUdf(u.name+"_shred", dict1.lookup(lbl1), otp)
+         val lbl = NewLabel(labelParameters(flat, env).toSet)
+         ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict1.tupleDict))
 
-    case BagUdf(name, in, otp) =>
-      val sresult:ShredExpr = shred(in, ctx)
-      val flat = sresult.flat
-      val dict = sresult.dict
-      ShredExpr(BagUdf(name, flat, otp), dict)
+      // ex. take a nested bag, return a single integer count
+      case (_:BagType, _:PrimitiveType) => ???
 
+      // ex. take a string, return something appended to the string
+      case (_:PrimitiveType, _:PrimitiveType) => 
+        val sresult:ShredExpr = shred(env, tpResolver, u.in)
+        val flat = sresult.flat
+        val dict = sresult.dict
+        ShredExpr(Udf(u.name+"_shred", flat, u.otp), dict)
+    }
+
+    case BagUdf(name, in, otp) => in.tp match {
+      case _:BagType => 
+        val ShredExpr(lbl: LabelExpr, dict:BagDictExpr) = shred(env, tpResolver, in)
+        val flat = BagUdf(name+"_shred", dict.lookup(lbl), otp)
+        val nlbl = NewLabel(labelParameters(flat, env).toSet)
+        ShredExpr(nlbl, BagDict(nlbl.tp, createLambda(nlbl, flat), dict.tupleDict))
+      case _ => ???
+    }
+
+    // W.I.P.
     case TupleUdf(name, in, otp) =>
-      val sresult:ShredExpr = shred(in, ctx)
+      val sresult:ShredExpr = shred(env, tpResolver, in)
       val flat = sresult.flat
       val dict = sresult.dict
       ShredExpr(TupleUdf(name, flat, otp), dict)
@@ -207,19 +239,37 @@ trait Shredding extends BaseShredding with Extensions {
     case _ => sys.error("Cannot shred expr " + e)
   }
 
-  def shred(stmt: Assignment): ShredAssignment = shred(stmt, Map.empty)
+  def shred(a: Assignment): ShredAssignment =
+    shred(shredEnv(inputVars(a)), Map.empty, a)
 
-  private def shred(stmt: Assignment, ctx: Map[String, ShredExpr]): ShredAssignment =
-    ShredAssignment(stmt.name, shred(stmt.rhs, ctx))
+  protected def shred(env: Map[String, VarDef], tpResolver: Map[String, (Type, DictType)], a: Assignment): ShredAssignment =
+    ShredAssignment(a.name, shred(env, tpResolver, a.rhs))
 
-  def shred(program: Program): ShredProgram =
-    shredCtx(program, Map.empty[String, ShredExpr])._1
+  def shred(p: Program): ShredProgram =
+    shred(p, Map.empty)
 
-  def shredCtx(program: Program, ctx: Map[String, ShredExpr] = Map.empty): (ShredProgram, Map[String, ShredExpr]) =
-    program.statements.foldLeft (ShredProgram(), ctx) {
-      case ((acc, ctx), stmt) =>
-        val sa = shred(stmt, ctx)
-        (ShredProgram(acc.statements :+ sa), ctx + (sa.name -> sa.rhs))
-    }
+  protected def shred(p: Program, tpResolver: Map[String, (Type, DictType)]): ShredProgram =
+    shredCtx(p, tpResolver)._1
+
+  def shredCtx(p: Program): (ShredProgram, Map[String, (Type, DictType)]) =
+    shredCtx(p, Map.empty)
+
+  def shredCtx(p: Program, tpResolver: Map[String, (Type, DictType)]): (ShredProgram, Map[String, (Type, DictType)]) = {
+    val env0 = inputVars(p).flatMap { v =>
+      val (ftp, dtp) = tpResolver.getOrElse(v.name, flatTp(v.tp) -> dictTp(v.tp))
+      Map(
+        flatName(v.name) -> VarDef(flatName(v.name), ftp),
+        dictName(v.name) -> VarDef(dictName(v.name), dtp)
+      )
+    }.toMap
+    p.statements.foldLeft(env0, (ShredProgram(), tpResolver)) {
+      case ((env, (acc, ctx)), stmt) =>
+        val sa = shred(env, ctx, stmt)
+        (env +
+          (flatName(stmt.name) -> VarDef(flatName(stmt.name), sa.rhs.flat.tp)) +
+          (dictName(stmt.name) -> VarDef(dictName(stmt.name), sa.rhs.dict.tp)),
+          (ShredProgram(acc.statements :+ sa), ctx + (sa.name -> (sa.rhs.flat.tp, sa.rhs.dict.tp))))
+    }._2
+  }
 
 }

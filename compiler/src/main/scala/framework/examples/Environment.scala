@@ -2,6 +2,7 @@ package framework.examples
 
 import framework.common._
 import framework.plans._
+import framework.optimize.CacheFactory
 import framework.loader.csv._
 
 trait Environment {
@@ -18,7 +19,7 @@ trait Environment {
 
 	val flex: Int
 
-	val plannerType: String
+	val ptype: String
 
 	val zhost: String
 

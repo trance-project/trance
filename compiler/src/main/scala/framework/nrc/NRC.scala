@@ -2,6 +2,7 @@ package framework.nrc
 
 import framework.common._
 import framework.utils.Utils
+
 /**
   * Base NRC expressions
   */
@@ -31,12 +32,23 @@ trait BaseExpr {
     def tp: BagType
   }
 
+  trait GroupByExpr extends BagExpr {
+    def e: BagExpr
+
+    def keys: List[String]
+
+    def keysTp: TupleType
+
+    def values: List[String]
+
+    def valuesTp: Type
+  }
+
   trait AbstractTuple
 
   trait TupleExpr extends Expr with AbstractTuple {
     def tp: TupleType
   }
-
 }
 
 /**
@@ -47,6 +59,8 @@ trait NRC extends BaseExpr {
   val GROUP_ATTR_NAME: String = "_GROUP"
 
   sealed trait Const {
+    this: Expr =>
+
     def v: Any
 
     def tp: PrimitiveType
@@ -57,38 +71,32 @@ trait NRC extends BaseExpr {
   final case class PrimitiveConst(v: Any, tp: PrimitiveType) extends PrimitiveExpr with Const
 
   trait VarRef {
+    this: Expr =>
 
     def varDef: VarDef = VarDef(name, tp)
 
     def name: String
-
-    def tp: Type
-
   }
 
   final case class NumericVarRef(name: String, tp: NumericType) extends NumericExpr with VarRef
 
   final case class PrimitiveVarRef(name: String, tp: PrimitiveType) extends PrimitiveExpr with VarRef
 
-  final case class BagVarRef(name: String, tp: BagType) extends BagExpr with VarRef { self =>
-    def union(in: (String, TupleAttributeExpr)*): (BagVarRef, BagExpr) = (self, Singleton(Tuple(in:_*)))
-    def union(in: BagIfThenElse): (BagVarRef, BagIfThenElse) = (self, in)
-  }
+  final case class BagVarRef(name: String, tp: BagType) extends BagExpr with VarRef
 
-  final case class TupleVarRef(name: String, tp: TupleType) extends TupleExpr with VarRef { self => 
-    def in(in: (BagVarRef, BagExpr)): ForeachUnion = ForeachUnion(self.varDef, in._1, in._2)
-    def <--(in: BagVarRef): ForeachUnion = ForeachUnion(self.varDef, in, Singleton(self))
-  } 
+  final case class TupleVarRef(name: String, tp: TupleType) extends TupleExpr with VarRef
 
   trait Project {
+    this: Expr =>
+
     def tuple: VarRef with Expr
 
     def field: String
-
-    def tp: Type
   }
 
   trait TupleProject extends Project {
+    this: Expr =>
+
     def tuple: TupleVarRef
 
     def field: String
@@ -109,7 +117,7 @@ trait NRC extends BaseExpr {
   }
 
   final case class ForeachUnion(x: VarDef, e1: BagExpr, e2: BagExpr) extends BagExpr {
-	assert(x.tp == e1.tp.tp)
+    assert(x.tp == e1.tp.tp)
 
     val tp: BagType = e2.tp
   }
@@ -173,15 +181,14 @@ trait NRC extends BaseExpr {
     def tp: PrimitiveType = otp
   }
 
+  trait Let {
+    this: Expr =>
 
-  trait Let extends Expr {
     def x: VarDef
 
     def e1: Expr
 
     def e2: Expr
-
-    def tp: Type
   }
 
   final case class NumericLet(x: VarDef, e1: Expr, e2: NumericExpr) extends NumericExpr with Let {
@@ -227,6 +234,8 @@ trait NRC extends BaseExpr {
   final case class Not(c: CondExpr) extends CondExpr
 
   trait IfThenElse {
+    this: Expr =>
+
     def cond: CondExpr
 
     def e1: Expr
@@ -281,23 +290,10 @@ trait NRC extends BaseExpr {
       TupleType(fields.map(n => n -> e.tp.tp(n)).toMap)
   }
 
-  trait GroupByExpr extends BagExpr {
-    def e: BagExpr
-
-    def keys: List[String]
-
-    def keysTp: TupleType
-
-    def values: List[String]
-
-    def valuesTp: Type
-  }
-
   final case class GroupByKey(e: BagExpr,
                               keys: List[String],
                               values: List[String],
-                              groupAttrName: String = GROUP_ATTR_NAME
-                             ) extends GroupByExpr {
+                              groupAttrName: String = GROUP_ATTR_NAME) extends GroupByExpr {
     assert(keys.size == keys.distinct.size, "Duplicated group-by keys")
 
     val keysTp: TupleType =

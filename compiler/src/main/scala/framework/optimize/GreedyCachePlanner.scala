@@ -1,8 +1,9 @@
-package framework.plans
+package framework.optimize
 
 import framework.common._
 import scala.collection.mutable.Map
 import scala.collection.mutable.Stack
+import framework.plans._
 
 // IDEAS:
 // only consider a pass that is globally maximal

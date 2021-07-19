@@ -1,9 +1,12 @@
 package framework.common
 
+import scala.annotation.tailrec
+
 /**
   * NRC type system: primitive types, bag type, tuple type
   */
 
+// TODO: cleanup
 sealed trait Type { self =>
 
   def isPartiallyShredded: Boolean = false
@@ -80,6 +83,7 @@ case object DoubleType extends NumericType
 
 object NumericType {
 
+  @tailrec
   def resolve(tp1: Type, tp2: Type): NumericType = (tp1, tp2) match {
     case (OptionType(o1), o2:NumericType) => resolve(o1, o2)
     case (o1:NumericType, OptionType(o2)) => resolve(o1, o2)
@@ -98,6 +102,8 @@ object NumericType {
 
 final case class BagType(tp: TupleType) extends TupleAttributeType with ReducibleType
 
+final case class KeyValueMapType(keyTp: LabelType, valueTp: BagType) extends TupleAttributeType
+
 final case class TupleType(attrTps: Map[String, TupleAttributeType]) extends Type {
   def apply(n: String): TupleAttributeType = attrTps(n)
 }
@@ -113,11 +119,8 @@ object TupleType {
 final case class LabelType(attrTps: Map[String, Type]) extends TupleAttributeType {
   def apply(n: String): Type = attrTps(n)
 
-  // TODO: Remove this method
-  override def equals(that: Any): Boolean = that match {
-    case that: LabelType => this.attrTps == that.attrTps
-    case that: RecordCType => this.attrTps == that.attrTps
-  }
+  def isEmpty: Boolean = attrTps.isEmpty
+
 }
 
 object LabelType {
@@ -134,13 +137,15 @@ final case class BagDictType(lblTp: LabelType, flatTp: BagType, dictTp: TupleDic
 
 final case class TupleDictType(attrTps: Map[String, TupleDictAttributeType]) extends DictType {
   def apply(n: String): TupleDictAttributeType = attrTps(n)
+
+  def isEmpty: Boolean = attrTps.forall(_._2 == EmptyDictType)
 }
 
 object TupleDictType {
   def apply(attrTps: (String, TupleDictAttributeType)*): TupleDictType = TupleDictType(Map(attrTps: _*))
 }
 
-final case class MatDictType(keyTp: LabelType, valueTp: BagType) extends Type
+
 
 
 /**

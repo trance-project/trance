@@ -10,7 +10,7 @@ import scala.collection.mutable.HashMap
 
 class TestStatsCollector extends TestBase {
 
-  val run = false
+  val zep = false 
 
   test("standard comilation route"){
 
@@ -19,9 +19,12 @@ class TestStatsCollector extends TestBase {
 
     val subs = seBuilder.sharedSubs()
 
-    val ces = CEBuilder.buildCoverMap(subs)
+    // val ces = CEBuilder.buildCoverMap(subs)
     
-    val statsCollector = new StatsCollector(progs)
+    // val statsCollector = new StatsCollector(progs)
+    // val stats = if (zep){
+    //   statsCollector.getCost(subs, ces)
+    // }else Map.empty[String, Statistics]
     // val stats = statsCollector.getCost(subs, ces)
 
     // assert(stats.size == 26)
@@ -36,10 +39,13 @@ class TestStatsCollector extends TestBase {
     val subs = seBuilder.sharedSubs()
     // printSE(subs)
 
-    val ces = CEBuilder.buildCoverMap(subs)
-    printCE(ces)
+    // val ces = CEBuilder.buildCoverMap(subs)
+    // printCE(ces)
     
-    val statCollector = new StatsCollector(sprogs)
+    // val statsCollector = new StatsCollector(sprogs)
+    // val stats = if (zep){
+    //   statsCollector.getCost(subs, ces)
+    // }else Map.empty[String, Statistics]
     // val stats = statCollector.getCost(subs, ces)
     // assert(stats.size == 24)
 

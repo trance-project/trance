@@ -13,6 +13,10 @@ trait ShredNRC extends NRC with BaseShredding with Label with Dictionary {
 
   final case class ShredExpr(flat: Expr, dict: DictExpr)
 
+  final case class ShredUdf(name:String, flat: Expr, dict: DictExpr, otp: Type) extends Expr {
+    def tp:Type = otp
+  }
+
   final case class ShredUnion(e1: BagExpr, e2: BagExpr) extends BagExpr {
      // Could be a heterogeneous union where labels in e1 and e2
      // for the same attribute encapsulate different parameters

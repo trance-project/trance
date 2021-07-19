@@ -1,9 +1,10 @@
-package framework.plans
+package framework.optimize
 
 import framework.common._
 import scala.collection.immutable.{Map => IMap}
 import scala.collection.mutable.{Map, HashMap}
 import java.util.UUID.randomUUID
+import framework.plans._
 
 case class CE(name: String, cover: CExpr, sig: Integer, ses: List[SE])
 
@@ -116,20 +117,27 @@ object CEBuilder extends Extensions {
       val v = Variable.freshFromBag(child.tp)
 
       // not sure if this will work for everything...
-      def updateVmap(r: Record): IMap[String, CExpr] = {
+      def updateVmap(r: Record, fromLabel: Boolean = false): IMap[String, CExpr] = {
         r.fields.map{
-          case (field1, Project(v, field2)) => (vmap.get(field1), vmap.get(field2)) match {
-              case (Some(n1), Some(n2)) => (n2, Project(v, n2))
-              case (Some(n1), None) => (n1, Project(v, n1))
-              case _ => vmap(field1) = field2; (field2, Project(v, field2))
+          case (field1, Project(v, field2)) => 
+            (vmap.get(field1), vmap.get(field2)) match {
+              case (Some(n1), Some(n2)) => (if (fromLabel) field1 else n2, Project(v, n2))
+              case (Some(n1), None) => (if (fromLabel) field1 else n1, Project(v, n1))
+              case _ => vmap(field1) = field2; (if (fromLabel) field1 else field2, Project(v, field2))
             }
           // keep complex expressions, assuming they reduce the 
           // overall amount of projections
-          case (field1, field2) => (field1, replace(field2, v))
+          case (field1, Label(fs)) => 
+            (field1, Label(updateVmap(Record(fs), fromLabel = true))) 
+          case (field1, field2) => 
+            vmap(field1) = field1
+            (field1, replace(field2, v))
         }.toMap
       }
 
+      // renaming issue here
       val r = Record(updateVmap(f1) ++ updateVmap(f2))
+
       val nr = replace(r, v)
       val nfs1 = fs1.toList.map(k => getFromVmap(k))
       val nfs2 = fs2.toList.map(k => getFromVmap(k))
@@ -150,7 +158,7 @@ object CEBuilder extends Extensions {
     case (f:FlatDict, o) => buildCover(o,f, nameMap)
     case (g:GroupDict, o) => buildCover(o, g, nameMap)
 
-    case _ =>  sys.error(s"unsupported operator pair:\n ${Printer.quote(plan1)}\n${Printer.quote(plan2)}")
+    case _ =>  sys.error(s"unsupported operator pair:\n first: ${Printer.quote(plan1)}\n second: ${Printer.quote(plan2)}")
 
   }
 

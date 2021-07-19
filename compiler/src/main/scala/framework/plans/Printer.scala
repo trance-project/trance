@@ -15,9 +15,9 @@ object Printer {
     case InputRef(d, t) => inputref(d,t)
     case Input(d) => input(d.map(quote(_)))
     case Constant(d) => constant(d)
-  	case CUdf(n, e1, tp) => udf(n, quote(e1), tp)
-      case EmptySng => emptysng
-      case CUnit => unit
+  	case CUdf(n, e1, tp) => udf(n, e1.map(f => quote(f)), tp)
+    case EmptySng => emptysng
+    case CUnit => unit
   	case Null => "null"
   	case Index => "index"
     case Sng(e1) => sng(quote(e1))
@@ -61,6 +61,7 @@ object Printer {
       s"""| SELECT[ ${quote(p)} ](${quote(x)})
           | """.stripMargin
     case AddIndex(e1, name) => s"INDEX(${quote(e1)})"
+    case RemoveNulls(e1) => s"NaDROP(${quote(e1)})"
     case Projection(e1, v, p, fields) => 
       s"""|PROJECT[${fields.mkString(",")}, ${quote(p)}](${quote(e1)})
           |""".stripMargin

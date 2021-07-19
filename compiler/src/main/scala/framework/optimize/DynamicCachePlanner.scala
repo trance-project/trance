@@ -1,7 +1,8 @@
-package framework.plans
+package framework.optimize
 
 import framework.common._
 import scala.collection.mutable.Map
+import framework.plans._
 
 case class Result(profit: Double, selected: Vector[(Integer, CNamed)])
 

@@ -37,6 +37,27 @@ import framework.nrc.Parser
 
 }
 
+object SimpleTest2 extends TPCHBase {
+  
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String = ""
+
+  val name = "SimpleTest2"
+  
+  val tbls = Set("Lineitem")
+  val tbls2 = Map("Lineitem" -> TPCHSchema.lineittype)
+
+  val query = 
+    s"""
+      SimpleTest2 <=
+        (for l in Lineitem union 
+          {(l_linenum := l.l_linenumber, l_qty := l.l_quantity )}).groupBy({l_linenum}, {l_qty}, "aaa")
+    """
+
+    val parser = Parser(tbls2)
+    val program: Program = parser.parse(query).get.asInstanceOf[Program]
+
+}
+
 
 
 /**

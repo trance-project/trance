@@ -1,8 +1,10 @@
-package framework.plans
+package framework.optimize
 
 import framework.common._
 import framework.loader.csv._
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{Map => MMap}
+import framework.plans._
 
 /** Optimizer used for plans from BatchUnnester **/
 class Optimizer(schema: Schema = Schema()) extends Extensions {
@@ -10,13 +12,15 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
   val extensions = new Extensions{}
   import extensions._
 
+
+  var joinConds = List.empty[CExpr]
+
   // push projections
   def applyPush(e: CExpr): CExpr = {
     val o1 = pushUnnest(e)
     val o2 = pushCondition(o1)
     val o3 = removeUnnecProj(push(o2))
     o3
-    // push(o3)
   }
 
   // push projections and aggregation
@@ -34,28 +38,24 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     * @todo capture attributes from filter
     */
   def push(e: CExpr, fs: Set[String] = Set()): CExpr = e match {
-    
-    // need to adjust this based on renaming
-    // case Projection(p:Projection, v2, f2, fs2) =>
-    //   Projection(p.in, v2, f2, fs2)
-
-    // add index and input ref as well??
-    case Projection(s:Select, v2, f2, fs2) => 
-      Projection(s.in, v2, f2, fs2)
 
     case Projection(in, v, filter, fields) => 
-      val tfields = fields.toSet ++ collect(filter)
+      val tfields = fs ++ collect(filter)
       val pin = push(in, tfields ++ fs)
       val nv = Variable.fromBag(v.name, pin.tp)
       Projection(pin, nv, replace(filter, nv), tfields.toList)
 
     case s @ Select(in, v, p) =>
       val ptp = v.tp.attrs.filter(f => fs(f._1))
-
-      val nv = Variable.freshFromBag(in.tp)
+      val pin = push(in, ptp.keySet)
+      val nv = Variable.freshFromBag(pin.tp)
       val nrec = Record(ptp.map(f => (f._1, Project(nv, f._1))))
-      Projection(s, nv, nrec, ptp.keySet.toList)
-
+      p match {
+        case Constant(true) => 
+          removeUnnecProj(Projection(pin, nv, nrec, ptp.keySet.toList))
+        case _ => Projection(Select(pin, nv, p), nv, nrec, ptp.keySet.toList)
+      }
+      
     case Unnest(in, v, path, v2, filter, fields) =>
       val pin = push(in, fields.toSet ++ fs + path)
       val nv = Variable.fromBag(v.name, pin.tp)
@@ -69,6 +69,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       OuterUnnest(pin, nv, path, v2, filter, nfields.toList)
 
     case Join(left, v, right, v2, cond, fields) =>
+      joinConds = joinConds :+ cond
       val jcols = collect(cond)
       val nfields = fs ++ jcols
       val lpin = push(left, nfields) 
@@ -99,32 +100,41 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       // push projections before performing nest
       val nrecFields = nkey.map(k => k -> Project(nv, k)).toMap ++ collect(replace(value, nv)).map(v1 => v1 -> Project(nv, v1))
       val nrec = Record(nrecFields)
+      // this creates a nasty double projection issue
       val npin = Projection(pin, nv, nrec, nrecFields.keySet.toList)
       val nv2 = Variable.freshFromBag(npin.tp)
 
       Nest(npin, nv2, nkey.toList, replace(value, nv2), filter, collect(value).toList, ctag)
 
     case Reduce(e1 @ Projection(in, v, filter, fields), v2, key, value) =>
+
       // adjust key
       val indices = key.filter(k => k.contains("index")).toSet
       val nkey0 = (key.toSet & fs) ++ indices 
       val nkey = if (nkey0.isEmpty) key.toSet else nkey0
 
-      val vs = nkey ++  value.toSet
+      // collect variables
+      val vs = nkey ++ value.toSet ++ fs ++ indices
+
+      // filter out unnecessary values in record
       val nfilter = filter match {
     		case Record(ffs) => Record(ffs.filter(f => vs(f._1)))
-    		case If(cond, Sng(Record(f1)), Some(Sng(Record(f2)))) => 
+        case If(cond, Sng(Record(f1)), Some(Sng(Record(f2)))) => 
     			 If(cond, Sng(Record(f1.filter(f => vs(f._1)))), 
     			 	Some(Sng(Record(f2.filter(f => vs(f._1))))))
     		case _ => sys.error(s"implementation missing for $filter")
 	    } 
-	    val nfs = collect(nfilter)//vs ++ fs ++ collect(nfilter)
+
+      // create a new projection
+	    val nfs = collect(nfilter)
       val pin = push(in, nfs)
       val nv = Variable.fromBag(v.name, pin.tp)
-
       val pin2 = Projection(pin, nv, nfilter, nfs.toList)
+
+      // creat a new reduce
       val nv2 = Variable.fromBag(v2.name, pin2.tp)
-      Reduce(pin2, nv2, nkey.toList, value)
+      val scheck = nfilter.tp.attrs.keySet
+      Reduce(pin2, nv2, (nkey & scheck).toList, value)
 
     case Reduce(in, v, key, value) =>
       //adjust key
@@ -136,11 +146,22 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       Reduce(pin, nv, nkey.toList, value)
 
     case CGet(e1) => CGet(push(e1, fs))
-    case AddIndex(e1, name) => AddIndex(push(e1, fs), name)
+
+    case AddIndex(e1, name) => 
+      // val ks = e.tp.attrs.keySet & fs.filter(k => k.contains("index"))
+      // println("in here with")
+      // println(ks)
+      // if (ks.nonEmpty) AddIndex(push(e1, fs), name)
+      // else push(e1, fs)
+      if (fs(name)) AddIndex(push(e1, fs), name)
+      else push(e1, fs)
+
     case FlatDict(e1) => FlatDict(push(e1, fs))
     case GroupDict(e1) => GroupDict(push(e1, fs))
     case CNamed(n, e1) => CNamed(n, push(e1))
+
     case LinearCSet(fs) => LinearCSet(fs.map(f => push(f)))
+
     case i @ InputRef(name, tp) => 
       val fields = fs & tp.attrs.keySet
       if (fields.nonEmpty) {
@@ -149,7 +170,19 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
           if (fields(f._1)) List((f._1, Project(v, f._1))) else Nil).toMap)
         Projection(i, v, nrec, nrec.fields.keySet.toList)
       } else i
+
+    case RemoveNulls(CDeDup(Projection(in, v, f1:Record, f2))) => 
+      val ids = v.tp.attrs.keySet.filter(f => f.contains("_index"))
+      val atts = fs ++ collect(f1) ++ ids
+      val nrec = if (fs.nonEmpty) Record(f1.fields.filter(f => atts.contains(f._1))) else f1
+      val pin = push(in, atts)
+      val nv = Variable.fromBag(v.name, pin.tp)
+      RemoveNulls(CDeDup(Projection(pin, nv, nrec, fs.toList)))
+
     case CDeDup(e1) => CDeDup(push(e1, fs))
+
+    case RemoveNulls(in) => RemoveNulls(push(in, fs))
+
     case _ => e
   }
 
@@ -157,8 +190,8 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     case Projection(r:Reduce, v, p:Record, f) => 
       val attrs = (r.keys ++ r.values).toSet
       val outs = p.fields.keySet
-      if (attrs == outs) r
-      else e
+      if (attrs == outs) r else e
+    case Projection(in, _, r @ Record(fs), _) if fs.keySet == collect(r) => in
   })
 
   /** Returns true if an expression is a base expression 

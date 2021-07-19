@@ -15,38 +15,38 @@ class TestGreedyCachePlanner extends TestBase {
   
   test("standard comilation route"){
 
-    println("STANDARD COMPILATION ROUTE!!!")
+    // println("STANDARD COMPILATION ROUTE!!!")
 
-    val seBuilder = SEBuilder(sprogs)
-    seBuilder.updateSubexprs()
+    // val seBuilder = SEBuilder(sprogs)
+    // seBuilder.updateSubexprs()
 
-    val subs = seBuilder.sharedSubs()
+    // val subs = seBuilder.sharedSubs()
 
-    val ces = CEBuilder.buildCoverMap(subs)
+    // val ces = CEBuilder.buildCoverMap(subs)
     
-    // printCE(ces)
+    // // printCE(ces)
 
-    val statsCollector = new StatsCollector(progs)
-    val stats = statsCollector.getCost(subs, ces)
+    // val statsCollector = new StatsCollector(progs)
+    // val stats = statsCollector.getCost(subs, ces)
 
-    val cost = new Cost(stats)
+    // val cost = new Cost(stats)
 
-    // println("FLEXIBILITY 0")
-    val selected0 = cost.selectCovers(ces, subs)
+    // // println("FLEXIBILITY 0")
+    // val selected0 = cost.selectCovers(ces, subs)
 
-    // selected0.foreach{ s =>
-    //   println(s._1)
-    //   println(s._2.profit)
-    //   println(Printer.quote(s._2.plan))
-    // }
+    // // selected0.foreach{ s =>
+    // //   println(s._1)
+    // //   println(s._2.profit)
+    // //   println(Printer.quote(s._2.plan))
+    // // }
 
-    val totalSize = selected0.map(s => s._2.est.outSize).reduce(_+_)
-    // println(totalSize)
-    // total size is 4502.043333333335 (4/5)
-    val planner0 = new GreedyCachePlanner(selected0, 5000)
-    planner0.solve()
+    // val totalSize = selected0.map(s => s._2.est.outSize).reduce(_+_)
+    // // println(totalSize)
+    // // total size is 4502.043333333335 (4/5)
+    // val planner0 = new GreedyCachePlanner(selected0, 5000)
+    // planner0.solve()
 
-    val candidates0 = planner0.knapsack
+    // val candidates0 = planner0.knapsack
     // println("these were put in the knapsack from most strict")
     // candidates0.foreach{ c => 
     //   println(Printer.quote(c._2))
@@ -75,36 +75,36 @@ class TestGreedyCachePlanner extends TestBase {
 
   test("shred comilation route"){
 
-    val seBuilder = SEBuilder(sprogs)
-    seBuilder.updateSubexprs()
+    // val seBuilder = SEBuilder(sprogs)
+    // seBuilder.updateSubexprs()
 
-    val subs = seBuilder.sharedSubs()
-    // printSE(subs)
+    // val subs = seBuilder.sharedSubs()
+    // // printSE(subs)
 
-    val ces = CEBuilder.buildCoverMap(subs)
-    // printCE(ces)
+    // val ces = CEBuilder.buildCoverMap(subs)
+    // // printCE(ces)
     
-    val statCollector = new StatsCollector(sprogs)
-    val stats = statCollector.getCost(subs, ces)
+    // val statCollector = new StatsCollector(sprogs)
+    // val stats = statCollector.getCost(subs, ces)
 
-    val cost = new Cost(stats)
-    val selectedCovers = cost.selectCovers(ces, subs)
+    // val cost = new Cost(stats)
+    // val selectedCovers = cost.selectCovers(ces, subs)
 
-    selectedCovers.foreach{ s =>
-      println(s._1)
-      println(s._2.profit)
-      println(Printer.quote(s._2.plan))
-    }
+    // selectedCovers.foreach{ s =>
+    //   println(s._1)
+    //   println(s._2.profit)
+    //   println(Printer.quote(s._2.plan))
+    // }
 
 
-    val planner = new GreedyCachePlanner(selectedCovers, 5000)
-    planner.solve()
+    // val planner = new GreedyCachePlanner(selectedCovers, 5000)
+    // planner.solve()
 
-    val candidates = planner.knapsack
-    println("these were put in the knapsack from most strict")
-    candidates.foreach{ c => 
-      println(Printer.quote(c._2))
-    }
+    // val candidates = planner.knapsack
+    // println("these were put in the knapsack from most strict")
+    // candidates.foreach{ c => 
+    //   println(Printer.quote(c._2))
+    // }
 
   }
 
