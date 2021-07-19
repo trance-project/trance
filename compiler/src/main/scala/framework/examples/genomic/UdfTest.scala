@@ -23,7 +23,8 @@ object ExampleQuery extends DriverGene {
   // are inherited from DriverGene trait (around line 549)
   // checkout individuals traits to see what the load functions are doing
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-    s"""|${loadTcga(shred, skew, fname = clinDir)}
+    s"""|val tcgaLoader = new TCGALoader(spark)
+        |val tcgaData = tcgaLoader.load("/mnt/app_hdd/data/biospecimen/clinical", dir = true)
         |${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
         |${loadCopyNumber(shred, skew, fname = cnvFile)}
         |${loadGeneExpr(shred, skew, fname = exprFile, aname = aexprFile)}
@@ -88,31 +89,43 @@ object ExampleQuery extends DriverGene {
     //     matrix <= matrix[selected_genes] // subset
     // """
 
+//// Using Occurences only (tcga loader)
+      s"""   GMB <=
+           for g in genemap union
+             {(gene:= g.g_gene_name, burdens :=
+               (for o in occurrences union
+                 for t in o.transcript_consequences union
+                   if (g.g_gene_id = t.gene_id) then
+                      {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
+                                                 else if (t.impact = "MODERATE") then 0.50
+                                                 else if (t.impact = "LOW") then 0.30
+                                                 else 0.01)}).sumBy({sid}, {burden}))}
+       """
 
-//// Using Occurences (Impact score)
-    s"""
-        GMB <=
-          for g in genemap union
-            {(gene:= g.g_gene_name, burdens :=
-              (for o in occurrences union
-                for s in clinical union
-                  if (o.donorId = s.bcr_patient_uuid) then
-                    for t in o.transcript_consequences union
-                      if (g.g_gene_id = t.gene_id) then
-                         {(sid := o.donorId,
-                           lbl := if (s.gleason_pattern_primary = 2) then 0
-                            else if (s.gleason_pattern_primary = 3) then 0
-                            else if (s.gleason_pattern_primary = 4) then 1
-                            else if (s.gleason_pattern_primary = 5) then 1
-                            else -1,
-                           burden := if (t.impact = "HIGH") then 0.80
-                                                    else if (t.impact = "MODERATE") then 0.50
-                                                    else if (t.impact = "LOW") then 0.30
-                                                    else 0.01
-                          )}
-              ).sumBy({sid, lbl}, {burden})
-            )}
-    """
+//// Using Occurences only (clinical biospec)
+//    s"""
+//        GMB <=
+//          for g in genemap union
+//            {(gene:= g.g_gene_name, burdens :=
+//              (for o in occurrences union
+//                for s in clinical union
+//                  if (o.donorId = s.bcr_patient_uuid) then
+//                    for t in o.transcript_consequences union
+//                      if (g.g_gene_id = t.gene_id) then
+//                         {(sid := o.donorId,
+//                           lbl := if (s.gleason_pattern_primary = 2) then 0
+//                            else if (s.gleason_pattern_primary = 3) then 0
+//                            else if (s.gleason_pattern_primary = 4) then 1
+//                            else if (s.gleason_pattern_primary = 5) then 1
+//                            else -1,
+//                           burden := if (t.impact = "HIGH") then 0.80
+//                                                    else if (t.impact = "MODERATE") then 0.50
+//                                                    else if (t.impact = "LOW") then 0.30
+//                                                    else 0.01
+//                          )}
+//              ).sumBy({sid, lbl}, {burden})
+//            )}
+//    """
 
 
   // Using only Gene Expression (fpkm)
