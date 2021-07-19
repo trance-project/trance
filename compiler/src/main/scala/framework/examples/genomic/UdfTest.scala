@@ -42,7 +42,7 @@ object ExampleQuery extends DriverGene {
   // val pathtype = TupleType("p_name" -> StringType, "url" -> StringType, "gene_set" -> BagType(genetype))
 
   // a map of input types for the parser
-    val tbls = Map("occurrences" -> occurmids.tp,
+    val tbls = Map("occurrences" -> occurrences.tp,
                     "copynumber" -> copynum.tp,
                     "expression" -> fexpression.tp,
                     "samples" -> samples.tp,
