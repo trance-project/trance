@@ -326,31 +326,30 @@ trait GeneProteinMap {
 
 trait GeneExpression {
 
-  def loadGeneExpr(shred: Boolean = false, skew: Boolean = false): String = {
+  def loadGeneExpr(shred: Boolean = false, skew: Boolean = false, fname: String = "", aname: String = ""): String = {
     if (shred){
-    val geneLoad = if (skew) "(expression, expression.empty)" else "expression"
-    s"""|val geLoader = new GeneExpressionLoader(spark)
-        |val expression = geLoader.load("/nfs_qc4/genomics/gdc/fpkm_uq/", true)
-        |       .withColumn("ge_gene_id", substring(col("ge_gene_id"), 1,15)).as[GeneExpression]
-        |val IBag_expression__D = $geneLoad
-        |IBag_expression__D.cache
-        |IBag_expression__D.count""".stripMargin
+      val geneLoad = if (skew) "(expression, expression.empty)" else "expression"
+      s"""|val geLoader = new GeneExpressionLoader(spark)
+          |val expression = geLoader.load("$fname", true, aliquotFile = "$aname")
+          |       .withColumn("ge_gene_id", substring(col("ge_gene_id"), 1,15)).as[GeneExpression]
+          |val IBag_expression__D = $geneLoad
+          |IBag_expression__D.cache
+          |IBag_expression__D.count""".stripMargin
     }else if (skew)
-    s"""|val geLoader = new GeneExpressionLoader(spark)
-        |val expression_L = geLoader.load("/nfs_qc4/genomics/gdc/fpkm_uq/", true)
-        |       .withColumn("ge_gene_id", substring(col("ge_gene_id"), 1,15)).as[GeneExpression]
-        |val expression = (expression_L, expression_L.empty)
-        |expression.cache
-        |expression.count""".stripMargin
+      s"""|val geLoader = new GeneExpressionLoader(spark)
+          |val expression_L = geLoader.load("$fname", true, aliquotFile = "$aname")
+          |       .withColumn("ge_gene_id", substring(col("ge_gene_id"), 1,15)).as[GeneExpression]
+          |val expression = (expression_L, expression_L.empty)
+          |expression.cache
+          |expression.count""".stripMargin
     else
-    s"""|val geLoader = new GeneExpressionLoader(spark)
-        |val expression = geLoader.load("/nfs_qc4/genomics/gdc/fpkm_uq/", true)
-        |       .withColumn("ge_gene_id", substring(col("ge_gene_id"), 1,15)).as[GeneExpression]
-        |expression.cache
-        |expression.count""".stripMargin
+      s"""|val geLoader = new GeneExpressionLoader(spark)
+          |val expression = geLoader.load("$fname", true, aliquotFile = "$aname")
+          |       .withColumn("ge_gene_id", substring(col("ge_gene_id"), 1,15)).as[GeneExpression]
+          |expression.cache
+          |expression.count""".stripMargin
 
   }
-
   val geneExprType = TupleType("expr_gene" -> StringType, "fpkm" -> DoubleType)
   val sampleExprType = TupleType("expr_sample" -> StringType, "gene_expression" -> BagType(geneExprType))
 
