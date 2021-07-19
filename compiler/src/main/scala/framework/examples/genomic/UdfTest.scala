@@ -44,7 +44,7 @@ object ExampleQuery extends DriverGene {
                     "expression" -> fexpression.tp,
                     "samples" -> samples.tp,
                     "pathways" -> pathway.tp,
-                    "genemap" -> gtf.tp
+                    "genemap" -> gtf.tp)
                     //"clinical" -> BagType(pradType))
 
 
