@@ -70,6 +70,19 @@ trait Dictionary {
     val tp: TupleDictType = e2.tp
   }
 
+  // final case class BagDictUdf(name: String, in: BagDictExpr, otp: Type) extends BagDictExpr with Udf {
+
+  //   val tp: BagDictType = e2.tp
+    
+  // }
+
+  // final case class TupleDictUdf(x: VarDef, e1: Expr, e2: TupleDictExpr) extends TupleDictExpr with Udf {
+  //   assert(x.tp == e1.tp)
+
+  //   val tp: TupleDictType = e2.tp
+  // }
+
+
   final case class BagDictIfThenElse(cond: CondExpr, e1: BagDictExpr, d2: BagDictExpr) extends BagDictExpr with IfThenElse {
     assert(e1.tp == d2.tp)
 

@@ -37,7 +37,7 @@ trait BaseShredding {
 /**
   * Shredding transformation
   */
-trait Shredding extends BaseShredding with Extensions {
+trait Shredding extends BaseShredding with Extensions with Printer {
   this: MaterializeNRC =>
 
   def shred(e: Expr): ShredExpr = shred(e, Map.empty)
@@ -186,22 +186,41 @@ trait Shredding extends BaseShredding with Extensions {
       // now just build the shredded expression to return
       ShredExpr(PrimitiveUdf(name, flat ,otp), dict)
 
-    case NumericUdf(name, in, otp) =>
-      val sresult:ShredExpr = shred(in, ctx)
-      val flat = sresult.flat
-      val dict = sresult.dict
-      ShredExpr(NumericUdf(name, flat ,otp), dict)
+    case NumericUdf(name, in, otp) => in.tp match {
 
-    case BagUdf(name, in, otp) =>
-      val sresult:ShredExpr = shred(in, ctx)
-      val flat = sresult.flat
-      val dict = sresult.dict
-      ShredExpr(BagUdf(name, flat, otp), dict)
+      // input type a bag, output type an int
+      case _:BagType => 
+        val ShredExpr(lbl: LabelExpr, dict:BagDictExpr) = shred(in, ctx)
+        val dl = dict.lookup(lbl)
+        println("in here with")
+        println(quote(dl))
+        ShredExpr(NumericUdf(name, dl, otp), EmptyDict)
 
+      case _ => 
+        val sresult:ShredExpr = shred(in, ctx)
+        val flat = sresult.flat
+        val dict = sresult.dict
+        ShredExpr(NumericUdf(name, flat ,otp), dict)
+    }
+
+    case BagUdf(name, in, otp) => in.tp match {
+      case _:BagType => 
+        val ShredExpr(lbl: LabelExpr, dict:BagDictExpr) = shred(in, ctx)
+        val flat = BagUdf(name, dict.lookup(lbl), otp)
+        val nlbl = NewLabel(labelParameters(flat))
+        ShredExpr(nlbl, BagDict(nlbl.tp, createLambda(nlbl, flat), dict.tupleDict))
+      case _ => ???
+    }
+
+    // W.I.P.
     case TupleUdf(name, in, otp) =>
       val sresult:ShredExpr = shred(in, ctx)
       val flat = sresult.flat
       val dict = sresult.dict
+      println("this is flat")
+      println(quote(flat))
+      println("this is dict")
+      println(quote(dict))
       ShredExpr(TupleUdf(name, flat, otp), dict)
 
     case _ => sys.error("Cannot shred expr " + e)

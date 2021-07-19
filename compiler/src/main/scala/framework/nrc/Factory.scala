@@ -27,6 +27,17 @@ trait Factory {
     }
   }
 
+  object Udf {
+
+    def apply(name: String, in: Expr, otp: Type): Expr = otp match {
+      case _: NumericType => NumericUdf(name, in, otp.asInstanceOf[NumericType])
+      case _: PrimitiveType => PrimitiveUdf(name, in, otp.asInstanceOf[PrimitiveType])
+      case _: BagType => BagUdf(name, in, otp.asInstanceOf[BagType])
+      case _: TupleType => TupleUdf(name, in, otp.asInstanceOf[TupleType])
+    }
+    
+  }
+
   object DictVarRef {
     def apply(varDef: VarDef): DictExpr =
       apply(varDef.name, varDef.tp.asInstanceOf[DictType])

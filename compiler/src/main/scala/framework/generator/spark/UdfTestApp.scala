@@ -22,7 +22,6 @@ object UdfDevApp extends App {
   override def main(args: Array[String]){
 
     // runs the standard pipeline
-    AppWriter.runDatasetShred(SimpleUDFExample, "ExampleTest,standard", optLevel = 1, notebk = true, zhost = "oda-compute-0-6",
-      zport = 8085)
+    AppWriter.runDatasetShred(BagUDFExample, "ExampleTest,standard", optLevel = 1)
   }
 }

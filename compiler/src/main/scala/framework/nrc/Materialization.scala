@@ -210,6 +210,9 @@ trait Materialization extends MaterializationContext {
       case ShredExpr(l: NewLabel, d: BagDict) =>
         assert(l.tp == d.lblTp)   // sanity check
         materializeBagDict(d, a.name, ctx, None, eliminateDomains)
+      case ShredExpr(n:NumericUdf, _) => 
+        val program = new MaterializedProgram(Program(Assignment(a.name, n)), ctx)
+        program
       case _ =>
         sys.error("Materialization not supported for "+ quote(a))
     }
