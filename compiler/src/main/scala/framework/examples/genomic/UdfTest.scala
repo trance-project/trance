@@ -17,6 +17,7 @@ object ExampleQuery extends DriverGene {
   val pathFile = "/mnt/app_hdd/data/pathway/c2.cp.v7.1.symbols.gmt"
   val gtfFile = "/mnt/app_hdd/data/genes/Homo_sapiens.GRCh37.87.chr.gtf"
   val pradFile = "/mnt/app_hdd/data/biospecimen/clinical/nationwidechildrens.org_clinical_patient_prad.txt"
+  val clinDir = "/mnt/app_hdd/data/biospecimen/clinical"
 
   // in DriverGenes.scala you can see traits for several datatypes, these
   // are inherited from DriverGene trait (around line 549)
@@ -26,6 +27,7 @@ object ExampleQuery extends DriverGene {
         |val tcgaData = tcgaLoader.load("/mnt/app_hdd/data/biospecimen/clinical", dir = true)
         |${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
         |${loadCopyNumber(shred, skew, fname = cnvFile)}
+        |${loadTcga(shred, skew, fname = clinDir)
         |${loadGeneExpr(shred, skew, fname = exprFile, aname = aexprFile)}
         |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
         |${loadPathway(shred, skew, fname = pathFile)}
