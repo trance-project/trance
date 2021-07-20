@@ -104,7 +104,7 @@ object ExampleQuery extends DriverGene {
                     for t in o.transcript_consequences union
                       if (g.g_gene_id = t.gene_id) then
                           {(sid := o.donorId,
-                          lbl := if (s.tumor_site_tissue = "Prostate") then 1
+                          lbl := if (s.tumor_tissue_site = "Prostate") then 1
                                  else 0,
                           burden := if (t.impact = "HIGH") then 0.80
                                                  else if (t.impact = "MODERATE") then 0.50
