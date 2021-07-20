@@ -103,7 +103,7 @@ object ExampleQuery extends DriverGene {
                   if (o.donorId = s.sample) then
                     for t in o.transcript_consequences union
                       if (g.g_gene_id = t.gene_id) then
-                          {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
+                          {(sid := o.donorId, tumor_site := s.tumor_tissue_site, burden := if (t.impact = "HIGH") then 0.80
                                                  else if (t.impact = "MODERATE") then 0.50
                                                  else if (t.impact = "LOW") then 0.30
                                                  else 0.01)}).sumBy({sid}, {burden}))}
