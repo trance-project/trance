@@ -1,0 +1,1 @@
+def MBag_identityudf_1(top: Dataset[_], first: Dataset[_]): Dataset[_] = top
