@@ -47,8 +47,10 @@ object ExampleQuery extends DriverGene {
                     "expression" -> fexpression.tp,
                     "samples" -> samples.tp,
                     "pathways" -> pathway.tp,
+                    "clinical" -> BagType(tcgaType),// this is for the tcga only
                     "genemap" -> gtf.tp)
                     //"clinical" -> BagType(pradType))
+
 
 
   // a query string that is passed to the parser
@@ -82,7 +84,7 @@ object ExampleQuery extends DriverGene {
     //           (for o in occurrences union
     //             for t in o.transcript_consequences union
     //               if (g.g_gene_id = t.gene_id) then
-    //                  {(sid := o.donorId, lbl := , burden := if (t.impact = "HIGH") then 0.80
+    //                  {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
     //                                             else if (t.impact = "MODERATE") then 0.50
     //                                             else if (t.impact = "LOW") then 0.30
     //                                             else 0.01)}).sumBy({sid}, {burden}))}
@@ -97,9 +99,11 @@ object ExampleQuery extends DriverGene {
            for g in genemap union
              {(gene:= g.g_gene_name, burdens :=
                (for o in occurrences union
-                 for t in o.transcript_consequences union
-                   if (g.g_gene_id = t.gene_id) then
-                      {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
+                 for s in clinical union
+                  if (o.donorId = s.sample) then
+                    for t in o.transcript_consequences union
+                      if (g.g_gene_id = t.gene_id) then
+                          {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
                                                  else if (t.impact = "MODERATE") then 0.50
                                                  else if (t.impact = "LOW") then 0.30
                                                  else 0.01)}).sumBy({sid}, {burden}))}
