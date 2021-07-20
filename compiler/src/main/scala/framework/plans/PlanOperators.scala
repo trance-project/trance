@@ -36,7 +36,7 @@ case class RemoveNulls(e1: CExpr) extends CExpr {
 }
 
 /**
- *  Append an index to an input collection (used for dot-equality), 
+ *  Appends an index to the collection returned by e, unique for each occurrence of a tuple (used for dot-equality), 
  * important for maintaining multiplicites in bag comprehensions
  */
 case class AddIndex(e: CExpr, name: String) extends CExpr with UnaryOp {
