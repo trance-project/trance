@@ -116,7 +116,7 @@ trait Vep {
     "cds_start" -> LongType,
     "codons" -> StringType,
     "consequence_terms" -> BagType(element),
-    "flags" -> BagType(element),
+    //"flags" -> BagType(element),
     "gene_id" -> StringType,
     "impact" -> StringType,
     "protein_end" -> LongType,
