@@ -98,9 +98,6 @@ trait Printer {
           |ShredUnion
           |(${quote(e2)})""".stripMargin
 
-    case ShredUdf(n, f, d, t) => 
-      s"$n(${quote(f)}, ${quote(d)})"
-
     case Lookup(lbl, dict) =>
       s"Lookup(${quote(lbl)}, ${quote(dict)})"
 
@@ -112,6 +109,9 @@ trait Printer {
     case KeyValueMapToBag(d) =>
       s"KeyValueMapToBag(${quote(d)})"
 
+    case MaterializedUdf(name, in, _) => 
+      s"""${name}(${in.map(f => quote(f)).mkString(",")})"""
+
     case _ =>
       sys.error("Cannot print unknown expression " + e)
   }
@@ -120,13 +120,21 @@ trait Printer {
 
   def quote(p: Program): String = p.statements.map(quote).mkString("\n")
 
-  def quote(e: ShredExpr): String =
+  def quote(e: ShredExpr): String = 
     s"""|Flat: ${quote(e.flat)}
         |Dict: ${quote(e.dict)}""".stripMargin
 
-  def quote(a: ShredAssignment): String =
-    s"""|${flatName(a.name)} := ${quote(a.rhs.flat)}
-        |${dictName(a.name)} := ${quote(a.rhs.dict)}""".stripMargin
+  def quote(e: ShredUdf): String =
+      s"${e.name}(${quote(e.flat)}, ${quote(e.dict)})"
+
+  def quote(a: ShredAssignment): String = a.rhs match {
+    case e:ShredUdf => 
+      s"""|${flatName(a.name)} := ${flatName(e.name)}(${quote(e.flat)}, ${quote(e.dict)})
+          |${dictName(a.name)} := ${dictName(e.name)}(${quote(e.flat)}, ${quote(e.dict)})""".stripMargin
+    case _ => 
+      s"""|${flatName(a.name)} := ${quote(a.rhs.flat)}
+          |${dictName(a.name)} := ${quote(a.rhs.dict)}""".stripMargin
+  }
 
   def quote(p: ShredProgram): String = p.statements.map(quote).mkString("\n")
 

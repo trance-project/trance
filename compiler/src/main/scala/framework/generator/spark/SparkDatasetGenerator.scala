@@ -300,7 +300,12 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     // be generated...
     case CUdf(n, e1, tp) =>
       udfsUsed = udfsUsed :+ n
-      s"""$n(${e1.map(f => generateReference(f)).mkString(",")})"""
+      handleType(tp)
+      val gtp = tp match {
+        case BagCType(ttp) => generateType(ttp)
+        case _ => generateType(tp)
+      }
+      s"""$n(${e1.map(f => generateReference(f)).mkString(",")}).as[$gtp]"""
 	  case Sng(e) => s"Seq(${generate(e)})"
     case CGet(e1) => s"${generate(e1)}.head"
     case CDeDup(e1) if dedup => s"${generate(e1)}.distinct"

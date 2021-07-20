@@ -214,8 +214,14 @@ trait Materialization extends MaterializationContext {
 
   private def materialize(a: ShredAssignment,
                           ctx: Context,
-                          opts: Set[MaterializationOption]): MProgram =
+                          opts: Set[MaterializationOption]): MProgram = {
     a.rhs match {
+
+      case u:ShredUdf=> 
+        val (mexprs, ctx2) =
+          materializeUdf(u, dictName(a.name), ctx, None) //, opts, outputDict = true)
+        val p = Program(mexprs.map(m => Assignment(m.name, m.e)))
+        new MProgram(optimize(p), ctx2)
 
       case ShredExpr(_: PrimitiveExpr, EmptyDict) =>
         new MProgram(Program(), ctx)
@@ -236,6 +242,7 @@ trait Materialization extends MaterializationContext {
       case _ =>
         sys.error("Materialization not supported for " + quote(a))
     }
+ }
 
   private def materializeDictExpr(dict: DictExpr,
                                   name: String,
@@ -312,13 +319,44 @@ trait Materialization extends MaterializationContext {
         sys.error("Dictionary materialization not supported for " + quote(dict))
     }
 
-  private def materializeBagDict(dict: BagDict,
+  private def recurseDictType(name: String, tp: Type, top: Boolean = false): Seq[BagVarRef] = tp match {
+    case TupleDictType(fs) => fs.flatMap(f => 
+      recurseDictType(matMapName(name+"_"+f._1)+"_1", f._2)).toSeq
+    case BagDictType(lt, ft, dt) => 
+      val bname = if (top) matBagName(name) else name
+      recurseDictType(bname, ft) ++ recurseDictType(name, dt)
+    case bt:BagType => Seq(BagVarRef(name, bt))
+    case _ => Seq()
+  }
+
+  private def materializeUdf(udf: ShredUdf, 
+                             name: String,
+                             ctx:Context, 
+                             parent:Option[(MaterializedDict, String)]): (List[MaterializedDict], Context) = {
+
+    // prepare inputs
+    val inputName = udf.dict.asInstanceOf[BagDictVarRef].name+"_1"
+    val inputs = recurseDictType(inputName, udf.dict.tp, top = true)
+
+    // prepare udf names
+    val onames = recurseDictType(udf.name+"_1", udf.tp, top = true)
+    val anames = recurseDictType(name+"_1", udf.tp, top = true)
+
+    val mexpr = onames.zipWithIndex.map{ case (n, i) => 
+                  MUdf(anames(i).name, MaterializedUdf(n.name, inputs, n.tp)) }
+                  
+    (mexpr.toList, ctx)
+
+  }
+
+  private def materializeBagDict(dict: BagDictExpr,
                                  name: String,
                                  ctx: Context,
                                  parent: Option[(MaterializedDict, String)],
                                  opts: Set[MaterializationOption],
                                  outputDict: Boolean): (List[MaterializedDict], Context) =
     dict match {
+
       case BagDict(_, flat, tupleDict: TupleDictExpr) if parent.isEmpty =>
           // 1. Eliminate symbolic dictionaries from flat expression
           val flatBag = rewriteUsingContext(flat, ctx).asInstanceOf[BagExpr]
