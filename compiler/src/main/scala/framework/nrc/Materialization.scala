@@ -319,20 +319,25 @@ trait Materialization extends MaterializationContext {
         sys.error("Dictionary materialization not supported for " + quote(dict))
     }
 
+
   private def recurseDictType(name: String, tp: Type, top: Boolean = false): Seq[BagVarRef] = tp match {
+    
     case TupleDictType(fs) => fs.flatMap(f => 
       recurseDictType(matMapName(name+"_"+f._1)+"_1", f._2)).toSeq
+
     case BagDictType(lt, ft, dt) => 
       val bname = if (top) matBagName(name) else name
       recurseDictType(bname, ft) ++ recurseDictType(name, dt)
+
     case bt:BagType => Seq(BagVarRef(name, bt))
+
     case _ => Seq()
+
   }
 
   private def materializeUdf(udf: ShredUdf, 
                              name: String,
-                             ctx:Context, 
-                             parent:Option[(MaterializedDict, String)]): (List[MaterializedDict], Context) = {
+                             ctx:Context): (List[MaterializedDict], Context) = {
 
     // prepare inputs
     val inputName = udf.dict.asInstanceOf[BagDictVarRef].name+"_1"
@@ -344,7 +349,9 @@ trait Materialization extends MaterializationContext {
 
     val mexpr = onames.zipWithIndex.map{ case (n, i) => 
                   MUdf(anames(i).name, MaterializedUdf(n.name, inputs, n.tp)) }
-                  
+    
+    // TODO update context with each of the anames 
+
     (mexpr.toList, ctx)
 
   }
