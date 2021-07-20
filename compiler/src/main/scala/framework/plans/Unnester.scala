@@ -58,6 +58,8 @@ object Unnester {
   def unnest(e: CExpr)(implicit ctx: Ctx): CExpr = e match {
 
     // Base case for unnesting algorithm: Rule C4 
+	  // But unlike in C4, in the topmost generator v <-- e1, e1 may not be a simple term, since we
+	  // do not have as strong a normal form. So we need to unnest e1
     case Comprehension(e1, v, p, e2) if u.isEmpty && w.isEmpty && E.isEmpty =>
       // do not index a domain
       val nE = unnest(e1)((u, w, E, tag))
