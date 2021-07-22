@@ -110,7 +110,7 @@ object ExampleQuery extends DriverGene {
                           burden := if (t.impact = "HIGH") then 8.0
                                                  else if (t.impact = "MODERATE") then 5.0
                                                  else if (t.impact = "LOW") then 3.0
-                                                 else 0.01)}).sumBy({sid, lbl}, {burden}))}
+                                                 else 1.0)}).sumBy({sid, lbl}, {burden}))}
        """
 
 //// Using Occurences only (clinical biospec)

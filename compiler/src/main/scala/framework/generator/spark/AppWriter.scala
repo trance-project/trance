@@ -305,6 +305,7 @@ object AppWriter {
                 |import sparkutils._
                 |import sparkutils.loader._
                 |import sparkutils.skew.SkewDataset._
+                |spark.sparkContext.addJar("/nfs/home/pavlos/trance/executor/spark/target/scala-2.12/sparkutils_2.12-0.1.jar");
         """.stripMargin
     val s2 = s"""|$header""".stripMargin
 
