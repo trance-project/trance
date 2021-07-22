@@ -1141,21 +1141,21 @@ object LetTest8 extends DriverGene {
 
     val cnvJoin = 
       s"""
-        for s in samples union 
+        for s2 in samples union 
           for c in copynumber union
-            if (s.bcr_aliquot_uuid = c.bcr_aliquot_uuid)
-            then {(bcr_patient_uuid_1 := s.bcr_patient_uuid, gid1 := c.cn_gene_id, cnum1 := c.cn_copy_number + 0.001 )}       
+            if (s2.bcr_aliquot_uuid = c.cn_aliquot_uuid)
+            then {(bcr_patient_uuid_1 := s2.bcr_patient_uuid, gid1 := c.cn_gene_id, cnum1 := c.cn_copy_number + 0.001 )}       
       """
 
     val agg1 = 
      s"""
       for a in $samps union 
         {( bcr_patient_uuid := a.bcr_patient_uuid_d, cnvs := 
-          (for s in $cnvJoin union  
-            if (s.bcr_patient_uuid_1 = a.bcr_patient_uuid_d)
+          (for s1 in $cnvJoin union  
+            if (s1.bcr_patient_uuid_1 = a.bcr_patient_uuid_d)
             then for g in PWays union 
-              if (s.gid1 = g.pgid)
-              then {( path := g.pname, cnum := s.cnum1 + 0.001 )}).sumBy({path},{cnum})
+              if (s1.gid1 = g.pgid)
+              then {( path := g.pname, cnum := s1.cnum1 + 0.001 )}).sumBy({path},{cnum})
         )}
      """
 
@@ -1231,7 +1231,7 @@ object LetTest8Seq extends DriverGene {
       s"""
         for s in samples union 
           for c in copynumber union
-            if (s.bcr_aliquot_uuid = c.bcr_aliquot_uuid)
+            if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
             then {(bcr_patient_uuid_1 := s.bcr_patient_uuid, gid1 := c.cn_gene_id, cnum1 := c.cn_copy_number + 0.001 )}       
       """
 
@@ -1239,11 +1239,11 @@ object LetTest8Seq extends DriverGene {
      s"""
       for a in DSamples union 
         {( bcr_patient_uuid := a.bcr_patient_uuid_d, cnvs := 
-          (for s in cnvJoin union  
-            if (s.bcr_patient_uuid_1 = a.bcr_patient_uuid_d)
+          (for s1 in cnvJoin union  
+            if (s1.bcr_patient_uuid_1 = a.bcr_patient_uuid_d)
             then for g in PWays union 
-              if (s.gid1 = g.pgid)
-              then {( path := g.pname, cnum := s.cnum1 + 0.001 )}).sumBy({path},{cnum})
+              if (s1.gid1 = g.pgid)
+              then {( path := g.pname, cnum := s1.cnum1 + 0.001 )}).sumBy({path},{cnum})
         )}
      """
 
