@@ -107,10 +107,10 @@ object ExampleQuery extends DriverGene {
                           {(sid := o.donorId,
                           lbl := if (s.tumor_tissue_site = "Prostate") then 1
                                  else 0,
-                          burden := if (t.impact = "HIGH") then 8.0
-                                                 else if (t.impact = "MODERATE") then 5.0
-                                                 else if (t.impact = "LOW") then 3.0
-                                                 else 1.0)}).sumBy({sid, lbl}, {burden}))}
+                          burden := if (t.impact = "HIGH") then 0.80
+                                                 else if (t.impact = "MODERATE") then 0.50
+                                                 else if (t.impact = "LOW") then 0.30
+                                                 else 0.01)}).sumBy({sid, lbl}, {burden}))}
        """
 
 //// Using Occurences only (clinical biospec)
