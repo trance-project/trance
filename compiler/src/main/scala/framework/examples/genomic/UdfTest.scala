@@ -107,9 +107,9 @@ object ExampleQuery extends DriverGene {
                           {(sid := o.donorId,
                           lbl := if (s.tumor_tissue_site = "Prostate") then 1
                                  else 0,
-                          burden := if (t.impact = "HIGH") then 8
-                                                 else if (t.impact = "MODERATE") then 5
-                                                 else if (t.impact = "LOW") then 3
+                          burden := if (t.impact = "HIGH") then 8.0
+                                                 else if (t.impact = "MODERATE") then 5.0
+                                                 else if (t.impact = "LOW") then 3.0
                                                  else 0.01)}).sumBy({sid, lbl}, {burden}))}
        """
 
