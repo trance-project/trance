@@ -106,6 +106,10 @@ object ExampleQuery extends DriverGene {
                       if (g.g_gene_id = t.gene_id) then
                           {(sid := o.donorId,
                           lbl := if (s.tumor_tissue_site = "Prostate") then 1
+                                 else if (s.tumor_tissue_site = "Stomach") then 2
+                                 else if (s.tumor_tissue_site = "Bladder") then 3
+                                 else if (s.tumor_tissue_site = "Liver") then 4
+                                 else if (s.tumor_tissue_site = "Pancreas") then 5
                                  else 0,
                           burden := if (t.impact = "HIGH") then 0.80
                                                  else if (t.impact = "MODERATE") then 0.50
