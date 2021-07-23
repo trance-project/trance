@@ -144,7 +144,8 @@ trait Vep {
     "variant_allele" -> StringType)
 
   val transcriptFull = TupleType(
-    "case_id" -> StringType,
+   // "case_id" -> StringType,
+    "aliquot_id" -> StringType,
     "amino_acids" -> StringType,
     "cdna_end" -> LongType,
     "cdna_start" -> LongType,
