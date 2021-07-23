@@ -162,7 +162,7 @@ trait Vep {
     //"polyphen_score" -> DoubleType,
     "protein_end" -> LongType,
     "protein_start" -> LongType,
-    "sift_prediction" -> StringType,
+    //"sift_prediction" -> StringType,
     "sift_score" -> DoubleType,
     "ts_strand" -> LongType,
     "transcript_id" -> StringType,
