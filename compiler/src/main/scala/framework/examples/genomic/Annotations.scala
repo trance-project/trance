@@ -159,7 +159,7 @@ trait Vep {
     "impact" -> StringType,
     "intron" -> StringType,
     "polyphen_prediction" -> StringType,
-    "polyphen_score" -> DoubleType,
+    //"polyphen_score" -> DoubleType,
     "protein_end" -> LongType,
     "protein_start" -> LongType,
     "sift_prediction" -> StringType,
