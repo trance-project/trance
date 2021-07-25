@@ -26,10 +26,12 @@ object ExampleQuery extends DriverGene {
   // in DriverGenes.scala you can see traits for several datatypes, these
   // are inherited from DriverGene trait (around line 549)
   // checkout individuals traits to see what the load functions are doing
+//  Put next two lines in the loadTables when running tcga
+//  val tcgaLoader = new TCGALoader(spark)
+//  val tcgaData = tcgaLoader.load("/mnt/app_hdd/data/biospecimen/clinical", dir = true)
+//
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-    s"""|val tcgaLoader = new TCGALoader(spark)
-        |val tcgaData = tcgaLoader.load("/mnt/app_hdd/data/biospecimen/clinical", dir = true)
-        |${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
+    s"""|${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
         |${loadCopyNumber(shred, skew, fname = cnvFile)}
         |${loadGeneExpr(shred, skew, fname = exprFile, aname = aexprFile)}
         |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
