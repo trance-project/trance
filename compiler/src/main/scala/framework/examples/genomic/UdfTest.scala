@@ -315,6 +315,13 @@ object ExampleQueryMultiTcga extends DriverGene {
     // """
 
     // Using Occurences only (tcga loader)
+    //                                     else if (s.tumor_tissue_site = "Lung") then 2
+    //                                     else if (s.tumor_tissue_site = "Kidney") then 3
+    //                                     else if (s.tumor_tissue_site = "Stomach") then 4
+    //                                     else if (s.tumor_tissue_site = "Ovary") then 5
+    //                                     else if (s.tumor_tissue_site = "Endometrial") then 6
+    //                                     else if (s.tumor_tissue_site = "Head and Neck") then 7
+    //                                     else if (s.tumor_tissue_site = "Central nervous system") then 8
           s"""   GMB <=
                for g in genemap union
                  {(gene:= g.g_gene_name, burdens :=
@@ -325,13 +332,7 @@ object ExampleQueryMultiTcga extends DriverGene {
                           if (g.g_gene_id = t.gene_id) then
                               {(sid := o.donorId,
                               lbl := if (s.tumor_tissue_site = "Breast") then 1
-                                     else if (s.tumor_tissue_site = "Lung") then 2
-                                     else if (s.tumor_tissue_site = "Kidney") then 3
-                                     else if (s.tumor_tissue_site = "Stomach") then 4
-                                     else if (s.tumor_tissue_site = "Ovary") then 5
-                                     else if (s.tumor_tissue_site = "Endometrial") then 6
-                                     else if (s.tumor_tissue_site = "Head and Neck") then 7
-                                     else if (s.tumor_tissue_site = "Central nervous system") then 8
+
                                      else 0,
                               burden := if (t.impact = "HIGH") then 0.80
                                                      else if (t.impact = "MODERATE") then 0.50
