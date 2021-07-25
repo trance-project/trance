@@ -49,7 +49,7 @@ object ExampleQuery extends DriverGene {
                     "samples" -> samples.tp,
                     "pathways" -> pathway.tp,
                     //"clinical" -> BagType(tcgaType),// this is for the tcga only
-                    "genemap" -> gtf.tp)
+                    "genemap" -> gtf.tp,
                     "clinical" -> BagType(pradType))
 
 
