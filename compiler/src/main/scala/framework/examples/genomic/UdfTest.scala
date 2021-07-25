@@ -6,7 +6,7 @@ import framework.examples.Query
 import framework.nrc.Parser
 
 // this is the Gene Mutation Burden Example
-object ExampleQuery extends DriverGene {
+object ExampleQueryImpact extends DriverGene {
   val sampleFile = "/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_prad.txt"
   val cnvFile = "/mnt/app_hdd/data/cnv"
   val exprFile = "/mnt/app_hdd/data/expression/"
@@ -31,7 +31,8 @@ object ExampleQuery extends DriverGene {
 //  val tcgaData = tcgaLoader.load("/mnt/app_hdd/data/biospecimen/clinical", dir = true)
 //
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-    s"""|${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
+    s"""|${loadBiospec(shred, skew, fname = pradFile, name = "clinical", func = "Prad")}
+        |${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
         |${loadCopyNumber(shred, skew, fname = cnvFile)}
         |${loadGeneExpr(shred, skew, fname = exprFile, aname = aexprFile)}
         |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
