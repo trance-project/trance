@@ -248,7 +248,8 @@ object ExampleQueryMultiTcga extends DriverGene {
   //
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
     s"""|val tcgaLoader = new TCGALoader(spark)
-        |val tcgaData = tcgaLoader.load("/mnt/app_hdd/data/biospecimen/clinical", dir = true)${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
+        |val tcgaData = tcgaLoader.load("/mnt/app_hdd/data/biospecimen/clinical", dir = true)
+        |${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
         |${loadCopyNumber(shred, skew, fname = cnvFile)}
         |${loadGeneExpr(shred, skew, fname = exprFile, aname = aexprFile)}
         |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
