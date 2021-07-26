@@ -218,8 +218,10 @@ trait Materialization extends MaterializationContext {
     a.rhs match {
 
       case u:ShredUdf=> 
+        println("materializing ")
+        println(quote(u))
         val (mexprs, ctx2) =
-          materializeUdf(u, dictName(a.name), ctx, None) //, opts, outputDict = true)
+          materializeUdf(u, dictName(a.name), ctx) //, opts, outputDict = true)
         val p = Program(mexprs.map(m => Assignment(m.name, m.e)))
         new MProgram(optimize(p), ctx2)
 
@@ -320,7 +322,7 @@ trait Materialization extends MaterializationContext {
     }
 
 
-  private def recurseDictType(name: String, tp: Type, top: Boolean = false): Seq[BagVarRef] = tp match {
+  private def recurseDictType(name: String, tp: Type, top: Boolean = false): Seq[VarRef] = tp match {
     
     case TupleDictType(fs) => fs.flatMap(f => 
       recurseDictType(matMapName(name+"_"+f._1)+"_1", f._2)).toSeq
@@ -331,7 +333,11 @@ trait Materialization extends MaterializationContext {
 
     case bt:BagType => Seq(BagVarRef(name, bt))
 
-    case _ => Seq()
+    case _:PrimitiveType => 
+      val bname = if (top) matBagName(name) else name
+      Seq(VarRef(bname, tp).asInstanceOf[VarRef])
+
+    case _ => println("falling in here with"); println(tp); Seq()
 
   }
 
@@ -344,11 +350,13 @@ trait Materialization extends MaterializationContext {
     val inputs = recurseDictType(inputName, udf.dict.tp, top = true)
 
     // prepare udf names
-    val onames = recurseDictType(udf.name+"_1", udf.tp, top = true)
-    val anames = recurseDictType(name+"_1", udf.tp, top = true)
+    val onames = recurseDictType(udf.name+"_1", udf.otp, top = true)
+    val anames = recurseDictType(name+"_1", udf.otp, top = true)
 
     val mexpr = onames.zipWithIndex.map{ case (n, i) => 
-                  MUdf(anames(i).name, MaterializedUdf(n.name, inputs, n.tp)) }
+                  val mname = anames(i).asInstanceOf[VarRef].name
+                  val nname = n.asInstanceOf[VarRef].name
+                  MUdf(mname, MaterializedUdf(nname, inputs, n.tp)) }
     
     // TODO update context with each of the anames 
 

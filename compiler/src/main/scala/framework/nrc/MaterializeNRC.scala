@@ -66,7 +66,7 @@ trait MaterializeNRC extends ShredNRC with Optimizer with Factory {
     override def varRef: BagVarRef = BagVarRef(name, e.tp)
   }
 
-  final case class MaterializedUdf(name: String, in: Seq[Expr], otp: Type) extends Expr {
+  final case class MaterializedUdf(name: String, in: Seq[VarRef], otp: Type) extends Expr {
     def tp: Type = otp
   }
 
@@ -75,8 +75,6 @@ trait MaterializeNRC extends ShredNRC with Optimizer with Factory {
   final case class MKeyValueMap(name: String, e: KeyValueMapExpr) extends MaterializedDict {
     override def varRef: KeyValueMapVarRef = KeyValueMapVarRef(name, e.tp)
   }
-
-  // final case class MUdf(name: String, in: Expr, otp: Type) extends MaterializedDict 
 
   sealed trait SymbolicDict extends DictNode
 

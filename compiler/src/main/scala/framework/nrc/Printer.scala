@@ -110,7 +110,7 @@ trait Printer {
       s"KeyValueMapToBag(${quote(d)})"
 
     case MaterializedUdf(name, in, _) => 
-      s"""${name}(${in.map(f => quote(f)).mkString(",")})"""
+      s"""${name}(${in.map(f => quote(f.asInstanceOf[Expr])).mkString(",")})"""
 
     case _ =>
       sys.error("Cannot print unknown expression " + e)
