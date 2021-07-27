@@ -334,6 +334,7 @@ object ExampleQueryMultiTcga extends DriverGene {
                                          else if (s.tumor_tissue_site = "Endometrial") then 6
                                          else if (s.tumor_tissue_site = "Head and Neck") then 7
                                          else if (s.tumor_tissue_site = "Central nervous system") then 8
+                                         else if (s.tumor_tissue_sote = "Colon") then 9
                                      else 0,
                               burden := if (t.impact = "HIGH") then 0.80
                                                      else if (t.impact = "MODERATE") then 0.50
