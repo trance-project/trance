@@ -327,15 +327,15 @@ object ExampleQueryMultiTcga extends DriverGene {
                         for t in o.transcript_consequences union
                           if (g.g_gene_id = t.gene_id) then
                               {(sid := o.donorId,
-                                lbl := if (s.tumor_tissue_site = "Breast") then Breast
-                                             else if (s.tumor_tissue_site = "Lung") then Lung
-                                             else if (s.tumor_tissue_site = "Kidney") then Kidney
-                                             else if (s.tumor_tissue_site = "Stomach") then Stomach
-                                             else if (s.tumor_tissue_site = "Ovary") then Ovary
-                                             else if (s.tumor_tissue_site = "Endometrial") then Endometrial
-                                             else if (s.tumor_tissue_site = "Head and Neck") then Head and Neck
-                                             else if (s.tumor_tissue_site = "Central nervous system") then Central nervous system
-                                             else if (s.tumor_tissue_site = "Colon") then Colon
+                                lbl := if (s.tumor_tissue_site = "Breast") then "Breast"
+                                             else if (s.tumor_tissue_site = "Lung") then "Lung"
+                                             else if (s.tumor_tissue_site = "Kidney") then "Kidney"
+                                             else if (s.tumor_tissue_site = "Stomach") then "Stomach"
+                                             else if (s.tumor_tissue_site = "Ovary") then "Ovary"
+                                             else if (s.tumor_tissue_site = "Endometrial") then "Endometrial"
+                                             else if (s.tumor_tissue_site = "Head and Neck") then "Head and Neck"
+                                             else if (s.tumor_tissue_site = "Central nervous system") then "Central nervous system"
+                                             else if (s.tumor_tissue_site = "Colon") then "Colon"
                                          else 9,
                               burden := if (t.impact = "HIGH") then 0.80
                                                      else if (t.impact = "MODERATE") then 0.50
