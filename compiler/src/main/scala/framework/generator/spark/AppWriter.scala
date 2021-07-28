@@ -292,7 +292,7 @@ object AppWriter {
         |import spark.implicits._
         |$data
         |$gcode
-        |MDict_FirstInput_1_cnvs_1.createOrReplaceTempView("MDict_FirstInput_1_cnvs_1")""".stripMargin
+        |MMap_FirstInput__D_1_cnvs_1.createOrReplaceTempView("MDict_FirstInput_1_cnvs_1")""".stripMargin
 
   }
 
