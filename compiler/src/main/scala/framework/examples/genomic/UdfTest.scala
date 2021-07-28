@@ -774,3 +774,54 @@ object BagCountUDFExample extends DriverGene {
   val program = parser.parse(query).get.asInstanceOf[Program]
 
 }
+
+object PivotUDFExample extends DriverGene {
+
+  // need to change this to your loadTables if you want to use this function
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    if (shred){
+      s"""|val samples = spark.table("samples")
+          |val IBag_samples__D = samples
+          |IBag_samples__D.cache; IBag_samples__D.count
+          |
+          |val copynumber = spark.table("copynumber")
+          |val IBag_copynumber__D = copynumber
+          |IBag_copynumber__D.cache; IBag_copynumber__D.count
+          |
+          |""".stripMargin
+    }else{
+      s"""|val samples = spark.table("samples")
+          |
+          |val copynumber = spark.table("copynumber")
+          |""".stripMargin
+    }
+
+  // name to identify your query
+  val name = "PivotUDF"
+
+  // a map of input types for the parser
+
+  val tbls = Map("copynumber" -> copynum.tp,
+    "samples" -> samples.tp)
+
+  val udfTypes = Map("pivotudf" -> BoolType)
+
+
+  val query =
+    s"""
+    FirstInput <=
+      for s in samples union
+        {( bcr_patient_uuid := s.bcr_patient_uuid, cnvs :=
+          (for c in copynumber union
+            if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
+            then {( cn_gene_id := c.cn_gene_id, cnum := c.cn_copy_number + 0.001 )}).sumBy({cn_gene_id},{cnum})
+        )};
+
+    Output <= pivotudf(FirstInput)
+
+   """
+
+  val parser = Parser(tbls, udfTypes)
+  val program = parser.parse(query).get.asInstanceOf[Program]
+
+}

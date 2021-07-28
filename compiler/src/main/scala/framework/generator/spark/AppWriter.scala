@@ -108,10 +108,10 @@ object AppWriter {
       // contents to a paragraph using the writeParagraph call on the next line:
       println(s"Writing out to $qname notebook with id: $noteid")
 
-      // define the udf paragraph output
-//      val udfcontents = writeParagraph(qname, udftext, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
-//      val udfpara = new JsonWriter().buildParagraph("Generated paragraph $qname", udfcontents)
-//      val udfpid = zep.writeParagraph(noteid, udfpara)
+      //define the udf paragraph output
+      val udfcontents = writeUdfParagraph(udftext)
+      val udfpara = new JsonWriter().buildParagraph("Generated paragraph $qname", udfcontents)
+      val udfpid = zep.writeParagraph(noteid, udfpara)
 
       val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
       val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
@@ -267,6 +267,11 @@ object AppWriter {
        |}""".stripMargin
   }
 
+  def writeUdfParagraph(udfcontents: String): String = {
+    s"""|%spark.pyspark
+        |# This paragraph was generated.
+        |$udfcontents""".stripMargin
+  }
   /** Writes a generated application for a query using Spark Datasets to Zeppelin**/
   def writeParagraph(appname: String, data: String, header: String, gcode: String, label:String, encoders: String): String  = {
 
@@ -286,7 +291,8 @@ object AppWriter {
         |$encoders
         |import spark.implicits._
         |$data
-        |$gcode""".stripMargin
+        |$gcode
+        |MDict_FirstInput_1_cnvs_1.createOrReplaceTempView("MDict_FirstInput_1_cnvs_1")""".stripMargin
 
   }
 

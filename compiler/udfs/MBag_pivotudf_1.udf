@@ -1,0 +1,6 @@
+def MBag_pivotudf_1(top, first):
+
+    data = sqlContext.table("MDict_FirstInput_1_cnvs_1")
+    data.printSchema
+    df = data.toPandas()
+    return df
