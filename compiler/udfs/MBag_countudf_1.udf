@@ -1,0 +1,1 @@
+def MBag_countudf_1(top: Dataset[_], first: Dataset[_]): Long = top.count
