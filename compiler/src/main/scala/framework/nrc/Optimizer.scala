@@ -26,10 +26,14 @@ trait Optimizer extends Extensions with Implicits with Factory {
   def optimize(a: ShredAssignment, f: Expr => Expr): ShredAssignment =
     ShredAssignment(a.name, optimize(a.rhs, f))
 
-  def optimize(e: ShredExpr): ShredExpr = optimize(e, defaultOpt)
+  def optimize(e: SExpr): SExpr = optimize(e, defaultOpt)
 
-  def optimize(e: ShredExpr, f: Expr => Expr): ShredExpr =
-    ShredExpr(optimize(e.flat, f), optimize(e.dict, f).asInstanceOf[DictExpr])
+  def optimize(e: SExpr, f: Expr => Expr): SExpr = e match {
+    case s:ShredUdf => 
+      ShredUdf(s.name, optimize(e.flat, f), optimize(e.dict, f).asInstanceOf[DictExpr], s.otp)
+    case _ => 
+      ShredExpr(optimize(e.flat, f), optimize(e.dict, f).asInstanceOf[DictExpr])
+  }
 
   def optimize(p: Program): Program = optimize(p, defaultOpt)
 

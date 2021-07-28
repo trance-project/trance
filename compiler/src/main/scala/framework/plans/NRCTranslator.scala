@@ -111,8 +111,7 @@ trait NRCTranslator extends Materialization with MaterializeNRC with NRCPrinter 
     case TupleDict(fs) => TupleCDict(fs.map(f => f._1 -> translate(f._2)))
     case TupleDictProject(dict) => project(translate(dict), "_2")
     case d: DictUnion => DictCUnion(translate(d.dict1), translate(d.dict2))
-    case ShredUdf(n, f, d, tp) => CUdf(n, Seq(translate(f), translate(d)), translate(tp))
-
+    case MaterializedUdf(n, in, tp) => CUdf(n, in.map(i => translate(i)), translate(tp))
     case _ => sys.error("cannot translate "+quote(e))
   }
 

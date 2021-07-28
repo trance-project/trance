@@ -10,11 +10,18 @@ trait ShredNRC extends NRC with BaseShredding with Label with Dictionary {
   /**
     * Shredded expression E is a pair of E^flat and E^dict
     */
+  sealed trait SExpr {
 
-  final case class ShredExpr(flat: Expr, dict: DictExpr)
+    def flat: Expr 
 
-  final case class ShredUdf(name:String, flat: Expr, dict: DictExpr, otp: Type) extends Expr {
-    def tp:Type = otp
+    def dict: DictExpr
+
+  }
+
+  final case class ShredExpr(flat: Expr, dict: DictExpr) extends SExpr
+
+  final case class ShredUdf(name:String, flat: Expr, dict: DictExpr, otp: Type) extends SExpr {
+    def tp:Type = dictTp(otp)
   }
 
   final case class ShredUnion(e1: BagExpr, e2: BagExpr) extends BagExpr {
@@ -27,7 +34,7 @@ trait ShredNRC extends NRC with BaseShredding with Label with Dictionary {
     def tp: BagType = dict.tp.flatTp
   }
 
-  final case class ShredAssignment(name: String, rhs: ShredExpr)
+  final case class ShredAssignment(name: String, rhs: SExpr)
 
   final case class ShredProgram(statements: List[ShredAssignment])
 

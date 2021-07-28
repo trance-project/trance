@@ -293,7 +293,7 @@ trait Extensions {
           vv ++ inputVars(s.rhs, scope).toSet )
     }._2
 
-  def inputVars(e: ShredExpr): Set[VarRef] =
+  def inputVars(e: SExpr): Set[VarRef] =
     inputVars(e, Map.empty[String, VarDef]).toSet
 
   def inputVars(a: ShredAssignment): Set[VarRef] =
@@ -328,7 +328,7 @@ trait Extensions {
   protected def inputVars(a: Assignment, scope: Map[String, VarDef]): List[VarRef] =
     inputVars(a.rhs, scope)
 
-  protected def inputVars(e: ShredExpr, scope: Map[String, VarDef]): List[VarRef] =
+  protected def inputVars(e: SExpr, scope: Map[String, VarDef]): List[VarRef] =
     inputVars(e.flat, scope) ++ inputVars(e.dict, scope)
 
   protected def inputVars(a: ShredAssignment, scope: Map[String, VarDef]): Set[VarRef] =

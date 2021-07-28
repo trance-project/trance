@@ -2,7 +2,7 @@ package framework.nrc
 
 import framework.common._//{BagType, KeyValueMapType, LabelType, TupleType, VarDef}
 
-trait MaterializeNRC extends ShredNRC with Optimizer {
+trait MaterializeNRC extends ShredNRC with Optimizer with Factory {
 
   val KEY_ATTR_NAME: String = "_1"
 
@@ -66,11 +66,15 @@ trait MaterializeNRC extends ShredNRC with Optimizer {
     override def varRef: BagVarRef = BagVarRef(name, e.tp)
   }
 
+  final case class MaterializedUdf(name: String, in: Seq[VarRef], otp: Type) extends Expr {
+    def tp: Type = otp
+  }
+
+  final case class MUdf(name: String, e: MaterializedUdf) extends MaterializedDict 
+
   final case class MKeyValueMap(name: String, e: KeyValueMapExpr) extends MaterializedDict {
     override def varRef: KeyValueMapVarRef = KeyValueMapVarRef(name, e.tp)
   }
-
-  // final case class MUdf(name: String, in: Expr, otp: Type) extends MaterializedDict 
 
   sealed trait SymbolicDict extends DictNode
 

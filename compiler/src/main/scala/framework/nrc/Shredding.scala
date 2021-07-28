@@ -52,12 +52,12 @@ trait Shredding extends BaseShredding with Extensions with Printer {
       dictName(n) -> VarDef(dictName(n), dictTp(tp))
     )
 
-  def shred(e: Expr): ShredExpr =
+  def shred(e: Expr): SExpr =
     shred(shredEnv(inputVars(e)), Map.empty, e)
 
   protected def shred(env: Map[String, VarDef],
                       tpResolver: Map[String, (Type, DictType)],
-                      e: Expr): ShredExpr = e match {
+                      e: Expr): SExpr = e match {
 
     case _: Const => ShredExpr(e, EmptyDict)
 
@@ -195,46 +195,24 @@ trait Shredding extends BaseShredding with Extensions with Printer {
       val flat = ReduceByKey(dict1.lookup(lbl1), ks, vs)
       val lbl = NewLabel(labelParameters(flat, env).toSet)
       ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict1.tupleDict))
-
-    // restrict input to be variable, then the input will
-    // be all the materialized dictionaries of the input 
-    // for shredding - list of variable references / type
+      
     case u:Udf => (u.in.tp, u.tp) match {
 
       // ex. take a nested bag, return the identity
-      case (_:BagType, otp:BagType) => 
-         val ShredExpr(lbl1: LabelExpr, dict1:BagDictExpr) = shred(env, tpResolver, u.in)
-         // this should be a shred udf that takes the top-level
-         val flat = BagUdf(u.name+"_shred", dict1.lookup(lbl1), otp)
-         val lbl = NewLabel(labelParameters(flat, env).toSet)
-         ShredExpr(lbl, BagDict(lbl.tp, createLambda(lbl, flat), dict1.tupleDict))
-
-      // ex. take a nested bag, return a single integer count
-      case (_:BagType, _:PrimitiveType) => ???
+      // materialization restricts input to be a variable
+      case (_:BagType, _) => 
+         val ShredExpr(lbl: Expr, dict:DictExpr) = shred(env, tpResolver, u.in)
+         ShredUdf(u.name, lbl, dict, u.otp)
 
       // ex. take a string, return something appended to the string
       case (_:PrimitiveType, _:PrimitiveType) => 
-        val sresult:ShredExpr = shred(env, tpResolver, u.in)
+        val sresult:SExpr = shred(env, tpResolver, u.in)
         val flat = sresult.flat
         val dict = sresult.dict
-        ShredExpr(Udf(u.name+"_shred", flat, u.otp), dict)
-    }
+        ShredExpr(Udf(u.name, flat, u.otp), dict)
 
-    case BagUdf(name, in, otp) => in.tp match {
-      case _:BagType => 
-        val ShredExpr(lbl: LabelExpr, dict:BagDictExpr) = shred(env, tpResolver, in)
-        val flat = BagUdf(name+"_shred", dict.lookup(lbl), otp)
-        val nlbl = NewLabel(labelParameters(flat, env).toSet)
-        ShredExpr(nlbl, BagDict(nlbl.tp, createLambda(nlbl, flat), dict.tupleDict))
       case _ => ???
     }
-
-    // W.I.P.
-    case TupleUdf(name, in, otp) =>
-      val sresult:ShredExpr = shred(env, tpResolver, in)
-      val flat = sresult.flat
-      val dict = sresult.dict
-      ShredExpr(TupleUdf(name, flat, otp), dict)
 
     case _ => sys.error("Cannot shred expr " + e)
   }
@@ -242,8 +220,9 @@ trait Shredding extends BaseShredding with Extensions with Printer {
   def shred(a: Assignment): ShredAssignment =
     shred(shredEnv(inputVars(a)), Map.empty, a)
 
-  protected def shred(env: Map[String, VarDef], tpResolver: Map[String, (Type, DictType)], a: Assignment): ShredAssignment =
+  protected def shred(env: Map[String, VarDef], tpResolver: Map[String, (Type, DictType)], a: Assignment): ShredAssignment = {
     ShredAssignment(a.name, shred(env, tpResolver, a.rhs))
+  }
 
   def shred(p: Program): ShredProgram =
     shred(p, Map.empty)
@@ -255,6 +234,8 @@ trait Shredding extends BaseShredding with Extensions with Printer {
     shredCtx(p, Map.empty)
 
   def shredCtx(p: Program, tpResolver: Map[String, (Type, DictType)]): (ShredProgram, Map[String, (Type, DictType)]) = {
+    println("am i in here??")
+    println(quote(p))
     val env0 = inputVars(p).flatMap { v =>
       val (ftp, dtp) = tpResolver.getOrElse(v.name, flatTp(v.tp) -> dictTp(v.tp))
       Map(
