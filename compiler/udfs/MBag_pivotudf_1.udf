@@ -1,4 +1,4 @@
-def MBag_pivotudf_1(top, first):
+def MBag_pivotudf_1():
 
     data = sqlContext.table("MDict_FirstInput_1_cnvs_1")
     data.printSchema

@@ -93,7 +93,7 @@ object AppWriter {
 
     for (u <- codegen.udfsUsed) {
       val bufferedSource = scala.io.Source.fromFile(s"udfs/${u}.udf")
-      val stringAdd = bufferedSource.getLines().mkString
+      val stringAdd = bufferedSource.getLines().mkString("\n")
       udftext = udftext.concat(stringAdd)
       bufferedSource.close()
     }
