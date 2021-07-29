@@ -414,7 +414,7 @@ object ExampleQueryMultiTcga extends DriverGene {
 
 }
 
-object ExampleQueryMultiTcga9 extends DriverGene {
+object QueryMultiTcga extends DriverGene {
   val sampleFile = "/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_prad.txt"
   val cnvFile = "/mnt/app_hdd/data/cnv"
   val exprFile = "/mnt/app_hdd/data/expression/"
