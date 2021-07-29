@@ -804,7 +804,9 @@ object PivotUDFExample extends DriverGene {
   val tbls = Map("copynumber" -> copynum.tp,
     "samples" -> samples.tp)
 
-  val udfTypes = Map("pivotudf" -> BoolType)
+  // basically just tell the compiler that we 
+  // are exiting scala and going to python
+  val udfTypes = Map("pivotudf" -> PythonType)
 
 
   val query =

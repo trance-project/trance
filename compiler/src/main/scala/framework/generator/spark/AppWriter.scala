@@ -17,6 +17,8 @@ object AppWriter {
 
   /** Standard pipeline: Dataset generator **/
   val pathout = "../executor/spark/src/main/scala/sparkutils/generated/"
+  val homedir = "/nfs/home/pavlos/trance/executor/spark"
+  // val homedir = "/Users/jac/code/trance/executor/spark"
 
   def writeLoader(name: String, tp: List[(String, Type)], header: Boolean = true, delimiter: String = ","): Unit = {
     val tmaps = Map(tp -> name)
@@ -89,12 +91,15 @@ object AppWriter {
     val printer = new PrintWriter(new FileOutputStream(new File(fname), false))
 
     // collect the contents of the files
-    var udftext : String = ""
+    var internaludfs : String = ""
+    println("starting the write out process with")
+    println(codegen.internalUdfs)
+    println(codegen.externalUdfs)
 
-    for (u <- codegen.udfsUsed) {
+    for (u <- codegen.internalUdfs) {
       val bufferedSource = scala.io.Source.fromFile(s"udfs/${u}.udf")
       val stringAdd = bufferedSource.getLines().mkString
-      udftext = udftext.concat(stringAdd)
+      internaludfs = internaludfs.concat(stringAdd)
       bufferedSource.close()
     }
 
@@ -108,21 +113,37 @@ object AppWriter {
       // contents to a paragraph using the writeParagraph call on the next line:
       println(s"Writing out to $qname notebook with id: $noteid")
 
-      //define the udf paragraph output
-      val udfcontents = writeUdfParagraph(udftext)
-      val udfpara = new JsonWriter().buildParagraph("Generated paragraph $qname", udfcontents)
-      val udfpid = zep.writeParagraph(noteid, udfpara)
+      //define an scala udfs
+      if (codegen.internalUdfs.nonEmpty){
+        val udfcontents = writeUdfParagraph(internaludfs)
+        val udfpara = new JsonWriter().buildParagraph(s"Generated udf paragraph for $qname", udfcontents)
+        val udfpid = zep.writeParagraph(noteid, udfpara)
+      }
 
+      // write out the code for the query
       val pcontents = writeParagraph(qname, inputs, "", timeOp(qname, gcodeSet.mkString("\n")), label, encoders)
-      val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
+      val para = new JsonWriter().buildParagraph(s"Generated paragraph $qname", pcontents)
       val pid = zep.writeParagraph(noteid, para)
+
+      // write out the code for the external udfs
+      for (u <- codegen.externalUdfs){
+        println(s"working on external udf ${u.name} with type ${u.tp}")
+        val bufferedSource = scala.io.Source.fromFile(s"udfs/${u.name}.udf")
+        val stringAdd = bufferedSource.getLines().mkString
+        val externaludf = stringAdd.concat(s"""\n${u.name}("${u.in.map(codegen.generate(_)).mkString("\",\"")}")""")
+        bufferedSource.close()
+        val udfcontents = writeUdfParagraph(externaludf, utype = u.tp.toString())
+        val udfpara = new JsonWriter().buildParagraph(s"Generated external udf ${u.name}", udfcontents)
+        val udfpid = zep.writeParagraph(noteid, udfpara)
+      }
+
 
       zep.restartInterpreter()
       println(s"Writing case classes out to $fname")
       val finalc = "package sparkutils.generated\n"+header
       printer.println(finalc)
       printer.close
-      "sh compile.sh".!!
+      // "sh compile.sh".!!
     }else{
       println(s"Writing out $qname to $fname")
       val finalc = writeDataset(qname, inputs, header, timed(label, gcodeSet), label, encoders)//+"\n"+udftext)
@@ -142,7 +163,6 @@ object AppWriter {
       case _ => env.plans.map(_._1)
     }
 
-    println("Evaluating these plans")
     for (q <- cstrat){
       val anfBase = new BaseOperatorANF{}
       val anfer = new Finalizer(anfBase)
@@ -267,9 +287,8 @@ object AppWriter {
        |}""".stripMargin
   }
 
-  def writeUdfParagraph(udfcontents: String): String = {
-    s"""|%spark.pyspark
-        |# This paragraph was generated.
+  def writeUdfParagraph(udfcontents: String, utype: String = ""): String = {
+    s"""|$utype
         |$udfcontents""".stripMargin
   }
   /** Writes a generated application for a query using Spark Datasets to Zeppelin**/
@@ -286,13 +305,13 @@ object AppWriter {
         |import sparkutils.skew.SkewDataset._
         |import sparkutils.generated._
         |import scala.math.sqrt
-        |spark.sparkContext.addJar("/nfs/home/pavlos/trance/executor/spark/target/scala-2.12/sparkutils_2.12-0.1.jar");
+        |spark.sparkContext.addJar(s"$homedir/target/scala-2.12/sparkutils_2.12-0.1.jar");
         |$header
         |$encoders
         |import spark.implicits._
         |$data
         |$gcode
-        |MDict_FirstInput_1_cnvs_1.createOrReplaceTempView("MDict_FirstInput_1_cnvs_1")""".stripMargin
+        |""".stripMargin
 
   }
 

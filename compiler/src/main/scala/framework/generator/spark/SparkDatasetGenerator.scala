@@ -27,7 +27,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
   // create a mutable sequence where 
   // we will store the udfs
-  var udfsUsed = Seq[String]()
+  var internalUdfs = Seq[String]()
+  var externalUdfs = Seq[CUdf]()
 
   /** Generates the code for the set of case class records associated to the 
     * records in the generated program.
@@ -298,8 +299,16 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     // now in the CUdf case, append to the sequence list 
     // to make sure that the udf is called to 
     // be generated...
+    case CNamed(n, u) if u.isInstanceOf[ExternalType] => generate(u)
+    case c @ CUdf(n, e1, tp:ExternalType) => 
+      // register input variables as temporary tables
+      def createTmp(s: String): String = {
+        s"""$s.createOrReplaceTempView("$s")"""
+      }
+      externalUdfs = externalUdfs :+ c
+      e1.map(f => createTmp(f)).mkString("\n")
     case CUdf(n, e1, tp) =>
-      udfsUsed = udfsUsed :+ n
+      internalUdfs = internalUdfs :+ n
       handleType(tp)
       val gtp = tp match {
         case BagCType(ttp) => generateType(ttp)
@@ -618,7 +627,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       }
       s"""|${generate(x)}$filter
           |""".stripMargin
-
+    // no more process after the external udf if called
+    case Bind(v, CNamed(n, e1:CUdf), e2) if e1.tp.isInstanceOf[ExternalType] => generate(e1)
     case Bind(v, CNamed(n, e1), LinearCSet(fs)) =>
       val (gtp, lbl) = 
         e1.tp.attrs.get("_LABEL") match {
@@ -639,7 +649,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
           // |${if (!cache) comment(n) else n}.cache
           // |${if (!cache && !evalFinal) comment(n) else n}.count
-
     case Bind(v, CNamed(n, e1), e2) =>
       val (gtp, lbl) = 
         e1.tp.attrs.get("_LABEL") match {
@@ -661,13 +670,6 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
            |${if (cache) n else comment(n)}.count
            |$ge2
            |""".stripMargin   
-      // s"""|val $gv = ${generate(e1)}
-      //     |val $n = $gv$repart
-      //     |//$n.print
-      //     |${if (!cache || evalFinal) comment(n) else n}.cache
-      //     |${if (!evaluate) comment(n) else n}.count
-      //     |$ge2
-      //     |""".stripMargin
 
     case LinearCSet(fs) => ""
     case Bind(v, e1, e2) => 

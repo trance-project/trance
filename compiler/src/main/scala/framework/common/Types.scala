@@ -76,6 +76,11 @@ trait PrimitiveType extends TupleAttributeType
 case object BoolType extends PrimitiveType
 case object StringType extends PrimitiveType
 
+trait ExternalType extends PrimitiveType
+case object PythonType extends ExternalType {
+  override def toString(): String = "%spark.pyspark"
+}
+
 trait NumericType extends PrimitiveType with ReducibleType
 case object IntType extends NumericType
 case object LongType extends NumericType
