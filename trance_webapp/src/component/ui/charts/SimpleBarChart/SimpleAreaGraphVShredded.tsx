@@ -1,6 +1,8 @@
 import React, {useState,useEffect, useRef}  from 'react';
 import Typography from "@material-ui/core/Typography";
+import Grid from "@material-ui/core/Grid";
 import * as d3 from 'd3';
+import * as d3Legend from 'd3-svg-legend';
 
 import {RunTimeMetrics} from '../../../../utils/Public_Interfaces';
 
@@ -12,22 +14,25 @@ interface _SimpleAreaGraphVShreddedProps{
 
 const SimpleAreaGraphVShredded = (props:_SimpleAreaGraphVShreddedProps) => {
     const margin = { top: 20, right: 5, bottom: 20, left: 50 };
-    const width = 1050;
-    const height= 250;
+    const width = 1150;
+    const height= 350;
 
     const [lineChartPath, setLineChartPath] = useState<{path: any, fill:string}[]>()
+
+    // @ts-ignore
     const [currentZoomState, setCurrentZoomState] = useState()
 
     // @ts-ignore
     const yAxis = d3.axisLeft();
 
     const yAxisRef = useRef(null);
-    const brushRef=useRef(null);
+    const legendRef=useRef(null);
     const svgRef=useRef(null);
     const linesRef=useRef(null);
 
     useEffect(()=>{
         const svg = d3.select(svgRef.current);
+        const legend = d3.select(legendRef.current)
         const extentX = d3.extent(props.data, d=>d.pid);
 
         const xScale = d3.scaleTime()
@@ -72,6 +77,7 @@ const SimpleAreaGraphVShredded = (props:_SimpleAreaGraphVShreddedProps) => {
         }
 
         // zoom
+
         const zoomBehavior = d3.zoom()
             .scaleExtent([1, 1000])
             .translateExtent([
@@ -83,8 +89,31 @@ const SimpleAreaGraphVShredded = (props:_SimpleAreaGraphVShreddedProps) => {
                 setCurrentZoomState(zoomState);
             });
 
+        /**
+         * this is used to set the initial zoom state should be removed when zoom function has chanaged
+         */
+        if(!currentZoomState){
+            // @ts-ignore
+            svg.call(zoomBehavior.transform, d3.zoomIdentity.translate(-83573.32497393635,-30806.565869187994).scale(94.35322990663029))
+        }else{
+            // @ts-ignore
+            svg.call(zoomBehavior);
+        }
+
+        const ordinal = d3.scaleOrdinal()
+            .domain(["shredded", "standard"])
+            .range(["rgb(255, 0, 0)", "rgb(0, 0, 255)"])
+
+        const legendOrdinal = d3Legend.legendColor()
+            // @ts-ignore
+            .shape("path", d3.symbol().type(d3.symbolSquare).size(150)())
+            // @ts-ignore
+            .cellFilter(function(d){ return d.label !== "e" })
+            .scale(ordinal);
+
         // @ts-ignore
-        svg.call(zoomBehavior)
+        legend.call(legendOrdinal);
+
 
         // const brushEffect = d3.brush()
         //     .extent([
@@ -132,20 +161,28 @@ const SimpleAreaGraphVShredded = (props:_SimpleAreaGraphVShreddedProps) => {
         // console.log("[brush Select]", d3.)
     }
 
-    console.log('[currentZoomState]', currentZoomState)
+    // console.log('[currentZoomState]', currentZoomState)
     return (
       <div style={{ width: '100%' }}>
         <Typography variant={'h6'}>Ordered by size</Typography>
-          <svg height={height - margin.bottom} width={width} ref={svgRef}>
-              <g ref={linesRef}>
-                  {lineChartPath?.map(d => (
-                          <path d={d.path} fill={"none"} strokeWidth={2} stroke={d.fill}/>
-                      )
-                  )}
-              </g>
-            <g ref={yAxisRef} transform={`translate(${margin.left}, 0)`}/>
-              <g ref={brushRef}/>
-          </svg>
+          <Grid container spacing={2}>
+              <Grid item xs={12} md={10} >
+                  <svg height={height - margin.bottom} width={width} ref={svgRef}>
+                      <g ref={linesRef}>
+                          {lineChartPath?.map((d,i) => (
+                                  <path key={i} d={d.path} fill={"none"} strokeWidth={2} stroke={d.fill}/>
+                              )
+                          )}
+                      </g>
+                      <g ref={yAxisRef} transform={`translate(${margin.left}, 0)`}/>
+                  </svg>
+              </Grid>
+              <Grid item xs={12} md={2}>
+                  <svg height={height} width={100}>
+                      <g ref={legendRef} transform={`translate(0, 50)`}/>
+                  </svg>
+              </Grid>
+          </Grid>
       </div>
     );
 }

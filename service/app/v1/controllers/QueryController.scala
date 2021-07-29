@@ -19,7 +19,7 @@ import framework.plans.{Optimizer, Unnester, BaseOperatorANF}
 import framework.plans.{JsonWriter => PJsonWriter}
 import framework.examples.genomic._
 import framework.generator.spark.{SparkDatasetGenerator,
-//  ZeppelinFactory,
+  ZeppelinFactory,
   JsonWriter => ZJsonWriter}
 
 @Api(value = "/nrccode")
@@ -100,25 +100,25 @@ class QueryController @Inject()(
     """.stripMargin
   }
 
-//  private def runProgram(plan: CExpr, queryId: String): String = {
-//
-//    val zep = new ZeppelinFactory(host = "localhost", port = 8082)
-//
-//    val anfBase = new BaseOperatorANF{}
-//    val anfer = new Finalizer(anfBase)
-//    val anfed = anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
-//    val generator = new SparkDatasetGenerator(false, false, evalFinal=true)
-//    val code = generator.generate(anfed)
-//
-//    val noteid = zep.addNote(queryId)
-//    val pcontents = writeParagraph(queryId, generator.generateHeader(), code, generator.generateEncoders())
-//    val para = new ZJsonWriter().buildParagraph("Generated paragraph test", pcontents)
-//    val pid = zep.writeParagraph(noteid, para)
-//    // val status = zep.runParaSync(noteid, pid)
-//    // status
-//    pid
-//
-//  }
+  private def runProgram(plan: CExpr, queryId: String): String = {
+
+    val zep = new ZeppelinFactory(host = "localhost", port = 8082)
+
+    val anfBase = new BaseOperatorANF{}
+    val anfer = new Finalizer(anfBase)
+    val anfed = anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
+    val generator = new SparkDatasetGenerator(false, false, evalFinal=true)
+    val code = generator.generate(anfed)
+
+    val noteid = zep.addNote(queryId)
+    val pcontents = writeParagraph(queryId, generator.generateHeader(), code, generator.generateEncoders())
+    val para = new ZJsonWriter().buildParagraph("Generated paragraph test", pcontents)
+    val pid = zep.writeParagraph(noteid, para)
+    // val status = zep.runParaSync(noteid, pid)
+    // status
+    pid
+
+  }
 
   @ApiOperation(
     value = "Find all Querys",
@@ -208,7 +208,7 @@ class QueryController @Inject()(
 
         val plan = compileProgram(program)
 
-//        val runstatus = runProgram(plan, qid)
+        val runstatus = runProgram(plan, qid)
 
         val responseBody = s"""{"status": $plan}"""
 
