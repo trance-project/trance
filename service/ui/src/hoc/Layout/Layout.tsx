@@ -230,14 +230,15 @@ const Layout = (props:LayoutProps) => {
                                 <ListItemText primary={"Compiler"} />
                             </ListItem>
                         </Link>
-                        <Link to={'/tables'}>
-                            <ListItem className={props.activePage===pageRoutes.TABLES?classes.drawerPaperActive:classes.drawerNav} button onClick={() => props.goto_Route(pageRoutes.TABLES)}>
-                                <ListItemIcon>
-                                    <MapIcon />
-                                </ListItemIcon>
-                                <ListItemText primary={"Schema"} />
-                            </ListItem>
-                        </Link>
+                         {/*TODO Add the schema information*/}
+                        {/*<Link to={'/tables'}>*/}
+                        {/*    <ListItem className={props.activePage===pageRoutes.TABLES?classes.drawerPaperActive:classes.drawerNav} button onClick={() => props.goto_Route(pageRoutes.TABLES)}>*/}
+                        {/*        <ListItemIcon>*/}
+                        {/*            <MapIcon />*/}
+                        {/*        </ListItemIcon>*/}
+                        {/*        <ListItemText primary={"Schema"} />*/}
+                        {/*    </ListItem>*/}
+                        {/*</Link>*/}
                         <Link to={'/report'} className={props.activePage===pageRoutes.REPORT?classes.drawerPaperActive:classes.drawerNav}>
                             <ListItem button onClick={() => props.goto_Route(pageRoutes.REPORT)}>
                                 <ListItemIcon>
@@ -248,15 +249,16 @@ const Layout = (props:LayoutProps) => {
                         </Link>
                     </List>
                     <Divider/>
-                    <List>
-                        <ListSubheader inset>Recent Activity</ListSubheader>
-                        <ListItem button>
-                            <ListItemIcon>
-                                <AssignmentIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={"Created GeneLikelihoodPer..."} />
-                        </ListItem>
-                    </List>
+                    {/*TODO add recent activity action of users action*/}
+                    {/*<List>*/}
+                    {/*    <ListSubheader inset>Recent Activity</ListSubheader>*/}
+                    {/*    <ListItem button>*/}
+                    {/*        <ListItemIcon>*/}
+                    {/*            <AssignmentIcon />*/}
+                    {/*        </ListItemIcon>*/}
+                    {/*        <ListItemText primary={"Created GeneLikelihoodPer..."} />*/}
+                    {/*    </ListItem>*/}
+                    {/*</List>*/}
                 </Drawer>
                 <main className={classes.content}>
                     <div className={classes.appBarSpacer}/>
