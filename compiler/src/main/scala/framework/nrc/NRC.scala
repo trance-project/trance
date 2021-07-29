@@ -160,6 +160,8 @@ trait NRC extends BaseExpr {
 
     def tp: Type
 
+    def hint:String
+
   }
 
   final case class NumericUdf(name: String, in: Expr, otp: NumericType) extends NumericExpr with Udf{
