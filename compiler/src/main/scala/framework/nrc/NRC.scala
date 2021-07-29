@@ -160,7 +160,7 @@ trait NRC extends BaseExpr {
 
     def tp: Type
 
-    def hint:String
+    //def hint:String
 
   }
 

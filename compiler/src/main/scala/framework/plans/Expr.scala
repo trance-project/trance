@@ -37,6 +37,7 @@ case class Constant(data: Any) extends CExpr{
   override def vstr: String = s"$data"
 }
 
+ //,hint:String)
 case class CUdf(name: String, in: Seq[CExpr], tp: Type) extends CExpr
 
 case object Index extends CExpr {
