@@ -16,8 +16,20 @@ const objects = [
         columns:
             [
                 {name: "bcr_patient_uuid", children:{}},
-                {name: "turmorsite", children:{}},
-                {name: "treatment_outcome", children:{}},
+                {name: "bcr_sample_barcode", children:{}},
+                {name: "bcr_aliquot_barcode", children:{}},
+                {name: "bcr_aliquot_uuid", children:{}},
+                {name: "biospecimen_barcode_bottom", children:{}},
+                {name: "center_id", children:{}},
+                {name: "concentration", children:{}},
+                {name: "date_of_shipment", children:{}},
+                {name: "is_derived_from_ffpe", children:{}},
+                {name: "plate_column", children:{}},
+                {name: "plate_id", children:{}},
+                {name: "plate_row", children:{}},
+                {name: "quantity", children:{}},
+                {name: "source_center", children:{}},
+                {name: "volume", children:{}},
             ]
     },
     {
@@ -26,9 +38,19 @@ const objects = [
         abr:"c",
         columns:
             [
-                {name: "sample", children:{}},
-                {name: "gene", children:{}} ,
-                {name: "cnum", children:{}},
+                {name: "cn_gene_id", children:{}},
+                {name: "cn_gene_name", children:{}} ,
+                {name: "cn_chromosome", children:{}},
+                {name: "cn_start", children:{}},
+                {name: "cn_gene_id", children:{}},
+                {name: "cn_gene_name", children:{}},
+                {name: "cn_chromosome", children:{}},
+                {name: "cn_start", children:{}},
+                {name: "cn_end", children:{}},
+                {name: "cn_copy_number", children:{}},
+                {name: "min_copy_number", children:{}},
+                {name: "max_copy_number", children:{}},
+                {name: "cn_aliquot_uuid", children:{}},
             ]
     },
     {
@@ -37,13 +59,24 @@ const objects = [
         abr:"o",
         columns:
             [
-                {name: "sample", children:{}},
-                {name: "contig", children:{}} ,
-                {name: "end",  children:{}},
-                {name: "reference", children:{}},
-                {name: "alternate", children:{}},
-                {name: "mutid", children:{}},
-                {name: "candidates", children:{}},
+                {name: "oid", children:{}},
+                {name: "donorId", children:{}} ,
+                {name: "vend",  children:{}},
+                {name: "projectId", children:{}},
+                {name: "vstart", children:{}},
+                {name: "Tumor_Seq_Allele1", children:{}},
+                {name: "Tumor_Seq_Allele2", children:{}},
+                {name: "chromosome", children:{}},
+                {name: "allele_string", children:{}},
+                {name: "assembly_name", children:{}},
+                {name: "end", children:{}},
+                {name: "vid", children:{}},
+                {name: "input", children:{}},
+                {name: "most_severe_consequence", children:{}},
+                {name: "seq_region_name", children:{}},
+                {name: "start", children:{}},
+                {name: "strand", children:{}},
+                {name: "transcript_consequences", children:{}},
             ]
     },
     {
@@ -52,11 +85,29 @@ const objects = [
         abr:"cc",
         columns:
             [
-                {name: "gene", children:{}},
-                {name: "impact", children:{}} ,
-                {name: "sift",  children:{}},
-                {name: "poly", children:{}},
-                {name: "consequences", children:{}},
+                {name: "case_id", children:{}},
+                {name: "amino_acids", children:{}} ,
+                {name: "cdna_end",  children:{}},
+                {name: "cds_end", children:{}},
+                {name: "cds_start", children:{}},
+                {name: "codons", children:{}},
+                {name: "consequence_terms", children:{}},
+                {name: "distance", children:{}},
+                {name: "exon", children:{}},                
+                {name: "flags", children:{}},
+                {name: "gene_id", children:{}},                
+                {name: "impact", children:{}},
+                {name: "impact2", children:{}},                
+                {name: "intron", children:{}},
+                {name: "polyphen_prediction", children:{}},                
+                {name: "polyphen_score", children:{}},
+                {name: "protein_end", children:{}},                
+                {name: "protein_start", children:{}},
+                {name: "sift_prediction", children:{}},
+                {name: "sift_score", children:{}},                
+                {name: "ts_strand", children:{}},
+                {name: "transcript_id", children:{}},
+                {name: "variant_allele", children:{}},
             ]
     },
     {
@@ -65,7 +116,7 @@ const objects = [
         abr:"cs",
         columns:
             [
-                {name: "conseq", children:{}},
+                {name: "element", children:{}},
             ]
     },
     {
@@ -74,11 +125,9 @@ const objects = [
         abr:"ge",
         columns:
             [
-                {name: "id", children:{}},
-                {name: "cname", children:{}},
-                {name: "corders", children:{}},
-                {name: "cdescription", children:{}},
-                {name: "csequence", children:{}},
+                {name: "ge_aliquot", children:{}},
+                {name: "ge_gene_id", children:{}},
+                {name: "ge_fpkm", children:{}},
             ]
     },
     {

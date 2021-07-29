@@ -361,8 +361,11 @@ trait CopyNumber {
 
 	}
 	
-	val copyNumberOrderedType = List(("cn_gene_id", StringType), ("cn_gene_name", StringType), ("cn_chromosome", StringType),
-		("cn_start", IntType), ("cn_end", IntType), ("cn_copy_number", IntType), ("min_copy_number", IntType),
+	val copyNumberOrderedType = List(("cn_gene_id", StringType), 
+    ("cn_gene_name", StringType), ("cn_chromosome", StringType),
+		("cn_start", IntType), ("cn_end", IntType), 
+    ("cn_copy_number", IntType), 
+    ("min_copy_number", IntType),
 		("max_copy_number", IntType), ("cn_aliquot_uuid", StringType))
 
 	val copyNumberType = TupleType(copyNumberOrderedType.toMap)
