@@ -92,13 +92,10 @@ object AppWriter {
 
     // collect the contents of the files
     var internaludfs : String = ""
-    println("starting the write out process with")
-    println(codegen.internalUdfs)
-    println(codegen.externalUdfs)
 
     for (u <- codegen.internalUdfs) {
       val bufferedSource = scala.io.Source.fromFile(s"udfs/${u}.udf")
-      val stringAdd = bufferedSource.getLines().mkString
+      val stringAdd = bufferedSource.getLines().mkString("\n")
       internaludfs = internaludfs.concat(stringAdd)
       bufferedSource.close()
     }
@@ -129,7 +126,7 @@ object AppWriter {
       for (u <- codegen.externalUdfs){
         println(s"working on external udf ${u.name} with type ${u.tp}")
         val bufferedSource = scala.io.Source.fromFile(s"udfs/${u.name}.udf")
-        val stringAdd = bufferedSource.getLines().mkString
+        val stringAdd = bufferedSource.getLines().mkString("\n")
         val externaludf = stringAdd.concat(s"""\n${u.name}("${u.in.map(codegen.generate(_)).mkString("\",\"")}")""")
         bufferedSource.close()
         val udfcontents = writeUdfParagraph(externaludf, utype = u.tp.toString())
@@ -312,7 +309,6 @@ object AppWriter {
         |$data
         |$gcode
         |""".stripMargin
-
   }
 
   /** Writes a generated application for a query using Spark Datasets to Zeppelin**/

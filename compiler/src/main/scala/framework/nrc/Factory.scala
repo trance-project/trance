@@ -34,6 +34,7 @@ trait Factory {
       case _: PrimitiveType => PrimitiveUdf(name, in, otp.asInstanceOf[PrimitiveType])
       case _: BagType => BagUdf(name, in, otp.asInstanceOf[BagType])
       case _: TupleType => TupleUdf(name, in, otp.asInstanceOf[TupleType])
+      case _ => sys.error("Unable to create udf for type " + otp)
     }
     
   }

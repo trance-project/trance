@@ -234,8 +234,6 @@ trait Shredding extends BaseShredding with Extensions with Printer {
     shredCtx(p, Map.empty)
 
   def shredCtx(p: Program, tpResolver: Map[String, (Type, DictType)]): (ShredProgram, Map[String, (Type, DictType)]) = {
-    println("am i in here??")
-    println(quote(p))
     val env0 = inputVars(p).flatMap { v =>
       val (ftp, dtp) = tpResolver.getOrElse(v.name, flatTp(v.tp) -> dictTp(v.tp))
       Map(

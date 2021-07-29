@@ -151,6 +151,7 @@ trait MaterializationContext extends BaseMaterialization with MaterializationDom
     case a: STuple => sys.error("[resolveLookup] Cannot get resolve lookup for STuple: " + a)
     case a: SLet => BagLet(VarDef(a.name, a.e1.tp), a.e1, resolveLookup(l, a.n2))
     case a: SIfThenElse => BagIfThenElse(a.cond, resolveLookup(l, a.n1), Some(resolveLookup(l, a.n2)))
+    case _ => sys.error("Cannot get resolve lookup for " + d)
   }
 
   protected def resolveDict(d: DictNode): Expr = d match {
@@ -218,8 +219,6 @@ trait Materialization extends MaterializationContext {
     a.rhs match {
 
       case u:ShredUdf=> 
-        println("materializing ")
-        println(quote(u))
         val (mexprs, ctx2) =
           materializeUdf(u, dictName(a.name), ctx) //, opts, outputDict = true)
         val p = Program(mexprs.map(m => Assignment(m.name, m.e)))
@@ -337,7 +336,7 @@ trait Materialization extends MaterializationContext {
       val bname = if (top) matBagName(name) else name
       Seq(VarRef(bname, tp).asInstanceOf[VarRef])
 
-    case _ => println("falling in here with"); println(tp); Seq()
+    case _ => Seq()
 
   }
 
@@ -599,6 +598,7 @@ trait Materialization extends MaterializationContext {
             val uStmt = Assignment(uDict.name, kvPairsNested)
 
             (Program(childProgram.statements :+ uStmt), KeyValueMapLookup(lbl, uDict))
+          case _ => ???
         }
 
       case _ =>

@@ -81,6 +81,8 @@ trait MaterializationDomain extends Printer {
         DeDup(
           ForeachUnion(kv, KeyValueMapToBag(matDictVarRef),
             Singleton(Tuple(LABEL_ATTR_NAME -> LabelProject(kv, field)))))
+
+      case _ => sys.error("Error creating domain for " + dict)
     }
     val name = Symbol.fresh(dict.name + "_" + field)
     MBag(domainName(name), labels)

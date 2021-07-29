@@ -315,6 +315,7 @@ object ExampleQueryMultiTcga extends DriverGene {
     //     matrix <= matrix[selected_genes] // subset
     // """
 
+
     // Using Occurences only (tcga loader)
 
           s"""   GMB <=
@@ -326,16 +327,7 @@ object ExampleQueryMultiTcga extends DriverGene {
                         for t in o.transcript_consequences union
                           if (g.g_gene_id = t.gene_id) then
                               {(sid := o.donorId,
-                              lbl := if (s.tumor_tissue_site = "Breast") then 1
-                                         else if (s.tumor_tissue_site = "Lung") then 2
-                                         else if (s.tumor_tissue_site = "Kidney") then 3
-                                         else if (s.tumor_tissue_site = "Stomach") then 4
-                                         else if (s.tumor_tissue_site = "Ovary") then 5
-                                         else if (s.tumor_tissue_site = "Endometrial") then 6
-                                         else if (s.tumor_tissue_site = "Head and Neck") then 7
-                                         else if (s.tumor_tissue_site = "Central nervous system") then 8
-                                         else if (s.tumor_tissue_site = "Colon") then 9
-                                     else 0,
+                              lbl := s.tumor_tissue_site,
                               burden := if (t.impact = "HIGH") then 0.80
                                                      else if (t.impact = "MODERATE") then 0.50
                                                      else if (t.impact = "LOW") then 0.30
@@ -366,46 +358,51 @@ object ExampleQueryMultiTcga extends DriverGene {
     //    """
 
 
-    // Integrating occurences and gene expression
-    //
-    //    s"""
-    //        mapExpression <=
-    //          for s in samples union
-    //            for e in expression union
-    //              if (s.bcr_aliquot_uuid = e.ge_aliquot) then
-    //                {(sid := s.bcr_patient_uuid, gene := e.ge_gene_id, fpkm := e.ge_fpkm)};
-    //
-    //         impactGMB <=
-    //          for g in genemap union
-    //            {(gene_name := g.g_gene_name, gene_id:= g.g_gene_id, burdens :=
-    //              (for o in occurrences union
-    //                for s in clinical union
-    //                  if (o.donorId = s.bcr_patient_uuid) then
-    //                    for t in o.transcript_consequences union
-    //                      if (g.g_gene_id = t.gene_id) then
-    //                         {(sid := o.donorId,
-    //                           lbl := if (s.gleason_pattern_primary = 2) then 0
-    //                            else if (s.gleason_pattern_primary = 3) then 0
-    //                            else if (s.gleason_pattern_primary = 4) then 1
-    //                            else if (s.gleason_pattern_primary = 5) then 1
-    //                            else -1,
-    //                           burden := if (t.impact = "HIGH") then 0.80
-    //                                                    else if (t.impact = "MODERATE") then 0.50
-    //                                                    else if (t.impact = "LOW") then 0.30
-    //                                                    else 0.01
-    //                          )}
-    //              ).sumBy({sid, lbl}, {burden})
-    //            )};
-    //
-    //        GMB <=
-    //          for g in impactGMB union
-    //            {(gene_name := g.gene_name, gene_id := g.gene_id, burdens :=
-    //              (for b in g.burdens union
-    //                for e in mapExpression union
-    //                  if (b.sid = e.sid && g.gene_id = e.gene) then
-    //                    {(sid := b.sid, lbl := b.lbl, burden := b.burden*e.fpkm)}).sumBy({sid,lbl}, {burden})
-    //                     )}
-    //    """
+    // Integrating occurences and gene expression (tcga)
+
+//        s"""
+//            mapExpression <=
+//              for s in samples union
+//                for e in expression union
+//                  if (s.bcr_aliquot_uuid = e.ge_aliquot) then
+//                    {(sid := s.bcr_patient_uuid, gene := e.ge_gene_id, fpkm := e.ge_fpkm)};
+//
+//             impactGMB <=
+//              for g in genemap union
+//                {(gene_name := g.g_gene_name, gene_id:= g.g_gene_id, burdens :=
+//                  (for o in occurrences union
+//                    for s in clinical union
+//                      if (o.donorId = s.sample) then
+//                        for t in o.transcript_consequences union
+//                          if (g.g_gene_id = t.gene_id) then
+//                             {(sid := o.donorId,
+//                               lbl := if (s.tumor_tissue_site = "Breast") then 1
+//                                         else if (s.tumor_tissue_site = "Lung") then 2
+//                                         else if (s.tumor_tissue_site = "Kidney") then 3
+//                                         else if (s.tumor_tissue_site = "Stomach") then 4
+//                                         else if (s.tumor_tissue_site = "Ovary") then 5
+//                                         else if (s.tumor_tissue_site = "Endometrial") then 6
+//                                         else if (s.tumor_tissue_site = "Head and Neck") then 7
+//                                         else if (s.tumor_tissue_site = "Central nervous system") then 8
+//                                         else if (s.tumor_tissue_site = "Colon") then 0
+//                                     else 9,
+//                               burden := if (t.impact = "HIGH") then 0.80
+//                                                        else if (t.impact = "MODERATE") then 0.50
+//                                                        else if (t.impact = "LOW") then 0.30
+//                                                        else 0.01
+//                              )}
+//                  ).sumBy({sid, lbl}, {burden})
+//                )};
+//
+//            GMB <=
+//              for g in impactGMB union
+//                {(gene_name := g.gene_name, gene_id := g.gene_id, burdens :=
+//                  (for b in g.burdens union
+//                    for e in mapExpression union
+//                      if (b.sid = e.sid && g.gene_id = e.gene) then
+//                        {(sid := b.sid, lbl := b.lbl, burden := b.burden*e.fpkm)}).sumBy({sid,lbl}, {burden})
+//                         )}
+//        """
 
 
   }
@@ -777,24 +774,16 @@ object BagCountUDFExample extends DriverGene {
 
 object PivotUDFExample extends DriverGene {
 
+
+  val sampleFile = "/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_prad.txt"
+  val cnvFile = "/mnt/app_hdd/data/cnv"
+  val pradFile = "/mnt/app_hdd/data/biospecimen/clinical/nationwidechildrens.org_clinical_patient_prad.txt"
+
   // need to change this to your loadTables if you want to use this function
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-    if (shred){
-      s"""|val samples = spark.table("samples")
-          |val IBag_samples__D = samples
-          |IBag_samples__D.cache; IBag_samples__D.count
-          |
-          |val copynumber = spark.table("copynumber")
-          |val IBag_copynumber__D = copynumber
-          |IBag_copynumber__D.cache; IBag_copynumber__D.count
-          |
-          |""".stripMargin
-    }else{
-      s"""|val samples = spark.table("samples")
-          |
-          |val copynumber = spark.table("copynumber")
-          |""".stripMargin
-    }
+    s"""|${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
+        |${loadCopyNumber(shred, skew, fname = cnvFile)}
+        |""".stripMargin
 
   // name to identify your query
   val name = "PivotUDF"
