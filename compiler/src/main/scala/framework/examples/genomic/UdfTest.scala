@@ -461,7 +461,7 @@ object ExampleQueryMultiTcga9 extends DriverGene {
     "genemap" -> gtf.tp)
   //    "clinical" -> BagType(pradType))
 
-     """**/
+
   val query = {
 
     // Using Occurences only (tcga loader)
@@ -484,7 +484,7 @@ object ExampleQueryMultiTcga9 extends DriverGene {
                                              else if (s.tumor_tissue_site = "Head and Neck") then 7
                                              else if (s.tumor_tissue_site = "Central nervous system") then 8
                                              else if (s.tumor_tissue_site = "Colon") then 0
-                                         else 9,
+                                             else 9,
                               burden := if (t.impact = "HIGH") then 0.80
                                                      else if (t.impact = "MODERATE") then 0.50
                                                      else if (t.impact = "LOW") then 0.30
@@ -493,7 +493,7 @@ object ExampleQueryMultiTcga9 extends DriverGene {
 
   }
   // finally define the parser, note that it takes the input types
-  // map as input and pass the query string to the parser to
+  // map as input and pass the query string to the parser  to
   // generate the program.
   val parser = Parser(tbls)
   val program = parser.parse(query).get.asInstanceOf[Program]
