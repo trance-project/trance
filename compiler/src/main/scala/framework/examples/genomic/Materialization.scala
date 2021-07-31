@@ -658,6 +658,103 @@ object LetTest5F extends DriverGene {
 
 }
 
+object LetTest5FSeq extends DriverGene {
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    if (shred){
+      s"""|val samples = spark.table("samples")
+          |val IBag_samples__D = samples
+          |IBag_samples__D.cache; IBag_samples__D.count
+          |val copynumber = spark.table("copynumber")
+          |val IBag_copynumber__D = copynumber
+          |IBag_copynumber__D.cache; IBag_copynumber__D.count
+          |val odict1 = spark.table("fodict1")
+          |val IBag_occurrences__D = odict1
+          |IBag_occurrences__D.cache; IBag_occurrences__D.count
+          |// issue with partial shredding here
+          |val odict2 = spark.table("fodict2").drop("flags")
+          |val IMap_occurrences__D_transcript_consequences = odict2
+          |IMap_occurrences__D_transcript_consequences.cache; IMap_occurrences__D_transcript_consequences.count
+          |val odict3 = spark.table("fodict3")
+          |val IMap_occurrences__D_transcript_consequences_consequence_terms = odict3
+          |IMap_occurrences__D_transcript_consequences_consequence_terms.cache
+          |IMap_occurrences__D_transcript_consequences_consequence_terms.count
+          |""".stripMargin
+    }else{
+      s"""|val samples = spark.table("samples")
+          |
+          |val copynumber = spark.table("copynumber")
+          |
+          |val occurrences = spark.table("foccurrences")
+          |""".stripMargin
+    }
+
+  val name = "LetTest5FSeq"
+  
+  val tbls = Map("occurrences" -> occurmids.tp, 
+                  "copynumber" -> copynum.tp, 
+                  "samples" -> samples.tp,
+                  "network" -> network.tp, 
+                  "genemap" -> gpmap.tp)
+
+    val imp = """if (t.impact = "HIGH") then 0.80 
+                  else if (t.impact = "MODERATE") then 0.50
+                  else if (t.impact = "LOW") then 0.30
+                  else 0.01"""
+
+    val cnvs = 
+      s"""
+      for s in samples union 
+        for c1 in copynumber union 
+          if (s.bcr_aliquot_uuid = c1.cn_aliquot_uuid)
+          then {(sid := s.bcr_patient_uuid, gene := c1.cn_gene_id, cnum := c1.cn_copy_number)}
+      """
+
+    // this saves the top level mappings...
+    val toccur = 
+      s"""
+        for o in occurrences union 
+          {( donorId := o.donorId, oid := o.oid )}
+      """
+
+    val foccur = 
+      s"""
+        for o in occurrences union 
+          for t in o.transcript_consequences union 
+            {( fdonorId := o.donorId, foid := o.oid, fgeneid := t.gene_id, fimp := $imp )}
+      """
+
+    val initScores = 
+      s"""
+        for o in TOccur union 
+          {(hybrid_case := o.donorId, hybrid_scores := 
+              (for t in FOccur union 
+                if (o.oid = t.foid && o.donorId = t.fdonorId)
+                then for c in $cnvs union 
+                  if (o.donorId = c.sid && t.fgeneid = c.gene)
+                  then {(hybrid_gene := t.fgeneid, hybrid_score := (c.cnum + 0.01) * t.fimp )}).sumBy({hybrid_gene}, {hybrid_score})
+          )}
+      """
+
+    val query = 
+     s"""
+       TOccur <= $toccur; 
+
+       FOccur <= $foccur;
+
+       InitScores <= $initScores;
+
+       LetTest5 <= 
+       for i in InitScores union
+         for h in i.hybrid_scores union 
+           {(hybrid_gene := h.hybrid_gene, hybrid_score := h.hybrid_score)}
+     """
+
+    val parser = Parser(tbls)
+    val program = parser.parse(query).get.asInstanceOf[Program]
+
+}
+
 object LetTest5Seq extends DriverGene {
 
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
