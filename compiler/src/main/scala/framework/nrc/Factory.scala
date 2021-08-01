@@ -30,10 +30,19 @@ trait Factory {
   object Udf {
 
     def apply(name: String, in: Expr, otp: Type): Expr = otp match {
-      case _: NumericType => NumericUdf(name, in, otp.asInstanceOf[NumericType])
-      case _: PrimitiveType => PrimitiveUdf(name, in, otp.asInstanceOf[PrimitiveType])
-      case _: BagType => BagUdf(name, in, otp.asInstanceOf[BagType])
-      case _: TupleType => TupleUdf(name, in, otp.asInstanceOf[TupleType])
+      case _: NumericType => NumericUdf(name, in, otp.asInstanceOf[NumericType], Nil)
+      case _: PrimitiveType => PrimitiveUdf(name, in, otp.asInstanceOf[PrimitiveType], Nil)
+      case _: BagType => BagUdf(name, in, otp.asInstanceOf[BagType], Nil)
+      case _: TupleType => TupleUdf(name, in, otp.asInstanceOf[TupleType], Nil)
+      case _ => sys.error("Unable to create udf for type " + otp)
+    }
+
+
+    def apply(name: String, in: Expr, otp: Type, params: List[String]): Expr = otp match {
+      case _: NumericType => NumericUdf(name, in, otp.asInstanceOf[NumericType], params)
+      case _: PrimitiveType => PrimitiveUdf(name, in, otp.asInstanceOf[PrimitiveType], params)
+      case _: BagType => BagUdf(name, in, otp.asInstanceOf[BagType], params)
+      case _: TupleType => TupleUdf(name, in, otp.asInstanceOf[TupleType], params)
       case _ => sys.error("Unable to create udf for type " + otp)
     }
     

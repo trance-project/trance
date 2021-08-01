@@ -160,23 +160,25 @@ trait NRC extends BaseExpr {
 
     def tp: Type
 
+    def params: List[String]
+
   }
 
-  final case class NumericUdf(name: String, in: Expr, otp: NumericType) extends NumericExpr with Udf{
+  final case class NumericUdf(name: String, in: Expr, otp: NumericType, params: List[String]) extends NumericExpr with Udf{
     val tp: NumericType = otp
   }
 
-  final case class PrimitiveUdf(name: String, in: Expr, otp: PrimitiveType) extends PrimitiveExpr with Udf {
+  final case class PrimitiveUdf(name: String, in: Expr, otp: PrimitiveType, params: List[String]) extends PrimitiveExpr with Udf {
     def tp: PrimitiveType = otp
   }
 
-  final case class BagUdf(name: String, in: Expr, otp: BagType) extends BagExpr with Udf{
+  final case class BagUdf(name: String, in: Expr, otp: BagType, params: List[String]) extends BagExpr with Udf{
     assert(in match {case v: VarRef => true; case _ => false })
     val tp: BagType = otp
   }
 
   // TODO
-  final case class TupleUdf(name: String, in: Expr, otp: TupleType) extends TupleExpr with Udf{
+  final case class TupleUdf(name: String, in: Expr, otp: TupleType, params: List[String]) extends TupleExpr with Udf{
     val tp: TupleType = otp
   }
 

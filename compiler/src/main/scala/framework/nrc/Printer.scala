@@ -15,7 +15,9 @@ trait Printer {
       "\"" + c.v + "\""
     case c: Const =>
       c.v.toString
-  	case u:Udf => s"${u.name}(${quote(u.in)})"
+  	case u:Udf => 
+      val ps = if (u.params.nonEmpty) s""" , ${u.params.mkString(",")}""" else ""
+      s"${u.name}(${quote(u.in)}$ps)"
   	case v: VarRef =>
       v.name
     case p: Project =>
@@ -109,8 +111,9 @@ trait Printer {
     case KeyValueMapToBag(d) =>
       s"KeyValueMapToBag(${quote(d)})"
 
-    case MaterializedUdf(name, in, _) => 
-      s"""${name}(${in.map(f => quote(f.asInstanceOf[Expr])).mkString(",")})"""
+    case MaterializedUdf(name, in, _, params) => 
+      val ps = if (params.nonEmpty) s""" , ${params.mkString(",")}""" else ""
+      s"""${name}(${in.map(f => quote(f.asInstanceOf[Expr])).mkString(",")}$ps)"""
 
     case _ =>
       sys.error("Cannot print unknown expression " + e)
@@ -124,12 +127,15 @@ trait Printer {
     s"""|Flat: ${quote(e.flat)}
         |Dict: ${quote(e.dict)}""".stripMargin
 
-  def quote(e: ShredUdf): String =
-      s"${e.name}(${quote(e.flat)}, ${quote(e.dict)})"
+  def quote(e: ShredUdf): String = {
+      val ps = if (e.params.nonEmpty) s""" , ${e.params.mkString(",")}""" else ""
+      s"${e.name}(${quote(e.flat)}, ${quote(e.dict)}$ps)"
+    }
 
   def quote(a: ShredAssignment): String = a.rhs match {
-    case e:ShredUdf => 
-      s"""|${flatName(a.name)} := ${flatName(e.name)}(${quote(e.flat)}, ${quote(e.dict)})
+    case e:ShredUdf =>
+      val ps = if (e.params.nonEmpty) s""" , ${e.params.mkString(",")}""" else ""
+      s"""|${flatName(a.name)} := ${flatName(e.name)}(${quote(e.flat)}, ${quote(e.dict)}$ps)
           |${dictName(a.name)} := ${dictName(e.name)}(${quote(e.flat)}, ${quote(e.dict)})""".stripMargin
     case _ => 
       s"""|${flatName(a.name)} := ${quote(a.rhs.flat)}
