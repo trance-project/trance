@@ -676,7 +676,7 @@ object SimpleUDFExample extends DriverGene {
   // translate it to something like "JustTesting"
   val query = ForeachUnion(br, samples,
     Singleton(Tuple(
-      "sample" -> PrimitiveUdf("myudf", br("bcr_patient_uuid"), StringType),
+      "sample" -> PrimitiveUdf("myudf", br("bcr_patient_uuid"), StringType, Nil),
       //"sample" -> NumericUdf("udf_numeric", br("bcr_patient_uuid"), LongType),
       "aliquot" -> br("bcr_aliquot_uuid"))))
 
@@ -821,7 +821,7 @@ object TupleUDFExample extends DriverGene {
     Singleton(
       Tuple(
       "sample" -> Singleton(
-        TupleUdf("tupleudf", br("bcr_patient_uuid"), otp)),
+        TupleUdf("tupleudf", br("bcr_patient_uuid"), otp, Nil)),
       "aliquot" -> br("bcr_aliquot_uuid"))))
 
   // tupleudf takes a string (pid) and returns a tuple (one := pid, two := pid)
@@ -970,7 +970,7 @@ object PivotUDFExample extends DriverGene {
             then {( cn_gene_id := c.cn_gene_id, cnum := c.cn_copy_number + 0.001 )}).sumBy({cn_gene_id},{cnum})
         )};
 
-    Output <= pivotudf(FirstInput)
+    Output <= pivotudf(FirstInput, {one, two})
 
    """
 

@@ -66,7 +66,7 @@ trait MaterializeNRC extends ShredNRC with Optimizer with Factory {
     override def varRef: BagVarRef = BagVarRef(name, e.tp)
   }
 
-  final case class MaterializedUdf(name: String, in: Seq[VarRef], otp: Type) extends Expr {
+  final case class MaterializedUdf(name: String, in: Seq[VarRef], otp: Type, params: List[String]) extends Expr {
     def tp: Type = otp
   }
 

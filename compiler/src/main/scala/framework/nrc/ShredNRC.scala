@@ -20,7 +20,7 @@ trait ShredNRC extends NRC with BaseShredding with Label with Dictionary {
 
   final case class ShredExpr(flat: Expr, dict: DictExpr) extends SExpr
 
-  final case class ShredUdf(name:String, flat: Expr, dict: DictExpr, otp: Type) extends SExpr {
+  final case class ShredUdf(name:String, flat: Expr, dict: DictExpr, otp: Type, params: List[String]) extends SExpr {
     def tp:Type = dictTp(otp)
   }
 

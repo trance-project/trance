@@ -179,7 +179,13 @@ class Parser(tbls: Map[String, BagType], udfTypes: Map[String, Type] = Map.empty
   // todo multiple inputs...
   def udf: Parser[Expr] = ident~"("~bagexpr~")" ^^ 
     { case (name:String)~"("~(e1:Expr)~")" => 
-        Udf(name, e1, udfTypes(name)).asInstanceOf[Expr] 
+        Udf(name, e1, udfTypes(name), Nil).asInstanceOf[Expr] 
+      case _ => sys.error("Error parsing udf.")
+    }
+
+  def udfparam: Parser[Expr] = ident~"("~bagexpr~","~arglist~")" ^^ 
+    { case (name:String)~"("~(e1:Expr)~","~(ps:List[_])~")" => 
+        Udf(name, e1, udfTypes(name), ps.asInstanceOf[List[String]]).asInstanceOf[Expr] 
       case _ => sys.error("Error parsing udf.")
     }
 
@@ -198,7 +204,7 @@ class Parser(tbls: Map[String, BagType], udfTypes: Map[String, Type] = Map.empty
     groupby | sumby | dedup | forunion | arithexpr | numexpr | ifthen.asInstanceOf[Parser[TupleAttributeExpr]] | project | singleton | bagvarref
 
   def term: Parser[Expr] = 
-    udf | assignTerm | let | groupby | sumby | dedup | forunion | arithexpr | numexpr | ifthen.asInstanceOf[Parser[Expr]] | singleton | tuple | project | bagvarref | primexpr
+    udfparam | udf | assignTerm | let | groupby | sumby | dedup | forunion | arithexpr | numexpr | ifthen.asInstanceOf[Parser[Expr]] | singleton | tuple | project | bagvarref | primexpr
 
 
 }

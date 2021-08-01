@@ -30,7 +30,7 @@ trait Optimizer extends Extensions with Implicits with Factory {
 
   def optimize(e: SExpr, f: Expr => Expr): SExpr = e match {
     case s:ShredUdf => 
-      ShredUdf(s.name, optimize(e.flat, f), optimize(e.dict, f).asInstanceOf[DictExpr], s.otp)
+      ShredUdf(s.name, optimize(e.flat, f), optimize(e.dict, f).asInstanceOf[DictExpr], s.otp, s.params)
     case _ => 
       ShredExpr(optimize(e.flat, f), optimize(e.dict, f).asInstanceOf[DictExpr])
   }
