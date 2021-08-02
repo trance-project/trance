@@ -7,7 +7,7 @@ object UdfTestApp extends App {
 
   override def main(args: Array[String]){
 
-    AppWriter.runDatasetShred(ExampleQueryBinaryTcga, "ExampleTest,standard", optLevel = 1, notebk = true, zhost = "oda-compute-0-6",
+    AppWriter.runDatasetShred(ExampleQueryMultiOmicsProstate, "ExampleTest,standard", optLevel = 1, notebk = true, zhost = "oda-compute-0-6",
       //zhost = "localhost",
       zport = 8085)
   }
@@ -22,7 +22,7 @@ object UdfDevApp extends App {
 //       //zhost = "localhost",
 //       zport = 8085)
 
-    AppWriter.runDatasetShred(PivotUDFExample, "ExampleTest,standard", optLevel = 1,notebk = true, zhost = "localhost",
+    AppWriter.runDatasetShred(PivotUDFExample, "ExampleTest,standard", optLevel = 1,notebk = true, zhost = "oda-compute-0-6",
       //zhost = "localhost",
     zport = 8085)
   }
