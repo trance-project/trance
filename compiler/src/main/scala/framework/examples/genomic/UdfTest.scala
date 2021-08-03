@@ -40,7 +40,7 @@ object ExampleQueryMultiOmicsProstate extends DriverGene {
         |${loadGtfTable(shred, skew, fname = gtfFile)}
         |""".stripMargin
   // name to identify your query
-  val name = "ExampleQuery"
+  val name = "ExampleQueryMultiOmicsProstate"
   // moved these to DriverGenes.scala Pathway train (line 19)
   // val genetype = TupleType("name" -> StringType)
   // val pathtype = TupleType("p_name" -> StringType, "url" -> StringType, "gene_set" -> BagType(genetype))
@@ -207,7 +207,7 @@ object ExampleQueryMultiOmicsProstate extends DriverGene {
 
         GMB <=
           for g in impactGMB union
-            {(gene_name := g.gene_name, gene_id := g.gene_id, burdens :=
+            {(gene_name := g.gene_name, burdens :=
               (for b in g.burdens union
                 for e in mapExpression union
                   if (b.sid = e.sid && g.gene_id = e.gene) then
