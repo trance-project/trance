@@ -119,11 +119,11 @@ class BiospecLoader(spark: SparkSession) extends Serializable { //extends Table[
        .csv(path).na.drop.as[Biospec]//.repartition(Config.minPartitions)
    }
 
-   def loadPrad(path: String): DataFrame = {
+   def loadPrad(path: String): Dataset[PradClinical] = {
       spark.read.schema(pradSchema)
         .option("header", header)
         .option("delimiter", "\t")
-        .csv(path)
+        .csv(path).as[PradClinical]
    }
 
 }
