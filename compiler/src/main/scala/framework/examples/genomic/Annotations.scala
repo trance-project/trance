@@ -154,7 +154,7 @@ trait Vep {
     "consequence_terms" -> BagType(element),
     "distance" -> LongType,
     "exon" -> StringType,
-    "flags" -> BagType(element),
+    //"flags" -> BagType(element),
     "gene_id" -> StringType,
     "impact" -> StringType,
     //"impact2" -> DoubleType,
