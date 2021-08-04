@@ -957,13 +957,10 @@ object PivotUDFExample extends DriverGene {
         |${loadGtfTable(shred, skew, fname = gtfFile)}
         |""".stripMargin
   // name to identify your query
-  val name = "PivotUDF"
-  // moved these to DriverGenes.scala Pathway train (line 19)
-  // val genetype = TupleType("name" -> StringType)
-  // val pathtype = TupleType("p_name" -> StringType, "url" -> StringType, "gene_set" -> BagType(genetype))
+  val name = "MulticlassUDF"
 
   // a map of input types for the parser
-  val tbls = Map("occurrences" -> occurrences.tp,
+  val tbls = Map("occurrences" -> occurmids.tp,
     "copynumber" -> copynum.tp,
     "expression" -> fexpression.tp,
     "samples" -> samples.tp,
