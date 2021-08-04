@@ -127,7 +127,10 @@ object AppWriter {
         println(s"working on external udf ${u.name} with type ${u.tp}")
         val bufferedSource = scala.io.Source.fromFile(s"udfs/${u.name}.udf")
         val stringAdd = bufferedSource.getLines().mkString("\n")
-        val externaludf = stringAdd.concat(s"""\n${u.name}("${u.in.map(codegen.generate(_)).mkString("\",\"")}")""")
+        val externaludf = stringAdd.concat(
+          s"""\n${u.name}("${u.in.map(codegen.generate(_)).mkString("\",\"")}"
+             |"${u.params.map(codegen.generate(_)).mkString("\",\"")}")
+             |""".stripMargin)
         bufferedSource.close()
         val udfcontents = writeUdfParagraph(externaludf, utype = u.tp.toString())
         val udfpara = new JsonWriter().buildParagraph(s"Generated external udf ${u.name}", udfcontents)
