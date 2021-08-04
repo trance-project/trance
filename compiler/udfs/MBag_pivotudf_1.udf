@@ -1,4 +1,4 @@
-def MBag_pivotudf_1(top, first, sid_input, lbl_input,gene_id_input,burden_input, random_state):
+def MBag_pivotudf_1(top, first, sid_input, lbl_input,gene_id_input,burden_input):
 
     import numpy as np
     import pandas as pd
@@ -245,7 +245,7 @@ def MBag_pivotudf_1(top, first, sid_input, lbl_input,gene_id_input,burden_input,
 
         #Train test split of model
         from sklearn.model_selection import train_test_split
-        X_train,X_test,y_train,y_test = train_test_split(new_X,new_y,test_size = 0.3,random_state = random_state)
+        X_train,X_test,y_train,y_test = train_test_split(new_X,new_y,test_size = 0.3,random_state = 10)
 
         return X_test, y_test
 
@@ -295,7 +295,7 @@ def MBag_pivotudf_1(top, first, sid_input, lbl_input,gene_id_input,burden_input,
         #Train test split of model
         from sklearn.model_selection import train_test_split
 
-        X_train,X_test,y_train,y_test = train_test_split(new_X,new_y,test_size = 0.3,random_state = 9)
+        X_train,X_test,y_train,y_test = train_test_split(new_X,new_y,test_size = 0.3,random_state = 10)
 
         num_category = len(new_y[0])
         num_features = X_train[0].shape[0]
