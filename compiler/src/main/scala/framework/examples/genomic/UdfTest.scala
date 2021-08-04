@@ -995,14 +995,14 @@ object PivotUDFExample extends DriverGene {
                                                      else if (t.impact = "LOW") then 0.30
                                                      else 0.01)}).sumBy({sid, lbl}, {burden}))};
 
-               Output <= pivotudf(FirstInput)
+               Output <= pivotudf(FirstInput, {sid, lbl, _1,burden, 10})
 
            """
 
   // finally define the parser, note that it takes the input types
   // map as input and pass the query string to the parser to
   // generate the program.
-  val parser = Parser(tbls)
+  val parser = Parser(tbls, udfTypes)
   val program = parser.parse(query).get.asInstanceOf[Program]
 
 }
