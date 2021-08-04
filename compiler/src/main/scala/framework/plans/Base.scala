@@ -505,7 +505,7 @@ class Finalizer(val target: Base){
     case InputRef(x, tp) => target.inputref(x, tp)
     case Input(x) => target.input(x.map(finalize(_)))
     case Constant(x) => target.constant(x)
-   	case CUdf(n, e1, tp) => target.udf(n, e1.map(f => finalize(f)), tp)
+   	case CUdf(n, e1, tp, params) => target.udf(n, e1.map(f => finalize(f)), tp, params)
       case EmptySng => target.emptysng
       case Null => target.cnull
   	case CUnit => target.unit
