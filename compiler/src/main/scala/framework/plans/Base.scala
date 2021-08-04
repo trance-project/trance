@@ -159,7 +159,7 @@ trait BaseCompiler extends Base {
   def inputref(x: String, tp: Type): Rep = InputRef(x, tp)
   def input(x: List[Rep]): Rep = Input(x)
   def constant(x: Any): Rep = Constant(x)
-  def udf(n: String, e1: Seq[Rep], tp: Type): Rep = CUdf(n, e1, tp)
+  def udf(n: String, e1: Seq[Rep], tp: Type): Rep = CUdf(n, e1, tp, params)
   def emptysng: Rep = EmptySng
   def cnull: Rep = Null
   def unit: Rep = CUnit
