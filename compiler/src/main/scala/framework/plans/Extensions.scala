@@ -52,7 +52,7 @@ trait Extensions {
     case Gte(e1, e2) => collect(e1) ++ collect(e2)
     case Lte(e1, e2) => collect(e1) ++ collect(e2)
     case Project(e1, f) => Set(f)
-  	case CUdf(n, e1, tp) => e1.flatMap(f => collect(f)).toSet
+  	case CUdf(n, e1, tp, params) => e1.flatMap(f => collect(f)).toSet
   	case _ => Set()
   }
 
