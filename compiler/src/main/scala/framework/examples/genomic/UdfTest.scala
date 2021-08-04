@@ -207,7 +207,7 @@ object ExampleQueryMultiOmicsProstate extends DriverGene {
 
         GMB <=
           for g in impactGMB union
-            {(gene_name := g.gene_name, burdens :=
+            {(gene_name := g.gene_name, gene_id := g.gene_id, burdens :=
               (for b in g.burdens union
                 for e in mapExpression union
                   if (b.sid = e.sid && g.gene_id = e.gene) then
@@ -936,45 +936,84 @@ object BagCountUDFExample extends DriverGene {
 
 object PivotUDFExample extends DriverGene {
 
-
   val sampleFile = "/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_prad.txt"
   val cnvFile = "/mnt/app_hdd/data/cnv"
+  val exprFile = "/mnt/app_hdd/data/expression/"
+  val aexprFile = "/mnt/app_hdd/data/fpkm_uq_case_aliquot.txt"
+  val occurFile = "/mnt/app_hdd/data/somatic/"
+  // For the tcga loader
+  val occurName = "datasetFull"
+  val occurDicts = ("odictMutect1", "odictMutect2", "odictMutect3")
+  // val occurDicts = ("cancerDict1", "cancerDict2", "cancerDict3")
+  val pathFile = "/mnt/app_hdd/data/pathway/c2.cp.v7.1.symbols.gmt"
+  val gtfFile = "/mnt/app_hdd/data/genes/Homo_sapiens.GRCh37.87.chr.gtf"
   val pradFile = "/mnt/app_hdd/data/biospecimen/clinical/nationwidechildrens.org_clinical_patient_prad.txt"
+  val clinDir = "/mnt/app_hdd/data/biospecimen/clinical"
 
-  // need to change this to your loadTables if you want to use this function
+  // in DriverGenes.scala you can see traits for several datatypes, these
+  // are inherited from DriverGene trait (around line 549)
+  // checkout individuals traits to see what the load functions are doing
+  //  Put next two lines in the loadTables when running tcga
+
+  //
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
-    s"""|${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
+    s"""|val tcgaLoader = new TCGALoader(spark)
+        |val tcgaData = tcgaLoader.load("/mnt/app_hdd/data/biospecimen/clinical", dir = true)
+        |${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
         |${loadCopyNumber(shred, skew, fname = cnvFile)}
+        |${loadGeneExpr(shred, skew, fname = exprFile, aname = aexprFile)}
+        |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
+        |${loadPathway(shred, skew, fname = pathFile)}
+        |${loadGtfTable(shred, skew, fname = gtfFile)}
         |""".stripMargin
-
   // name to identify your query
   val name = "PivotUDF"
+  // moved these to DriverGenes.scala Pathway train (line 19)
+  // val genetype = TupleType("name" -> StringType)
+  // val pathtype = TupleType("p_name" -> StringType, "url" -> StringType, "gene_set" -> BagType(genetype))
 
   // a map of input types for the parser
+  val tbls = Map("occurrences" -> occurmids.tp,
+    "copynumber" -> copynum.tp,
+    "expression" -> fexpression.tp,
+    "samples" -> samples.tp,
+    "pathways" -> pathway.tp,
+    "clinical" -> BagType(tcgaType),// this is for the tcga only
+    "genemap" -> gtf.tp)
+  //    "clinical" -> BagType(pradType))
 
-  val tbls = Map("copynumber" -> copynum.tp,
-    "samples" -> samples.tp)
-
-  // basically just tell the compiler that we 
-  // are exiting scala and going to python
   val udfTypes = Map("pivotudf" -> PythonType)
 
 
-  val query =
-    s"""
-    FirstInput <=
-      for s in samples union
-        {( bcr_patient_uuid := s.bcr_patient_uuid, cnvs :=
-          (for c in copynumber union
-            if (s.bcr_aliquot_uuid = c.cn_aliquot_uuid)
-            then {( cn_gene_id := c.cn_gene_id, cnum := c.cn_copy_number + 0.001 )}).sumBy({cn_gene_id},{cnum})
-        )};
 
-    Output <= pivotudf(FirstInput, {one, two})
+  val query = {
 
-   """
+    s"""   FirstInput <=
+               for g in genemap union
+                 {(gene:= g.g_gene_name, burdens :=
+                   (for o in occurrences union
+                     for s in clinical union
+                      if (o.donorId = s.sample) then
+                        for t in o.transcript_consequences union
+                          if (g.g_gene_id = t.gene_id) then
+                              {(sid := o.donorId,
+                              lbl := s.tumor_tissue_site,
+                              burden := if (t.impact = "HIGH") then 0.80
+                                                     else if (t.impact = "MODERATE") then 0.50
+                                                     else if (t.impact = "LOW") then 0.30
+                                                     else 0.01)}).sumBy({sid, lbl}, {burden}))};
 
-  val parser = Parser(tbls, udfTypes)
+               Output <= pivotudf(FirstInput, {sid, lbl, _1,burden, 10})
+
+           """
+
+  }
+  // finally define the parser, note that it takes the input types
+  // map as input and pass the query string to the parser to
+  // generate the program.
+  val parser = Parser(tbls)
   val program = parser.parse(query).get.asInstanceOf[Program]
+
+
 
 }

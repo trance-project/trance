@@ -1,4 +1,4 @@
-def MBag_pivotudf_1(top, first):
+def MBag_pivotudf_1(top, first, sid_input, lbl_input,gene_id_input,burden_input, random_state):
 
     import numpy as np
     import pandas as pd
@@ -17,6 +17,7 @@ def MBag_pivotudf_1(top, first):
     from sklearn import preprocessing
     from sklearn.model_selection import train_test_split
     from sklearn.exceptions import DataConversionWarning
+    from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score, precision_score, recall_score, f1_score
     warnings.filterwarnings(action='ignore', category=DataConversionWarning)
 
     from keras.callbacks import Callback, EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
@@ -28,11 +29,34 @@ def MBag_pivotudf_1(top, first):
     data.printSchema
     df = data.toPandas()
 
+    # Labels could be a hint left to the user to select the cancer types
+
+    labels = ['Stomach', 'Kidney', 'Breast', 'Ovary', 'Head and Neck', 'Endometrial',
+              'Central nervous system', 'Lung', 'Colon']
+
+    df = df[df['lbl'].isin(labels)]
+
     BurdensPivot = df.pivot(index = ['sid_input', 'lbl_input'], columns = 'gene_id_input', values = 'burden_input').fillna(0.0)
     y = BurdensPivot.reset_index(level = "lbl_input")[["lbl_input"]]
     X = BurdensPivot.droplevel(1)
 
     # Maybe here you can visualise data distribution - cancer types should depend on what the user inputs
+    #plt.rc("font", size=4)
+
+    #sns.set(style="darkgrid")
+
+    #plt.figure(figsize=(13,8))
+
+    #ax = sns.countplot(y='lbl', data=y)
+    #ax.set(ylabel = 'Cancer')
+    #plt.title("Data distribution of tumor tissue site", size = 15);
+
+    #max_chars = 12
+
+    #new_labels = ['Colon','Breast','Lung','Kindey','Stomach','Ovary','Endometrial','Head and Neck','Cns']
+
+    #ax.set_yticklabels(new_labels)
+    #plt.show()
 
     def topKFeaturesMutual(X, y, ifPlot = False, topK = 200):
 
@@ -219,11 +243,9 @@ def MBag_pivotudf_1(top, first):
         sc = StandardScaler()
         new_X = sc.fit_transform(new_X)
 
-
-
         #Train test split of model
         from sklearn.model_selection import train_test_split
-        X_train,X_test,y_train,y_test = train_test_split(new_X,new_y,test_size = 0.3,random_state = 9)
+        X_train,X_test,y_train,y_test = train_test_split(new_X,new_y,test_size = 0.3,random_state = random_state)
 
         return X_test, y_test
 
@@ -260,9 +282,7 @@ def MBag_pivotudf_1(top, first):
         topk_features = topKFeaturesANOVA(X, df, ifPlot = False, topK = 200)
         #topk_features = topKFeaturesMutual(X, df, ifPlot = False, topK = 200)
 
-        # topk_features_all is from the combination of all binary models, it is fixed (and doesn't depend on the y label)
-        feature_X = df1[topk_features_all].values
-        #feature_X = df1[topk_features].values
+        feature_X = df1[topk_features].values
         label_y = df.values
         new_X, new_y = feature_X, label_y
 
@@ -290,7 +310,7 @@ def MBag_pivotudf_1(top, first):
         val_loss.append(history.history['val_loss'])
         res.append(model.predict(X_test))
 
-        model.save(NAME) # save the model
+        model.save(NAME) # save the model, maybe its not needed
 
 
     toPredict = ['Breast', 'Endometrial', 'Kidney', 'Ovary', 'Central nervous system', 'Stomach', 'Lung','Colon','Head and Neck']
@@ -319,8 +339,10 @@ def MBag_pivotudf_1(top, first):
     plot_confusion_matrix(cm, [0,1,2,3,4,5,6,7,8], figsize = (5,12), fontsize=10)
 
     # Here I should output the sum of the numbers on the diagonal and divide this by the size of X_test
+    accuracy = accuracy_score(true_y_values, predict_y)
+    print('\nAccuracy: {:.3f}\n'.format(accuracy))
 
-
+    return accuracy
 
 
 
