@@ -950,12 +950,6 @@ object PivotUDFExample extends DriverGene {
   val pradFile = "/mnt/app_hdd/data/biospecimen/clinical/nationwidechildrens.org_clinical_patient_prad.txt"
   val clinDir = "/mnt/app_hdd/data/biospecimen/clinical"
 
-  // in DriverGenes.scala you can see traits for several datatypes, these
-  // are inherited from DriverGene trait (around line 549)
-  // checkout individuals traits to see what the load functions are doing
-  //  Put next two lines in the loadTables when running tcga
-
-  //
   override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
     s"""|val tcgaLoader = new TCGALoader(spark)
         |val tcgaData = tcgaLoader.load("/mnt/app_hdd/data/biospecimen/clinical", dir = true)
@@ -984,9 +978,7 @@ object PivotUDFExample extends DriverGene {
 
   val udfTypes = Map("pivotudf" -> PythonType)
 
-
-
-  val query = {
+  val query =
 
     s"""   FirstInput <=
                for g in genemap union
@@ -1007,7 +999,6 @@ object PivotUDFExample extends DriverGene {
 
            """
 
-  }
   // finally define the parser, note that it takes the input types
   // map as input and pass the query string to the parser to
   // generate the program.
