@@ -995,7 +995,7 @@ object PivotUDFExample extends DriverGene {
                                                      else if (t.impact = "LOW") then 0.30
                                                      else 0.01)}).sumBy({sid, lbl}, {burden}))};
 
-               Output <= pivotudf(FirstInput, {sid, lbl, _1,burden, 10})
+               Output <= pivotudf(FirstInput)
 
            """
 
@@ -1005,6 +1005,6 @@ object PivotUDFExample extends DriverGene {
   val parser = Parser(tbls)
   val program = parser.parse(query).get.asInstanceOf[Program]
 
-
-
 }
+
+//, {sid, lbl, _1,burden, 10}
