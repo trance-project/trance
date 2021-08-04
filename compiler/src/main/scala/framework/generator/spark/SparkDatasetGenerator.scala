@@ -303,9 +303,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case c @ CUdf(n, e1, tp:ExternalType,params) =>
       // register input variables as temporary tables
       def createTmp(s: String): String = {
-        s"""$s.createOrReplaceTempView("$s")
-           |
-           |""".stripMargin
+        s"""$s.createOrReplaceTempView("$s")""".stripMargin
       }
       externalUdfs = externalUdfs :+ c
       e1.map(f => createTmp(f)).mkString("\n")
