@@ -12,7 +12,7 @@ trait Base {
   def inputref(x: String, tp:Type): Rep
   def input(x: List[Rep]): Rep 
   def constant(x: Any): Rep
-  def udf(n: String, e1: Seq[Rep], tp: Type): Rep
+  def udf(n: String, e1: Seq[Rep], tp: Type, params:List[String]): Rep
   def emptysng: Rep
   def unit: Rep 
   def cnull: Rep
@@ -73,7 +73,7 @@ trait BaseStringify extends Base{
   type Rep = String
   def inputref(x: String, tp: Type): Rep = x
   def input(x: List[Rep]): Rep = s"{${x.mkString(",")}}"
-  def udf(n: String, e1: Seq[Rep], tp: Type): Rep = s"""$n(${e1.mkString(",")})"""
+  def udf(n: String, e1: Seq[Rep], tp: Type, params:List[String]): Rep = s"""$n(${e1.mkString(",")})"""
   def constant(x: Any): Rep = x.toString
   def emptysng: Rep = "{}"
   def cnull: Rep = "null"
@@ -395,7 +395,7 @@ trait BaseANF extends Base {
   def inputref(x: String, tp:Type): Rep = compiler.inputref(x, tp)
   def input(x: List[Rep]): Rep = ??? 
   def constant(x: Any): Rep = compiler.constant(x)
-  def udf(n: String, e1: Seq[Rep], tp: Type): Rep = compiler.udf(n, e1.map(f => defToExpr(f)), tp)
+  def udf(n: String, e1: Seq[Rep], tp: Type, params:List[String]): Rep = compiler.udf(n, e1.map(f => defToExpr(f)), tp, params)
   def emptysng: Rep = compiler.emptysng
   def cnull: Rep = compiler.cnull
   def unit: Rep = compiler.unit
@@ -505,7 +505,7 @@ class Finalizer(val target: Base){
     case InputRef(x, tp) => target.inputref(x, tp)
     case Input(x) => target.input(x.map(finalize(_)))
     case Constant(x) => target.constant(x)
-   	case CUdf(n, e1, tp, params) => target.udf(n, e1.map(f => finalize(f)), tp)
+   	case CUdf(n, e1, tp, params) => target.udf(n, e1.map(f => finalize(f)), tp, params)
       case EmptySng => target.emptysng
       case Null => target.cnull
   	case CUnit => target.unit
