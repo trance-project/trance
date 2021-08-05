@@ -299,7 +299,7 @@ case class VepDict3(_1: String, element: String)
 
 case class OccurTransDict2(
 _1: String,
-case_id: String,
+//case_id: String,
 amino_acids: String,
 cdna_end: Long,
 cdna_start: Long,
@@ -325,8 +325,8 @@ variant_allele: String)
 
 
 case class OccurTransDict2Mid(
-  _1: String,
-  case_id: String,
+_1: String,
+case_id: String,
 amino_acids: String,
 cdna_end: Long,
 cdna_start: Long,
