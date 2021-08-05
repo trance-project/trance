@@ -92,6 +92,9 @@ trait Mutations {
 
 trait Occurrence extends Vep {
 
+  val occurtrans_type = TupleType(
+    "donorId" -> StringType,
+  )
   val occurrence_type = TupleType(
       "oid" -> StringType,
       "aliquotId" -> StringType,
