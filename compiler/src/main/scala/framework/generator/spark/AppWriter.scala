@@ -128,8 +128,8 @@ object AppWriter {
         val bufferedSource = scala.io.Source.fromFile(s"udfs/${u.name}.udf")
         val stringAdd = bufferedSource.getLines().mkString("\n")
         val externaludf = stringAdd.concat(
-          s"""\n${u.name}("${u.in.map(codegen.generate(_)).mkString("\",\"")}"
-             |"${u.params.mkString("\",\"")}")
+          s"""\n${u.name}("${u.in.map(codegen.generate(_)).mkString("\",\"")}",
+             |"${u.params.mkString("\",\"")}"),
              |""".stripMargin)
         bufferedSource.close()
         val udfcontents = writeUdfParagraph(externaludf, utype = u.tp.toString())

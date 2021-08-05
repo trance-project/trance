@@ -36,8 +36,8 @@ def MBag_pivotudf_1(top, first, sid_input, lbl_input,gene_id_input,burden_input)
 
     df = df[df['lbl'].isin(labels)]
 
-    BurdensPivot = df.pivot(index = ['sid_input', 'lbl_input'], columns = 'gene_id_input', values = 'burden_input').fillna(0.0)
-    y = BurdensPivot.reset_index(level = "lbl_input")[["lbl_input"]]
+    BurdensPivot = df.pivot(index = [sid_input, lbl_input], columns = gene_id_input, values = burden_input).fillna(0.0)
+    y = BurdensPivot.reset_index(level = lbl_input)[[lbl_input]]
     X = BurdensPivot.droplevel(1)
 
     # Maybe here you can visualise data distribution - cancer types should depend on what the user inputs
