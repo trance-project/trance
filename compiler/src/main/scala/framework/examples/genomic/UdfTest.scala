@@ -959,7 +959,7 @@ object PivotUDFExample extends DriverGene {
   val name = "MulticlassUDF"
 
   // a map of input types for the parser
-  val tbls = Map("occurrences" -> occurmids.tp,
+  val tbls = Map("occurrences" -> occurrences.tp,
     "copynumber" -> copynum.tp,
     "samples" -> samples.tp,
     "pathways" -> pathway.tp,
