@@ -1,9 +1,8 @@
 package framework.examples.genomic
 
+import jdk.nashorn.internal.runtime.regexp.joni.constants.internal.StringType
+
 import java.util.Base64
-import framework.common._
-import framework.examples.Query
-import framework.nrc.Parser
 
 // this is the Gene Mutation Burden Example
 object ExampleQueryMultiOmicsProstate extends DriverGene {
@@ -672,7 +671,7 @@ object SimpleUDFExample extends DriverGene {
   // translate it to something like "JustTesting"
   val query = ForeachUnion(br, samples,
     Singleton(Tuple(
-      "sample" -> PrimitiveUdf("myudf", br("bcr_patient_uuid"), StringType, Nil),
+      "sample" -> PrimitiveUdf("myudf", br("bcr_patient_uuid"), StringType, StringType),
       //"sample" -> NumericUdf("udf_numeric", br("bcr_patient_uuid"), LongType),
       "aliquot" -> br("bcr_aliquot_uuid"))))
 
@@ -817,7 +816,7 @@ object TupleUDFExample extends DriverGene {
     Singleton(
       Tuple(
       "sample" -> Singleton(
-        TupleUdf("tupleudf", br("bcr_patient_uuid"), otp, Nil)),
+        TupleUdf("tupleudf", br("bcr_patient_uuid"), otp, StringType)),
       "aliquot" -> br("bcr_aliquot_uuid"))))
 
   // tupleudf takes a string (pid) and returns a tuple (one := pid, two := pid)
