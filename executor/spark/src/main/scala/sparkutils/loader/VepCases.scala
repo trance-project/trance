@@ -318,7 +318,7 @@ impact: String,
 protein_end: Long,
 protein_start: Long,
 //sift_prediction: String,
-sift_score: Double,
+//sift_score: Double,
 ts_strand: Long,
 transcript_id: String,
 variant_allele: String)
