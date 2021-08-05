@@ -297,6 +297,33 @@ variant_allele: String)
 
 case class VepDict3(_1: String, element: String)
 
+case class OccurTransDict2(
+_1: String,
+case_id: String,
+amino_acids: String,
+cdna_end: Long,
+cdna_start: Long,
+cds_end: Long,
+cds_start: Long,
+codons: String,
+consequence_terms: String,
+distance: Long,
+exon: String,
+flags: Seq[String],
+gene_id: String,
+impact: String,
+intron: String,
+polyphen_prediction: String,
+polyphen_score: Double,
+protein_end: Long,
+protein_start: Long,
+sift_prediction: String,
+sift_score: Double,
+ts_strand: Long,
+transcript_id: String,
+variant_allele: String)
+
+
 case class OccurTransDict2Mid(
   _1: String,
   case_id: String,
