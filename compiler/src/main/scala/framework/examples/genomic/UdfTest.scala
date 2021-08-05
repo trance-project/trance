@@ -951,7 +951,6 @@ object PivotUDFExample extends DriverGene {
         |val tcgaData = tcgaLoader.load("/mnt/app_hdd/data/biospecimen/clinical", dir = true)
         |${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
         |${loadCopyNumber(shred, skew, fname = cnvFile)}
-        |${loadGeneExpr(shred, skew, fname = exprFile, aname = aexprFile)}
         |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
         |${loadPathway(shred, skew, fname = pathFile)}
         |${loadGtfTable(shred, skew, fname = gtfFile)}
@@ -962,7 +961,6 @@ object PivotUDFExample extends DriverGene {
   // a map of input types for the parser
   val tbls = Map("occurrences" -> occurmids.tp,
     "copynumber" -> copynum.tp,
-    "expression" -> fexpression.tp,
     "samples" -> samples.tp,
     "pathways" -> pathway.tp,
     "clinical" -> BagType(tcgaType),// this is for the tcga only
