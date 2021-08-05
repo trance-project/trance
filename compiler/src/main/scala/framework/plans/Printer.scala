@@ -15,7 +15,7 @@ object Printer {
     case InputRef(d, t) => inputref(d,t)
     case Input(d) => input(d.map(quote(_)))
     case Constant(d) => constant(d)
-  	case CUdf(n, e1, tp, params) => udf(n, e1.map(f => quote(f)), tp, params)
+  	case CUdf(n, e1, tp, params, hint) => udf(n, e1.map(f => quote(f)), tp, params, hint)
     case EmptySng => emptysng
     case CUnit => unit
   	case Null => "null"

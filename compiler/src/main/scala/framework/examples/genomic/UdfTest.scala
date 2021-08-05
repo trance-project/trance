@@ -986,7 +986,75 @@ object PivotUDFExample extends DriverGene {
                                                      else if (t.impact = "LOW") then 0.30
                                                      else 0.01)}).sumBy({sid, lbl}, {burden}))};
 
-               Output <= pivotudf(FirstInput, {sid, lbl, _1,burden})
+               Output <= pivotudf(FirstInput, {sid, lbl, _1,burden}, chisq)
+
+           """
+
+  // finally define the parser, note that it takes the input types
+  // map as input and pass the query string to the parser to
+  // generate the program.
+  val parser = Parser(tbls, udfTypes)
+  val program = parser.parse(query).get.asInstanceOf[Program]
+
+}
+
+object HintUDFExample extends DriverGene {
+
+  val sampleFile = "/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_prad.txt"
+  val cnvFile = "/mnt/app_hdd/data/cnv"
+  val exprFile = "/mnt/app_hdd/data/expression/"
+  val aexprFile = "/mnt/app_hdd/data/fpkm_uq_case_aliquot.txt"
+  val occurFile = "/mnt/app_hdd/data/somatic/"
+  // For the tcga loader
+  val occurName = "datasetFull"
+  val occurDicts = ("odictMutect1", "odictMutect2", "odictMutect3")
+  // val occurDicts = ("cancerDict1", "cancerDict2", "cancerDict3")
+  val pathFile = "/mnt/app_hdd/data/pathway/c2.cp.v7.1.symbols.gmt"
+  val gtfFile = "/mnt/app_hdd/data/genes/Homo_sapiens.GRCh37.87.chr.gtf"
+  val pradFile = "/mnt/app_hdd/data/biospecimen/clinical/nationwidechildrens.org_clinical_patient_prad.txt"
+  val clinDir = "/mnt/app_hdd/data/biospecimen/clinical"
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    s"""|val tcgaLoader = new TCGALoader(spark)
+        |val tcgaData = tcgaLoader.load("/mnt/app_hdd/data/biospecimen/clinical", dir = true)
+        |${loadBiospec(shred, skew, fname = sampleFile, name = "samples")}
+        |${loadCopyNumber(shred, skew, fname = cnvFile)}
+        |${loadOccurrence(shred, skew, fname = occurFile, iname = occurName, dictNames = occurDicts)}
+        |${loadPathway(shred, skew, fname = pathFile)}
+        |${loadGtfTable(shred, skew, fname = gtfFile)}
+        |""".stripMargin
+  // name to identify your query
+  val name = "MulticlassUDF"
+
+  // a map of input types for the parser
+  val tbls = Map("occurrences" -> occurrences.tp,
+    "copynumber" -> copynum.tp,
+    "samples" -> samples.tp,
+    "pathways" -> pathway.tp,
+    "clinical" -> BagType(tcgaType),// this is for the tcga only
+    "genemap" -> gtf.tp)
+  //    "clinical" -> BagType(pradType))
+
+  val udfTypes = Map("hintudf" -> PythonType)
+
+  val query =
+
+    s"""   FirstInput <=
+               for g in genemap union
+                 {(gene:= g.g_gene_name, burdens :=
+                   (for o in occurrences union
+                     for s in clinical union
+                      if (o.donorId = s.sample) then
+                        for t in o.transcript_consequences union
+                          if (g.g_gene_id = t.gene_id) then
+                              {(sid := o.donorId,
+                              lbl := s.tumor_tissue_site,
+                              burden := if (t.impact = "HIGH") then 0.80
+                                                     else if (t.impact = "MODERATE") then 0.50
+                                                     else if (t.impact = "LOW") then 0.30
+                                                     else 0.01)}).sumBy({sid, lbl}, {burden}))};
+
+               Output <= pivotudf(FirstInput, {sid, lbl, _1,burden}, chisq)
 
            """
 

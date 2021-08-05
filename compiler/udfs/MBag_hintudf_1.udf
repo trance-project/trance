@@ -1,0 +1,2 @@
+def MBag_hintudf_1(top, first, sid_input, lbl_input,gene_id_input,burden_input, chisq):
+    print("testing, the hint from the user is", chisq)

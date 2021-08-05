@@ -22,7 +22,7 @@ object UdfDevApp extends App {
 //       //zhost = "localhost",
 //       zport = 8085)
 
-    AppWriter.runDatasetShred(PivotUDFExample, "ExampleTest,standard", optLevel = 1,notebk = true, zhost = "oda-compute-0-6",
+    AppWriter.runDatasetShred(HintUDFExample, "ExampleTest,standard", optLevel = 1,notebk = true, zhost = "oda-compute-0-6",
       //zhost = "localhost",
     zport = 8085)
   }
