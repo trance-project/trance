@@ -30,10 +30,10 @@ trait Factory {
   object Udf {
 
     def apply(name: String, in: Expr, otp: Type): Expr = otp match {
-      case _: NumericType => NumericUdf(name, in, otp.asInstanceOf[NumericType], Nil, hint)
-      case _: PrimitiveType => PrimitiveUdf(name, in, otp.asInstanceOf[PrimitiveType], Nil,hint)
-      case _: BagType => BagUdf(name, in, otp.asInstanceOf[BagType], Nil,hint)
-      case _: TupleType => TupleUdf(name, in, otp.asInstanceOf[TupleType], Nil,hint)
+      case _: NumericType => NumericUdf(name, in, otp.asInstanceOf[NumericType], Nil, "")
+      case _: PrimitiveType => PrimitiveUdf(name, in, otp.asInstanceOf[PrimitiveType], Nil,"")
+      case _: BagType => BagUdf(name, in, otp.asInstanceOf[BagType], Nil,"")
+      case _: TupleType => TupleUdf(name, in, otp.asInstanceOf[TupleType], Nil,"")
       case _ => sys.error("Unable to create udf for type " + otp)
     }
 
