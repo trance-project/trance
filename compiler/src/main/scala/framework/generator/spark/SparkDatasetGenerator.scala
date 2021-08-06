@@ -300,14 +300,14 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     // to make sure that the udf is called to 
     // be generated...
     case CNamed(n, u) if u.isInstanceOf[ExternalType] => generate(u)
-    case c @ CUdf(n, e1, tp:ExternalType,params) =>
+    case c @ CUdf(n, e1, tp:ExternalType,params, hint) =>
       // register input variables as temporary tables
       def createTmp(s: String): String = {
         s"""$s.createOrReplaceTempView("$s")""".stripMargin
       }
       externalUdfs = externalUdfs :+ c
       e1.map(f => createTmp(f)).mkString("\n")
-    case CUdf(n, e1, tp, params) =>
+    case CUdf(n, e1, tp, params, hint) =>
       internalUdfs = internalUdfs :+ n
       handleType(tp)
       val gtp = tp match {
