@@ -1,8 +1,9 @@
 package framework.examples.genomic
 
-import jdk.nashorn.internal.runtime.regexp.joni.constants.internal.StringType
-
 import java.util.Base64
+import framework.common._
+import framework.examples.Query
+import framework.nrc.Parser
 
 // this is the Gene Mutation Burden Example
 object ExampleQueryMultiOmicsProstate extends DriverGene {
