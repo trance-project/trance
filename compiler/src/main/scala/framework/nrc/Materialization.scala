@@ -355,7 +355,7 @@ trait Materialization extends MaterializationContext {
     val mexpr = onames.zipWithIndex.map{ case (n, i) => 
                   val mname = anames(i).asInstanceOf[VarRef].name
                   val nname = n.asInstanceOf[VarRef].name
-                  MUdf(mname, MaterializedUdf(nname, inputs, n.tp, udf.params)) }
+                  MUdf(mname, MaterializedUdf(nname, inputs, n.tp, udf.params, udf.hint)) }
     
     // TODO update context with each of the anames 
 

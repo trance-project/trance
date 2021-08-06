@@ -111,7 +111,7 @@ trait Printer {
     case KeyValueMapToBag(d) =>
       s"KeyValueMapToBag(${quote(d)})"
 
-    case MaterializedUdf(name, in, _, params) => 
+    case MaterializedUdf(name, in, _, params,_) =>
       val ps = if (params.nonEmpty) s""" , ${params.mkString(",")}""" else ""
       s"""${name}(${in.map(f => quote(f.asInstanceOf[Expr])).mkString(",")}$ps)"""
 
