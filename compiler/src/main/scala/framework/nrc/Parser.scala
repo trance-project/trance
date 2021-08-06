@@ -179,7 +179,7 @@ class Parser(tbls: Map[String, BagType], udfTypes: Map[String, Type] = Map.empty
   // todo multiple inputs...
   def udf: Parser[Expr] = ident~"("~bagexpr~")" ^^ 
     { case (name:String)~"("~(e1:Expr)~")" => 
-        Udf(name, e1, udfTypes(name), Nil).asInstanceOf[Expr] 
+        Udf(name, e1, udfTypes(name), Nil, ).asInstanceOf[Expr]
       case _ => sys.error("Error parsing udf.")
     }
 

@@ -202,14 +202,14 @@ trait Shredding extends BaseShredding with Extensions with Printer {
       // materialization restricts input to be a variable
       case (_:BagType, _) => 
          val ShredExpr(lbl: Expr, dict:DictExpr) = shred(env, tpResolver, u.in)
-         ShredUdf(u.name, lbl, dict, u.otp, u.params)
+         ShredUdf(u.name, lbl, dict, u.otp, u.params, u.hint)
 
       // ex. take a string, return something appended to the string
       case (_:PrimitiveType, _:PrimitiveType) => 
         val sresult:SExpr = shred(env, tpResolver, u.in)
         val flat = sresult.flat
         val dict = sresult.dict
-        ShredExpr(Udf(u.name, flat, u.otp, u.params), dict)
+        ShredExpr(Udf(u.name, flat, u.otp, u.params. u.hint), dict)
 
       case _ => ???
     }
