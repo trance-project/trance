@@ -195,10 +195,6 @@ class Parser(tbls: Map[String, BagType], udfTypes: Map[String, Type] = Map.empty
     case _ => sys.error("Error parsing udf.")
     }
 
-  def term: Parser[Expr] =
-    udfparamhint | udfparam | udf | assignTerm | let | groupby | sumby | dedup | forunion | arithexpr | numexpr | ifthen.asInstanceOf[Parser[Expr]] | singleton | tuple | project | bagvarref | primexpr
-
-
   def dedup: Parser[DeDup] = "dedup("~>bagexpr<~")" ^^
     { case (e1:BagExpr) => DeDup(e1) }
 
@@ -212,8 +208,8 @@ class Parser(tbls: Map[String, BagType], udfTypes: Map[String, Type] = Map.empty
   def tupleattr: Parser[TupleAttributeExpr] = 
     groupby | sumby | dedup | forunion | arithexpr | numexpr | ifthen.asInstanceOf[Parser[TupleAttributeExpr]] | project | singleton | bagvarref
 
-  def term: Parser[Expr] = 
-    udfparam | udf | assignTerm | let | groupby | sumby | dedup | forunion | arithexpr | numexpr | ifthen.asInstanceOf[Parser[Expr]] | singleton | tuple | project | bagvarref | primexpr
+  def term: Parser[Expr] =
+    udfparamhint | udfparam | udf | assignTerm | let | groupby | sumby | dedup | forunion | arithexpr | numexpr | ifthen.asInstanceOf[Parser[Expr]] | singleton | tuple | project | bagvarref | primexpr
 
 
 }
