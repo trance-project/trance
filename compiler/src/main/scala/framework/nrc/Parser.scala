@@ -189,6 +189,15 @@ class Parser(tbls: Map[String, BagType], udfTypes: Map[String, Type] = Map.empty
       case _ => sys.error("Error parsing udf.")
     }
 
+  def udfparamhint: Parser[Expr] = ident~"("~bagexpr~","~arglist~","~arglist~")" ^^
+    { case (name:String)~"("~(e1:Expr)~","~(ps:List[_])~","~(hs:List[_])~")" =>
+      Udf(name, e1, udfTypes(name), ps.asInstanceOf[List[String]], hs.head.asInstanceOf[String]).asInstanceOf[Expr]
+    case _ => sys.error("Error parsing udf.")
+    }
+
+  def term: Parser[Expr] =
+    udfparamhint | udfparam | udf | assignTerm | let | groupby | sumby | dedup | forunion | arithexpr | numexpr | ifthen.asInstanceOf[Parser[Expr]] | singleton | tuple | project | bagvarref | primexpr
+
 
   def dedup: Parser[DeDup] = "dedup("~>bagexpr<~")" ^^
     { case (e1:BagExpr) => DeDup(e1) }
