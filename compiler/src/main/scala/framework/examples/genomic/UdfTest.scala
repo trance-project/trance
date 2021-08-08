@@ -1024,7 +1024,7 @@ object HintUDFExample extends DriverGene {
         |${loadGtfTable(shred, skew, fname = gtfFile)}
         |""".stripMargin
   // name to identify your query
-  val name = "MulticlassUDF"
+  val name = "HintUdfQuery"
 
   // a map of input types for the parser
   val tbls = Map("occurrences" -> occurrences.tp,

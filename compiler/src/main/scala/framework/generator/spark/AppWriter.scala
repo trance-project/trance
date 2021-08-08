@@ -129,7 +129,8 @@ object AppWriter {
         val stringAdd = bufferedSource.getLines().mkString("\n")
         val externaludf = stringAdd.concat(
           s"""\n${u.name}("${u.in.map(codegen.generate(_)).mkString("\",\"")}",
-             |"${u.params.mkString("\",\"")}")
+             |"${u.params.mkString("\",\"")}",
+             |"${u.hint.mkString("\",\"")})
              |""".stripMargin)
         bufferedSource.close()
         val udfcontents = writeUdfParagraph(externaludf, utype = u.tp.toString())
