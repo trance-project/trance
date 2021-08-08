@@ -967,7 +967,7 @@ object PivotUDFExample extends DriverGene {
     "genemap" -> gtf.tp)
   //    "clinical" -> BagType(pradType))
 
-  val udfTypes = Map("pivotudf" -> PythonType)
+  val udfTypes = Map("hintudf" -> PythonType)
 
   val query =
 
