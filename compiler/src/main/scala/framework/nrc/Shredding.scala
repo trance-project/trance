@@ -209,7 +209,7 @@ trait Shredding extends BaseShredding with Extensions with Printer {
         val sresult:SExpr = shred(env, tpResolver, u.in)
         val flat = sresult.flat
         val dict = sresult.dict
-        ShredExpr(Udf(u.name, flat, u.otp, u.params. u.hint), dict)
+        ShredExpr(Udf(u.name, flat, u.otp, u.params, u.hint), dict)
 
       case _ => ???
     }
