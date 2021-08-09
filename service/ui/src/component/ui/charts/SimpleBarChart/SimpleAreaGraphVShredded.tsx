@@ -3,6 +3,7 @@ import Typography from "@material-ui/core/Typography";
 import Grid from "@material-ui/core/Grid";
 import * as d3 from 'd3';
 import * as d3Legend from 'd3-svg-legend';
+import 'd3-selection';
 
 import {RunTimeMetrics} from '../../../../utils/Public_Interfaces';
 
@@ -94,7 +95,7 @@ const SimpleAreaGraphVShredded = (props:_SimpleAreaGraphVShreddedProps) => {
          */
         if(!currentZoomState){
             // @ts-ignore
-            // svg.call(zoomBehavior.transform, d3.zoomIdentity.translate(-83573.32497393635,-30806.565869187994).scale(94.35322990663029))
+            svg.call(zoomBehavior.transform, d3.zoomIdentity.translate(-83573.32497393635,-30806.565869187994).scale(94.35322990663029))
         }else{
             // @ts-ignore
             svg.call(zoomBehavior);
@@ -112,7 +113,7 @@ const SimpleAreaGraphVShredded = (props:_SimpleAreaGraphVShreddedProps) => {
             .scale(ordinal);
 
         // @ts-ignore
-        // legend.call(legendOrdinal);
+        legend.call(legendOrdinal);
 
 
         // const brushEffect = d3.brush()

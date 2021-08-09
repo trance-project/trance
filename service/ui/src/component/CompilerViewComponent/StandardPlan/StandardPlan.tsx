@@ -5,7 +5,7 @@
 
 import React from "react";
 import Tree from "react-d3-tree";
-import {CustomNodeElementProps, RawNodeDatum} from "react-d3-tree/lib/types/common";
+import {CustomNodeElementProps} from "react-d3-tree/lib/types/common";
 import {Grid} from "@material-ui/core";
 
 import projection from '../../../static/images/planOperator/Projection.png';
@@ -14,6 +14,7 @@ import sumAggregate from '../../../static/images/planOperator/Sum_aggregate.png'
 import leftOuterJoin from '../../../static/images/planOperator/LeftOuterJoin.png';
 import outerUnnest from '../../../static/images/planOperator/outer-unest.png';
 import unnest from "../../../static/images/planOperator/Unnest.png";
+import {useAppSelector} from '../../../redux/Hooks/hooks';
 
 
 // Here we're using `renderCustomNodeElement` to bind event handlers
@@ -50,7 +51,7 @@ const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
     );
 }
 
-const getImagePlanOperator = (planOperator:String | undefined) => {
+const getImagePlanOperator = (planOperator:string | number | boolean | undefined) => {
 
     let image;
     switch (planOperator){
@@ -78,7 +79,7 @@ const getImagePlanOperator = (planOperator:String | undefined) => {
     return <img src={image} alt={'planOperatorSymbol'} width={30} height={30}/>
 }
 
-const _colorPicker =(level:String)=>{
+const _colorPicker =(level:string | number | boolean)=>{
     switch (level) {
         case "1":
             return "#8D9E91"; //"rgba(141,158,145,0.3)";
@@ -89,107 +90,26 @@ const _colorPicker =(level:String)=>{
     }
 }
 
-const StandardPlan = () => (
-    <Grid item xs={12} direction={"row"} style={{height:700}}>
-        <Tree
-            data={treeDiagramData}
-            orientation={"vertical"}
-            pathFunc={"straight"}
-            zoom={0.65}
-            enableLegacyTransitions
-            translate={{x:400, y:20}}
-            transitionDuration={1500}
-            renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
-            separation={{siblings:2.25}}
-            zoomable={false}
-        />
-    </Grid>
-)
+const StandardPlan = () => {
+        const treeDiagramData = useAppSelector(state => state.query.standardPlan);
+    return (
+        <Grid item xs={12} direction={"row"} style={{height:700}}>
+            <Tree
+                data={treeDiagramData}
+                orientation={"vertical"}
+                pathFunc={"straight"}
+                zoom={0.65}
+                enableLegacyTransitions
+                translate={{x:400, y:20}}
+                transitionDuration={1500}
+                renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
+                separation={{siblings:2.25}}
+                zoomable={false}
+            />
+        </Grid>
+    )
+}
 
 export default StandardPlan;
 
-const treeDiagramData:RawNodeDatum ={
-    name: '',
-    attributes: {
-        newLine: 'sample, mutations',
-        level: '1',
-        planOperator: 'PROJECT'
-    },
-    children: [
-        {
-            name: '',
-            attributes: {
-                newLine: 'mutId, candidates, sID, sample',
-                level: '2',
-                planOperator:'NEST'
-            },
-            children: [
-                {
-                    name: '',
-                    attributes: {
-                        newLine: 'gene, score, sID, sample, mutId',
-                        level: '2',
-                        planOperator:'NEST'
-                    },
-                    children: [
-                        {
-                            name: '', //impact*(cnum+0.01)*sift*poly',
-                            attributes: {
-                                newLine:'sample, gene, label, mutId, sID',
-                                level: '3',
-                                planOperator:'SUM'
-                            },
-                            children:[
-                                {
-                                    name:'',
-                                    attributes: {
-                                        newLine: 'sample, gene',
-                                        level: '3',
-                                        planOperator:'OUTERJOIN'
-                                    },
-                                    children:[
-                                        {
-                                            name:'',
-                                            attributes: {
-                                                newLine: 'candidates',
-                                                level: '3',
-                                                planOperator:'OUTERUNNEST'
-                                            },
-                                            children:[
-                                                {
-                                                    name:'',
-                                                    attributes: {
-                                                        newLine: 'sample',
-                                                        level: '2',
-                                                        planOperator:'OUTERJOIN'
-                                                    },
-                                                    children:[
-                                                        {name: 'Occurrences',
-                                                            attributes: {
-                                                                level: '1',
-                                                            }},
-                                                        {name:'Samples',
-                                                            attributes: {
-                                                                level: '1',
-                                                            }}
-                                                    ]
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            name:'CopyNumber',
-                                            attributes: {
-                                                level: '3',
-                                            }
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
-                    ],
-                },
-            ],
-        },
-    ],
-};
 

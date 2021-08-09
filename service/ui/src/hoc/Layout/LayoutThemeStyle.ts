@@ -1,4 +1,5 @@
 import {makeStyles,fade} from '@material-ui/core/styles';
+import {red} from "@material-ui/core/colors";
 
 const drawerWidth = 260;
 
@@ -86,6 +87,14 @@ const layoutThemeStyle = makeStyles((theme) => ({
         '& span':{
             fontWeight:400
         }
+    },
+    drawerNavDisable:{
+        '& div':{
+            color: "rgba(0, 0, 0, 0.2)",
+            '& span':{
+                fontWeight:400
+            }
+        },
     },
     appBarSpacer: theme.mixins.toolbar,
     content: {

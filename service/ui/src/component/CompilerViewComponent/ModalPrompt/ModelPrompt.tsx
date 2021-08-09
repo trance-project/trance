@@ -12,6 +12,9 @@ import FormControl from '@material-ui/core/FormControl';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Checkbox from '@material-ui/core/Checkbox';
 
+import {useAppDispatch, useAppSelector} from '../../../redux/Hooks/hooks';
+import {getStandardPlan, getShreddedPlan} from '../../../redux/QuerySlice/thunkQueryApiCalls';
+
 const useStyles = makeStyles((theme: Theme) =>
     createStyles({
         root: {
@@ -42,10 +45,27 @@ const ModalPromt = (props: _ModalPromtProps) => {
         standard: false,
         shredded: false,
     });
+    const dispatch = useAppDispatch();
+    const responseQuery = useAppSelector(state => state.query.responseQuery);
+
+
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setState({ ...state, [event.target.name]: event.target.checked });
     };
+
+    const handleFormSubmit = () => {
+        if(!responseQuery){
+            return null;
+        }
+        if(state.standard){
+                dispatch(getStandardPlan(responseQuery));
+        }
+        if(state.shredded){
+            dispatch(getShreddedPlan(responseQuery))
+        }
+        props.openIsLoading();
+    }
 
     const { standard, shredded} = state;
     const error = [standard, shredded].filter((v) => v).length === 0;
@@ -77,7 +97,7 @@ const ModalPromt = (props: _ModalPromtProps) => {
                     <Button onClick={props.close} color="primary" variant={"outlined"} >
                         Cancel
                     </Button>
-                    <Button onClick={props.openIsLoading} color="primary" variant={"contained"} disabled={error}>
+                    <Button onClick={handleFormSubmit} color="primary" variant={"contained"} disabled={error}>
                         Okay
                     </Button>
                 </DialogActions>

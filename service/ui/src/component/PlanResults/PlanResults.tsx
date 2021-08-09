@@ -1,59 +1,85 @@
 import React from "react";
-import {Grid} from "@material-ui/core";
-import Tree from "react-d3-tree";
+
+import {planResultsThemeStyle} from './planResultsThemeStyle';
+import {
+    Accordion,
+    AccordionDetails,
+    AccordionSummary,
+    Grid,
+    Typography
+} from "@material-ui/core";
+
 import {CustomNodeElementProps, RawNodeDatum} from "react-d3-tree/lib/types/common";
+import Tree from "react-d3-tree";
+import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 
-import projection from "../../../static/images/planOperator/Projection.png";
-import nest from "../../../static/images/planOperator/Nest.png";
-import sumAggregate from "../../../static/images/planOperator/Sum_aggregate.png";
-import leftOuterJoin from "../../../static/images/planOperator/LeftOuterJoin.png";
-import unnest from "../../../static/images/planOperator/Unnest.png";
-import equiJoin from "../../../static/images/planOperator/Equijoin.png";
+import S from "../ui/Span/S";
+import projection from "../../static/images/planOperator/Projection.png";
+import nest from "../../static/images/planOperator/Nest.png";
+import sumAggregate from "../../static/images/planOperator/Sum_aggregate.png";
+import leftOuterJoin from "../../static/images/planOperator/LeftOuterJoin.png";
+import unnest from "../../static/images/planOperator/Unnest.png";
+import equiJoin from "../../static/images/planOperator/Equijoin.png";
+import Materialization from "../CompilerViewComponent/ShreddedCompilationView/ShreddedCompilationView";
 
-const ShreddedPlan = () => (
-    <Grid item xs={12}>
-        <Grid item direction={"row"}>
-            <Tree
-                data={treeDiagramLvl1}
-                orientation={"vertical"}
-                pathFunc={"straight"}
-                zoom={0.6}
-                enableLegacyTransitions
-                translate={{x:400, y:20}}
-                transitionDuration={1500}
-                renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
-                zoomable={false}
-            />
-        </Grid>
-        <Grid item direction={"row"}>
-            <Tree
-                data={treeDiagramLvl2}
-                orientation={"vertical"}
-                pathFunc={"straight"}
-                zoom={0.6}
-                enableLegacyTransitions
-                translate={{x:400, y:20}}
-                transitionDuration={1500}
-                renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
-                zoomable={false}
-            />
-        </Grid>
-        <Grid item direction={"row"} style={{height:400}}>
-            <Tree
-                data={treeDiagramData}
-                orientation={"vertical"}
-                pathFunc={"straight"}
-                zoom={0.6}
-                enableLegacyTransitions
-                translate={{x:400, y:20}}
-                transitionDuration={1500}
-                renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
-                separation={{siblings:2.25}}
-                zoomable={false}
-            />
-        </Grid>
-    </Grid>
-);
+
+interface _PlanResultsProps{
+
+}
+
+const PlanResult = (props:_PlanResultsProps) => {
+    const classes = planResultsThemeStyle();
+
+    return (
+            <Grid container spacing={3} style={{height: '100vh'}}>
+                <Grid item xs={12} md={6}>
+                    <Grid item direction={"row"}>
+                        <Tree
+                            data={treeDiagramLvl1}
+                            orientation={"vertical"}
+                            pathFunc={"straight"}
+                            zoom={0.6}
+                            enableLegacyTransitions
+                            translate={{x:200, y:20}}
+                            transitionDuration={1500}
+                            renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
+                            zoomable={false}
+                        />
+                    </Grid>
+                    <Grid item direction={"row"}>
+                        <Tree
+                            data={treeDiagramLvl2}
+                            orientation={"vertical"}
+                            pathFunc={"straight"}
+                            zoom={0.6}
+                            enableLegacyTransitions
+                            translate={{x:200, y:20}}
+                            transitionDuration={1500}
+                            renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
+                            zoomable={false}
+                        />
+                    </Grid>
+                    <Grid item direction={"row"} style={{height:400}}>
+                        <Tree
+                            data={treeDiagramData}
+                            orientation={"vertical"}
+                            pathFunc={"straight"}
+                            zoom={0.6}
+                            enableLegacyTransitions
+                            translate={{x:200, y:20}}
+                            transitionDuration={1500}
+                            renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
+                            separation={{siblings:1.7}}
+                            zoomable={false}
+                        />
+                    </Grid>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                    <Materialization/>
+                </Grid>
+            </Grid>
+        );
+}
 
 const treeDiagramLvl1:RawNodeDatum = {
     name: '',
@@ -97,7 +123,7 @@ const treeDiagramData:RawNodeDatum = {
     children:[{
         name: '',
         attributes:{
-            //newLine: 'impact*(cnum+0.01)*sift*poly',
+            //newLine: 'impact*(cnum+0.01)*sift*poly', 
             newLine: 'sample, label, gene',
             level:'3',
             planOperator:'SUM'
@@ -156,7 +182,7 @@ const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
 
             <circle r="15" onClick={diagramElProps.toggleNode} fill={levelColor}/>
             <foreignObject width={70} height={50}>
-                {getImagePlanOperator(diagramElProps.nodeDatum.attributes?.planOperator)}
+              {getImagePlanOperator(diagramElProps.nodeDatum.attributes?.planOperator)}
             </foreignObject>
             <text fill="black" strokeWidth="0.5" x="50" y={"0"} fontSize={28} onClick={diagramElProps.toggleNode}>
                 {diagramElProps.nodeDatum.attributes?.planOperator}
@@ -176,17 +202,6 @@ const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
             )}
         </g>
     );
-}
-
-const _colorPicker =(level:string | number | boolean)=>{
-    switch (level) {
-        case "1":
-            return "rgba(141,158,145,0.8)"; //"#8D9E91";
-        case "2":
-            return "rgba(0, 140, 212, 0.7)"; //"rgba(139,122,140,0.3)"; //"#8B7A8C";
-        case "3":
-            return "rgba(179,130,181,0.8)"; //"#B382B5";
-    }
 }
 
 const getImagePlanOperator = (planOperator:string | number | boolean | undefined) => {
@@ -217,4 +232,15 @@ const getImagePlanOperator = (planOperator:string | number | boolean | undefined
     return <img src={image} alt={'planOperatorSymbol'} width={30} height={30}/>
 }
 
-export default ShreddedPlan;
+const _colorPicker =(level:string | number | boolean)=>{
+    switch (level) {
+        case "1":
+            return "rgba(141,158,145,0.8)"; //"#8D9E91";
+        case "2":
+            return "rgba(0, 140, 212, 0.7)"; //"rgba(139,122,140,0.3)"; //"#8B7A8C";
+        case "3":
+            return "rgba(179,130,181,0.8)"; //"#B382B5";
+    }
+}
+
+export default PlanResult;

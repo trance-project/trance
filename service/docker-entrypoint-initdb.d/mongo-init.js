@@ -81,6 +81,16 @@ const objects = [
     },
     {
         _id: generateUUID(),
+        name: "transcript_consequences",
+        abr:"t",
+        columns:
+            [
+                {name: "gene_id", children:{}},
+                {name: "impact", children:{}},
+            ]
+    },
+    {
+        _id: generateUUID(),
         name: "candidates",
         abr:"cc",
         columns:

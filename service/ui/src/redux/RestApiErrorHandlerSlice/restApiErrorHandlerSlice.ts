@@ -66,6 +66,7 @@ export const restHandlerSlice = createSlice({
         builder.addCase(queryApi.sendStandardNrcCode.fulfilled, (state) => {
             console.log("[restHandlerSlice] Fulfilled call for List Summary");
             state.loading = "Idle";
+            state.message = "Query Validated"
         });
         builder.addCase(queryApi.sendStandardNrcCode.rejected,(state, action) => {
             console.log("[restHandlerSlice] sendStandardNrcCode", action.payload);

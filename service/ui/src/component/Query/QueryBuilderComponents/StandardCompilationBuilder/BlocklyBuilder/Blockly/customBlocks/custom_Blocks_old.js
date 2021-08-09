@@ -50,13 +50,13 @@ Blockly.defineBlocksWithJsonArray([
             {
                 "type": "input_value",
                 "name": "ATTRIBUTE_VALUE",
-                "check": ["Primitive" ,"Number", "String", "Boolean"]
+                // "check": ["Primitive" ,"Number", "String", "Boolean", null]
             }
         ],
         "colour": 111,
         "previousStatement": null,
         "nextStatement": null,
-        "tooltip": "tuple_el"
+        "tooltip": "tuple element"
     },
     {
         "type": "tuple_el_iteration",
@@ -84,7 +84,7 @@ Blockly.defineBlocksWithJsonArray([
         "colour": 230,
         "previousStatement": null,
         "nextStatement": null,
-        "tooltip": "tuple_el_iteration",
+        "tooltip": "tuple element of collection type",
     },
     {
         "type": "tuple",
@@ -98,7 +98,7 @@ Blockly.defineBlocksWithJsonArray([
         "colour": 255,
         "previousStatement": "Bag",
         "nextStatement": "Bag",
-        "tooltip": "tuple",
+        "tooltip": "tuple group block",
 
     },
     {
@@ -123,7 +123,7 @@ Blockly.defineBlocksWithJsonArray([
         "colour": 33,
         "previousStatement": null,
         "nextStatement": null,
-        "tooltip": "brackets",
+        "tooltip": "Group by",
     },
     {
         "type": "or",
@@ -232,7 +232,7 @@ Blockly.defineBlocksWithJsonArray([
         "output": null,
         // "previousStatement": "Primitive",
         // "nextStatement": "Primitive",
-        "tooltip": "association_on",
+        "tooltip": "association on",
     },
     {
         "type": "association_on_assisted",
@@ -280,7 +280,7 @@ Blockly.defineBlocksWithJsonArray([
         // "output": "Primitive",
         "nextStatement": "Bag",
         "previousStatement": "Bag",
-        "tooltip": "association_on_assisted",
+        "tooltip": "association on assisted",
     },
     {
         "type": "association_on_assisted_new",
@@ -365,7 +365,7 @@ Blockly.defineBlocksWithJsonArray([
         "output": null,
         // "nextStatement": "Bag",
         // "previousStatement": "Bag",
-        "tooltip": "association_on_assisted_new",
+        "tooltip": "association on assisted: and conditional",
     },
     {
         "type": "association_on_assisted_new_new",
@@ -413,7 +413,7 @@ Blockly.defineBlocksWithJsonArray([
         "output": null,
         // "nextStatement": "Bag",
         // "previousStatement": "Bag",
-        "tooltip": "association_on_assisted_new_new",
+        "tooltip": "association on assisted: Single conditional",
     },
     {
         "type": "group_by",
@@ -434,7 +434,40 @@ Blockly.defineBlocksWithJsonArray([
         "previousStatement": "Bag",
         "nextStatement": "Bag",
         "tooltip": "group_by",
+    },
+    {
+    "type": "text_input",
+    "message0": "%1",
+    "args0": [
+    {
+        "type": "field_input",
+        "name": "INPUT_TEXT",
+        "text": ""
     }
+],
+    "colour": 189,
+    "output": null,
+    "tooltip": "input for custom plain text",
+    "inputsInline": true,
+
+},
+    {
+        "type": "text_statement",
+        "message0": "%1",
+        "args0": [
+            {
+                "type": "field_input",
+                "name": "INPUT_TEXT",
+                "text": ""
+            }
+        ],
+        "colour": 209,
+        "previousStatement": null,
+        "tooltip": "statement for custom plain text",
+        "inputsInline": true,
+
+    }
+
 ]);
 
 const testReactField = {
@@ -448,6 +481,7 @@ const testReactField = {
         },
     ],
     "output": "Primitive",
+    "tooltip": "Drop down list of objects and their attributes",
 
 };
 
@@ -633,7 +667,7 @@ const forUnionNested = {
     "colour": 211,
     "nextStatement": "Bag",
     "previousStatement": "Bag",
-    "tooltip": "For Union Nested: Bag Type",
+    "tooltip": "For Union on Attributes Collection Types",
     "inputsInline": true,
 };
 
@@ -658,30 +692,29 @@ const nrc_filters = {
         "options": [
             [
                 "+",
-                "ADD"
+                "+"
             ],
             [
                 "-",
-                "SUBTRACT"
+                "-"
             ],
             [
                 "*",
-                "MULTIPLY"
+                "*"
             ],
             [
                 "/",
-                "DIVISION"
+                "/"
             ]
         ]
     },
     {
-        "type": "input_value",
+        "type": "input_statement",
         "name": "INPUT_TWO"
     }
 ],
     "inputsInline": true,
-    "nextStatement": null,
-    "previousStatement": null,
+    "output": null,
     "colour": 80,
     "tooltip": "",
     "helpUrl": ""

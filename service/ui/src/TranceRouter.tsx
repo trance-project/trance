@@ -29,7 +29,6 @@ function TranceRouter() {
 
     const goto_Route = (page: pageRoutes) => {
         dispatch(goToRoute(page));
-
     }
 
     return (

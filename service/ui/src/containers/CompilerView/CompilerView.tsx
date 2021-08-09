@@ -16,6 +16,7 @@ import StandardPlan from "../../component/CompilerViewComponent/StandardPlan/Sta
 import ModalPrompt from "../../component/CompilerViewComponent/ModalPrompt/ModelPrompt";
 import {useAppSelector} from '../../redux/Hooks/hooks';
 import {newQuerySelected} from '../../redux/QuerySlice/tempData'
+import PlanResults from "../../component/PlanResults/PlanResults";
 
 const CompilerView =()=> {
     const classes = standardCompilationViewThemeStyle();
@@ -83,7 +84,7 @@ const CompilerView =()=> {
                         abortHover={abortHoverHandler}
                     />
 
-                    <Button className={classes.queryBtnGroup} variant={"outlined"} color={"primary"} endIcon={<NoteIcon />} onClick={()=> window.location.href = "http://localhost:8085/#/notebook/2FK1WGZDP"}>Notebook</Button>
+                    <Button className={classes.queryBtnGroup} variant={"outlined"} color={"primary"} endIcon={<NoteIcon />} onClick={()=> window.open("http://pdq-webapp.cs.ox.ac.uk:8085/#/notebook/2GES6WHWT","_blank")}>Notebook</Button>
                     <Button className={classes.queryBtnGroup} variant={"contained"} color={"primary"} onClick={handleOpenCompilationDialogState} endIcon={<ForwardIcon/>}>Compile & Run</Button>
                 </React.Fragment>
             )
@@ -106,11 +107,11 @@ const CompilerView =()=> {
             disable:!hasCompileState
         },
         // TODO: reused the shreddedCompilationView component and shreddedPlan component for this tab
-        // {
-        //     tabLabel:"Shredded Plan & NRC",
-        //     jsxElement: <PlanResults/>,
-        //     disable:!hasCompileState
-        // },
+        {
+            tabLabel:"Shredded Plan & NRC",
+            jsxElement: <PlanResults/>,
+            disable:!hasCompileState
+        },
     ]
 
     return (

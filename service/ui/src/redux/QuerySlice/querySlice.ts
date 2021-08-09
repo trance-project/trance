@@ -1,6 +1,7 @@
 import {createSlice, PayloadAction} from "@reduxjs/toolkit";
-import {QuerySummary, Query} from "../../utils/Public_Interfaces";
+import {QuerySummary, NewQuery} from "../../utils/Public_Interfaces";
 import * as api from './thunkQueryApiCalls';
+import {RawNodeDatum} from "react-d3-tree/lib/types/common";
 
 /**
  * Defined a type for the query slice type
@@ -8,8 +9,10 @@ import * as api from './thunkQueryApiCalls';
 interface QueryState {
     queryListSummary: QuerySummary[];
     selectedQuery: QuerySummary | undefined;
-    responseQuery: string;
-    nrcQuery: string
+    responseQuery: NewQuery | undefined;
+    nrcQuery: string;
+    standardPlan: RawNodeDatum | undefined;
+    shreddedPlan: RawNodeDatum[] | undefined;
 
 }
 
@@ -19,8 +22,10 @@ interface QueryState {
 const initialState: QueryState = {
     queryListSummary: [],
     selectedQuery: undefined,
-    responseQuery: "",
+    responseQuery: undefined,
     nrcQuery: "",
+    shreddedPlan: undefined,
+    standardPlan: undefined
 }
 
 /**
@@ -54,7 +59,7 @@ export const querySlice = createSlice({
         builder.addCase(api.fetchSelectedQuery.fulfilled, (state, action: PayloadAction<QuerySummary>) => {
             state.selectedQuery = action.payload
         });
-        builder.addCase(api.sendStandardNrcCode.fulfilled, (state, action: PayloadAction<string>) => {
+        builder.addCase(api.sendStandardNrcCode.fulfilled, (state, action: PayloadAction<NewQuery>) => {
             state.responseQuery = action.payload
         });
         builder.addCase(api.blocklyCreateNew.fulfilled, (state, action: PayloadAction<QuerySummary>) => {
@@ -66,6 +71,12 @@ export const querySlice = createSlice({
             state.selectedQuery = action.payload
             state.queryListSummary = [...state.queryListSummary, newQuerySummary]
 
+        });
+        builder.addCase(api.getStandardPlan.fulfilled, (state, action:PayloadAction<RawNodeDatum> ) => {
+            state.standardPlan = action.payload;
+        });
+        builder.addCase(api.getShreddedPlan.fulfilled, (state, action:PayloadAction<RawNodeDatum[]> ) => {
+            state.shreddedPlan = action.payload;
         });
 
     }

@@ -4,10 +4,9 @@
  * This component is used display the selectedQuery object into source NRC code
  */
 
-import React, {useState} from 'react';
+import React from 'react';
 import {TreeView} from "@material-ui/lab";
 import {Popover} from "@material-ui/core";
-
 
 import {
     NewQuery
@@ -17,6 +16,7 @@ import MinusSquare from "../../ui/ExpandedIcons/MinusSquare";
 import PlusSquare from "../../ui/ExpandedIcons/PlusSquare";
 import CloseSquare from "../../ui/ExpandedIcons/CloseSquare";
 import NewLabelView from "../../Query/QueryBuilderComponents/StandardCompilationBuilder/LabelView/NewLabelView";
+import {useAppSelector} from '../../../redux/Hooks/hooks'
 import Materializationlvl1 from "../ShreddedCompilationView/Materialzation/Materializationlvl1";
 import Materializationlvl2 from "../ShreddedCompilationView/Materialzation/Materializationlvl2";
 import Materializationlvl3 from "../ShreddedCompilationView/Materialzation/Materializationlvl3";
@@ -45,31 +45,7 @@ const StandardCompilationView = (props:_QueryViewProps) => {
 
     // const [openMaterializationState, setOpenMaterializationState] = useState<boolean>(false);
 
-    const newQuerySelected = {
-        name: "QuerySimple",
-        key: "For s in samples Union ",
-        labels: [{
-            name: "{( sample",
-            key: "s.bcr_patient_uuid"
-        }, {
-            name: "mutations",
-            key: "For o in occurrences Union If (s.bcr_patient_uuid = o.donorId) Then ",
-            labels: [{
-                name: " {(mutId",
-                key: "o.oid",
-            },{
-                name : "scores",
-                key : "ReduceByKey[gene], [score], For t in o.transcript_consequences Union For c in copynumber Union If (t.gene_id = c.cn_gene_id AND c.cn_aliquot_uuid = s.bcr_aliquot_uuid) Then ",
-                labels : [{
-                    name: "{( gene",
-                    key : "t.gene_id"
-                }, {
-                    name : "score",
-                    key : "((c.cn_copy_number + 0.01) * If (t.impact = HIGH) Then 0.8 Else If (t.impact = MODERATE) Then 0.5 Else If (t.impact = LOW) Then 0.3 Else 0.01   ) })})})"
-                } ]
-            }]
-        }]
-    }  as NewQuery
+    const newQuerySelected = useAppSelector(state => state.query.responseQuery);
 
     let statement = <div></div>;
 
@@ -252,7 +228,7 @@ const StandardCompilationView = (props:_QueryViewProps) => {
 
 
 
-    if(props.query) {
+    if(newQuerySelected) {
             statement=   newQuerySelect(newQuerySelected);
         }
 

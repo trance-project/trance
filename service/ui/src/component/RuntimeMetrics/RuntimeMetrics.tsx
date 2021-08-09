@@ -48,12 +48,12 @@ const RuntimeMetrics = (props: _RuntimeMetricsProps) => {
                 </AppBar>
                 <Grid container spacing={4} >
                     <Grid item xs={12} >
-                        <PaperWithHeader heading={"Partition Size Distirbution (bytes)"} className={classes.paper}>
+                        <PaperWithHeader heading={"Partition Size Distribution (bytes)"} className={classes.paper}>
                             <SimpleAreaGraphVShredded data={ordered_merged}/>
                         </PaperWithHeader>
                     </Grid>
                 </Grid>
-                <Button className={classes.btn} variant={"contained"} style={{'backgroundColor':'#d66123'}} onClick={()=> window.location.href = "http://localhost:18080"} endIcon={<StarBorderIcon/>}>Metrics</Button>
+                <Button className={classes.btn} variant={"contained"} style={{'backgroundColor':'#d66123'}} onClick={()=> window.open("http://pdq-webapp.cs.ox.ac.uk:18080","_blank")} endIcon={<StarBorderIcon/>}>Metrics</Button>
             </Dialog>
         </div>
     );

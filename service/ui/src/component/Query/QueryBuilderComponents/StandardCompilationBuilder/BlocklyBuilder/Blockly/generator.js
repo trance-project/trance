@@ -9,9 +9,13 @@
 import * as Blockly from 'blockly/core';
 import BlocklyJS from 'blockly/javascript';
 
-BlocklyJS['text'] = function(block) {
-    let textValue = block.getFieldValue('TEXT');
+BlocklyJS['text_input'] = function(block) {
+    let textValue = validate(block.getFieldValue('INPUT_TEXT'));
     return [textValue, 0]
+}
+BlocklyJS['text_statement'] = function(block) {
+    let textValue = validate(block.getFieldValue('INPUT_TEXT'));
+    return textValue;
 }
 
 /**
@@ -31,7 +35,7 @@ BlocklyJS['tuple'] = function (block){
 
 BlocklyJS['tuple_el'] = function (block){
     const attribute_Name = validate(block.getFieldValue('ATTRIBUTE_NAME'))
-    const attribute_value = validate(BlocklyJS.valueToCode(block,'ATTRIBUTE_VALUE',0));
+    const attribute_value = BlocklyJS.valueToCode(block,'ATTRIBUTE_VALUE',0);
     const comma = moreThenOneAttribute(block);
     return `${comma}${attribute_Name} := ${attribute_value}`;
 }
@@ -95,7 +99,9 @@ BlocklyJS['group_by'] = function (block){
 }
 BlocklyJS['brackets'] = function (block){
     const group_by = validate(BlocklyJS.statementToCode(block,'GROUP_BY'))
-    return `\n(${group_by})`
+    const attribute_key = validate(block.getFieldValue('ATTRIBUTE_KEY'))
+    const attribute_value = validate(block.getFieldValue('ATTRIBUTE_VALUE'))
+    return `\nReduceByKey[${attribute_key}], [${attribute_value}] (${group_by})`
 }
 BlocklyJS['or'] = function (block){
     return ' || '
@@ -169,8 +175,8 @@ Blockly.JavaScript['forUnionNested'] = function (block){
 Blockly.JavaScript['nrc_filters'] = function(block) {
     const value_one = Blockly.JavaScript.valueToCode(block, 'INPUT_ONE', Blockly.JavaScript.ORDER_ATOMIC);
     const dropdown_operators = block.getFieldValue('OPERATORS');
-    const value_two = Blockly.JavaScript.valueToCode(block, 'INPUT_TWO', Blockly.JavaScript.ORDER_ATOMIC);
-    const code = `${value_one}${dropdown_operators}${value_two}`;
-    return code;
+    const value_two = BlocklyJS.statementToCode(block, 'INPUT_TWO');
+    const code = `((${value_one})${dropdown_operators}${value_two})`;
+    return [code, 0];
 };
 

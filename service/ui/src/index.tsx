@@ -1,12 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {Provider} from 'react-redux';
+import 'd3-transition' // es6
 
 import './static/fonts/EricaOne-Regular.ttf';
 import './index.css';
 import App from './App';
 import store from './redux/store';
-
+require('d3-transition')
 
 
 ReactDOM.render(

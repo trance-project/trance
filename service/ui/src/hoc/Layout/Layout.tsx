@@ -21,17 +21,14 @@ import MenuItem from '@material-ui/core/MenuItem';
 import Select from '@material-ui/core/Select';
 import LayoutThemeStyle from "./LayoutThemeStyle";
 import CopyRight from "../../component/CopyRight/CopyRight";
-import {Link} from "react-router-dom";
+import {NavLink} from "react-router-dom";
 import ListItem from "@material-ui/core/ListItem";
 import ListItemIcon from "@material-ui/core/ListItemIcon";
 import DashboardIcon from "@material-ui/icons/Dashboard";
 import ListItemText from "@material-ui/core/ListItemText";
 import DeviceHubIcon from "@material-ui/icons/DeviceHub";
-import MapIcon from "@material-ui/icons/Map";
 import BarChartIcon from "@material-ui/icons/BarChart";
 import NewQueryDialog from "../../component/NewQueryDialog/NewQueryDialog";
-import {ListSubheader} from "@material-ui/core";
-import AssignmentIcon from "@material-ui/icons/Assignment";
 import {pageRoutes} from '../../utils/Public_enums';
 import {QuerySummary} from '../../utils/Public_Interfaces';
 import {useAppDispatch, useAppSelector} from "../../redux/Hooks/hooks";
@@ -59,15 +56,52 @@ const Layout = (props:LayoutProps) => {
     const [openNewQueryState, setOpenNewQueryState] = React.useState<boolean>(false);
     const [selectedQueryIndexState, setSelectedQueryState] = React.useState<string>(" ");
 
-
     const queryList = useAppSelector(state => state.query.queryListSummary);
+    const querySelected = useAppSelector(state => state.query.selectedQuery);
+    const [standardPlan, shreddedPlan] = useAppSelector(state => [state.query.standardPlan, state.query.shreddedPlan]);
+
+
+    /**
+     * Query response that the backend sent back in a json format to used to display
+     */
+    const queryResponse = useAppSelector(state => state.query.responseQuery);
 
     const location = useLocation();
     const dispatch = useAppDispatch();
 
+    const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>, verify: "query"|"plan"|"output") => {
+        switch (verify) {
+            case "query":{
+                if(!querySelected){
+                    e.preventDefault();
+                }else{
+                    props.goto_Route(pageRoutes.BUILDER)
+                }
+                break;
+            }
+            case "plan":{
+                if(!queryResponse){
+                    e.preventDefault();
+                }else{
+                    props.goto_Route(pageRoutes.VIEW)
+                }
+                break;
+            }
+            case "output": {
+                if(standardPlan || shreddedPlan){
+                    props.goto_Route(pageRoutes.VIEW)
+                }else{
+                    e.preventDefault();
+                }
+                break;
+            }
+
+        }
+    }
+
     /**
      * Simulate componentDidMount we can get and style to correct path
-     * only to run to be run once.
+     * only to be run once.
      * called // eslint-disable-next-line to disable warning in console
      */
     useEffect(() => {
@@ -149,7 +183,7 @@ const Layout = (props:LayoutProps) => {
     };
 
         const classes = LayoutThemeStyle();
-
+    console.log("[LAYOUT querySelected]", querySelected);
         return(
             <div className={classes.root}>
                 <CssBaseline />
@@ -206,30 +240,30 @@ const Layout = (props:LayoutProps) => {
                     </div>
                     <Divider/>
                     <List className={classes.drawerElement}>
-                        <Link to={'/'}>
+                        <NavLink to={'/'}>
                             <ListItem className={props.activePage===pageRoutes.DASHBOARD?classes.drawerPaperActive:classes.drawerNav} button onClick={() => props.goto_Route(pageRoutes.DASHBOARD)}>
                                 <ListItemIcon >
                                     <DashboardIcon color={"inherit"}/>
                                 </ListItemIcon>
                                 <ListItemText primary={"Dashboard"} />
                             </ListItem>
-                        </Link>
-                        <Link to={'/builder'}>
-                            <ListItem className={props.activePage===pageRoutes.BUILDER?classes.drawerPaperActive:classes.drawerNav} button onClick={() => props.goto_Route(pageRoutes.BUILDER)}>
+                        </NavLink>
+                        <NavLink to={'/builder'} onClick={(e) => handleNavClick(e,"query")} className={!querySelected?classes.drawerNavDisable:""}>
+                            <ListItem className={props.activePage===pageRoutes.BUILDER?classes.drawerPaperActive:classes.drawerNav} button>
                                 <ListItemIcon>
                                     <BuildIcon />
                                 </ListItemIcon>
                                 <ListItemText primary={"Query Builder"} />
                             </ListItem>
-                        </Link>
-                        <Link to={'/queryView'}>
-                            <ListItem className={props.activePage===pageRoutes.VIEW?classes.drawerPaperActive:classes.drawerNav} button onClick={() => props.goto_Route(pageRoutes.VIEW)}>
+                        </NavLink>
+                        <NavLink to={'/queryView'} onClick={(e) => handleNavClick(e,"plan")} className={!queryResponse?classes.drawerNavDisable:""}>
+                            <ListItem className={props.activePage===pageRoutes.VIEW?classes.drawerPaperActive:classes.drawerNav} button>
                                 <ListItemIcon>
                                     <DeviceHubIcon />
                                 </ListItemIcon>
                                 <ListItemText primary={"Compiler"} />
                             </ListItem>
-                        </Link>
+                        </NavLink>
                          {/*TODO Add the schema information*/}
                         {/*<Link to={'/tables'}>*/}
                         {/*    <ListItem className={props.activePage===pageRoutes.TABLES?classes.drawerPaperActive:classes.drawerNav} button onClick={() => props.goto_Route(pageRoutes.TABLES)}>*/}
@@ -239,14 +273,14 @@ const Layout = (props:LayoutProps) => {
                         {/*        <ListItemText primary={"Schema"} />*/}
                         {/*    </ListItem>*/}
                         {/*</Link>*/}
-                        <Link to={'/report'} className={props.activePage===pageRoutes.REPORT?classes.drawerPaperActive:classes.drawerNav}>
-                            <ListItem button onClick={() => props.goto_Route(pageRoutes.REPORT)}>
+                        <NavLink to={'/report'} onClick={(e) => handleNavClick(e,"output")} className={standardPlan || shreddedPlan?"":classes.drawerNavDisable}>
+                            <ListItem className={props.activePage===pageRoutes.REPORT?classes.drawerPaperActive:classes.drawerNav} button>
                                 <ListItemIcon>
                                     <BarChartIcon/>
                                 </ListItemIcon>
                                 <ListItemText primary={"Results"} />
                             </ListItem>
-                        </Link>
+                        </NavLink>
                     </List>
                     <Divider/>
                     {/*TODO add recent activity action of users action*/}
