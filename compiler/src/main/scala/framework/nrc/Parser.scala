@@ -62,7 +62,7 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
   def singleton: Parser[Singleton] = "{"~>tupleexpr<~"}" ^^ 
     { case t:TupleExpr => Singleton(t) } 
 
-  def eq: Parser[OpCmp] = "=" ^^ { case o => OpEq }
+  def eq: Parser[OpCmp] = "==" ^^ { case o => OpEq }
   def ne: Parser[OpCmp] = "!=" ^^ { case o => OpNe }
   def gt: Parser[OpCmp] = ">" ^^ { case o => OpGt }
   def ge: Parser[OpCmp] = ">=" ^^ { case o => OpGe }
