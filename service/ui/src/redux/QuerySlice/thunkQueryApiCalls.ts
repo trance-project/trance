@@ -7,6 +7,7 @@ import {trancePlayInstance} from "../../AxiosConfig";
 import {BlocklyNrcCode, NewQuery, QuerySummary} from "../../utils/Public_Interfaces";
 import {RootState} from '../store'
 import {RawNodeDatum} from "react-d3-tree/lib/types/common";
+import {useAppDispatch} from '../Hooks/hooks'
 
 
 export const fetchQueryListSummary = createAsyncThunk(
@@ -41,6 +42,22 @@ export const blocklyCreateNew = createAsyncThunk(
         }
     }
 )
+
+export const blocklyDelete = createAsyncThunk("blockly/delete", async(arg: QuerySummary, thunkAPI) =>{
+    try {
+        if(arg._id){
+            const response = await trancePlayInstance.delete(`/blockly/${arg._id}`)
+            console.log("[Api call blocklyDelete]", response);
+            if(response.status === 200){
+                console.log("[Api call blocklyDelete Successful]", response);
+            }
+        }
+        return "";
+    }catch (error){
+        console.log("[Error Occured blocklyDelete]" , error);
+        return thunkAPI.rejectWithValue({error: error.message});
+    }
+});
 
 export const fetchSelectedQuery = createAsyncThunk(
     "query/fetchSelectedQuery", async (arg: QuerySummary, thunkAPI) => {

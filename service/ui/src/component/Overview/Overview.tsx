@@ -13,7 +13,7 @@ import {useHistory} from "react-router-dom";
 
 import overviewThemeStyle from "./OverviewThemeStyle";
 import {useAppDispatch, useAppSelector} from '../../redux/Hooks/hooks';
-import {fetchSelectedQuery} from '../../redux/QuerySlice/thunkQueryApiCalls';
+import {fetchSelectedQuery, blocklyDelete, fetchQueryListSummary} from '../../redux/QuerySlice/thunkQueryApiCalls';
 import {goToRoute} from '../../redux/NavigationSlice/navigationSlice';
 import {pageRoutes} from '../../utils/Public_enums';
 import {QuerySummary} from "../../utils/Public_Interfaces";
@@ -38,7 +38,14 @@ const Overview = () => {
         dispatch(fetchSelectedQuery(querySummary));
         dispatch(goToRoute(pageRoutes.BUILDER))
         history.push('/builder')
+    }
 
+    const deleteHandler = async ( querySummary : QuerySummary) =>{
+        //return result of api call then update queryListSummary
+        const result = await dispatch(blocklyDelete(querySummary));
+        if(result.meta.requestStatus === "fulfilled"){
+            dispatch(fetchQueryListSummary());
+        }
     }
     return (
         <Grid item xs={12} md={12} lg={12}>
@@ -58,7 +65,7 @@ const Overview = () => {
                                 <TableCell>
                                     <ButtonGroup color={"primary"} aria-label={"Contained primary button group"}>
                                         <Button variant={"contained"} style={{'backgroundColor':'#2980b9'}} onClick={() => getAndEdit(row)}>Edit</Button>
-                                        <Button variant={"contained"} style={{'backgroundColor':'#e74c3c'}}>Delete</Button>
+                                        <Button variant={"contained"} style={{'backgroundColor':'#e74c3c'}} onClick={() => deleteHandler(row)}>Delete</Button>
                                     </ButtonGroup>
                                 </TableCell>
                             </TableRow>

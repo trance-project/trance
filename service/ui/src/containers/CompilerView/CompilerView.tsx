@@ -17,6 +17,7 @@ import ModalPrompt from "../../component/CompilerViewComponent/ModalPrompt/Model
 import {useAppSelector} from '../../redux/Hooks/hooks';
 import {newQuerySelected} from '../../redux/QuerySlice/tempData'
 import PlanResults from "../../component/PlanResults/PlanResults";
+import {config} from '../../Constants';
 
 const CompilerView =()=> {
     const classes = standardCompilationViewThemeStyle();
@@ -84,7 +85,7 @@ const CompilerView =()=> {
                         abortHover={abortHoverHandler}
                     />
 
-                    <Button className={classes.queryBtnGroup} variant={"outlined"} color={"primary"} endIcon={<NoteIcon />} onClick={()=> window.open("http://pdq-webapp.cs.ox.ac.uk:8085/#/notebook/2GES6WHWT","_blank")}>Notebook</Button>
+                    <Button className={classes.queryBtnGroup} variant={"outlined"} color={"primary"} endIcon={<NoteIcon />} onClick={()=> window.open(config.zepplineURL+'/#/notebook/2GES6WHWT',"_blank")}>Notebook</Button>
                     <Button className={classes.queryBtnGroup} variant={"contained"} color={"primary"} onClick={handleOpenCompilationDialogState} endIcon={<ForwardIcon/>}>Compile & Run</Button>
                 </React.Fragment>
             )

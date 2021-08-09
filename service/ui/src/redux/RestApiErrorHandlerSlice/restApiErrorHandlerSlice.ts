@@ -7,6 +7,7 @@
 
 import {createSlice, PayloadAction} from "@reduxjs/toolkit";
 import * as queryApi from '../QuerySlice/thunkQueryApiCalls';
+import {blocklyDelete} from "../QuerySlice/thunkQueryApiCalls";
 
 
 /**
@@ -88,6 +89,24 @@ export const restHandlerSlice = createSlice({
         });
         builder.addCase(queryApi.updateBlocklyQuery.rejected,(state, action) => {
             console.log("[restHandlerSlice] sendStandardNrcCode", action.payload);
+            state.loading = "Error";
+            state.message = action.payload as string;
+        });
+
+        /**
+         * handler blocklyDelete request
+         */
+        builder.addCase(queryApi.blocklyDelete.pending, (state) => {
+            console.log("[restHandlerSlice] Pending call for blocklyDelete");
+            state.loading = "Loading";
+        });
+        builder.addCase(queryApi.blocklyDelete.fulfilled, (state) => {
+            console.log("[restHandlerSlice] Fulfilled call for blocklyDelete");
+            state.loading = "Idle";
+            state.message = "Query Deleted"
+        });
+        builder.addCase(queryApi.blocklyDelete.rejected,(state, action) => {
+            console.log("[restHandlerSlice] blocklyDelete", action.payload);
             state.loading = "Error";
             state.message = action.payload as string;
         });

@@ -145,14 +145,17 @@ const Layout = (props:LayoutProps) => {
         }
 
     const history = useHistory();
-    const handleNewQuery = (input:string) => {
+    const handleNewQuery = async (input:string) => {
         const newQuery: QuerySummary = {
             name: input,
             xmlDocument: '<xml xmlns="http://www.w3.org/1999/xhtml"></xml>'
         }
 
-        dispatch(blocklyCreateNew(newQuery));
-
+        //return result of api call then update queryListSummary
+        const result = await dispatch(blocklyCreateNew(newQuery));
+        if(result.meta.requestStatus === "fulfilled"){
+            dispatch(fetchQueryListSummary());
+        }
         setOpenNewQueryState(false);
         // history.push('/builder')
         // props.goto_Route(pageRoutes.BUILDER)
