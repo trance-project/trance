@@ -62,7 +62,7 @@ trait Extensions {
     case u:Nest => getHint(u.in)
     case CNamed(n, e1) => getHint(e1)
     case u:CUdf => Set(u.hint)
-    case _ => ""
+    case _ => Set()
   }
 
   def collectFromAnd(e: CExpr): Set[String] = e match {
