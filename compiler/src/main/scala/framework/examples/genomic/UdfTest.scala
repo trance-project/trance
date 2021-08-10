@@ -56,7 +56,7 @@ object ExampleQueryMultiOmicsProstate extends DriverGene {
   // a query string that is passed to the parser
   // note that a list of assignments should be separated with ";"
   // this was the query before labels	  
-  /**val query =
+  val query =
     s"""
       GMB <=
           for g in genemap union
@@ -68,7 +68,7 @@ object ExampleQueryMultiOmicsProstate extends DriverGene {
                                                 else if (t.impact = "MODERATE") then 0.50
                                                 else if (t.impact = "LOW") then 0.30
                                                 else 0.01)}).sumBy({sid}, {burden}))}
-     """**/
+     """
   val query = {
     // notes from discussion
     // s"""
@@ -486,6 +486,7 @@ object ExampleQueryBinaryTcga extends DriverGene {
   val program = parser.parse(query).get.asInstanceOf[Program]
 
 }
+
 object QueryMultiTcga extends DriverGene {
   val sampleFile = "/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_prad.txt"
   val cnvFile = "/mnt/app_hdd/data/cnv"
