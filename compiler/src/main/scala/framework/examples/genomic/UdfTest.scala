@@ -56,19 +56,19 @@ object ExampleQueryMultiOmicsProstate extends DriverGene {
   // a query string that is passed to the parser
   // note that a list of assignments should be separated with ";"
   // this was the query before labels	  
-  val query =
-    s"""
-      GMB <=
-          for g in genemap union
-            {(gene:= g.g_gene_name, burdens :=
-              (for o in occurrences union
-                for t in o.transcript_consequences union
-                  if (g.g_gene_id = t.gene_id) then
-                     {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
-                                                else if (t.impact = "MODERATE") then 0.50
-                                                else if (t.impact = "LOW") then 0.30
-                                                else 0.01)}).sumBy({sid}, {burden}))}
-     """
+//  val query =
+//    s"""
+//      GMB <=
+//          for g in genemap union
+//            {(gene:= g.g_gene_name, burdens :=
+//              (for o in occurrences union
+//                for t in o.transcript_consequences union
+//                  if (g.g_gene_id = t.gene_id) then
+//                     {(sid := o.donorId, burden := if (t.impact = "HIGH") then 0.80
+//                                                else if (t.impact = "MODERATE") then 0.50
+//                                                else if (t.impact = "LOW") then 0.30
+//                                                else 0.01)}).sumBy({sid}, {burden}))}
+//     """
   val query = {
     // notes from discussion
     // s"""
