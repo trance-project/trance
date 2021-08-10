@@ -89,7 +89,7 @@ const Layout = (props:LayoutProps) => {
             }
             case "output": {
                 if(standardPlan || shreddedPlan){
-                    props.goto_Route(pageRoutes.VIEW)
+                    props.goto_Route(pageRoutes.REPORT)
                 }else{
                     e.preventDefault();
                 }
@@ -106,7 +106,30 @@ const Layout = (props:LayoutProps) => {
      */
     useEffect(() => {
         if(location) {
-            props.goto_Route(page(location.pathname));
+            console.log("[location]", location.pathname)
+            switch (location.pathname){
+                case "/builder" :{
+                    if(!querySelected){
+                        props.goto_Route(pageRoutes.DASHBOARD);
+                        history.push('/');
+                    }
+                    break;
+                }
+                case "/queryView" :{
+                    if(!queryResponse){
+                        props.goto_Route(pageRoutes.DASHBOARD);
+                        history.push('/');
+                    }
+                    break;
+                }
+                case "/report" :{
+                    if(!standardPlan){
+                        props.goto_Route(pageRoutes.DASHBOARD);
+                        history.push('/');
+                    }
+                    break;
+                }
+            }
         }
         dispatch(fetchQueryListSummary());
         dispatch(fetchTranceObjectList());

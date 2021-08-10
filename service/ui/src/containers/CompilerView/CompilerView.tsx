@@ -25,11 +25,12 @@ const CompilerView =()=> {
     //set State here
     const [requestLoadingState, setRequestLoadingState] = useState(false);
     const [showModalState, setShowModalState] = useState(false);
-    const [hasCompileState, setHasCompileState] = useState(false);
     const [showHoverMaterializationState, setShowHoverMaterializationState] = useState(-1);
     const [queryTreeDiagramState, setQueryTreeDiagramState] = useState<boolean>(false);
 
     const query = useAppSelector(state => state.query.selectedQuery);
+    const shreddedPlan = useAppSelector(state => state.query.shreddedPlan);
+    const standardPlan = useAppSelector(state => state.query.standardPlan);
 
 
     let hoverTimeout: NodeJS.Timeout;
@@ -54,7 +55,6 @@ const CompilerView =()=> {
         setRequestLoadingState(true);
         setTimeout(()=> {
             setRequestLoadingState(false);
-            setHasCompileState(true);
         },2000);
     }
 
@@ -95,23 +95,23 @@ const CompilerView =()=> {
             jsxElement: (
                 <ShreddedCompilationView/>
             ),
-            disable:!hasCompileState
+            disable:shreddedPlan === undefined
         },
         {
             tabLabel: "Standard Plan",
             jsxElement:<StandardPlan/>,
-            disable: !hasCompileState
+            disable: standardPlan === undefined
         },
         {
             tabLabel:"Shredded Plan",
             jsxElement: <ShreddedPlan/>,
-            disable:!hasCompileState
+            disable:shreddedPlan === undefined
         },
         // TODO: reused the shreddedCompilationView component and shreddedPlan component for this tab
         {
             tabLabel:"Shredded Plan & NRC",
             jsxElement: <PlanResults/>,
-            disable:!hasCompileState
+            disable:shreddedPlan === undefined
         },
     ]
 
