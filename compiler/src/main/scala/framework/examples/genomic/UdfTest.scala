@@ -1036,7 +1036,7 @@ object HintUDFExample extends DriverGene {
     "genemap" -> gtf.tp)
   //    "clinical" -> BagType(pradType))
 
-  val udfTypes = Map("hintudf" -> PythonType)
+  val udfTypes = Map("pivotudf" -> PythonType)
 
   val query =
 
@@ -1055,7 +1055,7 @@ object HintUDFExample extends DriverGene {
                                                      else if (t.impact = "LOW") then 0.30
                                                      else 0.01)}).sumBy({sid, lbl}, {burden}))};
 
-               Output <= hintudf(FirstInput, {sid, lbl, _1,burden}, {chisq})
+               Output <= pivotudf(FirstInput, {sid, lbl, _1,burden}, {chisq})
 
            """
 

@@ -60,7 +60,7 @@ trait Extensions {
     case u:UnaryOp => getHint(u.in)
     case o:JoinOp => getHint(o.left) ++ getHint(o.right)
     case u:Nest => getHint(u.in)
-    case u:CUdf => u.hint
+    case u:CUdf => Set(u.hint)
     case _ => ???
   }
 

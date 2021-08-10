@@ -20,7 +20,8 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     val o1 = pushUnnest(e)
     val o2 = pushCondition(o1)
     val o3 = removeUnnecProj(push(o2))
-    o3
+    val o4 = applyHint(o3)
+    o4
   }
 
   // push projections and aggregation
@@ -29,7 +30,8 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
   	val o2 = pushCondition(o1)
   	val o3 = removeUnnecProj(push(o2))
     val o4 = pushAgg(o3)
-    o4
+    val o5 = applyHint(o4)
+    o5
   }
 
   /** Push projections in plans made of batch operations
@@ -188,6 +190,14 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       if (attrs == outs) r else e
     case Projection(in, _, r @ Record(fs), _) if fs.keySet == collect(r) => in
   })
+
+  def applyHint(e: CExpr): CExpr = fapply(e, {
+    case LinearCSet(fs) =>
+      val l = fs.map(getHint(_))
+      println(l)
+      e
+  })
+
 
   /** Returns true if an expression is a base expression 
     * (ie. the input relations or simple operations 
