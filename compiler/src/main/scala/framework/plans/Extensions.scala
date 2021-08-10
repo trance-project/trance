@@ -56,6 +56,14 @@ trait Extensions {
   	case _ => Set()
   }
 
+  def getHint(e: CExpr): Set[String] = e match {
+    case u:UnaryOp => getHint(u.in)
+    case o:JoinOp => getHint(o.left) ++ getHint(o.right)
+    case u:Nest => getHint(u.in)
+    case u:CUdf => u.hint
+    case _ => ???
+  }
+
   def collectFromAnd(e: CExpr): Set[String] = e match {
     case Record(e1) => e1.flatMap(f => collect(f._2)).toSet
     case Label(e1) => e1.flatMap(f => collect(f._2)).toSet
