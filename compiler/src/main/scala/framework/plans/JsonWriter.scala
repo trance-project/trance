@@ -33,7 +33,7 @@ object JsonWriter {
 			|	"attributes": {
 			|		"planOperator": "NEST",
 			|		"level": $level,
-			| 	"newLine": [ "${n.fields.mkString("\",\"")}" ]
+			| 	"newLine": [ "${n.key.mkString("\",\"")}" ]
 			|	},
 			|	"children": [${produceJsonString(n.in, level+1)}]
 			|}
@@ -59,7 +59,7 @@ object JsonWriter {
 			|		"level": $level,
 			| 	"newLine": [ "${j.fields.mkString("\",\"")}" ]
 			|	},
-			|	"children": [${produceJsonString(j.in, level+1)}]
+			|	"children": [${produceJsonString(j.left, level+1)}]
 			|}
 			""".stripMargin
 		case s:Select =>
@@ -69,9 +69,9 @@ object JsonWriter {
 			|	"attributes": {
 //			|		"planOperator": "UNNEST",
 			|		"level": $level,
-			| 	"newLine": [ "${s.fields.mkString("\",\"")}" ]
+			| 	"newLine": [ "${s.v.name}" ]
 			|	},
-			|	"children": [${produceJsonString(s.in, level+1)}]
+			|	"children": [${produceJsonString(s.p, level+1)}]
 			|}
 			""".stripMargin
 		case i:AddIndex => s"""{"todo": "TODO"}"""
