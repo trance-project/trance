@@ -1,5 +1,5 @@
 import {createSlice, PayloadAction} from "@reduxjs/toolkit";
-import {QuerySummary, NewQuery} from "../../utils/Public_Interfaces";
+import {QuerySummary, NewQuery, QueryResponse} from "../../utils/Public_Interfaces";
 import * as api from './thunkQueryApiCalls';
 import {RawNodeDatum} from "react-d3-tree/lib/types/common";
 
@@ -59,8 +59,15 @@ export const querySlice = createSlice({
         builder.addCase(api.fetchSelectedQuery.fulfilled, (state, action: PayloadAction<QuerySummary>) => {
             state.selectedQuery = action.payload
         });
-        builder.addCase(api.sendStandardNrcCode.fulfilled, (state, action: PayloadAction<NewQuery>) => {
-            state.responseQuery = action.payload
+        builder.addCase(api.sendStandardNrcCode.fulfilled, (state, action: PayloadAction<QueryResponse|undefined>) => {
+            if(action.payload){
+                if(action.payload.nrc.length > 0) {
+                    state.responseQuery = action.payload.nrc[0];
+                }
+                if(action.payload.standard_plan.length > 0){
+                    state.standardPlan = action.payload.standard_plan[0].plan;
+                }
+            }
         });
         builder.addCase(api.blocklyCreateNew.fulfilled, (state, action: PayloadAction<QuerySummary>) => {
             const newQuerySummary: QuerySummary = {

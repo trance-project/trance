@@ -15,7 +15,6 @@ import ModelMessage from "../../component/ui/ModelMessage/ModelMessage";
 import StandardPlan from "../../component/CompilerViewComponent/StandardPlan/StandardPlan";
 import ModalPrompt from "../../component/CompilerViewComponent/ModalPrompt/ModelPrompt";
 import {useAppSelector} from '../../redux/Hooks/hooks';
-import {newQuerySelected} from '../../redux/QuerySlice/tempData'
 import PlanResults from "../../component/PlanResults/PlanResults";
 import {config} from '../../Constants';
 
@@ -76,7 +75,6 @@ const CompilerView =()=> {
             jsxElement: (
                 <React.Fragment>
                     <StandardCompilationView
-                        query={newQuerySelected}
                         showDiagram={queryTreeDiagramState}
                         closeDiagram={handleQueryTreeDiagramClose}
                         hoverMaterializationLvl={showHoverMaterializationState}

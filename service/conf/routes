@@ -1,3 +1,7 @@
+# Map static resources from the /public folder to the /assets URL path
+GET        /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
+GET        /docs/swagger-ui/*file        controllers.Assets.at(path:String="/lib/swagger-ui", file:String)
+
 # Trance objects
 GET       /tranceObject                     v1.controllers.TranceObjectController.getAll
 GET       /tranceObject/:id                 v1.controllers.TranceObjectController.getTranceObject(id: java.util.UUID)
@@ -22,9 +26,9 @@ PATCH     /blockly/:id                 v1.controllers.BlocklyDocumentController.
 DELETE    /blockly/:id                 v1.controllers.BlocklyDocumentController.delete(id: java.util.UUID)
 
 # Swagger docs
-GET       /trance-rest                          v1.controllers.ApiDocsController.redirectToDocs
+GET       /trance-rest                          v1.controllers.ApiDocsController.home
 GET       /swagger.json               controllers.ApiHelpController.getResources
-GET       /api-docs                  v1.controllers.ApiDocsController.redirectToDocs
+GET       /api-docs                  v1.controllers.ApiDocsController.home
 
 #React app Route
 # Serve index page from public directory

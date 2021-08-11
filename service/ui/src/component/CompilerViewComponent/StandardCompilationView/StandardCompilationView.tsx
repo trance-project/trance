@@ -23,7 +23,6 @@ import Materializationlvl3 from "../ShreddedCompilationView/Materialzation/Mater
 
 
 interface _QueryViewProps {
-    query:NewQuery | undefined;
     showDiagram:boolean;
     closeDiagram:()=>void;
     hoverMaterializationLvl:number;
@@ -156,83 +155,10 @@ const StandardCompilationView = (props:_QueryViewProps) => {
 
         }
 
-
-
-    //Recursive method used to iterate over query table object to layout the columns and if the supply nested data.
-    // const querySelect = (query:Query) => {
-    //     const nodeId = query.level;
-    //     expandedNode.push(nodeId);
-    //
-    //     const childItem: JSX.Element[] = [];
-    //     let columnsSelect: string[] = [];
-    //     let table = query.table;
-    //     let tableAbr = table.abr?table.abr:"UDF";
-    //     let labelAssociation: LabelAssociation = {
-    //         join:"",
-    //         tables: []
-    //     };
-    //     if(shallowAssociation){
-    //         for(const association of(shallowAssociation)){
-    //             labelAssociation.join = association.association.map(el => {
-    //                 el.objectAssociation.forEach(col => {
-    //                     if(col.children){
-    //                         labelAssociation.tables!.push(col.children);
-    //                     }
-    //                 })
-    //                 return checkAssociation(el);
-    //             }).join(' && ');
-    //         }
-    //         //reset shallowAssociation
-    //         shallowAssociation = undefined;
-    //     }
-    //
-    //
-    //     columnsSelect.push(...checkColumnsEnable(query.table));
-    //     if(query.filters){
-    //         columnsSelect.push(...query.filters);
-    //     }
-    //     if(query.associations){
-    //         shallowAssociation = query.associations;
-    //         for(const association of(query.associations)){
-    //             columnsSelect.push(`${association.key}:=`);
-    //         }
-    //     }
-    //
-    //     if(query.children){
-    //         childItem.push(querySelect(query.children));
-    //
-    //         return (
-    //             <StyledTreeItem
-    //                 key={table.id}
-    //                 nodeId={nodeId}
-    //                 label={
-    //                     <LabelView
-    //                         tableEl={tableAbr}
-    //                         tableName={table.name}
-    //                         columns={columnsSelect}
-    //                         association={labelAssociation}
-    //                     />}>
-    //                 {childItem}
-    //             </StyledTreeItem>
-    //         )
-    //     }else{
-    //         return <StyledTreeItem key={table.id}
-    //                                nodeId={nodeId}
-    //                                label={<LabelView
-    //                                    tableEl={tableAbr}
-    //                                    tableName={table.name}
-    //                                    columns={columnsSelect}
-    //                                    association={labelAssociation}
-    //                                />}/>
-    //     }
-    // }
-
-
-
     if(newQuerySelected) {
             statement=   newQuerySelect(newQuerySelected);
         }
-
+    console.log("[newQuery]", newQuerySelected);
     return (
         <div>
             <TreeView
@@ -242,7 +168,6 @@ const StandardCompilationView = (props:_QueryViewProps) => {
             expanded={expandedNode}
             >
      {statement}
-
             </TreeView>
         </div>
     );

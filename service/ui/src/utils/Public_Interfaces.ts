@@ -1,6 +1,7 @@
 import React from "react";
 import Blockly, {Xml} from "blockly/blockly";
 import xml = Blockly.utils.xml;
+import {RawNodeDatum} from "react-d3-tree/lib/types/common";
 
 export interface Table {
     id:number;
@@ -101,6 +102,17 @@ export interface NewQuery {
     name?: string;
     key: string;
     labels? : NewQuery[]
+}
+
+export interface Plan {
+    name: string;
+    plan: RawNodeDatum;
+}
+
+export interface QueryResponse {
+    nrc: NewQuery[];
+    standard_plan: Plan[];
+    children: any[];
 }
 
 export interface planDemoOutput{

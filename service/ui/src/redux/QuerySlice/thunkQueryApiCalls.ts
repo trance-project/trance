@@ -4,10 +4,10 @@
  */
 import {createAsyncThunk} from "@reduxjs/toolkit";
 import {trancePlayInstance} from "../../AxiosConfig";
-import {BlocklyNrcCode, NewQuery, QuerySummary} from "../../utils/Public_Interfaces";
+import {BlocklyNrcCode, NewQuery, QuerySummary, QueryResponse} from "../../utils/Public_Interfaces";
 import {RootState} from '../store'
 import {RawNodeDatum} from "react-d3-tree/lib/types/common";
-import {useAppDispatch} from '../Hooks/hooks'
+
 
 
 export const fetchQueryListSummary = createAsyncThunk(
@@ -101,7 +101,6 @@ export const updateBlocklyQuery = createAsyncThunk(
 
 export const sendStandardNrcCode = createAsyncThunk(
     "query/sendStandardNrcCode", async  (arg: BlocklyNrcCode, thunkAPI) => {
-
         const newQuerySelected = {
             name: "QuerySimple",
             key: "For s in samples Union ",
@@ -130,19 +129,17 @@ export const sendStandardNrcCode = createAsyncThunk(
         try{
             const response = await  trancePlayInstance.post("/nrccode", {...arg});
             if(response.status === 201){
-                // return response.data as string;
-                return newQuerySelected;
+                    return response.data as QueryResponse;
             }else if(response.status === 500){
-                return newQuerySelected;
-                // return thunkAPI.rejectWithValue(`Internal Server Error`);
-            // }else if(response.status === 400){
-            //     return thunkAPI.rejectWithValue(`Invalid Query format`);
+                throw new Error ("Invalid Query format");
+            }else{
+                // console.log("pass Here then delete debug status anytime")
+                return undefined;
             }
-            return response.data as NewQuery;
         } catch (error){
             console.log("[Error Occurred sendStandardNrcCode]", error.message)
-            return newQuerySelected;
-            // return thunkAPI.rejectWithValue(error.message)
+            // return newQuerySelected;
+            return thunkAPI.rejectWithValue(error.message)
         }
     }
 )
@@ -350,3 +347,31 @@ export const getShreddedPlan = createAsyncThunk(
         }
     }
 )
+
+
+
+// {
+//     "nrc": [{
+//     "name": "Easy_query",
+//     "key": "For s in samples Union",
+//     "labels ": [{
+//         "name ": "id ",
+//         "key ": "s.bcr_patient_uuid "
+//     }]
+// }],
+//     "standard_plan ": [{
+//     "name ": "Easy_query ",
+//     "plan ": {
+//         "name": "",
+//         "attributes": {
+//             "planOperator": "PROJECT",
+//             "level": 0,
+//             "attrs": "TODO",
+//             "newLine": ["bcr_patient_uuid"]
+//         },
+//         "children": [{
+//             "todo": "TODO"
+//         }]
+//     }
+// }]
+// }
