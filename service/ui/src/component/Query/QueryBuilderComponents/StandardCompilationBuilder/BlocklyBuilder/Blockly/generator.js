@@ -187,7 +187,7 @@ Blockly.JavaScript['controls_if'] = function (block){
         switch (el.type){
             case 1 : {
                 const input = Blockly.JavaScript.valueToCode(block, el.name, Blockly.JavaScript.ORDER_ATOMIC);
-                code = code + ` if(${input}) `
+                code = code + ` if (${input}) then`
                 break;
             }
             case 3 :{

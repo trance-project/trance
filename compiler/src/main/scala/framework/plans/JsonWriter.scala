@@ -21,16 +21,59 @@ object JsonWriter {
 			|	"attributes": {
 			|		"planOperator": "PROJECT",
 			|		"level": $level,
-			|		"attrs": "TODO",
-			| 		"newLine": [ "${p.fields.mkString("\",\"")}" ]
+			| 	"newLine": [ "${p.fields.mkString("\",\"")}" ]
 			|	},
 			|	"children": [${produceJsonString(p.in, level+1)}]
 			|}
 			""".stripMargin
-		case n:Nest => s"""{"todo": "TODO"}"""
-		case u:UnnestOp => s"""{"todo": "TODO"}"""
-		case j:JoinOp => s"""{"todo": "TODO"}"""
-		case s:Select => s"""{"todo": "TODO"}"""
+		case n:Nest =>
+			s"""
+			|{
+			|	"name": "",
+			|	"attributes": {
+			|		"planOperator": "NEST",
+			|		"level": $level,
+			| 	"newLine": [ "${p.fields.mkString("\",\"")}" ]
+			|	},
+			|	"children": [${produceJsonString(p.in, level+1)}]
+			|}
+			""".stripMargin
+		case u:UnnestOp =>
+			s"""
+			|{
+			|	"name": "",
+			|	"attributes": {
+			|		"planOperator": "UNNEST",
+			|		"level": $level,
+			| 	"newLine": [ "${p.fields.mkString("\",\"")}" ]
+			|	},
+			|	"children": [${produceJsonString(p.in, level+1)}]
+			|}
+			""".stripMargin
+		case j:JoinOp =>
+			s"""
+			|{
+			|	"name": "",
+			|	"attributes": {
+			|		"planOperator": "OUTERJOIN",
+			|		"level": $level,
+			| 	"newLine": [ "${p.fields.mkString("\",\"")}" ]
+			|	},
+			|	"children": [${produceJsonString(p.in, level+1)}]
+			|}
+			""".stripMargin
+		case s:Select =>
+			s"""
+			|{
+			|	"name": "",
+			|	"attributes": {
+//			|		"planOperator": "UNNEST",
+			|		"level": $level,
+			| 	"newLine": [ "${p.fields.mkString("\",\"")}" ]
+			|	},
+			|	"children": [${produceJsonString(p.in, level+1)}]
+			|}
+			""".stripMargin
 		case i:AddIndex => s"""{"todo": "TODO"}"""
 		case c:CNamed => s"""{"name": "${c.name}", "plan": ${produceJsonString(c.e)} }"""
 		case p:LinearCSet => s"""[${p.exprs.map(x => produceJsonString(x)).mkString(",")}]"""

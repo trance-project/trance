@@ -733,14 +733,6 @@ Blockly.Extensions.registerMutator('controls_if_mutatorss',
 
 Blockly.Msg['CONTROLS_IF_MSG_THEN'] = "then";
 
-console.log('CONTROLS_IF_MSG_THEN',Blockly.Msg['CONTROLS_IF_MSG_IF']);
-console.log('CONTROLS_IF_MSG_ELSEIF',Blockly.Msg['CONTROLS_IF_MSG_ELSEIF']);
-console.log('CONTROLS_IF_MSG_ELSE',Blockly.Msg['CONTROLS_IF_MSG_ELSE']);
-console.log('CONTROLS_IF_IF_TITLE_IF',Blockly.Msg['CONTROLS_IF_IF_TITLE_IF']);
-console.log('CONTROLS_IF_IF_TOOLTIP',Blockly.Msg['CONTROLS_IF_IF_TOOLTIP']);
-console.log('CONTROLS_IF_ELSEIF_TITLE_ELSEIF',Blockly.Msg['CONTROLS_IF_ELSEIF_TITLE_ELSEIF']);
-console.log('CONTROLS_IF_ELSE_TITLE_ELSE',Blockly.Msg['CONTROLS_IF_ELSE_TITLE_ELSE']);
-
 
 
 
