@@ -40,7 +40,12 @@ const INITIAL_TOOLBOX_JSON = {
         },
         {
           kind: "block",
-          type:"brackets",
+          type:"groupBy",
+          // blockxml: '<block type="brackets"/>'
+        },
+        {
+          kind: "block",
+          type:"sumBy",
           // blockxml: '<block type="brackets"/>'
         },
         {
@@ -472,19 +477,20 @@ const INITIAL_TOOLBOX_XML = '<xml xmlns="http://www.w3.org/1999/xhtml" id="toolb
   + '    <block type="forunion"/>\n'
   + '    <block type="tuple"/>\n'
   + '    <block type="customReactComponent"/>\n'
-  + '    <block type="brackets"/>\n'
+  + '    <block type="groupBy"/>\n'
+  + '    <block type="sumBy"/>\n'
   + '    <block type="and"/>\n'
   + '    <block type="or"/>\n'
   + '    <block type="tuple_el"/>\n'
   + '    <block type="tuple_el_iteration"/>\n'
   + '    <block type="controls_if"></block>\n'
-  + '    <block type="ifstmt_primitive"/>\n'
-  + '    <block type="ifstmt_bag"/>\n'
-  + '    <block type="association_on"/>\n'
-  + '    <block type="association_on_assisted"/>\n'
+  // + '    <block type="ifstmt_primitive"/>\n'
+  // + '    <block type="ifstmt_bag"/>\n'
+  // + '    <block type="association_on"/>\n'
+  // + '    <block type="association_on_assisted"/>\n'
   + '    <block type="association_on_assisted_new"/>\n'
   + '    <block type="association_on_assisted_new_new"/>\n'
-  + '    <block type="group_by"/>\n'
+  // + '    <block type="group_by"/>\n'
   + '  </category>\n'
   + '  <category name="Nrc2.0" colour="#B75D69">\n'
   + '    <block type="forUnionTuple2.0"/>\n'
