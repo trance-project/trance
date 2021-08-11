@@ -67,7 +67,6 @@ object JsonWriter {
 			|{
 			|	"name": "",
 			|	"attributes": {
-//			|		"planOperator": "UNNEST",
 			|		"level": $level,
 			| 	"newLine": [ "${s.v.name}" ]
 			|	},
