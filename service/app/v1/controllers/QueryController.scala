@@ -78,8 +78,24 @@ class QueryController @Inject()(
     PJsonWriter.produceJsonString(plan)
   }
 
-  private def writeParagraph(appname: String, header: String, gcode: String, encoders: String): String  = {
+  private def writeParagraph(appname: String, header: String, gcode: String, encoders: String, shred: Boolean): String  = {
+    val data = 
+      if (shred){
+      s"""
+        |val samples = spark.emptyDataset[Biospec]
+        |val occurrrences = spark.emptyDataset[OccurrenceMid]
+        |val copynumber = spark.emptyDataset[CopyNumber]
+      """.stripMargin
+    }else{
+      s"""
+        |val samples = spark.emptyDataset[Biospec]
+        |val occurrrences = spark.emptyDataset[OccurrenceMid]
+        |val copynumber = spark.emptyDataset[CopyNumber]
+      """.stripMargin
+    }
+
     s"""
+      |/** Generated code **/
       |import org.apache.spark.sql._
       |import org.apache.spark.sql.functions._
       |import org.apache.spark.sql.catalyst.plans.logical._
@@ -93,14 +109,12 @@ class QueryController @Inject()(
       |case class Stat(name: String, sizeInBytes:String, rowCount:String)
       |$encoders
       |import spark.implicits._
-      |val samples = spark.table("samples")
-      |val occurrrences = spark.table("occurrences")
-      |val copynumber = spark.table("copynumber")
+      |$data
       |$gcode
     """.stripMargin
   }
 
-  private def runProgram(plan: CExpr, queryId: String): String = {
+  private def runProgram(plan: CExpr, queryId: String, shred: Boolean = false): String = {
 
     val zep = new ZeppelinFactory(host = "localhost", port = 8082)
 
@@ -111,7 +125,7 @@ class QueryController @Inject()(
     val code = generator.generate(anfed)
 
     val noteid = zep.addNote(queryId)
-    val pcontents = writeParagraph(queryId, generator.generateHeader(), code, generator.generateEncoders())
+    val pcontents = writeParagraph(queryId, generator.generateHeader(), code, generator.generateEncoders(), shred)
     val para = new ZJsonWriter().buildParagraph("Generated paragraph test", pcontents)
     val pid = zep.writeParagraph(noteid, para)
     // val status = zep.runParaSync(noteid, pid)

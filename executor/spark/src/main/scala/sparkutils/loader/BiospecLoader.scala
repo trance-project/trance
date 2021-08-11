@@ -41,5 +41,28 @@ class BiospecLoader(spark: SparkSession) extends Table[Biospec] {
        .option("delimiter", delimiter)
        .csv(path).na.drop.as[Biospec].repartition(Config.minPartitions)
    }
+
+   def store(path: String) = {
+
+    val samples = load(path)
+    val stype = List(
+      "bcr_patient_uuid string", "bcr_sample_barcode string", 
+      "bcr_aliquot_barcode string", "bcr_aliquot_uuid string",
+      "biospecimen_barcode_bottom string", "center_id string", 
+      "concentration double", "date_of_shipment string", 
+      "is_derived_from_ffpe string", "plate_column int",
+      "plate_id string", "plate_row string",
+      "quantity double", "source_center int", "volume double")
+
+    spark.sql(s"""CREATE TABLE IF NOT EXISTS samples(${stype.mkString(", ")}) USING hive""")
+
+    // insert into hive
+    samples.write.insertInto("samples")
+
+    // validate
+    spark.sql("SELECT * FROM samples").show
+
+  }
+
 }
 

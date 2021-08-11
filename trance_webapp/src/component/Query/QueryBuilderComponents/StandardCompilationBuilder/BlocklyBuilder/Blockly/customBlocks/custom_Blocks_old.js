@@ -29,7 +29,7 @@ Blockly.defineBlocksWithJsonArray([
         "colour": 142,
         "nextStatement": "Bag",
         "previousStatement": "Bag",
-        "tooltip": "For Union: Bag Type",
+        "tooltip": "For each union: iterate over input object",
         "inputsInline": true,
 
     },
@@ -56,7 +56,7 @@ Blockly.defineBlocksWithJsonArray([
         "colour": 111,
         "previousStatement": null,
         "nextStatement": null,
-        "tooltip": "tuple_el"
+        "tooltip": "tuple element of standalone expression"
     },
     {
         "type": "tuple_el_iteration",
@@ -84,7 +84,7 @@ Blockly.defineBlocksWithJsonArray([
         "colour": 230,
         "previousStatement": null,
         "nextStatement": null,
-        "tooltip": "tuple_el_iteration",
+        "tooltip": "tuple element of component free expression",
     },
     {
         "type": "tuple",
@@ -522,7 +522,7 @@ const forUnionTuple2 = {
     "colour": 150,
     "nextStatement": "Bag",
     "previousStatement": "Bag",
-    "tooltip": "For Union: Bag Type",
+    "tooltip": "For each union: iterate over input object",
     "helpUrl": ""
 };
 
@@ -571,7 +571,7 @@ const forUnion2 = {
     "colour": 315,
     "nextStatement": "Bag",
     "previousStatement": "Bag",
-    "tooltip": "For Union: Bag Type",
+    "tooltip": "For each union: iterate over an attribute",
     "helpUrl": ""
 };
 
@@ -633,7 +633,7 @@ const forUnionNested = {
     "colour": 211,
     "nextStatement": "Bag",
     "previousStatement": "Bag",
-    "tooltip": "For Union Nested: Bag Type",
+    "tooltip": "For each union: iterate over attribute",
     "inputsInline": true,
 };
 
