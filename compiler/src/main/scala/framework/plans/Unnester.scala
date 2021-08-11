@@ -100,17 +100,18 @@ object Unnester {
       val dict = unnest(e1)((u, w, E, tag))
       val nv = wvar(w)
       val nv1 = Variable.freshFromBag(dict.tp)
+      val lname = Variable.fresh("LABEL_1_")
       val pdict = Projection(dict, nv1, Record(nv1.tp.attrs.map(x => x._1 match {
-        case "_1" =>  "LABEL_1" -> Project(nv1, x._1); case _ => x._1 -> Project(nv1, x._1)})), Nil)
+        case "_1" =>  lname -> Project(nv1, x._1); case _ => x._1 -> Project(nv1, x._1)})), Nil)
       val nv2 = Variable.freshFromBag(pdict.tp)
 
       // capture join conditions and remove dropped attributes
       val joinCond = lbl match {
         case Project(e3, p1) => 
           val rev = normalize.finalize(replace(e3, nv, useType = false)).asInstanceOf[CExpr]
-          Equals(Project(rev, p1), Project(nv2, "LABEL_1"))
+          Equals(Project(rev, p1), Project(nv2, lname))
         case _ => 
-          Equals(lbl, Project(nv2, "LABEL_1"))
+          Equals(lbl, Project(nv2, lname))
       }
 
       // generate the outer join and make recursive call
