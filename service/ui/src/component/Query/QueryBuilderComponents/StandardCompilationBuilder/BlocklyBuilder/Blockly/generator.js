@@ -8,6 +8,7 @@
 
 import * as Blockly from 'blockly/core';
 import BlocklyJS from 'blockly/javascript';
+import {isAllOf} from "@reduxjs/toolkit";
 
 BlocklyJS['text_input'] = function(block) {
     let textValue = validate(block.getFieldValue('INPUT_TEXT'));
@@ -179,4 +180,23 @@ Blockly.JavaScript['nrc_filters'] = function(block) {
     const code = `((${value_one})${dropdown_operators}${value_two})`;
     return [code, 0];
 };
+
+Blockly.JavaScript['controls_if'] = function (block){
+    let code = "";
+    block.inputList.map(el => {
+        switch (el.type){
+            case 1 : {
+                const input = Blockly.JavaScript.valueToCode(block, el.name, Blockly.JavaScript.ORDER_ATOMIC);
+                code = code + ` if(${input}) `
+                break;
+            }
+            case 3 :{
+                code = code + `\n${BlocklyJS.statementToCode(block, el.name)}`
+                break;
+            }
+        }
+    });
+    return code;
+
+}
 
