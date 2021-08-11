@@ -66,7 +66,7 @@ class QueryController @Inject()(
 
   // use the json writer from framework.nrc to write 'er
   private def getJsonProgram(program: Program): String = {
-    JsonWriter.produceJsonString(program.asInstanceOf[JsonWriter.Program])
+    JsonWriter.produceJsonString(program.asInstanceOf[JsonWriter.Program]).replace("\n", "")
   }
 
   private def compileProgram(program: Program): CExpr = {
@@ -105,6 +105,7 @@ class QueryController @Inject()(
       |import sparkutils.loader._
       |import sparkutils.skew.SkewDataset._
       |import java.io._
+      |spark.sparkContext.addJar(s"/app/sparkutils_2.12-0.1.jar")
       |$header
       |case class Stat(name: String, sizeInBytes:String, rowCount:String)
       |$encoders
