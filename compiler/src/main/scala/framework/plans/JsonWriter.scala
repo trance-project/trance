@@ -33,9 +33,9 @@ object JsonWriter {
 			|	"attributes": {
 			|		"planOperator": "NEST",
 			|		"level": $level,
-			| 	"newLine": [ "${p.fields.mkString("\",\"")}" ]
+			| 	"newLine": [ "${n.fields.mkString("\",\"")}" ]
 			|	},
-			|	"children": [${produceJsonString(p.in, level+1)}]
+			|	"children": [${produceJsonString(n.in, level+1)}]
 			|}
 			""".stripMargin
 		case u:UnnestOp =>
@@ -45,9 +45,9 @@ object JsonWriter {
 			|	"attributes": {
 			|		"planOperator": "UNNEST",
 			|		"level": $level,
-			| 	"newLine": [ "${p.fields.mkString("\",\"")}" ]
+			| 	"newLine": [ "${u.fields.mkString("\",\"")}" ]
 			|	},
-			|	"children": [${produceJsonString(p.in, level+1)}]
+			|	"children": [${produceJsonString(u.in, level+1)}]
 			|}
 			""".stripMargin
 		case j:JoinOp =>
@@ -57,9 +57,9 @@ object JsonWriter {
 			|	"attributes": {
 			|		"planOperator": "OUTERJOIN",
 			|		"level": $level,
-			| 	"newLine": [ "${p.fields.mkString("\",\"")}" ]
+			| 	"newLine": [ "${j.fields.mkString("\",\"")}" ]
 			|	},
-			|	"children": [${produceJsonString(p.in, level+1)}]
+			|	"children": [${produceJsonString(j.in, level+1)}]
 			|}
 			""".stripMargin
 		case s:Select =>
@@ -69,9 +69,9 @@ object JsonWriter {
 			|	"attributes": {
 //			|		"planOperator": "UNNEST",
 			|		"level": $level,
-			| 	"newLine": [ "${p.fields.mkString("\",\"")}" ]
+			| 	"newLine": [ "${s.fields.mkString("\",\"")}" ]
 			|	},
-			|	"children": [${produceJsonString(p.in, level+1)}]
+			|	"children": [${produceJsonString(s.in, level+1)}]
 			|}
 			""".stripMargin
 		case i:AddIndex => s"""{"todo": "TODO"}"""
