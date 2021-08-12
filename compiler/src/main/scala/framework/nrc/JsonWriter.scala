@@ -126,10 +126,10 @@ trait JsonBasedPrinter extends Printer {
     // Materialization extensions
     case MatDictLookup(lbl, dict) =>
       s"MatDictLookup(${quote(lbl)}, ${quote(dict)})"
-    case BagToMatDict(b) =>
-      s"BagToMatDict(${quote(b)})"
-    case MatDictToBag(d) =>
-      s"MatDictToBag(${quote(d)})"
+    case BagToMatDict(b) => quote(b)
+      // s"BagToMatDict(${quote(b)})"
+    case MatDictToBag(d) => quote(d)
+      // s"MatDictToBag(${quote(d)})"
 
     case _ =>
       sys.error("Cannot print unknown expression " + e)
@@ -252,7 +252,17 @@ object JsonWriterTest extends App with Printer with Materialization with Materia
         ShredTest <= for o in occurrences union {(sid := o.donorId, cons := for t in o.transcript_consequences union {(gene := t.gene_id)})}
       """
 
-    val s = parseProgram(soSimple, shred = true).replace("\n", "")
+    val simple = 
+      s"""
+        Simple <= 
+        for s in samples union
+         {(  id := s.bcr_patient_uuid, mutations :=
+            for o in occurrences union
+                if (s.bcr_patient_uuid == o.oid) then
+                {(  mutid := o.oid)})}
+      """
+
+    val s = parseProgram(simple, shred = true).replace("\n", "")
     val jsValue = Json parse s
     val pj = Json prettyPrint jsValue
 

@@ -41,24 +41,26 @@ object Unnester {
     case _ => sys.error(s"unsupported name extraction $e")
   }
 
+  var level = 0
+
   def unnest(e: CExpr)(implicit ctx: Ctx): CExpr = e match {
 
     /** Base case for unnesting algorithm: Rule C4 **/
     case Comprehension(e1, v, p, e2) if u.isEmpty && w.isEmpty && E.isEmpty =>
       val ne1 = AddIndex(e1, getName(e1)+"_index")
       val nv = Variable(v.name, ne1.tp.tp)
-      unnest(e2)((u, nv.tp.attrs, Some(Select(ne1, nv, replace(p, nv), nv)), tag))
+      unnest(e2)((u, nv.tp.attrs, Some(Select(ne1, nv, replace(p, nv), nv, level)), tag))
 
     case c @ Comprehension(e1 @ Project(e0, f), v, p, e2) if !w.isEmpty =>
       assert(!E.isEmpty)
 
       if (u.isEmpty)
-        unnest(e2)((u, flat((w - f), v.tp), Some(Unnest(E.get, wvar(w), f, v, p, Nil)), tag))
+        unnest(e2)((u, flat((w - f), v.tp), Some(Unnest(E.get, wvar(w), f, v, p, Nil, level)), tag))
       else{
         val ne1 = AddIndex(E.get, f+"_index")
         val nv = Variable(v.name, ne1.tp.tp)
         val nw = flat(w - f, nv.tp)
-        val nE = OuterUnnest(ne1, wvar(nw), f, v, p, Nil)
+        val nE = OuterUnnest(ne1, wvar(nw), f, v, p, Nil, level)
         unnest(e2)((u - f), flat(nw - f, v.tp.outer), Some(nE), tag)
       }
 
@@ -72,12 +74,12 @@ object Unnester {
       val fields = ((w.keySet - p1) ++ (v1.tp.attrs.keySet - "_1"))
       val nv = wvar(w)
       val joinCond = normalizer.and(Equals(Project(nv, p1), Project(v1, "_1")), filt)
-      val nE = OuterJoin(E.get, nv, dict, v1, joinCond, fields.toList)
+      val nE = OuterJoin(E.get, nv, dict, v1, joinCond, fields.toList, level)
       unnest(e2)((u, flat(w, v1.tp), Some(nE), tag))
 
     case Comprehension(e1:Comprehension, v, p, Constant(c)) => unnest(e1)((u, w, E, tag)) match {
-      case Nest(e2, v2, keys2, values2, filt, nulls, ntag) => 
-        Nest(e2, v2, keys2, Constant(c), values2, nulls, ntag)
+      case Nest(e2, v2, keys2, values2, filt, nulls, ntag, l) => 
+        Nest(e2, v2, keys2, Constant(c), values2, nulls, ntag, l)
       case _ => ???
     }
 
@@ -87,8 +89,8 @@ object Unnester {
       val right = AddIndex(e1, name+"_index")
       val nv = Variable(v.name, right.tp.tp)
       val (nw, nE) = 
-        if (u.isEmpty) (flat(w, nv.tp), Join(E.get, wvar(w), Select(right, nv, Constant(true), nv), nv, cond, Nil))
-        else (flat(w, nv.tp.outer), OuterJoin(E.get, wvar(w), Select(right, nv, Constant(true), nv), nv, cond, Nil))
+        if (u.isEmpty) (flat(w, nv.tp), Join(E.get, wvar(w), Select(right, nv, Constant(true), nv, level), nv, cond, Nil, level))
+        else (flat(w, nv.tp.outer), OuterJoin(E.get, wvar(w), Select(right, nv, Constant(true), nv, level), nv, cond, Nil, level))
       unnest(e2)((u, nw, Some(nE), tag))
 
     case s @ If(cnd, Sng(t @ Record(fs)), nextIf) =>
@@ -102,18 +104,18 @@ object Unnester {
       handleLevel(fs, identity)((u, w, E, tag))
 
     case CReduceBy(e1, v1, keys, values) => unnest(e1)((u, w, E, tag)) match {
-      case Nest(e2, v2, keys2, values2, filter, nulls, ctag) =>
+      case Nest(e2, v2, keys2, values2, filter, nulls, ctag, l) =>
         // adjust input for reduce operation
         val pattern = replace(extendIf(keys2, values2, v2), v2)
-        val reduceInput = Projection(e2, v2, pattern, Nil)
+        val reduceInput = Projection(e2, v2, pattern, Nil, l)
         val nv1 = Variable(v2.name, reduceInput.tp)
 
-        val crd = Reduce(reduceInput, nv1, keys2 ++ keys, values)
+        val crd = Reduce(reduceInput, nv1, keys2 ++ keys, values, l)
         val nv2 = wvar(v2.tp.attrs ++ crd.tp.attrs)
         val nr = Record((keys ++ values).map(k => k -> Project(nv2, k)).toMap)
-        Nest(crd, nv2, keys2, nr, filter, nulls, ctag)
+        Nest(crd, nv2, keys2, nr, filter, nulls, ctag, l)
 
-      case e2 => Reduce(e2, v1, keys, values)
+      case e2 => Reduce(e2, v1, keys, values, level)
     }
 
     case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E, tag)))
@@ -140,18 +142,19 @@ object Unnester {
   private def handleLevel(fs: Map[String, CExpr], exp: CExpr => CExpr)(implicit ctx: Ctx): CExpr = {
    fs.find(c => isNestedComp(c._2)) match {
     case Some((key, value)) =>
+      level += 1
       val nE = unnest(value)((w, w, E, key))
       val nv = Variable.freshFromBag(nE.tp)
       val nr = Record(fs.map(f => f._1 -> replace(f._2, nv)) + (key -> Project(nv, key)))
       val nw = w + (key -> nv.tp)
       unnest(exp(Sng(nr)))((u, nw, Some(nE), tag))
     case y if u.isEmpty => 
-      Projection(E.get, wvar(w), exp(Record(fs)), Nil)
+      Projection(E.get, wvar(w), exp(Record(fs)), Nil, level)
     case _ => 
       val nv = wvar(w)
       val tup = exp(Record(fs))
       val rtup = replace(tup, nv)
-      Nest(E.get, nv, u.keys.toList, rtup, Constant(true), (w.keySet -- u.keySet).toList, tag)
+      Nest(E.get, nv, u.keys.toList, rtup, Constant(true), (w.keySet -- u.keySet).toList, tag, level)
     }   
   }
 

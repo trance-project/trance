@@ -49,15 +49,15 @@ trait Base {
   def dictunion(d1: Rep, d2: Rep): Rep
 
   // plan operators
-  def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep
+  def select(x: Rep, p: Rep => Rep, e: Rep => Rep, level: Int): Rep
   def addindex(in: Rep, name: String): Rep 
-  def projection(in: Rep, filter: Rep => Rep, fields: List[String]): Rep
-  def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep
-  def ounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep
-  def join(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep
-  def ojoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep
-  def nest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String], ctag: String): Rep
-  def reduce(in: Rep, key: List[String], values: List[String]): Rep
+  def projection(in: Rep, filter: Rep => Rep, fields: List[String], level: Int): Rep
+  def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String], level: Int): Rep
+  def ounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String], level: Int): Rep
+  def join(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String], level: Int): Rep
+  def ojoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String], level: Int): Rep
+  def nest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String], ctag: String, level: Int): Rep
+  def reduce(in: Rep, key: List[String], values: List[String], level: Int): Rep
 
   // bag to dict casts
   def flatdict(e1: Rep): Rep
@@ -129,18 +129,18 @@ trait BaseStringify extends Base{
     s"(${fs.map(f => f._1 + " := " + f._2).mkString(",")})"
   def dictunion(d1: Rep, d2: Rep): Rep = s"${d1} U ${d2}"
   
-  def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = { 
+  def select(x: Rep, p: Rep => Rep, e: Rep => Rep, level: Int): Rep = { 
     val v = Variable.fresh(StringType).quote
     s""" | SELECT[ ${p(v)}, ${e(v)} ](${x} )""".stripMargin
   }
   def addindex(in: Rep, name: String): Rep = "/** Top-down, see Printer.scala **/"
-  def projection(in: Rep, filter: Rep => Rep, fields: List[String]): Rep = ""
-  def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = "/** Top-down, see Printer.scala **/"
-  def ounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = "/** Top-down, see Printer.scala **/"
-  def join(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep = "/** Top-down, see Printer.scala **/"
-  def ojoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep = "/** Top-down, see Printer.scala **/"
-  def nest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String], ctag: String): Rep = "/** Top-down, see Printer.scala **/"
-  def reduce(in: Rep, key: List[String], values: List[String]): Rep = ""
+  def projection(in: Rep, filter: Rep => Rep, fields: List[String], level: Int): Rep = ""
+  def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String], level: Int): Rep = "/** Top-down, see Printer.scala **/"
+  def ounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String], level: Int): Rep = "/** Top-down, see Printer.scala **/"
+  def join(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String], level: Int): Rep = "/** Top-down, see Printer.scala **/"
+  def ojoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String], level: Int): Rep = "/** Top-down, see Printer.scala **/"
+  def nest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String], ctag: String, level: Int): Rep = "/** Top-down, see Printer.scala **/"
+  def reduce(in: Rep, key: List[String], values: List[String], level: Int): Rep = ""
 
   def flatdict(e1: Rep): Rep = s"FLAT($e1)"
   def groupdict(e1: Rep): Rep = s"GROUP($e1)"
@@ -210,49 +210,49 @@ trait BaseCompiler extends Base {
   def tupledict(fs: Map[String, Rep]): Rep = TupleCDict(fs)
   def dictunion(d1: Rep, d2: Rep): Rep = DictCUnion(d1, d2)
 
-  def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = {
+  def select(x: Rep, p: Rep => Rep, e: Rep => Rep, level: Int): Rep = {
     val v = Variable.freshFromBag(x.tp)
-    Select(x, v, p(v), e(v))
+    Select(x, v, p(v), e(v), level)
   }
 
   def addindex(in: Rep, name: String): Rep = in match {
     case AddIndex(in1, _) => AddIndex(in, name)
     case _ => AddIndex(in, name)  
   }
-  def projection(in: Rep, filter: Rep => Rep, fields: List[String]): Rep = {
+  def projection(in: Rep, filter: Rep => Rep, fields: List[String], level: Int): Rep = {
     val v1 = Variable.freshFromBag(in.tp)
     val nr = filter(v1)
     val fs = ext.collect(nr)
-    Projection(in, v1, nr, fs.toList)
+    Projection(in, v1, nr, fs.toList, level)
   }
-  def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = {
+  def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String], level: Int): Rep = {
     val v = Variable.freshFromBag(in.tp)
     val v2 = Variable.freshFromBag(v.tp.attrs(path))
-    Unnest(in, v, path, v2, filter(v2), fields)
+    Unnest(in, v, path, v2, filter(v2), fields, level)
   }
-  def ounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = {
+  def ounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String], level: Int): Rep = {
     val v = Variable.freshFromBag(in.tp)
     val v2 = Variable.freshFromBag(v.tp.attrs(path))//.outer)
-    OuterUnnest(in, v, path, v2, filter(v2), fields)  
+    OuterUnnest(in, v, path, v2, filter(v2), fields, level)  
   }
-  def join(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep = {
+  def join(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String], level: Int): Rep = {
     val v = Variable.freshFromBag(left.tp)
     val v2 = Variable.freshFromBag(right.tp)
-    Join(left, v, right, v2, cond(v, v2), fields)
+    Join(left, v, right, v2, cond(v, v2), fields, level)
   }
-  def ojoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep = {
+  def ojoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String], level: Int): Rep = {
     val v = Variable.freshFromBag(left.tp)
     val v2 = Variable.freshFromBag(right.tp)
-    OuterJoin(left, v, right, v2, cond(v, v2), fields)
+    OuterJoin(left, v, right, v2, cond(v, v2), fields, level)
   }
-  def nest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String], ctag: String): Rep = {
+  def nest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String], ctag: String, level: Int): Rep = {
     val v = Variable.freshFromBag(in.tp)
     val nr = value(v)
-    Nest(in, v, key, nr, filter(v), ext.collect(nr).toList, ctag)
+    Nest(in, v, key, nr, filter(v), ext.collect(nr).toList, ctag, level)
   }
-  def reduce(in: Rep, key: List[String], values: List[String]): Rep = {
+  def reduce(in: Rep, key: List[String], values: List[String], level: Int): Rep = {
     val v = Variable.freshFromBag(in.tp)
-    Reduce(in, v, key, values)
+    Reduce(in, v, key, values, level)
   }
 
   def flatdict(e1: Rep): Rep = FlatDict(e1)
@@ -431,23 +431,23 @@ trait BaseANF extends Base {
   def tupledict(fs: Map[String, Rep]): Rep = compiler.tupledict(fs.map(f => (f._1, defToExpr(f._2))))
   def dictunion(d1: Rep, d2: Rep): Rep = compiler.dictunion(d1, d2)
 
-  def select(x: Rep, p: Rep => Rep, e: Rep => Rep): Rep = compiler.select(x, p, e)
+  def select(x: Rep, p: Rep => Rep, e: Rep => Rep, level: Int): Rep = compiler.select(x, p, e, level)
   
   def addindex(in: Rep, name: String) = compiler.addindex(in, name)
-  def projection(in: Rep, filter: Rep => Rep, fields: List[String]): Rep = 
-    compiler.projection(in, filter, fields)
-  def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = 
-    compiler.unnest(in, path, filter, fields)
-  def ounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String]): Rep = 
-    compiler.ounnest(in, path, filter, fields)
-  def join(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep = 
-    compiler.join(left, right, cond, fields)
-  def ojoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String]): Rep = 
-    compiler.ojoin(left, right, cond, fields)
-  def nest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String], ctag: String): Rep = 
-    compiler.nest(in, key, value, filter, nulls, ctag)
-  def reduce(in: Rep, key: List[String], values: List[String]): Rep = 
-    compiler.reduce(in, key, values)
+  def projection(in: Rep, filter: Rep => Rep, fields: List[String], level: Int): Rep = 
+    compiler.projection(in, filter, fields, level)
+  def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String], level: Int): Rep = 
+    compiler.unnest(in, path, filter, fields, level)
+  def ounnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String], level: Int): Rep = 
+    compiler.ounnest(in, path, filter, fields, level)
+  def join(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String], level: Int): Rep = 
+    compiler.join(left, right, cond, fields, level)
+  def ojoin(left: Rep, right: Rep, cond: (Rep, Rep) => Rep, fields: List[String], level: Int): Rep = 
+    compiler.ojoin(left, right, cond, fields, level)
+  def nest(in: Rep, key: List[String], value: Rep => Rep, filter: Rep => Rep, nulls: List[String], ctag: String, level: Int): Rep = 
+    compiler.nest(in, key, value, filter, nulls, ctag, level)
+  def reduce(in: Rep, key: List[String], values: List[String], level: Int): Rep = 
+    compiler.reduce(in, key, values, level)
 
   def flatdict(e1: Rep): Rep = compiler.flatdict(e1)
   def groupdict(e1: Rep): Rep = compiler.groupdict(e1)
@@ -530,27 +530,27 @@ class Finalizer(val target: Base){
     case TupleCDict(fs) => target.tupledict(fs.map(f => f._1 -> finalize(f._2)))
     case DictCUnion(d1, d2) => target.dictunion(finalize(d1), finalize(d2))
 
-    case Select(x, v, p, e) =>
+    case Select(x, v, p, e, l) =>
       target.select(finalize(x), (r: target.Rep) => 
-        withMap(v -> r)(finalize(p)), (r: target.Rep) => withMap(v -> r)(finalize(e)))
+        withMap(v -> r)(finalize(p)), (r: target.Rep) => withMap(v -> r)(finalize(e)), l)
     case AddIndex(in, name) => target.addindex(finalize(in), name)    
-    case Projection(in, v, filter, fields) => 
-      target.projection(finalize(in), (r: target.Rep) => withMap(v -> r)(finalize(filter)), fields)
-    case Unnest(in, v, path, v2, filter, fields) => 
-      target.unnest(finalize(in), path, (r: target.Rep) => withMap(v2 -> r)(finalize(filter)), fields)
-    case OuterUnnest(in, v, path, v2, filter, fields) => 
-      target.ounnest(finalize(in), path, (r: target.Rep) => withMap(v2 -> r)(finalize(filter)), fields)
-    case Join(left, v, right, v2, cond, fields) =>
+    case Projection(in, v, filter, fields, l) => 
+      target.projection(finalize(in), (r: target.Rep) => withMap(v -> r)(finalize(filter)), fields, l)
+    case Unnest(in, v, path, v2, filter, fields, l) => 
+      target.unnest(finalize(in), path, (r: target.Rep) => withMap(v2 -> r)(finalize(filter)), fields, l)
+    case OuterUnnest(in, v, path, v2, filter, fields, l) => 
+      target.ounnest(finalize(in), path, (r: target.Rep) => withMap(v2 -> r)(finalize(filter)), fields, l)
+    case Join(left, v, right, v2, cond, fields, l) =>
       target.join(finalize(left), finalize(right), 
-        (r: target.Rep, s: target.Rep) => withMapList(List((v,r), (v2,s)))(finalize(cond)), fields)
-    case OuterJoin(left, v, right, v2, cond, fields) =>
+        (r: target.Rep, s: target.Rep) => withMapList(List((v,r), (v2,s)))(finalize(cond)), fields, l)
+    case OuterJoin(left, v, right, v2, cond, fields, l) =>
       target.ojoin(finalize(left), finalize(right), 
-        (r: target.Rep, s: target.Rep) => withMapList(List((v,r), (v2,s)))(finalize(cond)), fields)
-    case Nest(in, v, key, value, filter, nulls, ctag) =>
+        (r: target.Rep, s: target.Rep) => withMapList(List((v,r), (v2,s)))(finalize(cond)), fields, l)
+    case Nest(in, v, key, value, filter, nulls, ctag, l) =>
       target.nest(finalize(in), key, (r: target.Rep) => withMap(v -> r)(finalize(value)), 
-        (r: target.Rep) => withMap(v -> r)(finalize(filter)), nulls, ctag)
-    case Reduce(in, v, keys, values) => 
-      target.reduce(finalize(in), keys, values)
+        (r: target.Rep) => withMap(v -> r)(finalize(filter)), nulls, ctag, l)
+    case Reduce(in, v, keys, values, l) => 
+      target.reduce(finalize(in), keys, values, l)
 
     case FlatDict(e1) => target.flatdict(finalize(e1))
     case GroupDict(e1) => target.groupdict(finalize(e1))

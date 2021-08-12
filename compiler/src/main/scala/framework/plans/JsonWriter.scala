@@ -13,17 +13,17 @@ import scala.collection.immutable.Map
 
 object JsonWriter {
 
-	def produceJsonString(plan: CExpr, level: Int = 0): String = plan match {
+	def produceJsonString(plan: CExpr): String = plan match {
 		case p:Projection => 
 			s"""
 			|{
 			|	"name": "",
 			|	"attributes": {
 			|		"planOperator": "PROJECT",
-			|		"level": $level,
+			|		"level": ${p.level},
 			| 	"newLine": [ "${p.fields.mkString("\",\"")}" ]
 			|	},
-			|	"children": [${produceJsonString(p.in, level+1)}]
+			|	"children": [${produceJsonString(p.in)}]
 			|}
 			""".stripMargin
 		case n:Nest =>
@@ -32,10 +32,10 @@ object JsonWriter {
 			|	"name": "",
 			|	"attributes": {
 			|		"planOperator": "NEST",
-			|		"level": $level,
+			|		"level": ${n.level},
 			| 	"newLine": [ "${n.key.mkString("\",\"")}" ]
 			|	},
-			|	"children": [${produceJsonString(n.in, level+1)}]
+			|	"children": [${produceJsonString(n.in)}]
 			|}
 			""".stripMargin
 		case u:UnnestOp =>
@@ -45,10 +45,10 @@ object JsonWriter {
 			|	"name": "",
 			|	"attributes": {
 			|		"planOperator": "${isOuter}UNNEST",
-			|		"level": $level,
+			|		"level": ${u.level},
 			| 	"newLine": [ "${u.path}" ]
 			|	},
-			|	"children": [${produceJsonString(u.in, level+1)}]
+			|	"children": [${produceJsonString(u.in)}]
 			|}
 			""".stripMargin
 		case j:JoinOp =>
@@ -58,32 +58,35 @@ object JsonWriter {
 			|	"name": "",
 			|	"attributes": {
 			|		"planOperator": "${isOuter}JOIN",
-			|		"level": $level,
+			|		"level": ${j.level},
 			| 	"newLine": [ "${Printer.quote(j.cond)}" ]
 			|	},
-			|	"children": [${produceJsonString(j.left, level+1)},${produceJsonString(j.right, level+1)}]
+			|	"children": [${produceJsonString(j.left)},${produceJsonString(j.right)}]
 			|}
 			""".stripMargin
 		case s:Select => 
+			val c = s.p match { case Constant(true) => ""; case _ => s""""${Printer.quote(s.p)}""""}
 			s"""
 			|{
-			|	"name": "",
+			|	"name": "${Printer.quote(s.x)}",
 			|	"attributes": {
-			|		"level": $level,
-			| 	"newLine": [ "${Printer.quote(s.p)}" ]
+			|		"level": ${s.level},
+			| 	"newLine": [ $c ]
 			|	},
-			|	"children": [${produceJsonString(s.in, level+1)}]
+			|	"children": []
 			|}
 			""".stripMargin
-		case i:AddIndex => produceJsonString(i.e, level) //TODO pass through for now
-		case c:CNamed => produceJsonString(c.e, level) //TODO pass through for now
+		case i:AddIndex => produceJsonString(i.e) //TODO pass through for now
+		case c:CNamed => s"""{ "${c.name}": ${produceJsonString(c.e)} }""" //TODO pass through for now
 		case p:LinearCSet => s"""[${p.exprs.map(x => produceJsonString(x)).mkString(",")}]"""
+		case FlatDict(e1) => produceJsonString(e1)
+		case GroupDict(e1) => produceJsonString(e1)
 		case _ => s"""{"todo": "${Printer.quote(plan)}"}"""
 	}
 
 }
 
-object JsonWriterTest extends App with MaterializeNRC with NRCTranslator {
+object JsonWriterTest extends App with Printer with Materialization  with MaterializeNRC with NRCTranslator with Shredding{
 
 	val occur = new Occurrence{}
 	val cnum = new CopyNumber{}
@@ -100,8 +103,18 @@ object JsonWriterTest extends App with MaterializeNRC with NRCTranslator {
 	val normalizer = new Finalizer(new BaseNormalizer{})
 	val optimizer = new Optimizer()
 
-	def getPlan(query: Program): LinearCSet = {
-		val ncalc = normalizer.finalize(translate(query)).asInstanceOf[CExpr]
+	def getPlan(query: String, shred: Boolean = false): LinearCSet = {
+
+		 val program = parser.parse(query).get.asInstanceOf[JsonWriterTest.Program]
+
+		 val compiled = if (shred){
+      val (shredded, shreddedCtx) = shredCtx(program)
+      val optShredded = optimize(shredded)
+      val materializedProgram = materialize(optShredded, eliminateDomains = true)
+      materializedProgram.program
+    }else program
+
+		val ncalc = normalizer.finalize(translate(compiled)).asInstanceOf[CExpr]
 		optimizer.applyPush(Unnester.unnest(ncalc)(Map(), Map(), None, "_2")).asInstanceOf[LinearCSet]
 	}
 
@@ -153,12 +166,22 @@ object JsonWriterTest extends App with MaterializeNRC with NRCTranslator {
       s"""
         ShredTest <= for o in occurrences union {(sid := o.donorId, cons := for t in o.transcript_consequences union {(gene := t.gene_id)})}
       """
+    val simple = 
+      s"""
+        Simple <= 
+        for s in samples union
+         {(  id := s.bcr_patient_uuid, mutations :=
+            for o in occurrences union
+                if (s.bcr_patient_uuid == o.oid) then
+                {(  mutid := o.oid)})}
+      """
 
-    val query2 = parser.parse(soSimple).get
-    val plan2 = getPlan(query2.asInstanceOf[Program])
+    val query2 = parser.parse(simple).get
+    // val plan2 = getPlan(query2.asInstanceOf[Program])
+    val plan2 = getPlan(simple, shred = true)
 
-	val jsonRep2 = JsonWriter.produceJsonString(plan2)
-	println(jsonRep2)
+		val jsonRep2 = JsonWriter.produceJsonString(plan2)
+		println(jsonRep2)
 
     val jsValue = Json parse jsonRep2
     val pj = Json prettyPrint jsValue

@@ -45,18 +45,18 @@ trait Extensions {
       case LinearCSet(es) => LinearCSet(es.map(e1 => fapply(e1, funct)))
 
       case AddIndex(in, v) => AddIndex(fapply(in, funct), v)
-      case Projection(in, v, filter, fields) =>
-        Projection(fapply(in, funct), v, filter, fields)
-      case Nest(in, v, key, value, filter, nulls, ctag) => 
-        Nest(fapply(in, funct), v, key, value, filter, nulls, ctag)
-      case Unnest(in, v, path, v2, filter, fields) =>
-        Unnest(fapply(in, funct), v, path, v2, filter, fields)
-      case Join(left, v, right, v2, cond, fields) =>
-        Join(fapply(left, funct), v, fapply(right, funct), v2, cond, fields)
-      case OuterJoin(left, v, right, v2, cond, fields) =>
-        OuterJoin(fapply(left, funct), v, fapply(right, funct), v2, cond, fields)
-      case Reduce(e1, v1, key, value) => 
-	  	  Reduce(fapply(e1, funct), v1, key, value)
+      case Projection(in, v, filter, fields, l) =>
+        Projection(fapply(in, funct), v, filter, fields, l)
+      case Nest(in, v, key, value, filter, nulls, ctag, l) => 
+        Nest(fapply(in, funct), v, key, value, filter, nulls, ctag, l)
+      case Unnest(in, v, path, v2, filter, fields, l) =>
+        Unnest(fapply(in, funct), v, path, v2, filter, fields, l)
+      case Join(left, v, right, v2, cond, fields, l) =>
+        Join(fapply(left, funct), v, fapply(right, funct), v2, cond, fields, l)
+      case OuterJoin(left, v, right, v2, cond, fields, l) =>
+        OuterJoin(fapply(left, funct), v, fapply(right, funct), v2, cond, fields, l)
+      case Reduce(e1, v1, key, value, l) => 
+	  	  Reduce(fapply(e1, funct), v1, key, value, l)
 
       case GroupDict(e1) => GroupDict(fapply(e1, funct))
       case FlatDict(e1) => FlatDict(fapply(e1, funct))
