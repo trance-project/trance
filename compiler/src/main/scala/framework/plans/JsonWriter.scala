@@ -78,7 +78,7 @@ object JsonWriter {
 		case i:AddIndex => produceJsonString(i.e, level) //TODO pass through for now
 		case c:CNamed => produceJsonString(c.e, level) //TODO pass through for now
 		case p:LinearCSet => s"""[${p.exprs.map(x => produceJsonString(x)).mkString(",")}]"""
-		case _ => s"""{"todo": ${Printer.quote(plan)}}"""
+		case _ => s"""{"todo": "${Printer.quote(plan)}"}"""
 	}
 
 }

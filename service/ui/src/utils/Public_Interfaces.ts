@@ -30,6 +30,7 @@ export interface Column {
 }
 
 export interface BlocklyNrcCode {
+    _id?: string;
     title: string;
     body: string;
 }

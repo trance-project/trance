@@ -258,7 +258,7 @@ class QueryController @Inject()(
         val plan = compileProgram(program)
         val shred_plan = getJsonPlan(plan)
 
-        val responseBody = s"""{"shred_nrc": $shred_nrc, "shred_plan": $shred_plan}"""
+        val responseBody = s"""{"shred_plan": $shred_plan}"""
 
         queryRepository.addEntity(query).map{ _ =>
           Created(responseBody)

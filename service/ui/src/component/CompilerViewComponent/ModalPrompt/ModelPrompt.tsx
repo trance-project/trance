@@ -46,7 +46,8 @@ const ModalPromt = (props: _ModalPromtProps) => {
         shredded: false,
     });
     const dispatch = useAppDispatch();
-    const responseQuery = useAppSelector(state => state.query.responseQuery);
+    const nrcCode = useAppSelector(state => state.query.nrcQuery);
+    const selectedQuery = useAppSelector(state => state.query.selectedQuery);
 
 
 
@@ -55,14 +56,22 @@ const ModalPromt = (props: _ModalPromtProps) => {
     };
 
     const handleFormSubmit = () => {
-        if(!responseQuery){
+        if(nrcCode.length === 0){
             return null;
         }
         if(state.standard){
-                dispatch(getStandardPlan(responseQuery));
+                // dispatch(getStandardPlan({
+                //     _id: selectedQuery!._id,
+                //     body: nrcCode,
+                //     title: selectedQuery!.name
+                // }));
         }
         if(state.shredded){
-            dispatch(getShreddedPlan(responseQuery))
+            dispatch(getShreddedPlan({
+                _id: selectedQuery!._id,
+                body: nrcCode,
+                title: selectedQuery!.name
+            }))
         }
         props.openIsLoading();
     }

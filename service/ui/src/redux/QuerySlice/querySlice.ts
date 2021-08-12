@@ -64,8 +64,9 @@ export const querySlice = createSlice({
                 if(action.payload.nrc.length > 0) {
                     state.responseQuery = action.payload.nrc[0];
                 }
+                console.log("{action.payload.standard_plan}", action.payload.standard_plan)
                 if(action.payload.standard_plan.length > 0){
-                    state.standardPlan = action.payload.standard_plan[0].plan;
+                    state.standardPlan = action.payload.standard_plan[0];
                 }
             }
         });

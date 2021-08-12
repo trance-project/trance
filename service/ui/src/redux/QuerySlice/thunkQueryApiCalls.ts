@@ -145,7 +145,7 @@ export const sendStandardNrcCode = createAsyncThunk(
 )
 
 export const getStandardPlan = createAsyncThunk(
-    "query/getStandardPlan", async (arg:NewQuery) => {
+    "query/getStandardPlan", async (arg:BlocklyNrcCode) => {
         const treeDiagramData:RawNodeDatum ={
             name: '',
             attributes: {
@@ -247,7 +247,7 @@ export const getStandardPlan = createAsyncThunk(
 
 
 export const getShreddedPlan = createAsyncThunk(
-    "query/ShreddedPlan", async (arg:NewQuery) => {
+    "query/ShreddedPlan", async (arg:BlocklyNrcCode) => {
         const treeDiagramData:RawNodeDatum[] =[
             {
                 name: '',
