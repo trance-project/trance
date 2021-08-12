@@ -487,7 +487,7 @@ object ExampleQueryBinaryTcga extends DriverGene {
 
 }
 
-object QueryMultiTcga extends DriverGene {
+object MultiTcga extends DriverGene {
   val sampleFile = "/mnt/app_hdd/data/biospecimen/aliquot/nationwidechildrens.org_biospecimen_aliquot_prad.txt"
   val cnvFile = "/mnt/app_hdd/data/cnv"
   val exprFile = "/mnt/app_hdd/data/expression/"
@@ -519,7 +519,7 @@ object QueryMultiTcga extends DriverGene {
         |${loadGtfTable(shred, skew, fname = gtfFile)}
         |""".stripMargin
   // name to identify your query
-  val name = "ExampleQueryMultiTcga"
+  val name = "MultiTcga"
   // moved these to DriverGenes.scala Pathway train (line 19)
   // val genetype = TupleType("name" -> StringType)
   // val pathtype = TupleType("p_name" -> StringType, "url" -> StringType, "gene_set" -> BagType(genetype))
