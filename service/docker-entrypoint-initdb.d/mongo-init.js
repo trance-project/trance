@@ -204,7 +204,7 @@ const objects = [
     {
         _id: generateUUID(),
         name: "pathways",
-        abr:"p",
+        abr:"pw",
         columns:
             [
                 {name: "id", children:{}},
@@ -216,7 +216,7 @@ const objects = [
     {
         _id: generateUUID(),
         name: "variants",
-        abr:"p",
+        abr:"v",
         columns:
             [
                 {name: "id", children:{}},
@@ -225,7 +225,47 @@ const objects = [
                 {name: "sprice", children:{}},
             ]
     },
-
+    {
+        _id: generateUUID(),
+        name: "COP",
+        abr:"cop",
+        columns:
+            [
+                {name: "cname", children:{}},
+                {name: "corders", children:{}},
+            ]
+    }, 
+    {
+        _id: generateUUID(),
+        name: "corders",
+        abr:"co",
+        columns:
+            [
+                {name: "odate", children:{}},
+                {name: "oparts", children:{}},
+            ]
+    },   
+    {
+        _id: generateUUID(),
+        name: "oparts",
+        abr:"op",
+        columns:
+            [
+                {name: "pid", children:{}},
+                {name: "qty", children:{}},
+            ]
+    },   
+    {
+        _id: generateUUID(),
+        name: "part",
+        abr:"p",
+        columns:
+            [
+                {name: "pid", children:{}},
+                {name: "pname", children:{}},
+                {name: "price", children:{}},
+            ]
+    }        
 ]
  const queryObject = [{
      _id: generateUUID(),

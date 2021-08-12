@@ -117,7 +117,7 @@ class QueryController @Inject()(
 
   private def runProgram(plan: CExpr, queryId: String, shred: Boolean = false): String = {
 
-    val zep = new ZeppelinFactory(host = "localhost", port = 8082)
+    val zep = new ZeppelinFactory(host = "localhost", port = 8085)
 
     val anfBase = new BaseOperatorANF{}
     val anfer = new Finalizer(anfBase)
@@ -181,13 +181,10 @@ class QueryController @Inject()(
         val program = parseProgram(query)
         val nrc = getJsonProgram(program)
 
-        val plan = compileProgram(program)
-        val standard_plan = getJsonPlan(plan)
-
         // note that i'm sending back the nrc and the standard plan
         // also note that the JsonWriter in framework.plans is not complete,
         // so will need to do that
-        val responseBody = s"""{"nrc": $nrc, "standard_plan": $standard_plan}"""
+        val responseBody = s"""{"nrc": $nrc}"""
 
         queryRepository.addEntity(query).map{ _ =>
           Created(responseBody)
@@ -233,6 +230,36 @@ class QueryController @Inject()(
 
     // note that my parser does not return any valuable information
     // so we will need some better error catching there
+    }.getOrElse(Future.successful(BadRequest("Invalid nrc format")))
+  }
+
+  @ApiOperation(
+    value = "Add a Query to the list",
+    response = classOf[Void],
+    code=201
+  )
+  @ApiResponses(Array(
+    new ApiResponse(code = 400, message = "Invalid Query format")
+  ))
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(value = "The new Query in Json Format", required = true, dataType = "models.Query", paramType = "body")
+  ))
+  def standardQuery() =
+    Action.async(parse.json) {
+
+    _.body.validate[Query].map { query =>
+
+        val program = parseProgram(query)
+        
+        val plan = compileProgram(program)
+        val standard_plan = getJsonPlan(plan)
+
+        val responseBody = s"""{"standard_plan": $standard_plan}"""
+
+        queryRepository.addEntity(query).map{ _ =>
+          Created(responseBody)
+        }
+
     }.getOrElse(Future.successful(BadRequest("Invalid nrc format")))
   }
 
