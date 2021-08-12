@@ -64,7 +64,7 @@ object JsonWriter {
 			|	"children": [${produceJsonString(j.left, level+1)},${produceJsonString(j.right, level+1)}]
 			|}
 			""".stripMargin
-		case s:Select =>
+		case s:Select => 
 			s"""
 			|{
 			|	"name": "",
@@ -72,7 +72,7 @@ object JsonWriter {
 			|		"level": $level,
 			| 	"newLine": [ "${Printer.quote(s.p)}" ]
 			|	},
-			|	"children": [${produceJsonString(s.p, level+1)}]
+			|	"children": [${produceJsonString(s.in, level+1)}]
 			|}
 			""".stripMargin
 		case i:AddIndex => produceJsonString(i.e, level) //TODO pass through for now
