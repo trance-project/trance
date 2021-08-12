@@ -96,19 +96,19 @@ BlocklyJS['association_on_assisted_new'] = function (block){
 BlocklyJS['group_by'] = function (block){
     const attribute_key = validate(block.getFieldValue('ATTRIBUTE_KEY'))
     const attribute_value = validate(block.getFieldValue('ATTRIBUTE_VALUE'))
-    return `groupBy({${attribute_key}}, {${attribute_value}})`
+    return `groupBy({{${attribute_key}}}, {{${attribute_value}}})`
 }
 BlocklyJS['groupBy'] = function (block){
     const group_by = validate(BlocklyJS.statementToCode(block,'GROUP_BY'))
     const attribute_key = validate(block.getFieldValue('ATTRIBUTE_KEY'))
     const attribute_value = validate(block.getFieldValue('ATTRIBUTE_VALUE'))
-    return `\n(${group_by}).groupBy(${attribute_key}, ${attribute_value})`
+    return `\n(${group_by}).groupBy({${attribute_key}}, {${attribute_value}}, {_2})`
 }
 BlocklyJS['sumBy'] = function (block){
     const group_by = validate(BlocklyJS.statementToCode(block,'GROUP_BY'))
     const attribute_key = validate(block.getFieldValue('ATTRIBUTE_KEY'))
     const attribute_value = validate(block.getFieldValue('ATTRIBUTE_VALUE'))
-    return `\n(${group_by}).sumBy(${attribute_key}, ${attribute_value})`
+    return `\n(${group_by}).sumBy({${attribute_key}}, {${attribute_value}})`
 }
 BlocklyJS['or'] = function (block){
     return ' || '
