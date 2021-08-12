@@ -233,6 +233,7 @@ export const getStandardPlan = createAsyncThunk(
         try{
             const response = await trancePlayInstance.post("/nrccode/run", {...arg});
             if(response.status === 201){
+                console.log("[getStandardPlan]", response.data);
                 return treeDiagramData ;
             }
             return treeDiagramData;
@@ -246,7 +247,7 @@ export const getStandardPlan = createAsyncThunk(
 
 
 export const getShreddedPlan = createAsyncThunk(
-    "query/ShreddeddPlan", async (arg:NewQuery) => {
+    "query/ShreddedPlan", async (arg:NewQuery) => {
         const treeDiagramData:RawNodeDatum[] =[
             {
                 name: '',
@@ -337,6 +338,7 @@ export const getShreddedPlan = createAsyncThunk(
         try{
             const response = await trancePlayInstance.post("/nrccode/shred", {...arg});
             if(response.status === 201){
+                console.log("[getShreddedPlan]", response.data);
                 return treeDiagramData ;
             }
             return treeDiagramData;

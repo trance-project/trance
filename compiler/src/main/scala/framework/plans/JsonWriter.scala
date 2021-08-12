@@ -59,9 +59,9 @@ object JsonWriter {
 			|	"attributes": {
 			|		"planOperator": "${isOuter}JOIN",
 			|		"level": $level,
-			| 	"newLine": [ "${j.fields.mkString("\",\"")}" ]
+			| 	"newLine": [ "${Printer.quote(j.cond)}" ]
 			|	},
-			|	"children": [${produceJsonString(j.left, level+1)}]
+			|	"children": [${produceJsonString(j.left, level+1)},${produceJsonString(j.right, level+1)}]
 			|}
 			""".stripMargin
 		case s:Select =>
@@ -70,15 +70,15 @@ object JsonWriter {
 			|	"name": "",
 			|	"attributes": {
 			|		"level": $level,
-			| 	"newLine": [ "${s.v.name}" ]
+			| 	"newLine": [ "${Printer.quote(s.p)}" ]
 			|	},
 			|	"children": [${produceJsonString(s.p, level+1)}]
 			|}
 			""".stripMargin
-		case i:AddIndex => s"""{"todo": "TODO"}"""
-		case c:CNamed => s"""{"name": "${c.name}", "plan": ${produceJsonString(c.e)} }"""
+		case i:AddIndex => produceJsonString(i.e, level) //TODO pass through for now
+		case c:CNamed => produceJsonString(c.e, level) //TODO pass through for now
 		case p:LinearCSet => s"""[${p.exprs.map(x => produceJsonString(x)).mkString(",")}]"""
-		case _ => s"""{"todo": "TODO"}"""
+		case _ => s"""{"todo": ${Printer.quote(plan)}"""
 	}
 
 }

@@ -14,6 +14,7 @@ import sumAggregate from '../../../static/images/planOperator/Sum_aggregate.png'
 import leftOuterJoin from '../../../static/images/planOperator/LeftOuterJoin.png';
 import outerUnnest from '../../../static/images/planOperator/outer-unest.png';
 import unnest from "../../../static/images/planOperator/Unnest.png";
+import selection from "../../../static/images/planOperator/Selection.png";
 import {useAppSelector} from '../../../redux/Hooks/hooks';
 
 
@@ -57,6 +58,9 @@ const getImagePlanOperator = (planOperator:string | number | boolean | undefined
     switch (planOperator){
         case 'PROJECT':
             image=projection;
+            break;
+        case 'SELECT':
+            image=selection;
             break;
         case 'NEST':
             image=nest;
