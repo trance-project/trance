@@ -198,6 +198,8 @@ trait JoinOp extends CExpr {
   val ps = ext.collectFromAnd(cond)
 
   // get around join with domain
+  // this is not a good solution, think 
+  // about how to handle this...
   def p1s: Set[String] = v.tp match {
     case RecordCType(ms) => ms.get("_LABEL") match {
       case Some(LabelType(fs)) =>

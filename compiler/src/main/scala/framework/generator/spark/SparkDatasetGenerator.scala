@@ -406,6 +406,18 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val gright = generate(ej.right)
       val rtp = ej.right.tp.attrs
 
+      def generateLabelProjection(e: CExpr): (String, String) = e match {
+        case And(e1, e2) => 
+          generateLabelProjection(e1) ++ generateLabelProjection(e2)
+        case Equals(e1, e2) =>  generateLabelProjection(e1) ++ generateLabelProjection(e2)
+        case Project(Project(e1, "_LABEL"), f) => (generateReference(e), f)
+        case _ => Set() 
+      }
+
+
+      println("I would get this")
+      println(generateLabelProjection(ej.cond))
+
       if (ej.isEquiJoin){
 
           val (p1, p2) = (ej.p1s.mkString("\",\""), ej.p2s.mkString("\",\""))
