@@ -15,13 +15,19 @@ object JsonWriter {
 
 	def produceJsonString(plan: CExpr): String = plan match {
 		case p:Projection => 
+			val renamed = (p.filter match {
+				case Record(fs) => fs.flatMap(f => f._2 match {
+					case _:Project => Nil
+					case f2 => List(s"${f._1} := ${Printer.quoteNoVar(f._2)}")
+				})
+			}).mkString(",")
 			s"""
 			|{
-			|	"name": "",
+			|	"name": "$renamed",
 			|	"attributes": {
 			|		"planOperator": "PROJECT",
 			|		"level": ${p.level},
-			| 	"newLine": [ "${p.fields.mkString("\",\"")}" ]
+			| 	"newLine": [ "${Printer.quoteNoVar(p.filter)}" ]
 			|	},
 			|	"children": [${produceJsonString(p.in)}]
 			|}
@@ -29,7 +35,7 @@ object JsonWriter {
 		case n:Nest =>
 			s"""
 			|{
-			|	"name": "",
+			|	"name": "${Printer.quoteNoVar(n.value)}",
 			|	"attributes": {
 			|		"planOperator": "NEST",
 			|		"level": ${n.level},
@@ -59,7 +65,7 @@ object JsonWriter {
 			|	"attributes": {
 			|		"planOperator": "${isOuter}JOIN",
 			|		"level": ${j.level},
-			| 	"newLine": [ "${Printer.quote(j.cond)}" ]
+			| 	"newLine": [ "${Printer.quoteNoVar(j.cond)}" ]
 			|	},
 			|	"children": [${produceJsonString(j.left)},${produceJsonString(j.right)}]
 			|}
@@ -75,6 +81,18 @@ object JsonWriter {
 			|	},
 			|	"children": []
 			|}
+			""".stripMargin
+		case r:Reduce => 
+			s"""
+				|{
+				|	"name": "${r.values.mkString("\",\"")}",
+				|	"attributes": {
+				|		"planOperator": "SUM",
+				|		"level": ${r.level},
+				| 	"newLine": [ "${r.keys.mkString("\",\"")}" ]
+				|	},
+				|	"children": [${produceJsonString(r.in)}]
+				|}
 			""".stripMargin
 		case i:AddIndex => produceJsonString(i.e) //TODO pass through for now
 		case c:CNamed => s"""{ "${c.name}": ${produceJsonString(c.e)} }""" //TODO pass through for now
@@ -147,14 +165,14 @@ object JsonWriterTest extends App with Printer with Materialization  with Materi
     	  for s in samples union 
    			{(sample := s.bcr_patient_uuid, mutations := 
            		for o in occurrences union
-           			if (s.bcr_patient_uuid = o.donorId) then
+           			if (s.bcr_patient_uuid == o.donorId) then
             		  {( mutId := o.oid, scores := 
               			( for t in o.transcript_consequences union
 			                  for c in copynumber union
-			                    if (t.gene_id = c.cn_gene_id && c.cn_aliquot_uuid = s.bcr_aliquot_uuid) then
-			                      {( gene := t.gene_id, score := (c.cn_copy_number + 0.01) * if (t.impact = "HIGH") then 0.80 
-			                          else if (t.impact = "MODERATE") then 0.50
-			                          else if (t.impact = "LOW") then 0.30
+			                    if (t.gene_id == c.cn_gene_id && c.cn_aliquot_uuid == s.bcr_aliquot_uuid) then
+			                      {( gene := t.gene_id, score := (c.cn_copy_number + 0.01) * if (t.impact == "HIGH") then 0.80 
+			                          else if (t.impact == "MODERATE") then 0.50
+			                          else if (t.impact == "LOW") then 0.30
 			                          else 0.01 )}).sumBy({gene}, {score}) )} )}
       """
     // val query1 = parser.parse(querySimple).get
@@ -176,9 +194,9 @@ object JsonWriterTest extends App with Printer with Materialization  with Materi
                 {(  mutid := o.oid)})}
       """
 
-    val query2 = parser.parse(simple).get
+    // val query2 = parser.parse(simple).get
     // val plan2 = getPlan(query2.asInstanceOf[Program])
-    val plan2 = getPlan(simple, shred = true)
+    val plan2 = getPlan(querySimple, shred = false)
 
 		val jsonRep2 = JsonWriter.produceJsonString(plan2)
 		println(jsonRep2)

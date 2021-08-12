@@ -11,6 +11,33 @@ import framework.utils.Utils.ind
 object Printer {
   val compiler = new BaseStringify{}
   import compiler._
+
+  def quoteNoVar(e: CExpr): String = e match {
+    case Record(fs) => 
+      fs.map(f => f._2 match {
+        case _:Project => quoteNoVar(f._2);
+        case _ => f._1}).mkString(",")
+    case Label(fs) => label(fs.map(f => f._1 -> quoteNoVar(f._2)))    
+    case MathOp(op, e1, e2) => compiler.mathop(op, quoteNoVar(e1), quoteNoVar(e2))
+    case Equals(e1, e2) => compiler.equals(quoteNoVar(e1), quoteNoVar(e2))
+    case Lt(e1, e2) => lt(quoteNoVar(e1), quoteNoVar(e2))
+    case Lte(e1, e2) => lte(quoteNoVar(e1), quoteNoVar(e2))
+    case Gt(e1, e2) => gt(quoteNoVar(e1), quoteNoVar(e2))
+    case Gte(e1, e2) => gte(quoteNoVar(e1), quoteNoVar(e2))
+    case And(e1, e2) => and(quoteNoVar(e1), quoteNoVar(e2))    
+    case Not(e1) => not(quoteNoVar(e1))
+    case Or(e1, e2) => or(quoteNoVar(e1), quoteNoVar(e2))
+    case Project(Project(e1, "_LABEL"), f) => s"_LABEL.$f"
+    case Project(e1, f) => f
+    // case If(c, e1, e2) => e2 match {
+    //   case Some(a) => ifthen(quoteNoVar(c), quoteNoVar(e1), Some(quoteNoVar(a)))
+    //   case _ => ifthen(quoteNoVar(c), quoteNoVar(e1), None)
+    // }    
+    case If(c, e1, e2) => s"if (${quoteNoVar(c)}) ..."
+    case _:Variable => ""
+    case _ => quote(e)
+  }
+
   def quote(e: CExpr): String = e match {
     case InputRef(d, t) => inputref(d,t)
     case Input(d) => input(d.map(quote(_)))
