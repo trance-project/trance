@@ -39,23 +39,25 @@ object JsonWriter {
 			|}
 			""".stripMargin
 		case u:UnnestOp =>
+			val isOuter = if (u.outer == "outer") "OUTER" else ""
 			s"""
 			|{
 			|	"name": "",
 			|	"attributes": {
-			|		"planOperator": "UNNEST",
+			|		"planOperator": "${isOuter}UNNEST",
 			|		"level": $level,
-			| 	"newLine": [ "${u.fields.mkString("\",\"")}" ]
+			| 	"newLine": [ "${u.path}" ]
 			|	},
 			|	"children": [${produceJsonString(u.in, level+1)}]
 			|}
 			""".stripMargin
 		case j:JoinOp =>
+			val isOuter = if (j.jtype == "left_outer") "OUTER" else ""
 			s"""
 			|{
 			|	"name": "",
 			|	"attributes": {
-			|		"planOperator": "OUTERJOIN",
+			|		"planOperator": "${isOuter}JOIN",
 			|		"level": $level,
 			| 	"newLine": [ "${j.fields.mkString("\",\"")}" ]
 			|	},
