@@ -25,6 +25,8 @@ import {useAppSelector} from '../../../redux/Hooks/hooks';
 // which differentiates between branch and leaf nodes.
 const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
     const levelColor = _colorPicker(diagramElProps.nodeDatum.attributes?.level!);
+    // @ts-ignore
+    const newLine = diagramElProps.nodeDatum.attributes?.newLine.join(",");
     return (
         <g>
 
@@ -40,7 +42,7 @@ const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
             </text>
             {diagramElProps.nodeDatum.attributes?.newLine && (
                 <text fill="black" x="50" dy="30" fontSize={20} strokeWidth="0.5">
-                    {diagramElProps.nodeDatum.attributes?.newLine}
+                    {newLine}
                 </text>
             )}
             {diagramElProps.nodeDatum.attributes?.level && (
