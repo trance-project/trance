@@ -46,7 +46,7 @@ object MultiOmicsProstate extends DriverGene {
           for s in samples union
             for e in expression union
               if (s.bcr_aliquot_uuid = e.ge_aliquot) then
-                {(sid := s.bcr_patient_uuid, gene := e.ge_gene_id, fpkm := e.ge_fpkm)};
+                {(msid := s.bcr_patient_uuid, gene := e.ge_gene_id, fpkm := e.ge_fpkm)};
 
          impactGMB <=
           for g in genemap union
@@ -75,7 +75,7 @@ object MultiOmicsProstate extends DriverGene {
             {(gene_name := g.gene_name, gene_id := g.gene_id, burdens :=
               (for b in g.burdens union
                 for e in mapExpression union
-                  if (b.sid = e.sid && g.gene_id = e.gene) then
+                  if (b.sid = e.msid && g.gene_id = e.gene) then
                     {(sid := b.sid, lbl := b.lbl, burden := b.burden*e.fpkm)}).sumBy({sid,lbl}, {burden})
                      )}
     """

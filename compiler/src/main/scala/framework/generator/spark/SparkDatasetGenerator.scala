@@ -406,17 +406,25 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val gright = generate(ej.right)
       val rtp = ej.right.tp.attrs
 
-      def generateLabelProjection(e: CExpr): (String, String) = e match {
+      // handle label projection on a domain...
+      def generateLabelProjection(e: CExpr): Seq[(String, String, Type)] = e match {
         case And(e1, e2) => 
           generateLabelProjection(e1) ++ generateLabelProjection(e2)
         case Equals(e1, e2) =>  generateLabelProjection(e1) ++ generateLabelProjection(e2)
-        case Project(Project(e1, "_LABEL"), f) => (generateReference(e), f)
-        case _ => Set() 
+        case Project(Project(e1, "_LABEL"), f) => Seq((generateReference(e), f, e.tp))
+        case _ => Seq() 
       }
 
-
-      println("I would get this")
-      println(generateLabelProjection(ej.cond))
+      val checkLabel = generateLabelProjection(ej.cond)
+      val gl = generate(ej.left)
+      val (gejl, gfin) = if (checkLabel.nonEmpty){
+                  assert(checkLabel.size == 1)
+                  val (ttask, name, ttp) = checkLabel.head
+                  val etp = RecordCType(ej.v.tp.attrs + (name -> ttp))
+                  handleType(etp)
+                  (s"""${gl}.withColumn("$name", $ttask).as[${generateType(etp)}]""",
+                    s""".drop("$name")""")
+                }else (gl, "")
 
       if (ej.isEquiJoin){
 
@@ -435,8 +443,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
               (ct, s"$gright.as[$grtp]")            
             }
 
-          s"""|${generate(ej.left)}.equiJoin$classTags($rightCast, 
-              | Seq("${p1}"), Seq("${p2}"), "${jtype}").as[$nrec]
+          s"""|$gejl.equiJoin$classTags($rightCast, 
+              | Seq("${p1}"), Seq("${p2}"), "${jtype}")$gfin.as[$nrec]
               |""".stripMargin
 
         }else {
