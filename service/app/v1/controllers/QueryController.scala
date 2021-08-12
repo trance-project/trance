@@ -82,14 +82,16 @@ class QueryController @Inject()(
     val data = 
       if (shred){
       s"""
-        |val samples = spark.emptyDataset[Biospec]
-        |val occurrrences = spark.emptyDataset[OccurrenceMid]
-        |val copynumber = spark.emptyDataset[CopyNumber]
+        |val IBag_samples__D = spark.emptyDataset[Biospec]
+        |val IBag_occurrences__D = spark.emptyDataset[OccurrDict1]
+        |val IDict_occurrences__D_transcript_consequences = spark.emptyDataset[OccurTransDict2Mid]
+        |val IDict_occurrences__D_transcript_consequences_consequence_terms = spark.emptyDataset[OccurrTransConseqDict3]
+        |val IBag_copynumber__D = spark.emptyDataset[CopyNumber]
       """.stripMargin
     }else{
       s"""
         |val samples = spark.emptyDataset[Biospec]
-        |val occurrrences = spark.emptyDataset[OccurrenceMid]
+        |val occurrences = spark.emptyDataset[OccurrenceMid]
         |val copynumber = spark.emptyDataset[CopyNumber]
       """.stripMargin
     }
