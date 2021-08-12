@@ -39,7 +39,7 @@ object JsonWriter {
 			|}
 			""".stripMargin
 		case u:UnnestOp =>
-			val isOuter = if (u.outer == "outer") "OUTER" else ""
+			val isOuter = if (u.outer) "OUTER" else ""
 			s"""
 			|{
 			|	"name": "",
@@ -52,7 +52,7 @@ object JsonWriter {
 			|}
 			""".stripMargin
 		case j:JoinOp =>
-			val isOuter = if (j.jtype == "left_outer") "OUTER" else ""
+			val isOuter = if (j.jtype.contains("outer")) "OUTER" else ""
 			s"""
 			|{
 			|	"name": "",
