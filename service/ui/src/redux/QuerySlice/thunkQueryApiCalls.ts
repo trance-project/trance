@@ -342,8 +342,8 @@ export const runStandardPlan = createAsyncThunk(
         try{
             const response = await trancePlayInstance.post("/nrccode/run ", {...arg});
             if(response.status === 201){
-                console.log("[getStandardPlan]", response.data);
-                return  response.data as StandardResponse;
+                console.log("[runStandardPlan]", response.data);
+                return  undefined;
             }
             return undefined;
         }catch (error){

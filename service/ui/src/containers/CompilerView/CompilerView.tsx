@@ -7,8 +7,8 @@ import ForwardIcon from '@material-ui/icons/Forward';
 import {standardCompilationViewThemeStyle} from '../../component/CompilerViewComponent/StandardCompilationView/standardCompilationViewThemeStyle';
 import {customTabElement} from "../../utils/Public_Interfaces";
 import StandardCompilationView from "../../component/CompilerViewComponent/StandardCompilationView/StandardCompilationView";
-import ShreddedCompilationView
-    from "../../component/CompilerViewComponent/ShreddedCompilationView/ShreddedCompilationView";
+import NewShreddedCompilationView
+    from "../../component/CompilerViewComponent/ShreddedCompilationView/NewShreddedCompilationView";
 import CustomTabs from "../../component/ui/CustomTabs/CustomTabs";
 import ShreddedPlan from "../../component/CompilerViewComponent/ShreddedPlan/ShreddedPlan";
 import ModelMessage from "../../component/ui/ModelMessage/ModelMessage";
@@ -84,14 +84,14 @@ const CompilerView =()=> {
                     />
 
                     <Button className={classes.queryBtnGroup} variant={"outlined"} color={"primary"} endIcon={<NoteIcon />} onClick={()=> window.open(config.zepplineURL+'/#/notebook/2GES6WHWT',"_blank")}>Notebook</Button>
-                    <Button className={classes.queryBtnGroup} variant={"contained"} color={"primary"} onClick={handleOpenCompilationDialogState} endIcon={<ForwardIcon/>}>Compile & Run</Button>
+                    <Button className={classes.queryBtnGroup} variant={"contained"} color={"primary"} onClick={handleOpenCompilationDialogState} endIcon={<ForwardIcon/>}>Compile</Button>
                 </React.Fragment>
             )
         },
         {
             tabLabel:"Shredded NRC",
             jsxElement: (
-                <ShreddedCompilationView/>
+                <NewShreddedCompilationView/>
             ),
             disable: shreddedPlan === undefined || shreddedPlan.shred_nrc === undefined
         },

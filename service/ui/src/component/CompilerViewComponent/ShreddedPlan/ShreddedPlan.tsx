@@ -9,11 +9,28 @@ import sumAggregate from "../../../static/images/planOperator/Sum_aggregate.png"
 import leftOuterJoin from "../../../static/images/planOperator/LeftOuterJoin.png";
 import unnest from "../../../static/images/planOperator/Unnest.png";
 import equiJoin from "../../../static/images/planOperator/Equijoin.png";
-import {useAppSelector} from '../../../redux/Hooks/hooks'
+import {useAppSelector,useAppDispatch} from '../../../redux/Hooks/hooks';
+import {runStandardPlan} from '../../../redux/QuerySlice/thunkQueryApiCalls';
+import Button from "@material-ui/core/Button";
+import ForwardIcon from "@material-ui/icons/Forward";
 
 const ShreddedPlan = () => {
+
+    const dispatch = useAppDispatch();
+
     const shreddedResponse = useAppSelector(state => state.query.shreddedResponse);
+    const selectedQuery = useAppSelector(state => state.query.selectedQuery);
+    const nrcCode = useAppSelector(state => state.query.nrcQuery);
+
     let planElement: JSX.Element[] = [];
+
+    const handleButtonClick = () => {
+        dispatch(runStandardPlan({
+            _id: selectedQuery!._id,
+                body: nrcCode,
+                title: selectedQuery!.name
+        }))
+    }
     if(shreddedResponse){
       planElement = shreddedResponse.shred_plan.map((el,index) => (
           <Grid item key={index} xs={12}>
@@ -34,6 +51,7 @@ const ShreddedPlan = () => {
     return (
         <Grid container direction={"row"}>
             {planElement}
+            <Button variant={"contained"} color={"primary"} onClick={handleButtonClick} endIcon={<ForwardIcon/>}>Run</Button>
         </Grid>
     );
 }
