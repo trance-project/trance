@@ -1,4 +1,4 @@
-package framework.plans
+package framework.optimize
 
 import org.scalatest.FunSuite
 import framework.common._
@@ -7,6 +7,7 @@ import framework.examples.genomic._
 import framework.nrc._
 import scala.collection.immutable.{Map => IMap}
 import scala.collection.mutable.Map
+import framework.plans._
 
 trait TestBase extends FunSuite with Materialization with 
   MaterializeNRC with NRCTranslator with Shredding {

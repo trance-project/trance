@@ -1,4 +1,4 @@
-package framework.plans
+package framework.optimize
 
 import org.scalatest.FunSuite
 import framework.common._
@@ -7,6 +7,7 @@ import framework.examples.genomic._
 import framework.nrc._
 import framework.plans.{Equals => CEquals, Project => CProject}
 import scala.collection.mutable.HashMap
+import framework.plans._
 
 class TestStatsCollector extends TestBase {
 

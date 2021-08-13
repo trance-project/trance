@@ -1,4 +1,4 @@
-package framework.plans
+package framework.optimize
 
 import org.scalatest.FunSuite
 import framework.common._
@@ -8,6 +8,7 @@ import framework.nrc._
 import framework.plans.{Equals => CEquals, Project => CProject}
 import java.util.UUID.randomUUID
 import scala.collection.mutable.{Map, HashMap}
+import framework.plans._
 
 class TestQueryRewriter extends TestBase {
 

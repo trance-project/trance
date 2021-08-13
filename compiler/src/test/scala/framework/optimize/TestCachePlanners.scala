@@ -1,4 +1,4 @@
-package framework.plans
+package framework.optimize
 
 import org.scalatest.FunSuite
 import framework.common._
@@ -8,6 +8,7 @@ import framework.nrc._
 import scala.collection.immutable.{Map => IMap}
 import scala.collection.mutable.{HashMap, Map}
 import framework.plans.{Equals => CEquals, Project => CProject}
+import framework.plans._
 
 class TestCachePlanners extends TestBase {
 
