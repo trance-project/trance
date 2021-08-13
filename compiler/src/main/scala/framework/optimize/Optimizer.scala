@@ -281,6 +281,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val rkeys = attrs & keys
       val rvalues = attrs & values
 
+      // todo make sure to see a base check here?
       if (rkeys.nonEmpty && rvalues.nonEmpty && !singleElementBag(un.v2.tp)){
         val nv = Variable.freshFromBag(un.tp)
         CReduceBy(un, nv, rkeys.toList, rvalues.toList)
@@ -303,6 +304,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       else OuterJoin(lpush, ej.v, rpush, ej.v2, ej.cond, ej.fields, ej.level)
 
     case v:Variable if keys.nonEmpty && values.nonEmpty =>
+      // do we do a baseCheck here?
       CReduceBy(e, v, keys.toList, values.toList)
 
   })
