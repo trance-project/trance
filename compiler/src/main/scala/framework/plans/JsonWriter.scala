@@ -95,7 +95,7 @@ object JsonWriter {
 				|}
 			""".stripMargin
 		case i:AddIndex => produceJsonString(i.e) //TODO pass through for now
-		case c:CNamed => s"""{ "${c.name}": ${produceJsonString(c.e)} }""" //TODO pass through for now
+		case c:CNamed => s"""${produceJsonString(c.e)}""" //TODO pass through for now
 		case p:LinearCSet => s"""[${p.exprs.map(x => produceJsonString(x)).mkString(",")}]"""
 		case FlatDict(e1) => produceJsonString(e1)
 		case GroupDict(e1) => produceJsonString(e1)
@@ -196,7 +196,7 @@ object JsonWriterTest extends App with Printer with Materialization  with Materi
 
     // val query2 = parser.parse(simple).get
     // val plan2 = getPlan(query2.asInstanceOf[Program])
-    val plan2 = getPlan(querySimple, shred = false)
+    val plan2 = getPlan(querySimple, shred = true)
 
 		val jsonRep2 = JsonWriter.produceJsonString(plan2)
 		println(jsonRep2)
