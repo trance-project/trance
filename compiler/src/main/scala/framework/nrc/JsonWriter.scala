@@ -34,7 +34,7 @@ trait JsonBasedPrinter extends Printer {
           |Union
           |(${quote(e2)})""".stripMargin
     case Singleton(e1) => s"""", "labels": [${quote(e1)}] """
-    case DeDup(e1) => s"DeDup(${quote(e1)})"
+    case DeDup(e1) => s"DeDup(${quote(e1)}"
     case Get(e1) => s"Get(${quote(e1)})"
     case Tuple(fs) => 
       val lbls = fs.map(f => f._2.tp match {
@@ -75,15 +75,22 @@ trait JsonBasedPrinter extends Printer {
     case Count(e1) => s"Count(${quote(e1)})"
     case Sum(e1, fs) =>
       s"Sum(${quote(e1)}, (${fs.mkString(", ")}))"
+    // case GroupByKey(e, ks, vs, _) =>
+    //   s"""|GroupByKey([${ks.mkString(", ")}], [${vs.mkString(", ")}],
+    //       |${ind(quote(e))}
+    //       |)""".stripMargin
+    // case ReduceByKey(e, ks, vs) =>
+    //   s"""|ReduceByKey[${ks.mkString(", ")}], [${vs.mkString(", ")}],
+    //       |${ind(quote(e))}
+    //       |""".stripMargin
     case GroupByKey(e, ks, vs, _) =>
       s"""|GroupByKey([${ks.mkString(", ")}], [${vs.mkString(", ")}],
           |${ind(quote(e))}
           |)""".stripMargin
     case ReduceByKey(e, ks, vs) =>
-      s"""|ReduceByKey[${ks.mkString(", ")}], [${vs.mkString(", ")}],
+      s"""|SumByKey[${ks.mkString(", ")}], [${vs.mkString(", ")}],
           |${ind(quote(e))}
           |""".stripMargin
-
     // Label extensions
     case x: ExtractLabel =>
 //      val tuple = x.lbl.tp.attrTps.keys.mkString(", ")
@@ -126,10 +133,11 @@ trait JsonBasedPrinter extends Printer {
     // Materialization extensions
     case MatDictLookup(lbl, dict) =>
       s"MatDictLookup(${quote(lbl)}, ${quote(dict)})"
-    case BagToMatDict(b) =>
-      s"BagToMatDict(${quote(b)})"
-    case MatDictToBag(d) =>
-      s"MatDictToBag(${quote(d)})"
+
+    case BagToMatDict(b) => quote(b)
+      // s"BagToMatDict(${quote(b)})"
+    case MatDictToBag(d) => quote(d)
+      // s"MatDictToBag(${quote(d)})"
 
     case _ =>
       sys.error("Cannot print unknown expression " + e)
@@ -146,19 +154,26 @@ object JsonWriter extends MaterializeNRC with JsonBasedPrinter {
     case TupleType(fs) => 
       val conts = fs.map(f => s""""${f._1}": ${produceJsonString(f._2)} """).mkString(",")
       s"""{$conts}"""
-    case _ => s""" "${tp.toString()}" """
+    case _ => 
+      s""" "${tp.toString()}" """
   }
 
   def produceJsonString(query: Assignment): String = {
     val exp = query.rhs.tp match {
-      case _:BagType => s""" "${quote(query.rhs)} """
-      case _ => s""" "${quote(query.rhs)}" """
+      case _:BagType => 
+        s""" "${quote(query.rhs)} }"""
+      case _ => query.rhs match {
+        case _:DeDup => s""" "${quote(query.rhs)})" """
+        case _:BagToMatDict => s""" "${quote(query.rhs)} }"""
+        case _ => s""" "${quote(query.rhs)}" """
+      }
     }
     s"""{"name": "${query.name}", "key": $exp """
   }
 
-  def produceJsonString(query: Program): String = 
-    s"""[${query.statements.map(e => produceJsonString(e)).mkString(",")}}]"""
+  def produceJsonString(query: Program): String = {
+    s"""[${query.statements.map(e => produceJsonString(e)).mkString(",")}]"""
+  }
 
   def produceJsonString(query: VarDef): String = 
     s"""{ "name": ${query.name}, "type": ${produceJsonString(query.tp)} }"""
@@ -207,7 +222,7 @@ object JsonWriterTest extends App with Printer with Materialization with Materia
         cnvCases1 <= 
           for c in copynumber union
             for s in samples union 
-              if (c.cn_aliquot_uuid = s.bcr_aliquot_uuid)
+              if (c.cn_aliquot_uuid == s.bcr_aliquot_uuid)
               then {(cn_case_uuid := s.bcr_patient_uuid, cn_gene_id := c.cn_gene_id, cn_copy_number := c.cn_copy_number)};
 
         hybridScore1 <= 
@@ -215,10 +230,10 @@ object JsonWriterTest extends App with Printer with Materialization with Materia
             {( oid := o.oid, sid := o.donorId, cands := 
               ( for t in o.transcript_consequences union
                   for c in cnvCases1 union
-                    if (t.gene_id = c.cn_gene_id && c.cn_case_uuid = o.donorId) then
-                      {( gene := t.gene_id, score := (c.cn_copy_number + 0.01) * if (t.impact = "HIGH") then 0.80 
-                          else if (t.impact = "MODERATE") then 0.50
-                          else if (t.impact = "LOW") then 0.30
+                    if (t.gene_id == c.cn_gene_id && c.cn_case_uuid == o.donorId) 
+                    then {( gene := t.gene_id, score := (c.cn_copy_number + 0.01) * if (t.impact == "HIGH") then 0.80 
+                          else if (t.impact == "MODERATE") then 0.50
+                          else if (t.impact == "LOW") then 0.30
                           else 0.01 )}).sumBy({gene}, {score}) )}
       """
 
@@ -231,14 +246,14 @@ object JsonWriterTest extends App with Printer with Materialization with Materia
         for s in samples union 
         {(sample := s.bcr_patient_uuid, mutations := 
               for o in occurrences union
-                if (s.bcr_patient_uuid = o.donorId) then
+                if (s.bcr_patient_uuid == o.donorId) then
                   {( mutId := o.oid, scores := 
                     ( for t in o.transcript_consequences union
                         for c in copynumber union
-                          if (t.gene_id = c.cn_gene_id && c.cn_aliquot_uuid = s.bcr_aliquot_uuid) then
-                            {( gene := t.gene_id, score := (c.cn_copy_number + 0.01) * if (t.impact = "HIGH") then 0.80 
-                                else if (t.impact = "MODERATE") then 0.50
-                                else if (t.impact = "LOW") then 0.30
+                          if (t.gene_id == c.cn_gene_id && c.cn_aliquot_uuid == s.bcr_aliquot_uuid) then
+                            {( gene := t.gene_id, score := (c.cn_copy_number + 0.01) * if (t.impact == "HIGH") then 0.80 
+                                else if (t.impact == "MODERATE") then 0.50
+                                else if (t.impact == "LOW") then 0.30
                                 else 0.01 )}).sumBy({gene}, {score}) )} )}
       """
     // val query1 = parser.parse(querySimple).get.asInstanceOf[JsonWriter.Program]
@@ -252,7 +267,18 @@ object JsonWriterTest extends App with Printer with Materialization with Materia
         ShredTest <= for o in occurrences union {(sid := o.donorId, cons := for t in o.transcript_consequences union {(gene := t.gene_id)})}
       """
 
-    val s = parseProgram(soSimple, shred = true).replace("\n", "")
+    val simple = 
+      s"""
+        Simple <= 
+        for s in samples union
+         {(  id := s.bcr_patient_uuid, mutations :=
+            for o in occurrences union
+                if (s.bcr_patient_uuid == o.oid) then
+                {(  mutid := o.oid)})}
+      """
+
+    val s = parseProgram(simple, shred = false).replace("\n", "")
+    println(s)
     val jsValue = Json parse s
     val pj = Json prettyPrint jsValue
 

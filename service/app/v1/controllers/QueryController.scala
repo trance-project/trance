@@ -82,14 +82,16 @@ class QueryController @Inject()(
     val data = 
       if (shred){
       s"""
-        |val samples = spark.emptyDataset[Biospec]
-        |val occurrrences = spark.emptyDataset[OccurrenceMid]
-        |val copynumber = spark.emptyDataset[CopyNumber]
+        |val IBag_samples__D = spark.emptyDataset[Biospec]
+        |val IBag_occurrences__D = spark.emptyDataset[OccurrDict1]
+        |val IDict_occurrences__D_transcript_consequences = spark.emptyDataset[OccurTransDict2Mid]
+        |val IDict_occurrences__D_transcript_consequences_consequence_terms = spark.emptyDataset[OccurrTransConseqDict3]
+        |val IBag_copynumber__D = spark.emptyDataset[CopyNumber]
       """.stripMargin
     }else{
       s"""
         |val samples = spark.emptyDataset[Biospec]
-        |val occurrrences = spark.emptyDataset[OccurrenceMid]
+        |val occurrences = spark.emptyDataset[OccurrenceMid]
         |val copynumber = spark.emptyDataset[CopyNumber]
       """.stripMargin
     }
@@ -180,13 +182,10 @@ class QueryController @Inject()(
         val program = parseProgram(query)
         val nrc = getJsonProgram(program)
 
-        val plan = compileProgram(program)
-        val standard_plan = getJsonPlan(plan)
-
         // note that i'm sending back the nrc and the standard plan
         // also note that the JsonWriter in framework.plans is not complete,
         // so will need to do that
-        val responseBody = s"""{"nrc": $nrc, "standard_plan": $standard_plan}"""
+        val responseBody = s"""{"nrc": $nrc}"""
 
         queryRepository.addEntity(query).map{ _ =>
           Created(responseBody)
@@ -232,6 +231,36 @@ class QueryController @Inject()(
 
     // note that my parser does not return any valuable information
     // so we will need some better error catching there
+    }.getOrElse(Future.successful(BadRequest("Invalid nrc format")))
+  }
+
+  @ApiOperation(
+    value = "Add a Query to the list",
+    response = classOf[Void],
+    code=201
+  )
+  @ApiResponses(Array(
+    new ApiResponse(code = 400, message = "Invalid Query format")
+  ))
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(value = "The new Query in Json Format", required = true, dataType = "models.Query", paramType = "body")
+  ))
+  def standardQuery() =
+    Action.async(parse.json) {
+
+    _.body.validate[Query].map { query =>
+
+        val program = parseProgram(query)
+        
+        val plan = compileProgram(program)
+        val standard_plan = getJsonPlan(plan)
+
+        val responseBody = s"""{"standard_plan": $standard_plan}"""
+
+        queryRepository.addEntity(query).map{ _ =>
+          Created(responseBody)
+        }
+
     }.getOrElse(Future.successful(BadRequest("Invalid nrc format")))
   }
 

@@ -29,7 +29,7 @@ Blockly.defineBlocksWithJsonArray([
         "colour": 142,
         "nextStatement": "Bag",
         "previousStatement": "Bag",
-        "tooltip": "For Union: Bag Type",
+        "tooltip": "for each union: iterate over input object",
         "inputsInline": true,
 
     },
@@ -56,7 +56,7 @@ Blockly.defineBlocksWithJsonArray([
         "colour": 111,
         "previousStatement": null,
         "nextStatement": null,
-        "tooltip": "tuple element"
+        "tooltip": "tuple element of standalone expression"
     },
     {
         "type": "tuple_el_iteration",
@@ -84,7 +84,7 @@ Blockly.defineBlocksWithJsonArray([
         "colour": 230,
         "previousStatement": null,
         "nextStatement": null,
-        "tooltip": "tuple element of collection type",
+        "tooltip": "tuple element of component free expression"
     },
     {
         "type": "tuple",
@@ -98,11 +98,11 @@ Blockly.defineBlocksWithJsonArray([
         "colour": 255,
         "previousStatement": "Bag",
         "nextStatement": "Bag",
-        "tooltip": "tuple group block",
+        "tooltip": "tuple",
 
     },
     {
-        "type": "brackets",
+        "type": "groupBy",
         "message0": "(%1).groupBy({%2}, {%3})",
         "args0": [
             {
@@ -123,7 +123,31 @@ Blockly.defineBlocksWithJsonArray([
         "colour": 33,
         "previousStatement": null,
         "nextStatement": null,
-        "tooltip": "Group by",
+        "tooltip": "group by key",
+    },
+    {
+        "type": "sumBy",
+        "message0": "(%1).sumBy({%2}, {%3})",
+        "args0": [
+            {
+                "type": "input_statement",
+                "name": "GROUP_BY"
+            },
+            {
+                "type": "field_input",
+                "name": "ATTRIBUTE_KEY",
+                "text": ""
+            },
+            {
+                "type": "field_input",
+                "name": "ATTRIBUTE_VALUE",
+                "text": ""
+            }
+        ],
+        "colour": 33,
+        "previousStatement": null,
+        "nextStatement": null,
+        "tooltip": "sum by key",
     },
     {
         "type": "or",
@@ -143,145 +167,145 @@ Blockly.defineBlocksWithJsonArray([
         "tooltip": "and",
 
     },
-    {
-        "type": "ifstmt_primitive",
-        "message0": "if %1 then %2",
-        "args0": [
-            {
-                "type": "input_statement",
-                "name": "OBJECT_ASSOCIATION",
-                "check": "Primitive"
-            },
-            {
-                "type": "input_statement",
-                "name": "ATTRIBUTES",
-                "check": "Primitive"
-            }
-        ],
-        "colour": 23,
-        "output" : "Primitive",
-        // "previousStatement": "Primitive",
-        // "nextStatement": "Primitive",
-        "tooltip": "If Statement: Primitive Type",
+    // {
+    //     "type": "ifstmt_primitive",
+    //     "message0": "if %1 then %2",
+    //     "args0": [
+    //         {
+    //             "type": "input_statement",
+    //             "name": "OBJECT_ASSOCIATION",
+    //             "check": "Primitive"
+    //         },
+    //         {
+    //             "type": "input_statement",
+    //             "name": "ATTRIBUTES",
+    //             "check": "Primitive"
+    //         }
+    //     ],
+    //     "colour": 23,
+    //     "output" : "Primitive",
+    //     // "previousStatement": "Primitive",
+    //     // "nextStatement": "Primitive",
+    //     "tooltip": "If Statement: Primitive Type",
 
-    },
-    {
-        "type": "ifstmt_bag",
-        "message0": "if %1 then",
-        "args0": [
-            {
-                "type": "input_statement",
-                "name": "OBJECT_ASSOCIATION",
-                "check": "Bag"
-            }
-        ],
-        "colour": 10,
-        "previousStatement": "Bag",
-        "nextStatement": "Bag",
-        "tooltip": "If Statment: Bag Type",
-        "mutator": "controls_if_mutator",
+    // },
+    // {
+    //     "type": "ifstmt_bag",
+    //     "message0": "if %1 then",
+    //     "args0": [
+    //         {
+    //             "type": "input_statement",
+    //             "name": "OBJECT_ASSOCIATION",
+    //             "check": "Bag"
+    //         }
+    //     ],
+    //     "colour": 10,
+    //     "previousStatement": "Bag",
+    //     "nextStatement": "Bag",
+    //     "tooltip": "If Statment: Bag Type",
+    //     "mutator": "controls_if_mutator",
 
-    },
+    // },
     // this should be a conditional 
     // ==, ||, &&, <, etc. in dropdown
     // Boolean type, with Primitive for now
     // was also thinking it could be 
     // a middle piece, if possible 
-    {
-        "type": "association_on",
-        "message0": "%1 %2 %3",
-        "args0": [
-            {
-                "type": "field_input",
-                "name": "ATTRIBUTE_A",
-                "text": ""
-            },
-            {
-                "type": "field_dropdown",
-                "name": "DROPDOWN_OPTIONS",
-                "options": [
-                    [
-                        "==",
-                        "=="
-                    ],
-                    [
-                        "||",
-                        "||"
-                    ],
-                    [
-                        "&&",
-                        "&&"
-                    ],
-                    [
-                        ">",
-                        ">"
-                    ],
-                    [
-                        "<",
-                        "<"
-                    ]
-                ]
-            },
-            {
-                "type": "field_input",
-                "name": "ATTRIBUTE_B",
-                "text": ""
-            }
-        ],
-        "colour": 142,
-        "output": null,
-        // "previousStatement": "Primitive",
-        // "nextStatement": "Primitive",
-        "tooltip": "association on",
-    },
-    {
-        "type": "association_on_assisted",
-        "message0": "(%1 %2 %3)",
-        "args0": [
-            {
-                "type": "input_value",
-                "name": "ATTRIBUTE_A",
-                "text": ""
-            },
-            {
-                "type": "field_dropdown",
-                "name": "DROPDOWN_OPTIONS",
-                "options": [
-                    [
-                        "==",
-                        "=="
-                    ],
-                    [
-                        "||",
-                        "||"
-                    ],
-                    [
-                        "&&",
-                        "&&"
-                    ],
-                    [
-                        ">",
-                        ">"
-                    ],
-                    [
-                        "<",
-                        "<"
-                    ]
-                ]
-            },
-            {
-                "type": "input_value",
-                "name": "ATTRIBUTE_B",
-                "text": ""
-            }
-        ],
-        "inputsInline": true,
-        "colour": 142,
-        // "output": "Primitive",
-        "nextStatement": "Bag",
-        "previousStatement": "Bag",
-        "tooltip": "association on assisted",
-    },
+    // {
+    //     "type": "association_on",
+    //     "message0": "%1 %2 %3",
+    //     "args0": [
+    //         {
+    //             "type": "field_input",
+    //             "name": "ATTRIBUTE_A",
+    //             "text": ""
+    //         },
+    //         {
+    //             "type": "field_dropdown",
+    //             "name": "DROPDOWN_OPTIONS",
+    //             "options": [
+    //                 [
+    //                     "==",
+    //                     "=="
+    //                 ],
+    //                 [
+    //                     "||",
+    //                     "||"
+    //                 ],
+    //                 [
+    //                     "&&",
+    //                     "&&"
+    //                 ],
+    //                 [
+    //                     ">",
+    //                     ">"
+    //                 ],
+    //                 [
+    //                     "<",
+    //                     "<"
+    //                 ]
+    //             ]
+    //         },
+    //         {
+    //             "type": "field_input",
+    //             "name": "ATTRIBUTE_B",
+    //             "text": ""
+    //         }
+    //     ],
+    //     "colour": 142,
+    //     "output": null,
+    //     // "previousStatement": "Primitive",
+    //     // "nextStatement": "Primitive",
+    //     "tooltip": "association on",
+    // },
+    // {
+    //     "type": "association_on_assisted",
+    //     "message0": "(%1 %2 %3)",
+    //     "args0": [
+    //         {
+    //             "type": "input_value",
+    //             "name": "ATTRIBUTE_A",
+    //             "text": ""
+    //         },
+    //         {
+    //             "type": "field_dropdown",
+    //             "name": "DROPDOWN_OPTIONS",
+    //             "options": [
+    //                 [
+    //                     "==",
+    //                     "=="
+    //                 ],
+    //                 [
+    //                     "||",
+    //                     "||"
+    //                 ],
+    //                 [
+    //                     "&&",
+    //                     "&&"
+    //                 ],
+    //                 [
+    //                     ">",
+    //                     ">"
+    //                 ],
+    //                 [
+    //                     "<",
+    //                     "<"
+    //                 ]
+    //             ]
+    //         },
+    //         {
+    //             "type": "input_value",
+    //             "name": "ATTRIBUTE_B",
+    //             "text": ""
+    //         }
+    //     ],
+    //     "inputsInline": true,
+    //     "colour": 142,
+    //     // "output": "Primitive",
+    //     "nextStatement": "Bag",
+    //     "previousStatement": "Bag",
+    //     "tooltip": "association on assisted",
+    // },
     {
         "type": "association_on_assisted_new",
         "message0": "(%1 %2 %3 AND %4 %5 %6)",
@@ -365,7 +389,7 @@ Blockly.defineBlocksWithJsonArray([
         "output": null,
         // "nextStatement": "Bag",
         // "previousStatement": "Bag",
-        "tooltip": "association on assisted: and conditional",
+        "tooltip": "Equality conditions",
     },
     {
         "type": "association_on_assisted_new_new",
@@ -413,28 +437,28 @@ Blockly.defineBlocksWithJsonArray([
         "output": null,
         // "nextStatement": "Bag",
         // "previousStatement": "Bag",
-        "tooltip": "association on assisted: Single conditional",
+        "tooltip": "Equality condition",
     },
-    {
-        "type": "group_by",
-        "message0": "Group by %1_%2 ",
-        "args0": [
-            {
-                "type": "field_input",
-                "name": "ATTRIBUTE_KEY",
-                "text": ""
-            },
-            {
-                "type": "field_input",
-                "name": "ATTRIBUTE_VALUE",
-                "text": ""
-            }
-        ],
-        "colour": 130,
-        "previousStatement": "Bag",
-        "nextStatement": "Bag",
-        "tooltip": "group_by",
-    },
+    // {
+    //     "type": "group_by",
+    //     "message0": "Group by %1_%2 ",
+    //     "args0": [
+    //         {
+    //             "type": "field_input",
+    //             "name": "ATTRIBUTE_KEY",
+    //             "text": ""
+    //         },
+    //         {
+    //             "type": "field_input",
+    //             "name": "ATTRIBUTE_VALUE",
+    //             "text": ""
+    //         }
+    //     ],
+    //     "colour": 130,
+    //     "previousStatement": "Bag",
+    //     "nextStatement": "Bag",
+    //     "tooltip": "group_by",
+    // },
     {
     "type": "text_input",
     "message0": "%1",
@@ -447,7 +471,7 @@ Blockly.defineBlocksWithJsonArray([
 ],
     "colour": 189,
     "output": null,
-    "tooltip": "input for custom plain text",
+    "tooltip": "standalone text expression",
     "inputsInline": true,
 
 },
@@ -463,7 +487,7 @@ Blockly.defineBlocksWithJsonArray([
         ],
         "colour": 209,
         "previousStatement": null,
-        "tooltip": "statement for custom plain text",
+        "tooltip": "component free text expression",
         "inputsInline": true,
 
     }
@@ -481,7 +505,7 @@ const testReactField = {
         },
     ],
     "output": "Primitive",
-    "tooltip": "Drop down list of objects and their attributes",
+    "tooltip": "projection on attribute",
 
 };
 
@@ -605,7 +629,7 @@ const forUnion2 = {
     "colour": 315,
     "nextStatement": "Bag",
     "previousStatement": "Bag",
-    "tooltip": "For Union: Bag Type",
+    "tooltip": "For each union: iterate over input object",
     "helpUrl": ""
 };
 
@@ -633,13 +657,7 @@ const ifstmt_bag2 = {
     "colour": 10,
     "previousStatement": "Bag",
     "nextStatement": "Bag",
-    "tooltip": "If Statment: Bag Type",
-};
-
-Blockly.Blocks['ifstmt_bag2.0'] = {
-    init: function() {
-        this.jsonInit(ifstmt_bag2);
-    }
+    "tooltip": "if then statement",
 };
 
 const forUnionNested = {
@@ -667,7 +685,7 @@ const forUnionNested = {
     "colour": 211,
     "nextStatement": "Bag",
     "previousStatement": "Bag",
-    "tooltip": "For Union on Attributes Collection Types",
+    "tooltip": "For each union: iterate over an attribute",
     "inputsInline": true,
 };
 
@@ -716,7 +734,7 @@ const nrc_filters = {
     "inputsInline": true,
     "output": null,
     "colour": 80,
-    "tooltip": "",
+    "tooltip": "arithmetic with standalone and component free expressions",
     "helpUrl": ""
 }
 

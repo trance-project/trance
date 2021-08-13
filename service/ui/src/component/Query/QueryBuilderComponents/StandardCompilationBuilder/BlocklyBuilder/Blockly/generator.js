@@ -53,30 +53,30 @@ BlocklyJS['tuple_el_iteration'] = function (block){
     return `${comma}${attribute_Name} :=\n${attribute_value}`;
 }
 
-BlocklyJS['ifstmt_primitive'] = function (block){
-    const object_association = validate(BlocklyJS.statementToCode(block,'OBJECT_ASSOCIATION'));
-    const attributes = validate(BlocklyJS.statementToCode(block, 'ATTRIBUTES'));
-    return [`if ${object_association} then\n ${attributes}`, 0];
-}
+// BlocklyJS['ifstmt_primitive'] = function (block){
+//     const object_association = validate(BlocklyJS.statementToCode(block,'OBJECT_ASSOCIATION'));
+//     const attributes = validate(BlocklyJS.statementToCode(block, 'ATTRIBUTES'));
+//     return [`if ${object_association} then\n ${attributes}`, 0];
+// }
 
-// Todo see above, conditional association, then a statement 
-BlocklyJS['ifstmt_bag'] = function (block){
-    const object_association = validate(BlocklyJS.statementToCode(block,'OBJECT_ASSOCIATION'));
-    return `if ${object_association} then\n`;
-}
+// // Todo see above, conditional association, then a statement 
+// BlocklyJS['ifstmt_bag'] = function (block){
+//     const object_association = validate(BlocklyJS.statementToCode(block,'OBJECT_ASSOCIATION'));
+//     return `if ${object_association} then\n`;
+// }
 
-BlocklyJS['association_on'] = function (block){
-    const object_associationA = validate(block.getFieldValue('ATTRIBUTE_A'));
-    const dropdown_options = block.getFieldValue('DROPDOWN_OPTIONS');
-    const object_associationB = validate(block.getFieldValue('ATTRIBUTE_B'));
-    return [`${object_associationA} ${dropdown_options} ${object_associationB}`,Blockly.JavaScript.ORDER_ATOMIC];
-}
-BlocklyJS['association_on_assisted'] = function (block){
-    const object_associationA = validate(BlocklyJS.valueToCode(block,'ATTRIBUTE_A',0));
-    const dropdown_options = block.getFieldValue('DROPDOWN_OPTIONS');
-    const object_associationB = validate(BlocklyJS.valueToCode(block,'ATTRIBUTE_B',0));
-    return `(${object_associationA} ${dropdown_options} ${object_associationB})`;
-}
+// BlocklyJS['association_on'] = function (block){
+//     const object_associationA = validate(block.getFieldValue('ATTRIBUTE_A'));
+//     const dropdown_options = block.getFieldValue('DROPDOWN_OPTIONS');
+//     const object_associationB = validate(block.getFieldValue('ATTRIBUTE_B'));
+//     return [`${object_associationA} ${dropdown_options} ${object_associationB}`,Blockly.JavaScript.ORDER_ATOMIC];
+// }
+// BlocklyJS['association_on_assisted'] = function (block){
+//     const object_associationA = validate(BlocklyJS.valueToCode(block,'ATTRIBUTE_A',0));
+//     const dropdown_options = block.getFieldValue('DROPDOWN_OPTIONS');
+//     const object_associationB = validate(BlocklyJS.valueToCode(block,'ATTRIBUTE_B',0));
+//     return `(${object_associationA} ${dropdown_options} ${object_associationB})`;
+// }
 BlocklyJS['association_on_assisted_new_new'] = function (block){
     const object_associationA = validate(BlocklyJS.valueToCode(block,'ATTRIBUTE_A',0));
     const dropdown_options = block.getFieldValue('DROPDOWN_OPTIONS');
@@ -96,13 +96,19 @@ BlocklyJS['association_on_assisted_new'] = function (block){
 BlocklyJS['group_by'] = function (block){
     const attribute_key = validate(block.getFieldValue('ATTRIBUTE_KEY'))
     const attribute_value = validate(block.getFieldValue('ATTRIBUTE_VALUE'))
-    return `groupBy({${attribute_key}}, {${attribute_value}})`
+    return `groupBy({{${attribute_key}}}, {{${attribute_value}}})`
 }
-BlocklyJS['brackets'] = function (block){
+BlocklyJS['groupBy'] = function (block){
     const group_by = validate(BlocklyJS.statementToCode(block,'GROUP_BY'))
     const attribute_key = validate(block.getFieldValue('ATTRIBUTE_KEY'))
     const attribute_value = validate(block.getFieldValue('ATTRIBUTE_VALUE'))
-    return `\nReduceByKey[${attribute_key}], [${attribute_value}] (${group_by})`
+    return `\n(${group_by}).groupBy({${attribute_key}}, {${attribute_value}}, {_2})`
+}
+BlocklyJS['sumBy'] = function (block){
+    const group_by = validate(BlocklyJS.statementToCode(block,'GROUP_BY'))
+    const attribute_key = validate(block.getFieldValue('ATTRIBUTE_KEY'))
+    const attribute_value = validate(block.getFieldValue('ATTRIBUTE_VALUE'))
+    return `\n(${group_by}).sumBy({${attribute_key}}, {${attribute_value}})`
 }
 BlocklyJS['or'] = function (block){
     return ' || '

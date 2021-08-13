@@ -34,32 +34,32 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     */
   def push(e: CExpr, fs: Set[String] = Set()): CExpr = e match {
     
-    case Projection(in, v, filter, fields) => 
+    case Projection(in, v, filter, fields, l) => 
       val tfields = fields.toSet ++ collect(filter)
       val pin = push(in, tfields ++ fs)
       val nv = Variable.fromBag(v.name, pin.tp)
-      Projection(pin, nv, replace(filter, nv), tfields.toList)
+      Projection(pin, nv, replace(filter, nv), tfields.toList, l)
 
-    case Unnest(in, v, path, v2, filter, fields) =>
+    case Unnest(in, v, path, v2, filter, fields, l) =>
       val pin = push(in, fields.toSet ++ fs + path)
       val nv = Variable.fromBag(v.name, pin.tp)
-      Unnest(pin, nv, path, v2, filter, (fields.toSet ++ fs).toList)
+      Unnest(pin, nv, path, v2, filter, (fields.toSet ++ fs).toList, l)
 
-    case OuterUnnest(in, v, path, v2, filter, fields) =>
+    case OuterUnnest(in, v, path, v2, filter, fields, l) =>
       val pin = push(in, fields.toSet ++ fs + path)
       val nv = Variable.fromBag(v.name, pin.tp)
-      OuterUnnest(pin, nv, path, v2, filter, (fields.toSet ++ fs).toList)
+      OuterUnnest(pin, nv, path, v2, filter, (fields.toSet ++ fs).toList, l)
 
-    case Join(left, v, right, v2, cond, fields) =>
+    case Join(left, v, right, v2, cond, fields, l) =>
       val jcols = collect(cond)
       val nfields = fs ++ jcols
       val lpin = push(left, nfields) 
       val rpin = push(right, nfields)
       val lv = Variable.fromBag(v.name, lpin.tp)
       val rv = Variable.fromBag(v2.name, rpin.tp)
-      Join(lpin, lv, rpin, rv, cond, nfields.toList)
+      Join(lpin, lv, rpin, rv, cond, nfields.toList, l)
 
-    case OuterJoin(left, v, right, v2, cond @ Equals(Project(_, p1), Project(_, p2 @ "_1")), fields) if right.tp.isDict =>
+    case OuterJoin(left, v, right, v2, cond @ Equals(Project(_, p1), Project(_, p2 @ "_1")), fields, l) if right.tp.isDict =>
       // val jcols = collect(cond)
       val nfields = fs ++ Set(p1, p2)
       val lpin = push(left, nfields)
@@ -67,18 +67,18 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val lv = Variable.fromBag(v.name, lpin.tp)
       val rv = Variable.fromBag(v2.name, rpin.tp)
       val nfields2 = if (nfields("_1")) nfields - p1 else nfields -- Set(p1, p2)
-      OuterJoin(lpin, lv, rpin, rv, cond, nfields2.toList)
+      OuterJoin(lpin, lv, rpin, rv, cond, nfields2.toList, l)
 
-    case OuterJoin(left, v, right, v2, cond, fields) =>
+    case OuterJoin(left, v, right, v2, cond, fields, l) =>
       val jcols = collect(cond)
       val nfields = fs ++ jcols
       val lpin = push(left, nfields)
       val rpin = push(right, nfields)
       val lv = Variable.fromBag(v.name, lpin.tp)
       val rv = Variable.fromBag(v2.name, rpin.tp)
-      OuterJoin(lpin, lv, rpin, rv, cond, nfields.toList)
+      OuterJoin(lpin, lv, rpin, rv, cond, nfields.toList, l)
 
-    case Nest(in, v, key, value, filter, nulls, ctag) => 
+    case Nest(in, v, key, value, filter, nulls, ctag, l) => 
       // adjust key
       val indices = key.filter(k => k.contains("index")).toSet
       val nkey0 = (key.toSet & fs) ++ indices 
@@ -87,9 +87,9 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val pfs = nkey ++ collect(value) ++ fs
       val pin = push(in, pfs)
       val nv = Variable.fromBag(v.name, pin.tp)
-      Nest(pin, nv, nkey.toList, replace(value, nv), filter, collect(value).toList, ctag)
+      Nest(pin, nv, nkey.toList, replace(value, nv), filter, collect(value).toList, ctag, l)
 
-    case Reduce(e1 @ Projection(in, v, filter, fields), v2, key, value) =>
+    case Reduce(e1 @ Projection(in, v, filter, fields, l), v2, key, value, l2) =>
       // adjust key
       val indices = key.filter(k => k.contains("index")).toSet
       val nkey0 = (key.toSet & fs) ++ indices 
@@ -107,23 +107,23 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val pin = push(in, nfs)
       val nv = Variable.fromBag(v.name, pin.tp)
 
-      val pin2 = Projection(pin, nv, nfilter, nfs.toList)
+      val pin2 = Projection(pin, nv, nfilter, nfs.toList, l)
       val nv2 = Variable.fromBag(v2.name, pin2.tp)
-      Reduce(pin2, nv2, nkey.toList, value)
+      Reduce(pin2, nv2, nkey.toList, value, l2)
 
-    case Reduce(in, v, key, value) =>
+    case Reduce(in, v, key, value, l) =>
       //adjust key
       val indices = key.filter(k => k.contains("index")).toSet
       val nkey = (key.toSet & fs) ++ indices
 
       val pin = push(in, nkey ++ value.toSet ++ fs)
       val nv = Variable.fromBag(v.name, pin.tp)
-      Reduce(pin, nv, nkey.toList, value)
+      Reduce(pin, nv, nkey.toList, value, l)
 
-    case Select(in, v, p, v2:Variable) =>
+    case Select(in, v, p, v2:Variable, l) =>
       val ptp = v.tp.attrs.filter(f => fs(f._1))
       val nv = Variable(v2.name, RecordCType(ptp))
-      Select(in, v, p, nv)
+      Select(in, v, p, nv, l)
 
     case CGet(e1) => CGet(push(e1, fs))
     case AddIndex(e1, name) => AddIndex(push(e1, fs), name)
@@ -136,7 +136,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       if (fields.nonEmpty) {
         val v = Variable.fresh(RecordCType(tp.attrs))
         val nv = Variable(v.name, RecordCType(tp.attrs.filter(f => fields(f._1))))
-        Select(e, v, Constant(true), nv)
+        Select(e, v, Constant(true), nv, 0)
       } else InputRef(name, tp)
     case _ => e
   }
@@ -194,10 +194,10 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
   def pushAgg(e: CExpr, keys: Set[String] = Set.empty, values: Set[String] = Set.empty): CExpr = fapply(e, {
     
     // base case
-    case Reduce(e1, v, keys, value) =>
-      Reduce(pushAgg(e1, keys.toSet, value.toSet), v, keys, value)
+    case Reduce(e1, v, keys, value, l) =>
+      Reduce(pushAgg(e1, keys.toSet, value.toSet), v, keys, value, l)
 
-    case Select(in, v1, p, f1) if keys.nonEmpty && values.nonEmpty && isBase(in) =>
+    case Select(in, v1, p, f1, l) if keys.nonEmpty && values.nonEmpty && isBase(in) =>
       val attrs = v1.tp.attrs.keySet
       if (!baseKeyCheck(in, attrs)){
         val nkeys = attrs & keys
@@ -205,7 +205,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
         CReduceBy(e, v1, nkeys.toList, nvalues.toList)
       }else e
 
-    case Projection(in, v, f1, fs) if keys.nonEmpty && values.nonEmpty => 
+    case Projection(in, v, f1, fs, l) if keys.nonEmpty && values.nonEmpty => 
       // capture column renaming
       val nameMap: Map[String, String] = f1 match {
         case Record(ms) => ms.flatMap(f => f._2 match {
@@ -217,7 +217,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val nkeys = keys.map(k => nameMap.getOrElse(k, k))
       val nvalues = collect(f1).map(k => nameMap.getOrElse(k, k)) -- nkeys
 
-      Projection(pushAgg(in, nkeys, nvalues), v, f1, fs)
+      Projection(pushAgg(in, nkeys, nvalues), v, f1, fs, l)
 
     case un:UnnestOp => 
 
@@ -243,8 +243,8 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val lpush = pushAgg(ej.left, lkeys, values.filter(f => lattrs(f)))
       val rpush = pushAgg(ej.right, rkeys, values.filter(f => rattrs(f)))
 
-      if (ej.jtype == "inner") Join(lpush, ej.v, rpush, ej.v2, ej.cond, ej.fields)
-      else OuterJoin(lpush, ej.v, rpush, ej.v2, ej.cond, ej.fields)
+      if (ej.jtype == "inner") Join(lpush, ej.v, rpush, ej.v2, ej.cond, ej.fields, ej.level)
+      else OuterJoin(lpush, ej.v, rpush, ej.v2, ej.cond, ej.fields, ej.level)
 
     case v:Variable if keys.nonEmpty && values.nonEmpty =>
       CReduceBy(e, v, keys.toList, values.toList)
@@ -260,26 +260,26 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
   def pushUnnest(e: CExpr): CExpr = fapply(e, {
 
     case OuterUnnest(
-      AddIndex(OuterJoin(e1, x2, e2, x3, Constant(true), fs1), index),
-        x7, field, x4, Equals(Project(x4_expr, f1), Project(x5, f2)), fs2)
+      AddIndex(OuterJoin(e1, x2, e2, x3, Constant(true), fs1, l), index),
+        x7, field, x4, Equals(Project(x4_expr, f1), Project(x5, f2)), fs2, l2)
           if validateMatch(x2.tp, f1, x4.tp, f2) => {
 
         //        if(x4.toString.equals(x4_expr.toString)){
         //      if(x2.tp.attrs.get(f1).isDefined && x4.tp.attrs.get(f2).isDefined){
         val unnest: Unnest = Unnest(
-          AddIndex(e2, index), x3, field, x4, Constant(true), Nil)
+          AddIndex(e2, index), x3, field, x4, Constant(true), Nil, l)
         val cond = Equals(Project(x4_expr, f1), Project(x5, f2))
-        OuterJoin(e1, x2, unnest, x7, cond, fs2)
+        OuterJoin(e1, x2, unnest, x7, cond, fs2, l2)
     }
 
   })
 
 
   def pushCondition(e: CExpr): CExpr = fapply(e, {
-    case Projection(OuterJoin(e1, v1, e2, v2, Constant(true), fs1), v3,
-      jc @ If(cond @ Equals(Project(_, f1), Project(_, f2)), s1, s2), fs2) =>
-      Projection(OuterJoin(e1, v1, e2, v2, cond, fs1), v3, 
-        If(Equals(Project(v3, f2), Null),s1, s2), fs2)
+    case Projection(OuterJoin(e1, v1, e2, v2, Constant(true), fs1, l), v3,
+      jc @ If(cond @ Equals(Project(_, f1), Project(_, f2)), s1, s2), fs2, l2) =>
+      Projection(OuterJoin(e1, v1, e2, v2, cond, fs1, l), v3, 
+        If(Equals(Project(v3, f2), Null),s1, s2), fs2, l2)
   })
 
 }

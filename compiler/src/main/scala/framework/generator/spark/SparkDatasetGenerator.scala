@@ -336,9 +336,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case FlatDict(e1) => s"${generate(e1)}"
     case GroupDict(e1) => generate(e1) 
     
-    case Projection(in, v, Constant(true), Nil) => generate(in)
+    case Projection(in, v, Constant(true), Nil, l) => generate(in)
 
-    case ep @ Projection(in, v, pat:Record, fields) =>
+    case ep @ Projection(in, v, pat:Record, fields, l) =>
       handleType(pat.tp)
 
       val nfields = ext.collect(pat)
@@ -389,7 +389,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     // lookup iteration translates to inner join 
-    case ej @ OuterJoin(left, v1, right, v2, Equals(Project(_, p1), Project(_, p2 @ "_1")), filt) if right.tp.isDict =>
+    case ej @ OuterJoin(left, v1, right, v2, Equals(Project(_, p1), Project(_, p2 @ "_1")), filt, l) if right.tp.isDict =>
    
       // adjust lookup column of dictionary
       val rcol = s"${p1}${p2}"
@@ -464,7 +464,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case eu:UnnestOp => generateUnnest(eu)
 
     // Nest - Join => CoGroup
-    case Bind(vj, join:JoinOp, Bind(nv, nd @ Nest(in, v, key, value @ Record(fs), filter, nulls, tag), e2)) 
+    case Bind(vj, join:JoinOp, Bind(nv, nd @ Nest(in, v, key, value @ Record(fs), filter, nulls, tag, l), e2)) 
       if (unshred) && (ext.collect(value) subsetOf join.v2.tp.attrs.keySet) && join.isEquiJoin =>
       
       val (p1, p2) = (join.p1, join.p2)
@@ -515,7 +515,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     // primitive monoid
-    case en @ Nest(in, v, key, Constant(c), Record(fs), nulls, tag) =>
+    case en @ Nest(in, v, key, Constant(c), Record(fs), nulls, tag, l) =>
       handleType(en.tp.tp)
       val intp = generateType(in.tp.asInstanceOf[BagCType].tp)
       val gtp = generateType(en.tp.tp)
@@ -535,7 +535,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |}}.as[$gtp]
           |""".stripMargin
 
-    case en @ Nest(in, v, key, value, filter, nulls, tag) =>
+    case en @ Nest(in, v, key, value, filter, nulls, tag, l) =>
 
       val gv = generate(v)
 
@@ -568,7 +568,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           | }.as[${generateType(frec.tp)}]
           |""".stripMargin
 
-    case er @ Reduce(in, v, key, value) =>
+    case er @ Reduce(in, v, key, value, l) =>
       handleType(er.tp.tp)
       val intp = generateType(in.tp.asInstanceOf[BagCType].tp)
       val gtp = generateType(er.tp.tp)
@@ -598,7 +598,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     // filter
-    case Select(x, v, filt, e2) => 
+    case Select(x, v, filt, e2, l) => 
       val filter = filt match {
         case Constant(true) => ""
         case _ => s".filter(${generateReference(filt)})"
