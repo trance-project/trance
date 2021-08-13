@@ -15,9 +15,10 @@ import framework.common._
 import framework.nrc._
 import framework.plans.{CExpr, NRCTranslator}
 import framework.plans.{BaseNormalizer, Finalizer}
-import framework.plans.{Optimizer, Unnester, BaseOperatorANF}
+import framework.plans.{Unnester, BaseOperatorANF}
 import framework.plans.{JsonWriter => PJsonWriter}
 import framework.examples.genomic._
+import framework.optimize.Optimizer
 import framework.generator.spark.{SparkDatasetGenerator,
   ZeppelinFactory,
   JsonWriter => ZJsonWriter}
