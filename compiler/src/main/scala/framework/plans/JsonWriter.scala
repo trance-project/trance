@@ -77,10 +77,10 @@ object JsonWriter {
 			|}
 			""".stripMargin
 		case s:Select => 
-			val c = s.p match { case Constant(true) => ""; case _ => s""""${Printer.quote(s.p)}""""}
+			val c = s.p match { case Constant(true) => ""; case _ => s""""${Printer.quoteNoVar(s.p)}""""}
 			s"""
 			|{
-			|	"name": "${Printer.quote(s.x)}",
+			|	"name": "${Printer.quoteNoVar(s.x)}",
 			|	"attributes": {
 			|		"level": ${s.level},
 			| 	"newLine": [ $c ]
@@ -117,7 +117,7 @@ object JsonWriter {
 		case p:LinearCSet => s"""[${p.exprs.map(x => produceJsonString(x)).mkString(",")}]"""
 		case FlatDict(e1) => produceJsonString(e1)
 		case GroupDict(e1) => produceJsonString(e1)
-		case _ => s"""{"todo": "${Printer.quote(plan)}"}"""
+		case _ => s"""{"todo": "${Printer.quoteNoVar(plan)}"}"""
 	}
 
 }

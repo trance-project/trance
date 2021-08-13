@@ -35,6 +35,10 @@ object Printer {
     // }    
     case If(c, e1, e2) => s"if (${quoteNoVar(c)}) ..."
     case _:Variable => ""
+    case AddIndex(i, n) => quoteNoVar(i)
+    case FlatDict(e1) => quoteNoVar(e1)
+    case GroupDict(e1) => quoteNoVar(e1)
+    case InputRef(n, _) => n
     case _ => quote(e)
   }
 

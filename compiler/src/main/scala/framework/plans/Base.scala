@@ -260,7 +260,7 @@ trait BaseCompiler extends Base {
 
 }
 
-trait ShredOptimizer extends BaseCompiler {
+trait ShredOptimizer extends BaseNormalizer {
   override def addindex(in: Rep, name: String): Rep = in
 }
 
