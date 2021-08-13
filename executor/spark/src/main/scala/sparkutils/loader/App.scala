@@ -12,6 +12,8 @@ object App {
      val conf = new SparkConf()
        .setAppName("TestLoader"+sf)
        .set("spark.sql.shuffle.partitions", Config.maxPartitions.toString)
+       .set("spark.sql.warehouse.dir", "/Users/jac/code/trance/service/")
+       .set("spark.hadoop.hive.metastore.warehouse.dir", "/Users/jac/code/trance/service/")
      val spark = SparkSession.builder().config(conf).getOrCreate()
 
      import spark.implicits._

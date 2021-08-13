@@ -50,7 +50,7 @@ class CopyNumberLoader(spark: SparkSession) {
     .as[CopyNumber]
   }
 
-  def store(path: String) = {
+  def store(path: String, insert: Boolean = true) = {
     // create dataframe
     val cnLoader = new CopyNumberLoader(spark)
     val copynumber = cnLoader.load(path, true)
@@ -60,13 +60,14 @@ class CopyNumberLoader(spark: SparkSession) {
 
     // make hive aware
     spark.sql("CREATE TABLE IF NOT EXISTS copynumber(cn_gene_id string, cn_gene_name string, cn_chromosome string, cn_start int, cn_end int, cn_copy_number int, min_copy_number int, max_copy_number int, cn_aliquot_uuid string) USING hive") //STORED AS PARQUET")
+    
+    if (insert){
+      // insert into hive
+      copynumber.write.insertInto("copynumber")
 
-    // insert into hive
-    copynumber.write.insertInto("copynumber")
-
-    // validate
-    spark.sql("SELECT * FROM copynumber").show
-
+      // validate
+      spark.sql("SELECT * FROM copynumber").show
+    }
   }
 
 
