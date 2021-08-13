@@ -156,12 +156,11 @@ object JsonWriter extends MaterializeNRC with JsonBasedPrinter {
   }
 
   def produceJsonString(query: Assignment): String = {
-    val exp = query.rhs.tp match {
-      case _:BagType => 
-        s""" "${quote(query.rhs)} }"""
-      case _ => query.rhs match {
-        case _:DeDup => s""" "${quote(query.rhs)})" """
-        case _:BagToKeyValueMap => s""" "${quote(query.rhs)} }"""
+    val exp = query.rhs match {
+      case _:BagToKeyValueMap => s""" "${quote(query.rhs)} }"""
+      case _:DeDup => s""" "${quote(query.rhs)})" """
+      case qr => qr.tp match {
+        case _:BagType => s""" "${quote(query.rhs)} }"""
         case _ => s""" "${quote(query.rhs)}" """
       }
     }
@@ -208,6 +207,7 @@ object JsonWriterTest extends App with Printer with Materialization with Materia
     }else program
 
     println(quote(compiled))
+    // quote(compiled)
     
     // use the json writer from framework.nrc to write 'er
     JsonWriter.produceJsonString(compiled.asInstanceOf[JsonWriter.Program])
@@ -275,7 +275,17 @@ object JsonWriterTest extends App with Printer with Materialization with Materia
                 {(  mutid := o.oid)})}
       """
 
-    val s = parseProgram(querySimple, shred = false).replace("\n", "")
+    val bugfix = 
+      s"""
+        BUG <= 
+          for s in samples union
+            {(  sid := s.bcr_patient_uuid, mutations :=
+              (  for o in occurrences union
+                  for cc in o.transcript_consequences union
+                    {(  gene := cc.gene_id, score := cc.polyphen_score)}).sumBy({gene}, {score}))}
+      """
+
+    val s = parseProgram(bugfix, shred = true).replace("\n", "")
     println(s)
     val jsValue = Json parse s
     val pj = Json prettyPrint jsValue
