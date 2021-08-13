@@ -28,7 +28,7 @@ const CompilerView =()=> {
     const [queryTreeDiagramState, setQueryTreeDiagramState] = useState<boolean>(false);
 
     const query = useAppSelector(state => state.query.selectedQuery);
-    const shreddedPlan = useAppSelector(state => state.query.shreddedPlan);
+    const shreddedPlan = useAppSelector(state => state.query.shreddedResponse);
     const standardPlan = useAppSelector(state => state.query.standardPlan);
 
 
@@ -93,7 +93,7 @@ const CompilerView =()=> {
             jsxElement: (
                 <ShreddedCompilationView/>
             ),
-            disable:shreddedPlan === undefined
+            disable: shreddedPlan === undefined || shreddedPlan.shred_nrc === undefined
         },
         {
             tabLabel: "Standard Plan",
@@ -103,7 +103,7 @@ const CompilerView =()=> {
         {
             tabLabel:"Shredded Plan",
             jsxElement: <ShreddedPlan/>,
-            disable:shreddedPlan === undefined
+            disable:shreddedPlan === undefined || shreddedPlan.shred_plan === undefined
         },
         // TODO: reused the shreddedCompilationView component and shreddedPlan component for this tab
         {

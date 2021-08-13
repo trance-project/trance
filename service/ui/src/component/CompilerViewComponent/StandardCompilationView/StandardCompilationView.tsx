@@ -45,7 +45,7 @@ const StandardCompilationView = (props:_QueryViewProps) => {
     // const [openMaterializationState, setOpenMaterializationState] = useState<boolean>(false);
 
     const newQuerySelected = useAppSelector(state => state.query.responseQuery);
-    const shreddedNrc = useAppSelector(state => state.query.shreddedPlan);
+    const shreddedResponse = useAppSelector(state => state.query.shreddedResponse);
 
     let statement = <div></div>;
 
@@ -104,7 +104,7 @@ const StandardCompilationView = (props:_QueryViewProps) => {
                         <React.Fragment>
                             <NewLabelView
                                 labelView={label}
-                                hoverEvent={()=>shreddedNrc?props.hoverMaterializationLvlOpen(parseInt(nodeId)): null}
+                                hoverEvent={()=>shreddedResponse?props.hoverMaterializationLvlOpen(parseInt(nodeId)): null}
                                 abortHover={props.abortHover}
                             />
                             <Popover

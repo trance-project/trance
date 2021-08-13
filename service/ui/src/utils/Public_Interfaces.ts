@@ -112,12 +112,15 @@ export interface Plan {
 
 export interface QueryResponse {
     nrc: NewQuery[];
-    standard_plan: Plan[];
-    children: any[];
 }
 
 export interface ShreddedResponse {
-    shred_plan: RawNodeDatum[]
+    shred_plan: RawNodeDatum[],
+    shred_nrc: NewQuery[]
+}
+
+export interface StandardResponse {
+    standard_plan: RawNodeDatum[]
 }
 
 export interface planDemoOutput{

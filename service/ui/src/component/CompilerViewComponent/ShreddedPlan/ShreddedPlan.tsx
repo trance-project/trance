@@ -9,51 +9,34 @@ import sumAggregate from "../../../static/images/planOperator/Sum_aggregate.png"
 import leftOuterJoin from "../../../static/images/planOperator/LeftOuterJoin.png";
 import unnest from "../../../static/images/planOperator/Unnest.png";
 import equiJoin from "../../../static/images/planOperator/Equijoin.png";
+import {useAppSelector} from '../../../redux/Hooks/hooks'
 
-const ShreddedPlan = () => (
-    <Grid item xs={12}>
-        <Grid item direction={"row"}>
+const ShreddedPlan = () => {
+    const shreddedResponse = useAppSelector(state => state.query.shreddedResponse);
+    let planElement: JSX.Element[] = [];
+    if(shreddedResponse){
+      planElement = shreddedResponse.shred_plan.map((el,index) => (
+          <Grid item key={index} xs={12}>
             <Tree
-                data={treeDiagramLvl1}
+                data={el}
                 orientation={"vertical"}
                 pathFunc={"straight"}
                 zoom={0.6}
                 enableLegacyTransitions
-                translate={{x:400, y:20}}
+                translate={{x: 400, y: 20}}
                 transitionDuration={1500}
                 renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
                 zoomable={false}
             />
+          </Grid>
+        ))
+    }
+    return (
+        <Grid container direction={"row"}>
+            {planElement}
         </Grid>
-        <Grid item direction={"row"}>
-            <Tree
-                data={treeDiagramLvl2}
-                orientation={"vertical"}
-                pathFunc={"straight"}
-                zoom={0.6}
-                enableLegacyTransitions
-                translate={{x:400, y:20}}
-                transitionDuration={1500}
-                renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
-                zoomable={false}
-            />
-        </Grid>
-        <Grid item direction={"row"} style={{height:400}}>
-            <Tree
-                data={treeDiagramData}
-                orientation={"vertical"}
-                pathFunc={"straight"}
-                zoom={0.6}
-                enableLegacyTransitions
-                translate={{x:400, y:20}}
-                transitionDuration={1500}
-                renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
-                separation={{siblings:2.25}}
-                zoomable={false}
-            />
-        </Grid>
-    </Grid>
-);
+    );
+}
 
 const treeDiagramLvl1:RawNodeDatum = {
     name: '',
