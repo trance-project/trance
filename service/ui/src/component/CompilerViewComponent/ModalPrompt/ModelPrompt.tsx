@@ -60,11 +60,11 @@ const ModalPromt = (props: _ModalPromtProps) => {
             return null;
         }
         if(state.standard){
-                // dispatch(getStandardPlan({
-                //     _id: selectedQuery!._id,
-                //     body: nrcCode,
-                //     title: selectedQuery!.name
-                // }));
+                dispatch(getStandardPlan({
+                    _id: selectedQuery!._id,
+                    body: nrcCode,
+                    title: selectedQuery!.name
+                }));
         }
         if(state.shredded){
             dispatch(getShreddedPlan({

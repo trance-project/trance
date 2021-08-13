@@ -53,7 +53,7 @@ const RuntimeMetrics = (props: _RuntimeMetricsProps) => {
                         </PaperWithHeader>
                     </Grid>
                 </Grid>
-                <Button className={classes.btn} variant={"contained"} style={{'backgroundColor':'#d66123'}} onClick={()=> window.open("http://pdq-webapp.cs.ox.ac.uk:18080","_blank")} endIcon={<StarBorderIcon/>}>Metrics</Button>
+                <Button className={classes.btn} variant={"contained"} style={{'backgroundColor':'#d66123'}} onClick={()=> window.open("http://pdq-webapp.cs.ox.ac.uk:18080","_blank")} endIcon={<StarBorderIcon/>}>Spark Metrics</Button>
             </Dialog>
         </div>
     );

@@ -117,7 +117,7 @@ class QueryController @Inject()(
 
   private def runProgram(plan: CExpr, queryId: String, shred: Boolean = false): String = {
 
-    val zep = new ZeppelinFactory(host = "localhost", port = 8082)
+    val zep = new ZeppelinFactory(host = "localhost", port = 8085)
 
     val anfBase = new BaseOperatorANF{}
     val anfer = new Finalizer(anfBase)
@@ -129,8 +129,7 @@ class QueryController @Inject()(
     val pcontents = writeParagraph(queryId, generator.generateHeader(), code, generator.generateEncoders(), shred)
     val para = new ZJsonWriter().buildParagraph("Generated paragraph test", pcontents)
     val pid = zep.writeParagraph(noteid, para)
-    // val status = zep.runParaSync(noteid, pid)
-    // status
+     val status = zep.runParaSync(noteid, pid)
     pid
 
   }
@@ -258,7 +257,7 @@ class QueryController @Inject()(
         val plan = compileProgram(program)
         val shred_plan = getJsonPlan(plan)
 
-        val responseBody = s"""{"shred_plan": $shred_plan}"""
+        val responseBody = s"""{"shred_plan": $shred_plan, "shred_nrc": $shred_nrc}"""
 
         queryRepository.addEntity(query).map{ _ =>
           Created(responseBody)

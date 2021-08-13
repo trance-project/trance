@@ -116,6 +116,10 @@ export interface QueryResponse {
     children: any[];
 }
 
+export interface ShreddedResponse {
+    shred_plan: RawNodeDatum[]
+}
+
 export interface planDemoOutput{
     sample: string;
     mutations:mutation[];

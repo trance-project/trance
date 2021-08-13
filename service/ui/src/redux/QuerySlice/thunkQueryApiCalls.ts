@@ -4,7 +4,13 @@
  */
 import {createAsyncThunk} from "@reduxjs/toolkit";
 import {trancePlayInstance} from "../../AxiosConfig";
-import {BlocklyNrcCode, NewQuery, QuerySummary, QueryResponse} from "../../utils/Public_Interfaces";
+import {
+    BlocklyNrcCode,
+    NewQuery,
+    QuerySummary,
+    QueryResponse,
+    ShreddedResponse
+} from "../../utils/Public_Interfaces";
 import {RootState} from '../store'
 import {RawNodeDatum} from "react-d3-tree/lib/types/common";
 
@@ -71,7 +77,7 @@ export const fetchSelectedQuery = createAsyncThunk(
             return response.data as QuerySummary;
         }  catch (error){
             console.log("[Error Occured fetchSelectedQuery]" , error);
-            return thunkAPI.rejectWithValue("error occuredssss");
+            return thunkAPI.rejectWithValue("error occured");
         }
     }
 )
@@ -145,7 +151,7 @@ export const sendStandardNrcCode = createAsyncThunk(
 )
 
 export const getStandardPlan = createAsyncThunk(
-    "query/getStandardPlan", async (arg:BlocklyNrcCode) => {
+    "query/getStandardPlan", async (arg:BlocklyNrcCode, thunkAPI) => {
         const treeDiagramData:RawNodeDatum ={
             name: '',
             attributes: {
@@ -239,15 +245,15 @@ export const getStandardPlan = createAsyncThunk(
             return treeDiagramData;
         }catch (error){
             console.log("[Error Occurred getStandardPlan]", error.message)
-            return treeDiagramData;
-            // return thunkAPI.rejectWithValue(error.message)
+            // return treeDiagramData;
+            return thunkAPI.rejectWithValue(error.message)
         }
     }
 )
 
 
 export const getShreddedPlan = createAsyncThunk(
-    "query/ShreddedPlan", async (arg:BlocklyNrcCode) => {
+    "query/ShreddedPlan", async (arg:BlocklyNrcCode, thunkAPI) => {
         const treeDiagramData:RawNodeDatum[] =[
             {
                 name: '',
@@ -339,13 +345,14 @@ export const getShreddedPlan = createAsyncThunk(
             const response = await trancePlayInstance.post("/nrccode/shred", {...arg});
             if(response.status === 201){
                 console.log("[getShreddedPlan]", response.data);
-                return treeDiagramData ;
+
+                return response.data as ShreddedResponse ;
             }
-            return treeDiagramData;
+            return null;
         }catch (error){
             console.log("[Error Occurred getShreddedPlan]", error.message)
-            return treeDiagramData;
-            // return thunkAPI.rejectWithValue(error.message)
+            // return treeDiagramData;
+            return thunkAPI.rejectWithValue(error.message)
         }
     }
 )
