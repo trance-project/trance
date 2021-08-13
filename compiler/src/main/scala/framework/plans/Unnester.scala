@@ -118,7 +118,7 @@ object Unnester {
       case e2 => Reduce(e2, v1, keys, values, level)
     }
 
-    case CDeDup(e1) => CDeDup(unnest(e1)((u, w, E, tag)))
+    case CDeDup(e1, _) => CDeDup(unnest(e1)((u, w, E, tag)), level)
     case Bind(x, e1, e2) => Bind(x, unnest(e1)((u, w, E, tag)), unnest(e2)((u, w, E, tag)))
     case FlatDict(e1) => FlatDict(unnest(e1)((u, w, E, tag)))
     case GroupDict(e1) => GroupDict(unnest(e1)((u, w, E, tag)))

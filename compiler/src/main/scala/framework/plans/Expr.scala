@@ -153,7 +153,7 @@ case class Comprehension(e1: CExpr, v: Variable, p: CExpr, e: CExpr) extends CEx
   }
 }
 
-case class CDeDup(e1: CExpr) extends CExpr{
+case class CDeDup(e1: CExpr, level: Int) extends CExpr{
   def tp: BagCType = e1.tp.asInstanceOf[BagCType]
 }
 

@@ -286,7 +286,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case CUdf(n, e1, tp) => s"$n(${generateReference(e1)})"
 	  case Sng(e) => s"Seq(${generate(e)})"
     case CGet(e1) => s"${generate(e1)}.head"
-    case CDeDup(e1) => s"${generate(e1)}.distinct"
+    case CDeDup(e1, l) => s"${generate(e1)}.distinct"
     case Label(fs) if fs.size == 1 => generate(fs.head._2)
     case Record(fs) if fs.contains("element") && fs.size == 1 => fs("element")
     case Record(fs) => {

@@ -13,8 +13,7 @@ import scala.collection.immutable.Map
 
 object JsonWriter {
 
-	def produceJsonString(plan: CExpr): String = plan match {
-		case p:Projection => 
+	def writeProjection(p: Projection, name: String = ""): String = {
 			val renamed = (p.filter match {
 				case Record(fs) => fs.flatMap(f => f._2 match {
 					case _:Project => Nil
@@ -27,11 +26,18 @@ object JsonWriter {
 			|	"attributes": {
 			|		"planOperator": "PROJECT",
 			|		"level": ${p.level},
-			| 	"newLine": [ "${Printer.quoteNoVar(p.filter)}" ]
+			| 	"newLine": [ "${Printer.quoteNoVar(p.filter)}" ]${name}
 			|	},
 			|	"children": [${produceJsonString(p.in)}]
 			|}
-			""".stripMargin
+			""".stripMargin		
+	}
+
+	def produceJsonString(plan: CExpr): String = plan match {
+		case CNamed(name, p:Projection) => 
+			val n = s""",\n|"nrc_expression_name": "$name" """
+			writeProjection(p, n)
+		case p:Projection => writeProjection(p)
 		case n:Nest =>
 			s"""
 			|{
@@ -94,6 +100,18 @@ object JsonWriter {
 				|	"children": [${produceJsonString(r.in)}]
 				|}
 			""".stripMargin
+		case d:CDeDup =>
+			s"""
+				|{
+				|	"name": "",
+				|	"attributes": {
+				|		"planOperator": "DISTINCT",
+				|		"level": ${d.level},
+				| 	"newLine": [ ]
+				|	},
+				|	"children": [${produceJsonString(d.e1)}]
+				|}
+			""".stripMargin 
 		case i:AddIndex => produceJsonString(i.e) //TODO pass through for now
 		case c:CNamed => s"""${produceJsonString(c.e)}""" //TODO pass through for now
 		case p:LinearCSet => s"""[${p.exprs.map(x => produceJsonString(x)).mkString(",")}]"""
