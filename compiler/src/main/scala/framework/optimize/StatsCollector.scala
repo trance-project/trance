@@ -27,15 +27,15 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
   val data: String = if (inputs.isEmpty){
     s"""|   val db = spark.catalog.currentDatabase
         |   val copynumber = spark.table("copynumber")
-        |   //val occurrences = spark.table("occurrences")
+        |   val occurrences = spark.table("occurrences")
         |   val samples = spark.table("samples")
         |   val clinical = spark.table("clinical")
         |   val IBag_copynumber__D = copynumber
         |   val IBag_samples__D = samples
         |   val IBag_clinical__D = clinical
-        |   //val IBag_occurrences__D = spark.table("odict1")
-        |   //val IMap_occurrences__D_transcript_consequences = spark.table("odict2")
-        |   //val IMap_occurrences__D_transcript_consequences_consequence_terms = spark.table("odict3")
+        |   val IBag_occurrences__D = spark.table("odict1")
+        |   val IMap_occurrences__D_transcript_consequences = spark.table("odict2")
+        |   val IMap_occurrences__D_transcript_consequences_consequence_terms = spark.table("odict3")
       """.stripMargin
   }else inputs 
   
@@ -46,10 +46,12 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
 
   val codeMap = Map.empty[String, String]
   val statsMap = Map.empty[String, Statistics]
+  val colMap = Map.empty[String, Double]
 
   val KB = BigDecimal(1024)
 
   val StatsRegex = "Stat\\((.*),(.*),(.*)\\)".r
+  val ColRegex = "ColumnStat\\((.*),(.*)\\)".r
   var inc = 0
 
   def readStats(s: String): (Option[String], Option[Statistics]) = s match {
@@ -57,6 +59,9 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
       val sbl = (BigDecimal(sb) / KB).toDouble
       val src = rc match { case "-1" => -1.0; case _ => (BigDecimal(rc) / KB).toDouble }
       (Some(n), Some(Statistics(sbl, src)))
+    case ColRegex(c, v) => 
+      colMap(c) += v.toDouble
+      (None, None)
     case _ => (None, None)
   }
 

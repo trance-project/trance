@@ -13,7 +13,7 @@ import org.apache.spark.sql.functions._
 
 case class CopyNumber(cn_gene_id: String, cn_gene_name: String, cn_chromosome: String, cn_start: Int, cn_end: Int, cn_copy_number: Int, min_copy_number: Int, max_copy_number: Int, cn_aliquot_uuid: String)
 
-class CopyNumberLoader(spark: SparkSession) extends Serializable {
+class CopyNumberLoader(spark: SparkSession) {
  
    import spark.implicits._
    val schema = StructType(Array(StructField("cn_gene_id", StringType),
@@ -48,6 +48,26 @@ class CopyNumberLoader(spark: SparkSession) extends Serializable {
     .withColumn("min_copy_number", when($"min_copy_number".isNull, 0).otherwise($"min_copy_number"))
     .withColumn("max_copy_number", when($"max_copy_number".isNull, 0).otherwise($"max_copy_number"))
     .as[CopyNumber]
+  }
+
+  def store(path: String, insert: Boolean = true) = {
+    // create dataframe
+    val cnLoader = new CopyNumberLoader(spark)
+    val copynumber = cnLoader.load(path, true)
+        .withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
+
+    //spark.sql("DROP TABLE copynumber")
+
+    // make hive aware
+    spark.sql("CREATE TABLE IF NOT EXISTS copynumber(cn_gene_id string, cn_gene_name string, cn_chromosome string, cn_start int, cn_end int, cn_copy_number int, min_copy_number int, max_copy_number int, cn_aliquot_uuid string) USING hive") //STORED AS PARQUET")
+    
+    if (insert){
+      // insert into hive
+      copynumber.write.insertInto("copynumber")
+
+      // validate
+      spark.sql("SELECT * FROM copynumber").show
+    }
   }
 
 
