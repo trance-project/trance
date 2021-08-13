@@ -20,6 +20,7 @@ services:
     restart: always
     ports:
       - 8082:8080
+      - 7077:7077
     environment:
       ZEPPELIN_LOG_DIR: ./logs
       ZEPPELIN_NOTEBOOK_DIR: ./notebook
