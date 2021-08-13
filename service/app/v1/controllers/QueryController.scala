@@ -216,16 +216,20 @@ class QueryController @Inject()(
           case Some(id) => id.toString
           case _ => sys.error("Id not found.")
         }
+
         val isShred = query.shred match {
           case Some(b) => b
           case _ => false
         }
+
+        val name = s"${query.title}_${qid}"
+
         val program = parseProgram(query)
         val nrc = getJsonProgram(program)
 
         val plan = compileProgram(program)
 
-        val runstatus = runProgram(plan, qid, shred = isShred)
+        val runstatus = runProgram(plan, name, shred = isShred)
 
         val responseBody = s"""{"status": $plan}"""
 
