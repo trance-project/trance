@@ -110,6 +110,24 @@ export const restHandlerSlice = createSlice({
             state.loading = "Error";
             state.message = action.payload as string;
         });
+
+        /**
+         * handler runStandardPlan request
+         */
+        builder.addCase(queryApi.runStandardPlan.pending, (state) => {
+            console.log("[restHandlerSlice] Pending call for runStandardPlan");
+            state.loading = "Loading";
+        });
+        builder.addCase(queryApi.runStandardPlan.fulfilled, (state) => {
+            console.log("[restHandlerSlice] Fulfilled call for runStandardPlan");
+            state.loading = "Idle";
+            state.message = "Plan Executed Successfully"
+        });
+        builder.addCase(queryApi.runStandardPlan.rejected,(state, action) => {
+            console.log("[restHandlerSlice] runStandardPlan", action.payload);
+            state.loading = "Error";
+            state.message = action.payload as string;
+        });
     }
 })
 

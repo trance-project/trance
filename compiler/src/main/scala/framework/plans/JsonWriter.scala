@@ -214,8 +214,8 @@ object JsonWriterTest extends App with Printer with Materialization  with Materi
 
     // val query2 = parser.parse(simple).get
     // val plan2 = getPlan(query2.asInstanceOf[Program])
-    val plan2 = getPlan(querySimple, shred = true)
-
+    val plan2 = getPlan(querySimple, shred = false)
+		val plan3 = getPlan(querySimple, shred = true)
 		val jsonRep2 = JsonWriter.produceJsonString(plan2)
 		println(jsonRep2)
 

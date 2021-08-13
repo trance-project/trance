@@ -1,5 +1,5 @@
 import {createSlice, PayloadAction} from "@reduxjs/toolkit";
-import {QuerySummary, NewQuery, QueryResponse, ShreddedResponse} from "../../utils/Public_Interfaces";
+import {QuerySummary, NewQuery, QueryResponse, ShreddedResponse,StandardResponse} from "../../utils/Public_Interfaces";
 import * as api from './thunkQueryApiCalls';
 import {RawNodeDatum} from "react-d3-tree/lib/types/common";
 
@@ -12,7 +12,7 @@ interface QueryState {
     responseQuery: NewQuery | undefined;
     nrcQuery: string;
     standardPlan: RawNodeDatum | undefined;
-    shreddedPlan: ShreddedResponse | undefined;
+    shreddedResponse: ShreddedResponse | undefined;
 
 }
 
@@ -24,7 +24,7 @@ const initialState: QueryState = {
     selectedQuery: undefined,
     responseQuery: undefined,
     nrcQuery: "",
-    shreddedPlan: undefined,
+    shreddedResponse: undefined,
     standardPlan: undefined
 }
 
@@ -81,13 +81,16 @@ export const querySlice = createSlice({
             state.queryListSummary = [...state.queryListSummary, newQuerySummary]
 
         });
-        builder.addCase(api.getStandardPlan.fulfilled, (state, action:PayloadAction<RawNodeDatum> ) => {
-            state.standardPlan = action.payload;
-        });
-        builder.addCase(api.getShreddedPlan.fulfilled, (state, action:PayloadAction<ShreddedResponse| null> ) => {
-
+        builder.addCase(api.getStandardPlan.fulfilled, (state, action:PayloadAction<StandardResponse|undefined> ) => {
             if(action.payload){
-                state.shreddedPlan = action.payload;
+                if(action.payload.standard_plan.length > 0){
+                    state.standardPlan = action.payload.standard_plan[0];
+                }
+            }
+        });
+        builder.addCase(api.getShreddedPlan.fulfilled, (state, action:PayloadAction<ShreddedResponse| undefined> ) => {
+            if(action.payload){
+                state.shreddedResponse = action.payload;
             }
         });
 

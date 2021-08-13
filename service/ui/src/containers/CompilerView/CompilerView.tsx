@@ -7,8 +7,8 @@ import ForwardIcon from '@material-ui/icons/Forward';
 import {standardCompilationViewThemeStyle} from '../../component/CompilerViewComponent/StandardCompilationView/standardCompilationViewThemeStyle';
 import {customTabElement} from "../../utils/Public_Interfaces";
 import StandardCompilationView from "../../component/CompilerViewComponent/StandardCompilationView/StandardCompilationView";
-import ShreddedCompilationView
-    from "../../component/CompilerViewComponent/ShreddedCompilationView/ShreddedCompilationView";
+import NewShreddedCompilationView
+    from "../../component/CompilerViewComponent/ShreddedCompilationView/NewShreddedCompilationView";
 import CustomTabs from "../../component/ui/CustomTabs/CustomTabs";
 import ShreddedPlan from "../../component/CompilerViewComponent/ShreddedPlan/ShreddedPlan";
 import ModelMessage from "../../component/ui/ModelMessage/ModelMessage";
@@ -28,7 +28,7 @@ const CompilerView =()=> {
     const [queryTreeDiagramState, setQueryTreeDiagramState] = useState<boolean>(false);
 
     const query = useAppSelector(state => state.query.selectedQuery);
-    const shreddedPlan = useAppSelector(state => state.query.shreddedPlan);
+    const shreddedPlan = useAppSelector(state => state.query.shreddedResponse);
     const standardPlan = useAppSelector(state => state.query.standardPlan);
 
 
@@ -84,16 +84,16 @@ const CompilerView =()=> {
                     />
 
                     <Button className={classes.queryBtnGroup} variant={"outlined"} color={"primary"} endIcon={<NoteIcon />} onClick={()=> window.open(config.zepplineURL+'/#/notebook/2GES6WHWT',"_blank")}>Notebook</Button>
-                    <Button className={classes.queryBtnGroup} variant={"contained"} color={"primary"} onClick={handleOpenCompilationDialogState} endIcon={<ForwardIcon/>}>Compile & Run</Button>
+                    <Button className={classes.queryBtnGroup} variant={"contained"} color={"primary"} onClick={handleOpenCompilationDialogState} endIcon={<ForwardIcon/>}>Compile</Button>
                 </React.Fragment>
             )
         },
         {
             tabLabel:"Shredded NRC",
             jsxElement: (
-                <ShreddedCompilationView/>
+                <NewShreddedCompilationView/>
             ),
-            disable:shreddedPlan === undefined
+            disable: shreddedPlan === undefined || shreddedPlan.shred_nrc === undefined
         },
         {
             tabLabel: "Standard Plan",
@@ -103,7 +103,7 @@ const CompilerView =()=> {
         {
             tabLabel:"Shredded Plan",
             jsxElement: <ShreddedPlan/>,
-            disable:shreddedPlan === undefined
+            disable:shreddedPlan === undefined || shreddedPlan.shred_plan === undefined
         },
         // TODO: reused the shreddedCompilationView component and shreddedPlan component for this tab
         {

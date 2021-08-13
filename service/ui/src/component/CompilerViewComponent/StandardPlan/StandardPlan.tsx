@@ -15,7 +15,10 @@ import leftOuterJoin from '../../../static/images/planOperator/LeftOuterJoin.png
 import outerUnnest from '../../../static/images/planOperator/outer-unest.png';
 import unnest from "../../../static/images/planOperator/Unnest.png";
 import selection from "../../../static/images/planOperator/Selection.png";
-import {useAppSelector} from '../../../redux/Hooks/hooks';
+import {useAppDispatch, useAppSelector} from '../../../redux/Hooks/hooks';
+import ForwardIcon from "@material-ui/icons/Forward";
+import {runStandardPlan} from '../../../redux/QuerySlice/thunkQueryApiCalls';
+import Button from "@material-ui/core/Button";
 
 
 // Here we're using `renderCustomNodeElement` to bind event handlers
@@ -97,7 +100,19 @@ const _colorPicker =(level:string | number | boolean)=>{
 }
 
 const StandardPlan = () => {
-        const treeDiagramData = useAppSelector(state => state.query.standardPlan);
+    const dispatch = useAppDispatch();
+
+    const treeDiagramData = useAppSelector(state => state.query.standardPlan);
+    const selectedQuery = useAppSelector(state => state.query.selectedQuery);
+    const nrcCode = useAppSelector(state => state.query.nrcQuery);
+
+    const handleButtonClick = () => {
+        dispatch(runStandardPlan({
+            _id: selectedQuery!._id,
+            body: nrcCode,
+            title: selectedQuery!.name
+        }))
+    }
     return (
         <Grid item xs={12} direction={"row"} style={{height:700}}>
             <Tree
@@ -112,6 +127,7 @@ const StandardPlan = () => {
                 separation={{siblings:2.25}}
                 zoomable={false}
             />
+            <Button variant={"contained"} color={"primary"} onClick={handleButtonClick} endIcon={<ForwardIcon/>}>Run</Button>
         </Grid>
     )
 }

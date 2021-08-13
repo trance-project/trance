@@ -9,7 +9,8 @@ import {
     NewQuery,
     QuerySummary,
     QueryResponse,
-    ShreddedResponse
+    ShreddedResponse,
+    StandardResponse
 } from "../../utils/Public_Interfaces";
 import {RootState} from '../store'
 import {RawNodeDatum} from "react-d3-tree/lib/types/common";
@@ -237,12 +238,114 @@ export const getStandardPlan = createAsyncThunk(
             ],
         };
         try{
-            const response = await trancePlayInstance.post("/nrccode/run", {...arg});
+            const response = await trancePlayInstance.post("/nrccode/standard", {...arg});
             if(response.status === 201){
                 console.log("[getStandardPlan]", response.data);
-                return treeDiagramData ;
+                return response.data as StandardResponse;
+                // return treeDiagramData ;
             }
-            return treeDiagramData;
+            return undefined;
+        }catch (error){
+            console.log("[Error Occurred getStandardPlan]", error.message)
+            // return treeDiagramData;
+            return thunkAPI.rejectWithValue(error.message)
+        }
+    }
+)
+
+export const runStandardPlan = createAsyncThunk(
+    "query/runStandardPlan", async (arg:BlocklyNrcCode, thunkAPI) => {
+        const treeDiagramData:RawNodeDatum ={
+            name: '',
+            attributes: {
+                newLine: 'sample, mutations',
+                level: '1',
+                planOperator: 'PROJECT'
+            },
+            children: [
+                {
+                    name: '',
+                    attributes: {
+                        newLine: 'mutId, candidates, sID, sample',
+                        level: '2',
+                        planOperator:'NEST'
+                    },
+                    children: [
+                        {
+                            name: '',
+                            attributes: {
+                                newLine: 'gene, score, sID, sample, mutId',
+                                level: '2',
+                                planOperator:'NEST'
+                            },
+                            children: [
+                                {
+                                    name: '', //impact*(cnum+0.01)*sift*poly',
+                                    attributes: {
+                                        newLine:'sample, gene, label, mutId, sID',
+                                        level: '3',
+                                        planOperator:'SUM'
+                                    },
+                                    children:[
+                                        {
+                                            name:'',
+                                            attributes: {
+                                                newLine: 'sample, gene',
+                                                level: '3',
+                                                planOperator:'OUTERJOIN'
+                                            },
+                                            children:[
+                                                {
+                                                    name:'',
+                                                    attributes: {
+                                                        newLine: 'candidates',
+                                                        level: '3',
+                                                        planOperator:'OUTERUNNEST'
+                                                    },
+                                                    children:[
+                                                        {
+                                                            name:'',
+                                                            attributes: {
+                                                                newLine: 'sample',
+                                                                level: '2',
+                                                                planOperator:'OUTERJOIN'
+                                                            },
+                                                            children:[
+                                                                {name: 'Occurrences',
+                                                                    attributes: {
+                                                                        level: '1',
+                                                                    }},
+                                                                {name:'Samples',
+                                                                    attributes: {
+                                                                        level: '1',
+                                                                    }}
+                                                            ]
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    name:'CopyNumber',
+                                                    attributes: {
+                                                        level: '3',
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        };
+        try{
+            const response = await trancePlayInstance.post("/nrccode/run ", {...arg});
+            if(response.status === 201){
+                console.log("[runStandardPlan]", response.data);
+                return  undefined;
+            }
+            return undefined;
         }catch (error){
             console.log("[Error Occurred getStandardPlan]", error.message)
             // return treeDiagramData;
@@ -348,7 +451,7 @@ export const getShreddedPlan = createAsyncThunk(
 
                 return response.data as ShreddedResponse ;
             }
-            return null;
+            return undefined;
         }catch (error){
             console.log("[Error Occurred getShreddedPlan]", error.message)
             // return treeDiagramData;

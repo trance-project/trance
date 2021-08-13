@@ -58,7 +58,7 @@ const Layout = (props:LayoutProps) => {
 
     const queryList = useAppSelector(state => state.query.queryListSummary);
     const querySelected = useAppSelector(state => state.query.selectedQuery);
-    const [standardPlan, shreddedPlan] = useAppSelector(state => [state.query.standardPlan, state.query.shreddedPlan]);
+    const [standardPlan, shreddedResponse] = useAppSelector(state => [state.query.standardPlan, state.query.shreddedResponse]);
 
 
     /**
@@ -88,7 +88,7 @@ const Layout = (props:LayoutProps) => {
                 break;
             }
             case "output": {
-                if(standardPlan || shreddedPlan){
+                if(standardPlan || shreddedResponse){
                     props.goto_Route(pageRoutes.REPORT)
                 }else{
                     e.preventDefault();
@@ -299,7 +299,7 @@ const Layout = (props:LayoutProps) => {
                         {/*        <ListItemText primary={"Schema"} />*/}
                         {/*    </ListItem>*/}
                         {/*</Link>*/}
-                        <NavLink to={'/report'} onClick={(e) => handleNavClick(e,"output")} className={standardPlan || shreddedPlan?"":classes.drawerNavDisable}>
+                        <NavLink to={'/report'} onClick={(e) => handleNavClick(e,"output")} className={standardPlan || shreddedResponse?"":classes.drawerNavDisable}>
                             <ListItem className={props.activePage===pageRoutes.REPORT?classes.drawerPaperActive:classes.drawerNav} button>
                                 <ListItemIcon>
                                     <BarChartIcon/>
