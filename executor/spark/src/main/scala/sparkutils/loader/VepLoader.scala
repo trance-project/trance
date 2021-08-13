@@ -358,7 +358,7 @@ class VepLoader(spark: SparkSession) extends Serializable {
 	
   }
 
-  def storeOccurrences(path: String, dicts: Seq[String] = Seq()) = {
+  def storeOccurrences(path: String, dicts: Seq[String] = Seq(), insert: Boolean = true) = {
 
     val occurrences = spark.read.json(path).as[OccurrenceMid]
 
@@ -376,16 +376,18 @@ class VepLoader(spark: SparkSession) extends Serializable {
       "strand long", s"transcript_consequences $transcriptType").sorted
 
     spark.sql(s"CREATE TABLE IF NOT EXISTS occurrences(${topType.mkString(", ")}) USING hive")
+    
+    if (insert){
+    	occurrences.write.insertInto("occurrences")
 
-    occurrences.write.insertInto("occurrences")
-
-    spark.sql("SELECT * FROM occurrences").show
-
-    if (dicts.nonEmpty) storeDicts(dicts)
+    	spark.sql("SELECT * FROM occurrences").show
+    }
+    
+    if (dicts.nonEmpty) storeDicts(dicts, insert = insert)
 
   }
 
-  def storeDicts(dicts: Seq[String]) = {
+  def storeDicts(dicts: Seq[String], insert: Boolean = true) = {
 
   	val odict1 = spark.read.json(dicts(0)).as[OccurrDict1]
   	val odict2 = spark.read.json(dicts(1)).as[OccurTransDict2Mid]
@@ -400,10 +402,11 @@ class VepLoader(spark: SparkSession) extends Serializable {
 
     spark.sql(s"CREATE TABLE IF NOT EXISTS odict1(${topType.mkString(", ")}) USING hive")
     
-    odict1.write.insertInto("odict1")
+    if (insert){
+    	odict1.write.insertInto("odict1")
 
-    spark.sql("SELECT * FROM odict1").show
-    
+    	spark.sql("SELECT * FROM odict1").show
+    }
     val ttypes = List("amino_acids: string", "case_id: string", "cdna_end: long", "cdna_start: long", "cds_end: long",
       "cds_start: long", "codons: string", "consequence_terms: string", "distance: long", 
       "exon: string", "flags: ARRAY<string>", "gene_id: string", "impact: string", "intron: string", 
@@ -412,16 +415,19 @@ class VepLoader(spark: SparkSession) extends Serializable {
     
     spark.sql(s"CREATE TABLE IF NOT EXISTS odict2(${ttypes.mkString(", ")}) USING hive")
     
-    odict2.write.insertInto("odict2")
+    if (insert){
+    	odict2.write.insertInto("odict2")
 
-    spark.sql("SELECT * FROM odict2").show
-    
+    	spark.sql("SELECT * FROM odict2").show
+    }
+
     spark.sql(s"CREATE TABLE IF NOT EXISTS odict3(_1 string, element string) USING hive")
     
-    odict3.write.insertInto("odict3")
+    if (insert){    
+    	odict3.write.insertInto("odict3")
 
-    spark.sql("SELECT * FROM odict3").show
-
+    	spark.sql("SELECT * FROM odict3").show
+    }
   }
 
   private def callCategory(g: Genotype): Int = g match {

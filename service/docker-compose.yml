@@ -26,4 +26,5 @@ services:
       ZEPPELIN_IN_DOCKER: "true"
     volumes: 
       - ./lib:/app
-
+      - ./spark-warehouse:/spark-warehouse
+      - /Users/jac/data/dlbc:/data

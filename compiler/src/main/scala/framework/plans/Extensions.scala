@@ -37,7 +37,7 @@ trait Extensions {
   def fapply(e: CExpr, funct: PartialFunction[CExpr, CExpr]): CExpr = 
     funct.applyOrElse(e, (ex: CExpr) => ex match {
 
-      case CDeDup(e1) => CDeDup(fapply(e1, funct))
+      case CDeDup(e1, l) => CDeDup(fapply(e1, funct), l)
       case CGroupBy(e1, v1, keys, values) => CGroupBy(fapply(e1, funct), v1, keys, values)
       case CReduceBy(e1, v1, keys, values) => CReduceBy(fapply(e1, funct), v1, keys, values)
 

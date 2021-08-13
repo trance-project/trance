@@ -35,6 +35,10 @@ object Printer {
     // }    
     case If(c, e1, e2) => s"if (${quoteNoVar(c)}) ..."
     case _:Variable => ""
+    case AddIndex(i, n) => quoteNoVar(i)
+    case FlatDict(e1) => quoteNoVar(e1)
+    case GroupDict(e1) => quoteNoVar(e1)
+    case InputRef(n, _) => n
     case _ => quote(e)
   }
 
@@ -72,7 +76,7 @@ object Printer {
       case px => s"{ ${quote(e)} | ${v.quote} <- ${quote(e1)}, ${quote(px)} }"
     }
     case Bind(x, e1, e2) => s"{ ${quote(e2)} | ${quote(x)} := ${quote(e1)} }"
-    case CDeDup(e1) => s"DeDup(${quote(e1)})"
+    case CDeDup(e1, l) => s"DeDup(${quote(e1)})"
     case CGroupBy(e1, v, grp, value) => s"(${quote(e1)}).groupBy(${grp.mkString(",")}; ${value.mkString(",")})"
     case CReduceBy(e1, v, grp, value) => s"(${quote(e1)}).reduceBy(${grp.mkString(",")}; ${value.mkString(",")})"
     case CNamed(n, e) => named(n, quote(e))

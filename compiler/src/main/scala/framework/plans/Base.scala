@@ -34,7 +34,7 @@ trait Base {
   def ifthen(cond: Rep, e1: Rep, e2: Option[Rep] = None): Rep
   def merge(e1: Rep, e2: Rep): Rep
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep
-  def dedup(e1: Rep): Rep
+  def dedup(e1: Rep, level: Int): Rep
   def bind(e1: Rep, e: Rep => Rep): Rep 
   def groupby(e1: Rep, g: List[String], v: List[String]): Rep
   def reduceby(e1: Rep, g: List[String], v: List[String]): Rep
@@ -118,7 +118,7 @@ trait BaseStringify extends Base{
       case px => s"{ ${e(x.quote)} | ${x.quote} <- ${e1}, ${px} }"
     } 
   }
-  def dedup(e1: Rep): Rep = s"DeDup(${e1})"
+  def dedup(e1: Rep, level: Int): Rep = s"DeDup(${e1})"
   def named(n: String, e: Rep): Rep = s"${n} := ${e}"
   def linset(e: List[Rep]): Rep = e.mkString("\n\n")
 
@@ -185,9 +185,9 @@ trait BaseCompiler extends Base {
     val v = Variable.fresh(e1.tp.asInstanceOf[BagCType].tp)
     Comprehension(e1, v, p(v), e(v))
   }
-  def dedup(e1: Rep): Rep = {
+  def dedup(e1: Rep, level: Int): Rep = {
     assert(!e1.tp.isInstanceOf[PrimitiveType])
-    CDeDup(e1)
+    CDeDup(e1, level)
   }
   def bind(e1: Rep, e: Rep => Rep): Rep = {
       val v = Variable.fresh(e1.tp)
@@ -260,7 +260,7 @@ trait BaseCompiler extends Base {
 
 }
 
-trait ShredOptimizer extends BaseCompiler {
+trait ShredOptimizer extends BaseNormalizer {
   override def addindex(in: Rep, name: String): Rep = in
 }
 
@@ -414,7 +414,7 @@ trait BaseANF extends Base {
   }
   def merge(e1: Rep, e2: Rep): Rep = compiler.merge(e1, e2)
   def comprehension(e1: Rep, p: Rep => Rep, e: Rep => Rep): Rep = compiler.comprehension(e1, p, e)
-  def dedup(e1: Rep): Rep = compiler.dedup(e1)
+  def dedup(e1: Rep, level: Int): Rep = compiler.dedup(e1, level)
   def bind(e1: Rep, e: Rep => Rep): Rep = compiler.bind(e1, e)
   def groupby(e1: Rep, g: List[String], v: List[String]): Rep = compiler.groupby(e1, g, v)
   def reduceby(e1: Rep, g: List[String], v: List[String]): Rep = compiler.reduceby(e1, g, v)
@@ -513,7 +513,7 @@ class Finalizer(val target: Base){
     case Comprehension(e1, v, p, e) =>
       target.comprehension(finalize(e1), (r: target.Rep) => withMap(v -> r)(finalize(p)), 
         (r: target.Rep) => withMap(v -> r)(finalize(e)))
-    case CDeDup(e1) => target.dedup(finalize(e1))
+    case CDeDup(e1, l) => target.dedup(finalize(e1), l)
     case Bind(x, e1, e) =>
       target.bind(finalize(e1), (r: target.Rep) => withMap(x -> r)(finalize(e)))
     case CGroupBy(e1, v2, g, v) => target.groupby(finalize(e1), g, v)

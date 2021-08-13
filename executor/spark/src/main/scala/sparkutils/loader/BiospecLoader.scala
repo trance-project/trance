@@ -42,7 +42,7 @@ class BiospecLoader(spark: SparkSession) extends Table[Biospec] {
        .csv(path).na.drop.as[Biospec].repartition(Config.minPartitions)
    }
 
-   def store(path: String) = {
+   def store(path: String, insert: Boolean = true, name: String = "samples") = {
 
     val samples = load(path)
     val stype = List(
@@ -54,14 +54,15 @@ class BiospecLoader(spark: SparkSession) extends Table[Biospec] {
       "plate_id string", "plate_row string",
       "quantity double", "source_center int", "volume double")
 
-    spark.sql(s"""CREATE TABLE IF NOT EXISTS samples(${stype.mkString(", ")}) USING hive""")
+    spark.sql(s"""CREATE TABLE IF NOT EXISTS $name(${stype.mkString(", ")}) USING hive""")
 
     // insert into hive
-    samples.write.insertInto("samples")
+   if (insert){ 
+	samples.write.insertInto(name)
 
-    // validate
-    spark.sql("SELECT * FROM samples").show
-
+    	// validate
+    	spark.sql(s"SELECT * FROM $name").show
+    }
   }
 
 }
