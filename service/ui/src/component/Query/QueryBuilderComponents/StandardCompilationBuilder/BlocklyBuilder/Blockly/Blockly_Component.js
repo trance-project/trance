@@ -23,7 +23,7 @@ class TestEditor extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            toolboxCategories: parseWorkspaceXml(ConfigFiles.INITIAL_TOOLBOX_XML),
+            toolbox: (ConfigFiles.INITIAL_TOOLBOX),
             blocklyXml: "",
             nrcCode: ""
         };
@@ -131,7 +131,7 @@ class TestEditor extends React.Component {
                     <Grid item md={9} xs={12}>
                         <ReactBlockly
                             key={selectedQueryBlock._id}
-                            toolboxCategories={this.state.toolboxCategories}
+                            toolboxBlocks={this.state.toolbox}
                             workspaceConfiguration={{
                                 grid: {
                                     spacing: 20,

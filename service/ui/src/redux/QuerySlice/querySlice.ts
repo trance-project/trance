@@ -1,5 +1,5 @@
 import {createSlice, PayloadAction} from "@reduxjs/toolkit";
-import {QuerySummary, NewQuery, QueryResponse} from "../../utils/Public_Interfaces";
+import {QuerySummary, NewQuery, QueryResponse, ShreddedResponse} from "../../utils/Public_Interfaces";
 import * as api from './thunkQueryApiCalls';
 import {RawNodeDatum} from "react-d3-tree/lib/types/common";
 
@@ -12,7 +12,7 @@ interface QueryState {
     responseQuery: NewQuery | undefined;
     nrcQuery: string;
     standardPlan: RawNodeDatum | undefined;
-    shreddedPlan: RawNodeDatum[] | undefined;
+    shreddedPlan: ShreddedResponse | undefined;
 
 }
 
@@ -84,8 +84,11 @@ export const querySlice = createSlice({
         builder.addCase(api.getStandardPlan.fulfilled, (state, action:PayloadAction<RawNodeDatum> ) => {
             state.standardPlan = action.payload;
         });
-        builder.addCase(api.getShreddedPlan.fulfilled, (state, action:PayloadAction<RawNodeDatum[]> ) => {
-            state.shreddedPlan = action.payload;
+        builder.addCase(api.getShreddedPlan.fulfilled, (state, action:PayloadAction<ShreddedResponse| null> ) => {
+
+            if(action.payload){
+                state.shreddedPlan = action.payload;
+            }
         });
 
     }
