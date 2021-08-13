@@ -113,12 +113,35 @@ object JsonWriter {
 				|	"children": [${produceJsonString(d.in)}]
 				|}
 			""".stripMargin 
+		case r:CReduceBy => 
+			s"""
+				|{
+				|	"name": "${r.values.mkString("\",\"")}, LOCAL",
+				|	"attributes": {
+				|		"planOperator": "SUM",
+				|		"level": 0,
+				| 	"newLine": [ "${r.keys.mkString("\",\"")}" ]
+				|	},
+				|	"children": [${produceJsonString(r.e1)}]
+				|}
+			""".stripMargin
 		case i:AddIndex => produceJsonString(i.e) //TODO pass through for now
 		case c:CNamed => s"""${produceJsonString(c.e)}""" //TODO pass through for now
 		case p:LinearCSet => s"""[${p.exprs.map(x => produceJsonString(x)).mkString(",")}]"""
 		case FlatDict(e1) => produceJsonString(e1)
 		case GroupDict(e1) => produceJsonString(e1)
-		case _ => s"""{"todo": "${Printer.quoteNoVar(plan)}"}"""
+		case i:InputRef => 
+			s"""
+				|{
+				|	"name": "${i.data}",
+				|	"attributes": {
+				|		"level": 0,
+				| 	"newLine": []
+				|	},
+				|	"children": []
+				|}
+				""".stripMargin
+		case _ => s"""{"todo": "$plan"}"""
 	}
 
 }
@@ -152,7 +175,7 @@ object JsonWriterTest extends App with Printer with Materialization  with Materi
     }else program
 
 		val ncalc = normalizer.finalize(translate(compiled)).asInstanceOf[CExpr]
-		optimizer.applyPush(Unnester.unnest(ncalc)(Map(), Map(), None, "_2")).asInstanceOf[LinearCSet]
+		optimizer.applyAll(Unnester.unnest(ncalc)(Map(), Map(), None, "_2")).asInstanceOf[LinearCSet]
 	}
 
 	val queryComplicate = 
@@ -215,11 +238,11 @@ object JsonWriterTest extends App with Printer with Materialization  with Materi
     val querySimple2 = 
       s"""
         QuerySimple2 <=
-        for s in samples union 
-        {(sample := s.bcr_patient_uuid, mutations := 
-              (for o in occurrences union
-                for t in o.transcript_consequences union
-                  {( gene := t.gene_id, score := t.polyphen_score )}).sumBy({gene}, {score}) )}
+					for s in samples union
+   					{(  sid := s.bcr_patient_uuid, mutations :=
+							(  for o in occurrences union
+           				for cc in o.transcript_consequences union
+             				{(  gene := cc.gene_id, score := cc.polyphen_score)}).sumBy({gene}, {score}))}
       """    // val query2 = parser.parse(simple).get
     // val plan2 = getPlan(query2.asInstanceOf[Program])
     val plan2 = getPlan(querySimple2, shred = false)
