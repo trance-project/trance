@@ -10,7 +10,8 @@ import {
     QuerySummary,
     QueryResponse,
     ShreddedResponse,
-    StandardResponse
+    StandardResponse,
+    NotepadResponse
 } from "../../utils/Public_Interfaces";
 import {RootState} from '../store'
 import {RawNodeDatum} from "react-d3-tree/lib/types/common";
@@ -343,7 +344,7 @@ export const runStandardPlan = createAsyncThunk(
             const response = await trancePlayInstance.post("/nrccode/run ", {...arg});
             if(response.status === 201){
                 console.log("[runStandardPlan]", response.data);
-                return  undefined;
+                return  response.data as NotepadResponse;
             }
             return undefined;
         }catch (error){

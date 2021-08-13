@@ -1,5 +1,5 @@
 import {createSlice, PayloadAction} from "@reduxjs/toolkit";
-import {QuerySummary, NewQuery, QueryResponse, ShreddedResponse,StandardResponse} from "../../utils/Public_Interfaces";
+import {QuerySummary, NewQuery, QueryResponse, ShreddedResponse,StandardResponse, NotepadResponse} from "../../utils/Public_Interfaces";
 import * as api from './thunkQueryApiCalls';
 import {RawNodeDatum} from "react-d3-tree/lib/types/common";
 
@@ -13,6 +13,7 @@ interface QueryState {
     nrcQuery: string;
     standardPlan: RawNodeDatum | undefined;
     shreddedResponse: ShreddedResponse | undefined;
+    notepadUrl: string;
 
 }
 
@@ -25,7 +26,9 @@ const initialState: QueryState = {
     responseQuery: undefined,
     nrcQuery: "",
     shreddedResponse: undefined,
-    standardPlan: undefined
+    standardPlan: undefined,
+    notepadUrl: ""
+
 }
 
 /**
@@ -69,6 +72,12 @@ export const querySlice = createSlice({
                 // if(action.payload.standard_plan.length > 0){
                 //     state.standardPlan = action.payload.standard_plan[0];
                 // }
+            }
+        });
+        builder.addCase(api.runStandardPlan.fulfilled, (state, action: PayloadAction<NotepadResponse|undefined>) => {
+            console.log("[passHERE!!!!]", action.payload)
+            if(action.payload){
+                    state.notepadUrl = action.payload.nodepad_url;
             }
         });
         builder.addCase(api.blocklyCreateNew.fulfilled, (state, action: PayloadAction<QuerySummary>) => {

@@ -123,6 +123,10 @@ export interface StandardResponse {
     standard_plan: RawNodeDatum[]
 }
 
+export interface NotepadResponse {
+    nodepad_url: string;
+}
+
 export interface planDemoOutput{
     sample: string;
     mutations:mutation[];

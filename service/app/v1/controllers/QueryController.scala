@@ -133,7 +133,7 @@ class QueryController @Inject()(
     val para = new ZJsonWriter().buildParagraph("Generated paragraph test", pcontents)
     val pid = zep.writeParagraph(noteid, para)
      val status = zep.runParaSync(noteid, pid)
-    pid
+    noteid
 
   }
 
@@ -232,7 +232,7 @@ class QueryController @Inject()(
 
         val runstatus = runProgram(plan, name, shred = isShred)
 
-        val responseBody = s"""{"status": $plan}"""
+        val responseBody = s"""{"nodepad_url": "#/notebook/$runstatus"}"""
 
         queryRepository.addEntity(query).map{ _ =>
           Created(responseBody)

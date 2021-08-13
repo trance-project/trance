@@ -30,6 +30,7 @@ const CompilerView =()=> {
     const query = useAppSelector(state => state.query.selectedQuery);
     const shreddedPlan = useAppSelector(state => state.query.shreddedResponse);
     const standardPlan = useAppSelector(state => state.query.standardPlan);
+    const notepadUrl = useAppSelector(state => state.query.notepadUrl);
 
 
     let hoverTimeout: NodeJS.Timeout;
@@ -83,7 +84,7 @@ const CompilerView =()=> {
                         abortHover={abortHoverHandler}
                     />
 
-                    <Button className={classes.queryBtnGroup} variant={"outlined"} color={"primary"} endIcon={<NoteIcon />} onClick={()=> window.open(config.zepplineURL+'/#/notebook/2GES6WHWT',"_blank")}>Notebook</Button>
+                    <Button className={classes.queryBtnGroup} variant={"outlined"} color={"primary"} endIcon={<NoteIcon />} onClick={()=> window.open(config.zepplineURL+`${notepadUrl}`,"_blank")}>Notebook</Button>
                     <Button className={classes.queryBtnGroup} variant={"contained"} color={"primary"} onClick={handleOpenCompilationDialogState} endIcon={<ForwardIcon/>}>Compile</Button>
                 </React.Fragment>
             )
