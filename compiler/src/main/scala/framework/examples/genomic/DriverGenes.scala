@@ -16,6 +16,30 @@ import framework.examples.Query
   * CancerAdditional.scala.
   **/
 
+trait Pathway {
+
+  val genename = TupleType("name" -> StringType)
+  val pathtype = TupleType("p_name" -> StringType, "url" -> StringType, "gene_set" -> BagType(genename))
+
+  def loadPathway(shred: Boolean = false, skew: Boolean = false, fname: String = ""): String = {
+    if (shred){
+      s"""|val ploader = new PathwayLoader(spark)
+          |val pathways = ploader.shred("$fname")
+          |val IBag_pathways__D = pathways._1
+          |val IMap_pathways__D_gene_set = pathways._2
+          |IBag_pathways__D.cache; IBag_pathways__D.count
+          |IMap_pathways__D_gene_set.cache; IMap_pathways__D_gene_set.count
+      """
+    }else{
+      s"""|val ploader = new PathwayLoader(spark)
+          |val pathways = ploader.load("$fname")
+          |pathways.cache; pathways.count
+      """      
+    }
+  }
+
+}
+
 trait Mutations {
   
   def loadMutations(shred: Boolean = false, skew: Boolean = false): String = {
@@ -27,17 +51,17 @@ trait Mutations {
   		|val IBag_annotations__D = adict1
   		|IBag_annotations__D.cache
   		|IBag_annotations__D.count
-  		|val IDict_annotations__D_transcript_consequences = adict2 
-  		|IDict_annotations__D_transcript_consequences.cache
-  		|IDict_annotations__D_transcript_consequences.count
-  		|val IDict_annotations__D_transcript_consequences_consequence_terms = adict3
-  		|IDict_annotations__D_transcript_consequences_consequence_terms.cache
-  		|IDict_annotations__D_transcript_consequences_consequence_terms.count"""
+  		|val IMap_annotations__D_transcript_consequences = adict2 
+  		|IMap_annotations__D_transcript_consequences.cache
+  		|IMap_annotations__D_transcript_consequences.count
+  		|val IMap_annotations__D_transcript_consequences_consequence_terms = adict3
+  		|IMap_annotations__D_transcript_consequences_consequence_terms.cache
+  		|IMap_annotations__D_transcript_consequences_consequence_terms.count"""
 	else
 	  s"""|mutations.cache
-		  |mutations.count
-		  |annotations.cache
-		  |annotations.cache"""
+  		  |mutations.count
+  		  |annotations.cache
+  		  |annotations.cache"""
 
 	s"""|val mafLoader = new MAFLoader(spark)
   		|val vepLoader = new VepLoader(spark)
@@ -113,35 +137,35 @@ trait Occurrence extends Vep {
       "transcript_consequences" -> BagType(transcriptFull)
     )
 
-    def loadOccurrence(shred: Boolean = false, skew: Boolean = false): String = {
-    	 val basepath = "/nfs_qc4/genomics/gdc/"
+    def loadOccurrence(shred: Boolean = false, skew: Boolean = false, fname: String = "", 
+      iname: String = "", dictNames: (String, String, String) = ("odict1", "odict2", "odict3")): String = {
     	val loadFun = if (skew) "shredSkew" else "shred"
       val odict = (i: Int) => if (skew) s"(odict$i, odict$i.empty)" else s"odict$i"
     	if (shred){
-	    	s"""|val odict1 = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/odictBrca1/").as[OccurrDict1]
+	    	s"""|val odict1 = spark.read.json(s"$fname/${dictNames._1}/").as[OccurrDict1]
             |val IBag_occurrences__D = ${odict(1)}
     				|IBag_occurrences__D.cache
     				|IBag_occurrences__D.count
-            |val odict2 = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/odictBrca2/").as[OccurTransDict2Mid]
-            |val IDict_occurrences__D_transcript_consequences = ${odict(2)}
-    				|IDict_occurrences__D_transcript_consequences.cache
-    				|IDict_occurrences__D_transcript_consequences.count
-            |val odict3 = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/odictBrca3/").as[OccurrTransConseqDict3]
-            |val IDict_occurrences__D_transcript_consequences_consequence_terms = ${odict(3)}
-    				|IDict_occurrences__D_transcript_consequences_consequence_terms.cache
-    				|IDict_occurrences__D_transcript_consequences_consequence_terms.count
+            |val odict2 = spark.read.json(s"$fname/${dictNames._2}/").drop("flags").as[OccurTransDict2Mid]
+            |val IMap_occurrences__D_transcript_consequences = ${odict(2)}
+    				|IMap_occurrences__D_transcript_consequences.cache
+    				|IMap_occurrences__D_transcript_consequences.count
+            |val odict3 = spark.read.json("$fname/${dictNames._3}/").as[OccurrTransConseqDict3]
+            |val IMap_occurrences__D_transcript_consequences_consequence_terms = ${odict(3)}
+    				|IMap_occurrences__D_transcript_consequences_consequence_terms.cache
+    				|IMap_occurrences__D_transcript_consequences_consequence_terms.count
     				|""".stripMargin
     	}else if (skew){
-    		s"""|val occurrences_L = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/datasetBrca/").as[OccurrenceMid]
+    		s"""|val occurrences_L = spark.read.json("$fname/$iname/").as[OccurrenceMid]
             |val occurrences = (occurrences_L, occurrences_L.empty)
     				|occurrences.cache
     				|occurrences.count
     				|""".stripMargin
     	}else{
-			s"""|val occurrences = spark.read.json("file:///nfs_qc4/genomics/gdc/somatic/datasetBrca/").as[OccurrenceMid]
-          |occurrences.cache
-  				|occurrences.count
-  				|""".stripMargin
+  			s"""|val occurrences = spark.read.json(s"$fname/$iname/").as[OccurrenceMid]
+            |occurrences.cache
+    				|occurrences.count
+    				|""".stripMargin
     	}
     }
 
@@ -161,9 +185,9 @@ trait Gistic {
     			|val IBag_gistic__D = gdict1
     			|IBag_gistic__D.cache
     			|IBag_gistic__D.count
-    			|val IDict_gistic__D_gistic_samples = gdict2
-    			|IDict_gistic__D_gistic_samples.cache
-    			|IDict_gistic__D_gistic_samples.count""".stripMargin
+    			|val IMap_gistic__D_gistic_samples = gdict2
+    			|IMap_gistic__D_gistic_samples.cache
+    			|IMap_gistic__D_gistic_samples.count""".stripMargin
   	}else if (skew)
 	  	s"""|val gistic_L = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
     			|					.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
@@ -225,9 +249,9 @@ trait StringNetwork {
           |val IBag_network__D = network._1
           |IBag_network__D.cache
           |IBag_network__D.count
-          |val IDict_network__D_edges = network._2
-          |IDict_network__D_edges.cache
-          |IDict_network__D_edges.count
+          |val IMap_network__D_edges = network._2
+          |IMap_network__D_edges.cache
+          |IMap_network__D_edges.count
           |""".stripMargin
     }else if (skew){
       s"""|val stringLoader = new NetworkLoader(spark)
@@ -302,31 +326,30 @@ trait GeneProteinMap {
 
 trait GeneExpression {
 
-  def loadGeneExpr(shred: Boolean = false, skew: Boolean = false): String = {
+  def loadGeneExpr(shred: Boolean = false, skew: Boolean = false, fname: String = "", aname: String = ""): String = {
     if (shred){
-    val geneLoad = if (skew) "(expression, expression.empty)" else "expression"
-    s"""|val geLoader = new GeneExpressionLoader(spark)
-        |val expression = geLoader.load("/nfs_qc4/genomics/gdc/fpkm_uq/", true)
-        |       .withColumn("ge_gene_id", substring(col("ge_gene_id"), 1,15)).as[GeneExpression]
-        |val IBag_expression__D = $geneLoad
-        |IBag_expression__D.cache
-        |IBag_expression__D.count""".stripMargin
+      val geneLoad = if (skew) "(expression, expression.empty)" else "expression"
+      s"""|val geLoader = new GeneExpressionLoader(spark)
+          |val expression = geLoader.load("$fname", true, aliquotFile = "$aname")
+          |       .withColumn("ge_gene_id", substring(col("ge_gene_id"), 1,15)).as[GeneExpression]
+          |val IBag_expression__D = $geneLoad
+          |IBag_expression__D.cache
+          |IBag_expression__D.count""".stripMargin
     }else if (skew)
-    s"""|val geLoader = new GeneExpressionLoader(spark)
-        |val expression_L = geLoader.load("/nfs_qc4/genomics/gdc/fpkm_uq/", true)
-        |       .withColumn("ge_gene_id", substring(col("ge_gene_id"), 1,15)).as[GeneExpression]
-        |val expression = (expression_L, expression_L.empty)
-        |expression.cache
-        |expression.count""".stripMargin
+      s"""|val geLoader = new GeneExpressionLoader(spark)
+          |val expression_L = geLoader.load("$fname", true, aliquotFile = "$aname")
+          |       .withColumn("ge_gene_id", substring(col("ge_gene_id"), 1,15)).as[GeneExpression]
+          |val expression = (expression_L, expression_L.empty)
+          |expression.cache
+          |expression.count""".stripMargin
     else
-    s"""|val geLoader = new GeneExpressionLoader(spark)
-        |val expression = geLoader.load("/nfs_qc4/genomics/gdc/fpkm_uq/", true)
-        |       .withColumn("ge_gene_id", substring(col("ge_gene_id"), 1,15)).as[GeneExpression]
-        |expression.cache
-        |expression.count""".stripMargin
+      s"""|val geLoader = new GeneExpressionLoader(spark)
+          |val expression = geLoader.load("$fname", true, aliquotFile = "$aname")
+          |       .withColumn("ge_gene_id", substring(col("ge_gene_id"), 1,15)).as[GeneExpression]
+          |expression.cache
+          |expression.count""".stripMargin
 
   }
-
   val geneExprType = TupleType("expr_gene" -> StringType, "fpkm" -> DoubleType)
   val sampleExprType = TupleType("expr_sample" -> StringType, "gene_expression" -> BagType(geneExprType))
 
@@ -336,25 +359,25 @@ trait GeneExpression {
 
 trait CopyNumber {
 
-	def loadCopyNumber(shred: Boolean = false, skew: Boolean = false): String = {
+	def loadCopyNumber(shred: Boolean = false, skew: Boolean = false, fname: String = ""): String = {
 		if (shred){
 		val copynumLoad = if (skew) "(copynumber, copynumber.empty)" else "copynumber"
 		s"""|val cnLoader = new CopyNumberLoader(spark)
-  			|val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+  			|val copynumber = cnLoader.load("$fname", true)
   			|				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
   			|val IBag_copynumber__D = $copynumLoad
   			|IBag_copynumber__D.cache
   			|IBag_copynumber__D.count""".stripMargin
 		}else if (skew)
 		s"""|val cnLoader = new CopyNumberLoader(spark)
-  			|val copynumber_L = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+  			|val copynumber_L = cnLoader.load("$fname", true)
   			|				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
   			|val copynumber = (copynumber_L, copynumber_L.empty)
   			|copynumber.cache
   			|copynumber.count""".stripMargin
 		else
 		s"""|val cnLoader = new CopyNumberLoader(spark)
-  			|val copynumber = cnLoader.load("/nfs_qc4/genomics/gdc/gene_level/brca/", true)
+  			|val copynumber = cnLoader.load("$fname", true)
   			|				.withColumn("cn_gene_id", substring(col("cn_gene_id"), 1,15)).as[CopyNumber]
   			|copynumber.cache
   			|copynumber.count""".stripMargin
@@ -369,52 +392,6 @@ trait CopyNumber {
 		("max_copy_number", IntType), ("cn_aliquot_uuid", StringType))
 
 	val copyNumberType = TupleType(copyNumberOrderedType.toMap)
-
-}
-
-trait Biospecimen {
-
-  val biospecOtype = List(
-    ("bcr_patient_uuid", StringType), ("bcr_sample_barcode", StringType), 
-    ("bcr_aliquot_barcode", StringType), ("bcr_aliquot_uuid", StringType), 
-    ("biospecimen_barcode_bottom", StringType), ("center_id", StringType), 
-    ("concentration", DoubleType), ("date_of_shipment", StringType), 
-    ("is_derived_from_ffpe", StringType), ("plate_column", IntType),
-    ("plate_id", StringType), ("plate_row", StringType), 
-    ("quantity", DoubleType), ("source_center", IntType), 
-    ("volume", DoubleType))
-  val biospecType = TupleType(biospecOtype.toMap)
-
-  def loadBiospec(shred: Boolean = false, skew: Boolean = false, name: String = "biospec"): String = {
-    if (shred) loadShredBiospec(skew, name)
-    else if (skew) {
-    s"""|val basepath = "/nfs_qc4/genomics/gdc/"
-        |val biospecLoader = new BiospecLoader(spark)
-        |val ${name}_L = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
-        |val $name = (biospec_L, biospec_L.empty)
-        |$name.cache
-        |$name.count
-        |""".stripMargin
-  }else{
-    s"""|val basepath = "/nfs_qc4/genomics/gdc/"
-        |val biospecLoader = new BiospecLoader(spark)
-        |val $name = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
-        |$name.cache
-        |$name.count
-        |""".stripMargin
-    }
-  }
-
-  def loadShredBiospec(skew: Boolean = false, name: String = "biospec"): String = {
-    val biospecLoad = if (skew) "($name, $name.empty)" else name
-  s"""|val basepath = "/nfs_qc4/genomics/gdc/"
-      |val biospecLoader = new BiospecLoader(spark)
-      |val $name = biospecLoader.load("/nfs_qc4/genomics/gdc/biospecimen/aliquot/")
-      |val IBag_${name}__D = $biospecLoad
-      |IBag_${name}__D.cache
-      |IBag_${name}__D.count
-      |""".stripMargin
-  }
 
 }
 
@@ -471,27 +448,27 @@ trait GTFMap {
   val gtfType = TupleType("g_contig" -> StringType, "g_start" -> IntType, 
     "g_end" -> IntType, "g_gene_name" -> StringType, "g_gene_id" -> StringType)
 
-  def loadGtfTable(shred: Boolean = false, skew: Boolean = false): String = {
+  def loadGtfTable(shred: Boolean = false, skew: Boolean = false, fname: String = ""): String = {
     if (shred){
       val gtfLoad = if (skew) "(gtf, gtf.empty)" else "gtf"
-      s"""|val gtfLoader = new GTFLoader(spark, "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf")
+      s"""|val gtfLoader = new GTFLoader(spark, "$fname")
           |val gtf = gtfLoader.loadDS
-          |val IBag_gtf__D = $gtfLoad
-          |IBag_gtf__D.cache
-          |IBag_gtf__D.count
+          |val IBag_genemap__D = $gtfLoad
+          |IBag_genemap__D.cache
+          |IBag_genemap__D.count
           |""".stripMargin
     } else if (skew){
-      s"""|val gtfLoader = new GTFLoader(spark, "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf")
-          |val gtf0 = gtfLoader.loadDS
-          |val gtf = (gtf0, gtf0.empty)
-          |gtf.cache
-          |gtf.count
+      s"""|val gtfLoader = new GTFLoader(spark, "$fname")
+          |val genemap0 = gtfLoader.loadDS
+          |val genemap = (genemap0, genemap0.empty)
+          |genemap.cache
+          |genemap.count
           |""".stripMargin
     }else{
-      s"""|val gtfLoader = new GTFLoader(spark, "/nfs_qc4/genomics/Homo_sapiens.GRCh37.87.chr.gtf")
-          |val gtf = gtfLoader.loadDS
-          |gtf.cache
-          |gtf.count
+      s"""|val gtfLoader = new GTFLoader(spark, "$fname")
+          |val genemap = gtfLoader.loadDS
+          |genemap.cache
+          |genemap.count
           |""".stripMargin
     }
   }
@@ -531,7 +508,7 @@ trait Consequences {
 
 trait DriverGene extends Query with Occurrence with Gistic with StringNetwork 
   with GeneExpression with Biospecimen with SOImpact with GeneProteinMap 
-  with CopyNumber with TCGAClinical with GTFMap with Mutations with Consequences{
+  with CopyNumber with TCGAClinical with GTFMap with Mutations with Consequences with Pathway{
   
   val basepath = "/nfs_qc4/genomics/gdc/"
   
@@ -590,6 +567,8 @@ trait DriverGene extends Query with Occurrence with Gistic with StringNetwork
 
   val gtf = BagVarRef("gtf", BagType(gtfType))
   val gtfr = TupleVarRef("gene", gtfType)
+
+  val pathway = BagVarRef("pathways", BagType(pathtype))
 
   val matchImpact = NumericIfThenElse(Cmp(OpEq, ar("impact"), Const("HIGH", StringType)),
 	                  NumericConst(0.8, DoubleType),

@@ -2,6 +2,7 @@ package framework.examples.tpch
 
 import framework.common._
 import framework.utils.Utils.Symbol
+import framework.nrc.Parser
 
 /** This document contains additional TPC-H queries 
   * that have been used throughout the development 
@@ -9,6 +10,53 @@ import framework.utils.Utils.Symbol
   * 
   * This also includes queries from Slender (previously SlenderQueries.scala).
   */
+
+  object SimpleTest extends TPCHBase {
+  
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String = ""
+
+  val name = "SimpleTest"
+  
+  val tbls = Set()
+  val tbls2 = Map("Customer" -> TPCHSchema.customertype,
+                 "Order" -> TPCHSchema.orderstype)
+
+  // all samples that have a TP53 mutation with non-high impact
+  val thisQuery = 
+    s"""
+      Query1 <=
+        for c in Customer union 
+          if (c.c_name = "test1")
+          then {(cname := c.c_name, c_orders := for o in Order union
+            if (c.c_custkey = o.o_custkey)
+            then {( orderkey := o.o_orderkey )})}
+    """
+
+    val parser = Parser(tbls2)
+    val program: Program = parser.parse(thisQuery).get.asInstanceOf[Program]
+
+}
+
+object SimpleTest2 extends TPCHBase {
+  
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String = ""
+
+  val name = "SimpleTest2"
+  
+  val tbls = Set("Lineitem")
+  val tbls2 = Map("Lineitem" -> TPCHSchema.lineittype)
+
+  val query = 
+    s"""
+      SimpleTest2 <=
+        (for l in Lineitem union 
+          {(l_linenum := l.l_linenumber, l_qty := l.l_quantity )}).groupBy({l_linenum}, {l_qty}, "aaa")
+    """
+
+    val parser = Parser(tbls2)
+    val program: Program = parser.parse(query).get.asInstanceOf[Program]
+
+}
 
 
 

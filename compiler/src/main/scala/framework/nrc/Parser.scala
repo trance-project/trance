@@ -45,12 +45,18 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
   /** Variable references
     * Numeric and Primitive var references need implemented
     **/  
+  def vardef: Parser[String] = ident ^^ 
+    { case (s:String) => s}
   def tuplevarref: Parser[String] = ident ^^
     { case (s: String) => s }
   def tupvarref: Parser[TupleVarRef] = ident ^^ 
     { case (s: String) => defToRef(s) }
+
+  def bagvarrefs: Parser[String] = ident ^^
+    { case (s:String) => s}
   def bagvarref: Parser[BagVarRef] = ident ^^
-    { case (s: String) => BagVarRef(s, scope(s).tp.asInstanceOf[BagType]) }
+    { case (s: String) => 
+        BagVarRef(s, scope(s).tp.asInstanceOf[BagType]) }
 
   def project: Parser[TupleAttributeExpr] = tuplevarref~"."~ident ^^
     { case (v:String)~"."~(l:String) => Project(defToRef(v), l) }
@@ -93,6 +99,23 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
   def bagifthenelse: Parser[BagIfThenElse] = "if"~"("~condexpr~")"~"then"~bagexpr ^^
     {case "if"~"("~(cond:CondExpr)~")"~"then"~(t:BagExpr) => BagIfThenElse(cond, t, None)}
   
+  def letinit: Parser[(VarDef, Expr)] = "let"~vardef~":="~term ^^
+    {case "let"~(x:String)~":="~(e1:Expr) =>
+      val xr = VarDef(x, e1.tp)
+      scope = scope + (x -> xr)
+      (xr, e1)
+    }
+
+  def let: Parser[Expr] = letinit~"in"~term ^^
+    { case (x1:VarDef, e1:Expr)~"in"~(e2:Expr) => e2.tp match {
+        case _:BagType => BagLet(x1, e1, e2.asInstanceOf[BagExpr])
+        case _:TupleType => TupleLet(x1, e1, e2.asInstanceOf[TupleExpr])
+        case _:NumericType => NumericLet(x1, e1, e2.asInstanceOf[NumericExpr])
+        case _:PrimitiveType => PrimitiveLet(x1, e1, e2.asInstanceOf[PrimitiveExpr])
+        case t => sys.error(s"type $t not supported in let")
+      }
+    }
+
   def forinit: Parser[(TupleVarRef, BagExpr)] = "for"~tuplevarref~"in"~bagexpr ^^
     {case "for"~(t:String)~"in"~(b1:BagExpr) => 
       val tr = TupleVarRef(t, b1.tp.tp)
@@ -120,7 +143,7 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
 
   def tupleexpr: Parser[TupleExpr] = tuple | tupvarref
   def bagexpr: Parser[BagExpr] = 
-    groupby | sumby | forunion | ifthen.asInstanceOf[Parser[BagExpr]] | singleton | project.asInstanceOf[Parser[BagExpr]] | bagvarref
+    dedup | groupby | sumby | forunion | ifthen.asInstanceOf[Parser[BagExpr]] | singleton | project.asInstanceOf[Parser[BagExpr]] | bagvarref
 
   //def numconst: Parser[NumericConst] = 
   //def primconst: Parser[PrimitiveConst] = 
@@ -158,7 +181,7 @@ class Parser(tbls: Map[String, BagType]) extends JavaTokenParsers with Materiali
   
 
   def term: Parser[Expr] = 
-    assignTerm | groupby | sumby | dedup | forunion | arithexpr | numexpr | ifthen.asInstanceOf[Parser[Expr]] | singleton | tuple | project | bagvarref | primexpr
+    assignTerm | let | groupby | sumby | dedup | forunion | arithexpr | numexpr | ifthen.asInstanceOf[Parser[Expr]] | singleton | tuple | project | bagvarref | primexpr
 
 
 }

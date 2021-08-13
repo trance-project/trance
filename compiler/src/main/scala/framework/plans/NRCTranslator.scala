@@ -1,17 +1,17 @@
 package framework.plans
 
 import framework.common._
-import framework.nrc.{Printer => NRCPrinter, MaterializeNRC}
+import framework.nrc.{Printer => NRCPrinter, MaterializeNRC, Materialization}
 
 /** Translate NRC from standard and shredded pipeline into 
   * a comprehension language that supports normalization. 
   */
-trait NRCTranslator extends MaterializeNRC with NRCPrinter {
+trait NRCTranslator extends Materialization with MaterializeNRC with NRCPrinter {
   val compiler = new BaseCompiler{}
   import compiler._
 
   def translate(e: Type): Type = e match {
-    case MatDictType(lbl, dict) => 
+    case KeyValueMapType(lbl, dict) =>
       MatDictCType(translate(lbl).asInstanceOf[LabelType], translate(dict).asInstanceOf[BagCType])
     case BagType(t) => BagCType(translate(t))
     case LabelType(fs) => LabelType(fs.map(f => f._1 -> translate(f._2)))
@@ -68,16 +68,16 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
     }
     case Union(e1, e2) => merge(translate(e1), translate(e2))
     case ForeachUnion(x, e1, e2) => translate(e2) match {
-	  case If(cond, e3, e4 @ None) => 
+	    case If(cond, e3, e4 @ None) => 
         Comprehension(translate(e1), translate(x).asInstanceOf[Variable], cond, e3)
-	  case te2 => 
+	    case te2 => 
         Comprehension(translate(e1), translate(x).asInstanceOf[Variable], constant(true), te2)
     }
     case l:Let => Bind(translate(l.x), translate(l.e1), translate(l.e2))
-    case GroupByKey(be, keys, values, _) => 
+    case GroupByKey(be, keys, values, gname) => 
       val bagExpr = translate(be)
       val v = Variable.freshFromBag(bagExpr.tp)
-      CGroupBy(bagExpr, v, keys, values)
+      CGroupBy(bagExpr, v, keys, values, gname)
     case ReduceByKey(be, keys, values) => 
       val bagExpr = translate(be)
       val v = Variable.freshFromBag(bagExpr.tp)
@@ -99,9 +99,9 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
     case Get(e1) => CGet(translate(e1))
     
     // new flexible dictionary handling
-    case MatDictLookup(lbl, dict) => CLookup(translate(lbl), translate(dict))
-    case MatDictToBag(bd) => FlatDict(translate(bd))
-    case BagToMatDict(bd) => GroupDict(translate(bd))
+    case KeyValueMapLookup(lbl, dict) => CLookup(translate(lbl), translate(dict))
+    case KeyValueMapToBag(bd) => FlatDict(translate(bd))
+    case BagToKeyValueMap(bd) => GroupDict(translate(bd))
 
     // catch existing dictionary types that may persist in NRC, 
     // these are likely deprecated cases that no longer exist with new 
@@ -117,5 +117,6 @@ trait NRCTranslator extends MaterializeNRC with NRCPrinter {
 
   def translate(a: Assignment): CExpr = CNamed(a.name, translate(a.rhs))
   def translate(p: Program): LinearCSet = LinearCSet(p.statements.map(translate))
+  def translate(p: MProgram): LinearCSet = translate(p.program)
 
 }

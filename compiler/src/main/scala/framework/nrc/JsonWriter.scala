@@ -130,14 +130,11 @@ trait JsonBasedPrinter extends Printer {
     case Lookup(lbl, dict) =>
       s"Lookup(${quote(lbl)}, ${quote(dict)})"
 
-    // Materialization extensions
-    case MatDictLookup(lbl, dict) =>
-      s"MatDictLookup(${quote(lbl)}, ${quote(dict)})"
+    case KeyValueMapLookup(lbl, dict) =>
+      s"KeyValueMapLookup(${quote(lbl)}, ${quote(dict)})"
 
-    case BagToMatDict(b) => quote(b)
-      // s"BagToMatDict(${quote(b)})"
-    case MatDictToBag(d) => quote(d)
-      // s"MatDictToBag(${quote(d)})"
+    case BagToKeyValueMap(b) => quote(b)
+    case KeyValueMapToBag(d) => quote(d)
 
     case _ =>
       sys.error("Cannot print unknown expression " + e)
@@ -164,7 +161,7 @@ object JsonWriter extends MaterializeNRC with JsonBasedPrinter {
         s""" "${quote(query.rhs)} }"""
       case _ => query.rhs match {
         case _:DeDup => s""" "${quote(query.rhs)})" """
-        case _:BagToMatDict => s""" "${quote(query.rhs)} }"""
+        case _:BagToKeyValueMap => s""" "${quote(query.rhs)} }"""
         case _ => s""" "${quote(query.rhs)}" """
       }
     }
@@ -256,6 +253,7 @@ object JsonWriterTest extends App with Printer with Materialization with Materia
                                 else if (t.impact == "LOW") then 0.30
                                 else 0.01 )}).sumBy({gene}, {score}) )} )}
       """
+
     // val query1 = parser.parse(querySimple).get.asInstanceOf[JsonWriter.Program]
 
     // val s = JsonWriter.produceJsonString(query1).replace("\n", "")
@@ -277,7 +275,7 @@ object JsonWriterTest extends App with Printer with Materialization with Materia
                 {(  mutid := o.oid)})}
       """
 
-    val s = parseProgram(simple, shred = false).replace("\n", "")
+    val s = parseProgram(querySimple, shred = false).replace("\n", "")
     println(s)
     val jsValue = Json parse s
     val pj = Json prettyPrint jsValue

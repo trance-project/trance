@@ -6,7 +6,7 @@ import framework.common._
   * Normalization for intermediate calculus of the plan language. 
   * TODO: re-evaluate the necessity of this with updated NRC
   */
-trait BaseNormalizer extends BaseCompiler {
+class BaseNormalizer(val letOpt: Boolean = false) extends BaseCompiler {
 
   // reduce conditionals
   override def equals(e1: Rep, e2: Rep): Rep = (e1, e2) match {
@@ -33,6 +33,8 @@ trait BaseNormalizer extends BaseCompiler {
     case (Constant(false), Constant(false)) => super.constant(false)
     case (Constant(true), _) => super.constant(true)
     case (_, Constant(true)) => super.constant(true)
+    // test this case
+    case (e1, e2) if e1.vstr == e2.vstr => e1
     case _ => super.or(e1, e2)
   }
 
@@ -51,13 +53,20 @@ trait BaseNormalizer extends BaseCompiler {
   } 
 
   // N1, N2
-  override def bind(e1: Rep, e: Rep => Rep): Rep = e(e1)
+  // override def bind(e1: Rep, e: Rep => Rep): Rep = {
+  //   if (letOpt) super.bind(e1, e) 
+  //   else e(e1)
+  // }
+  override def bind(e1: Rep, e: Rep => Rep): Rep = e1 match {
+    case _:CNamed => super.bind(e1, e)
+    case _ => e(e1)
+  }
 
   // N3 (a := e1, b: = e2).a = e1
   override def project(e1: Rep, f: String): Rep = e1 match {
     case t:Tuple => t(f.toInt)
     case t:Record => t(f)
-    //case t:Label => t(f)
+    case t:Label => t(f)
     case t:TupleCDict => t(f)
     case t:BagCDict => t(f)
     case _ => super.project(e1, f)
@@ -93,6 +102,12 @@ trait BaseNormalizer extends BaseCompiler {
     case y if x.tp.isInstanceOf[BagCType] => x
     case _ => super.sng(x)
   }
+
+  def normalizeIf(c: Rep): Rep = c match {
+    case Comprehension(e2, v2, p2, If(cond, e4, None)) => 
+      Comprehension(e2, v2, and(p2, cond), e4)
+    case _ => c
+  }
  
   // { e(v) | v <- e1, p(v) }
   // where fegaras and maier does: { e | q, v <- e1, s }
@@ -109,10 +124,11 @@ trait BaseNormalizer extends BaseCompiler {
       
       // { e(v) | v <- { e3 | v2 <- e2, p2 }, p(v) }
       // { { e(v) | v <- e3 } | v2 <- e2, p2 }
-      case Comprehension(e2, v2, p2, c @ Comprehension(e3, v3, p3, e4)) => 
-        Comprehension(e2, v2, p2, c)
-      case Comprehension(e2, v2, p2, If(cond, e4, None)) => 
-        Comprehension(e2, v2, and(p2, cond), e4)
+      case Comprehension(e2, v2, p2, e3:If) => normalizeIf(e1)
+
+      // normalize let's per usual
+      case Comprehension(e2, v2, p2, e3) if (!letOpt) =>  
+          Comprehension(e2, v2, p2, normalizeIf(comprehension(e3, p, e)))
 
       case _ => // standard case (return self)
         val v = Variable.freshFromBag(e1.tp)

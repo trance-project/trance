@@ -9,12 +9,13 @@ import framework.examples.tpch._
 import framework.examples.genomic._
 import framework.nrc._
 import scala.collection.immutable.Map
+import framework.optimize.Optimizer
 // import framework.plans.{Equals => CEquals, Project => CProject}
 
 object JsonWriter {
 
 	def writeProjection(p: Projection, name: String = ""): String = {
-			val renamed = (p.filter match {
+			val renamed = (p.pattern match {
 				case Record(fs) => fs.flatMap(f => f._2 match {
 					case _:Project => Nil
 					case f2 => List(s"${f._1} := ${Printer.quoteNoVar(f._2)}")
@@ -26,7 +27,7 @@ object JsonWriter {
 			|	"attributes": {
 			|		"planOperator": "PROJECT",
 			|		"level": ${p.level},
-			| 	"newLine": [ "${Printer.quoteNoVar(p.filter)}" ]${name}
+			| 	"newLine": [ "${Printer.quoteNoVar(p.pattern)}" ]${name}
 			|	},
 			|	"children": [${produceJsonString(p.in)}]
 			|}
@@ -109,7 +110,7 @@ object JsonWriter {
 				|		"level": ${d.level},
 				| 	"newLine": [ ]
 				|	},
-				|	"children": [${produceJsonString(d.e1)}]
+				|	"children": [${produceJsonString(d.in)}]
 				|}
 			""".stripMargin 
 		case i:AddIndex => produceJsonString(i.e) //TODO pass through for now
@@ -211,17 +212,28 @@ object JsonWriterTest extends App with Printer with Materialization  with Materi
                 if (s.bcr_patient_uuid == o.oid) then
                 {(  mutid := o.oid)})}
       """
-
-    // val query2 = parser.parse(simple).get
+    val querySimple2 = 
+      s"""
+        QuerySimple2 <=
+        for s in samples union 
+        {(sample := s.bcr_patient_uuid, mutations := 
+              (for o in occurrences union
+                for t in o.transcript_consequences union
+                  {( gene := t.gene_id, score := t.polyphen_score )}).sumBy({gene}, {score}) )}
+      """    // val query2 = parser.parse(simple).get
     // val plan2 = getPlan(query2.asInstanceOf[Program])
-    val plan2 = getPlan(querySimple, shred = false)
-		val plan3 = getPlan(querySimple, shred = true)
+    val plan2 = getPlan(querySimple2, shred = false)
+		val plan3 = getPlan(querySimple2, shred = true)
 		val jsonRep2 = JsonWriter.produceJsonString(plan2)
+		val jsonRep3 = JsonWriter.produceJsonString(plan3)
 		println(jsonRep2)
+		println(jsonRep3)
 
     val jsValue = Json parse jsonRep2
-    val pj = Json prettyPrint jsValue
-    println(pj)
+    val jsValue3 = Json parse jsonRep3
+    println(Json prettyPrint jsValue)
+    println(Json prettyPrint jsValue3)
+
 
 	// val printer = new PrintWriter(new FileOutputStream(new File("test.json"), false))
  //    printer.println(jsonRep)

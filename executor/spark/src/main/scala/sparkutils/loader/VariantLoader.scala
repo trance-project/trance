@@ -18,8 +18,11 @@ import sparkutils.Config
   */
 
 case class Call(g_sample: String, call: Int)
+case class CallBig(g_sample: String, call: Long)
 case class Variant(id: String, contig: String, start: Int, reference: String, 
   alternate: String, genotypes: Seq[Call])
+case class VariantBig(id: String, contig: String, start: Long, reference: String, 
+  alternate: String, genotypes: Seq[CallBig])
 case class IVariant(index: Long, contig: String, start: Int, reference: String, 
   alternate: String, genotypes: Seq[Call])
 
@@ -66,7 +69,7 @@ class VariantLoader(spark: SparkSession, path: String) extends Serializable {
         val genotypes = variant.getGenotypes.iterator.asScala.toSeq.map(s => Call(s.getSampleName, callCategory(s)))
         Variant(variant.getID, variant.getContig, variant.getStart, variant.getReference.toString, 
           variant.getAlternateAllele(0).toString, genotypes)
-      }.toDF().as[Variant].repartition(Config.maxPartitions) 
+      }.toDF().as[Variant].repartition(Config.maxPartitions).sample(.3, 122) 
   }
 
   def shredDS: (Dataset[SVariant], Dataset[SCall]) = {

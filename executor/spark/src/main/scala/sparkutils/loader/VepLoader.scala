@@ -300,7 +300,7 @@ class VepLoader(spark: SparkSession) extends Serializable {
     val tmp2 = occur.flatMap{ o => o.transcript_consequences.zipWithIndex.map{ case (t, id) => (o.oid, id, t) } }
 
     val dict2 = tmp2.map{ case (id1, id2, t) => OccurTransDict2Mid(id1, t.case_id, t.amino_acids, 
-    t.cdna_end, t.cdna_start, t.cds_end, t.cds_start, t.codons, s"${id1}_${id2}", t.distance, t.exon, t.flags, 
+    t.cdna_end, t.cdna_start, t.cds_end, t.cds_start, t.codons, s"${id1}_${id2}", t.distance, t.exon, //t.flags, 
     t.gene_id, t.impact, t.intron, t.polyphen_prediction, t.polyphen_score, t.protein_end, t.protein_start, 
     t.sift_prediction, t.sift_score, t.ts_strand,
     t.transcript_id, t.variant_allele)}.as[OccurTransDict2Mid].repartition(col("_1"))

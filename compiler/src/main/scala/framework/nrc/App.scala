@@ -2,7 +2,7 @@ package framework.nrc
 
 import framework.common._
 import framework.examples.tpch.TPCHSchema
-import scala.collection.mutable.HashMap
+// import scala.collection.mutable.Map
 
 object App extends MaterializeNRC with Printer {
 
@@ -69,7 +69,8 @@ object App extends MaterializeNRC with Printer {
    val q1 = 
       s"""
         for c in C union 
-          {(name := c.c_name, orders := for o in O union 
+          if (c.c_custkey > 9)
+          then {(name := c.c_name, orders := for o in O union 
             if (c.c_custkey = o.o_custkey) then 
               {(date := o.o_orderdate, ok := o.o_orderkey, parts := for l in L union
                 if (o.o_orderkey = l.l_orderkey) then
@@ -105,15 +106,34 @@ object App extends MaterializeNRC with Printer {
         ( for c in COP union
           for o in c.orders union
             for l in o.parts union
+              if (l.pk = 2) then
               for p in P union
-                if (l.pk = p.p_partkey) then
-                  {(cname := c.name, total := l.qty * p.p_retailprice)}).sumBy({cname}, {total})
+                if (l.pk != p.p_partkey && l.pk = 2 || l.pk = 3 && ! (l.pk = 2 && l.pk = 2)) then
+                  {(cname := c.name, total := (l.qty + 0.01) * (p.p_retailprice + 0.01) )}).sumBy({cname}, {total})
       """
      
      val parser3 = Parser(tbls)
      val cop3:BagExpr = parser3.parse(q3, parser3.term).get.asInstanceOf[BagExpr]
      println(quote(cop3))
 
+    val q4 = 
+      s"""
+        let nParts :=
+          for p in P union 
+            {( pk := p.p_partkey, pr := p.p_retailprice )}
+        in 
+        ( for c in COP union
+          for o in c.orders union
+            for l in o.parts union
+              if (l.pk = 2) then
+              for p in nParts union
+                if (l.pk != p.pk && l.pk = 2 || l.pk = 3 && ! (l.pk = 2 && l.pk = 2)) then
+                  {(cname := c.name, total := (l.qty + 0.01) * (p.pr + 0.01) )}).sumBy({cname}, {total})
+      """
+     
+     val parser4 = Parser(tbls)
+     val cop4:BagExpr = parser4.parse(q4, parser4.term).get.asInstanceOf[BagExpr]
+     println(quote(cop4))
 
   }
 

@@ -7,6 +7,7 @@ case class ZepResponse(status: String, message: String, body: String)
 case class ZepError(exception: String, message: String, stacktrace: String)
 case class ZepStatus(status: String)
 case class ZepNote(_id: String, path: String)
+
 // type keyword issue
 // case class ZepBody(code: String, type: String, msg: String)
 // case class ZepError(status: String, body: ZepBody)
@@ -60,6 +61,7 @@ class ZeppelinFactory(host: String = "localhost", port: Int = 8085) {
 			val dstat = deleteNoteByName(name)
 			if (dstat) addNote(name) else sys.error("error deleting notebook")
 			// sys.error("Notebook already exists, delete notebook and try again.")
+			sys.error("Notebook already exists, delete notebook and try again.")
 		}else {
 			val parsed = Json.parse(response.body).as[ZepResponse]
 			parsed.body

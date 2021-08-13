@@ -54,16 +54,18 @@ trait Optimizer extends Extensions with Implicits with Factory {
   })
 
   def deadCodeElimination(e: Expr): Expr = replace(e, {
-    // let X = e1 in e2 => e2 if not using X
-    case l: Let if {
-      val im = inputVars(l.e2).map(v => v.name -> v.tp).toMap
-      // Sanity check
-      im.get(l.x.name).foreach { tp =>
-        assert(tp == l.x.tp,
-          "[deadCodeElimination] Type differs " + tp + " and " + l.x.tp)
+    case l: Let =>
+      val o1 = deadCodeElimination(l.e1)
+      val o2 = deadCodeElimination(l.e2)
+      val im = inputVars(o2).map(v => v.name -> v.tp).toMap
+      im.get(l.x.name) match {
+        case Some(tp) =>
+          // Sanity check
+          assert(tp == l.x.tp,
+            "[deadCodeElimination] Type differs " + tp + " and " + l.x.tp)
+          Let(l.x, o1, o2)
+        case None => o2
       }
-      !im.contains(l.x.name)
-    } => deadCodeElimination(l.e2)
   })
 
   def pushAggregate(e: Expr): Expr = e
