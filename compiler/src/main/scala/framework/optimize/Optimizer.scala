@@ -43,7 +43,8 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val tfields = fs ++ collect(filter)
       val pin = push(in, tfields ++ fs)
       val nv = Variable.fromBag(v.name, pin.tp)
-      Projection(pin, nv, replace(filter, nv), tfields.toList)
+      val nfilter = replace(filter, nv)
+      Projection(pin, nv, nfilter, tfields.toList)
 
     case s @ Select(in, v, p) =>
       val ptp = v.tp.attrs.filter(f => fs(f._1))
@@ -148,11 +149,6 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     case CGet(e1) => CGet(push(e1, fs))
 
     case AddIndex(e1, name) => 
-      // val ks = e.tp.attrs.keySet & fs.filter(k => k.contains("index"))
-      // println("in here with")
-      // println(ks)
-      // if (ks.nonEmpty) AddIndex(push(e1, fs), name)
-      // else push(e1, fs)
       if (fs(name)) AddIndex(push(e1, fs), name)
       else push(e1, fs)
 
@@ -164,7 +160,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
 
     case i @ InputRef(name, tp) => 
       val fields = fs & tp.attrs.keySet
-      if (fields.nonEmpty) {
+      if (fields.nonEmpty && !hasComplexLabel(tp)) {
         val v = Variable.freshFromBag(tp)
         val nrec = Record(tp.attrs.flatMap( f => 
           if (fields(f._1)) List((f._1, Project(v, f._1))) else Nil).toMap)
@@ -186,12 +182,20 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     case _ => e
   }
 
+  def hasComplexLabel(tp: Type): Boolean = {
+    val check = tp.attrs.filter(f => f._2 match 
+      {case LabelType(fs) if fs.size > 1 => true; case _ => false }).size
+    check > 0
+  }
+
   def removeUnnecProj(e: CExpr): CExpr = fapply(e, {
     case Projection(r:Reduce, v, p:Record, f) => 
       val attrs = (r.keys ++ r.values).toSet
       val outs = p.fields.keySet
       if (attrs == outs) r else e
-    case Projection(in, _, r @ Record(fs), _) if fs.keySet == collect(r) => in
+    case Projection(in, _, r @ Record(fs), _) 
+      if (fs.keySet == collect(r) && !hasComplexLabel(r.tp)) => in
+
   })
 
   /** Returns true if an expression is a base expression 
@@ -324,22 +328,6 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
         val cond = Equals(Project(x4_expr, f1), Project(x5, f2))
         OuterJoin(pushUnnest(e1), x2, unnest, x7, cond, fs2)
     }
-
-    // case OuterUnnest(o, v, path, v2, filter, fs) => o match {
-    //   case AddIndex(o1:OuterJoin, _) => 
-    //     if (o1.left.tp.attrs.contains(path)){
-    //       println("found it in the left "+path)
-    //       println(Printer.quote(o1))
-    //     }else{
-    //       println("found it in the right "+path)
-    //       println(Printer.quote(o1))
-    //     }
-    //     OuterUnnest(pushUnnest(o), v, path, v2, filter, fs)
-    //   case _ => 
-    //     println("missing")
-    //     println(Printer.quote(o))
-    //     OuterUnnest(pushUnnest(o), v, path, v2, filter, fs)
-    // }
 
    }
 

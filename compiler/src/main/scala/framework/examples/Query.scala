@@ -171,7 +171,6 @@ trait Query extends Materialization
     val anfBase = new BaseOperatorANF{}
     val anfer = new Finalizer(anfBase)
     val qplan = anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
-
     //shredded pipeline for unshredding 
     val usplan = if (unshredRun){
       val ushred = unshred(optShredded, matProg.ctx)

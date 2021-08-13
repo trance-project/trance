@@ -36,7 +36,7 @@ case class RemoveNulls(e1: CExpr) extends CExpr {
 }
 
 /**
- *  Append an index to an input collection (used for dot-equality), 
+ *  Appends an index to the collection returned by e, unique for each occurrence of a tuple (used for dot-equality), 
  * important for maintaining multiplicites in bag comprehensions
  */
 case class AddIndex(e: CExpr, name: String) extends CExpr with UnaryOp {
@@ -198,6 +198,8 @@ trait JoinOp extends CExpr {
   val ps = ext.collectFromAnd(cond)
 
   // get around join with domain
+  // this is not a good solution, think 
+  // about how to handle this...
   def p1s: Set[String] = v.tp match {
     case RecordCType(ms) => ms.get("_LABEL") match {
       case Some(LabelType(fs)) =>
