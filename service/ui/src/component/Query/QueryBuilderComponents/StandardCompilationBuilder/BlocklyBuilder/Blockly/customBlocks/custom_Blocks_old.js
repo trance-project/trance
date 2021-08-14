@@ -504,7 +504,7 @@ Blockly.defineBlocksWithJsonArray([
                 "name": "NRC_STATEMENT"
             }
         ],
-        "colour": 267,
+        "colour": 230,
         "nextStatement": "Bag",
         "previousStatement": "Bag",
         "tooltip": "todo add tooltip",

@@ -15,7 +15,8 @@ GET       /nrccode/:id                 v1.controllers.QueryController.getQuery(i
 POST      /nrccode                     v1.controllers.QueryController.createQuery
 POST      /nrccode/standard            v1.controllers.QueryController.standardQuery
 POST      /nrccode/shred               v1.controllers.QueryController.shredQuery
-POST	  /nrccode/run				   v1.controllers.QueryController.executeQuery
+POST	  /nrccode/standardrun		   v1.controllers.QueryController.executeQuery
+POST	  /nrccode/shredrun		       v1.controllers.QueryController.executeShredQuery
 PATCH     /nrccode/:id                 v1.controllers.QueryController.updateUpdateQuery(id: java.util.UUID)
 DELETE    /nrccode/:id                 v1.controllers.QueryController.delete(id: java.util.UUID)
 

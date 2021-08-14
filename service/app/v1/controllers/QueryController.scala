@@ -198,7 +198,7 @@ class QueryController @Inject()(
   }
 
   @ApiOperation(
-    value = "Execute query",
+    value = "Execute query for standard plan",
     response = classOf[Void],
     code=201
   )
@@ -242,6 +242,52 @@ class QueryController @Inject()(
     // so we will need some better error catching there
     }.getOrElse(Future.successful(BadRequest("Invalid nrc format")))
   }
+
+  @ApiOperation(
+    value = "Execute query for shredded plan",
+    response = classOf[Void],
+    code=201
+  )
+  @ApiResponses(Array(
+    new ApiResponse(code = 400, message = "Invalid Query format")
+  ))
+  @ApiImplicitParams(Array(
+    new ApiImplicitParam(value = "The id of the query", required = true, dataType = "models.Query", paramType = "body")
+  ))
+  def executeShredQuery() =
+    Action.async(parse.json) {
+
+      _.body.validate[Query].map { query =>
+
+        val qid = query._id match {
+          case Some(id) => id.toString
+          case _ => sys.error("Id not found.")
+        }
+
+        val isShred = query.shred match {
+          case Some(b) => b
+          case _ => false
+        }
+
+        val name = s"${query.title}_${qid}"
+
+        val program = parseProgram(query)
+        val nrc = getJsonProgram(program)
+
+        val plan = compileProgram(program)
+
+        val runstatus = runProgram(plan, name, true)
+
+        val responseBody = s"""{"nodepad_url": "#/notebook/$runstatus"}"""
+
+        queryRepository.addEntity(query).map{ _ =>
+          Created(responseBody)
+        }
+
+        // note that my parser does not return any valuable information
+        // so we will need some better error catching there
+      }.getOrElse(Future.successful(BadRequest("Invalid nrc format")))
+    }
 
   @ApiOperation(
     value = "Add a Query to the list",

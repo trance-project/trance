@@ -10,7 +10,7 @@ import leftOuterJoin from "../../../static/images/planOperator/LeftOuterJoin.png
 import unnest from "../../../static/images/planOperator/Unnest.png";
 import equiJoin from "../../../static/images/planOperator/Equijoin.png";
 import {useAppSelector,useAppDispatch} from '../../../redux/Hooks/hooks';
-import {runStandardPlan} from '../../../redux/QuerySlice/thunkQueryApiCalls';
+import {runShredPlan} from '../../../redux/QuerySlice/thunkQueryApiCalls';
 import Button from "@material-ui/core/Button";
 import ForwardIcon from "@material-ui/icons/Forward";
 
@@ -25,7 +25,7 @@ const ShreddedPlan = () => {
     let planElement: JSX.Element[] = [];
 
     const handleButtonClick = () => {
-        dispatch(runStandardPlan({
+        dispatch(runShredPlan({
             _id: selectedQuery!._id,
                 body: nrcCode,
                 title: selectedQuery!.name
