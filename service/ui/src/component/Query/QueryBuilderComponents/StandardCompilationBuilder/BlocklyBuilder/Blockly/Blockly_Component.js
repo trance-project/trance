@@ -51,7 +51,12 @@ class TestEditor extends React.Component {
                         switch (event.name){
                             case "ATTRIBUTE_VALUE" :{
                                 if(event.oldValue !== event.newValue){
-                                    this.addTranceObjectByName(event.newValue)
+                                    const newObject = this.addTranceObjectByName(event.newValue);
+                                    console.log(newObject);
+                                    if(newObject){
+                                        block.setFieldValue(newObject.abr,'OBJECT_KEY');
+                                        this.props.addToSelectedObjects(newObject);
+                                    }
                                 }
                                 break;
                             }
@@ -88,15 +93,9 @@ class TestEditor extends React.Component {
     }
 
     addTranceObjectByName = (objectName) => {
+        console.log("[ addTranceObjectByName objectName]", objectName);
         const object = this.props.tranceObject.objects.find(o => objectName===o.name)
-        const selectedObjects = this.props.tranceObject.selectedObjects;
-        let foundObject;
-        if(selectedObjects && object){
-            foundObject =  selectedObjects.find(o => o._id === object._id)
-            if(!foundObject){
-                this.props.addToSelectedObjects(object)
-            }
-        }
+        return object;
     }
 
     /**
