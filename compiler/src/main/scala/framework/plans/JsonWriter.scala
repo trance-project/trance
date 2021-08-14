@@ -51,7 +51,20 @@ object JsonWriter {
 			|	"children": [${produceJsonString(n.in)}]
 			|}
 			""".stripMargin
-		case u:UnnestOp =>
+		case CReduceBy(u:UnnestOp, _, keys, values) => 
+			val isOuter = if (u.outer) "OUTER" else ""
+			s"""
+				|{
+				|	"name": "LOCALAGG [${keys.mkString(",")}] [${values.mkString(",")}]" ,
+				|	"attributes": {
+				|		"planOperator": "${isOuter}UNNEST",
+				|		"level": ${u.level},
+				| 	"newLine": [ "${u.path}" ]
+				|	},
+				|	"children": [${produceJsonString(u.in)}]
+				|}
+				""".stripMargin
+		case u:UnnestOp => 
 			val isOuter = if (u.outer) "OUTER" else ""
 			s"""
 			|{
@@ -174,8 +187,11 @@ object JsonWriterTest extends App with Printer with Materialization  with Materi
       materializedProgram.program
     }else program
 
+    println("compiled nrc")
+    println(quote(compiled))
+
 		val ncalc = normalizer.finalize(translate(compiled)).asInstanceOf[CExpr]
-		optimizer.applyAll(Unnester.unnest(ncalc)(Map(), Map(), None, "_2")).asInstanceOf[LinearCSet]
+		optimizer.applyAll(Unnester.unnest(ncalc)(Map(), Map(), None, "_2", 0)).asInstanceOf[LinearCSet]
 	}
 
 	val queryComplicate = 
@@ -245,17 +261,32 @@ object JsonWriterTest extends App with Printer with Materialization  with Materi
              				{(  gene := cc.gene_id, score := cc.polyphen_score)}).sumBy({gene}, {score}))}
       """    // val query2 = parser.parse(simple).get
     // val plan2 = getPlan(query2.asInstanceOf[Program])
-    val plan2 = getPlan(querySimple2, shred = false)
-		val plan3 = getPlan(querySimple2, shred = true)
+
+
+    val query1 = 
+      s"""
+        Test <= 
+        for s in samples union
+          {(  sid := s.bcr_patient_uuid, mutations :=
+            (  for o in occurrences union
+                if (s.bcr_patient_uuid == o.donorId) then
+                for cc in o.transcript_consequences union
+                   {(  gene := cc.gene_id, score := cc.polyphen_score)}).sumBy({gene}, {score}))}
+      """
+
+    val plan2 = getPlan(querySimple, shred = true)
+		// val plan3 = getPlan(query1, shred = true)
+		println(Printer.quote(plan2))
 		val jsonRep2 = JsonWriter.produceJsonString(plan2)
-		val jsonRep3 = JsonWriter.produceJsonString(plan3)
-		println(jsonRep2)
-		println(jsonRep3)
+		// val jsonRep3 = JsonWriter.produceJsonString(plan3)
+		// println(jsonRep2)
+		// println(jsonRep3)
 
     val jsValue = Json parse jsonRep2
-    val jsValue3 = Json parse jsonRep3
+    // val jsValue3 = Json parse jsonRep3
+    println("result:")
     println(Json prettyPrint jsValue)
-    println(Json prettyPrint jsValue3)
+    // println(Json prettyPrint jsValue3)
 
 
 	// val printer = new PrintWriter(new FileOutputStream(new File("test.json"), false))

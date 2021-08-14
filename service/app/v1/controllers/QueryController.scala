@@ -72,7 +72,7 @@ class QueryController @Inject()(
 
   private def compileProgram(program: Program): CExpr = {
     val ncalc = normalizer.finalize(translate(program)).asInstanceOf[CExpr]
-    optimizer.applyAll(Unnester.unnest(ncalc)(Map(), Map(), None, "_2"))
+    optimizer.applyAll(Unnester.unnest(ncalc)(Map(), Map(), None, "_2", 0))
   }
 
   private def getJsonPlan(plan: CExpr): String = {
