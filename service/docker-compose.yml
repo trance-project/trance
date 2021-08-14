@@ -1,4 +1,4 @@
-version: '3.7'
+version: '3.3'
 
 services:
   mongo:
@@ -26,3 +26,4 @@ services:
       ZEPPELIN_IN_DOCKER: "true"
     volumes: 
       - ./lib:/app
+      - ./data:/data
