@@ -8,11 +8,12 @@ import java.util.UUID
 final case class TranceObject(
                        _id: Option[UUID],
                        name: String,
+                       isCollectionType: Boolean,
                        abr: Option[String],
                        columns: List[Column]
                        )
 
-final case class Column(name: String)
+final case class Column(name: String, dataType: String)
 
 object Column {
   import play.api.libs.json._

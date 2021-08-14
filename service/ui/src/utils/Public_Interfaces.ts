@@ -13,12 +13,14 @@ export interface Table {
 export interface TempTable {
     _id:string;
     name:string;
+    isCollectionType: boolean,
     abr?:string;
     columns : TempColumn[];
 }
 
 export interface TempColumn {
     name: string;
+    dataType: "String" | "Collection" | "Boolean" | "Number";
 }
 
 export interface Column {

@@ -28,6 +28,10 @@ BlocklyJS['forunion'] = function (block){
     const statements = validate(BlocklyJS.statementToCode(block, 'NRC_STATEMENT'));
     return `for ${assignment} in ${object} union \n ${statements}`
 }
+BlocklyJS['dedup'] = function (block){
+    const statements = validate(BlocklyJS.statementToCode(block, 'NRC_STATEMENT'));
+    return `dedup (\n ${statements})`;
+}
 
 BlocklyJS['tuple'] = function (block){
     const attributes = Blockly.JavaScript.statementToCode(block, 'ATTRIBUTES');
