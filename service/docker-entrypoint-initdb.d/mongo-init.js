@@ -89,17 +89,6 @@ const objects = [
         abr:"t",
         columns:
             [
-                {name: "gene_id", dataType: "String"},
-                {name: "impact", dataType: "String"},
-            ]
-    },
-    {
-        _id: generateUUID(),
-        name: "candidates",
-        isCollectionType: false,
-        abr:"cc",
-        columns:
-            [
                 {name: "case_id", dataType: "String"},
                 {name: "amino_acids", dataType: "String"} ,
                 {name: "cdna_end",  dataType: "String"},
@@ -111,8 +100,7 @@ const objects = [
                 {name: "exon", dataType: "String"},                
                 {name: "flags", dataType: "String"},
                 {name: "gene_id", dataType: "String"},                
-                {name: "impact", dataType: "String"},
-                {name: "impact2", dataType: "String"},                
+                {name: "impact", dataType: "String"},             
                 {name: "intron", dataType: "String"},
                 {name: "polyphen_prediction", dataType: "String"},                
                 {name: "polyphen_score", dataType: "String"},
@@ -127,8 +115,8 @@ const objects = [
     },
     {
         _id: generateUUID(),
-        name: "consequences",
-        isCollectionType: false,
+        name: "consequences_terms",
+        isCollectionType: true,
         abr:"cs",
         columns:
             [
@@ -254,7 +242,7 @@ const objects = [
         _id: generateUUID(),
         name: "corders",
         abr:"co",
-        isCollectionType: false,
+        isCollectionType: true,
         columns:
             [
                 {name: "odate", dataType: "String"},
@@ -264,7 +252,7 @@ const objects = [
     {
         _id: generateUUID(),
         name: "oparts",
-        isCollectionType: false,
+        isCollectionType: true,
         abr:"op",
         columns:
             [
