@@ -298,7 +298,14 @@ object JsonWriterTest extends App with Printer with Materialization  with Materi
                             if (c.cn_aliquot_uuid == s.bcr_patient_uuid) then
                             {(  gene := cc.gene_id, score := cc.polyphen_score)}).sumBy({gene}, {score}))})}
       """
-    val plan2 = getPlan(query2, shred = true)
+    val query3 = 
+    	s"""
+    		Test <= 
+		    for o in occurrences union
+		   		for t in o.transcript_consequences union
+		     		{(  sid := o.donorId, gene := t.gene_id)}
+    	"""
+    val plan2 = getPlan(query3, shred = true)
 		// val plan3 = getPlan(query1, shred = true)
 		println(Printer.quote(plan2))
 		val jsonRep2 = JsonWriter.produceJsonString(plan2)
