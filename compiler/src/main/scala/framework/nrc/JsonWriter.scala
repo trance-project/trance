@@ -34,7 +34,7 @@ trait JsonBasedPrinter extends Printer {
           |Union
           |(${quote(e2)})""".stripMargin
     case Singleton(e1) => s"""", "labels": [${quote(e1)}] """
-    case DeDup(e1) => s"DeDup(${quote(e1)}"
+    case DeDup(e1) => s"""DeDup: ${quote(e1)} """
     case Get(e1) => s"Get(${quote(e1)})"
     case Tuple(fs) => 
       val lbls = fs.map(f => f._2.tp match {
@@ -84,11 +84,11 @@ trait JsonBasedPrinter extends Printer {
     //       |${ind(quote(e))}
     //       |""".stripMargin
     case GroupByKey(e, ks, vs, _) =>
-      s"""|GroupByKey([${ks.mkString(", ")}], [${vs.mkString(", ")}],
+      s"""|GroupByKey [${ks.mkString(", ")}], [${vs.mkString(", ")}]:
           |${ind(quote(e))}
-          |)""".stripMargin
+          |""".stripMargin
     case ReduceByKey(e, ks, vs) =>
-      s"""|SumByKey[${ks.mkString(", ")}], [${vs.mkString(", ")}],
+      s"""|SumByKey [${ks.mkString(", ")}], [${vs.mkString(", ")}]:
           |${ind(quote(e))}
           |""".stripMargin
     // Label extensions
@@ -158,7 +158,7 @@ object JsonWriter extends MaterializeNRC with JsonBasedPrinter {
   def produceJsonString(query: Assignment): String = {
     val exp = query.rhs match {
       case _:BagToKeyValueMap => s""" "${quote(query.rhs)} }"""
-      case _:DeDup => s""" "${quote(query.rhs)})" """
+      // case _:DeDup => s""" "${quote(query.rhs)})" """
       case qr => qr.tp match {
         case _:BagType => s""" "${quote(query.rhs)} }"""
         case _ => s""" "${quote(query.rhs)}" """
@@ -296,8 +296,21 @@ object JsonWriterTest extends App with Printer with Materialization with Materia
                       for cc in o.transcript_consequences union
                          {(  gene := cc.gene_id, score := cc.polyphen_score)}).sumBy({gene}, {score}))}
       """
+    val query2 = 
+      s"""
+        Test <= 
+        for s in samples union
+          {(  sid := s.bcr_patient_uuid, mutations :=
+            for o in occurrences union
+                if (o.donorId == s.bcr_patient_uuid) then
+                {(  oid := o.donorId, scores :=
+                    (  for cc in o.transcript_consequences union
+                         for c in copynumber union
+                            if (c.cn_aliquot_uuid == s.bcr_patient_uuid) then
+                            {(  gene := cc.gene_id, score := cc.polyphen_score)}).sumBy({gene}, {score}))})}
+      """
 
-    val s = parseProgram(query1, shred = false).replace("\n", "")
+    val s = parseProgram(query2, shred = true).replace("\n", "")
     println(s)
     val jsValue = Json parse s
     val pj = Json prettyPrint jsValue
