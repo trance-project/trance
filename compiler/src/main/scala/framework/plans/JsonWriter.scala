@@ -35,6 +35,18 @@ object JsonWriter {
 	}
 
 	def produceJsonString(plan: CExpr): String = plan match {
+		case CNamed(name, d:CDeDup) if name.contains("Dom") =>
+			s"""
+				|{
+				|	"name": "DOMAIN",
+				|	"attributes": {
+				|		"planOperator": "DISTINCT",
+				|		"level": ${d.level},
+				| 	"newLine": [ ]
+				|	},
+				|	"children": [${produceJsonString(d.in)}]
+				|}
+			""".stripMargin 
 		case CNamed(name, p:Projection) => 
 			val n = s""",\n|"nrc_expression_name": "$name" """
 			writeProjection(p, n)
@@ -273,8 +285,20 @@ object JsonWriterTest extends App with Printer with Materialization  with Materi
                 for cc in o.transcript_consequences union
                    {(  gene := cc.gene_id, score := cc.polyphen_score)}).sumBy({gene}, {score}))}
       """
-
-    val plan2 = getPlan(querySimple, shred = true)
+    val query2 = 
+      s"""
+        Test <= 
+        for s in samples union
+          {(  sid := s.bcr_patient_uuid, mutations :=
+            for o in occurrences union
+                if (o.donorId == s.bcr_patient_uuid) then
+                {(  oid := o.donorId, scores :=
+                    (  for cc in o.transcript_consequences union
+                         for c in copynumber union
+                            if (c.cn_aliquot_uuid == s.bcr_patient_uuid) then
+                            {(  gene := cc.gene_id, score := cc.polyphen_score)}).sumBy({gene}, {score}))})}
+      """
+    val plan2 = getPlan(query2, shred = true)
 		// val plan3 = getPlan(query1, shred = true)
 		println(Printer.quote(plan2))
 		val jsonRep2 = JsonWriter.produceJsonString(plan2)
