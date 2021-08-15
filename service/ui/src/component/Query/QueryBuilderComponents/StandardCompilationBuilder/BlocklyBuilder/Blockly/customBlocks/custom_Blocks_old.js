@@ -1,6 +1,7 @@
 import Blockly from 'blockly';
 import BlocklyJS from 'blockly/javascript';
 import "../fields/BlocklyReactField";
+import "../fields/BlocklyReactCollectionField";
 
 
 Blockly.defineBlocksWithJsonArray([
@@ -490,7 +491,27 @@ Blockly.defineBlocksWithJsonArray([
         "tooltip": "component free text expression",
         "inputsInline": true,
 
+    },
+    {
+        "type": "dedup",
+        "message0": "dedup( %1 %2 )",
+        "args0": [
+            {
+                "type": "input_dummy"
+            },
+            {
+                "type": "input_statement",
+                "name": "NRC_STATEMENT"
+            }
+        ],
+        "colour": 230,
+        "nextStatement": "Bag",
+        "previousStatement": "Bag",
+        "tooltip": "todo add tooltip",
+        "inputsInline": true,
+
     }
+
 
 ]);
 
@@ -670,7 +691,7 @@ const forUnionNested = {
             "text": ""
         },
         {
-            "type": "field_react_component",
+            "type": "collection_field_component",
             "name": "FIELD",
             "text": "select attribute",
         },

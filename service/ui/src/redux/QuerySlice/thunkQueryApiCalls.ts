@@ -256,100 +256,31 @@ export const getStandardPlan = createAsyncThunk(
 
 export const runStandardPlan = createAsyncThunk(
     "query/runStandardPlan", async (arg:BlocklyNrcCode, thunkAPI) => {
-        const treeDiagramData:RawNodeDatum ={
-            name: '',
-            attributes: {
-                newLine: 'sample, mutations',
-                level: '1',
-                planOperator: 'PROJECT'
-            },
-            children: [
-                {
-                    name: '',
-                    attributes: {
-                        newLine: 'mutId, candidates, sID, sample',
-                        level: '2',
-                        planOperator:'NEST'
-                    },
-                    children: [
-                        {
-                            name: '',
-                            attributes: {
-                                newLine: 'gene, score, sID, sample, mutId',
-                                level: '2',
-                                planOperator:'NEST'
-                            },
-                            children: [
-                                {
-                                    name: '', //impact*(cnum+0.01)*sift*poly',
-                                    attributes: {
-                                        newLine:'sample, gene, label, mutId, sID',
-                                        level: '3',
-                                        planOperator:'SUM'
-                                    },
-                                    children:[
-                                        {
-                                            name:'',
-                                            attributes: {
-                                                newLine: 'sample, gene',
-                                                level: '3',
-                                                planOperator:'OUTERJOIN'
-                                            },
-                                            children:[
-                                                {
-                                                    name:'',
-                                                    attributes: {
-                                                        newLine: 'candidates',
-                                                        level: '3',
-                                                        planOperator:'OUTERUNNEST'
-                                                    },
-                                                    children:[
-                                                        {
-                                                            name:'',
-                                                            attributes: {
-                                                                newLine: 'sample',
-                                                                level: '2',
-                                                                planOperator:'OUTERJOIN'
-                                                            },
-                                                            children:[
-                                                                {name: 'Occurrences',
-                                                                    attributes: {
-                                                                        level: '1',
-                                                                    }},
-                                                                {name:'Samples',
-                                                                    attributes: {
-                                                                        level: '1',
-                                                                    }}
-                                                            ]
-                                                        }
-                                                    ]
-                                                },
-                                                {
-                                                    name:'CopyNumber',
-                                                    attributes: {
-                                                        level: '3',
-                                                    }
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                },
-                            ],
-                        },
-                    ],
-                },
-            ],
-        };
         try{
-            const response = await trancePlayInstance.post("/nrccode/run ", {...arg});
+            const response = await trancePlayInstance.post("/nrccode/standardrun ", {...arg});
             if(response.status === 201){
                 console.log("[runStandardPlan]", response.data);
                 return  response.data as NotepadResponse;
             }
             return undefined;
         }catch (error){
-            console.log("[Error Occurred getStandardPlan]", error.message)
-            // return treeDiagramData;
+            console.log("[Error Occurred runStandardPlan]", error.message)
+            return thunkAPI.rejectWithValue(error.message)
+        }
+    }
+)
+
+export const runShredPlan = createAsyncThunk(
+    "query/runShredPlan", async (arg:BlocklyNrcCode, thunkAPI) => {
+        try{
+            const response = await trancePlayInstance.post("/nrccode/shredrun", {...arg});
+            if(response.status === 201){
+                console.log("[runShredPlan]", response.data);
+                return  response.data as NotepadResponse;
+            }
+            return undefined;
+        }catch (error){
+            console.log("[Error Occurred runShredPlan]", error.message)
             return thunkAPI.rejectWithValue(error.message)
         }
     }

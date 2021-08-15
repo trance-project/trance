@@ -53,6 +53,7 @@ export const tranceObjectSlice = createSlice({
                             options.push(["select a object", "null"])
                             if(action.payload){
                                 action.payload.forEach(t => {
+                                    if(!t.isCollectionType)
                                     options.push([t.name, t.name]);
                                 })
                             }

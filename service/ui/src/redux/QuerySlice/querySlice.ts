@@ -75,7 +75,11 @@ export const querySlice = createSlice({
             }
         });
         builder.addCase(api.runStandardPlan.fulfilled, (state, action: PayloadAction<NotepadResponse|undefined>) => {
-            console.log("[passHERE!!!!]", action.payload)
+            if(action.payload){
+                    state.notepadUrl = action.payload.nodepad_url;
+            }
+        });
+        builder.addCase(api.runShredPlan.fulfilled, (state, action: PayloadAction<NotepadResponse|undefined>) => {
             if(action.payload){
                     state.notepadUrl = action.payload.nodepad_url;
             }
