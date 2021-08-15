@@ -1067,4 +1067,3 @@ object HintUDFExample extends DriverGene {
 
 }
 
-//, {sid, lbl, _1,burden, 10}
