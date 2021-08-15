@@ -80,23 +80,23 @@ class QueryController @Inject()(
   }
 
   private def writeParagraph(appname: String, header: String, gcode: String, encoders: String, shred: Boolean): String  = {
-    val data = 
+    val data =
       if (shred){
       s"""
         |val loader = new DemoLoader(spark)
         |val IBag_samples__D = loader.loadSamples()
+        |val IBag_copynumber__D = loader.loadCopyNum()        
         |val (odict1, odict2, odict3) = loader.loadOccurrShred()
         |val IBag_occurrences__D = odict1
-        |val IDict_occurrences__D_transcript_consequences = odict2
-        |val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
-        |val IBag_copynumber__D = spark.emptyDataset[CopyNumber]
+        |val IMap_occurrences__D_transcript_consequences = odict2
+        |val IMap_occurrences__D_transcript_consequences_consequence_terms = odict3
       """.stripMargin
     }else{
       s"""
         |val loader = new DemoLoader(spark)
         |val samples = loader.loadSamples()
+        |val copynumber = loader.loadCopyNum()   
         |val occurrences = loader.loadOccurrences()
-        |val copynumber = spark.emptyDataset[CopyNumber]
       """.stripMargin
     }
 
@@ -111,7 +111,8 @@ class QueryController @Inject()(
       |import sparkutils.loader._
       |import sparkutils.skew.SkewDataset._
       |import java.io._
-      |spark.sparkContext.addJar(s"/app/sparkutils_2.12-0.1.jar")
+      |spark.sparkContext.addJar("/app/sparkutils_2.12-0.1.jar")
+      |spark.sparkContext.addJar("/app/spark-avro_2.12-3.1.1.jar")
       |$header
       |case class Stat(name: String, sizeInBytes:String, rowCount:String)
       |$encoders
@@ -128,14 +129,16 @@ class QueryController @Inject()(
     val anfBase = new BaseOperatorANF{}
     val anfer = new Finalizer(anfBase)
     val anfed = anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
-    val generator = new SparkDatasetGenerator(false, false, evalFinal=true)
+    val generator = new SparkDatasetGenerator(false, false, evalFinal=true, zep = true)
     val code = generator.generate(anfed)
 
+    // remove if called again...
+    zep.deleteNoteByName(queryId)
     val noteid = zep.addNote(queryId)
     val pcontents = writeParagraph(queryId, generator.generateHeader(), code, generator.generateEncoders(), shred)
     val para = new ZJsonWriter().buildParagraph("Generated paragraph test", pcontents)
     val pid = zep.writeParagraph(noteid, para)
-     val status = zep.runParaSync(noteid, pid)
+    val status = zep.runParaSync(noteid, pid)
     noteid
 
   }
@@ -274,7 +277,7 @@ class QueryController @Inject()(
 
         val name = s"${query.title}_${qid}"
 
-        val program = parseProgram(query)
+        val program = parseProgram(query, shred = true)
         val nrc = getJsonProgram(program)
 
         val plan = compileProgram(program)

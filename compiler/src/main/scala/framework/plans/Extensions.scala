@@ -27,6 +27,7 @@ trait Extensions {
   def replace(e: CExpr, v: Variable, useType: Boolean = false): CExpr = e match {
     case Record(ms) => Record(ms.map(r => r._1 -> replace(r._2, v, useType)))
     case Label(ms) => Label(ms.map(r => r._1 -> replace(r._2, v, useType)))
+    case Project(Project(_, "_LABEL"), f) => Project(Project(v, "_LABEL"), f)
     case Project(_, f) => Project(v, f)
     case If(cond, s1, Some(s2)) => If(replace(cond, v, useType), replace(s1, v, useType), Some(replace(s2, v, useType)))
     case If(cond, s1, None) => If(replace(cond, v, useType), replace(s1, v, useType), None)

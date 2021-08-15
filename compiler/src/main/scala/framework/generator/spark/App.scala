@@ -17,7 +17,7 @@ object SkewTest extends App {
 
 object ScaleTest extends App {
   override def main(args: Array[String]){
-    AppWriter.runDatasetShred(TestBaseQuery, "TestBaseQuery,shredded", optLevel = 1)
+    AppWriter.runDatasetShred(TestBugFix, "TestBaseQuery,shredded", optLevel = 1)
   }
 }
 

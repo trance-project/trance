@@ -217,7 +217,8 @@ trait BaseCompiler extends Base {
     val v = Variable.freshFromBag(x.tp)
     p(v) match {
       case Constant(true) => x
-      case pv => Select(x, v, pv, level)
+      case pv => 
+        Select(x, v, pv, level)
     }
   }
 
@@ -229,8 +230,15 @@ trait BaseCompiler extends Base {
   def nanull(in: Rep): Rep = RemoveNulls(in)
   def projection(in: Rep, filter: Rep => Rep, fields: List[String], level: Int): Rep = {
     val v1 = Variable.freshFromBag(in.tp)
+    // println("the variable")
+    // println(v1)
     val nr = filter(v1)
+    // println("this is the filter")
+    // println(nr)
+    // println(Printer.quote(nr))
     val fs = ext.collect(nr)
+    // println("this is fs")
+    // println(fs)
     Projection(in, v1, nr, fs.toList, level)
   }
   def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String], level: Int): Rep = {

@@ -1254,6 +1254,54 @@ object LetTest8Seq extends DriverGene {
     val program = parser.parse(query).get.asInstanceOf[Program]
 }
 
+object TestBugFix extends DriverGene {
+
+  override def loadTables(shred: Boolean = false, skew: Boolean = false): String =
+    if (shred){
+      s"""|val loader = new DemoLoader(spark)
+          |val (IBag_copynumber__D, IBag_samples__D) = loader.loadCopyAndSamples("/Users/jac/data/dlbc/cnv", "/Users/jac/data/dlbc/dlbc/samples.txt")
+          |val (odict1, odict2, odict3) = loader.loadOccurrShred(Seq("/Users/jac/data/dlbc/odict1", "/Users/jac/data/dlbc/odict2", "/Users/jac/data/dlbc/odict3"))
+          |val IBag_occurrences__D = odict1
+          |val IMap_occurrences__D_transcript_consequences = odict2
+          |val IMap_occurrences__D_transcript_consequences_consequence_terms = odict3
+          |""".stripMargin
+    }else{
+      s"""|val samples = spark.table("samples")
+          |
+          |val copynumber = spark.table("copynumber")
+          |
+          |val occurrences = spark.table("occurrences")
+          |""".stripMargin
+    }
+
+  val name = "TestBugFix"
+  
+  val tbls = Map("occurrences" -> occurmids.tp, 
+                  "copynumber" -> copynum.tp, 
+                  "samples" -> samples.tp,
+                  "network" -> network.tp, 
+                  "gtfmap" -> BagType(gtfType), 
+                  "pathways" -> pathway.tp)
+
+    val query = 
+      s"""
+        Test <= 
+        for s in samples union
+           {(  sid := s.bcr_patient_uuid, cands :=
+              for o in occurrences union
+                  if (o.donorId == s.bcr_patient_uuid) then
+                  {(  mutid := o.oid, scores :=
+                      (  for t in o.transcript_consequences union
+                           for c in copynumber union
+                              if (c.cn_gene_id == t.gene_id && s.bcr_aliquot_uuid == c.cn_aliquot_uuid) then
+                              {(  gene := t.gene_id, score := ( ( t.polyphen_score *    if (t.impact == "HIGH") then
+                                    0.8 else 0.01 ) +   c.cn_copy_number ))}).sumBy({gene}, {score}))})}
+              """
+
+    val parser = Parser(tbls)
+    val program = parser.parse(query).get.asInstanceOf[Program]
+}
+
 object LetTest0 {
   def apply(letOpt: Boolean = false): Query = new LetTest0(letOpt)
   def apply(): LetTest0 = new LetTest0()

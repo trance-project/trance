@@ -94,7 +94,7 @@ BlocklyJS['association_on_assisted_new'] = function (block){
     const object_associationC = validate(BlocklyJS.valueToCode(block,'ATTRIBUTE_C',0));
     const dropdown_options_2 = block.getFieldValue('DROPDOWN_OPTIONS_2');
     const object_associationD = validate(BlocklyJS.valueToCode(block,'ATTRIBUTE_D',0));
-    return [`${object_associationA} ${dropdown_options_1} ${object_associationB} AND ${object_associationC} ${dropdown_options_2} ${object_associationD}`,Blockly.JavaScript.ORDER_ATOMIC];
+    return [`${object_associationA} ${dropdown_options_1} ${object_associationB} && ${object_associationC} ${dropdown_options_2} ${object_associationD}`,Blockly.JavaScript.ORDER_ATOMIC];
 }
 // add a sumby function
 BlocklyJS['group_by'] = function (block){
@@ -187,7 +187,7 @@ Blockly.JavaScript['nrc_filters'] = function(block) {
     const value_one = Blockly.JavaScript.valueToCode(block, 'INPUT_ONE', Blockly.JavaScript.ORDER_ATOMIC);
     const dropdown_operators = block.getFieldValue('OPERATORS');
     const value_two = BlocklyJS.statementToCode(block, 'INPUT_TWO');
-    const code = `((${value_one})${dropdown_operators}${value_two})`;
+    const code = `( ${value_one} ${dropdown_operators} ${value_two} )`;
     return [code, 0];
 };
 

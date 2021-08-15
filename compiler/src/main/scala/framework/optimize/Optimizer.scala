@@ -54,7 +54,8 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       p match {
         case Constant(true) => 
           removeUnnecProj(Projection(pin, nv, nrec, ptp.keySet.toList, l))
-        case _ => Projection(Select(pin, nv, p, l), nv, nrec, ptp.keySet.toList, l)
+        case _ => 
+          Projection(Select(pin, nv, p, l), nv, nrec, ptp.keySet.toList, l)
       }
       
     case Unnest(in, v, path, v2, filter, fields, l) =>

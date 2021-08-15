@@ -13,6 +13,9 @@ cp target/scala-2.12/framework_2.12-0.1.jar ../service/lib/
 cd ../executor/spark
 sbt package 
 cp target/scala-2.12/sparkutils_2.12-0.1.jar ../../service/lib
+
+cd ../../service/lib
+wget https://repo1.maven.org/maven2/org/apache/spark/spark-avro_2.12/3.1.2/spark-avro_2.12-3.1.2.jar
 ```
 Add these jars to the lib folder to the External libraries found on your favorite 
 IDE project settings.

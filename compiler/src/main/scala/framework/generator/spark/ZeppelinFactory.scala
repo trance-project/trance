@@ -47,7 +47,7 @@ class ZeppelinFactory(host: String = "localhost", port: Int = 8085) {
 	def getNoteId(name: String): String = {
 		val notes = ((Json.parse(listNotes)) \ "body").as[List[JsObject]]
 		val nid = notes.filter(x => (x \ "path").as[String] == "/"+name)
-		(nid.head \ "id").as[String]
+		if (nid.nonEmpty) (nid.head \ "id").as[String] else ""
 	}
 
 	// returns notebook id
@@ -70,14 +70,17 @@ class ZeppelinFactory(host: String = "localhost", port: Int = 8085) {
 
 	def deleteNoteByName(name: String): Boolean = {
 		val nid = getNoteId(name)
-		val response = Http(zepdel(nid))
-			.option(HttpOptions.connTimeout(10000))
-			.option(HttpOptions.readTimeout(50000))
-			.postForm
-			.method("DELETE")
-			.header("content-type", "application/json").asString
-		if (response.isError){ print(response); false }
-		else true
+		if (nid.nonEmpty){
+			val response = Http(zepdel(nid))
+				.option(HttpOptions.connTimeout(10000))
+				.option(HttpOptions.readTimeout(50000))
+				.postForm
+				.method("DELETE")
+				.header("content-type", "application/json").asString
+			if (response.isError){ print(response); false }
+			else true
+		}
+		true
 	}
 
 	def deleteNote(id: String): Boolean = {

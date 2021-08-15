@@ -35,7 +35,7 @@ const objects = [
     },
     {
         _id: generateUUID(),
-        name: "copyNumber",
+        name: "copynumber",
         isCollectionType: false,
         abr:"c",
         columns:

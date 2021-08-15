@@ -16,7 +16,7 @@ import framework.utils.Utils.ind
   * @param inputs map of input types that should not be reproduced (important for programs)
   */
 class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = false, optLevel: Int = 2,
-  unshred: Boolean = false, evalFinal: Boolean = true, inputs: Map[Type, String] = Map(), dedup: Boolean = true) extends SparkTypeHandler with SparkUtils {
+  unshred: Boolean = false, evalFinal: Boolean = true, inputs: Map[Type, String] = Map(), dedup: Boolean = true, zep: Boolean = false) extends SparkTypeHandler with SparkUtils {
 
   implicit def expToString(e: CExpr): String = generate(e)
 
@@ -24,6 +24,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
   var encoders: Map[String, Type] = Map()
   override val BAGTYPE: String = "Seq"
   val ext = new Extensions{}
+  var foundComplexLabel: Boolean = false
 
   /** Generates the code for the set of case class records associated to the 
     * records in the generated program.
@@ -149,6 +150,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Label(fs) if fs.size == 1 => 
       generateReference(fs.head._2)
     case Label(fs) => 
+      foundComplexLabel = true
       encoders = encoders + (generateType(e.tp) -> e.tp)
       handleType(e.tp)
       val rcnts = e.tp.attrs.map(f => generateReference(fs(f._1))).mkString(", ")
@@ -572,7 +574,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     case er @ Reduce(in, v, key, value, _) =>
+
       val intp = generateType(in.tp.asInstanceOf[BagCType].tp)
+
       val ntp = er.tp.tp match {
     		case RecordCType(fs) => 
     			val adjust = fs.map(f => {
@@ -589,21 +593,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
   	  handleType(ntp)
   	  val gtp = generateType(ntp)
 
-      val gv = generate(v)
-      val rkey = Record(key.map(k => k -> Project(v, k)).toMap)
-      val rvalues = value.map(vs => 
-        s"typed.sum[$intp](${matchOption(v, vs)})\n").mkString("agg(", ",", ")")
-
-      val nrec = er.tp.tp.attrs.map(k => 
-        if (value.contains(k._1)) k._2 match {
-		  case _:OptionType => s"Some(${k._1})"
-        case _ => k._1 
-      }else s"key.${k._1}").mkString(s"$gtp(", ", ", ")")
-
-      s"""|${generate(in)}.groupByKey($gv => ${generate(rkey)})
-          | .$rvalues.mapPartitions{ it => it.map{ case (key, ${value.mkString(", ")}) =>
-          |   $nrec
-          |}}.as[$gtp]
+      val colWrapped = key.map(k => s"""col("$k")""").mkString(",")
+      val sumWrapped = value.map(v => s"""sum("$v")""").mkString(",")
+      val renamedAgg = value.map(v => s"""|.withColumnRenamed("sum($v)", "$v")""").mkString("\n")
+      s"""|${generate(in)}.groupBy($colWrapped).agg($sumWrapped)\n$renamedAgg
+          |.as[$gtp]
           |""".stripMargin
 
     case ei @ AddIndex(e1, name) => 
@@ -639,9 +633,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         s""".repartition$gtp($$"$lbl")"""
       }else ""
       val gv = generate(v)
-      s"""|val $gv = ${generate(e1)}
+      val ge1 = generate(e1)
+      val cout = if (zep && !foundComplexLabel) s"z.show($n)" else s"$n.count"
+      s"""|val $gv = $ge1
           |val $n = $gv$repart
-          |//$n.count
+          |$cout
           |""".stripMargin
           // |${if (!cache) comment(n) else n}.cache
           // |${if (!cache && !evalFinal) comment(n) else n}.count
@@ -660,20 +656,14 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         s""".repartition$gtp($$"$lbl")"""
       }else ""
       val gv = generate(v)
+      val ge1 = generate(e1)
       val ge2 = if (e2.isInstanceOf[Variable]) "" else generate(e2)
-       s"""|val $gv = ${generate(e1)}
+      // val cout = if (foundComplexLabel && n.contains("MBag") && zep) s"z.show($n)" else ""
+
+       s"""|val $gv = $ge1
            |val $n = $gv$repart  
-           |${if (cache) n else comment(n)}.cache
-           |${if (cache) n else comment(n)}.count
            |$ge2
            |""".stripMargin   
-      // s"""|val $gv = ${generate(e1)}
-      //     |val $n = $gv$repart
-      //     |//$n.print
-      //     |${if (!cache || evalFinal) comment(n) else n}.cache
-      //     |${if (!evaluate) comment(n) else n}.count
-      //     |$ge2
-      //     |""".stripMargin
 
     case LinearCSet(fs) => ""
     case Bind(v, e1, e2) => 

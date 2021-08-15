@@ -148,7 +148,7 @@ Blockly.defineBlocksWithJsonArray([
         "colour": 33,
         "previousStatement": null,
         "nextStatement": null,
-        "tooltip": "sum by key",
+        "tooltip": "sum by key (flat input only)",
     },
     {
         "type": "or",
@@ -507,7 +507,7 @@ Blockly.defineBlocksWithJsonArray([
         "colour": 230,
         "nextStatement": "Bag",
         "previousStatement": "Bag",
-        "tooltip": "todo add tooltip",
+        "tooltip": "return only distinct tuples (flat input only)",
         "inputsInline": true,
 
     }
