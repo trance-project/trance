@@ -1,4 +1,4 @@
-version: '3.3'
+version: '3.4'
 
 services:
   mongo:
@@ -15,8 +15,11 @@ services:
     - ./docker-entrypoint-initdb.d/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
 
   zeppelin:
+    build:
+      context: .
+      network: host
+    image: apache/zeppelin:0.9.0 
     container_name: container-zep
-    image: apache/zeppelin:0.9.0
     restart: always
     ports:
       - 8085:8080
@@ -27,3 +30,4 @@ services:
     volumes: 
       - ./lib:/app
       - ./data:/data
+
