@@ -14,16 +14,3 @@ services:
     volumes:
     - ./docker-entrypoint-initdb.d/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
 
-  zeppelin:
-    container_name: container-zep
-    image: apache/zeppelin:0.9.0
-    restart: always
-    ports:
-      - 8085:8080
-    environment:
-      ZEPPELIN_LOG_DIR: ./logs
-      ZEPPELIN_NOTEBOOK_DIR: ./notebook
-      ZEPPELIN_IN_DOCKER: "true"
-    volumes: 
-      - ./lib:/app
-      - ./data:/data
