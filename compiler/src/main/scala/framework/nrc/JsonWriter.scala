@@ -288,12 +288,13 @@ object JsonWriterTest extends App with Printer with Materialization with Materia
     val query1 = 
       s"""
         Test <= 
-        for s in samples union
-          {(  sid := s.bcr_patient_uuid, mutations :=
-            (  for o in occurrences union
-                if (s.bcr_patient_uuid == o.donorId) then
-                for cc in o.transcript_consequences union
-                   {(  gene := cc.gene_id, score := cc.polyphen_score)}).sumBy({gene}, {score}))}
+          for s in samples union
+             {(  sid := s.bcr_patient_uuid, mutations :=
+
+                (  for o in occurrences union
+                      if (s.bcr_patient_uuid == o.donorId) then
+                      for cc in o.transcript_consequences union
+                         {(  gene := cc.gene_id, score := cc.polyphen_score)}).sumBy({gene}, {score}))}
       """
 
     val s = parseProgram(query1, shred = false).replace("\n", "")

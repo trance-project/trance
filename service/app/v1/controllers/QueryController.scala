@@ -72,7 +72,7 @@ class QueryController @Inject()(
 
   private def compileProgram(program: Program): CExpr = {
     val ncalc = normalizer.finalize(translate(program)).asInstanceOf[CExpr]
-    optimizer.applyAll(Unnester.unnest(ncalc)(Map(), Map(), None, "_2", 0))
+    optimizer.applyPush(Unnester.unnest(ncalc)(Map(), Map(), None, "_2", 0))
   }
 
   private def getJsonPlan(plan: CExpr): String = {
@@ -83,16 +83,19 @@ class QueryController @Inject()(
     val data = 
       if (shred){
       s"""
-        |val IBag_samples__D = spark.emptyDataset[Biospec]
-        |val IBag_occurrences__D = spark.emptyDataset[OccurrDict1]
-        |val IDict_occurrences__D_transcript_consequences = spark.emptyDataset[OccurTransDict2Mid]
-        |val IDict_occurrences__D_transcript_consequences_consequence_terms = spark.emptyDataset[OccurrTransConseqDict3]
+        |val loader = new DemoLoader(spark)
+        |val IBag_samples__D = loader.loadSamples()
+        |val (odict1, odict2, odict3) = loader.loadOccurrShred()
+        |val IBag_occurrences__D = odict1
+        |val IDict_occurrences__D_transcript_consequences = odict2
+        |val IDict_occurrences__D_transcript_consequences_consequence_terms = odict3
         |val IBag_copynumber__D = spark.emptyDataset[CopyNumber]
       """.stripMargin
     }else{
       s"""
-        |val samples = spark.emptyDataset[Biospec]
-        |val occurrences = spark.emptyDataset[OccurrenceMid]
+        |val loader = new DemoLoader(spark)
+        |val samples = loader.loadSamples()
+        |val occurrences = loader.loadOccurrences()
         |val copynumber = spark.emptyDataset[CopyNumber]
       """.stripMargin
     }
