@@ -238,7 +238,7 @@ class QueryController @Inject()(
 
         val runstatus = runProgram(plan, name, shred = isShred)
 
-        val responseBody = s"""{"nodepad_url": "#/notebook/$runstatus"}"""
+        val responseBody = s"""{"nodepad_url": "next/#/notebook/$runstatus"}"""
 
         queryRepository.addEntity(query).map{ _ =>
           Created(responseBody)
@@ -284,7 +284,7 @@ class QueryController @Inject()(
 
         val runstatus = runProgram(plan, name, true)
 
-        val responseBody = s"""{"nodepad_url": "#/notebook/$runstatus"}"""
+        val responseBody = s"""{"nodepad_url": "next/#/notebook/$runstatus"}"""
 
         queryRepository.addEntity(query).map{ _ =>
           Created(responseBody)

@@ -183,7 +183,7 @@ const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps, inde
                     {diagramElProps.nodeDatum.attributes?.newLine}
                 </text>
             )}
-            {level >= 0 && (
+            {level > 0 && (
                 <text fill="black" x="50" fontSize={18} dy={diagramElProps.nodeDatum.attributes?.newLine?"50":"40"} strokeWidth="1">
                     level: {diagramElProps.nodeDatum.attributes?.level}
                 </text>
