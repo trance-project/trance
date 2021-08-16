@@ -126,8 +126,8 @@ export const restHandlerSlice = createSlice({
         });
         builder.addCase(queryApi.runStandardPlan.rejected,(state, action) => {
             console.log("[restHandlerSlice] runStandardPlan", action.payload);
-            state.loading = "Error";
-            state.message = action.payload as string;
+            // state.loading = "Error";
+            // state.message = action.payload as string;
         });
 
         /**
@@ -145,8 +145,8 @@ export const restHandlerSlice = createSlice({
         });
         builder.addCase(queryApi.runShredPlan.rejected,(state, action) => {
             console.log("[restHandlerSlice] runStandardPlan", action.payload);
-            state.loading = "Error";
-            state.message = action.payload as string;
+            // state.loading = "Error";
+            // state.message = action.payload as string;
         });
     }
 })
