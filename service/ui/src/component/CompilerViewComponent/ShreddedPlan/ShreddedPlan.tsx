@@ -48,7 +48,7 @@ const ShreddedPlan = (props:_ShreddedPlanProps) => {
                       enableLegacyTransitions
                       translate={props.translate}
                       transitionDuration={1500}
-                      renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
+                      renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps, index)}
                       separation={{siblings: 5.25}}
                       zoomable={false}
                   />
@@ -158,9 +158,10 @@ const treeDiagramData:RawNodeDatum = {
 // In this case, we only want the node to toggle if the *label* is clicked.
 // Additionally we've replaced the circle's `onClick` with a custom event,
 // which differentiates between branch and leaf nodes.
-const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
+const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps, index:number) => {
+    // @ts-ignore
     const level = parseInt(diagramElProps.nodeDatum.attributes?.level!);
-    const levelColor = _colorPicker(level);
+    const levelColor = _colorPicker(index);
     return (
         <g>
             <circle r="15" onClick={diagramElProps.toggleNode} fill={levelColor}/>
@@ -187,6 +188,7 @@ const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
     );
 }
 
+//todo add to global state
 const _colorPicker =(level:number )=>{
     switch (level) {
         case 0:
@@ -199,6 +201,16 @@ const _colorPicker =(level:number )=>{
             return "rgba(243,71,246,0.8)";
         case 4:
             return "rgba(5,93,165,0.8)";
+        case 5:
+            return "rgba(40,165,5,0.8)";
+        case 6:
+            return "rgba(141,5,165,0.8)";
+        case 7:
+            return "rgba(189,148,9,0.8)";
+        case 8:
+            return "rgba(188,212,24,0.8)";
+        case 9:
+            return "rgba(5,165,120,0.8)";
     }
 }
 

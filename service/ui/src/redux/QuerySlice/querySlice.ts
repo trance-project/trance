@@ -96,7 +96,6 @@ export const querySlice = createSlice({
         });
         builder.addCase(api.getStandardPlan.fulfilled, (state, action:PayloadAction<StandardResponse|undefined> ) => {
             if(action.payload){
-                console.log("[getStandardPlan action.payload]", action.payload)
                 if(action.payload.standard_plan.length > 0){
                     state.standardPlan = action.payload.standard_plan[0];
                 }
