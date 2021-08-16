@@ -89,22 +89,7 @@ const StandardCompilationView = (props:_QueryViewProps) => {
                         <React.Fragment>
                             <NewLabelView
                                 labelView={label}
-                                hoverEvent={()=>shreddedResponse?props.hoverMaterializationLvlOpen(parseInt(nodeId)): null}
-                                abortHover={props.abortHover}
                             />
-                            <Popover
-                                open={props.hoverMaterializationLvl === parseInt(nodeId)}
-                                onClose={props.hoverMaterializationLvlClose}
-                                anchorOrigin={{
-                                    vertical: 'top',
-                                    horizontal: 'right',
-                                }}
-                                transformOrigin={{
-                                    vertical: 'top',
-                                    horizontal: 'right',
-                                }}
-                            >
-                            </Popover>
                         </React.Fragment>
                     }>
                     {childItem}
@@ -117,22 +102,7 @@ const StandardCompilationView = (props:_QueryViewProps) => {
                                        <React.Fragment>
                                            <NewLabelView
                                                labelView={label}
-                                               hoverEvent={()=>props.hoverMaterializationLvlOpen(parseInt(nodeId))}
-                                               abortHover={props.abortHover}
                                            />
-                                           <Popover
-                                               open={props.hoverMaterializationLvl === parseInt(nodeId)}
-                                               onClose={props.hoverMaterializationLvlClose}
-                                               anchorOrigin={{
-                                                   vertical: 'top',
-                                                   horizontal: 'right',
-                                               }}
-                                               transformOrigin={{
-                                                   vertical: 'top',
-                                                   horizontal: 'right',
-                                               }}
-                                           >
-                                           </Popover>
                                        </React.Fragment>}/>
         }
 
@@ -141,7 +111,6 @@ const StandardCompilationView = (props:_QueryViewProps) => {
     if(newQuerySelected) {
             statement=   newQuerySelect(newQuerySelected);
         }
-    console.log("[newQuery]", newQuerySelected);
     return (
         <div>
             <TreeView
