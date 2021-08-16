@@ -17,9 +17,7 @@ import PlusSquare from "../../ui/ExpandedIcons/PlusSquare";
 import CloseSquare from "../../ui/ExpandedIcons/CloseSquare";
 import NewLabelView from "../../Query/QueryBuilderComponents/StandardCompilationBuilder/LabelView/NewLabelView";
 import {useAppSelector} from '../../../redux/Hooks/hooks'
-import Materializationlvl1 from "../ShreddedCompilationView/Materialzation/Materializationlvl1";
-import Materializationlvl2 from "../ShreddedCompilationView/Materialzation/Materializationlvl2";
-import Materializationlvl3 from "../ShreddedCompilationView/Materialzation/Materializationlvl3";
+
 
 
 interface _QueryViewProps {
@@ -51,19 +49,6 @@ const StandardCompilationView = (props:_QueryViewProps) => {
 
     const expandedNode: string[] = [];
 
-    const _getHoverMaterializationLvl = (index: number) =>{
-        switch (index){
-            case 1: {
-                return <Materializationlvl1/>;
-            }
-            case 2: {
-                return <Materializationlvl2/>;
-            }
-            case 3: {
-                return <Materializationlvl3/>;
-            }
-        }
-    }
 
     //Recursive method used to iterate over query table object to layout the columns and if the supply nested data.
     const newQuerySelect = (query:NewQuery) => {
@@ -119,7 +104,6 @@ const StandardCompilationView = (props:_QueryViewProps) => {
                                     horizontal: 'right',
                                 }}
                             >
-                                {_getHoverMaterializationLvl(props.hoverMaterializationLvl)}
                             </Popover>
                         </React.Fragment>
                     }>
@@ -148,7 +132,6 @@ const StandardCompilationView = (props:_QueryViewProps) => {
                                                    horizontal: 'right',
                                                }}
                                            >
-                                               {_getHoverMaterializationLvl(props.hoverMaterializationLvl)}
                                            </Popover>
                                        </React.Fragment>}/>
         }
