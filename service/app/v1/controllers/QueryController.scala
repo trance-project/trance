@@ -84,9 +84,9 @@ class QueryController @Inject()(
       if (shred){
       s"""
         |val loader = new DemoLoader(spark)
-        |val IBag_samples__D = loader.loadSamples("/Users/jac/data/dlbc/dlbc/samples.txt")
-        |val IBag_copynumber__D = loader.loadCopyNum("/Users/jac/data/dlbc/cnv")        
-        |val (odict1, odict2, odict3) = loader.loadOccurrShred(Seq("/Users/jac/data/dlbc/odict1", "/Users/jac/data/dlbc/odict2", "/Users/jac/data/dlbc/odict3"))
+        |val IBag_samples__D = loader.loadSamples()
+        |val IBag_copynumber__D = loader.loadCopyNum()        
+        |val (odict1, odict2, odict3) = loader.loadOccurrShred()
         |val IBag_occurrences__D = odict1
         |val IMap_occurrences__D_transcript_consequences = odict2
         |val IMap_occurrences__D_transcript_consequences_consequence_terms = odict3
@@ -94,9 +94,9 @@ class QueryController @Inject()(
     }else{
       s"""
         |val loader = new DemoLoader(spark)
-        |val samples = loader.loadSamples("/Users/jac/data/dlbc/dlbc/samples.txt")
-        |val copynumber = loader.loadCopyNum("/Users/jac/data/dlbc/cnv")   
-        |val occurrences = loader.loadOccurrences("/Users/jac/data/dlbc/occurrences")
+        |val samples = loader.loadSamples()
+        |val copynumber = loader.loadCopyNum()   
+        |val occurrences = loader.loadOccurrences()
       """.stripMargin
     }
 
@@ -111,8 +111,8 @@ class QueryController @Inject()(
       |import sparkutils.loader._
       |import sparkutils.skew.SkewDataset._
       |import java.io._
-      |spark.sparkContext.addJar("/Users/jac/code/trance/service/lib/sparkutils_2.12-0.1.jar")
-      |spark.sparkContext.addJar("/Users/jac/code/trance/service/lib/spark-avro_2.12-3.1.1.jar")
+      |spark.sparkContext.addJar("/app/sparkutils_2.12-0.1.jar")
+      |spark.sparkContext.addJar("/app/spark-avro_2.12-3.1.1.jar")
       |$header
       |case class Stat(name: String, sizeInBytes:String, rowCount:String)
       |$encoders
