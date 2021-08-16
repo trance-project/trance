@@ -152,6 +152,9 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       if (fs(name)) AddIndex(push(e1, fs), name)
       else push(e1, fs)
 
+    case Rename(e1, name, op) => 
+      Rename(push(e1, fs ++ collect(op)), name, op)
+
     case FlatDict(e1) => FlatDict(push(e1, fs))
     case GroupDict(e1) => GroupDict(push(e1, fs))
     case CNamed(n, e1) => CNamed(n, push(e1))
@@ -207,6 +210,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
   private def isBase(e: CExpr): Boolean = e match {
     case FlatDict(e1) => isBase(e1)
     case AddIndex(e1, _) => isBase(e1)
+    case Rename(e1, _, _) => isBase(e1)
     case _:InputRef => true
     case _ => false
   }
@@ -231,6 +235,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
         case _ => false
       }
     case AddIndex(e1, _) => baseKeyCheck(e1, keys)
+    case Rename(e1, _, _) => baseKeyCheck(e1, keys)
     case FlatDict(e1) => baseKeyCheck(e1, keys)
     case _ => false
   }

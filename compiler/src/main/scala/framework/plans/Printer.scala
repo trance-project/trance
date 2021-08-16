@@ -36,6 +36,7 @@ object Printer {
     case If(c, e1, e2) => s"if (${quoteNoVar(c)}) ..."
     case _:Variable => ""
     case AddIndex(i, n) => quoteNoVar(i)
+    case Rename(i, n, _) => s"Rename(${quoteNoVar(i)}, $n)"
     case FlatDict(e1) => quoteNoVar(e1)
     case GroupDict(e1) => quoteNoVar(e1)
     case InputRef(n, _) => n
@@ -92,6 +93,7 @@ object Printer {
       s"""| SELECT[ ${quote(p)} ](${quote(x)})
           | """.stripMargin
     case AddIndex(e1, name) => s"INDEX(${quote(e1)})"
+    case Rename(e1, name, _) => s"${quote(e1)}"
     case RemoveNulls(e1) => s"NaDROP(${quote(e1)})"
     case Projection(e1, v, p, fields, l) => 
       s"""|PROJECT[${fields.mkString(",")}, ${quote(p)}](${quote(e1)})

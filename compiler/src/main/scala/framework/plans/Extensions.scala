@@ -25,6 +25,7 @@ trait Extensions {
   // 
   // optional type check (useType)
   def replace(e: CExpr, v: Variable, useType: Boolean = false): CExpr = e match {
+    case Rename(in, n, o) => Rename(in, n, replace(o, v, useType))
     case Record(ms) => Record(ms.map(r => r._1 -> replace(r._2, v, useType)))
     case Label(ms) => Label(ms.map(r => r._1 -> replace(r._2, v, useType)))
     case Project(Project(_, "_LABEL"), f) => Project(Project(v, "_LABEL"), f)
@@ -41,22 +42,48 @@ trait Extensions {
   }
 
   // todo additional cases
-  def collect(e: CExpr): Set[String] = e match {
-    case Record(e1) => e1.flatMap(f => collect(f._2)).toSet
-    case Label(e1) => e1.flatMap(f => collect(f._2)).toSet
-    case If(cond, s1, Some(s2)) => collect(cond) ++ collect(s1) ++ collect(s2)
-    case If(cond, s1, None) => collect(cond) ++ collect(s1)
-    case MathOp(op, e1, e2) => collect(e1) ++ collect(e2)
-    case Equals(e1, e2) => collect(e1) ++ collect(e2)
-    case Not(e1) => collect(e1)
-    case And(e1, e2) => collect(e1) ++ collect(e2)
-    case Gte(e1, e2) => collect(e1) ++ collect(e2)
-    case Lte(e1, e2) => collect(e1) ++ collect(e2)
+  def collect(e: CExpr, lbl: Boolean = true): Set[String] = e match {
+    case Rename(_, _, o) => collect(o,lbl)
+    case Record(e1) => e1.flatMap(f => collect(f._2, lbl)).toSet
+    case Label(e1) => e1.flatMap(f => collect(f._2, lbl)).toSet
+    case If(cond, s1, Some(s2)) => collect(cond,lbl) ++ collect(s1,lbl) ++ collect(s2,lbl)
+    case If(cond, s1, None) => collect(cond,lbl) ++ collect(s1,lbl)
+    case MathOp(op, e1, e2) => collect(e1,lbl) ++ collect(e2,lbl)
+    case Equals(e1, e2) => collect(e1,lbl) ++ collect(e2,lbl)
+    case Not(e1) => collect(e1,lbl)
+    case And(e1, e2) => collect(e1,lbl) ++ collect(e2,lbl)
+    case Gte(e1, e2) => collect(e1,lbl) ++ collect(e2,lbl)
+    case Lte(e1, e2) => collect(e1,lbl) ++ collect(e2,lbl)
+    case Project(Project(_, "_LABEL"), f) => Set("_LABEL")
     case Project(e1, f) => Set(f)
-  	case CUdf(n, e1, tp) => collect(e1)
+  	case CUdf(n, e1, tp) => collect(e1,lbl)
   	case _ => Set()
   }
 
+  def collectNoLabel(e: CExpr): Set[String] = e match {
+    case Rename(_, _, o) => collect(o)
+    case Record(e1) => 
+      e1.flatMap(f => {
+        val fs = collectNoLabel(f._2)
+        if (fs == Set(f._1)) Set(f._1)
+        else fs
+    }).toSet
+    // case Label(e1) => e1.flatMap(f => collect(f._2)).toSet
+    case If(cond, s1, Some(s2)) => collectNoLabel(cond) ++ collectNoLabel(s1) ++ collectNoLabel(s2)
+    case If(cond, s1, None) => collectNoLabel(cond) ++ collectNoLabel(s1)
+    // case MathOp(op, e1, e2) => collectNoLabel(e1) ++ collectNoLabel(e2)
+    // case Equals(e1, e2) => collectNoLabel(e1) ++ collectNoLabel(e2)
+    // case Not(e1) => collectNoLabel(e1)
+    // case And(e1, e2) => collectNoLabel(e1) ++ collectNoLabel(e2)
+    // case Gte(e1, e2) => collectNoLabel(e1) ++ collectNoLabel(e2)
+    // case Lte(e1, e2) => collectNoLabel(e1) ++ collectNoLabel(e2)
+    case Project(e1, f) => Set(f)
+    // case CUdf(n, e1, tp) => collectNoLabel(e1)
+    case _ => Set()
+  }
+
+
+  //??
   def collectFromAnd(e: CExpr): Set[String] = e match {
     case Record(e1) => e1.flatMap(f => collect(f._2)).toSet
     case Label(e1) => e1.flatMap(f => collect(f._2)).toSet
@@ -81,6 +108,7 @@ trait Extensions {
       case LinearCSet(es) => LinearCSet(es.map(e1 => fapply(e1, funct)))
 
       case AddIndex(in, v) => AddIndex(fapply(in, funct), v)
+      case Rename(in, v, o) => Rename(fapply(in, funct), v, o)
 
       case RemoveNulls(in) => RemoveNulls(fapply(in, funct))
         

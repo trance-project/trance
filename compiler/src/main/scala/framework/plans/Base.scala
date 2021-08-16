@@ -51,6 +51,7 @@ trait Base {
   // plan operators
   def select(x: Rep, p: Rep => Rep, level: Int): Rep
   def addindex(in: Rep, name: String): Rep 
+  def rename(in: Rep, name: String, op: Rep): Rep 
   def nanull(in: Rep): Rep 
   def projection(in: Rep, filter: Rep => Rep, fields: List[String], level: Int): Rep
   def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String], level: Int): Rep
@@ -135,6 +136,7 @@ trait BaseStringify extends Base{
     s""" | SELECT[ ${p(v)} ]( ${x} )""".stripMargin
   }
   def addindex(in: Rep, name: String): Rep = "/** Top-down, see Printer.scala **/"
+  def rename(in: Rep, name: String, op: Rep): Rep = ""
 
   def nanull(in: Rep): Rep = "/** Top-down, see Printer.scala **/"
   def projection(in: Rep, filter: Rep => Rep, fields: List[String], level: Int): Rep = ""
@@ -222,23 +224,15 @@ trait BaseCompiler extends Base {
     }
   }
 
-  def addindex(in: Rep, name: String): Rep = in match {
-    case AddIndex(in1, _) => AddIndex(in, name)
-    case _ => AddIndex(in, name)  
-  }
+  def addindex(in: Rep, name: String): Rep = AddIndex(in, name)
+  def rename(in: Rep, name: String, op: Rep): Rep = Rename(in, name, op)
 
   def nanull(in: Rep): Rep = RemoveNulls(in)
+
   def projection(in: Rep, filter: Rep => Rep, fields: List[String], level: Int): Rep = {
     val v1 = Variable.freshFromBag(in.tp)
-    // println("the variable")
-    // println(v1)
     val nr = filter(v1)
-    // println("this is the filter")
-    // println(nr)
-    // println(Printer.quote(nr))
     val fs = ext.collect(nr)
-    // println("this is fs")
-    // println(fs)
     Projection(in, v1, nr, fs.toList, level)
   }
   def unnest(in: Rep, path: String, filter: Rep => Rep, fields: List[String], level: Int): Rep = {
@@ -315,6 +309,7 @@ trait BaseOperatorANF extends BaseANF {
           case o:Nest => updateState(o)
           case o:Reduce => updateState(o)
           case o:AddIndex => updateState(o)
+          case o:Rename => updateState(o)
           case o:CDeDup => updateState(o)
           case o:CReduceBy => updateState(o)
           case _ => Def(e)
@@ -452,6 +447,7 @@ trait BaseANF extends Base {
   def select(x: Rep, p: Rep => Rep, level: Int): Rep = compiler.select(x, p, level)
   
   def addindex(in: Rep, name: String) = compiler.addindex(in, name)
+  def rename(in: Rep, name: String, op: Rep): Rep = compiler.rename(in, name, op)
   def nanull(in: Rep): Rep = compiler.nanull(in)
   def projection(in: Rep, filter: Rep => Rep, fields: List[String], level: Int): Rep = 
     compiler.projection(in, filter, fields, level)
@@ -570,6 +566,7 @@ class Finalizer(val target: Base){
       target.select(finalize(x), (r: target.Rep) => withMap(v -> r)(finalize(p)), l)
 
     case AddIndex(in, name) => target.addindex(finalize(in), name)    
+    case Rename(in, name, op) => target.rename(finalize(in), name, finalize(op))   
     case RemoveNulls(in) => target.nanull(finalize(in))    
     case Projection(in, v, filter, fields, l) => 
       val filt = (r: target.Rep) => withMap(v -> r)(finalize(filter))

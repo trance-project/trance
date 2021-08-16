@@ -151,6 +151,7 @@ object JsonWriter {
 				|}
 			""".stripMargin
 		case i:AddIndex => produceJsonString(i.e) //TODO pass through for now
+		case r:Rename => produceJsonString(r.e) //TODO pass through for now
 		case c:CNamed => s"""${produceJsonString(c.e)}""" //TODO pass through for now
 		case p:LinearCSet => s"""[${p.exprs.map(x => produceJsonString(x)).mkString(",")}]"""
 		case FlatDict(e1) => produceJsonString(e1)
@@ -203,7 +204,11 @@ object JsonWriterTest extends App with Printer with Materialization  with Materi
     println(quote(compiled))
 
 		val ncalc = normalizer.finalize(translate(compiled)).asInstanceOf[CExpr]
-		optimizer.applyAll(Unnester.unnest(ncalc)(Map(), Map(), None, "_2", 0)).asInstanceOf[LinearCSet]
+		val iplan = Unnester.unnest(ncalc)(Map(), Map(), None, "_2", 0)
+		println("before")
+		println(Printer.quote(iplan))
+		println("after")
+		optimizer.applyAll(iplan).asInstanceOf[LinearCSet]
 	}
 
 	val queryComplicate = 
@@ -228,7 +233,8 @@ object JsonWriterTest extends App with Printer with Materialization  with Materi
 
     // this should be 			                    
     // if (t.gene_id = c.cn_gene_id && c.cn_aliquot_uuid = s.bcr_aliquot_uuid) then
-    // but i need to fix the parser 
+    // but i need to fix the parser
+
     val querySimple = 
     	s"""
     	  QuerySimple <=
@@ -305,18 +311,34 @@ object JsonWriterTest extends App with Printer with Materialization  with Materi
 		   		for t in o.transcript_consequences union
 		     		{(  sid := o.donorId, gene := t.gene_id)}
     	"""
-    val plan2 = getPlan(query2, shred = true)
+
+  	val query4 = 
+  		s"""
+  	Test <=
+for s in samples union
+   {(  sid := s.bcr_patient_uuid, mutations :=
+      for o in occurrences union
+          if (s.bcr_patient_uuid == o.donorId) then
+          {(  mutid := o.donorId, scores :=
+
+              (  for t in o.transcript_consequences union
+                   for c in copynumber union
+                      if (c.cn_gene_id == t.gene_id && s.bcr_aliquot_uuid == c.cn_aliquot_uuid) then
+                      {(  gene := t.gene_id, score := ( c.cn_copy_number *    if (t.impact == "HIGH") then
+                            .8 else 0.01 ))}).sumBy({gene}, {score}))})}
+  		"""
+    val plan2 = getPlan(query4, shred = true)
 		// val plan3 = getPlan(query1, shred = true)
 		println(Printer.quote(plan2))
-		val jsonRep2 = JsonWriter.produceJsonString(plan2)
+		// val jsonRep2 = JsonWriter.produceJsonString(plan2)
 		// val jsonRep3 = JsonWriter.produceJsonString(plan3)
 		// println(jsonRep2)
 		// println(jsonRep3)
 
-    val jsValue = Json parse jsonRep2
+    // val jsValue = Json parse jsonRep2
     // val jsValue3 = Json parse jsonRep3
-    println("result:")
-    println(Json prettyPrint jsValue)
+    // println("result:")
+    // println(Json prettyPrint jsValue)
     // println(Json prettyPrint jsValue3)
 
 

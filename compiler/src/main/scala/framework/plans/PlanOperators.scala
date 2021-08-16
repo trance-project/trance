@@ -38,6 +38,9 @@ case class RemoveNulls(e1: CExpr) extends CExpr {
 /**
  *  Appends an index to the collection returned by e, unique for each occurrence of a tuple (used for dot-equality), 
  * important for maintaining multiplicites in bag comprehensions
+ * 
+ * TODO appends a new column, based on an expression
+ * 
  */
 case class AddIndex(e: CExpr, name: String) extends CExpr with UnaryOp {
   def tp: BagCType = BagCType(RecordCType(e.tp.attrs ++ Map(name -> LongType)))
@@ -46,6 +49,15 @@ case class AddIndex(e: CExpr, name: String) extends CExpr with UnaryOp {
   override val isCacheUnfriendly: Boolean = true
 }
 
+case class Rename(e: CExpr, name: String, op: CExpr) extends CExpr with UnaryOp {
+  def tp: BagCType = op match {
+    case Project(_, "_1") => BagCType(RecordCType((e.tp.attrs - "_1") ++ Map(name -> op.tp)))
+    case _ => sys.error(s"not supported $op")
+  }
+  val in: CExpr = e
+  override def vstr: String = s"Rename(${e.vstr}, $name)" 
+  override val isCacheUnfriendly: Boolean = true
+}
 
 /**
  *  Selection operator
