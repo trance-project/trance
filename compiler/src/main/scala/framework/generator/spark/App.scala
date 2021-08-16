@@ -15,9 +15,11 @@ object SkewTest extends App {
   }
 }
 
-object ScaleTest extends App {
+object DemoQueries extends App {
   override def main(args: Array[String]){
-    AppWriter.runDatasetShred(TestBugFix, "TestBaseQuery,shredded", optLevel = 1)
+    AppWriter.runDatasetShred(FlatToNestedBio, "TestBaseQuery,shredded", optLevel = 1, unshred = true)
+    AppWriter.runDatasetShred(NestedToNestedBio, "TestBaseQuery,shredded", optLevel = 1, unshred = true)
+    AppWriter.runDatasetShred(NestedToFlatBio, "TestBaseQuery,shredded", optLevel = 1, unshred = true)
   }
 }
 

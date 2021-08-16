@@ -38,13 +38,13 @@ object JsonWriter {
 		case CNamed(name, d:CDeDup) if name.contains("Dom") =>
 			s"""
 				|{
-				|	"name": "DOMAIN",
+				|	"name": "${name}",
 				|	"attributes": {
-				|		"planOperator": "DISTINCT",
+				|		"planOperator": "",
 				|		"level": ${d.level},
 				| 	"newLine": [ ]
 				|	},
-				|	"children": [${produceJsonString(d.in)}]
+				|	"children": [ ]
 				|}
 			""".stripMargin 
 		case CNamed(name, p:Projection) => 
@@ -305,7 +305,7 @@ object JsonWriterTest extends App with Printer with Materialization  with Materi
 		   		for t in o.transcript_consequences union
 		     		{(  sid := o.donorId, gene := t.gene_id)}
     	"""
-    val plan2 = getPlan(query3, shred = true)
+    val plan2 = getPlan(query2, shred = true)
 		// val plan3 = getPlan(query1, shred = true)
 		println(Printer.quote(plan2))
 		val jsonRep2 = JsonWriter.produceJsonString(plan2)
