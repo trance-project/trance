@@ -1,5 +1,5 @@
 import React from "react";
-import {Typography} from "@material-ui/core";
+import {AccordionDetails, Typography} from "@material-ui/core";
 
 
 import {labelViewThemeStyle} from './LabelViewThemeStyle';

@@ -251,7 +251,7 @@ const getNestedDepth = (jsonObject: RawNodeDatum, depth = 1,index =0) => {
         results = getNestedDepth(jsonObject.children![index], depth +1, 0)
     };
     return results;
-    // return getNestedDepth()
+
 }
 
 export default ShreddedPlan;

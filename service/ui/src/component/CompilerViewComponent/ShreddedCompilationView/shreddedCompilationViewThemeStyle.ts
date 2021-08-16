@@ -21,7 +21,9 @@ const shreddedCompilationViewThemeStyle = makeStyles(theme =>
                 fontFamily: 'Ubuntu Mono',
             }
         },
-
+        accordion: {
+            marginBottom: '5px'
+        },
         accordion1lvl: {
             backgroundColor: 'rgba(141,158,145,0.3)'
         },
