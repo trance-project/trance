@@ -100,7 +100,7 @@ const PlanResult = (props:_PlanResultsProps) => {
                                 data={planNode}
                                 orientation={"vertical"}
                                 pathFunc={"straight"}
-                                zoom={0.3}
+                                zoom={0.5}
                                 enableLegacyTransitions
                                 translate={{x:200, y:20}}
                                 transitionDuration={1500}
