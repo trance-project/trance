@@ -26,11 +26,10 @@ interface _LabelViewProps {
 
 const NewLabelView = (props:_LabelViewProps) => {
     const classes = labelViewThemeStyle();
-
     const styleString = (label: LabelType) => {
         const jsxElement: JSX.Element[]= [];
-         const dubbedNrcFor = label.for.replace('Union', 'Union;$;')
-        const nrcFor = dubbedNrcFor.split(';');
+         const dubbedNrcFor = label.for.replaceAll('Union', 'Union;$;')
+        const nrcFor = dubbedNrcFor.split(';$;');
         jsxElement.push(
             <Typography variant={"body1"} key={label.groupBy.substring(label.groupBy.indexOf('ReduceByKey')+11, label.groupBy.length)}>
                 <Typography component={"span"}>{label.groupBy.substring(label.groupBy.indexOf('ReduceByKey'), label.groupBy.indexOf('ReduceByKey')+11)}</Typography>
