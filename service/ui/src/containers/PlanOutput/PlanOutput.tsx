@@ -10,7 +10,7 @@ import RuntimeMetrics from "../../component/RuntimeMetrics/RuntimeMetrics";
 import {AbstractTable,TableGraphMetaInfo} from '../../utils/Public_Interfaces';
 import {rows} from '../../component/PlanOutputComponents/DemoData';
 import Typography from "@material-ui/core/Typography";
-import {Alert, AlertTitle} from "@material-ui/lab";
+import {Alert} from "@material-ui/lab";
 
 const PlanOutput = () => {
     const classes = planOutputThemeStyle();

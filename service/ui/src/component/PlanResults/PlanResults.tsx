@@ -33,6 +33,7 @@ interface _PlanResultsProps{
 
 const PlanResult = (props:_PlanResultsProps) => {
     const newQuerySelect = (query:NewQuery, index: number) => {
+        const childItem: JSX.Element[] = [];
         const labelViewString: string[] = [];
         let label: LabelType = {
             for: "",
@@ -41,22 +42,46 @@ const PlanResult = (props:_PlanResultsProps) => {
             groupBy: "",
         };
         labelViewString.push(query.key)
-        if (query.key.includes("ReduceByKey") || query.key.includes("GroupByKey") || query.key.includes("SumByKey")) {
-            label.groupBy = query.key.substring(query.key.indexOf("ReduceByKey"), query.key.indexOf(" For "))
+        if(query.key.includes("ReduceByKey") || query.key.includes("GroupByKey") || query.key.includes("SumByKey")){
+            label.groupBy=query.key.substring(query.key.indexOf("ReduceByKey"), query.key.indexOf(" For "))
             label.for = query.key.substring(query.key.indexOf(" For "), query.key.length)
-        } else {
-            label.for = query.key;
+        }else{
+            label.for=query.key;
         }
 
-        return (
-            <Accordion defaultExpanded key={`${query.key}`} style={{backgroundColor: _colorPicker(index)} }>
-                <AccordionDetails>
-                    <NewLabelView
-                        labelView={label}
-                    />
-                </AccordionDetails>
-            </Accordion>
-        )
+        if(query.labels){
+            query.labels.forEach(q => {
+                if(q.labels){
+                    //new Node!
+                    label.tuple.push(`${q.name} := `)
+                    childItem.push(newQuerySelect(q, index));
+                }else{
+                    label.tuple.push(`${q.name} := ${q.key}`)
+                }
+            })
+            return (
+                <React.Fragment>
+                    <Accordion defaultExpanded key={`${query.key}`} style={{backgroundColor: _colorPicker(index)} }>
+                        <AccordionDetails>
+                            <NewLabelView
+                                labelView={label}
+                            />
+                        </AccordionDetails>
+                    </Accordion>
+                    {childItem}
+                </React.Fragment>
+            )
+        }else{
+            return (
+                <Accordion defaultExpanded key={`_${query.key}`} style={{backgroundColor: _colorPicker(index)} }>
+                    <AccordionDetails>
+                        <NewLabelView
+                            labelView={label}
+                        />
+                    </AccordionDetails>
+                </Accordion>)
+        }
+
     }
 
     const classes = planResultsThemeStyle();
@@ -80,7 +105,7 @@ const PlanResult = (props:_PlanResultsProps) => {
                                 translate={{x:200, y:20}}
                                 transitionDuration={1500}
                                 renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps, i)}
-                                separation={{siblings: 5.25}}
+                                separation={{siblings: 3.25}}
                                 zoomable={false}
                             />
                     </Grid>

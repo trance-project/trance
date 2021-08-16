@@ -37,22 +37,46 @@ const NewShreddedCompilationView = (props:_MaterializationProps) => {
             groupBy: "",
         };
         labelViewString.push(query.key)
-        if (query.key.includes("ReduceByKey") || query.key.includes("GroupByKey") || query.key.includes("SumByKey")) {
-            label.groupBy = query.key.substring(query.key.indexOf("ReduceByKey"), query.key.indexOf(" For "))
+        if(query.key.includes("ReduceByKey") || query.key.includes("GroupByKey") || query.key.includes("SumByKey")){
+            label.groupBy=query.key.substring(query.key.indexOf("ReduceByKey"), query.key.indexOf(" For "))
             label.for = query.key.substring(query.key.indexOf(" For "), query.key.length)
-        } else {
-            label.for = query.key;
+        }else{
+            label.for=query.key;
         }
 
-        return (
-            <Accordion className={classes.accordion} defaultExpanded key={`${nodeId}_${query.key}`} style={{backgroundColor: _colorPicker(index)} }>
-                <AccordionDetails>
-                    <NewLabelView
-                        labelView={label}
-                    />
-                </AccordionDetails>
-            </Accordion>
-        )
+        if(query.labels){
+            query.labels.forEach(q => {
+                if(q.labels){
+                    //new Node!
+                    label.tuple.push(`${q.name} := `)
+                    childItem.push(newQuerySelect(q, index));
+                }else{
+                    label.tuple.push(`${q.name} := ${q.key}`)
+                }
+            })
+            return (
+                <React.Fragment>
+                    <Accordion className={classes.accordion} defaultExpanded key={`${nodeId}_${query.key}`} style={{backgroundColor: _colorPicker(index)} }>
+                        <AccordionDetails>
+                            <NewLabelView
+                                labelView={label}
+                            />
+                        </AccordionDetails>
+                    </Accordion>
+                    {childItem}
+                </React.Fragment>
+            )
+        }else{
+            return (
+                <Accordion className={classes.accordion} defaultExpanded key={`${nodeId}_${query.key}`} style={{backgroundColor: _colorPicker(index)} }>
+                    <AccordionDetails>
+                        <NewLabelView
+                            labelView={label}
+                        />
+                    </AccordionDetails>
+                </Accordion>)
+        }
+
     }
 
 

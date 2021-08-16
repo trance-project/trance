@@ -51,7 +51,7 @@ const ShreddedPlan = (props:_ShreddedPlanProps) => {
                       translate={props.translate}
                       transitionDuration={1500}
                       renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps, index)}
-                      separation={{siblings: 5.25}}
+                      separation={{siblings: 3.25}}
                       zoomable={false}
                   />
               </Grid>

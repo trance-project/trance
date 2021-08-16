@@ -17,6 +17,7 @@ import ModalPrompt from "../../component/CompilerViewComponent/ModalPrompt/Model
 import {useAppSelector} from '../../redux/Hooks/hooks';
 import PlanResults from "../../component/PlanResults/PlanResults";
 import {config} from '../../Constants';
+import {Alert} from "@material-ui/lab";
 
 const CompilerView =()=> {
     const classes = standardCompilationViewThemeStyle();
@@ -116,6 +117,13 @@ const CompilerView =()=> {
 
     return (
         <React.Fragment>
+            <Grid container spacing={3}>
+                <Grid item xs={12}>
+                    <Alert severity="warning">
+                        Only test data for <strong>samples, copy number and occurrences </strong>available when running queries
+                    </Alert>
+                </Grid>
+            </Grid>
             <Grid container spacing={1}>
                 <Grid item  xs={12}>
                     <Paper style={{"height": 800}}>
