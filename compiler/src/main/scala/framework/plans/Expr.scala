@@ -250,7 +250,7 @@ case class GroupDict(in: CExpr) extends CExpr with UnaryOp {
     case BagCType(RecordCType(ms)) => 
       val lbl = ms get "_1" match {
         case Some(l:LabelType) => l
-        case _ => sys.error("invalid bag")
+        case _ => LabelType(Map.empty[String, Type])//sys.error("invalid bag")
       }
       MatDictCType(lbl, BagCType(RecordCType(ms - "_1")))
 

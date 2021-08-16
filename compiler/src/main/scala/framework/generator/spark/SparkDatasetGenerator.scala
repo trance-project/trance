@@ -362,6 +362,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       // output attributes
       val newCols = pat.fields.keySet
 
+      var removeCols = projectCols -- ext.collectNoLabel(pat)
+
       // make new columns
       val newColumns = pat.fields.flatMap{
         // avoid column renaming
@@ -385,7 +387,13 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           if (newCols(oldCol)) List(s"""| .withColumn("$col", $$"$oldCol")""")
           // overrides a column
           else defaultCastNull(col, oldCol, p.tp)
-		      case _ => Nil
+        case (col, p @ Project(_, oldCol)) if col == oldCol =>
+          removeCols = removeCols - col 
+          Nil
+        case (col, l:Label) if ext.collect(l)(col)=>
+          removeCols = removeCols - col 
+          Nil
+        case _ => Nil
       } 
 
       // ensure that new columns are made before renaming occurs
@@ -394,11 +402,12 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
       val ncast = if (in.tp.attrs.keySet == nfields && allColumns.isEmpty) ""
         else s".as[${generateType(pat.tp)}]"
+      val drop = if (removeCols.nonEmpty) s".drop(${removeCols.toList.mkString("\"", "\", \"", "\"")})" else ""
 
       // project nulls needs more testing
       s"""|${generate(in)}${if (projectNulls) ".na.drop()" else ""}$select
           $columns
-          | $ncast
+          | $drop$ncast
           |""".stripMargin
 
     // JOIN operator
@@ -598,6 +607,13 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val renamedAgg = value.map(v => s"""|.withColumnRenamed("sum($v)", "$v")""").mkString("\n")
       s"""|${generate(in)}.groupBy($colWrapped).agg($sumWrapped)\n$renamedAgg
           |.as[$gtp]
+          |""".stripMargin
+
+    case ei @ Rename(e1, name, Project(_, "_1")) => 
+      handleType(ei.tp.tp)
+      val nrec = generateType(ei.tp.tp)
+      s"""|${generate(e1)}.withColumnRenamed("_1", "$name")
+          | .as[$nrec]
           |""".stripMargin
 
     case ei @ AddIndex(e1, name) => 

@@ -168,6 +168,8 @@ trait Query extends Materialization
       case _ => optimizer.applyAll(compiler.finalize(initPlan).asInstanceOf[CExpr])
     }
 
+    println(Printer.quote(plan))
+
     val anfBase = new BaseOperatorANF{}
     val anfer = new Finalizer(anfBase)
     val qplan = anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])

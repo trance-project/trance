@@ -103,9 +103,10 @@ object Unnester {
       val nv = wvar(w)
       val nv1 = Variable.freshFromBag(dict.tp)
       val lname = Variable.fresh("LABEL_1_")
-      val pdict = Projection(dict, nv1, Record(nv1.tp.attrs.map(x => x._1 match {
-        case "_1" =>  lname -> Project(nv1, x._1); case _ => x._1 -> Project(nv1, x._1)})), Nil, level)
-      val nv2 = Variable.freshFromBag(pdict.tp)
+      // val pdict = Projection(dict, nv1, Record(nv1.tp.attrs.map(x => x._1 match {
+      //   case "_1" =>  lname -> Project(nv1, x._1); case _ => x._1 -> Project(nv1, x._1)})), Nil, level)
+      val renameLabel = Rename(dict, lname, Project(nv1, "_1"))
+      val nv2 = Variable.freshFromBag(renameLabel.tp) //pdict.tp)
 
       // capture join conditions and remove dropped attributes
       val joinCond = lbl match {
@@ -119,7 +120,7 @@ object Unnester {
       // generate the outer join and make recursive call
       val rfs = collect(joinCond)
       // val fdict = Select(dict, nv1, filt)
-      val nE = OuterJoin(E.get, nv, pdict, nv2, joinCond, (w.keySet ++ v1.tp.attrs.keySet).toList, level)
+      val nE = OuterJoin(E.get, nv, renameLabel, nv2, joinCond, (w.keySet ++ v1.tp.attrs.keySet).toList, level)
       unnest(e2)((u, flat(w, nv2.tp), Some(nE), tag, level))
 
     // Deprecated: primitive monoid case, this was only relevant when we were using count 
