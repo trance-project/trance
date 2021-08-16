@@ -116,12 +116,13 @@ export const restHandlerSlice = createSlice({
          */
         builder.addCase(queryApi.runStandardPlan.pending, (state) => {
             console.log("[restHandlerSlice] Pending call for runStandardPlan");
-            state.loading = "Loading";
+            // state.loading = "Loading";
+            state.message = "See Zeppelin notebook";
         });
         builder.addCase(queryApi.runStandardPlan.fulfilled, (state) => {
             console.log("[restHandlerSlice] Fulfilled call for runStandardPlan");
             state.loading = "Idle";
-            state.message = "Plan Executed Successfully"
+            // state.message = "Plan Executed Successfully"
         });
         builder.addCase(queryApi.runStandardPlan.rejected,(state, action) => {
             console.log("[restHandlerSlice] runStandardPlan", action.payload);
@@ -134,12 +135,13 @@ export const restHandlerSlice = createSlice({
          */
         builder.addCase(queryApi.runShredPlan.pending, (state) => {
             console.log("[restHandlerSlice] Pending call for runStandardPlan");
-            state.loading = "Loading";
+            // state.loading = "Loading";
+            state.message = "See Zeppelin notebook";
         });
         builder.addCase(queryApi.runShredPlan.fulfilled, (state) => {
             console.log("[restHandlerSlice] Fulfilled call for runStandardPlan");
             state.loading = "Idle";
-            state.message = "Plan Executed Successfully"
+            // state.message = "Plan Executed Successfully"
         });
         builder.addCase(queryApi.runShredPlan.rejected,(state, action) => {
             console.log("[restHandlerSlice] runStandardPlan", action.payload);
