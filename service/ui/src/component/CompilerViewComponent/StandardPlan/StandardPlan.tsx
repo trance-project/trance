@@ -27,12 +27,12 @@ import Button from "@material-ui/core/Button";
 // Additionally we've replaced the circle's `onClick` with a custom event,
 // which differentiates between branch and leaf nodes.
 const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
-    const levelColor = _colorPicker(diagramElProps.nodeDatum.attributes?.level!);
+    const level = parseInt(diagramElProps.nodeDatum.attributes?.level!);
+    const levelColor = _colorPicker(level);
     // @ts-ignore
     const newLine = diagramElProps.nodeDatum.attributes?.newLine.join(",");
     return (
         <g>
-
             <circle r="15" onClick={diagramElProps.toggleNode} fill={levelColor}/>
             <foreignObject width={70} height={50}>
                 {getImagePlanOperator(diagramElProps.nodeDatum.attributes?.planOperator)}
@@ -48,7 +48,7 @@ const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
                     {newLine}
                 </text>
             )}
-            {diagramElProps.nodeDatum.attributes?.level && (
+            {level >= 0 && (
                 <text fill="black" x="50" fontSize={18} dy={diagramElProps.nodeDatum.attributes?.newLine?"50":"40"} strokeWidth="1">
                     level: {diagramElProps.nodeDatum.attributes?.level}
                 </text>
@@ -88,14 +88,18 @@ const getImagePlanOperator = (planOperator:string | number | boolean | undefined
     return <img src={image} alt={'planOperatorSymbol'} width={30} height={30}/>
 }
 
-const _colorPicker =(level:string | number | boolean)=>{
+const _colorPicker =(level:number)=>{
     switch (level) {
-        case "1":
-            return "#8D9E91"; //"rgba(141,158,145,0.3)";
-        case "2":
-            return "rgba(0, 140, 212, 0.7)"; //"#8B7A8C"; //"rgba(139,122,140,0.3)";
-        case "3":
-            return "#B382B5"; //"rgba(179,130,181,0.3)";
+        case 0:
+            return "rgba(141,158,145,0.8)"; //"#8D9E91";
+        case 1:
+            return "rgba(0, 140, 212, 0.7)"; //"rgba(139,122,140,0.3)"; //"#8B7A8C";
+        case 2:
+            return "rgba(179,130,181,0.8)"; //"#B382B5";
+        case 3:
+            return "rgba(243,71,246,0.8)";
+        case 4:
+            return "rgba(5,93,165,0.8)";
     }
 }
 
@@ -114,21 +118,26 @@ const StandardPlan = () => {
         }))
     }
     return (
-        <Grid item xs={12} direction={"row"} style={{height:700}}>
-            <Tree
-                data={treeDiagramData}
-                orientation={"vertical"}
-                pathFunc={"straight"}
-                zoom={0.65}
-                enableLegacyTransitions
-                translate={{x:400, y:20}}
-                transitionDuration={1500}
-                renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
-                separation={{siblings:2.25}}
-                zoomable={false}
-            />
-            <Button variant={"contained"} color={"primary"} onClick={handleButtonClick} endIcon={<ForwardIcon/>}>Run</Button>
-        </Grid>
+        <div>
+            <Grid container direction={"row"} style={{height: "675px"}}>
+                <Grid item xs={12} style={{height: '900px'}}>
+                        <Tree
+                            data={treeDiagramData}
+                            orientation={"vertical"}
+                            pathFunc={"straight"}
+                            zoom={0.65}
+                            enableLegacyTransitions
+                            translate={{x:400, y:20}}
+                            transitionDuration={1500}
+                            renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
+                            separation={{siblings:2.25}}
+                            zoomable={true}
+                        />
+                </Grid>
+                <Button variant={"contained"} color={"primary"} onClick={handleButtonClick} endIcon={<ForwardIcon/>}>Run</Button>
+            </Grid>
+
+        </div>
     )
 }
 

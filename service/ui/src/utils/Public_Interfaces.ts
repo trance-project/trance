@@ -1,7 +1,7 @@
 import React from "react";
 import Blockly, {Xml} from "blockly/blockly";
 import xml = Blockly.utils.xml;
-import {RawNodeDatum} from "react-d3-tree/lib/types/common";
+// import {RawNodeDatum} from "react-d3-tree/lib/types/common";
 
 export interface Table {
     id:number;
@@ -116,6 +116,11 @@ export interface QueryResponse {
     nrc: NewQuery[];
 }
 
+export interface RawNodeDatum {
+    name: string;
+    attributes?: Record<string, string>;
+    children?: RawNodeDatum[];
+}
 export interface ShreddedResponse {
     shred_plan: RawNodeDatum[],
     shred_nrc: NewQuery[]

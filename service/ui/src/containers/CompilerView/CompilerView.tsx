@@ -103,7 +103,7 @@ const CompilerView =()=> {
         },
         {
             tabLabel:"Shredded Plan",
-            jsxElement: <ShreddedPlan/>,
+            jsxElement: <ShreddedPlan translate={{x: 400, y: 20}} zoom={0.6}/>,
             disable:shreddedPlan === undefined || shreddedPlan.shred_plan === undefined
         },
         // TODO: reused the shreddedCompilationView component and shreddedPlan component for this tab

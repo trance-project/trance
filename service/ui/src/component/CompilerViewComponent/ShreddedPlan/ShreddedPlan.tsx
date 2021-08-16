@@ -14,7 +14,11 @@ import {runShredPlan} from '../../../redux/QuerySlice/thunkQueryApiCalls';
 import Button from "@material-ui/core/Button";
 import ForwardIcon from "@material-ui/icons/Forward";
 
-const ShreddedPlan = () => {
+interface _ShreddedPlanProps{
+    translate: {x:number, y:number};
+    zoom:number;
+}
+const ShreddedPlan = (props:_ShreddedPlanProps) => {
 
     const dispatch = useAppDispatch();
 
@@ -32,24 +36,28 @@ const ShreddedPlan = () => {
         }))
     }
     if(shreddedResponse){
-      planElement = shreddedResponse.shred_plan.map((el,index) => (
-          <Grid item key={index} xs={12}>
-            <Tree
-                data={el}
-                orientation={"vertical"}
-                pathFunc={"straight"}
-                zoom={0.6}
-                enableLegacyTransitions
-                translate={{x: 400, y: 20}}
-                transitionDuration={1500}
-                renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
-                zoomable={false}
-            />
-          </Grid>
-        ))
+      planElement = shreddedResponse.shred_plan.map((el,index) => {
+          const depth = getNestedDepth(el);
+          return (
+              <Grid item key={index} xs={12} style={{height: `${(depth * 100)}px`}}>
+                  <Tree
+                      data={el}
+                      orientation={"vertical"}
+                      pathFunc={"straight"}
+                      zoom={props.zoom}
+                      enableLegacyTransitions
+                      translate={props.translate}
+                      transitionDuration={1500}
+                      renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
+                      separation={{siblings: 5.25}}
+                      zoomable={false}
+                  />
+              </Grid>
+          )
+      })
     }
     return (
-        <Grid container direction={"row"}>
+        <Grid container direction={"row"} style={{height: "675px"}}>
             {planElement}
             <Button variant={"contained"} color={"primary"} onClick={handleButtonClick} endIcon={<ForwardIcon/>}>Run</Button>
         </Grid>
@@ -151,10 +159,10 @@ const treeDiagramData:RawNodeDatum = {
 // Additionally we've replaced the circle's `onClick` with a custom event,
 // which differentiates between branch and leaf nodes.
 const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
-    const levelColor = _colorPicker(diagramElProps.nodeDatum.attributes?.level!);
+    const level = parseInt(diagramElProps.nodeDatum.attributes?.level!);
+    const levelColor = _colorPicker(level);
     return (
         <g>
-
             <circle r="15" onClick={diagramElProps.toggleNode} fill={levelColor}/>
             <foreignObject width={70} height={50}>
                 {getImagePlanOperator(diagramElProps.nodeDatum.attributes?.planOperator)}
@@ -170,7 +178,7 @@ const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
                     {diagramElProps.nodeDatum.attributes?.newLine}
                 </text>
             )}
-            {diagramElProps.nodeDatum.attributes?.level && (
+            {level >= 0 && (
                 <text fill="black" x="50" fontSize={18} dy={diagramElProps.nodeDatum.attributes?.newLine?"50":"40"} strokeWidth="1">
                     level: {diagramElProps.nodeDatum.attributes?.level}
                 </text>
@@ -179,14 +187,18 @@ const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
     );
 }
 
-const _colorPicker =(level:string | number | boolean)=>{
+const _colorPicker =(level:number )=>{
     switch (level) {
-        case "1":
+        case 0:
             return "rgba(141,158,145,0.8)"; //"#8D9E91";
-        case "2":
+        case 1:
             return "rgba(0, 140, 212, 0.7)"; //"rgba(139,122,140,0.3)"; //"#8B7A8C";
-        case "3":
+        case 2:
             return "rgba(179,130,181,0.8)"; //"#B382B5";
+        case 3:
+            return "rgba(243,71,246,0.8)";
+        case 4:
+            return "rgba(5,93,165,0.8)";
     }
 }
 
@@ -216,6 +228,18 @@ const getImagePlanOperator = (planOperator:string | number | boolean | undefined
             return;
     }
     return <img src={image} alt={'planOperatorSymbol'} width={30} height={30}/>
+}
+
+
+const getNestedDepth = (jsonObject: RawNodeDatum, depth = 1,index =0) => {
+    let results = 0;
+    if(jsonObject.children?.length == 0){
+        return depth
+    }else{
+        results = getNestedDepth(jsonObject.children![index], depth +1, 0)
+    };
+    return results;
+    // return getNestedDepth()
 }
 
 export default ShreddedPlan;

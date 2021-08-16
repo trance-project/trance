@@ -11,6 +11,7 @@ import {
 
 import {CustomNodeElementProps, RawNodeDatum} from "react-d3-tree/lib/types/common";
 import Tree from "react-d3-tree";
+import ShreddedPlan from "../CompilerViewComponent/ShreddedPlan/ShreddedPlan";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 
 import S from "../ui/Span/S";
@@ -31,52 +32,13 @@ const PlanResult = (props:_PlanResultsProps) => {
     const classes = planResultsThemeStyle();
 
     return (
-            <Grid container spacing={3} style={{height: '100vh'}}>
+            <Grid container spacing={3} style={{height: '100vh', overflow: 'scroll'}}>
                 <Grid item xs={12} md={6}>
-                    <Grid item direction={"row"}>
-                        <Tree
-                            data={treeDiagramLvl1}
-                            orientation={"vertical"}
-                            pathFunc={"straight"}
-                            zoom={0.6}
-                            enableLegacyTransitions
-                            translate={{x:200, y:20}}
-                            transitionDuration={1500}
-                            renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
-                            zoomable={false}
-                        />
-                    </Grid>
-                    <Grid item direction={"row"}>
-                        <Tree
-                            data={treeDiagramLvl2}
-                            orientation={"vertical"}
-                            pathFunc={"straight"}
-                            zoom={0.6}
-                            enableLegacyTransitions
-                            translate={{x:200, y:20}}
-                            transitionDuration={1500}
-                            renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
-                            zoomable={false}
-                        />
-                    </Grid>
-                    <Grid item direction={"row"} style={{height:400}}>
-                        <Tree
-                            data={treeDiagramData}
-                            orientation={"vertical"}
-                            pathFunc={"straight"}
-                            zoom={0.6}
-                            enableLegacyTransitions
-                            translate={{x:200, y:20}}
-                            transitionDuration={1500}
-                            renderCustomNodeElement={diagramProps => renderNodeWithCustomEvents(diagramProps)}
-                            separation={{siblings:1.7}}
-                            zoomable={false}
-                        />
-                    </Grid>
+                   <ShreddedPlan translate={{x:200, y:20}} zoom={0.4}/>
                 </Grid>
-                <Grid item xs={12} md={6}>
-                    <Materialization/>
-                </Grid>
+                {/*<Grid item xs={12} md={6}>*/}
+                {/*    <Materialization/>*/}
+                {/*</Grid>*/}
             </Grid>
         );
 }
