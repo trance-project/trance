@@ -27,6 +27,7 @@ import Button from "@material-ui/core/Button";
 // Additionally we've replaced the circle's `onClick` with a custom event,
 // which differentiates between branch and leaf nodes.
 const renderNodeWithCustomEvents = (diagramElProps: CustomNodeElementProps) => {
+    // @ts-ignore
     const level = parseInt(diagramElProps.nodeDatum.attributes?.level!);
     const levelColor = _colorPicker(level);
     // @ts-ignore
@@ -120,7 +121,7 @@ const StandardPlan = () => {
     return (
         <div>
             <Grid container direction={"row"} style={{height: "675px"}}>
-                <Grid item xs={12} style={{height: '900px'}}>
+                <Grid item xs={12}>
                         <Tree
                             data={treeDiagramData}
                             orientation={"vertical"}
@@ -134,9 +135,8 @@ const StandardPlan = () => {
                             zoomable={true}
                         />
                 </Grid>
-                <Button variant={"contained"} color={"primary"} onClick={handleButtonClick} endIcon={<ForwardIcon/>}>Run</Button>
             </Grid>
-
+            <Button variant={"contained"} color={"primary"} onClick={handleButtonClick} endIcon={<ForwardIcon/>} style={{float:"left"}}>Run</Button>
         </div>
     )
 }

@@ -1,5 +1,5 @@
 import React from "react";
-import {Grid} from "@material-ui/core";
+import {Accordion, AccordionDetails, Grid} from "@material-ui/core";
 import Tree from "react-d3-tree";
 import {CustomNodeElementProps, RawNodeDatum} from "react-d3-tree/lib/types/common";
 
@@ -13,6 +13,8 @@ import {useAppSelector,useAppDispatch} from '../../../redux/Hooks/hooks';
 import {runShredPlan} from '../../../redux/QuerySlice/thunkQueryApiCalls';
 import Button from "@material-ui/core/Button";
 import ForwardIcon from "@material-ui/icons/Forward";
+import {NewQuery,LabelType} from "../../../utils/Public_Interfaces";
+import NewLabelView from "../../Query/QueryBuilderComponents/StandardCompilationBuilder/LabelView/NewLabelView";
 
 interface _ShreddedPlanProps{
     translate: {x:number, y:number};
@@ -57,10 +59,12 @@ const ShreddedPlan = (props:_ShreddedPlanProps) => {
       })
     }
     return (
-        <Grid container direction={"row"} style={{height: "675px"}}>
-            {planElement}
-            <Button variant={"contained"} color={"primary"} onClick={handleButtonClick} endIcon={<ForwardIcon/>}>Run</Button>
-        </Grid>
+        <React.Fragment>
+            <Grid container direction={"row"} style={{height: "670px"}}>
+                {planElement}
+                <Button variant={"contained"} color={"primary"} onClick={handleButtonClick} endIcon={<ForwardIcon/>}>Run</Button>
+            </Grid>
+        </React.Fragment>
     );
 }
 

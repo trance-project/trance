@@ -10,6 +10,7 @@ import RuntimeMetrics from "../../component/RuntimeMetrics/RuntimeMetrics";
 import {AbstractTable,TableGraphMetaInfo} from '../../utils/Public_Interfaces';
 import {rows} from '../../component/PlanOutputComponents/DemoData';
 import Typography from "@material-ui/core/Typography";
+import {Alert, AlertTitle} from "@material-ui/lab";
 
 const PlanOutput = () => {
     const classes = planOutputThemeStyle();
@@ -73,6 +74,13 @@ const PlanOutput = () => {
     }
 return (
     <React.Fragment>
+        <Grid container spacing={3}>
+            <Grid item xs={12}>
+                <Alert severity="warning">
+                    Report displaying example data — <strong>for demo purposes</strong>
+                </Alert>
+            </Grid>
+        </Grid>
         <Button className={classes.iconView} variant={"contained"} style={{'backgroundColor':'#d66123'}} onClick={handleClickOpen} endIcon={<StarBorderIcon/>}>Metrics</Button>
         <Grid container spacing={3}>
             <Grid item xs={12}>

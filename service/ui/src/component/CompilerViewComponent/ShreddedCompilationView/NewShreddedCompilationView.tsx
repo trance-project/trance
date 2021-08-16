@@ -5,7 +5,7 @@ import {Accordion, AccordionDetails, AccordionSummary, Popover, Typography} from
 import Grid from "@material-ui/core/Grid";
 import S from '../../ui/Span/S';
 import {useAppSelector} from '../../../redux/Hooks/hooks';
-import {NewQuery} from "../../../utils/Public_Interfaces";
+import {NewQuery,LabelType} from "../../../utils/Public_Interfaces";
 import StyledTreeItem from "../../ui/StyledTreeItem/StyledTreeItem";
 import NewLabelView from "../../Query/QueryBuilderComponents/StandardCompilationBuilder/LabelView/NewLabelView";
 import {TreeView} from "@material-ui/lab";
@@ -17,12 +17,6 @@ interface _MaterializationProps {
 
 }
 
-type LabelType = {
-    for: string;
-    tuple: string[];
-    association: string;
-    groupBy: string;
-}
 
 const NewShreddedCompilationView = (props:_MaterializationProps) => {
     const classes = shreddedCompilationViewThemeStyle();

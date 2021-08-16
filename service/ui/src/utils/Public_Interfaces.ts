@@ -130,6 +130,13 @@ export interface StandardResponse {
     standard_plan: RawNodeDatum[]
 }
 
+export interface LabelType {
+    for: string;
+    tuple: string[];
+    association: string;
+    groupBy: string;
+}
+
 export interface NotepadResponse {
     nodepad_url: string;
 }
