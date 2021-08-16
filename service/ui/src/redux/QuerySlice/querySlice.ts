@@ -41,7 +41,11 @@ export const querySlice = createSlice({
          // Use the PayloadAction type to declare the contents of `action.payload`
          SetSelectedQuery: (state, action: PayloadAction<QuerySummary>) => {
              state.selectedQuery = action.payload
+             state.responseQuery = undefined;
              state.nrcQuery = "";
+             state.shreddedResponse = undefined;
+             state.standardPlan = undefined;
+             state.notepadUrl = "";
          },
          createNewQuery: (state, action: PayloadAction<QuerySummary>) => {
              state.selectedQuery = action.payload
@@ -61,6 +65,11 @@ export const querySlice = createSlice({
         });
         builder.addCase(api.fetchSelectedQuery.fulfilled, (state, action: PayloadAction<QuerySummary>) => {
             state.selectedQuery = action.payload
+            state.responseQuery = undefined;
+            state.nrcQuery = "";
+            state.shreddedResponse = undefined;
+            state.standardPlan = undefined;
+            state.notepadUrl = "";
         });
         builder.addCase(api.sendStandardNrcCode.fulfilled, (state, action: PayloadAction<QueryResponse|undefined>) => {
             if(action.payload){
