@@ -22,14 +22,12 @@ class TestStatsCollector extends TestBase {
 
     // val ces = CEBuilder.buildCoverMap(subs)
     
-    // val statsCollector = new StatsCollector(progs)
-    // val stats = if (zep){
-    //   statsCollector.getCost(subs, ces)
-    // }else Map.empty[String, Statistics]
-    // val stats = statsCollector.getCost(subs, ces)
+    val statsCollector = new StatsCollector(progs)
+    val stats = if (zep){
+      statsCollector.getCost(subs, ces)
+    }else Map.empty[String, Statistics]
 
-    // assert(stats.size == 26)
-
+    println(stats.colMap)
   }
 
   test("shred comilation route"){
