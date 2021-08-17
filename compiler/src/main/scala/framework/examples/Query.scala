@@ -162,12 +162,16 @@ trait Query extends Materialization
     val ncalc = normalizer.finalize(bcalc).asInstanceOf[CExpr]
     val initPlan = Unnester.unnest(ncalc)(Map(), Map(), None, baseTag)
 
+    println("This is the plan before optimization:")
+    println(Printer.quote(initPlan))
+
     val plan = optLevel match {
       case 0 => compiler.finalize(initPlan).asInstanceOf[CExpr]
       case 1 => optimizer.applyPush(compiler.finalize(initPlan).asInstanceOf[CExpr])
       case _ => optimizer.applyAll(compiler.finalize(initPlan).asInstanceOf[CExpr])
     }
-
+    println("This is the plan after optimization:")
+    println(Printer.quote(plan))
     val anfBase = new BaseOperatorANF{}
     val anfer = new Finalizer(anfBase)
     val qplan = anfBase.anf(anfer.finalize(plan).asInstanceOf[anfBase.Rep])
