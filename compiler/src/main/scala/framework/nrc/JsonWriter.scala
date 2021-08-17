@@ -100,7 +100,7 @@ trait JsonBasedPrinter extends Printer {
     case l: NewLabel =>
       val ps = l.params.map { case (n, p) => n + " := " + quote(p.e) }.toList
 //      val ps = l.params.map { case (n, p) => n + " := " + quote(p.e) + " : " + quote(p.tp)}.toList
-      s"NewLabel(${(l.id :: ps).mkString(", ")})"
+      s"NewLabel(${ps.mkString(", ")})"
 
     // Dictionary extensions
     case EmptyDict =>
