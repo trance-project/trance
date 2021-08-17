@@ -11,6 +11,38 @@ import framework.utils.Utils.ind
 object Printer {
   val compiler = new BaseStringify{}
   import compiler._
+
+  def quoteNoVar(e: CExpr): String = e match {
+    case Record(fs) => 
+      fs.map(f => f._2 match {
+        case _:Project => quoteNoVar(f._2);
+        case _ => f._1}).mkString(",")
+    case Label(fs) => label(fs.map(f => f._1 -> quoteNoVar(f._2)))    
+    case MathOp(op, e1, e2) => compiler.mathop(op, quoteNoVar(e1), quoteNoVar(e2))
+    case Equals(e1, e2) => compiler.equals(quoteNoVar(e1), quoteNoVar(e2))
+    case Lt(e1, e2) => lt(quoteNoVar(e1), quoteNoVar(e2))
+    case Lte(e1, e2) => lte(quoteNoVar(e1), quoteNoVar(e2))
+    case Gt(e1, e2) => gt(quoteNoVar(e1), quoteNoVar(e2))
+    case Gte(e1, e2) => gte(quoteNoVar(e1), quoteNoVar(e2))
+    case And(e1, e2) => and(quoteNoVar(e1), quoteNoVar(e2))    
+    case Not(e1) => not(quoteNoVar(e1))
+    case Or(e1, e2) => or(quoteNoVar(e1), quoteNoVar(e2))
+    case Project(Project(e1, "_LABEL"), f) => s"_LABEL.$f"
+    case Project(e1, f) => f
+    // case If(c, e1, e2) => e2 match {
+    //   case Some(a) => ifthen(quoteNoVar(c), quoteNoVar(e1), Some(quoteNoVar(a)))
+    //   case _ => ifthen(quoteNoVar(c), quoteNoVar(e1), None)
+    // }    
+    case If(c, e1, e2) => s"if (${quoteNoVar(c)}) ..."
+    case _:Variable => ""
+    case AddIndex(i, n) => quoteNoVar(i)
+    case Rename(i, n, _) => s"Rename(${quoteNoVar(i)}, $n)"
+    case FlatDict(e1) => quoteNoVar(e1)
+    case GroupDict(e1) => quoteNoVar(e1)
+    case InputRef(n, _) => n
+    case _ => quote(e)
+  }
+
   def quote(e: CExpr): String = e match {
     case InputRef(d, t) => inputref(d,t)
     case Input(d) => input(d.map(quote(_)))
@@ -45,7 +77,7 @@ object Printer {
       case px => s"{ ${quote(e)} | ${v.quote} <- ${quote(e1)}, ${quote(px)} }"
     }
     case Bind(x, e1, e2) => s"{ ${quote(e2)} | ${quote(x)} := ${quote(e1)} }"
-    case CDeDup(e1) => s"DeDup(${quote(e1)})"
+    case CDeDup(e1, l) => s"DeDup(${quote(e1)})"
     case CGroupBy(e1, v, grp, value, gname) => s"""(${quote(e1)}).groupBy(${grp.mkString(",")}; ${value.mkString(",")}, "$gname")"""
     case CReduceBy(e1, v, grp, value) => s"(${quote(e1)}).reduceBy(${grp.mkString(",")}; ${value.mkString(",")})"
     case CNamed(n, e) => named(n, quote(e))
@@ -57,34 +89,35 @@ object Printer {
     case TupleCDict(fs) => tupledict(fs.map(f => f._1 -> quote(f._2)))
     case DictCUnion(e1, e2) => dictunion(quote(e1), quote(e2))
 
-    case Select(x, v, p) => 
+    case Select(x, v, p, l) => 
       s"""| SELECT[ ${quote(p)} ](${quote(x)})
           | """.stripMargin
     case AddIndex(e1, name) => s"INDEX(${quote(e1)})"
+    case Rename(e1, name, _) => s"${quote(e1)}"
     case RemoveNulls(e1) => s"NaDROP(${quote(e1)})"
-    case Projection(e1, v, p, fields) => 
+    case Projection(e1, v, p, fields, l) => 
       s"""|PROJECT[${fields.mkString(",")}, ${quote(p)}](${quote(e1)})
           |""".stripMargin
-    case Nest(e1, v, keys, value, filter, nulls, ctag) =>
+    case Nest(e1, v, keys, value, filter, nulls, ctag, l) =>
       s"""|NEST^{${quote(value)}, ${quote(filter)}, $ctag}_{U, ${keys.mkString(",")} / ${nulls.mkString(",")}}(${quote(e1)})
           |""".stripMargin
-    case Unnest(e1, v, path, v2, filter, fields) =>
+    case Unnest(e1, v, path, v2, filter, fields, l) =>
       s"""|UNNEST[${quote(v)}.$path, ${quote(filter)}, ${fields.mkString(",")}](${quote(e1)})
           |""".stripMargin
-    case OuterUnnest(e1, v, path, v2, filter, fields) =>
+    case OuterUnnest(e1, v, path, v2, filter, fields, l) =>
       s"""|OUTERUNNEST[${quote(v)}.$path, ${quote(filter)}, ${fields.mkString(",")}](${quote(e1)})
           |""".stripMargin
-    case Join(left, v1, right, v2, cond, fields) => 
+    case Join(left, v1, right, v2, cond, fields, l) => 
       s"""|${quote(left)} 
           |JOIN [${quote(cond)}, ${fields.mkString(",")}] 
           |${quote(right)}
           |""".stripMargin
-    case OuterJoin(left, v1, right, v2, cond, fields) => 
+    case OuterJoin(left, v1, right, v2, cond, fields, l) => 
       s"""|${quote(left)} 
           |OUTERJOIN [${quote(cond)}, ${fields.mkString(",")}] 
           |${quote(right)}
           |""".stripMargin
-    case Reduce(e1, v, grp, value) => 
+    case Reduce(e1, v, grp, value, l) => 
       s"""| REDUCE[ keys = {${grp.mkString(",")}} values = {${value.mkString(",")}} ](${quote(e1)})
           | """.stripMargin
     

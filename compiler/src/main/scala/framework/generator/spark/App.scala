@@ -15,9 +15,11 @@ object SkewTest extends App {
   }
 }
 
-object ScaleTest extends App {
+object DemoQueries extends App {
   override def main(args: Array[String]){
-    AppWriter.runDatasetShred(TestBaseQuery, "TestBaseQuery,shredded", optLevel = 1)
+    // AppWriter.runDatasetShred(FlatToNestedBio, "TestBaseQuery,shredded", optLevel = 1)
+    AppWriter.runDatasetShred(NestedToNestedBio2, "TestBaseQuery,shredded", optLevel = 1)
+    // AppWriter.runDatasetShred(NestedToFlatBio, "TestBaseQuery,shredded", optLevel = 1, unshred = true)
   }
 }
 
@@ -47,8 +49,8 @@ object LetExplore extends App {
     // AppWriter.runDatasetShred(LetTest7b, "InlinedAgg,shredded", optLevel = 1)
     // AppWriter.runDatasetShred(LetTest7bSeq, "SequentialAgg,shredded", optLevel = 1)
 
-    AppWriter.runDatasetShred(LetTest5FSeq, "InlinedAgg,shredded", optLevel = 1)
-    // AppWriter.runDatasetShred(LetTest9Seq, "SequentialAgg,shredded", optLevel = 1)
+    AppWriter.runDatasetShred(LetTest8, "InlinedAgg,shredded", optLevel = 1)
+    AppWriter.runDatasetShred(LetTest8Seq, "SequentialAgg,shredded", optLevel = 1)
 
     // AppWriter.runDatasetShred(lenv.queries.head, "Inlined,shredded", optLevel = 1)
     // AppWriter.runDatasetShred(lenv.queries.last, "Sequential,shredded", optLevel = 1)

@@ -25,17 +25,24 @@ case class Statistics(sizeInKB: Double, rowCount: Double) {
 class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", zport: Int = 8085, inputs: String = "") { //, inputs: Map[String, String] = Map.empty[String, String]) {
 
   val data: String = if (inputs.isEmpty){
-    s"""|   val db = spark.catalog.currentDatabase
-        |   val copynumber = spark.table("copynumber")
+    s"""|   val stc = new StatsCollector(spark)
+        |   val copynumber = spark.table("copynumber").as[CopyNumber]
+        |   stc.writeColStats("copynumber", stc.getColumns(copynumber), withShred = true)
         |   val occurrences = spark.table("occurrences")
-        |   val samples = spark.table("samples")
+        |   stc.writeColStats("occurrences", stc.getColumns(occurrences))
+        |   val samples = spark.table("samples").as[Biospec]
+        |   stc.writeColStats("samples", stc.getColumns(samples), withShred = true)
         |   val clinical = spark.table("clinical")
+        |   stc.writeColStats("clinical", stc.getColumns(clinical), withShred = true)
         |   val IBag_copynumber__D = copynumber
         |   val IBag_samples__D = samples
         |   val IBag_clinical__D = clinical
         |   val IBag_occurrences__D = spark.table("odict1")
+        |   stc.writeColStats("IBag_occurrences__D", stc.getColumns(IBag_occurrences__D))
         |   val IMap_occurrences__D_transcript_consequences = spark.table("odict2")
+        |   stc.writeColStats("IMap_occurrences__D_transcript_consequences", stc.getColumns(IMap_occurrences__D_transcript_consequences))
         |   val IMap_occurrences__D_transcript_consequences_consequence_terms = spark.table("odict3")
+        |   stc.writeColStats("IMap_occurrences__D_transcript_consequences_consequence_terms", stc.getColumns(IMap_occurrences__D_transcript_consequences_consequence_terms))
       """.stripMargin
   }else inputs 
   
@@ -60,7 +67,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
       val src = rc match { case "-1" => -1.0; case _ => (BigDecimal(rc) / KB).toDouble }
       (Some(n), Some(Statistics(sbl, src)))
     case ColRegex(c, v) => 
-      colMap(c) += v.toDouble
+      colMap(c) = v.toDouble
       (None, None)
     case _ => (None, None)
   }
@@ -94,7 +101,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
           | /** ${Printer.quote(p._1)} **/
           | ${generator.generate(anfed)}
           | val stat$inc = ${name}.queryExecution.optimizedPlan.stats
-          | println(genStat("${name}", stat$inc))
+          | println(stc.genStat("${name}", stat$inc))
           |"""
         queries += gcode
         inc += 1
@@ -109,7 +116,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
           val gcode = s"""
             | /** ${Printer.quote(i)} **/
             | val stat$inc = ${name}.queryExecution.optimizedPlan.stats
-            | println(genStat("${name}", stat$inc))
+            | println(stc.genStat("${name}", stat$inc))
             """
           if (wprogs) codeMap += (name -> gcode) else queries += gcode
 
@@ -121,7 +128,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
             | /** ${Printer.quote(p)} **/
             | ${generator.generate(anfed)}
             | val stat$inc = ${p.name}.queryExecution.optimizedPlan.stats
-            | println(genStat("${p.name}", stat$inc))
+            | println(stc.genStat("${p.name}", stat$inc))
             """
           if (wprogs) codeMap += (p.name -> gcode) else queries += gcode
         }
@@ -140,13 +147,14 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
       "DONE"
     }else {
       println("attempting a zeppelin connection to "+zhost+" "+zport)
-	  val noteid = zep.addNote(bname)
+	    val noteid = zep.addNote(bname)
       // println(s"Writing to notebook: $noteid")
       val pcontents = writeParagraph(bname, data, ghead, queries+"\n"+codeMap.map(_._2).mkString("\n"), genc)
       val para = new JsonWriter().buildParagraph("Generated paragraph $qname", pcontents)
       val pid = zep.writeParagraph(noteid, para)
-      // println(s"Writing to paragraph: $pid")
-      val status = zep.runParaSync(noteid, pid)
+
+      println(s"Writing to paragraph: $pid")
+      val status = zep.runParaSync(noteid, pid, readtime = 500000)
       zep.deleteNote(noteid)
       status
     }
@@ -237,7 +245,6 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
       |import sparkutils.loader._
       |import sparkutils.skew.SkewDataset._
       |$header
-      |case class Stat(name: String, sizeInBytes:String, rowCount:String)
       |object $appname {
       | def main(args: Array[String]){
       |   val conf = new SparkConf()
@@ -245,10 +252,6 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
       |   val spark = SparkSession.builder().config(conf).getOrCreate()
       |   $encoders
       |   import spark.implicits._
-      |   def genStat(n: String, s: Statistics): Stat = s.rowCount match {
-      |     case Some(rc) => Stat(n, s.sizeInBytes.toString, rc.toString)
-      |     case _ => Stat(n, s.sizeInBytes.toString, "-1")
-      |   }
       |   $data
       |   $gcode
       | }
@@ -266,14 +269,10 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
       |import sparkutils.loader._
       |import sparkutils.skew.SkewDataset._
       |import java.io._
+      |spark.sparkContext.addJar("/Users/jac/code/trance/executor/spark/target/scala-2.12/sparkutils_2.12-0.1.jar")
       |$header
-      |case class Stat(name: String, sizeInBytes:String, rowCount:String)
       |$encoders
       |import spark.implicits._
-      |def genStat(n: String, s: Statistics): Stat = s.rowCount match {
-      |  case Some(rc) => Stat(n, s.sizeInBytes.toString, rc.toString)
-      |  case _ => Stat(n, s.sizeInBytes.toString, "-1")
-      |}
       |$data
       |$gcode
     """.stripMargin

@@ -16,7 +16,7 @@ import framework.utils.Utils.ind
   * @param inputs map of input types that should not be reproduced (important for programs)
   */
 class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = false, optLevel: Int = 2,
-  unshred: Boolean = false, evalFinal: Boolean = true, inputs: Map[Type, String] = Map(), dedup: Boolean = true) extends SparkTypeHandler with SparkUtils {
+  unshred: Boolean = false, evalFinal: Boolean = true, inputs: Map[Type, String] = Map(), dedup: Boolean = true, zep: Boolean = false) extends SparkTypeHandler with SparkUtils {
 
   implicit def expToString(e: CExpr): String = generate(e)
 
@@ -24,6 +24,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
   var encoders: Map[String, Type] = Map()
   override val BAGTYPE: String = "Seq"
   val ext = new Extensions{}
+  var foundComplexLabel: Boolean = false
 
   /** Generates the code for the set of case class records associated to the 
     * records in the generated program.
@@ -149,6 +150,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case Label(fs) if fs.size == 1 => 
       generateReference(fs.head._2)
     case Label(fs) => 
+      foundComplexLabel = true
       encoders = encoders + (generateType(e.tp) -> e.tp)
       handleType(e.tp)
       val rcnts = e.tp.attrs.map(f => generateReference(fs(f._1))).mkString(", ")
@@ -294,8 +296,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case CUdf(n, e1, tp) => s"$n(${generateReference(e1)})"
 	  case Sng(e) => s"Seq(${generate(e)})"
     case CGet(e1) => s"${generate(e1)}.head"
-    case CDeDup(e1) if dedup => s"${generate(e1)}.distinct"
-    case CDeDup(e1) => s"${generate(e1)}/** distinct removed for stats gathering **/"
+    case CDeDup(e1, _) if dedup => s"${generate(e1)}.distinct"
+    case CDeDup(e1, _) => s"${generate(e1)}/** distinct removed for stats gathering **/"
     case Label(fs) if fs.size == 1 => generate(fs.head._2)
     case Record(fs) if fs.contains("element") && fs.size == 1 => fs("element")
     case Record(fs) => {
@@ -345,9 +347,9 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case FlatDict(e1) => s"${generate(e1)}"
     case GroupDict(e1) => generate(e1) 
     
-    case Projection(in, v, Constant(true), Nil) => generate(in)
+    case Projection(in, v, Constant(true), Nil, l) => generate(in)
 
-    case ep @ Projection(in, v, pat:Record, fields) =>
+    case ep @ Projection(in, v, pat:Record, fields, l) =>
       handleType(pat.tp)
 
       val nfields = ext.collect(pat)
@@ -359,6 +361,8 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
       val projectCols = fields.toSet - "remove_nulls"
       // output attributes
       val newCols = pat.fields.keySet
+
+      var removeCols = projectCols -- ext.collectNoLabel(pat)
 
       // make new columns
       val newColumns = pat.fields.flatMap{
@@ -383,7 +387,13 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           if (newCols(oldCol)) List(s"""| .withColumn("$col", $$"$oldCol")""")
           // overrides a column
           else defaultCastNull(col, oldCol, p.tp)
-		      case _ => Nil
+        case (col, p @ Project(_, oldCol)) if col == oldCol =>
+          removeCols = removeCols - col 
+          Nil
+        case (col, l:Label) if ext.collect(l)(col)=>
+          removeCols = removeCols - col 
+          Nil
+        case _ => Nil
       } 
 
       // ensure that new columns are made before renaming occurs
@@ -392,11 +402,12 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
 
       val ncast = if (in.tp.attrs.keySet == nfields && allColumns.isEmpty) ""
         else s".as[${generateType(pat.tp)}]"
+      val drop = if (removeCols.nonEmpty) s".drop(${removeCols.toList.mkString("\"", "\", \"", "\"")})" else ""
 
       // project nulls needs more testing
       s"""|${generate(in)}${if (projectNulls) ".na.drop()" else ""}$select
           $columns
-          | $ncast
+          | $drop$ncast
           |""".stripMargin
 
     // JOIN operator
@@ -467,7 +478,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case eu:UnnestOp => generateUnnest(eu)
 
     // Nest - Join => CoGroup
-    case Bind(vj, join:JoinOp, Bind(nv, nd @ Nest(in, v, key, value @ Record(fs), filter, nulls, tag), e2)) 
+    case Bind(vj, join:JoinOp, Bind(nv, nd @ Nest(in, v, key, value @ Record(fs), filter, nulls, tag, l), e2)) 
       if (unshred) && (ext.collect(value) subsetOf join.v2.tp.attrs.keySet) && join.isEquiJoin =>
       
       val (p1, p2) = (join.p1, join.p2)
@@ -518,7 +529,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |""".stripMargin
 
     // primitive monoid
-    case en @ Nest(in, v, key, Constant(c), Record(fs), nulls, tag) =>
+    case en @ Nest(in, v, key, Constant(c), Record(fs), nulls, tag, l) =>
       handleType(en.tp.tp)
       val intp = generateType(in.tp.asInstanceOf[BagCType].tp)
       val gtp = generateType(en.tp.tp)
@@ -538,7 +549,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           |}}.as[$gtp]
           |""".stripMargin
 
-    case en @ Nest(in, v, key, value, filter, nulls, tag) =>
+    case en @ Nest(in, v, key, value, filter, nulls, tag, l) =>
 
       val gv = generate(v)
 
@@ -571,8 +582,10 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
           | }.as[${generateType(frec.tp)}]
           |""".stripMargin
 
-    case er @ Reduce(in, v, key, value) =>
+    case er @ Reduce(in, v, key, value, _) =>
+
       val intp = generateType(in.tp.asInstanceOf[BagCType].tp)
+
       val ntp = er.tp.tp match {
     		case RecordCType(fs) => 
     			val adjust = fs.map(f => {
@@ -589,21 +602,18 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
   	  handleType(ntp)
   	  val gtp = generateType(ntp)
 
-      val gv = generate(v)
-      val rkey = Record(key.map(k => k -> Project(v, k)).toMap)
-      val rvalues = value.map(vs => 
-        s"typed.sum[$intp](${matchOption(v, vs)})\n").mkString("agg(", ",", ")")
+      val colWrapped = key.map(k => s"""col("$k")""").mkString(",")
+      val sumWrapped = value.map(v => s"""sum("$v")""").mkString(",")
+      val renamedAgg = value.map(v => s"""|.withColumnRenamed("sum($v)", "$v")""").mkString("\n")
+      s"""|${generate(in)}.groupBy($colWrapped).agg($sumWrapped)\n$renamedAgg
+          |.as[$gtp]
+          |""".stripMargin
 
-      val nrec = er.tp.tp.attrs.map(k => 
-        if (value.contains(k._1)) k._2 match {
-		  case _:OptionType => s"Some(${k._1})"
-        case _ => k._1 
-      }else s"key.${k._1}").mkString(s"$gtp(", ", ", ")")
-
-      s"""|${generate(in)}.groupByKey($gv => ${generate(rkey)})
-          | .$rvalues.mapPartitions{ it => it.map{ case (key, ${value.mkString(", ")}) =>
-          |   $nrec
-          |}}.as[$gtp]
+    case ei @ Rename(e1, name, Project(_, "_1")) => 
+      handleType(ei.tp.tp)
+      val nrec = generateType(ei.tp.tp)
+      s"""|${generate(e1)}.withColumnRenamed("_1", "$name")
+          | .as[$nrec]
           |""".stripMargin
 
     case ei @ AddIndex(e1, name) => 
@@ -616,7 +626,7 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
     case RemoveNulls(e1) => s"${generate(e1)}.na.drop()"
  
     // filter
-    case Select(x, v, filt) => 
+    case Select(x, v, filt, _) => 
       handleType(v.tp)
       val filter = filt match {
         case Constant(true) => ""
@@ -639,9 +649,11 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         s""".repartition$gtp($$"$lbl")"""
       }else ""
       val gv = generate(v)
-      s"""|val $gv = ${generate(e1)}
+      val ge1 = generate(e1)
+      val cout = if (zep && !foundComplexLabel) s"z.show($n)" else s"$n.count"
+      s"""|val $gv = $ge1
           |val $n = $gv$repart
-          |//$n.count
+          |$cout
           |""".stripMargin
           // |${if (!cache) comment(n) else n}.cache
           // |${if (!cache && !evalFinal) comment(n) else n}.count
@@ -660,20 +672,14 @@ class SparkDatasetGenerator(cache: Boolean, evaluate: Boolean, skew: Boolean = f
         s""".repartition$gtp($$"$lbl")"""
       }else ""
       val gv = generate(v)
+      val ge1 = generate(e1)
       val ge2 = if (e2.isInstanceOf[Variable]) "" else generate(e2)
-       s"""|val $gv = ${generate(e1)}
+      // val cout = if (foundComplexLabel && n.contains("MBag") && zep) s"z.show($n)" else ""
+
+       s"""|val $gv = $ge1
            |val $n = $gv$repart  
-           |${if (cache) n else comment(n)}.cache
-           |${if (cache) n else comment(n)}.count
            |$ge2
            |""".stripMargin   
-      // s"""|val $gv = ${generate(e1)}
-      //     |val $n = $gv$repart
-      //     |//$n.print
-      //     |${if (!cache || evalFinal) comment(n) else n}.cache
-      //     |${if (!evaluate) comment(n) else n}.count
-      //     |$ge2
-      //     |""".stripMargin
 
     case LinearCSet(fs) => ""
     case Bind(v, e1, e2) => 

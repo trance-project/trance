@@ -35,7 +35,7 @@ trait TestBase extends FunSuite with Materialization with
     val compiler = new BaseCompiler{}
     val compile = new Finalizer(compiler)
     val ncalc = normalizer.finalize(translate(query)).asInstanceOf[CExpr]
-    val opt = optimizer.applyPush(Unnester.unnest(ncalc)(IMap(), IMap(), None, "_2"))
+    val opt = optimizer.applyPush(Unnester.unnest(ncalc)(IMap(), IMap(), None, "_2", 0))
     compile.finalize(opt).asInstanceOf[CExpr]
   }
 
@@ -53,7 +53,7 @@ trait TestBase extends FunSuite with Materialization with
     val compiler = if (shred) new ShredOptimizer{} else new BaseCompiler{}
     val compile = new Finalizer(compiler)
     val ncalc = normalizer.finalize(translate(program)).asInstanceOf[CExpr]
-    val unopt = Unnester.unnest(ncalc)(IMap(), IMap(), None, "_2")
+    val unopt = Unnester.unnest(ncalc)(IMap(), IMap(), None, "_2",  0)
     val opt = optimizer.applyPush(unopt).asInstanceOf[LinearCSet]
     // pass through another compilation stage
     compile.finalize(opt).asInstanceOf[LinearCSet]

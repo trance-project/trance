@@ -40,7 +40,7 @@ trait Query extends Materialization
 
   def normalize: CExpr = normalizer.finalize(this.calculus).asInstanceOf[CExpr]
   
-  def unnest: CExpr = Unnester.unnest(this.normalize)(Map(), Map(), None, baseTag)
+  def unnest: CExpr = Unnester.unnest(this.normalize)(Map(), Map(), None, baseTag, 0)
 
   def anf(optimizationLevel: Int = 2, schema: Schema = Schema()): CExpr = {
     val anfBase = new BaseOperatorANF{}
@@ -74,7 +74,7 @@ trait Query extends Materialization
 
       val calc = translate(mprogram)
       val ncalc = normalizer.finalize(calc).asInstanceOf[CExpr]
-      Unnester.unnest(ncalc)(Map(), Map(), None, "_2")
+      Unnester.unnest(ncalc)(Map(), Map(), None, "_2", 0)
 
     }else this.unnest
 
@@ -105,7 +105,7 @@ trait Query extends Materialization
     // println("RUNNING SHREDDED PIPELINE:\n")
     // println(quote(matInput.program))
     val inputC = normalizer.finalize(translate(matInput.program)).asInstanceOf[CExpr]
-    val inputInitPlan = Unnester.unnest(inputC)(Map(), Map(), None, baseTag)
+    val inputInitPlan = Unnester.unnest(inputC)(Map(), Map(), None, baseTag, 0)
     val inputPlan = optimizer.applyAll(compiler.finalize(inputInitPlan).asInstanceOf[CExpr])
 
     val anfBase = new BaseOperatorANF{}
@@ -118,7 +118,7 @@ trait Query extends Materialization
     println(quote(mat.program))
     val calc = normalizer.finalize(translate(mat.program)).asInstanceOf[CExpr]
 
-    val initPlan = Unnester.unnest(calc)(Map(), Map(), None, baseTag)
+    val initPlan = Unnester.unnest(calc)(Map(), Map(), None, baseTag, 0)
     val plan = optLevel match {
       case 0 => compiler.finalize(initPlan).asInstanceOf[CExpr]
       case 1 => optimizer.applyPush(compiler.finalize(initPlan).asInstanceOf[CExpr])
@@ -133,7 +133,7 @@ trait Query extends Materialization
     val usplan = if (unshredRun){
       val unshredProg = unshred(optShredded, mat.ctx)
       val uncalc = normalizer.finalize(translate(unshredProg)).asInstanceOf[CExpr]
-      val uinitPlan = Unnester.unnest(uncalc)(Map(), Map(), None, baseTag)
+      val uinitPlan = Unnester.unnest(uncalc)(Map(), Map(), None, baseTag, 0)
       val uplan = compiler.finalize(uinitPlan).asInstanceOf[CExpr]
 
       val uanfBase = new BaseOperatorANF{}
@@ -160,13 +160,15 @@ trait Query extends Materialization
 
     val bcalc = translate(matProg)
     val ncalc = normalizer.finalize(bcalc).asInstanceOf[CExpr]
-    val initPlan = Unnester.unnest(ncalc)(Map(), Map(), None, baseTag)
+    val initPlan = Unnester.unnest(ncalc)(Map(), Map(), None, baseTag, 0)
 
     val plan = optLevel match {
       case 0 => compiler.finalize(initPlan).asInstanceOf[CExpr]
       case 1 => optimizer.applyPush(compiler.finalize(initPlan).asInstanceOf[CExpr])
       case _ => optimizer.applyAll(compiler.finalize(initPlan).asInstanceOf[CExpr])
     }
+
+    println(Printer.quote(plan))
 
     val anfBase = new BaseOperatorANF{}
     val anfer = new Finalizer(anfBase)
@@ -175,7 +177,7 @@ trait Query extends Materialization
     val usplan = if (unshredRun){
       val ushred = unshred(optShredded, matProg.ctx)
       val uncalc = normalizer.finalize(translate(ushred)).asInstanceOf[CExpr]
-      val uinitPlan = Unnester.unnest(uncalc)(Map(), Map(), None, baseTag)
+      val uinitPlan = Unnester.unnest(uncalc)(Map(), Map(), None, baseTag, 0)
       val uplan = compiler.finalize(uinitPlan).asInstanceOf[CExpr]
 
       val uanfBase = new BaseOperatorANF{}

@@ -11,24 +11,26 @@ import framework.plans._
 
 class TestStatsCollector extends TestBase {
 
-  val zep = false 
+  val zep = false
 
-  test("standard comilation route"){
+  // test("standard comilation route"){
 
-    val seBuilder = SEBuilder(sprogs)
-    seBuilder.updateSubexprs()
+  //   val seBuilder = SEBuilder(progs)
+  //   seBuilder.updateSubexprs()
 
-    val subs = seBuilder.sharedSubs()
+  //   val subs = seBuilder.sharedSubs()
 
-    // val ces = CEBuilder.buildCoverMap(subs)
+  //   val ces = CEBuilder.buildCoverMap(subs)
     
-    val statsCollector = new StatsCollector(progs)
-    val stats = if (zep){
-      statsCollector.getCost(subs, ces)
-    }else Map.empty[String, Statistics]
+  //   val statsCollector = new StatsCollector(progs)
+  //   val stats = if (zep){
+  //     statsCollector.getCost(subs, ces)
+  //   }else Map.empty[String, Statistics]
 
-    println(stats.colMap)
-  }
+  //   println(stats)
+  //   println("this is the column map")
+  //   println(statsCollector.colMap)
+  // }
 
   test("shred comilation route"){
 
@@ -38,15 +40,13 @@ class TestStatsCollector extends TestBase {
     val subs = seBuilder.sharedSubs()
     // printSE(subs)
 
-    // val ces = CEBuilder.buildCoverMap(subs)
-    // printCE(ces)
+    val ces = CEBuilder.buildCoverMap(subs)
     
-    // val statsCollector = new StatsCollector(sprogs)
-    // val stats = if (zep){
-    //   statsCollector.getCost(subs, ces)
-    // }else Map.empty[String, Statistics]
-    // val stats = statCollector.getCost(subs, ces)
-    // assert(stats.size == 24)
+    val statsCollector = new StatsCollector(sprogs)
+    val stats = if (zep){
+      statsCollector.getCost(subs, ces)
+    }else Map.empty[String, Statistics]
+
 
   }
 

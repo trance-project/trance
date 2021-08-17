@@ -42,7 +42,7 @@ class TestDynamicCachePlanner extends FunSuite with Materialization with
     }else query
 
     val ncalc = normalizer.finalize(translate(program)).asInstanceOf[CExpr]
-    optimizer.applyPush(Unnester.unnest(ncalc)(IMap(), IMap(), None, "_2")).asInstanceOf[LinearCSet]
+    optimizer.applyPush(Unnester.unnest(ncalc)(IMap(), IMap(), None, "_2", 0)).asInstanceOf[LinearCSet]
   
   }
 

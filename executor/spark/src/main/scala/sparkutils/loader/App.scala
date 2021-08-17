@@ -17,7 +17,7 @@ object App {
      import spark.implicits._
 
 
-  val stats = new Statistics(spark)
+  val stats = new StatsCollector(spark)
   val tname = "samples"
   stats.activate(tname, columns = true)
   stats.writeColStats(tname)

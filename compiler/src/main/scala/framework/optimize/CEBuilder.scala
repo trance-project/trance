@@ -17,6 +17,7 @@ object CEBuilder extends Extensions {
 
   val normalizer = new BaseNormalizer{}
   import normalizer._
+  val LEVEL = -1
 
   val vmap = Map.empty[String, String]
 
@@ -71,13 +72,13 @@ object CEBuilder extends Extensions {
     case (i1:InputRef, i2:InputRef) => i1
 
     // cover building
-    case (Reduce(in1, v1, ks1, vs1), Reduce(in2, v2, ks2, vs2)) => 
+    case (Reduce(in1, v1, ks1, vs1, _), Reduce(in2, v2, ks2, vs2, _)) => 
       val child = buildCover(in1, in2, nameMap)
       val ks = ks1.toSet ++ ks2.toSet
       val vs = vs1.toSet ++ vs2.toSet
       val v = Variable.freshFromBag(child.tp)
       Reduce(child, v, ks.toList.map(k => getFromVmap(k)), 
-        vs.toList.map(k => getFromVmap(k)))
+        vs.toList.map(k => getFromVmap(k)), LEVEL)
 
     case (u1:UnnestOp, u2:UnnestOp) => 
       assert(u1.path == u2.path)
@@ -86,8 +87,8 @@ object CEBuilder extends Extensions {
       val v2 = Variable.freshFromBag(v.tp.asInstanceOf[RecordCType](u1.path))
       // assume lower level, since it should be pushed
       val cond = or(replace(u1.filter, v2), replace(u2.filter, v2))
-      if (u1.outer) OuterUnnest(child, v, u1.path, v2, cond, u1.fields ++ u2.fields)
-      else Unnest(child, v, u1.path, v2, cond, u1.fields ++ u2.fields)
+      if (u1.outer) OuterUnnest(child, v, u1.path, v2, cond, u1.fields ++ u2.fields, LEVEL)
+      else Unnest(child, v, u1.path, v2, cond, u1.fields ++ u2.fields, LEVEL)
 
     // capture below joins
     case (j1:JoinOp, j2:JoinOp) =>
@@ -106,12 +107,12 @@ object CEBuilder extends Extensions {
       // var cond = replace(j1.cond, v1, useType = true)
       // cond = replace(cond, v2, useType = true)
 
-      if (j1.jtype == "left_outer" || j2.jtype == "left_outer") OuterJoin(left, v1, right, v2, cond, j1.fields ++ j2.fields)
-      else Join(left, v1, right, v2, cond, j1.fields ++ j2.fields)
+      if (j1.jtype == "left_outer" || j2.jtype == "left_outer") OuterJoin(left, v1, right, v2, cond, j1.fields ++ j2.fields, LEVEL)
+      else Join(left, v1, right, v2, cond, j1.fields ++ j2.fields, LEVEL)
 
     // union columns
     // TODO no implicit renaming should happen in the cover expression
-    case (Projection(in1, v1, f1:Record, fs1), Projection(in2, v2, f2:Record, fs2)) => 
+    case (Projection(in1, v1, f1:Record, fs1, _), Projection(in2, v2, f2:Record, fs2, _)) => 
 
       val child = buildCover(in1, in2, nameMap)
       val v = Variable.freshFromBag(child.tp)
@@ -141,15 +142,15 @@ object CEBuilder extends Extensions {
       val nr = replace(r, v)
       val nfs1 = fs1.toList.map(k => getFromVmap(k))
       val nfs2 = fs2.toList.map(k => getFromVmap(k))
-      Projection(child, v, nr, nfs1 ++ nfs2)
+      Projection(child, v, nr, nfs1 ++ nfs2, LEVEL)
 
    // OR filters
-    case (Select(in1, v1, f1), Select(in2, v2, f2)) =>
+    case (Select(in1, v1, f1, _), Select(in2, v2, f2, _)) =>
       val v = Variable.fresh(in1.tp)
       val child = buildCover(in1, in2, nameMap)
       or(replace(f1, v), replace(f2, v)) match {
         case Constant(true) => child
-        case cond => Select(child, v, cond)
+        case cond => Select(child, v, cond, LEVEL)
       }
 
     case (o, f:FlatDict) => buildCover(o, f.in, nameMap)
