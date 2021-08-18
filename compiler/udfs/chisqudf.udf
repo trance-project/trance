@@ -1,0 +1,34 @@
+def chisq(top, first):
+
+    val chi_selected = first.mapPartitions{it =>
+
+        val gsums = it.foldLeft(HashMap.empty[String, (Double, Double)].withDefaultValue(0.0, 0.0))(
+                (acc, v) => {
+                    val tmp = acc(v._1.g__F_burdens)
+                    if (v.lbl == 0){
+                        acc(v._1.g__F_burdens) = (tmp._1 + v.burden, tmp._2); acc
+                    }else if (v.lbl == 1){
+                        acc(v._1.g__F_burdens) = (tmp._1, tmp._2 + v.burden); acc
+                    }else acc
+                }
+            )
+         // rough version of the chi-square calculation
+         gsums.map{ case (gene, (zero_features, ones_features)) =>
+            val feature_count = (zero_features + ones_features)
+
+            // .402 and .598 should be parameters inputted by the user
+
+            val zexpected = zero_features*.402
+            val oexpected = ones_features*.598
+            val zobs = (zero_features - zexpected)
+            val oobs = (ones_features - oexpected)
+            val zvalues = if (zexpected == 0.0) 0.0 else (zobs * zobs)/(zexpected)
+            val ovalues = if (oexpected == 0.0) 0.0 else (oobs*oobs)/(oexpected)
+
+            (gene, zvalues + ovalues)
+
+            // here 2.0 below should be a value inputted by the user
+
+        }.toSeq.filter(x=> x._2 > 2.0).sortBy(_._2)(Ordering[Double].reverse).map(_._1).iterator
+    }.collect.toSeq
+    val chi_filtered = first.filter(col("_1").getField("g__F_burdens").isin(chi_selected:_*))

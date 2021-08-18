@@ -1,2 +1,352 @@
 def MBag_hintudf_1(top, first, sid_input, lbl_input,gene_id_input,burden_input):
-    print("testing, the hint from the user is", chisq)
+
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import warnings
+
+    from sklearn.feature_selection import SelectKBest
+    from sklearn.feature_selection import chi2
+    from sklearn.feature_selection import f_classif
+    from sklearn.feature_selection import mutual_info_classif
+    from sklearn.feature_selection import RFE
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.preprocessing import MinMaxScaler
+    from sklearn import preprocessing
+    from sklearn.model_selection import train_test_split
+    from sklearn.exceptions import DataConversionWarning
+    from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score, precision_score, recall_score, f1_score
+    warnings.filterwarnings(action='ignore', category=DataConversionWarning)
+
+    from keras.callbacks import Callback, EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
+    from keras.utils import to_categorical
+    from keras.models import Sequential
+    from keras.layers import Dense, LeakyReLU, Flatten,Dropout, Activation,  InputLayer, Input, Dropout
+
+    data = sqlContext.table(first)
+    data.printSchema
+    df = data.toPandas()
+
+    # Labels could be a hint left to the user to select the cancer types
+
+    labels = ['Stomach', 'Kidney', 'Breast', 'Ovary', 'Head and Neck', 'Endometrial',
+              'Central nervous system', 'Lung', 'Colon']
+
+    df = df[df['lbl'].isin(labels)]
+
+    BurdensPivot = df.pivot(index = [sid_input, lbl_input], columns = gene_id_input, values = burden_input).fillna(0.0)
+    y = BurdensPivot.reset_index(level = lbl_input)[[lbl_input]]
+    X = BurdensPivot.droplevel(1)
+
+    # Maybe here you can visualise data distribution - cancer types should depend on what the user inputs
+    #plt.rc("font", size=4)
+
+    #sns.set(style="darkgrid")
+
+    #plt.figure(figsize=(13,8))
+
+    #ax = sns.countplot(y='lbl', data=y)
+    #ax.set(ylabel = 'Cancer')
+    #plt.title("Data distribution of tumor tissue site", size = 15);
+
+    #max_chars = 12
+
+    #new_labels = ['Colon','Breast','Lung','Kindey','Stomach','Ovary','Endometrial','Head and Neck','Cns']
+
+    #ax.set_yticklabels(new_labels)
+    #plt.show()
+
+    def topKFeaturesMutual(X, y, ifPlot = False, topK = 200):
+
+        y = y.values.ravel()
+        bestfeatures = SelectKBest(score_func=mutual_info_classif,  k = topK)
+        fit = bestfeatures.fit(X,y)
+        dfscores = pd.DataFrame(fit.scores_)
+        #dfscores = pd.DataFrame(fit.scores_)
+        dfcolumns = pd.DataFrame(X.columns)
+
+        #concat two dataframes for better visualization
+        featureScores = pd.concat([dfcolumns,dfscores],axis=1)
+        featureScores.columns = ['Specs','Score']  #naming the dataframe columns
+        print("print 10 best features:\n", featureScores.nlargest(10,'Score'))
+
+        if ifPlot == True:
+            plt.figure()
+            featureScores.nlargest(10,'Score').plot(kind='barh')
+            plt.show()
+
+        topk_features = featureScores.nlargest(topK,'Score').Specs.values
+        print(topk_features)
+        return topk_features
+
+
+    def topKFeatureschi2(X, y, ifPlot = False, topK = 200):
+
+        bestfeatures = SelectKBest(score_func=chi2,  k = topK)
+        fit = bestfeatures.fit(X,y)
+        dfscores = pd.DataFrame(fit.scores_)
+        #dfscores = pd.DataFrame(fit.scores_)
+        dfcolumns = pd.DataFrame(X.columns)
+
+        #concat two dataframes for better visualization
+        featureScores = pd.concat([dfcolumns,dfscores],axis=1)
+        featureScores.columns = ['Specs','Score']  #naming the dataframe columns
+        print("print 10 best features:\n", featureScores.nlargest(10,'Score'))
+
+        if ifPlot == True:
+            plt.figure()
+            featureScores.nlargest(10,'Score').plot(kind='barh')
+            plt.show()
+
+        topk_features = featureScores.nlargest(topK,'Score').Specs.values
+        print(topk_features)
+        return topk_features
+
+    def topKFeaturesANOVA(X, y, ifPlot = False, topK = 200):
+
+        y = y.values.ravel()
+        bestfeatures = SelectKBest(score_func=f_classif,  k = topK)
+        fit = bestfeatures.fit(X,y)
+        dfscores = pd.DataFrame(fit.scores_)
+        dfcolumns = pd.DataFrame(X.columns)
+
+        #concat two dataframes for better visualization
+        featureScores = pd.concat([dfcolumns,dfscores],axis=1)
+        featureScores.columns = ['Specs','Score']  #naming the dataframe columns
+        print("print 10 best features:\n", featureScores.nlargest(10,'Score'))
+
+        if ifPlot == True:
+            plt.figure()
+            featureScores.nlargest(10,'Score').plot(kind='barh')
+            plt.show()
+
+        topk_features = featureScores.nlargest(topK,'Score').Specs.values
+        print(topk_features)
+        return topk_features
+
+    def topKFeaturesRFE(X, y, topk = 200):
+
+        y = y.values.ravel()
+        X_norm = MinMaxScaler().fit_transform(X)
+        rfe_selector = RFE(estimator=RandomForestClassifier(), n_features_to_select=topk, step= 100, verbose=5)
+        rfe_selector.fit(X_norm, y)
+        rfe_support = rfe_selector.get_support()
+        rfe_feature = X.loc[:,rfe_support].columns.tolist()
+        print(str(len(rfe_feature)), 'selected features')
+
+        print("The 10 best features are")
+        for i in (rfe_feature[:10]):
+            print(i)
+        return rfe_feature
+
+    def plot_confusion_matrix(confusion_matrix, class_names, errors_only=False, figsize = (15,6), fontsize=16):
+        fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=figsize)
+        plt.subplots_adjust(wspace = 0.5)
+        plt.xticks(rotation=90)
+
+        if errors_only:
+            np.fill_diagonal(confusion_matrix, 0)
+
+        conf_matrix_norm = confusion_matrix.astype('float') / confusion_matrix.sum(axis=1)[:,np.newaxis]
+        conf_matrix_norm = np.nan_to_num(conf_matrix_norm)  #fix any nans caused by zero row total
+        df_cm_norm = pd.DataFrame(conf_matrix_norm, index=class_names, columns=class_names)
+        heatmap = sns.heatmap(df_cm_norm, ax=ax1, cmap='Blues', fmt='.3f', annot=True, annot_kws={"size": fontsize},
+                  linewidths=2, linecolor='black', cbar=False)
+
+        ax1.tick_params(axis='x', labelrotation=0, labelsize=fontsize, labelcolor='black')
+        ax1.tick_params(axis='y', labelrotation=0, labelsize=fontsize, labelcolor='black')
+        ax1.set_ylim(ax1.get_xlim()[0], ax1.get_xlim()[1])
+        ax1.set_xlabel('PREDICTED CLASS', fontsize=fontsize, color='black')
+        ax1.set_ylabel('TRUE CLASS', fontsize=fontsize, color='black')
+        ax1.set_title('Confusion Matrix - Normalized', pad=15, fontsize=fontsize, color='black')
+
+        df_cm = pd.DataFrame(confusion_matrix, index=class_names, columns=class_names)
+        heatmap = sns.heatmap(df_cm, ax=ax2, cmap='Blues', fmt='d', annot=True, annot_kws={"size": fontsize+4},
+                  linewidths=2, linecolor='black', cbar=False)
+
+        ax2.tick_params(axis='x', labelrotation=0, labelsize=fontsize, labelcolor='black')
+        ax2.tick_params(axis='y', labelrotation=0, labelsize=fontsize, labelcolor='black')
+        ax2.set_ylim(ax1.get_xlim()[0], ax1.get_xlim()[1])
+        ax2.set_xlabel('PREDICTED CLASS', fontsize=fontsize, color='black')
+        ax2.set_ylabel('TRUE CLASS', fontsize=fontsize, color='black')
+        ax2.set_title('Confusion Matrix - Class Counts', pad=15, fontsize=fontsize, color='black')
+
+        for text in ax1.texts:
+            if text.get_text() == '0.000':
+                text.set_color(color='white')
+        for text in ax2.texts:
+            if text.get_text() == '0':
+                text.set_color(color='white')
+
+    def plot_learning_curve(history, name):
+        plt.figure(figsize=(10,5))
+        plt.subplot(1,2,1)
+        plt.plot(history.history['accuracy'])
+        plt.plot(history.history['val_accuracy'])
+
+        title = 'model accuracy for ' + name
+        if len(title) > 27:
+            title = 'model accuracy for\n' + name
+        plt.title(title)
+        plt.ylabel('accuracy')
+        plt.xlabel('epoch')
+        plt.legend(['train', 'test'], loc='upper left')
+        #plt.clf()
+        # summarize history for loss
+        plt.subplot(1,2,2)
+        plt.plot(history.history['loss'])
+        plt.plot(history.history['val_loss'])
+        title = 'model loss for ' + name
+        if len(title) > 27:
+            title = 'model loss for\n' + name
+        plt.title(title)
+        plt.ylabel('loss')
+        plt.xlabel('epoch')
+        plt.legend(['train', 'test'], loc='upper left')
+        # plt.show()
+
+    def create_model(input_size, number_classes):
+        model = Sequential()
+        model.add(Dense(128, input_dim = input_size))
+        model.add(LeakyReLU(alpha=0.05))
+        model.add(Dropout(.15))
+        model.add(Dense(32))
+        model.add(LeakyReLU(alpha=0.05))
+        model.add(Dropout(.15))
+        model.add(Dense(1, activation='sigmoid'))
+        model.compile(loss='binary_crossentropy',
+                  optimizer='adam',
+                  metrics=['accuracy'])
+        model.summary()
+        return model
+
+    def data_split():
+
+        import numpy as np
+
+        df = y.copy()
+        # Find the top 200 features
+        #topk_features = topKFeaturesRFE(X, df)
+        #topk_features = topKFeatureschi2(X, df, ifPlot = False, topK = 200)
+        topk_features = topKFeaturesANOVA(X, df, ifPlot = False, topK = 200)
+        #topk_features = topKFeaturesMutual(X, df, ifPlot = False, topK = 200)
+
+        df1 = X.copy()
+        feature_X = df1[topk_features].values
+        label_y = df.values
+        new_X, new_y = feature_X, label_y
+
+        # normalise the data
+        from sklearn.preprocessing import StandardScaler
+        sc = StandardScaler()
+        new_X = sc.fit_transform(new_X)
+
+        #Train test split of model
+        from sklearn.model_selection import train_test_split
+        X_train,X_test,y_train,y_test = train_test_split(new_X,new_y,test_size = 0.3,random_state = 10)
+
+        return X_test, y_test
+
+    res = []
+    acc = []
+    val_acc = []
+    loss = []
+    val_loss = []
+    legend = []
+
+    import matplotlib.pyplot as plt
+
+    def train_binary(i):
+
+        from sklearn.preprocessing import LabelEncoder, StandardScaler
+        import numpy as np
+        from sklearn.model_selection import KFold
+
+        # Copy datasets
+
+        df = y.copy()
+        df1 = X.copy()
+
+        # Change label of each label matrix
+        df['lbl'] =  np.where(df['lbl']== i, 1, 0)
+
+        # Name of the model
+        NAME = "~/models/{}".format(i+"-new")
+
+
+        # Find the top 200 features
+        #topk_features = topKFeaturesRFE(X, df)
+        #topk_features = topKFeatureschi2(X, df, ifPlot = False, topK = 200)
+        topk_features = topKFeaturesANOVA(X, df, ifPlot = False, topK = 200)
+        #topk_features = topKFeaturesMutual(X, df, ifPlot = False, topK = 200)
+
+        feature_X = df1[topk_features].values
+        label_y = df.values
+        new_X, new_y = feature_X, label_y
+
+        # normalise the data
+        from sklearn.preprocessing import StandardScaler
+        sc = StandardScaler()
+        new_X = sc.fit_transform(new_X)
+
+
+        #Train test split of model
+        from sklearn.model_selection import train_test_split
+
+        X_train,X_test,y_train,y_test = train_test_split(new_X,new_y,test_size = 0.3,random_state = 10)
+
+        num_category = len(new_y[0])
+        num_features = X_train[0].shape[0]
+
+        model = create_model(num_features, num_category)
+
+        history = model.fit(X_train, y_train, validation_split = 0.30, epochs= 10)
+        plot_learning_curve(history, i)
+        acc.append(history.history['accuracy'])
+        val_acc.append(history.history['val_accuracy'])
+        loss.append(history.history['loss'])
+        val_loss.append(history.history['val_loss'])
+        res.append(model.predict(X_test))
+
+        model.save(NAME) # save the model, maybe its not needed
+
+
+    toPredict = ['Breast', 'Endometrial', 'Kidney', 'Ovary', 'Central nervous system', 'Stomach', 'Lung','Colon','Head and Neck']
+
+    for name in toPredict:
+        train_binary(name)
+
+    X_test, y_test = data_split()
+
+    d = {'Breast':0, 'Endometrial':1, 'Kidney':2, 'Ovary':3, 'Central nervous system':4, 'Stomach':5, 'Lung':6, 'Colon':7, 'Head and Neck':8}
+    true_y_values = [d[x] for x in y_test.flatten()]
+    toPredict_numbers = [d[x] for x in toPredict]
+
+    l = np.asarray(res)
+    predict_index = l.argmax(axis = 0)
+
+    predict_y = []
+
+    for i in predict_index:
+        x = toPredict_numbers[int(i)]
+        predict_y.append(x)
+
+
+    cm = confusion_matrix(true_y_values, predict_y)
+
+    plot_confusion_matrix(cm, [0,1,2,3,4,5,6,7,8], figsize = (5,12), fontsize=10)
+
+    # Here I should output the sum of the numbers on the diagonal and divide this by the size of X_test
+    accuracy = accuracy_score(true_y_values, predict_y)
+    print('\nAccuracy: {:.3f}\n'.format(accuracy))
+
+    return accuracy
+
+
+
+
+
+
+
