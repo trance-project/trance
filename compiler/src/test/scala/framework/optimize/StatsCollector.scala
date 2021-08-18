@@ -11,7 +11,7 @@ import framework.plans._
 
 class TestStatsCollector extends TestBase {
 
-  val zep = false
+  val zep = true
 
   // test("standard comilation route"){
 

@@ -38,11 +38,11 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
         |   val IBag_samples__D = samples
         |   val IBag_clinical__D = clinical
         |   val IBag_occurrences__D = spark.table("odict1")
-        |   stc.writeColStats("IBag_occurrences__D", stc.getColumns(IBag_occurrences__D))
+        |   stc.writeColStats("odict1", stc.getColumns(IBag_occurrences__D), replaceName = Some("IBag_occurrences__D"))
         |   val IMap_occurrences__D_transcript_consequences = spark.table("odict2")
-        |   stc.writeColStats("IMap_occurrences__D_transcript_consequences", stc.getColumns(IMap_occurrences__D_transcript_consequences))
+        |   stc.writeColStats("odict2", stc.getColumns(IMap_occurrences__D_transcript_consequences), replaceName = Some("IMap_occurrences__D_transcript_consequences"))
         |   val IMap_occurrences__D_transcript_consequences_consequence_terms = spark.table("odict3")
-        |   stc.writeColStats("IMap_occurrences__D_transcript_consequences_consequence_terms", stc.getColumns(IMap_occurrences__D_transcript_consequences_consequence_terms))
+        |   stc.writeColStats("odict3", stc.getColumns(IMap_occurrences__D_transcript_consequences_consequence_terms), replaceName = Some("IMap_occurrences__D_transcript_consequences_consequence_terms"))
       """.stripMargin
   }else inputs 
   
@@ -155,7 +155,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
 
       println(s"Writing to paragraph: $pid")
       val status = zep.runParaSync(noteid, pid, readtime = 500000)
-      zep.deleteNote(noteid)
+      // zep.deleteNote(noteid)
       status
     }
   }

@@ -14,7 +14,8 @@ class StatsCollector(spark: SparkSession){
 	// var columnStats: Map[String, Double] = Map.empty[String, Double]
   	def genStat(n: String, s: Statistics): Stat = s.rowCount match {
       case Some(rc) => 
-       Stat(n, s.sizeInBytes.toString, rc.toString)
+      	println(rc)
+        Stat(n, s.sizeInBytes.toString, rc.toString)
       case _ => Stat(n, s.sizeInBytes.toString, "-1")
     }
 
@@ -45,7 +46,7 @@ class StatsCollector(spark: SparkSession){
 			(!f.dataType.isInstanceOf[ArrayType]) List(f.name) else Nil)
 	}
 
-	def writeColStats(tname: String, cols: Seq[String] = Seq(), withShred: Boolean = true): Unit = {
+	def writeColStats(tname: String, cols: Seq[String] = Seq(), withShred: Boolean = true, replaceName: Option[String] = None): Unit = {
 
 		val db = spark.catalog.currentDatabase
 		val metadata = spark.sharedState.externalCatalog.getTable(db, tname)
@@ -57,7 +58,10 @@ class StatsCollector(spark: SparkSession){
 			colStats(c).toMap(c).foreach{
 				case (key, value) =>
 		    		if (!key.contains("histogram")){
-		    			val name = s"${tname}.${key}"
+		    			val name = replaceName match {
+		    				case Some(n) => n
+		    				case _ => s"${tname}.${key}"
+		    			}
 		    			println(s"ColumnStat($name,${value.toDouble})")
 		    			if (withShred) println(s"ColumnStat(IBag_${name}__D,${value.toDouble})")
 		    		}
