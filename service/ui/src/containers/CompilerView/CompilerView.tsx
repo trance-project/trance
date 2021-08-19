@@ -3,6 +3,7 @@ import {Grid, Paper} from "@material-ui/core";
 import Button from "@material-ui/core/Button";
 import NoteIcon from '@material-ui/icons/Note';
 import ForwardIcon from '@material-ui/icons/Forward';
+import {Alert} from "@material-ui/lab";
 
 import {standardCompilationViewThemeStyle} from '../../component/CompilerViewComponent/StandardCompilationView/standardCompilationViewThemeStyle';
 import {customTabElement} from "../../utils/Public_Interfaces";
@@ -17,7 +18,7 @@ import ModalPrompt from "../../component/CompilerViewComponent/ModalPrompt/Model
 import {useAppSelector} from '../../redux/Hooks/hooks';
 import PlanResults from "../../component/PlanResults/PlanResults";
 import {config} from '../../Constants';
-import {Alert} from "@material-ui/lab";
+
 
 const CompilerView =()=> {
     const classes = standardCompilationViewThemeStyle();

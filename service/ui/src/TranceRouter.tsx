@@ -16,6 +16,7 @@ import PlanOutput from "./containers/PlanOutput/PlanOutput";
 import BlocklyComponent
     from "./component/Query/QueryBuilderComponents/StandardCompilationBuilder/BlocklyBuilder/Blockly/Blockly_Component";
 import Overview from "./component/Overview/Overview";
+import AlertNotification from "./hoc/AlertNotification/AlertNotification";
 
 /**
  * This Component is used for navigation, if you would like
@@ -37,19 +38,27 @@ function TranceRouter() {
                     <Layout activePage={activePage} goto_Route={goto_Route}>
                         <Switch>
                             <Route path={"/report"}>
-                                <PlanOutput/>
+                                <AlertNotification>
+                                    <PlanOutput/>
+                                </AlertNotification>
                             </Route>
                             <Route path={"/tables"}>
                                 <h1>Tables to be constructed</h1>
                             </Route>
                             <Route path={"/queryView"}>
-                                <CompilerView/>
+                                <AlertNotification>
+                                    <CompilerView/>
+                                </AlertNotification>
                             </Route>
                             <Route path={"/builder"}>
-                                <BlocklyComponent/>
+                                <AlertNotification>
+                                    <BlocklyComponent/>
+                                </AlertNotification>
                             </Route>
                             <Route path={"/"}>
-                                <Overview/>
+                                <AlertNotification>
+                                    <Overview/>
+                                </AlertNotification>
                             </Route>
                         </Switch>
                     </Layout>

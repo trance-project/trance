@@ -17,6 +17,10 @@ interface RestHandlerState {
     //used to show Indications to user is error or if a request is made and waiting for response
     loading: "Idle" | "Loading" | "Error";
     message: string;
+    alertMessage: {
+        alertType: "error" | "warning" | "info" | "success" | "none";
+        message: string;
+    }
 }
 
 /**
@@ -24,7 +28,11 @@ interface RestHandlerState {
  */
 const initialState: RestHandlerState = {
     message: "",
-    loading: "Idle"
+    loading: "Idle",
+    alertMessage: {
+        alertType: "none",
+        message: ""
+    }
 }
 
 /**
@@ -37,6 +45,8 @@ export const restHandlerSlice = createSlice({
         clearMessage: (state) => {
             state.loading = "Idle";
             state.message = "";
+            state.alertMessage.message= "";
+            state.alertMessage.alertType= "none"
         }
     },
     extraReducers: builder => {
@@ -121,8 +131,8 @@ export const restHandlerSlice = createSlice({
         });
         builder.addCase(queryApi.runStandardPlan.fulfilled, (state) => {
             console.log("[restHandlerSlice] Fulfilled call for runStandardPlan");
-            state.loading = "Idle";
-            state.message = "Plan Executed Successfully"
+            state.alertMessage.alertType = "success";
+            state.alertMessage.message = "Plan Executed Successfully"
         });
         builder.addCase(queryApi.runStandardPlan.rejected,(state, action) => {
             console.log("[restHandlerSlice] runStandardPlan", action.payload);
