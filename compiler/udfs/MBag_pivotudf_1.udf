@@ -1,4 +1,4 @@
-def MBag_pivotudf_1(top, first, sid_input, lbl_input,gene_id_input,burden_input):
+def MBag_hintudf_1(top, first, sid_input, lbl_input,gene_id_input,burden_input, method):
 
     import numpy as np
     import pandas as pd
@@ -126,7 +126,7 @@ def MBag_pivotudf_1(top, first, sid_input, lbl_input,gene_id_input,burden_input)
         print(topk_features)
         return topk_features
 
-    def topKFeaturesRFE(X, y, topk = 200):
+    def topKFeaturesRFE(X, y, ifPlot = False, topk = 200):
 
         y = y.values.ravel()
         X_norm = MinMaxScaler().fit_transform(X)
@@ -228,10 +228,10 @@ def MBag_pivotudf_1(top, first, sid_input, lbl_input,gene_id_input,burden_input)
 
         df = y.copy()
         # Find the top 200 features
-        #topk_features = topKFeaturesRFE(X, df)
-        #topk_features = topKFeatureschi2(X, df, ifPlot = False, topK = 200)
-        topk_features = topKFeaturesANOVA(X, df, ifPlot = False, topK = 200)
-        #topk_features = topKFeaturesMutual(X, df, ifPlot = False, topK = 200)
+
+         topk_features = topKFeaturesANOVA(X, df, ifPlot = False, topK = 200) if method == "ANOVA" else (topKFeaturesMutual(X, df, ifPlot = False, topK = 200)
+                                 if method == "MI"  else (topKFeaturesRFE(X, df) if method == "RFE" else  (topKFeatureschi2(X, df, ifPlot = False, topK = 200)
+                                 if method == "chisq" else (print("Error. Please use one of ANOVA, chisq, RFE or MI")))))
 
         df1 = X.copy()
         feature_X = df1[topk_features].values
@@ -277,10 +277,9 @@ def MBag_pivotudf_1(top, first, sid_input, lbl_input,gene_id_input,burden_input)
 
 
         # Find the top 200 features
-        #topk_features = topKFeaturesRFE(X, df)
-        #topk_features = topKFeatureschi2(X, df, ifPlot = False, topK = 200)
-        topk_features = topKFeaturesANOVA(X, df, ifPlot = False, topK = 200)
-        #topk_features = topKFeaturesMutual(X, df, ifPlot = False, topK = 200)
+        topk_features = topKFeaturesANOVA(X, df, ifPlot = False, topK = 200) if method == "ANOVA" else (topKFeaturesMutual(X, df, ifPlot = False, topK = 200)
+                                if method == "MI"  else (topKFeaturesRFE(X, df) if method == "RFE" else  (topKFeatureschi2(X, df, ifPlot = False, topK = 200)
+                                if method == "chisq" else (print("Error. Please use one of ANOVA, chisq, RFE or MI")))))
 
         feature_X = df1[topk_features].values
         label_y = df.values
