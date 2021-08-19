@@ -1017,7 +1017,7 @@ object PivotUDFExample extends DriverGene {
                                                      else if (t.impact = "LOW") then 0.30
                                                      else 0.01)}).sumBy({sid, lbl}, {burden}))};
 
-               Output <= pivotudf(FirstInput, {sid, lbl, _1,burden})
+               Output <= pivotudf(FirstInput, {sid, lbl, _1,burden, ANOVA})
 
            """
 
