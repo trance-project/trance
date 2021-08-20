@@ -155,7 +155,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
 
       println(s"Writing to paragraph: $pid")
       val status = zep.runParaSync(noteid, pid, readtime = 500000)
-      // zep.deleteNote(noteid)
+      zep.deleteNote(noteid)
       status
     }
   }

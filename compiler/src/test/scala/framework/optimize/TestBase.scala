@@ -132,6 +132,53 @@ trait TestBase extends FunSuite with Materialization with
   val progs = Vector(plan1, plan2, plan3).zipWithIndex
   val sprogs = Vector(splan1, splan2, splan3).zipWithIndex
 
+  val query4str = 
+    s"""
+      samplesProj <= 
+        for s in samples union 
+          {( sid := s.bcr_patient_uuid, aid := s.bcr_aliquot_uuid )};
+
+      copyProj <= 
+        for c in copynumber union 
+          {( caid := c.cn_aliquot_uuid, cgene := c.cn_gene_id, cnum := c.cn_copy_number )};
+
+      cnvCases <= 
+        for s1 in samplesProj union 
+          for c1 in copyProj union 
+            if (s1.aid = c1.caid)
+            then {( id := s1.sid, gene := c1.cgene, num := c1.cnum )}
+
+    """
+
+  val query5str = 
+    s"""
+      samplesProj2 <= 
+        for s in samples union 
+          {( sid := s.bcr_patient_uuid, aid := s.bcr_aliquot_uuid )};
+
+      copyProj2 <= 
+        for c in copynumber union 
+          {( caid := c.cn_aliquot_uuid, cgene := c.cn_gene_id, cnum := c.cn_copy_number )};
+
+      cnvCases2 <= 
+        for s1 in samplesProj2 union 
+          for c1 in copyProj2 union 
+            if (s1.aid = c1.caid)
+            then {( id := s1.sid, gene := c1.cgene, num := c1.cnum )}
+
+    """
+
+  val query4 = parser.parse(query4str).get.asInstanceOf[Program]
+  val plan4 = getProgPlan(query4)
+  val splan4 = getProgPlan(query4, true)
+
+  val query5 = parser.parse(query5str).get.asInstanceOf[Program]
+  val plan5 = getProgPlan(query5)
+  val splan5 = getProgPlan(query5, true)
+
+  val progsSimple = Vector(plan4, plan5).zipWithIndex
+  val sprogsSimple = Vector(splan4, splan5).zipWithIndex
+
   def printSE(ses: Map[Integer, List[SE]]): Unit = {
     ses.foreach{ s => 
       println(s._1)

@@ -8,13 +8,12 @@ import org.apache.spark.sql.types.ArrayType
 case class Stat(name: String, sizeInBytes: String, rowCount: String)
 case class ColumnStat(name: String, value: Double)
 
-class StatsCollector(spark: SparkSession){
+class StatsCollector(spark: SparkSession) extends Serializable {
 
 	var tableCols: Map[String, Array[String]] = Map.empty[String, Array[String]]
 	// var columnStats: Map[String, Double] = Map.empty[String, Double]
   	def genStat(n: String, s: Statistics): Stat = s.rowCount match {
       case Some(rc) => 
-      	println(rc)
         Stat(n, s.sizeInBytes.toString, rc.toString)
       case _ => Stat(n, s.sizeInBytes.toString, "-1")
     }
@@ -63,7 +62,11 @@ class StatsCollector(spark: SparkSession){
 		    				case _ => s"${tname}.${key}"
 		    			}
 		    			println(s"ColumnStat($name,${value.toDouble})")
-		    			if (withShred) println(s"ColumnStat(IBag_${name}__D,${value.toDouble})")
+		    			if (withShred) {
+		    				val sname = name.split("\\.").toSeq
+		    				val nname = s"IBag_${sname.head}__D.${sname.tail.mkString(".")}"
+		    				println(s"ColumnStat($nname,${value.toDouble})")
+		    			}
 		    		}
 
 		    			

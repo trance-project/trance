@@ -16,7 +16,7 @@ case class CostSE(wid: Int, subplan: CExpr, height: Int, est: Estimate)
 case class CostCE(cover: CExpr, sig: Integer, ses: List[CostSE], est: Estimate)
 case class CostEstimate(plan: CNamed, profit: Double, est: Estimate, wids: IMap[Int, Int])
 
-class Cost(stats: Map[String, Statistics]) extends Extensions {
+class Cost(stats: Map[String, Statistics], colMap: Map[String, Double] = Map.empty[String, Double]) extends Extensions {
 
   val DISKREAD = 0.1
   val NETWORK = 10.0
@@ -29,6 +29,10 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
   val NESTSIZE = 2.0
   val NESTROWS = 10.0
   val DEFAULTINC = 1.0
+
+  val valueSet = Set("avgLen", "maxLen", "version", "distinctCount", "min", "max", "nullCount")
+  val baseMap = Map.empty[String, Set[String]]
+  val columnStats = colMap
 
   // used to estimate row count from size
   val fstats = stats.filter(s => s._2.rowCount > 1.0)
@@ -53,6 +57,43 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
   val default = Estimate(DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC)
   val statDefault = Statistics(1L, 1L)
 
+  // def getBase(e: CExpr): String = e match {
+  //   case i:InputRef => 
+  //   case _:UnaryOp => getBase(e.in)
+  //   case _ => sys.error(s"unsupported $e")
+  // }
+  def getField(f: CExpr): String = f match {
+    case Project(_, f) => f
+    case _ => sys.error(s"unsupported $f")
+  }
+
+  def propColStats(plan: CExpr, name: Seq[String] = Seq(), base: Seq[String] = Seq()): Unit = plan match {
+    case LinearCSet(fs) => fs.foreach(f => propColStats(f, name, base))
+    case c:CNamed => propColStats(c.e, Seq(c.name), base)
+    case j:JoinOp => 
+
+      propColStats(j.left, name, base)
+      propColStats(j.right, name, base)
+
+    case Projection(in, _, r:Record, _, _) => 
+      r.fields.foreach(f => 
+        propColStats(in, name :+ f._1, base :+ getField(f._2))
+      )
+
+    case i:InputRef => 
+      val nkey = name.mkString(".")
+      val nval = (i.data +: base).mkString(".")
+      valueSet.foreach{
+        f => 
+          val kv = s"${nkey}.$f"
+          if (columnStats.contains(kv)) columnStats(kv) = columnStats(s"${nval}.$f")
+      }
+
+    case _ => sys.error(s"not yet supported: $plan")
+  }
+
+  def propegateStats(plans: Vector[(CExpr, Int)]): Unit = plans.foreach(f => propColStats(f._1))
+
   def estimate(plans: Vector[(CExpr, Int)]): Map[String, Estimate] = {
     val ests = Map.empty[String, Estimate]
     plans.foreach{ p => p._1 match {
@@ -65,6 +106,30 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
       case p1 => ??? //ests(p._2+"") = estimate(p1)
     }}
     ests
+  }
+
+  // def setBaseRel(e: CExpr): Set[String] = e match {
+  //   case LinearCSet(fs) => fs.foreach(f => setBaseRel(f, n))
+  //   case c:CNamed => setBaseRel(c.e, Some(c.name))
+  //   case i:InputRef => n match {
+  //     case Some(name) => baseMap(name) = i.data 
+  //     case _ =>
+  //   }
+  //   case o:UnaryOp => setBaseRel(o.in, n)
+  //   case o:Nest => setBaseRel(o.in, n)
+  //   case j:JoinOp => setBaseRel(j.left, n); setBaseRel(j.right, n)
+  //   case _ => sys.error(s"not supported $e")
+  // }
+
+  def getBaseRel(e: CExpr): Set[String] = e match {
+    case LinearCSet(fs) => fs.flatMap(f => getBaseRel(f)).toSet
+    case c:CNamed => 
+      val ns = getBaseRel(c.e); baseMap(c.name) = ns; ns
+    case i:InputRef => Set(i.data)
+    case o:UnaryOp => getBaseRel(o.in)
+    case o:Nest => getBaseRel(o.in)
+    case j:JoinOp => getBaseRel(j.left) ++ getBaseRel(j.right)
+    case _ => sys.error(s"not supported $e")
   }
 
   // single plan estimate
@@ -80,6 +145,18 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
       // this is the simpliest approach right now, some combination of left and right
       // need to use cardinality information where possible
       case j:JoinOp =>
+
+        // this is repetitive...
+        val lrels = getBaseRel(j.left)
+        val rrels = getBaseRel(j.right)
+        println(lrels)
+        println(rrels)
+        println(j.p1)
+        println(j.p2)
+        valueSet.foreach{f => 
+          println(j.p1)
+          println(f)
+          println(columnStats(s"${lrels.head}.${j.p1}.$f"))}
         val leftEst = estimate(j.left)
         val rightEst = estimate(j.right)
 
