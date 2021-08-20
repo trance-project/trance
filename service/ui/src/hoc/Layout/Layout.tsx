@@ -138,6 +138,23 @@ const Layout = (props:LayoutProps) => {
         // eslint-disable-next-line
         []);
 
+    /**
+     * Simulate componentDidUpdate And checks if a query has been selected
+     */
+    useEffect(() => {
+           const index = queryList.findIndex(el => {
+                if(querySelected){
+                    return el._id === querySelected._id;
+                }
+            });
+            if(index >= 0){
+                setSelectedQueryState(`${index}`);
+            }else{
+                setSelectedQueryState(" ");
+            }
+        },
+        [querySelected,queryList]);
+
     const page = (pathName:string) => {
         switch (pathName){
             case '/report':

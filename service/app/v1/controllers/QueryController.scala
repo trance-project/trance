@@ -1,32 +1,30 @@
 package v1.controllers
 
 import io.swagger.annotations._
-import models.{Query, TranceObject}
+import models.{BlocklyDocument, Query, TranceObject}
 import play.api.libs.json.Json
 import play.api.mvc.{AbstractController, ControllerComponents}
-import v1.repository.QueryRepository
+import v1.repository.{BlocklyDocumentRepository, QueryRepository}
 
 import java.util.UUID
 import javax.inject.Inject
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
 import framework.common._
 import framework.nrc._
 import framework.plans.{CExpr, NRCTranslator}
 import framework.plans.{BaseNormalizer, Finalizer}
-import framework.plans.{Unnester, BaseOperatorANF}
+import framework.plans.{BaseOperatorANF, Unnester}
 import framework.plans.{JsonWriter => PJsonWriter}
 import framework.examples.genomic._
 import framework.optimize.Optimizer
-import framework.generator.spark.{SparkDatasetGenerator,
-  ZeppelinFactory,
-  JsonWriter => ZJsonWriter}
+import framework.generator.spark.{SparkDatasetGenerator, ZeppelinFactory, JsonWriter => ZJsonWriter}
 
 @Api(value = "/nrccode")
 class QueryController @Inject()(
                                cc: ControllerComponents,
-                               queryRepository: QueryRepository
+                               queryRepository: QueryRepository,
+                               blocklyDocumentRepository: BlocklyDocumentRepository
                                ) extends AbstractController (cc)
                                  with Materialization
                                  with MaterializeNRC
@@ -123,7 +121,6 @@ class QueryController @Inject()(
   }
 
   private def runProgram(plan: CExpr, queryId: String, shred: Boolean = false): String = {
-
     val zep = new ZeppelinFactory(host = "localhost", port = 8085)
 
     val anfBase = new BaseOperatorANF{}
@@ -135,6 +132,7 @@ class QueryController @Inject()(
     // remove if called again...
     zep.deleteNoteByName(queryId)
     val noteid = zep.addNote(queryId)
+
     val pcontents = writeParagraph(queryId, generator.generateHeader(), code, generator.generateEncoders(), shred)
     val para = new ZJsonWriter().buildParagraph("Generated paragraph test", pcontents)
     val pid = zep.writeParagraph(noteid, para)
@@ -216,9 +214,7 @@ class QueryController @Inject()(
   ))
   def executeQuery() =
     Action.async(parse.json) {
-
     _.body.validate[Query].map { query =>
-
         val qid = query._id match { 
           case Some(id) => id.toString
           case _ => sys.error("Id not found.")
@@ -237,8 +233,24 @@ class QueryController @Inject()(
         val plan = compileProgram(program)
 
         val runstatus = runProgram(plan, name, shred = isShred)
-
+        val url = s"next/#/notebook/$runstatus"
         val responseBody = s"""{"nodepad_url": "next/#/notebook/$runstatus"}"""
+
+      blocklyDocumentRepository.getSingleItem(UUID.fromString(qid)).map(maybeBlockDocument => {
+            maybeBlockDocument.map(blocklyDocument => {
+              if(blocklyDocument.lastRunQueryURL.getOrElse(null) != url){
+                val updated = new BlocklyDocument(_id = blocklyDocument._id, name = blocklyDocument.name,
+                  xmlDocument = blocklyDocument.xmlDocument,
+                  lastRunQueryURL = Option(url)
+                )
+                println("[pass]", updated.lastRunQueryURL.get)
+                blocklyDocumentRepository.updateEntity(UUID.fromString(qid), updated).map {
+                  case Some(updated) => Ok(Json.toJson(updated));
+                  case _ => NotFound
+                }
+              }
+            })
+        }.getOrElse(null))
 
         queryRepository.addEntity(query).map{ _ =>
           Created(responseBody)

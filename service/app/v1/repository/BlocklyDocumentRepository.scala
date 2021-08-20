@@ -34,7 +34,8 @@ class BlocklyDocumentRepository @Inject() (implicit ec: ExecutionContext,
     val updateModifier = BSONDocument (
       f"$$set" -> BSONDocument(
         "name" -> blocklyDocument.name,
-        "xmlDocument" -> blocklyDocument.xmlDocument
+        "xmlDocument" -> blocklyDocument.xmlDocument,
+        "lastRunQueryURL" -> blocklyDocument.lastRunQueryURL
       )
     )
     collection.flatMap(_.findAndUpdate(

@@ -41,6 +41,7 @@ export interface QuerySummary {
     _id?: string;
     date?: string;
     name:string;
+    lastRunQueryURL?:string
     xmlDocument: string;
     tables?: string;
     groupedBy?: string;
