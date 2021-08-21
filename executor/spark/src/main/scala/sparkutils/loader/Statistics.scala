@@ -12,11 +12,11 @@ class StatsCollector(spark: SparkSession) extends Serializable {
 
 	var tableCols: Map[String, Array[String]] = Map.empty[String, Array[String]]
 	// var columnStats: Map[String, Double] = Map.empty[String, Double]
-  	def genStat(n: String, s: Statistics): Stat = s.rowCount match {
-      case Some(rc) => 
-        Stat(n, s.sizeInBytes.toString, rc.toString)
-      case _ => Stat(n, s.sizeInBytes.toString, "-1")
-    }
+	def genStat(n: String, s: Statistics): Stat = s.rowCount match {
+    case Some(rc) => 
+      Stat(n, s.sizeInBytes.toString, rc.toString)
+    case _ => Stat(n, s.sizeInBytes.toString, "-1")
+  }
 
 	def activate(tname: String, columns: Boolean = false, ignore: Set[String] = Set()): Unit = {
 
@@ -41,6 +41,7 @@ class StatsCollector(spark: SparkSession) extends Serializable {
 	}
 
 	def getColumns(table: Dataset[_]): Seq[String] = {
+		println(genStat())
 		table.schema.fields.toSeq.flatMap(f => if 
 			(!f.dataType.isInstanceOf[ArrayType]) List(f.name) else Nil)
 	}
@@ -57,16 +58,9 @@ class StatsCollector(spark: SparkSession) extends Serializable {
 			colStats(c).toMap(c).foreach{
 				case (key, value) =>
 		    		if (!key.contains("histogram")){
-		    			val name = replaceName match {
-		    				case Some(n) => n
-		    				case _ => s"${tname}.${key}"
-		    			}
-		    			println(s"ColumnStat($name,${value.toDouble})")
-		    			if (withShred) {
-		    				val sname = name.split("\\.").toSeq
-		    				val nname = s"IBag_${sname.head}__D.${sname.tail.mkString(".")}"
-		    				println(s"ColumnStat($nname,${value.toDouble})")
-		    			}
+		    			val name = replaceName match { case Some(n) => n; case _ => tname }
+		    			println(s"ColumnStat($name.$key,${value.toDouble})")
+		    			if (withShred) println(s"ColumnStat($name.$key,${value.toDouble})")
 		    		}
 
 		    			

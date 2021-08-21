@@ -42,33 +42,50 @@ class TestCost extends TestBase {
 
   //   // assert(stats.size == 26)
 
-  // }
+  // }    
 
+
+  def getBasePlan(query: Program, shred: Boolean = false): LinearCSet = {
+
+    val program = if (shred){
+
+      val (shredded, shreddedCtx) = shredCtx(query)
+      val optShredded = optimize(shredded)
+      val materialized = materialize(optShredded, eliminateDomains = true)
+      materialized.program
+
+    }else query
+    val compiler = new BaseCompiler{}
+    val compile = new Finalizer(compiler)
+    val ncalc = normalizer.finalize(translate(program)).asInstanceOf[CExpr]
+    Unnester.unnest(ncalc)(IMap(), IMap(), None, "_2",  0).asInstanceOf[LinearCSet]
+  }
+
+  def getOptPlan(unopt: CExpr, optimizer: Optimizer): LinearCSet = {
+    val opt = optimizer.applyAll(unopt).asInstanceOf[LinearCSet]
+    // pass through another compilation stage
+    val compiler = new BaseCompiler{}
+    val compile = new Finalizer(compiler)
+    compile.finalize(opt).asInstanceOf[LinearCSet]
+  }
 
   test("shred comilation route"){
 
-    val seBuilder = SEBuilder(sprogsSimple)
-    seBuilder.updateSubexprs()
-
-    val subs = seBuilder.sharedSubs()
-    // printSE(subs)
-
-    val ces = CEBuilder.buildCoverMap(subs)
-    
-    val statsCollector = new StatsCollector(sprogsSimple)
+    val basep = getBasePlan(query7, shred = true)
+    val prog = Vector((basep, 0))
+    val statsCollector = new StatsCollector(prog)
     val stats = if (zep){
-      statsCollector.getCost(subs, ces)
+      statsCollector.runCost(Nil, notebk = true)
     }else Map.empty[String, Statistics]
 
     val cost = new Cost(stats, statsCollector.colMap)
-    println("colmaps")
-    println(cost.columnStats)
-    // val selectedCovers = cost.selectCovers(ces, subs)
+    val ests = cost.estimate(prog)
+    val optimizer = new Optimizer(estimates = ests, colstats = statsCollector.colMap)
 
-    cost.getBaseRel(splan4)
-    // println(cost.baseMap)
-    cost.propegateStats(sprogsSimple)
-    cost.estimate(sprogsSimple)
+    val oplan = getOptPlan(basep, optimizer)
+    println("opt plan")
+    println(Printer.quote(oplan))
+
 
   }
 

@@ -1,5 +1,6 @@
 package framework.optimize
 
+import framework.common._
 import scala.collection.immutable.{Map => IMap}
 import scala.collection.mutable.{HashMap, Map}
 import framework.plans._
@@ -105,21 +106,13 @@ class Cost(stats: Map[String, Statistics], colMap: Map[String, Double] = Map.emp
       }
       case p1 => ??? //ests(p._2+"") = estimate(p1)
     }}
+    stats.foreach{s => 
+      println("this est  "+s._1)
+      val s1 = estimate(InputRef(s._1, StringType))
+      println(s1)
+      ests(s._1) = s1 }
     ests
   }
-
-  // def setBaseRel(e: CExpr): Set[String] = e match {
-  //   case LinearCSet(fs) => fs.foreach(f => setBaseRel(f, n))
-  //   case c:CNamed => setBaseRel(c.e, Some(c.name))
-  //   case i:InputRef => n match {
-  //     case Some(name) => baseMap(name) = i.data 
-  //     case _ =>
-  //   }
-  //   case o:UnaryOp => setBaseRel(o.in, n)
-  //   case o:Nest => setBaseRel(o.in, n)
-  //   case j:JoinOp => setBaseRel(j.left, n); setBaseRel(j.right, n)
-  //   case _ => sys.error(s"not supported $e")
-  // }
 
   def getBaseRel(e: CExpr): Set[String] = e match {
     case LinearCSet(fs) => fs.flatMap(f => getBaseRel(f)).toSet
@@ -269,6 +262,8 @@ class Cost(stats: Map[String, Statistics], colMap: Map[String, Double] = Map.emp
       // no network or additional rows added
       case i:AddIndex => 
         val childEst = estimate(i.in)
+        println("in the index and found")
+        println(childEst)
         val outsize = childEst.outSize * INDEXCOST
         val cpu = childEst.cpu + (childEst.outRows * NOSHUFF)
 
@@ -280,13 +275,12 @@ class Cost(stats: Map[String, Statistics], colMap: Map[String, Double] = Map.emp
       // assume no network cost
       // cpu is just the time to scan
 
-      case c:CNamed => 
-        println(c.name)
-        println(stat)
-        estimate(c.e)
+      case c:CNamed => estimate(c.e)
 
       case _ => 
         val size = stat.sizeInKB + 0.0
+        println("this is the stat.rowCount")
+        println(stat.rowCount)
         val rows = estimateRows(stat.rowCount + 0.0, size)
         // println("base stat found: "+size+", "+rows)
 

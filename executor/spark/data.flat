@@ -1,3 +1,0 @@
-datapath=/Users/jac/code/trance/executor/spark/data/tpch
-heavyKeyStrategy=full
-threshold=.25

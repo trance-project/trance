@@ -7,7 +7,7 @@ import scala.collection.mutable.{Map => MMap}
 import framework.plans._
 
 /** Optimizer used for plans from BatchUnnester **/
-class Optimizer(schema: Schema = Schema()) extends Extensions {
+class Optimizer(schema: Schema = Schema(), estimates: MMap[String, Estimate] = MMap(), colstats: MMap[String, Double] = MMap()) extends Extensions {
 
   val extensions = new Extensions{}
   import extensions._
@@ -29,6 +29,8 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
   	val o2 = pushCondition(o1)
   	val o3 = removeUnnecProj(push(o2))
     val o4 = pushAgg(o3)
+    println("output of optimized")
+    println(Printer.quote(o4))
     o4
   }
 
@@ -207,12 +209,12 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     * @param e CExpr input expression
     * @return true if it is a base expression, false otherwise
     **/
-  private def isBase(e: CExpr): Boolean = e match {
-    case FlatDict(e1) => isBase(e1)
-    case AddIndex(e1, _) => isBase(e1)
-    case Rename(e1, _, _) => isBase(e1)
-    case _:InputRef => true
-    case _ => false
+  private def getBase(e: CExpr): Option[String] = e match {
+    case FlatDict(e1) => getBase(e1)
+    case AddIndex(e1, _) => getBase(e1)
+    case Rename(e1, _, _) => getBase(e1)
+    case i:InputRef => Some(i.data)
+    case _ => None
   }
 
   /** Checks if a primary key is being used for an aggregate key
@@ -259,13 +261,31 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
     case Reduce(e1, v, keys, value, l) =>
       Reduce(pushAgg(e1, keys.toSet, value.toSet), v, keys, value, l)
 
-    case Select(in, v1, p, l) if keys.nonEmpty && values.nonEmpty && isBase(in) =>
-      val attrs = v1.tp.attrs.keySet
-      if (!baseKeyCheck(in, attrs)){
-        val nkeys = attrs & keys
-        val nvalues = attrs & values
-        CReduceBy(e, v1, nkeys.toList, nvalues.toList)
-      }else e
+    case i:InputRef if keys.nonEmpty && values.nonEmpty => 
+      // reduction value = distinct values / input size estimte
+      // multiple distinct values means 
+      val rows = estimates(i.data).outRows
+      val distincts = keys.map(k => colstats.getOrElse(s"${i.data}.$k.distinctCount", rows)).max
+      println(rows)
+      println(distincts)
+      val redfact = distincts/rows
+      println(s"reduction factor: ${i.data}: ${redfact}")
+      e
+
+    case Select(in, v1, p, l) if keys.nonEmpty && values.nonEmpty => getBase(in) match{
+      case Some(b) => 
+
+
+        println(s"in here with $b and $keys and $values")
+        // heuristics based
+        val attrs = v1.tp.attrs.keySet
+        if (!baseKeyCheck(in, attrs)){
+          val nkeys = attrs & keys
+          val nvalues = attrs & values
+          CReduceBy(e, v1, nkeys.toList, nvalues.toList)
+        }else e
+      case _ => e
+    }
 
     case Projection(in, v, f1, fs, l) if keys.nonEmpty && values.nonEmpty => 
       // capture column renaming
@@ -279,6 +299,9 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val nkeys = keys.map(k => nameMap.getOrElse(k, k))
       val nvalues = collect(f1).map(k => nameMap.getOrElse(k, k)) -- nkeys
 
+      println("coming in here with")
+      println(nkeys)
+      println(nvalues)
       Projection(pushAgg(in, nkeys, nvalues), v, f1, fs, l)
 
     case un:UnnestOp => 
@@ -287,7 +310,7 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val rkeys = attrs & keys
       val rvalues = attrs & values
 
-      // todo make sure to see a base check here?
+      // need to check base key here
       if (rkeys.nonEmpty && rvalues.nonEmpty && !singleElementBag(un.v2.tp)){
         val nv = Variable.freshFromBag(un.tp)
         CReduceBy(un, nv, rkeys.toList, rvalues.toList)
@@ -303,11 +326,27 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
       val rattrs = ej.v2.tp.attrs.keySet
       val rkeys = keys.filter(f => rattrs(f)) ++ condkeys.filter(c => rattrs(c))
 
+      println("in join with")
+      println(ej.left)
+      println(ej.right)
       val lpush = pushAgg(ej.left, lkeys, values.filter(f => lattrs(f)))
       val rpush = pushAgg(ej.right, rkeys, values.filter(f => rattrs(f)))
 
       if (ej.jtype == "inner") Join(lpush, ej.v, rpush, ej.v2, ej.cond, ej.fields, ej.level)
       else OuterJoin(lpush, ej.v, rpush, ej.v2, ej.cond, ej.fields, ej.level)
+
+    case r:Rename => 
+      val fs = collect(r.op)
+      println("in r with")
+      println(fs)
+      println(r.name)
+      val nkeys = keys.map(k => if (k == r.name) fs.head else k)
+      println(nkeys)
+      println(values)
+      Rename(pushAgg(r.in, nkeys, values), r.name, r.op)
+
+    case f:FlatDict => 
+      FlatDict(pushAgg(f.in, keys, values))
 
     case v:Variable if keys.nonEmpty && values.nonEmpty =>
       // do we do a baseCheck here?

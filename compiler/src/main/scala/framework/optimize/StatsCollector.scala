@@ -27,22 +27,36 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
   val data: String = if (inputs.isEmpty){
     s"""|   val stc = new StatsCollector(spark)
         |   val copynumber = spark.table("copynumber").as[CopyNumber]
+        |   val statcn = copynumber.queryExecution.optimizedPlan.stats
+        |   println(stc.genStat("copynumber", statcn))
         |   stc.writeColStats("copynumber", stc.getColumns(copynumber), withShred = true)
         |   val occurrences = spark.table("occurrences")
+        |   val statoc = occurrences.queryExecution.optimizedPlan.stats
+        |   println(stc.genStat("occurrences", statoc))
         |   stc.writeColStats("occurrences", stc.getColumns(occurrences))
         |   val samples = spark.table("samples").as[Biospec]
         |   stc.writeColStats("samples", stc.getColumns(samples), withShred = true)
+        |   val statss = samples.queryExecution.optimizedPlan.stats
+        |   println(stc.genStat("samples", statss))
         |   val clinical = spark.table("clinical")
         |   stc.writeColStats("clinical", stc.getColumns(clinical), withShred = true)
+        |   val statcl = clinical.queryExecution.optimizedPlan.stats
+        |   println(stc.genStat("clinical", statcl))
         |   val IBag_copynumber__D = copynumber
         |   val IBag_samples__D = samples
         |   val IBag_clinical__D = clinical
-        |   val IBag_occurrences__D = spark.table("odict1")
+        |   println(stc.genStat("IBag_copynumber__D", statcn))
+        |   println(stc.genStat("IBag_samples__D", statss))
+        |   println(stc.genStat("IBag_clinical", statcl))
+        |   val IBag_occurrences__D = spark.table("odict1").as[OccurrDict1]
         |   stc.writeColStats("odict1", stc.getColumns(IBag_occurrences__D), replaceName = Some("IBag_occurrences__D"))
+        |   println(stc.genStat("IBag_occurrences__D", IBag_occurrences__D.queryExecution.optimizedPlan.stats))        
         |   val IMap_occurrences__D_transcript_consequences = spark.table("odict2")
         |   stc.writeColStats("odict2", stc.getColumns(IMap_occurrences__D_transcript_consequences), replaceName = Some("IMap_occurrences__D_transcript_consequences"))
+        |   println(stc.genStat("IMap_occurrences__D_transcript_consequences", IMap_occurrences__D_transcript_consequences.queryExecution.optimizedPlan.stats))
         |   val IMap_occurrences__D_transcript_consequences_consequence_terms = spark.table("odict3")
         |   stc.writeColStats("odict3", stc.getColumns(IMap_occurrences__D_transcript_consequences_consequence_terms), replaceName = Some("IMap_occurrences__D_transcript_consequences_consequence_terms"))
+        |   println(stc.genStat("IMap_occurrences__D_transcript_consequences_consequence_terms", IMap_occurrences__D_transcript_consequences_consequence_terms.queryExecution.optimizedPlan.stats))
       """.stripMargin
   }else inputs 
   
@@ -222,7 +236,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
     for (line <- out.split("\n")){
       readStats(line) match {
         case (Some(name), Some(stat)) => 
-          statsMap += (nameMapRev(name) -> stat)
+          statsMap += (nameMapRev.getOrElse(name, name) -> stat)
         case _ => 
       }
     }
