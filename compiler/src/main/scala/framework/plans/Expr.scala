@@ -165,6 +165,10 @@ case class Merge(e1: CExpr, e2: CExpr) extends CExpr {
   def tp: BagCType = e1.tp.asInstanceOf[BagCType]  //disjoint types?
 }
 
+//a comprehension with at least one generator, such a comprehension
+// {tau_1| v <-- e1, p s} would be represented Comprehension(e1,v,p, e) where e is
+//either the comprehension corresponding to {tau_1|s} if s is nonempty, or just {tau_1} if s is empty
+// that is, comprehensions that do not have generators are modeled as singletons
 case class Comprehension(e1: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
   def tp: Type = e.tp match {
     case BagCType(tup) => e.tp

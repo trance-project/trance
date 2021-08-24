@@ -97,17 +97,17 @@ trait Biospecimen {
 
   // this loads aliquot files or prad specific clinical information
 
-  def loadBiospec(shred: Boolean = false, skew: Boolean = false, fname: String = "", name: String = "biospec", func: String = ""): String = {
-    if (shred) loadShredBiospec(skew, fname, name, func)
+  def loadBiospec(shred: Boolean = false, skew: Boolean = false, fname: String = "", name: String = "biospec", func: String = "", loader: Boolean = true): String = {
+    if (shred) loadShredBiospec(skew, fname, name, func, loader)
     else if (skew) {
-    s"""|val biospecLoader = new BiospecLoader(spark)
+    s"""|${if (loader) { "val biospecLoader = new BiospecLoader(spark)" } else ""}
         |val ${name}_L = biospecLoader.load$func("$fname")
         |val $name = (biospec_L, biospec_L.empty)
         |$name.cache
         |$name.count
         |""".stripMargin
   }else{
-    s"""|val biospecLoader = new BiospecLoader(spark)
+    s"""|${if (loader) { "val biospecLoader = new BiospecLoader(spark)" } else ""}
         |val $name = biospecLoader.load$func("$fname")
         |$name.cache
         |$name.count
@@ -115,9 +115,9 @@ trait Biospecimen {
     }
   }
   
-  def loadShredBiospec(skew: Boolean = false, fname: String = "", name: String = "biospec", func: String = ""): String = {
+  def loadShredBiospec(skew: Boolean = false, fname: String = "", name: String = "biospec", func: String = "", loader: Boolean = true): String = {
     val biospecLoad = if (skew) "($name, $name.empty)" else name
-    s"""|val biospecLoader = new BiospecLoader(spark)
+    s"""|${if (loader) { "val biospecLoader = new BiospecLoader(spark)" } else ""}
         |val $name = biospecLoader.load$func("$fname")
         |val IBag_${name}__D = $biospecLoad
         |IBag_${name}__D.cache

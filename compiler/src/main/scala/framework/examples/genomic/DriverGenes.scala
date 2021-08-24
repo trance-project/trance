@@ -26,9 +26,9 @@ trait Pathway {
       s"""|val ploader = new PathwayLoader(spark)
           |val pathways = ploader.shred("$fname")
           |val IBag_pathways__D = pathways._1
-          |val IDict_pathways__D_gene_set = pathways._2
+          |val IMap_pathways__D_gene_set = pathways._2
           |IBag_pathways__D.cache; IBag_pathways__D.count
-          |IDict_pathways__D_gene_set.cache; IDict_pathways__D_gene_set.count
+          |IMap_pathways__D_gene_set.cache; IMap_pathways__D_gene_set.count
       """
     }else{
       s"""|val ploader = new PathwayLoader(spark)
@@ -51,12 +51,12 @@ trait Mutations {
   		|val IBag_annotations__D = adict1
   		|IBag_annotations__D.cache
   		|IBag_annotations__D.count
-  		|val IDict_annotations__D_transcript_consequences = adict2 
-  		|IDict_annotations__D_transcript_consequences.cache
-  		|IDict_annotations__D_transcript_consequences.count
-  		|val IDict_annotations__D_transcript_consequences_consequence_terms = adict3
-  		|IDict_annotations__D_transcript_consequences_consequence_terms.cache
-  		|IDict_annotations__D_transcript_consequences_consequence_terms.count"""
+  		|val IMap_annotations__D_transcript_consequences = adict2 
+  		|IMap_annotations__D_transcript_consequences.cache
+  		|IMap_annotations__D_transcript_consequences.count
+  		|val IMap_annotations__D_transcript_consequences_consequence_terms = adict3
+  		|IMap_annotations__D_transcript_consequences_consequence_terms.cache
+  		|IMap_annotations__D_transcript_consequences_consequence_terms.count"""
 	else
 	  s"""|mutations.cache
   		  |mutations.count
@@ -149,7 +149,7 @@ trait Occurrence extends Vep {
             |val IBag_occurrences__D = ${odict(1)}
     				|IBag_occurrences__D.cache
     				|IBag_occurrences__D.count
-            |val odict2 = spark.read.json(s"$fname/${dictNames._2}/").as[OccurTransDict2]
+            |val odict2 = spark.read.json(s"$fname/${dictNames._2}/").drop("flags").as[OccurTransDict2Mid]
             |val IMap_occurrences__D_transcript_consequences = ${odict(2)}
     				|IMap_occurrences__D_transcript_consequences.cache
     				|IMap_occurrences__D_transcript_consequences.count
@@ -188,9 +188,9 @@ trait Gistic {
     			|val IBag_gistic__D = gdict1
     			|IBag_gistic__D.cache
     			|IBag_gistic__D.count
-    			|val IDict_gistic__D_gistic_samples = gdict2
-    			|IDict_gistic__D_gistic_samples.cache
-    			|IDict_gistic__D_gistic_samples.count""".stripMargin
+    			|val IMap_gistic__D_gistic_samples = gdict2
+    			|IMap_gistic__D_gistic_samples.cache
+    			|IMap_gistic__D_gistic_samples.count""".stripMargin
   	}else if (skew)
 	  	s"""|val gistic_L = spark.read.json("file:///nfs_qc4/genomics/gdc/gistic/dataset/").as[Gistic]
     			|					.withColumn("gistic_gene", substring(col("gistic_gene_iso"), 1,15)).as[Gistic]
@@ -252,9 +252,9 @@ trait StringNetwork {
           |val IBag_network__D = network._1
           |IBag_network__D.cache
           |IBag_network__D.count
-          |val IDict_network__D_edges = network._2
-          |IDict_network__D_edges.cache
-          |IDict_network__D_edges.count
+          |val IMap_network__D_edges = network._2
+          |IMap_network__D_edges.cache
+          |IMap_network__D_edges.count
           |""".stripMargin
     }else if (skew){
       s"""|val stringLoader = new NetworkLoader(spark)
