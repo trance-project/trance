@@ -1,0 +1,39 @@
+def correlation(top, first):
+    val mi_selected = first.mapPartitions{ it =>
+
+        // the two values below should be parameters inputted by ther user
+
+        var ymean = .598
+        val total_samples = 186
+
+        val gcnts = HashMap.empty[String, Double].withDefaultValue(0.0)
+
+        val glist = it.foldLeft(HashMap.empty[String, Seq[(Int, Double)]].withDefaultValue(Seq.empty[(Int, Double)]))(
+                 (acc, v) => {
+                    gcnts(v._1.g__F_burdens) = gcnts(v._1.g__F_burdens) + v.burden  // updates the burden for the key v._1, i.e. for each gene
+                    acc(v._1.g__F_burdens) = acc(v._1.g__F_burdens) :+ (v.lbl, v.burden);     // updates the label and the burden for each gene
+                    acc
+                 }
+                )
+
+
+        val gmi = glist.foldLeft(HashMap.empty[String, Double].withDefaultValue(0.0))(
+
+                (acc, v) => {
+                    val gene = v._1; val ls = v._2
+                    val gdata = gcnts(gene)
+                    val gmean = gdata / total_samples
+                    val denominator_x = ls.map{case (lbl, burden) => ((burden - gmean)*(burden - gmean))}.sum
+                    val denominator_y = ls.map{case (lbl, burden) => ((lbl - ymean)*(lbl - ymean))}.sum
+                    val denominator = sqrt(denominator_x*denominator_y)
+                    val numerator = ls.map{case (lbl, burden) => ((burden - gmean)*(lbl-ymean))}.sum
+                    acc(gene) = if (denominator == 0.0) 0.0 else numerator / (denominator) ;
+                    acc
+                }
+                // -1.0 and 1.0 should be parameters inputted by the user
+            ).toSeq.filter(x => (x._2  < -1.0 || x._2 > 1.0))
+             .sortBy(_._2)(Ordering[Double].reverse).map(_._1).iterator
+            gmi
+        }.collect.toSeq
+
+    val mi_filtered =  first.filter(col("_1").getField("g__F_burdens").isin(mi_selected:_*))

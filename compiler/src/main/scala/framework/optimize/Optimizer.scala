@@ -203,13 +203,12 @@ class Optimizer(schema: Schema = Schema()) extends Extensions {
   def applyHint(e: CExpr): CExpr = fapply(e, {
     case LinearCSet(fs) =>
       val l = fs.flatMap{x => x match {
-        case CUdf(name, input, output, params, hint) if hint.nonEmpty =>
-          val filtered = CUdf(hint + "udf", input, output, Nil,"")
-          val optUdf = CUdf(name, Seq(filtered), output, params, "")
+
+        case CNamed(n, CUdf(name, input, output, params, hint)) if hint.nonEmpty =>
+          val filtered = CNamed("filtered", CUdf(hint + "udf", input, input(0).tp, Nil,""))
+          val optUdf = CNamed(n, CUdf(name, Seq(filtered), output, params, ""))
           List(filtered, optUdf)
-        case CUdf(name, input, output, params, hint) =>
-          println(x)
-          List(x)
+
         case _ => List(x)
       }}
       LinearCSet(l)
