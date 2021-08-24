@@ -78,7 +78,7 @@ class StatsCollector(progs: Vector[(CExpr, Int)], zhost: String = "localhost", z
   def readStats(s: String): (Option[String], Option[Statistics]) = s match {
     case StatsRegex(n, sb, rc) => 
       val sbl = (BigDecimal(sb) / KB).toDouble
-      val src = rc match { case "-1" => -1.0; case _ => (BigDecimal(rc) / KB).toDouble }
+      val src = rc match { case "-1" => -1.0; case _ => BigDecimal(rc).toDouble }
       (Some(n), Some(Statistics(sbl, src)))
     case ColRegex(c, v) => 
       colMap(c) = v.toDouble

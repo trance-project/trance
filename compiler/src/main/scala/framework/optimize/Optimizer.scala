@@ -261,22 +261,20 @@ class Optimizer(schema: Schema = Schema(), estimates: MMap[String, Estimate] = M
     case Reduce(e1, v, keys, value, l) =>
       Reduce(pushAgg(e1, keys.toSet, value.toSet), v, keys, value, l)
 
+    // the case where there is no selection
     case i:InputRef if keys.nonEmpty && values.nonEmpty => 
-      // reduction value = distinct values / input size estimte
-      // multiple distinct values means 
+      // reduction value = input rows / distinct values
       val rows = estimates(i.data).outRows
       val distincts = keys.map(k => colstats.getOrElse(s"${i.data}.$k.distinctCount", rows)).max
-      println(rows)
-      println(distincts)
-      val redfact = distincts/rows
-      println(s"reduction factor: ${i.data}: ${redfact}")
-      e
+      val redfact = rows/distincts
+      if (redfact > 2.0) {
+        val v1 = Variable.freshFromBag(e.tp)
+        CReduceBy(e, v1, keys.toList, values.toList)
+      }else e
 
+    // if there is selection then make sure to apply it before
     case Select(in, v1, p, l) if keys.nonEmpty && values.nonEmpty => getBase(in) match{
       case Some(b) => 
-
-
-        println(s"in here with $b and $keys and $values")
         // heuristics based
         val attrs = v1.tp.attrs.keySet
         if (!baseKeyCheck(in, attrs)){

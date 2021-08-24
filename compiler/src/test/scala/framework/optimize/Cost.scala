@@ -69,22 +69,52 @@ class TestCost extends TestBase {
     compile.finalize(opt).asInstanceOf[LinearCSet]
   }
 
-  test("shred comilation route"){
+  val basep = getBasePlan(query7, shred = true)
+  val prog = Vector((basep, 0))
 
-    val basep = getBasePlan(query7, shred = true)
-    val prog = Vector((basep, 0))
+  // test("shred comilation route - reduction factor"){
+
+  //   val statsCollector = new StatsCollector(prog)
+  //   val stats = if (zep){
+  //     statsCollector.runCost(Nil, notebk = true)
+  //   }else Map.empty[String, Statistics]
+
+  //   val cost = new Cost(stats, statsCollector.colMap)
+  //   val ests = cost.estimate(prog)
+  //   val optimizer = new Optimizer(estimates = ests, colstats = statsCollector.colMap)
+
+  //   val oplan = getOptPlan(basep, optimizer)
+  //   println("opt plan")
+  //   println(Printer.quote(oplan))
+
+
+  // }
+
+  // could do a heuristics pass optimization and then 
+  // do another cost based pass optimization
+  test("shred comilation route - propegate columns"){
+
     val statsCollector = new StatsCollector(prog)
     val stats = if (zep){
       statsCollector.runCost(Nil, notebk = true)
     }else Map.empty[String, Statistics]
 
     val cost = new Cost(stats, statsCollector.colMap)
-    val ests = cost.estimate(prog)
-    val optimizer = new Optimizer(estimates = ests, colstats = statsCollector.colMap)
 
-    val oplan = getOptPlan(basep, optimizer)
-    println("opt plan")
-    println(Printer.quote(oplan))
+    cost.propegateStats(prog)
+
+    cost.columnStats.foreach(println(_))
+
+    // val ests = cost.estimate(prog)
+
+
+
+
+    // val optimizer = new Optimizer(estimates = ests, colstats = statsCollector.colMap)
+
+    // val oplan = getOptPlan(basep, optimizer)
+    // println("opt plan")
+    // println(Printer.quote(oplan))
 
 
   }
