@@ -9,7 +9,7 @@ const CopyRight = () => (
         <Grid item xs={12} md={4}>
             <Typography variant={"body2"} color={"textSecondary"} align={"center"}>
                 <Link color={"inherit"} onClick={()=> window.open(`http://www.cs.ox.ac.uk/projects/trance/`,"_blank")}>
-                    Project Page
+                    Trance project page
                 </Link>
             </Typography>
         </Grid>
@@ -26,7 +26,7 @@ const CopyRight = () => (
         <Grid item xs={12} md={4}>
             <Typography variant={"body2"} color={"textSecondary"} align={"center"}>
                 <Link color={"inherit"} onClick={()=> window.open(`https://github.com/jacmarjorie/trance`,"_blank")}>
-                    Github Account
+                    Trance on github
                 </Link>
             </Typography>
         </Grid>

@@ -86,7 +86,7 @@ const CompilerView =()=> {
                         abortHover={abortHoverHandler}
                     />
 
-                    <Button className={classes.queryBtnGroup} variant={"outlined"} color={"primary"} endIcon={<NoteIcon />} onClick={()=> window.open(config.zepplineURL+`${notepadUrl}`,"_blank")}>Notebook</Button>
+                    <Button className={classes.queryBtnGroup} disabled={notepadUrl.length===0} variant={"outlined"} color={"primary"} endIcon={<NoteIcon />} onClick={()=> window.open(config.zepplineURL+`${notepadUrl}`,"_blank")}>Notebook</Button>
                     <Button className={classes.queryBtnGroup} variant={"contained"} color={"primary"} onClick={handleOpenCompilationDialogState} endIcon={<ForwardIcon/>}>Compile</Button>
                 </React.Fragment>
             )

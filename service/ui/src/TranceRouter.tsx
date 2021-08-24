@@ -17,6 +17,8 @@ import BlocklyComponent
     from "./component/Query/QueryBuilderComponents/StandardCompilationBuilder/BlocklyBuilder/Blockly/Blockly_Component";
 import Overview from "./component/Overview/Overview";
 import AlertNotification from "./hoc/AlertNotification/AlertNotification";
+import {Grid} from "@material-ui/core";
+import {Alert} from "@material-ui/lab";
 
 /**
  * This Component is used for navigation, if you would like
@@ -57,6 +59,13 @@ function TranceRouter() {
                             </Route>
                             <Route path={"/"}>
                                 <AlertNotification>
+                                    <Grid container spacing={3}>
+                                        <Grid item xs={12}>
+                                            <Alert severity="warning">
+                                                This <strong>trance demo</strong> is currently under active development and some features have been disabled to allow free online use.
+                                            </Alert>
+                                        </Grid>
+                                    </Grid>
                                     <Overview/>
                                 </AlertNotification>
                             </Route>

@@ -243,7 +243,6 @@ class QueryController @Inject()(
                   xmlDocument = blocklyDocument.xmlDocument,
                   lastRunQueryURL = Option(url)
                 )
-                println("[pass]", updated.lastRunQueryURL.get)
                 blocklyDocumentRepository.updateEntity(UUID.fromString(qid), updated).map {
                   case Some(updated) => Ok(Json.toJson(updated));
                   case _ => NotFound
