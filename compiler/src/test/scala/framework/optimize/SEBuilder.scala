@@ -1,4 +1,4 @@
-package framework.plans
+package framework.optimize
 
 import framework.common._
 import framework.examples.tpch._
@@ -6,6 +6,7 @@ import framework.examples.genomic._
 import scala.collection.mutable.HashMap
 import scala.collection.immutable.{Map => IMap}
 import framework.plans.{Equals => CEquals, Project => CProject}
+import framework.plans._
 
 class TestSEBuilder extends TestBase {
 

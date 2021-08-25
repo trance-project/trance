@@ -1,4 +1,4 @@
-package framework.plans
+package framework.optimize
 
 import org.scalatest.FunSuite
 import framework.common._
@@ -8,12 +8,13 @@ import framework.nrc._
 import scala.collection.immutable.{Map => IMap}
 import scala.collection.mutable.{HashMap, Map}
 import framework.plans.{Equals => CEquals, Project => CProject}
+import framework.plans._
 
 class TestCachePlanners extends TestBase {
 
   val compileCost = false
   
-  test("standard comilation route"){
+  // test("standard comilation route"){
 
     // println("STANDARD COMPILATION ROUTE!!!")
 
@@ -62,9 +63,9 @@ class TestCachePlanners extends TestBase {
     // }
 
 
-  }
+  // }
 
-  test("shred comilation route"){
+  // test("shred comilation route"){
 
     // println("SHREDDED COMPILATION ROUTE!!!")
     
@@ -110,6 +111,6 @@ class TestCachePlanners extends TestBase {
     //   println(Printer.quote(c._2))
     // }
 
-  }
+  // }
 
 }
