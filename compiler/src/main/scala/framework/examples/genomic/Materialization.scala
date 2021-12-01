@@ -709,39 +709,19 @@ object LetTest5FSeq extends DriverGene {
           if (s.bcr_aliquot_uuid = c1.cn_aliquot_uuid)
           then {(sid := s.bcr_patient_uuid, gene := c1.cn_gene_id, cnum := c1.cn_copy_number)}
       """
-
-    // this saves the top level mappings...
-    val toccur = 
-      s"""
-        for o in occurrences union 
-          {( donorId := o.donorId, oid := o.oid )}
-      """
-
-    val foccur = 
-      s"""
-        for o in occurrences union 
-          for t in o.transcript_consequences union 
-            {( fdonorId := o.donorId, foid := o.oid, fgeneid := t.gene_id, fimp := $imp )}
-      """
-
     val initScores = 
       s"""
-        for o in TOccur union 
-          {(hybrid_case := o.donorId, hybrid_scores := 
-              (for t in FOccur union 
-                if (o.oid = t.foid && o.donorId = t.fdonorId)
-                then for c in $cnvs union 
-                  if (o.donorId = c.sid && t.fgeneid = c.gene)
-                  then {(hybrid_gene := t.fgeneid, hybrid_score := (c.cnum + 0.01) * t.fimp )}).sumBy({hybrid_gene}, {hybrid_score})
+        for o in occurrences union 
+          {(hybrid_case := o.donorId, transcript_consequences := o.donorId, hybrid_scores := 
+              (for t in o.transcript_consequences union 
+                for c in $cnvs union 
+                  if (o.donorId = c.sid && t.gene_id = c.gene)
+                  then {(x := t.gene_id, hybrid_gene := t.gene_id, hybrid_score := (c.cnum + 0.01) * $imp )}).sumBy({x, hybrid_gene}, {hybrid_score})
           )}
       """
 
     val query = 
      s"""
-       TOccur <= $toccur; 
-
-       FOccur <= $foccur;
-
        InitScores <= $initScores;
 
        LetTest5 <= 
