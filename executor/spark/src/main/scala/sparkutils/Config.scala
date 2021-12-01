@@ -6,9 +6,12 @@ package sparkutils
 object Config {
 
   val prop = new java.util.Properties
-  val fsin = new java.io.FileInputStream("data.flat")
-  prop.load(fsin)
-
+  /**try{  	 
+    val fsin = new java.io.FileInputStream("data.flat")
+    prop.load(fsin)
+  }catch{
+    case _:Throwable => println("data.flat not found")	
+  }**/
   // assumes at executor/spark
   val basepath = System.getProperty("user.dir")
   val datapath = prop.getProperty("datapath", s"$basepath/data/tpch")

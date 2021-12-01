@@ -36,8 +36,11 @@ case class RemoveNulls(e1: CExpr) extends CExpr {
 }
 
 /**
- *  Append an index to an input collection (used for dot-equality), 
+ *  Appends an index to the collection returned by e, unique for each occurrence of a tuple (used for dot-equality), 
  * important for maintaining multiplicites in bag comprehensions
+ * 
+ * TODO appends a new column, based on an expression
+ * 
  */
 case class AddIndex(e: CExpr, name: String) extends CExpr with UnaryOp {
   def tp: BagCType = BagCType(RecordCType(e.tp.attrs ++ Map(name -> LongType)))
@@ -46,7 +49,15 @@ case class AddIndex(e: CExpr, name: String) extends CExpr with UnaryOp {
   override val isCacheUnfriendly: Boolean = true
 }
 
-
+case class Rename(e: CExpr, name: String, op: CExpr) extends CExpr with UnaryOp {
+  def tp: BagCType = op match {
+    case Project(_, "_1") => BagCType(RecordCType((e.tp.attrs - "_1") ++ Map(name -> op.tp)))
+    case _ => sys.error(s"not supported $op")
+  }
+  val in: CExpr = e
+  override def vstr: String = s"Rename(${e.vstr}, $name)" 
+  override val isCacheUnfriendly: Boolean = true
+}
 
 /**
  *  Selection operator
@@ -61,7 +72,7 @@ case class AddIndex(e: CExpr, name: String) extends CExpr with UnaryOp {
  *  \delta_{p} (Input)
  * 
  */
-case class Select(x: CExpr, v: Variable, p: CExpr) extends CExpr with UnaryOp { self =>
+case class Select(x: CExpr, v: Variable, p: CExpr, level: Int) extends CExpr with UnaryOp { self =>
 
   def tp:Type = x.tp 
 
@@ -90,7 +101,7 @@ case class Select(x: CExpr, v: Variable, p: CExpr) extends CExpr with UnaryOp { 
  *  \delta^{e} (Input)
  * 
  */
-case class Projection(in: CExpr, v: Variable, pattern: CExpr, fields: List[String]) extends CExpr with UnaryOp { self =>
+case class Projection(in: CExpr, v: Variable, pattern: CExpr, fields: List[String], level: Int) extends CExpr with UnaryOp { self =>
 
   def tp: BagCType = BagCType(pattern.tp)
   
@@ -142,14 +153,16 @@ trait UnnestOp extends CExpr with UnaryOp {
     s"""Unnest$lbl(${in.vstr}, $path, ${fields.toSet.mkString(",")})""" 
   }
 
+  val level: Int
+
 }
 
-case class Unnest(in: CExpr, v: Variable, path: String, v2: Variable, filter: CExpr, fields: List[String]) extends UnnestOp {
+case class Unnest(in: CExpr, v: Variable, path: String, v2: Variable, filter: CExpr, fields: List[String], level: Int) extends UnnestOp {
   def tp: BagCType = BagCType(v.tp.merge(v2.tp).project(fields))
   val outer: Boolean = false
 }
 
-case class OuterUnnest(in: CExpr, v: Variable, path: String, v2: Variable, filter: CExpr, fields: List[String]) extends UnnestOp {
+case class OuterUnnest(in: CExpr, v: Variable, path: String, v2: Variable, filter: CExpr, fields: List[String], level: Int) extends UnnestOp {
   
   val index = Map(path+"_index" -> LongType)
   
@@ -189,6 +202,7 @@ trait JoinOp extends CExpr {
   val v2: Variable
   val cond: CExpr
   val fields: List[String]
+  val level: Int
   
   // inner or outer
   val jtype: String
@@ -198,6 +212,8 @@ trait JoinOp extends CExpr {
   val ps = ext.collectFromAnd(cond)
 
   // get around join with domain
+  // this is not a good solution, think 
+  // about how to handle this...
   def p1s: Set[String] = v.tp match {
     case RecordCType(ms) => ms.get("_LABEL") match {
       case Some(LabelType(fs)) =>
@@ -221,13 +237,13 @@ trait JoinOp extends CExpr {
 
 }
 
-case class Join(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond: CExpr, fields: List[String]) extends JoinOp {
+case class Join(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond: CExpr, fields: List[String], level: Int) extends JoinOp {
   def tp: BagCType = BagCType(v.tp.merge(v2.tp).project(fields))
   val jtype = "inner"
 
 }
 
-case class OuterJoin(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond: CExpr, fields: List[String]) extends JoinOp {
+case class OuterJoin(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond: CExpr, fields: List[String], level: Int) extends JoinOp {
   
   def tp: BagCType = BagCType(v.tp.merge(v2.tp.outer).project(fields))
   
@@ -249,7 +265,7 @@ case class OuterJoin(left: CExpr, v: Variable, right: CExpr, v2: Variable, cond:
  *  \Gamma^{ctag := value / key}_{filter / nulls}
  * 
  */ 
-case class Nest(in: CExpr, v: Variable, key: List[String], value: CExpr, filter: CExpr, nulls: List[String], ctag: String) extends CExpr { //with UnaryOp {
+case class Nest(in: CExpr, v: Variable, key: List[String], value: CExpr, filter: CExpr, nulls: List[String], ctag: String, level: Int) extends CExpr { //with UnaryOp {
   def tp: BagCType = value.tp match {
     case _:NumericType => BagCType(RecordCType(v.tp.project(key).attrTps ++ Map(ctag -> DoubleType)))
     case _ => BagCType(RecordCType(v.tp.project(key).attrTps ++ Map(ctag -> BagCType(value.tp.unouter))))
@@ -276,7 +292,7 @@ case class Nest(in: CExpr, v: Variable, key: List[String], value: CExpr, filter:
  *  \Gamma^{value / key}
  * 
  */ 
-case class Reduce(in: CExpr, v: Variable, keys: List[String], values: List[String]) extends CExpr with UnaryOp {
+case class Reduce(in: CExpr, v: Variable, keys: List[String], values: List[String], level: Int) extends CExpr with UnaryOp {
   def tp: BagCType = BagCType(v.tp.project(keys).merge(v.tp.project(values)))
   override def vstr: String = 
     s"""Reduce(${in.vstr}, keys = ${keys.mkString(",")}, values = ${values.mkString(",")})""" 

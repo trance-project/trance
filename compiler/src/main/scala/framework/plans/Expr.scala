@@ -164,6 +164,10 @@ case class Merge(e1: CExpr, e2: CExpr) extends CExpr {
   def tp: BagCType = e1.tp.asInstanceOf[BagCType]  //disjoint types?
 }
 
+//a comprehension with at least one generator, such a comprehension
+// {tau_1| v <-- e1, p s} would be represented Comprehension(e1,v,p, e) where e is
+//either the comprehension corresponding to {tau_1|s} if s is nonempty, or just {tau_1} if s is empty
+// that is, comprehensions that do not have generators are modeled as singletons
 case class Comprehension(e1: CExpr, v: Variable, p: CExpr, e: CExpr) extends CExpr {
   def tp: Type = e.tp match {
     case BagCType(tup) => e.tp
@@ -171,7 +175,7 @@ case class Comprehension(e1: CExpr, v: Variable, p: CExpr, e: CExpr) extends CEx
   }
 }
 
-case class CDeDup(in: CExpr) extends CExpr with UnaryOp {
+case class CDeDup(in: CExpr, level: Int) extends CExpr with UnaryOp {
   def tp: BagCType = in.tp.asInstanceOf[BagCType]
   override def vstr: String = s"DeDup(${in.vstr})"
 }
@@ -246,7 +250,7 @@ case class GroupDict(in: CExpr) extends CExpr with UnaryOp {
     case BagCType(RecordCType(ms)) => 
       val lbl = ms get "_1" match {
         case Some(l:LabelType) => l
-        case _ => sys.error("invalid bag")
+        case _ => LabelType(Map.empty[String, Type])//sys.error("invalid bag")
       }
       MatDictCType(lbl, BagCType(RecordCType(ms - "_1")))
 

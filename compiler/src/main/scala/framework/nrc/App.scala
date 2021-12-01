@@ -135,7 +135,6 @@ object App extends MaterializeNRC with Printer {
      val cop4:BagExpr = parser4.parse(q4, parser4.term).get.asInstanceOf[BagExpr]
      println(quote(cop4))
 
-
   }
 
 }

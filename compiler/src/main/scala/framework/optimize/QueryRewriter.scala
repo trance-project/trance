@@ -10,6 +10,8 @@ import framework.plans._
 class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr, Int), Integer], 
   names: Map[String, Integer] = Map.empty[String, Integer]) extends Extensions {
 
+  val LEVEL = -1
+
   var coverset: ListBuffer[CExpr] = ListBuffer.empty[CExpr]
   val vmap: Map[String, String] = Map.empty[String, String]
 
@@ -110,6 +112,7 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
 
     val default:Integer = -1
     val sig = sigs.getOrElse(plan, default)
+    val LEVEL = -1 
 
     covers.get(sig) match {
 
@@ -128,39 +131,39 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
           val lv = Variable.freshFromBag(lCover.tp)
           val rv = Variable.freshFromBag(rCover.tp)
 
-          if (j.jtype.contains("outer")) OuterJoin(lCover, lv, rCover, rv, j.cond, j.fields)
-          else Join(lCover, lv, rCover, rv, j.cond, j.fields)
+          if (j.jtype.contains("outer")) OuterJoin(lCover, lv, rCover, rv, j.cond, j.fields, LEVEL)
+          else Join(lCover, lv, rCover, rv, j.cond, j.fields, LEVEL)
 
         case (n: Nest, id) => 
           val childCover = rewritePlanOverCover((n.in, id), covers)
           val v = Variable.freshFromBag(childCover.tp)
-          Nest(childCover, v, n.key, replace(n.value, v), replace(n.filter, v), n.nulls, n.ctag)
+          Nest(childCover, v, n.key, replace(n.value, v), replace(n.filter, v), n.nulls, n.ctag, LEVEL)
 
         case (r:Reduce, id) => 
           val childCover = rewritePlanOverCover((r.in, id), covers)
           val v = Variable.freshFromBag(childCover.tp)
-          Reduce(childCover, v, r.keys, r.values)
+          Reduce(childCover, v, r.keys, r.values, LEVEL)
 
         // handle the outer unnest case
         case (u:UnnestOp, id) => 
           val childCover = rewritePlanOverCover((u.in, id), covers)
           val v = Variable.freshFromBag(childCover.tp)
-          if (u.outer) OuterUnnest(childCover, v, u.path, u.v2, u.filter, u.fields)
-          else Unnest(childCover, v, u.path, u.v2, u.filter, u.fields)
+          if (u.outer) OuterUnnest(childCover, v, u.path, u.v2, u.filter, u.fields, LEVEL)
+          else Unnest(childCover, v, u.path, u.v2, u.filter, u.fields, LEVEL)
 
         case (p:Projection, id) => 
           val childCover = rewritePlanOverCover((p.in, id), covers)
           val v = Variable.freshFromBag(childCover.tp)
-          Projection(childCover, v, replace(p.pattern, v), p.fields)
+          Projection(childCover, v, replace(p.pattern, v), p.fields, LEVEL)
 
         case (s:Select, id) => 
           val childCover = rewritePlanOverCover((s.in, id), covers)
           val v = Variable.freshFromBag(childCover.tp)
-          Select(childCover, v, replace(s.p, v))
+          Select(childCover, v, replace(s.p, v), LEVEL)
 
         case (d:CDeDup, id) => 
           val childCover = rewritePlanOverCover((d.in, id), covers)
-          CDeDup(childCover)
+          CDeDup(childCover, LEVEL)
 
         case (i:AddIndex, id) => 
           // is subexpression a cover?
@@ -196,7 +199,7 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
 
       case y if plan.vstr == coverPlan.vstr => coverPlan
 
-      case (r1 @ Reduce(p @ Projection(in, _, r:Record, fs), _, ks1, vs1), r2:Reduce) =>
+      case (r1 @ Reduce(p @ Projection(in, _, r:Record, fs, _), _, ks1, vs1, _), r2:Reduce) =>
 
         // update name map here
         r.fields.foreach(f => f match {
@@ -209,11 +212,11 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
         if (names.toSet == r2.keys.toSet) {
           val nrec = Record(r.fields.map(f => 
             f._1 -> Project(v, vmap.getOrElse(f._1, f._1))))
-          Projection(cover, v, nrec, nrec.fields.keys.toList)
+          Projection(cover, v, nrec, nrec.fields.keys.toList, LEVEL)
         } else {
-          val p1 = Projection(cover, v, replace(r, v), fs)
+          val p1 = Projection(cover, v, replace(r, v), fs, LEVEL)
           val v1 = Variable.freshFromBag(p1.tp)
-          Reduce(p1, v1, ks1, vs1)
+          Reduce(p1, v1, ks1, vs1, LEVEL)
         }  
 
       // need to handle outer case
@@ -221,7 +224,7 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
         assert(u1.path == u2.path)
         val fs = (u1.fields ++ u2.fields).toSet
         val nrec = Record(fs.map(f => f -> Project(v, f)).toMap)
-        Projection(cover, v, nrec, fs.toList)
+        Projection(cover, v, nrec, fs.toList, LEVEL)
 
       // reapply the projection
       case (p1:Projection, p2:Projection) => 
@@ -231,11 +234,11 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
           case (_:Join, _:OuterJoin) => p1.pattern.tp.attrs.keySet.toList :+ "remove_nulls"
           case _ => p1.pattern.tp.attrs.keySet.toList
         }
-        Projection(cover, v, p1.pattern, fields)
+        Projection(cover, v, p1.pattern, fields, LEVEL)
 
       // reapply the filter
       case (s:Select, _) => 
-        Select(cover, v, replace(s.p, v))
+        Select(cover, v, replace(s.p, v), LEVEL)
 
       // the index may or may not be needed...
       case (i:AddIndex, _) => AddIndex(cover, i.name)
@@ -243,7 +246,7 @@ class QueryRewriter(sigs: HashMap[(CExpr, Int), Integer] = HashMap.empty[(CExpr,
       // input refs just are replaced with the cover
       case (i:InputRef, _) => cover
 
-      case (d:CDeDup, _) => CDeDup(cover)
+      case (d:CDeDup, _) => CDeDup(cover, LEVEL)
 
       // all other cases don't rewrite
       case _ => plan

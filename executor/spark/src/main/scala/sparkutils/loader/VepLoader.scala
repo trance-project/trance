@@ -300,7 +300,7 @@ class VepLoader(spark: SparkSession) extends Serializable {
     val tmp2 = occur.flatMap{ o => o.transcript_consequences.zipWithIndex.map{ case (t, id) => (o.oid, id, t) } }
 
     val dict2 = tmp2.map{ case (id1, id2, t) => OccurTransDict2Mid(id1, t.case_id, t.amino_acids, 
-    t.cdna_end, t.cdna_start, t.cds_end, t.cds_start, t.codons, s"${id1}_${id2}", t.distance, t.exon, t.flags, 
+    t.cdna_end, t.cdna_start, t.cds_end, t.cds_start, t.codons, s"${id1}_${id2}", t.distance, t.exon, //t.flags, 
     t.gene_id, t.impact, t.intron, t.polyphen_prediction, t.polyphen_score, t.protein_end, t.protein_start, 
     t.sift_prediction, t.sift_score, t.ts_strand,
     t.transcript_id, t.variant_allele)}.as[OccurTransDict2Mid].repartition(col("_1"))
@@ -356,6 +356,78 @@ class VepLoader(spark: SparkSession) extends Serializable {
 		VepDict3(s"${vid}:${index}", c)) }.as[VepDict3]
 	(dict1, dict2.repartition(col("_1")), dict3.repartition(col("_1")))
 	
+  }
+
+  def storeOccurrences(path: String, dicts: Seq[String] = Seq(), insert: Boolean = true) = {
+
+    val occurrences = spark.read.json(path).as[OccurrenceMid]
+
+    //spark.sql(s"DROP TABLE occurrences")
+
+    val ttypes = List("amino_acids: string", "case_id: string", "cdna_end: long", "cdna_start: long", "cds_end: long",
+      "cds_start: long", "codons: string", "consequence_terms: ARRAY<string>", "distance: long", 
+      "exon: string", "flags: ARRAY<string>", "gene_id: string", "impact: string", "intron: string", 
+      "polyphen_prediction: string", "polyphen_score: double", "protein_end: long", "protein_start: long", 
+      "sift_prediction: string", "sift_score: double", "ts_strand: long", "transcript_id: string", "variant_allele: string").sorted
+    val transcriptType = s"ARRAY<STRUCT<${ttypes.mkString(", ")}>>"
+    val topType = List("oid string", "donorId string", "vend long", "projectId string", "vstart long", "Reference_Allele string", 
+      "Tumor_Seq_Allele1 string", "Tumor_Seq_Allele2 string", "chromosome string", "allele_string string", "assembly_name string", 
+      "end long", "vid string", "input string", "most_severe_consequence string", "seq_region_name string", "start long", 
+      "strand long", s"transcript_consequences $transcriptType").sorted
+
+    spark.sql(s"CREATE TABLE IF NOT EXISTS occurrences(${topType.mkString(", ")}) USING hive")
+    
+    if (insert){
+    	occurrences.write.insertInto("occurrences")
+
+    	spark.sql("SELECT * FROM occurrences").show
+    }
+    
+    if (dicts.nonEmpty) storeDicts(dicts, insert = insert)
+
+  }
+
+  def storeDicts(dicts: Seq[String], insert: Boolean = true) = {
+
+  	val odict1 = spark.read.json(dicts(0)).as[OccurrDict1]
+  	val odict2 = spark.read.json(dicts(1)).as[OccurTransDict2Mid]
+  	val odict3 = spark.read.json(dicts(2)).as[OccurrTransConseqDict3]
+
+    // spark.sql(s"DROP TABLE odict1")
+
+    val topType = List("oid string", "donorId string", "vend long", "projectId string", "vstart long", "Reference_Allele string", 
+      "Tumor_Seq_Allele1 string", "Tumor_Seq_Allele2 string", "chromosome string", "allele_string string", "assembly_name string", 
+      "end long", "vid string", "input string", "most_severe_consequence string", "seq_region_name string", "start long", 
+      "strand long", s"transcript_consequences string", "aliquotId string").sorted
+
+    spark.sql(s"CREATE TABLE IF NOT EXISTS odict1(${topType.mkString(", ")}) USING hive")
+    
+    if (insert){
+    	odict1.write.insertInto("odict1")
+
+    	spark.sql("SELECT * FROM odict1").show
+    }
+    val ttypes = List("amino_acids: string", "case_id: string", "cdna_end: long", "cdna_start: long", "cds_end: long",
+      "cds_start: long", "codons: string", "consequence_terms: string", "distance: long", 
+      "exon: string", "flags: ARRAY<string>", "gene_id: string", "impact: string", "intron: string", 
+      "polyphen_prediction: string", "polyphen_score: double", "protein_end: long", "protein_start: long", 
+      "sift_prediction: string", "sift_score: double", "ts_strand: long", "transcript_id: string", "variant_allele: string", "_1: string").map(x => x.replace(":", "")).sorted
+    
+    spark.sql(s"CREATE TABLE IF NOT EXISTS odict2(${ttypes.mkString(", ")}) USING hive")
+    
+    if (insert){
+    	odict2.write.insertInto("odict2")
+
+    	spark.sql("SELECT * FROM odict2").show
+    }
+
+    spark.sql(s"CREATE TABLE IF NOT EXISTS odict3(_1 string, element string) USING hive")
+    
+    if (insert){    
+    	odict3.write.insertInto("odict3")
+
+    	spark.sql("SELECT * FROM odict3").show
+    }
   }
 
   private def callCategory(g: Genotype): Int = g match {

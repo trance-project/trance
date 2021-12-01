@@ -1,5 +1,6 @@
 package framework.optimize
 
+import framework.common._
 import scala.collection.immutable.{Map => IMap}
 import scala.collection.mutable.{HashMap, Map}
 import framework.plans._
@@ -16,7 +17,7 @@ case class CostSE(wid: Int, subplan: CExpr, height: Int, est: Estimate)
 case class CostCE(cover: CExpr, sig: Integer, ses: List[CostSE], est: Estimate)
 case class CostEstimate(plan: CNamed, profit: Double, est: Estimate, wids: IMap[Int, Int])
 
-class Cost(stats: Map[String, Statistics]) extends Extensions {
+class Cost(stats: Map[String, Statistics], colMap: Map[String, Double] = Map.empty[String, Double]) extends Extensions {
 
   val DISKREAD = 0.1
   val NETWORK = 10.0
@@ -29,6 +30,10 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
   val NESTSIZE = 2.0
   val NESTROWS = 10.0
   val DEFAULTINC = 1.0
+
+  val valueSet = Set("avgLen", "maxLen", "version", "distinctCount", "min", "max", "nullCount")
+  val baseMap = Map.empty[String, Set[String]]
+  val columnStats = colMap
 
   // used to estimate row count from size
   val fstats = stats.filter(s => s._2.rowCount > 1.0)
@@ -53,6 +58,52 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
   val default = Estimate(DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC, DEFAULTINC)
   val statDefault = Statistics(1L, 1L)
 
+  def getField(f: CExpr): String = f match {
+    case Project(_, f) => f
+    case _ => sys.error(s"unsupported $f")
+  }
+
+  // this is a crude heuristic that would allow us to use simple column stats on non-input objects
+  def propColStats(plan: CExpr, name: Seq[String] = Seq(), base: Seq[String] = Seq()): Unit = plan match {
+
+    case LinearCSet(fs) => fs.foreach(f => propColStats(f, name, base))
+
+    case c:CNamed => propColStats(c.e, Seq(c.name), base)
+
+    case n:Nest => 
+
+      propColStats(n.in, name, base)
+     
+    case j:JoinOp => 
+
+      propColStats(j.left, name, base)
+      propColStats(j.right, name, base)
+
+    case Projection(in, _, r:Record, _, _) => 
+      r.fields.foreach(f => f._2 match {
+          case Label(fs) if fs.size == 1 => 
+          case Label(fs) => 
+            val proj = fs.head
+            propColStats(in, name :+ f._1 :+ proj._1, base :+ getField(proj._2))
+          case _ => propColStats(in, name :+ f._1, base :+ getField(f._2))
+      })
+
+    case i:InputRef => 
+      val nkey = name.mkString(".")
+      val nval = (i.data +: base).mkString(".")
+      valueSet.foreach{
+        f => 
+          val kv = s"${nkey}.$f"
+          if (columnStats.contains(kv)) columnStats(kv) = columnStats(s"${nval}.$f")
+      }
+
+    case o:UnaryOp => propColStats(o.in, name, base)
+
+    case _ => sys.error(s"not yet supported: $plan")
+  }
+
+  def propegateStats(plans: Vector[(CExpr, Int)]): Unit = plans.foreach(f => propColStats(f._1))
+
   def estimate(plans: Vector[(CExpr, Int)]): Map[String, Estimate] = {
     val ests = Map.empty[String, Estimate]
     plans.foreach{ p => p._1 match {
@@ -64,7 +115,23 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
       }
       case p1 => ??? //ests(p._2+"") = estimate(p1)
     }}
+    stats.foreach{s => 
+      println("this est  "+s._1)
+      val s1 = estimate(InputRef(s._1, StringType))
+      println(s1)
+      ests(s._1) = s1 }
     ests
+  }
+
+  def getBaseRel(e: CExpr): Set[String] = e match {
+    case LinearCSet(fs) => fs.flatMap(f => getBaseRel(f)).toSet
+    case c:CNamed => 
+      val ns = getBaseRel(c.e); baseMap(c.name) = ns; ns
+    case i:InputRef => Set(i.data)
+    case o:UnaryOp => getBaseRel(o.in)
+    case o:Nest => getBaseRel(o.in)
+    case j:JoinOp => getBaseRel(j.left) ++ getBaseRel(j.right)
+    case _ => sys.error(s"not supported $e")
   }
 
   // single plan estimate
@@ -80,6 +147,7 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
       // this is the simpliest approach right now, some combination of left and right
       // need to use cardinality information where possible
       case j:JoinOp =>
+
         val leftEst = estimate(j.left)
         val rightEst = estimate(j.right)
 
@@ -93,8 +161,13 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
         val lsize = leftEst.outSize.toDouble
         val rsize = rightEst.outSize.toDouble
 
-        val outrows = if (j.cond == Constant(true)) lrows * rrows else Math.max(lrows, rrows)
-        val outsize = if (j.cond == Constant(true)) lsize * rsize else Math.min(lsize, rsize)
+        // if there is a cartesian product, assume that it is optimized away with spark
+        // val outrows = if (j.cond == Constant(true)) lrows * rrows else Math.max(lrows, rrows)
+        // val outsize = if (j.cond == Constant(true)) lsize * rsize else Math.min(lsize, rsize)
+        
+        // TODO get the column distinct values to fix this...
+        val outrows = Math.max(lrows, rrows)
+        val outsize = Math.min(lsize, rsize)
 
         // network cost of the largest relation, plus what it costs to 
         // perform the operation give estimated output rows
@@ -169,7 +242,9 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
         val cpu = (childEst.outRows * NOSHUFF) + childEst.cpu
         val (outsize, outrows) = s.p match {
           case Constant(true) => (childEst.outSize, childEst.outRows)
-          case _ => (childEst.outSize * sel, childEst.outRows * sel)
+          case _ => 
+            val orows = childEst.outRows * sel
+            (childEst.outSize - (orows * AVGSIZE), orows)
         }
 
         // println("select stat found: "+outrows+", "+outsize)
@@ -181,18 +256,21 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
       // cpu addition is minor, but no changes to rows or network cost
       case p:Projection => 
         val childEst = estimate(p.in)
-        val outsize = ((p.tp.attrs.size * 1.0) / p.in.tp.attrs.size) * childEst.outSize
+        val colred = (p.tp.attrs.size * 1.0) / p.in.tp.attrs.size
+        val outsize = colred * childEst.outSize
         val cpu = childEst.cpu + (childEst.outRows * NOSHUFF)
 
         // println("projection stat found: "+childEst.inRows+", "+outsize)
-        Estimate(childEst.inSize, outsize, childEst.inRows, outsize, cpu, childEst.network)
+        Estimate(childEst.inSize, outsize, childEst.inRows, childEst.outRows, cpu, childEst.network)
 
       // adding an index will add one column, so minor addition to size
       // adding the index will also take a small amount of cpu time
       // no network or additional rows added
       case i:AddIndex => 
         val childEst = estimate(i.in)
-        val outsize = childEst.outSize * INDEXCOST
+        // average size of a row divived by the number of attributes in the row
+        val icost = AVGSIZE / i.tp.attrs.size
+        val outsize = childEst.outSize * icost
         val cpu = childEst.cpu + (childEst.outRows * NOSHUFF)
 
         // println("index stat found: "+childEst.outRows+", "+outsize+", ")
@@ -203,10 +281,7 @@ class Cost(stats: Map[String, Statistics]) extends Extensions {
       // assume no network cost
       // cpu is just the time to scan
 
-      case c:CNamed => 
-        println(c.name)
-        println(stat)
-        estimate(c.e)
+      case c:CNamed => estimate(c.e)
 
       case _ => 
         val size = stat.sizeInKB + 0.0

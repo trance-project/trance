@@ -1,6 +1,7 @@
 package framework.nrc
 
 import framework.common._
+import framework.utils.Utils
 
 /**
   * Base NRC expressions
@@ -75,15 +76,22 @@ trait NRC extends BaseExpr {
     def varDef: VarDef = VarDef(name, tp)
 
     def name: String
+
   }
 
   final case class NumericVarRef(name: String, tp: NumericType) extends NumericExpr with VarRef
 
   final case class PrimitiveVarRef(name: String, tp: PrimitiveType) extends PrimitiveExpr with VarRef
 
-  final case class BagVarRef(name: String, tp: BagType) extends BagExpr with VarRef
+  final case class BagVarRef(name: String, tp: BagType) extends BagExpr with VarRef { self =>
+    def union(in: (String, TupleAttributeExpr)*): (BagVarRef, BagExpr) = (self, Singleton(Tuple(in:_*)))
+    def union(in: BagIfThenElse): (BagVarRef, BagIfThenElse) = (self, in)
+  }
 
-  final case class TupleVarRef(name: String, tp: TupleType) extends TupleExpr with VarRef
+  final case class TupleVarRef(name: String, tp: TupleType) extends TupleExpr with VarRef { self => 
+    def in(in: (BagVarRef, BagExpr)): ForeachUnion = ForeachUnion(self.varDef, in._1, in._2)
+    def <--(in: BagVarRef): ForeachUnion = ForeachUnion(self.varDef, in, Singleton(self))
+  }
 
   // TODO: change to args
   final case class Udf(name: String, in: PrimitiveExpr, tp: NumericType) extends NumericExpr
