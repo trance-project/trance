@@ -14,5 +14,7 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.8" % "test"
 libraryDependencies += "net.liftweb" %% "lift-json" % "3.4.3"
 libraryDependencies +=  "org.scalaj" %% "scalaj-http" % "2.4.2"
 libraryDependencies += "com.typesafe.play" %% "play-json" % "2.9.2"
+libraryDependencies += "org.apache.spark" % "spark-core_2.12" % sparkVersion
+libraryDependencies += "org.apache.spark" % "spark-sql_2.12" % sparkVersion
 
 testOptions += Tests.Argument("-oF")
