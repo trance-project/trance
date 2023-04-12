@@ -28,6 +28,9 @@ object TestObject {
     val rowRDD = rdd.map(attributes => Row(attributes._1, attributes._2))
     val ds = spark.createDataFrame(rowRDD, schema)
 
+    println("Before Transformation: ")
+    ds.printSchema()
+    ds.show()
     ds
   }
 
