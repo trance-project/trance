@@ -9,9 +9,18 @@ import org.apache.spark.sql.SQLContext._
 object TestObject {
   def main(args: Array[String]): Unit = {
     val ds = simpleStringObject()
+
+    println("Before Pipeline: ")
+    ds.printSchema()
+    ds.show()
+
     val scalaNRC = ds.enterNRC()
     scalaNRC.flatMap()
     val ds2 = scalaNRC.leaveNRC()
+
+    println("After Pipeline: ")
+    ds2.show()
+    ds.printSchema()
   }
 
   def simpleStringObject(): DataFrame = {
@@ -27,10 +36,6 @@ object TestObject {
 
     val rowRDD = rdd.map(attributes => Row(attributes._1, attributes._2))
     val ds = spark.createDataFrame(rowRDD, schema)
-
-    println("Before Transformation: ")
-    ds.printSchema()
-    ds.show()
     ds
   }
 

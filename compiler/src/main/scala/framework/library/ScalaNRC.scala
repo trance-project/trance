@@ -6,6 +6,7 @@ import org.apache.spark.sql.{Dataset, Row, types}
 import framework.nrc._
 import framework.plans.CExpr
 import framework.plans.NRCTranslator
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types.{DataType, StructField, StructType}
 
 class ScalaNRC(val input: Dataset[Row]) extends NRC with NRCTranslator {
@@ -23,9 +24,6 @@ class ScalaNRC(val input: Dataset[Row]) extends NRC with NRCTranslator {
     val plan = toPlan(expr)
     println("plan: " + plan)
     val df = planToDataframe(plan)
-    println("After transformation: ")
-    df.printSchema()
-    df.show(false)
     df
   }
 
@@ -35,23 +33,18 @@ class ScalaNRC(val input: Dataset[Row]) extends NRC with NRCTranslator {
 
   private def planToDataframe(cExpr: CExpr): Dataset[Row] = {
     val spark = getSparkSession()
-    var attrs = cExpr.tp.attrs
+    val attrs = cExpr.tp.attrs
     val schema = StructType(attrs.map { case (fieldName, fieldType) => StructField(fieldName, NRCToSparkType(fieldType), nullable = true) }.toSeq)
-    val ds = spark.createDataFrame(spark.sparkContext.emptyRDD[Row], schema)
+    val ds = spark.createDataFrame(createOutputArray(), schema)
 
     ds
   }
 
-//    val seq = attrs.map { case (k, v) => (k, v.toString)}.toSeq
-//    val rdd = spark.sparkContext.parallelize(seq)
-//    val schema = input.schema
-//
-//
-//    val rowRDD = rdd.map(_ => Row.fromSeq(seq))
-//
-//    ds
 
-
+  private def createOutputArray(): RDD[Row] = {
+    val spark = getSparkSession()
+    spark.sparkContext.parallelize(input.collect())
+  }
   private def typeToNRCType(s: DataType): TupleAttributeType = {
     println("s :" + s)
     s match {
@@ -65,13 +58,6 @@ class ScalaNRC(val input: Dataset[Row]) extends NRC with NRCTranslator {
     }
   }
 
-//  private def getNestedTypes(dt: DataType): Seq[DataType] = {
-//    dt match {
-//      case types.StringType => Seq(types.StringType)
-//      case structType: types.StructType => structType.fields.flatMap(f => getNestedTypes(f.dataType))
-//    }
-//  }
-  
   def flatMap(): Unit = {
 
   }
