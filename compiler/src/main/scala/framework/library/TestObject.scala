@@ -8,7 +8,7 @@ import org.apache.spark.sql.SQLContext._
 
 object TestObject {
   def main(args: Array[String]): Unit = {
-    val ds = simpleStringObject()
+    val ds = nestedObject()
 
     println("Before Pipeline: ")
     ds.printSchema()
@@ -56,10 +56,6 @@ object TestObject {
 
     val rowRDD = rdd.map(attributes => Row(attributes.get(0), attributes.get(1)))
     val ds = spark.createDataFrame(rowRDD, schema)
-
-    ds.printSchema()
-    ds.show(false)
-
     ds
 
   }

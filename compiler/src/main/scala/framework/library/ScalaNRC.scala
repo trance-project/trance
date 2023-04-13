@@ -1,6 +1,6 @@
 package framework.library
 
-import framework.common.{BagType, DoubleType, IntType, StringType, TupleAttributeType, TupleType, Type}
+import framework.common.{BagCType, BagType, DoubleType, IntType, RecordCType, StringType, TupleAttributeType, TupleType, Type}
 import framework.library.utilities.SparkUtil.getSparkSession
 import org.apache.spark.sql.{Dataset, Row, types}
 import framework.nrc._
@@ -40,21 +40,25 @@ class ScalaNRC(val input: Dataset[Row]) extends NRC with NRCTranslator {
     ds
   }
 
-
   private def createOutputArray(): RDD[Row] = {
     val spark = getSparkSession()
     spark.sparkContext.parallelize(input.collect())
   }
+
   private def typeToNRCType(s: DataType): TupleAttributeType = {
     println("s :" + s)
     s match {
+      case structType: StructType => BagType(TupleType(structType.fields.map(f => f.name -> typeToNRCType(f.dataType)).toMap))
       case types.StringType => StringType
+      case _ => null
     }
   }
 
   private def NRCToSparkType(t: Type): DataType = {
     t match {
+      case bagCType: BagCType => StructType(bagCType.tp.attrs.map{ case (fieldName, fieldType) => StructField(fieldName, NRCToSparkType(fieldType))  }.toArray)
       case StringType => types.StringType
+      case _ => null
     }
   }
 
