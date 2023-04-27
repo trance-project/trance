@@ -1,9 +1,7 @@
 package framework.library
 
-import framework.nrc.NRC
-import framework.plans.{CExpr, NRCTranslator}
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Dataset, Row}
+import scala.language.implicitConversions
 
 class EnterNRC(dataset: Dataset[Row]) {
   def enterNRC(): ScalaNRC = {
@@ -14,5 +12,5 @@ class EnterNRC(dataset: Dataset[Row]) {
   }
 }
 object CustomFunctions {
-  implicit def addEnterNRC(dataset: Dataset[Row]) = new EnterNRC(dataset)
+  implicit def addEnterNRC(dataset: Dataset[Row]): EnterNRC = new EnterNRC(dataset)
 }

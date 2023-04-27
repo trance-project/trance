@@ -1,62 +1,108 @@
 package framework.library
 
 import CustomFunctions._
-import org.apache.spark.sql
-import org.apache.spark.sql.{DataFrame, Row}
-import org.apache.spark.sql.types.{ArrayType, StringType, StructField, StructType}
-import org.apache.spark.sql.SQLContext._
+import framework.library.utilities.SparkUtil.getSparkSession
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
+import org.apache.spark.sql.types._
+
+import scala.collection.mutable
 
 object TestObject {
+
+  val spark: SparkSession = getSparkSession
+
   def main(args: Array[String]): Unit = {
-    val ds = nestedObject()
+    val ds: Dataset[Row] = arrayTypeObject()
 
     println("Before Pipeline: ")
     ds.printSchema()
     ds.show()
 
-    val scalaNRC = ds.enterNRC()
-    scalaNRC.flatMap()
-    val ds2 = scalaNRC.leaveNRC()
+    import spark.implicits._
+
+    var scalaNRC: ScalaNRC = ds.enterNRC()
+    scalaNRC = scalaNRC.flatMap {  case Row(a:String, b:mutable.WrappedArray[String], c:String) => b.map((a,_,c))}
+
+    val ds3: DataFrame = scalaNRC.leaveNRC()
 
     println("After Pipeline: ")
-    ds2.show()
-    ds.printSchema()
+    ds3.show()
+    ds3.printSchema()
   }
 
-  def simpleStringObject(): DataFrame = {
-    val spark = utilities.SparkUtil.getSparkSession()
+  private def simpleStringObject(): DataFrame = {
 
     val data = Seq(("Java", "20000"), ("Python", "100000"), ("Scala", "3000"))
-    val rdd = spark.sparkContext.parallelize(data)
+    val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, s) }
 
-    val schema = StructType(Array(
-      StructField("language", StringType, true),
-      StructField("users", StringType, true)
+    val schema: StructType = StructType(Array(
+      StructField("language", StringType, nullable = true),
+      StructField("users", StringType, nullable = true)
     ))
 
-    val rowRDD = rdd.map(attributes => Row(attributes._1, attributes._2))
-    val ds = spark.createDataFrame(rowRDD, schema)
-    ds
+    spark.createDataFrame(rdd, schema)
+
   }
 
-  // second dataset with nested data
-  def nestedObject() = {
-    val spark = utilities.SparkUtil.getSparkSession()
+  private def nestedObject(): DataFrame = {
 
-    val data = Seq(("Java", Seq("20000", "E")), ("Python", Seq("100000", "M")), ("Scala", Seq("3000", "H")))
-    val rdd = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, Row(s(0), s(1)))}
+    val data = Seq(("Java", Seq("20000", 0, 7.5)), ("Python", Seq("100000", 1, 8.5)), ("Scala", Seq("3000", 2, 9.0)))
 
-    val schema = StructType(Seq(
-      StructField("language", StringType, true),
+    val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, Row.fromSeq(s)) }
+
+    val schema: StructType = StructType(Seq(
+      StructField("language", StringType, nullable = true),
       StructField("stats", StructType(Seq(
-        StructField("users", StringType, true),
-        StructField("difficulty", StringType, true)
+        StructField("users", StringType, nullable = true),
+        StructField("difficulty", IntegerType, nullable = true),
+        StructField("average_review", DoubleType, nullable = true)
       )))
     ))
 
-    val rowRDD = rdd.map(attributes => Row(attributes.get(0), attributes.get(1)))
-    val ds = spark.createDataFrame(rowRDD, schema)
-    ds
+    spark.createDataFrame(rdd, schema)
+
+  }
+
+  private def multiNestedObjected(): DataFrame = {
+
+    val data = Seq(("Java", Seq(Seq(true, 5L), 0, 7.5)), ("Python", Seq(Seq(true, 10L), 1, 8.5)), ("Scala", Seq(Seq(false, 8L), 2, 9.0)))
+
+    val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map {
+      case (language, Seq(Seq(active, level), difficulty, average_review)) =>
+        Row(language, Row(Row(active, level), difficulty, average_review))
+    }
+
+    val schema: StructType = StructType(Seq(
+      StructField("language", StringType, nullable = true),
+      StructField("stats", StructType(Seq(
+        StructField("users", StructType(Seq(
+          StructField("active", BooleanType, nullable = true),
+          StructField("level", LongType, nullable = true)
+        ))),
+        StructField("difficulty", IntegerType, nullable = true),
+        StructField("average_review", DoubleType, nullable = true)
+      )))
+    ))
+
+    spark.createDataFrame(rdd, schema)
+
+  }
+
+  private def arrayTypeObject(): DataFrame = {
+    val arrayStructureData = Seq(
+      Row("James,,Smith",List("Java","Scala","C++"),"OH"),
+      Row("Michael,Rose,",List("Spark","Java","C++"),"NJ"),
+      Row("Robert,,Williams",List("CSharp","VB"),"NV")
+    )
+    val arrayStructureSchema = new StructType()
+      .add("name",StringType)
+      .add("languagesAtSchool", ArrayType(StringType))
+      .add("currentState", StringType)
+    val df = spark.createDataFrame(
+      spark.sparkContext.parallelize(arrayStructureData),arrayStructureSchema)
+
+    df
 
   }
 }

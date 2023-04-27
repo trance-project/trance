@@ -1,30 +1,38 @@
 package framework.library
 
-import framework.common.{BagCType, BagType, DoubleType, IntType, RecordCType, StringType, TupleAttributeType, TupleType, Type}
+import framework.common.{BagType, BoolType, DoubleType, IntType, LongType, StringType, TupleAttributeType, TupleType }
 import framework.library.utilities.SparkUtil.getSparkSession
-import org.apache.spark.sql.{Dataset, Row, types}
+import org.apache.spark.sql.{Dataset, Encoder, Row, SparkSession, types}
 import framework.nrc._
-import framework.plans.CExpr
-import framework.plans.NRCTranslator
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.types.{DataType, StructField, StructType}
+import framework.plans.{CExpr, NRCTranslator, Variable}
+import org.apache.spark.sql.types.{ArrayType, DataType, StructField, StructType}
+
+import java.util.concurrent.atomic.AtomicInteger
 
 class ScalaNRC(val input: Dataset[Row]) extends NRC with NRCTranslator {
 
-  val expr: Expr = convertToNRCExpression()
-  def convertToNRCExpression(): Expr = {
-      val unnestedTypesAsNRCType = input.schema.fields.map(f => f.name -> typeToNRCType(f.dataType)).toMap
-      val expr = BagVarRef("input2", BagType(TupleType(unnestedTypesAsNRCType)))
+  private val inputIdentifier: String = "input" + new AtomicInteger(1).getAndIncrement()
+  val spark: SparkSession = getSparkSession
+  val expr: Expr = createNRCExpression()
+  val ctx: Map[String, Dataset[Row]] = Map(inputIdentifier -> input)
 
+  private def createNRCExpression(): Expr = {
+
+      val nrcTypeMap: Map[String, TupleAttributeType] = input.schema.fields.map{
+        case StructField(name, ArrayType(dataType, _), _, _) => "array" -> BagType(TupleType(name -> typeToNRCType(dataType)))
+        case StructField(name, dataType, _, _) => name -> typeToNRCType(dataType)
+      }.toMap
+
+      val expr = BagVarRef(inputIdentifier, BagType(TupleType(nrcTypeMap)))
       println("NRC Expr: " + expr)
       expr
   }
 
   def leaveNRC(): Dataset[Row] = {
     val plan = toPlan(expr)
+
     println("plan: " + plan)
-    val df = planToDataframe(plan)
-    df
+    planToDataframe(plan)
   }
 
   private def toPlan(e: Expr): CExpr = {
@@ -32,17 +40,9 @@ class ScalaNRC(val input: Dataset[Row]) extends NRC with NRCTranslator {
   }
 
   private def planToDataframe(cExpr: CExpr): Dataset[Row] = {
-    val spark = getSparkSession()
-    val attrs = cExpr.tp.attrs
-    val schema = StructType(attrs.map { case (fieldName, fieldType) => StructField(fieldName, NRCToSparkType(fieldType), nullable = true) }.toSeq)
-    val ds = spark.createDataFrame(createOutputArray(), schema)
-
-    ds
-  }
-
-  private def createOutputArray(): RDD[Row] = {
-    val spark = getSparkSession()
-    spark.sparkContext.parallelize(input.collect())
+    cExpr match {
+      case Variable(name, _) => ctx(name)
+    }
   }
 
   private def typeToNRCType(s: DataType): TupleAttributeType = {
@@ -50,19 +50,17 @@ class ScalaNRC(val input: Dataset[Row]) extends NRC with NRCTranslator {
     s match {
       case structType: StructType => BagType(TupleType(structType.fields.map(f => f.name -> typeToNRCType(f.dataType)).toMap))
       case types.StringType => StringType
+      case types.IntegerType => IntType
+      case types.LongType => LongType
+      case types.DoubleType => DoubleType
+      case types.BooleanType => BoolType
       case _ => null
     }
   }
 
-  private def NRCToSparkType(t: Type): DataType = {
-    t match {
-      case bagCType: BagCType => StructType(bagCType.tp.attrs.map{ case (fieldName, fieldType) => StructField(fieldName, NRCToSparkType(fieldType))  }.toArray)
-      case StringType => types.StringType
-      case _ => null
-    }
-  }
+  def flatMap[U: Encoder](func: Row => TraversableOnce[U]): ScalaNRC = {
+    val x: Dataset[Row] = input.mapPartitions(_.flatMap(func)).toDF()
 
-  def flatMap(): Unit = {
-
+    new ScalaNRC(input = x)
   }
 }
