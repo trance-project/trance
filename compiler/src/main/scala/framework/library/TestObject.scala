@@ -6,25 +6,25 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
 import org.apache.spark.sql.types._
 
-import scala.collection.mutable
-
 object TestObject {
 
   val spark: SparkSession = getSparkSession
 
   def main(args: Array[String]): Unit = {
-    val ds: Dataset[Row] = arrayTypeObject()
-
+    val ds: Dataset[Row] = simpleStringObject()
+    val di: Dataset[Row] = simpleIntObject()
     println("Before Pipeline: ")
     ds.printSchema()
     ds.show()
 
-    import spark.implicits._
+    val e1: WrappedDataset = ds.wrap()
+    val e2: WrappedDataset = di.wrap()
 
-    var scalaNRC: ScalaNRC = ds.enterNRC()
-    scalaNRC = scalaNRC.flatMap {  case Row(a:String, b:mutable.WrappedArray[String], c:String) => b.map((a,_,c))}
+    val e3 = e1.flatMap(x => e2)(e1, e2)
 
-    val ds3: DataFrame = scalaNRC.leaveNRC()
+    val resultDF = e3.leaveNRC()
+
+    val ds3: DataFrame = e1.leaveNRC()
 
     println("After Pipeline: ")
     ds3.show()
@@ -34,11 +34,27 @@ object TestObject {
   private def simpleStringObject(): DataFrame = {
 
     val data = Seq(("Java", "20000"), ("Python", "100000"), ("Scala", "3000"))
+
     val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, s) }
 
     val schema: StructType = StructType(Array(
       StructField("language", StringType, nullable = true),
       StructField("users", StringType, nullable = true)
+    ))
+
+    spark.createDataFrame(rdd, schema)
+
+  }
+
+  private def simpleIntObject(): DataFrame = {
+
+    val data = Seq(("Java", 20000), ("Python", 100000), ("Scala", 3000))
+
+    val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, s) }
+
+    val schema: StructType = StructType(Array(
+      StructField("language", StringType, nullable = true),
+      StructField("users", IntegerType, nullable = true)
     ))
 
     spark.createDataFrame(rdd, schema)

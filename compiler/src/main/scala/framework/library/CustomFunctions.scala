@@ -3,14 +3,14 @@ package framework.library
 import org.apache.spark.sql.{Dataset, Row}
 import scala.language.implicitConversions
 
-class EnterNRC(dataset: Dataset[Row]) {
-  def enterNRC(): ScalaNRC = {
-    val ds = new ScalaNRC(
-      input = dataset,
+class CustomFunctions(dataset: Dataset[Row]) {
+  def wrap(): WrappedDataset = {
+    val ds = new WrappedDataset(
+      inputDf = dataset,
     )
     ds
   }
 }
 object CustomFunctions {
-  implicit def addEnterNRC(dataset: Dataset[Row]): EnterNRC = new EnterNRC(dataset)
+  implicit def addWrap(dataset: Dataset[Row]): CustomFunctions = new CustomFunctions(dataset)
 }
