@@ -1,7 +1,11 @@
 package framework.library
 
-import framework.nrc.NRC
+import framework.nrc.{BaseExpr, NRC}
 
-case object Singleton extends NRC {
-  def apply(x: TupleExpr): BagExpr = Singleton(x)
+// TODO -> Handle casting here
+case object Singleton extends BaseExpr {
+  def apply(x: TupleExpr): BagExpr = {
+    val b = Singleton(x)
+    b
+  }
 }
