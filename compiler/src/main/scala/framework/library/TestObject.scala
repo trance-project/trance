@@ -7,7 +7,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
 import org.apache.spark.sql.types._
 
-object TestObject{
+object TestObject {
 
   val spark: SparkSession = getSparkSession
 
@@ -22,20 +22,20 @@ object TestObject{
     val e1: WrappedDataset = ds.wrap()
     val e2: WrappedDataset = di.wrap()
 
-    val e3 = e1.flatMap(e2)
+//    val e3 = e1.flatMap(e2)
 
 //
-//    val e4 = e1.flatMap(x => e1.Singleton(x))
+    val e4 = e1.flatMap(x => Singleton(x))
 
-    val ds3 = e3.leaveNRC()
-//    val ds4 = e4.leaveNRC()
+//    val ds3 = e3.leaveNRC()
+    val ds4 = e4.leaveNRC()
 
 
     println("After Pipeline: ")
-    ds3.show()
-    ds3.printSchema()
-//    ds4.show()
-//    ds4.printSchema()
+//    ds3.show()
+//    ds3.printSchema()
+    ds4.show()
+    ds4.printSchema()
   }
 
   private def simpleStringDataframe(): DataFrame = {

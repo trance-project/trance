@@ -11,7 +11,7 @@ import org.apache.spark.sql.types.{ArrayType, DataType, StructField, StructType}
 import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.mutable
 
-class WrappedDataset(val inputDf: Dataset[Row]) extends NRC with NRCTranslator {
+class WrappedDataset(val inputDf: Dataset[Row]) extends NRCTranslator{
 
   val spark: SparkSession = getSparkSession
 
@@ -62,13 +62,15 @@ class WrappedDataset(val inputDf: Dataset[Row]) extends NRC with NRCTranslator {
         val d1 = planToDataframe(e1)
         val d2 = planToDataframe(e)
 
-        val d3 = d1.collect().flatMap(_ => d2.collect())
-        val result = spark.sparkContext.parallelize(d3)
-
-
-        if (d2 != null) spark.createDataFrame(result, d2.schema) else d1
+        if (d2 != null) createFlatMapDataframe(d1, d2) else d1
       case Variable(name, _) => WrappedDataset.getMapping(name)
     }
+  }
+
+  private def createFlatMapDataframe(d1: DataFrame, d2: DataFrame): DataFrame = {
+    val d3 = d1.collect().flatMap(_ => d2.collect())
+    val result = spark.sparkContext.parallelize(d3)
+    spark.createDataFrame(result, d2.schema)
   }
 
   private def typeToNRCType(s: DataType): TupleAttributeType = {
@@ -90,14 +92,13 @@ class WrappedDataset(val inputDf: Dataset[Row]) extends NRC with NRCTranslator {
 
   }
 
-  def flatMap(f: TupleExpr => BagExpr): WrappedDataset = {
+  def flatMap(f: TupleExpr => Any): WrappedDataset = {
     val tupleIdentifier = "x_" + atomicInteger.getAndIncrement()
     val tvr = TupleVarRef(tupleIdentifier, this.expr.asBag.tp.tp)
 
-    //TODO Add tuple identifier to ctx
-//    WrappedDataset.addMapping(tvr.name, WrappedDataset.getMapping())
+    WrappedDataset.addMapping(tvr.name, this.inputDf)
 
-    val bagExpr = ForeachUnion(tvr, this.expr.asBag, f(tvr)).asBag
+    val bagExpr = ForeachUnion(tvr, this.expr.asBag, f(tvr).asInstanceOf[BagExpr]).asBag
 
     new WrappedDataset(bagExpr)
   }
@@ -107,6 +108,7 @@ class WrappedDataset(val inputDf: Dataset[Row]) extends NRC with NRCTranslator {
   def map(): BagExpr = {
     null
   }
+
 }
 
 object WrappedDataset {
@@ -124,3 +126,5 @@ object WrappedDataset {
   }
 
 }
+
+
