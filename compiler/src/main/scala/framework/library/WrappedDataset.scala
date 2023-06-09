@@ -4,15 +4,15 @@ import framework.common.{BagType, BoolType, DoubleType, IntType, LongType, Strin
 import framework.library.WrappedDataset.{addMapping, atomicInteger, ctx}
 import framework.library.utilities.SparkUtil.getSparkSession
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession, types}
-import framework.nrc._
 import framework.plans.{CExpr, Comprehension, NRCTranslator, Sng, Variable}
 import org.apache.spark.sql.types.{ArrayType, DataType, StructField, StructType}
 
 import java.util.concurrent.atomic.AtomicInteger
 import scala.collection.mutable
 
-class WrappedDataset(val inputDf: Dataset[Row]) extends NRCTranslator{
+class WrappedDataset(val inputDf: Dataset[Row]) {
 
+  import WrappedDataset.nrc._
   val spark: SparkSession = getSparkSession
 
   // Workaround for limitation of auxiliary constructors needing to call original constructor
@@ -86,19 +86,21 @@ class WrappedDataset(val inputDf: Dataset[Row]) extends NRCTranslator{
     }
   }
 
-  def flatMap(e2: WrappedDataset): WrappedDataset = {
+  //Syntactic sugar method to allow user's
+  // syntax to match spark flatMap while performing operations on a WrappedDataset
+  def flatMap(f: TupleExpr => WrappedDataset)(implicit d : DummyImplicit): WrappedDataset = {
     val x = VarDef("x", this.expr.asBag.tp.tp)
-    new WrappedDataset(ForeachUnion(x, this.expr.asBag, e2.expr.asInstanceOf[BagExpr]).asBag)
+    new WrappedDataset(ForeachUnion(x, this.expr.asBag, f(null).expr.asInstanceOf[BagExpr]).asBag)
 
   }
 
-  def flatMap(f: TupleExpr => Any): WrappedDataset = {
+  def flatMap(f: TupleExpr => BagExpr): WrappedDataset = {
     val tupleIdentifier = "x_" + atomicInteger.getAndIncrement()
     val tvr = TupleVarRef(tupleIdentifier, this.expr.asBag.tp.tp)
 
     WrappedDataset.addMapping(tvr.name, this.inputDf)
 
-    val bagExpr = ForeachUnion(tvr, this.expr.asBag, f(tvr).asInstanceOf[BagExpr]).asBag
+    val bagExpr = ForeachUnion(tvr, this.expr.asBag, f(tvr)).asBag
 
     new WrappedDataset(bagExpr)
   }
@@ -113,6 +115,8 @@ class WrappedDataset(val inputDf: Dataset[Row]) extends NRCTranslator{
 
 object WrappedDataset {
 
+  val nrc: NRCTranslator = new NRCTranslator {}
+
   private val atomicInteger: AtomicInteger = new AtomicInteger(1)
   val ctx: mutable.Map[String, Dataset[Row]] = collection.mutable.Map[String, Dataset[Row]]()
 
@@ -123,6 +127,12 @@ object WrappedDataset {
 
   private def getMapping(s: String): Dataset[Row] = {
     ctx.getOrElse(s, null)
+  }
+
+  case object Singleton {
+    def apply(x: nrc.TupleExpr): nrc.BagExpr = {
+      nrc.Singleton(x)
+    }
   }
 
 }

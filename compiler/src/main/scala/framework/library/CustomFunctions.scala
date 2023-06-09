@@ -5,10 +5,9 @@ import scala.language.implicitConversions
 
 class CustomFunctions(dataset: Dataset[Row]) {
   def wrap(): WrappedDataset = {
-    val ds = new WrappedDataset(
+    new WrappedDataset(
       inputDf = dataset,
     )
-    ds
   }
 }
 object CustomFunctions {

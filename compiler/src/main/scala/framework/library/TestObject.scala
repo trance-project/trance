@@ -1,6 +1,7 @@
 package framework.library
 
 import CustomFunctions._
+import framework.library.WrappedDataset._
 import framework.library.utilities.SparkUtil.getSparkSession
 import framework.nrc.{BaseExpr, NRC}
 import org.apache.spark.rdd.RDD
@@ -22,18 +23,17 @@ object TestObject {
     val e1: WrappedDataset = ds.wrap()
     val e2: WrappedDataset = di.wrap()
 
-//    val e3 = e1.flatMap(e2)
+    val e3 = e1.flatMap(_ => e2)
 
-//
     val e4 = e1.flatMap(x => Singleton(x))
 
-//    val ds3 = e3.leaveNRC()
+    val ds3 = e3.leaveNRC()
     val ds4 = e4.leaveNRC()
 
 
     println("After Pipeline: ")
-//    ds3.show()
-//    ds3.printSchema()
+    ds3.show()
+    ds3.printSchema()
     ds4.show()
     ds4.printSchema()
   }
