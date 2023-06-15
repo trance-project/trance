@@ -1,9 +1,12 @@
 package framework.library
 
 import CustomFunctions._
+import framework.common
+import framework.common.{OpArithmetic, OpCmp, OpEq, OpPlus, VarDef}
 import framework.library.WrappedDataset._
 import framework.library.utilities.SparkUtil.getSparkSession
 import framework.nrc.{BaseExpr, NRC}
+import framework.plans.Label
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
 import org.apache.spark.sql.types._
@@ -25,7 +28,7 @@ object TestObject {
 
     val e3 = e1.flatMap(_ => e2)
 
-    val e4 = e1.flatMap(x => Singleton(x))
+    val e4 = e1.flatMap(x => Union(Singleton(x), Singleton(x)))
 
     val ds3 = e3.leaveNRC()
     val ds4 = e4.leaveNRC()
