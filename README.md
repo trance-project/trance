@@ -16,6 +16,8 @@ Links to papers:
 
 [Scalable analysis of multi-modal biomedical data](https://www.biorxiv.org/content/10.1101/2020.12.14.422781v1)
 
+More information at https://www.cs.ox.ac.uk/projects/trance/
+
 ### System Requirements
 
 The framework has been tested with `Scala 2.12` and associated Spark versions (2.4.2, 3.1.1 etc). 
