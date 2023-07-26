@@ -1,49 +1,62 @@
 package framework.library
 
 import CustomFunctions._
+import intermediary._
 import framework.common
 import framework.common.{OpArithmetic, OpCmp, OpEq, OpPlus, VarDef}
 import framework.library.WrappedDataset._
 import framework.library.utilities.SparkUtil.getSparkSession
 import framework.nrc.{BaseExpr, NRC}
-import framework.plans.Label
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions._
 
 object TestObject {
 
   val spark: SparkSession = getSparkSession
 
   def main(args: Array[String]): Unit = {
-    val ds: Dataset[Row] = simpleStringDataframe()
-    val di: Dataset[Row] = simpleIntDataframe()
+    val ds: DataFrame = simpleStringDataframe()
+    val di: DataFrame = simpleStringDataframe2()
 
-    println("Before Pipeline: ")
-    ds.printSchema()
-    ds.show()
-
-    val e1: WrappedDataset = ds.wrap()
-    val e2: WrappedDataset = di.wrap()
-
-    val e3 = e1.flatMap(_ => e2)
-
-    val e4 = e1.flatMap(x => Union(Singleton(x), Singleton(x)))
-
-    val ds3 = e3.leaveNRC()
-    val ds4 = e4.leaveNRC()
+    val wrappedD = WrapDataset(ds)
+    val wrappedD2 = WrapDataset(di)
 
 
-    println("After Pipeline: ")
-    ds3.show()
-    ds3.printSchema()
-    ds4.show()
-    ds4.printSchema()
+//    val e3 = wrappedD.flatMap(x => Sng(x))
+
+    // Getting performed like a union
+    //    val e3 = wrappedD.flatMap(x => wrappedD2.flatMap(y => Sng(x)))
+
+    val e3 = wrappedD.union(wrappedD2)
+
+    val d = e3.leaveNRC()
+
+    d.show()
+
+    val x = wrappedD.evaluate(e3, Map())
+    x.show()
   }
 
   private def simpleStringDataframe(): DataFrame = {
 
     val data = Seq(("Java", "20000"), ("Python", "100000"), ("Scala", "3000"))
+
+    val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, s) }
+
+    val schema: StructType = StructType(Array(
+      StructField("language", StringType, nullable = true),
+      StructField("users", StringType, nullable = true)
+    ))
+
+    spark.createDataFrame(rdd, schema)
+
+  }
+
+  private def simpleStringDataframe2(): DataFrame = {
+
+    val data = Seq(("Go", "80000"), ("Ruby", "900"), ("Rust", "100"))
 
     val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, s) }
 

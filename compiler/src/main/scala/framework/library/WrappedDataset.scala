@@ -1,6 +1,6 @@
 package framework.library
 
-import framework.common.{BagType, BoolType, DoubleType, IntType, LongType, OpArithmetic, OpCmp, StringType, TupleAttributeType, TupleType, VarDef}
+import framework.common.{BagType, BoolType, DoubleType, IntType, LongType, OpArithmetic, OpCmp, StringType, TupleAttributeType, TupleType, Type, VarDef}
 import framework.library.WrappedDataset.{addMapping, atomicInteger, ctx}
 import framework.library.utilities.SparkUtil.getSparkSession
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession, types}
@@ -37,34 +37,37 @@ class WrappedDataset(val inputDf: Dataset[Row]) {
 
   def leaveNRC(): Dataset[Row] = {
     val plan = toPlan(expr)
-
-    println("plan: " + plan)
     planToDataframe(plan)
   }
 
   def toPlan(e: Expr): CExpr = {
-    translate(e)
+
+
+    println("NRC expr: " + e)
+    val cExpr = translate(e)
+
+    println("nested and non-normalized cExpr: " + cExpr)
+
+    val normalizer = new Finalizer(new BaseNormalizer())
+    val normalized = normalizer.finalize(cExpr).asInstanceOf[CExpr]
+
+    println("nested and normalized cExpr: " + normalized)
+
+
+    import scala.collection.immutable.{Map => IMap}
+
+    val unnested = framework.plans.Unnester.unnest(normalized)(IMap(), IMap(), None, "_2")
+    println("unnested and normalized cExpr: " + unnested)
+    unnested
+
   }
 
   private def planToDataframe(cExpr: CExpr): Dataset[Row] = {
     cExpr match {
       case Merge(e1, e2) => planToDataframe(e1).union(planToDataframe(e2))
       case Sng(e1) => planToDataframe(e1)
-      case Comprehension(e1, v, p, e) =>
-        println("COMPREHENSION:")
-        println("________________")
-        println("e1: " + e1)
-        println("v: " + v)
-        println("p: " + p)
-        println("e: " + e)
-        println("ctx: " + WrappedDataset.ctx)
-        println("________________")
-
-        val d1 = planToDataframe(e1)
-        val d2 = planToDataframe(e)
-
-        if (d2 != null) createFlatMapDataframe(d1, d2) else d1
       case Variable(name, _) => WrappedDataset.getMapping(name)
+      case InputRef(name, _) => WrappedDataset.getMapping(name)
     }
   }
 
@@ -74,7 +77,7 @@ class WrappedDataset(val inputDf: Dataset[Row]) {
     spark.createDataFrame(result, d2.schema)
   }
 
-  private def typeToNRCType(s: DataType): TupleAttributeType = {
+  def typeToNRCType(s: DataType): TupleAttributeType = {
     println("s :" + s)
     s match {
       case structType: StructType => BagType(TupleType(structType.fields.map(f => f.name -> typeToNRCType(f.dataType)).toMap))
@@ -90,8 +93,13 @@ class WrappedDataset(val inputDf: Dataset[Row]) {
   //Syntactic sugar method to allow user's
   // syntax to match spark flatMap while performing operations on a WrappedDataset
   def flatMap(f: TupleExpr => WrappedDataset)(implicit d : DummyImplicit): WrappedDataset = {
-    val x = VarDef("x", this.expr.asBag.tp.tp)
-    new WrappedDataset(ForeachUnion(x, this.expr.asBag, f(null).expr.asInstanceOf[BagExpr]).asBag)
+    val tupleIdentifier = "x_" + atomicInteger.getAndIncrement()
+    val x = VarDef(tupleIdentifier, this.expr.asBag.tp.tp)
+    val e2 = f(null).expr.asInstanceOf[BagExpr]
+    val tvr = TupleVarRef(tupleIdentifier, this.expr.asBag.tp.tp)
+
+
+    new WrappedDataset(ForeachUnion(tvr, this.expr.asBag, e2).asBag)
 
   }
 
@@ -118,12 +126,12 @@ object WrappedDataset {
   private val atomicInteger: AtomicInteger = new AtomicInteger(1)
   val ctx: mutable.Map[String, Dataset[Row]] = collection.mutable.Map[String, Dataset[Row]]()
 
-  private def addMapping(s: (String, Dataset[Row])): Unit = {
+  def addMapping(s: (String, Dataset[Row])): Unit = {
     ctx += s
     println(ctx)
   }
 
-  private def getMapping(s: String): Dataset[Row] = {
+  def getMapping(s: String): Dataset[Row] = {
     ctx.getOrElse(s, null)
   }
 
