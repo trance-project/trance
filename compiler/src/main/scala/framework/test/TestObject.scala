@@ -1,16 +1,12 @@
-package framework.library
+package framework.test
+//import framework.library.WrapDataset.addWrap
 
-import CustomFunctions._
-import intermediary._
-import framework.common
-import framework.common.{OpArithmetic, OpCmp, OpEq, OpPlus, VarDef}
-import framework.library.WrappedDataset._
+import framework.library.Dataset.wrap
 import framework.library.utilities.SparkUtil.getSparkSession
-import framework.nrc.{BaseExpr, NRC}
+import framework.library._
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.functions._
+import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 
 object TestObject {
 
@@ -19,24 +15,22 @@ object TestObject {
   def main(args: Array[String]): Unit = {
     val ds: DataFrame = simpleStringDataframe()
     val di: DataFrame = simpleStringDataframe2()
+    val dt: DataFrame = simpleStringDataframe3()
 
-    val wrappedD = WrapDataset(ds)
-    val wrappedD2 = WrapDataset(di)
+    val wrappedD = ds.wrap()
+    val wrappedD2 = di.wrap()
 
+    val e1 = wrappedD.union(wrappedD2).dropDuplicates
 
-//    val e3 = wrappedD.flatMap(x => Sng(x))
+    // TODO - Comprehensions occur in final cExpr with the following operation
+    //val e4 = wrappedD.union(wrappedD2.flatMap(y => wrappedD.flatMap(_ => Sng(y))))
 
-    // Getting performed like a union
-    //    val e3 = wrappedD.flatMap(x => wrappedD2.flatMap(y => Sng(x)))
+    // TODO Select can't be used with other operations (DeDup, Union etc.) because of Project != BagExpr
+//    val e4 = wrappedD.dropDuplicates.select("language")
 
-    val e3 = wrappedD.union(wrappedD2)
-
-    val d = e3.leaveNRC()
+    val d = e1.leaveNRC()
 
     d.show()
-
-    val x = wrappedD.evaluate(e3, Map())
-    x.show()
   }
 
   private def simpleStringDataframe(): DataFrame = {
@@ -56,13 +50,29 @@ object TestObject {
 
   private def simpleStringDataframe2(): DataFrame = {
 
-    val data = Seq(("Go", "80000"), ("Ruby", "900"), ("Rust", "100"))
+    val data = Seq(("Java", "20000"), ("Ruby", "900"), ("Rust", "100"))
 
     val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, s) }
 
     val schema: StructType = StructType(Array(
       StructField("language", StringType, nullable = true),
       StructField("users", StringType, nullable = true)
+    ))
+
+    spark.createDataFrame(rdd, schema)
+
+  }
+
+  private def simpleStringDataframe3(): DataFrame = {
+
+    val data = Seq(("C#", "100", true), ("C++", "250", false), ("C#", "100", true))
+
+    val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s, b) => Row(l, s, b) }
+
+    val schema: StructType = StructType(Array(
+      StructField("language", StringType, nullable = true),
+      StructField("users", StringType, nullable = true),
+      StructField("included", BooleanType, nullable = false)
     ))
 
     spark.createDataFrame(rdd, schema)

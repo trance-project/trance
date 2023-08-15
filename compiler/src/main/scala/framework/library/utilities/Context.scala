@@ -1,4 +1,4 @@
-package framework.library.intermediary
+package framework.library.utilities
 
 import org.apache.spark.sql.{Dataset, Row}
 

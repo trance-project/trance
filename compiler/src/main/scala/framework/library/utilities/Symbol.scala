@@ -1,4 +1,4 @@
-package framework.library.intermediary
+package framework.library.utilities
 
 object Symbol {
   private val counter = scala.collection.mutable.HashMap[String, Int]()
