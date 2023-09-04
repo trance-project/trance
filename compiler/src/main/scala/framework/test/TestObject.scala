@@ -1,7 +1,7 @@
 package framework.test
 //import framework.library.WrapDataset.addWrap
 
-import framework.library.Dataset.wrap
+import framework.library.Wrapper.wrap
 import framework.library.utilities.SparkUtil.getSparkSession
 import framework.library._
 import org.apache.spark.rdd.RDD
@@ -16,17 +16,21 @@ object TestObject {
     val ds: DataFrame = simpleStringDataframe()
     val di: DataFrame = simpleStringDataframe2()
     val dt: DataFrame = simpleStringDataframe3()
+    val intDf: DataFrame = simpleIntDataframe()
+//
+//    val sparkRes = ds.join(di, ds("language") === di("programmingLanguage"), "inner")
+//    sparkRes.show()
 
     val wrappedD = ds.wrap()
     val wrappedD2 = di.wrap()
+    val wrappedD3 = intDf.wrap()
+    val wrappedD4 = dt.wrap()
 
-    val e1 = wrappedD.union(wrappedD2).dropDuplicates
+    val e1 = wrappedD.join(wrappedD2, wrappedD("language") =!= wrappedD2("programmingLanguage"))
 
     // TODO - Comprehensions occur in final cExpr with the following operation
-    //val e4 = wrappedD.union(wrappedD2.flatMap(y => wrappedD.flatMap(_ => Sng(y))))
-
-    // TODO Select can't be used with other operations (DeDup, Union etc.) because of Project != BagExpr
-//    val e4 = wrappedD.dropDuplicates.select("language")
+//        val e1 = wrappedD.union(wrappedD.flatMap(x => Sng(x)))
+//        val e1 = wrappedD.union(wrappedD2.flatMap(y => wrappedD.flatMap(_ => Sng(y))))
 
     val d = e1.leaveNRC()
 
@@ -55,8 +59,8 @@ object TestObject {
     val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, s) }
 
     val schema: StructType = StructType(Array(
-      StructField("language", StringType, nullable = true),
-      StructField("users", StringType, nullable = true)
+      StructField("programmingLanguage", StringType, nullable = true),
+      StructField("userCount", StringType, nullable = true)
     ))
 
     spark.createDataFrame(rdd, schema)
@@ -81,7 +85,7 @@ object TestObject {
 
   private def simpleIntDataframe(): DataFrame = {
 
-    val data = Seq(("Go", 80000), ("Ruby", 900), ("Rust", 100))
+    val data = Seq(("Go", 80000), ("Ruby", 900), ("Rust", 100), ("Go", 20000))
 
     val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, s) }
 

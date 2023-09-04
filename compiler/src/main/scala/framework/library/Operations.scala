@@ -1,13 +1,23 @@
 package framework.library
 
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{Column, DataFrame}
 
 case class FlatMap[T, S](self: WrappedDataframe[T], f: Fun[T, DataFrame]) extends WrappedDataframe[S]
 
-case class Merge[T, S](d1: WrappedDataframe[T], f: Fun[T, DataFrame]) extends WrappedDataframe[S]
+case class Merge[T, S](d1: WrappedDataframe[T], d2: WrappedDataframe[S]) extends WrappedDataframe[S]
+
+case class Join[T, S](self: WrappedDataframe[T], d2: WrappedDataframe[S], joinCond: Col[S], joinType: String) extends WrappedDataframe[S]
 
 case class DropDuplicates[S](self: WrappedDataframe[S]) extends WrappedDataframe[S]
 
-case class Drop[T, S](self: WrappedDataframe[T], col: S) extends WrappedDataframe[T]
+case class Drop[T](self: WrappedDataframe[T], cols: Seq[String]) extends WrappedDataframe[T]
 
-case class Select[T, S](self: WrappedDataframe[T], col: String) extends WrappedDataframe[T]
+case class Select[T](self: WrappedDataframe[T], cols: Seq[String]) extends WrappedDataframe[T]
+
+case class GroupBy[S](self: WrappedDataframe[S], col: List[String]) extends WrappedDataframe[S] {
+  def sum(fields: String*): WrappedDataframe[S] = {
+    Reduce(self, col, fields.toList)
+  }
+}
+
+case class Reduce[T](self: WrappedDataframe[T], col: List[String], values: List[String]) extends WrappedDataframe[T]

@@ -9,3 +9,5 @@ trait Rep[T] {
 case class Sng[T](in: Rep[T]) extends WrappedDataframe[T]
 
 case class Sym[T](name: String) extends Rep[T]
+
+case class Col[T](op: Comparator, lhs: String, rhs: String) extends Rep[T]
