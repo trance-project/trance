@@ -3,7 +3,7 @@ package framework.plans
 import framework.common._
 
 /** Extensions to the plan language **/
-trait Extensions {
+trait Extensions extends Serializable {
 
   def containsCacheUnfriendly(plan: CExpr): Boolean = plan match {
     case o:UnaryOp => containsCacheUnfriendly(o.in)

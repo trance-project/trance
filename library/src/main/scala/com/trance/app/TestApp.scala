@@ -1,14 +1,12 @@
-package framework.test
-//import framework.library.WrapDataset.addWrap
+package com.trance.app
 
-import framework.library.Wrapper.wrap
-import framework.library.utilities.SparkUtil.getSparkSession
-import framework.library._
+import com.trance.nrclibrary.Wrapper.DataFrameImplicit
+import com.trance.nrclibrary.utilities.SparkUtil.getSparkSession
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 
-object TestObject {
+object TestApp {
 
   val spark: SparkSession = getSparkSession
 
@@ -17,24 +15,32 @@ object TestObject {
     val di: DataFrame = simpleStringDataframe2()
     val dt: DataFrame = simpleStringDataframe3()
     val intDf: DataFrame = simpleIntDataframe()
+    val intDf2: DataFrame = simpleIntDataframe2()
+    val d5: DataFrame = simpleStringDataframeSpecial()
+
+//    val d3 = d5.map(x => {
+//      (x.getString(0), x.getString(1))
+//    })
 //
-//    val sparkRes = ds.join(di, ds("language") === di("programmingLanguage"), "inner")
-//    sparkRes.show()
+//    d3.show()
+
+
+    val sparkRes = intDf.join(intDf2, intDf("users") <= intDf2("usersCount") || intDf("users") > intDf2("usersCount"))
+    sparkRes.show()
 
     val wrappedD = ds.wrap()
     val wrappedD2 = di.wrap()
     val wrappedD3 = intDf.wrap()
     val wrappedD4 = dt.wrap()
+    val wrappedD5 = d5.wrap()
+    val wrappedIntDf = intDf.wrap()
+    val wrappedIntDf2 = intDf2.wrap()
 
-    val e1 = wrappedD.join(wrappedD2, wrappedD("language") =!= wrappedD2("programmingLanguage"))
-
-    // TODO - Comprehensions occur in final cExpr with the following operation
-//        val e1 = wrappedD.union(wrappedD.flatMap(x => Sng(x)))
-//        val e1 = wrappedD.union(wrappedD2.flatMap(y => wrappedD.flatMap(_ => Sng(y))))
+    val e1 = wrappedIntDf.join(wrappedIntDf2, wrappedIntDf("users") <= wrappedIntDf2("usersCount") || wrappedIntDf("users") > wrappedIntDf2("usersCount"), "inner")
 
     val d = e1.leaveNRC()
-
     d.show()
+
   }
 
   private def simpleStringDataframe(): DataFrame = {
@@ -46,6 +52,22 @@ object TestObject {
     val schema: StructType = StructType(Array(
       StructField("language", StringType, nullable = true),
       StructField("users", StringType, nullable = true)
+    ))
+
+    spark.createDataFrame(rdd, schema)
+
+  }
+
+
+  private def simpleStringDataframeSpecial(): DataFrame = {
+
+    val data = Seq(("Java", "20000"), ("Ruby", "900"), ("Rust", "200"))
+
+    val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, s) }
+
+    val schema: StructType = StructType(Array(
+      StructField("programmingLanguage", StringType, nullable = true),
+      StructField("userCount", StringType, nullable = true)
     ))
 
     spark.createDataFrame(rdd, schema)
@@ -92,6 +114,21 @@ object TestObject {
     val schema: StructType = StructType(Array(
       StructField("language", StringType, nullable = true),
       StructField("users", IntegerType, nullable = true)
+    ))
+
+    spark.createDataFrame(rdd, schema)
+
+  }
+
+  private def simpleIntDataframe2(): DataFrame = {
+
+    val data = Seq(("Go", 1000000), ("Ruby", 10), ("Rust", 100), ("Go", 80))
+
+    val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, s) }
+
+    val schema: StructType = StructType(Array(
+      StructField("programmingLanguage", StringType, nullable = true),
+      StructField("usersCount", IntegerType, nullable = true)
     ))
 
     spark.createDataFrame(rdd, schema)
@@ -158,4 +195,38 @@ object TestObject {
     df
 
   }
+
+//  private def jDataframe(): DataFrame = {
+//    val schema: StructType = StructType(Seq(
+//      StructField("cname", StringType, nullable = true),
+//      StructField("corders", StructType(Seq(
+//        StructField("odate", StringType, nullable = true),
+//        StructField("oparts", StructType(Seq(
+//          StructField("pid", IntegerType),
+//          StructField("qty", IntegerType)
+//        ))),
+//      )))
+//    ))
+//
+//    val COP = spark.createDataFrame(spark.sparkContext.parallelize(Seq(Row())), schema)
+//
+//    val PART = spark.createDataFrame(spark.sparkContext.parallelize(Seq(Row())), schema)
+//
+//    COP.flatMap{ cop =>
+//      COP("cname") -> cop.getString(0)
+//      COP("corder") -> cop.get(1).asInstanceOf[Seq[Row]].flatMap {
+//        co => COP("odate") -> co.getString(0)
+//          COP("oparts") -> co.getString(1).asInstanceOf[Seq[Row]].flatMap { op =>
+//              PART.flatMap(p =>
+//                if (op.getInt(0) == p.getInt(0)) { Seq(
+//                PART("pname") -> p.getString(1),
+//                PART("total") -> (op.getInt(1) * p.getInt(2))
+//                )
+//                }
+//                else null
+//              ).groupBy("pname").sum("total")
+//          }
+//      }
+//    }
+//  }
 }

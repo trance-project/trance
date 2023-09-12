@@ -1,12 +1,12 @@
-package framework.library
+package com.trance.nrclibrary
 
-import org.apache.spark.sql.{Column, DataFrame}
+import org.apache.spark.sql.DataFrame
 
 case class FlatMap[T, S](self: WrappedDataframe[T], f: Fun[T, DataFrame]) extends WrappedDataframe[S]
 
 case class Merge[T, S](d1: WrappedDataframe[T], d2: WrappedDataframe[S]) extends WrappedDataframe[S]
 
-case class Join[T, S](self: WrappedDataframe[T], d2: WrappedDataframe[S], joinCond: Col[S], joinType: String) extends WrappedDataframe[S]
+case class Join[T, S](self: WrappedDataframe[T], d2: WrappedDataframe[S], joinCond: Rep[T], joinType: String) extends WrappedDataframe[S]
 
 case class DropDuplicates[S](self: WrappedDataframe[S]) extends WrappedDataframe[S]
 

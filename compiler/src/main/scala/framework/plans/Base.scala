@@ -151,7 +151,7 @@ trait BaseStringify extends Base{
 /** Base compiler for generating nodes defined in the 
   * comprehension representation (Expr.scala)
   */
-trait BaseCompiler extends Base {
+trait BaseCompiler extends Base with Serializable {
 
   val ext = new Extensions{}
   type Rep = CExpr 
