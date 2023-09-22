@@ -1,4 +1,4 @@
-package com.trance.nrclibrary.utilities
+package org.trance.nrclibrary.utilities
 
 import org.apache.spark.sql.{Dataset, Row}
 

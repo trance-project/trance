@@ -1,4 +1,4 @@
-package com.trance.nrclibrary
+package org.trance.nrclibrary
 
 import org.apache.spark.sql.DataFrame
 
@@ -12,7 +12,7 @@ case class DropDuplicates[S](self: WrappedDataframe[S]) extends WrappedDataframe
 
 case class Drop[T](self: WrappedDataframe[T], cols: Seq[String]) extends WrappedDataframe[T]
 
-case class Select[T](self: WrappedDataframe[T], cols: Seq[String]) extends WrappedDataframe[T]
+case class Select[T](self: WrappedDataframe[T], cols: Seq[Rep[T]]) extends WrappedDataframe[T]
 
 case class GroupBy[S](self: WrappedDataframe[S], col: List[String]) extends WrappedDataframe[S] {
   def sum(fields: String*): WrappedDataframe[S] = {

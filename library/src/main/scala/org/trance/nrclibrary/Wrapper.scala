@@ -1,4 +1,4 @@
-package com.trance.nrclibrary
+package org.trance.nrclibrary
 
 import org.apache.spark.sql.DataFrame
 

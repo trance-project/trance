@@ -1,10 +1,12 @@
-package com.trance.app
+package org.trance.app
 
-import com.trance.nrclibrary.Wrapper.DataFrameImplicit
-import com.trance.nrclibrary.utilities.SparkUtil.getSparkSession
+import org.trance.nrclibrary.Wrapper.DataFrameImplicit
+import org.trance.nrclibrary.utilities.SparkUtil.getSparkSession
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
+import org.trance.nrclibrary.Sng
 
 object TestApp {
 
@@ -25,7 +27,10 @@ object TestApp {
 //    d3.show()
 
 
-    val sparkRes = intDf.join(intDf2, intDf("users") <= intDf2("usersCount") || intDf("users") > intDf2("usersCount"))
+
+
+//    val sparkRes = intDf.join(intDf2, intDf("users") <= intDf2("usersCount") || intDf("users") > intDf2("usersCount"))
+    val sparkRes = intDf.select(intDf("users") * intDf("users"), intDf("language"))
     sparkRes.show()
 
     val wrappedD = ds.wrap()
@@ -36,11 +41,17 @@ object TestApp {
     val wrappedIntDf = intDf.wrap()
     val wrappedIntDf2 = intDf2.wrap()
 
-    val e1 = wrappedIntDf.join(wrappedIntDf2, wrappedIntDf("users") <= wrappedIntDf2("usersCount") || wrappedIntDf("users") > wrappedIntDf2("usersCount"), "inner")
+//    val e1 = wrappedIntDf.flatMap(x => Sng(x))
+
+//    val e1 = wrappedIntDf.join(wrappedIntDf2, wrappedIntDf("users") === wrappedIntDf2("usersCount"), "inner")
+//    val e1 = wrappedIntDf.union(wrappedIntDf.flatMap(x => Sng(x)))
+    val e1 = wrappedIntDf.select(wrappedIntDf("users") * wrappedIntDf("users"), wrappedIntDf("language"))
+
+
+//    val e1 = wrappedIntDf.join(wrappedIntDf2, wrappedIntDf("users") <= wrappedIntDf2("usersCount") || wrappedIntDf("users") > wrappedIntDf2("usersCount"), "inner")
 
     val d = e1.leaveNRC()
     d.show()
-
   }
 
   private def simpleStringDataframe(): DataFrame = {
@@ -107,7 +118,7 @@ object TestApp {
 
   private def simpleIntDataframe(): DataFrame = {
 
-    val data = Seq(("Go", 80000), ("Ruby", 900), ("Rust", 100), ("Go", 20000))
+    val data = Seq(("Go", 20), ("Ruby", 90), ("Rust", 100), ("Go", 10))
 
     val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, s) }
 

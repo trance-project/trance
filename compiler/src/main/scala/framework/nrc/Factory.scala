@@ -39,7 +39,7 @@ trait Factory {
     }
   }
 
-  object Project {
+  object Project extends Serializable {
     def apply(t: AbstractTuple, field: String): Expr = t match {
       case e: TupleExpr => apply(e, field)
       case e: TupleDictExpr => apply(e, field)
@@ -127,7 +127,7 @@ trait Factory {
     }
   }
 
-  object IfThenElse {
+  object IfThenElse extends Serializable {
     def apply(c: CondExpr, e1: Expr, e2: Expr): Expr = (e1, e2) match {
       case (a: NumericExpr, b: NumericExpr) => NumericIfThenElse(c, a, b)
       case (a: PrimitiveExpr, b: PrimitiveExpr) => PrimitiveIfThenElse(c, a, b)
