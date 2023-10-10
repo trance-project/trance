@@ -1,12 +1,7 @@
 package org.trance.nrclibrary
 
-case class Mult[T](e1: Rep[T], e2: Rep[T]) extends CompCol[T] {
-  override def lhs: Rep[T] = e1
-
-  override def rhs: Rep[T] = e2
-}
-
-case class Add[T](e1: Rep[T], e2: Rep[T]) extends Rep[T]
-
-case class Sub[T](e1: Rep[T], e2: Rep[T]) extends Rep[T]
-
+case class Mult[T](override val lhs: Rep[T], override val rhs: Rep[T]) extends CompCol[T](lhs, rhs)
+case class Add[T](override val lhs: Rep[T], override val rhs: Rep[T]) extends CompCol[T](lhs, rhs)
+case class Sub[T](override val lhs: Rep[T], override val rhs: Rep[T]) extends CompCol[T](lhs, rhs)
+case class Divide[T](override val lhs: Rep[T], override val rhs: Rep[T]) extends CompCol[T](lhs, rhs)
+case class Mod[T](override val lhs: Rep[T], override val rhs: Rep[T]) extends CompCol[T](lhs, rhs)

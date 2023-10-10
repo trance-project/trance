@@ -3,52 +3,17 @@ package org.trance.nrclibrary
 trait Col[T] extends Rep[T]
 case class BaseCol[T](df: String, n: String) extends Col[T]
 
-trait CompCol[T] extends Col[T] {
+// CompCol is not a case class because of case-to-case inheritance being prohibited in Scala
+class CompCol[T](val lhs: Rep[T], val rhs: Rep[T]) extends Col[T] with Serializable
 
-  def lhs: Rep[T]
-  def rhs: Rep[T]
-}
-
-case class Equality[T](e1: Rep[T], e2: Rep[T]) extends CompCol[T] {
-  override def lhs: Rep[T] = e1
-  override def rhs: Rep[T] = e2
-}
-
-case class Inequality[T](e1: Rep[T], e2: Rep[T]) extends CompCol[T] {
-  override def lhs: Rep[T] = e1
-
-  override def rhs: Rep[T] = e2
-}
-
-case class GreaterThan[T](e1: Rep[T], e2: Rep[T]) extends CompCol[T] {
-  override def lhs: Rep[T] = e1
-
-  override def rhs: Rep[T] = e2
-}
-
-case class GreaterThanOrEqual[T](e1: Rep[T], e2: Rep[T]) extends CompCol[T] {
-  override def lhs: Rep[T] = e1
-
-  override def rhs: Rep[T] = e2
-}
-
-case class LessThan[T](e1: Rep[T], e2: Rep[T]) extends CompCol[T] {
-  override def lhs: Rep[T] = e1
-
-  override def rhs: Rep[T] = e2
-}
-
-case class LessThanOrEqual[T](e1: Rep[T], e2: Rep[T]) extends CompCol[T] {
-  override def lhs: Rep[T] = e1
-
-  override def rhs: Rep[T] = e2
-}
-
-case class OrRep[T](e1: Rep[T], e2: Rep[T]) extends CompCol[T] {
-  override def lhs: Rep[T] = e1
-
-  override def rhs: Rep[T] = e2
-}
+case class Equality[T](override val lhs: Rep[T], override val rhs: Rep[T]) extends CompCol[T](lhs, rhs)
+case class Inequality[T](override val lhs: Rep[T], override val rhs: Rep[T]) extends CompCol[T](lhs, rhs)
+case class GreaterThan[T](override val lhs: Rep[T], override val rhs: Rep[T]) extends CompCol[T](lhs, rhs)
+case class GreaterThanOrEqual[T](override val lhs: Rep[T], override val rhs: Rep[T]) extends CompCol[T](lhs, rhs)
+case class LessThan[T](override val lhs: Rep[T], override val rhs: Rep[T]) extends CompCol[T](lhs, rhs)
+case class LessThanOrEqual[T](override val lhs: Rep[T], override val rhs: Rep[T]) extends CompCol[T](lhs, rhs)
+case class OrRep[T](override val lhs: Rep[T], override val rhs: Rep[T]) extends CompCol[T](lhs, rhs)
+case class AndRep[T](override val lhs: Rep[T], override val rhs: Rep[T]) extends CompCol[T](lhs, rhs)
 
 
 

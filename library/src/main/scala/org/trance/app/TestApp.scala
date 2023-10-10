@@ -3,10 +3,9 @@ package org.trance.app
 import org.trance.nrclibrary.Wrapper.DataFrameImplicit
 import org.trance.nrclibrary.utilities.SparkUtil.getSparkSession
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{DataFrame, Row, SparkSession}
-import org.trance.nrclibrary.Sng
+import org.apache.spark.sql.{DataFrame, Row, SparkSession, functions}
+import org.trance.nrclibrary.{Rep, Sng}
 
 object TestApp {
 
@@ -16,22 +15,20 @@ object TestApp {
     val ds: DataFrame = simpleStringDataframe()
     val di: DataFrame = simpleStringDataframe2()
     val dt: DataFrame = simpleStringDataframe3()
-    val intDf: DataFrame = simpleIntDataframe()
-    val intDf2: DataFrame = simpleIntDataframe2()
     val d5: DataFrame = simpleStringDataframeSpecial()
 
-//    val d3 = d5.map(x => {
-//      (x.getString(0), x.getString(1))
-//    })
+    //    val d3 = d5.map(x => {
+    //      (x.getString(0), x.getString(1))
+    //    })
+    //
+    //    d3.show()
+
+    val intDf: DataFrame = simpleIntDataframe()
+    val intDf2: DataFrame = simpleIntDataframe2()
+
 //
-//    d3.show()
-
-
-
-
-//    val sparkRes = intDf.join(intDf2, intDf("users") <= intDf2("usersCount") || intDf("users") > intDf2("usersCount"))
-    val sparkRes = intDf.select(intDf("users") * intDf("users"), intDf("language"))
-    sparkRes.show()
+//    val sparkRes = intDf.join(intDf2, true==true)
+//    sparkRes.show()
 
     val wrappedD = ds.wrap()
     val wrappedD2 = di.wrap()
@@ -42,16 +39,12 @@ object TestApp {
     val wrappedIntDf2 = intDf2.wrap()
 
 //    val e1 = wrappedIntDf.flatMap(x => Sng(x))
-
 //    val e1 = wrappedIntDf.join(wrappedIntDf2, wrappedIntDf("users") === wrappedIntDf2("usersCount"), "inner")
-//    val e1 = wrappedIntDf.union(wrappedIntDf.flatMap(x => Sng(x)))
-    val e1 = wrappedIntDf.select(wrappedIntDf("users") * wrappedIntDf("users"), wrappedIntDf("language"))
-
-
-//    val e1 = wrappedIntDf.join(wrappedIntDf2, wrappedIntDf("users") <= wrappedIntDf2("usersCount") || wrappedIntDf("users") > wrappedIntDf2("usersCount"), "inner")
+    val e1 = wrappedIntDf.flatMap(x => Sng(x))
 
     val d = e1.leaveNRC()
     d.show()
+
   }
 
   private def simpleStringDataframe(): DataFrame = {
