@@ -2,12 +2,12 @@ package org.trance.nrclibrary
 
 import com.sun.org.apache.xpath.internal.operations.NotEquals
 import org.trance.nrclibrary.utilities.SparkUtil.getSparkSession
-import framework.common.{BagType, BoolType, DoubleType, IntType, LongType, OpCmp, OpDivide, OpEq, OpGe, OpGt, OpMinus, OpMod, OpMultiply, OpNe, OpPlus, StringType, TupleAttributeType, TupleType}
-import framework.plans.{AddIndex, BaseNormalizer, CDeDup, CExpr, Comprehension, Constant, EmptySng, Finalizer, InputRef, MathOp, NRCTranslator, Nest, Printer, Projection, Record, Unnester, Variable, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
+import framework.common.{BagType, BoolType, DoubleType, IntType, LongType, OpCmp, OpDivide, OpEq, OpGe, OpGt, OpMinus, OpMod, OpMultiply, OpNe, OpPlus, StringType, TupleAttributeType, TupleType, Type}
+import framework.plans.{AddIndex, BaseNormalizer, CDeDup, CExpr, Comprehension, Constant, EmptySng, Equals, Finalizer, If, InputRef, MathOp, NRCTranslator, Nest, Printer, Projection, Record, Unnester, Variable, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.{BinaryComparison, BinaryOperator, EqualTo, Expression, GenericRowWithSchema, And => SparkAnd, GreaterThan => SparkGreaterThan, GreaterThanOrEqual => SparkGreaterThanOrEqual, LessThan => SparkLessThan, LessThanOrEqual => SparkLessThanOrEqual, Not => SparkNot, Or => SparkOr}
 import org.apache.spark.sql.functions.{expr, monotonically_increasing_id}
-import org.apache.spark.sql.types.{ArrayType, DataType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, DataType, DataTypes, StructField, StructType}
 import org.apache.spark.sql.{Column, DataFrame, Row, functions, types}
 import org.trance.nrclibrary.utilities.DropContext
 
@@ -15,31 +15,22 @@ object PlanConverter {
   def planToDF[T](cExpr: CExpr, ctx: Map[String, Any]): T = cExpr match {
     case Projection(e1, v, p, fields) =>
       val c1 = planToDF(e1, ctx).asInstanceOf[DataFrame]
-
-      val inputSchema = handleDuplicateInputSchema(c1.schema)
-      val projectionFields = p.asInstanceOf[Record].fields.keys.toSeq
-
-      val updatedFields = projectionFields.flatMap { fieldName =>
-        inputSchema.fields.find(_.name == fieldName)
-      }
-
-      val outputSchema = StructType(updatedFields)
+      val outputSchema = StructType(createStructFields(p))
 
       val l = c1.flatMap { z => Seq(planToDF(p, ctx ++ getProjectionBinding(e1, z)).asInstanceOf[Row]) }(RowEncoder.apply(outputSchema))
       l.asInstanceOf[T]
     case CJoin(left, v, right, v2, cond, fields) =>
       val i1 = planToDF(left, ctx).asInstanceOf[DataFrame]
       val i2 = planToDF(right, ctx).asInstanceOf[DataFrame]
+
       val c = toSparkCond(cond)
       val col = expr(c)
       performJoin(i1, i2, col).asInstanceOf[T]
     case CMerge(e1, e2) =>
       planToDF(e1, ctx).asInstanceOf[DataFrame].union(planToDF(e2, ctx).asInstanceOf[DataFrame]).asInstanceOf[T]
     case CSelect(x, v, p) =>
-      if (p == Constant(true)) {
-        return planToDF(x, ctx)
-      }
-      getSparkSession.emptyDataFrame.asInstanceOf[T]
+        val df = planToDF(x, ctx).asInstanceOf[DataFrame]
+      df.asInstanceOf[T]
     case CDeDup(in) =>
       val i1 = planToDF(in, ctx).asInstanceOf[DataFrame]
       i1.dropDuplicates().asInstanceOf[T]
@@ -87,8 +78,16 @@ object PlanConverter {
         case OpMod => Row.fromSeq(Seq(x % y)).asInstanceOf[T]
         case OpDivide => Row.fromSeq(Seq(x / y)).asInstanceOf[T]
       }
-
+    case Equals(e1, e2) =>
+//      val df = planToDF(e1, ctx).asInstanceOf[DataFrame]
+//      val constant = planToDF(e2, ctx)
+//      df.select(e1.asInstanceOf[CProject].field + "===" + constant).asInstanceOf[T]
+      val lhs = planToDF(e1, ctx).asInstanceOf[Row]
+      val rhs = planToDF(e2, ctx).asInstanceOf[Row]
+      if(lhs.getInt(0)==rhs.getInt(0)) true.asInstanceOf[T] else false.asInstanceOf[T]
+    case If(cond, e1, e2) => if(planToDF(cond, ctx)) planToDF(e1, ctx) else planToDF(e2.get, ctx)
     case EmptySng => getSparkSession.emptyDataFrame.asInstanceOf[T]
+    case Constant(e) => Row(e).asInstanceOf[T]
     case s@_ =>
       sys.error("Unsupported: " + s)
   }
@@ -105,7 +104,7 @@ object PlanConverter {
     case s@_ => sys.error("Error getting context for: " + s)
   }
 
-  private def getOp(e: CompCol[_]): OpCmp = e match {
+  private def getOp(e: Col[_]): OpCmp = e match {
     case Equality(_, _) => OpEq
     case Inequality(_, _) => OpNe
     case GreaterThan(_, _) => OpGt
@@ -144,15 +143,14 @@ object PlanConverter {
   // Column names may be the same so it's necessary to explicitly state the join columns df(columnName) === df2(columnName)
   // To avoid ambiguous conditions like columnName == columnName occurring
 
-  // In the performJoin() function we check if there is a a potentially ambiguous self join happening,
+  // In the performJoin() function we check if there is a self join happening,
   // if not we perform a normal join otherwise we pass onto our processSparkExpression function to prevent ambiguity.
   private def performJoin(i1: DataFrame, i2: DataFrame, condition: Column): DataFrame = condition.expr match {
     case BinaryOperator(e) =>
-      if (e._1 != e._2 || (e._2.isInstanceOf[SparkNot] && e._1 != e._2.asInstanceOf[SparkNot].child)) i1.join(i2, condition)
+      if (!i1.except(i2).isEmpty) i1.join(i2, condition)
       else i1.join(i2, processSparkExpression(i1, i2, condition.expr))
     case s@_ => sys.error("Unhandled join condition: " + s)
   }
-
 
   private def processSparkExpression(i1: DataFrame, i2: DataFrame, expression: Expression): Column = expression match {
     case SparkAnd(left, right) =>
@@ -169,5 +167,16 @@ object PlanConverter {
     case SparkGreaterThan(left, right) => i1(left.sql) > i2(right.sql)
     case SparkGreaterThanOrEqual(left, right) => i1(left.sql) >= i2(right.sql)
     case SparkNot(child) => !processSparkExpression(i1, i2, child)
+  }
+
+  private def createStructFields(p: CExpr): Seq[StructField] = p match {
+    case Record(fields) =>
+      fields.map(f => StructField(f._1, getStructDataType(f._2.tp))).toSeq
+    case s@_ => sys.error(s + " is not a valid pattern")
+  }
+
+  private def getStructDataType(c: Type): DataType = c match {
+    case IntType => DataTypes.IntegerType
+    case BoolType => DataTypes.BooleanType
   }
 }

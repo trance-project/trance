@@ -3,7 +3,7 @@ package org.trance.app
 import org.trance.nrclibrary.Wrapper.DataFrameImplicit
 import org.trance.nrclibrary.utilities.SparkUtil.getSparkSession
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.types._
+import org.apache.spark.sql.types.{StructField, _}
 import org.apache.spark.sql.{DataFrame, Row, SparkSession, functions}
 import org.trance.nrclibrary.{Rep, Sng}
 
@@ -26,9 +26,9 @@ object TestApp {
     val intDf: DataFrame = simpleIntDataframe()
     val intDf2: DataFrame = simpleIntDataframe2()
 
-//
-//    val sparkRes = intDf.join(intDf2, true==true)
-//    sparkRes.show()
+
+    val sparkRes = d5.select(d5("userCount2") === 1, d5("userCount"), d5("userCount") === 1)
+    sparkRes.show()
 
     val wrappedD = ds.wrap()
     val wrappedD2 = di.wrap()
@@ -38,9 +38,8 @@ object TestApp {
     val wrappedIntDf = intDf.wrap()
     val wrappedIntDf2 = intDf2.wrap()
 
-//    val e1 = wrappedIntDf.flatMap(x => Sng(x))
-//    val e1 = wrappedIntDf.join(wrappedIntDf2, wrappedIntDf("users") === wrappedIntDf2("usersCount"), "inner")
-    val e1 = wrappedIntDf.flatMap(x => Sng(x))
+
+    val e1 = wrappedD5.select(wrappedD5("userCount") === 1,  wrappedD5("userCount2") * wrappedD5("userCount"))
 
     val d = e1.leaveNRC()
     d.show()
@@ -65,13 +64,15 @@ object TestApp {
 
   private def simpleStringDataframeSpecial(): DataFrame = {
 
-    val data = Seq(("Java", "20000"), ("Ruby", "900"), ("Rust", "200"))
+    val data = Seq(("Java", 1, 10), ("Ruby", 9 , 10), ("Rust", 2, 3))
 
-    val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, s) }
+    val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s, i) => Row(l, s, i) }
 
     val schema: StructType = StructType(Array(
       StructField("programmingLanguage", StringType, nullable = true),
-      StructField("userCount", StringType, nullable = true)
+      StructField("userCount", IntegerType, nullable = true),
+      StructField("userCount2", IntegerType, nullable = true)
+
     ))
 
     spark.createDataFrame(rdd, schema)
