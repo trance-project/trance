@@ -1,14 +1,18 @@
-package org.trance.nrclibrary
+package uk.ac.ox.cs.trance
 
-import org.trance.nrclibrary.utilities.SparkUtil.getSparkSession
 import framework.plans.{BaseNormalizer, CExpr, Finalizer, NRCTranslator, Printer, Unnester}
 import org.apache.spark.sql.{Column, DataFrame}
 
+import scala.collection.immutable.{Map => IMap}
+
 trait WrappedDataframe[T] extends Rep[DataFrame] with NRCTranslator {
 
-  val spark = getSparkSession
-
-  def apply[S](colName: String): Col[T] = {
+  /**
+   * The constructor for WrappedDataframe is made to mimic Spark's [[Column]] syntax. <br>
+   * df("column") returns a column in this case a [[Col]]
+   * that can be used as a way of specifying columns contained in [[WrappedDataframe]]s for use in [[Select]], [[Join]], [[Drop]]...
+   */
+  def apply(colName: String): Col[T] = {
     BaseCol(getCtx(this).keys.head, colName)
   }
 
@@ -28,11 +32,11 @@ trait WrappedDataframe[T] extends Rep[DataFrame] with NRCTranslator {
   //      Join(this, df, null, joinType, this.ctx ++ df.ctx)
   //    }
 
-  def join[S](df: WrappedDataframe[S], joinCond: Rep[T], joinType: String): WrappedDataframe[S] = {
-    Join(this, df, joinCond, joinType)
+  def join[S](df: WrappedDataframe[S], joinCond: Rep[T]): WrappedDataframe[S] = {
+    Join(this, df, joinCond)
   }
 
-  def dropDuplicates[S]: WrappedDataframe[T] = {
+  def dropDuplicates: WrappedDataframe[T] = {
     DropDuplicates(this)
   }
 
@@ -58,11 +62,18 @@ trait WrappedDataframe[T] extends Rep[DataFrame] with NRCTranslator {
     Drop(this, col.toString() +: cols.map(_.toString))
   }
 
+  /**
+   * The pipeline controller function.
+   * Intended to be called from Developer's environment.
+   * Takes the [[Rep]] object and converts it to an NRC Expression then to [[CExpr]].
+   * The [[CExpr]] undergoes normalization & unnesting before being converted to a Dataframe
+   * @return [[DataFrame]]
+   */
   def leaveNRC(): DataFrame = {
-    val ctx = getCtx(this)
+    val ctx = getCtx()
     println("Rep: " + this)
 
-    val nrcExpr= NRCConverter.toNRC(this, Map())
+    val nrcExpr= NRCConverter.toNRC(this, IMap())
     println("nrcExpression: " + nrcExpr)
 
     val cExpr: CExpr = NRCConverter.translate(nrcExpr)
@@ -75,19 +86,26 @@ trait WrappedDataframe[T] extends Rep[DataFrame] with NRCTranslator {
     println("corresponding quote: " + Printer.quote(normalized))
 
     // Unnesting transforms comprehension calculus to plan language
-    val unnested = Unnester.unnest(normalized)(Map(), Map(), None, "_2")
+    val unnested = Unnester.unnest(normalized)(IMap(), IMap(), None, "_2")
     println("unnested and normalized cExpr: " + unnested)
     println("corresponding quote: " + Printer.quote(unnested))
 
     val stringified = Printer.quote(unnested)
     println("Printer quote: " + stringified)
-    PlanConverter.planToDF(unnested, ctx).asInstanceOf[DataFrame]
+    PlanConverter.convert(unnested, ctx).asInstanceOf[DataFrame]
   }
 
-  private def getCtx(e: Rep[_] = this): Map[String, DataFrame] = e match {
-    case Wrapper(in, e) => Map(e -> in.asInstanceOf[DataFrame])
+  /**
+   *
+   * @param e The [[Rep]] contained in the this instance
+   * @return The mapping from the Dataframe's identifier created in [[Wrapper]] and the corresponding Dataframe
+   * <br><br>
+   * This mapping is passed into the [[PlanConverter]] and will be referenced when an InputRef is encountered
+   */
+  private def getCtx(e: Rep[_] = this): IMap[String, DataFrame] = e match {
+    case Wrapper(in, e) => IMap(e -> in.asInstanceOf[DataFrame])
     case Merge(e1, e2) => getCtx(e1) ++ getCtx(e2)
-    case Join(e1, e2, _, _) => getCtx(e1) ++ getCtx(e2)
+    case Join(e1, e2, _) => getCtx(e1) ++ getCtx(e2)
     case Drop(e1, _) => getCtx(e1)
     case DropDuplicates(e1) => getCtx(e1)
     case GroupBy(e1, _) => getCtx(e1)

@@ -1,11 +1,11 @@
-package org.trance.app
+package uk.ac.ox.cs.trance.app
 
-import org.trance.nrclibrary.Wrapper.DataFrameImplicit
-import org.trance.nrclibrary.utilities.SparkUtil.getSparkSession
+import uk.ac.ox.cs.trance.Wrapper.DataFrameImplicit
+import uk.ac.ox.cs.trance.utilities.SparkUtil.getSparkSession
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types.{StructField, _}
 import org.apache.spark.sql.{DataFrame, Row, SparkSession, functions}
-import org.trance.nrclibrary.{Rep, Sng}
+import uk.ac.ox.cs.trance.{Rep, Sng}
 
 object TestApp {
 
@@ -27,7 +27,7 @@ object TestApp {
     val intDf2: DataFrame = simpleIntDataframe2()
 
 
-    val sparkRes = d5.select(d5("userCount2") === 1, d5("userCount"), d5("userCount") === 1)
+    val sparkRes = intDf.where("language = 'Go'")
     sparkRes.show()
 
     val wrappedD = ds.wrap()
@@ -39,7 +39,7 @@ object TestApp {
     val wrappedIntDf2 = intDf2.wrap()
 
 
-    val e1 = wrappedD5.select(wrappedD5("userCount") === 1,  wrappedD5("userCount2") * wrappedD5("userCount"))
+    val e1 = wrappedD5.select(wrappedD5("programmingLanguage") === "test",  wrappedD5("userCount2") * wrappedD5("userCount"))
 
     val d = e1.leaveNRC()
     d.show()

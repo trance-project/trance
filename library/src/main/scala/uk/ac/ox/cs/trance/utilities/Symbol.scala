@@ -1,4 +1,4 @@
-package org.trance.nrclibrary.utilities
+package uk.ac.ox.cs.trance.utilities
 
 object Symbol {
   private val counter = scala.collection.mutable.HashMap[String, Int]()

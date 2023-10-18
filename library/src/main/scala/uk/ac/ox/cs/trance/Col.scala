@@ -1,4 +1,4 @@
-package org.trance.nrclibrary
+package uk.ac.ox.cs.trance
 
 trait Col[T] extends Rep[T]
 

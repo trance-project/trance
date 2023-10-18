@@ -1,4 +1,4 @@
-package org.trance.nrclibrary.utilities
+package uk.ac.ox.cs.trance.utilities
 
 import org.apache.spark.sql.SparkSession
 

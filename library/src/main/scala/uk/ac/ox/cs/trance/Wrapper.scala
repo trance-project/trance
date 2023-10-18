@@ -1,9 +1,19 @@
-package org.trance.nrclibrary
+package uk.ac.ox.cs.trance
 
 import org.apache.spark.sql.DataFrame
-
 import scala.language.implicitConversions
 
+/**
+ * This is the class & companion object that can be imported into a workspace allowing entry into trance from a Spark Dataframe.
+ * <br>
+ * Usage:
+ * <br>
+ * import [[Wrapper.DataFrameImplicit]]
+ *
+ * Call .wrap() on a Dataframe object eg.
+ * Dataframe df -> df.wrap() <br>
+ * Which will result in a [[WrappedDataframe]]
+ */
 case class Wrapper[T](in: T, str: String) extends WrappedDataframe[T]
 
 object Wrapper {
