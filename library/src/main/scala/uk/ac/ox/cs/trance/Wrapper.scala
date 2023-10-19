@@ -8,10 +8,11 @@ import scala.language.implicitConversions
  * <br>
  * Usage:
  * <br>
- * import [[Wrapper.DataFrameImplicit]]
+ * import [[uk.ac.ox.cs.trance.Wrapper.DataFrameImplicit]]
  *
  * Call .wrap() on a Dataframe object eg.
- * Dataframe df -> df.wrap() <br>
+ * Dataframe df -> df.wrap()
+ * <br>
  * Which will result in a [[WrappedDataframe]]
  */
 case class Wrapper[T](in: T, str: String) extends WrappedDataframe[T]

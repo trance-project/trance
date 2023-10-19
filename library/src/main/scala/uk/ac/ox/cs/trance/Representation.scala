@@ -1,9 +1,12 @@
 package uk.ac.ox.cs.trance
 
-import scala.language.implicitConversions
-
-case class Fun[T1, T2](in: Rep[T1], out: Rep[T2]) extends Rep[T1 => T2]
-
+/**
+ * [[Rep]] is the base trait for the intermediary representation between Spark and NRC.
+ * <br>
+ * Everything in this representation is a [[Rep]] or extends it.
+ * <br>
+ * This layer allows a user to build a nested sequence of [[Rep]] that is then the recursively converted into an NRC Expression in [[NRCConverter]]
+ */
 trait Rep[T] {
 
     def *(e2: Rep[T]): Rep[T] = Mult[T](this, e2)
@@ -45,6 +48,11 @@ trait Rep[T] {
 
 
 }
+
+/**
+ * Used to represent a function argument in [[FlatMap]] & [[Map]]
+ */
+case class Fun[T1, T2](in: Rep[T1], out: Rep[T2]) extends Rep[T1 => T2]
 
 case class Sng[T](in: Rep[T]) extends WrappedDataframe[T]
 

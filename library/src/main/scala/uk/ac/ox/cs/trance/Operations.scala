@@ -14,6 +14,9 @@ case class Drop[T](self: WrappedDataframe[T], cols: Seq[String]) extends Wrapped
 
 case class Select[T](self: WrappedDataframe[T], cols: Seq[Rep[T]]) extends WrappedDataframe[T]
 
+/**
+ * Trance only currently supports GroupBy -> Sum. This is represented as a ReduceByKey in NRC.
+ */
 case class GroupBy[S](self: WrappedDataframe[S], col: List[String]) extends WrappedDataframe[S] {
   def sum(fields: String*): WrappedDataframe[S] = {
     Reduce(self, col, fields.toList)
