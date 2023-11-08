@@ -4,6 +4,7 @@ import framework.common._
 import framework.plans.NRCTranslator
 import org.apache.spark.sql.types.{ArrayType, DataType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, types}
+
 import scala.collection.immutable.{Map => IMap}
 
 object NRCConverter extends NRCTranslator {
@@ -27,20 +28,9 @@ object NRCConverter extends NRCTranslator {
       val expr2 = toNRC(out, env + (in -> tvr))
       ForeachUnion(tvr, expr1.asInstanceOf[BagExpr], expr2.asInstanceOf[BagExpr])
     case Join(e1, e2, joinCond) =>
-      val c1 = toNRC(e1, env).asInstanceOf[BagVarRef]
-      val c2 = toNRC(e2, env).asInstanceOf[BagVarRef]
-      val tvr = TupleVarRef(utilities.Symbol.fresh(), c1.tp.tp)
-      val tvr2 = TupleVarRef(utilities.Symbol.fresh(), c2.tp.tp)
-      // If there are duplicate columns add suffix
-      val map: IMap[String, TupleVarRef] = IMap(c1.name -> tvr) ++ IMap(c2.name -> tvr2)
-
-      val combinedColumnMap = tvr.tp.attrTps.keys.toSeq.map(f => f -> PrimitiveProject(tvr, f)).toMap ++
-        tvr2.tp.attrTps.keys.toSeq.map { f =>
-          val newKey = if (tvr.tp.attrTps.contains(f)) f + "_2" else f
-          newKey -> PrimitiveProject(tvr2, f)
-        }.toMap
-      val col = translateColumn(joinCond.asInstanceOf[Rep[T]], map).asInstanceOf[CondExpr]
-      ForeachUnion(tvr, c1, ForeachUnion(tvr2, c2, IfThenElse(col, Singleton(Tuple(combinedColumnMap)))))
+      val c1 = toNRC(e1, env).asBag
+      val c2 = toNRC(e2, env).asBag
+      prepareJoinOutput(c1, c2, joinCond)
     case Merge(e1, e2) =>
       val c1 = toNRC(e1, env)
       val c2 = toNRC(e2, env)
@@ -120,19 +110,19 @@ object NRCConverter extends NRCTranslator {
 
 
   /**
-  * This method takes a Rep column definition and recursively translates it to an NRC Expr.
-  * It takes in a ctx which contains a mapping from input expression names to the corresponding TupleVarRefs created in toNRC()
-  * eg.
-  * Spark:
-  * df.select(df("column") * df("column2") =>
-  * Rep:
-  * Mult(BaseCol(id, column), BaseCol(id, column2)) =>
-  * NRC:
-  * ArithmeticExpr(*,
-  *   NumericProject(TupleVarRef(id,TupleType(Map(column -> IntType, column2 -> IntType))), column),
-  *   NumericProject(TupleVarRef(id,TupleType(Map(column -> IntType, column2 -> IntType))),userCount2)
-  *   )
-  */
+   * This method takes a Rep column definition and recursively translates it to an NRC Expr.
+   * It takes in a ctx which contains a mapping from input expression names to the corresponding TupleVarRefs created in toNRC()
+   * eg.
+   * Spark:
+   * df.select(df("column") * df("column2") =>
+   * Rep:
+   * Mult(BaseCol(id, column), BaseCol(id, column2)) =>
+   * NRC:
+   * ArithmeticExpr(*,
+   * NumericProject(TupleVarRef(id,TupleType(Map(column -> IntType, column2 -> IntType))), column),
+   * NumericProject(TupleVarRef(id,TupleType(Map(column -> IntType, column2 -> IntType))),userCount2)
+   * )
+   */
   private def translateColumn[T](c: Rep[T], ctx: IMap[String, TupleVarRef]): PrimitiveExpr = c match {
     case BaseCol(df, n) => Project(ctx(df), n).asPrimitive
     case Literal(e) => Const(e, getPrimitiveType(e))
@@ -152,9 +142,9 @@ object NRCConverter extends NRCTranslator {
   }
 
   /**
-  * Figures out what to call the columns in the output schema,
-  * handles auto aliasing in select queries where a new column is being created.
-  */
+   * Figures out what to call the columns in the output schema,
+   * handles auto aliasing in select queries where a new column is being created.
+   */
   private def sparkAliasing(col: Rep[_]): String = col match {
     case BaseCol(_, n) => n
     case Mult(e1, e2) => s"(${sparkAliasing(e1)} * ${sparkAliasing(e2)})"
@@ -172,8 +162,8 @@ object NRCConverter extends NRCTranslator {
 
 
   /**
-   *  This function is to catch boolean conditions in select operations.
-   *  eg. df.select(df("column") === 1)
+   * This function is to catch boolean conditions in select operations.
+   * eg. df.select(df("column") === 1)
    * +------------+
    * |(column = 1)|
    * +------------|
@@ -186,11 +176,52 @@ object NRCConverter extends NRCTranslator {
    * otherwise we leave the projection as is.
    */
   private def prepareSelectOutput(fields: Seq[(String, PrimitiveExpr)]): BagExpr = {
-    Singleton(Tuple(fields.map{
+    Singleton(Tuple(fields.map {
       case (s, cmp: PrimitiveCmp) =>
         s -> PrimitiveIfThenElse(cmp.asCond, PrimitiveConst(true, BoolType), PrimitiveConst(false, BoolType))
       case (s, expr) =>
         s -> expr
     }.toMap))
+  }
+
+  /**
+   * Creates the NRC Expression for a Join Operation.
+   * Handles self joins in the check c1Name == c2Name
+   * Converts joinCond from a Rep -> NRC Cond Expression
+   */
+  private def prepareJoinOutput(c1: BagExpr, c2: BagExpr, joinCond: Rep[_]): ForeachUnion = {
+    val c1Name = unnestJoinExpr(c1)
+    val c2Name = unnestJoinExpr(c2)
+    val tvr = TupleVarRef(utilities.Symbol.fresh(), c1.tp.tp)
+    val tvr2 = TupleVarRef(utilities.Symbol.fresh(), c2.tp.tp)
+
+
+    if (c1Name == c2Name) {
+      val c3 = BagVarRef(c1Name, BagType(TupleType(c1.tp.tp.attrTps ++ c2.tp.tp.attrTps.map { case (key, valueType) => (key + "_2", valueType) })))
+
+      val tvr3 = TupleVarRef(utilities.Symbol.fresh(), c3.tp.tp)
+      val colMap: IMap[String, TupleVarRef] = IMap(c1Name -> tvr3)
+      val combinedColumnMap: IMap[String, TupleAttributeExpr] = tvr3.tp.attrTps.keys.toSeq.map(f => f -> Project(tvr3, f)).toMap
+      val nrcCond = translateColumn(joinCond, colMap).asCond
+      ForeachUnion(tvr, c1, ForeachUnion(tvr3, c3, IfThenElse(nrcCond, Singleton(Tuple(combinedColumnMap)))))
+    }
+    else {
+      val bagToTupleMap: IMap[String, TupleVarRef] = IMap(c1Name -> tvr) ++ IMap(c2Name -> tvr2)
+      val projectionMap = tvr.tp.attrTps.keys.toSeq.map(f => f -> Project(tvr, f)).toMap
+      val combinedColumnMap = projectionMap ++ tvr2.tp.attrTps.keys.toSeq.map(f => f -> Project(tvr2, f))
+      val nrcCond = translateColumn(joinCond, bagToTupleMap).asCond
+      ForeachUnion(tvr, c1, ForeachUnion(tvr2, c2, IfThenElse(nrcCond, Singleton(Tuple(combinedColumnMap)))))
+    }
+  }
+
+  /**
+   * Gets the Dataset Identifier from the BagExpr created during a Join
+   *
+   * @param e
+   * @return
+   */
+  private def unnestJoinExpr(e: BagExpr): String = e match {
+    case b: BagVarRef => b.name
+    case f: ForeachUnion => unnestJoinExpr(f.e1)
   }
 }

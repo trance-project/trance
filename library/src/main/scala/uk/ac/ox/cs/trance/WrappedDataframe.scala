@@ -1,7 +1,10 @@
 package uk.ac.ox.cs.trance
 
+import framework.common.{StringType, TupleAttributeType}
 import framework.plans.{BaseNormalizer, CExpr, Finalizer, NRCTranslator, Printer, Unnester}
+import framework.utils.Utils.ind
 import org.apache.spark.sql.{Column, DataFrame}
+import uk.ac.ox.cs.trance.utilities.JoinCondContext
 
 import scala.collection.immutable.{Map => IMap}
 
@@ -33,7 +36,9 @@ trait WrappedDataframe[T] extends Rep[DataFrame] with NRCTranslator {
   //    }
 
   def join[S](df: WrappedDataframe[S], joinCond: Rep[T]): WrappedDataframe[S] = {
-    Join(this, df, joinCond)
+    val updatedWrapper = handleDupColumnNames(df.asInstanceOf[Wrapper[_]])
+    val updatedJoinCond = handleDupColumnNames(joinCond)
+    Join(this, updatedWrapper.asInstanceOf[WrappedDataframe[S]], updatedJoinCond)
   }
 
   def dropDuplicates: WrappedDataframe[T] = {
@@ -67,14 +72,16 @@ trait WrappedDataframe[T] extends Rep[DataFrame] with NRCTranslator {
    * Intended to be called from Developer's environment.
    * Takes the [[Rep]] object and converts it to an NRC Expression then to [[CExpr]].
    * The [[CExpr]] undergoes normalization & unnesting before being converted to a Dataframe
+   *
    * @return [[DataFrame]]
    */
   def leaveNRC(): DataFrame = {
     val ctx = getCtx()
     println("Rep: " + this)
 
-    val nrcExpr= NRCConverter.toNRC(this, IMap())
+    val nrcExpr = NRCConverter.toNRC(this, IMap())
     println("nrcExpression: " + nrcExpr)
+    //    println("nrc quote: " + nrcquote(nrcExpr))
 
     val cExpr: CExpr = NRCConverter.translate(nrcExpr)
     println("initial cExpr: " + cExpr)
@@ -99,11 +106,11 @@ trait WrappedDataframe[T] extends Rep[DataFrame] with NRCTranslator {
    *
    * @param e The [[Rep]] contained in the this instance
    * @return The mapping from the Dataframe's identifier created in [[Wrapper]] and the corresponding Dataframe
-   * <br><br>
-   * This mapping is passed into the [[PlanConverter]] and will be referenced when an InputRef is encountered
+   *         <br><br>
+   *         This mapping is passed into the [[PlanConverter]] and will be referenced when an InputRef is encountered
    */
   private def getCtx(e: Rep[_] = this): IMap[String, DataFrame] = e match {
-    case Wrapper(in, e) => IMap(e -> in.asInstanceOf[DataFrame])
+    case Wrapper(in, e) => IMap(e -> in.asInstanceOf[DataFrame]) //Maybe get from JoinCondCtx
     case Merge(e1, e2) => getCtx(e1) ++ getCtx(e2)
     case Join(e1, e2, _) => getCtx(e1) ++ getCtx(e2)
     case Drop(e1, _) => getCtx(e1)
@@ -115,3 +122,5 @@ trait WrappedDataframe[T] extends Rep[DataFrame] with NRCTranslator {
     case s@_ => sys.error("Error getting context for: " + s)
   }
 }
+
+
