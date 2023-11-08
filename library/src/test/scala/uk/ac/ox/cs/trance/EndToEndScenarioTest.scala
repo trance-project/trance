@@ -2,12 +2,12 @@ package uk.ac.ox.cs.trance
 
 
 import org.scalatest.{BeforeAndAfterEach, FunSpec}
-import org.apache.spark.sql.{DataFrame}
+import org.apache.spark.sql.DataFrame
 import uk.ac.ox.cs.trance.app.TestApp.spark
 import Wrapper.DataFrameImplicit
 import utilities.{JoinCondContext, Symbol}
 import org.apache.spark.sql.functions.col
-import org.scalatest.Matchers.{be, convertToAnyShouldWrapper}
+import org.scalatest.Matchers.convertToAnyShouldWrapper
 import uk.ac.ox.cs.trance.utilities.TestDataframes._
 
 class EndToEndScenarioTest extends FunSpec with BeforeAndAfterEach {

@@ -121,6 +121,40 @@ trait WrappedDataframe[T] extends Rep[DataFrame] with NRCTranslator {
     case FlatMap(e1, _) => getCtx(e1)
     case s@_ => sys.error("Error getting context for: " + s)
   }
+
+
+  /**
+   * This takes in the original join condition and, if column names have needed to be changed due to duplicates,
+   * will change the join condition column to match those changes
+   */
+  private def handleDupColumnNames(joinCond: Rep[T]): Rep[T] = joinCond match {
+    case Equality(lhs, rhs) => Equality(handleDupColumnNames(lhs), handleDupColumnNames(rhs))
+    case GreaterThan(lhs, rhs) => GreaterThan(handleDupColumnNames(lhs), handleDupColumnNames(rhs))
+    case GreaterThanOrEqual(lhs, rhs) => GreaterThanOrEqual(handleDupColumnNames(lhs), handleDupColumnNames(rhs))
+    case LessThan(lhs, rhs) => LessThan(handleDupColumnNames(lhs), handleDupColumnNames(rhs))
+    case LessThanOrEqual(lhs, rhs) => LessThanOrEqual(handleDupColumnNames(lhs), handleDupColumnNames(rhs))
+    case Inequality(lhs, rhs) => Inequality(handleDupColumnNames(lhs), handleDupColumnNames(rhs))
+    case v: Literal[T] => v
+    case BaseCol(dfId, str) =>
+      val strs = JoinCondContext.getMappingsForStr(dfId)
+      val matchingValueOption: String = strs.find(_.startsWith(str)).get
+      BaseCol(dfId, matchingValueOption)
+  }
+
+  /**
+   * This takes the WrappedDataset as a Wrapper that is due to be joined and updates columns that may have been renamed during Wrapping process due to duplicate column names.
+   * Currently only used in Joins.
+   */
+  private def handleDupColumnNames[S](w: Wrapper[S]): Wrapper[T] = {
+    val columnNames = JoinCondContext.getMappingsForStr(w.str)
+    val updatedNestedDf = columnNames.zip(w.in.asInstanceOf[DataFrame].columns).foldLeft(w.in.asInstanceOf[DataFrame]) {
+      case (accDf, (newCol, oldCol)) =>
+        accDf.withColumnRenamed(oldCol, newCol)
+    }
+
+    val updatedWrapper = Wrapper(updatedNestedDf, w.str)
+    updatedWrapper.asInstanceOf[Wrapper[T]]
+  }
 }
 
 
