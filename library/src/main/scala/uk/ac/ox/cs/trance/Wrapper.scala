@@ -1,7 +1,7 @@
 package uk.ac.ox.cs.trance
 
 import org.apache.spark.sql.DataFrame
-import uk.ac.ox.cs.trance.utilities.JoinCondContext
+import uk.ac.ox.cs.trance.utilities.JoinContext
 
 import scala.language.implicitConversions
 
@@ -22,7 +22,7 @@ case class Wrapper[T](in: T, str: String) extends WrappedDataframe[T]
 object Wrapper {
   implicit def wrap(in: DataFrame): Wrapper[DataFrame] = {
     val str: String = utilities.Symbol.fresh()
-    JoinCondContext.addField(str -> in.columns)
+    JoinContext.addField(str -> in.columns)
 
     new Wrapper[DataFrame](in, str)
   }

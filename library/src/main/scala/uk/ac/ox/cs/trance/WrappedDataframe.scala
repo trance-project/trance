@@ -4,7 +4,7 @@ import framework.common.{StringType, TupleAttributeType}
 import framework.plans.{BaseNormalizer, CExpr, Finalizer, NRCTranslator, Printer, Unnester}
 import framework.utils.Utils.ind
 import org.apache.spark.sql.{Column, DataFrame}
-import uk.ac.ox.cs.trance.utilities.JoinCondContext
+import uk.ac.ox.cs.trance.utilities.JoinContext
 
 import scala.collection.immutable.{Map => IMap}
 
@@ -136,7 +136,7 @@ trait WrappedDataframe[T] extends Rep[DataFrame] with NRCTranslator {
     case Inequality(lhs, rhs) => Inequality(handleDupColumnNames(lhs), handleDupColumnNames(rhs))
     case v: Literal[T] => v
     case BaseCol(dfId, str) =>
-      val strs = JoinCondContext.getMappingsForStr(dfId)
+      val strs = JoinContext.getMappingsForStr(dfId)
       val matchingValueOption: String = strs.find(_.startsWith(str)).get
       BaseCol(dfId, matchingValueOption)
   }
@@ -146,7 +146,7 @@ trait WrappedDataframe[T] extends Rep[DataFrame] with NRCTranslator {
    * Currently only used in Joins.
    */
   private def handleDupColumnNames[S](w: Wrapper[S]): Wrapper[T] = {
-    val columnNames = JoinCondContext.getMappingsForStr(w.str)
+    val columnNames = JoinContext.getMappingsForStr(w.str)
     val updatedNestedDf = columnNames.zip(w.in.asInstanceOf[DataFrame].columns).foldLeft(w.in.asInstanceOf[DataFrame]) {
       case (accDf, (newCol, oldCol)) =>
         accDf.withColumnRenamed(oldCol, newCol)

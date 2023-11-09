@@ -1,16 +1,17 @@
 package uk.ac.ox.cs.trance
 
 
-import org.scalatest.{BeforeAndAfterEach, FunSpec}
+import org.scalatest.BeforeAndAfterEach
 import org.apache.spark.sql.DataFrame
 import uk.ac.ox.cs.trance.app.TestApp.spark
 import Wrapper.DataFrameImplicit
-import utilities.{JoinCondContext, Symbol}
+import utilities.{JoinContext, Symbol}
 import org.apache.spark.sql.functions.col
-import org.scalatest.Matchers.convertToAnyShouldWrapper
+import org.scalatest.funspec.AnyFunSpec
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import uk.ac.ox.cs.trance.utilities.TestDataframes._
 
-class EndToEndScenarioTest extends FunSpec with BeforeAndAfterEach {
+class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
 
 
   def assertDataFrameEquals(expected: DataFrame, result: DataFrame): Unit = {
@@ -31,7 +32,7 @@ class EndToEndScenarioTest extends FunSpec with BeforeAndAfterEach {
 
   override protected def afterEach(): Unit = {
     Symbol.freshClear()
-    JoinCondContext.freshClear()
+    JoinContext.freshClear()
 
     super.afterEach()
   }
@@ -288,6 +289,23 @@ class EndToEndScenarioTest extends FunSpec with BeforeAndAfterEach {
       val expected = df.join(df2, df("users") > df2("users")).join(df3, df("users") === df3("userNo"))
       val res = wrappedDf.join(wrappedDf2, wrappedDf("users") > wrappedDf2("users")).join(wrappedDf3, wrappedDf("users") === wrappedDf3("userNo")).leaveNRC()
 
+      assertDataFramesAreEquivalent(res, expected)
+    }
+    it("Successful Self Join - 3 Flat Datasets with 2 Non Distinct Columns in Equality Condition") {
+      val data: Seq[(String, Int)] = Seq(("Go", 20), ("Ruby", 90), ("Rust", 100), ("Go", 10))
+      import spark.implicits._
+      val df = data.toDF("language", "users")
+      val df2 = data.toDF("language", "usr")
+      val df3 = data.toDF("language", "users")
+
+      val wrappedDf = df.wrap()
+      val wrappedDf2 = df2.wrap()
+      val wrappedDf3 = df3.wrap()
+
+      val expected = df.join(df2, df("users") === df2("usr")).join(df3, df("users") === df3("users"))
+      expected.show()
+      val res = wrappedDf.join(wrappedDf2, wrappedDf("users") === wrappedDf2("usr")).join(wrappedDf3, wrappedDf("users") === wrappedDf3("users")).leaveNRC()
+      res.show()
       assertDataFramesAreEquivalent(res, expected)
     }
 
