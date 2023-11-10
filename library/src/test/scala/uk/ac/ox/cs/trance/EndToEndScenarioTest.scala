@@ -33,7 +33,6 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
   override protected def afterEach(): Unit = {
     Symbol.freshClear()
     JoinContext.freshClear()
-
     super.afterEach()
   }
 
@@ -303,9 +302,7 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
       val wrappedDf3 = df3.wrap()
 
       val expected = df.join(df2, df("users") === df2("usr")).join(df3, df("users") === df3("users"))
-      expected.show()
       val res = wrappedDf.join(wrappedDf2, wrappedDf("users") === wrappedDf2("usr")).join(wrappedDf3, wrappedDf("users") === wrappedDf3("users")).leaveNRC()
-      res.show()
       assertDataFramesAreEquivalent(res, expected)
     }
 
@@ -437,6 +434,152 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
       val res = wrappedDf.join(wrappedDf2, wrappedDf("language") === wrappedDf2("language")).leaveNRC()
       
       assertDataFramesAreEquivalent(res, expected)
+    }
+
+    it("Join with array type") {
+      val df = arrayTypeDataframe
+      val df2 = arrayTypeDataframe
+
+      val wrappedDf = df.wrap()
+      val wrappedDf2 = df.wrap()
+
+      val expected = df.join(df2, df("name") === df2("name"))
+      expected.show()
+
+      val res = wrappedDf.join(wrappedDf2, wrappedDf("name") === wrappedDf2("name")).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Join - String Condition Join, 2 Flat Datasets") {
+      val data: Seq[(String, Int)] = Seq(("Go", 20), ("Ruby", 90), ("Rust", 100), ("Go", 10))
+      import spark.implicits._
+      val df = data.toDF("language", "users")
+      val df2 = data.toDF("language", "users")
+
+      val wrappedDf = df.wrap()
+      val wrappedDf2 = df2.wrap()
+
+      val expected = df.join(df2, "language")
+      expected.show()
+
+      val res = wrappedDf.join(wrappedDf2, "language").leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Join - String Condition Join, 3 Flat Datasets") {
+      val data: Seq[(String, Int)] = Seq(("Go", 20), ("Ruby", 90), ("Rust", 100), ("Go", 10))
+      import spark.implicits._
+      val df = data.toDF("language", "users")
+      val df2 = data.toDF("language", "users")
+      val df3 = data.toDF("language", "users")
+
+      val wrappedDf = df.wrap()
+      val wrappedDf2 = df2.wrap()
+      val wrappedDf3 = df3.wrap()
+
+      val expected = df.join(df2, "language").join(df3, "language")
+      expected.show()
+
+      val res = wrappedDf.join(wrappedDf2, "language").join(wrappedDf3, "language").leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Join - Seq Condition Join Single String, 2 Flat Datasets") {
+      val data: Seq[(String, Int)] = Seq(("Go", 20), ("Ruby", 90), ("Rust", 100), ("Go", 10))
+      import spark.implicits._
+      val df = data.toDF("language", "users")
+      val df2 = data.toDF("language", "users")
+
+      val wrappedDf = df.wrap()
+      val wrappedDf2 = df2.wrap()
+
+      val expected = df.join(df2, Seq("language"))
+      expected.show()
+
+      val res = wrappedDf.join(wrappedDf2, Seq("language")).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Join - Seq Condition Join 2 Strings, 2 Flat Datasets") {
+      val data: Seq[(String, Int)] = Seq(("Go", 20), ("Ruby", 90), ("Rust", 100), ("Go", 10))
+      import spark.implicits._
+      val df = data.toDF("language", "users")
+      val df2 = data.toDF("language", "users")
+
+      val wrappedDf = df.wrap()
+      val wrappedDf2 = df2.wrap()
+
+      val expected = df.join(df2, Seq("language", "users"))
+      expected.show()
+
+      val res = wrappedDf.join(wrappedDf2, Seq("language", "users")).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Join - Seq Condition Join Multi String, 3 Flat Datasets") {
+      val df = simpleIntDataframe
+      val df2 = simpleIntDataframe4
+      val df3 = simpleIntDataframe5
+
+
+      val wrappedDf = df.wrap()
+      val wrappedDf2 = df2.wrap()
+      val wrappedDf3 = df3.wrap()
+
+      val expected = df.join(df2, "language").join(df3, Seq("language", "users"))
+      expected.show()
+
+      val res = wrappedDf.join(wrappedDf2, "language").join(wrappedDf3, Seq("language", "users")).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+
+    // This fails. We are comparing stats wchich is a nested type. NRC only supports PrimitiveCmp?
+    it("Successful Join - Seq Condition Join Multi String, 3 Nested Datasets") {
+      val df = nestedDataframe2
+      val df2 = multiNestedDataframe
+      val df3 = nestedDataframe2
+
+
+      val wrappedDf = df.wrap()
+      val wrappedDf2 = df2.wrap()
+      val wrappedDf3 = df3.wrap()
+
+      val expected = df.join(df2, "language").join(df3, Seq("language", "stats"))
+      expected.show()
+
+      val res = wrappedDf.join(wrappedDf2, "language").join(wrappedDf3, Seq("language", "stats")).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("No Join Cond") {
+      val df = simpleIntDataframe
+      val df2 = simpleIntDataframe2
+
+      val wrappedDf = df.wrap()
+      val wrappedDf2 = df2.wrap()
+
+      val expected = df.join(df2)
+      expected.show()
+
+      val res = wrappedDf.join(wrappedDf2).leaveNRC()
+      res.show()
+
+
     }
 
 

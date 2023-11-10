@@ -13,33 +13,35 @@ package uk.ac.ox.cs.trance
  * <br>
  * [[MathCol]] work the same as CompCols but are defined separately so they can be handled differently during conversion to NRC Expression in [[NRCConverter]]
  */
-trait Col[T] extends Rep[T]
+trait Col extends Rep
 
-trait CompCol[T] extends Col[T] {
-  val lhs: Rep[T]
-  val rhs: Rep[T]
+trait CompCol extends Col {
+  val lhs: Rep
+  val rhs: Rep
 }
 
-case class BaseCol[T](dfId: String, name: String) extends Col[T]
-case class Literal[T](v: Any) extends Col[T]
-case class Equality[T](lhs: Rep[T],rhs: Rep[T]) extends CompCol[T]
-case class Inequality[T](lhs: Rep[T], rhs: Rep[T]) extends  CompCol[T]
-case class GreaterThan[T](lhs: Rep[T], rhs: Rep[T]) extends  CompCol[T]
-case class GreaterThanOrEqual[T](lhs: Rep[T], rhs: Rep[T]) extends  CompCol[T]
-case class LessThan[T](lhs: Rep[T], rhs: Rep[T]) extends  CompCol[T]
-case class LessThanOrEqual[T](lhs: Rep[T], rhs: Rep[T]) extends  CompCol[T]
-case class OrRep[T](lhs: Rep[T], rhs: Rep[T]) extends  CompCol[T]
-case class AndRep[T](lhs: Rep[T], rhs: Rep[T]) extends  CompCol[T]
+case class BaseCol(dfId: String, name: String) extends Col
 
-trait MathCol[T] extends Col[T] {
-  val lhs: Rep[T]
-  val rhs: Rep[T]
+case class EquiJoinCol(dfId: String, dfId2: String, n: String*) extends Col
+case class Literal(v: Any) extends Col
+case class Equality(lhs: Rep,rhs: Rep) extends CompCol
+case class Inequality(lhs: Rep, rhs: Rep) extends  CompCol
+case class GreaterThan(lhs: Rep, rhs: Rep) extends  CompCol
+case class GreaterThanOrEqual(lhs: Rep, rhs: Rep) extends  CompCol
+case class LessThan(lhs: Rep, rhs: Rep) extends  CompCol
+case class LessThanOrEqual(lhs: Rep, rhs: Rep) extends  CompCol
+case class OrRep(lhs: Rep, rhs: Rep) extends  CompCol
+case class AndRep(lhs: Rep, rhs: Rep) extends  CompCol
+
+trait MathCol extends Col {
+  val lhs: Rep
+  val rhs: Rep
 }
 
-case class Mult[T](lhs: Rep[T], rhs: Rep[T]) extends MathCol[T]
-case class Add[T](lhs: Rep[T], rhs: Rep[T]) extends MathCol[T]
-case class Sub[T](lhs: Rep[T], rhs: Rep[T]) extends MathCol[T]
-case class Divide[T](lhs: Rep[T], rhs: Rep[T]) extends MathCol[T]
-case class Mod[T](lhs: Rep[T], rhs: Rep[T]) extends MathCol[T]
+case class Mult(lhs: Rep, rhs: Rep) extends MathCol
+case class Add(lhs: Rep, rhs: Rep) extends MathCol
+case class Sub(lhs: Rep, rhs: Rep) extends MathCol
+case class Divide(lhs: Rep, rhs: Rep) extends MathCol
+case class Mod(lhs: Rep, rhs: Rep) extends MathCol
 
 

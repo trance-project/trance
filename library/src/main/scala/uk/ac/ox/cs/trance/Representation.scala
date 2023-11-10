@@ -7,44 +7,44 @@ package uk.ac.ox.cs.trance
  * <br>
  * This layer allows a user to build a nested sequence of [[Rep]] that is then the recursively converted into an NRC Expression in [[NRCConverter]]
  */
-trait Rep[T] {
+trait Rep {
 
-    def *(e2: Rep[T]): Rep[T] = Mult[T](this, e2)
-    def *(e2: Number): Rep[T] = Mult[T](this, Literal(e2))
+    def *(e2: Rep): Rep = Mult(this, e2)
+    def *(e2: Number): Rep = Mult(this, Literal(e2))
 
-    def +(e2: Rep[T]): Rep[T] = Add[T](this, e2)
-    def +(e2: Number): Rep[T] = Add[T](this, Literal(e2))
+    def +(e2: Rep): Rep = Add(this, e2)
+    def +(e2: Number): Rep = Add(this, Literal(e2))
 
-    def -(e2: Rep[T]): Rep[T] = Sub(this, e2)
-    def -(e2: Number): Rep[T] = Sub(this, Literal(e2))
+    def -(e2: Rep): Rep = Sub(this, e2)
+    def -(e2: Number): Rep = Sub(this, Literal(e2))
 
-    def /(e2: Rep[T]): Rep[T] = Divide(e2, this)
-    def /(e2: Number): Rep[T] = Divide(Literal(e2), this)
+    def /(e2: Rep): Rep = Divide(e2, this)
+    def /(e2: Number): Rep = Divide(Literal(e2), this)
 
-    def %(e2: Rep[T]): Rep[T] = Mod(e2, this)
-    def %(e2: Number): Rep[T] = Mod(Literal(e2), this)
+    def %(e2: Rep): Rep = Mod(e2, this)
+    def %(e2: Number): Rep = Mod(Literal(e2), this)
 
-    def === (e2: Rep[T]): Rep[T] = Equality[T](this, e2)
-    def === (e2: Any): Rep[T] = Equality[T](this, Literal(e2))
+    def === (e2: Rep): Rep = Equality(this, e2)
+    def === (e2: Any): Rep = Equality(this, Literal(e2))
 
-    def =!=(e2: Rep[T]): Rep[T] = Inequality(this, e2)
-    def =!=(e2: Any): Rep[T] = Inequality(this, Literal(e2))
+    def =!=(e2: Rep): Rep = Inequality(this, e2)
+    def =!=(e2: Any): Rep = Inequality(this, Literal(e2))
 
-    def >(e2: Rep[T]): Rep[T] = GreaterThan(this, e2)
-    def >(e2: Number): Rep[T] = GreaterThan(this, Literal(e2))
+    def >(e2: Rep): Rep = GreaterThan(this, e2)
+    def >(e2: Number): Rep = GreaterThan(this, Literal(e2))
 
-    def >=(e2: Rep[T]): Rep[T] = GreaterThanOrEqual(this, e2)
-    def >=(e2: Number): Rep[T] = GreaterThanOrEqual(this, Literal(e2))
+    def >=(e2: Rep): Rep = GreaterThanOrEqual(this, e2)
+    def >=(e2: Number): Rep = GreaterThanOrEqual(this, Literal(e2))
 
-    def <(e2: Rep[T]): Rep[T] = LessThan(e2, this)
-    def <(e2: Number): Rep[T] = LessThan(Literal(e2), this)
+    def <(e2: Rep): Rep = LessThan(e2, this)
+    def <(e2: Number): Rep = LessThan(Literal(e2), this)
 
-    def <=(e2: Rep[T]): Rep[T] = LessThanOrEqual(e2, this)
-    def <=(e2: Number): Rep[T] = LessThanOrEqual(Literal(e2), this)
+    def <=(e2: Rep): Rep = LessThanOrEqual(e2, this)
+    def <=(e2: Number): Rep = LessThanOrEqual(Literal(e2), this)
 
-    def &&(e2: Rep[T]): Rep[T] = AndRep(this, e2)
+    def &&(e2: Rep): Rep = AndRep(this, e2)
 
-    def ||(e2: Rep[T]): Rep[T] = OrRep(this, e2)
+    def ||(e2: Rep): Rep = OrRep(this, e2)
 
 
 }
@@ -52,9 +52,9 @@ trait Rep[T] {
 /**
  * Used to represent a function argument in [[FlatMap]] & [[Map]]
  */
-case class Fun[T1, T2](in: Rep[T1], out: Rep[T2]) extends Rep[T1 => T2]
+case class Fun(in: Rep, out: Rep) extends Rep
 
-case class Sng[T](in: Rep[T]) extends WrappedDataframe[T]
+case class Sng(in: Rep) extends WrappedDataframe
 
-case class Sym[T](name: String) extends Rep[T]
+case class Sym(name: String) extends Rep
 

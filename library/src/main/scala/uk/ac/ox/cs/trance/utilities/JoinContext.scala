@@ -1,6 +1,5 @@
 package uk.ac.ox.cs.trance.utilities
 
-import scala.collection.immutable.{Map => IMap}
 
 /**
  * This object handles duplicate column names by adding a suffix in the form of _(int)
@@ -12,7 +11,7 @@ import scala.collection.immutable.{Map => IMap}
  * that column name's counter is incremented and a suffix is appended to it.
  */
 object JoinContext {
-    var ctx: IMap[String, Seq[String]] = IMap.empty
+    var ctx: Map[String, Seq[String]] = Map.empty
     private var counters: Map[String, Int] = Map.empty
 
   def addField(f: (String, Seq[String])*): Unit = {
@@ -35,5 +34,8 @@ object JoinContext {
     ctx.getOrElse(s, sys.error("no mappings for: " + s))
   }
 
-  def freshClear(): Unit = ctx = IMap.empty
+  def freshClear(): Unit = {
+    ctx = Map.empty
+    counters = Map.empty
+  }
 }

@@ -2,7 +2,8 @@ package uk.ac.ox.cs.trance.utilities
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
-import org.apache.spark.sql.types.{BooleanType, DoubleType, IntegerType, LongType, StringType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, BooleanType, DoubleType, IntegerType, LongType, StringType, StructField, StructType}
+import uk.ac.ox.cs.trance.app.TestApp.spark
 
 object TestDataframes {
 
@@ -35,6 +36,11 @@ object TestDataframes {
     data.toDF("language", "users")
   }
 
+  val simpleIntDataframe5: DataFrame = {
+    val data: Seq[(String, Int, Boolean)] = Seq(("Go", 20, true), ("Java", 1, true), ("Rust", 3, false), ("Go", 4, false))
+    import spark.implicits._
+    data.toDF("language", "users", "inUse")
+  }
 
   val simpleStringDataframe: DataFrame = {
     val data = Seq(("C#", "100", true), ("C++", "250", false), ("C#", "100", true))
@@ -104,4 +110,21 @@ object TestDataframes {
     spark.createDataFrame(rdd, schema)
 
   }
+
+  val arrayTypeDataframe: DataFrame = {
+    val arrayStructureData = Seq(
+      Row("James,,Smith", List("Java", "Scala", "C++"), "OH"),
+      Row("Michael,Rose,", List("Spark", "Java", "C++"), "NJ"),
+      Row("Robert,,Williams", List("CSharp", "VB"), "NV")
+    )
+    val arrayStructureSchema = new StructType()
+      .add("name", StringType)
+      .add("languagesAtSchool", ArrayType(StringType))
+      .add("currentState", StringType)
+    val df = spark.createDataFrame(
+      spark.sparkContext.parallelize(arrayStructureData), arrayStructureSchema)
+
+    df
+  }
+
 }

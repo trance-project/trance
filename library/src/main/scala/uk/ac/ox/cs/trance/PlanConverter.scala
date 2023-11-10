@@ -1,12 +1,12 @@
 package uk.ac.ox.cs.trance
 
 import uk.ac.ox.cs.trance.utilities.SparkUtil.getSparkSession
-import framework.common.{BagCType, BoolType, DoubleType, IntType, LongType, OpDivide, OpMinus, OpMod, OpMultiply, OpPlus, StringType, Type}
+import framework.common.{BagCType, BoolType, DoubleType, IntType, LongType, OpDivide, OpMinus, OpMod, OpMultiply, OpPlus, RecordCType, StringType, Type}
 import framework.plans.{AddIndex, CDeDup, CExpr, Comprehension, Constant, EmptySng, Equals, Gt, Gte, If, InputRef, Lt, Lte, MathOp, Not, Projection, Record, Variable, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.{BinaryOperator, EqualTo, Expression, And => SparkAnd, GreaterThan => SparkGreaterThan, GreaterThanOrEqual => SparkGreaterThanOrEqual, LessThan => SparkLessThan, LessThanOrEqual => SparkLessThanOrEqual, Literal => SparkLiteral, Not => SparkNot, Or => SparkOr}
 import org.apache.spark.sql.functions.{col, expr, monotonically_increasing_id}
-import org.apache.spark.sql.types.{DataType, DataTypes, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, DataType, DataTypes, StructField, StructType}
 import org.apache.spark.sql.{Column, DataFrame, Row, functions}
 
 import scala.annotation.tailrec
@@ -26,6 +26,7 @@ object PlanConverter {
       val c1 = convert(e1, ctx).asInstanceOf[DataFrame]
 
       val outputSchema = createStructFields(p)
+      println(outputSchema)
 
       val l = c1.flatMap { z => Seq(convert(p, ctx ++ getProjectionBinding(e1, z)).asInstanceOf[Row]) }(RowEncoder.apply(outputSchema))
       l.asInstanceOf[T]
@@ -56,7 +57,8 @@ object PlanConverter {
       val row = convert(e1, ctx).asInstanceOf[Row]
       val projectionFieldIndex = row.schema.fieldIndex(field)
       val columnValue = row.get(projectionFieldIndex)
-      Row.fromSeq(Array(columnValue)).asInstanceOf[T]
+      val r = Row.fromSeq(Array(columnValue))
+        r.asInstanceOf[T]
     case CSng(e1) =>
       convert(e1, ctx)
     case Comprehension(e1, v, p, e) =>
@@ -69,7 +71,8 @@ object PlanConverter {
         convert(x._2, ctx).asInstanceOf[Row]
       }.toArray
       val combinedRow = t.flatMap(row => row.toSeq)
-      Row.fromSeq(combinedRow).asInstanceOf[T]
+      val r = Row.fromSeq(combinedRow)
+      r.asInstanceOf[T]
     case CReduce(in, v, keys, values) =>
       val d1 = convert(in, ctx).asInstanceOf[DataFrame]
       d1.groupBy(keys.head, keys.tail: _*).sum(values: _*).asInstanceOf[T]
@@ -200,6 +203,13 @@ object PlanConverter {
 //
 //      }
     case SparkNot(e1) => i1.join(i2, processSparkExpression(i1, i2, condition.expr))
+    case s: SparkLiteral => {
+      if(s.value == true) {
+        i1.join(i2)
+      }else {
+        sys.error("Invalid Join Condition: " + s)
+      }
+    }
     case s@_ => sys.error("Unhandled join condition: " + s)
   }
 
@@ -247,6 +257,7 @@ object PlanConverter {
     case StringType => DataTypes.StringType
     case DoubleType => DataTypes.DoubleType
     case LongType => DataTypes.LongType
+    case RecordCType(attrTps) => ArrayType(DataTypes.StringType)
     case BagCType(tp) => StructType(tp.attrs.map(f => StructField(f._1, getStructDataType(f._2))).toSeq)
     case s@_ => sys.error("Unhandled struct type: " + s)
   }
