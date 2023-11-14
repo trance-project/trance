@@ -100,6 +100,8 @@ object NumericType {
 
 }
 
+final case class ArrayType(tp: TupleAttributeType) extends TupleAttributeType
+
 final case class BagType(tp: TupleType) extends TupleAttributeType with ReducibleType
 
 final case class KeyValueMapType(keyTp: LabelType, valueTp: BagType) extends TupleAttributeType

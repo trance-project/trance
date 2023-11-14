@@ -48,6 +48,12 @@ object TestDataframes {
     data.toDF("language", "users", "inUse")
   }
 
+  val simpleAllTypesDataframe: DataFrame = {
+    val data = Seq(("C#", 100, true, 7.5, 75L), ("C++", 250, false, 2.5, 25L), ("Java", 300, true, 3.5, 35L))
+    import spark.implicits._
+    data.toDF("language", "users", "inUse", "weight", "percentage")
+  }
+
   val nestedDataframe: DataFrame = {
 
     val data = Seq(("Java", Seq("20000", 0, 7.5)), ("Python", Seq("100000", 1, 8.5)), ("Scala", Seq("3000", 2, 9.0)))
@@ -78,6 +84,24 @@ object TestDataframes {
       StructField("stats", StructType(Seq(
         StructField("users", StringType, nullable = true),
         StructField("difficulty", IntegerType, nullable = true),
+        StructField("average_review", DoubleType, nullable = true)
+      )))
+    ))
+
+    spark.createDataFrame(rdd, schema)
+
+  }
+  val nestedDataframe3: DataFrame = {
+
+    val data = Seq(("Java", Seq(0, "20000", 7.5)), ("Python", Seq(1, "100000", 8.5)), ("Scala", Seq(2, "3000", 9.0)))
+
+    val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, Row.fromSeq(s)) }
+
+    val schema: StructType = StructType(Seq(
+      StructField("language", StringType, nullable = true),
+      StructField("stats", StructType(Seq(
+        StructField("difficulty", IntegerType, nullable = true),
+        StructField("users", StringType, nullable = true),
         StructField("average_review", DoubleType, nullable = true)
       )))
     ))

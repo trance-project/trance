@@ -31,6 +31,10 @@ trait BaseExpr {
     def tp: BagType
   }
 
+  trait ArrayExpr extends TupleAttributeExpr {
+    def tp: ArrayType
+  }
+
   trait GroupByExpr extends BagExpr {
     def e: BagExpr
 
@@ -116,6 +120,10 @@ trait NRC extends BaseExpr {
 
   final case class BagProject(tuple: TupleVarRef, field: String) extends BagExpr with TupleProject {
     override def tp: BagType = super.tp.asInstanceOf[BagType]
+  }
+
+  final case class ArrayProject(tuple: TupleVarRef, field: String) extends ArrayExpr with TupleProject {
+    override def tp: ArrayType = super.tp.asInstanceOf[ArrayType]
   }
 
   final case class ForeachUnion(x: VarDef, e1: BagExpr, e2: BagExpr) extends BagExpr {

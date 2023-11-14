@@ -1,8 +1,6 @@
 package uk.ac.ox.cs.trance
 
-import framework.common.{StringType, TupleAttributeType}
 import framework.plans.{BaseNormalizer, CExpr, Finalizer, NRCTranslator, Printer, Unnester}
-import framework.utils.Utils.ind
 import org.apache.spark.sql.{Column, DataFrame}
 import uk.ac.ox.cs.trance.utilities.JoinContext
 
@@ -31,13 +29,11 @@ trait WrappedDataframe extends Rep with NRCTranslator {
   }
 
   def join(df: Wrapper): WrappedDataframe = {
-    Join(this, df, None)
+    Join(this, handleDupColumnNames(df), None)
   }
 
   def join(df: Wrapper, joinCond: Rep): WrappedDataframe = {
-    val updatedWrapper = handleDupColumnNames(df)
-    val updatedJoinCond = handleDupColumnNames(joinCond)
-    Join(this, updatedWrapper.asInstanceOf[WrappedDataframe], Some(updatedJoinCond))
+    Join(this, handleDupColumnNames(df), Some(handleDupColumnNames(joinCond)))
   }
 
   /**
@@ -46,20 +42,16 @@ trait WrappedDataframe extends Rep with NRCTranslator {
    * In this case the matched column from the second dataset.
    */
   def join(df: Wrapper, withColumns: String): WrappedDataframe = {
-    val nestedDfId = getNestedWrapperId(this)
-    val updatedWrapper = handleDupColumnNames(df)
-    val joinColumns = EquiJoinCol(nestedDfId, df.str, withColumns)
-    Join(this, updatedWrapper, Some(joinColumns))
+    val joinColumns = EquiJoinCol(getNestedWrapperId(this), df.str, withColumns)
+    Join(this, handleDupColumnNames(df), Some(joinColumns))
   }
 
   /**
    * Just like join(df: Wrapper, withColumns: String) but its possible to specify multiple columns in the join condition.
    */
   def join(df: Wrapper, withColumns: Seq[String]): WrappedDataframe = {
-    val nestedDfId = getNestedWrapperId(this)
-    val updatedWrapper = handleDupColumnNames(df)
-    val joinColumns = EquiJoinCol(nestedDfId, df.str, withColumns:_*)
-    Join(this, updatedWrapper, Some(joinColumns))
+    val joinColumns = EquiJoinCol(getNestedWrapperId(this), df.str, withColumns:_*)
+    Join(this, handleDupColumnNames(df), Some(joinColumns))
   }
 
 
@@ -132,7 +124,7 @@ trait WrappedDataframe extends Rep with NRCTranslator {
    *         This mapping is passed into the [[PlanConverter]] and will be referenced when an InputRef is encountered
    */
   private def getCtx(e: Rep = this): IMap[String, DataFrame] = e match {
-    case Wrapper(in, e) => IMap(e -> in.asInstanceOf[DataFrame]) //Maybe get from JoinCondCtx
+    case Wrapper(in, e) => IMap(e -> in)
     case Merge(e1, e2) => getCtx(e1) ++ getCtx(e2)
     case Join(e1, e2, _) => getCtx(e1) ++ getCtx(e2)
     case Drop(e1, _) => getCtx(e1)
@@ -161,10 +153,6 @@ trait WrappedDataframe extends Rep with NRCTranslator {
       val strs = JoinContext.getMappingsForStr(dfId)
       val matchingValueOption: String = strs.find(_.startsWith(str)).get
       BaseCol(dfId, matchingValueOption)
-//    case EquiJoinCol(dfId, n) =>
-//      val strs = JoinContext.getMappingsForStr(dfId)
-//      val matchingValueOption: String = strs.find(_.startsWith(n)).get
-//      EquiJoinCol(dfId, matchingValueOption)
   }
 
   /**
@@ -173,13 +161,13 @@ trait WrappedDataframe extends Rep with NRCTranslator {
    */
   private def handleDupColumnNames(w: Wrapper): Wrapper = {
     val columnNames = JoinContext.getMappingsForStr(w.str)
-    val updatedNestedDf = columnNames.zip(w.in.asInstanceOf[DataFrame].columns).foldLeft(w.in.asInstanceOf[DataFrame]) {
+    val updatedNestedDf = columnNames.zip(w.in.columns).foldLeft(w.in) {
       case (accDf, (newCol, oldCol)) =>
         accDf.withColumnRenamed(oldCol, newCol)
     }
 
     val updatedWrapper = Wrapper(updatedNestedDf, w.str)
-    updatedWrapper.asInstanceOf[Wrapper]
+    updatedWrapper
   }
 
   /**

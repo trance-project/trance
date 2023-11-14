@@ -59,6 +59,7 @@ trait Factory {
         case _: BagType => BagProject(v, field)
         case _: LabelType => LabelProject(v, field)
         case _: KeyValueMapType => KeyValueMapProject(v, field)
+        case _: ArrayType => ArrayProject(v, field)
         case tp => sys.error("Cannot create Project for tuple type " + tp)
       }
     }
