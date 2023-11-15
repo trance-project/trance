@@ -204,6 +204,15 @@ trait NRC extends BaseExpr {
     assert(e1.tp == e2.tp || (e1.tp.isInstanceOf[NumericType] && e2.tp.isInstanceOf[NumericType]))
   }
 
+  final case class ArrayCmp(op: OpCmp, e1: ArrayExpr, e2: ArrayExpr) extends CondExpr with Cmp {
+    assert(e1.tp == e2.tp)
+  }
+
+  final case class BagCmp(op: OpCmp, e1: BagExpr, e2: BagExpr) extends CondExpr with Cmp {
+    assert(e1.tp == e2.tp)
+  }
+
+
   final case class And(e1: CondExpr, e2: CondExpr) extends CondExpr
 
   final case class Or(e1: CondExpr, e2: CondExpr) extends CondExpr

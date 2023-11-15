@@ -43,7 +43,7 @@ object NRCConverter extends NRCTranslator {
       val tvr = TupleVarRef(utilities.Symbol.fresh(), expr.tp.tp)
       val map: IMap[String, TupleVarRef] = IMap(expr.name -> tvr)
       val pq = cols.asInstanceOf[Seq[Col]]
-      val k = pq.map(z => sparkAliasing(z) -> translateColumn(z, map))
+      val k = pq.map(z => sparkAliasing(z) -> translateColumn(z, map).asPrimitive)
 
       ForeachUnion(tvr, expr, prepareSelectOutput(k))
     //TODO - Reimplementation needed
@@ -125,19 +125,19 @@ object NRCConverter extends NRCTranslator {
    * NumericProject(TupleVarRef(id,TupleType(Map(column -> IntType, column2 -> IntType))),userCount2)
    * )
    */
-  private def translateColumn(c: Rep, ctx: IMap[String, TupleVarRef]): PrimitiveExpr = c match {
-    case BaseCol(df, n) => Project(ctx(df), n).asPrimitive
+  private def translateColumn(c: Rep, ctx: IMap[String, TupleVarRef]): Expr = c match {
+    case BaseCol(df, n) => Project(ctx(df), n)
     case Literal(e) => Const(e, getPrimitiveType(e))
     case EquiJoinCol(dfId, dfId2, n: String) =>
       Cmp(OpEq, Project(ctx(dfId), n), Project(ctx(dfId2), s"${n}_${extractSuffixCount(dfId2)}"))
     case EquiJoinCol(dfId, dfId2, n@ _*) =>
       n.map(f => Cmp(OpEq, Project(ctx(dfId), f), Project(ctx(dfId2), s"${f}_${extractSuffixCount(dfId2)}"))).reduce(And)
-    case Equality(e1, e2) => PrimitiveCmp(OpEq, translateColumn(e1, ctx), translateColumn(e2, ctx))
-    case Inequality(e1, e2) => PrimitiveCmp(OpNe, translateColumn(e1, ctx), translateColumn(e2, ctx))
-    case GreaterThan(e1, e2) => PrimitiveCmp(OpGt, translateColumn(e1, ctx), translateColumn(e2, ctx))
-    case GreaterThanOrEqual(e1, e2) => PrimitiveCmp(OpGe, translateColumn(e1, ctx), translateColumn(e2, ctx))
-    case LessThan(e1, e2) => PrimitiveCmp(OpGt, translateColumn(e1, ctx), translateColumn(e2, ctx))
-    case LessThanOrEqual(e1, e2) => PrimitiveCmp(OpGe, translateColumn(e1, ctx), translateColumn(e2, ctx))
+    case Equality(e1, e2) => Cmp(OpEq, translateColumn(e1, ctx), translateColumn(e2, ctx))
+    case Inequality(e1, e2) => Cmp(OpNe, translateColumn(e1, ctx), translateColumn(e2, ctx))
+    case GreaterThan(e1, e2) => Cmp(OpGt, translateColumn(e1, ctx), translateColumn(e2, ctx))
+    case GreaterThanOrEqual(e1, e2) => Cmp(OpGe, translateColumn(e1, ctx), translateColumn(e2, ctx))
+    case LessThan(e1, e2) => Cmp(OpGt, translateColumn(e1, ctx), translateColumn(e2, ctx))
+    case LessThanOrEqual(e1, e2) => Cmp(OpGe, translateColumn(e1, ctx), translateColumn(e2, ctx))
     case Mult(e1, e2) => ArithmeticExpr(OpMultiply, translateColumn(e1, ctx).asNumeric, translateColumn(e2, ctx).asNumeric)
     case Add(e1, e2) => ArithmeticExpr(OpPlus, translateColumn(e1, ctx).asNumeric, translateColumn(e2, ctx).asNumeric)
     case Sub(e1, e2) => ArithmeticExpr(OpMinus, translateColumn(e1, ctx).asNumeric, translateColumn(e2, ctx).asNumeric)

@@ -447,7 +447,7 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
       assertDataFramesAreEquivalent(res, expected)
     }
 
-    it("Join with array type") {
+    it("Join with array type - 2 Flat datasets String Join Condition") {
       val df = arrayTypeDataframe
       val df2 = arrayTypeDataframe
 
@@ -455,10 +455,33 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
       val wrappedDf2 = df.wrap()
 
       val expected = df.join(df2, df("name") === df2("name"))
-      expected.show()
-
       val res = wrappedDf.join(wrappedDf2, wrappedDf("name") === wrappedDf2("name")).leaveNRC()
-      res.show()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Join with array type - 2 Flat datasets Array Join Condition") {
+      val df = arrayTypeDataframe
+      val df2 = arrayTypeDataframe
+
+      val wrappedDf = df.wrap()
+      val wrappedDf2 = df2.wrap()
+
+      val expected = df.join(df2, df("language") === df2("language"))
+      val res = wrappedDf.join(wrappedDf2, wrappedDf("language") === wrappedDf2("language")).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Join with array type - 2 Flat datasets Array Join Condition, 1/3 matches") {
+      val df = arrayTypeDataframe
+      val df2 = arrayTypeDataframe2
+
+      val wrappedDf = df.wrap()
+      val wrappedDf2 = df2.wrap()
+
+      val expected = df.join(df2, df("language") === df2("language"))
+      val res = wrappedDf.join(wrappedDf2, wrappedDf("language") === wrappedDf2("language")).leaveNRC()
 
       assertDataFramesAreEquivalent(expected, res)
     }
@@ -473,10 +496,8 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
       val wrappedDf2 = df2.wrap()
 
       val expected = df.join(df2, "language")
-      expected.show()
-
       val res = wrappedDf.join(wrappedDf2, "language").leaveNRC()
-      res.show()
+
 
       assertDataFramesAreEquivalent(expected, res)
     }
@@ -493,10 +514,8 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
       val wrappedDf3 = df3.wrap()
 
       val expected = df.join(df2, "language").join(df3, "language")
-      expected.show()
-
       val res = wrappedDf.join(wrappedDf2, "language").join(wrappedDf3, "language").leaveNRC()
-      res.show()
+
 
       assertDataFramesAreEquivalent(expected, res)
     }
@@ -511,10 +530,8 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
       val wrappedDf2 = df2.wrap()
 
       val expected = df.join(df2, Seq("language"))
-      expected.show()
-
       val res = wrappedDf.join(wrappedDf2, Seq("language")).leaveNRC()
-      res.show()
+
 
       assertDataFramesAreEquivalent(expected, res)
     }
@@ -529,10 +546,7 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
       val wrappedDf2 = df2.wrap()
 
       val expected = df.join(df2, Seq("language", "users"))
-      expected.show()
-
       val res = wrappedDf.join(wrappedDf2, Seq("language", "users")).leaveNRC()
-      res.show()
 
       assertDataFramesAreEquivalent(expected, res)
     }
@@ -548,16 +562,11 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
       val wrappedDf3 = df3.wrap()
 
       val expected = df.join(df2, "language").join(df3, Seq("language", "users"))
-      expected.show()
-
       val res = wrappedDf.join(wrappedDf2, "language").join(wrappedDf3, Seq("language", "users")).leaveNRC()
-      res.show()
 
       assertDataFramesAreEquivalent(expected, res)
     }
 
-
-    //This fails can CMP bags currently
     it("Successful Join - Seq Condition Equi-Join Multi String including StructType column, 3 Nested Datasets") {
       val df = nestedDataframe2
       val df2 = multiNestedDataframe
@@ -568,31 +577,67 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
       val wrappedDf3 = df3.wrap()
 
       val expected = df.join(df2, "language").join(df3, Seq("language", "stats"))
-      expected.show()
-
       val res = wrappedDf.join(wrappedDf2, "language").join(wrappedDf3, Seq("language", "stats")).leaveNRC()
-      res.show()
+
 
       assertDataFramesAreEquivalent(expected, res)
     }
 
-
-    // This fails. We are comparing stats wchich is a nested type. NRC only supports PrimitiveCmp?
-    it("Successful Join - StructType column condition, 2 Nested Datasets") {
+    it("Successful Join - StructType Column Condition, 2 Nested Datasets") {
       val df = nestedDataframe2
       val df3 = nestedDataframe3
+
+      val wrappedDf = df.wrap()
+      val wrappedDf3 = df3.wrap()
+
+      val expected = df.join(df3, df("stats") === df3("stats"))
+      val res = wrappedDf.join(wrappedDf3, wrappedDf("stats") === wrappedDf3("stats")).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Join - StructType Column Condition, 2 Nested Datasets 1/3 Matched") {
+      val df = nestedDataframe2
+      val df3 = nestedDataframe4
 
 
       val wrappedDf = df.wrap()
       val wrappedDf3 = df3.wrap()
 
       val expected = df.join(df3, df("stats") === df3("stats"))
-      expected.show()
-
       val res = wrappedDf.join(wrappedDf3, wrappedDf("stats") === wrappedDf3("stats")).leaveNRC()
-      res.show()
 
       assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Join - StructType Column Condition, Empty Result Set") {
+      val df = nestedDataframe2
+      val df3 = nestedDataframe5
+
+
+      val wrappedDf = df.wrap()
+      val wrappedDf3 = df3.wrap()
+
+      val expected = df.join(df3, df("stats") === df3("stats"))
+      val res = wrappedDf.join(wrappedDf3, wrappedDf("stats") === wrappedDf3("stats")).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Unsuccessful Join - StructType Column Condition, Different Nested Types") {
+      val df = nestedDataframe
+      val df3 = nestedDataframe4
+
+
+      val wrappedDf = df.wrap()
+      val wrappedDf3 = df3.wrap()
+
+      val caughtException = intercept[Throwable] {
+        wrappedDf.join(wrappedDf3, wrappedDf("info") === wrappedDf3("stats")).leaveNRC()
+      }
+
+      assert(caughtException.isInstanceOf[AssertionError])
+
     }
 
     it("Successful Join - No Join Cond, 2 Flat Datasets") {
@@ -617,9 +662,7 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
       val wrappedDf2 = df2.wrap()
 
       val expected = df.join(df2)
-      expected.show()
       val res = wrappedDf.join(wrappedDf2).leaveNRC()
-      res.show()
 
       assertDataFramesAreEquivalent(expected, res)
 

@@ -124,6 +124,8 @@ trait Factory {
   object Cmp {
     def apply(op: OpCmp, e1: Expr, e2: Expr): CondExpr = (e1, e2) match {
       case (p1: PrimitiveExpr, p2: PrimitiveExpr) => PrimitiveCmp(op, p1, p2)
+      case (p1: ArrayExpr, p2: ArrayExpr) => ArrayCmp(op, p1, p2)
+      case (p1: BagExpr, p2: BagExpr) => BagCmp(op, p1, p2)
       case _ => sys.error("Cannot create Cmp for types " + e1.tp + " and " + e2.tp)
     }
   }

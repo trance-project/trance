@@ -56,14 +56,14 @@ object TestDataframes {
 
   val nestedDataframe: DataFrame = {
 
-    val data = Seq(("Java", Seq("20000", 0, 7.5)), ("Python", Seq("100000", 1, 8.5)), ("Scala", Seq("3000", 2, 9.0)))
+    val data = Seq(("Java", Seq(20000, 0, 7.5)), ("Python", Seq(100000, 1, 8.5)), ("Scala", Seq(3000, 2, 9.0)))
 
     val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, Row.fromSeq(s)) }
 
     val schema: StructType = StructType(Seq(
       StructField("language", StringType, nullable = true),
       StructField("info", StructType(Seq(
-        StructField("users", StringType, nullable = true),
+        StructField("users", IntegerType, nullable = true),
         StructField("difficulty", IntegerType, nullable = true),
         StructField("average_review", DoubleType, nullable = true)
       )))
@@ -93,15 +93,51 @@ object TestDataframes {
   }
   val nestedDataframe3: DataFrame = {
 
-    val data = Seq(("Java", Seq(0, "20000", 7.5)), ("Python", Seq(1, "100000", 8.5)), ("Scala", Seq(2, "3000", 9.0)))
+    val data = Seq(("Java", Seq("20000", 0, 7.5)), ("Python", Seq("100000", 1, 8.5)), ("Scala", Seq("3000", 2, 9.0)))
 
     val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, Row.fromSeq(s)) }
 
     val schema: StructType = StructType(Seq(
       StructField("language", StringType, nullable = true),
       StructField("stats", StructType(Seq(
-        StructField("difficulty", IntegerType, nullable = true),
         StructField("users", StringType, nullable = true),
+        StructField("difficulty", IntegerType, nullable = true),
+        StructField("average_review", DoubleType, nullable = true)
+      )))
+    ))
+
+    spark.createDataFrame(rdd, schema)
+
+  }
+ val nestedDataframe4: DataFrame = {
+
+    val data = Seq(("Java", Seq("10", 0, 7.5)), ("Python", Seq("10000", 2, 8.5)), ("Scala", Seq("3000", 2, 9.0)))
+
+    val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, Row.fromSeq(s)) }
+
+    val schema: StructType = StructType(Seq(
+      StructField("language", StringType, nullable = true),
+      StructField("stats", StructType(Seq(
+        StructField("users", StringType, nullable = true),
+        StructField("difficulty", IntegerType, nullable = true),
+        StructField("average_review", DoubleType, nullable = true)
+      )))
+    ))
+
+    spark.createDataFrame(rdd, schema)
+
+  }
+ val nestedDataframe5: DataFrame = {
+
+    val data = Seq(("Java", Seq("10", 0, 7.5)), ("Python", Seq("10000", 2, 8.5)), ("Scala", Seq("30000", 2, 9.0)))
+
+    val rdd: RDD[Row] = spark.sparkContext.parallelize(data).map { case (l, s) => Row(l, Row.fromSeq(s)) }
+
+    val schema: StructType = StructType(Seq(
+      StructField("language", StringType, nullable = true),
+      StructField("stats", StructType(Seq(
+        StructField("users", StringType, nullable = true),
+        StructField("difficulty", IntegerType, nullable = true),
         StructField("average_review", DoubleType, nullable = true)
       )))
     ))
@@ -137,13 +173,29 @@ object TestDataframes {
 
   val arrayTypeDataframe: DataFrame = {
     val arrayStructureData = Seq(
-      Row("James,,Smith", List("Java", "Scala", "C++"), "OH"),
-      Row("Michael,Rose,", List("Spark", "Java", "C++"), "NJ"),
-      Row("Robert,,Williams", List("CSharp", "VB"), "NV")
+      Row("James, Smith", List("Java", "Scala", "C++"), "OH"),
+      Row("Michael, Rose", List("Spark", "Java", "C++"), "NJ"),
+      Row("Robert, Williams", List("CSharp", "VB"), "NV")
     )
     val arrayStructureSchema = new StructType()
       .add("name", StringType)
-      .add("languagesAtSchool", ArrayType(StringType))
+      .add("language", ArrayType(StringType))
+      .add("currentState", StringType)
+    val df = spark.createDataFrame(
+      spark.sparkContext.parallelize(arrayStructureData), arrayStructureSchema)
+
+    df
+  }
+
+  val arrayTypeDataframe2: DataFrame = {
+    val arrayStructureData = Seq(
+      Row("James, Smith", List("Java", "Scala", "C++"), "OH"),
+      Row("Michael, Rose", List("C#", "Java", "C++"), "NJ"),
+      Row("Robert, Williams", List("Go", "VB"), "NV")
+    )
+    val arrayStructureSchema = new StructType()
+      .add("name", StringType)
+      .add("language", ArrayType(StringType))
       .add("currentState", StringType)
     val df = spark.createDataFrame(
       spark.sparkContext.parallelize(arrayStructureData), arrayStructureSchema)
