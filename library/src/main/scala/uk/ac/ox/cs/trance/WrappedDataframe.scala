@@ -53,20 +53,16 @@ trait WrappedDataframe extends Rep with NRCTranslator {
     val joinColumns = EquiJoinCol(getNestedWrapperId(this), df.str, withColumns:_*)
     Join(this, handleDupColumnNames(df), Some(joinColumns))
   }
-
-
-  def dropDuplicates: WrappedDataframe = {
+  
+  def dropDuplicates(): WrappedDataframe = {
     DropDuplicates(this)
   }
 
-
-  //TODO - string
-  //  def select(col: String, cols: String*): WrappedDataframe = {
-  //    Select(this, col +: cols)
-  //  }
-
-  def select(cols: Rep*): WrappedDataframe = {
-    Select(this, cols)
+  def select[A](cols: A*): WrappedDataframe = cols match {
+    case Seq(_: Rep, _*) => Select(this, cols.asInstanceOf[Seq[Rep]])
+    case Seq(_: String, _*) =>
+      val reps: Seq[Rep] = cols.map(f => BaseCol(getNestedWrapperId(this), f.asInstanceOf[String]))
+      Select(this, reps)
   }
 
   def groupBy(cols: String*): GroupBy = {
@@ -178,6 +174,7 @@ trait WrappedDataframe extends Rep with NRCTranslator {
     case w: Wrapper => w.str
     case o: Operation => o match {
       case Join(lhs, _, _) => getNestedWrapperId(lhs)
+      case Select(self, _) => getNestedWrapperId(self)
     }
   }
 

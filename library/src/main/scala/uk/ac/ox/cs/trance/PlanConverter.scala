@@ -1,8 +1,8 @@
 package uk.ac.ox.cs.trance
 
 import uk.ac.ox.cs.trance.utilities.SparkUtil.getSparkSession
-import framework.common.{ArrayType, BagCType, BoolType, DoubleType, IntType, LongType, OpDivide, OpMinus, OpMod, OpMultiply, OpPlus, RecordCType, StringType, Type}
-import framework.plans.{AddIndex, CDeDup, CExpr, Comprehension, Constant, EmptySng, Equals, Gt, Gte, If, InputRef, Lt, Lte, MathOp, Not, Projection, Record, Variable, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
+import framework.common.{ArrayType, BagCType, BoolType, DoubleType, IntType, LongType, OpArithmetic, OpDivide, OpMinus, OpMod, OpMultiply, OpPlus, RecordCType, StringType, Type}
+import framework.plans.{AddIndex, And, CDeDup, CExpr, Comprehension, Constant, EmptySng, Equals, Gt, Gte, If, InputRef, Lt, Lte, MathOp, Not, Or, Projection, Record, Variable, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.{BinaryOperator, EqualTo, Expression, And => SparkAnd, GreaterThan => SparkGreaterThan, GreaterThanOrEqual => SparkGreaterThanOrEqual, LessThan => SparkLessThan, LessThanOrEqual => SparkLessThanOrEqual, Literal => SparkLiteral, Not => SparkNot, Or => SparkOr}
 import org.apache.spark.sql.functions.{col, expr, monotonically_increasing_id}
@@ -58,7 +58,7 @@ object PlanConverter {
       val projectionFieldIndex = row.schema.fieldIndex(field)
       val columnValue = row.get(projectionFieldIndex)
       val r = Row.fromSeq(Array(columnValue))
-        r.asInstanceOf[T]
+      r.asInstanceOf[T]
     case CSng(e1) =>
       convert(e1, ctx)
     case Comprehension(e1, v, p, e) =>
@@ -78,23 +78,23 @@ object PlanConverter {
       d1.groupBy(keys.head, keys.tail: _*).sum(values: _*).asInstanceOf[T]
     case MathOp(op, e1, e2) =>
       // TODO - need to handle when x & y could be a Double/Float
-      val x = convert(e1, ctx).asInstanceOf[Row].getInt(0)
-      val y = convert(e2, ctx).asInstanceOf[Row].getInt(0)
-      op match {
-        case OpMultiply => Row.fromSeq(Seq(x * y)).asInstanceOf[T]
-        case OpPlus => Row.fromSeq(Seq(x + y)).asInstanceOf[T]
-        case OpMinus => Row.fromSeq(Seq(x - y)).asInstanceOf[T]
-        case OpMod => Row.fromSeq(Seq(x % y)).asInstanceOf[T]
-        case OpDivide => Row.fromSeq(Seq(x / y)).asInstanceOf[T]
-      }
+      val x = convert(e1, ctx).asInstanceOf[Row].get(0)
+      val y = convert(e2, ctx).asInstanceOf[Row].get(0)
+      mathResolver(op, x, y).asInstanceOf[T]
     case Equals(e1, e2) =>
       val lhs = convert(e1, ctx).asInstanceOf[Row]
       val rhs = convert(e2, ctx).asInstanceOf[Row]
       if (lhs.get(0) == rhs.get(0)) true.asInstanceOf[T] else false.asInstanceOf[T]
     case Not(e1) =>
-      val test = !convert(e1, ctx).asInstanceOf[Boolean]
-      test.asInstanceOf[T]
-    // TODO the following cases need to handle Double & Long. Currently only handles Integer.
+      (!convert(e1, ctx).asInstanceOf[Boolean]).asInstanceOf[T]
+    case And(e1, e2) =>
+      val lhs = convert(e1, ctx).asInstanceOf[Boolean]
+      val rhs = convert(e2, ctx).asInstanceOf[Boolean]
+      if (lhs && rhs) true.asInstanceOf[T] else false.asInstanceOf[T]
+    case Or(e1, e2) =>
+      val lhs = convert(e1, ctx).asInstanceOf[Boolean]
+      val rhs = convert(e2, ctx).asInstanceOf[Boolean]
+      if (lhs || rhs) true.asInstanceOf[T] else false.asInstanceOf[T]
     case Lt(e1, e2) =>
       val lhs = convert(e1, ctx).asInstanceOf[Row]
       val rhs = convert(e2, ctx).asInstanceOf[Row]
@@ -145,22 +145,22 @@ object PlanConverter {
    *
    */
   private def toSparkCond(c: CExpr): Column = c match {
-    case e:Equals =>
+    case e: Equals =>
       val left = e.e1.vstr
       e.e2 match {
-        case c:Constant => col(left) === c.data
+        case c: Constant => col(left) === c.data
         case _ => expr(formatCond(c))
       }
-    case n:Not => functions.not(toSparkCond(n.e1))
+    case n: Not => functions.not(toSparkCond(n.e1))
     case gt: Gt =>
       gt match {
-      case Gt(e1, e2) if e1.isInstanceOf[Constant] || e2.isInstanceOf[Constant] =>
-        expr(formatCond(c))
-      case g@Gt(CProject(e1: Variable, _), CProject(e2: Variable, _)) if e1.name > e2.name =>
-        col(g.e2.vstr) < col(g.e1.vstr)
-      case _ =>
-        expr(formatCond(c))
-    }
+        case Gt(e1, e2) if e1.isInstanceOf[Constant] || e2.isInstanceOf[Constant] =>
+          expr(formatCond(c))
+        case g@Gt(CProject(e1: Variable, _), CProject(e2: Variable, _)) if e1.name > e2.name =>
+          col(g.e2.vstr) < col(g.e1.vstr)
+        case _ =>
+          expr(formatCond(c))
+      }
     case gte: Gte =>
       gte match {
         case Gte(e1, e2) if e1.isInstanceOf[Constant] || e2.isInstanceOf[Constant] =>
@@ -195,18 +195,18 @@ object PlanConverter {
     case BinaryOperator(e) =>
       i1.join(i2, processSparkExpression(i1, i2, condition.expr))
 
-//      if(i1.schema.equals(i2.schema) && i1.rdd.subtract(i2.rdd).isEmpty) {
-//        i1.join(i2, condition)
-//      }
-//      else {
-//        i1.join(i2, processSparkExpression(i1, i2, condition.expr))
-//
-//      }
+    //      if(i1.schema.equals(i2.schema) && i1.rdd.subtract(i2.rdd).isEmpty) {
+    //        i1.join(i2, condition)
+    //      }
+    //      else {
+    //        i1.join(i2, processSparkExpression(i1, i2, condition.expr))
+    //
+    //      }
     case SparkNot(e1) => i1.join(i2, processSparkExpression(i1, i2, condition.expr))
     case s: SparkLiteral => {
-      if(s.value == true) {
+      if (s.value == true) {
         i1.join(i2)
-      }else {
+      } else {
         sys.error("Invalid Join Condition: " + s)
       }
     }
@@ -240,12 +240,27 @@ object PlanConverter {
    *
    * @param p Is the [[Projection.pattern]]
    * @return A [[StructType]] schema which is used for the output [[DataFrame]]
+   *
+   *         Also handles a unique case where spark promotes operations of Integer / Long to Double Type
    */
 
   private def createStructFields(p: CExpr): StructType = p match {
     case Record(fields) =>
-      StructType(fields.map(f => StructField(f._1, getStructDataType(f._2.tp))).toSeq)
+      StructType(fields.map(f => f._2 match {
+        case m: MathOp => if (isThereDivision(m)) {
+          StructField(f._1, getStructDataType(DoubleType))
+        } else {
+          StructField(f._1, getStructDataType(f._2.tp))
+        }
+        case _ => StructField(f._1, getStructDataType(f._2.tp))
+      }).toSeq)
     case s@_ => sys.error(s + " is not a valid pattern")
+  }
+
+  private def isThereDivision(op: MathOp): Boolean = op match {
+    case MathOp(OpDivide, _, _) => true
+    case MathOp(_, m: MathOp, m2: MathOp) => isThereDivision(m) || isThereDivision(m2)
+    case _ => false
   }
 
   /**
@@ -281,11 +296,78 @@ object PlanConverter {
 
   @tailrec
   private def findNextAvailDupColumn(i1: DataFrame, s: String, i: Int): String = {
-    val columnInQuestionsName = s"${s}"+"_"+String.valueOf(i)
-    if(!i1.columns.contains(columnInQuestionsName)) {
+    val columnInQuestionsName = s"${s}" + "_" + String.valueOf(i)
+    if (!i1.columns.contains(columnInQuestionsName)) {
       columnInQuestionsName
     } else {
-      findNextAvailDupColumn(i1, s, i+1)
+      findNextAvailDupColumn(i1, s, i + 1)
+    }
+  }
+
+  private def mathResolver(op: OpArithmetic, x: Any, y: Any): Row = (x, y) match {
+    case (x: Int, y: Int) => op match {
+      case OpMultiply => Row(x * y)
+      case OpPlus => Row(x + y)
+      case OpMinus => Row(x - y)
+      case OpMod => Row(x % y)
+      case OpDivide => Row(x.toDouble / y)
+    }
+    case (x: Int, y: Long) => op match {
+      case OpMultiply => Row(x * y)
+      case OpPlus => Row(x + y)
+      case OpMinus => Row(x - y)
+      case OpMod => Row(x % y)
+      case OpDivide => Row(x.toDouble / y)
+    }
+    case (x: Int, y: Double) => op match {
+      case OpMultiply => Row(x * y)
+      case OpPlus => Row(x + y)
+      case OpMinus => Row(x - y)
+      case OpMod => Row(x % y)
+      case OpDivide => Row(x / y)
+    }
+    case (x: Double, y: Double) => op match {
+      case OpMultiply => Row(x * y)
+      case OpPlus => Row(x + y)
+      case OpMinus => Row(x - y)
+      case OpMod => Row(x % y)
+      case OpDivide => Row(x / y)
+    }
+
+    case (x: Double, y: Int) => op match {
+      case OpMultiply => Row(x * y)
+      case OpPlus => Row(x + y)
+      case OpMinus => Row(x - y)
+      case OpMod => Row(x % y)
+      case OpDivide => Row(x / y)
+    }
+    case (x: Double, y: Long) => op match {
+      case OpMultiply => Row(x * y)
+      case OpPlus => Row(x + y)
+      case OpMinus => Row(x - y)
+      case OpMod => Row(x % y)
+      case OpDivide => Row(x / y)
+    }
+    case (x: Long, y: Long) => op match {
+      case OpMultiply => Row(x * y)
+      case OpPlus => Row(x + y)
+      case OpMinus => Row(x - y)
+      case OpMod => Row(x % y)
+      case OpDivide => Row(x.toDouble / y)
+    }
+    case (x: Long, y: Int) => op match {
+      case OpMultiply => Row(x * y)
+      case OpPlus => Row(x + y)
+      case OpMinus => Row(x - y)
+      case OpMod => Row(x % y)
+      case OpDivide => Row(x.toDouble / y)
+    }
+    case (x: Long, y: Double) => op match {
+      case OpMultiply => Row(x * y)
+      case OpPlus => Row(x + y)
+      case OpMinus => Row(x - y)
+      case OpMod => Row(x % y)
+      case OpDivide => Row(x / y)
     }
   }
 }

@@ -2,11 +2,11 @@ package uk.ac.ox.cs.trance
 
 
 import org.scalatest.BeforeAndAfterEach
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, RelationalGroupedDataset, Row}
 import uk.ac.ox.cs.trance.app.TestApp.spark
 import Wrapper.DataFrameImplicit
 import utilities.{JoinContext, Symbol}
-import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.functions.{col, exp}
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
@@ -383,7 +383,9 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
       val wrappedDf2 = df2.wrap()
 
       val expected = df.join(df2, df("language") === df2("language"))
+      expected.show()
       val res = wrappedDf.join(wrappedDf2, wrappedDf("language") === wrappedDf2("language")).leaveNRC()
+      res.show()
 
       assertDataFramesAreEquivalent(res, expected)
     }
@@ -433,6 +435,14 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
       val res = wrappedDf.join(wrappedDf2, wrappedDf("language") === wrappedDf2("language")).leaveNRC()
 
       assertDataFramesAreEquivalent(res, expected)
+    }
+   it("Test") {
+      val df = nestedDataframe
+
+      val wrappedDf = df.wrap()
+      wrappedDf.leaveNRC()
+
+
     }
 
     it("Join with multi-nested structure & nested, top level join with non distinct bag columns") {
@@ -626,11 +636,11 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
 
     it("Unsuccessful Join - StructType Column Condition, Different Nested Types") {
       val df = nestedDataframe
-      val df3 = nestedDataframe4
+      val df2 = multiNestedDataframe
 
 
       val wrappedDf = df.wrap()
-      val wrappedDf3 = df3.wrap()
+      val wrappedDf3 = df2.wrap()
 
       val caughtException = intercept[Throwable] {
         wrappedDf.join(wrappedDf3, wrappedDf("info") === wrappedDf3("stats")).leaveNRC()
@@ -677,7 +687,7 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
       val wrappedDf = df.wrap()
 
       val expected = df.dropDuplicates()
-      val res = wrappedDf.dropDuplicates.leaveNRC()
+      val res = wrappedDf.dropDuplicates().leaveNRC()
 
       assertDataFramesAreEquivalent(expected, res)
     }
@@ -689,7 +699,7 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
       val wrappedDf2 = df2.wrap()
 
       val expected = df.union(df2).dropDuplicates()
-      val res = wrappedDf.union(wrappedDf2).dropDuplicates.leaveNRC()
+      val res = wrappedDf.union(wrappedDf2).dropDuplicates().leaveNRC()
 
       assertDataFramesAreEquivalent(expected, res)
     }
@@ -701,7 +711,7 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
       val wrappedDf2 = df2.wrap()
 
       val expected = df.union(df2)
-      val res = wrappedDf.union(wrappedDf2).dropDuplicates.leaveNRC()
+      val res = wrappedDf.union(wrappedDf2).dropDuplicates().leaveNRC()
 
       val caughtException = intercept[TestFailedException] {
         assertDataFramesAreEquivalent(expected, res)
@@ -719,10 +729,32 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
 
       val expected = df.select(df("language"))
       val res = wrappedDf.select(wrappedDf("language")).leaveNRC()
-      res.show()
 
       assertDataFramesAreEquivalent(expected, res)
     }
+
+    it("Successful Select - Single String Flat Dataset") {
+      val df = simpleIntDataframe
+
+      val wrappedDf = df.wrap()
+
+      val expected = df.select("language")
+      val res = wrappedDf.select("language").leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Select - Multiple String Flat Dataset") {
+      val df = simpleIntDataframe
+
+      val wrappedDf = df.wrap()
+
+      val expected = df.select("language", "users")
+      val res = wrappedDf.select("language", "users").leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
     it("Successful Select - Single Int Column Flat Dataset") {
       val df = simpleIntDataframe
 
@@ -730,7 +762,6 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
 
       val expected = df.select(df("users"))
       val res = wrappedDf.select(wrappedDf("users")).leaveNRC()
-      res.show()
 
       assertDataFramesAreEquivalent(expected, res)
     }
@@ -741,9 +772,344 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
 
       val expected = df.select(df("users"), df("weight"), df("language"), df("inUse"), df("percentage"))
       val res = wrappedDf.select(wrappedDf("users"), wrappedDf("weight"), wrappedDf("language"), wrappedDf("inUse"), wrappedDf("percentage")).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Select - Select on Select Result") {
+      val df = simpleIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("users"), df("language")).select(df("users"))
+      val res = wrappedDf.select(wrappedDf("users"), wrappedDf("language")).select(wrappedDf("users")).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Select - Boolean Expression Integer Equality") {
+      val df = simpleIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("users") === 20)
+      val res = wrappedDf.select(wrappedDf("users") === 20).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Select - Boolean Expression Integer GreaterThan") {
+      val df = simpleIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("users") > 20)
+      val res = wrappedDf.select(wrappedDf("users") > 20).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Select - Boolean Expression Integer GreaterThanOrEqual") {
+      val df = simpleIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("users") >= 20)
+      val res = wrappedDf.select(wrappedDf("users") >= 20).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Select - Boolean Expression Integer LessThan") {
+      val df = simpleIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("users") < 20)
+      val res = wrappedDf.select(wrappedDf("users") < 20).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Select - Boolean Expression Integer LessThanOrEqual") {
+      val df = simpleIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("users") <= 20)
+      val res = wrappedDf.select(wrappedDf("users") <= 20).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Select - Boolean Expression String Equality") {
+      val df = simpleIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("language") === "Go")
+      val res = wrappedDf.select(wrappedDf("language") === "Go").leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    // Check if want this not to be an assertion failure in NRC
+
+        it("Successful Select - Boolean Expression Integer Multiple Operands") {
+          val df = simpleIntDataframe
+          val wrappedDf = df.wrap()
+
+          val expected = df.select(df("users") > 10).union(df.select(df("users") >= 2))
+          expected.show()
+
+          val res = wrappedDf.select(wrappedDf("users") > 10).union(wrappedDf.select(wrappedDf("users") >= 20)).leaveNRC()
+
+          assertDataFramesAreEquivalent(expected, res)
+        }
+
+
+    it("Successful Select - Select Multiply Int/Int Unnamed, Flat Dataset") {
+      val df = simpleIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("users") * df("users"))
+      val res = wrappedDf.select(wrappedDf("users") * wrappedDf("users")).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Select - Select Multiple Math Operators Unnamed, Flat Dataset All Integer Result") {
+      val df = simpleIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("users") * df("users") - df("users") / df("users") + df("users") % df("users"))
+      val res = wrappedDf.select(wrappedDf("users") * wrappedDf("users") - wrappedDf("users") / wrappedDf("users") + wrappedDf("users") % wrappedDf("users")).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Select - Select Multiply All Numerical Types Unnamed, Flat Dataset") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("users") * df("weight"), df("users") * df("percentage"),
+        df("percentage") * df("users"), df("percentage") * df("percentage"), df("percentage") * df("weight"),
+        df("weight") * df("users"), df("weight") * df("percentage"), df("weight") * df("weight"))
+      expected.show()
+      val res = wrappedDf.select(wrappedDf("users") * wrappedDf("weight"), wrappedDf("users") * wrappedDf("percentage"),
+        wrappedDf("percentage") * wrappedDf("users"), wrappedDf("percentage") * wrappedDf("percentage"), wrappedDf("percentage") * wrappedDf("weight"),
+        wrappedDf("weight") * wrappedDf("users"), wrappedDf("weight") * wrappedDf("percentage"), wrappedDf("weight") * wrappedDf("weight")).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Select - Select Add All Numerical Types Unnamed, Flat Dataset") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("users") + df("weight"), df("users") + df("percentage"),
+        df("percentage") + df("users"), df("percentage") + df("percentage"), df("percentage") + df("weight"),
+        df("weight") + df("users"), df("weight") + df("percentage"), df("weight") + df("weight"))
+      expected.show()
+      val res = wrappedDf.select(wrappedDf("users") + wrappedDf("weight"), wrappedDf("users") + wrappedDf("percentage"),
+        wrappedDf("percentage") + wrappedDf("users"), wrappedDf("percentage") + wrappedDf("percentage"), wrappedDf("percentage") + wrappedDf("weight"),
+        wrappedDf("weight") + wrappedDf("users"), wrappedDf("weight") + wrappedDf("percentage"), wrappedDf("weight") + wrappedDf("weight")).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Select - Select Sub All Numerical Types Unnamed, Flat Dataset") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("users") - df("weight"), df("users") - df("percentage"),
+        df("percentage") - df("users"), df("percentage") - df("percentage"), df("percentage") - df("weight"),
+        df("weight") - df("users"), df("weight") - df("percentage"), df("weight") - df("weight"))
+      expected.show()
+      val res = wrappedDf.select(wrappedDf("users") - wrappedDf("weight"), wrappedDf("users") - wrappedDf("percentage"),
+        wrappedDf("percentage") - wrappedDf("users"), wrappedDf("percentage") - wrappedDf("percentage"), wrappedDf("percentage") - wrappedDf("weight"),
+        wrappedDf("weight") - wrappedDf("users"), wrappedDf("weight") - wrappedDf("percentage"), wrappedDf("weight") - wrappedDf("weight")).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+
+    it("Successful Select - Select Divide All Numerical Types Unnamed, Flat Dataset") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("users") / df("weight"), df("users") / df("percentage"),
+        df("percentage") / df("users"), df("percentage") / df("percentage"), df("percentage") / df("weight"),
+        df("weight") / df("users"), df("weight") / df("percentage"), df("weight") / df("weight"))
+      expected.show()
+      val res = wrappedDf.select(wrappedDf("users") / wrappedDf("weight"), wrappedDf("users") / wrappedDf("percentage"),
+        wrappedDf("percentage") / wrappedDf("users"), wrappedDf("percentage") / wrappedDf("percentage"), wrappedDf("percentage") / wrappedDf("weight"),
+        wrappedDf("weight") / wrappedDf("users"), wrappedDf("weight") / wrappedDf("percentage"), wrappedDf("weight") / wrappedDf("weight")).leaveNRC()
       res.show()
 
       assertDataFramesAreEquivalent(expected, res)
+    }
+    it("Successful Select - Select Divide Long & IntTypes Unnamed, Flat Dataset") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("users") / df("percentage"))
+      expected.show()
+      val res = wrappedDf.select(wrappedDf("users") / wrappedDf("percentage")).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+ it("Successful Select - Select Mod All Numerical Types Unnamed, Flat Dataset") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("users") % df("weight"), df("users") % df("percentage"),
+        df("percentage") % df("users"), df("percentage") % df("percentage"), df("percentage") % df("weight"),
+        df("weight") % df("users"), df("weight") % df("percentage"), df("weight") % df("weight"))
+      expected.show()
+      val res = wrappedDf.select(wrappedDf("users") % wrappedDf("weight"), wrappedDf("users") % wrappedDf("percentage"),
+        wrappedDf("percentage") % wrappedDf("users"), wrappedDf("percentage") % wrappedDf("percentage"), wrappedDf("percentage") % wrappedDf("weight"),
+        wrappedDf("weight") % wrappedDf("users"), wrappedDf("weight") % wrappedDf("percentage"), wrappedDf("weight") % wrappedDf("weight")).leaveNRC()
+      res.show()
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+ it("Successful Select - Multiply long column by Long literal") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("percentage") * 25L )
+      expected.show()
+      val res = wrappedDf.select(wrappedDf("percentage") * 25L ).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Select - Add double column with Double literal") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("weight") + 2.4 )
+      expected.show()
+      val res = wrappedDf.select(wrappedDf("weight") + 2.4 ).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Select - Subtract Integer Column with Long Literal") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("users") - 1000L )
+      expected.show()
+      val res = wrappedDf.select(wrappedDf("users") - 1000L).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+    it("Successful Select - Divide Long Column with Integer Literal") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("percentage") / 19 )
+      expected.show()
+      val res = wrappedDf.select(wrappedDf("percentage") / 19).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+    it("Successful Select - Divide Int Column with Integer Literal") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("users") / df("users") )
+      expected.show()
+      val res = wrappedDf.select(wrappedDf("users") / wrappedDf("users")).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+    it("Successful Select - Divide Long Column with Long Literal") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("percentage") / 19L )
+      expected.show()
+      val res = wrappedDf.select(wrappedDf("percentage") / 19L).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+    it("Successful Select - Mod Double Column with Long Literal") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("weight") % 19L )
+      expected.show()
+      val res = wrappedDf.select(wrappedDf("weight") % 19L ).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+  it("Successful Select - Mod Long Column with Long Literal") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("percentage") % 19L )
+      expected.show()
+      val res = wrappedDf.select(wrappedDf("percentage") % 19L ).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+ it("Successful Select - OR column by literal") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("percentage") === 75L || df("weight") === 2.5)
+      expected.show()
+      val res = wrappedDf.select(wrappedDf("percentage") === 75L || wrappedDf("weight") === 2.5).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+    it("Successful Select - AND column by literal") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select(df("percentage") === 75L && df("weight") === 7.5)
+      expected.show()
+      val res = wrappedDf.select(wrappedDf("percentage") === 75L && wrappedDf("weight") === 7.5).leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+  }
+
+  describe("GroupBy") {
+    it("Successful GroupBy String Column and Sum Integer Column") {
+      val df = simpleIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.groupBy("language").sum("users")
+      expected.show()
+
+      val res = wrappedDf.groupBy("language").sum("users").leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+      it("Successful GroupBy Integer Column and Sum Integer Column") {
+      val df = simpleIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.groupBy("users").sum("users")
+      expected.show()
+
+      val res = wrappedDf.groupBy("users").sum("users").leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+     it("Unsuccessful GroupBy - Sum on Non Numerical Column") {
+      val df = simpleIntDataframe
+      val wrappedDf = df.wrap()
+
+       val caughtException = intercept[Throwable] {
+         wrappedDf.groupBy("users").sum("language").leaveNRC()
+       }
+
+       assert(caughtException.isInstanceOf[AssertionError])
     }
 
 

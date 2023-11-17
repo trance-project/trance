@@ -39,13 +39,15 @@ object NRCConverter extends NRCTranslator {
       val c1 = toNRC(e1, env).asInstanceOf[BagExpr]
       DeDup(c1)
     case Select(e, cols) =>
-      val expr = toNRC(e, env).asInstanceOf[BagVarRef]
-      val tvr = TupleVarRef(utilities.Symbol.fresh(), expr.tp.tp)
-      val map: IMap[String, TupleVarRef] = IMap(expr.name -> tvr)
+      val c1 = toNRC(e, env).asBag
+      val c1Name = unnestExprId(c1)
+      val tvr = TupleVarRef(utilities.Symbol.fresh(), c1.tp.tp)
+      val map: IMap[String, TupleVarRef] = IMap(c1Name -> tvr)
       val pq = cols.asInstanceOf[Seq[Col]]
       val k = pq.map(z => sparkAliasing(z) -> translateColumn(z, map).asPrimitive)
+      val output = Singleton(Tuple(k.map(f => f._1 -> prepareSelectOutput(f._2)).toMap))
 
-      ForeachUnion(tvr, expr, prepareSelectOutput(k))
+      ForeachUnion(tvr, c1, output)
     //TODO - Reimplementation needed
     //    case Drop(e, cols) =>
     //      DropContext.addField(cols: _*)
@@ -59,13 +61,9 @@ object NRCConverter extends NRCTranslator {
       val e = env(x).asInstanceOf[TupleExpr]
       Singleton(e)
     case Wrapper(in, s) =>
-      val ds: DataFrame = in.asInstanceOf[DataFrame]
+      val ds: DataFrame = in
       ds.printSchema()
-      val nrcTypeMap: IMap[String, TupleAttributeType] = ds.schema.fields.map {
-        case StructField(name, SparkArrayType(dataType, _), _, _) => name -> ArrayType(typeToNRCType(dataType))
-//          name -> BagType(TupleType(name -> typeToNRCType(dataType)))
-        case StructField(name, dataType, _, _) => name -> typeToNRCType(dataType)
-      }.toMap
+      val nrcTypeMap = ds.schema.fields.map { case StructField(name, dataType, _, _) => name -> typeToNRCType(dataType) }.toMap
       BagVarRef(s, BagType(TupleType(nrcTypeMap)))
     case s@Sym(_) =>
       val e = env(s)
@@ -88,8 +86,10 @@ object NRCConverter extends NRCTranslator {
   /**
    * This function translates from Spark DataType to NRC/Plan type
    */
+
   private def typeToNRCType(s: DataType): TupleAttributeType = s match {
     case structType: StructType => BagType(TupleType(structType.fields.map(f => f.name -> typeToNRCType(f.dataType)).toMap))
+    case SparkArrayType(e, _) => ArrayType(typeToNRCType(e))
     case types.StringType => StringType
     case types.IntegerType => IntType
     case types.LongType => LongType
@@ -104,8 +104,8 @@ object NRCConverter extends NRCTranslator {
   private def getPrimitiveType(e: Any): PrimitiveType = e match {
     case true | false => BoolType
     case _: Integer => IntType
-    case Long => LongType
-    case Double => DoubleType
+    case _: Long => LongType
+    case _: Double => DoubleType
     case _: String => StringType
     case s@_ => sys.error("Unsupported primitive type: " + s)
   }
@@ -153,6 +153,7 @@ object NRCConverter extends NRCTranslator {
    */
   private def sparkAliasing(col: Rep): String = col match {
     case BaseCol(_, n) => n
+    case Add(e1, e2) => s"(${sparkAliasing(e1)} + ${sparkAliasing(e2)})"
     case Mult(e1, e2) => s"(${sparkAliasing(e1)} * ${sparkAliasing(e2)})"
     case Sub(e1, e2) => s"(${sparkAliasing(e1)} - ${sparkAliasing(e2)})"
     case Divide(e1, e2) => s"(${sparkAliasing(e1)} / ${sparkAliasing(e2)})"
@@ -163,6 +164,8 @@ object NRCConverter extends NRCTranslator {
     case LessThanOrEqual(e1, e2) => s"(${sparkAliasing(e2)} <= ${sparkAliasing(e1)})"
     case GreaterThan(e1, e2) => s"(${sparkAliasing(e1)} > ${sparkAliasing(e2)})"
     case GreaterThanOrEqual(e1, e2) => s"(${sparkAliasing(e1)} >= ${sparkAliasing(e2)})"
+    case OrRep(e1, e2) => s"(${sparkAliasing(e1)} OR ${sparkAliasing(e2)})"
+    case AndRep(e1, e2) => s"(${sparkAliasing(e1)} AND ${sparkAliasing(e2)})"
     case Literal(e) => String.valueOf(e)
   }
 
@@ -181,13 +184,20 @@ object NRCConverter extends NRCTranslator {
    * if so we'll update them to project a PrimitiveIfThenElse containing two Constants (for each outcome of the condition),
    * otherwise we leave the projection as is.
    */
-  private def prepareSelectOutput(fields: Seq[(String, PrimitiveExpr)]): BagExpr = {
-    Singleton(Tuple(fields.map {
-      case (s, cmp: PrimitiveCmp) =>
-        s -> PrimitiveIfThenElse(cmp.asCond, PrimitiveConst(true, BoolType), PrimitiveConst(false, BoolType))
-      case (s, expr) =>
-        s -> expr
-    }.toMap))
+  private def prepareSelectOutput(fields: PrimitiveExpr): PrimitiveExpr = {
+    fields match {
+      case cmp: PrimitiveCmp =>
+        PrimitiveIfThenElse(cmp.asCond, PrimitiveConst(true, BoolType), PrimitiveConst(false, BoolType))
+      case or: Or =>
+        val lhs = or.e1.asInstanceOf[PrimitiveCmp]
+        val rhs = or.e2.asInstanceOf[PrimitiveCmp]
+        PrimitiveIfThenElse(Or(lhs.asCond, rhs.asCond), PrimitiveConst(true, BoolType), PrimitiveConst(false, BoolType))
+      case and: And =>
+        val lhs = and.e1.asInstanceOf[PrimitiveCmp]
+        val rhs = and.e2.asInstanceOf[PrimitiveCmp]
+        PrimitiveIfThenElse(And(lhs.asCond, rhs.asCond), PrimitiveConst(true, BoolType), PrimitiveConst(false, BoolType))
+      case expr => expr
+    }
   }
 
   /**
@@ -196,8 +206,8 @@ object NRCConverter extends NRCTranslator {
    * Converts joinCond from a Rep -> NRC Cond Expression
    */
   private def prepareJoinOutput(c1: BagExpr, c2: BagExpr, joinCond: Option[Rep]): ForeachUnion = {
-    val c1Name = unnestJoinExpr(c1)
-    val c2Name = unnestJoinExpr(c2)
+    val c1Name = unnestExprId(c1)
+    val c2Name = unnestExprId(c2)
     val tvr = TupleVarRef(utilities.Symbol.fresh(), c1.tp.tp)
     val tvr2 = TupleVarRef(utilities.Symbol.fresh(), c2.tp.tp)
     val getJoinCond = joinCond.orNull
@@ -229,14 +239,14 @@ object NRCConverter extends NRCTranslator {
   }
 
   /**
-   * Gets the Dataset Identifier from the BagExpr created during a Join
+   * Gets the Dataset Identifier from the lhs of a nested BagExpr (eg. ForEachUnion)
    *
    * @param e
    * @return
    */
-  private def unnestJoinExpr(e: BagExpr): String = e match {
+  private def unnestExprId(e: BagExpr): String = e match {
     case b: BagVarRef => b.name
-    case f: ForeachUnion => unnestJoinExpr(f.e1)
+    case f: ForeachUnion => unnestExprId(f.e1)
   }
 
   private def extractSuffixCount(s: String): String = {

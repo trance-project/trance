@@ -18,11 +18,11 @@ trait Rep {
     def -(e2: Rep): Rep = Sub(this, e2)
     def -(e2: Number): Rep = Sub(this, Literal(e2))
 
-    def /(e2: Rep): Rep = Divide(e2, this)
-    def /(e2: Number): Rep = Divide(Literal(e2), this)
+    def /(e2: Rep): Rep = Divide(this, e2)
+    def /(e2: Number): Rep = Divide(this, Literal(e2))
 
-    def %(e2: Rep): Rep = Mod(e2, this)
-    def %(e2: Number): Rep = Mod(Literal(e2), this)
+    def %(e2: Rep): Rep = Mod(this, e2)
+    def %(e2: Number): Rep = Mod(this, Literal(e2))
 
     def === (e2: Rep): Rep = Equality(this, e2)
     def === (e2: Any): Rep = Equality(this, Literal(e2))
