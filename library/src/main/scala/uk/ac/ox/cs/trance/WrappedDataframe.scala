@@ -53,15 +53,15 @@ trait WrappedDataframe extends Rep with NRCTranslator {
     val joinColumns = EquiJoinCol(getNestedWrapperId(this), df.str, withColumns:_*)
     Join(this, handleDupColumnNames(df), Some(joinColumns))
   }
-  
+
   def dropDuplicates(): WrappedDataframe = {
     DropDuplicates(this)
   }
 
   def select[A](cols: A*): WrappedDataframe = cols match {
-    case Seq(_: Rep, _*) => Select(this, cols.asInstanceOf[Seq[Rep]])
+    case Seq(_: Col, _*) => Select(this, cols.asInstanceOf[Seq[Col]])
     case Seq(_: String, _*) =>
-      val reps: Seq[Rep] = cols.map(f => BaseCol(getNestedWrapperId(this), f.asInstanceOf[String]))
+      val reps: Seq[Col] = cols.map(f => BaseCol(getNestedWrapperId(this), f.asInstanceOf[String]))
       Select(this, reps)
   }
 
@@ -75,6 +75,14 @@ trait WrappedDataframe extends Rep with NRCTranslator {
 
   def drop(col: Column, cols: Column*): WrappedDataframe = {
     Drop(this, col.toString() +: cols.map(_.toString))
+  }
+
+  def filter[A](col: A): WrappedDataframe = col match {
+    case c: Col => Filter(this, c)
+  }
+
+  def where[A](col: A): WrappedDataframe = col match {
+    case c: Col => Filter(this, c)
   }
 
   /**
@@ -129,6 +137,7 @@ trait WrappedDataframe extends Rep with NRCTranslator {
     case Reduce(e1, _, _) => getCtx(e1)
     case Select(e1, _) => getCtx(e1)
     case FlatMap(e1, _) => getCtx(e1)
+    case Filter(e1, _) => getCtx(e1)
     case s@_ => sys.error("Error getting context for: " + s)
   }
 

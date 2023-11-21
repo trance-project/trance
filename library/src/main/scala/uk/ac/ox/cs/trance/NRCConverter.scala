@@ -20,13 +20,19 @@ object NRCConverter extends NRCTranslator {
     //case Map() =>
     //
     //ForEachUnion(tvr, expr.asBag, expr2.asTuple)
-    //TODO - Filter
-    //Case Filter()
     case FlatMap(e, Fun(in, out)) =>
       val expr1 = toNRC(e, env)
       val tvr = TupleVarRef(utilities.Symbol.fresh(), expr1.asInstanceOf[BagExpr].tp.tp)
       val expr2 = toNRC(out, env + (in -> tvr))
       ForeachUnion(tvr, expr1.asInstanceOf[BagExpr], expr2.asInstanceOf[BagExpr])
+    case Filter(e1, cond) =>
+      val c1 = toNRC(e1, env).asBag
+      val c1Name = unnestExprId(c1)
+      val tvr = TupleVarRef(utilities.Symbol.fresh(), c1.tp.tp)
+      val colMap: IMap[String, TupleVarRef] = IMap(c1Name -> tvr)
+      val nrcCond = translateColumn(cond, colMap).asCond
+      val outputMap = tvr.tp.attrTps.keys.toSeq.map(f => f -> Project(tvr, f)).toMap
+      ForeachUnion(tvr, c1, IfThenElse(nrcCond, Singleton(Tuple(outputMap))))
     case Join(e1, e2, joinCond) =>
       val c1 = toNRC(e1, env).asBag
       val c2 = toNRC(e2, env).asBag

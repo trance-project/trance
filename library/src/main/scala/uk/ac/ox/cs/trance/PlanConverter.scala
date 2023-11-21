@@ -41,7 +41,13 @@ object PlanConverter {
     case CMerge(e1, e2) =>
       convert(e1, ctx).asInstanceOf[DataFrame].union(convert(e2, ctx).asInstanceOf[DataFrame]).asInstanceOf[T]
     case CSelect(x, v, p) =>
-      convert(x, ctx).asInstanceOf[T]
+      val k = convert(x, ctx).asInstanceOf[DataFrame]
+      p match {
+        case Constant(true) => k.asInstanceOf[T]
+        case _: Equals | _: Lte | _: Lt | _: Gte | _: Gt | _: Not | _: Or | _: And =>
+          k.filter { z => convert(p, ctx + (v.name -> z)).asInstanceOf[Boolean] }.asInstanceOf[T]
+        case s@_ => sys.error("Invalid Filtering in CSelect: " + s)
+      }
     case CDeDup(in) =>
       val i1 = convert(in, ctx).asInstanceOf[DataFrame]
       i1.dropDuplicates().asInstanceOf[T]
@@ -57,7 +63,7 @@ object PlanConverter {
       val row = convert(e1, ctx).asInstanceOf[Row]
       val projectionFieldIndex = row.schema.fieldIndex(field)
       val columnValue = row.get(projectionFieldIndex)
-      val r = Row.fromSeq(Array(columnValue))
+      val r = Row(columnValue)
       r.asInstanceOf[T]
     case CSng(e1) =>
       convert(e1, ctx)
@@ -95,22 +101,22 @@ object PlanConverter {
       val lhs = convert(e1, ctx).asInstanceOf[Boolean]
       val rhs = convert(e2, ctx).asInstanceOf[Boolean]
       if (lhs || rhs) true.asInstanceOf[T] else false.asInstanceOf[T]
-    case Lt(e1, e2) =>
-      val lhs = convert(e1, ctx).asInstanceOf[Row]
-      val rhs = convert(e2, ctx).asInstanceOf[Row]
-      if (lhs.getInt(0) < rhs.getInt(0)) true.asInstanceOf[T] else false.asInstanceOf[T]
-    case Lte(e1, e2) =>
-      val lhs = convert(e1, ctx).asInstanceOf[Row]
-      val rhs = convert(e2, ctx).asInstanceOf[Row]
-      if (lhs.getInt(0) <= rhs.getInt(0)) true.asInstanceOf[T] else false.asInstanceOf[T]
-    case Gt(e1, e2) =>
-      val lhs = convert(e1, ctx).asInstanceOf[Row]
-      val rhs = convert(e2, ctx).asInstanceOf[Row]
-      if (lhs.getInt(0) > rhs.getInt(0)) true.asInstanceOf[T] else false.asInstanceOf[T]
-    case Gte(e1, e2) =>
-      val lhs = convert(e1, ctx).asInstanceOf[Row]
-      val rhs = convert(e2, ctx).asInstanceOf[Row]
-      if (lhs.getInt(0) >= rhs.getInt(0)) true.asInstanceOf[T] else false.asInstanceOf[T]
+    case l@Lt(e1, e2) =>
+      if (mathComparator(l, convert(e1, ctx).asInstanceOf[Row].get(0), convert(e2, ctx).asInstanceOf[Row].get(0))) {
+        true.asInstanceOf[T]
+      } else false.asInstanceOf[T]
+    case l@Lte(e1, e2) =>
+      if (mathComparator(l, convert(e1, ctx).asInstanceOf[Row].get(0), convert(e2, ctx).asInstanceOf[Row].get(0))) {
+        true.asInstanceOf[T]
+      } else false.asInstanceOf[T]
+    case g@Gt(e1, e2) =>
+      if (mathComparator(g, convert(e1, ctx).asInstanceOf[Row].get(0), convert(e2, ctx).asInstanceOf[Row].get(0))) {
+        true.asInstanceOf[T]
+      } else false.asInstanceOf[T]
+    case g@Gte(e1, e2) =>
+      if (mathComparator(g, convert(e1, ctx).asInstanceOf[Row].get(0), convert(e2, ctx).asInstanceOf[Row].get(0))) {
+        true.asInstanceOf[T]
+      } else false.asInstanceOf[T]
     case If(cond, e1, e2) => if (convert(cond, ctx)) convert(e1, ctx) else convert(e2.get, ctx)
     case EmptySng => getSparkSession.emptyDataFrame.asInstanceOf[T]
     case Constant(e) => Row(e).asInstanceOf[T]
@@ -247,19 +253,21 @@ object PlanConverter {
   private def createStructFields(p: CExpr): StructType = p match {
     case Record(fields) =>
       StructType(fields.map(f => f._2 match {
-        case m: MathOp => if (isThereDivision(m)) {
+        case m: MathOp => if (checkDivisionExists(m)) {
           StructField(f._1, getStructDataType(DoubleType))
         } else {
           StructField(f._1, getStructDataType(f._2.tp))
         }
         case _ => StructField(f._1, getStructDataType(f._2.tp))
       }).toSeq)
+    case If(_, e1, _) => createStructFields(e1)
+    case CSng(e1) => createStructFields(e1)
     case s@_ => sys.error(s + " is not a valid pattern")
   }
 
-  private def isThereDivision(op: MathOp): Boolean = op match {
+  private def checkDivisionExists(op: MathOp): Boolean = op match {
     case MathOp(OpDivide, _, _) => true
-    case MathOp(_, m: MathOp, m2: MathOp) => isThereDivision(m) || isThereDivision(m2)
+    case MathOp(_, m: MathOp, m2: MathOp) => checkDivisionExists(m) || checkDivisionExists(m2)
     case _ => false
   }
 
@@ -368,6 +376,63 @@ object PlanConverter {
       case OpMinus => Row(x - y)
       case OpMod => Row(x % y)
       case OpDivide => Row(x / y)
+    }
+  }
+
+  private def mathComparator(comp: CExpr, lhs: Any, rhs: Any): Boolean = (lhs, rhs) match {
+    case (x: Int, y: Int) => comp match {
+      case _: Lt => x < y
+      case _: Lte => x <= y
+      case _: Gt => x > y
+      case _: Gte => x >= y
+    }
+    case (x: Int, y: Long) => comp match {
+      case _: Lt => x < y
+      case _: Lte => x <= y
+      case _: Gt => x > y
+      case _: Gte => x >= y
+    }
+    case (x: Int, y: Double) => comp match {
+      case _: Lt => x < y
+      case _: Lte => x <= y
+      case _: Gt => x > y
+      case _: Gte => x >= y
+    }
+    case (x: Double, y: Double) => comp match {
+      case _: Lt => x < y
+      case _: Lte => x <= y
+      case _: Gt => x > y
+      case _: Gte => x >= y
+    }
+    case (x: Double, y: Int) => comp match {
+      case _: Lt => x < y
+      case _: Lte => x <= y
+      case _: Gt => x > y
+      case _: Gte => x >= y
+    }
+    case (x: Double, y: Long) => comp match {
+      case _: Lt => x < y
+      case _: Lte => x <= y
+      case _: Gt => x > y
+      case _: Gte => x >= y
+    }
+    case (x: Long, y: Long) => comp match {
+      case _: Lt => x < y
+      case _: Lte => x <= y
+      case _: Gt => x > y
+      case _: Gte => x >= y
+    }
+    case (x: Long, y: Int) => comp match {
+      case _: Lt => x < y
+      case _: Lte => x <= y
+      case _: Gt => x > y
+      case _: Gte => x >= y
+    }
+    case (x: Long, y: Double) => comp match {
+      case _: Lt => x < y
+      case _: Lte => x <= y
+      case _: Gt => x > y
+      case _: Gte => x >= y
     }
   }
 }

@@ -14,7 +14,7 @@ case class DropDuplicates(self: WrappedDataframe) extends Operation
 
 case class Drop(self: WrappedDataframe, cols: Seq[String]) extends Operation
 
-case class Select(self: WrappedDataframe, cols: Seq[Rep]) extends Operation
+case class Select(self: WrappedDataframe, cols: Seq[Col]) extends Operation
 
 /**
  * Trance only currently supports GroupBy -> Sum. This is represented as a ReduceByKey in NRC.
@@ -29,7 +29,7 @@ case class Reduce(self: WrappedDataframe, col: List[String], values: List[String
 
 // TODO: Operations below need to be implemented
 
-case class Filter(self: WrappedDataframe, cols: Seq[Rep]) extends Operation // Also Where
+case class Filter(self: WrappedDataframe, cols: Col) extends Operation // Also Where
 
 case class Map(self: WrappedDataframe, f: Fun) extends Operation
 

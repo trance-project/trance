@@ -4,7 +4,7 @@ package uk.ac.ox.cs.trance
 import org.scalatest.BeforeAndAfterEach
 import org.apache.spark.sql.{DataFrame, RelationalGroupedDataset, Row}
 import uk.ac.ox.cs.trance.app.TestApp.spark
-import Wrapper.DataFrameImplicit
+import Wrapper.{DataFrameImplicit, wrap}
 import utilities.{JoinContext, Symbol}
 import org.apache.spark.sql.functions.{col, exp}
 import org.scalatest.exceptions.TestFailedException
@@ -1110,6 +1110,99 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
        }
 
        assert(caughtException.isInstanceOf[AssertionError])
+    }
+
+
+  }
+
+  describe("Filter") {
+    it("Successful Filter - Equality on String Column") {
+      val df = simpleIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.filter(df("language") === "Go")
+      expected.show()
+      val res = wrappedDf.filter(wrappedDf("language") === "Go").leaveNRC()
+      res.show()
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Filter - Equality on Integer Column") {
+      val df = simpleIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.filter(df("users") === 20)
+      expected.show()
+      val res = wrappedDf.filter(wrappedDf("users") === 20).leaveNRC()
+      res.show()
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Filter - LTE on Integer Column") {
+      val df = simpleIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.filter(df("users") <= 20)
+      expected.show()
+      val res = wrappedDf.filter(wrappedDf("users") <= 20).leaveNRC()
+      res.show()
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Filter - Not Equal on Long Column") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.filter(df("percentage") =!= 75L)
+      expected.show()
+      val res = wrappedDf.filter(wrappedDf("percentage") =!= 75L).leaveNRC()
+      res.show()
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+
+    it("Successful Filter - Or and Not Equal on Long Column") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.filter(df("percentage") =!= 75L || df("weight") < 25.0)
+      expected.show()
+      val res = wrappedDf.filter(wrappedDf("percentage") =!= 75L || wrappedDf("weight") < 25.0).leaveNRC()
+      res.show()
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+    it("Successful Filter - And and Not Equal on Double Column") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.filter(df("percentage") =!= 75L && df("users") > 200)
+      expected.show()
+      val res = wrappedDf.filter(wrappedDf("percentage") =!= 75L && wrappedDf("users") > 200).leaveNRC()
+      res.show()
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+  it("Successful Filter - Filter on Filter Result") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.filter(df("percentage") =!= 75L).filter(df("users") > 200)
+      expected.show()
+      val res = wrappedDf.filter(wrappedDf("percentage") =!= 75L).filter(wrappedDf("users") > 200).leaveNRC()
+      res.show()
+      assertDataFramesAreEquivalent(expected, res)
+    }
+
+ it("Successful Filter - Filter with Where Clause Result") {
+      val df = simpleAllTypesDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.where(df("percentage") =!= 75L).where(df("users") > 200)
+      expected.show()
+      val res = wrappedDf.where(wrappedDf("percentage") =!= 75L).where(wrappedDf("users") > 200).leaveNRC()
+      res.show()
+      assertDataFramesAreEquivalent(expected, res)
     }
 
 
