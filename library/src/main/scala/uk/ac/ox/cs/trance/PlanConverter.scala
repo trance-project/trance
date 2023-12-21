@@ -2,12 +2,12 @@ package uk.ac.ox.cs.trance
 
 import uk.ac.ox.cs.trance.utilities.SparkUtil.getSparkSession
 import framework.common.{ArrayType, BagCType, BoolType, DoubleType, IntType, LongType, OpArithmetic, OpDivide, OpMinus, OpMod, OpMultiply, OpPlus, RecordCType, StringType, Type}
-import framework.plans.{AddIndex, And, CDeDup, CExpr, Comprehension, Constant, EmptySng, Equals, Gt, Gte, If, InputRef, Lt, Lte, MathOp, Not, Or, Projection, Record, Variable, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
+import framework.plans.{AddIndex, And, CDeDup, CExpr, CUdf, Comprehension, Constant, EmptySng, Equals, Gt, Gte, InputRef, Lt, Lte, MathOp, Not, Or, Projection, Record, Variable, If => CIf, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
-import org.apache.spark.sql.catalyst.expressions.{BinaryOperator, EqualTo, Expression, And => SparkAnd, GreaterThan => SparkGreaterThan, GreaterThanOrEqual => SparkGreaterThanOrEqual, LessThan => SparkLessThan, LessThanOrEqual => SparkLessThanOrEqual, Literal => SparkLiteral, Not => SparkNot, Or => SparkOr}
+import org.apache.spark.sql.catalyst.expressions.{BinaryOperator, EqualTo, Expression, GenericRow, GenericRowWithSchema, And => SparkAnd, GreaterThan => SparkGreaterThan, GreaterThanOrEqual => SparkGreaterThanOrEqual, LessThan => SparkLessThan, LessThanOrEqual => SparkLessThanOrEqual, Literal => SparkLiteral, Not => SparkNot, Or => SparkOr}
 import org.apache.spark.sql.functions.{col, expr, monotonically_increasing_id}
 import org.apache.spark.sql.types.{DataType, DataTypes, StructField, StructType, ArrayType => SparkArrayType}
-import org.apache.spark.sql.{Column, DataFrame, Row, functions}
+import org.apache.spark.sql.{Column, DataFrame, Row, functions, types}
 
 import scala.annotation.tailrec
 import scala.collection.immutable.{Map => IMap}
@@ -52,7 +52,8 @@ object PlanConverter {
       val i1 = convert(in, ctx).asInstanceOf[DataFrame]
       i1.dropDuplicates().asInstanceOf[T]
     case InputRef(data, tp) =>
-      ctx(data).asInstanceOf[T]
+      val c1 = ctx(data)
+      c1.asInstanceOf[T]
     case Variable(name, tp) =>
       val c = ctx(name)
       c.asInstanceOf[T]
@@ -117,9 +118,16 @@ object PlanConverter {
       if (mathComparator(g, convert(e1, ctx).asInstanceOf[Row].get(0), convert(e2, ctx).asInstanceOf[Row].get(0))) {
         true.asInstanceOf[T]
       } else false.asInstanceOf[T]
-    case If(cond, e1, e2) => if (convert(cond, ctx)) convert(e1, ctx) else convert(e2.get, ctx)
+    case CIf(cond, e1, e2) => if (convert(cond, ctx)) convert(e1, ctx) else convert(e2.get, ctx)
     case EmptySng => getSparkSession.emptyDataFrame.asInstanceOf[T]
     case Constant(e) => Row(e).asInstanceOf[T]
+    case CUdf(name, in, tp) =>
+      val c1 = convert(in, ctx).asInstanceOf[GenericRow]
+      //Below is temporary, using String in UDF as concatenation
+      name match {
+        case "Transform" => Row.fromSeq(c1.toSeq.map(f => f.asInstanceOf[String])).asInstanceOf[T]
+        case n@_ =>  Row.fromSeq(c1.toSeq.map(f => f.asInstanceOf[String] + n)).asInstanceOf[T]
+      }
     case s@_ =>
       sys.error("Unsupported: " + s)
   }
@@ -260,7 +268,7 @@ object PlanConverter {
         }
         case _ => StructField(f._1, getStructDataType(f._2.tp))
       }).toSeq)
-    case If(_, e1, _) => createStructFields(e1)
+    case CIf(_, e1, _) => createStructFields(e1)
     case CSng(e1) => createStructFields(e1)
     case s@_ => sys.error(s + " is not a valid pattern")
   }

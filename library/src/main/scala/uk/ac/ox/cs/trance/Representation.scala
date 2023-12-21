@@ -1,5 +1,7 @@
 package uk.ac.ox.cs.trance
 
+import org.apache.spark.sql.types.StructType
+
 /**
  * [[Rep]] is the base trait for the intermediary representation between Spark and NRC.
  * <br>
@@ -52,9 +54,11 @@ trait Rep {
 /**
  * Used to represent a function argument in [[FlatMap]] & [[Map]]
  */
+
 case class Fun(in: Rep, out: Rep) extends Rep
 
-case class Sng(in: Rep) extends WrappedDataframe
+case class Sng(in: Rep) extends Rep
 
-case class Sym(name: String) extends Rep
+trait Encoder
 
+case class RepRowEncoder(output: StructType) extends Encoder

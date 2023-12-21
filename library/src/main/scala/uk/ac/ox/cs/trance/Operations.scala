@@ -1,10 +1,13 @@
 package uk.ac.ox.cs.trance
 
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.types.StructType
 
 trait Operation extends WrappedDataframe
 
-case class FlatMap(self: WrappedDataframe, f: Fun) extends Operation
+case class Map(self: WrappedDataframe, f: Fun, output: RepRowEncoder) extends Operation
+
+case class FlatMap(self: WrappedDataframe, f: Fun, output: RepRowEncoder) extends Operation
 
 case class Merge(d1: WrappedDataframe, d2: WrappedDataframe) extends Operation
 
@@ -31,6 +34,5 @@ case class Reduce(self: WrappedDataframe, col: List[String], values: List[String
 
 case class Filter(self: WrappedDataframe, cols: Col) extends Operation // Also Where
 
-case class Map(self: WrappedDataframe, f: Fun) extends Operation
 
-case class As(self: WrappedDataframe, alias: String) extends Operation
+//case class As(self: WrappedDataframe, alias: String) extends Operation

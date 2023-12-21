@@ -2,7 +2,9 @@ package uk.ac.ox.cs.trance.utilities
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
-import org.apache.spark.sql.types.{ArrayType, BooleanType, DoubleType, IntegerType, LongType, StringType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, BooleanType, DateType, DoubleType, IntegerType, LongType, StringType, StructField, StructType}
+
+import java.sql.Date
 
 object TestDataframes {
 
@@ -55,6 +57,12 @@ object TestDataframes {
 
   lazy val pureIntDataframe: DataFrame = {
     val data: Seq[(Int, Int)] = Seq((1, 20), (2, 90), (3, 100), (4, 10))
+    import spark.implicits._
+    data.toDF("id", "users")
+  }
+
+  lazy val pureStringDataframe: DataFrame = {
+    val data: Seq[(String, String)] = Seq(("1", "20"), ("2", "90"), ("3", "100"), ("4", "10"))
     import spark.implicits._
     data.toDF("id", "users")
   }
@@ -205,6 +213,53 @@ object TestDataframes {
       .add("currentState", StringType)
     val df = spark.createDataFrame(
       spark.sparkContext.parallelize(arrayStructureData), arrayStructureSchema)
+
+    df
+  }
+
+  lazy val COP: DataFrame = {
+    val inputSchema: StructType = StructType(Seq(
+      StructField("cname", StringType),
+      StructField("corders", StructType(Seq(
+        StructField("odate", DateType),
+        StructField("oparts", StructType(Seq(
+          StructField("pid", IntegerType),
+          StructField("qty", DoubleType)
+        ))))))))
+
+    val exampleRow = Seq(
+      Row("test1", Row(Date.valueOf("2023-01-01"), Row(1, 1.5),
+        Row("test2", Row(Date.valueOf("2023-01-02"), Row(2, 2.5)
+      )))))
+
+    val outputSchema: StructType = StructType(Seq(
+      StructField("cname", StringType),
+      StructField("corders", StructType(Seq(
+        StructField("odate", DateType),
+        StructField("oparts", StructType(Seq(
+          StructField("pname", StringType),
+          StructField("total", DoubleType)
+        ))))))))
+
+    val df = spark.createDataFrame(
+      spark.sparkContext.parallelize(exampleRow), inputSchema)
+
+    df
+  }
+
+  lazy val PART: DataFrame = {
+    val inputSchema: StructType = StructType(Seq(
+      StructField("pid", IntegerType),
+      StructField("pname", StringType),
+      StructField("price", DoubleType)))
+
+    val exampleRow = Seq(
+      Row(1, "testPName", 2.5),
+      Row(3, "testPName2", 3.5),
+    )
+
+    val df = spark.createDataFrame(
+      spark.sparkContext.parallelize(exampleRow), inputSchema)
 
     df
   }

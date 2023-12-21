@@ -1,7 +1,10 @@
 package uk.ac.ox.cs.trance
 
+import framework.common.TupleType
 import framework.plans.{BaseNormalizer, CExpr, Finalizer, NRCTranslator, Printer, Unnester}
-import org.apache.spark.sql.{Column, DataFrame}
+import org.apache.spark.sql.functions.lit
+import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.{Column, DataFrame, Encoder, SparkSession, Row => SparkRow}
 import uk.ac.ox.cs.trance.utilities.JoinContext
 
 import scala.collection.immutable.{Map => IMap}
@@ -16,12 +19,23 @@ trait WrappedDataframe extends Rep with NRCTranslator {
   def apply(colName: String): Col = {
     BaseCol(getCtx(this).keys.head, colName)
   }
-
-  def flatMap(f: Rep => WrappedDataframe): WrappedDataframe = {
-    val sym = Sym(utilities.Symbol.fresh())
+   def map(f: RepRow => Rep)(schema: RepRowEncoder): WrappedDataframe = {
+    val symID = utilities.Symbol.fresh()
+    val sym = Sym(symID, this.asInstanceOf[Wrapper].in.columns.map{ f => RepElem(f) }.toSeq)
     val out = f(sym)
     val fun = Fun(sym, out)
-    FlatMap(this, fun)
+
+    Map(this, fun, schema)
+  }
+
+  def flatMap(f: RepRow => Rep)(schema: RepRowEncoder): WrappedDataframe = {
+    val symID = utilities.Symbol.fresh()
+    val sym = Sym(symID, this.asInstanceOf[Wrapper].in.columns.map{ f => RepElem(f) }.toSeq)
+
+    val out = f(sym)
+    val fun = Fun(sym, out)
+
+    FlatMap(this, fun, schema)
   }
 
   def union(df: WrappedDataframe): WrappedDataframe = {
@@ -96,6 +110,7 @@ trait WrappedDataframe extends Rep with NRCTranslator {
   def leaveNRC(): DataFrame = {
     val ctx = getCtx()
     println("Rep: " + this)
+    val rep = this
 
     val nrcExpr = NRCConverter.toNRC(this, IMap())
     println("nrcExpression: " + nrcExpr)
@@ -136,7 +151,8 @@ trait WrappedDataframe extends Rep with NRCTranslator {
     case GroupBy(e1, _) => getCtx(e1)
     case Reduce(e1, _, _) => getCtx(e1)
     case Select(e1, _) => getCtx(e1)
-    case FlatMap(e1, _) => getCtx(e1)
+    case Map(e1, _, _) => getCtx(e1)
+    case FlatMap(e1, _, _) => getCtx(e1)
     case Filter(e1, _) => getCtx(e1)
     case s@_ => sys.error("Error getting context for: " + s)
   }

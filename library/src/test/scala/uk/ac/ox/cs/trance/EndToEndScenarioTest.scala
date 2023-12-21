@@ -2,11 +2,15 @@ package uk.ac.ox.cs.trance
 
 
 import org.scalatest.BeforeAndAfterEach
-import org.apache.spark.sql.{DataFrame, RelationalGroupedDataset, Row}
+import org.apache.spark.sql.{DataFrame, RelationalGroupedDataset, Row => SparkRow}
 import uk.ac.ox.cs.trance.app.TestApp.spark
 import Wrapper.{DataFrameImplicit, wrap}
+import framework.common.IntType
+import org.apache.spark.sql.catalyst.encoders.RowEncoder
+import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import utilities.{JoinContext, Symbol}
 import org.apache.spark.sql.functions.{col, exp}
+import org.apache.spark.sql.types.{DataTypes, DateType, DoubleType, IntegerType, StringType, StructField, StructType}
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
@@ -17,6 +21,13 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
 
   def assertDataFrameEquals(expected: DataFrame, result: DataFrame): Unit = {
     assert(expected.collect() sameElements result.collect())
+  }
+
+  def assertDataFrameSchemaEqual(df1: DataFrame, df2: DataFrame): Unit = {
+    val schema1 = df1.schema.fields.map(f => f.copy(nullable = false))
+    val schema2 = df2.schema.fields.map(f => f.copy(nullable = false))
+
+    schema1 shouldEqual schema2
   }
 
   //  def assertDataFramesAreEquivalent(df1: DataFrame, df2: DataFrame): Unit = {
@@ -48,13 +59,460 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
   }
 
   describe("FlatMap") {
-    it("FlatMap Singleton") {
-      val wrappedDataframe = simpleIntDataframe.wrap()
+    it("Successful FlatMap - Integer Column + 1") {
+      val df = pureIntDataframe
+      val wrappedDf = df.wrap()
 
-      val res = wrappedDataframe.flatMap(x => Sng(x))
+      val expected = df.flatMap { x =>
+        val id = x.getInt(0) + 1
+        val users = x.getInt(1) + 1
+        Seq(SparkRow(id, users))
+      }(RowEncoder(df.schema))
+      expected.show()
 
-      assertDataFrameEquals(simpleIntDataframe, res.leaveNRC())
+      val res = wrappedDf.flatMap { x =>
+        val id = x.get(0) + 1
+        val users = x.get(1) + 1
+        RepSeq(RepRow(id, users))
+      }(RepRowEncoder(df.schema)).leaveNRC()
+      res.show()
 
+//      val res = wrappedDf.flatMap { x =>
+//
+//        val k = x.toSeq.map(f => Seq(f + 1))
+//
+//        RepRow.fromSeq(k)
+//      }(RepRowEncoder(df.schema)).leaveNRC()
+//      res.show()
+//
+//      assertDataFramesAreEquivalent(res, expected)
+    }
+  }
+  //TODO divide type promotion works differently in map
+  describe("Map") {
+    it("Successful Map - Identity Function") {
+      val df = pureIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.map(x => x)(RowEncoder(df.schema))
+      expected.show()
+
+      val res = wrappedDf.map(x => x)(RepRowEncoder(df.schema)).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(res, expected)
+    }
+
+    //TODO - how to handle renamed columns in TupleVarRef output of map
+    it("Successful Map - Identity Function with Renamed columns") {
+      val df = pureIntDataframe
+      val wrappedDf = df.wrap()
+
+
+      val schema: StructType = StructType(Seq(
+        StructField("language", IntegerType, nullable = true),
+        StructField("info", IntegerType, nullable = true
+        )))
+
+
+      val expected = df.map(x => x)(RowEncoder(schema))
+      expected.show()
+
+      val res = wrappedDf.map(x => x)(RepRowEncoder(schema)).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(res, expected)
+      assertDataFrameSchemaEqual(res, expected)
+    }
+
+    it("Successful Map - Integer Column + 1") {
+      val df = pureIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.map { x =>
+        val k = x.toSeq.map(f => f.asInstanceOf[Int] + 1)
+        SparkRow.fromSeq(k)
+      }(RowEncoder(df.schema))
+      expected.show()
+
+      val res = wrappedDf.map { x =>
+
+       val k = x.toSeq.map(f => f + 1)
+
+        RepRow.fromSeq(k)
+      }(RepRowEncoder(df.schema)).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(res, expected)
+    }
+
+
+    it("Successful Map - Integer Column Multiples Additions") {
+      val df = pureIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.map { x =>
+        val k = x.toSeq.map(f => f.asInstanceOf[Int] + 1 + 2)
+        SparkRow.fromSeq(k)
+      }(RowEncoder(df.schema))
+      expected.show()
+
+      val res = wrappedDf.map { x =>
+        val k = x.toSeq.map(f => f + 1 + 2)
+        RepRow.fromSeq(k)
+       }(RepRowEncoder(df.schema)).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(res, expected)
+    }
+    it("Successful Map - Integer Column Added to Itself") {
+      val df = pureIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.map { x =>
+        val k = x.toSeq.map(f => f.asInstanceOf[Int] + f.asInstanceOf[Int])
+        SparkRow.fromSeq(k)
+      }(RowEncoder(df.schema))
+      expected.show()
+
+      val res = wrappedDf.map { x =>
+        val k = x.toSeq.map(f => f + f)
+        RepRow.fromSeq(k)
+      }(RepRowEncoder(df.schema)).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(res, expected)
+    }
+    it("Successful Map - Integer Column Added to Itself Twice") {
+      val df = pureIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.map { x =>
+        val k = x.toSeq.map(f => f.asInstanceOf[Int] + f.asInstanceOf[Int] + f.asInstanceOf[Int])
+        SparkRow.fromSeq(k)
+      }(RowEncoder(df.schema))
+      expected.show()
+
+      val res = wrappedDf.map { x =>
+        val k = x.toSeq.map(f => f + f + f)
+        RepRow.fromSeq(k)
+      }(RepRowEncoder(df.schema)).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(res, expected)
+    }
+
+    it("Successful Map - Integer Column Added to Itself Multiple Times") {
+      val df = pureIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.map { x =>
+        val k = x.toSeq.map(f => f.asInstanceOf[Int] + f.asInstanceOf[Int] + f.asInstanceOf[Int] + 2 + f.asInstanceOf[Int] + 3 + f.asInstanceOf[Int])
+        SparkRow.fromSeq(k)
+      }(RowEncoder(df.schema))
+      expected.show()
+
+      val res = wrappedDf.map { x =>
+        val k = x.toSeq.map(f => f + f + f + 2 + f + 3 + f)
+        RepRow.fromSeq(k)
+      }(RepRowEncoder(df.schema)).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(res, expected)
+    }
+
+    it("Successful Map - Integer Mod with brackets") {
+      val df = pureIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.map { x =>
+        val k = x.toSeq.map(f => f.asInstanceOf[Int] % (f.asInstanceOf[Int] + 1) )
+        SparkRow.fromSeq(k)
+      }(RowEncoder(df.schema))
+      expected.show()
+
+      val res = wrappedDf.map { x =>
+        val k = x.toSeq.map(f => f % (f + 1))
+        RepRow.fromSeq(k)
+      }(RepRowEncoder(df.schema)).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(res, expected)
+    }
+
+    it("Successful Map - Integer Column Minus to Itself") {
+      val df = pureIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.map { x =>
+        val k = x.toSeq.map(f => f.asInstanceOf[Int] - f.asInstanceOf[Int] - f.asInstanceOf[Int])
+        SparkRow.fromSeq(k)
+      }(RowEncoder(df.schema))
+      expected.show()
+
+      val res = wrappedDf.map { x =>
+        val k = x.toSeq.map(f => f - f - f)
+        RepRow.fromSeq(k)
+      }(RepRowEncoder(df.schema)).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(res, expected)
+    }
+//    it("Successful Map - 2 different SymID") {
+//      val df = pureIntDataframe
+//      val df2 = pureStringDataframe
+//      val wrappedDf = df.wrap()
+//      val wrappedDf2 = df2.wrap()
+//
+//      val expected = df.map { x =>
+//       val o2 = df2.map{y =>
+//          SparkRow(y.getInt(0))
+//        }(RowEncoder(df.schema))
+//        o2.select()
+//      }(RowEncoder(df.schema))
+//      expected.show()
+//
+//      val res = wrappedDf.map { x =>
+//        val k = x.toSeq.map(f => f - f - f)
+//        RepRow.fromSeq(k)
+//      }(RepRowEncoder(df.schema)).leaveNRC()
+//      res.show()
+//
+//      assertDataFramesAreEquivalent(res, expected)
+//    }
+
+    // TODO - type promotion for double shouldn't happen here
+    it("Successful Map - Integer All Operations Tuple Both Sides Issue") {
+      val df = pureIntDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.map { x =>
+        val k = x.toSeq.map(f => f.asInstanceOf[Int] - f.asInstanceOf[Int] + f.asInstanceOf[Int] * f.asInstanceOf[Int] / f.asInstanceOf[Int] % f.asInstanceOf[Int])
+        SparkRow.fromSeq(k)
+      }(RowEncoder(df.schema))
+      expected.show()
+
+      val res = wrappedDf.map { x =>
+        val k = x.toSeq.map(f => f - f + f * f / f % f)
+        RepRow.fromSeq(k)
+      }(RepRowEncoder(df.schema)).leaveNRC()
+      res.show()
+
+      assertDataFramesAreEquivalent(res, expected)
+    }
+    // TODO - Use UDF?
+    it("Successful Map - String Column Modification") {
+      val df = pureStringDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.map { x =>
+        SparkRow.fromSeq(x.toSeq.map(f => s"${f.asInstanceOf[String]}: Test"))
+      }(RowEncoder(df.schema))
+      expected.show()
+
+      val res = wrappedDf.map{ x =>
+       val k = x.toSeq.map{f => val k = f + ": Test"
+       k
+       }
+        RepRow.fromSeq(k)
+      }(RepRowEncoder(df.schema)).leaveNRC()
+      res.show(false)
+
+      assertDataFramesAreEquivalent(res, expected)
+    }
+//
+//it("Successful Map - String Column Modification Alternate Way") {
+//      val df = pureStringDataframe
+//      val wrappedDf = df.wrap()
+//
+//      val expected = df.map { x =>
+//        SparkRow.fromSeq(x.toSeq.map(f => "Replaced"))
+//      }(RowEncoder(df.schema))
+//      expected.show()
+//
+//      import uk.ac.ox.cs.trance.repextensions._
+//      val res = wrappedDf.map{ x =>
+//       val k = x.toSeq.tMap(x => "Replaced")
+//        RepRow.fromSeq(k)
+//      }(RepRowEncoder(df.schema)).leaveNRC()
+//      res.show(false)
+//
+//      assertDataFramesAreEquivalent(res, expected)
+//    }
+
+    it("moreTesting - conditional if in integer addition mapping") {
+      val df = pureIntDataframe
+      val wrappedDf = df.wrap()
+
+      val out = df.map { x =>
+        val k = x.toSeq.map{f =>
+          if(f.asInstanceOf[Int] > 50) {
+            f.asInstanceOf[Int] + 29
+          } else {
+            f
+          }
+        }
+        SparkRow.fromSeq(k)
+      }(RowEncoder(df.schema))
+
+      out.show()
+
+
+      val res = wrappedDf.map { x =>
+        println("RepRow: " + x)
+
+        val k = x.toSeq.map{f =>
+          RepRow.repIf(f > 50) {
+            f + 29
+          } {
+            f
+          }
+        }
+        RepRow.fromSeq(k)
+      }(RepRowEncoder(df.schema)).leaveNRC()
+
+      res.show()
+      assertDataFramesAreEquivalent(res, out)
+      assertDataFrameSchemaEqual(res, out)
+
+
+    }
+
+    it("Map change Integer output columns in RowEncoder") {
+      val df = pureIntDataframe
+      val wrappedDf = df.wrap()
+
+      val schema: StructType = StructType(Seq(
+        StructField("language", IntegerType, nullable = true),
+        StructField("info", IntegerType, nullable = true
+      )))
+
+      val expected = df.map { f =>
+        val k = Seq(f.getInt(1), f.getInt(0))
+        SparkRow.fromSeq(k)
+      }(RowEncoder(schema))
+
+      val res = wrappedDf.map{f =>
+        val k = Seq(f.get(1), f.get(0))
+        RepRow.fromSeq(k)
+      }(RepRowEncoder(schema)).leaveNRC()
+
+      expected.show()
+      res.show()
+      assertDataFramesAreEquivalent(res, expected)
+      assertDataFrameSchemaEqual(res, expected)
+
+
+    }
+    it("Map change String output columns in RowEncoder") {
+      val df = pureStringDataframe
+      val wrappedDf = df.wrap()
+
+      val schema: StructType = StructType(Seq(
+        StructField("language", StringType, nullable = true),
+        StructField("info", StringType, nullable = true
+      )))
+
+      val expected = df.map { f =>
+        val k = Seq(f.getString(1), f.getString(0))
+        SparkRow.fromSeq(k)
+      }(RowEncoder(schema))
+
+      val res = wrappedDf.map{f =>
+        val k = Seq(f.get(1), f.get(0))
+        RepRow.fromSeq(k)
+      }(RepRowEncoder(schema)).leaveNRC()
+
+      expected.show()
+      res.show()
+      assertDataFramesAreEquivalent(res, expected)
+      assertDataFrameSchemaEqual(res, expected)
+
+
+    }
+    it("Change Same Number of Column Names in Map") {
+      val df = pureIntDataframe
+      val wrappedDf = df.wrap()
+
+      val schema: StructType = StructType(Seq(
+        StructField("column1", IntegerType, nullable = true),
+        StructField("column2", IntegerType, nullable = true
+        )))
+
+
+      val expected = df.map { f => SparkRow(f.get(0), f.get(1)) }(RowEncoder(schema))
+
+      expected.show()
+      expected.printSchema()
+
+      val res = wrappedDf.map { f => RepRow(f.get(0), f.get(1))}(RepRowEncoder(schema)).leaveNRC()
+
+      res.show()
+      res.printSchema()
+
+      assertDataFramesAreEquivalent(res, expected)
+      assertDataFrameSchemaEqual(res, expected)
+    }
+
+    it("Map change Int to Double with Arithmetic Expression - Same Column Names") {
+      val df = pureIntDataframe
+      val wrappedDf = df.wrap()
+
+      val schema: StructType = StructType(Seq(
+        StructField("column1", DoubleType, nullable = true),
+        StructField("column2", DoubleType, nullable = true
+      )))
+
+      val expected = df.map { f  =>
+        val column1 = f.getInt(0) * 2.5
+        val column2 = f.getInt(1) * 1.5
+        SparkRow(column1, column2)
+      }(RowEncoder(schema))
+
+      expected.show()
+      expected.printSchema()
+
+      val res = wrappedDf.map { f =>
+        val column1 = f.get(0) * 2.5
+        val column2 = f.get(1) * 1.5
+        RepRow(column1, column2)
+      }(RepRowEncoder(schema)).leaveNRC()
+
+      res.show()
+      res.printSchema()
+
+      assertDataFramesAreEquivalent(res, expected)
+      assertDataFrameSchemaEqual(res, expected)
+    }
+    it("Map change Int output types to String in RowEncoder different column names") {
+      val df = pureIntDataframe
+      val wrappedDf = df.wrap()
+
+      val schema: StructType = StructType(Seq(
+        StructField("helloColumn", StringType, nullable = true),
+        StructField("users", DoubleType, nullable = true
+      )))
+
+      val expected = df.map { f  =>
+        val column1 = "Hello"
+        val column2 = f.getInt(1) * 1.5
+        SparkRow(column1, column2)
+      }(RowEncoder(schema))
+
+      expected.show()
+      expected.printSchema()
+
+      val res = wrappedDf.map { f =>
+        val column1 = Alias(f.get(0), "Hello")
+        val column2 = f.get(1) * 1.5
+        RepRow(column1, column2)
+      }(RepRowEncoder(schema)).leaveNRC()
+
+      res.show()
+      res.printSchema()
+
+      assertDataFramesAreEquivalent(res, expected)
+      assertDataFrameSchemaEqual(res, expected)
     }
   }
 
@@ -848,7 +1306,7 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
 
     // Check if want this not to be an assertion failure in NRC
 
-        it("Successful Select - Boolean Expression Integer Multiple Operands") {
+        it("Successful Select - Unions ") {
           val df = simpleIntDataframe
           val wrappedDf = df.wrap()
 
