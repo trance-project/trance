@@ -75,7 +75,12 @@ trait WrappedDataframe extends Rep with NRCTranslator {
   def select[A](cols: A*): WrappedDataframe = cols match {
     case Seq(_: Col, _*) => Select(this, cols.asInstanceOf[Seq[Col]])
     case Seq(_: String, _*) =>
-      val reps: Seq[Col] = cols.map(f => BaseCol(getNestedWrapperId(this), f.asInstanceOf[String]))
+      val reps: Seq[Col] = cols.flatMap{
+        case "*" =>
+          this.asInstanceOf[Wrapper].in.columns.map(z => BaseCol(getNestedWrapperId(this), z))
+        case col: String =>
+          Seq(BaseCol(getNestedWrapperId(this), col))
+      }
       Select(this, reps)
   }
 

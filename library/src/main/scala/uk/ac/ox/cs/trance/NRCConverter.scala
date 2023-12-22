@@ -5,7 +5,6 @@ import framework.nrc.NRC
 import framework.plans.NRCTranslator
 import org.apache.spark.sql.types.{DataType, StructField, StructType, ArrayType => SparkArrayType}
 import org.apache.spark.sql.{DataFrame, types}
-import uk.ac.ox.cs.trance.NRCConverter.getPrimitiveType
 
 import scala.collection.immutable.{Map => IMap}
 
@@ -54,11 +53,9 @@ object NRCConverter extends NRCTranslator {
       val c1Name = unnestExprId(c1)
       val tvr = TupleVarRef(utilities.Symbol.fresh(), c1.tp.tp)
       val map: IMap[String, TupleVarRef] = IMap(c1Name -> tvr)
-//      val bagCol = translateColumn(cols.head, map).asInstanceOf[BagProject]
-      val k = cols.map(z => sparkAliasing(z) -> translateColumn(z, map).asPrimitive)
-      val output = Singleton(Tuple(k.map(f => f._1 -> prepareSelectOutput(f._2)).toMap))
-
-      ForeachUnion(tvr, c1, output)
+      val k = cols.map(z => sparkAliasing(z) -> translateColumn(z, map))
+      val out = Tuple(k.map(f => f._1 -> prepareSelectOutput(f._2).asInstanceOf[TupleAttributeExpr]).toMap)
+      ForeachUnion(tvr, c1, Singleton(out))
     //TODO - Reimplementation needed
     //    case Drop(e, cols) =>
     //      DropContext.addField(cols: _*)
@@ -153,8 +150,7 @@ object NRCConverter extends NRCTranslator {
           structField.name -> tupleAttrExpr
       }
       Tuple(updatedFields)
-      // TODO - handle x => x mappings
-    case tvr: TupleVarRef => tvr
+    case tvr: TupleVarRef => Tuple(tvr.tp.attrTps.zip(r.output.fields).map(f => f._2.name -> tvr(f._1._1)))
     case s@_ => sys.error("Unhandled: " + s)
     }
 
@@ -290,7 +286,7 @@ object NRCConverter extends NRCTranslator {
    * if so we'll update them to project a PrimitiveIfThenElse containing two Constants (for each outcome of the condition),
    * otherwise we leave the projection as is.
    */
-  private def prepareSelectOutput(fields: PrimitiveExpr): PrimitiveExpr = {
+  private def prepareSelectOutput(fields: Expr): Expr = {
     fields match {
       case cmp: PrimitiveCmp =>
         PrimitiveIfThenElse(cmp.asCond, PrimitiveConst(true, BoolType), PrimitiveConst(false, BoolType))

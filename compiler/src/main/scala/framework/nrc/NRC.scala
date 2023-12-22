@@ -49,7 +49,7 @@ trait BaseExpr {
 
   trait AbstractTuple
 
-  trait TupleExpr extends Expr with AbstractTuple {
+  trait TupleExpr extends TupleAttributeExpr with AbstractTuple {
     def tp: TupleType
   }
 }
@@ -90,7 +90,7 @@ trait NRC extends BaseExpr {
   final case class TupleVarRef(name: String, tp: TupleType) extends TupleExpr with VarRef
 
   // TODO: change to args
-  final case class Udf(name: String, in: PrimitiveExpr, tp: NumericType) extends NumericExpr
+  final case class Udf(name: String, in: PrimitiveExpr, tp: PrimitiveType) extends PrimitiveExpr
 
   trait Project {
     this: Expr =>

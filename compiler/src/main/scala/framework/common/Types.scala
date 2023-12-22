@@ -106,7 +106,7 @@ final case class BagType(tp: TupleType) extends TupleAttributeType with Reducibl
 
 final case class KeyValueMapType(keyTp: LabelType, valueTp: BagType) extends TupleAttributeType
 
-final case class TupleType(attrTps: Map[String, TupleAttributeType]) extends Type {
+final case class TupleType(attrTps: Map[String, TupleAttributeType]) extends TupleAttributeType {
   def apply(n: String): TupleAttributeType = attrTps(n)
 }
 

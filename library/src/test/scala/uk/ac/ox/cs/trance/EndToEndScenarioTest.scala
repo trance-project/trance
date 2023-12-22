@@ -10,7 +10,7 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import utilities.{JoinContext, Symbol}
 import org.apache.spark.sql.functions.{col, exp}
-import org.apache.spark.sql.types.{DataTypes, DateType, DoubleType, IntegerType, StringType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, DataTypes, DateType, DoubleType, IntegerType, StringType, StructField, StructType}
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
@@ -894,14 +894,6 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
 
       assertDataFramesAreEquivalent(res, expected)
     }
-   it("Test") {
-      val df = nestedDataframe
-
-      val wrappedDf = df.wrap()
-      wrappedDf.leaveNRC()
-
-
-    }
 
     it("Join with multi-nested structure & nested, top level join with non distinct bag columns") {
       val df = nestedDataframe2
@@ -1531,6 +1523,41 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
 
       assertDataFramesAreEquivalent(expected, res)
     }
+    it("Succesful select - Primitive value from nested Dataset") {
+      val df = nestedDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select("language")
+      val res = wrappedDf.select("language").leaveNRC()
+
+      assertDataFramesAreEquivalent(expected, res)
+
+    }
+    it("Succesful select - Struct value from nested Dataset") {
+      val df = nestedDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select("info")
+      expected.show()
+      val res = wrappedDf.select("info").leaveNRC()
+      res.show()
+      assertDataFramesAreEquivalent(expected, res)
+
+    }
+    it("Succesful select - Struct value from nested Select struct value") {
+      val df = simplerMultiNestedDataframe
+      val wrappedDf = df.wrap()
+
+      val expected = df.select("stats.users")
+      expected.show()
+      val res = wrappedDf.select("stats").leaveNRC()
+
+
+
+      res.show()
+      assertDataFramesAreEquivalent(expected, res)
+
+    }
   }
 
   describe("GroupBy") {
@@ -1664,6 +1691,116 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach {
     }
 
 
+  }
+  // TODO - WIP
+  describe("tpch tests") {
+    it("test1") {
+      val copDF = COP
+      val part = PART
+
+      copDF.show(false)
+      copDF.printSchema()
+
+      val outputSchema: StructType = StructType(Seq(
+        StructField("cname", StringType),
+        StructField("corders", StructType(Seq(
+          StructField("odate", DateType),
+          StructField("oparts", StructType(Seq(
+            StructField("pname", StringType),
+            StructField("total", DoubleType)
+          ))))))))
+
+      val part_pid = PART("pid")
+      val cop_pid = COP.select("corders.oparts.qty", "corders.oparts.pid").join(PART, Seq("pid"))
+
+      val multipliedDf = cop_pid.select(col("qty"), (col("price") * col("qty")).as("Total"))
+
+      val totalMap = multipliedDf.collect().map { row =>
+        row.getDouble(0) -> row.getDouble(1)
+      }.toMap
+
+      val res = copDF.map { x =>
+        val corders = x.getStruct(1).toSeq
+        val odate = corders(0)
+        val oparts = corders(1).asInstanceOf[GenericRowWithSchema]
+        var pid = oparts.getInt(0)
+        var total = totalMap.getOrElse(oparts.getDouble(1), 0.0)
+
+
+
+
+        SparkRow(x(0), SparkRow(odate, SparkRow(pid.toString, total)))
+      }(RowEncoder(outputSchema))
+
+      val wrappedCOP = COP.wrap()
+      val wrappedPART = PART.wrap()
+
+//      val wrappedRes = wrappedCOP.map { x =>
+//        wrappedPART.map{y =>
+//          val corders = x.get(1)
+//          val part_pid = y.get(0)
+//        }
+//        RepRow(x.get(0))
+//      }
+
+      res.show(false)
+      res.printSchema()
+    }
+
+//    def projectBaseTuple(tr: TupleVarRef, omit: List[String] = Nil): BagExpr =
+//      Singleton(Tuple(tr.tp.attrTps.withFilter(f =>
+//        !omit.contains(f._1)).map(f => f._1 -> tr(f._1))))
+//
+
+    it("FlatToNested Test0 Full") {
+      val lineItem = LineItem
+      val wrappedLineItem = lineItem.wrap()
+
+      val res2 = wrappedLineItem.map(x => x)(RepRowEncoder(lineItem.schema)).leaveNRC()
+      res2.show()
+    }
+
+    it("FlatToNested Test1") {
+      val lineItem = LineItem
+      val wrappedLineItem = lineItem.wrap()
+
+      val order = Order
+      val wrappedOrder = order.wrap()
+
+      val outputSchema = StructType(
+        Seq(
+          StructField("o_orderdate", StringType, nullable = false),
+          StructField("o_parts", ArrayType(StructType(
+            Seq(
+              StructField("l_partkey", IntegerType, nullable = false),
+              StructField("l_quantity", DoubleType, nullable = false)
+            )
+          )))
+        )
+      )
+
+//      val finalResSpark = order.map { f =>
+//        val o_orderdate = f.getString(4)
+//        val o_parts = lineItem.join(order, lineItem("l_orderkey") === order("o_orderkey")).select("l_partkey", "l_quantity")
+//        val nestedDatset = o_parts.map { z =>
+//          SparkRow(o_orderdate, z.get(0), z.get(1))
+//        }(RowEncoder(outputSchema))
+//      }(RowEncoder(outputSchema)).leaveNRC()
+//
+//      finalResSpark.show()
+
+//      val finalRes = wrappedOrder.map{f =>
+//        val o_orderdate = f.get(4)
+//        val o_parts = wrappedLineItem.join(wrappedOrder, wrappedLineItem("l_orderkey") === wrappedOrder("o_orderkey")).select("l_partkey", "l_quantity")
+//        val innerRows = o_parts.map{z =>
+//          RepRow(o_orderdate, z.get(0), z.get(1))
+//        }(RepRowEncoder(outputSchema))
+//        RepRow(innerRows)
+//      }(RepRowEncoder(outputSchema)).leaveNRC()
+//
+//      finalRes.show()
+
+    }
   }
 
 
