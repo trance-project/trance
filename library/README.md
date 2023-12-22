@@ -50,9 +50,11 @@ val result: Dataframe = selected.leaveNRC()
 
 ### Supported Operations
 
+* Map
+* FlatMap
 * Select
 * Union
 * Join
 * Drop Duplicates
 * Filter
-* GroupBy -> Sum
+* GroupBy -> Sum (ReduceByKey)
