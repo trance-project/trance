@@ -342,5 +342,25 @@ object TestDataframes {
     spark.createDataFrame(spark.sparkContext.parallelize(data) , orderSchema)
   }
 
+  lazy val Customer: DataFrame = {
+    val customerSchema = StructType(Seq(
+      StructField("c_custkey", IntegerType),
+      StructField("c_name", StringType),
+      StructField("c_address", StringType),
+      StructField("c_nationkey", IntegerType),
+      StructField("c_phone", StringType),
+      StructField("c_acctbal", DoubleType),
+      StructField("c_mktsegment", StringType),
+      StructField("c_comment", StringType)
+    ))
+
+    val data = Seq(
+      Row(101, "John Doe", "123 Main St", 1, "555-1234", 1000.0, "Retail", "Good customer"),
+      Row(102, "Alice Smith", "456 Oak St", 2, "555-5678", 1500.0, "Wholesale", "Valued client"),
+      Row(109, "Bob Johnson", "789 Pine St", 3, "555-9876", 800.0, "Retail", "Regular shopper")
+    )
+    spark.createDataFrame(spark.sparkContext.parallelize(data), customerSchema)
+  }
+
 
 }

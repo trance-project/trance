@@ -18,7 +18,7 @@ object NRCConverter extends NRCTranslator {
    */
   def toNRC(rep: Rep, env: IMap[String, Expr]): Expr = rep match {
     case Map(e, Fun(in, out), outputSchema) =>
-      val c1 = toNRC(e, env).asInstanceOf[BagVarRef]
+      val c1 = toNRC(e, env).asBag
       val tvr = TupleVarRef(utilities.Symbol.fresh(), c1.tp.tp)
       val c2 = toNRC(out, env + (in.asInstanceOf[Sym].id -> tvr)).asTuple
 
@@ -33,7 +33,7 @@ object NRCConverter extends NRCTranslator {
       val c1 = toNRC(e1, env).asBag
       val c1Name = unnestExprId(c1)
       val tvr = TupleVarRef(utilities.Symbol.fresh(), c1.tp.tp)
-      val colMap: IMap[String, TupleVarRef] = IMap(c1Name -> tvr)
+      val colMap: IMap[String, TupleVarRef] = c1Name.map(name => name -> tvr).toMap
       val nrcCond = translateColumn(cond, colMap).asCond
       val outputMap = tvr.tp.attrTps.keys.toSeq.map(f => f -> Project(tvr, f)).toMap
       ForeachUnion(tvr, c1, IfThenElse(nrcCond, Singleton(Tuple(outputMap))))
@@ -52,7 +52,7 @@ object NRCConverter extends NRCTranslator {
       val c1 = toNRC(e, env).asBag
       val c1Name = unnestExprId(c1)
       val tvr = TupleVarRef(utilities.Symbol.fresh(), c1.tp.tp)
-      val map: IMap[String, TupleVarRef] = IMap(c1Name -> tvr)
+      val map: IMap[String, TupleVarRef] = c1Name.map(name => name -> tvr).toMap
       val k = cols.map(z => sparkAliasing(z) -> translateColumn(z, map))
       val out = Tuple(k.map(f => f._1 -> prepareSelectOutput(f._2).asInstanceOf[TupleAttributeExpr]).toMap)
       ForeachUnion(tvr, c1, Singleton(out))
@@ -136,6 +136,9 @@ object NRCConverter extends NRCTranslator {
     case Alias(e1, output) =>
       val c1 = toNRC(e1, env)
       Udf("Transform", PrimitiveConst(output, StringType), StringType)
+    case RepSeq(elems) =>
+      val o = toNRC(elems, env)
+      o
     case s@_ =>
       sys.error("Unsupported: " + s)
   }
@@ -228,7 +231,7 @@ object NRCConverter extends NRCTranslator {
    * )
    */
   private def translateColumn(c: Rep, ctx: IMap[String, TupleVarRef]): Expr = c match {
-    case BaseCol(df, n) => Project(ctx(df), n)
+    case BaseCol(id, n) => Project(ctx(id), n)
     case Literal(e) => Const(e, getPrimitiveType(e))
     case EquiJoinCol(dfId, dfId2, n: String) =>
       Cmp(OpEq, Project(ctx(dfId), n), Project(ctx(dfId2), s"${n}_${extractSuffixCount(dfId2)}"))
@@ -323,20 +326,20 @@ object NRCConverter extends NRCTranslator {
         val combinedColumnMap = projectionMap ++ tvr2.tp.attrTps.keys.toSeq.map(f => f -> Project(tvr2, f))
         ForeachUnion(tvr, c1, ForeachUnion(tvr2, c2, Singleton(Tuple(combinedColumnMap))))
       case e: EquiJoinCol =>
-        val bagToTupleMap: IMap[String, TupleVarRef] = IMap(c1Name -> tvr) ++ IMap(c2Name -> tvr2)
+        val bagToTupleMap: IMap[String, TupleVarRef] = c1Name.map(name => name -> tvr).toMap ++ c2Name.map(name => name -> tvr2)
         val projectionMap = tvr.tp.attrTps.keys.toSeq.map(f => f -> Project(tvr, f)).toMap
-        val combinedColumnMap = projectionMap ++ tvr2.tp.attrTps.keys.toSeq.map(f => f -> Project(tvr2, f)) -- e.n.map(f => f + "_" + extractSuffixCount(c2Name))
+        val combinedColumnMap = projectionMap ++ tvr2.tp.attrTps.keys.toSeq.map(f => f -> Project(tvr2, f)) -- e.n.map(f => f + "_" + extractSuffixCount(c2Name.head))
         val nrcCond = translateColumn(getJoinCond, bagToTupleMap).asCond
         ForeachUnion(tvr, c1, ForeachUnion(tvr2, c2, IfThenElse(nrcCond, Singleton(Tuple(combinedColumnMap)))))
       case _ if c1Name == c2Name =>
-        val c3 = BagVarRef(c1Name, BagType(TupleType(c1.tp.tp.attrTps ++ c2.tp.tp.attrTps.map { case (key, valueType) => (key + "_2", valueType) })))
+        val c3 = BagVarRef(c1Name.head, BagType(TupleType(c1.tp.tp.attrTps ++ c2.tp.tp.attrTps.map { case (key, valueType) => (key + "_2", valueType) })))
         val tvr3 = TupleVarRef(utilities.Symbol.fresh(), c3.tp.tp)
-        val colMap: IMap[String, TupleVarRef] = IMap(c1Name -> tvr3)
+        val colMap: IMap[String, TupleVarRef] = c1Name.map(name => name -> tvr3).toMap
         val combinedColumnMap: IMap[String, TupleAttributeExpr] = tvr3.tp.attrTps.keys.toSeq.map(f => f -> Project(tvr3, f)).toMap
         val nrcCond = translateColumn(getJoinCond, colMap).asCond
         ForeachUnion(tvr, c1, ForeachUnion(tvr3, c3, IfThenElse(nrcCond, Singleton(Tuple(combinedColumnMap)))))
       case _ =>
-        val bagToTupleMap: IMap[String, TupleVarRef] = IMap(c1Name -> tvr) ++ IMap(c2Name -> tvr2)
+        val bagToTupleMap: IMap[String, TupleVarRef] = c1Name.map(name => name -> tvr).toMap ++ c2Name.map(name => name -> tvr2)
         val projectionMap = tvr.tp.attrTps.keys.toSeq.map(f => f -> Project(tvr, f)).toMap
         val combinedColumnMap = projectionMap ++ tvr2.tp.attrTps.keys.toSeq.map(f => f -> Project(tvr2, f))
         val nrcCond = translateColumn(getJoinCond, bagToTupleMap).asCond
@@ -347,10 +350,12 @@ object NRCConverter extends NRCTranslator {
   /**
    * Gets the Dataset Identifier from the lhs of a nested BagExpr (eg. ForEachUnion)
    */
-  private def unnestExprId(e: BagExpr): String = e match {
-    case b: BagVarRef => b.name
-    case f: ForeachUnion => unnestExprId(f.e1)
-  }
+  private def unnestExprId(e: BagExpr): Seq[String] = e match {
+    case b: BagVarRef => Seq(b.name)
+    case f: ForeachUnion => unnestExprId(f.e1) ++ unnestExprId(f.e2)
+    case _ => Seq.empty[String]
+    }
+
 
   private def extractSuffixCount(s: String): String = {
     val pattern = "s(\\d+)".r
