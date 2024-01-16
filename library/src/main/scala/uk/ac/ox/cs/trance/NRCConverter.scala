@@ -24,11 +24,13 @@ object NRCConverter extends NRCTranslator {
 
 
       ForeachUnion(tvr, c1, Singleton(updateTupleCols(c2, outputSchema)))
-    case FlatMap(e, Fun(in, out), outputSchema) =>
-      val expr1 = toNRC(e, env)
-      val tvr = TupleVarRef(utilities.Symbol.fresh(), expr1.asInstanceOf[BagExpr].tp.tp)
-      val expr2 = toNRC(out, env + (in.asInstanceOf[Sym].id -> tvr))
-      ForeachUnion(tvr, expr1.asInstanceOf[BagExpr], expr2.asInstanceOf[BagExpr])
+    case FlatMap(e, Fun(in, out)) =>
+      val c1 = toNRC(e, env).asBag
+      val tvr = TupleVarRef(utilities.Symbol.fresh(), c1.tp.tp)
+      toNRC(out, env + (in.asInstanceOf[Sym].id -> tvr)) match {
+        case t: TupleExpr => ForeachUnion(tvr, c1, Singleton(t))
+        case b: BagExpr => ForeachUnion(tvr, c1, b)
+      }
     case Filter(e1, cond) =>
       val c1 = toNRC(e1, env).asBag
       val c1Name = unnestExprId(c1)
@@ -105,33 +107,49 @@ object NRCConverter extends NRCTranslator {
     case Literal(e) => Const(e, getPrimitiveType(e))
     case RowLiteral(e) => Const(e, getPrimitiveType(e))
     case If(condition, thenBranch, elseBranch) =>
+      // TODO - reimplement else branch
       val c1 = toNRC(condition, env).asCond
-      val c2 = toNRC(thenBranch, env)
-      val c3 = toNRC(elseBranch, env)
-      IfThenElse(c1, c2, c3)
+      toNRC(thenBranch, env) match {
+        case t: Tuple => IfThenElse(c1, Singleton(t))
+        case p: PrimitiveExpr =>  val c3 = toNRC(elseBranch, env)
+          IfThenElse(c1, p, c3)
+      }
     case GreaterThan(lhs, rhs) =>
       val c1 = toNRC(lhs, env)
       val c2 = toNRC(rhs, env)
       Cmp(OpGt, c1, c2)
+    case Equality(lhs, rhs) =>
+      val c1 = toNRC(lhs, env)
+      val c2 = toNRC(rhs, env)
+      Cmp(OpEq, c1, c2)
     case RepRowInst(vals) =>
-      val result = vals.map{f =>
-
-        getRepElemName(f) -> (toNRC(f, env) match {
-          case u: Udf => u
-          case n: NumericExpr => n
-          case p: PrimitiveExpr => p
-          case c: PrimitiveConst => Udf(c.v.asInstanceOf[String], c, StringType)
-        })
+      val result = vals.map { f =>
+        f match {
+          case f: FlatMap => "test" -> toNRC(f, env).asInstanceOf[TupleAttributeExpr]
+          case elem@_ =>
+            getRepElemName(elem) -> (toNRC(elem, env) match {
+              case u: Udf => u
+              case n: NumericExpr => n
+              case p: PrimitiveExpr => p
+              case c: PrimitiveConst => Udf(c.v.asInstanceOf[String], c, StringType)
+            })
+        }
       }.toMap
+
       Tuple(result)
-    case RepElem(name) =>
-      val tvr = env.head._2.asInstanceOf[TupleVarRef] // TODO - potential problems with nested maps
-       Project(tvr, name)
+    case RepElem(name, id) =>
+      val tvr = env(id).asInstanceOf[TupleVarRef] // TODO - potential problems with nested maps
+      Project(tvr, name)
     case Sym(id, _) => env(id)
-//    TODO -  Non-Singleton FlatMaps
-//    case RepSeq(reps @ _*) =>
-//      reps.map(x => toNRC(x, env)).asInstanceOf[Seq[TupleExpr]]
-//      null
+    //    TODO -  Non-Singleton FlatMaps
+    case RepSeq(reps@_*) =>
+      val out = reps.map { f =>
+        val t = toNRC(f, env)
+        t
+      }.asInstanceOf[Seq[Tuple]]
+
+     val k = out.map(Singleton).reduce(Union)
+      k
     //TODO - need discussion on UDF
     case Alias(e1, output) =>
       val c1 = toNRC(e1, env)
@@ -155,14 +173,14 @@ object NRCConverter extends NRCTranslator {
       Tuple(updatedFields)
     case tvr: TupleVarRef => Tuple(tvr.tp.attrTps.zip(r.output.fields).map(f => f._2.name -> tvr(f._1._1)))
     case s@_ => sys.error("Unhandled: " + s)
-    }
+  }
 
   /**
    * getRepElemName returns the column name that a RepElem belongs to.
    * This is called when creating the output Tuple
    */
   private def getRepElemName(rep: Rep): String = rep match {
-    case RepElem(name) => name
+    case RepElem(name, _) => name
     case Add(e1, e2) => getRepElemName(e1)
     case If(e1, e2, e3) => getRepElemName(e2)
     case GreaterThan(e1, e2) => getRepElemName(e1)
@@ -211,7 +229,7 @@ object NRCConverter extends NRCTranslator {
     case _: Long => LongType
     case _: Double => DoubleType
     case _: String => StringType
-    case RepElem(id) => StringType // this is hacky
+    case RepElem(id, _) => StringType // this is hacky
     case s@_ => sys.error("Unsupported primitive type: " + s)
   }
 
@@ -354,7 +372,7 @@ object NRCConverter extends NRCTranslator {
     case b: BagVarRef => Seq(b.name)
     case f: ForeachUnion => unnestExprId(f.e1) ++ unnestExprId(f.e2)
     case _ => Seq.empty[String]
-    }
+  }
 
 
   private def extractSuffixCount(s: String): String = {

@@ -7,7 +7,7 @@ trait Operation extends WrappedDataframe
 
 case class Map(self: WrappedDataframe, f: Fun, output: RepRowEncoder) extends Operation
 
-case class FlatMap(self: WrappedDataframe, f: Fun, output: RepRowEncoder) extends Operation
+case class FlatMap(self: WrappedDataframe, f: Fun) extends Operation
 
 case class Merge(d1: WrappedDataframe, d2: WrappedDataframe) extends Operation
 

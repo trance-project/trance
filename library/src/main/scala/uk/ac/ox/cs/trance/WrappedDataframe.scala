@@ -19,23 +19,37 @@ trait WrappedDataframe extends Rep with NRCTranslator {
   def apply(colName: String): Col = {
     BaseCol(getCtx(this).keys.head, colName)
   }
-   def map(f: RepRow => Rep)(schema: RepRowEncoder): WrappedDataframe = {
-    val symID = utilities.Symbol.fresh()
-    val sym = Sym(symID, this.asInstanceOf[Wrapper].in.columns.map{ f => RepElem(f) }.toSeq)
-    val out = f(sym)
-    val fun = Fun(sym, out)
+   def map(f: RepRow => Rep)(schema: RepRowEncoder): WrappedDataframe = this match {
+     case w: Wrapper =>
+       val symID = utilities.Symbol.fresh()
+       val sym = Sym(symID, w.in.columns.map { f => RepElem(f, symID) }.toSeq)
+       val out = f(sym)
+       val fun = Fun(sym, out)
+       Map(this, fun, schema)
+     case s: Select =>
+       val symID = utilities.Symbol.fresh()
+       val sym = Sym(symID, s.self.asInstanceOf[Join].self.asInstanceOf[Wrapper].in.columns.map { f => RepElem(f, symID) }.toSeq)
+       val out = f(sym)
+       val fun = Fun(sym, out)
+       Map(this, fun, schema)
 
-    Map(this, fun, schema)
+
+
   }
 
-  def flatMap(f: RepRow => Rep)(schema: RepRowEncoder): WrappedDataframe = {
-    val symID = utilities.Symbol.fresh()
-    val sym = Sym(symID, this.asInstanceOf[Wrapper].in.columns.map{ f => RepElem(f) }.toSeq)
-
-    val out = f(sym)
-    val fun = Fun(sym, out)
-
-    FlatMap(this, fun, schema)
+  def flatMap(f: RepRow => Rep): WrappedDataframe = this match {
+    case w: Wrapper =>
+      val symID = utilities.Symbol.fresh()
+      val sym = Sym(symID, w.in.columns.map { f => RepElem(f, symID) }.toSeq)
+      val out = f(sym)
+      val fun = Fun(sym, out)
+      FlatMap(this, fun)
+    case s: Select =>
+      val symID = utilities.Symbol.fresh()
+      val sym = Sym(symID, s.self.asInstanceOf[Join].self.asInstanceOf[Wrapper].in.columns.map { f => RepElem(f, symID) }.toSeq)
+      val out = f(sym)
+      val fun = Fun(sym, out)
+      FlatMap(this, fun)
   }
 
   def union(df: WrappedDataframe): WrappedDataframe = {
@@ -46,7 +60,7 @@ trait WrappedDataframe extends Rep with NRCTranslator {
     Join(this, handleDupColumnNames(df), None)
   }
 
-  def join(df: Wrapper, joinCond: Rep): WrappedDataframe = {
+  def join(df: WrappedDataframe, joinCond: Rep): WrappedDataframe = {
     Join(this, handleDupColumnNames(df), Some(handleDupColumnNames(joinCond)))
   }
 
@@ -72,16 +86,21 @@ trait WrappedDataframe extends Rep with NRCTranslator {
     DropDuplicates(this)
   }
 
+ // TODO - handle col("*") condition
   def select[A](cols: A*): WrappedDataframe = cols match {
     case Seq(_: Col, _*) => Select(this, cols.asInstanceOf[Seq[Col]])
     case Seq(_: String, _*) =>
       val reps: Seq[Col] = cols.flatMap{
-        case "*" =>
-          this.asInstanceOf[Wrapper].in.columns.map(z => BaseCol(getNestedWrapperId(this), z))
-        case col: String =>
-          Seq(BaseCol(getNestedWrapperId(this), col))
+        case "*" => unnestWildcardColumns(this)
+        case col: String => Seq(BaseCol(getNestedWrapperId(this), col))
       }
       Select(this, reps)
+  }
+
+  private def unnestWildcardColumns(w: WrappedDataframe): Array[Col] = w match {
+    case w:Wrapper => w.in.columns.map(z => BaseCol(getNestedWrapperId(this), z))
+    case j: Join => unnestWildcardColumns(j.self) ++ unnestWildcardColumns(j.d2)
+    //TODO - handle all operations
   }
 
   def groupBy(cols: String*): GroupBy = {
@@ -157,7 +176,12 @@ trait WrappedDataframe extends Rep with NRCTranslator {
     case Reduce(e1, _, _) => getCtx(e1)
     case Select(e1, _) => getCtx(e1)
     case Map(e1, _, _) => getCtx(e1)
-    case FlatMap(e1, _, _) => getCtx(e1)
+    case FlatMap(e1, Fun(_, out: Rep)) => getCtx(e1) ++ (out match {
+      case RepRowInst(vals) => vals.flatMap(f => getCtx(f)).toMap
+      case _ => IMap.empty
+    })
+    case RepElem(_, _) => IMap.empty
+    case If(_, _, _) => IMap.empty
     case Filter(e1, _) => getCtx(e1)
     case s@_ => sys.error("Error getting context for: " + s)
   }
@@ -185,15 +209,19 @@ trait WrappedDataframe extends Rep with NRCTranslator {
    * This takes the WrappedDataset as a Wrapper that is due to be joined and updates columns that may have been renamed during Wrapping process due to duplicate column names.
    * Currently only used in Joins.
    */
-  private def handleDupColumnNames(w: Wrapper): Wrapper = {
-    val columnNames = JoinContext.getMappingsForStr(w.str)
-    val updatedNestedDf = columnNames.zip(w.in.columns).foldLeft(w.in) {
-      case (accDf, (newCol, oldCol)) =>
-        accDf.withColumnRenamed(oldCol, newCol)
-    }
+  private def handleDupColumnNames(w: WrappedDataframe): WrappedDataframe = w match {
+    case w: Wrapper =>
+      val columnNames = JoinContext.getMappingsForStr(w.str)
+      val updatedNestedDf = columnNames.zip(w.in.columns).foldLeft(w.in) {
+        case (accDf, (newCol, oldCol)) =>
+          accDf.withColumnRenamed(oldCol, newCol)
+      }
 
-    val updatedWrapper = Wrapper(updatedNestedDf, w.str)
-    updatedWrapper
+      val updatedWrapper = Wrapper(updatedNestedDf, w.str)
+      updatedWrapper
+    case Select(w, cols) => Select(handleDupColumnNames(w), cols)
+    //TODO - check how duplicates are handles in nested Joins
+    case Join(e1, e2, cond) => Join(handleDupColumnNames(e1), handleDupColumnNames(e2), cond)
   }
 
   /**
@@ -205,6 +233,7 @@ trait WrappedDataframe extends Rep with NRCTranslator {
     case o: Operation => o match {
       case Join(lhs, _, _) => getNestedWrapperId(lhs)
       case Select(self, _) => getNestedWrapperId(self)
+      case Filter(self, _) => getNestedWrapperId(self)
     }
   }
 

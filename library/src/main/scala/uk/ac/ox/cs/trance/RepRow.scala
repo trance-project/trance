@@ -58,7 +58,7 @@ trait BaseRepElem extends Rep {
   def +(e2: String): Rep = Concat(this, RowLiteral(e2))
 
 }
-case class RepElem(name: String) extends BaseRepElem
+case class RepElem(name: String, id: String) extends BaseRepElem
 
 /**
  * Currently used in a map function to replace a RepElem with a Literal

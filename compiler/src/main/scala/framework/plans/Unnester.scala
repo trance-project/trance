@@ -218,6 +218,10 @@ object Unnester {
       val fs = tp.attrs.map(k => k._1 -> Project(v, k._1))
       handleLevel(fs, identity)((u, w, E, tag))
 
+    case m @ Merge(e1: CExpr, e2: CExpr) if !e1.isInstanceOf[InputRef] && !e2.isInstanceOf[InputRef] =>
+      val input = ctx._3.get
+      Projection(input, input.asInstanceOf[Select].v, m, ctx._2.keys.toList)
+
     // all these cases just pass through
     case Bind(x, e1, e2) => 
       Bind(x, unnest(e1)((u, w, E, tag)), unnest(e2)((u, w, E, tag)))

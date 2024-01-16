@@ -1,8 +1,8 @@
 package uk.ac.ox.cs.trance
 
 import uk.ac.ox.cs.trance.utilities.SparkUtil.getSparkSession
-import framework.common.{ArrayType, BagCType, BoolType, DoubleType, IntType, LongType, OpArithmetic, OpDivide, OpMinus, OpMod, OpMultiply, OpPlus, RecordCType, StringType, Type}
-import framework.plans.{AddIndex, And, CDeDup, CExpr, CUdf, Comprehension, Constant, EmptySng, Equals, Gt, Gte, InputRef, Lt, Lte, MathOp, Not, Or, Projection, Record, Variable, If => CIf, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
+import framework.common.{ArrayType, BagCType, BoolType, DoubleType, IntType, LongType, OpArithmetic, OpDivide, OpMinus, OpMod, OpMultiply, OpPlus, OptionType, RecordCType, StringType, Type}
+import framework.plans.{AddIndex, And, CDeDup, CExpr, CUdf, Comprehension, Constant, EmptySng, Equals, Gt, Gte, InputRef, Lt, Lte, MathOp, Nest, Not, Or, OuterJoin, Projection, Record, Variable, If => CIf, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.{BinaryOperator, EqualTo, Expression, GenericRow, GenericRowWithSchema, And => SparkAnd, GreaterThan => SparkGreaterThan, GreaterThanOrEqual => SparkGreaterThanOrEqual, LessThan => SparkLessThan, LessThanOrEqual => SparkLessThanOrEqual, Literal => SparkLiteral, Not => SparkNot, Or => SparkOr}
 import org.apache.spark.sql.functions.{col, expr, monotonically_increasing_id}
@@ -24,11 +24,13 @@ object PlanConverter {
   def convert[T](cExpr: CExpr, ctx: IMap[String, Any]): T = cExpr match {
     case Projection(e1, v, p, fields) =>
       val c1 = convert(e1, ctx).asInstanceOf[DataFrame]
-
+      c1.show()
+      c1.printSchema()
       val outputSchema = createStructFields(p)
-      println(outputSchema)
 
-      val l = c1.flatMap { z => Seq(convert(p, ctx ++ getProjectionBinding(e1, z)).asInstanceOf[Row]) }(RowEncoder.apply(outputSchema))
+      val l = c1.flatMap { z =>
+        convert(p, ctx ++ getProjectionBinding(e1, z)).asInstanceOf[Seq[Row]]
+      }(RowEncoder.apply(outputSchema))
       l.asInstanceOf[T]
     case CJoin(left, v, right, v2, cond, fields) =>
       val i1 = convert(left, ctx).asInstanceOf[DataFrame]
@@ -39,7 +41,30 @@ object PlanConverter {
       val joined = performJoin(i1, i2, c)
       handleSelfJoinColumns(joined).asInstanceOf[T]
     case CMerge(e1, e2) =>
-      convert(e1, ctx).asInstanceOf[DataFrame].union(convert(e2, ctx).asInstanceOf[DataFrame]).asInstanceOf[T]
+      // This has issues with the generic type as a pattern matching case, hence the use of if/else if
+      if(convert(e1, ctx).isInstanceOf[DataFrame] && convert(e2, ctx).isInstanceOf[DataFrame]) {
+        val d1 = convert(e1, ctx).asInstanceOf[DataFrame]
+        val d2 = convert(e2, ctx).asInstanceOf[DataFrame]
+        d1.union(d2).asInstanceOf[T]
+      }
+      else if(convert(e1, ctx).isInstanceOf[Row] && convert(e2, ctx).isInstanceOf[Row]) {
+        val r1 = convert(e1, ctx).asInstanceOf[Row]
+        val r2 = convert(e2, ctx).asInstanceOf[Row]
+        Seq(r1, r2).asInstanceOf[T]
+      }
+      else if(convert(e1, ctx).isInstanceOf[Seq[Row]] && convert(e2, ctx).isInstanceOf[Seq[Row]]) {
+        val r1 = convert(e1, ctx).asInstanceOf[Seq[Row]]
+        val r2 = convert(e2, ctx).asInstanceOf[Seq[Row]]
+        (r1++r2).asInstanceOf[T]
+      }
+      else if(convert(e1, ctx).isInstanceOf[Seq[Row]] && convert(e2, ctx).isInstanceOf[Row]) {
+        val r1 = convert(e1, ctx).asInstanceOf[Seq[Row]]
+        val r2 = convert(e2, ctx).asInstanceOf[Row]
+        (r1++Seq(r2)).asInstanceOf[T]
+      }
+      else {
+        sys.error("Invalid Merge")
+      }
     case CSelect(x, v, p) =>
       val k = convert(x, ctx).asInstanceOf[DataFrame]
       p match {
@@ -67,7 +92,8 @@ object PlanConverter {
       val r = Row(columnValue)
       r.asInstanceOf[T]
     case CSng(e1) =>
-      convert(e1, ctx)
+      val sng = convert(e1, ctx).asInstanceOf[Seq[Row]]
+      sng.asInstanceOf[T]
     case Comprehension(e1, v, p, e) =>
       val c1 = convert(e1, ctx).asInstanceOf[DataFrame]
       // TODO - take schema from e for RowEncoder
@@ -78,7 +104,7 @@ object PlanConverter {
         convert(x._2, ctx).asInstanceOf[Row]
       }.toArray
       val combinedRow = t.flatMap(row => row.toSeq)
-      val r = Row.fromSeq(combinedRow)
+      val r = Seq(Row.fromSeq(combinedRow))
       r.asInstanceOf[T]
     case CReduce(in, v, keys, values) =>
       val d1 = convert(in, ctx).asInstanceOf[DataFrame]
@@ -142,6 +168,8 @@ object PlanConverter {
   private def getProjectionBinding(e1: CExpr, row: Row): IMap[String, Any] = e1 match {
     case CSelect(_, v, _) => IMap(v.name -> row)
     case CJoin(left, _, right, _, _, _) => getProjectionBinding(left, row) ++ getProjectionBinding(right, row)
+    case OuterJoin(left, _, right, _, _, _) => getProjectionBinding(left, row) ++ getProjectionBinding(right, row)
+    case Nest(in, _, _, _, _, _, _) => getProjectionBinding(in, row)
     case x@_ => sys.error("Unhandled projection type: " + x)
   }
 
@@ -270,6 +298,7 @@ object PlanConverter {
       }).toSeq)
     case CIf(_, e1, _) => createStructFields(e1)
     case CSng(e1) => createStructFields(e1)
+    case CMerge(e1, e2) => createStructFields(e1)
     case s@_ => sys.error(s + " is not a valid pattern")
   }
 
@@ -290,6 +319,8 @@ object PlanConverter {
     case LongType => DataTypes.LongType
     case ArrayType(tp) => SparkArrayType(getStructDataType(tp))
     case BagCType(tp) => StructType(tp.attrs.map(f => StructField(f._1, getStructDataType(f._2))).toSeq)
+    case RecordCType(fields) => StructType(fields.map(f => StructField(f._1, getStructDataType(f._2))).toSeq)
+    case OptionType(tp) => getStructDataType(tp)
     case s@_ => sys.error("Unhandled struct type: " + s)
   }
 
