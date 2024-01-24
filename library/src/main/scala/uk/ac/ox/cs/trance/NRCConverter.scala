@@ -77,7 +77,6 @@ object NRCConverter extends NRCTranslator {
       Udf("Transform", PrimitiveConst(c2.v.asInstanceOf[String], StringType), StringType)
     case Sng(x) =>
       val k = toNRC(x, env).asTuple
-//      val e = env(x).asInstanceOf[TupleExpr]
       Singleton(k)
     case Wrapper(in, s) =>
       val ds: DataFrame = in
@@ -123,19 +122,7 @@ object NRCConverter extends NRCTranslator {
       val c2 = toNRC(rhs, env)
       Cmp(OpEq, c1, c2)
     case RepRowInst(vals) =>
-      val result = vals.map { f =>
-        f match {
-          case f: FlatMap => "test" -> toNRC(f, env).asInstanceOf[TupleAttributeExpr]
-          case elem@_ =>
-            getRepElemName(elem) -> (toNRC(elem, env) match {
-              case u: Udf => u
-              case n: NumericExpr => n
-              case p: PrimitiveExpr => p
-              case c: PrimitiveConst => Udf(c.v.asInstanceOf[String], c, StringType)
-            })
-        }
-      }.toMap
-
+      val result = repRowResolver(vals, env)
       Tuple(result)
     case RepElem(name, id) =>
       val tvr = env(id).asInstanceOf[TupleVarRef] // TODO - potential problems with nested maps
@@ -159,6 +146,29 @@ object NRCConverter extends NRCTranslator {
       o
     case s@_ =>
       sys.error("Unsupported: " + s)
+  }
+
+  private def repRowResolver(r: Seq[Rep], env: IMap[String, Expr], as: Option[String] = None): IMap[String, TupleAttributeExpr] = {
+    val res = r.flatMap {
+      case f: FlatMap =>
+        val str = as.getOrElse("nested")
+        Seq(str -> toNRC(f, env).asInstanceOf[TupleAttributeExpr])
+      case m: Map => Seq("mapTest" -> toNRC(m, env).asInstanceOf[TupleAttributeExpr])
+      case a: As => repRowResolver(Seq(a.in), env, Some(a.name))
+      case Sym(_, rows) =>
+        val t = repRowResolver(rows, env)
+        t
+      case elem@_ =>
+        Seq(getRepElemName(elem) -> (toNRC(elem, env) match {
+          case u: Udf => u
+          case n: NumericExpr => n
+          case p: PrimitiveExpr => p
+          case c: PrimitiveConst => Udf(c.v.asInstanceOf[String], c, StringType)
+          case bp: BagProject => bp
+        }))
+    }.toMap
+
+    res
   }
 
   /**

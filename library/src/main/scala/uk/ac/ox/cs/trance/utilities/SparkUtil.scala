@@ -4,9 +4,13 @@ import org.apache.spark.sql.SparkSession
 
 object SparkUtil {
   def getSparkSession: SparkSession = {
-    SparkSession.builder()
+    val spark = SparkSession.builder()
       .master("local[1]")
-      .appName("RDDTest")
+      .appName("TranceTest")
+//      .config("spark.serializer.extraDebugInfo", "true")
       .getOrCreate()
+
+//    spark.sparkContext.setLogLevel("DEBUG")
+    spark
   }
 }

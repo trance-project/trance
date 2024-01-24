@@ -48,6 +48,8 @@ trait Rep {
 
     def ||(e2: Rep): Rep = OrRep(this, e2)
 
+    def as(s: String) = As(this, s)
+
 
 }
 

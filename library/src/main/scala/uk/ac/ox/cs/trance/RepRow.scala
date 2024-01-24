@@ -20,11 +20,6 @@ trait RepRow extends BaseRow {
 
 case class RepRowInst(vals: Seq[Rep]) extends RepRow
 
-//object RepRowInst {
-//  def apply(vals: Seq[Rep]): RepRowInst = new RepRowInst(vals)
-//
-//}
-
 case class RepSeq(r: Rep*) extends Rep
 
 object RepRow {
@@ -40,6 +35,11 @@ object RepRow {
     RepRowInst(rows)
   }
 
+  def empty: RepRow = {
+    RepRow()
+  }
+}
+object tools {
   def repIf(condition: Rep)(thenBranch: Rep)(elseBranch: Rep): RepRow = If(condition, thenBranch, elseBranch)
 
 }
@@ -64,8 +64,10 @@ case class RepElem(name: String, id: String) extends BaseRepElem
  * Currently used in a map function to replace a RepElem with a Literal
  */
 case class Alias(in: BaseRepElem, outputString: String) extends BaseRepElem {
-  override def name = in.name
+  override def name: String = in.name
 }
+
+case class As(in: Rep, name: String) extends RepRow
 
 case class If(condition: Rep, thenBranch: Rep, elseBranch: Rep) extends RepRow
 

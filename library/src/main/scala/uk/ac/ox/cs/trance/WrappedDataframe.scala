@@ -19,6 +19,8 @@ trait WrappedDataframe extends Rep with NRCTranslator {
   def apply(colName: String): Col = {
     BaseCol(getCtx(this).keys.head, colName)
   }
+
+  // TODO - Remove pattern matching from map & flatMap if not needed (other operations within map)
    def map(f: RepRow => Rep)(schema: RepRowEncoder): WrappedDataframe = this match {
      case w: Wrapper =>
        val symID = utilities.Symbol.fresh()
@@ -26,15 +28,12 @@ trait WrappedDataframe extends Rep with NRCTranslator {
        val out = f(sym)
        val fun = Fun(sym, out)
        Map(this, fun, schema)
-     case s: Select =>
-       val symID = utilities.Symbol.fresh()
-       val sym = Sym(symID, s.self.asInstanceOf[Join].self.asInstanceOf[Wrapper].in.columns.map { f => RepElem(f, symID) }.toSeq)
-       val out = f(sym)
-       val fun = Fun(sym, out)
-       Map(this, fun, schema)
-
-
-
+//     case s: Select =>
+//       val symID = utilities.Symbol.fresh()
+//       val sym = Sym(symID, s.self.asInstanceOf[Join].self.asInstanceOf[Wrapper].in.columns.map { f => RepElem(f, symID) }.toSeq)
+//       val out = f(sym)
+//       val fun = Fun(sym, out)
+//       Map(this, fun, schema)
   }
 
   def flatMap(f: RepRow => Rep): WrappedDataframe = this match {
@@ -44,12 +43,12 @@ trait WrappedDataframe extends Rep with NRCTranslator {
       val out = f(sym)
       val fun = Fun(sym, out)
       FlatMap(this, fun)
-    case s: Select =>
-      val symID = utilities.Symbol.fresh()
-      val sym = Sym(symID, s.self.asInstanceOf[Join].self.asInstanceOf[Wrapper].in.columns.map { f => RepElem(f, symID) }.toSeq)
-      val out = f(sym)
-      val fun = Fun(sym, out)
-      FlatMap(this, fun)
+//    case s: Select =>
+//      val symID = utilities.Symbol.fresh()
+//      val sym = Sym(symID, s.self.asInstanceOf[Join].self.asInstanceOf[Wrapper].in.columns.map { f => RepElem(f, symID) }.toSeq)
+//      val out = f(sym)
+//      val fun = Fun(sym, out)
+//      FlatMap(this, fun)
   }
 
   def union(df: WrappedDataframe): WrappedDataframe = {
@@ -180,8 +179,10 @@ trait WrappedDataframe extends Rep with NRCTranslator {
       case RepRowInst(vals) => vals.flatMap(f => getCtx(f)).toMap
       case _ => IMap.empty
     })
-    case RepElem(_, _) => IMap.empty
-    case If(_, _, _) => IMap.empty
+    case As(e1, _) => getCtx(e1)
+    case _: RepElem => IMap.empty
+    case _: Sym => IMap.empty
+    case _: If => IMap.empty
     case Filter(e1, _) => getCtx(e1)
     case s@_ => sys.error("Error getting context for: " + s)
   }
