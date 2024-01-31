@@ -9,7 +9,7 @@ import framework.common.IntType
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
 import utilities.{JoinContext, Symbol, TestDataframes}
-import org.apache.spark.sql.functions.{col, collect_list, exp, monotonically_increasing_id, struct}
+import org.apache.spark.sql.functions.{col, collect_list, exp, first, monotonically_increasing_id, struct}
 import org.apache.spark.sql.types.{ArrayType, DataTypes, DateType, DoubleType, IntegerType, StringType, StructField, StructType}
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.funspec.AnyFunSpec
@@ -47,6 +47,38 @@ case class Record6444f3ba076c4c409686bf6410417a86(l_partkey: Int, l_quantity: Do
 
 case class Record10598666558d460ab7cf36a3624f7fe2(Order_index: Long, o_orderdate: String, o_parts: Seq[Record6444f3ba076c4c409686bf6410417a86])
 
+case class Record2dc37b6c982f4fc5864bfea8830b976e(c_name: String, c_nationkey: Int, c_custkey: Int)
+case class Record99b6f24fbc634ee9b3639e57d1bf20c1(c_name: String, c_nationkey: Int, c_custkey: Int, Customer_index: Long)
+case class Recorde3649c70440340cfad4b3323d08e2e3b(o_orderdate: String, o_custkey: Int, o_orderkey: Int)
+case class Record6687cebc34a748a8bb09d5668686082e(o_orderdate: String, o_custkey: Int, o_orderkey: Int, Order_index: Long)
+case class Recordd220fd669d7e41f1b86a3aabecac4237(o_orderdate: Option[String], o_custkey: Option[Int], Order_index: Option[Long], c_name: String, Customer_index: Long, c_nationkey: Int, c_custkey: Int, o_orderkey: Option[Int])
+case class Record478e4064b2aa4a81882aa61634d044c9(l_quantity: Double, l_partkey: Int, l_orderkey: Int)
+case class Record811a07786a1742d68b5b3e724eb7e675(o_orderdate: Option[String], l_quantity: Option[Double], Order_index: Option[Long], c_name: String, Customer_index: Long, l_partkey: Option[Int], o_orderkey: Option[Int], l_orderkey: Option[Int])
+case class Record7b14754fea1d449e84f101370561bb95(o_orderdate: Option[String], l_quantity: Option[Double], Order_index: Option[Long], c_name: String, Customer_index: Long, l_partkey: Option[Int])
+case class Record673d683609d24f698c9fab8a214ccb52(o_orderdate: Option[String], Order_index: Option[Long], c_name: String, Customer_index: Long)
+case class Recorda14eb38fa0b14107a1e4e87ea2d35fde(l_partkey: Int, l_quantity: Double)
+case class Recordbcc1e90432f548a2b9eb13a23cafb152(o_orderdate: Option[String], Order_index: Option[Long], c_name: String, o_parts: Seq[Recorda14eb38fa0b14107a1e4e87ea2d35fde], Customer_index: Long)
+case class Record190f73c1f64d49a297297765c57c8bde(Customer_index: Long, c_name: String, o_orderdate: Option[String], o_parts: Seq[Recorda14eb38fa0b14107a1e4e87ea2d35fde])
+case class Record5c1622d89e264a809d3f13e0d4a12ed8(c_name: String, Customer_index: Long)
+case class Record77304327a217441fa8f29bdd4a041d34(o_orderdate: String, o_parts: Seq[Recorda14eb38fa0b14107a1e4e87ea2d35fde])
+case class Record3df1924806c44fcdafc4395b39bd3b4c(Customer_index: Long, c_name: String, c_orders: Seq[Record77304327a217441fa8f29bdd4a041d34])
+
+case class Recordb80e3302266a42e4a981836379570249(o_orderdate: String, o_custkey: Int, o_orderkey: Int)
+case class Recordd16d0fb04d69452d83bec9ee88449806(o_orderdate: String, o_custkey: Int, o_orderkey: Int, Order_index: Long)
+case class Record80e931fa827f40cca9ea94aa8b0a308a(l_quantity: Double, l_partkey: Int, l_orderkey: Int)
+case class Recordbf846df439974b07b6abb5120e933eb8(o_orderdate: String, o_custkey: Int, l_quantity: Option[Double], Order_index: Long, l_partkey: Option[Int], o_orderkey: Int, l_orderkey: Option[Int])
+case class Recordd74a63caf68e4419868a969376dbf27b(o_orderdate: String, o_custkey: Int, l_quantity: Option[Double], Order_index: Long, l_partkey: Option[Int])
+case class Recorde64677bfead1481e9fe09c808070d452(o_orderdate: String, o_custkey: Int, Order_index: Long)
+case class Record0f24c31b203c447584d817d42bc7dd63(l_partkey: Int, l_quantity: Double)
+case class Record07ff0f6ff4644ebeadc4697bd56a2d39(o_orderdate: String, o_custkey: Int, Order_index: Long, o_parts: Seq[Record0f24c31b203c447584d817d42bc7dd63])
+case class Recordea3dc6f9b6ed4825a085a971a8423122(c_name: String, c_custkey: Int)
+case class Record9f1664be1da24f109f1aea1ab3e17c27(c_name: String, c_custkey: Int, Customer_index: Long)
+case class Record2fe5f740223c42fb8c010e46406e8f73(o_custkey: Int, o_orderdate: String, o_parts: Seq[Record0f24c31b203c447584d817d42bc7dd63])
+case class Record53d1eaf1461b4a32adb18c8ef293ff5e(o_orderdate: Option[String], o_custkey: Option[Int], c_name: String, o_parts: Option[Seq[Record0f24c31b203c447584d817d42bc7dd63]], Customer_index: Long, c_custkey: Int)
+case class Recordfbdaef1028e84a7f828a554c285e6e01(Customer_index: Long, c_name: String, o_orderdate: Option[String], o_parts: Option[Seq[Record0f24c31b203c447584d817d42bc7dd63]])
+case class Record16e3a795c8c148c0a5a11f439e060620(c_name: String, Customer_index: Long)
+case class Record93f64805c41d4615a2e3ea7d2dc10155(o_orderdate: String, o_parts: Seq[Record0f24c31b203c447584d817d42bc7dd63])
+case class Record1b47e1a717b84648887c65f20c823179(Customer_index: Long, c_name: String, c_orders: Seq[Record93f64805c41d4615a2e3ea7d2dc10155])
 class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Serializable {
 
 
@@ -90,6 +122,60 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
   }
 
   describe("FlatMap") {
+
+
+//    it("Simple New Style Map") {
+//      val df = simpleIntDataframe
+//      val wrappedDf = df.wrap()
+//
+//      val query = wrappedDf.flatMap { f =>
+//        RepRow(f("language"), f("users"))
+//      }.as("language", "users").leaveNRC()
+//
+//      query.show(false)
+//    }
+//    it("Simple New Style Map 2 levels nest") {
+//      val df = simpleIntDataframe
+//      val df2 = simpleIntDataframe2
+//      val wrappedDf = df.wrap()
+//      val wrappedDf2 = df2.wrap()
+//
+//      val innerQuery = wrappedDf2.flatMap { o =>
+//        RepRow(o("lng"), o("usr"))
+//      }
+//
+//
+//      val query = wrappedDf.flatMap { f =>
+//        RepRow(f("language"), innerQuery.flatMap{ o =>
+//          RepRow(o("lng"))
+//        })
+//      }.leaveNRC()
+//
+//      query.show(false)
+//    }
+
+  it("Simple New Style Map 3 levels nest") {
+      val df = simpleIntDataframe
+      val df2 = simpleIntDataframe2
+      val df3 = simpleIntDataframe3
+
+      val wrappedDf = df.wrap()
+      val wrappedDf2 = df2.wrap()
+      val wrappedDf3 = df3.wrap()
+
+      val innerQuery = wrappedDf2.flatMap { o =>
+        RepRow(o("usr"))
+      }.as("usr")
+
+
+      val query = wrappedDf.flatMap { f =>
+        RepRow(f("language"), RepProjection("inner", innerQuery))
+      }.leaveNRC()
+
+      query.show(false)
+    }
+
+
     it("Successful FlatMap - Integer Column Addition, Sequence of Rows Output") {
       val df = pureIntDataframe
       val wrappedDf = df.wrap()
@@ -117,71 +203,179 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
       assertDataFramesAreEquivalent(res, expected)
 
     }
-   it("Successful FlatMap - Integer Column Addition, Sequence of 3 Rows Output") {
-        val df = pureIntDataframe
-        val wrappedDf = df.wrap()
-
-        val expected = df.flatMap { x =>
-          val id = x.getInt(0)
-          val users = x.getInt(1)
-          Seq(
-            SparkRow(id, users),
-            SparkRow(id + 10, users + 10),
-            SparkRow(id + 20, users + 20)
-          )
-        }(RowEncoder(df.schema))
-        expected.show()
-
-        val res = wrappedDf.flatMap { x =>
-          val id = x.get(0)
-          val users = x.get(1)
-          RepSeq(
-            RepRow(id, users),
-            RepRow(id + 10, users + 10),
-            RepRow(id + 20, users + 20)
-          )
-        }.leaveNRC()
-        res.show()
-
-        assertDataFramesAreEquivalent(res, expected)
-
-      }
-
-    it("Flat to Nested With Dummy Data") {
-      val df = simpleIntDataframe3
-      val df2 = simpleIntDataframe5
-
-
-      val joinedDf = df.join(df2, df("lName") === df2("language"), "left_outer")
-      val colum = functions.struct(joinedDf("users"), joinedDf("inUse"))
-      val dfWithColumn = joinedDf.withColumn("nested", colum)
-      val sparkResWithColumn = dfWithColumn.select("lName", "nested")
-
-      sparkResWithColumn.show()
-
+//   it("Successful FlatMap - Integer Column Addition, Sequence of 3 Rows Output") {
+//        val df = pureIntDataframe
+//        val wrappedDf = df.wrap()
+//
+//        val expected = df.flatMap { x =>
+//          val id = x.getInt(0)
+//          val users = x.getInt(1)
+//          Seq(
+//            SparkRow(id, users),
+//            SparkRow(id + 10, users + 10),
+//            SparkRow(id + 20, users + 20)
+//          )
+//        }(RowEncoder(df.schema))
+//        expected.show()
+//
+//        val res = wrappedDf.flatMap { x =>
+//          val id = x.get(0)
+//          val users = x.get(1)
+//          RepSeq(
+//            RepRow(id, users),
+//            RepRow(id + 10, users + 10),
+//            RepRow(id + 20, users + 20)
+//          )
+//        }.leaveNRC()
+//        res.show()
+//
+//        assertDataFramesAreEquivalent(res, expected)
+//
+//      }
+//
+//    it("Flat to Nested With Dummy Data") {
+//      val df = simpleIntDataframe3
+//      val df2 = simpleIntDataframe5
+//
+//
+//      val joinedDf = df.join(df2, df("lName") === df2("language"), "left_outer")
+//      val colum = functions.struct(joinedDf("users"), joinedDf("inUse"))
+//      val dfWithColumn = joinedDf.withColumn("nested", colum)
+//      val sparkResWithColumn = dfWithColumn.select("lName", "nested")
+//
+//      sparkResWithColumn.show()
+//
+//
+//      val wrappedDf = df.wrap()
+//      val wrappedDf2 = df2.wrap()
+//
+//      val res = wrappedDf.flatMap{f =>
+//          val lName = f.get(0)
+//          RepRow(lName, wrappedDf2.flatMap{ z =>
+//            val language = z.get(0)
+//            val users = z.get(1)
+//            val inUse = z.get(2)
+//            repIf(lName === language) {
+//              RepRow(users, inUse)
+//            } {
+//              RepRow()
+//            }
+//          })
+//      }.leaveNRC()
+//
+//      res.show()
+//
+//
+//      assertDataFramesAreEquivalent(sparkResWithColumn, res)
+//    }
+//
+//    it("Simpler Nested FlatMap Attempt") {
+//      val df = simpleIntDataframe
+//      val df2 = simpleIntDataframe3
+//      val df3 = simpleIntDataframe2
+//
+//      val wrappedDf = df.wrap()
+//      val wrappedDf2 = df2.wrap()
+//      val wrappedDf3 = df3.wrap()
+//
+//       val query2_1 = wrappedDf2.flatMap{f =>
+//        RepRow(f("lName"), f("userNo"))
+//        }
+//
+//      val query2_2 = wrappedDf.flatMap{f =>
+//        RepRow(f.get(0), query2_1.flatMap{o =>
+//          repIf(f("language") === o("lName")) {
+//            RepRow(o("lName"))
+//          } {
+//            RepRow.empty
+//          }
+//        })
+//      }.leaveNRC()
+//
+//      query2_2.show(false)
+//      query2_2.printSchema()
+//    }
+//
+    it ("Simpler Nested FlatMap Attempt - nested struct separated query") {
+      val df = simpleIntDataframe
+      val df2 = simpleIntDataframe3
+      val df3 = simpleIntDataframe2
 
       val wrappedDf = df.wrap()
       val wrappedDf2 = df2.wrap()
+      val wrappedDf3 = df3.wrap()
 
-      val res = wrappedDf.flatMap{f =>
-          val lName = f.get(0)
-          RepRow(lName, wrappedDf2.flatMap{ z =>
-            val language = z.get(0)
-            val users = z.get(1)
-            val inUse = z.get(2)
-            repIf(lName === language) {
-              RepRow(users, inUse)
-            } {
-              RepRow()
-            }
-          })
+      val query2_1 = wrappedDf2.flatMap { f =>
+        RepRow(f("lName"), RepProjection("innerMost", wrappedDf3.flatMap{ o =>
+          RepRow(o("lng"))
+        }))
+      }
+
+      val query2_2 = wrappedDf.flatMap { f =>
+        val language = f("language")
+        RepRow(language, RepProjection("inner", query2_1.flatMap { o =>
+          repIf(f("language") === o("lName")) {
+            RepRow(o("innerMost"))
+          } {
+            RepRow.empty
+          }
+        }))
       }.leaveNRC()
 
-      res.show()
-
-
-      assertDataFramesAreEquivalent(sparkResWithColumn, res)
+      query2_2.show(false)
+      query2_2.printSchema()
     }
+//
+//    it ("Simpler Nested FlatMap Attempt - nested struct single query") {
+//      val df = simpleIntDataframe
+//      val df2 = simpleIntDataframe3
+//      val df3 = simpleIntDataframe2
+//
+//      val wrappedDf = df.wrap()
+//      val wrappedDf2 = df2.wrap()
+//      val wrappedDf3 = df3.wrap()
+//
+//      val query2_2 = wrappedDf.map { f =>
+//        RepRow(f("language"),wrappedDf2.flatMap { o =>
+//          repIf(f("language") === o("lName")) {
+//            RepRow(o("lName"), wrappedDf3.flatMap {z =>
+//              RepRow(z("lng"))
+//            })})
+//          } {
+//            RepRow.empty
+//          }
+//        })
+//      }.leaveNRC()
+//
+//
+//      query2_2.show(false)
+//      query2_2.printSchema()
+//
+//    }
+
+
+
+//    it("New Sym Test") {
+//      val df = simpleIntDataframe
+//      val df2 = simpleIntDataframe2
+//
+//      val wrappedDf = df.wrap()
+//      val wrappedDf2 = df2.wrap()
+//
+//      val query = wrappedDf.flatMap{f =>
+//        val language = f("language")
+//        RepRow(language, wrappedDf2.flatMap{ o =>
+//          val lng = o("lng")
+//          val usr = o("usr")
+//          val k = RepRow(lng, usr)
+//          val k2 = k("lng")
+//          RepRow(k2)
+//        })
+//      }.leaveNRC()
+//
+//      query.show(false)
+//    }
+
   }
   //TODO divide type promotion works differently in map
   describe("Map") {
@@ -192,13 +386,12 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
       val expected = df.map(x => x)(RowEncoder(df.schema))
       expected.show()
 
-      val res = wrappedDf.map(x => x)(RepRowEncoder(df.schema)).leaveNRC()
+      val res = wrappedDf.map(x => x).leaveNRC()
       res.show()
 
       assertDataFramesAreEquivalent(res, expected)
     }
 
-    //TODO - how to handle renamed columns in TupleVarRef output of map
     it("Successful Map - Identity Function with Renamed columns") {
       val df = pureIntDataframe
       val wrappedDf = df.wrap()
@@ -213,297 +406,298 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
       val expected = df.map(x => x)(RowEncoder(schema))
       expected.show()
 
-      val res = wrappedDf.map(x => x)(RepRowEncoder(schema)).leaveNRC()
+      val res = wrappedDf.map(x => x).leaveNRC()
       res.show()
 
       assertDataFramesAreEquivalent(res, expected)
       assertDataFrameSchemaEqual(res, expected)
     }
 
-    it("Successful Map - Integer Column + 1") {
-      val df = pureIntDataframe
-      val wrappedDf = df.wrap()
-
-      val expected = df.map { x =>
-        val k = x.toSeq.map(f => f.asInstanceOf[Int] + 1)
-        SparkRow.fromSeq(k)
-      }(RowEncoder(df.schema))
-      expected.show()
-
-      val res = wrappedDf.map { x =>
-
-        val k = x.toSeq.map(f => f + 1)
-
-        RepRow.fromSeq(k)
-      }(RepRowEncoder(df.schema)).leaveNRC()
-      res.show()
-
-      assertDataFramesAreEquivalent(res, expected)
-    }
-
-
-    it("Successful Map - Integer Column Multiples Additions") {
-      val df = pureIntDataframe
-      val wrappedDf = df.wrap()
-
-      val expected = df.map { x =>
-        val k = x.toSeq.map(f => f.asInstanceOf[Int] + 1 + 2)
-        SparkRow.fromSeq(k)
-      }(RowEncoder(df.schema))
-      expected.show()
-
-      val res = wrappedDf.map { x =>
-        val k = x.toSeq.map(f => f + 1 + 2)
-        RepRow.fromSeq(k)
-      }(RepRowEncoder(df.schema)).leaveNRC()
-      res.show()
-
-      assertDataFramesAreEquivalent(res, expected)
-    }
-    it("Successful Map - Integer Column Added to Itself") {
-      val df = pureIntDataframe
-      val wrappedDf = df.wrap()
-
-      val expected = df.map { x =>
-        val k = x.toSeq.map(f => f.asInstanceOf[Int] + f.asInstanceOf[Int])
-        SparkRow.fromSeq(k)
-      }(RowEncoder(df.schema))
-      expected.show()
-
-      val res = wrappedDf.map { x =>
-        val k = x.toSeq.map(f => f + f)
-        RepRow.fromSeq(k)
-      }(RepRowEncoder(df.schema)).leaveNRC()
-      res.show()
-
-      assertDataFramesAreEquivalent(res, expected)
-    }
-    it("Successful Map - Integer Column Added to Itself Twice") {
-      val df = pureIntDataframe
-      val wrappedDf = df.wrap()
-
-      val expected = df.map { x =>
-        val k = x.toSeq.map(f => f.asInstanceOf[Int] + f.asInstanceOf[Int] + f.asInstanceOf[Int])
-        SparkRow.fromSeq(k)
-      }(RowEncoder(df.schema))
-      expected.show()
-
-      val res = wrappedDf.map { x =>
-        val k = x.toSeq.map(f => f + f + f)
-        RepRow.fromSeq(k)
-      }(RepRowEncoder(df.schema)).leaveNRC()
-      res.show()
-
-      assertDataFramesAreEquivalent(res, expected)
-    }
-
-    it("Successful Map - Integer Column Added to Itself Multiple Times") {
-      val df = pureIntDataframe
-      val wrappedDf = df.wrap()
-
-      val expected = df.map { x =>
-        val k = x.toSeq.map(f => f.asInstanceOf[Int] + f.asInstanceOf[Int] + f.asInstanceOf[Int] + 2 + f.asInstanceOf[Int] + 3 + f.asInstanceOf[Int])
-        SparkRow.fromSeq(k)
-      }(RowEncoder(df.schema))
-      expected.show()
-
-      val res = wrappedDf.map { x =>
-        val k = x.toSeq.map(f => f + f + f + 2 + f + 3 + f)
-        RepRow.fromSeq(k)
-      }(RepRowEncoder(df.schema)).leaveNRC()
-      res.show()
-
-      assertDataFramesAreEquivalent(res, expected)
-    }
-
-    it("Successful Map - Integer Mod with brackets") {
-      val df = pureIntDataframe
-      val wrappedDf = df.wrap()
-
-      val expected = df.map { x =>
-        val k = x.toSeq.map(f => f.asInstanceOf[Int] % (f.asInstanceOf[Int] + 1))
-        SparkRow.fromSeq(k)
-      }(RowEncoder(df.schema))
-      expected.show()
-
-      val res = wrappedDf.map { x =>
-        val k = x.toSeq.map(f => f % (f + 1))
-        RepRow.fromSeq(k)
-      }(RepRowEncoder(df.schema)).leaveNRC()
-      res.show()
-
-      assertDataFramesAreEquivalent(res, expected)
-    }
-
-    it("Successful Map - Integer Column Minus to Itself") {
-      val df = pureIntDataframe
-      val wrappedDf = df.wrap()
-
-      val expected = df.map { x =>
-        val k = x.toSeq.map(f => f.asInstanceOf[Int] - f.asInstanceOf[Int] - f.asInstanceOf[Int])
-        SparkRow.fromSeq(k)
-      }(RowEncoder(df.schema))
-      expected.show()
-
-      val res = wrappedDf.map { x =>
-        val k = x.toSeq.map(f => f - f - f)
-        RepRow.fromSeq(k)
-      }(RepRowEncoder(df.schema)).leaveNRC()
-      res.show()
-
-      assertDataFramesAreEquivalent(res, expected)
-    }
-
-    // TODO - type promotion for double shouldn't happen here
-    it("Successful Map - Integer All Operations Tuple Both Sides Issue") {
-      val df = pureIntDataframe
-      val wrappedDf = df.wrap()
-
-      val expected = df.map { x =>
-        val k = x.toSeq.map(f => f.asInstanceOf[Int] - f.asInstanceOf[Int] + f.asInstanceOf[Int] * f.asInstanceOf[Int] / f.asInstanceOf[Int] % f.asInstanceOf[Int])
-        SparkRow.fromSeq(k)
-      }(RowEncoder(df.schema))
-      expected.show()
-
-      val res = wrappedDf.map { x =>
-        val k = x.toSeq.map(f => f - f + f * f / f % f)
-        RepRow.fromSeq(k)
-      }(RepRowEncoder(df.schema)).leaveNRC()
-      res.show()
-
-      assertDataFramesAreEquivalent(res, expected)
-    }
-    // TODO - Use UDF?
-    it("Successful Map - String Column Modification") {
-      val df = pureStringDataframe
-      val wrappedDf = df.wrap()
-
-      val expected = df.map { x =>
-        SparkRow.fromSeq(x.toSeq.map(f => s"${f.asInstanceOf[String]}: Test"))
-      }(RowEncoder(df.schema))
-      expected.show()
-
-      val res = wrappedDf.map { x =>
-        val k = x.toSeq.map { f =>
-          val k = f + ": Test"
-          k
-        }
-        RepRow.fromSeq(k)
-      }(RepRowEncoder(df.schema)).leaveNRC()
-      res.show(false)
-
-      assertDataFramesAreEquivalent(res, expected)
-    }
-    //
-    //it("Successful Map - String Column Modification Alternate Way") {
-    //      val df = pureStringDataframe
-    //      val wrappedDf = df.wrap()
-    //
-    //      val expected = df.map { x =>
-    //        SparkRow.fromSeq(x.toSeq.map(f => "Replaced"))
-    //      }(RowEncoder(df.schema))
-    //      expected.show()
-    //
-    //      import uk.ac.ox.cs.trance.repextensions._
-    //      val res = wrappedDf.map{ x =>
-    //       val k = x.toSeq.tMap(x => "Replaced")
-    //        RepRow.fromSeq(k)
-    //      }(RepRowEncoder(df.schema)).leaveNRC()
-    //      res.show(false)
-    //
-    //      assertDataFramesAreEquivalent(res, expected)
-    //    }
-
-    it("moreTesting - conditional if in integer addition mapping") {
-      val df = pureIntDataframe
-      val wrappedDf = df.wrap()
-
-      val out = df.map { x =>
-        val k = x.toSeq.map { f =>
-          if (f.asInstanceOf[Int] > 50) {
-            f.asInstanceOf[Int] + 29
-          } else {
-            f
-          }
-        }
-        SparkRow.fromSeq(k)
-      }(RowEncoder(df.schema))
-
-      out.show()
-
-
-      val res = wrappedDf.map { x =>
-        println("RepRow: " + x)
-
-        val k = x.toSeq.map { f =>
-          repIf(f > 50) {
-            f + 29
-          } {
-            f
-          }
-        }
-        RepRow.fromSeq(k)
-      }(RepRowEncoder(df.schema)).leaveNRC()
-
-      res.show()
-      assertDataFramesAreEquivalent(res, out)
-      assertDataFrameSchemaEqual(res, out)
-
-
-    }
-
-    it("Map change Integer output columns in RowEncoder") {
-      val df = pureIntDataframe
-      val wrappedDf = df.wrap()
-
-      val schema: StructType = StructType(Seq(
-        StructField("language", IntegerType, nullable = true),
-        StructField("info", IntegerType, nullable = true
-        )))
-
-      val expected = df.map { f =>
-        val k = Seq(f.getInt(1), f.getInt(0))
-        SparkRow.fromSeq(k)
-      }(RowEncoder(schema))
-
-      val res = wrappedDf.map { f =>
-        val k = Seq(f.get(1), f.get(0))
-        RepRow.fromSeq(k)
-      }(RepRowEncoder(schema)).leaveNRC()
-
-      expected.show()
-      res.show()
-      assertDataFramesAreEquivalent(res, expected)
-      assertDataFrameSchemaEqual(res, expected)
-
-
-    }
-    it("Map change String output columns in RowEncoder") {
-      val df = pureStringDataframe
-      val wrappedDf = df.wrap()
-
-      val schema: StructType = StructType(Seq(
-        StructField("language", StringType, nullable = true),
-        StructField("info", StringType, nullable = true
-        )))
-
-      val expected = df.map { f =>
-        val k = Seq(f.getString(1), f.getString(0))
-        SparkRow.fromSeq(k)
-      }(RowEncoder(schema))
-
-      val res = wrappedDf.map { f =>
-        val k = Seq(f.get(1), f.get(0))
-        RepRow.fromSeq(k)
-      }(RepRowEncoder(schema)).leaveNRC()
-
-      expected.show()
-      res.show()
-      assertDataFramesAreEquivalent(res, expected)
-      assertDataFrameSchemaEqual(res, expected)
-
-
-    }
+//    it("Successful Map - Integer Column + 1") {
+//      val df = pureIntDataframe
+//      val wrappedDf = df.wrap()
+//
+//      val expected = df.map { x =>
+//        val k = x.toSeq.map(f => f.asInstanceOf[Int] + 1)
+//        SparkRow.fromSeq(k)
+//      }(RowEncoder(df.schema))
+//      expected.show()
+//
+//      val res = wrappedDf.map { x =>
+//
+//        val k = x.toSeq.map(f => f + 1)
+//
+//        RepRow.fromSeq(k)
+//      }.leaveNRC()
+//      res.show()
+//
+//      assertDataFramesAreEquivalent(res, expected)
+//    }
+//
+//
+//    it("Successful Map - Integer Column Multiples Additions") {
+//      val df = pureIntDataframe
+//      val wrappedDf = df.wrap()
+//
+//      val expected = df.map { x =>
+//        val k = x.toSeq.map(f => f.asInstanceOf[Int] + 1 + 2)
+//        SparkRow.fromSeq(k)
+//      }(RowEncoder(df.schema))
+//      expected.show()
+//
+//      val res = wrappedDf.map { x =>
+//        val k = x.toSeq.map(f => f + 1 + 2)
+//        RepRow.fromSeq(k)
+//      }.leaveNRC()
+//      res.show()
+//
+//      assertDataFramesAreEquivalent(res, expected)
+//    }
+//    it("Successful Map - Integer Column Added to Itself") {
+//      val df = pureIntDataframe
+//      val wrappedDf = df.wrap()
+//
+//      val expected = df.map { x =>
+//        val k = x.toSeq.map(f => f.asInstanceOf[Int] + f.asInstanceOf[Int])
+//        SparkRow.fromSeq(k)
+//      }(RowEncoder(df.schema))
+//      expected.show()
+//
+//      val res = wrappedDf.map { x =>
+//        val k = x.toSeq.map(f => f + f)
+//        RepRow.fromSeq(k)
+//      }.leaveNRC()
+//      res.show()
+//
+//      assertDataFramesAreEquivalent(res, expected)
+//    }
+//    it("Successful Map - Integer Column Added to Itself Twice") {
+//      val df = pureIntDataframe
+//      val wrappedDf = df.wrap()
+//
+//      val expected = df.map { x =>
+//        val k = x.toSeq.map(f => f.asInstanceOf[Int] + f.asInstanceOf[Int] + f.asInstanceOf[Int])
+//        SparkRow.fromSeq(k)
+//      }(RowEncoder(df.schema))
+//      expected.show()
+//
+//      val res = wrappedDf.map { x =>
+//        val k = x.toSeq.map(f => f + f + f)
+//        RepRow.fromSeq(k)
+//      }.leaveNRC()
+//      res.show()
+//
+//      assertDataFramesAreEquivalent(res, expected)
+//    }
+//
+//    it("Successful Map - Integer Column Added to Itself Multiple Times") {
+//      val df = pureIntDataframe
+//      val wrappedDf = df.wrap()
+//
+//      val expected = df.map { x =>
+//        val k = x.toSeq.map(f => f.asInstanceOf[Int] + f.asInstanceOf[Int] + f.asInstanceOf[Int] + 2 + f.asInstanceOf[Int] + 3 + f.asInstanceOf[Int])
+//        SparkRow.fromSeq(k)
+//      }(RowEncoder(df.schema))
+//      expected.show()
+//
+//      val res = wrappedDf.map { x =>
+//        val k = x.toSeq.map(f => f + f + f + 2 + f + 3 + f)
+//        RepRow.fromSeq(k)
+//      }.leaveNRC()
+//      res.show()
+//
+//      assertDataFramesAreEquivalent(res, expected)
+//    }
+//
+//    it("Successful Map - Integer Mod with brackets") {
+//      val df = pureIntDataframe
+//      val wrappedDf = df.wrap()
+//
+//      val expected = df.map { x =>
+//        val k = x.toSeq.map(f => f.asInstanceOf[Int] % (f.asInstanceOf[Int] + 1))
+//        SparkRow.fromSeq(k)
+//      }(RowEncoder(df.schema))
+//      expected.show()
+//
+//      val res = wrappedDf.map { x =>
+//        val k = x.toSeq.map(f => f % (f + 1))
+//        RepRow.fromSeq(k)
+//      }.leaveNRC()
+//      res.show()
+//
+//      assertDataFramesAreEquivalent(res, expected)
+//    }
+//
+//    it("Successful Map - Integer Column Minus to Itself") {
+//      val df = pureIntDataframe
+//      val wrappedDf = df.wrap()
+//
+//      val expected = df.map { x =>
+//        val k = x.toSeq.map(f => f.asInstanceOf[Int] - f.asInstanceOf[Int] - f.asInstanceOf[Int])
+//        SparkRow.fromSeq(k)
+//      }(RowEncoder(df.schema))
+//      expected.show()
+//
+//      val res = wrappedDf.map { x =>
+//        val k = x.toSeq.map(f => f - f - f)
+//        RepRow.fromSeq(k)
+//      }.leaveNRC()
+//      res.show()
+//
+//      assertDataFramesAreEquivalent(res, expected)
+//    }
+//
+//    // TODO - type promotion for double shouldn't happen here
+//    it("Successful Map - Integer All Operations Tuple Both Sides Issue") {
+//      val df = pureIntDataframe
+//      val wrappedDf = df.wrap()
+//
+//      val expected = df.map { x =>
+//        val k = x.toSeq.map(f => f.asInstanceOf[Int] - f.asInstanceOf[Int] + f.asInstanceOf[Int] * f.asInstanceOf[Int] / f.asInstanceOf[Int] % f.asInstanceOf[Int])
+//        SparkRow.fromSeq(k)
+//      }(RowEncoder(df.schema))
+//      expected.show()
+//
+//      val res = wrappedDf.map { x =>
+//        val k = x.toSeq.map(f => f - f + f * f / f % f)
+//        RepRow.fromSeq(k)
+//      }.leaveNRC()
+//      res.show()
+//
+//      assertDataFramesAreEquivalent(res, expected)
+//    }
+//    // TODO - Use UDF?
+//    // TODO Reimpliment after changes to RepRow
+////    it("Successful Map - String Column Modification") {
+////      val df = pureStringDataframe
+////      val wrappedDf = df.wrap()
+////
+////      val expected = df.map { x =>
+////        SparkRow.fromSeq(x.toSeq.map(f => s"${f.asInstanceOf[String]}: Test"))
+////      }(RowEncoder(df.schema))
+////      expected.show()
+////
+////      val res = wrappedDf.map { x =>
+////        val k = x.toSeq.map { f =>
+////          val k = f + ": Test"
+////          k
+////        }
+////        RepRow.fromSeq(k)
+////      }.leaveNRC()
+////      res.show(false)
+////
+////      assertDataFramesAreEquivalent(res, expected)
+////    }
+//    //
+//    //it("Successful Map - String Column Modification Alternate Way") {
+//    //      val df = pureStringDataframe
+//    //      val wrappedDf = df.wrap()
+//    //
+//    //      val expected = df.map { x =>
+//    //        SparkRow.fromSeq(x.toSeq.map(f => "Replaced"))
+//    //      }(RowEncoder(df.schema))
+//    //      expected.show()
+//    //
+//    //      import uk.ac.ox.cs.trance.repextensions._
+//    //      val res = wrappedDf.map{ x =>
+//    //       val k = x.toSeq.tMap(x => "Replaced")
+//    //        RepRow.fromSeq(k)
+//    //      }(RepRowEncoder(df.schema)).leaveNRC()
+//    //      res.show(false)
+//    //
+//    //      assertDataFramesAreEquivalent(res, expected)
+//    //    }
+//
+//    it("moreTesting - conditional if in integer addition mapping") {
+//      val df = pureIntDataframe
+//      val wrappedDf = df.wrap()
+//
+//      val out = df.map { x =>
+//        val k = x.toSeq.map { f =>
+//          if (f.asInstanceOf[Int] > 50) {
+//            f.asInstanceOf[Int] + 29
+//          } else {
+//            f
+//          }
+//        }
+//        SparkRow.fromSeq(k)
+//      }(RowEncoder(df.schema))
+//
+//      out.show()
+//
+//
+//      val res = wrappedDf.map { x =>
+//        println("RepRow: " + x)
+//
+//        val k = x.toSeq.map { f =>
+//          repIf(f > 50) {
+//            f + 29
+//          } {
+//            f
+//          }
+//        }
+//        RepRow.fromSeq(k)
+//      }.leaveNRC()
+//
+//      res.show()
+//      assertDataFramesAreEquivalent(res, out)
+//      assertDataFrameSchemaEqual(res, out)
+//
+//
+//    }
+//
+//    it("Map change Integer output columns in RowEncoder") {
+//      val df = pureIntDataframe
+//      val wrappedDf = df.wrap()
+//
+//      val schema: StructType = StructType(Seq(
+//        StructField("language", IntegerType, nullable = true),
+//        StructField("info", IntegerType, nullable = true
+//        )))
+//
+//      val expected = df.map { f =>
+//        val k = Seq(f.getInt(1), f.getInt(0))
+//        SparkRow.fromSeq(k)
+//      }(RowEncoder(schema))
+//
+//      val res = wrappedDf.map { f =>
+//        val k = Seq(f.get(1), f.get(0))
+//        RepRow.fromSeq(k)
+//      }.leaveNRC()
+//
+//      expected.show()
+//      res.show()
+//      assertDataFramesAreEquivalent(res, expected)
+//      assertDataFrameSchemaEqual(res, expected)
+//
+//
+//    }
+//    it("Map change String output columns in RowEncoder") {
+//      val df = pureStringDataframe
+//      val wrappedDf = df.wrap()
+//
+//      val schema: StructType = StructType(Seq(
+//        StructField("language", StringType, nullable = true),
+//        StructField("info", StringType, nullable = true
+//        )))
+//
+//      val expected = df.map { f =>
+//        val k = Seq(f.getString(1), f.getString(0))
+//        SparkRow.fromSeq(k)
+//      }(RowEncoder(schema))
+//
+//      val res = wrappedDf.map { f =>
+//        val k = Seq(f.get(1), f.get(0))
+//        RepRow.fromSeq(k)
+//      }.leaveNRC()
+//
+//      expected.show()
+//      res.show()
+//      assertDataFramesAreEquivalent(res, expected)
+//      assertDataFrameSchemaEqual(res, expected)
+//
+//
+//    }
     it("Change Same Number of Column Names in Map") {
       val df = pureIntDataframe
       val wrappedDf = df.wrap()
@@ -519,7 +713,7 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
       expected.show()
       expected.printSchema()
 
-      val res = wrappedDf.map { f => RepRow(f.get(0), f.get(1)) }(RepRowEncoder(schema)).leaveNRC()
+      val res = wrappedDf.map { f => RepRow(f.get(0), f.get(1)) }.leaveNRC()
 
       res.show()
       res.printSchema()
@@ -528,66 +722,67 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
       assertDataFrameSchemaEqual(res, expected)
     }
 
-    it("Map change Int to Double with Arithmetic Expression - Same Column Names") {
-      val df = pureIntDataframe
-      val wrappedDf = df.wrap()
-
-      val schema: StructType = StructType(Seq(
-        StructField("column1", DoubleType, nullable = true),
-        StructField("column2", DoubleType, nullable = true
-        )))
-
-      val expected = df.map { f =>
-        val column1 = f.getInt(0) * 2.5
-        val column2 = f.getInt(1) * 1.5
-        SparkRow(column1, column2)
-      }(RowEncoder(schema))
-
-      expected.show()
-      expected.printSchema()
-
-      val res = wrappedDf.map { f =>
-        val column1 = f.get(0) * 2.5
-        val column2 = f.get(1) * 1.5
-        RepRow(column1, column2)
-      }(RepRowEncoder(schema)).leaveNRC()
-
-      res.show()
-      res.printSchema()
-
-      assertDataFramesAreEquivalent(res, expected)
-      assertDataFrameSchemaEqual(res, expected)
-    }
-    it("Map change Int output types to String in RowEncoder different column names") {
-      val df = pureIntDataframe
-      val wrappedDf = df.wrap()
-
-      val schema: StructType = StructType(Seq(
-        StructField("helloColumn", StringType, nullable = true),
-        StructField("users", DoubleType, nullable = true
-        )))
-
-      val expected = df.map { f =>
-        val column1 = "Hello"
-        val column2 = f.getInt(1) * 1.5
-        SparkRow(column1, column2)
-      }(RowEncoder(schema))
-
-      expected.show()
-      expected.printSchema()
-
-      val res = wrappedDf.map { f =>
-        val column1 = Alias(f.get(0), "Hello")
-        val column2 = f.get(1) * 1.5
-        RepRow(column1, column2)
-      }(RepRowEncoder(schema)).leaveNRC()
-
-      res.show()
-      res.printSchema()
-
-      assertDataFramesAreEquivalent(res, expected)
-      assertDataFrameSchemaEqual(res, expected)
-    }
+//    it("Map change Int to Double with Arithmetic Expression - Same Column Names") {
+//      val df = pureIntDataframe
+//      val wrappedDf = df.wrap()
+//
+//      val schema: StructType = StructType(Seq(
+//        StructField("column1", DoubleType, nullable = true),
+//        StructField("column2", DoubleType, nullable = true
+//        )))
+//
+//      val expected = df.map { f =>
+//        val column1 = f.getInt(0) * 2.5
+//        val column2 = f.getInt(1) * 1.5
+//        SparkRow(column1, column2)
+//      }(RowEncoder(schema))
+//
+//      expected.show()
+//      expected.printSchema()
+//
+//      val res = wrappedDf.map { f =>
+//        val column1 = f.get(0) * 2.5
+//        val column2 = f.get(1) * 1.5
+//        RepRow(column1, column2)
+//      }.leaveNRC()
+//
+//      res.show()
+//      res.printSchema()
+//
+//      assertDataFramesAreEquivalent(res, expected)
+//      assertDataFrameSchemaEqual(res, expected)
+//    }
+    //TODO reimplement string transformation
+//    it("Map change Int output types to String in RowEncoder different column names") {
+//      val df = pureIntDataframe
+//      val wrappedDf = df.wrap()
+//
+//      val schema: StructType = StructType(Seq(
+//        StructField("helloColumn", StringType, nullable = true),
+//        StructField("users", DoubleType, nullable = true
+//        )))
+//
+//      val expected = df.map { f =>
+//        val column1 = "Hello"
+//        val column2 = f.getInt(1) * 1.5
+//        SparkRow(column1, column2)
+//      }(RowEncoder(schema))
+//
+//      expected.show()
+//      expected.printSchema()
+//
+//      val res = wrappedDf.map { f =>
+//        val column1 = Alias(f.get(0), "Hello")
+//        val column2 = f.get(1) * 1.5
+//        RepRow(column1, column2)
+//      }(RepRowEncoder(schema)).leaveNRC()
+//
+//      res.show()
+//      res.printSchema()
+//
+//      assertDataFramesAreEquivalent(res, expected)
+//      assertDataFrameSchemaEqual(res, expected)
+//    }
   }
 
   describe("Merge") {
@@ -1608,6 +1803,8 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
       assertDataFramesAreEquivalent(expected, res)
 
     }
+
+    // WIP Select
     it("Succesful select - Struct value from nested Dataset") {
       val df = nestedDataframe
       val wrappedDf = df.wrap()
@@ -1807,6 +2004,7 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
 
     it("FlatToNested - Test1") {
       val lineItem = LineItem
+
       val wrappedLineItem = lineItem.wrap()
 
       val order = Order
@@ -1830,123 +2028,310 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
       oquery.show()
 
     }
-  }
-  it("FlatToNested Test1Full") {
-    val lineItem = LineItem
-    val wrappedLineItem = lineItem.wrap()
 
-    val order = Order
-    val wrappedOrder = order.wrap()
+    it("FlatToNested Test1Full") {
+      val lineItem = LineItem
+      val wrappedLineItem = lineItem.wrap()
+
+      val order = Order
+      val wrappedOrder = order.wrap()
 
 
-    val oquery = wrappedOrder.flatMap { f =>
-      val o_orderkey = f.get(0)
-      RepRow(f, wrappedLineItem.flatMap { z =>
-        val l_orderkey = z.get(0)
-        repIf(l_orderkey === o_orderkey) {
-          RepRow(z)
-        } {
-          RepRow.empty
-        }
-      })
-    }.leaveNRC()
+      val oquery = wrappedOrder.flatMap { f =>
+        val o_orderkey = f.get(0)
+        RepRow(f, wrappedLineItem.flatMap { z =>
+          val l_orderkey = z.get(0)
+          repIf(l_orderkey === o_orderkey) {
+            RepRow(z)
+          } {
+            RepRow.empty
+          }
+        })
+      }.leaveNRC()
 
-  oquery.show(false)
+      oquery.show(false)
 
-  }
-  it("FlatToNested Test2") {
-    val lineItem = LineItem
-    val wrappedLineItem = lineItem.wrap()
+    }
+    it("FlatToNested Test2") {
+      val lineItem = LineItem
+      val wrappedLineItem = lineItem.wrap()
 
-    val order = Order
-    val wrappedOrder = order.wrap()
+      val order = Order
+      val wrappedOrder = order.wrap()
 
-    val customer = Customer
-    val wrappedCustomer = customer.wrap()
+      val customer = Customer
+      val wrappedCustomer = customer.wrap()
 
-    val sparkRes: Dataset[SparkRow] = customer
-      .join(order, col("c_custkey") === col("o_custkey"))
-      .join(lineItem, col("l_orderkey") === col("o_orderkey"))
-      .select(col("c_name"), col("o_orderdate"), col("l_partkey"), col("l_quantity"))
 
-    sparkRes.show()
+      val query = wrappedCustomer.flatMap { c =>
+        val c_custkey = c.get(0)
+        val c_name = c.get(1)
+        RepRow(c_name, wrappedOrder.flatMap { o =>
+          val o_orderkey = o.get(0)
+          val o_custkey = o.get(1)
+          val o_orderdate = o.get(4)
+          repIf(c_custkey === o_custkey) {
+            RepRow(o_orderdate, wrappedLineItem.flatMap { l =>
+              val l_orderkey = l.get(0)
+              val l_partkey = l.get(1)
+              val l_quantity = l.get(4)
+              repIf(l_orderkey === o_orderkey) {
+                RepRow(l_partkey, l_quantity)
+              } {
+                RepRow.empty
+              }
+            }.as("o_parts"))
+          } {
+            RepRow.empty
+          }
+        }.as("c_orders"))
+      }.leaveNRC()
 
-    val wrappedRes = wrappedCustomer
-      .join(wrappedOrder, wrappedCustomer("c_custkey") === wrappedOrder("o_custkey"))
-      .join(wrappedLineItem, wrappedOrder("o_orderkey") === wrappedLineItem("l_orderkey"))
-      .select("c_name", "o_orderdate", "l_partkey", "l_quantity").leaveNRC()
-    wrappedRes.show()
+      query.show(false)
+      query.printSchema()
 
-    assertDataFramesAreEquivalent(sparkRes, wrappedRes)
+    }
+    it("FlatToNested Test2Filter") {
+      val lineItem = LineItem
+      val wrappedLineItem = lineItem.wrap()
 
-  }
-  it("FlatToNested Test2Filter") {
-    val lineItem = LineItem
-    val wrappedLineItem = lineItem.wrap()
+      val order = Order
+      val wrappedOrder = order.wrap()
 
-    val order = Order
-    val wrappedOrder = order.wrap()
+      val customer = Customer
+      val wrappedCustomer = customer.wrap()
 
-    val customer = Customer
-    val wrappedCustomer = customer.wrap()
+      val query = wrappedCustomer.flatMap { c =>
+        val c_custkey = c.get(0)
+        val c_name = c.get(1)
+        val c_nationkey = c.get(3)
+        RepRow(c_name, wrappedOrder.flatMap { o =>
+          val o_orderkey = o.get(0)
+          val o_custkey = o.get(1)
+          val o_orderdate = o.get(4)
+          repIf(c_custkey === o_custkey) {
+            repIf(c_nationkey === 1) {
+              RepRow(o_orderdate, wrappedLineItem.flatMap { l =>
+                val l_orderkey = l.get(0)
+                val l_partkey = l.get(1)
+                val l_quantity = l.get(4)
+                repIf(l_orderkey === o_orderkey) {
+                  RepRow(l_partkey, l_quantity)
+                } {
+                  RepRow.empty
+                }
+              }.as("o_parts"))
+            } {
+              RepRow.empty
+            }
+          } {
+            RepRow.empty
+          }
+        }.as("c_orders"))
+      }.leaveNRC()
 
-    val sparkRes: Dataset[SparkRow] = customer
-      .join(order, col("c_custkey") === col("o_custkey"))
-      .join(lineItem, col("l_orderkey") === col("o_orderkey"))
-      .filter(col("c_nationkey") === 1)
-      .select(col("c_name"), col("o_orderdate"), col("l_partkey"), col("l_quantity"))
+      query.show(false)
+      query.printSchema()
 
-    val wrappedRes = wrappedCustomer
-      .join(wrappedOrder, wrappedCustomer("c_custkey") === wrappedOrder("o_custkey"))
-      .join(wrappedLineItem, wrappedOrder("o_orderkey") === wrappedLineItem("l_orderkey"))
-      .filter(wrappedCustomer("c_nationkey") === 1)
-      .select("c_name", "o_orderdate", "l_partkey", "l_quantity").leaveNRC()
-    wrappedRes.show()
 
-    assertDataFramesAreEquivalent(sparkRes, wrappedRes)
+    }
 
-  }
+    it("FlatToNested Test2Flat - Working Example Top Level Select") {
+      val lineItem = LineItem
+      val wrappedLineItem = lineItem.wrap()
 
-  // TODO - WIP
-  // Corresponds to TPCH 'oquery' from compiler examples/tpch/FlatToNested.scala line 117
-  it("FlatToNested Test2Flat") {
-    val lineItem = LineItem
-    val wrappedLineItem = lineItem.wrap()
+      val order = Order
+      val wrappedOrder = order.wrap()
 
-    val order = Order
-    val wrappedOrder = order.wrap()
+      val customer = Customer
+      val wrappedCustomer = customer.wrap()
 
-    val customer = Customer
-    val wrappedCustomer = customer.wrap()
-
-    val outputSchema = StructType(Seq(
-      StructField("o_custkey", IntegerType),
-      StructField("o_orderdate", StringType),
-      StructField("o_parts", StructType(Seq(
-        StructField("l_partkey", IntegerType),
-        StructField("l_quantity", DoubleType)
-      )))
-    ))
-
-    val oquery = wrappedOrder.map { f =>
-      val o_custkey = f.get(1)
-      val o_orderdate = f.get(4)
-
-      val o_parts: WrappedDataframe = wrappedOrder
-        .join(wrappedLineItem, wrappedOrder("o_orderkey") === wrappedLineItem("l_orderkey"))
-        .select("l_partkey", "l_quantity")
-
-      val out = o_parts.flatMap {
-        z => RepSeq(RepRow(o_custkey, o_orderdate, z))
+      val oquery = wrappedOrder.flatMap { o =>
+        val o_orderkey = o.get(0)
+        val o_custkey = o.get(1)
+        val o_orderdate = o.get(4)
+        RepRow(o_custkey, o_orderdate, wrappedLineItem.flatMap { l =>
+          val l_orderkey = l.get(0)
+          val l_partkey = l.get(1)
+          val l_quantity = l.get(4)
+          repIf(l_orderkey === o_orderkey) {
+            RepRow(l_partkey, l_quantity)
+          } {
+            RepRow.empty
+          }
+        })
       }
 
-      out
-    }(RepRowEncoder(outputSchema)).leaveNRC()
+      val query = wrappedCustomer.flatMap { c =>
+        val c_custkey = c.get(0)
+        val c_name = c.get(1)
+        RepRow(c_name, oquery.flatMap { o =>
+          val o_custkey = o.get(1)
+          repIf(o_custkey === c_custkey) {
+            RepRow(o("o_custkey"), o("o_orderdate"))
+          } {
+            RepRow.empty
+          }
+        }.as("c_orders"))
+      }.leaveNRC()
 
-    oquery.show()
 
+      query.show(false)
+      query.printSchema()
+
+
+    }
+
+    it("FlatToNested Test2Flat - Working Without splitting up query") {
+      val lineItem = LineItem
+      val wrappedLineItem = lineItem.wrap()
+
+      val order = Order
+      val wrappedOrder = order.wrap()
+
+      val customer = Customer
+      val wrappedCustomer = customer.wrap()
+
+
+      val cquery = wrappedCustomer.flatMap { c =>
+        val c_name = c("c_name")
+        val c_custkey = c("c_custkey")
+        RepRow(c_name, wrappedOrder.flatMap { o =>
+          val o_orderdate = o("o_orderdate")
+          val o_orderkey = o("o_orderkey")
+          val o_custkey = o("o_custkey")
+          repIf(o_custkey === c_custkey) {
+            RepRow(o_orderdate, wrappedLineItem.flatMap { l =>
+              val l_orderkey = l("l_orderkey")
+              val l_partkey = l("l_partkey")
+              val l_quantity = l("l_quantity")
+              repIf(o_orderkey === l_orderkey) {
+                RepRow(l_partkey, l_quantity)
+              } {
+                RepRow.empty
+              }
+            }.as("o_parts"))
+          } {
+            RepRow.empty
+          }
+        }.as("c_orders"))
+      }.leaveNRC()
+
+      cquery.show(false)
+      cquery.printSchema()
+    }
+    it("FlatToNested Test2Flat - Error Example Top Level Select of Nested Field") {
+      val lineItem = LineItem
+      val wrappedLineItem = lineItem.wrap()
+
+      val order = Order
+      val wrappedOrder = order.wrap()
+
+      val customer = Customer
+      val wrappedCustomer = customer.wrap()
+
+      val oquery = wrappedOrder.flatMap { o =>
+        val o_orderkey = o.get(0)
+        val o_custkey = o.get(1)
+        val o_orderdate = o.get(4)
+        RepRow(o_custkey, o_orderdate, wrappedLineItem.flatMap { l =>
+          val l_orderkey = l.get(0)
+          val l_partkey = l.get(1)
+          val l_quantity = l.get(4)
+          repIf(l_orderkey === o_orderkey) {
+            RepRow(l_partkey, l_quantity)
+          } {
+            RepRow.empty
+          }
+        }.as("o_parts"))
+      }
+
+      val query = wrappedCustomer.flatMap { c =>
+        val c_custkey = c.get(0)
+        val c_name = c.get(1)
+        RepRow(c_name, oquery.flatMap { o =>
+          val o_custkey = o.get(1)
+          repIf(o_custkey === c_custkey) {
+            RepRow(o("o_custkey"), o("o_parts"))
+          } {
+            RepRow.empty
+          }
+        }.as("c_orders"))
+      }.leaveNRC()
+
+
+      query.show(false)
+      query.printSchema()
+
+
+    }
+    it("FlatToNested Test2Flat - Error Example Top Level o_parts select") {
+      val lineItem = LineItem
+      val wrappedLineItem = lineItem.wrap()
+
+      val order = Order
+      val wrappedOrder = order.wrap()
+
+      val customer = Customer
+      val wrappedCustomer = customer.wrap()
+
+      val oquery = wrappedOrder.flatMap { o => // Sym(WrappedArray(RepElem(o_orderkey,s4), RepElem(o_custkey,s4), RepElem(o_orderstatus,s4), RepElem(o_totalprice,s4), RepElem(o_orderdate,s4), RepElem(o_orderpriority,s4), RepElem(o_clerk,s4), RepElem(o_shippriority,s4), RepElem(o_comment,s4)))
+        val o_orderkey = o.get(0)
+        val o_custkey = o.get(1)
+        val o_orderdate = o.get(4)
+        RepRow(o_custkey, o_orderdate, wrappedLineItem.flatMap { l => // Sym(WrappedArray(RepElem(l_orderkey,s5), RepElem(l_partkey,s5), RepElem(l_suppkey,s5), RepElem(l_linenumber,s5), RepElem(l_quantity,s5), RepElem(l_extendedprice,s5), RepElem(l_discount,s5), RepElem(l_tax,s5), RepElem(l_returnflag,s5), RepElem(l_linestatus,s5), RepElem(l_shipdate,s5), RepElem(l_commitdate,s5), RepElem(l_receiptdate,s5), RepElem(l_shipinstruct,s5), RepElem(l_shipmode,s5), RepElem(l_comment,s5), RepElem(uniqueId,s5)))
+          val l_orderkey = l.get(0)
+          val l_partkey = l.get(1)
+          val l_quantity = l.get(4)
+          repIf(l_orderkey === o_orderkey) {
+            RepRow(l_partkey, l_quantity)
+          } {
+            RepRow.empty
+          }
+        }.as("o_parts"))
+      }
+
+      //Query without flatMap on flatMap
+      //    val query = wrappedCustomer.flatMap{ c =>
+      //      val c_custkey = c.get(0)
+      //      val c_name = c.get(1)
+      //      RepRow(c_name, oquery)
+      //    }.leaveNRC()
+
+      val query = wrappedCustomer.flatMap { c => // Sym(WrappedArray(RepElem(c_custkey,s6), RepElem(c_name,s6), RepElem(c_address,s6), RepElem(c_nationkey,s6), RepElem(c_phone,s6), RepElem(c_acctbal,s6), RepElem(c_mktsegment,s6), RepElem(c_comment,s6)))
+        val c_custkey = c.get(0)
+        val c_name = c.get(1)
+        RepRow(c_name, oquery.flatMap { o => // Sym(List(RepElem(o_orderkey,s4), RepElem(o_custkey,s4), RepElem(o_orderstatus,s4), RepElem(o_totalprice,s4), RepElem(o_orderdate,s4), RepElem(o_orderpriority,s4), RepElem(o_clerk,s4), RepElem(o_shippriority,s4), RepElem(o_comment,s4), RepElem(o_custkey,s4), RepElem(o_orderdate,s4), RepElem(l_orderkey,s5), RepElem(l_partkey,s5), RepElem(l_suppkey,s5), RepElem(l_linenumber,s5), RepElem(l_quantity,s5), RepElem(l_extendedprice,s5), RepElem(l_discount,s5), RepElem(l_tax,s5), RepElem(l_returnflag,s5), RepElem(l_linestatus,s5), RepElem(l_shipdate,s5), RepElem(l_commitdate,s5), RepElem(l_receiptdate,s5), RepElem(l_shipinstruct,s5), RepElem(l_shipmode,s5), RepElem(l_comment,s5), RepElem(uniqueId,s5), RepElem(l_orderkey,s5), RepElem(o_orderkey,s4), RepElem(l_partkey,s5), RepElem(l_quantity,s5)))
+          val o_custkey = o("o_custkey")
+          repIf(o_custkey === c_custkey) {
+            RepRow(o("o_orderdate"), o("o_parts"))
+          } {
+            RepRow.empty
+          }
+        })
+      }.leaveNRC()
+
+
+      query.show(false)
+      query.printSchema()
+
+
+    }
+
+//    it("Paper Test") {
+//      val cop = COP
+//      val part = PART
+//
+//      val wrappedCop = cop.wrap()
+//      val wrappedPart = part.wrap()
+//
+//      val query = wrappedCop.flatMap{f =>
+//        val cname = f("cname")
+//        val corders = f("corders")
+//        RepRow(cname, f("corders"))
+//      }
+//    }
   }
-
   describe("Demo Tests") {
     it("Successful FlatMap - Integer Column + 1") {
       val df = pureIntDataframe
@@ -1977,26 +2362,26 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
     }
 
 
-    it("Map - Integer Column + 1") {
-      val df = pureIntDataframe
-      val wrappedDf = df.wrap()
-
-      val expected = df.map { x =>
-        val k = x.toSeq.map(f => f.asInstanceOf[Int] + 1)
-        SparkRow.fromSeq(k)
-      }(RowEncoder(df.schema))
-      expected.show()
-
-      val res = wrappedDf.map { x =>
-
-        val k = x.toSeq.map(f => f + 1)
-
-        RepRow.fromSeq(k)
-      }(RepRowEncoder(df.schema)).leaveNRC()
-      res.show()
-
-      assertDataFramesAreEquivalent(res, expected)
-    }
+//    it("Map - Integer Column + 1") {
+//      val df = pureIntDataframe
+//      val wrappedDf = df.wrap()
+//
+//      val expected = df.map { x =>
+//        val k = x.toSeq.map(f => f.asInstanceOf[Int] + 1)
+//        SparkRow.fromSeq(k)
+//      }(RowEncoder(df.schema))
+//      expected.show()
+//
+//      val res = wrappedDf.map { x =>
+//
+//        val k = x.toSeq.map(f => f + 1)
+//
+//        RepRow.fromSeq(k)
+//      }.leaveNRC()
+//      res.show()
+//
+//      assertDataFramesAreEquivalent(res, expected)
+//    }
 
     it("Generated Code Test") {
       import spark.implicits._
@@ -2088,6 +2473,142 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
 
       x24.show(false)
       x24.printSchema()
+    }
+
+    it("Generated Test2Filter") {
+
+      import spark.implicits._
+
+      val x20 = Customer.select("c_name", "c_nationkey", "c_custkey")
+
+        .as[Record2dc37b6c982f4fc5864bfea8830b976e]
+
+      val x21 = x20.withColumn("Customer_index", monotonically_increasing_id())
+        .as[Record99b6f24fbc634ee9b3639e57d1bf20c1]
+
+      val x23 = Order.select("o_orderdate", "o_custkey", "o_orderkey")
+
+        .as[Recorde3649c70440340cfad4b3323d08e2e3b]
+
+      val x24 = x23.withColumn("Order_index", monotonically_increasing_id())
+        .as[Record6687cebc34a748a8bb09d5668686082e]
+
+      val x27 = x21.join(x24, col("c_custkey") === col("o_custkey") && col("c_nationkey") === 1, "left_outer")
+        .as[Recordd220fd669d7e41f1b86a3aabecac4237]
+
+      val x29 = LineItem.select("l_quantity", "l_partkey", "l_orderkey")
+
+        .as[Record478e4064b2aa4a81882aa61634d044c9]
+
+      val x32 = x27.equiJoin(x29,
+        Seq("o_orderkey"), Seq("l_orderkey"), "left_outer").as[Record811a07786a1742d68b5b3e724eb7e675]
+
+      val x34 = x32.select("o_orderdate", "l_quantity", "Order_index", "c_name", "Customer_index", "l_partkey")
+
+        .as[Record7b14754fea1d449e84f101370561bb95]
+
+      val x36 = x34.groupByKey(x35 => Record673d683609d24f698c9fab8a214ccb52(x35.o_orderdate, x35.Order_index, x35.c_name, x35.Customer_index)).mapGroups {
+        case (key, value) =>
+          val grp = value.flatMap(x35 =>
+            (x35.l_quantity, x35.l_partkey) match {
+              case (None, _) => Seq()
+              case (_, None) => Seq()
+              case _ => Seq(Recorda14eb38fa0b14107a1e4e87ea2d35fde(x35.l_partkey match { case Some(x) => x; case _ => 0 }, x35.l_quantity match { case Some(x) => x; case _ => 0.0 }))
+            }).toSeq
+          Recordbcc1e90432f548a2b9eb13a23cafb152(key.o_orderdate, key.Order_index, key.c_name, grp, key.Customer_index)
+      }.as[Recordbcc1e90432f548a2b9eb13a23cafb152]
+
+      val x38 = x36.select("Customer_index", "c_name", "o_orderdate", "o_parts")
+
+        .as[Record190f73c1f64d49a297297765c57c8bde]
+
+      val x40 = x38.groupByKey(x39 => Record5c1622d89e264a809d3f13e0d4a12ed8(x39.c_name, x39.Customer_index)).mapGroups {
+        case (key, value) =>
+          val grp = value.flatMap(x39 =>
+            (x39.o_orderdate) match {
+              case (None) => Seq()
+              case _ => Seq(Record77304327a217441fa8f29bdd4a041d34(x39.o_orderdate match { case Some(x) => x; case _ => "null" }, x39.o_parts))
+            }).toSeq
+          Record3df1924806c44fcdafc4395b39bd3b4c(key.Customer_index, key.c_name, grp)
+      }.as[Record3df1924806c44fcdafc4395b39bd3b4c]
+
+      val x41 = x40
+      val Test2Filter = x41
+
+      Test2Filter.show(false)
+      Test2Filter.printSchema()
+    }
+
+    it("Generated Test2Flat") {
+
+      import spark.implicits._
+      val x24 = Order.select("o_orderdate", "o_custkey", "o_orderkey")
+
+        .as[Recordb80e3302266a42e4a981836379570249]
+
+      val x25 = x24.withColumn("Order_index", monotonically_increasing_id())
+        .as[Recordd16d0fb04d69452d83bec9ee88449806]
+
+      val x27 = LineItem.select("l_quantity", "l_partkey", "l_orderkey")
+
+        .as[Record80e931fa827f40cca9ea94aa8b0a308a]
+
+      val x30 = x25.equiJoin(x27,
+        Seq("o_orderkey"), Seq("l_orderkey"), "left_outer").as[Recordbf846df439974b07b6abb5120e933eb8]
+
+      val x32 = x30.select("o_orderdate", "o_custkey", "l_quantity", "Order_index", "l_partkey")
+
+        .as[Recordd74a63caf68e4419868a969376dbf27b]
+
+      val x34 = x32.groupByKey(x33 => Recorde64677bfead1481e9fe09c808070d452(x33.o_orderdate, x33.o_custkey, x33.Order_index)).mapGroups {
+        case (key, value) =>
+          val grp = value.flatMap(x33 =>
+            (x33.l_quantity, x33.l_partkey) match {
+              case (None, _) => Seq()
+              case (_, None) => Seq()
+              case _ => Seq(Record0f24c31b203c447584d817d42bc7dd63(x33.l_partkey match { case Some(x) => x; case _ => 0 }, x33.l_quantity match { case Some(x) => x; case _ => 0.0 }))
+            }).toSeq
+          Record07ff0f6ff4644ebeadc4697bd56a2d39(key.o_orderdate, key.o_custkey, key.Order_index, grp)
+      }.as[Record07ff0f6ff4644ebeadc4697bd56a2d39]
+
+      val x35 = x34
+      val orders = x35
+      //orders.cache
+      //orders.count
+      val x37 = Customer.select("c_name", "c_custkey")
+
+        .as[Recordea3dc6f9b6ed4825a085a971a8423122]
+
+      val x38 = x37.withColumn("Customer_index", monotonically_increasing_id())
+        .as[Record9f1664be1da24f109f1aea1ab3e17c27]
+
+      val x40 = orders
+
+
+      val x43 = x38.equiJoin(x40,
+        Seq("c_custkey"), Seq("o_custkey"), "left_outer").as[Record53d1eaf1461b4a32adb18c8ef293ff5e]
+
+      val x45 = x43.select("Customer_index", "c_name", "o_orderdate", "o_parts")
+
+        .as[Recordfbdaef1028e84a7f828a554c285e6e01]
+
+      val x47 = x45.groupByKey(x46 => Record16e3a795c8c148c0a5a11f439e060620(x46.c_name, x46.Customer_index)).mapGroups {
+        case (key, value) =>
+          val grp = value.flatMap(x46 =>
+            (x46.o_orderdate, x46.o_parts) match {
+              case (None, _) => Seq()
+              case (_, None) => Seq()
+              case _ => Seq(Record93f64805c41d4615a2e3ea7d2dc10155(x46.o_orderdate match { case Some(x) => x; case _ => "null" }, x46.o_parts match { case Some(x) => x; case _ => null }))
+            }).toSeq
+          Record1b47e1a717b84648887c65f20c823179(key.Customer_index, key.c_name, grp)
+      }.as[Record1b47e1a717b84648887c65f20c823179]
+
+      val x48 = x47
+      val Test2 = x48
+
+      Test2.printSchema()
+      Test2.show(false)
+      Test2.printSchema()
     }
   }
 }

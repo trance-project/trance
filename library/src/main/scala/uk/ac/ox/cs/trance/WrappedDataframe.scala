@@ -1,10 +1,10 @@
 package uk.ac.ox.cs.trance
 
-import framework.common.TupleType
+import framework.common.{StringType, TupleType}
 import framework.plans.{BaseNormalizer, CExpr, Finalizer, NRCTranslator, Printer, Unnester}
 import org.apache.spark.sql.functions.lit
-import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.{Column, DataFrame, Encoder, SparkSession, Row => SparkRow}
+import org.apache.spark.sql.types.{DataType, DataTypes, StructField, StructType}
+import org.apache.spark.sql.{Column, DataFrame, Encoder, SparkSession, functions, Row => SparkRow}
 import uk.ac.ox.cs.trance.utilities.JoinContext
 
 import scala.collection.immutable.{Map => IMap}
@@ -20,36 +20,69 @@ trait WrappedDataframe extends Rep with NRCTranslator {
     BaseCol(getCtx(this).keys.head, colName)
   }
 
-  // TODO - Remove pattern matching from map & flatMap if not needed (other operations within map)
-   def map(f: RepRow => Rep)(schema: RepRowEncoder): WrappedDataframe = this match {
-     case w: Wrapper =>
-       val symID = utilities.Symbol.fresh()
-       val sym = Sym(symID, w.in.columns.map { f => RepElem(f, symID) }.toSeq)
-       val out = f(sym)
-       val fun = Fun(sym, out)
-       Map(this, fun, schema)
-//     case s: Select =>
-//       val symID = utilities.Symbol.fresh()
-//       val sym = Sym(symID, s.self.asInstanceOf[Join].self.asInstanceOf[Wrapper].in.columns.map { f => RepElem(f, symID) }.toSeq)
-//       val out = f(sym)
-//       val fun = Fun(sym, out)
-//       Map(this, fun, schema)
+
+  private def getSchema(r: Rep): StructType =  r match {
+    case w: Wrapper => w.in.schema
+    case s: NewSym => s.schema
+    case f: FlatMap => getSchema(f.f)
+    case fn: Fun => getSchema(fn.out)
+    case rp: RepProjection => getSchema(rp.r)
+    case RepRowInst(vals) =>   StructType(vals.map(getSchema).flatMap(_.fields).toArray)
+
+//      vals(0)
+//      vals.flatMap(f => getSchema(f).fields.map(_.name)))
+//      StructType(fields)
+
+//      StructType(Seq(vals.map(f => StructField(f.t._1, getSchema(f.t._2)))))
+    //    case a: As => StructType(Seq(StructField(a.name, getSchema(a.in))))
   }
 
-  def flatMap(f: RepRow => Rep): WrappedDataframe = this match {
-    case w: Wrapper =>
+  def map(f: RepRow => Rep): WrappedDataframe =  {
       val symID = utilities.Symbol.fresh()
-      val sym = Sym(symID, w.in.columns.map { f => RepElem(f, symID) }.toSeq)
+//      val sym = Sym(w.in.columns.map { f => RepElem(f, symID) }.toSeq)
+      val sym = NewSym(symID, getSchema(this))
+      val out = f(sym)
+      val fun = Fun(sym, out)
+      Map(this, fun)
+    //     case s: Select =>
+    //       val symID = utilities.Symbol.fresh()
+    //       val sym = Sym(symID, s.self.asInstanceOf[Join].self.asInstanceOf[Wrapper].in.columns.map { f => RepElem(f, symID) }.toSeq)
+    //       val out = f(sym)
+    //       val fun = Fun(sym, out)
+    //       Map(this, fun, schema)
+  }
+  def flatMap(f: RepRow => Rep): WrappedDataframe = {
+    val symID = utilities.Symbol.fresh()
+//      val sym = Sym(w.in.columns.map { f => RepElem(f, symID) }.toSeq)
+      val sym = NewSym(symID, getSchema(this))
+
+
+
+      // x: Sym
+      // x('users') --> RepProjection("users", x)
+      // RepRow( 'users' -> ..., 'lang' -> ... )("users") --> RepProject("users", RepRow(...))
+      // toNRC:
+      //  case s: Sym => TupleVarRef(s.name, s.type)
+      //  case p: RepProjection =>
+      //    val exp = convert2NRC(p.exp)
+      //    Project(exp, p.name)
+
       val out = f(sym)
       val fun = Fun(sym, out)
       FlatMap(this, fun)
-//    case s: Select =>
-//      val symID = utilities.Symbol.fresh()
-//      val sym = Sym(symID, s.self.asInstanceOf[Join].self.asInstanceOf[Wrapper].in.columns.map { f => RepElem(f, symID) }.toSeq)
-//      val out = f(sym)
-//      val fun = Fun(sym, out)
-//      FlatMap(this, fun)
+
   }
+
+//  private def getNestedRelatedColumns(w: Rep): Seq[RepElem] = w match {
+//    case r: RepElem => Seq(r)
+//    case w: Wrapper => Seq.empty
+//    case FlatMap(self, Fun(in, out)) => getNestedRelatedColumns(self) ++ getNestedRelatedColumns(out)
+//    case As(e1, str) => (getNestedRelatedColumns(e1))
+//    case Sym(rows) => rows.flatMap(f => getNestedRelatedColumns(f))
+//    case RepRowInst(vals) => vals.flatMap(f => getNestedRelatedColumns(f))
+//    case If(cond, thenBranch, elseBranch) => getNestedRelatedColumns(cond) ++ getNestedRelatedColumns(thenBranch) ++ getNestedRelatedColumns(elseBranch)
+//    case Equality(lhs, rhs) => getNestedRelatedColumns(lhs) ++ getNestedRelatedColumns(rhs)
+//  }
 
   def union(df: WrappedDataframe): WrappedDataframe = {
     Merge(this, df)
@@ -174,16 +207,20 @@ trait WrappedDataframe extends Rep with NRCTranslator {
     case GroupBy(e1, _) => getCtx(e1)
     case Reduce(e1, _, _) => getCtx(e1)
     case Select(e1, _) => getCtx(e1)
-    case Map(e1, _, _) => getCtx(e1)
-    case FlatMap(e1, Fun(_, out: Rep)) => getCtx(e1) ++ (out match {
-      case RepRowInst(vals) => vals.flatMap(f => getCtx(f)).toMap
-      case _ => IMap.empty
-    })
+    case Map(e1, Fun(_, out: Rep)) => getCtx(e1) ++ getCtx(out)
+    case FlatMap(e1, Fun(_, out: Rep)) => getCtx(e1) ++ getCtx(out)
+    case RepSeq(reps@_* ) => reps.flatMap(f => getCtx(f)).toMap
+    case RepRowInst(vals) => vals.flatMap(f => getCtx(f)).toMap
+    case Sym(vals) => vals.flatMap(f => getCtx(f)).toMap
+    case _: NewSym => IMap.empty
     case As(e1, _) => getCtx(e1)
     case _: RepElem => IMap.empty
-    case _: Sym => IMap.empty
-    case _: If => IMap.empty
+    case _: RepProjection => IMap.empty
+    case If(_, e1, e2) => getCtx(e1) ++ getCtx(e2)
+    case Equality(e1, e2) => getCtx(e1) ++ getCtx(e2)
     case Filter(e1, _) => getCtx(e1)
+    case Add(e1, e2) => getCtx(e1) ++ getCtx(e2)
+    case _ : Literal => IMap.empty
     case s@_ => sys.error("Error getting context for: " + s)
   }
 

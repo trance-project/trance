@@ -1,19 +1,25 @@
 package uk.ac.ox.cs.trance
 
+import org.apache.spark.sql.types.StructType
+
 import scala.language.implicitConversions
 
 
 trait BaseRow extends Rep
-
 trait RepRow extends BaseRow {
 
-  def toSeq: Seq[BaseRepElem] = {
-    val elems: Seq[BaseRepElem] = this.asInstanceOf[Sym].rows
+  def toSeq: Seq[RepProjection] = {
+    val elems: Seq[RepProjection] = this.asInstanceOf[NewSym].schema.fields.map(f => RepProjection(f.name, this))
     elems
   }
 
-  def get(i: Int): BaseRepElem = {
-    this.asInstanceOf[Sym].rows(i)
+  def get(i: Int): RepProjection = {
+
+    RepProjection(this.asInstanceOf[NewSym].schema.fields(i).name, this)
+  }
+
+  def apply(s: String): RepProjection= {
+    RepProjection(s, this)
   }
 
 }
@@ -23,6 +29,18 @@ case class RepRowInst(vals: Seq[Rep]) extends RepRow
 case class RepSeq(r: Rep*) extends Rep
 
 object RepRow {
+//  def apply(row: RepProjection*): RepRow = {
+//    RepRowInst(row)
+//  }
+
+//  def apply(row: Rep): RepRow = {
+//    RepProjection(row)
+//  }
+
+//  def apply(row: Rep*): RepRow = {
+//    val pj = row.map(f => f.name -> f.r)
+//    RepRowInst(pj)
+//  }
 
   def apply(row: Any*): RepRow = {
     RepRowInst(row.map{
@@ -31,7 +49,15 @@ object RepRow {
     })
   }
 
-  def fromSeq(rows: Seq[Rep]): RepRow = {
+//  def apply(s: String): RepProjection = {
+//    RepProjection(s, null)
+//  }
+
+//  def apply(): RepRow = {
+//    RepRow()
+//  }
+
+  def fromSeq(rows: Seq[RepProjection]): RepRow = {
     RepRowInst(rows)
   }
 
@@ -44,30 +70,39 @@ object tools {
 
 }
 
-case class Concat(e1: BaseRepElem, e2: Rep) extends RepRow
+case class Concat(e1: RepElem, e2: Rep) extends RepRow
 
-case class Transform(e1: BaseRepElem, e2: RowLiteral) extends RepRow
+case class Transform(e1: RepElem, e2: RowLiteral) extends RepRow
 
 case class RowLiteral(v: Any) extends Rep
 
-case class Sym(id: String, rows: Seq[BaseRepElem]) extends RepRow
+case class Sym(rows: Seq[RepElem]) extends RepRow
+
+case class NewSym(symID: String, schema: StructType) extends RepRow {
+  override def apply(row: String): RepProjection = {
+    RepProjection(row, this)
+  }
+}
 
 trait BaseRepElem extends Rep {
   def name: String
 
-  def +(e2: String): Rep = Concat(this, RowLiteral(e2))
-
 }
-case class RepElem(name: String, id: String) extends BaseRepElem
+case class RepElem(name: String, id: String) extends BaseRepElem {
+  def +(e2: String): Rep = Concat(this, RowLiteral(e2))
+}
+
+case class RepProjection(name: String, r: Rep) extends BaseRepElem
 
 /**
  * Currently used in a map function to replace a RepElem with a Literal
  */
-case class Alias(in: BaseRepElem, outputString: String) extends BaseRepElem {
+case class Alias(in: RepElem, outputString: String) extends BaseRepElem {
   override def name: String = in.name
+  def id: String = in.id
 }
 
-case class As(in: Rep, name: String) extends RepRow
+case class As(in: Rep, name: String) extends Operation
 
 case class If(condition: Rep, thenBranch: Rep, elseBranch: Rep) extends RepRow
 

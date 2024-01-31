@@ -17,19 +17,27 @@ object NRCConverter extends NRCTranslator {
    * The innermost layer will be the [[Wrapper]] containing a Dataframe which is represented as a BagVarRef in NRC.
    */
   def toNRC(rep: Rep, env: IMap[String, Expr]): Expr = rep match {
-    case Map(e, Fun(in, out), outputSchema) =>
+    case Map(e, Fun(in, out)) =>
       val c1 = toNRC(e, env).asBag
       val tvr = TupleVarRef(utilities.Symbol.fresh(), c1.tp.tp)
-      val c2 = toNRC(out, env + (in.asInstanceOf[Sym].id -> tvr)).asTuple
+
+      val k = in.asInstanceOf[NewSym].symID -> tvr
+      val c2 = toNRC(out, env + k).asTuple
 
 
-      ForeachUnion(tvr, c1, Singleton(updateTupleCols(c2, outputSchema)))
+      ForeachUnion(tvr, c1, Singleton(c2))
     case FlatMap(e, Fun(in, out)) =>
       val c1 = toNRC(e, env).asBag
       val tvr = TupleVarRef(utilities.Symbol.fresh(), c1.tp.tp)
-      toNRC(out, env + (in.asInstanceOf[Sym].id -> tvr)) match {
+
+      val k = in.asInstanceOf[NewSym].symID -> tvr
+
+//      val k = in.asInstanceOf[Sym].rows.map(f => f.id -> tvr).toMap
+      val output = toNRC(out, env + k)
+      output match {
         case t: TupleExpr => ForeachUnion(tvr, c1, Singleton(t))
         case b: BagExpr => ForeachUnion(tvr, c1, b)
+        case s@_ => s
       }
     case Filter(e1, cond) =>
       val c1 = toNRC(e1, env).asBag
@@ -106,12 +114,12 @@ object NRCConverter extends NRCTranslator {
     case Literal(e) => Const(e, getPrimitiveType(e))
     case RowLiteral(e) => Const(e, getPrimitiveType(e))
     case If(condition, thenBranch, elseBranch) =>
-      // TODO - reimplement else branch
       val c1 = toNRC(condition, env).asCond
       toNRC(thenBranch, env) match {
         case t: Tuple => IfThenElse(c1, Singleton(t))
         case p: PrimitiveExpr =>  val c3 = toNRC(elseBranch, env)
           IfThenElse(c1, p, c3)
+        case i: IfThenElse => i
       }
     case GreaterThan(lhs, rhs) =>
       val c1 = toNRC(lhs, env)
@@ -122,13 +130,28 @@ object NRCConverter extends NRCTranslator {
       val c2 = toNRC(rhs, env)
       Cmp(OpEq, c1, c2)
     case RepRowInst(vals) =>
+//      val exprs = vals.map(f => f.name -> toNRC(f.r, env).asInstanceOf[TupleAttributeExpr]).toMap
+//      Tuple(exprs)
       val result = repRowResolver(vals, env)
       Tuple(result)
+//    case Sym(vals) =>
+//      val result = repRowResolver(vals, env)
+//      Tuple(result)
+    case s: NewSym => TupleVarRef(s.symID, repToNRCType(s.schema))
+    case rp: RepProjection =>
+      val expr = toNRC(rp.r, env).asTuple
+      try {
+        Project(expr, rp.name)
+      } catch {
+        case e: NoSuchElementException => sys.error("Cannot Project Field " + rp.name + " from TupleVarRef " + expr)
+      }
     case RepElem(name, id) =>
-      val tvr = env(id).asInstanceOf[TupleVarRef] // TODO - potential problems with nested maps
-      Project(tvr, name)
-    case Sym(id, _) => env(id)
-    //    TODO -  Non-Singleton FlatMaps
+      val tvr = env(id).asInstanceOf[TupleVarRef]
+      try {
+        Project(tvr, name)
+      } catch {
+        case e: NoSuchElementException => sys.error("Cannot Project Field " + name + " from TupleVarRef " + tvr)
+      }
     case RepSeq(reps@_*) =>
       val out = reps.map { f =>
         val t = toNRC(f, env)
@@ -144,6 +167,9 @@ object NRCConverter extends NRCTranslator {
     case RepSeq(elems) =>
       val o = toNRC(elems, env)
       o
+    case As(e1, alias) =>
+      val o = toNRC(e1, env)
+      Tuple(alias -> o.asInstanceOf[TupleAttributeExpr])
     case s@_ =>
       sys.error("Unsupported: " + s)
   }
@@ -155,9 +181,7 @@ object NRCConverter extends NRCTranslator {
         Seq(str -> toNRC(f, env).asInstanceOf[TupleAttributeExpr])
       case m: Map => Seq("mapTest" -> toNRC(m, env).asInstanceOf[TupleAttributeExpr])
       case a: As => repRowResolver(Seq(a.in), env, Some(a.name))
-      case Sym(_, rows) =>
-        val t = repRowResolver(rows, env)
-        t
+      case s: Sym => repRowResolver(s.rows, env)
       case elem@_ =>
         Seq(getRepElemName(elem) -> (toNRC(elem, env) match {
           case u: Udf => u
@@ -169,6 +193,13 @@ object NRCConverter extends NRCTranslator {
     }.toMap
 
     res
+  }
+
+  private def repToNRCType(s: StructType): TupleType = {
+    val tt = s.map{f =>
+      f.name -> typeToNRCType(f.dataType)
+    }.toMap
+    TupleType(tt)
   }
 
   /**
@@ -191,6 +222,7 @@ object NRCConverter extends NRCTranslator {
    */
   private def getRepElemName(rep: Rep): String = rep match {
     case RepElem(name, _) => name
+    case RepProjection(name, _) => name
     case Add(e1, e2) => getRepElemName(e1)
     case If(e1, e2, e3) => getRepElemName(e2)
     case GreaterThan(e1, e2) => getRepElemName(e1)
