@@ -1,18 +1,29 @@
 package uk.ac.ox.cs.trance
 
 import uk.ac.ox.cs.trance.utilities.SparkUtil.getSparkSession
-import framework.common.{ArrayType, BagCType, BoolType, DoubleType, IntType, LongType, OpArithmetic, OpDivide, OpMinus, OpMod, OpMultiply, OpPlus, OptionType, RecordCType, StringType, Type}
+import framework.common.{ArrayType, BagCType, BagType, BoolType, DoubleType, IntType, LongType, OpArithmetic, OpDivide, OpMinus, OpMod, OpMultiply, OpPlus, OptionType, RecordCType, StringType, Type}
 import framework.plans.{AddIndex, And, CDeDup, CExpr, CUdf, Comprehension, Constant, EmptySng, Equals, Gt, Gte, InputRef, Lt, Lte, MathOp, Nest, Not, Or, OuterJoin, Projection, Record, Variable, If => CIf, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.{BinaryOperator, EqualTo, Expression, GenericRow, GenericRowWithSchema, And => SparkAnd, GreaterThan => SparkGreaterThan, GreaterThanOrEqual => SparkGreaterThanOrEqual, LessThan => SparkLessThan, LessThanOrEqual => SparkLessThanOrEqual, Literal => SparkLiteral, Not => SparkNot, Or => SparkOr}
 import org.apache.spark.sql.functions.{col, expr, monotonically_increasing_id}
 import org.apache.spark.sql.types.{DataType, DataTypes, StructField, StructType, ArrayType => SparkArrayType}
-import org.apache.spark.sql.{Column, DataFrame, Row, functions, types}
+import org.apache.spark.sql.{Column, DataFrame, Dataset, Encoder, Row, functions, types}
+import uk.ac.ox.cs.trance.PlanConverter.getProjectionBinding
 
+import java.io.{ByteArrayOutputStream, ObjectOutputStream}
 import scala.annotation.tailrec
 import scala.collection.immutable.{Map => IMap}
+import uk.ac.ox.cs.trance.utilities.SkewDataset
+
+import scala.reflect.ClassTag
 
 object PlanConverter {
+
+  private def unnestRecord(c: CExpr): Record = c match {
+    case CIf(_, e1, _) => unnestRecord(e1)
+    case CSng(c) => unnestRecord(c)
+    case r: Record => r
+  }
 
   /**
    * Recursively converts a normalised and unnested plan expression [[CExpr]] into a Spark Dataframe
@@ -24,14 +35,42 @@ object PlanConverter {
   def convert[T](cExpr: CExpr, ctx: IMap[String, Any]): T = cExpr match {
     case Projection(e1, v, p, fields) =>
       val c1 = convert(e1, ctx).asInstanceOf[DataFrame]
-      c1.show()
-      c1.printSchema()
       val outputSchema = createStructFields(p)
 
+      c1.show(false)
+      c1.printSchema()
+
       val l = c1.flatMap { z =>
-        convert(p, ctx ++ getProjectionBinding(e1, z)).asInstanceOf[Seq[Row]]
+        convert(p, ctx ++ getProjectionBinding(p, z)).asInstanceOf[Seq[Row]]
       }(RowEncoder.apply(outputSchema))
       l.asInstanceOf[T]
+    case Nest(in, v, key, value, filter, nulls, ctag) =>
+      val c1 = convert(in, ctx).asInstanceOf[DataFrame]
+
+
+      val unnestedRecord = unnestRecord(value)
+
+
+      val outputColumnNames = unnestedRecord.fields.map(f => f._1 -> f._2.asInstanceOf[CProject].field)
+
+      val nestedStruct = unnestedRecord.fields.keys.toSeq
+
+      val columns: Seq[org.apache.spark.sql.Column] = outputColumnNames.map(f => c1(f._2)).toSeq
+
+      val t = functions.array(functions.struct(columns: _*))
+      val updatedC1 = c1.withColumn(ctag, t)
+      updatedC1.show()
+      updatedC1.asInstanceOf[T]
+    case OuterJoin(left, v, right, v2, cond, fields) =>
+      val i1 = convert(left, ctx).asInstanceOf[DataFrame]
+      val i2 = convert(right, ctx).asInstanceOf[DataFrame]
+
+      val c = toSparkCond(cond)
+
+      val joined = i1.join(i2, c, "left_outer")
+
+      joined.show(false)
+      joined.asInstanceOf[T]
     case CJoin(left, v, right, v2, cond, fields) =>
       val i1 = convert(left, ctx).asInstanceOf[DataFrame]
       val i2 = convert(right, ctx).asInstanceOf[DataFrame]
@@ -77,10 +116,19 @@ object PlanConverter {
       val i1 = convert(in, ctx).asInstanceOf[DataFrame]
       i1.dropDuplicates().asInstanceOf[T]
     case InputRef(data, tp) =>
-      val c1 = ctx(data)
+      val c1 =
+        try {
+          ctx(data)
+        } catch {
+          case _: NoSuchElementException => sys.error("No key: " + data + " found in ctx: " + ctx)
+        }
       c1.asInstanceOf[T]
     case Variable(name, tp) =>
-      val c = ctx(name)
+      val c =  try {
+        ctx(name)
+      } catch {
+        case e: NoSuchElementException => sys.error("No element " + name + " found in context " + ctx)
+      }
       c.asInstanceOf[T]
     case AddIndex(e, name) =>
       val df = convert(e, ctx).asInstanceOf[DataFrame].withColumn(name, monotonically_increasing_id)
@@ -88,9 +136,8 @@ object PlanConverter {
     case CProject(e1, field) =>
       val row = convert(e1, ctx).asInstanceOf[Row]
       val projectionFieldIndex = row.schema.fieldIndex(field)
-      val columnValue = row.get(projectionFieldIndex)
-      val r = Row(columnValue)
-      r.asInstanceOf[T]
+      val rowToBePutInsideRowObject = row.get(projectionFieldIndex)
+      Row(rowToBePutInsideRowObject).asInstanceOf[T]
     case CSng(e1) =>
       val sng = convert(e1, ctx).asInstanceOf[Seq[Row]]
       sng.asInstanceOf[T]
@@ -101,7 +148,8 @@ object PlanConverter {
       k.asInstanceOf[T]
     case Record(fields) =>
       val t = fields.map { x =>
-        convert(x._2, ctx).asInstanceOf[Row]
+        val out = convert(x._2, ctx).asInstanceOf[Row]
+        out
       }.toArray
       val combinedRow = t.flatMap(row => row.toSeq)
       val r = Seq(Row.fromSeq(combinedRow))
@@ -167,6 +215,29 @@ object PlanConverter {
 
   private def getProjectionBinding(e1: CExpr, row: Row): IMap[String, Any] = e1 match {
     case CSelect(_, v, _) => IMap(v.name -> row)
+    case InputRef(name, _) => IMap(name -> row)
+    case CProject(e1, field) => getProjectionBinding(e1, row)
+    case Variable(name, _) => IMap(name ->  row)
+    case MathOp(_, e1, e2) => getProjectionBinding(e1, row) ++ getProjectionBinding(e2, row)
+    case CUdf(_ ,in, _) => getProjectionBinding(in, row)
+    case Record(fields) => fields.flatMap(f => getProjectionBinding(f._2, row))
+    case CMerge(e1, e2) => getProjectionBinding(e1, row) ++ getProjectionBinding(e2, row)
+    case CSng(e1) => getProjectionBinding(e1, row)
+    case CIf(cond, e1, e2) =>
+      val c = getProjectionBinding(cond, row)
+      val left = getProjectionBinding(e1, row)
+      e2 match {
+        case Some(right) => c ++ left ++ getProjectionBinding(right, row)
+        case None => c ++ left
+      }
+    case Equals(e1, e2) => getProjectionBinding(e1, row) ++ getProjectionBinding(e2, row)
+    case Gt(e1, e2) => getProjectionBinding(e1, row) ++ getProjectionBinding(e2, row)
+    case Gte(e1, e2) => getProjectionBinding(e1, row) ++ getProjectionBinding(e2, row)
+    case Lt(e1, e2) => getProjectionBinding(e1, row) ++ getProjectionBinding(e2, row)
+    case Lte(e1, e2) => getProjectionBinding(e1, row) ++ getProjectionBinding(e2, row)
+    case Or(e1, e2) => getProjectionBinding(e1, row) ++ getProjectionBinding(e2, row)
+    case And(e1, e2) => getProjectionBinding(e1, row) ++ getProjectionBinding(e2, row)
+    case Constant(_) => IMap.empty
     case CJoin(left, _, right, _, _, _) => getProjectionBinding(left, row) ++ getProjectionBinding(right, row)
     case OuterJoin(left, _, right, _, _, _) => getProjectionBinding(left, row) ++ getProjectionBinding(right, row)
     case Nest(in, _, _, _, _, _, _) => getProjectionBinding(in, row)
@@ -294,6 +365,8 @@ object PlanConverter {
         } else {
           StructField(f._1, getStructDataType(f._2.tp))
         }
+        case InputRef(id, record: RecordCType) => StructField(f._1, getStructDataType(f._2.tp, Some(f._1)))
+
         case _ => StructField(f._1, getStructDataType(f._2.tp))
       }).toSeq)
     case CIf(_, e1, _) => createStructFields(e1)
@@ -311,14 +384,22 @@ object PlanConverter {
   /**
    * Conversion from NRC/Plan [[Type]] to Spark [[DataType]] used when creating [[StructType]]
    */
-  private def getStructDataType(c: Type): DataType = c match {
+  private def getStructDataType(c: Type, s: Option[String] = None): DataType = c match {
     case IntType => DataTypes.IntegerType
     case BoolType => DataTypes.BooleanType
     case StringType => DataTypes.StringType
     case DoubleType => DataTypes.DoubleType
     case LongType => DataTypes.LongType
     case ArrayType(tp) => SparkArrayType(getStructDataType(tp))
-    case BagCType(tp) => StructType(tp.attrs.map(f => StructField(f._1, getStructDataType(f._2))).toSeq)
+    case BagCType(tp) => SparkArrayType(StructType(tp.attrs.map(f => StructField(f._1, getStructDataType(f._2, Some(f._1)))).toSeq))
+    case RecordCType(fields) =>
+      val k =
+        try {
+          fields(s.get)
+        } catch {
+          case _: NoSuchElementException => sys.error("No element " + s + " in " + fields)
+        }
+      getStructDataType(k)
     case RecordCType(fields) => StructType(fields.map(f => StructField(f._1, getStructDataType(f._2))).toSeq)
     case OptionType(tp) => getStructDataType(tp)
     case s@_ => sys.error("Unhandled struct type: " + s)
@@ -474,4 +555,5 @@ object PlanConverter {
       case _: Gte => x >= y
     }
   }
+
 }

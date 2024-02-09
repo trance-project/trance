@@ -1,6 +1,7 @@
 package uk.ac.ox.cs.trance
 
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.types.StructType
 import uk.ac.ox.cs.trance.utilities.JoinContext
 
 import scala.language.implicitConversions
@@ -15,9 +16,9 @@ import scala.language.implicitConversions
  * Call .wrap() on a Dataframe object eg.
  * Dataframe df -> df.wrap()
  * <br>
- * Which will result in a [[WrappedDataframe]]
+ * Which will result in a [[WrappedCollection]]
  */
-case class Wrapper(in: DataFrame, str: String) extends WrappedDataframe
+case class Wrapper(in: DataFrame, str: String) extends WrappedCollection
 
 object Wrapper {
   implicit def wrap(in: DataFrame): Wrapper = {

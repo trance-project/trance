@@ -17,6 +17,7 @@ trait NRCTranslator extends Materialization with MaterializeNRC with NRCPrinter 
     case LabelType(fs) => LabelType(fs.map(f => f._1 -> translate(f._2)))
     case TupleType(fs) if fs.isEmpty => EmptyCType
     case TupleType(fs) => RecordCType(fs.map(f => f._1 -> translate(f._2)))
+    case ArrayType(tp) => BagCType(translate(tp))
     case _ => e
   }
   

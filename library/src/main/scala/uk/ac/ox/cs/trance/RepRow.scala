@@ -1,119 +1,116 @@
 package uk.ac.ox.cs.trance
 
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{DataType, StructField, StructType}
 
 import scala.language.implicitConversions
 
 
 trait BaseRow extends Rep
-trait RepRow extends BaseRow {
 
-  def toSeq: Seq[RepProjection] = {
-    val elems: Seq[RepProjection] = this.asInstanceOf[NewSym].schema.fields.map(f => RepProjection(f.name, this))
-    elems
-  }
-
-  def get(i: Int): RepProjection = {
-
-    RepProjection(this.asInstanceOf[NewSym].schema.fields(i).name, this)
-  }
-
-  def apply(s: String): RepProjection= {
-    RepProjection(s, this)
-  }
-
+case class RepRow(vals: List[(String, Rep)]) extends Rep {
+  def apply(n: String): Rep = vals.find(x => x._1 == n).get._2
 }
 
-case class RepRowInst(vals: Seq[Rep]) extends RepRow
-
-case class RepSeq(r: Rep*) extends Rep
+case class RepSeq(rr: RepRow*) extends WrappedCollection
 
 object RepRow {
-//  def apply(row: RepProjection*): RepRow = {
-//    RepRowInst(row)
-//  }
+  def apply(ee: (String, Rep)*)(implicit dummyImplicit: DummyImplicit): RepRow = {
+    RepRow(ee.toList)
+  }
 
-//  def apply(row: Rep): RepRow = {
-//    RepProjection(row)
-//  }
-
-//  def apply(row: Rep*): RepRow = {
-//    val pj = row.map(f => f.name -> f.r)
-//    RepRowInst(pj)
-//  }
-
-  def apply(row: Any*): RepRow = {
-    RepRowInst(row.map{
-      case r: Rep => r
-      case s: String => RowLiteral(s)
+  def apply(r: Any*): RepRow = {
+    RepRow(r.toList.flatMap {
+      case s: RepProjection => Seq(s.name -> s)
+      case (str: String, rep: Rep) => Seq(str -> rep)
+      case sym: Sym =>
+        val structFields = sym.schema.asInstanceOf[StructType].fields.map(f => StructType(Seq(StructField(f.name, f.dataType))))
+        structFields.flatMap { f =>
+          val newSym = Sym(sym.symID, f)
+          Seq(f.fields.head.name -> RepProjection(f.fields.head.name, newSym))
+        }.toList
+      case e@_ => sys.error("Invalid Row Argument: " + e.getClass)
     })
   }
 
-//  def apply(s: String): RepProjection = {
-//    RepProjection(s, null)
-//  }
-
-//  def apply(): RepRow = {
-//    RepRow()
-//  }
-
-  def fromSeq(rows: Seq[RepProjection]): RepRow = {
-    RepRowInst(rows)
-  }
-
-  def empty: RepRow = {
-    RepRow()
-  }
-}
-object tools {
-  def repIf(condition: Rep)(thenBranch: Rep)(elseBranch: Rep): RepRow = If(condition, thenBranch, elseBranch)
+  def empty: RepRow = RepRow(List.empty)
 
 }
 
-case class Concat(e1: RepElem, e2: Rep) extends RepRow
+//object tools {
+//  def repIf(): BaseRow = {
+//    def apply(condition: Rep)(thenBranch: Rep)(elseBranch: Rep)= {
+//      If(condition, thenBranch, elseBranch)
+//    }
+//  }
+//  def repIf(condition: Rep)(thenBranch: Rep): BaseRow = If(condition, thenBranch, RepRow.empty)
+//
+//}
 
-case class Transform(e1: RepElem, e2: RowLiteral) extends RepRow
+case class If(condition: Rep, thenBranch: Rep, elseBranch: Rep) extends BaseRow
+
+object If {
+//  def apply(cond: Rep)(thenBranch: Rep): BaseRow = {
+//    If(cond, thenBranch)
+//  }
+//
+  def apply(cond: Rep)(thenBranch: Rep)(elseBranch: Rep): BaseRow = {
+    If(cond, thenBranch, elseBranch)
+  }
+}
+
+case class Concat(e1: RepElem, e2: Rep) extends Rep
+
+case class Transform(e1: RepElem, e2: RowLiteral) extends Rep
 
 case class RowLiteral(v: Any) extends Rep
 
-case class Sym(rows: Seq[RepElem]) extends RepRow
 
-case class NewSym(symID: String, schema: StructType) extends RepRow {
-  override def apply(row: String): RepProjection = {
-    RepProjection(row, this)
+case class Sym(symID: String, schema: DataType) extends Rep {
+
+  def apply(row: String): RepProjection = {
+    val field = findStructField(this.schema, row).getOrElse(sys.error("No Struct Field: " + row + " available in " + this.schema))
+    RepProjection(row, Sym(symID, StructType(Seq(field))))
   }
+
+  private def findStructField(dataType: DataType, targetName: String): Option[StructField] = dataType match {
+    case structType: StructType =>
+      structType.fields.foldLeft(Option.empty[StructField]) { (acc, field) =>
+        if (field.name == targetName) Some(field)
+        else findStructField(field.dataType, targetName) orElse acc
+      }
+    case _ => None
+  }
+
 }
+
 
 trait BaseRepElem extends Rep {
   def name: String
 
 }
+
 case class RepElem(name: String, id: String) extends BaseRepElem {
   def +(e2: String): Rep = Concat(this, RowLiteral(e2))
 }
 
-case class RepProjection(name: String, r: Rep) extends BaseRepElem
+case class RepProjection(name: String, r: Rep) extends BaseRepElem {
+//  def toCollection(implicit g: WrappedCollection): WrappedCollection = {
+//    super.asInstanceOf[WrappedCollection]
+//  }
+
+
+}
 
 /**
  * Currently used in a map function to replace a RepElem with a Literal
  */
 case class Alias(in: RepElem, outputString: String) extends BaseRepElem {
   override def name: String = in.name
+
   def id: String = in.id
 }
 
-case class As(in: Rep, name: String) extends Operation
+case class As(in: Rep, name: String) extends WrappedCollection
 
-case class If(condition: Rep, thenBranch: Rep, elseBranch: Rep) extends RepRow
 
-// TODO - Not sure if we want/need this
-//package object repextensions {
-//  implicit class RepElemSeqOps(seq: Seq[BaseRepElem]) {
-//    def tMap(f: Rep => Any): Seq[Rep] = {
-//      seq.map(z => f(z) match {
-//        case s :String => Transform(z, RowLiteral(s))
-//      })
-//    }
-//  }
-//}
 

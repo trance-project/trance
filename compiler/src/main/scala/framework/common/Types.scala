@@ -61,6 +61,7 @@ sealed trait Type { self =>
 
   def unouter: RecordCType = self match {
     case RecordCType(ms) => RecordCType(ms.mapValues(v => v match { case OptionType(o) => o; case _ => v}).map(identity))
+    case BagCType(ms) => ms.unouter
     case _ => sys.error(s"not supported $self")
   }
 

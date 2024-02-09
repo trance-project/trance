@@ -3,7 +3,7 @@ package uk.ac.ox.cs.trance
 import framework.common._
 import framework.nrc.NRC
 import framework.plans.NRCTranslator
-import org.apache.spark.sql.types.{DataType, StructField, StructType, ArrayType => SparkArrayType}
+import org.apache.spark.sql.types.{DataType, DateType, StructField, StructType, ArrayType => SparkArrayType}
 import org.apache.spark.sql.{DataFrame, types}
 
 import scala.collection.immutable.{Map => IMap}
@@ -21,18 +21,20 @@ object NRCConverter extends NRCTranslator {
       val c1 = toNRC(e, env).asBag
       val tvr = TupleVarRef(utilities.Symbol.fresh(), c1.tp.tp)
 
-      val k = in.asInstanceOf[NewSym].symID -> tvr
-      val c2 = toNRC(out, env + k).asTuple
+      val k = in.asInstanceOf[Sym].symID -> tvr
 
-
-      ForeachUnion(tvr, c1, Singleton(c2))
+      val output = toNRC(out, env + k)
+      output match {
+        case t: TupleExpr => ForeachUnion(tvr, c1, Singleton(t))
+        case b: BagExpr => ForeachUnion(tvr, c1, b)
+        case s@_ => s
+      }
     case FlatMap(e, Fun(in, out)) =>
       val c1 = toNRC(e, env).asBag
       val tvr = TupleVarRef(utilities.Symbol.fresh(), c1.tp.tp)
 
-      val k = in.asInstanceOf[NewSym].symID -> tvr
+      val k = in.asInstanceOf[Sym].symID -> tvr
 
-//      val k = in.asInstanceOf[Sym].rows.map(f => f.id -> tvr).toMap
       val output = toNRC(out, env + k)
       output match {
         case t: TupleExpr => ForeachUnion(tvr, c1, Singleton(t))
@@ -115,12 +117,16 @@ object NRCConverter extends NRCTranslator {
     case RowLiteral(e) => Const(e, getPrimitiveType(e))
     case If(condition, thenBranch, elseBranch) =>
       val c1 = toNRC(condition, env).asCond
-      toNRC(thenBranch, env) match {
+      val outputResult = toNRC(thenBranch, env)
+      val outputOfIf = outputResult match {
+        // TODO handle all possible If types
         case t: Tuple => IfThenElse(c1, Singleton(t))
         case p: PrimitiveExpr =>  val c3 = toNRC(elseBranch, env)
           IfThenElse(c1, p, c3)
-        case i: IfThenElse => i
+        case f: ForeachUnion => IfThenElse(c1, f)
+//        case i: IfThenElse => IfThenElse(c1, i)
       }
+      outputOfIf
     case GreaterThan(lhs, rhs) =>
       val c1 = toNRC(lhs, env)
       val c2 = toNRC(rhs, env)
@@ -129,15 +135,14 @@ object NRCConverter extends NRCTranslator {
       val c1 = toNRC(lhs, env)
       val c2 = toNRC(rhs, env)
       Cmp(OpEq, c1, c2)
-    case RepRowInst(vals) =>
-//      val exprs = vals.map(f => f.name -> toNRC(f.r, env).asInstanceOf[TupleAttributeExpr]).toMap
-//      Tuple(exprs)
-      val result = repRowResolver(vals, env)
-      Tuple(result)
-//    case Sym(vals) =>
-//      val result = repRowResolver(vals, env)
-//      Tuple(result)
-    case s: NewSym => TupleVarRef(s.symID, repToNRCType(s.schema))
+    case RepRow(elems) =>
+      val os = elems.map{ f =>
+        f._1 -> toNRC(f._2, env).asInstanceOf[TupleAttributeExpr]
+      }.toMap
+      Tuple(os)
+    case s: Sym =>
+      val tvr = env(s.symID).asInstanceOf[TupleVarRef]
+      tvr
     case rp: RepProjection =>
       val expr = toNRC(rp.r, env).asTuple
       try {
@@ -152,54 +157,53 @@ object NRCConverter extends NRCTranslator {
       } catch {
         case e: NoSuchElementException => sys.error("Cannot Project Field " + name + " from TupleVarRef " + tvr)
       }
-    case RepSeq(reps@_*) =>
-      val out = reps.map { f =>
-        val t = toNRC(f, env)
-        t
-      }.asInstanceOf[Seq[Tuple]]
-
-     val k = out.map(Singleton).reduce(Union)
-      k
     //TODO - need discussion on UDF
     case Alias(e1, output) =>
       val c1 = toNRC(e1, env)
       Udf("Transform", PrimitiveConst(output, StringType), StringType)
-    case RepSeq(elems) =>
-      val o = toNRC(elems, env)
-      o
+    case RepSeq(elems@_*) =>
+      val os = elems.map(f => toNRC(f, env).asTuple)
+      val k = os.map(Singleton).reduce(Union)
+      k
     case As(e1, alias) =>
       val o = toNRC(e1, env)
       Tuple(alias -> o.asInstanceOf[TupleAttributeExpr])
+    case AndRep(lhs, rhs) =>
+      val e1 = toNRC(lhs, env).asCond
+      val e2 = toNRC(rhs, env).asCond
+      And(e1, e2)
     case s@_ =>
       sys.error("Unsupported: " + s)
   }
 
-  private def repRowResolver(r: Seq[Rep], env: IMap[String, Expr], as: Option[String] = None): IMap[String, TupleAttributeExpr] = {
-    val res = r.flatMap {
-      case f: FlatMap =>
-        val str = as.getOrElse("nested")
-        Seq(str -> toNRC(f, env).asInstanceOf[TupleAttributeExpr])
-      case m: Map => Seq("mapTest" -> toNRC(m, env).asInstanceOf[TupleAttributeExpr])
-      case a: As => repRowResolver(Seq(a.in), env, Some(a.name))
-      case s: Sym => repRowResolver(s.rows, env)
-      case elem@_ =>
-        Seq(getRepElemName(elem) -> (toNRC(elem, env) match {
-          case u: Udf => u
-          case n: NumericExpr => n
-          case p: PrimitiveExpr => p
-          case c: PrimitiveConst => Udf(c.v.asInstanceOf[String], c, StringType)
-          case bp: BagProject => bp
-        }))
-    }.toMap
+//  private def repRowResolver(r: Seq[Rep], env: IMap[String, Expr], as: Option[String] = None): IMap[String, TupleAttributeExpr] = {
+//    val res = r.flatMap {
+//      case f: FlatMap =>
+//        val str = as.getOrElse("nested")
+//        Seq(str -> toNRC(f, env).asInstanceOf[TupleAttributeExpr])
+//      case m: Map => Seq("mapTest" -> toNRC(m, env).asInstanceOf[TupleAttributeExpr])
+//      case a: As => repRowResolver(Seq(a.in), env, Some(a.name))
+//      case s: Sym => repRowResolver(s.rows, env)
+//      case elem@_ =>
+//        Seq(getRepElemName(elem) -> (toNRC(elem, env) match {
+//          case u: Udf => u
+//          case n: NumericExpr => n
+//          case p: PrimitiveExpr => p
+//          case c: PrimitiveConst => Udf(c.v.asInstanceOf[String], c, StringType)
+//          case bp: BagProject => bp
+//          case t: Tuple => t
+//        }))
+//    }.toMap
+//
+//    res
+//  }
 
-    res
-  }
-
-  private def repToNRCType(s: StructType): TupleType = {
-    val tt = s.map{f =>
-      f.name -> typeToNRCType(f.dataType)
-    }.toMap
-    TupleType(tt)
+  private def repToNRCType(d: DataType): TupleType = d match {
+    case s: StructType =>
+      val tt = s.map{f =>
+        f.name -> typeToNRCType(f.dataType)
+      }.toMap
+      TupleType(tt)
   }
 
   /**
@@ -251,7 +255,7 @@ object NRCConverter extends NRCTranslator {
    * This function translates from Spark DataType to NRC/Plan type
    */
 
-  private def typeToNRCType(s: DataType): TupleAttributeType = s match {
+  def typeToNRCType(s: DataType): TupleAttributeType = s match {
     case structType: StructType => BagType(TupleType(structType.fields.map(f => f.name -> typeToNRCType(f.dataType)).toMap))
     case SparkArrayType(e, _) => ArrayType(typeToNRCType(e))
     case types.StringType => StringType
