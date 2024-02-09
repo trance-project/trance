@@ -2,7 +2,7 @@ package uk.ac.ox.cs.trance
 
 import uk.ac.ox.cs.trance.utilities.SparkUtil.getSparkSession
 import framework.common.{ArrayType, BagCType, BagType, BoolType, DoubleType, IntType, LongType, OpArithmetic, OpDivide, OpMinus, OpMod, OpMultiply, OpPlus, OptionType, RecordCType, StringType, Type}
-import framework.plans.{AddIndex, And, CDeDup, CExpr, CUdf, Comprehension, Constant, EmptySng, Equals, Gt, Gte, InputRef, Lt, Lte, MathOp, Nest, Not, Or, OuterJoin, Projection, Record, Variable, If => CIf, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
+import framework.plans.{AddIndex, And, CDeDup, CExpr, CUdf, Comprehension, Constant, EmptySng, Equals, Gt, Gte, InputRef, Lt, Lte, MathOp, Nest, Not, Or, OuterJoin, Projection, Record, Unnest, Variable, If => CIf, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.{BinaryOperator, EqualTo, Expression, GenericRow, GenericRowWithSchema, And => SparkAnd, GreaterThan => SparkGreaterThan, GreaterThanOrEqual => SparkGreaterThanOrEqual, LessThan => SparkLessThan, LessThanOrEqual => SparkLessThanOrEqual, Literal => SparkLiteral, Not => SparkNot, Or => SparkOr}
 import org.apache.spark.sql.functions.{col, expr, monotonically_increasing_id}
@@ -57,10 +57,19 @@ object PlanConverter {
 
       val columns: Seq[org.apache.spark.sql.Column] = outputColumnNames.map(f => c1(f._2)).toSeq
 
-      val t = functions.array(functions.struct(columns: _*))
+      val t = functions.struct(columns: _*)
       val updatedC1 = c1.withColumn(ctag, t)
       updatedC1.show()
       updatedC1.asInstanceOf[T]
+
+    case u @ Unnest(in, v, path, v2, filter, fields) =>
+      val c1 = convert(in, ctx).asInstanceOf[DataFrame]
+
+      val cols = u.nextAttrs.keys.map(f => f -> col(path + "." + f)).toMap
+      val unnestingProcess = c1.withColumns(cols)
+
+      unnestingProcess.asInstanceOf[T]
+      //TODO case OuterUnnest
     case OuterJoin(left, v, right, v2, cond, fields) =>
       val i1 = convert(left, ctx).asInstanceOf[DataFrame]
       val i2 = convert(right, ctx).asInstanceOf[DataFrame]
@@ -391,7 +400,7 @@ object PlanConverter {
     case DoubleType => DataTypes.DoubleType
     case LongType => DataTypes.LongType
     case ArrayType(tp) => SparkArrayType(getStructDataType(tp))
-    case BagCType(tp) => SparkArrayType(StructType(tp.attrs.map(f => StructField(f._1, getStructDataType(f._2, Some(f._1)))).toSeq))
+    case BagCType(tp) => StructType(tp.attrs.map(f => StructField(f._1, getStructDataType(f._2, Some(f._1)))).toSeq)
     case RecordCType(fields) =>
       val k =
         try {

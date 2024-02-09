@@ -4,7 +4,7 @@ package uk.ac.ox.cs.trance
 import org.scalatest.BeforeAndAfterEach
 import org.apache.spark.sql.{Column, DataFrame, Dataset, Encoders, RelationalGroupedDataset, functions, Row => SparkRow}
 import uk.ac.ox.cs.trance.app.TestApp.spark
-import Wrapper.{DataFrameImplicit}
+import Wrapper.DataFrameImplicit
 import framework.common.IntType
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema
@@ -15,6 +15,7 @@ import org.scalatest.exceptions.TestFailedException
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import uk.ac.ox.cs.trance.utilities.SkewDataset.DatasetOps
+import uk.ac.ox.cs.trance.utilities.TPCHDataframes.COP
 import uk.ac.ox.cs.trance.utilities.TestDataframes._
 //import uk.ac.ox.cs.trance.utilities.TPCHDataframes._
 //import sparkutils.skew.SkewDataset._
@@ -214,6 +215,43 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
       out.show(false)
       out.printSchema()
 
+    }
+
+    //TODO - if I name info in the first query it cant be projected as it looks for its original name
+    it("Project Nested Struct from Nested Map") {
+      val nDf1 = nestedDataframe
+      val nDf2 = nestedDataframe2
+      val wrappedNDf1 = nDf1.wrap()
+      val wrappedNDf2 = nDf2.wrap()
+
+      val oquery = wrappedNDf1.map{f => RepRow(f("info"))}
+
+      val query = wrappedNDf2.map{t =>
+        RepRow(t("stats"), "i" -> oquery.map{ o =>
+          RepRow(o.unnest())
+        })
+      }.leaveNRC()
+
+      query.show(false)
+      query.printSchema()
+    }
+
+    it("Plan Unnest Use Test") {
+      val cop = COP
+      val wrappedCOP = cop.wrap()
+
+      val query = wrappedCOP.map { c =>
+        val k = c("corders")
+
+        val o = k.map {
+          f =>
+            RepRow(f("dateID"))
+        }
+        o
+      }.leaveNRC()
+
+      query.show(false)
+      query.printSchema()
     }
   }
 

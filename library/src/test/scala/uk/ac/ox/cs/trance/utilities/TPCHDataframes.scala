@@ -17,11 +17,12 @@ object TPCHDataframes {
       StructField("cname", StringType),
       StructField("corders", StructType(Seq(
         StructField("odate", StringType),
+        StructField("dateID", StringType),
       )))))
 
     val exampleRow = Seq(
-      Row("test1", Row("2023-01-01"),
-        Row("test2", Row("2023-01-02")
+      Row("test1", Row("2023-01-01", "2"),
+        Row("test2", Row("2023-01-02", "1")
         )))
 
     val df = spark.createDataFrame(

@@ -23,11 +23,15 @@ object RepRow {
       case s: RepProjection => Seq(s.name -> s)
       case (str: String, rep: Rep) => Seq(str -> rep)
       case sym: Sym =>
-        val structFields = sym.schema.asInstanceOf[StructType].fields.map(f => StructType(Seq(StructField(f.name, f.dataType))))
+        val structFields = sym.schema.asInstanceOf[StructType].fields.head.dataType match {
+//          case s: StructType => s.fields.map(f => StructType(Seq(StructField(f.name, f.dataType))))
+          case _ => sym.schema.asInstanceOf[StructType].fields.map(f => StructType(Seq(StructField(f.name, f.dataType))))
+        }
         structFields.flatMap { f =>
           val newSym = Sym(sym.symID, f)
           Seq(f.fields.head.name -> RepProjection(f.fields.head.name, newSym))
         }.toList
+//      case "*" => Seq(this.asInstanceOf[RepRow].vals.map(f => f._1 -> f._2))
       case e@_ => sys.error("Invalid Row Argument: " + e.getClass)
     })
   }
@@ -72,6 +76,16 @@ case class Sym(symID: String, schema: DataType) extends Rep {
     RepProjection(row, Sym(symID, StructType(Seq(field))))
   }
 
+  //TODO Possibly allow choice of what bag to unnest
+  def unnest(): Sym = {
+    try {
+      Sym(this.symID, schema.asInstanceOf[StructType].fields.head.dataType)
+    }
+    catch {
+      case _ => sys.error("Cannot unnest further")
+    }
+  }
+
   private def findStructField(dataType: DataType, targetName: String): Option[StructField] = dataType match {
     case structType: StructType =>
       structType.fields.foldLeft(Option.empty[StructField]) { (acc, field) =>
@@ -93,7 +107,7 @@ case class RepElem(name: String, id: String) extends BaseRepElem {
   def +(e2: String): Rep = Concat(this, RowLiteral(e2))
 }
 
-case class RepProjection(name: String, r: Rep) extends BaseRepElem {
+case class RepProjection(name: String, r: Rep) extends BaseRepElem with WrappedCollection {
 //  def toCollection(implicit g: WrappedCollection): WrappedCollection = {
 //    super.asInstanceOf[WrappedCollection]
 //  }
