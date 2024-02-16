@@ -31,9 +31,12 @@ trait WrappedCollection extends Rep with NRCTranslator {
     case m: Map => getSchema(m.f)
     case s: Select => getSchema(s.self)
     case j: Join => StructType(getSchema(j.self).asInstanceOf[StructType].fields ++ getSchema(j.d2).asInstanceOf[StructType].fields)
+    case r: Reduce => getSchema(r.self)
     case fn: Fun => getSchema(fn.out)
     case rp: RepProjection => getSchema(rp.r) match {
-      case s: StructType => StructType(Seq(s(rp.name)))
+      case s: StructType =>
+        val outGoingRepProjection = StructType(Seq(s(rp.name)))
+        outGoingRepProjection
       case _ => sys.error("Incorrect type")
     }
     case i: If => getSchema(i.thenBranch) // TODO handle else branch too
@@ -42,6 +45,8 @@ trait WrappedCollection extends Rep with NRCTranslator {
       StructType(vals.map(x => StructField(x._1, getSchema(x._2))))
     case RepSeq(rr@_*) if rr.nonEmpty =>
       SparkArrayType(getSchema(rr.head))
+    case m: MathCol => getSchema(m.rhs) // TODO - How can we handle naming with MathCol
+
   }
 
 
@@ -65,7 +70,7 @@ trait WrappedCollection extends Rep with NRCTranslator {
   //    val exp = convert2NRC(p.exp)
   //    Project(exp, p.name)
 
-  def flatMap(f: Sym => RepSeq): WrappedCollection = {
+  def flatMap(f: Sym => Rep): WrappedCollection = {
     val symID = utilities.Symbol.fresh()
       val sym = Sym(symID, schema)
       val out = f(sym)

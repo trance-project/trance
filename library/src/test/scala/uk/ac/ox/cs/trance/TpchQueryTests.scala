@@ -6,6 +6,7 @@ import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import uk.ac.ox.cs.trance.utilities.{JoinContext, Symbol}
 import Wrapper.DataFrameImplicit
+import framework.examples.tpch.Test2Full
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import uk.ac.ox.cs.trance.utilities.TPCHDataframes._
 
@@ -34,6 +35,58 @@ class TpchQueryTests extends AnyFunSpec with BeforeAndAfterEach with Serializabl
     count1 shouldEqual count2
   }
 
+  // For use in NestedToFlat Agg tests
+  private def Test1Full(): WrappedCollection = {
+    val lineItem = LineItem
+    val wrappedLineItem = lineItem.wrap()
+
+    val order = Order
+    val wrappedOrder = order.wrap()
+
+    wrappedOrder.map { f =>
+
+      val o_orderkey = f("o_orderkey")
+
+      RepRow(f, "o_parts" -> wrappedLineItem.map { z =>
+        val l_orderkey = z("l_orderkey")
+        If(l_orderkey === o_orderkey) {
+          RepRow(z)
+        } {
+          RepRow.empty
+        }
+      })
+    }
+  }
+
+  private def Test2Full(): WrappedCollection = {
+    val lineItem = LineItem
+    val wrappedLineItem = lineItem.wrap()
+
+    val order = Order
+    val wrappedOrder = order.wrap()
+
+    val customer = Customer
+    val wrappedCustomer = customer.wrap()
+
+
+    val query = wrappedCustomer.map { c =>
+      RepRow(c, "c_orders" -> wrappedOrder.map { o =>
+        If(c("c_custkey") === o("o_custkey")) {
+          RepRow(o, "o_parts" -> wrappedLineItem.map { l =>
+            If(o("o_orderkey") === l("l_orderkey")) {
+              RepRow(l)
+            } {
+              RepRow.empty
+            }
+          })
+        } {
+          RepRow.empty
+        }
+      })
+    }
+    query
+  }
+
   override protected def afterEach(): Unit = {
     Symbol.freshClear()
     JoinContext.freshClear()
@@ -52,14 +105,14 @@ class TpchQueryTests extends AnyFunSpec with BeforeAndAfterEach with Serializabl
       val oquery = wrappedOrder.map { f =>
         val o_orderdate = f("o_orderdate")
         val o_orderkey = f("o_orderkey")
-        RepRow(o_orderdate, "o_parts" -> wrappedLineItem.map { z =>
+        RepRow(o_orderdate, "o_parts" -> wrappedLineItem.flatMap { z =>
           val l_orderkey = z("l_orderkey")
           val l_partkey = z("l_partkey")
           val l_quantity = z("l_quantity")
           If(l_orderkey === o_orderkey) {
-            RepRow(l_partkey, l_quantity)
+            RepSeq(RepRow(l_partkey, l_quantity))
           } {
-            RepRow.empty
+            RepSeq.empty
           }
         })
       }.leaveNRC()
@@ -118,7 +171,7 @@ class TpchQueryTests extends AnyFunSpec with BeforeAndAfterEach with Serializabl
               val l_partkey = l("l_partkey")
               val l_quantity = l("l_quantity")
               If(l_orderkey === o_orderkey) {
-                RepRow("l_partkeyTEST" -> l_partkey, l_quantity)
+                RepRow(l_partkey, l_quantity)
               } {
                 RepRow.empty
               }
@@ -132,6 +185,38 @@ class TpchQueryTests extends AnyFunSpec with BeforeAndAfterEach with Serializabl
       query.show(false)
       query.printSchema()
 
+    }
+
+    it("FlatToNested Test2Full") {
+      val lineItem = LineItem
+      val wrappedLineItem = lineItem.wrap()
+
+      val order = Order
+      val wrappedOrder = order.wrap()
+
+      val customer = Customer
+      val wrappedCustomer = customer.wrap()
+
+
+      val query = wrappedCustomer.map{ c =>
+        RepRow(c, "c_orders" -> wrappedOrder.map{o =>
+          If(c("c_custkey") === o("o_custkey")) {
+            RepRow(o, "o_parts" -> wrappedLineItem.map{l =>
+              If(o("o_orderkey") === l("l_orderkey")) {
+                RepRow(l)
+              } {
+                RepRow.empty
+              }
+            })
+          }
+          {
+            RepRow.empty
+          }
+        })
+      }.leaveNRC()
+
+      query.show(false)
+      query.printSchema()
     }
 
     it("FlatToNested Test2Filter") {
@@ -186,34 +271,21 @@ class TpchQueryTests extends AnyFunSpec with BeforeAndAfterEach with Serializabl
 
 
       val oquery = wrappedOrder.map { o =>
-        RepRow("o_custkey" -> o("o_custkey"), "o_orderdate" -> o("o_orderdate"), "o_parts" -> wrappedLineItem.map { l =>
+        RepRow("o_custkey" -> o("o_custkey"), "o_orderdate" -> o("o_orderdate"), "o_parts" -> wrappedLineItem.flatMap { l =>
           If(l("l_orderkey") === o("o_orderkey")) {
-            RepRow("l_partkey" -> l("l_partkey"), "l_quantity" -> l("l_quantity"))
+            RepSeq(RepRow("l_partkey" -> l("l_partkey"), "l_quantity" -> l("l_quantity")))
           } {
-            RepRow.empty
+            RepSeq.empty
           }
         })
       }
 
-      //
-      //        .leaveNRC()
-      //
-      //      oquery.show(false)
-      //      oquery.printSchema()
-      //      val wrappedOquery = oquery.wrap()
-      //      val wrappedOQuerySchema = wrappedOquery.schema
-      //      println(wrappedOQuerySchema)
-
-
-      ////
-
-
       val query = wrappedCustomer.map { c =>
-        RepRow("c_name" -> c("c_name"), "c_orders" -> oquery.map { o =>
+        RepRow("c_name" -> c("c_name"), "c_orders" -> oquery.flatMap { o =>
           If(o("o_custkey") === c("c_custkey")) {
-            RepRow("o_orderdate" -> o("o_orderdate"), o("o_parts"))
+            RepSeq(RepRow("o_orderdate" -> o("o_orderdate"), o("o_parts")))
           } {
-            RepRow.empty
+            RepSeq.empty
           }
         })
       }.leaveNRC()
@@ -248,7 +320,7 @@ class TpchQueryTests extends AnyFunSpec with BeforeAndAfterEach with Serializabl
       val query = wrappedCustomer.map { c =>
 
         RepRow("c_name" -> c("c_name"), "c_orders" -> oquery.map { o =>
-          RepRow("o_orderdate" -> o("o_orderdate"), o("o_parts"))
+          RepRow("o_orderdate" -> o("o_orderdate"), "o_parts" -> o("o_parts"))
         })
       }.leaveNRC()
 
@@ -349,7 +421,7 @@ class TpchQueryTests extends AnyFunSpec with BeforeAndAfterEach with Serializabl
       val query = wrappedLineItem.map { l =>
         wrappedPart.map { p =>
           If(l("l_partkey") === p("p_partkey")) {
-            RepRow(p("p_name"), "l_qty" -> l("l_quantity"))
+            RepRow("p_name" -> p("p_name"), "l_qty" -> l("l_quantity"))
           } {
             RepRow.empty
           }
@@ -375,7 +447,7 @@ class TpchQueryTests extends AnyFunSpec with BeforeAndAfterEach with Serializabl
           If(o("o_orderkey") === l("l_orderkey")) {
             wrappedPart.map { p =>
               If(l("l_partkey") === p("p_partkey")) {
-                RepRow(p("p_name"), "l_qty" -> l("l_quantity"))
+                RepRow("p_name" -> p("p_name"), "l_qty" -> l("l_quantity"))
               } {
                 RepRow.empty
               }
@@ -402,7 +474,7 @@ class TpchQueryTests extends AnyFunSpec with BeforeAndAfterEach with Serializabl
       val query = wrappedLineItem.map { l =>
         wrappedPart.map { p =>
           If(l("l_partkey") === p("p_partkey")) {
-            RepRow(p("p_name"), "total" -> l("l_quantity") * p("p_retailprice"))
+            RepRow("p_name" -> p("p_name"), "total" -> l("l_quantity") * p("p_retailprice"))
           } {
             RepRow.empty
           }
@@ -414,7 +486,7 @@ class TpchQueryTests extends AnyFunSpec with BeforeAndAfterEach with Serializabl
 
     }
 
-    it("Test1Agg1Full") {
+    it("Test1Agg1") {
 
       val lineItem = LineItem
       val wrappedLineItem = lineItem.wrap()
@@ -425,81 +497,121 @@ class TpchQueryTests extends AnyFunSpec with BeforeAndAfterEach with Serializabl
       val part = Part
       val wrappedPart = part.wrap()
 
-      val cop = COP
-      val wrappedCOP = cop.wrap()
+      val orders = Test1Full()
+      //TODO - solution with partRef separate
 
-
-
-      //
-      //
-      ////      query.show(false)
-      ////      query.printSchema()
-
-      val orderRef = {
-        wrappedOrder.map { f =>
-//
-//          val o_orderkey = f("o_orderkey")
-
-          RepRow(f, "o_parts" -> wrappedLineItem.map { z =>
-            val l_orderkey = z("l_orderkey")
-              RepRow(z)
-          })
-        }
+      val parts = orders.map{orderRef =>
+        orderRef("o_parts").map(o => RepRow(o("l_quantity"), o("l_partkey")))
       }
-      //
-//              .leaveNRC()
-//
-//
-//
-//
-//            orderRef.show(false)
-//            orderRef.printSchema()
-//
-//      val query = wrappedCOP.map { c =>
-//        val k = c("corders")
-//
-//        val o = k.map {
-//          f =>
-//            val inspectK = k
-//            val inspectF = f
-//            //            val inspectC = c
-//            //            val inspectF = f("dateID")
-//            RepRow(f)
-//        }
-//        o
+
+      //      val partRef = orderRef.map{p =>
+      //        p("o_parts").map(f => RepRow(f("l_quantity"), f("l_partkey")))
+      //      }
+
+      val query = orders.map { f =>
+        f("o_parts").map { o =>
+          wrappedPart.map { pr =>
+            If(o("l_partkey") === pr("p_partkey")) {
+              RepRow("o_orderdate" -> f("o_orderdate"), "total" -> o("l_quantity") * pr("p_retailprice"))
+            } {
+              RepRow.empty
+            }
+          }
+        }
+      }.groupBy("o_orderdate").sum("total").leaveNRC()
+
+      query.show(false)
+      query.printSchema()
+    }
+
+    // TODO - Finish
+    it("Test1Agg1S") {
+      val lineItem = LineItem
+      val wrappedLineItem = lineItem.wrap()
+
+      val order = Order
+      val wrappedOrder = order.wrap()
+
+      val part = Part
+      val wrappedPart = part.wrap()
+
+      val orders = Test1Full()
+//      val partRef = orders.map(f => f("o_parts").map(p => RepRow(p("l_partkey"), p("l_quantity"))))
+//      val parts = orders.map{p =>
+//        p("o_parts").map(f => RepRow(f("l_quantity"), f("l_partkey")))
 //      }
+//      partRef.leaveNRC().show()
+
+      val step1 = orders.map { orderRef =>
+        orderRef("o_parts").map { p =>
+          wrappedPart.map { pr =>
+            If(p("l_partkey") === pr("p_partkey")) {
+              RepRow("subtotal" -> p("l_quantity") * pr("p_retailprice"))
+            } {
+              RepRow.empty
+            }
+          }
+        }
+      }.groupBy().sum("subtotal")
 
 
-      val partRef = orderRef.map { f =>
-        val k = f("o_parts")
+      val step1SchemaTest = step1.schema
+//
+//      step1.show(false)
+//      step1.printSchema()
+//
 
-        RepRow(k)
-      }.leaveNRC()
+      val query = step1.map{s =>
+        orders.map{or =>
+          RepRow("o_orderdate" -> or("o_orderdate"), "total" -> s("subtotal"))
+        }
+      }.groupBy("o_orderdate").sum("total").leaveNRC()
 
-      println("Hi")
-
-      partRef.show(false)
-      partRef.printSchema()
-      //
-      //      val query =
-      //        orderRef.map{ o =>
-      //          partRef.map{ pr =>
-      //            wrappedPart.map{ p =>
-      //              If(pr("l_partkey") === p("p_partkey")) {
-      //                RepRow("total" -> pr("l_quantity") * p("p_retailprice"))
-      //              } {
-      //                RepRow.empty
-      //              }
-      //            }
-      //          }
-      //        }.leaveNRC()
-
-      //.groupBy("o_shippriority", "o_orderdate", "o_custkey", "o_orderpriority", "o_clerk", "o_orderstatus",
-      //          "o_totalprice", "o_orderkey", "o_comment").sum("total").leaveNRC()
-
-//      query.show(false)
-//      query.printSchema()
+      query.show(false)
 
     }
+
+    it("Test2Agg2") {
+      val lineItem = LineItem
+      val wrappedLineItem = lineItem.wrap()
+
+      val order = Order
+      val wrappedOrder = order.wrap()
+
+      val part = Part
+      val wrappedPart = part.wrap()
+
+      val customer = Customer
+      val wrappedCustomer = customer.wrap()
+
+      val customers: WrappedCollection = Test2Full()
+
+//      val orders: WrappedCollection = customers.select("c_orders")
+//
+//      val parts = orders.map(orderRef => orderRef("c_orders").map(c => c("o_parts").map(o => RepRow("c_name" -> orderRef("c_name"), "l_partkey" -> o("l_partkey"), "l_quantity" -> o("l_quantity")))))
+
+
+      val query = customers.map{customerRef =>
+        customerRef("c_orders").map{c =>
+          c("o_parts").map{o =>
+            wrappedPart.flatMap{pr =>
+              If(o("l_partkey") === pr("p_partkey")) {
+                RepSeq(RepRow("c_name" -> customerRef("c_name"), "total" -> o("l_quantity") * pr("p_retailprice"), o))
+              } {
+                RepSeq.empty
+              }
+            }
+          }
+        }
+      }.groupBy("c_name").sum("total").leaveNRC()
+
+
+      query.show(false)
+      query.printSchema()
+
+
+    }
+
+//    it()
   }
 }

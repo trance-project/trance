@@ -2,7 +2,7 @@ package uk.ac.ox.cs.trance
 
 import uk.ac.ox.cs.trance.utilities.SparkUtil.getSparkSession
 import framework.common.{ArrayType, BagCType, BagType, BoolType, DoubleType, IntType, LongType, OpArithmetic, OpDivide, OpMinus, OpMod, OpMultiply, OpPlus, OptionType, RecordCType, StringType, Type}
-import framework.plans.{AddIndex, And, CDeDup, CExpr, CUdf, Comprehension, Constant, EmptySng, Equals, Gt, Gte, InputRef, Lt, Lte, MathOp, Nest, Not, Or, OuterJoin, Projection, Record, Unnest, Variable, If => CIf, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
+import framework.plans.{AddIndex, And, CDeDup, CExpr, CUdf, Comprehension, Constant, EmptySng, Equals, Gt, Gte, InputRef, Lt, Lte, MathOp, Nest, Not, Or, OuterJoin, OuterUnnest, Projection, Record, RemoveNulls, Unnest, Variable, If => CIf, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.{BinaryOperator, EqualTo, Expression, GenericRow, GenericRowWithSchema, And => SparkAnd, GreaterThan => SparkGreaterThan, GreaterThanOrEqual => SparkGreaterThanOrEqual, LessThan => SparkLessThan, LessThanOrEqual => SparkLessThanOrEqual, Literal => SparkLiteral, Not => SparkNot, Or => SparkOr}
 import org.apache.spark.sql.functions.{col, expr, monotonically_increasing_id}
@@ -51,11 +51,10 @@ object PlanConverter {
       val unnestedRecord = unnestRecord(value)
 
 
-      val outputColumnNames = unnestedRecord.fields.map(f => f._1 -> f._2.asInstanceOf[CProject].field)
+      val outputColumnNames = unnestedRecord.fields.flatMap(f => getNestedColumnFields(f._2)).toSeq
 
-      val nestedStruct = unnestedRecord.fields.keys.toSeq
 
-      val columns: Seq[org.apache.spark.sql.Column] = outputColumnNames.map(f => c1(f._2)).toSeq
+      val columns: Seq[org.apache.spark.sql.Column] = outputColumnNames.map(f => c1(f)).toSeq
 
       val t = functions.struct(columns: _*)
       val updatedC1 = c1.withColumn(ctag, t)
@@ -69,7 +68,14 @@ object PlanConverter {
       val unnestingProcess = c1.withColumns(cols)
 
       unnestingProcess.asInstanceOf[T]
-      //TODO case OuterUnnest
+      //TODO case OuterUnnest is the same as case Unnest
+    case o @ OuterUnnest(in, v, path, v2, filter, fields) =>
+      val c1 = convert(in, ctx).asInstanceOf[DataFrame]
+
+      val cols = o.nextAttrs.keys.map(f => f -> col(path + "." + f)).toMap
+      val unnestingProcess = c1.withColumns(cols)
+
+      unnestingProcess.asInstanceOf[T]
     case OuterJoin(left, v, right, v2, cond, fields) =>
       val i1 = convert(left, ctx).asInstanceOf[DataFrame]
       val i2 = convert(right, ctx).asInstanceOf[DataFrame]
@@ -165,7 +171,12 @@ object PlanConverter {
       r.asInstanceOf[T]
     case CReduce(in, v, keys, values) =>
       val d1 = convert(in, ctx).asInstanceOf[DataFrame]
-      d1.groupBy(keys.head, keys.tail: _*).sum(values: _*).asInstanceOf[T]
+      if(keys.isEmpty) {
+        val aggCols = values.map(f => functions.sum(f).alias(f))
+        d1.agg(aggCols.head, aggCols.tail:_*).asInstanceOf[T]
+      } else {
+        d1.groupBy(keys.head, keys.tail: _*).sum(values: _*).asInstanceOf[T]
+      }
     case MathOp(op, e1, e2) =>
       // TODO - need to handle when x & y could be a Double/Float
       val x = convert(e1, ctx).asInstanceOf[Row].get(0)
@@ -211,6 +222,9 @@ object PlanConverter {
         case "Transform" => Row.fromSeq(c1.toSeq.map(f => f.asInstanceOf[String])).asInstanceOf[T]
         case n@_ =>  Row.fromSeq(c1.toSeq.map(f => f.asInstanceOf[String] + n)).asInstanceOf[T]
       }
+    case RemoveNulls(e1) =>
+      val c1 = convert(e1, ctx).asInstanceOf[DataFrame]
+      c1.na.fill(0).asInstanceOf[T]
     case s@_ =>
       sys.error("Unsupported: " + s)
   }
@@ -315,7 +329,9 @@ object PlanConverter {
 
   private def performJoin(i1: DataFrame, i2: DataFrame, condition: Column): DataFrame = condition.expr match {
     case BinaryOperator(e) =>
-      i1.join(i2, processSparkExpression(i1, i2, condition.expr))
+
+      i1.join(i2, condition)
+//      i1.join(i2, processSparkExpression(i1, i2, condition.expr))
 
     //      if(i1.schema.equals(i2.schema) && i1.rdd.subtract(i2.rdd).isEmpty) {
     //        i1.join(i2, condition)
@@ -506,6 +522,13 @@ object PlanConverter {
       case OpMod => Row(x % y)
       case OpDivide => Row(x / y)
     }
+    case (x: Any, null) => op match {
+      case OpMultiply => Row(x)
+      case OpPlus => Row(x)
+      case OpMinus => Row(x)
+//      case OpMod => Row(x % y)
+//      case OpDivide => Row(x / y)
+    }
   }
 
   private def mathComparator(comp: CExpr, lhs: Any, rhs: Any): Boolean = (lhs, rhs) match {
@@ -564,5 +587,12 @@ object PlanConverter {
       case _: Gte => x >= y
     }
   }
+
+  //For unnested the column names from original dataset that will be in new nested structure
+  private def getNestedColumnFields(c: CExpr): Seq[String] = c match {
+    case c: CProject => Seq(c.field)
+    case m: MathOp => getNestedColumnFields(m.e1) ++ getNestedColumnFields(m.e2)
+  }
+
 
 }

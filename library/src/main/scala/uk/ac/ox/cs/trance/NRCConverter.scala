@@ -124,6 +124,7 @@ object NRCConverter extends NRCTranslator {
         case p: PrimitiveExpr =>  val c3 = toNRC(elseBranch, env)
           IfThenElse(c1, p, c3)
         case f: ForeachUnion => IfThenElse(c1, f)
+        case s: Singleton => IfThenElse(c1, s)
 //        case i: IfThenElse => IfThenElse(c1, i)
       }
       outputOfIf

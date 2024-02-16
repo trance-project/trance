@@ -11,7 +11,11 @@ case class RepRow(vals: List[(String, Rep)]) extends Rep {
   def apply(n: String): Rep = vals.find(x => x._1 == n).get._2
 }
 
-case class RepSeq(rr: RepRow*) extends WrappedCollection
+case class RepSeq(rr: RepRow*) extends Rep
+
+object RepSeq {
+  def empty: RepSeq = RepSeq()
+}
 
 object RepRow {
   def apply(ee: (String, Rep)*)(implicit dummyImplicit: DummyImplicit): RepRow = {
@@ -23,15 +27,19 @@ object RepRow {
       case s: RepProjection => Seq(s.name -> s)
       case (str: String, rep: Rep) => Seq(str -> rep)
       case sym: Sym =>
+
+        val structFieldsPre = sym.schema.asInstanceOf[StructType].fields
+
         val structFields = sym.schema.asInstanceOf[StructType].fields.head.dataType match {
-//          case s: StructType => s.fields.map(f => StructType(Seq(StructField(f.name, f.dataType))))
           case _ => sym.schema.asInstanceOf[StructType].fields.map(f => StructType(Seq(StructField(f.name, f.dataType))))
         }
-        structFields.flatMap { f =>
+        val projectedSym = structFields.flatMap { f =>
           val newSym = Sym(sym.symID, f)
           Seq(f.fields.head.name -> RepProjection(f.fields.head.name, newSym))
         }.toList
-//      case "*" => Seq(this.asInstanceOf[RepRow].vals.map(f => f._1 -> f._2))
+
+        projectedSym
+
       case e@_ => sys.error("Invalid Row Argument: " + e.getClass)
     })
   }
@@ -50,14 +58,14 @@ object RepRow {
 //
 //}
 
-case class If(condition: Rep, thenBranch: Rep, elseBranch: Rep) extends BaseRow
+case class If(condition: Rep, thenBranch: Rep, elseBranch: Rep) extends Rep
 
 object If {
 //  def apply(cond: Rep)(thenBranch: Rep): BaseRow = {
 //    If(cond, thenBranch)
 //  }
 //
-  def apply(cond: Rep)(thenBranch: Rep)(elseBranch: Rep): BaseRow = {
+  def apply(cond: Rep)(thenBranch: Rep)(elseBranch: Rep): Rep = {
     If(cond, thenBranch, elseBranch)
   }
 }
@@ -73,17 +81,8 @@ case class Sym(symID: String, schema: DataType) extends Rep {
 
   def apply(row: String): RepProjection = {
     val field = findStructField(this.schema, row).getOrElse(sys.error("No Struct Field: " + row + " available in " + this.schema))
-    RepProjection(row, Sym(symID, StructType(Seq(field))))
-  }
-
-  //TODO Possibly allow choice of what bag to unnest
-  def unnest(): Sym = {
-    try {
-      Sym(this.symID, schema.asInstanceOf[StructType].fields.head.dataType)
-    }
-    catch {
-      case _ => sys.error("Cannot unnest further")
-    }
+    val r = RepProjection(row, Sym(symID, StructType(Seq(field))))
+    r
   }
 
   private def findStructField(dataType: DataType, targetName: String): Option[StructField] = dataType match {
@@ -107,13 +106,7 @@ case class RepElem(name: String, id: String) extends BaseRepElem {
   def +(e2: String): Rep = Concat(this, RowLiteral(e2))
 }
 
-case class RepProjection(name: String, r: Rep) extends BaseRepElem with WrappedCollection {
-//  def toCollection(implicit g: WrappedCollection): WrappedCollection = {
-//    super.asInstanceOf[WrappedCollection]
-//  }
-
-
-}
+case class RepProjection(name: String, r: Rep) extends BaseRepElem with WrappedCollection
 
 /**
  * Currently used in a map function to replace a RepElem with a Literal

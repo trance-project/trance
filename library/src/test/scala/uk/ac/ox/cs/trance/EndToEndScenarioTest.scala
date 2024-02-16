@@ -127,6 +127,7 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
       val df = simpleIntDataframe
       val wrappedDf = df.wrap()
 
+
       val query = wrappedDf.map { f =>
         RepRow("l" -> f("language"), "users" -> f("users"))
       }.leaveNRC()
@@ -217,7 +218,6 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
 
     }
 
-    //TODO - if I name info in the first query it cant be projected as it looks for its original name
     it("Project Nested Struct from Nested Map") {
       val nDf1 = nestedDataframe
       val nDf2 = nestedDataframe2
@@ -228,7 +228,9 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
 
       val query = wrappedNDf2.map{t =>
         RepRow(t("stats"), "i" -> oquery.map{ o =>
-          RepRow(o.unnest())
+          o("info").map{ i =>
+            RepRow(i("users"))
+          }
         })
       }.leaveNRC()
 
@@ -243,16 +245,40 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
       val query = wrappedCOP.map { c =>
         val k = c("corders")
 
-        val o = k.map {
-          f =>
-            RepRow(f("dateID"))
-        }
+        val o = k.map { f => RepRow(f("dateID")) }
         o
       }.leaveNRC()
 
       query.show(false)
       query.printSchema()
     }
+//    it("Plan Unnest Use Test - Schema Checking") {
+//      val cop = COP
+//      val wrappedCOP = cop.wrap()
+//
+//      val preQuery = wrappedCOP.map { c =>
+//        val k = c("corders")
+//
+//        val o = k.flatMap { f =>
+//          If(f("dateID") === "2") {
+//            RepSeq(RepRow(f("dateID")))
+//          } {
+//            RepSeq.empty
+//          }
+//        }
+//        o
+//      }
+//
+//
+//      val preQuerySchema = preQuery.schema
+//
+//
+//      val query = preQuery.leaveNRC()
+//
+//      query.show(false)
+//      query.printSchema()
+//    }
+
   }
 
 //  describe("FlatMap") {
