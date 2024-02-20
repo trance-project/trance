@@ -18,12 +18,16 @@ object TPCHDataframes {
       StructField("corders", StructType(Seq(
         StructField("odate", StringType),
         StructField("dateID", StringType),
-      )))))
+        StructField("oparts", StructType(Seq(
+          StructField("pid", IntegerType),
+          StructField("qty", DoubleType)
+        ))
+      ))),
+     )))
 
     val exampleRow = Seq(
-      Row("test1", Row("2023-01-01", "2"),
-        Row("test2", Row("2023-01-02", "1")
-        )))
+      Row("test1", Row("2023-01-01", "2", Row(1, 2.5))),
+      Row("test2", Row("2023-01-02", "1", Row(2, 4.5))))
 
     val df = spark.createDataFrame(
       spark.sparkContext.parallelize(exampleRow), inputSchema)

@@ -611,7 +611,68 @@ class TpchQueryTests extends AnyFunSpec with BeforeAndAfterEach with Serializabl
 
 
     }
+  }
 
-//    it()
+  describe("NestedToNested") {
+    it("Test2NN") {
+      val lineItem = LineItem
+      val wrappedLineItem = lineItem.wrap()
+
+      val order = Order
+      val wrappedOrder = order.wrap()
+
+      val part = Part
+      val wrappedPart = part.wrap()
+
+      val customer = Customer
+      val wrappedCustomer = customer.wrap()
+
+      val test2Full = Test2Full()
+
+      val query = Test2Full.map{ customerRef =>
+        RepRow(customerRef("c_name"), "c_orders" -> customerRef("c_orders").map{ orderRef =>
+          RepRow(orderRef("o_orderdate"), "o_parts" -> orderRef("o_parts").map{ partRef =>
+            wrappedPart.flatMap{pr =>
+              If(partRef("l_partkey") === pr("p_partkey")) {
+                RepSeq(RepRow(pr("p_name"), "total" -> partRef("l_quantity") * pr("p_retailprice")))
+              } {
+                RepSeq.empty
+              }
+            }.groupBy("p_name").sum("total")
+          })
+        })
+      }.leaveNRC()
+
+      query.show(false)
+      query.printSchema()
+    }
+  }
+
+  describe("Paper Tests") {
+    it("Paper Test") {
+      val cop = COP
+      val part = Part
+
+      val wrappedCOP = cop.wrap()
+      val wrappedPart = part.wrap()
+
+
+      val query = wrappedCOP.map{ c =>
+        RepRow("cname" -> c("cname"), "corders" -> c("corders").map{ co =>
+          RepRow("odate" -> co("odate"), "oparts" -> co("oparts").map{ op =>
+            wrappedPart.flatMap { p =>
+              If(op("pid") === p("p_partkey")) {
+                RepSeq(RepRow("pname" -> p("p_name"), "total" -> op("qty") * p("p_retailprice")))
+              } {
+                RepSeq.empty
+              }
+            }
+          })
+        })
+      }.leaveNRC()
+
+      query.show(false)
+      query.printSchema()
+    }
   }
 }

@@ -18,13 +18,6 @@ import uk.ac.ox.cs.trance.utilities.SkewDataset
 import scala.reflect.ClassTag
 
 object PlanConverter {
-
-  private def unnestRecord(c: CExpr): Record = c match {
-    case CIf(_, e1, _) => unnestRecord(e1)
-    case CSng(c) => unnestRecord(c)
-    case r: Record => r
-  }
-
   /**
    * Recursively converts a normalised and unnested plan expression [[CExpr]] into a Spark Dataframe
    *
@@ -44,23 +37,30 @@ object PlanConverter {
         convert(p, ctx ++ getProjectionBinding(p, z)).asInstanceOf[Seq[Row]]
       }(RowEncoder.apply(outputSchema))
       l.asInstanceOf[T]
-    case Nest(in, v, key, value, filter, nulls, ctag) =>
+    case Nest(in, v, key, value, filter, nulls, ctag) => //first new way
       val c1 = convert(in, ctx).asInstanceOf[DataFrame]
 
+      val outputSchema = createStructFields(value)
 
-      val unnestedRecord = unnestRecord(value)
+      val l = c1.flatMap{ z =>
+        convert(value, ctx ++ getProjectionBinding(value, z)).asInstanceOf[Seq[Row]]
+      }(RowEncoder.apply(outputSchema))
 
 
-      val outputColumnNames = unnestedRecord.fields.flatMap(f => getNestedColumnFields(f._2)).toSeq
+      val lColumns = l.columns.map(col)
+
+      val t = functions.struct(lColumns: _*)
+
+      val updatedL = l.withColumn(ctag, t)
+
+      val cond = toSparkCond(filter) // TODO incorporate filter?
 
 
-      val columns: Seq[org.apache.spark.sql.Column] = outputColumnNames.map(f => c1(f)).toSeq
+      val updatedLWithId = updatedL.withColumn("rowId", monotonically_increasing_id())
+      val updatedC1WithId = c1.withColumn("rowId", monotonically_increasing_id())
+      val joinedDf = updatedC1WithId.join(updatedLWithId, "rowId")
 
-      val t = functions.struct(columns: _*)
-      val updatedC1 = c1.withColumn(ctag, t)
-      updatedC1.show()
-      updatedC1.asInstanceOf[T]
-
+    joinedDf.asInstanceOf[T]
     case u @ Unnest(in, v, path, v2, filter, fields) =>
       val c1 = convert(in, ctx).asInstanceOf[DataFrame]
 
@@ -84,7 +84,6 @@ object PlanConverter {
 
       val joined = i1.join(i2, c, "left_outer")
 
-      joined.show(false)
       joined.asInstanceOf[T]
     case CJoin(left, v, right, v2, cond, fields) =>
       val i1 = convert(left, ctx).asInstanceOf[DataFrame]
@@ -131,12 +130,13 @@ object PlanConverter {
       val i1 = convert(in, ctx).asInstanceOf[DataFrame]
       i1.dropDuplicates().asInstanceOf[T]
     case InputRef(data, tp) =>
-      val c1 =
+      val c1 = {
         try {
           ctx(data)
         } catch {
           case _: NoSuchElementException => sys.error("No key: " + data + " found in ctx: " + ctx)
         }
+      }
       c1.asInstanceOf[T]
     case Variable(name, tp) =>
       val c =  try {
@@ -175,7 +175,9 @@ object PlanConverter {
         val aggCols = values.map(f => functions.sum(f).alias(f))
         d1.agg(aggCols.head, aggCols.tail:_*).asInstanceOf[T]
       } else {
-        d1.groupBy(keys.head, keys.tail: _*).sum(values: _*).asInstanceOf[T]
+        val output = d1.groupBy(keys.head, keys.tail: _*)
+          .agg(functions.sum(values.head).alias(values.head)) //TODO - multiple sum by cols?
+        output.asInstanceOf[T]
       }
     case MathOp(op, e1, e2) =>
       // TODO - need to handle when x & y could be a Double/Float
@@ -391,7 +393,7 @@ object PlanConverter {
           StructField(f._1, getStructDataType(f._2.tp))
         }
         case InputRef(id, record: RecordCType) => StructField(f._1, getStructDataType(f._2.tp, Some(f._1)))
-
+        case prj: CProject => StructField(f._1, getStructDataType(prj.tp, Some(prj.field)))
         case _ => StructField(f._1, getStructDataType(f._2.tp))
       }).toSeq)
     case CIf(_, e1, _) => createStructFields(e1)
@@ -420,7 +422,7 @@ object PlanConverter {
     case RecordCType(fields) =>
       val k =
         try {
-          fields(s.get)
+          fields.get(s.get).get
         } catch {
           case _: NoSuchElementException => sys.error("No element " + s + " in " + fields)
         }
@@ -522,13 +524,8 @@ object PlanConverter {
       case OpMod => Row(x % y)
       case OpDivide => Row(x / y)
     }
-    case (x: Any, null) => op match {
-      case OpMultiply => Row(x)
-      case OpPlus => Row(x)
-      case OpMinus => Row(x)
-//      case OpMod => Row(x % y)
-//      case OpDivide => Row(x / y)
-    }
+    case (_: Any, null) => Row(null)
+    case (null, null) => Row(null)
   }
 
   private def mathComparator(comp: CExpr, lhs: Any, rhs: Any): Boolean = (lhs, rhs) match {
@@ -588,11 +585,14 @@ object PlanConverter {
     }
   }
 
-  //For unnested the column names from original dataset that will be in new nested structure
-  private def getNestedColumnFields(c: CExpr): Seq[String] = c match {
-    case c: CProject => Seq(c.field)
-    case m: MathOp => getNestedColumnFields(m.e1) ++ getNestedColumnFields(m.e2)
-  }
-
-
+//  def equiJoin(left: DataFrame, right: DataFrame, leftCols: Seq[String], rightCols: Seq[String], joinType: String): DataFrame = {
+//
+//    var cond: Column = col(leftCols(0)) === col(rightCols(0))
+//    if (leftCols.size > 1) cond = (cond) && (col(leftCols(1)) === col(rightCols(1)))
+//
+//    val out = left.join(right, cond, joinType)
+//
+//    out
+//
+//  }
 }

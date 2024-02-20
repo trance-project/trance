@@ -1,6 +1,6 @@
 package uk.ac.ox.cs.trance
 
-import org.apache.spark.sql.types.{DataType, StructField, StructType}
+import org.apache.spark.sql.types.{DataType, IntegerType, StructField, StructType}
 
 import scala.language.implicitConversions
 
@@ -28,12 +28,14 @@ object RepRow {
       case (str: String, rep: Rep) => Seq(str -> rep)
       case sym: Sym =>
 
-        val structFieldsPre = sym.schema.asInstanceOf[StructType].fields
-
-        val structFields = sym.schema.asInstanceOf[StructType].fields.head.dataType match {
-          case _ => sym.schema.asInstanceOf[StructType].fields.map(f => StructType(Seq(StructField(f.name, f.dataType))))
+        val nestedStruct = sym.schema.asInstanceOf[StructType].fields.flatMap{ g =>
+          g.dataType match {
+            case s: StructType => if (!sym.isUnnest) s.fields.map(_  => StructType(Seq(g))) else s.fields.map(f => StructType(Seq(f)))
+            case _ => Seq(StructType(Seq(g)))
+          }
         }
-        val projectedSym = structFields.flatMap { f =>
+
+        val projectedSym = nestedStruct.flatMap { f =>
           val newSym = Sym(sym.symID, f)
           Seq(f.fields.head.name -> RepProjection(f.fields.head.name, newSym))
         }.toList
@@ -77,7 +79,7 @@ case class Transform(e1: RepElem, e2: RowLiteral) extends Rep
 case class RowLiteral(v: Any) extends Rep
 
 
-case class Sym(symID: String, schema: DataType) extends Rep {
+case class Sym(symID: String, schema: DataType, isUnnest: Boolean = false) extends Rep {
 
   def apply(row: String): RepProjection = {
     val field = findStructField(this.schema, row).getOrElse(sys.error("No Struct Field: " + row + " available in " + this.schema))
@@ -106,7 +108,19 @@ case class RepElem(name: String, id: String) extends BaseRepElem {
   def +(e2: String): Rep = Concat(this, RowLiteral(e2))
 }
 
-case class RepProjection(name: String, r: Rep) extends BaseRepElem with WrappedCollection
+case class RepProjection(name: String, r: Rep) extends BaseRepElem with WrappedCollection {
+  override def map(f: Sym => Rep): WrappedCollection = {
+
+
+    //TODO error handling for non collection projections
+
+    val symID = utilities.Symbol.fresh()
+    val sym = Sym(symID, schema, true)
+    val out = f(sym)
+    val fun = Fun(sym, out)
+    Map(this, fun)
+  }
+}
 
 /**
  * Currently used in a map function to replace a RepElem with a Literal
@@ -118,6 +132,7 @@ case class Alias(in: RepElem, outputString: String) extends BaseRepElem {
 }
 
 case class As(in: Rep, name: String) extends WrappedCollection
+
 
 
 

@@ -15,7 +15,7 @@ import org.scalatest.exceptions.TestFailedException
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import uk.ac.ox.cs.trance.utilities.SkewDataset.DatasetOps
-import uk.ac.ox.cs.trance.utilities.TPCHDataframes.COP
+import uk.ac.ox.cs.trance.utilities.TPCHDataframes.{COP, LineItem}
 import uk.ac.ox.cs.trance.utilities.TestDataframes._
 //import uk.ac.ox.cs.trance.utilities.TPCHDataframes._
 //import sparkutils.skew.SkewDataset._
@@ -251,6 +251,59 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
 
       query.show(false)
       query.printSchema()
+    }
+
+    it("Test Full Projection of Nested Fields") {
+      val cop = COP
+
+      val wrappedCOP = cop.wrap()
+
+      val query = wrappedCOP.map{c =>
+
+        c("corders").map { cr =>
+          RepRow(c, cr)
+        }
+      }.leaveNRC()
+
+      query.show(false)
+      query.printSchema()
+    }
+
+    it("Mult Projection Test") {
+      val lineItem = LineItem
+      val wrappedLine = lineItem.wrap()
+
+
+      val query = wrappedLine.map(l => RepRow("MultCol" -> l("l_orderkey") * l("l_partkey"))).leaveNRC()
+
+      query.show(false)
+      query.printSchema()
+
+
+
+    }
+
+    it("Nested Math Col Test") {
+      val df1 = simpleIntDataframe
+      val df2 = simpleIntDataframe2
+
+      val wrappedDf1 = df1.wrap()
+      val wrappedDf2 = df2.wrap()
+
+      val query = wrappedDf1.map{ f =>
+        RepRow(f("language"), "nestedCol" -> wrappedDf2.map{z =>
+          RepRow(f("users"), z("usr"), "total" -> f("users") * z("usr"))
+        })
+      }
+
+      val schema = query.schema
+
+
+      val output = query.leaveNRC()
+
+      output.show(false)
+      output.printSchema()
+
     }
 //    it("Plan Unnest Use Test - Schema Checking") {
 //      val cop = COP

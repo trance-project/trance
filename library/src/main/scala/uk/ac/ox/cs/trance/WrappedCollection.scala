@@ -3,7 +3,7 @@ package uk.ac.ox.cs.trance
 import framework.common.{ArrayType, BagType, BoolType, DoubleType, IntType, LongType, StringType, TupleAttributeType, TupleType}
 import framework.plans.{BaseNormalizer, CExpr, Finalizer, NRCTranslator, Printer, Unnester}
 import org.apache.spark.sql.functions.lit
-import org.apache.spark.sql.types.{AbstractDataType, DataType, DataTypes, StructField, StructType, ArrayType => SparkArrayType}
+import org.apache.spark.sql.types.{AbstractDataType, DataType, DataTypes, IntegerType, StructField, StructType, ArrayType => SparkArrayType}
 import org.apache.spark.sql.{Column, DataFrame, Encoder, SparkSession, functions, types, Row => SparkRow}
 import uk.ac.ox.cs.trance.utilities.JoinContext
 
@@ -42,7 +42,10 @@ trait WrappedCollection extends Rep with NRCTranslator {
     case i: If => getSchema(i.thenBranch) // TODO handle else branch too
     case e: Equality => null // TODO - handle
     case RepRow(vals) =>
-      StructType(vals.map(x => StructField(x._1, getSchema(x._2))))
+      StructType(vals.map(x => StructField(x._1, x._2 match {
+        case _: MathCol => StructType(Seq(StructField(x._1, getSchema(x._2).asInstanceOf[StructType].fields.head.dataType))) // Hacky way of handling the right naming for MathCols
+        case _ => getSchema(x._2)
+      })))
     case RepSeq(rr@_*) if rr.nonEmpty =>
       SparkArrayType(getSchema(rr.head))
     case m: MathCol => getSchema(m.rhs) // TODO - How can we handle naming with MathCol

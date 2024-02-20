@@ -17,6 +17,28 @@ import uk.ac.ox.cs.trance.utilities.TPCHDataframes.{spark, Customer => CustomerD
 
 import scala.collection.Seq
 
+
+case class Recordf7ba324c84564cd4be34e9781e7fcf68(l_returnflag: String, l_comment: String, l_linestatus: String, l_shipmode: String, l_shipinstruct: String, l_quantity: Double, l_receiptdate: String, l_linenumber: Int, l_tax: Double, l_shipdate: String, l_extendedprice: Double, l_partkey: Int, l_discount: Double, l_commitdate: String, l_suppkey: Int, l_orderkey: Int)
+case class Recordd83edc684e0940d39b048a584b69be4e(o_shippriority: Int, o_orderdate: String, o_custkey: Int, o_orderpriority: String, o_parts: Seq[Recordf7ba324c84564cd4be34e9781e7fcf68], o_clerk: String, o_orderstatus: String, o_totalprice: Double, o_orderkey: Int, o_comment: String)
+case class Record4c1c9f4a7b6548efbc431824cbf2c2b9(c_name: String, c_orders: Seq[Recordd83edc684e0940d39b048a584b69be4e])
+case class Record0b94591285f94327b2c77f47c2073b98(c_name: String, c_orders: Seq[Recordd83edc684e0940d39b048a584b69be4e], Test2Full_index: Long)
+case class Recordaf046ffd9cac4009aa92b4b0a24323fe(c_name: String, c_orders: Seq[Recordd83edc684e0940d39b048a584b69be4e], Test2Full_index: Long, c_orders_index: Long)
+case class Recordd1d5bc6ece264775aea2145439a0a040(c_orders_index: Long, o_orderdate: Option[String], c_name: String, o_parts: Option[Seq[Recordf7ba324c84564cd4be34e9781e7fcf68]], Test2Full_index: Long)
+case class Record177e89dab2c24dcaa28f91f86c2be01b(c_orders_index: Long, o_orderdate: Option[String], l_quantity: Option[Double], c_name: String, Test2Full_index: Long, l_partkey: Option[Int])
+case class Record17a1241e842d40d89068acfa5d003fa2(c_orders_index: Long, o_orderdate: Option[String], c_name: String, Test2Full_index: Long, l_partkey: Option[Int])
+case class Record8312915a66844c539580a903e16a9e3f(p_name: String, p_retailprice: Double, p_partkey: Int)
+case class Recordf754d1d92a9949bc9c7ded6bcd1b1769(p_name: Option[String], c_orders_index: Long, o_orderdate: Option[String], l_quantity: Double, p_retailprice: Option[Double], c_name: String, Test2Full_index: Long, l_partkey: Option[Int], p_partkey: Option[Int])
+case class Recordedc158e4c91d4db4aaad5f25dfc72bcf(p_name: Option[String], c_orders_index: Long, o_orderdate: Option[String], total: Double, c_name: String, Test2Full_index: Long)
+case class Recorda7c53519ba3246f385ba6a5e5a5b34bc(p_name: Option[String], c_orders_index: Long, o_orderdate: Option[String], c_name: String, Test2Full_index: Long)
+case class Recordeebfd34b0d9f4ef883300d447b47160b(c_orders_index: Long, o_orderdate: Option[String], c_name: String, Test2Full_index: Long)
+case class Recorda8a26120cd264ae493f8162ff5af06e9(p_name: String, total: Double)
+case class Recordcdc3a0cbfc5347ee9c9d4d49113c4eb5(c_orders_index: Long, o_orderdate: Option[String], c_name: String, o_parts: Seq[Recorda8a26120cd264ae493f8162ff5af06e9], Test2Full_index: Long)
+case class Recordcc499be223114b28a48c5b6c827b609a(c_name: String, Test2Full_index: Long, o_orderdate: Option[String], o_parts: Seq[Recorda8a26120cd264ae493f8162ff5af06e9])
+case class Recordb22461c585ad411683a87afbc5ba6cfb(c_name: String, Test2Full_index: Long)
+case class Recordf28c7812ec5e435ca6bea61bfc0dfd2a(o_orderdate: String, o_parts: Seq[Recorda8a26120cd264ae493f8162ff5af06e9])
+case class Record97a6e22e71ca4a9fad9e596ca0081ab6(c_name: String, Test2Full_index: Long, c_orders: Seq[Recordf28c7812ec5e435ca6bea61bfc0dfd2a])
+
+
 case class Recordf071514c62c046c4a4f183bb484fa3ec(c_name: String, o_parts: Seq[Record1401a1a294e340e6b75d6d1a9fcacdf3])
 case class Recordda3d7afd6f8c47eaacb2fbcc0d70e830(c_name: String, l_quantity: Double, l_partkey: Int)
 case class Recordd1050b4424f24794a99d04f1db5c17e2(c_name: String, l_partkey: Int)
@@ -701,6 +723,95 @@ class GeneratedCodeTests extends AnyFunSpec with BeforeAndAfterEach with Seriali
     //        }
     //      }.as[Record2444e40ce12849a7b7a55450a3467447]
     //    }
+  }
+
+  describe("Nested to Nested") {
+    it("Test2NN") {
+      import spark.implicits._
+
+      val x24 = Test2Full.select("c_name", "c_orders")
+
+        .as[Record4c1c9f4a7b6548efbc431824cbf2c2b9]
+
+      val x25 = x24.withColumn("Test2Full_index", monotonically_increasing_id())
+        .as[Record0b94591285f94327b2c77f47c2073b98]
+
+      val x26 = x25.withColumn("c_orders_index", monotonically_increasing_id())
+        .as[Recordaf046ffd9cac4009aa92b4b0a24323fe]
+
+      val x29 = x26.flatMap {
+        case x27 =>
+          if (x27.c_orders.isEmpty) Seq(Recordd1d5bc6ece264775aea2145439a0a040(x27.c_orders_index, None, x27.c_name, None, x27.Test2Full_index))
+          else x27.c_orders.map(x28 => Recordd1d5bc6ece264775aea2145439a0a040(x27.c_orders_index, Some(x28.o_orderdate), x27.c_name, Some(x28.o_parts), x27.Test2Full_index))
+
+      }.as[Recordd1d5bc6ece264775aea2145439a0a040]
+
+      val x35 = x29.flatMap {
+        case x30 =>
+          x30.o_parts match {
+            case Some(o_parts) if o_parts.nonEmpty =>
+              o_parts.foldLeft(HashMap.empty[Record17a1241e842d40d89068acfa5d003fa2, Double].withDefaultValue(0.0))(
+                (acc, x32) => {
+                  acc(Record17a1241e842d40d89068acfa5d003fa2(x30.c_orders_index, x30.o_orderdate, x30.c_name, x30.Test2Full_index, Some(x32.l_partkey))) += x32.l_quantity.asInstanceOf[Double]; acc
+                }
+              ).map(x32 => Record177e89dab2c24dcaa28f91f86c2be01b(x32._1.c_orders_index, x32._1.o_orderdate, Some(x32._2), x32._1.c_name, x32._1.Test2Full_index, x32._1.l_partkey))
+
+            case _ => Seq(Record177e89dab2c24dcaa28f91f86c2be01b(x30.c_orders_index, x30.o_orderdate, None, x30.c_name, x30.Test2Full_index, None))
+          }
+
+      }.as[Record177e89dab2c24dcaa28f91f86c2be01b]
+
+      val x37 = PartDF.select("p_name", "p_retailprice", "p_partkey")
+
+        .as[Record8312915a66844c539580a903e16a9e3f]
+
+      val x40 = x35.equiJoin(x37,
+        Seq("l_partkey"), Seq("p_partkey"), "left_outer").as[Recordf754d1d92a9949bc9c7ded6bcd1b1769]
+
+      val x42 = x40.select("p_name", "c_orders_index", "o_orderdate", "l_quantity", "p_retailprice", "c_name", "Test2Full_index")
+        .withColumn("total", (col("l_quantity") * col("p_retailprice")))
+        .withColumn("total", when(col("total").isNull, 0.0).otherwise(col("total")))
+        .as[Recordedc158e4c91d4db4aaad5f25dfc72bcf]
+
+      val x44 = x42.groupByKey(x43 => Recorda7c53519ba3246f385ba6a5e5a5b34bc(x43.p_name, x43.c_orders_index, x43.o_orderdate, x43.c_name, x43.Test2Full_index))
+        .agg(typed.sum[Recordedc158e4c91d4db4aaad5f25dfc72bcf](x43 => x43.total)
+        ).mapPartitions { it =>
+        it.map { case (key, total) =>
+          Recordedc158e4c91d4db4aaad5f25dfc72bcf(key.p_name, key.c_orders_index, key.o_orderdate, total, key.c_name, key.Test2Full_index)
+        }
+      }.as[Recordedc158e4c91d4db4aaad5f25dfc72bcf]
+
+      val x46 = x44
+
+
+      val x48 = x46.groupByKey(x47 => Recordeebfd34b0d9f4ef883300d447b47160b(x47.c_orders_index, x47.o_orderdate, x47.c_name, x47.Test2Full_index)).mapGroups {
+        case (key, value) =>
+          val grp = value.flatMap(x47 =>
+            (x47.p_name) match {
+              case (None) => Seq()
+              case _ => Seq(Recorda8a26120cd264ae493f8162ff5af06e9(x47.p_name match { case Some(x) => x; case _ => "null" }, x47.total))
+            }).toSeq
+          Recordcdc3a0cbfc5347ee9c9d4d49113c4eb5(key.c_orders_index, key.o_orderdate, key.c_name, grp, key.Test2Full_index)
+      }.as[Recordcdc3a0cbfc5347ee9c9d4d49113c4eb5]
+
+      val x50 = x48.select("c_name", "Test2Full_index", "o_orderdate", "o_parts")
+
+        .as[Recordcc499be223114b28a48c5b6c827b609a]
+
+      val x52 = x50.groupByKey(x51 => Recordb22461c585ad411683a87afbc5ba6cfb(x51.c_name, x51.Test2Full_index)).mapGroups {
+        case (key, value) =>
+          val grp = value.flatMap(x51 =>
+            (x51.o_orderdate) match {
+              case (None) => Seq()
+              case _ => Seq(Recordf28c7812ec5e435ca6bea61bfc0dfd2a(x51.o_orderdate match { case Some(x) => x; case _ => "null" }, x51.o_parts))
+            }).toSeq
+          Record97a6e22e71ca4a9fad9e596ca0081ab6(key.c_name, key.Test2Full_index, grp)
+      }.as[Record97a6e22e71ca4a9fad9e596ca0081ab6]
+
+      val x53 = x52
+      x53.show(false)
+      x53.printSchema()
+    }
   }
 
 }
