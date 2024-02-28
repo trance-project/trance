@@ -58,7 +58,7 @@ class TpchQueryTests extends AnyFunSpec with BeforeAndAfterEach with Serializabl
     }
   }
 
-  private def Test2Full(): WrappedCollection = {
+  private def  Test2Full(): WrappedCollection = {
     val lineItem = LineItem
     val wrappedLineItem = lineItem.wrap()
 
@@ -161,12 +161,12 @@ class TpchQueryTests extends AnyFunSpec with BeforeAndAfterEach with Serializabl
       val query = wrappedCustomer.map { c =>
         val c_custkey = c("c_custkey")
         val c_name = c("c_name")
-        RepRow(c_name, "o_parts" -> wrappedOrder.map { o =>
+        RepRow(c_name, "c_orders" -> wrappedOrder.map { o =>
           val o_orderkey = o("o_orderkey")
           val o_custkey = o("o_custkey")
           val o_orderdate = o("o_orderdate")
           If(c_custkey === o_custkey) {
-            RepRow(o_orderdate, "c_orders" -> wrappedLineItem.map { l =>
+            RepRow(o_orderdate, "o_parts" -> wrappedLineItem.map { l =>
               val l_orderkey = l("l_orderkey")
               val l_partkey = l("l_partkey")
               val l_quantity = l("l_quantity")
@@ -627,9 +627,9 @@ class TpchQueryTests extends AnyFunSpec with BeforeAndAfterEach with Serializabl
       val customer = Customer
       val wrappedCustomer = customer.wrap()
 
-      val test2Full = Test2Full()
+      val test2Full = Test2Full().leaveNRC() // This would break it
 
-      val query = Test2Full.map{ customerRef =>
+      val query = Test2Full().map{ customerRef =>
         RepRow(customerRef("c_name"), "c_orders" -> customerRef("c_orders").map{ orderRef =>
           RepRow(orderRef("o_orderdate"), "o_parts" -> orderRef("o_parts").map{ partRef =>
             wrappedPart.flatMap{pr =>
@@ -650,24 +650,19 @@ class TpchQueryTests extends AnyFunSpec with BeforeAndAfterEach with Serializabl
 
   describe("Paper Tests") {
     it("Paper Test") {
-      val cop = COP
+      val cop = ArrayCOP
       val part = Part
 
       val wrappedCOP = cop.wrap()
       val wrappedPart = part.wrap()
 
-
       val query = wrappedCOP.map{ c =>
-        RepRow("cname" -> c("cname"), "corders" -> c("corders").map{ co =>
-          RepRow("odate" -> co("odate"), "oparts" -> co("oparts").map{ op =>
-            wrappedPart.flatMap { p =>
-              If(op("pid") === p("p_partkey")) {
+        RepRow("cname" -> c("cname"), "corders" -> c("corders").flatMap{ co =>
+          RepSeq(RepRow("odate" -> co("odate"), "oparts" -> co("oparts").flatMap{ op =>
+            wrappedPart.map { p =>
                 RepSeq(RepRow("pname" -> p("p_name"), "total" -> op("qty") * p("p_retailprice")))
-              } {
-                RepSeq.empty
               }
-            }
-          })
+          }))
         })
       }.leaveNRC()
 

@@ -1,8 +1,8 @@
 package uk.ac.ox.cs.trance
 
 import uk.ac.ox.cs.trance.utilities.SparkUtil.getSparkSession
-import framework.common.{ArrayType, BagCType, BagType, BoolType, DoubleType, IntType, LongType, OpArithmetic, OpDivide, OpMinus, OpMod, OpMultiply, OpPlus, OptionType, RecordCType, StringType, Type}
-import framework.plans.{AddIndex, And, CDeDup, CExpr, CUdf, Comprehension, Constant, EmptySng, Equals, Gt, Gte, InputRef, Lt, Lte, MathOp, Nest, Not, Or, OuterJoin, OuterUnnest, Projection, Record, RemoveNulls, Unnest, Variable, If => CIf, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
+import framework.common.{ArrayCType, ArrayType, BagCType, BagType, BoolType, DoubleType, IntType, LongType, OpArithmetic, OpDivide, OpMinus, OpMod, OpMultiply, OpPlus, OptionType, PrimitiveType, RecordCType, StringType, Type}
+import framework.plans.{AddIndex, And, CDeDup, CExpr, COption, CUdf, Comprehension, Constant, EmptySng, Equals, Gt, Gte, InputRef, Lt, Lte, MathOp, Nest, Not, Or, OuterJoin, OuterUnnest, Projection, Record, RemoveNulls, Unnest, Variable, If => CIf, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.{BinaryOperator, EqualTo, Expression, GenericRow, GenericRowWithSchema, And => SparkAnd, GreaterThan => SparkGreaterThan, GreaterThanOrEqual => SparkGreaterThanOrEqual, LessThan => SparkLessThan, LessThanOrEqual => SparkLessThanOrEqual, Literal => SparkLiteral, Not => SparkNot, Or => SparkOr}
 import org.apache.spark.sql.functions.{col, expr, monotonically_increasing_id}
@@ -15,6 +15,7 @@ import scala.annotation.tailrec
 import scala.collection.immutable.{Map => IMap}
 import uk.ac.ox.cs.trance.utilities.SkewDataset
 
+import scala.collection.mutable
 import scala.reflect.ClassTag
 
 object PlanConverter {
@@ -26,39 +27,61 @@ object PlanConverter {
    */
 
   def convert[T](cExpr: CExpr, ctx: IMap[String, Any]): T = cExpr match {
-    case Projection(e1, v, p, fields) =>
+    case prj @ Projection(e1, v, p, fields) =>
+
+      val test = prj.tp
+      val outputSchema = createStructFields(p, false)
       val c1 = convert(e1, ctx).asInstanceOf[DataFrame]
-      val outputSchema = createStructFields(p)
+//
+      val outputSchema2 = StructType(Seq(
+        StructField("date", StructType(Seq(StructField("odate", SparkArrayType(DataTypes.StringType)))))
+      ))
+
+
+//      c1.show(false)
+//      c1.printSchema()
+
+//      val testL = Seq(convert(p, ctx ++ getProjectionBinding(p, c1.head())).asInstanceOf[Row])
+
+
+      val l = c1.flatMap { z =>
+        Seq(convert(p, ctx ++ getProjectionBinding(p, z)).asInstanceOf[Row])
+      }(RowEncoder.apply(outputSchema))
+      l.asInstanceOf[T]
+    case n @ Nest(in, v, key, value, filter, nulls, ctag) =>
+      val test = n.tp
+      val c1 = convert(in, ctx).asInstanceOf[DataFrame]
 
       c1.show(false)
       c1.printSchema()
+//
+      val outputSchema = if (in.isInstanceOf[Nest]) createStructFields(value, true) else createStructFields(value)
 
-      val l = c1.flatMap { z =>
-        convert(p, ctx ++ getProjectionBinding(p, z)).asInstanceOf[Seq[Row]]
-      }(RowEncoder.apply(outputSchema))
-      l.asInstanceOf[T]
-    case Nest(in, v, key, value, filter, nulls, ctag) => //first new way
-      val c1 = convert(in, ctx).asInstanceOf[DataFrame]
 
-      val outputSchema = createStructFields(value)
+      val testL = convert(value, ctx ++ getProjectionBinding(value, c1.head())).asInstanceOf[Row]
+
 
       val l = c1.flatMap{ z =>
-        convert(value, ctx ++ getProjectionBinding(value, z)).asInstanceOf[Seq[Row]]
+        val row = convert(value, ctx ++ getProjectionBinding(value, z)).asInstanceOf[Row]
+        val rowSeq = Seq(row)
+        rowSeq
       }(RowEncoder.apply(outputSchema))
 
+//      l.show(false)
 
       val lColumns = l.columns.map(col)
 
-      val t = functions.struct(lColumns: _*)
+      val t = functions.array(functions.struct(lColumns: _*))
 
       val updatedL = l.withColumn(ctag, t)
 
-      val cond = toSparkCond(filter) // TODO incorporate filter?
-
+      updatedL.show(false)
 
       val updatedLWithId = updatedL.withColumn("rowId", monotonically_increasing_id())
       val updatedC1WithId = c1.withColumn("rowId", monotonically_increasing_id())
       val joinedDf = updatedC1WithId.join(updatedLWithId, "rowId")
+
+      joinedDf.show(false)
 
     joinedDf.asInstanceOf[T]
     case u @ Unnest(in, v, path, v2, filter, fields) =>
@@ -72,8 +95,21 @@ object PlanConverter {
     case o @ OuterUnnest(in, v, path, v2, filter, fields) =>
       val c1 = convert(in, ctx).asInstanceOf[DataFrame]
 
-      val cols = o.nextAttrs.keys.map(f => f -> col(path + "." + f)).toMap
+
+      val cols = o.nextAttrs.map(f => f._2.asInstanceOf[COption].e.tp match {
+        case b: BagCType => f._1 -> functions.explode(col(path + "." + f._1))
+        case  _ => f._1 -> col(path + "." + f._1)
+      }).toMap
+//
+//      val colsSelect = cols.values.toSeq
+//
+//      val checkCol = c1.select(colsSelect:_*)
+
+
       val unnestingProcess = c1.withColumns(cols)
+
+      unnestingProcess.show(false)
+      unnestingProcess.printSchema()
 
       unnestingProcess.asInstanceOf[T]
     case OuterJoin(left, v, right, v2, cond, fields) =>
@@ -167,7 +203,7 @@ object PlanConverter {
         out
       }.toArray
       val combinedRow = t.flatMap(row => row.toSeq)
-      val r = Seq(Row.fromSeq(combinedRow))
+      val r = Row.fromSeq(combinedRow)
       r.asInstanceOf[T]
     case CReduce(in, v, keys, values) =>
       val d1 = convert(in, ctx).asInstanceOf[DataFrame]
@@ -181,9 +217,17 @@ object PlanConverter {
       }
     case MathOp(op, e1, e2) =>
       // TODO - need to handle when x & y could be a Double/Float
+      // TODO - WIP when one of x or y is an array
       val x = convert(e1, ctx).asInstanceOf[Row].get(0)
       val y = convert(e2, ctx).asInstanceOf[Row].get(0)
-      mathResolver(op, x, y).asInstanceOf[T]
+
+      val output = x match {
+        case w: mutable.WrappedArray[Any] => Row(w.map(f => mathResolver(op, f, y)))
+        case _ => Row(mathResolver(op, x, y))
+
+      }
+      output.asInstanceOf[T]
+
     case Equals(e1, e2) =>
       val lhs = convert(e1, ctx).asInstanceOf[Row]
       val rhs = convert(e2, ctx).asInstanceOf[Row]
@@ -384,7 +428,14 @@ object PlanConverter {
    *         Also handles a unique case where spark promotes operations of Integer / Long to Double Type
    */
 
-  private def createStructFields(p: CExpr): StructType = p match {
+//    private def unnestProjection(prjType: Type, s: String): StructField = StructField(s, prjType match {
+//      case bct: BagCType => SparkArrayType(StructType(Seq(unnestProjection(bct.tp, s))))
+//      case rct: RecordCType => SparkArrayType(getStructDataType(prjType, Some(s)))
+//      case p: PrimitiveType => getStructDataType(p)
+//      case optionType: OptionType => getStructDataType(optionType)
+//    })
+
+  private def createStructFields(p: CExpr, isNesting: Boolean = false): StructType = p match {
     case Record(fields) =>
       StructType(fields.map(f => f._2 match {
         case m: MathOp => if (checkDivisionExists(m)) {
@@ -393,7 +444,9 @@ object PlanConverter {
           StructField(f._1, getStructDataType(f._2.tp))
         }
         case InputRef(id, record: RecordCType) => StructField(f._1, getStructDataType(f._2.tp, Some(f._1)))
-        case prj: CProject => StructField(f._1, getStructDataType(prj.tp, Some(prj.field)))
+        case prj @ CProject(e1, field) =>
+          val tpInQ = prj.tp
+          StructField(field, getStructDataType(e1.tp, Some(field)))
         case _ => StructField(f._1, getStructDataType(f._2.tp))
       }).toSeq)
     case CIf(_, e1, _) => createStructFields(e1)
@@ -402,11 +455,6 @@ object PlanConverter {
     case s@_ => sys.error(s + " is not a valid pattern")
   }
 
-  private def checkDivisionExists(op: MathOp): Boolean = op match {
-    case MathOp(OpDivide, _, _) => true
-    case MathOp(_, m: MathOp, m2: MathOp) => checkDivisionExists(m) || checkDivisionExists(m2)
-    case _ => false
-  }
 
   /**
    * Conversion from NRC/Plan [[Type]] to Spark [[DataType]] used when creating [[StructType]]
@@ -417,21 +465,28 @@ object PlanConverter {
     case StringType => DataTypes.StringType
     case DoubleType => DataTypes.DoubleType
     case LongType => DataTypes.LongType
-    case ArrayType(tp) => SparkArrayType(getStructDataType(tp))
-    case BagCType(tp) => StructType(tp.attrs.map(f => StructField(f._1, getStructDataType(f._2, Some(f._1)))).toSeq)
+    case ArrayCType(tp) => SparkArrayType(getStructDataType(tp))
+    case BagCType(tp) =>
+      val ttype = SparkArrayType(StructType(tp.attrs.map(f => StructField(f._1, getStructDataType(f._2, Some(f._1)))).toSeq))
+      ttype
     case RecordCType(fields) =>
       val k =
         try {
-          fields.get(s.get).get
+          fields(s.get)
         } catch {
           case _: NoSuchElementException => sys.error("No element " + s + " in " + fields)
         }
-      getStructDataType(k)
-    case RecordCType(fields) => StructType(fields.map(f => StructField(f._1, getStructDataType(f._2))).toSeq)
+      getStructDataType(k, s)
+//    case RecordCType(fields) => StructType(fields.map(f => StructField(f._1, getStructDataType(f._2))).toSeq)
     case OptionType(tp) => getStructDataType(tp)
     case s@_ => sys.error("Unhandled struct type: " + s)
   }
 
+  private def checkDivisionExists(op: MathOp): Boolean = op match {
+    case MathOp(OpDivide, _, _) => true
+    case MathOp(_, m: MathOp, m2: MathOp) => checkDivisionExists(m) || checkDivisionExists(m2)
+    case _ => false
+  }
   /**
    * Self Joins will not rename have duplicate columns renamed in JoinCondContext if they come from the same WrappedDataframe.
    * Those columns manually have suffixes appended here.
@@ -459,73 +514,73 @@ object PlanConverter {
     }
   }
 
-  private def mathResolver(op: OpArithmetic, x: Any, y: Any): Row = (x, y) match {
+  private def mathResolver(op: OpArithmetic, x: Any, y: Any): Any = (x, y) match {
     case (x: Int, y: Int) => op match {
-      case OpMultiply => Row(x * y)
-      case OpPlus => Row(x + y)
-      case OpMinus => Row(x - y)
-      case OpMod => Row(x % y)
-      case OpDivide => Row(x.toDouble / y)
+      case OpMultiply => x * y
+      case OpPlus => x + y
+      case OpMinus => x - y
+      case OpMod => x % y
+      case OpDivide => x.toDouble / y
     }
     case (x: Int, y: Long) => op match {
-      case OpMultiply => Row(x * y)
-      case OpPlus => Row(x + y)
-      case OpMinus => Row(x - y)
-      case OpMod => Row(x % y)
-      case OpDivide => Row(x.toDouble / y)
+      case OpMultiply => x * y
+      case OpPlus => x + y
+      case OpMinus => x - y
+      case OpMod => x % y
+      case OpDivide => x.toDouble / y
     }
     case (x: Int, y: Double) => op match {
-      case OpMultiply => Row(x * y)
-      case OpPlus => Row(x + y)
-      case OpMinus => Row(x - y)
-      case OpMod => Row(x % y)
-      case OpDivide => Row(x / y)
+      case OpMultiply => x * y
+      case OpPlus => x + y
+      case OpMinus => x - y
+      case OpMod => x % y
+      case OpDivide => x / y
     }
     case (x: Double, y: Double) => op match {
-      case OpMultiply => Row(x * y)
-      case OpPlus => Row(x + y)
-      case OpMinus => Row(x - y)
-      case OpMod => Row(x % y)
-      case OpDivide => Row(x / y)
+      case OpMultiply => x * y
+      case OpPlus => x + y
+      case OpMinus => x - y
+      case OpMod => x % y
+      case OpDivide => x / y
     }
 
     case (x: Double, y: Int) => op match {
-      case OpMultiply => Row(x * y)
-      case OpPlus => Row(x + y)
-      case OpMinus => Row(x - y)
-      case OpMod => Row(x % y)
-      case OpDivide => Row(x / y)
+      case OpMultiply => x * y
+      case OpPlus => x + y
+      case OpMinus => x - y
+      case OpMod => x % y
+      case OpDivide => x / y
     }
     case (x: Double, y: Long) => op match {
-      case OpMultiply => Row(x * y)
-      case OpPlus => Row(x + y)
-      case OpMinus => Row(x - y)
-      case OpMod => Row(x % y)
-      case OpDivide => Row(x / y)
+      case OpMultiply => x * y
+      case OpPlus => x + y
+      case OpMinus => x - y
+      case OpMod => x % y
+      case OpDivide => x / y
     }
     case (x: Long, y: Long) => op match {
-      case OpMultiply => Row(x * y)
-      case OpPlus => Row(x + y)
-      case OpMinus => Row(x - y)
-      case OpMod => Row(x % y)
-      case OpDivide => Row(x.toDouble / y)
+      case OpMultiply => x * y
+      case OpPlus => x + y
+      case OpMinus => x - y
+      case OpMod => x % y
+      case OpDivide => x.toDouble / y
     }
     case (x: Long, y: Int) => op match {
-      case OpMultiply => Row(x * y)
-      case OpPlus => Row(x + y)
-      case OpMinus => Row(x - y)
-      case OpMod => Row(x % y)
-      case OpDivide => Row(x.toDouble / y)
+      case OpMultiply => x * y
+      case OpPlus => x + y
+      case OpMinus => x - y
+      case OpMod => x % y
+      case OpDivide => x.toDouble / y
     }
     case (x: Long, y: Double) => op match {
-      case OpMultiply => Row(x * y)
-      case OpPlus => Row(x + y)
-      case OpMinus => Row(x - y)
-      case OpMod => Row(x % y)
-      case OpDivide => Row(x / y)
+      case OpMultiply => x * y
+      case OpPlus => x + y
+      case OpMinus => x - y
+      case OpMod => x % y
+      case OpDivide => x / y
     }
-    case (_: Any, null) => Row(null)
-    case (null, null) => Row(null)
+    case (_: Any, null) => null
+    case (null, null) => null
   }
 
   private def mathComparator(comp: CExpr, lhs: Any, rhs: Any): Boolean = (lhs, rhs) match {

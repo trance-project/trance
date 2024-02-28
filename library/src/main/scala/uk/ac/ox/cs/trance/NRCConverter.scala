@@ -18,29 +18,32 @@ object NRCConverter extends NRCTranslator {
    */
   def toNRC(rep: Rep, env: IMap[String, Expr]): Expr = rep match {
     case Map(e, Fun(in, out)) =>
-      val c1 = toNRC(e, env).asBag
+      val preC1 = toNRC(e, env)
+      val c1 = preC1.asBag
       val tvr = TupleVarRef(utilities.Symbol.fresh(), c1.tp.tp)
 
       val k = in.asInstanceOf[Sym].symID -> tvr
 
       val output = toNRC(out, env + k)
-      output match {
+      val mapOutput = output match {
         case t: TupleExpr => ForeachUnion(tvr, c1, Singleton(t))
         case b: BagExpr => ForeachUnion(tvr, c1, b)
         case s@_ => s
       }
+      mapOutput
     case FlatMap(e, Fun(in, out)) =>
-      val c1 = toNRC(e, env).asBag
+      val c1 = toNRC(e, env).asInstanceOf[BagExpr]
       val tvr = TupleVarRef(utilities.Symbol.fresh(), c1.tp.tp)
 
       val k = in.asInstanceOf[Sym].symID -> tvr
 
       val output = toNRC(out, env + k)
-      output match {
+      val flatMapOutput = output match {
         case t: TupleExpr => ForeachUnion(tvr, c1, Singleton(t))
         case b: BagExpr => ForeachUnion(tvr, c1, b)
         case s@_ => s
       }
+      flatMapOutput
     case Filter(e1, cond) =>
       val c1 = toNRC(e1, env).asBag
       val c1Name = unnestExprId(c1)
@@ -147,7 +150,8 @@ object NRCConverter extends NRCTranslator {
     case rp: RepProjection =>
       val expr = toNRC(rp.r, env).asTuple
       try {
-        Project(expr, rp.name)
+        val prj = Project(expr, rp.name)
+        prj
       } catch {
         case e: NoSuchElementException => sys.error("Cannot Project Field " + rp.name + " from TupleVarRef " + expr)
       }
@@ -257,8 +261,8 @@ object NRCConverter extends NRCTranslator {
    */
 
   def typeToNRCType(s: DataType): TupleAttributeType = s match {
-    case structType: StructType => BagType(TupleType(structType.fields.map(f => f.name -> typeToNRCType(f.dataType)).toMap))
-    case SparkArrayType(e, _) => ArrayType(typeToNRCType(e))
+    case structType: StructType => TupleType(structType.fields.map(f => f.name -> typeToNRCType(f.dataType)).toMap)
+    case SparkArrayType(e, _) => BagType(typeToNRCType(e).asInstanceOf[TupleType])
     case types.StringType => StringType
     case types.IntegerType => IntType
     case types.LongType => LongType

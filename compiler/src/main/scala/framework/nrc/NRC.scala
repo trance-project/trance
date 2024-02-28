@@ -31,10 +31,6 @@ trait BaseExpr {
     def tp: BagType
   }
 
-  trait ArrayExpr extends TupleAttributeExpr {
-    def tp: ArrayType
-  }
-
   trait GroupByExpr extends BagExpr {
     def e: BagExpr
 
@@ -122,10 +118,6 @@ trait NRC extends BaseExpr {
     override def tp: BagType = super.tp.asInstanceOf[BagType]
   }
 
-  final case class ArrayProject(tuple: TupleVarRef, field: String) extends ArrayExpr with TupleProject {
-    override def tp: ArrayType = super.tp.asInstanceOf[ArrayType]
-  }
-
   final case class ForeachUnion(x: VarDef, e1: BagExpr, e2: BagExpr) extends BagExpr {
     assert(x.tp == e1.tp.tp)
 
@@ -202,10 +194,6 @@ trait NRC extends BaseExpr {
 
   final case class PrimitiveCmp(op: OpCmp, e1: PrimitiveExpr, e2: PrimitiveExpr) extends CondExpr with Cmp {
     assert(e1.tp == e2.tp || (e1.tp.isInstanceOf[NumericType] && e2.tp.isInstanceOf[NumericType]))
-  }
-
-  final case class ArrayCmp(op: OpCmp, e1: ArrayExpr, e2: ArrayExpr) extends CondExpr with Cmp {
-    assert(e1.tp == e2.tp)
   }
 
   final case class BagCmp(op: OpCmp, e1: BagExpr, e2: BagExpr) extends CondExpr with Cmp {

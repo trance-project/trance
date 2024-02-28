@@ -1,6 +1,6 @@
 package uk.ac.ox.cs.trance
 
-import org.apache.spark.sql.types.{DataType, IntegerType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, DataType, IntegerType, StructField, StructType}
 
 import scala.language.implicitConversions
 
@@ -28,11 +28,8 @@ object RepRow {
       case (str: String, rep: Rep) => Seq(str -> rep)
       case sym: Sym =>
 
-        val nestedStruct = sym.schema.asInstanceOf[StructType].fields.flatMap{ g =>
-          g.dataType match {
-            case s: StructType => if (!sym.isUnnest) s.fields.map(_  => StructType(Seq(g))) else s.fields.map(f => StructType(Seq(f)))
-            case _ => Seq(StructType(Seq(g)))
-          }
+        val nestedStruct = sym.schema.asInstanceOf[StructType].fields.flatMap { g =>
+          unnestTypes(g.dataType, sym.isUnnest, g)
         }
 
         val projectedSym = nestedStruct.flatMap { f =>
@@ -48,25 +45,22 @@ object RepRow {
 
   def empty: RepRow = RepRow(List.empty)
 
+  private def unnestTypes(d: DataType, isUnnest: Boolean, g: StructField): Iterable[StructType] = d match {
+    case a: ArrayType => unnestTypes(a.elementType, isUnnest, g)
+    case s: StructType => if (!isUnnest) {
+      val output1 = s.fields.map(_ => StructType(Seq(g)))
+      output1
+    } else {
+      val output2 = s.fields.map(f => StructType(Seq(f)))
+      output2
+    }
+    case _ => Seq(StructType(Seq(g)))
+  }
 }
-
-//object tools {
-//  def repIf(): BaseRow = {
-//    def apply(condition: Rep)(thenBranch: Rep)(elseBranch: Rep)= {
-//      If(condition, thenBranch, elseBranch)
-//    }
-//  }
-//  def repIf(condition: Rep)(thenBranch: Rep): BaseRow = If(condition, thenBranch, RepRow.empty)
-//
-//}
 
 case class If(condition: Rep, thenBranch: Rep, elseBranch: Rep) extends Rep
 
 object If {
-//  def apply(cond: Rep)(thenBranch: Rep): BaseRow = {
-//    If(cond, thenBranch)
-//  }
-//
   def apply(cond: Rep)(thenBranch: Rep)(elseBranch: Rep): Rep = {
     If(cond, thenBranch, elseBranch)
   }
@@ -93,6 +87,8 @@ case class Sym(symID: String, schema: DataType, isUnnest: Boolean = false) exten
         if (field.name == targetName) Some(field)
         else findStructField(field.dataType, targetName) orElse acc
       }
+    case arrayType: ArrayType =>
+      findStructField(arrayType.elementType, targetName)
     case _ => None
   }
 
@@ -116,9 +112,18 @@ case class RepProjection(name: String, r: Rep) extends BaseRepElem with WrappedC
 
     val symID = utilities.Symbol.fresh()
     val sym = Sym(symID, schema, true)
+
     val out = f(sym)
     val fun = Fun(sym, out)
     Map(this, fun)
+  }
+
+  override def flatMap(f: Sym => Rep): WrappedCollection = {
+    val symID = utilities.Symbol.fresh()
+    val sym = Sym(symID, schema, true)
+    val out = f(sym)
+    val fun = Fun(sym, out)
+    FlatMap(this, fun)
   }
 }
 

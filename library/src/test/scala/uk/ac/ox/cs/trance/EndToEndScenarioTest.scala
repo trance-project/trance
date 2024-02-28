@@ -15,7 +15,7 @@ import org.scalatest.exceptions.TestFailedException
 import org.scalatest.funspec.AnyFunSpec
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import uk.ac.ox.cs.trance.utilities.SkewDataset.DatasetOps
-import uk.ac.ox.cs.trance.utilities.TPCHDataframes.{COP, LineItem}
+import uk.ac.ox.cs.trance.utilities.TPCHDataframes.{ArrayCOP, ArrayCOP2Arrauys, COP, LineItem, MixedCOP}
 import uk.ac.ox.cs.trance.utilities.TestDataframes._
 //import uk.ac.ox.cs.trance.utilities.TPCHDataframes._
 //import sparkutils.skew.SkewDataset._
@@ -201,15 +201,10 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
       val nestedDf = nestedDataframe
       val wrappedNestedDf = nestedDf.wrap()
 
-      val o = wrappedNestedDf.schema
-      println(o)
 
       val query = wrappedNestedDf.map{ f =>
         RepRow(f)
       }
-
-      val k = query.schema
-      println(k)
 
       val out = query.leaveNRC()
 
@@ -304,6 +299,72 @@ class EndToEndScenarioTest extends AnyFunSpec with BeforeAndAfterEach with Seria
       output.show(false)
       output.printSchema()
 
+    }
+
+    it("Nested Array Type Test") {
+      val arrayCOP = ArrayCOP
+      val wrappedArrayCOP = arrayCOP.wrap()
+
+      val query = wrappedArrayCOP.map { c =>
+        RepRow(c)
+      }.leaveNRC()
+
+
+      query.show(false)
+      query.printSchema()
+    }
+
+
+    it("temp comp cop test") {
+      val cop = COP.wrap()
+
+
+      val query = cop.map { c =>
+        c("corders").map(f =>
+          RepRow(c, f))
+      }.leaveNRC()
+      query.show(false)
+      query.printSchema()
+    }
+    it("Nested Array Type Nested Test") {
+      val arrayCOP = ArrayCOP
+      val wrappedArrayCOP = arrayCOP.wrap()
+
+      val preQuery = wrappedArrayCOP.map { c =>
+       RepRow("date" -> c("corders").flatMap(co => RepSeq(RepRow(co("odate"), co("dateID")))))
+      }
+
+      val schema = preQuery.schema
+
+      val query = preQuery.leaveNRC()
+
+
+      query.show(false)
+      query.printSchema()
+    }
+
+    it("Nested Array TroubleShooting") {
+      val arrayCOP = ArrayCOP2Arrauys.wrap()
+
+      val preQuery = arrayCOP.map{ c =>
+        RepRow(
+          c("cname"),
+          "dateFlat" -> c("corders2").flatMap(fc => RepSeq(RepRow(fc("odate2"), fc("dateID2")))),
+        "dateArr" -> c("corders").flatMap(co => RepSeq(RepRow(co("odate"), co("dateID")))))
+      }
+
+      val query = preQuery.leaveNRC()
+
+
+      query.show(false)
+      query.printSchema()
+
+    }
+
+    it("Mixed COP Type Test") {
+      val mixedCOP = MixedCOP.wrap().leaveNRC()
+      mixedCOP.show(false)
+      mixedCOP.printSchema()
     }
 //    it("Plan Unnest Use Test - Schema Checking") {
 //      val cop = COP

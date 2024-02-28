@@ -1,7 +1,7 @@
 package uk.ac.ox.cs.trance.utilities
 
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
-import org.apache.spark.sql.types.{DateType, DoubleType, IntegerType, LongType, StringType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, DateType, DoubleType, IntegerType, LongType, StringType, StructField, StructType}
 
 import java.sql.Date
 
@@ -35,6 +35,118 @@ object TPCHDataframes {
     df
   }
 
+  lazy val ArrayCOP: DataFrame = {
+    val inputSchema: StructType = StructType(Seq(
+      StructField("cname", StringType),
+      StructField("corders", ArrayType(
+        StructType(Seq(
+          StructField("odate", StringType),
+          StructField("dateID", StringType),
+          StructField("oparts", ArrayType(
+            StructType(Seq(
+              StructField("pid", IntegerType),
+              StructField("qty", DoubleType)
+            ))
+          ))
+        ))
+      ))
+    ))
+
+    val exampleRow = Seq(
+      Row("test1", List(
+        Row("2023-01-01", "2", List(Row(1, 2.5), Row(2, 3.0), Row(3, 1.5))),
+        Row("2023-01-02", "3", List(Row(4, 4.5), Row(5, 5.0), Row(6, 2.5))),
+        Row("2023-01-03", "4", List(Row(7, 6.5), Row(8, 7.0), Row(9, 3.5)))
+      )),
+      Row("test2", List(
+        Row("2023-01-04", "1", List(Row(10, 8.5), Row(11, 9.0), Row(12, 4.5))),
+        Row("2023-01-05", "2", List(Row(13, 10.5), Row(14, 11.0), Row(15, 5.5))),
+        Row("2023-01-06", "3", List(Row(16, 12.5), Row(17, 13.0), Row(18, 6.5)))
+      ),
+      )
+    )
+
+    spark.createDataFrame(spark.sparkContext.parallelize(exampleRow), inputSchema)
+  }
+
+    lazy val ArrayCOP2Arrauys: DataFrame = {
+      val inputSchema: StructType = StructType(Seq(
+        StructField("cname", StringType),
+        StructField("corders", ArrayType(
+          StructType(Seq(
+            StructField("odate", StringType),
+            StructField("dateID", StringType),
+            StructField("oparts", ArrayType(
+              StructType(Seq(
+                StructField("pid", IntegerType),
+                StructField("qty", DoubleType)
+              ))
+            ))
+          ))
+        )),
+        StructField("corders2", ArrayType(
+          StructType(Seq(
+            StructField("odate2", StringType),
+            StructField("dateID2", StringType),
+            StructField("oparts2",
+              StructType(Seq(
+                StructField("pid2", IntegerType),
+                StructField("qty2", DoubleType)
+              )
+            ))
+          ))
+          ))
+      ))
+
+      val exampleRow = Seq(
+        Row("test1", List(
+          Row("2023-01-01", "2", List(Row(1, 2.5), Row(2, 3.0), Row(3, 1.5))),
+          Row("2023-01-02", "3", List(Row(4, 4.5), Row(5, 5.0), Row(6, 2.5))),
+          Row("2023-01-03", "4", List(Row(7, 6.5), Row(8, 7.0), Row(9, 3.5)))
+        ), Row("2023-01-01", "2", List(Row(1, 2.5), Row(2, 3.0), Row(3, 1.5)))),
+        Row("test2", List(
+          Row("2023-01-04", "1", List(Row(10, 8.5), Row(11, 9.0), Row(12, 4.5))),
+          Row("2023-01-05", "2", List(Row(13, 10.5), Row(14, 11.0), Row(15, 5.5))),
+          Row("2023-01-06", "3", List(Row(16, 12.5), Row(17, 13.0), Row(18, 6.5)))
+        ), Row("2023-01-04", "1", List(Row(10, 8.5), Row(11, 9.0), Row(12, 4.5))),
+        )
+      )
+
+      spark.createDataFrame(spark.sparkContext.parallelize(exampleRow), inputSchema)
+    }
+
+lazy val MixedCOP: DataFrame = {
+    val inputSchema: StructType = StructType(Seq(
+      StructField("cname", StringType),
+      StructField("corders", ArrayType(
+        StructType(Seq(
+          StructField("odate", StringType),
+          StructField("dateID", StringType),
+          StructField("oparts", StructType(Seq(
+              StructField("pid", IntegerType),
+              StructField("qty", DoubleType)
+            )
+          ))
+        ))
+      ))
+    ))
+
+    val exampleRow = Seq(
+      Row("test1", List(
+        Row("2023-01-01", "2", Row(1, 2.5)),
+        Row("2023-01-02", "3", Row(4, 4.5)),
+        Row("2023-01-03", "4", Row(7, 6.5))
+      )),
+      Row("test2", List(
+        Row("2023-01-04", "1", Row(10, 8.5)),
+        Row("2023-01-05", "2", Row(13, 10.5)),
+        Row("2023-01-06", "3", Row(16, 12.5))
+      ))
+    )
+
+    spark.createDataFrame(spark.sparkContext.parallelize(exampleRow), inputSchema)
+  }
+
   lazy val Part: DataFrame = {
     val partSchema = StructType(Seq(
       StructField("p_partkey", IntegerType, nullable = false),
@@ -55,6 +167,58 @@ object TPCHDataframes {
     )
 
     spark.createDataFrame(spark.sparkContext.parallelize(data), partSchema)
+  }
+
+  lazy val ArrayPART: DataFrame = {
+    val arrayPartSchema = StructType(Seq(
+      StructField("p_partkey", ArrayType(IntegerType, containsNull = false), nullable = false),
+      StructField("p_name", ArrayType(StringType, containsNull = false), nullable = false),
+      StructField("p_mfgr", ArrayType(StringType, containsNull = false), nullable = false),
+      StructField("p_brand", ArrayType(StringType, containsNull = false), nullable = false),
+      StructField("p_type", ArrayType(StringType, containsNull = false), nullable = false),
+      StructField("p_size", ArrayType(IntegerType, containsNull = false), nullable = false),
+      StructField("p_container", ArrayType(StringType, containsNull = false), nullable = false),
+      StructField("p_retailprice", ArrayType(DoubleType, containsNull = false), nullable = false),
+      StructField("p_comment", ArrayType(StringType, containsNull = false), nullable = false)
+    ))
+
+    val arrayData = Seq(
+      Row(
+        Seq(1),
+        Seq("Part1"),
+        Seq("Mfgr1"),
+        Seq("Brand1"),
+        Seq("Type1"),
+        Seq(1),
+        Seq("Container1"),
+        Seq(100.0),
+        Seq("Comment1")
+      ),
+      Row(
+        Seq(2),
+        Seq("Part2"),
+        Seq("Mfgr2"),
+        Seq("Brand2"),
+        Seq("Type2"),
+        Seq(2),
+        Seq("Container2"),
+        Seq(200.0),
+        Seq("Comment2")
+      ),
+      Row(
+        Seq(3),
+        Seq("Part3"),
+        Seq("Mfgr3"),
+        Seq("Brand3"),
+        Seq("Type3"),
+        Seq(3),
+        Seq("Container3"),
+        Seq(300.0),
+        Seq("Comment3")
+      )
+    )
+
+    spark.createDataFrame(spark.sparkContext.parallelize(arrayData), arrayPartSchema)
   }
 
   lazy val LineItem: DataFrame = {

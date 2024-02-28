@@ -9,6 +9,7 @@ import uk.ac.ox.cs.trance.utilities.{JoinContext, Symbol}
 import Wrapper.DataFrameImplicit
 import org.apache.spark.sql.expressions.scalalang._
 import framework.examples.tpch._
+
 import scala.collection.mutable.HashMap
 import framework.examples.tpch.Lineitem
 import org.apache.spark.sql.functions.{col, monotonically_increasing_id, when}
@@ -17,6 +18,30 @@ import uk.ac.ox.cs.trance.utilities.TPCHDataframes.{spark, Customer => CustomerD
 
 import scala.collection.Seq
 
+case class Record3041b3a67b2041dea5ac5ad96c1fa9d1(c_name: String, c_custkey: Int)
+case class Recordc910c6699d6b4c41afca822c2eb073f7(c_name: String, c_custkey: Int, Customer_index: Long)
+case class Recordfdb1a68833134e3ba1c2297950787fcd(o_orderdate: String, o_custkey: Int, o_orderkey: Int)
+case class Recordc6464b7f916c4c55a9144964453f6429(o_orderdate: String, o_custkey: Int, o_orderkey: Int, Order_index: Long)
+case class Recordfac46092219f43648daae695147b86c3(o_orderdate: Option[String], o_custkey: Option[Int], Order_index: Option[Long], c_name: String, Customer_index: Long, c_custkey: Int, o_orderkey: Option[Int])
+case class Recordb2a8c6cc16f24a409ec2cd42523cc26d(l_quantity: Double, l_partkey: Int, l_orderkey: Int)
+case class Record87161bcd76a24578843c27fb0cbd5c1d(o_orderdate: Option[String], l_quantity: Option[Double], Order_index: Option[Long], c_name: String, Customer_index: Long, l_partkey: Option[Int], o_orderkey: Option[Int], l_orderkey: Option[Int])
+case class Record75eddf4412b24fcc926b982c24658287(o_orderdate: Option[String], l_quantity: Option[Double], Order_index: Option[Long], c_name: String, Customer_index: Long, l_partkey: Option[Int])
+case class Record5598f371ca364b98b69ef614463bed37(o_orderdate: Option[String], Order_index: Option[Long], c_name: String, Customer_index: Long)
+case class Record696b2cad24ac42279dcf807979950027(l_partkey: Int, l_quantity: Double)
+case class Record6e79fa25c6ea435d9a4c85b39254f274(o_orderdate: Option[String], Order_index: Option[Long], c_name: String, o_parts: Seq[Record696b2cad24ac42279dcf807979950027], Customer_index: Long)
+case class Record6f4aaaacb7414214b7ebb4fea88a7436(Customer_index: Long, c_name: String, o_orderdate: Option[String], o_parts: Seq[Record696b2cad24ac42279dcf807979950027])
+case class Recorda7fbee2632544b008a150aca7d3dabff(c_name: String, Customer_index: Long)
+case class Record7a4ae3f4bfe748e9a7e551b36a77f38d(o_orderdate: String, o_parts: Seq[Record696b2cad24ac42279dcf807979950027])
+case class Recordb81406f258e94c839d3cae86cfa7f2ff(Customer_index: Long, c_name: String, c_orders: Seq[Record7a4ae3f4bfe748e9a7e551b36a77f38d])
+
+case class Record872cb3a876524293b3a337b102fc2bba(o_orderdate: String, o_orderkey: Int)
+case class Record7566c6d3707c48ffa94da4a7244126cf(o_orderdate: String, o_orderkey: Int, Order_index: Long)
+case class Record937c65a2ef754a13bfa2853a91ed26ab(l_quantity: Double, l_partkey: Int, l_orderkey: Int)
+case class Record4c531fedbf1348c8aad1e02da9b65e69(o_orderdate: String, l_quantity: Option[Double], Order_index: Long, l_partkey: Option[Int], o_orderkey: Int, l_orderkey: Option[Int])
+case class Recorde9860175945245f7b3f5f01c6dbe78a6(Order_index: Long, o_orderdate: String, l_partkey: Option[Int], l_quantity: Option[Double])
+case class Record89585b829f004e2280c96709ae66679f(o_orderdate: String, Order_index: Long)
+case class Recorde9563047ce6a47dca308080deb04072b(l_partkey: Int, l_quantity: Double)
+case class Recordff30c7814b6d4a40a39de2e7225f6ad0(Order_index: Long, o_orderdate: String, o_parts: Seq[Recorde9563047ce6a47dca308080deb04072b])
 
 case class Recordf7ba324c84564cd4be34e9781e7fcf68(l_returnflag: String, l_comment: String, l_linestatus: String, l_shipmode: String, l_shipinstruct: String, l_quantity: Double, l_receiptdate: String, l_linenumber: Int, l_tax: Double, l_shipdate: String, l_extendedprice: Double, l_partkey: Int, l_discount: Double, l_commitdate: String, l_suppkey: Int, l_orderkey: Int)
 case class Recordd83edc684e0940d39b048a584b69be4e(o_shippriority: Int, o_orderdate: String, o_custkey: Int, o_orderpriority: String, o_parts: Seq[Recordf7ba324c84564cd4be34e9781e7fcf68], o_clerk: String, o_orderstatus: String, o_totalprice: Double, o_orderkey: Int, o_comment: String)
@@ -264,6 +289,107 @@ class GeneratedCodeTests extends AnyFunSpec with BeforeAndAfterEach with Seriali
   }
 
   describe("FlatToNested") {
+    it("Test1") {
+      import spark.implicits._
+      val x13 = OrderDF.select("o_orderdate", "o_orderkey")
+
+        .as[Record872cb3a876524293b3a337b102fc2bba]
+
+      val x14 = x13.withColumn("Order_index", monotonically_increasing_id())
+        .as[Record7566c6d3707c48ffa94da4a7244126cf]
+
+      val x16 = LineItemDF.select("l_quantity", "l_partkey", "l_orderkey")
+
+        .as[Record937c65a2ef754a13bfa2853a91ed26ab]
+
+      val x19 = x14.equiJoin(x16,
+        Seq("o_orderkey"), Seq("l_orderkey"), "left_outer").as[Record4c531fedbf1348c8aad1e02da9b65e69]
+
+      val x21 = x19.select("Order_index", "o_orderdate", "l_partkey", "l_quantity")
+
+        .as[Recorde9860175945245f7b3f5f01c6dbe78a6]
+
+      val x23 = x21.groupByKey(x22 => Record89585b829f004e2280c96709ae66679f(x22.o_orderdate, x22.Order_index)).mapGroups {
+        case (key, value) =>
+          val grp = value.flatMap(x22 =>
+            (x22.l_partkey, x22.l_quantity) match {
+              case (None, _) => Seq()
+              case (_, None) => Seq()
+              case _ => Seq(Recorde9563047ce6a47dca308080deb04072b(x22.l_partkey match { case Some(x) => x; case _ => 0 }, x22.l_quantity match { case Some(x) => x; case _ => 0.0 }))
+            }).toSeq
+          Recordff30c7814b6d4a40a39de2e7225f6ad0(key.Order_index, key.o_orderdate, grp)
+      }.as[Recordff30c7814b6d4a40a39de2e7225f6ad0]
+
+      val x24 = x23
+      val Test1 = x24
+
+      Test1.show(false)
+      Test1.printSchema()
+    }
+
+    it("Test2") {
+      import spark.implicits._
+
+      val x20 = CustomerDF.select("c_name", "c_custkey")
+
+        .as[Record3041b3a67b2041dea5ac5ad96c1fa9d1]
+
+      val x21 = x20.withColumn("Customer_index", monotonically_increasing_id())
+        .as[Recordc910c6699d6b4c41afca822c2eb073f7]
+
+      val x23 = OrderDF.select("o_orderdate", "o_custkey", "o_orderkey")
+
+        .as[Recordfdb1a68833134e3ba1c2297950787fcd]
+
+      val x24 = x23.withColumn("Order_index", monotonically_increasing_id())
+        .as[Recordc6464b7f916c4c55a9144964453f6429]
+
+      val x27 = x21.equiJoin(x24,
+        Seq("c_custkey"), Seq("o_custkey"), "left_outer").as[Recordfac46092219f43648daae695147b86c3]
+
+      val x29 = LineItemDF.select("l_quantity", "l_partkey", "l_orderkey")
+
+        .as[Recordb2a8c6cc16f24a409ec2cd42523cc26d]
+
+      val x32 = x27.equiJoin(x29,
+        Seq("o_orderkey"), Seq("l_orderkey"), "left_outer").as[Record87161bcd76a24578843c27fb0cbd5c1d]
+
+      val x34 = x32.select("o_orderdate", "l_quantity", "Order_index", "c_name", "Customer_index", "l_partkey")
+
+        .as[Record75eddf4412b24fcc926b982c24658287]
+
+      val x36 = x34.groupByKey(x35 => Record5598f371ca364b98b69ef614463bed37(x35.o_orderdate, x35.Order_index, x35.c_name, x35.Customer_index)).mapGroups {
+        case (key, value) =>
+          val grp = value.flatMap(x35 =>
+            (x35.l_quantity, x35.l_partkey) match {
+              case (None, _) => Seq()
+              case (_, None) => Seq()
+              case _ => Seq(Record696b2cad24ac42279dcf807979950027(x35.l_partkey match { case Some(x) => x; case _ => 0 }, x35.l_quantity match { case Some(x) => x; case _ => 0.0 }))
+            }).toSeq
+          Record6e79fa25c6ea435d9a4c85b39254f274(key.o_orderdate, key.Order_index, key.c_name, grp, key.Customer_index)
+      }.as[Record6e79fa25c6ea435d9a4c85b39254f274]
+
+      val x38 = x36.select("Customer_index", "c_name", "o_orderdate", "o_parts")
+
+        .as[Record6f4aaaacb7414214b7ebb4fea88a7436]
+
+      val x40 = x38.groupByKey(x39 => Recorda7fbee2632544b008a150aca7d3dabff(x39.c_name, x39.Customer_index)).mapGroups {
+        case (key, value) =>
+          val grp = value.flatMap(x39 =>
+            (x39.o_orderdate) match {
+              case (None) => Seq()
+              case _ => Seq(Record7a4ae3f4bfe748e9a7e551b36a77f38d(x39.o_orderdate match { case Some(x) => x; case _ => "null" }, x39.o_parts))
+            }).toSeq
+          Recordb81406f258e94c839d3cae86cfa7f2ff(key.Customer_index, key.c_name, grp)
+      }.as[Recordb81406f258e94c839d3cae86cfa7f2ff]
+
+      val x41 = x40
+
+      x41.show(false)
+      x41.printSchema()
+    }
+
+
     it("Test2Flat") {
       import spark.implicits._
       val x24 = OrderDF.select("o_orderdate", "o_custkey", "o_orderkey")
