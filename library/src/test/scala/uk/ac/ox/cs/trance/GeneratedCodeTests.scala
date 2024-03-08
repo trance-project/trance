@@ -14,9 +14,82 @@ import scala.collection.mutable.HashMap
 import framework.examples.tpch.Lineitem
 import org.apache.spark.sql.functions.{col, monotonically_increasing_id, when}
 import uk.ac.ox.cs.trance.utilities.SkewDataset.DatasetOps
-import uk.ac.ox.cs.trance.utilities.TPCHDataframes.{spark, Customer => CustomerDF, LineItem => LineItemDF, Order => OrderDF, Part => PartDF}
+import uk.ac.ox.cs.trance.utilities.TPCHDataframes.{spark, Customer => CustomerDF, LineItem => LineItemDF, Order => OrderDF, Part => PartDF, Nation => NationDF}
+import uk.ac.ox.cs.trance.utilities.TestDataframes.{Test2FullWithMultipleArrayTypes, Test2FullWithMultipleArrayTypesLessRows}
 
 import scala.collection.Seq
+
+case class Record81f38c97198a4c3d82c07bdf8cc21c89(c_name: String)
+
+case class Recorddfd1279ee2b64495a6067f8c39892143(c_name: String, Customer_index: Long)
+
+case class Record9e5847f902704689a1c0cbd58204e07c(l_orderkey: Int)
+
+case class Recordb8662d38214c4eccbca05aff64ad7253(c_name: String, Customer_index: Long, l_orderkey: Option[Int])
+
+case class Recordf844ee1edbc947c29fc12a7a1429ced2(c_name: String, c_orders: Seq[Record9e5847f902704689a1c0cbd58204e07c])
+
+case class Record95de9901799643d99af0b2fc86f09fdf(o_orderdate: String, o_orderkey: Int)
+
+case class Recordbb4c9b827da843bab38ab4b0cff71ad6(o_orderdate: String, o_orderkey: Int, Order_index: Long)
+
+case class Recordcd5962544f3d4361a05c67f62a9ec845(l_quantity: Double, l_partkey: Int, l_orderkey: Int)
+
+case class Recorddd2ed07dab354fba9c7ce4139a96cc43(o_orderdate: String, l_quantity: Option[Double], Order_index: Long, l_partkey: Option[Int], o_orderkey: Int, l_orderkey: Option[Int])
+
+case class Record95020c82d35644059c5c5b406b79f713(Order_index: Long, o_orderdate: String, l_partkey: Option[Int], l_quantity: Option[Double])
+
+case class Record4948c766a27942df940a6f7f71f34218(o_orderdate: String, Order_index: Long)
+
+case class Record6444f3ba076c4c409686bf6410417a86(l_partkey: Int, l_quantity: Double)
+
+case class Record10598666558d460ab7cf36a3624f7fe2(Order_index: Long, o_orderdate: String, o_parts: Seq[Record6444f3ba076c4c409686bf6410417a86])
+
+case class Record2dc37b6c982f4fc5864bfea8830b976e(c_name: String, c_nationkey: Int, c_custkey: Int)
+case class Record99b6f24fbc634ee9b3639e57d1bf20c1(c_name: String, c_nationkey: Int, c_custkey: Int, Customer_index: Long)
+case class Recorde3649c70440340cfad4b3323d08e2e3b(o_orderdate: String, o_custkey: Int, o_orderkey: Int)
+case class Record6687cebc34a748a8bb09d5668686082e(o_orderdate: String, o_custkey: Int, o_orderkey: Int, Order_index: Long)
+case class Recordd220fd669d7e41f1b86a3aabecac4237(o_orderdate: Option[String], o_custkey: Option[Int], Order_index: Option[Long], c_name: String, Customer_index: Long, c_nationkey: Int, c_custkey: Int, o_orderkey: Option[Int])
+case class Record478e4064b2aa4a81882aa61634d044c9(l_quantity: Double, l_partkey: Int, l_orderkey: Int)
+case class Record811a07786a1742d68b5b3e724eb7e675(o_orderdate: Option[String], l_quantity: Option[Double], Order_index: Option[Long], c_name: String, Customer_index: Long, l_partkey: Option[Int], o_orderkey: Option[Int], l_orderkey: Option[Int])
+case class Record7b14754fea1d449e84f101370561bb95(o_orderdate: Option[String], l_quantity: Option[Double], Order_index: Option[Long], c_name: String, Customer_index: Long, l_partkey: Option[Int])
+case class Record673d683609d24f698c9fab8a214ccb52(o_orderdate: Option[String], Order_index: Option[Long], c_name: String, Customer_index: Long)
+case class Recorda14eb38fa0b14107a1e4e87ea2d35fde(l_partkey: Int, l_quantity: Double)
+case class Recordbcc1e90432f548a2b9eb13a23cafb152(o_orderdate: Option[String], Order_index: Option[Long], c_name: String, o_parts: Seq[Recorda14eb38fa0b14107a1e4e87ea2d35fde], Customer_index: Long)
+case class Record190f73c1f64d49a297297765c57c8bde(Customer_index: Long, c_name: String, o_orderdate: Option[String], o_parts: Seq[Recorda14eb38fa0b14107a1e4e87ea2d35fde])
+case class Record5c1622d89e264a809d3f13e0d4a12ed8(c_name: String, Customer_index: Long)
+case class Record77304327a217441fa8f29bdd4a041d34(o_orderdate: String, o_parts: Seq[Recorda14eb38fa0b14107a1e4e87ea2d35fde])
+case class Record3df1924806c44fcdafc4395b39bd3b4c(Customer_index: Long, c_name: String, c_orders: Seq[Record77304327a217441fa8f29bdd4a041d34])
+
+case class Recordb80e3302266a42e4a981836379570249(o_orderdate: String, o_custkey: Int, o_orderkey: Int)
+case class Recordd16d0fb04d69452d83bec9ee88449806(o_orderdate: String, o_custkey: Int, o_orderkey: Int, Order_index: Long)
+case class Record80e931fa827f40cca9ea94aa8b0a308a(l_quantity: Double, l_partkey: Int, l_orderkey: Int)
+case class Recordbf846df439974b07b6abb5120e933eb8(o_orderdate: String, o_custkey: Int, l_quantity: Option[Double], Order_index: Long, l_partkey: Option[Int], o_orderkey: Int, l_orderkey: Option[Int])
+case class Recordd74a63caf68e4419868a969376dbf27b(o_orderdate: String, o_custkey: Int, l_quantity: Option[Double], Order_index: Long, l_partkey: Option[Int])
+case class Recorde64677bfead1481e9fe09c808070d452(o_orderdate: String, o_custkey: Int, Order_index: Long)
+case class Record0f24c31b203c447584d817d42bc7dd63(l_partkey: Int, l_quantity: Double)
+case class Record07ff0f6ff4644ebeadc4697bd56a2d39(o_orderdate: String, o_custkey: Int, Order_index: Long, o_parts: Seq[Record0f24c31b203c447584d817d42bc7dd63])
+case class Recordea3dc6f9b6ed4825a085a971a8423122(c_name: String, c_custkey: Int)
+case class Record9f1664be1da24f109f1aea1ab3e17c27(c_name: String, c_custkey: Int, Customer_index: Long)
+case class Record2fe5f740223c42fb8c010e46406e8f73(o_custkey: Int, o_orderdate: String, o_parts: Seq[Record0f24c31b203c447584d817d42bc7dd63])
+case class Record53d1eaf1461b4a32adb18c8ef293ff5e(o_orderdate: Option[String], o_custkey: Option[Int], c_name: String, o_parts: Option[Seq[Record0f24c31b203c447584d817d42bc7dd63]], Customer_index: Long, c_custkey: Int)
+case class Recordfbdaef1028e84a7f828a554c285e6e01(Customer_index: Long, c_name: String, o_orderdate: Option[String], o_parts: Option[Seq[Record0f24c31b203c447584d817d42bc7dd63]])
+case class Record16e3a795c8c148c0a5a11f439e060620(c_name: String, Customer_index: Long)
+case class Record93f64805c41d4615a2e3ea7d2dc10155(o_orderdate: String, o_parts: Seq[Record0f24c31b203c447584d817d42bc7dd63])
+case class Record1b47e1a717b84648887c65f20c823179(Customer_index: Long, c_name: String, c_orders: Seq[Record93f64805c41d4615a2e3ea7d2dc10155])
+case class Record503be495d873475a9919ae04f5e3daa7(o_orderdate: String, o_custkey: Int, c_name: String, c_nationkey: Int, c_custkey: Int, o_orderkey: Int)
+case class Record826ce10bb85642c08632cf3be6164d39(c_orderkey: Int, c_name: String, c_nationkey: Int, o_orderdate: String)
+case class Record6bdb66a8492841bcab18709549a64ecc(o_orderdate: String, l_quantity: Double, c_name: String, c_nationkey: Int, l_partkey: Int, c_orderkey: Int, l_suppkey: Int, l_orderkey: Int)
+case class Recordc54b1f15f4fa4e1ba1e4718697cac93e(o_orderdate: String, l_quantity: Double, c_suppkey: Int, c_name: String, c_nationkey: Int, l_partkey: Int)
+case class Record606561f1b8d4468fbcd84b4e1ba669a9(p_name: String, l_quantity: Double, l_partkey: Int, p_partkey: Int, l_orderkey: Int)
+case class Record23bf6274c4ba4812b9decfd93d00e2b0(l_orderkey: Int, p_name: String, l_qty: Double)
+case class Recordd8ed41e33adc4e48ab641f18b056c0de(o_orderdate: String, o_orderkey: Int)
+case class Record792c91ca99ea49d3b912f9d8bf02e125(o_orderdate: String, o_orderkey: Int, Order_index: Long)
+case class Record3d4af23308684fffa256fccd3ab6bc82(p_name: Option[String], l_qty: Option[Double], o_orderdate: String, Order_index: Long, o_orderkey: Int, l_orderkey: Option[Int])
+case class Record61c40a136b674c8891affe4be0de8331(Order_index: Long, o_orderdate: String, p_name: Option[String], l_qty: Option[Double])
+case class Record96f88ae133ff44ed82f3e3664fcc6118(o_orderdate: String, Order_index: Long)
+case class Recordb283e22c356c4fac93dadc6cb15db4a4(p_name: String, l_qty: Double)
+case class Recorddaaae85320d3458f87e78ccd848a9117(Order_index: Long, o_orderdate: String, o_parts: Seq[Recordb283e22c356c4fac93dadc6cb15db4a4])
 
 case class Record3041b3a67b2041dea5ac5ad96c1fa9d1(c_name: String, c_custkey: Int)
 case class Recordc910c6699d6b4c41afca822c2eb073f7(c_name: String, c_custkey: Int, Customer_index: Long)
@@ -131,6 +204,29 @@ case class Record26bdbe1096564c8f8349c356d2fc6b16(o_shippriority: Int, Test1Full
 case class Record94a0c813d85b45b2b3e78db042571eae(o_orderdate: String, subtotal: Double)
 case class Recordf90630f4fe07421282e845caa0d47b03(o_orderdate: String)
 case class Recordc3296abfbfd94296b30e3d1d7a69ce92(o_orderdate: String, total: Double)
+
+case class Record4bc96273798a48dbbd8b9b59e602f98f(n_nationkey: Int, n_name: String)
+case class Record7652bde34e734b7290fed733e14083f5(n_nationkey: Int, n_name: String, Nation_index: Long)
+case class Recordc5bad097b62849d3ad5f59b89fdacfff(c_name: String, c_nationkey: Int, c_custkey: Int)
+case class Recordc708acd0959b4cf4ae9dfdbe03d0b6d8(c_name: String, c_nationkey: Int, c_custkey: Int, Customer_index: Long)
+case class Recordb60a8344502f47fab8ef9919ef841108(n_nationkey: Int, c_name: Option[String], Customer_index: Option[Long], c_nationkey: Option[Int], n_name: String, c_custkey: Option[Int], Nation_index: Long)
+case class Recordd7d67760d83d485cb0155efaa979de76(o_orderdate: String, o_custkey: Int, o_orderkey: Int)
+case class Record0c5f1ba29ab542198e75d05f4f91d188(o_orderdate: String, o_custkey: Int, o_orderkey: Int, Order_index: Long)
+case class Record0965651bd6d64b5b97462337046a785c(o_orderdate: Option[String], o_custkey: Option[Int], Order_index: Option[Long], c_name: Option[String], Customer_index: Option[Long], n_name: String, c_custkey: Option[Int], Nation_index: Long, o_orderkey: Option[Int])
+case class Recordead73b9327c845b19a576d55c8772608(l_quantity: Double, l_partkey: Int, l_orderkey: Int)
+case class Record50222bda0d3f456580322dc256ea021f(o_orderdate: Option[String], l_quantity: Option[Double], Order_index: Option[Long], c_name: Option[String], Customer_index: Option[Long], n_name: String, l_partkey: Option[Int], Nation_index: Long, o_orderkey: Option[Int], l_orderkey: Option[Int])
+case class Recordd72b1fa4412744f6bb579aeeb320167e(o_orderdate: Option[String], l_quantity: Option[Double], Order_index: Option[Long], c_name: Option[String], Customer_index: Option[Long], n_name: String, l_partkey: Option[Int], Nation_index: Long)
+case class Record841d75b461834c73a49a68381353797f(o_orderdate: Option[String], Order_index: Option[Long], c_name: Option[String], Customer_index: Option[Long], n_name: String, Nation_index: Long)
+case class Record9eb9e264b3dc4542938c6da74698494f(l_partkey: Int, l_quantity: Double)
+case class Recordccaf0d739c1540fa8adf486cd6159a52(o_orderdate: Option[String], Order_index: Option[Long], c_name: Option[String], o_parts: Seq[Record9eb9e264b3dc4542938c6da74698494f], Customer_index: Option[Long], n_name: String, Nation_index: Long)
+case class Record72cd036e6e5b43c0b075318c9e0b7aa2(o_orderdate: Option[String], c_name: Option[String], o_parts: Seq[Record9eb9e264b3dc4542938c6da74698494f], Customer_index: Option[Long], n_name: String, Nation_index: Long)
+case class Recordd0aa0c5866c84b1dbc4dd56fa3719017(c_name: Option[String], Customer_index: Option[Long], n_name: String, Nation_index: Long)
+case class Recordfa8a4c9d393e423aad0f1a12e741e0ce(o_orderdate: String, o_parts: Seq[Record9eb9e264b3dc4542938c6da74698494f])
+case class Record5efd772475f148f689106c5d73a834d4(c_name: Option[String], Customer_index: Option[Long], n_name: String, Nation_index: Long, c_orders: Seq[Recordfa8a4c9d393e423aad0f1a12e741e0ce])
+case class Record7f46b46034344e9d8a85cf816f335fc2(Nation_index: Long, n_name: String, c_name: Option[String], c_orders: Seq[Recordfa8a4c9d393e423aad0f1a12e741e0ce])
+case class Record8eca9a05ebb5485bab4baf21de0467f3(n_name: String, Nation_index: Long)
+case class Record58c5ef6ef627444da6b8c09a198ded34(c_name: String, c_orders: Seq[Recordfa8a4c9d393e423aad0f1a12e741e0ce])
+case class Record557fc3d79aef4b4a8f5f9bc375304b29(Nation_index: Long, n_name: String, n_custs: Seq[Record58c5ef6ef627444da6b8c09a198ded34])
 class GeneratedCodeTests extends AnyFunSpec with BeforeAndAfterEach with Serializable {
 
 
@@ -460,6 +556,91 @@ class GeneratedCodeTests extends AnyFunSpec with BeforeAndAfterEach with Seriali
       Test2.printSchema()
     }
 
+    it("Test3") {
+      import spark.implicits._
+
+      val x27 = NationDF.select("n_nationkey", "n_name")
+
+        .as[Record4bc96273798a48dbbd8b9b59e602f98f]
+
+      val x28 = x27.withColumn("Nation_index", monotonically_increasing_id())
+        .as[Record7652bde34e734b7290fed733e14083f5]
+
+      val x30 = CustomerDF.select("c_name", "c_nationkey", "c_custkey")
+
+        .as[Recordc5bad097b62849d3ad5f59b89fdacfff]
+
+      val x31 = x30.withColumn("Customer_index", monotonically_increasing_id())
+        .as[Recordc708acd0959b4cf4ae9dfdbe03d0b6d8]
+
+      val x34 = x28.equiJoin(x31,
+        Seq("n_nationkey"), Seq("c_nationkey"), "left_outer").as[Recordb60a8344502f47fab8ef9919ef841108]
+
+      val x36 = OrderDF.select("o_orderdate", "o_custkey", "o_orderkey")
+
+        .as[Recordd7d67760d83d485cb0155efaa979de76]
+
+      val x37 = x36.withColumn("Order_index", monotonically_increasing_id())
+        .as[Record0c5f1ba29ab542198e75d05f4f91d188]
+
+      val x40 = x34.equiJoin(x37,
+        Seq("c_custkey"), Seq("o_custkey"), "left_outer").as[Record0965651bd6d64b5b97462337046a785c]
+
+      val x42 = LineItemDF.select("l_quantity", "l_partkey", "l_orderkey")
+
+        .as[Recordead73b9327c845b19a576d55c8772608]
+
+      val x45 = x40.equiJoin(x42,
+        Seq("o_orderkey"), Seq("l_orderkey"), "left_outer").as[Record50222bda0d3f456580322dc256ea021f]
+
+      val x47 = x45.select("o_orderdate", "l_quantity", "Order_index", "c_name", "Customer_index", "n_name", "l_partkey", "Nation_index")
+
+        .as[Recordd72b1fa4412744f6bb579aeeb320167e]
+
+      val x49 = x47.groupByKey(x48 => Record841d75b461834c73a49a68381353797f(x48.o_orderdate, x48.Order_index, x48.c_name, x48.Customer_index, x48.n_name, x48.Nation_index)).mapGroups {
+        case (key, value) =>
+          val grp = value.flatMap(x48 =>
+            (x48.l_quantity, x48.l_partkey) match {
+              case (None, _) => Seq()
+              case (_, None) => Seq()
+              case _ => Seq(Record9eb9e264b3dc4542938c6da74698494f(x48.l_partkey match { case Some(x) => x; case _ => 0 }, x48.l_quantity match { case Some(x) => x; case _ => 0.0 }))
+            }).toSeq
+          Recordccaf0d739c1540fa8adf486cd6159a52(key.o_orderdate, key.Order_index, key.c_name, grp, key.Customer_index, key.n_name, key.Nation_index)
+      }.as[Recordccaf0d739c1540fa8adf486cd6159a52]
+
+      val x51 = x49.select("o_orderdate", "c_name", "o_parts", "Customer_index", "n_name", "Nation_index")
+
+        .as[Record72cd036e6e5b43c0b075318c9e0b7aa2]
+
+      val x53 = x51.groupByKey(x52 => Recordd0aa0c5866c84b1dbc4dd56fa3719017(x52.c_name, x52.Customer_index, x52.n_name, x52.Nation_index)).mapGroups {
+        case (key, value) =>
+          val grp = value.flatMap(x52 =>
+            (x52.o_orderdate) match {
+              case (None) => Seq()
+              case _ => Seq(Recordfa8a4c9d393e423aad0f1a12e741e0ce(x52.o_orderdate match { case Some(x) => x; case _ => "null" }, x52.o_parts))
+            }).toSeq
+          Record5efd772475f148f689106c5d73a834d4(key.c_name, key.Customer_index, key.n_name, key.Nation_index, grp)
+      }.as[Record5efd772475f148f689106c5d73a834d4]
+
+      val x55 = x53.select("Nation_index", "n_name", "c_name", "c_orders")
+
+        .as[Record7f46b46034344e9d8a85cf816f335fc2]
+
+      val x57 = x55.groupByKey(x56 => Record8eca9a05ebb5485bab4baf21de0467f3(x56.n_name, x56.Nation_index)).mapGroups {
+        case (key, value) =>
+          val grp = value.flatMap(x56 =>
+            (x56.c_name) match {
+              case (None) => Seq()
+              case _ => Seq(Record58c5ef6ef627444da6b8c09a198ded34(x56.c_name match { case Some(x) => x; case _ => "null" }, x56.c_orders))
+            }).toSeq
+          Record557fc3d79aef4b4a8f5f9bc375304b29(key.Nation_index, key.n_name, grp)
+      }.as[Record557fc3d79aef4b4a8f5f9bc375304b29]
+
+      val x58 = x57
+      x58.show(false)
+      x58.printSchema()
+    }
+
 
     it("Test0Join") {
       import spark.implicits._
@@ -523,6 +704,56 @@ class GeneratedCodeTests extends AnyFunSpec with BeforeAndAfterEach with Seriali
       x32.printSchema()
     }
 
+    it("Test1JoinFlat") {
+      import spark.implicits._
+
+      val x22 = LineItemDF.as[Lineitem].equiJoin(PartDF.as[Part],
+        Seq("l_partkey"), Seq("p_partkey"), "inner").as[Record606561f1b8d4468fbcd84b4e1ba669a9]
+
+      val x24 = x22.select("l_orderkey", "p_name", "l_quantity")
+        .withColumnRenamed("l_quantity", "l_qty")
+        .withColumn("l_qty", when(col("l_qty").isNull, 0.0).otherwise(col("l_qty")))
+        .as[Record23bf6274c4ba4812b9decfd93d00e2b0]
+
+      val x25 = x24
+      val parts = x25
+      //parts.cache
+      //parts.count
+      val x27 = OrderDF.select("o_orderdate", "o_orderkey")
+
+        .as[Recordd8ed41e33adc4e48ab641f18b056c0de]
+
+      val x28 = x27.withColumn("Order_index", monotonically_increasing_id())
+        .as[Record792c91ca99ea49d3b912f9d8bf02e125]
+
+      val x30 = parts
+
+
+      val x33 = x28.equiJoin(x30,
+        Seq("o_orderkey"), Seq("l_orderkey"), "left_outer").as[Record3d4af23308684fffa256fccd3ab6bc82]
+
+      val x35 = x33.select("Order_index", "o_orderdate", "p_name", "l_qty")
+
+        .as[Record61c40a136b674c8891affe4be0de8331]
+
+      val x37 = x35.groupByKey(x36 => Record96f88ae133ff44ed82f3e3664fcc6118(x36.o_orderdate, x36.Order_index)).mapGroups {
+        case (key, value) =>
+          val grp = value.flatMap(x36 =>
+            (x36.p_name, x36.l_qty) match {
+              case (None, _) => Seq()
+              case (_, None) => Seq()
+              case _ => Seq(Recordb283e22c356c4fac93dadc6cb15db4a4(x36.p_name match { case Some(x) => x; case _ => "null" }, x36.l_qty match { case Some(x) => x; case _ => 0.0 }))
+            }).toSeq
+          Recorddaaae85320d3458f87e78ccd848a9117(key.Order_index, key.o_orderdate, grp)
+      }.as[Recorddaaae85320d3458f87e78ccd848a9117]
+
+      val x38 = x37
+
+      x38.show(false)
+      x38.printSchema()
+
+    }
+
     it("Test1Full") {
       import spark.implicits._
 
@@ -578,278 +809,316 @@ class GeneratedCodeTests extends AnyFunSpec with BeforeAndAfterEach with Seriali
       Test2Full.printSchema()
     }
 
-    it("Test1Agg1") {
-      import spark.implicits._
-
-      val x18 = Test1Full.flatMap { case x14 =>
-        x14.o_parts.foldLeft(HashMap.empty[Recordc5c246937a1748b99480bb485044f7b6, Double].withDefaultValue(0.0))(
-          (acc, x15) => {
-            acc(Recordc5c246937a1748b99480bb485044f7b6(x14.o_orderdate, x15.l_partkey)) += x15.l_quantity.asInstanceOf[Double];
-            acc
-          }
-        ).map(x15 => Record8dd0378e7ca94b06aac0e061e650c623(x15._1.o_orderdate, x15._2, x15._1.l_partkey))
-
-      }.as[Record8dd0378e7ca94b06aac0e061e650c623]
-
-      val x21 = x18.equiJoin(PartDF.as[Part],
-        Seq("l_partkey"), Seq("p_partkey"), "inner").as[Recordca3ca0c17eff492881a70852cae9c38a]
-
-      val x23 = x21.select("o_orderdate", "l_quantity", "p_retailprice")
-        .withColumn("total", (col("l_quantity") * col("p_retailprice")))
-        .withColumn("total", when(col("total").isNull, 0.0).otherwise(col("total")))
-        .as[Record2444e40ce12849a7b7a55450a3467447]
-
-      val x25 = x23.groupByKey(x24 => Recordfe39850b725d4bd19e771f16fe6e390e(x24.o_orderdate))
-        .agg(typed.sum[Record2444e40ce12849a7b7a55450a3467447](x24 => x24.total)
-        ).mapPartitions { it =>
-        it.map { case (key, total) =>
-          Record2444e40ce12849a7b7a55450a3467447(key.o_orderdate, total)
-        }
-      }.as[Record2444e40ce12849a7b7a55450a3467447]
-
-      val x26 = x25
-      val Test1Agg1 = x26
-
-      Test1Agg1.show(false)
-      Test1Agg1.printSchema()
+    it("Test2Full Multiple ArrayType Entries") {
+      val t = Test2FullWithMultipleArrayTypes
+      t.show(false)
+      t.printSchema()
     }
 
-    it("Test1AggS") {
+    it("TestFN0") {
       import spark.implicits._
 
-      val x28 = Test1Full
+      val x19 = OrderDF.as[Order].equiJoin(CustomerDF.as[Customer],
+        Seq("o_custkey"), Seq("c_custkey"), "inner").as[Record503be495d873475a9919ae04f5e3daa7]
 
+      val x21 = x19.select("o_orderkey", "c_name", "c_nationkey", "o_orderdate")
+        .withColumnRenamed("o_orderkey", "c_orderkey")
+        .withColumn("c_orderkey", when(col("c_orderkey").isNull, 0).otherwise(col("c_orderkey")))
+        .as[Record826ce10bb85642c08632cf3be6164d39]
 
-      val x29 = x28.withColumn("Test1Full_index", monotonically_increasing_id())
-        .as[Recordafd875756e7b4367a9dd5d5de38b6234]
+      val x22 = x21
+      val customers = x22
+      //customers.cache
+      //customers.count
+      val x25 = customers.equiJoin(LineItemDF.as[Lineitem],
+        Seq("c_orderkey"), Seq("l_orderkey"), "inner").as[Record6bdb66a8492841bcab18709549a64ecc]
 
-      val x34 = x29.flatMap {
-        case x30 =>
-          if (x30.o_parts.isEmpty) Seq(Recordbe052fb87c6e4d33a5e6087d467f33fa(x30.o_shippriority, x30.Test1Full_index, x30.o_orderdate, x30.o_custkey, None, x30.o_orderpriority, x30.o_clerk, x30.o_orderstatus, None, x30.o_totalprice, x30.o_orderkey, x30.o_comment))
-          else x30.o_parts.foldLeft(HashMap.empty[Record208322e606424f4a8611bf152c55c58a, Double].withDefaultValue(0.0))(
-            (acc, x31) => {
-              acc(Record208322e606424f4a8611bf152c55c58a(x30.o_shippriority, x30.Test1Full_index, x30.o_orderdate, x30.o_custkey, x30.o_orderpriority, x30.o_clerk, x30.o_orderstatus, Some(x31.l_partkey), x30.o_totalprice, x30.o_orderkey, x30.o_comment)) += x31.l_quantity.asInstanceOf[Double];
+      val x27 = x25.select("o_orderdate", "l_quantity", "c_name", "c_nationkey", "l_partkey", "l_suppkey")
+        .withColumnRenamed("l_suppkey", "c_suppkey")
+        .withColumn("c_suppkey", when(col("c_suppkey").isNull, 0).otherwise(col("c_suppkey")))
+        .as[Recordc54b1f15f4fa4e1ba1e4718697cac93e]
+
+      val x28 = x27
+      x28.show(false)
+      x28.printSchema()
+
+    }
+  }
+
+  describe("Nested2Flat") {
+
+      it("Test1Agg1") {
+        import spark.implicits._
+
+        val x18 = Test1Full.flatMap { case x14 =>
+          x14.o_parts.foldLeft(HashMap.empty[Recordc5c246937a1748b99480bb485044f7b6, Double].withDefaultValue(0.0))(
+            (acc, x15) => {
+              acc(Recordc5c246937a1748b99480bb485044f7b6(x14.o_orderdate, x15.l_partkey)) += x15.l_quantity.asInstanceOf[Double];
               acc
             }
-          ).map(x31 => Recordbe052fb87c6e4d33a5e6087d467f33fa(x31._1.o_shippriority, x31._1.Test1Full_index, x31._1.o_orderdate, x31._1.o_custkey, Some(x31._2), x31._1.o_orderpriority, x31._1.o_clerk, x31._1.o_orderstatus, x31._1.l_partkey, x31._1.o_totalprice, x31._1.o_orderkey, x31._1.o_comment))
+          ).map(x15 => Record8dd0378e7ca94b06aac0e061e650c623(x15._1.o_orderdate, x15._2, x15._1.l_partkey))
 
+        }.as[Record8dd0378e7ca94b06aac0e061e650c623]
 
-      }.as[Recordbe052fb87c6e4d33a5e6087d467f33fa]
+        val x21 = x18.equiJoin(PartDF.as[Part],
+          Seq("l_partkey"), Seq("p_partkey"), "inner").as[Recordca3ca0c17eff492881a70852cae9c38a]
 
-      val x36 = PartDF.select("p_retailprice", "p_partkey")
+        val x23 = x21.select("o_orderdate", "l_quantity", "p_retailprice")
+          .withColumn("total", (col("l_quantity") * col("p_retailprice")))
+          .withColumn("total", when(col("total").isNull, 0.0).otherwise(col("total")))
+          .as[Record2444e40ce12849a7b7a55450a3467447]
 
-        .as[Recorde5298436562d443d8dcaf47986ecb869]
-
-      val x39 = x34.equiJoin(x36,
-        Seq("l_partkey"), Seq("p_partkey"), "left_outer").as[Record1e7426cde2fb4db4bd1651c5042566ff]
-
-      val x41 = x39.select("o_shippriority", "Test1Full_index", "o_orderdate", "o_custkey", "l_quantity", "o_orderpriority", "p_retailprice", "o_clerk", "o_orderstatus", "o_totalprice", "o_orderkey", "o_comment")
-        .withColumn("subtotal", (col("l_quantity") * col("p_retailprice")))
-        .withColumn("subtotal", when(col("subtotal").isNull, 0.0).otherwise(col("subtotal")))
-        .as[Record73c2cc0b4c35414eb667d009ae3da8fe]
-
-      val x43 = x41.groupByKey(x42 => Recordc25d1a7bd0144fd7bf5e43dd49ea10e8(x42.o_shippriority, x42.Test1Full_index, x42.o_orderdate, x42.o_custkey, x42.o_orderpriority, x42.o_clerk, x42.o_orderstatus, x42.o_totalprice, x42.o_orderkey, x42.o_comment))
-        .agg(typed.sum[Record73c2cc0b4c35414eb667d009ae3da8fe](x42 => x42.subtotal)
-        ).mapPartitions { it =>
-        it.map { case (key, subtotal) =>
-          Record73c2cc0b4c35414eb667d009ae3da8fe(key.o_shippriority, key.Test1Full_index, key.o_orderdate, key.o_custkey, key.o_orderpriority, key.o_clerk, key.o_orderstatus, subtotal, key.o_totalprice, key.o_orderkey, key.o_comment)
-        }
-      }.as[Record73c2cc0b4c35414eb667d009ae3da8fe]
-
-      val x45 = x43
-
-
-      val x47 = x45.groupByKey(x46 => Recordc25d1a7bd0144fd7bf5e43dd49ea10e8(x46.o_shippriority, x46.Test1Full_index, x46.o_orderdate, x46.o_custkey, x46.o_orderpriority, x46.o_clerk, x46.o_orderstatus, x46.o_totalprice, x46.o_orderkey, x46.o_comment)).mapGroups {
-        case (key, value) =>
-          val grp = value.flatMap(x46 =>
-            () match {
-
-              case _ => Seq(Record91be4c8e506d40439058f94358237cc2(x46.subtotal))
-            }).toSeq
-          Record26bdbe1096564c8f8349c356d2fc6b16(key.o_shippriority, key.Test1Full_index, key.o_orderdate, key.o_custkey, key.o_orderpriority, grp, key.o_clerk, key.o_orderstatus, key.o_totalprice, key.o_orderkey, key.o_comment)
-      }.as[Record26bdbe1096564c8f8349c356d2fc6b16]
-
-      val x48 = x47
-      val step1 = x48
-      //step1.cache
-      //step1.count
-      val x53 = step1.flatMap { case x49 =>
-        x49.o_parts.foldLeft(HashMap.empty[Recordf90630f4fe07421282e845caa0d47b03, Double].withDefaultValue(0.0))(
-          (acc, x50) => {
-            acc(Recordf90630f4fe07421282e845caa0d47b03(x49.o_orderdate)) += x50.subtotal.asInstanceOf[Double];
-            acc
+        val x25 = x23.groupByKey(x24 => Recordfe39850b725d4bd19e771f16fe6e390e(x24.o_orderdate))
+          .agg(typed.sum[Record2444e40ce12849a7b7a55450a3467447](x24 => x24.total)
+          ).mapPartitions { it =>
+          it.map { case (key, total) =>
+            Record2444e40ce12849a7b7a55450a3467447(key.o_orderdate, total)
           }
-        ).map(x50 => Record94a0c813d85b45b2b3e78db042571eae(x50._1.o_orderdate, x50._2))
+        }.as[Record2444e40ce12849a7b7a55450a3467447]
 
-      }.as[Record94a0c813d85b45b2b3e78db042571eae]
+        val x26 = x25
+        val Test1Agg1 = x26
 
-      val x55 = x53
-        .withColumnRenamed("subtotal", "total")
-        .withColumn("total", when(col("total").isNull, 0.0).otherwise(col("total")))
-        .as[Recordc3296abfbfd94296b30e3d1d7a69ce92]
+        Test1Agg1.show(false)
+        Test1Agg1.printSchema()
+      }
 
-      val x57 = x55.groupByKey(x56 => Recordf90630f4fe07421282e845caa0d47b03(x56.o_orderdate))
-        .agg(typed.sum[Recordc3296abfbfd94296b30e3d1d7a69ce92](x56 => x56.total)
-        ).mapPartitions { it =>
-        it.map { case (key, total) =>
-          Recordc3296abfbfd94296b30e3d1d7a69ce92(key.o_orderdate, total)
-        }
-      }.as[Recordc3296abfbfd94296b30e3d1d7a69ce92]
+      it("Test1AggS") {
+        import spark.implicits._
 
-      val x58 = x57
-      x58.show(false)
-      x58.printSchema()
-    }
-
-    it("Test2Agg2") {
-      import spark.implicits._
+        val x28 = Test1Full
 
 
-      val x363 = OrderDF
+        val x29 = x28.withColumn("Test1Full_index", monotonically_increasing_id())
+          .as[Recordafd875756e7b4367a9dd5d5de38b6234]
+
+        val x34 = x29.flatMap {
+          case x30 =>
+            if (x30.o_parts.isEmpty) Seq(Recordbe052fb87c6e4d33a5e6087d467f33fa(x30.o_shippriority, x30.Test1Full_index, x30.o_orderdate, x30.o_custkey, None, x30.o_orderpriority, x30.o_clerk, x30.o_orderstatus, None, x30.o_totalprice, x30.o_orderkey, x30.o_comment))
+            else x30.o_parts.foldLeft(HashMap.empty[Record208322e606424f4a8611bf152c55c58a, Double].withDefaultValue(0.0))(
+              (acc, x31) => {
+                acc(Record208322e606424f4a8611bf152c55c58a(x30.o_shippriority, x30.Test1Full_index, x30.o_orderdate, x30.o_custkey, x30.o_orderpriority, x30.o_clerk, x30.o_orderstatus, Some(x31.l_partkey), x30.o_totalprice, x30.o_orderkey, x30.o_comment)) += x31.l_quantity.asInstanceOf[Double];
+                acc
+              }
+            ).map(x31 => Recordbe052fb87c6e4d33a5e6087d467f33fa(x31._1.o_shippriority, x31._1.Test1Full_index, x31._1.o_orderdate, x31._1.o_custkey, Some(x31._2), x31._1.o_orderpriority, x31._1.o_clerk, x31._1.o_orderstatus, x31._1.l_partkey, x31._1.o_totalprice, x31._1.o_orderkey, x31._1.o_comment))
 
 
-      val x364 = x363.withColumn("Order_index", monotonically_increasing_id())
-        .as[Recordc5abf315da0b4414861961b21427e639]
+        }.as[Recordbe052fb87c6e4d33a5e6087d467f33fa]
 
-      val x366 = LineItemDF.as[Lineitem]
+        val x36 = PartDF.select("p_retailprice", "p_partkey")
 
+          .as[Recorde5298436562d443d8dcaf47986ecb869]
 
-      val x369 = x364.equiJoin(x366,
-        Seq("o_orderkey"), Seq("l_orderkey"), "left_outer").as[Recordfdb46d6882fe467297b851b46910b2bb]
+        val x39 = x34.equiJoin(x36,
+          Seq("l_partkey"), Seq("p_partkey"), "left_outer").as[Record1e7426cde2fb4db4bd1651c5042566ff]
 
-      val x371 = x369
+        val x41 = x39.select("o_shippriority", "Test1Full_index", "o_orderdate", "o_custkey", "l_quantity", "o_orderpriority", "p_retailprice", "o_clerk", "o_orderstatus", "o_totalprice", "o_orderkey", "o_comment")
+          .withColumn("subtotal", (col("l_quantity") * col("p_retailprice")))
+          .withColumn("subtotal", when(col("subtotal").isNull, 0.0).otherwise(col("subtotal")))
+          .as[Record73c2cc0b4c35414eb667d009ae3da8fe]
 
-
-      val x373 = x371.groupByKey(x372 => Recordc5abf315da0b4414861961b21427e639(x372.o_shippriority, x372.o_orderdate, x372.o_custkey, x372.o_orderpriority, x372.Order_index, x372.o_clerk, x372.o_orderstatus, x372.o_totalprice, x372.o_orderkey, x372.o_comment)).mapGroups {
-        case (key, value) =>
-          val grp = value.flatMap(x372 =>
-            (x372.l_quantity, x372.l_shipinstruct, x372.l_extendedprice, x372.l_returnflag, x372.l_commitdate, x372.l_comment, x372.l_linestatus, x372.l_orderkey, x372.l_discount, x372.l_shipmode, x372.l_linenumber, x372.l_receiptdate, x372.l_tax, x372.l_partkey, x372.l_suppkey, x372.l_shipdate) match {
-              case (None, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) => Seq()
-              case (_, None, _, _, _, _, _, _, _, _, _, _, _, _, _, _) => Seq()
-              case (_, _, None, _, _, _, _, _, _, _, _, _, _, _, _, _) => Seq()
-              case (_, _, _, None, _, _, _, _, _, _, _, _, _, _, _, _) => Seq()
-              case (_, _, _, _, None, _, _, _, _, _, _, _, _, _, _, _) => Seq()
-              case (_, _, _, _, _, None, _, _, _, _, _, _, _, _, _, _) => Seq()
-              case (_, _, _, _, _, _, None, _, _, _, _, _, _, _, _, _) => Seq()
-              case (_, _, _, _, _, _, _, None, _, _, _, _, _, _, _, _) => Seq()
-              case (_, _, _, _, _, _, _, _, None, _, _, _, _, _, _, _) => Seq()
-              case (_, _, _, _, _, _, _, _, _, None, _, _, _, _, _, _) => Seq()
-              case (_, _, _, _, _, _, _, _, _, _, None, _, _, _, _, _) => Seq()
-              case (_, _, _, _, _, _, _, _, _, _, _, None, _, _, _, _) => Seq()
-              case (_, _, _, _, _, _, _, _, _, _, _, _, None, _, _, _) => Seq()
-              case (_, _, _, _, _, _, _, _, _, _, _, _, _, None, _, _) => Seq()
-              case (_, _, _, _, _, _, _, _, _, _, _, _, _, _, None, _) => Seq()
-              case (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, None) => Seq()
-              case _ => Seq(Record1401a1a294e340e6b75d6d1a9fcacdf3(x372.l_returnflag match { case Some(x) => x; case _ => "null" }, x372.l_comment match { case Some(x) => x; case _ => "null" }, x372.l_linestatus match { case Some(x) => x; case _ => "null" }, x372.l_shipmode match { case Some(x) => x; case _ => "null" }, x372.l_shipinstruct match { case Some(x) => x; case _ => "null" }, x372.l_quantity match { case Some(x) => x; case _ => 0.0 }, x372.l_receiptdate match { case Some(x) => x; case _ => "null" }, x372.l_linenumber match { case Some(x) => x; case _ => 0 }, x372.l_tax match { case Some(x) => x; case _ => 0.0 }, x372.l_shipdate match { case Some(x) => x; case _ => "null" }, x372.l_extendedprice match { case Some(x) => x; case _ => 0.0 }, x372.l_partkey match { case Some(x) => x; case _ => 0 }, x372.l_discount match { case Some(x) => x; case _ => 0.0 }, x372.l_commitdate match { case Some(x) => x; case _ => "null" }, x372.l_suppkey match { case Some(x) => x; case _ => 0 }, x372.l_orderkey match { case Some(x) => x; case _ => 0 }))
-            }).toSeq
-          Record892ef1247c0f4b08a9961667a5ec9736(key.o_shippriority, key.o_orderdate, key.o_custkey, key.o_orderpriority, key.Order_index, grp, key.o_clerk, key.o_orderstatus, key.o_totalprice, key.o_orderkey, key.o_comment)
-      }.as[Record892ef1247c0f4b08a9961667a5ec9736]
-
-      val x374 = x373
-      val orders = x374
-
-      val x376 = CustomerDF
-
-
-      val x377 = x376.withColumn("Customer_index", monotonically_increasing_id())
-        .as[Record70e0c29dbe084736b94ab5d5f337509f]
-
-      val x379 = orders
-
-
-      val x382 = x377.equiJoin(x379,
-        Seq("c_custkey"), Seq("o_custkey"), "left_outer").as[Recordfae560f231d8427dbb964481bbff76b3]
-
-      val x384 = x382
-
-
-      val x386 = x384.groupByKey(x385 => Record70e0c29dbe084736b94ab5d5f337509f(x385.c_acctbal, x385.c_name, x385.Customer_index, x385.c_nationkey, x385.c_custkey, x385.c_comment, x385.c_address, x385.c_mktsegment, x385.c_phone)).mapGroups {
-        case (key, value) =>
-          val grp = value.flatMap(x385 =>
-            (x385.o_parts, x385.o_comment, x385.o_custkey, x385.o_shippriority, x385.o_orderpriority, x385.o_orderdate, x385.o_orderstatus, x385.o_orderkey, x385.o_clerk, x385.o_totalprice) match {
-              case (None, _, _, _, _, _, _, _, _, _) => Seq()
-              case (_, None, _, _, _, _, _, _, _, _) => Seq()
-              case (_, _, None, _, _, _, _, _, _, _) => Seq()
-              case (_, _, _, None, _, _, _, _, _, _) => Seq()
-              case (_, _, _, _, None, _, _, _, _, _) => Seq()
-              case (_, _, _, _, _, None, _, _, _, _) => Seq()
-              case (_, _, _, _, _, _, None, _, _, _) => Seq()
-              case (_, _, _, _, _, _, _, None, _, _) => Seq()
-              case (_, _, _, _, _, _, _, _, None, _) => Seq()
-              case (_, _, _, _, _, _, _, _, _, None) => Seq()
-              case _ => Seq(Record6f474cf9f1434a18a0e1da6193e22130(x385.o_shippriority match { case Some(x) => x; case _ => 0 }, x385.o_orderdate match { case Some(x) => x; case _ => "null" }, x385.o_custkey match { case Some(x) => x; case _ => 0 }, x385.o_orderpriority match { case Some(x) => x; case _ => "null" }, x385.o_parts match { case Some(x) => x; case _ => null }, x385.o_clerk match { case Some(x) => x; case _ => "null" }, x385.o_orderstatus match { case Some(x) => x; case _ => "null" }, x385.o_totalprice match { case Some(x) => x; case _ => 0.0 }, x385.o_orderkey match { case Some(x) => x; case _ => 0 }, x385.o_comment match { case Some(x) => x; case _ => "null" }))
-            }).toSeq
-          Record00c257793c9a4d749aad1a51f23af8dd(key.c_acctbal, key.c_name, key.Customer_index, key.c_nationkey, key.c_custkey, key.c_comment, key.c_address, grp, key.c_mktsegment, key.c_phone)
-      }.as[Record00c257793c9a4d749aad1a51f23af8dd]
-
-      val x387 = x386
-      val Test2FullIn = x387
-
-
-      val x405 = Test2FullIn.flatMap { case x403 =>
-        x403.c_orders.map(x404 => Recordf071514c62c046c4a4f183bb484fa3ec(x403.c_name, x404.o_parts))
-      }.as[Recordf071514c62c046c4a4f183bb484fa3ec]
-
-      val x410 = x405.flatMap { case x406 =>
-        x406.o_parts.foldLeft(HashMap.empty[Recordd1050b4424f24794a99d04f1db5c17e2, Double].withDefaultValue(0.0))(
-          (acc, x407) => {
-            acc(Recordd1050b4424f24794a99d04f1db5c17e2(x406.c_name, x407.l_partkey)) += x407.l_quantity.asInstanceOf[Double];
-            acc
+        val x43 = x41.groupByKey(x42 => Recordc25d1a7bd0144fd7bf5e43dd49ea10e8(x42.o_shippriority, x42.Test1Full_index, x42.o_orderdate, x42.o_custkey, x42.o_orderpriority, x42.o_clerk, x42.o_orderstatus, x42.o_totalprice, x42.o_orderkey, x42.o_comment))
+          .agg(typed.sum[Record73c2cc0b4c35414eb667d009ae3da8fe](x42 => x42.subtotal)
+          ).mapPartitions { it =>
+          it.map { case (key, subtotal) =>
+            Record73c2cc0b4c35414eb667d009ae3da8fe(key.o_shippriority, key.Test1Full_index, key.o_orderdate, key.o_custkey, key.o_orderpriority, key.o_clerk, key.o_orderstatus, subtotal, key.o_totalprice, key.o_orderkey, key.o_comment)
           }
-        ).map(x407 => Recordda3d7afd6f8c47eaacb2fbcc0d70e830(x407._1.c_name, x407._2, x407._1.l_partkey))
+        }.as[Record73c2cc0b4c35414eb667d009ae3da8fe]
 
-      }.as[Recordda3d7afd6f8c47eaacb2fbcc0d70e830]
+        val x45 = x43
 
-      val x413 = x410.equiJoin(PartDF.as[Part],
-        Seq("l_partkey"), Seq("p_partkey"), "inner").as[Recordbc666a79818e4b99a54068a55af0777a]
 
-      val x415 = x413.select("c_name", "l_quantity", "p_retailprice")
-        .withColumn("total", (col("l_quantity") * col("p_retailprice")))
-        .withColumn("total", when(col("total").isNull, 0.0).otherwise(col("total")))
-        .as[Record18ad9a018fe7469f93c9237c44881d27]
+        val x47 = x45.groupByKey(x46 => Recordc25d1a7bd0144fd7bf5e43dd49ea10e8(x46.o_shippriority, x46.Test1Full_index, x46.o_orderdate, x46.o_custkey, x46.o_orderpriority, x46.o_clerk, x46.o_orderstatus, x46.o_totalprice, x46.o_orderkey, x46.o_comment)).mapGroups {
+          case (key, value) =>
+            val grp = value.flatMap(x46 =>
+              () match {
 
-      val x417 = x415.groupByKey(x416 => Record6a46d99a2a6545c891d52849ef40e630(x416.c_name))
-        .agg(typed.sum[Record18ad9a018fe7469f93c9237c44881d27](x416 => x416.total)
-        ).mapPartitions { it =>
-        it.map { case (key, total) =>
-          Record18ad9a018fe7469f93c9237c44881d27(key.c_name, total)
-        }
-      }.as[Record18ad9a018fe7469f93c9237c44881d27]
+                case _ => Seq(Record91be4c8e506d40439058f94358237cc2(x46.subtotal))
+              }).toSeq
+            Record26bdbe1096564c8f8349c356d2fc6b16(key.o_shippriority, key.Test1Full_index, key.o_orderdate, key.o_custkey, key.o_orderpriority, grp, key.o_clerk, key.o_orderstatus, key.o_totalprice, key.o_orderkey, key.o_comment)
+        }.as[Record26bdbe1096564c8f8349c356d2fc6b16]
 
-      val x418 = x417
-      x418.show(false)
-      x418.printSchema()
+        val x48 = x47
+        val step1 = x48
+        //step1.cache
+        //step1.count
+        val x53 = step1.flatMap { case x49 =>
+          x49.o_parts.foldLeft(HashMap.empty[Recordf90630f4fe07421282e845caa0d47b03, Double].withDefaultValue(0.0))(
+            (acc, x50) => {
+              acc(Recordf90630f4fe07421282e845caa0d47b03(x49.o_orderdate)) += x50.subtotal.asInstanceOf[Double];
+              acc
+            }
+          ).map(x50 => Record94a0c813d85b45b2b3e78db042571eae(x50._1.o_orderdate, x50._2))
+
+        }.as[Record94a0c813d85b45b2b3e78db042571eae]
+
+        val x55 = x53
+          .withColumnRenamed("subtotal", "total")
+          .withColumn("total", when(col("total").isNull, 0.0).otherwise(col("total")))
+          .as[Recordc3296abfbfd94296b30e3d1d7a69ce92]
+
+        val x57 = x55.groupByKey(x56 => Recordf90630f4fe07421282e845caa0d47b03(x56.o_orderdate))
+          .agg(typed.sum[Recordc3296abfbfd94296b30e3d1d7a69ce92](x56 => x56.total)
+          ).mapPartitions { it =>
+          it.map { case (key, total) =>
+            Recordc3296abfbfd94296b30e3d1d7a69ce92(key.o_orderdate, total)
+          }
+        }.as[Recordc3296abfbfd94296b30e3d1d7a69ce92]
+
+        val x58 = x57
+        x58.show(false)
+        x58.printSchema()
+      }
+
+      it("Test2Agg2") {
+        import spark.implicits._
+
+
+        val x363 = OrderDF
+
+
+        val x364 = x363.withColumn("Order_index", monotonically_increasing_id())
+          .as[Recordc5abf315da0b4414861961b21427e639]
+
+        val x366 = LineItemDF.as[Lineitem]
+
+
+        val x369 = x364.equiJoin(x366,
+          Seq("o_orderkey"), Seq("l_orderkey"), "left_outer").as[Recordfdb46d6882fe467297b851b46910b2bb]
+
+        val x371 = x369
+
+
+        val x373 = x371.groupByKey(x372 => Recordc5abf315da0b4414861961b21427e639(x372.o_shippriority, x372.o_orderdate, x372.o_custkey, x372.o_orderpriority, x372.Order_index, x372.o_clerk, x372.o_orderstatus, x372.o_totalprice, x372.o_orderkey, x372.o_comment)).mapGroups {
+          case (key, value) =>
+            val grp = value.flatMap(x372 =>
+              (x372.l_quantity, x372.l_shipinstruct, x372.l_extendedprice, x372.l_returnflag, x372.l_commitdate, x372.l_comment, x372.l_linestatus, x372.l_orderkey, x372.l_discount, x372.l_shipmode, x372.l_linenumber, x372.l_receiptdate, x372.l_tax, x372.l_partkey, x372.l_suppkey, x372.l_shipdate) match {
+                case (None, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) => Seq()
+                case (_, None, _, _, _, _, _, _, _, _, _, _, _, _, _, _) => Seq()
+                case (_, _, None, _, _, _, _, _, _, _, _, _, _, _, _, _) => Seq()
+                case (_, _, _, None, _, _, _, _, _, _, _, _, _, _, _, _) => Seq()
+                case (_, _, _, _, None, _, _, _, _, _, _, _, _, _, _, _) => Seq()
+                case (_, _, _, _, _, None, _, _, _, _, _, _, _, _, _, _) => Seq()
+                case (_, _, _, _, _, _, None, _, _, _, _, _, _, _, _, _) => Seq()
+                case (_, _, _, _, _, _, _, None, _, _, _, _, _, _, _, _) => Seq()
+                case (_, _, _, _, _, _, _, _, None, _, _, _, _, _, _, _) => Seq()
+                case (_, _, _, _, _, _, _, _, _, None, _, _, _, _, _, _) => Seq()
+                case (_, _, _, _, _, _, _, _, _, _, None, _, _, _, _, _) => Seq()
+                case (_, _, _, _, _, _, _, _, _, _, _, None, _, _, _, _) => Seq()
+                case (_, _, _, _, _, _, _, _, _, _, _, _, None, _, _, _) => Seq()
+                case (_, _, _, _, _, _, _, _, _, _, _, _, _, None, _, _) => Seq()
+                case (_, _, _, _, _, _, _, _, _, _, _, _, _, _, None, _) => Seq()
+                case (_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, None) => Seq()
+                case _ => Seq(Record1401a1a294e340e6b75d6d1a9fcacdf3(x372.l_returnflag match { case Some(x) => x; case _ => "null" }, x372.l_comment match { case Some(x) => x; case _ => "null" }, x372.l_linestatus match { case Some(x) => x; case _ => "null" }, x372.l_shipmode match { case Some(x) => x; case _ => "null" }, x372.l_shipinstruct match { case Some(x) => x; case _ => "null" }, x372.l_quantity match { case Some(x) => x; case _ => 0.0 }, x372.l_receiptdate match { case Some(x) => x; case _ => "null" }, x372.l_linenumber match { case Some(x) => x; case _ => 0 }, x372.l_tax match { case Some(x) => x; case _ => 0.0 }, x372.l_shipdate match { case Some(x) => x; case _ => "null" }, x372.l_extendedprice match { case Some(x) => x; case _ => 0.0 }, x372.l_partkey match { case Some(x) => x; case _ => 0 }, x372.l_discount match { case Some(x) => x; case _ => 0.0 }, x372.l_commitdate match { case Some(x) => x; case _ => "null" }, x372.l_suppkey match { case Some(x) => x; case _ => 0 }, x372.l_orderkey match { case Some(x) => x; case _ => 0 }))
+              }).toSeq
+            Record892ef1247c0f4b08a9961667a5ec9736(key.o_shippriority, key.o_orderdate, key.o_custkey, key.o_orderpriority, key.Order_index, grp, key.o_clerk, key.o_orderstatus, key.o_totalprice, key.o_orderkey, key.o_comment)
+        }.as[Record892ef1247c0f4b08a9961667a5ec9736]
+
+        val x374 = x373
+        val orders = x374
+
+        val x376 = CustomerDF
+
+
+        val x377 = x376.withColumn("Customer_index", monotonically_increasing_id())
+          .as[Record70e0c29dbe084736b94ab5d5f337509f]
+
+        val x379 = orders
+
+
+        val x382 = x377.equiJoin(x379,
+          Seq("c_custkey"), Seq("o_custkey"), "left_outer").as[Recordfae560f231d8427dbb964481bbff76b3]
+
+        val x384 = x382
+
+
+        val x386 = x384.groupByKey(x385 => Record70e0c29dbe084736b94ab5d5f337509f(x385.c_acctbal, x385.c_name, x385.Customer_index, x385.c_nationkey, x385.c_custkey, x385.c_comment, x385.c_address, x385.c_mktsegment, x385.c_phone)).mapGroups {
+          case (key, value) =>
+            val grp = value.flatMap(x385 =>
+              (x385.o_parts, x385.o_comment, x385.o_custkey, x385.o_shippriority, x385.o_orderpriority, x385.o_orderdate, x385.o_orderstatus, x385.o_orderkey, x385.o_clerk, x385.o_totalprice) match {
+                case (None, _, _, _, _, _, _, _, _, _) => Seq()
+                case (_, None, _, _, _, _, _, _, _, _) => Seq()
+                case (_, _, None, _, _, _, _, _, _, _) => Seq()
+                case (_, _, _, None, _, _, _, _, _, _) => Seq()
+                case (_, _, _, _, None, _, _, _, _, _) => Seq()
+                case (_, _, _, _, _, None, _, _, _, _) => Seq()
+                case (_, _, _, _, _, _, None, _, _, _) => Seq()
+                case (_, _, _, _, _, _, _, None, _, _) => Seq()
+                case (_, _, _, _, _, _, _, _, None, _) => Seq()
+                case (_, _, _, _, _, _, _, _, _, None) => Seq()
+                case _ => Seq(Record6f474cf9f1434a18a0e1da6193e22130(x385.o_shippriority match { case Some(x) => x; case _ => 0 }, x385.o_orderdate match { case Some(x) => x; case _ => "null" }, x385.o_custkey match { case Some(x) => x; case _ => 0 }, x385.o_orderpriority match { case Some(x) => x; case _ => "null" }, x385.o_parts match { case Some(x) => x; case _ => null }, x385.o_clerk match { case Some(x) => x; case _ => "null" }, x385.o_orderstatus match { case Some(x) => x; case _ => "null" }, x385.o_totalprice match { case Some(x) => x; case _ => 0.0 }, x385.o_orderkey match { case Some(x) => x; case _ => 0 }, x385.o_comment match { case Some(x) => x; case _ => "null" }))
+              }).toSeq
+            Record00c257793c9a4d749aad1a51f23af8dd(key.c_acctbal, key.c_name, key.Customer_index, key.c_nationkey, key.c_custkey, key.c_comment, key.c_address, grp, key.c_mktsegment, key.c_phone)
+        }.as[Record00c257793c9a4d749aad1a51f23af8dd]
+
+        val x387 = x386
+        val Test2FullIn = x387
+
+
+        val x405 = Test2FullIn.flatMap { case x403 =>
+          x403.c_orders.map(x404 => Recordf071514c62c046c4a4f183bb484fa3ec(x403.c_name, x404.o_parts))
+        }.as[Recordf071514c62c046c4a4f183bb484fa3ec]
+
+        val x410 = x405.flatMap { case x406 =>
+          x406.o_parts.foldLeft(HashMap.empty[Recordd1050b4424f24794a99d04f1db5c17e2, Double].withDefaultValue(0.0))(
+            (acc, x407) => {
+              acc(Recordd1050b4424f24794a99d04f1db5c17e2(x406.c_name, x407.l_partkey)) += x407.l_quantity.asInstanceOf[Double];
+              acc
+            }
+          ).map(x407 => Recordda3d7afd6f8c47eaacb2fbcc0d70e830(x407._1.c_name, x407._2, x407._1.l_partkey))
+
+        }.as[Recordda3d7afd6f8c47eaacb2fbcc0d70e830]
+
+        val x413 = x410.equiJoin(PartDF.as[Part],
+          Seq("l_partkey"), Seq("p_partkey"), "inner").as[Recordbc666a79818e4b99a54068a55af0777a]
+
+        val x415 = x413.select("c_name", "l_quantity", "p_retailprice")
+          .withColumn("total", (col("l_quantity") * col("p_retailprice")))
+          .withColumn("total", when(col("total").isNull, 0.0).otherwise(col("total")))
+          .as[Record18ad9a018fe7469f93c9237c44881d27]
+
+        val x417 = x415.groupByKey(x416 => Record6a46d99a2a6545c891d52849ef40e630(x416.c_name))
+          .agg(typed.sum[Record18ad9a018fe7469f93c9237c44881d27](x416 => x416.total)
+          ).mapPartitions { it =>
+          it.map { case (key, total) =>
+            Record18ad9a018fe7469f93c9237c44881d27(key.c_name, total)
+          }
+        }.as[Record18ad9a018fe7469f93c9237c44881d27]
+
+        val x418 = x417
+        x418.show(false)
+        x418.printSchema()
+      }
+
+      //    it("Test1Agg1") {
+      //      import spark.implicits._
+      //
+      //      val x18 = Test1Full.flatMap { case x14 =>
+      //        x14.o_parts.foldLeft(HashMap.empty[Recordc5c246937a1748b99480bb485044f7b6, Double].withDefaultValue(0.0))(
+      //          (acc, x15) => {
+      //            acc(Recordc5c246937a1748b99480bb485044f7b6(x14.o_orderdate, x15.l_partkey)) += x15.l_quantity.asInstanceOf[Double]; acc
+      //          }
+      //        ).map(x15 => Record8dd0378e7ca94b06aac0e061e650c623(x15._1.o_orderdate, x15._2, x15._1.l_partkey))
+      //
+      //      }.as[Record8dd0378e7ca94b06aac0e061e650c623]
+      //
+      //      val x21 = x18.equiJoin(Part,
+      //        Seq("l_partkey"), Seq("p_partkey"), "inner").as[Recordca3ca0c17eff492881a70852cae9c38a]
+      //
+      //      val x23 = x21.select("o_orderdate", "l_quantity", "p_retailprice")
+      //        .withColumn("total", (col("l_quantity") * col("p_retailprice")))
+      //        .withColumn("total", when(col("total").isNull, 0.0).otherwise(col("total")))
+      //        .as[Record2444e40ce12849a7b7a55450a3467447]
+      //
+      //      val x25 = x23.groupByKey(x24 => Recordfe39850b725d4bd19e771f16fe6e390e(x24.o_orderdate))
+      //        .agg(typed.sum[Record2444e40ce12849a7b7a55450a3467447](x24 => x24.total)
+      //        ).mapPartitions { it =>
+      //        it.map { case (key, total) =>
+      //          Record2444e40ce12849a7b7a55450a3467447(key.o_orderdate, total)
+      //        }
+      //      }.as[Record2444e40ce12849a7b7a55450a3467447]
+      //    }
     }
-
-    //    it("Test1Agg1") {
-    //      import spark.implicits._
-    //
-    //      val x18 = Test1Full.flatMap { case x14 =>
-    //        x14.o_parts.foldLeft(HashMap.empty[Recordc5c246937a1748b99480bb485044f7b6, Double].withDefaultValue(0.0))(
-    //          (acc, x15) => {
-    //            acc(Recordc5c246937a1748b99480bb485044f7b6(x14.o_orderdate, x15.l_partkey)) += x15.l_quantity.asInstanceOf[Double]; acc
-    //          }
-    //        ).map(x15 => Record8dd0378e7ca94b06aac0e061e650c623(x15._1.o_orderdate, x15._2, x15._1.l_partkey))
-    //
-    //      }.as[Record8dd0378e7ca94b06aac0e061e650c623]
-    //
-    //      val x21 = x18.equiJoin(Part,
-    //        Seq("l_partkey"), Seq("p_partkey"), "inner").as[Recordca3ca0c17eff492881a70852cae9c38a]
-    //
-    //      val x23 = x21.select("o_orderdate", "l_quantity", "p_retailprice")
-    //        .withColumn("total", (col("l_quantity") * col("p_retailprice")))
-    //        .withColumn("total", when(col("total").isNull, 0.0).otherwise(col("total")))
-    //        .as[Record2444e40ce12849a7b7a55450a3467447]
-    //
-    //      val x25 = x23.groupByKey(x24 => Recordfe39850b725d4bd19e771f16fe6e390e(x24.o_orderdate))
-    //        .agg(typed.sum[Record2444e40ce12849a7b7a55450a3467447](x24 => x24.total)
-    //        ).mapPartitions { it =>
-    //        it.map { case (key, total) =>
-    //          Record2444e40ce12849a7b7a55450a3467447(key.o_orderdate, total)
-    //        }
-    //      }.as[Record2444e40ce12849a7b7a55450a3467447]
-    //    }
-  }
 
   describe("Nested to Nested") {
     it("Test2NN") {

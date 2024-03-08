@@ -5,13 +5,12 @@ import org.apache.spark.sql.types.{ArrayType, DataType, IntegerType, StructField
 import scala.language.implicitConversions
 
 
-trait BaseRow extends Rep
-
 case class RepRow(vals: List[(String, Rep)]) extends Rep {
   def apply(n: String): Rep = vals.find(x => x._1 == n).get._2
 }
 
-case class RepSeq(rr: RepRow*) extends Rep
+trait TraversableRep extends Rep
+case class RepSeq(rr: RepRow*) extends TraversableRep
 
 object RepSeq {
   def empty: RepSeq = RepSeq()
@@ -26,19 +25,30 @@ object RepRow {
     RepRow(r.toList.flatMap {
       case s: RepProjection => Seq(s.name -> s)
       case (str: String, rep: Rep) => Seq(str -> rep)
-      case sym: Sym =>
+      case Sym(symID, schema: StructType, isUnnest) =>
 
-        val nestedStruct = sym.schema.asInstanceOf[StructType].fields.flatMap { g =>
-          unnestTypes(g.dataType, sym.isUnnest, g)
+        val nestedStruct = schema.fields.flatMap { g =>
+          unnestTypes(g.dataType, isUnnest, g)
         }
 
         val projectedSym = nestedStruct.flatMap { f =>
-          val newSym = Sym(sym.symID, f)
+          val newSym = Sym(symID, f)
           Seq(f.fields.head.name -> RepProjection(f.fields.head.name, newSym))
         }.toList
 
         projectedSym
+      case Sym(symID, schema: ArrayType, isUnnest) => // Nested array case from TestFN
 
+        val nestedStruct = schema.elementType.asInstanceOf[StructType].fields.flatMap { g =>
+          unnestTypes(g.dataType, isUnnest, g)
+        }
+
+        val projectedSym = nestedStruct.flatMap { f =>
+          val newSym = Sym(symID, f)
+          Seq(f.fields.head.name -> RepProjection(f.fields.head.name, newSym))
+        }.toList
+
+        projectedSym
       case e@_ => sys.error("Invalid Row Argument: " + e.getClass)
     })
   }
@@ -58,11 +68,19 @@ object RepRow {
   }
 }
 
-case class If(condition: Rep, thenBranch: Rep, elseBranch: Rep) extends Rep
+case class RowIfThenElse(condition: Rep, thenBranch: TraversableRep, elseBranch: TraversableRep) extends Rep
 
-object If {
-  def apply(cond: Rep)(thenBranch: Rep)(elseBranch: Rep): Rep = {
-    If(cond, thenBranch, elseBranch)
+object IfThenElse {
+  def apply(cond: Rep)(thenBranch: TraversableRep)(elseBranch: TraversableRep): Rep = {
+    RowIfThenElse(cond, thenBranch, elseBranch)
+  }
+}
+
+case class RowIfThen(condition: Rep, thenBranch: TraversableRep) extends TraversableRep
+
+object IfThen {
+  def apply(cond: Rep)(thenBranch: TraversableRep): RowIfThen = {
+    RowIfThen(cond, thenBranch)
   }
 }
 
@@ -118,7 +136,7 @@ case class RepProjection(name: String, r: Rep) extends BaseRepElem with WrappedC
     Map(this, fun)
   }
 
-  override def flatMap(f: Sym => Rep): WrappedCollection = {
+  override def flatMap(f: Sym => TraversableRep): WrappedCollection = {
     val symID = utilities.Symbol.fresh()
     val sym = Sym(symID, schema, true)
     val out = f(sym)

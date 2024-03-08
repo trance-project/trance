@@ -223,20 +223,133 @@ object TestDataframes {
     df
   }
 
+  // TODO array of primitive type doesnt convert to NRC Currently
   lazy val arrayTypeDataframe2: DataFrame = {
     val arrayStructureData = Seq(
-      Row("James, Smith", List("Java", "Scala", "C++"), "OH"),
-      Row("Michael, Rose", List("C#", "Java", "C++"), "NJ"),
-      Row("Robert, Williams", List("Go", "VB"), "NV")
+      Row("James, Smith", List(Row("Java"), Row("Scala")), "OH"),
+      Row("Michael, Rose", List(Row("C#"), Row("C")), "NJ"),
     )
     val arrayStructureSchema = new StructType()
       .add("name", StringType)
-      .add("language", ArrayType(StringType))
-      .add("currentState", StringType)
+      .add("languageClass", ArrayType(StructType(Seq(StructField("language", StringType)))))
     val df = spark.createDataFrame(
       spark.sparkContext.parallelize(arrayStructureData), arrayStructureSchema)
 
     df
+  }
+
+  lazy val Test2FullWithMultipleArrayTypes = {
+    val schema = StructType(Array(
+      StructField("c_acctbal", DoubleType, false),
+      StructField("c_name", StringType, true),
+      StructField("Customer_index", LongType, false),
+      StructField("c_nationkey", IntegerType, false),
+      StructField("c_custkey", IntegerType, false),
+      StructField("c_comment", StringType, true),
+      StructField("c_address", StringType, true),
+      StructField("c_orders", ArrayType(StructType(Array(
+        StructField("o_shippriority", IntegerType, false),
+        StructField("o_orderdate", StringType, true),
+        StructField("o_custkey", IntegerType, false),
+        StructField("o_orderpriority", StringType, true),
+        StructField("o_parts", ArrayType(StructType(Array(
+          StructField("l_returnflag", StringType, true),
+          StructField("l_comment", StringType, true),
+          StructField("l_linestatus", StringType, true),
+          StructField("l_shipmode", StringType, true),
+          StructField("l_shipinstruct", StringType, true),
+          StructField("l_quantity", DoubleType, false),
+          StructField("l_receiptdate", StringType, true),
+          StructField("l_linenumber", IntegerType, false),
+          StructField("l_tax", DoubleType, false),
+          StructField("l_shipdate", StringType, true),
+          StructField("l_extendedprice", DoubleType, false),
+          StructField("l_partkey", IntegerType, false),
+          StructField("l_discount", DoubleType, false),
+          StructField("l_commitdate", StringType, true),
+          StructField("l_suppkey", IntegerType, false),
+          StructField("l_orderkey", IntegerType, false)
+        )), true)),
+        StructField("o_clerk", StringType, true),
+        StructField("o_orderstatus", StringType, true),
+        StructField("o_totalprice", DoubleType, false),
+        StructField("o_orderkey", IntegerType, false),
+        StructField("o_comment", StringType, true)
+      )), true)),
+      StructField("c_mktsegment", StringType, true),
+      StructField("c_phone", StringType, true)
+    ))
+
+    val data = Seq(
+      Row(800.0, "Bob Johnson", 8589934593L, 3, 109, "Regular shopper", "789 Pine St", Array(), "Retail", "555-9876"),
+      Row(1000.0, "John Doe", 0L, 1, 101, "Good customer", "123 Main St", Array(
+        Row(1, "2022-01-01", 101, "High", Array(
+          Row("R", "Comment1", "Shipped", "Express", "Air", 10.5, "2022-01-03", 1, 0.05, "2022-01-01", 100.0, 101, 0.1, "2022-01-02", 201, 1),
+          Row("S", "Comment1.1", "Shipped", "Sea", "Surface", 15.0, "2022-01-04", 2, 0.07, "2022-01-02", 150.0, 102, 0.15, "2022-01-03", 202, 2)
+        ), "Clerk1", "Shipped", 1000.0, 1, "Comment1"),
+        Row(2, "2022-02-01", 102, "Medium", Array(
+          Row("N", "Comment2", "Pending", "Standard", "Ground", 20.5, "2022-02-03", 2, 0.1, "2022-02-01", 200.0, 2, 0.2, "2022-02-02", 202, 2),
+          Row("O", "Comment2.1", "Pending", "Rail", "Rail", 25.0, "2022-02-04", 3, 0.12, "2022-02-02", 250.0, 3, 0.25, "2022-02-03", 203, 3)
+        ), "Clerk2", "Pending", 2000.0, 2, "Comment2")
+      ), "Wholesale", "555-5678")
+    )
+
+    spark.createDataFrame(spark.sparkContext.parallelize(data), schema)
+  }
+
+  lazy val Test2FullWithMultipleArrayTypesLessRows = {
+    val schema = StructType(Array(
+      StructField("c_acctbal", DoubleType, false),
+      StructField("c_name", StringType, true),
+      StructField("Customer_index", LongType, false),
+      StructField("c_nationkey", IntegerType, false),
+      StructField("c_custkey", IntegerType, false),
+      StructField("c_comment", StringType, true),
+      StructField("c_address", StringType, true),
+      StructField("c_orders", ArrayType(StructType(Array(
+        StructField("o_shippriority", IntegerType, false),
+        StructField("o_orderdate", StringType, true),
+        StructField("o_custkey", IntegerType, false),
+        StructField("o_orderpriority", StringType, true),
+        StructField("o_parts", ArrayType(StructType(Array(
+          StructField("l_returnflag", StringType, true),
+          StructField("l_comment", StringType, true),
+          StructField("l_linestatus", StringType, true),
+          StructField("l_shipmode", StringType, true),
+          StructField("l_shipinstruct", StringType, true),
+          StructField("l_quantity", DoubleType, false),
+          StructField("l_receiptdate", StringType, true),
+          StructField("l_linenumber", IntegerType, false),
+          StructField("l_tax", DoubleType, false),
+          StructField("l_shipdate", StringType, true),
+          StructField("l_extendedprice", DoubleType, false),
+          StructField("l_partkey", IntegerType, false),
+          StructField("l_discount", DoubleType, false),
+          StructField("l_commitdate", StringType, true),
+          StructField("l_suppkey", IntegerType, false),
+          StructField("l_orderkey", IntegerType, false)
+        )), true)),
+        StructField("o_clerk", StringType, true),
+        StructField("o_orderstatus", StringType, true),
+        StructField("o_totalprice", DoubleType, false),
+        StructField("o_orderkey", IntegerType, false),
+        StructField("o_comment", StringType, true)
+      )), true)),
+      StructField("c_mktsegment", StringType, true),
+      StructField("c_phone", StringType, true)
+    ))
+
+    val data = Seq(
+      Row(800.0, "Bob Johnson", 8589934593L, 3, 109, "Regular shopper", "789 Pine St", Array(), "Retail", "555-9876"),
+      Row(1000.0, "John Doe", 0L, 1, 101, "Good customer", "123 Main St", Array(
+        Row(1, "2022-01-01", 101, "High", Array(
+          Row("R", "Comment1", "Shipped", "Express", "Air", 10.5, "2022-01-03", 1, 0.05, "2022-01-01", 100.0, 101, 0.1, "2022-01-02", 201, 1),
+          Row("S", "Comment1.1", "Shipped", "Sea", "Surface", 15.0, "2022-01-04", 2, 0.07, "2022-01-02", 150.0, 102, 0.15, "2022-01-03", 202, 2)
+        ), "Clerk1", "Shipped", 1000.0, 1, "Comment1"),
+      ), "Wholesale", "555-5678")
+    )
+
+    spark.createDataFrame(spark.sparkContext.parallelize(data), schema)
   }
 
 }

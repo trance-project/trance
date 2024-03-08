@@ -5,10 +5,9 @@ import org.apache.spark.sql.types.StructType
 
 trait Operation extends WrappedCollection
 
-case class Map(self: WrappedCollection, f: Fun) extends Operation
+case class Map(self: WrappedCollection, f: Fun) extends Operation with TraversableRep
 
-// FLatMap Fun output -> WrappedCollection
-case class FlatMap(self: WrappedCollection, f: Fun) extends Operation
+case class FlatMap(self: WrappedCollection, f: Fun) extends Operation with TraversableRep
 
 case class Merge(d1: WrappedCollection, d2: WrappedCollection) extends Operation
 

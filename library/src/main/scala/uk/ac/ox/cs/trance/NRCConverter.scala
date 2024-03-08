@@ -3,7 +3,7 @@ package uk.ac.ox.cs.trance
 import framework.common._
 import framework.nrc.NRC
 import framework.plans.NRCTranslator
-import org.apache.spark.sql.types.{DataType, DateType, StructField, StructType, ArrayType => SparkArrayType}
+import org.apache.spark.sql.types.{DataType, DateType, StructField, StructType, ArrayType}
 import org.apache.spark.sql.{DataFrame, types}
 
 import scala.collection.immutable.{Map => IMap}
@@ -38,6 +38,7 @@ object NRCConverter extends NRCTranslator {
       val k = in.asInstanceOf[Sym].symID -> tvr
 
       val output = toNRC(out, env + k)
+
       val flatMapOutput = output match {
         case t: TupleExpr => ForeachUnion(tvr, c1, Singleton(t))
         case b: BagExpr => ForeachUnion(tvr, c1, b)
@@ -71,12 +72,23 @@ object NRCConverter extends NRCTranslator {
       val k = cols.map(z => sparkAliasing(z) -> translateColumn(z, map))
       val out = Tuple(k.map(f => f._1 -> prepareSelectOutput(f._2).asInstanceOf[TupleAttributeExpr]).toMap)
       ForeachUnion(tvr, c1, Singleton(out))
-    //TODO - Reimplementation needed
-    //    case Drop(e, cols) =>
-    //      DropContext.addField(cols: _*)
-    //      val expr = toNRC(e, env).asInstanceOf[BagExpr]
-    //      val tvr = TupleVarRef(utilities.Symbol.fresh(), expr.tp.tp)
-    //      ForeachUnion(tvr, expr, Singleton(Tuple(unnestBagExpr(expr).diff(DropContext.getDropFields).map(f => f -> PrimitiveProject(tvr, f)).toMap)))
+    case Drop(e, cols) =>
+      val expr = toNRC(e, env).asInstanceOf[BagExpr]
+      val tvr = TupleVarRef(utilities.Symbol.fresh(), expr.tp.tp)
+
+
+      val outputSingleton = extractOutputSingleton(expr)
+
+      val updatedOutput = outputSingleton.fields.filterNot{ case (key, _) => cols.contains(key)}
+
+      cols.foreach { col =>
+        if (!expr.tp.tp.attrTps.contains(col)) sys.error(s"Cannot drop $col column as it is not present in the collection: " + expr.tp.tp)
+      }
+
+      val filteredMap = expr.tp.tp.attrTps.filterNot { case (key, _) => cols.contains(key) }
+      val outputTvr = TupleVarRef(utilities.Symbol.fresh(), TupleType(filteredMap))
+
+      ForeachUnion(tvr, expr, Singleton(Tuple(updatedOutput)))
     case Reduce(e, cols, fields) =>
       val expr = toNRC(e, env).asInstanceOf[BagExpr]
       ReduceByKey(expr, cols, fields)
@@ -118,7 +130,7 @@ object NRCConverter extends NRCTranslator {
       ArithmeticExpr(OpMod, c1, c2)
     case Literal(e) => Const(e, getPrimitiveType(e))
     case RowLiteral(e) => Const(e, getPrimitiveType(e))
-    case If(condition, thenBranch, elseBranch) =>
+    case RowIfThenElse(condition, thenBranch, elseBranch) =>
       val c1 = toNRC(condition, env).asCond
       val outputResult = toNRC(thenBranch, env)
       val outputOfIf = outputResult match {
@@ -129,6 +141,16 @@ object NRCConverter extends NRCTranslator {
         case f: ForeachUnion => IfThenElse(c1, f)
         case s: Singleton => IfThenElse(c1, s)
 //        case i: IfThenElse => IfThenElse(c1, i)
+      }
+      outputOfIf
+    case RowIfThen(condition, thenBranch) =>
+      val c1 = toNRC(condition, env).asCond
+      val outputResult = toNRC(thenBranch, env)
+      val outputOfIf = outputResult match {
+        // TODO handle all possible If types
+        case t: Tuple => IfThenElse(c1, Singleton(t))
+        case f: ForeachUnion => IfThenElse(c1, f)
+        case s: Singleton => IfThenElse(c1, s)
       }
       outputOfIf
     case GreaterThan(lhs, rhs) =>
@@ -211,6 +233,13 @@ object NRCConverter extends NRCTranslator {
       TupleType(tt)
   }
 
+  // For drop
+  private def extractOutputSingleton(expr: Expr): Tuple = expr match {
+    case Singleton(tuple) => tuple.asInstanceOf[Tuple]
+    case ForeachUnion(x, e1 ,e2) => extractOutputSingleton(e2)
+    case BagIfThenElse(cond, e1 ,e2) => extractOutputSingleton(e1) // Handle if it is the else branch
+  }
+
   /**
    * This method is called during flatMap & map when the output schema has different column names from the input schema
    */
@@ -233,7 +262,8 @@ object NRCConverter extends NRCTranslator {
     case RepElem(name, _) => name
     case RepProjection(name, _) => name
     case Add(e1, e2) => getRepElemName(e1)
-    case If(e1, e2, e3) => getRepElemName(e2)
+    case RowIfThenElse(e1, e2, e3) => getRepElemName(e2)
+    case RowIfThen(cond, e1) => getRepElemName(e1)
     case GreaterThan(e1, e2) => getRepElemName(e1)
     case Mod(e1, e2) => getRepElemName(e1)
     case Sub(e1, e2) => getRepElemName(e1)
@@ -262,7 +292,7 @@ object NRCConverter extends NRCTranslator {
 
   def typeToNRCType(s: DataType): TupleAttributeType = s match {
     case structType: StructType => TupleType(structType.fields.map(f => f.name -> typeToNRCType(f.dataType)).toMap)
-    case SparkArrayType(e, _) => BagType(typeToNRCType(e).asInstanceOf[TupleType])
+    case a@ ArrayType(e, _) => BagType(typeToNRCType(e).asInstanceOf[TupleType])
     case types.StringType => StringType
     case types.IntegerType => IntType
     case types.LongType => LongType

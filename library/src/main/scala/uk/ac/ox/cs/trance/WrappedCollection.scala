@@ -9,7 +9,7 @@ import uk.ac.ox.cs.trance.utilities.JoinContext
 
 import scala.collection.immutable.{Map => IMap}
 
-trait WrappedCollection extends Rep with NRCTranslator {
+trait WrappedCollection extends TraversableRep with NRCTranslator {
 
   /**
    * The constructor for WrappedDataframe is made to mimic Spark's [[Column]] syntax. <br>
@@ -35,11 +35,12 @@ trait WrappedCollection extends Rep with NRCTranslator {
     case fn: Fun => getSchema(fn.out)
     case rp: RepProjection => getSchema(rp.r) match {
       case s: StructType =>
-        val outGoingRepProjection = StructType(Seq(s(rp.name)))
+        val outGoingRepProjection = s(rp.name).dataType
         outGoingRepProjection
       case _ => sys.error("Incorrect type")
     }
-    case i: If => getSchema(i.thenBranch) // TODO handle else branch too
+    case RowIfThen(_, e1) => getSchema(e1)
+    case RowIfThenElse(_, e1, e2) => getSchema(e1)
     case e: Equality => null // TODO - handle
     case RepRow(vals) =>
       StructType(vals.map(x => StructField(x._1, x._2 match {
@@ -48,10 +49,10 @@ trait WrappedCollection extends Rep with NRCTranslator {
       })))
     case RepSeq(rr@_*) if rr.nonEmpty =>
       SparkArrayType(getSchema(rr.head))
+    case Drop(e1, _) => getSchema(e1)
     case m: MathCol => getSchema(m.rhs) // TODO - How can we handle naming with MathCol
 
   }
-
 
   def map(f: Sym => Rep): WrappedCollection =  {
       val symID = utilities.Symbol.fresh()
@@ -61,19 +62,7 @@ trait WrappedCollection extends Rep with NRCTranslator {
       Map(this, fun)
   }
 
-
-
-
-  // x: Sym
-  // x('users') --> RepProjection("users", x)
-  // RepRow( 'users' -> ..., 'lang' -> ... )("users") --> RepProject("users", RepRow(...))
-  // toNRC:
-  //  case s: Sym => TupleVarRef(s.name, s.type)
-  //  case p: RepProjection =>
-  //    val exp = convert2NRC(p.exp)
-  //    Project(exp, p.name)
-
-  def flatMap(f: Sym => Rep): WrappedCollection = {
+  def flatMap(f: Sym => TraversableRep): WrappedCollection = {
     val symID = utilities.Symbol.fresh()
       val sym = Sym(symID, schema)
       val out = f(sym)
@@ -223,7 +212,8 @@ trait WrappedCollection extends Rep with NRCTranslator {
     case As(e1, _) => getCtx(e1)
     case _: RepElem => IMap.empty
     case rp: RepProjection => getCtx(rp.r)
-    case If(_, e1, e2) => getCtx(e1) ++ getCtx(e2)
+    case RowIfThenElse(_, e1, e2) => getCtx(e1) ++ getCtx(e2)
+    case RowIfThen(_, e1) => getCtx(e1)
     case Equality(e1, e2) => getCtx(e1) ++ getCtx(e2)
     case Filter(e1, _) => getCtx(e1)
     case m: MathCol => getCtx(m.lhs) ++ getCtx(m.rhs)

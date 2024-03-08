@@ -245,9 +245,9 @@ lazy val MixedCOP: DataFrame = {
     )
 
     val data = Seq(
-      Row(1, 101, 201, 1, 10.5, 100.0, 0.1, 0.05, "R", "Shipped", "2022-01-01", "2022-01-02", "2022-01-03", "Air", "Express", "Comment1", 1001L),
-      Row(2, 2, 202, 2, 20.5, 200.0, 0.2, 0.1, "N", "Pending", "2022-02-01", "2022-02-02", "2022-02-03", "Ground", "Standard", "Comment2", 1002L),
-      Row(3, 103, 203, 3, 30.5, 300.0, 0.3, 0.15, "Y", "Shipped", "2022-03-01", "2022-03-02", "2022-03-03", "Sea", "Express", "Comment3", 1003L))
+      Row(1, 101, 201, 1, 10.5, 100.0, 0.1, 0.05, "R", "Shipped", "2022-01-01", "2022-01-02", "2022-01-03", "Air", "Express", "Comment1", 1L),
+      Row(2, 2, 202, 2, 20.5, 200.0, 0.2, 0.1, "N", "Pending", "2022-02-01", "2022-02-02", "2022-02-03", "Ground", "Standard", "Comment2", 2L),
+      Row(3, 103, 203, 3, 30.5, 300.0, 0.3, 0.15, "Y", "Shipped", "2022-03-01", "2022-03-02", "2022-03-03", "Sea", "Express", "Comment3", 3L))
 
     spark.createDataFrame(spark.sparkContext.parallelize(data), lineitemSchema)
   }
@@ -300,16 +300,56 @@ lazy val MixedCOP: DataFrame = {
       StructField("n_name", StringType, nullable = false),
       StructField("n_regionkey", IntegerType, nullable = false),
       StructField("n_comment", StringType, nullable = false),
-      StructField("uniqueId", LongType, nullable = false)
     ))
 
     val data = Seq(
-      Row(1, "Nation1", 1, "Comment1", 1L),
-      Row(2, "Nation2", 2, "Comment2", 2L),
-      Row(3, "Nation3", 3, "Comment3", 3L)
+      Row(1, "Nation1", 1, "Comment1"),
+      Row(2, "Nation2", 2, "Comment2"),
+      Row(3, "Nation3", 3, "Comment3")
     )
 
     spark.createDataFrame(spark.sparkContext.parallelize(data), nationSchema)
 
   }
+
+  lazy val Region: DataFrame = {
+    val regionSchema = StructType(Seq(
+      StructField("r_regionkey", IntegerType, nullable = false),
+      StructField("r_name", StringType, nullable = false),
+      StructField("r_comment", StringType, nullable = false)
+    ))
+
+    val data = Seq(
+      Row(1, "Region A", "First region comment"),
+      Row(2, "Region B", "Second region comment"),
+      Row(3, "Region C", "Third region comment"),
+      Row(4, "Region D", "Fourth region comment"),
+      Row(5, "Region E", "Fifth region comment")
+    )
+
+    spark.createDataFrame(spark.sparkContext.parallelize(data), regionSchema)
+  }
+
+  lazy val Supplier: DataFrame = {
+    val supplierSchema = StructType(Seq(
+      StructField("s_suppkey", IntegerType, nullable = false),
+      StructField("s_name", StringType, nullable = false),
+      StructField("s_address", StringType, nullable = false),
+      StructField("s_nationkey", IntegerType, nullable = false),
+      StructField("s_phone", StringType, nullable = false),
+      StructField("s_acctbal", DoubleType, nullable = false),
+      StructField("s_comment", StringType, nullable = false)
+    ))
+
+    val data = Seq(
+      Row(1, "Supplier A", "123 Supply St", 1, "555-1111", 10000.50, "Excellent service"),
+      Row(2, "Supplier B", "456 Supply Ave", 2, "555-2222", 15000.75, "Reliable and prompt"),
+      Row(3, "Supplier C", "789 Supply Blvd", 3, "555-3333", 20000.00, "High-quality products"),
+      Row(4, "Supplier D", "101 Supply Ln", 4, "555-4444", 25000.25, "Wide range of products"),
+      Row(5, "Supplier E", "202 Supply Dr", 5, "555-5555", 30000.50, "Friendly and helpful staff")
+    )
+
+    spark.createDataFrame(spark.sparkContext.parallelize(data), supplierSchema)
+  }
+
 }
