@@ -2,15 +2,13 @@ package uk.ac.ox.cs.trance.utilities
 
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.sql.types.{ArrayType, DateType, DoubleType, IntegerType, LongType, StringType, StructField, StructType}
+import uk.ac.ox.cs.trance.utilities.SparkUtil.getSparkSession
 
 import java.sql.Date
 
 object TPCHDataframes {
 
-  val spark: SparkSession = SparkSession.builder
-    .appName("TPCHDataframes")
-    .master("local[2]")
-    .getOrCreate()
+  val spark: SparkSession = getSparkSession
 
   lazy val COP: DataFrame = {
     val inputSchema: StructType = StructType(Seq(

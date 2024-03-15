@@ -211,6 +211,11 @@ object Unnester {
     case s @ If(cnd, Sng(t @ Record(fs)), nextIf) =>
       handleLevel(fs, x => If(cnd, Sng(x), nextIf))((u, w, E, tag))
 
+    // Fix for nested If Bug
+
+    case If(cnd, Sng(Sng(Record(fs))), nextIf) =>
+      handleLevel(fs, x => If(cnd, Sng(x), nextIf))((u, w, E, tag))
+
     case s @ Sng(t @ Record(fs)) if !w.isEmpty =>
       handleLevel(fs, identity)((u, w, E, tag))
 

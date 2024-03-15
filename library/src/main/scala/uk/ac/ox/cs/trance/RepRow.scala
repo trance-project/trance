@@ -7,6 +7,14 @@ import scala.language.implicitConversions
 
 case class RepRow(vals: List[(String, Rep)]) extends Rep {
   def apply(n: String): Rep = vals.find(x => x._1 == n).get._2
+
+  def omit(field: String*) = {
+
+    if (!field.exists(f => this.vals.exists(_._1 == f))) {
+      throw new IllegalArgumentException("Omit field not present in row")
+    }
+    RepRow(this.vals.filterNot(f => field.contains(f._1)))
+  }
 }
 
 trait TraversableRep extends Rep
@@ -55,6 +63,7 @@ object RepRow {
 
   def empty: RepRow = RepRow(List.empty)
 
+
   private def unnestTypes(d: DataType, isUnnest: Boolean, g: StructField): Iterable[StructType] = d match {
     case a: ArrayType => unnestTypes(a.elementType, isUnnest, g)
     case s: StructType => if (!isUnnest) {
@@ -99,6 +108,12 @@ case class Sym(symID: String, schema: DataType, isUnnest: Boolean = false) exten
     r
   }
 
+//  def omit(field: String): RepProjection = {
+//    val field = findStructField(this.schema, row).getOrElse(sys.error("No Struct Field: " + row + " available in " + this.schema))
+//    val r = RepProjection(row, Sym(symID, StructType(Seq(field))))
+//    r
+//  }
+
   private def findStructField(dataType: DataType, targetName: String): Option[StructField] = dataType match {
     case structType: StructType =>
       structType.fields.foldLeft(Option.empty[StructField]) { (acc, field) =>
@@ -136,7 +151,7 @@ case class RepProjection(name: String, r: Rep) extends BaseRepElem with WrappedC
     Map(this, fun)
   }
 
-  override def flatMap(f: Sym => TraversableRep): WrappedCollection = {
+  override def flatMap(f: Sym => TraversableRep): FlatMap = {
     val symID = utilities.Symbol.fresh()
     val sym = Sym(symID, schema, true)
     val out = f(sym)

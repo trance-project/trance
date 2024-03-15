@@ -1,19 +1,15 @@
 package uk.ac.ox.cs.trance
 
 import uk.ac.ox.cs.trance.utilities.SparkUtil.getSparkSession
-import framework.common.{ArrayCType, ArrayType, BagCType, BagType, BoolType, DoubleType, IntType, LongType, OpArithmetic, OpDivide, OpMinus, OpMod, OpMultiply, OpPlus, OptionType, PrimitiveType, RecordCType, StringType, TupleAttributeType, TupleType, Type}
+import framework.common.{BagCType, BagType, BoolType, DoubleType, IntType, LongType, OpArithmetic, OpDivide, OpMinus, OpMod, OpMultiply, OpPlus, OptionType, PrimitiveType, RecordCType, StringType, TupleAttributeType, TupleType, Type}
 import framework.plans.{AddIndex, And, CDeDup, CExpr, COption, CUdf, Comprehension, Constant, EmptySng, Equals, Gt, Gte, InputRef, Lt, Lte, MathOp, Nest, Not, Or, OuterJoin, OuterUnnest, Projection, Record, RemoveNulls, Unnest, Variable, If => CIf, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.{BinaryOperator, EqualTo, Expression, GenericRow, GenericRowWithSchema, And => SparkAnd, GreaterThan => SparkGreaterThan, GreaterThanOrEqual => SparkGreaterThanOrEqual, LessThan => SparkLessThan, LessThanOrEqual => SparkLessThanOrEqual, Literal => SparkLiteral, Not => SparkNot, Or => SparkOr}
-import org.apache.spark.sql.functions.{col, collect_list, expr, monotonically_increasing_id}
-import org.apache.spark.sql.types.{DataType, DataTypes, StructField, StructType, ArrayType => SparkArrayType}
+import org.apache.spark.sql.functions.{array, col, collect_list, expr, lit, monotonically_increasing_id, struct, when}
+import org.apache.spark.sql.types.{ArrayType, DataType, DataTypes, StructField, StructType}
 import org.apache.spark.sql.{Column, DataFrame, Dataset, Encoder, Row, functions, types}
-import uk.ac.ox.cs.trance.PlanConverter.getProjectionBinding
-
-import java.io.{ByteArrayOutputStream, ObjectOutputStream}
 import scala.annotation.tailrec
 import scala.collection.immutable.{Map => IMap}
-import uk.ac.ox.cs.trance.utilities.SkewDataset
 
 import scala.collection.mutable
 import scala.reflect.ClassTag
@@ -27,78 +23,47 @@ object PlanConverter {
    */
 
   def convert[T](cExpr: CExpr, ctx: IMap[String, Any]): T = cExpr match {
-    case prj @ Projection(e1, v, p, fields) =>
+    case Projection(e1, v, p, fields) =>
       val outputSchema = createStructFields(p, false)
       val c1 = convert(e1, ctx).asInstanceOf[DataFrame]
 
       val l = c1.flatMap { z =>
         convert(p, ctx ++ getProjectionBinding(p, z)).asInstanceOf[Seq[Row]]
       }(RowEncoder.apply(outputSchema))
+
       l.asInstanceOf[T]
-    case n @ Nest(in, v, key, value, filter, nulls, ctag) =>
+    case Nest(in, v, key, value, filter, nulls, ctag) =>
       val c1 = convert(in, ctx).asInstanceOf[DataFrame]
 
-      val outputSchema = if (in.isInstanceOf[Nest]) createStructFields(value, true) else createStructFields(value)
+      val commonKey = "rowId"
+      val updatedC1WithId = c1.withColumn(commonKey, monotonically_increasing_id())
 
-//      val testL = convert(value, ctx ++ getProjectionBinding(value, c1.head())).asInstanceOf[Seq[Row]]
 
-      c1.show(false)
+      val valueWithMonotonicId = addMonotonicId(commonKey, value, v)
+      val outputSchema = createStructFields(valueWithMonotonicId)
 
-//      val l = c1.flatMap { z =>
-//        convert(value, ctx ++ getProjectionBinding(value, z)).asInstanceOf[Seq[Row]]
-//      }(RowEncoder.apply(outputSchema))
-//
-//      l.show(false)
+      val l = updatedC1WithId.flatMap { z =>
+        convert(valueWithMonotonicId, ctx ++ getProjectionBinding(valueWithMonotonicId, z)).asInstanceOf[Seq[Row]]
+      }(RowEncoder.apply(outputSchema))
 
-      // TODO handle non Project Record entries.
-      val renameMappings: IMap[String, String] = value.asInstanceOf[Record].fields.map(f => f._2.asInstanceOf[CProject].field -> f._1)
-      val updatedC1 = renameMappings.foldLeft(c1) { (df, names) =>
-        df.withColumnRenamed(names._1, names._2)
-      }
+      val nestingCols = unnestRecord(value).fields.map(f => col(f._1)).toSeq
 
-      updatedC1.show(false)
+      val updatedC1WithIdAndDroppedCols = updatedC1WithId.drop(nestingCols.map(_.toString()): _*)
 
-//      val uniqueIDDf = updatedC1.select("uniqueId")
-//
-//      uniqueIDDf.show(false)
-      val nestingCols = value.asInstanceOf[Record].fields.map(f => col(f._1)).toSeq
+      val joinedDf = updatedC1WithIdAndDroppedCols.join(l, l.col(commonKey) === updatedC1WithIdAndDroppedCols.col(commonKey), "left_outer")
+
+      val structExpr = when(nestingCols.head.isNotNull && nestingCols(1).isNotNull, struct(nestingCols: _*)) // TODO Refine this
+
+
       val groupByKeys = key.map(col)
-      val sf = updatedC1.groupBy(groupByKeys:_*).agg(collect_list(functions.struct(nestingCols:_*)).as(ctag))
+      val sf = joinedDf
+        .groupBy(groupByKeys: _*)
+        .agg(collect_list(structExpr).as(ctag))
 
-//      sf.show(false)
-//      sf.printSchema()
 
-    sf.asInstanceOf[T]
-
-//
-
-//
-//      l.show(false)
-//
-//      val lColumns = l.columns.map(col)
-//
-//      val t = functions.array(functions.struct(lColumns: _*))
-//
-//      val updatedL = l.withColumn(ctag, t)
-//
-//
-//      val updatedLWithId = updatedL.withColumn("rowId", monotonically_increasing_id())
-//      val updatedC1WithId = c1.withColumn("rowId", monotonically_increasing_id())
-//      val joinedDf = updatedC1WithId.join(updatedLWithId, "rowId")
-//
-//    joinedDf.asInstanceOf[T]
-//    case u @ Unnest(in, v, path, v2, filter, fields) =>
-//      val c1 = convert(in, ctx).asInstanceOf[DataFrame]
-//
-//      val cols = u.nextAttrs.keys.map(f => f -> col(path + "." + f)).toMap
-//      val unnestingProcess = c1.withColumns(cols)
-//
-//      unnestingProcess.asInstanceOf[T]
-//      //TODO case OuterUnnest is the same as case Unnest
-    case u @ Unnest(in, v, path, v2, filter, fields) => // New way
+      sf.asInstanceOf[T]
+    case u@Unnest(in, v, path, v2, filter, fields) => // New way
       val c1 = convert(in, ctx).asInstanceOf[DataFrame]
-
-//      c1.show(false)
 
       var transformedDf = c1
 
@@ -107,57 +72,27 @@ object PlanConverter {
       cols.foreach { column =>
         transformedDf = transformedDf.withColumn(s"${column._1}", functions.explode(column._2)).drop(column._2)
       }
-
-//      transformedDf.show(true)
       transformedDf.asInstanceOf[T]
-    case o @ OuterUnnest(in, v, path, v2, filter, fields) =>
+    case o@OuterUnnest(in, v, path, v2, filter, fields) =>
       val c1 = convert(in, ctx).asInstanceOf[DataFrame]
 
       var transformedDf = c1
-      var intermediateDf = c1
 
       val cols = o.nextAttrs.map(f => f._1 -> col(path + "." + f._1))
 
-
-//      transformedDf = transformedDf.withColumn(path, functions.explode_outer(col(path)))
-//      transformedDf.show(false)
-//      transformedDf.printSchema()
-
-      cols.foreach{ column =>
+      cols.foreach { column =>
         transformedDf = transformedDf.withColumn(s"${column._1}", functions.explode_outer(column._2))
         println("exploding: " + column._2 + " rowCount: " + transformedDf.count())
       }
-//      intermediateDf = intermediateDf.withColumn()
 
-
-//      transformedDf.show(true)
-
-//      c1.show(false)
-//      c1.printSchema()
-
-//      val unnestingProcess = c1.withColumns(cols).drop(path)
-//
-//
-//      unnestingProcess.show(false)
-//      unnestingProcess.printSchema()
-//
-//      val testSchema = unnestingProcess.schema
-//
-//      unnestingProcess.asInstanceOf[T]
-    transformedDf.asInstanceOf[T]
+      transformedDf.asInstanceOf[T]
     case OuterJoin(left, v, right, v2, cond, fields) =>
       val i1 = convert(left, ctx).asInstanceOf[DataFrame]
       val i2 = convert(right, ctx).asInstanceOf[DataFrame]
 
-
-      i1.show(false)
-      i2.show(false)
-
       val c = toSparkCond(cond)
 
       val joined = i1.join(i2, c, "left_outer")
-
-      joined.show(false)
 
       joined.asInstanceOf[T]
     case CJoin(left, v, right, v2, cond, fields) =>
@@ -170,25 +105,25 @@ object PlanConverter {
       handleSelfJoinColumns(joined).asInstanceOf[T]
     case CMerge(e1, e2) =>
       // This has issues with the generic type as a pattern matching case, hence the use of if/else if
-      if(convert(e1, ctx).isInstanceOf[DataFrame] && convert(e2, ctx).isInstanceOf[DataFrame]) {
+      if (convert(e1, ctx).isInstanceOf[DataFrame] && convert(e2, ctx).isInstanceOf[DataFrame]) {
         val d1 = convert(e1, ctx).asInstanceOf[DataFrame]
         val d2 = convert(e2, ctx).asInstanceOf[DataFrame]
         d1.union(d2).asInstanceOf[T]
       }
-      else if(convert(e1, ctx).isInstanceOf[Row] && convert(e2, ctx).isInstanceOf[Row]) {
+      else if (convert(e1, ctx).isInstanceOf[Row] && convert(e2, ctx).isInstanceOf[Row]) {
         val r1 = convert(e1, ctx).asInstanceOf[Row]
         val r2 = convert(e2, ctx).asInstanceOf[Row]
         Seq(r1, r2).asInstanceOf[T]
       }
-      else if(convert(e1, ctx).isInstanceOf[Seq[Row]] && convert(e2, ctx).isInstanceOf[Seq[Row]]) {
+      else if (convert(e1, ctx).isInstanceOf[Seq[Row]] && convert(e2, ctx).isInstanceOf[Seq[Row]]) {
         val r1 = convert(e1, ctx).asInstanceOf[Seq[Row]]
         val r2 = convert(e2, ctx).asInstanceOf[Seq[Row]]
-        (r1++r2).asInstanceOf[T]
+        (r1 ++ r2).asInstanceOf[T]
       }
-      else if(convert(e1, ctx).isInstanceOf[Seq[Row]] && convert(e2, ctx).isInstanceOf[Row]) {
+      else if (convert(e1, ctx).isInstanceOf[Seq[Row]] && convert(e2, ctx).isInstanceOf[Row]) {
         val r1 = convert(e1, ctx).asInstanceOf[Seq[Row]]
         val r2 = convert(e2, ctx).asInstanceOf[Row]
-        (r1++Seq(r2)).asInstanceOf[T]
+        (r1 ++ Seq(r2)).asInstanceOf[T]
       }
       else {
         sys.error("Invalid Merge")
@@ -214,7 +149,7 @@ object PlanConverter {
       }
       c1.asInstanceOf[T]
     case Variable(name, tp) =>
-      val c =  try {
+      val c = try {
         ctx(name)
       } catch {
         case e: NoSuchElementException => sys.error("No element " + name + " found in context " + ctx)
@@ -243,47 +178,11 @@ object PlanConverter {
       }.toArray
       val combinedRow = t.flatMap(row => row.toSeq)
       Seq(Row.fromSeq(combinedRow)).asInstanceOf[T]
-//      val combinedRowMapTest = t.map(row => row.toSeq)
-//      val comparatorX = t(0).get(0)
-//      val comparatorY = t(1).get(0)
-//      val comparatorYTestWithoutGet = t(1)
-//      val x = combinedRow(0)
-//      val y = combinedRow(1)
-//      if(comparatorX.isInstanceOf[mutable.WrappedArray[Any]] && comparatorY.isInstanceOf[mutable.WrappedArray[Any]]) {
-//        val combinedArrays = for{
-//          xField <- x.asInstanceOf[mutable.WrappedArray[Any]]
-//          yField <- y.asInstanceOf[mutable.WrappedArray[Any]]
-//        } yield Row(xField, Seq(yField))
-//        combinedArrays.asInstanceOf[T]
-//      }
-//      else if(comparatorX.isInstanceOf[mutable.WrappedArray[Any]]) {
-//        val j = x.asInstanceOf[mutable.WrappedArray[Any]].map(f => Row(f, y)).toSeq
-//
-//        val z: Row = Row.fromSeq(j)
-//
-//        val r = Row.fromSeq(combinedRow)
-//        j.asInstanceOf[T]
-//      }
-//      else if(comparatorY.isInstanceOf[mutable.WrappedArray[Any]]) {
-//        val j = y.asInstanceOf[mutable.WrappedArray[Any]].map(f => Row(x, f)).toSeq
-//
-//        val z: Row = Row.fromSeq(j)
-//
-//        val r = Row.fromSeq(combinedRow)
-//
-//        if(j.size == 1) {
-//          y.asInstanceOf[mutable.WrappedArray[Any]].map(f => Row(x, Seq(f))).toSeq.asInstanceOf[T]
-//        } else {
-//          j.asInstanceOf[T]
-//        }
-//      } else {
-//        Seq(Row(x, y)).asInstanceOf[T]
-//      }
     case CReduce(in, v, keys, values) =>
       val d1 = convert(in, ctx).asInstanceOf[DataFrame]
-      if(keys.isEmpty) {
+      if (keys.isEmpty) {
         val aggCols = values.map(f => functions.sum(f).alias(f))
-        d1.agg(aggCols.head, aggCols.tail:_*).asInstanceOf[T]
+        d1.agg(aggCols.head, aggCols.tail: _*).asInstanceOf[T]
       } else {
         val output = d1.groupBy(keys.head, keys.tail: _*)
           .agg(functions.sum(values.head).alias(values.head)) //TODO - multiple sum by cols?
@@ -332,7 +231,17 @@ object PlanConverter {
       if (mathComparator(g, convert(e1, ctx).asInstanceOf[Row].get(0), convert(e2, ctx).asInstanceOf[Row].get(0))) {
         true.asInstanceOf[T]
       } else false.asInstanceOf[T]
-    case CIf(cond, e1, e2) => if (convert(cond, ctx)) convert(e1, ctx) else convert(e2.get, ctx)
+    case CIf(cond, e1, e2) =>
+      if (convert(cond, ctx)) {
+        convert(e1, ctx)
+      } else if (e2.isEmpty) {
+        val recordFields = unnestRecord(e1).fields.size
+        //        Seq.empty
+        Seq(Row(Seq.fill(recordFields)(null): _*)).asInstanceOf[T]
+        //        Seq(Row(Seq.empty)).asInstanceOf[T]
+      } else {
+        convert(e2.get, ctx)
+      }
     case EmptySng => getSparkSession.emptyDataFrame.asInstanceOf[T]
     case Constant(e) => Row(e).asInstanceOf[T]
     case CUdf(name, in, tp) =>
@@ -340,7 +249,7 @@ object PlanConverter {
       //Below is temporary, using String in UDF as concatenation
       name match {
         case "Transform" => Row.fromSeq(c1.toSeq.map(f => f.asInstanceOf[String])).asInstanceOf[T]
-        case n@_ =>  Row.fromSeq(c1.toSeq.map(f => f.asInstanceOf[String] + n)).asInstanceOf[T]
+        case n@_ => Row.fromSeq(c1.toSeq.map(f => f.asInstanceOf[String] + n)).asInstanceOf[T]
       }
     case RemoveNulls(e1) =>
       val c1 = convert(e1, ctx).asInstanceOf[DataFrame]
@@ -360,9 +269,9 @@ object PlanConverter {
     case CSelect(_, v, _) => IMap(v.name -> row)
     case InputRef(name, _) => IMap(name -> row)
     case CProject(e1, field) => getProjectionBinding(e1, row)
-    case Variable(name, _) => IMap(name ->  row)
+    case Variable(name, _) => IMap(name -> row)
     case MathOp(_, e1, e2) => getProjectionBinding(e1, row) ++ getProjectionBinding(e2, row)
-    case CUdf(_ ,in, _) => getProjectionBinding(in, row)
+    case CUdf(_, in, _) => getProjectionBinding(in, row)
     case Record(fields) => fields.flatMap(f => getProjectionBinding(f._2, row))
     case CMerge(e1, e2) => getProjectionBinding(e1, row) ++ getProjectionBinding(e2, row)
     case CSng(e1) => getProjectionBinding(e1, row)
@@ -451,7 +360,7 @@ object PlanConverter {
     case BinaryOperator(e) =>
 
       i1.join(i2, condition)
-//      i1.join(i2, processSparkExpression(i1, i2, condition.expr))
+    //      i1.join(i2, processSparkExpression(i1, i2, condition.expr))
 
     //      if(i1.schema.equals(i2.schema) && i1.rdd.subtract(i2.rdd).isEmpty) {
     //        i1.join(i2, condition)
@@ -502,12 +411,12 @@ object PlanConverter {
    *         Also handles a unique case where spark promotes operations of Integer / Long to Double Type
    */
 
-//    private def unnestProjection(prjType: Type, s: String): StructField = StructField(s, prjType match {
-//      case bct: BagCType => SparkArrayType(StructType(Seq(unnestProjection(bct.tp, s))))
-//      case rct: RecordCType => SparkArrayType(getStructDataType(prjType, Some(s)))
-//      case p: PrimitiveType => getStructDataType(p)
-//      case optionType: OptionType => getStructDataType(optionType)
-//    })
+  //    private def unnestProjection(prjType: Type, s: String): StructField = StructField(s, prjType match {
+  //      case bct: BagCType => ArrayType(StructType(Seq(unnestProjection(bct.tp, s))))
+  //      case rct: RecordCType => ArrayType(getStructDataType(prjType, Some(s)))
+  //      case p: PrimitiveType => getStructDataType(p)
+  //      case optionType: OptionType => getStructDataType(optionType)
+  //    })
 
   private def createStructFields(p: CExpr, isNesting: Boolean = false): StructType = p match {
     case Record(fields) =>
@@ -538,9 +447,8 @@ object PlanConverter {
     case StringType => DataTypes.StringType
     case DoubleType => DataTypes.DoubleType
     case LongType => DataTypes.LongType
-    case ArrayCType(tp) => SparkArrayType(getStructDataType(tp))
     case BagCType(tp) =>
-      val ttype = SparkArrayType(StructType(tp.attrs.map(f => StructField(f._1, getStructDataType(f._2, Some(f._1)))).toSeq))
+      val ttype = ArrayType(StructType(tp.attrs.map(f => StructField(f._1, getStructDataType(f._2, Some(f._1)))).toSeq))
       ttype
     case RecordCType(fields) =>
       val k =
@@ -550,7 +458,7 @@ object PlanConverter {
           case _: NoSuchElementException => sys.error("No element " + s + " in " + fields)
         }
       getStructDataType(k, s)
-//    case RecordCType(fields) => StructType(fields.map(f => StructField(f._1, getStructDataType(f._2))).toSeq)
+    //    case RecordCType(fields) => StructType(fields.map(f => StructField(f._1, getStructDataType(f._2))).toSeq)
     case OptionType(tp) => getStructDataType(tp)
     case s@_ => sys.error("Unhandled struct type: " + s)
   }
@@ -560,6 +468,7 @@ object PlanConverter {
     case MathOp(_, m: MathOp, m2: MathOp) => checkDivisionExists(m) || checkDivisionExists(m2)
     case _ => false
   }
+
   /**
    * Self Joins will not rename have duplicate columns renamed in JoinCondContext if they come from the same WrappedDataframe.
    * Those columns manually have suffixes appended here.
@@ -713,14 +622,15 @@ object PlanConverter {
     }
   }
 
-//  def equiJoin(left: DataFrame, right: DataFrame, leftCols: Seq[String], rightCols: Seq[String], joinType: String): DataFrame = {
-//
-//    var cond: Column = col(leftCols(0)) === col(rightCols(0))
-//    if (leftCols.size > 1) cond = (cond) && (col(leftCols(1)) === col(rightCols(1)))
-//
-//    val out = left.join(right, cond, joinType)
-//
-//    out
-//
-//  }
+  // For If in the value of a Nest
+  private def unnestRecord(c: CExpr): Record = c match {
+    case r: Record => r
+    case i: CIf => unnestRecord(i.e1)
+    case s: CSng => unnestRecord(s.e1)
+  }
+  private def addMonotonicId(name: String, r: CExpr, v: Variable): CExpr = r match {
+    case i:CIf => CIf(i.cond, addMonotonicId(name, i.e1, v), None)
+    case s: CSng => addMonotonicId(name, s.e1, v)
+    case r: Record => Record(r.fields + (name -> CProject(Variable(v.name, RecordCType(v.tp.attrs + (name -> LongType))), name)))
+  }
 }

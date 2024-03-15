@@ -1,6 +1,6 @@
 package uk.ac.ox.cs.trance
 
-import framework.common.{ArrayType, BagType, BoolType, DoubleType, IntType, LongType, StringType, TupleAttributeType, TupleType}
+import framework.common.{BagType, BoolType, DoubleType, IntType, LongType, StringType, TupleAttributeType, TupleType}
 import framework.plans.{BaseNormalizer, CExpr, Finalizer, NRCTranslator, Printer, Unnester}
 import org.apache.spark.sql.functions.lit
 import org.apache.spark.sql.types.{AbstractDataType, DataType, DataTypes, IntegerType, StructField, StructType, ArrayType => SparkArrayType}
@@ -62,26 +62,14 @@ trait WrappedCollection extends TraversableRep with NRCTranslator {
       Map(this, fun)
   }
 
-  def flatMap(f: Sym => TraversableRep): WrappedCollection = {
+  def flatMap(f: Sym => TraversableRep): FlatMap = {
     val symID = utilities.Symbol.fresh()
-      val sym = Sym(symID, schema)
+    val sym = Sym(symID, schema)
       val out = f(sym)
       val fun = Fun(sym, out)
       FlatMap(this, fun)
 
   }
-
-//  private def getNestedRelatedColumns(w: Rep): Seq[RepElem] = w match {
-//    case r: RepElem => Seq(r)
-//    case w: Wrapper => Seq.empty
-//    case FlatMap(self, Fun(in, out)) => getNestedRelatedColumns(self) ++ getNestedRelatedColumns(out)
-//    case As(e1, str) => (getNestedRelatedColumns(e1))
-//    case Sym(rows) => rows.flatMap(f => getNestedRelatedColumns(f))
-//    case RepRowInst(vals) => vals.flatMap(f => getNestedRelatedColumns(f))
-//    case If(cond, thenBranch, elseBranch) => getNestedRelatedColumns(cond) ++ getNestedRelatedColumns(thenBranch) ++ getNestedRelatedColumns(elseBranch)
-//    case Equality(lhs, rhs) => getNestedRelatedColumns(lhs) ++ getNestedRelatedColumns(rhs)
-//  }
-
   def union(df: WrappedCollection): WrappedCollection = {
     Merge(this, df)
   }
