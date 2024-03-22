@@ -8,6 +8,7 @@ import uk.ac.ox.cs.trance.utilities.TPCHDataframes.{Customer => CustomerDF, Line
 import uk.ac.ox.cs.trance.utilities._
 import Wrapper.DataFrameImplicit
 
+// Can't run in sequence - each 'it' test case must be run individually
 class LibraryCompilerComparisonTests extends AnyFunSpec with BeforeAndAfterEach with Serializable {
 
   val customer = CustomerDF
@@ -105,7 +106,6 @@ class LibraryCompilerComparisonTests extends AnyFunSpec with BeforeAndAfterEach 
       assertDataFramesAreEquivalent(gen, lib)
     }
 
-    // Projecting base tuple of LineItem contains extraenous uniqueId column, circumvented by using omit() on uniqueId in query
     it("Test1Full") {
       val gen = GeneratedCodeTests.Test1Full().drop("Order_index").toDF()
       val lib = LibraryFlatToNestedTests.Test1Full()
@@ -202,7 +202,7 @@ class LibraryCompilerComparisonTests extends AnyFunSpec with BeforeAndAfterEach 
       assertDataFramesAreEquivalent(gen, lib)
     }
 
-    it("Test4Flat") {
+    it("Test4Flat") { // Error
       val gen = GeneratedCodeTests.Test4Flat().drop("Region_index").toDF()
       Symbol.freshClear()
       val lib = LibraryFlatToNestedTests.Test4Flat()
@@ -213,7 +213,7 @@ class LibraryCompilerComparisonTests extends AnyFunSpec with BeforeAndAfterEach 
       assertDataFramesAreEquivalent(gen, lib)
     }
 
-    it("Test4FullFlat") {
+    it("Test4FullFlat") { // Error
       val gen = GeneratedCodeTests.Test4FullFlat().drop("Region_index").toDF()
       Symbol.freshClear()
       val lib = LibraryFlatToNestedTests.Test4FullFlat()
@@ -277,6 +277,8 @@ class LibraryCompilerComparisonTests extends AnyFunSpec with BeforeAndAfterEach 
       val gen = GeneratedCodeTests.Test3Join().drop("Nation_index").toDF()
       Symbol.freshClear()
       val lib = LibraryFlatToNestedTests.Test3Join()
+      gen.show(false)
+      lib.show(false)
 
       assertDataFramesAreEquivalent(gen, lib)
     }
@@ -300,7 +302,7 @@ class LibraryCompilerComparisonTests extends AnyFunSpec with BeforeAndAfterEach 
       assertDataFramesAreEquivalent(gen, lib)
     }
 
-    it("Test4JoinFlat") {
+    it("Test4JoinFlat") { // Error
       val gen = GeneratedCodeTests.Test4JoinFlat().drop("Region_index").toDF()
       Symbol.freshClear()
       val lib = LibraryFlatToNestedTests.Test4JoinFlat()
@@ -320,9 +322,11 @@ class LibraryCompilerComparisonTests extends AnyFunSpec with BeforeAndAfterEach 
     }
 
     it("TestFN1") {
-      val gen = GeneratedCodeTests.TestFN1().toDF()
-      Symbol.freshClear()
       val lib = LibraryFlatToNestedTests.TestFN1()
+      Symbol.freshClear()
+      val gen = GeneratedCodeTests.TestFN1().drop("Supplier_index").toDF()
+      lib.show(false)
+      gen.show(false)
 
       assertDataFramesAreEquivalent(gen, lib)
     }

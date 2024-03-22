@@ -980,6 +980,7 @@ object GeneratedCodeTests {
     }.as[Recordc7841ef1c4fd4069a4baa2f6feae3d68]
 
     x379
+    
   }
   def Test4Full() = {
     val x510 = RegionDF
@@ -1190,7 +1191,78 @@ object GeneratedCodeTests {
         Recordc290b62937e04f33a451c67c1fe54572(key.c_acctbal, key.c_name, key.Customer_index, key.c_nationkey, key.c_custkey, key.c_comment, key.c_address, grp, key.c_mktsegment, key.c_phone)
     }.as[Recordc290b62937e04f33a451c67c1fe54572]
 
-    x449
+    val x450 = x449
+    val customers = x450
+    //customers.cache
+    //customers.count
+    val x452 = NationDF
+
+
+    val x453 = x452.withColumn("Nation_index", monotonically_increasing_id())
+      .as[Recorde680f8be4fb24f2bb9cb511187ef18c2]
+
+    val x455 = customers
+
+
+    val x458 = x453.equiJoin(x455,
+      Seq("n_nationkey"), Seq("c_nationkey"), "left_outer").as[Record157c64cace414be0921ad5a1dee2ca9f]
+
+    val x460 = x458
+
+
+    val x462 = x460.groupByKey(x461 => Recorde680f8be4fb24f2bb9cb511187ef18c2(x461.n_regionkey, x461.n_nationkey, x461.n_name, x461.Nation_index, x461.n_comment)).mapGroups {
+      case (key, value) =>
+        val grp = value.flatMap(x461 =>
+          (x461.c_orders, x461.c_custkey, x461.c_name, x461.c_comment, x461.c_address, x461.c_phone, x461.c_acctbal, x461.c_nationkey, x461.c_mktsegment) match {
+            case (None, _, _, _, _, _, _, _, _) => Seq()
+            case (_, None, _, _, _, _, _, _, _) => Seq()
+            case (_, _, None, _, _, _, _, _, _) => Seq()
+            case (_, _, _, None, _, _, _, _, _) => Seq()
+            case (_, _, _, _, None, _, _, _, _) => Seq()
+            case (_, _, _, _, _, None, _, _, _) => Seq()
+            case (_, _, _, _, _, _, None, _, _) => Seq()
+            case (_, _, _, _, _, _, _, None, _) => Seq()
+            case (_, _, _, _, _, _, _, _, None) => Seq()
+            case _ => Seq(Record4e116728ba364e05adffb1a3bbda6d4c(x461.c_acctbal match { case Some(x) => x; case _ => 0.0 }, x461.c_name match { case Some(x) => x; case _ => "null" }, x461.c_nationkey match { case Some(x) => x; case _ => 0 }, x461.c_custkey match { case Some(x) => x; case _ => 0 }, x461.c_comment match { case Some(x) => x; case _ => "null" }, x461.c_address match { case Some(x) => x; case _ => "null" }, x461.c_orders match { case Some(x) => x; case _ => null }, x461.c_mktsegment match { case Some(x) => x; case _ => "null" }, x461.c_phone match { case Some(x) => x; case _ => "null" }))
+          }).toSeq
+        Record0eb4ff9b90a545ef91265cfeeaf38cbf(key.n_regionkey, key.n_nationkey, grp, key.n_name, key.Nation_index, key.n_comment)
+    }.as[Record0eb4ff9b90a545ef91265cfeeaf38cbf]
+
+    val x463 = x462
+    val nations = x463
+    //nations.cache
+    //nations.count
+    val x465 = RegionDF
+
+
+    val x466 = x465.withColumn("Region_index", monotonically_increasing_id())
+      .as[Recordd7af713154d4408eb3b8140ea8041f89]
+
+    val x468 = nations
+
+
+    val x471 = x466.equiJoin(x468,
+      Seq("r_regionkey"), Seq("n_regionkey"), "left_outer").as[Recorde6a7e78a4d174a278ed01fc3d2207e86]
+
+    val x473 = x471
+
+
+    val x475 = x473.groupByKey(x474 => Recordd7af713154d4408eb3b8140ea8041f89(x474.r_regionkey, x474.r_name, x474.r_comment, x474.Region_index)).mapGroups {
+      case (key, value) =>
+        val grp = value.flatMap(x474 =>
+          (x474.n_regionkey, x474.n_comment, x474.n_name, x474.n_nationkey, x474.n_custs) match {
+            case (None, _, _, _, _) => Seq()
+            case (_, None, _, _, _) => Seq()
+            case (_, _, None, _, _) => Seq()
+            case (_, _, _, None, _) => Seq()
+            case (_, _, _, _, None) => Seq()
+            case _ => Seq(Record9e542271bf7c45aba93606d6672f05c6(x474.n_regionkey match { case Some(x) => x; case _ => 0 }, x474.n_nationkey match { case Some(x) => x; case _ => 0 }, x474.n_custs match { case Some(x) => x; case _ => null }, x474.n_name match { case Some(x) => x; case _ => "null" }, x474.n_comment match { case Some(x) => x; case _ => "null" }))
+          }).toSeq
+        Recordd5bc602de1ae4e4fa6d7d5be8e17eb78(key.r_regionkey, key.r_comment, grp, key.r_name, key.Region_index)
+    }.as[Recordd5bc602de1ae4e4fa6d7d5be8e17eb78]
+
+    val x476 = x475
+    x475
   }
 def Test0Join() = {
   val x0 = LineItemDF.as[Lineitem]
@@ -1909,7 +1981,44 @@ def Test3Join() = {
       .withColumn("c_suppkey", when(col("c_suppkey").isNull, 0).otherwise(col("c_suppkey")))
       .as[Record4394225410284bcdae14689cda257701]
 
-    x1080
+    val x1081 = x1080
+
+    val csupps = x1081
+    //csupps.cache
+    //csupps.count
+    val x1083 = SupplierDF.select("s_nationkey", "s_suppkey", "s_name")
+
+      .as[Record754e63e9ec8d402ea3ed3561e922cb85]
+
+    val x1084 = x1083.withColumn("Supplier_index", monotonically_increasing_id())
+      .as[Record3b786cf153e74dc2a094168e5d60532c]
+
+    val x1086 = csupps
+
+
+    val x1089 = x1084.equiJoin(x1086,
+      Seq("s_suppkey"), Seq("c_suppkey"), "left_outer").as[Record18d97207173344caaa41993384fbc999]
+
+    val x1091 = x1089.select("o_orderdate", "l_quantity", "s_nationkey", "Supplier_index", "c_name", "s_name", "c_nationkey", "l_partkey")
+
+      .as[Recorde10b909fd9b24546879d199fe6c1d69f]
+
+    val x1093 = x1091.groupByKey(x1092 => Record7f55cef7be024fe698b74cc925ee5b00(x1092.s_nationkey, x1092.Supplier_index, x1092.s_name)).mapGroups {
+      case (key, value) =>
+        val grp = value.flatMap(x1092 =>
+          (x1092.c_name, x1092.l_quantity, x1092.l_partkey, x1092.o_orderdate, x1092.c_nationkey) match {
+            case (None, _, _, _, _) => Seq()
+            case (_, None, _, _, _) => Seq()
+            case (_, _, None, _, _) => Seq()
+            case (_, _, _, None, _) => Seq()
+            case (_, _, _, _, None) => Seq()
+            case _ => Seq(Record3744d055ec724edfbc4b75806b9c28c0(x1092.o_orderdate match { case Some(x) => x; case _ => "null" }, x1092.l_quantity match { case Some(x) => x; case _ => 0.0 }, x1092.c_name match { case Some(x) => x; case _ => "null" }, x1092.c_nationkey match { case Some(x) => x; case _ => 0 }, x1092.l_partkey match { case Some(x) => x; case _ => 0 }))
+          }).toSeq
+        Record4345a1a63c4b4f04a00c36ade48077d4(grp, key.s_nationkey, key.Supplier_index, key.s_name)
+    }.as[Record4345a1a63c4b4f04a00c36ade48077d4]
+
+    val x1094 = x1093
+    x1094
   }
   def TestFN2() = {
     val x1131 = OrderDF.as[Order].equiJoin(CustomerDF.as[Customer],

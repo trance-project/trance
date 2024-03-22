@@ -4,13 +4,13 @@ import uk.ac.ox.cs.trance.utilities.SparkUtil.getSparkSession
 import framework.common.{BagCType, BagType, BoolType, DoubleType, IntType, LongType, OpArithmetic, OpDivide, OpMinus, OpMod, OpMultiply, OpPlus, OptionType, PrimitiveType, RecordCType, StringType, TupleAttributeType, TupleType, Type}
 import framework.plans.{AddIndex, And, CDeDup, CExpr, COption, CUdf, Comprehension, Constant, EmptySng, Equals, Gt, Gte, InputRef, Lt, Lte, MathOp, Nest, Not, Or, OuterJoin, OuterUnnest, Projection, Record, RemoveNulls, Unnest, Variable, If => CIf, Join => CJoin, Merge => CMerge, Project => CProject, Reduce => CReduce, Select => CSelect, Sng => CSng}
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
-import org.apache.spark.sql.catalyst.expressions.{BinaryOperator, EqualTo, Expression, GenericRow, GenericRowWithSchema, And => SparkAnd, GreaterThan => SparkGreaterThan, GreaterThanOrEqual => SparkGreaterThanOrEqual, LessThan => SparkLessThan, LessThanOrEqual => SparkLessThanOrEqual, Literal => SparkLiteral, Not => SparkNot, Or => SparkOr}
+import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, BinaryOperator, EqualTo, Expression, GenericRow, GenericRowWithSchema, And => SparkAnd, GreaterThan => SparkGreaterThan, GreaterThanOrEqual => SparkGreaterThanOrEqual, LessThan => SparkLessThan, LessThanOrEqual => SparkLessThanOrEqual, Literal => SparkLiteral, Not => SparkNot, Or => SparkOr}
 import org.apache.spark.sql.functions.{array, col, collect_list, expr, lit, monotonically_increasing_id, struct, when}
 import org.apache.spark.sql.types.{ArrayType, DataType, DataTypes, StructField, StructType}
 import org.apache.spark.sql.{Column, DataFrame, Dataset, Encoder, Row, functions, types}
+
 import scala.annotation.tailrec
 import scala.collection.immutable.{Map => IMap}
-
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
@@ -27,6 +27,8 @@ object PlanConverter {
       val outputSchema = createStructFields(p, false)
       val c1 = convert(e1, ctx).asInstanceOf[DataFrame]
 
+//      c1.show(false)
+
       val l = c1.flatMap { z =>
         convert(p, ctx ++ getProjectionBinding(p, z)).asInstanceOf[Seq[Row]]
       }(RowEncoder.apply(outputSchema))
@@ -37,7 +39,6 @@ object PlanConverter {
 
       val commonKey = "rowId"
       val updatedC1WithId = c1.withColumn(commonKey, monotonically_increasing_id())
-
 
       val valueWithMonotonicId = addMonotonicId(commonKey, value, v)
       val outputSchema = createStructFields(valueWithMonotonicId)
@@ -50,16 +51,16 @@ object PlanConverter {
 
       val updatedC1WithIdAndDroppedCols = updatedC1WithId.drop(nestingCols.map(_.toString()): _*)
 
-      val joinedDf = updatedC1WithIdAndDroppedCols.join(l, l.col(commonKey) === updatedC1WithIdAndDroppedCols.col(commonKey), "left_outer")
+      val joinedDf = updatedC1WithIdAndDroppedCols.join(l, l.col(commonKey) === updatedC1WithIdAndDroppedCols.col(commonKey), "left_outer").drop(commonKey)
 
-      val structExpr = when(nestingCols.head.isNotNull && nestingCols(1).isNotNull, struct(nestingCols: _*)) // TODO Refine this
+      val allColsNotNull: Column = nestingCols.map(_.isNotNull).reduce(_ && _)
 
+      val structExpr = when(allColsNotNull, struct(nestingCols: _*))
 
       val groupByKeys = key.map(col)
       val sf = joinedDf
         .groupBy(groupByKeys: _*)
         .agg(collect_list(structExpr).as(ctag))
-
 
       sf.asInstanceOf[T]
     case u@Unnest(in, v, path, v2, filter, fields) => // New way
@@ -93,7 +94,6 @@ object PlanConverter {
       val c = toSparkCond(cond)
 
       val joined = i1.join(i2, c, "left_outer")
-
       joined.asInstanceOf[T]
     case CJoin(left, v, right, v2, cond, fields) =>
       val i1 = convert(left, ctx).asInstanceOf[DataFrame]

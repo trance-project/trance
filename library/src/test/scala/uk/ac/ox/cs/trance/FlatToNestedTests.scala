@@ -12,7 +12,7 @@ class FlatToNestedTests extends AnyFunSpec with BeforeAndAfterEach with Serializ
     Symbol.freshClear()
     JoinContext.freshClear()
     super.afterEach()
-spark
+    spark
   }
 
   describe("FlatToNested") {
@@ -523,16 +523,18 @@ object LibraryFlatToNestedTests {
 
   def Test2Join() = {
     wrappedCustomer.flatMap { cr =>
-      RepSeq(RepRow(cr("c_name"), "c_orders" -> wrappedOrder.map { o =>
-        RepRow("orderdate" -> o("o_orderdate"), "o_parts" -> wrappedLineItem.flatMap { l =>
-          IfThen(o("o_orderkey") === l("l_orderkey")) {
-            wrappedPart.flatMap { p =>
-              IfThen(l("l_partkey") === p("p_partkey")) {
-                RepSeq(RepRow("p_name" -> p("p_name"), "l_qty" -> l("l_quantity")))
+      RepSeq(RepRow(cr("c_name"), "c_orders" -> wrappedOrder.flatMap { o =>
+        IfThen(cr("c_custkey") === o("o_custkey")) {
+          RepSeq(RepRow("orderdate" -> o("o_orderdate"), "o_parts" -> wrappedLineItem.flatMap { l =>
+            IfThen(o("o_orderkey") === l("l_orderkey")) {
+              wrappedPart.flatMap { p =>
+                IfThen(l("l_partkey") === p("p_partkey")) {
+                  RepSeq(RepRow("p_name" -> p("p_name"), "l_qty" -> l("l_quantity")))
+                }
               }
             }
-          }
-        })
+          }))
+        }
       }))
     }.leaveNRC()
   }
@@ -567,17 +569,21 @@ object LibraryFlatToNestedTests {
     wrappedNation.flatMap { nr =>
       RepSeq(RepRow(
         nr("n_name"), "n_custs" -> wrappedCustomer.flatMap { cr =>
-          RepSeq(RepRow(cr("c_name"), "c_orders" -> wrappedOrder.map { o =>
-            RepRow("orderdate" -> o("o_orderdate"), "o_parts" -> wrappedLineItem.flatMap { l =>
-              IfThen(o("o_orderkey") === l("l_orderkey")) {
-                wrappedPart.flatMap { p =>
-                  IfThen(l("l_partkey") === p("p_partkey")) {
-                    RepSeq(RepRow("p_name" -> p("p_name"), "l_qty" -> l("l_quantity")))
+          IfThen(nr("n_nationkey") === cr("c_nationkey")) {
+            RepSeq(RepRow(cr("c_name"), "c_orders" -> wrappedOrder.flatMap { o =>
+              IfThen(cr("c_custkey") === o("o_custkey")) {
+                RepSeq(RepRow("orderdate" -> o("o_orderdate"), "o_parts" -> wrappedLineItem.flatMap { l =>
+                  IfThen(o("o_orderkey") === l("l_orderkey")) {
+                    wrappedPart.flatMap { p =>
+                      IfThen(l("l_partkey") === p("p_partkey")) {
+                        RepSeq(RepRow("p_name" -> p("p_name"), "l_qty" -> l("l_quantity")))
+                      }
+                    }
                   }
-                }
+                }))
               }
-            })
-          }))
+            }))
+          }
         }))
     }.leaveNRC()
   }
@@ -619,19 +625,21 @@ object LibraryFlatToNestedTests {
   def Test4Join() = {
     wrappedRegion.flatMap { rr =>
       RepSeq(RepRow(rr("r_name"), "r_nations" -> wrappedNation.flatMap { nr =>
-        RepSeq(RepRow(nr("n_name"), "n_custs" -> wrappedCustomer.flatMap { cr =>
-          RepSeq(RepRow(cr("c_name"), "c_orders" -> wrappedOrder.map { o =>
-            RepRow("orderdate" -> o("o_orderdate"), "o_parts" -> wrappedLineItem.flatMap { l =>
-              IfThen(o("o_orderkey") === l("l_orderkey")) {
-                wrappedPart.flatMap { p =>
-                  IfThen(l("l_partkey") === p("p_partkey")) {
-                    RepSeq(RepRow("p_name" -> p("p_name"), "l_qty" -> l("l_quantity")))
-                  }
+        IfThen(nr("n_regionkey") === rr("r_regionkey")) {
+          RepSeq(RepRow(nr("n_name"), "n_custs" -> wrappedCustomer.flatMap { cr =>
+            IfThen(nr("n_nationkey") === cr("c_nationkey")) {
+              RepSeq(RepRow(cr("c_name"), "c_orders" -> wrappedOrder.flatMap { o =>
+                IfThen(cr("c_custkey") === o("o_custkey")) {
+                  RepSeq(RepRow("orderdate" -> o("o_orderdate"), "o_parts" -> wrappedLineItem.flatMap { l =>
+                    IfThen(o("o_orderkey") === l("l_orderkey")) {
+                      RepSeq(RepRow("p_name" -> l("l_partkey"), "l_qty" -> l("l_quantity")))
+                    }
+                  }))
                 }
-              }
-            })
+              }))
+            }
           }))
-        }))
+        }
       }))
     }.leaveNRC()
   }

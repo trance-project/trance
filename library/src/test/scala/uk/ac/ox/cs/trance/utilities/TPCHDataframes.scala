@@ -303,7 +303,9 @@ lazy val MixedCOP: DataFrame = {
     val data = Seq(
       Row(1, "Nation1", 1, "Comment1"),
       Row(2, "Nation2", 2, "Comment2"),
-      Row(3, "Nation3", 3, "Comment3")
+      Row(3, "Nation3", 3, "Comment3"),
+      Row(4, "Nation4", 4, "Comment4"),
+
     )
 
     spark.createDataFrame(spark.sparkContext.parallelize(data), nationSchema)
